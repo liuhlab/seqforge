@@ -1,0 +1,199 @@
+"""Unit tests for the ``seqforge.models`` single source of truth."""
+
+from __future__ import annotations
+
+import pytest
+from pydantic import ValidationError
+
+from seqforge import models as m
+
+HEX64 = "a" * 64
+
+
+def _valid_manifest() -> m.Manifest:
+    """Build a minimal, fully valid manifest (a §12-shaped 10x 3' v3 worm dataset)."""
+    read_layout = m.ReadLayout(
+        modality="rna",
+        reads=[
+            m.ReadDef(
+                read_id="R1",
+                strand="pos",
+                min_len=28,
+                max_len=28,
+                elements=[
+                    m.ReadElement(
+                        role="CB",
+                        region_type="barcode",
+                        start=0,
+                        length=16,
+                        onlist_ref="3M-february-2018",
+                    ),
+                    m.ReadElement(role="UMI", region_type="umi", start=16, length=12),
+                ],
+            ),
+            m.ReadDef(
+                read_id="R2",
+                strand="pos",
+                min_len=25,
+                max_len=91,
+                elements=[m.ReadElement(role="cDNA", region_type="cdna", start=0)],
+            ),
+        ],
+    )
+    library = m.LibrarySection(
+        assay=m.EvidencedAssay(value="EFO:0009922", basis="observed", confidence=0.9, rung=3),
+        # equivalence class: benign twins recorded together, not silently picked
+        chemistry=m.EvidencedChemistrySet(
+            value=["10x-3p-gex-v3", "10x-3p-gex-v3.1"], basis="observed", confidence=0.98, rung=3
+        ),
+        read_layout=m.EvidencedReadLayout(
+            value=read_layout, basis="observed", confidence=0.95, rung=2
+        ),
+        onlists=[
+            m.Onlist(
+                name="3M-february-2018",
+                uri="onlists/3M-february-2018.txt",
+                sha256=HEX64,
+                length=16,
+                orientation_hint="forward",
+                n_entries=6_794_880,
+            ),
+        ],
+        files=[
+            m.FileInventoryItem(
+                uri="reads/SRR000_1.fastq.gz",
+                basename="SRR000_1.fastq.gz",
+                sha256=HEX64,
+                size_bytes=123,
+                read_id=m.EvidencedStr(value="R1", basis="observed", confidence=0.99, rung=2),
+            ),
+            m.FileInventoryItem(
+                uri="reads/SRR000_2.fastq.gz",
+                basename="SRR000_2.fastq.gz",
+                sha256=HEX64,
+                size_bytes=456,
+                read_id=m.EvidencedStr(value="R2", basis="observed", confidence=0.99, rung=2),
+            ),
+        ],
+    )
+    experiment = m.ExperimentSection(
+        organism=m.EvidencedTaxid(value=6239, basis="asserted", confidence=0.9, rung=0),
+        accessions=m.EvidencedAccessionList(
+            value=["PRJNA1027859"], basis="asserted", confidence=1.0, rung=0
+        ),
+        samples=[
+            m.SampleGroup(
+                sample_id="s1", file_uris=["reads/SRR000_1.fastq.gz", "reads/SRR000_2.fastq.gz"]
+            )
+        ],
+    )
+    processing = m.ProcessingSection(
+        genome=m.EvidencedGenome(
+            value=m.GenomeRef(assembly="ce11", annotation_name="WS298", ncbi_taxid=6239),
+            basis="inferred",
+            confidence=0.9,
+            rung=0,
+        ),
+        aligner=m.EvidencedStr(value="starsolo", basis="inferred", confidence=1.0, rung=0),
+        quantification=m.EvidencedStr(value="gene", basis="inferred", confidence=1.0, rung=0),
+        variant_calling=m.EvidencedBool(value=False, basis="inferred", confidence=1.0, rung=0),
+        environment=m.EvidencedRuntimeEnv(
+            value="align-rna", basis="inferred", confidence=1.0, rung=0
+        ),
+    )
+    return m.Manifest(
+        library=library,
+        experiment=experiment,
+        processing=processing,
+        provenance=m.Provenance(
+            manifest_hash=HEX64,
+            kb_version="0.1",
+            workflow_version="0.1",
+            seqforge_version="2026.7.0",
+        ),
+    )
+
+
+def test_manifest_round_trips_through_json() -> None:
+    man = _valid_manifest()
+    again = m.Manifest.model_validate_json(man.model_dump_json())
+    assert again == man
+
+
+def test_chemistry_is_an_equivalence_class() -> None:
+    man = _valid_manifest()
+    assert man.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
+
+
+@pytest.mark.parametrize(
+    "bad_uri",
+    [
+        "/scratch/zhoulab/x.fastq.gz",
+        "~/data/x.fastq.gz",
+        "C:\\reads\\x.fastq.gz",
+        "\\\\host\\share\\x",
+        "file:///abs/x.fastq.gz",
+    ],
+)
+def test_uri_rejects_absolute_and_local_paths(bad_uri: str) -> None:
+    with pytest.raises(ValidationError):
+        m.FileInventoryItem(uri=bad_uri, basename="x", sha256=HEX64, size_bytes=1)
+
+
+@pytest.mark.parametrize(
+    "ok_uri", ["reads/x.fastq.gz", "https://ftp.ena/x.fastq.gz", "s3://bucket/x", "SRR12345"]
+)
+def test_uri_accepts_relative_and_scheme_uris(ok_uri: str) -> None:
+    item = m.FileInventoryItem(uri=ok_uri, basename="x", sha256=HEX64, size_bytes=1)
+    assert item.uri == ok_uri
+
+
+def test_segment_discriminated_union_dispatches_on_kind() -> None:
+    obs_segments = [
+        {"kind": "constant", "start": 22, "end": 44, "consensus": "GAGT", "purity": 0.98},
+        {"kind": "random", "start": 0, "end": 16, "mean_entropy_bits": 1.99},
+        {"kind": "homopolymer", "base": "T", "start": 44, "end": 60, "mean_run": 15.0},
+    ]
+    parsed = [
+        m.ConstantSegment.model_validate(obs_segments[0]),
+        m.RandomSegment.model_validate(obs_segments[1]),
+        m.HomopolymerSegment.model_validate(obs_segments[2]),
+    ]
+    assert [s.kind for s in parsed] == ["constant", "random", "homopolymer"]
+
+
+def test_evidenced_is_frozen() -> None:
+    ev = m.EvidencedStr(value="starsolo", basis="inferred", confidence=1.0, rung=0)
+    with pytest.raises(ValidationError):
+        ev.value = "bwa"  # type: ignore[misc]
+
+
+def test_accession_pattern_accepts_ena_and_ddbj() -> None:
+    for acc in ["SRR123", "ERR456", "DRR789", "GSE1", "PRJNA1027859", "SAMEA123", "SAMD456"]:
+        m.ExperimentSection(
+            organism=m.EvidencedTaxid(value=6239, basis="asserted", confidence=1.0, rung=0),
+            accessions=m.EvidencedAccessionList(
+                value=[acc], basis="asserted", confidence=1.0, rung=0
+            ),
+            samples=[],
+        )
+
+
+def test_schema_export_covers_every_registered_model() -> None:
+    for name in m.SCHEMA_MODELS:
+        schema = m.export_schema(name)
+        assert schema["title"] == name
+    assert m.LLM_FACING.issubset(
+        set(m.SCHEMA_MODELS) | {"ArbitrationRequest", "ArbitrationResponse"}
+    )
+
+
+def test_export_all_includes_manifest_and_defs() -> None:
+    allschemas = m.export_all()
+    assert "Manifest" in allschemas
+    assert "$defs" in allschemas["Manifest"]
+
+
+def test_export_schema_unknown_model_raises() -> None:
+    with pytest.raises(KeyError):
+        m.export_schema("NotAModel")

@@ -1,0 +1,98 @@
+schema_version: 1
+
+identity:
+  id: 10x-3p-gex-v3
+  version: "3"
+  name: "10x Chromium Single Cell 3' Gene Expression v3"
+  aliases: ["10x 3' v3", "Chromium 3' v3", "SC3Pv3", "single cell 3-prime v3"]
+  assay_ontology: ["EFO:0009922"]        # FLAG: verify exact EFO id before shipping
+  modality: rna
+
+reads:
+  # R1 = the technical/barcode read. 28 bp = 16 CB + 12 UMI.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 28
+    max_len: 28
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
+  # R2 = cDNA (open-ended). soloStrand Forward: R2 is sense to mRNA for 3' kits.
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists:
+  cb_whitelist:                 # used by backend + a supports test
+    registry: 3M-february-2018  # ~6,794,880 x 16 bp, forward orientation
+    role: cell_barcode
+    expected_orientation: forward
+  arc_v1_probe:                 # probe-only, used ONLY by the exclude anti-gate
+    registry: 737K-arc-v1       # Multiome (ARC) GEX list
+    role: cell_barcode
+    expected_orientation: forward
+
+signature:
+  requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
+    - {test: read_count, roles: 2}
+    - {test: segment_length, read: R1, length: 28, tolerance: 0}
+    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
+    - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
+  supports:                     # additive evidence (rung 3+)
+    - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0
+    - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
+      weight: 2.0               # CB recurs -> low distinct ratio
+    - when: {test: distinct_ratio, read: R1, start: 16, end: 28, expect: high}
+      weight: 1.0               # UMI ~ unique -> high distinct ratio
+    - when: {test: header_index, present: true}
+      weight: 0.2
+  excludes:                     # anti-gate: if the Multiome list hits, it's not 3' GEX
+    - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: arc_v1_probe, orientation: forward, min: 0.6}
+
+backend:
+  module: map/starsolo
+  params:                       # chemistry-defining MINIMUM (CellRanger-parity knobs come from processing policy)
+    soloType: CB_UMI_Simple
+    soloCBstart: 1
+    soloCBlen: 16
+    soloUMIstart: 17
+    soloUMIlen: 12
+    soloCBwhitelist: "{onlist:cb_whitelist}"
+    soloStrand: Forward
+    soloFeatures: [Gene]
+
+confusable_with:
+  - id: 10x-3p-gex-v3.1
+    relationship: processing_equivalent
+    distinguishable_by: [none]
+    note: >
+      Identical 16+12=28 bp geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo
+      params -> §12 benign: the resolver records both ids and asks 0 questions.
+  - id: 10x-multiome-gex
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Same 28 bp geometry, but Multiome (ARC) GEX uses 737K-arc-v1, not 3M-february-2018. Rung-3
+      onlist check separates them; backend params differ only in soloCBwhitelist.
+  - id: 10x-gemx-3p-v4
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      REQUIRED declaration: GEM-X 3' v4 shares the 28 bp / 16+12 geometry and is separable only by
+      its newer whitelist. Without this entry the flagship fails the CI under-declaration check.
+  - id: 10x-5p-gex
+    relationship: processing_divergent
+    distinguishable_by: [metadata, alignment]
+    note: >
+      5' chemistry reads antisense cDNA -> soloStrand Reverse. Read-undecidable when geometry and
+      whitelist coincide; metadata (rung 0) or alignment (rung 6) resolves it.
+
+decidable_by: [onlist, metadata, alignment]   # CI-computed union over the divergent confusables

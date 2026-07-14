@@ -1,0 +1,147 @@
+[project]
+name = "seqforge"
+description = "Compile arbitrary FASTQ + messy metadata into a validated, machine-independent sequencing library manifest and a runnable Snakemake config."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Liu Lab" }]
+keywords = ["bioinformatics", "single-cell", "fastq", "snakemake", "manifest"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Typing :: Typed",
+]
+# CalVer YYYY.M.PATCH (patch resets each month), set statically here and mirrored in CHANGELOG.md —
+# same scheme as the sibling repos.
+version = "2026.7.0"
+dependencies = [
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "pyyaml>=6",
+    "numpy>=2",
+    "pooch>=1.8",
+    "requests>=2.31",
+    "tqdm>=4",
+]
+
+[project.urls]
+Homepage = "https://github.com/liuhlab/seqforge"
+Issues = "https://github.com/liuhlab/seqforge/issues"
+Changelog = "https://github.com/liuhlab/seqforge/blob/main/CHANGELOG.md"
+
+[project.scripts]
+seqforge = "seqforge.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/seqforge"]
+
+# -------- pixi --------
+
+[tool.pixi.workspace]
+channels = ["conda-forge", "bioconda"]
+platforms = ["osx-arm64", "linux-64", "osx-64"]
+
+[tool.pixi.pypi-dependencies]
+seqforge = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+pydantic = ">=2.7"
+pyyaml = ">=6"
+numpy = ">=2"
+pooch = ">=1.8"
+typer = ">=0.12"
+requests = ">=2.31"
+tqdm = ">=4"
+
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+[tool.pixi.feature.py313.dependencies]
+python = "3.13.*"
+
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+hypothesis = "*"
+syrupy = "*"
+
+[tool.pixi.feature.dev.dependencies]
+ruff = "*"
+mypy = "*"
+pre-commit = "*"
+python-build = "*"
+types-pyyaml = "*"
+types-requests = "*"
+
+[tool.pixi.feature.docs.dependencies]
+mkdocs-material = "*"
+
+[tool.pixi.environments]
+default    = { features = ["py313", "dev", "test", "docs"], solve-group = "default" }
+test-py312 = { features = ["py312", "test"], solve-group = "py312" }
+test-py313 = { features = ["py313", "test"], solve-group = "default" }
+docs       = { features = ["py313", "docs"], solve-group = "default" }
+
+[tool.pixi.tasks]
+lint      = "ruff check ."
+fmt       = "ruff format ."
+fmt-check = "ruff format --check ."
+# mypy is STRICT and scoped to the two modules where a wrong type poisons the corpus (brief §13).
+typecheck = "mypy src/seqforge/models src/seqforge/probe"
+test      = "pytest"
+test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
+check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
+build     = "python -m build"
+docs      = "mkdocs serve"
+docs-build = "mkdocs build --strict"
+
+# -------- tool config --------
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py312"
+extend-exclude = [".pixi", "site", "build", "dist"]
+
+[tool.ruff.lint]
+# Base set from liulab-runtime (E,W,F,I,UP,B); E501 handled by the formatter.
+select = ["E", "W", "F", "I", "UP", "B"]
+# E501: formatter handles line length. UP046/UP047: keep classic Generic[T]/TypeVar for the
+# best-tested pydantic-v2 + mypy generic support rather than PEP 695 syntax.
+ignore = ["E501", "UP046", "UP047"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Typer uses call expressions (Option/Argument) as parameter defaults by design.
+extend-immutable-calls = ["typer.Argument", "typer.Option"]
+
+# mypy --strict, scoped by the `typecheck` task to models/ and probe/ only.
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/seqforge"]

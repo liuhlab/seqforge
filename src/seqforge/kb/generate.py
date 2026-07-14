@@ -1,0 +1,85 @@
+"""Synthetic FASTQ generation derived PURELY from ``spec.reads`` (R10 round-trip).
+
+The generator never reads ``signature`` or ``backend`` — that is what makes the round-trip
+(``spec -> synth -> probe -> recover; assert recovered == declared``) a real test rather than a
+tautology. Barcodes with an onlist are drawn from a fixed synthetic cell pool reused across reads so
+the recurrence signal (low distinct-ratio) is realistic; UMIs are fresh-random (high distinct-ratio).
+"""
+
+from __future__ import annotations
+
+import random
+
+from .schema import Element, Spec
+
+_BASES = "ACGT"
+
+
+def _rand(rng: random.Random, n: int) -> str:
+    return "".join(rng.choice(_BASES) for _ in range(n))
+
+
+def _fixed_length(el: Element) -> int | None:
+    if el.start is not None and el.end is not None:
+        return el.end - el.start
+    if el.min_len is not None:
+        return el.min_len
+    return None
+
+
+def generate_reads(
+    spec: Spec,
+    *,
+    n: int = 2000,
+    seed: int = 0,
+    pool_size: int = 64,
+    cdna_min: int = 60,
+    cdna_max: int = 91,
+) -> dict[str, list[str]]:
+    """Generate ``n`` synthetic reads per declared read, keyed by ``Read.id``.
+
+    ``pool_size`` sets how many distinct barcodes back each onlist (drives the recurrence signal);
+    keep it well below ``n`` so the cell-barcode distinct-ratio lands in-band.
+    """
+    rng = random.Random(seed)
+    pools: dict[str, list[str]] = {}
+    for read in spec.reads:
+        for el in read.elements:
+            if el.onlist and el.onlist not in pools:
+                length = _fixed_length(el) or 16
+                pools[el.onlist] = [_rand(rng, length) for _ in range(pool_size)]
+
+    result: dict[str, list[str]] = {}
+    for read in spec.reads:
+        seqs: list[str] = []
+        for _ in range(n):
+            seqs.append(
+                "".join(_gen_element(el, rng, pools, cdna_min, cdna_max) for el in read.elements)
+            )
+        result[read.id] = seqs
+    return result
+
+
+def _gen_element(
+    el: Element,
+    rng: random.Random,
+    pools: dict[str, list[str]],
+    cdna_min: int,
+    cdna_max: int,
+) -> str:
+    if el.type in ("linker", "fixed"):
+        return el.sequence or ""
+    length = _fixed_length(el)
+    if el.type == "barcode":
+        return rng.choice(pools[el.onlist]) if el.onlist else _rand(rng, length or 8)
+    if el.type == "umi":
+        return _rand(rng, length or 10)
+    if el.type in ("cdna", "gdna"):
+        return _rand(rng, length or rng.randint(cdna_min, cdna_max))
+    if el.type == "poly_t":
+        return "T" * (length or 10)
+    if el.type == "poly_a":
+        return "A" * (length or 10)
+    if el.type == "index":
+        return _rand(rng, length or 8)
+    return _rand(rng, length or 1)

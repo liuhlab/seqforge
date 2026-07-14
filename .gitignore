@@ -1,0 +1,19 @@
+# pixi
+.pixi/
+*.egg-info/
+# python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+build/
+dist/
+# seqforge working state (resumable, content-addressed — never committed)
+.seqforge/
+# docs build
+site/
+# editor / OS
+.DS_Store
+.vscode/settings.local.json
