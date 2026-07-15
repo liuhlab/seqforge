@@ -6,23 +6,35 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
-**Velocyto is free on hg38, and now we know rather than hope (2026-07-15).** `policy.py` has defaulted
+**Velocyto's cost on hg38 is measured, and the curve has a knee (2026-07-15).** `policy.py` has defaulted
 `soloFeatures` to all five since R15 landed, carrying a promise in its docstring — *"the cost is real
 and is being measured, not assumed"* — and a pre-registered kill rule (">2x wall-clock or over the
 mem_gb hint => drop to four") that had been **retired before it was ever tested**. `kb e2e-cost`
 tests it. It does not fire.
 
-| reads | peak RSS |
-|---|---|
-| 10,000,000 | 34.570 GB |
-| 40,000,000 | 34.600 GB |
-| 100,000,000 | 34.659 GB |
+| reads | peak RSS | delta |
+|---|---|---|
+| 10,000,000 | 34.570 GB | — |
+| 40,000,000 | 34.600 GB | +30 MB |
+| 100,000,000 | 34.659 GB | +59 MB |
+| 250,000,000 | **44.055 GB** | **+9.4 GB** |
 
-A **10x increase in read depth costs 89 MB** (~0.95 bytes/read). The number is the ~30 GB genome
-index, resident before a read is parsed; everything that might have scaled is either a constant of the
-chemistry and annotation (the 6,794,880-entry whitelist, the 78,733-gene feature axis) or negligible
-(the sparse matrices are ~100 MB and grow *sub*-linearly). Provision ~48-64 GB per hg38 STARsolo job;
-depth is irrelevant across any real library size.
+Peak RSS is `max(alignment_peak, solo_peak(reads))`. Below ~100M the ~30 GB genome index is the whole
+bill and 10x the reads costs 89 MB. The Solo counting phase grows with depth and overtakes the index
+between 100M and 250M — visible live: RSS ~17 GB early in Solo, climbing past the 34.6 GB alignment
+peak, topping out at 44 GB while writing five matrices.
+
+Provisioning: ≤100M → ~35 GB (three points); 250M → ~44 GB (one point); **>250M unmeasured** — give a
+deep human library 128 GB until 500M is run.
+
+**The three-point version of this entry claimed "depth is irrelevant across any real library size" and
+shipped for three hours.** Those points fitted a line reporting `max_residual_gb: 0.0` and projected
+34.8 GB at 250M — a 27% under-estimate from a fit reporting *zero error*. Earlier the same day
+`_fit_line` was fixed to reject two-point fits because a line through two points fits exactly and its
+residual cannot falsify anything. Right, and not enough: three collinear points inside one regime
+cannot falsify either. **A residual falsifies only within the range sampled; it can never say the
+range was too narrow.** The four-point fit reports `max_residual_gb: 2.312` — the mechanism works, one
+point too late.
 
 The sweep ran `--outSAMtype None` while the shipped module runs `BAM Unsorted`, so that gap was
 measured rather than estimated in a docstring: **+745 MB and +19% wall-clock** (34.600 → 35.345 GB at

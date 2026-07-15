@@ -468,19 +468,37 @@ particular costs memory — but small against a download and an alignment we are
 ~16.8 M reads by its own unique-UMI trick). It sweeps read depth on hg38 and fits
 `peak_rss = intercept + slope × reads`, because a single number would be almost entirely index.
 
-**Measured 2026-07-15 and the answer is that depth does not matter.** 10 M → 34.570 GB, 40 M →
-34.600 GB, 100 M → 34.659 GB: a **10× increase in depth costs 89 MB** (~0.95 bytes/read). The ce11
-result generalized exactly as predicted — that 2.8 GB was the index, and on hg38 the ~30 GB index is
-likewise the whole bill. All five do **not** breach a 32 GB hint by any read-dependent term; they sit
-just above it because the *index* does, at any depth, with one counting rule or five.
+**Measured 2026-07-15, and depth does not matter until suddenly it does.** 10 M → 34.570 GB, 40 M →
+34.600 GB, 100 M → 34.659 GB — a 10× increase costing 89 MB — and then **250 M → 44.055 GB, +9.4 GB**.
 
-What sizes the run is fixed by the chemistry and the annotation, not the library: the 6 794 880-entry
-whitelist, the 78 733-gene feature axis (from the **index**, so it is unmoved by which genes the reads
-came from), and the index itself. The count matrices — the thing one might expect to grow — are ~100 MB
-and grow *sub*-linearly, 4× the reads giving 2× the non-zeros.
+Peak RSS is `max(alignment_peak, solo_peak(reads))`. Alignment is index-bound and flat (~34.6 GB, and
+the ce11 result generalized exactly as predicted: that 2.8 GB was the index, and here the ~30 GB index
+is the whole bill *below the knee*). The **Solo counting phase grows with depth** and overtakes the
+index between 100 M and 250 M. Live observation of the 250 M run shows it plainly: RSS ~17 GB early in
+Solo, climbing past the alignment peak, topping out at 44 GB while writing five matrices.
 
-So `--soloFeatures` is the rare knob that is free in memory and merely expensive in disk. Velocyto is
-unconditional **because it was measured**, not by decision. Provision ~48-64 GB.
+Below the knee, what sizes the run is fixed by chemistry and annotation, not the library: the
+6 794 880-entry whitelist, the 78 733-gene feature axis (from the **index**, so unmoved by which genes
+the reads came from). The written matrices are ~100 MB and grow *sub*-linearly. Above the knee, none
+of that is the binding constraint.
+
+**This paragraph asserted "depth is irrelevant across any real library size" for three hours, on three
+points that fitted a line with `max_residual_gb: 0.0` and projected 34.8 GB at 250 M — a 27 %
+under-estimate from a fit reporting zero error.** The same day, `_fit_line` had been fixed to refuse
+*two*-point fits because a line through two points fits exactly and cannot be falsified by its own
+residual. Correct, and insufficient: three collinear points inside one regime cannot be falsified
+either. **A residual falsifies only within the range sampled; it can never say the range was too
+narrow.** Kept here in full because §14's job is to stop a sentence up there being read as a promise,
+and this is the sentence that most recently earned it.
+
+`--soloFeatures` is still the rare knob that is cheap in memory and merely expensive in disk — the knee
+is a property of counting 250 M reads at all, not of the fifth rule over the first. Velocyto is
+unconditional **because it was measured**, not by decision.
+
+**Provisioning:** ≤100 M → ~35 GB (three points). 250 M → ~44 GB (one point). **>250 M → unmeasured**;
+a linear `solo_peak` implies ~180-190 bytes/read and ~88 GB at 500 M, but that is arithmetic on one
+point and this document has already been wrong once today for precisely that move. Give a deep human
+library **128 GB** until 500 M is measured. That measurement is the open item.
 
 Two things were measured rather than reasoned about, both because reasoning about them is exactly how
 this document used to get things wrong:
@@ -942,3 +960,8 @@ maintained by hand, beside the code it describes, checked against itself.**
 - ~~Velocyto is unconditional by maintainer decision, not by a measurement~~ — **it is now a
   measurement.** The pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four")
   was retired before it was tested; it has now been tested and does not fire.
+- **Peak memory above 250 M reads is UNMEASURED and the curve is known to bend there.** 100 M →
+  34.659 GB but 250 M → 44.055 GB, so the flat regime ends somewhere in between and everything past
+  250 M is extrapolation from a single post-knee point. `kb e2e-cost --sweep 250000000,500000000` on
+  hg38 settles it; until then a deep human library gets 128 GB. **Do not quote the ≤100 M numbers as
+  if they generalize** — that error has already been made once in this file.
