@@ -346,6 +346,79 @@ def harvest_normalize(
     typer.echo(json.dumps({"normalized": rows}, indent=2))
 
 
+@harvest_app.command("extract")
+def harvest_extract(
+    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    model: str | None = typer.Option(None, "--model", help="Override the extraction model."),
+    verify: bool = typer.Option(
+        True, "--verify/--no-verify", help="Span-verify the drafts immediately (R5)."
+    ),
+    workspace: Path = typer.Option(
+        Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
+    ),
+) -> None:
+    """The ONE LLM touchpoint: prose -> AssertionDraft[] -> (verified) Assertion[].
+
+    The model only proposes `{field, value, quote}`; code computes the offsets and decides what
+    survives. Exit 1 if the LLM surface is unavailable, 4 if any claim fails verification.
+    """
+    from .harvest import (
+        DEFAULT_MODEL,
+        ExtractUnavailable,
+        extract_drafts,
+        normalize_document,
+        verify_drafts,
+    )
+    from .kb import load_all_specs
+
+    specs = load_all_specs()
+    chosen = model or DEFAULT_MODEL
+    state = Path(workspace) / ".seqforge"
+    state.mkdir(parents=True, exist_ok=True)
+
+    all_drafts = []
+    normalized = []
+    usage_total: dict[str, int] = {}
+    extractor = None
+    for doc in docs:
+        nd = normalize_document(doc)
+        normalized.append(nd)
+        try:
+            outcome = extract_drafts(nd, specs, model=chosen)
+        except ExtractUnavailable as exc:
+            typer.echo(
+                json.dumps({"error": "llm_unavailable", "detail": str(exc)}, indent=2), err=True
+            )
+            raise typer.Exit(1) from exc
+        all_drafts.extend(outcome.drafts)
+        extractor = outcome.extractor
+        for k, v in outcome.usage.items():
+            usage_total[k] = usage_total.get(k, 0) + v
+
+    payload: dict[str, object] = {
+        "model": chosen,
+        "n_drafts": len(all_drafts),
+        "usage": usage_total,
+        "drafts": [d.model_dump(mode="json") for d in all_drafts],
+    }
+    if not verify:
+        typer.echo(json.dumps(payload, indent=2))
+        return
+
+    assert extractor is not None
+    report = verify_drafts(all_drafts, normalized, extractor=extractor)
+    (state / "assertions.json").write_text(
+        json.dumps([a.model_dump(mode="json") for a in report.assertions], indent=2)
+    )
+    payload["n_accepted"] = report.n_accepted
+    payload["n_rejected"] = len(report.rejected)
+    payload["rejected"] = report.rejected
+    payload["assertions"] = [a.model_dump(mode="json") for a in report.assertions]
+    typer.echo(json.dumps(payload, indent=2))
+    if report.rejected:
+        raise typer.Exit(4)  # a claim that failed the tripwire needs a human, not a silent drop
+
+
 @harvest_app.command("verify")
 def harvest_verify(
     drafts_json: Path = typer.Argument(..., help="AssertionDraft[] JSON (from `harvest extract`)."),

@@ -17,6 +17,16 @@ from __future__ import annotations
 #: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys (R7).
 HARVEST_VERSION = "2026.7.0"
 
+from .extract import (  # noqa: E402
+    DEFAULT_FIELDS,
+    DEFAULT_MODEL,
+    EXTRACT_PROMPT_VERSION,
+    ExtractionOutcome,
+    ExtractionResult,
+    ExtractUnavailable,
+    build_kb_context,
+    extract_drafts,
+)
 from .normalize import (  # noqa: E402
     NORMALIZER_VERSION,
     NormalizedDoc,
@@ -44,4 +54,13 @@ __all__ = [
     "find_span",
     "entails",
     "surface_forms",
+    # extract (the one LLM touchpoint)
+    "EXTRACT_PROMPT_VERSION",
+    "DEFAULT_MODEL",
+    "DEFAULT_FIELDS",
+    "extract_drafts",
+    "build_kb_context",
+    "ExtractionResult",
+    "ExtractionOutcome",
+    "ExtractUnavailable",
 ]
