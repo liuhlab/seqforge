@@ -57,6 +57,23 @@ increments per release within the month and resets when the month changes. The v
   fail-closed: `span_verified` (the quote really occurs) catches fabricated provenance;
   `entailment_ok` (the quote actually supports the value, checked against the KB's own aliases)
   catches the more dangerous failure — a real quote pinned to a wrong conclusion.
+- **Prompt `2026.7.1` — `experiment.samples.{tissue,condition}` and `accessions` got operational
+  definitions, because `eval run --llm` proved they needed them.** DeepSeek V4-Pro filed standard worm
+  husbandry ("maintained on NGM plates seeded with E. coli OP50 at 20 C") as an experimental
+  *condition*: a real quote, correctly copied, pinned to a field it does not belong in — every sample
+  shares that husbandry, and an unperturbed baseline experiment has no condition at all. The prompt
+  had defined chemistry and organism, then said "everything else: the document's own wording", which
+  invites exactly this. The fix says what each field IS and when to **omit** it; the corpus then
+  measured the fix (false-accept 0.111 → 0.0, and ~40% fewer output tokens).
+  **The finding underneath is architectural, and is now recorded in `verify.entails()` and pinned by a
+  test: entailment is VACUOUS when the value is copied out of the quote.** R5's power comes entirely
+  from `value` being a controlled-vocabulary term whose surface forms must appear in the quote —
+  `library.chemistry` is protected (a "droplet-based single-cell" quote cannot smuggle in a v3
+  chemistry; verified 3/3 live against a document that describes a v3 experiment in every way except
+  naming it), free text is not, because `form in quote` is trivially true. So **R5 is a tripwire for
+  fabricated and mis-attributed claims, never for field-assignment errors** — tightening the matcher
+  would not help, as there is nothing left there to check. The defense for free-text fields is the
+  prompt's field definition plus the corpus that measures it.
 - **`harvest extract` — the ONE LLM touchpoint, and vendor-neutral.** The model only proposes
   `{field, value, quote}`: code overwrites `span.doc_sha256` (we know which doc we sent), discards
   model-supplied offsets (models can't count characters), and validates every batch against the
@@ -96,10 +113,29 @@ increments per release within the month and resets when the month changes. The v
     unaided (no span entails the claim), before grading is even reached.
   - `eval run` defaults to `--no-llm` (runs in a keyless CI; prose cases skip). Exit 3 on **any**
     false-accept — not on a slider, because no threshold makes one tolerable — or below `--fail-under`.
-  - The harness immediately earned itself: it caught that a case asserted the metadata-vs-reads conflict
-    on `library.chemistry`, when design §958 specifies it on **geometry** (`library.read_layout.R1.length`,
-    26 asserted vs 28 observed). The design was right and the case was a guess; `positions` is now the
-    load-bearing assertion, since a field-name check alone passes even if both sides collapse to one value.
+  - **Live-verified on the lab cluster** (DeepSeek V4-Pro, 3 trials/prose case): 9 cases,
+    field_accuracy **1.0**, false_accept **0.0**, false_refuse **0.0**, 6 LLM calls, ~90 s, and
+    `cache_read_tokens: 7296` — the stable KB prefix now genuinely caches, measured rather than assumed.
+  - **It found four real defects, three of them in itself** — which is the point: a harness nobody has
+    seen fail is indistinguishable from a broken one.
+    1. *A case was wrong, not the design.* It asserted the metadata-vs-reads conflict on
+       `library.chemistry`; design §958 specifies it on **geometry** (`read_layout.R1.length`, 26
+       asserted vs 28 observed). `positions` is now the load-bearing assertion — a field-name check
+       alone passes even if both sides collapse to one value.
+    2. *A case was wrong, not the model.* `chemistry-unstated-trap` forbade `experiment.samples.tissue`
+       and the live run graded a false-accept for "neurons" — but the prose says "C. elegans neurons"
+       and "Neuronal nuclei were isolated". Removed from `forbidden_fields` rather than promoted to a
+       required assertion: a later run returned "neuronal nuclei" for the same fact, so pinning an
+       exact string would measure string matching, not extraction. A harness that cries wolf gets
+       ignored exactly when it is right.
+    3. *Trials kept only the LAST harvest*, so a model that hallucinated on trial 1 and behaved on
+       trial 3 graded clean — the exact illusion trials exist to dispel. Now merged worst-wins:
+       hallucinated/missing union, matched intersects, and come-and-go fields surface as `unstable`.
+    4. *`stability` was quietly lying.* `_worst` returns a **reference** into the trials list (`min`
+       does not copy) and `_fold_harvest` mutated it in place, so folding rewrote an element that
+       `stability` was then counted over — reporting **0.667 for three identical, perfectly stable
+       trials**. It looked like real nondeterminism and was pure aliasing. Folding is now per-trial and
+       non-mutating. A metric that is quietly wrong is worse than no metric.
 - **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
   emits the evidence matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`,
   `harvest normalize|extract|verify` (exit 3 on a Blocker or failed gate, 4 on an open

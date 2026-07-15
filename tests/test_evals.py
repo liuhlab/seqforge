@@ -323,6 +323,21 @@ def test_hallucinated_assertion_rolls_up_to_false_accept() -> None:
     assert "does not make" in folded.notes[-1]
 
 
+def test_fold_harvest_does_not_mutate_the_grade_it_is_given() -> None:
+    """Regression: _worst() returns a REFERENCE into the trials list, not a copy.
+
+    Folding used to mutate in place, so folding the worst grade rewrote a list element that
+    `stability` was then counted over — reporting 0.667 for three identical, perfectly stable trials.
+    A metric that is quietly wrong is worse than no metric.
+    """
+    g = _grade({"outcome": "decide"}, _result(), 0)
+    folded = _fold_harvest(g, HarvestGrade(hallucinated=["library.chemistry"]))
+    assert folded is not g
+    assert g.grade is Grade.CORRECT, "the original grade must be untouched"
+    assert folded.grade is Grade.FALSE_ACCEPT
+    assert g.notes == [], "notes must not leak into the caller's grade either"
+
+
 def test_missing_stated_field_is_wrong_reason_not_false_accept() -> None:
     """Under-extraction is a recall failure, not corpus poison. Grading both alike would hide one."""
     g = _grade({"outcome": "decide"}, _result(), 0)
@@ -703,6 +718,48 @@ def test_a_hallucination_in_any_trial_survives_to_the_grade() -> None:
         assert run.grade.grade is Grade.FALSE_ACCEPT
     else:
         assert run.harvest.n_rejected >= 1
+
+
+def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
+    """The 0.667-from-three-identical-trials bug, end to end.
+
+    Every trial hallucinates, so every trial is a false_accept and stability is honestly 0.0. The bug
+    this pins produced a *fractional* stability by mutating one element of the trials list after the
+    fact — a number that looked like real nondeterminism and was pure aliasing.
+    """
+    bad = [
+        _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
+        _draft(
+            "experiment.samples.condition", "maintained on NGM plates", "maintained on NGM plates"
+        ),
+    ]
+    run = run_case(_trap_case(), llm=True, provider=_StubProvider(bad), trials=3)
+    assert run.harvest is not None
+    assert run.harvest.hallucinated == ["experiment.samples.condition"]
+    assert run.grade.grade is Grade.FALSE_ACCEPT
+    assert run.stability == 0.0, (
+        "all three trials failed identically; stability is 0, not a fraction"
+    )
+
+
+def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
+    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    run = run_case(_trap_case(), llm=True, provider=_StubProvider(good), trials=3)
+    assert run.grade.grade is Grade.CORRECT
+    assert run.stability == 1.0
+
+
+def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
+    """A real 2-in-3 failure — the case this metric exists to report."""
+    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    bad = good + [
+        _draft(
+            "experiment.samples.condition", "maintained on NGM plates", "maintained on NGM plates"
+        )
+    ]
+    run = run_case(_trap_case(), llm=True, provider=_FlakyProvider([bad, good, good]), trials=3)
+    assert run.grade.grade is Grade.FALSE_ACCEPT, "one bad trial condemns the case"
+    assert run.stability == pytest.approx(2 / 3), "but stability reports it happened 1 time in 3"
 
 
 def test_a_field_found_in_only_some_trials_is_reported_unstable() -> None:

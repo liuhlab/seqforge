@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import tempfile
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -173,20 +173,18 @@ def run_case(
                 workspace=ws,
                 use_cache=False,
             )
-            grades.append(
-                grade_case(
-                    case.id,
-                    case.expected,
-                    out.result,
-                    out.exit_code(),
-                    _labels(out, built),
-                )
+            trial_grade = grade_case(
+                case.id, case.expected, out.result, out.exit_code(), _labels(out, built)
             )
+            # Fold THIS trial's harvest into THIS trial's grade. Folding once at the end against the
+            # merged harvest would charge every trial for one trial's hallucination, and `stability`
+            # would stop meaning "how often was the whole case right".
+            if harvests:
+                trial_grade = _fold_harvest(trial_grade, harvests[-1])
+            grades.append(trial_grade)
 
     harvest = _merge_harvest(harvests) if harvests else None
     worst = _worst(grades)
-    if harvest is not None:
-        worst = _fold_harvest(worst, harvest)
     n_ok = sum(1 for g in grades if g.ok)
     return CaseRun(
         case_id=case.id,
@@ -335,16 +333,29 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
 
 
 def _fold_harvest(grade: CaseGrade, harvest: HarvestGrade) -> CaseGrade:
-    """A verified-but-wrong assertion is a false-accept: bytes can never contradict ``experiment.*``."""
+    """A verified-but-wrong assertion is a false-accept: bytes can never contradict ``experiment.*``.
+
+    Returns a NEW grade. It used to mutate in place, and because ``_worst`` hands back a reference
+    into the trials list rather than a copy, folding the worst grade rewrote a list element that
+    ``stability`` was then counted over — reporting 0.667 for three identical, perfectly stable
+    trials. A metric that is quietly wrong is worse than no metric, so this no longer mutates at all.
+    """
     if harvest.hallucinated:
-        grade.grade = Grade.FALSE_ACCEPT
-        grade.notes.append(
-            f"extracted claims the prose does not make: {harvest.hallucinated} "
-            "(verified, so nothing downstream would catch it)"
+        return replace(
+            grade,
+            grade=Grade.FALSE_ACCEPT,
+            notes=[
+                *grade.notes,
+                f"extracted claims the prose does not make: {harvest.hallucinated} "
+                "(verified, so nothing downstream would catch it)",
+            ],
         )
-    elif harvest.missing and grade.grade is Grade.CORRECT:
-        grade.grade = Grade.WRONG_REASON
-        grade.notes.append(f"failed to extract stated field(s): {harvest.missing}")
+    if harvest.missing and grade.grade is Grade.CORRECT:
+        return replace(
+            grade,
+            grade=Grade.WRONG_REASON,
+            notes=[*grade.notes, f"failed to extract stated field(s): {harvest.missing}"],
+        )
     return grade
 
 
