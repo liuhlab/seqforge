@@ -278,7 +278,12 @@ def kb_e2e_cost(
         None, "--star-index", help="Override: prebuilt STAR index."
     ),
     star: str | None = typer.Option(None, "--star", help="STAR binary (liulab-runtime align-rna)."),
-    threads: int = typer.Option(16, help="STAR threads."),
+    threads: int = typer.Option(
+        16, help="STAR threads. Peak RSS depends on this — it is recorded."
+    ),
+    gen_jobs: int = typer.Option(
+        16, "--gen-jobs", help="Processes generating reads (it was 40% of wall-clock on one core)."
+    ),
     seed: int = typer.Option(0, help="Simulation seed."),
     quantify: str | None = typer.Option(
         None, "--quantify", help="Override soloFeatures. Omit to price the compiler's own default."
@@ -325,6 +330,7 @@ def kb_e2e_cost(
             intron_frac=intron_frac,
             max_genes=max_genes,
             threads=threads,
+            gen_jobs=gen_jobs,
             seed=seed,
             features=_parse_quantify(quantify),
             keep_reads=keep_reads,
@@ -333,6 +339,88 @@ def kb_e2e_cost(
         typer.echo(json.dumps({"skipped": True, "reason": str(exc)}, indent=2), err=True)
         raise typer.Exit(1) from exc
     typer.echo(json.dumps(result, indent=2, default=str))
+
+
+@kb_app.command("e2e-fit")
+def kb_e2e_fit(
+    results: list[Path] = typer.Argument(..., help="cost JSONs to merge (one per array task)."),
+) -> None:
+    """Fit one line across cost runs measured separately — the collector for a job-array sweep.
+
+    The depths are independent, so a sweep parallelises across array tasks and each task emits its
+    own JSON. This merges them and fits the same line ``run_cost_sweep`` fits in-process, so an array
+    and a single sequential job produce the same answer in the same shape.
+
+    It refuses to merge runs whose soloFeatures, assembly, or thread count differ: the peak depends on
+    all three, so splicing them into one line would silently fit a curve through incomparable points —
+    the exact failure the per-shard seed and the resume guard exist to prevent elsewhere.
+    """
+    from .e2e import _fit_line
+
+    runs = []
+    for path in results:
+        try:
+            runs.append((path, json.loads(path.read_text())))
+        except (OSError, json.JSONDecodeError) as exc:
+            typer.echo(f"cannot read {path}: {exc}", err=True)
+            raise typer.Exit(1) from exc
+    if not runs:
+        typer.echo("no results given", err=True)
+        raise typer.Exit(2)
+
+    def key(r: dict[str, object]) -> tuple[object, ...]:
+        # soloFeatures arrives from JSON as a list, which is unhashable — tuple it before it meets a set.
+        features = r.get("soloFeatures")
+        return (
+            tuple(features) if isinstance(features, list) else features,
+            r.get("assembly"),
+            r.get("threads"),
+            r.get("n_cells"),
+        )
+
+    keys = {key(r) for _p, r in runs}
+    if len(keys) != 1:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": "refusing to fit incomparable runs",
+                    "detail": "soloFeatures/assembly/threads/n_cells must match across every result",
+                    "distinct": [list(k) for k in keys],
+                },
+                indent=2,
+                default=str,
+            ),
+            err=True,
+        )
+        raise typer.Exit(3)
+
+    points: list[dict[str, object]] = []
+    for _p, r in runs:
+        points.extend(p for p in r.get("points", []) if not p.get("failed"))
+    points.sort(key=lambda p: int(p["n_reads"]))
+    if len({int(p["n_reads"]) for p in points}) != len(points):
+        typer.echo("duplicate read depths across results; refusing to fit", err=True)
+        raise typer.Exit(3)
+
+    head = runs[0][1]
+    typer.echo(
+        json.dumps(
+            {
+                "assembly": head.get("assembly"),
+                "annotation": head.get("annotation"),
+                "soloFeatures": head.get("soloFeatures"),
+                "threads": head.get("threads"),
+                "n_cells": head.get("n_cells"),
+                "n_runs_merged": len(runs),
+                "points": points,
+                "fit": _fit_line(
+                    [(int(p["n_reads"]), float(p["star_peak_rss_gb"])) for p in points]
+                ),
+            },
+            indent=2,
+            default=str,
+        )
+    )
 
 
 @kb_app.command("e2e-introns")

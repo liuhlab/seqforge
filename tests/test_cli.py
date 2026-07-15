@@ -239,3 +239,92 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     # geometry-only path (default registry materializes no onlist) still decides v3 at rung 2
     assert doc["candidates"][0]["technology"] == "10x-3p-gex-v3"
     assert doc["rung_reached"] == 2
+
+
+# --------------------------------------------------------------------------------------------
+# `kb e2e-fit` -- the collector for a job-array cost sweep. The depths are independent, so they
+# run as separate array tasks; this merges them. Its refusals are the interesting part, because
+# a silent merge of incomparable runs would fit a clean line through meaningless points.
+# --------------------------------------------------------------------------------------------
+
+_FIVE = ["Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "Velocyto"]
+
+
+def _cost_run(tmp_path: Path, name: str, depth: int, gb: float, **over: object) -> Path:
+    run = {
+        "assembly": "hg38",
+        "annotation": "gencode_v50",
+        "soloFeatures": _FIVE,
+        "threads": 16,
+        "n_cells": 5000,
+        "points": [{"n_reads": depth, "star_peak_rss_gb": gb}],
+        **over,
+    }
+    p = tmp_path / name
+    p.write_text(json.dumps(run))
+    return p
+
+
+def test_e2e_fit_merges_array_tasks_into_one_line(tmp_path: Path) -> None:
+    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
+    b = _cost_run(tmp_path, "b.json", 40_000_000, 34.60)
+    c = _cost_run(tmp_path, "c.json", 100_000_000, 34.66)
+    result = runner.invoke(app, ["kb", "e2e-fit", str(a), str(b), str(c)])
+    assert result.exit_code == 0, result.output
+    out = json.loads(result.output)
+    assert out["n_runs_merged"] == 3
+    assert [p["n_reads"] for p in out["points"]] == [10_000_000, 40_000_000, 100_000_000]
+    assert out["fit"]["ok"]
+    # ~1 byte/read is the measured reality on hg38; the fit must reproduce it from these points
+    assert 0 < out["fit"]["bytes_per_read"] < 5
+
+
+def test_e2e_fit_refuses_runs_that_are_not_comparable(tmp_path: Path) -> None:
+    """Peak RSS depends on soloFeatures, assembly, threads and cells -- so a merge across them lies.
+
+    This is the same class as the resume guard's features check: the number is only meaningful
+    alongside the configuration that produced it, and a line fitted through two configurations is a
+    plausible-looking artefact of nothing.
+    """
+    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
+    b = _cost_run(tmp_path, "b.json", 40_000_000, 31.10, soloFeatures=["Gene"])
+    result = runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)])
+    assert result.exit_code == 3
+    assert "incomparable" in result.output or "incomparable" in str(result.exception)
+
+
+def test_e2e_fit_refuses_a_thread_count_mismatch(tmp_path: Path) -> None:
+    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
+    b = _cost_run(tmp_path, "b.json", 40_000_000, 36.90, threads=48)
+    assert runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)]).exit_code == 3
+
+
+def test_e2e_fit_refuses_duplicate_depths(tmp_path: Path) -> None:
+    """Two array tasks that measured the same depth is a bug in the array, not a second data point."""
+    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
+    b = _cost_run(tmp_path, "b.json", 10_000_000, 34.58)
+    assert runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)]).exit_code == 3
+
+
+def test_e2e_fit_skips_a_failed_point(tmp_path: Path) -> None:
+    """An OOM-ed top point must not enter the fit as a zero."""
+    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
+    b = tmp_path / "b.json"
+    b.write_text(
+        json.dumps(
+            {
+                "assembly": "hg38",
+                "annotation": "gencode_v50",
+                "soloFeatures": _FIVE,
+                "threads": 16,
+                "n_cells": 5000,
+                "points": [
+                    {"n_reads": 40_000_000, "star_peak_rss_gb": 34.60},
+                    {"n_reads": 250_000_000, "failed": True, "error": "killed"},
+                ],
+            }
+        )
+    )
+    result = runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)])
+    assert result.exit_code == 0, result.output
+    assert [p["n_reads"] for p in json.loads(result.output)["points"]] == [10_000_000, 40_000_000]

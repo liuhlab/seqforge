@@ -26,12 +26,15 @@ from __future__ import annotations
 
 import gzip
 import json
+import multiprocessing
 import os
 import random
 import re
 import subprocess
 import time
 from collections import defaultdict
+from collections.abc import Sequence
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import product as _product
 from pathlib import Path
@@ -183,11 +186,17 @@ def load_genes(
                 merged[-1] = (merged[-1][0], max(merged[-1][1], e))
             else:
                 merged.append((s, e))
-        seq = "".join(chroms[chrom][s - 1 : e] for s, e in merged)  # GTF is 1-based inclusive
+        # .upper() BEFORE _revcomp, not after: _COMPLEMENT maps ACGTN only, so a soft-masked base
+        # would be reversed but never complemented, and a trailing .upper() would then launder the
+        # wrong base into plausible sequence. Dormant on every assembly this lab currently ships
+        # (all are unmasked), which is exactly why it needs to be structural rather than lucky.
+        seq = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
         if strand == "-":
             seq = _revcomp(seq)
         if len(seq) >= min_len and "N" not in seq:
-            genes.append((gene_id, seq.upper()))
+            genes.append((gene_id, seq))
 
     genes.sort()  # deterministic before sampling
     rng = random.Random(seed)
@@ -267,7 +276,11 @@ def load_gene_models(
         if chrom not in chroms:
             continue
         merged = _merge([(s, e) for _c, s, e, _st in parts])
-        mrna = "".join(chroms[chrom][s - 1 : e] for s, e in merged)  # GTF is 1-based inclusive
+        # .upper() BEFORE _revcomp (see load_genes): complementing a lowercase base is a no-op, so
+        # revcomp-then-upper silently emits reversed-but-uncomplemented sequence.
+        mrna = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
         if strand == "-":
             mrna = _revcomp(mrna)
         if len(mrna) < min_len or "N" in mrna:
@@ -288,7 +301,7 @@ def load_gene_models(
                 continue
             introns.append(_revcomp(seq) if strand == "-" else seq)
         if introns:
-            models.append(GeneModel(gene_id=gene_id, mrna=mrna.upper(), introns=tuple(introns)))
+            models.append(GeneModel(gene_id=gene_id, mrna=mrna, introns=tuple(introns)))
 
     rng = random.Random(seed)
     rng.shuffle(models)
@@ -451,11 +464,25 @@ def parse_solo_matrix(solo_dir: Path) -> dict[tuple[str, str], int]:
     return counts
 
 
+def _fq_arg(fq: Path | Sequence[Path]) -> str:
+    """One path, or STAR's comma-separated list form for a sharded mate.
+
+    Order matters and is the caller's responsibility: STAR pairs the Nth cDNA shard with the Nth
+    barcode shard, so the two lists must be built in lockstep. They are — the sharder appends to both
+    in the same loop.
+    """
+    if isinstance(fq, Path):
+        return str(fq)
+    if not fq:
+        raise E2EUnavailable("no FASTQ shards were produced")
+    return ",".join(str(p) for p in fq)
+
+
 def run_starsolo(
     assets: E2EAssets,
     *,
-    cdna_fq: Path,
-    barcode_fq: Path,
+    cdna_fq: Path | Sequence[Path],
+    barcode_fq: Path | Sequence[Path],
     whitelist: Path,
     solo: dict[str, object],
     outdir: Path,
@@ -479,10 +506,11 @@ def run_starsolo(
         str(assets.star_index),
         "--runThreadN",
         str(threads),
-        # --readFilesIn takes the cDNA read FIRST, then the barcode read
+        # --readFilesIn takes the cDNA read FIRST, then the barcode read. Each mate may be a
+        # comma-separated LIST, which is what lets sharded generation skip a merge step entirely.
         "--readFilesIn",
-        str(cdna_fq),
-        str(barcode_fq),
+        _fq_arg(cdna_fq),
+        _fq_arg(barcode_fq),
         "--readFilesCommand",
         "zcat",
         "--soloType",
@@ -904,6 +932,7 @@ def run_cost_sweep(
     read_len: int = 90,
     max_genes: int = 2_000,
     threads: int = 16,
+    gen_jobs: int = 16,
     seed: int = 0,
     features: tuple[str, ...] | None = None,
     timeout: int = 24 * 3600,
@@ -979,21 +1008,22 @@ def run_cost_sweep(
             points.append(done[n_reads])
             note(f"{tag}: already measured ({done[n_reads].get('star_peak_rss_gb')} GB) — skipping")
             continue
-        note(f"--- point {tag}: generating reads ---")
-        cdna_fq = workdir / f"cost_{tag}_R2.fastq.gz"
-        bc_fq = workdir / f"cost_{tag}_R1.fastq.gz"
+        note(f"--- point {tag}: generating reads on {gen_jobs} cores ---")
         t0 = time.monotonic()
-        gen = write_cost_fastqs(
+        cdna_fq, bc_fq, gen = write_cost_fastqs_sharded(
             models,
             n_reads=n_reads,
             cbs=cbs,
-            cdna_path=cdna_fq,
-            bc_path=bc_fq,
+            out_dir=workdir,
+            tag=tag,
+            n_workers=gen_jobs,
             intron_frac=intron_frac,
             read_len=read_len,
             seed=seed,
         )
-        note(f"{tag}: generated in {time.monotonic() - t0:.0f}s")
+        note(
+            f"{tag}: generated {n_reads} reads in {gen['n_shards']} shards, {time.monotonic() - t0:.0f}s"
+        )
 
         outdir = workdir / f"star_{tag}"
         cost: dict[str, object] = {}
@@ -1020,7 +1050,7 @@ def run_cost_sweep(
             points.append({"n_reads": n_reads, **gen, **cost, "star": star_stats(outdir)})
             note(f"{tag}: peak RSS {cost.get('star_peak_rss_gb')} GB in {cost.get('star_wall_s')}s")
         if not keep_reads:
-            for p in (cdna_fq, bc_fq):
+            for p in (*cdna_fq, *bc_fq):
                 p.unlink(missing_ok=True)
             note(f"{tag}: reads deleted (--keep-reads to retain)")
         # Disk is state (R7): a hard kill (Slurm OOM, wall-clock) must not cost us the points we
@@ -1042,7 +1072,10 @@ def run_cost_sweep(
         "whitelist_entries": len(barcodes),
         "intron_frac": intron_frac,
         "read_len": read_len,
+        # Both are recorded because both change the number: STAR's per-thread buffers are real, so a
+        # peak measured at 16 threads is a peak AT 16 THREADS and says nothing on its own about 48.
         "threads": threads,
+        "gen_jobs": gen_jobs,
         "points": points,
         "fit": fit,
         "log": log,
@@ -1164,21 +1197,48 @@ def _fit_line(points: list[tuple[int, float]]) -> dict[str, object]:
     Reports ``max_residual_gb`` so the linear model is falsifiable by its own output rather than
     assumed: if the points do not sit on a line, extrapolating from them is not defensible and the
     residual is what says so.
+
+    **Two points cannot do that, so two points are not a fit.** A line through two points passes
+    through them exactly: the residual is identically 0.0 whatever the truth is, so the one number
+    that exists to falsify linearity goes vacuous precisely on the run carrying the least evidence —
+    and reads as the *strongest* possible evidence while doing it. That is not hypothetical. The sweep
+    is deliberately resilient (a point that exhausts the cgroup is recorded and skipped), and the
+    default sweep is three points, so a single lost point lands here at n=2. Worse, if the MIDDLE
+    point is the one lost, every other field is unchanged — same max_measured_reads, same
+    extrapolation_factor — and only the slope silently absorbs the noise that should have surfaced as
+    residual. The run_cost_sweep comment that the remaining "points below already determine the slope"
+    is the fallacy in one line: two points always determine *a* slope, never that it is the right one.
+
+    So ``ok`` requires 3, and ``n_points``/``degrees_of_freedom`` ship with every verdict — a fit with
+    nothing left over may not advertise a perfect one.
     """
     n = len(points)
-    if n < 2:
-        return {"ok": False, "reason": "need >= 2 points to fit a line"}
+    if n < 3:
+        return {
+            "ok": False,
+            "n_points": n,
+            "degrees_of_freedom": max(0, n - 2),
+            "reason": (
+                "need >= 3 points: a line through 2 points fits them exactly, so max_residual_gb "
+                "would be 0.0 by construction and could not falsify anything"
+            ),
+        }
     mean_x = sum(x for x, _ in points) / n
     mean_y = sum(y for _, y in points) / n
     denom = sum((x - mean_x) ** 2 for x, _ in points)
     if denom == 0:
-        return {"ok": False, "reason": "all points at the same read depth"}
+        return {"ok": False, "n_points": n, "reason": "all points at the same read depth"}
     slope = sum((x - mean_x) * (y - mean_y) for x, y in points) / denom
     intercept = mean_y - slope * mean_x
     residuals = [abs(y - (intercept + slope * x)) for x, y in points]
     max_reads = max(x for x, _ in points)
     return {
         "ok": True,
+        # Shipped with every verdict so max_residual_gb can never be read without knowing how much
+        # slack it actually had. A residual of 0.0 means "linear" at 5 points and means nothing at 2;
+        # the number alone cannot tell you which, so the number never travels alone.
+        "n_points": n,
+        "degrees_of_freedom": n - 2,
         "intercept_gb": round(intercept, 3),
         "bytes_per_read": round(slope * 1024**3, 1),
         "gb_per_100m_reads": round(slope * 100e6, 3),
@@ -1231,7 +1291,11 @@ def load_cost_models(
         if chrom not in chroms:
             continue
         merged = _merge([(s, e) for _c, s, e, _st in parts])
-        mrna = "".join(chroms[chrom][s - 1 : e] for s, e in merged)  # GTF is 1-based inclusive
+        # .upper() BEFORE _revcomp (see load_genes): complementing a lowercase base is a no-op, so
+        # revcomp-then-upper silently emits reversed-but-uncomplemented sequence.
+        mrna = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
         if strand == "-":
             mrna = _revcomp(mrna)
         if len(mrna) < min_len or "N" in mrna:
@@ -1246,7 +1310,7 @@ def load_cost_models(
                 continue
             introns.append(_revcomp(seq) if strand == "-" else seq)
         if introns:
-            models.append(GeneModel(gene_id=gene_id, mrna=mrna.upper(), introns=tuple(introns)))
+            models.append(GeneModel(gene_id=gene_id, mrna=mrna, introns=tuple(introns)))
     rng = random.Random(seed)
     rng.shuffle(models)
     return models[:max_genes]
@@ -1333,6 +1397,108 @@ def write_cost_fastqs(
             bc_fh.write("".join(bc_buf))
             written += n
     return {"n_reads": n_reads, "n_intronic": n_intronic, "n_exonic": n_reads - n_intronic}
+
+
+#: Set in each worker by :func:`_init_gen_worker`. The models + barcode pool are read-only and big
+#: (2000 gene models carry their mRNA and intron sequence), so they are handed over ONCE per worker
+#: rather than per shard — under fork they cost nothing at all, being inherited copy-on-write.
+_GEN_STATE: dict[str, object] = {}
+
+
+def _init_gen_worker(models: list[GeneModel], cbs: list[str]) -> None:
+    _GEN_STATE["models"] = models
+    _GEN_STATE["cbs"] = cbs
+
+
+def _gen_shard(
+    args: tuple[int, int, Path, Path, float, int, int],
+) -> dict[str, int]:
+    idx, n_reads, cdna_path, bc_path, intron_frac, read_len, seed = args
+    return write_cost_fastqs(
+        _GEN_STATE["models"],  # type: ignore[arg-type]
+        n_reads=n_reads,
+        cbs=_GEN_STATE["cbs"],  # type: ignore[arg-type]
+        cdna_path=cdna_path,
+        bc_path=bc_path,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        # Each shard MUST draw a different stream, or N workers would emit N identical copies of the
+        # same reads — which would still be n_reads records, still align, and still produce a
+        # plausible number. Deterministic in the caller's seed, distinct per shard.
+        seed=seed * 10_007 + idx,
+    )
+
+
+def write_cost_fastqs_sharded(
+    models: list[GeneModel],
+    *,
+    n_reads: int,
+    cbs: list[str],
+    out_dir: Path,
+    tag: str,
+    n_workers: int,
+    intron_frac: float = 0.4,
+    read_len: int = 90,
+    seed: int = 0,
+) -> tuple[list[Path], list[Path], dict[str, int]]:
+    """Generate reads across ``n_workers`` processes, as shards STAR reads natively.
+
+    Generation was ~40 % of this arm's wall-clock on one core while 47 sat idle, which is the kind of
+    waste that hides inside a job that "only" takes an hour. It parallelises perfectly — every read is
+    independent — and the shards need no merge step, because ``--readFilesIn`` takes a comma-separated
+    list per mate. So N cores buy an N-fold speedup and cost one extra comma.
+
+    The per-shard seed derivation is the part that matters: shards drawing the same stream would
+    duplicate reads rather than add them, and the run would still align, still count, and still report
+    a peak — just of the wrong library.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n_workers = max(1, min(n_workers, n_reads))
+    base, rem = divmod(n_reads, n_workers)
+    sizes = [base + (1 if i < rem else 0) for i in range(n_workers)]
+
+    jobs: list[tuple[int, int, Path, Path, float, int, int]] = []
+    cdna_paths: list[Path] = []
+    bc_paths: list[Path] = []
+    for i, size in enumerate(sizes):
+        cdna_p = out_dir / f"cost_{tag}_s{i:02d}_R2.fastq.gz"
+        bc_p = out_dir / f"cost_{tag}_s{i:02d}_R1.fastq.gz"
+        cdna_paths.append(cdna_p)
+        bc_paths.append(bc_p)
+        jobs.append((i, size, cdna_p, bc_p, intron_frac, read_len, seed))
+
+    if n_workers == 1:
+        results = [_gen_shard_inline(models, cbs, jobs[0])]
+    else:
+        # fork where available: the gene models are inherited copy-on-write instead of pickled to
+        # every worker (they are tens of MB of sequence). spawn still works, just pays the transfer.
+        ctx = multiprocessing.get_context(
+            "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
+        )
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            mp_context=ctx,
+            initializer=_init_gen_worker,
+            initargs=(models, cbs),
+        ) as pool:
+            results = list(pool.map(_gen_shard, jobs))
+
+    merged = {
+        "n_reads": sum(r["n_reads"] for r in results),
+        "n_intronic": sum(r["n_intronic"] for r in results),
+        "n_exonic": sum(r["n_exonic"] for r in results),
+        "n_shards": len(results),
+    }
+    if merged["n_reads"] != n_reads:  # pragma: no cover - arithmetic guard on the split
+        raise E2EUnavailable(f"sharding lost reads: asked {n_reads}, wrote {merged['n_reads']}")
+    return cdna_paths, bc_paths, merged
+
+
+def _gen_shard_inline(
+    models: list[GeneModel], cbs: list[str], job: tuple[int, int, Path, Path, float, int, int]
+) -> dict[str, int]:
+    _init_gen_worker(models, cbs)
+    return _gen_shard(job)
 
 
 def read_whitelist(path: Path) -> list[str]:

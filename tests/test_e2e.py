@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import random
 import shutil
 import sys
 from pathlib import Path
@@ -428,3 +429,178 @@ def test_resume_ignores_a_failed_point_and_unreadable_state(tmp_path: Path) -> N
     partial.write_text("{ this is not json")
     assert _load_resumable_points(partial, ["Gene"]) == {}
     assert _load_resumable_points(tmp_path / "absent.json", ["Gene"]) == {}
+
+
+def test_sharded_generation_emits_distinct_reads_not_n_copies_of_one_stream(tmp_path: Path) -> None:
+    """N workers must produce N DIFFERENT shards, and the whole must equal the requested depth.
+
+    The failure this exists for is silent by construction: if every shard drew the same seed, the run
+    would still emit exactly n_reads records, they would still be valid FASTQ, STAR would still align
+    them, and the sweep would still report a peak -- of a library with 1/N the diversity. Nothing
+    downstream would notice, which is precisely why the per-shard seed derivation gets an assertion
+    rather than a comment.
+    """
+    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
+
+    rng = random.Random(3)
+    models = [
+        GeneModel(
+            gene_id=f"G{i}",
+            mrna="".join(rng.choice("ACGT") for _ in range(2000)),
+            introns=("".join(rng.choice("ACGT") for _ in range(1000)),),
+        )
+        for i in range(12)
+    ]
+    cbs = ["".join(rng.choice("ACGT") for _ in range(16)) for _ in range(64)]
+
+    cdna, bc, stats = write_cost_fastqs_sharded(
+        models, n_reads=4000, cbs=cbs, out_dir=tmp_path, tag="t", n_workers=4, seed=5
+    )
+    assert len(cdna) == len(bc) == 4 == stats["n_shards"]
+    assert stats["n_reads"] == 4000, "the shard split must not lose or invent reads"
+    assert stats["n_exonic"] + stats["n_intronic"] == 4000
+
+    def barcodes(p: Path) -> list[str]:
+        with gzip.open(p, "rt") as fh:
+            return fh.read().splitlines()[1::4]
+
+    shards = [barcodes(p) for p in bc]
+    assert sum(len(s) for s in shards) == 4000
+    # the real assertion: no two shards may be the same stream
+    for i in range(len(shards)):
+        for j in range(i + 1, len(shards)):
+            assert shards[i] != shards[j], f"shard {i} and {j} are identical -- same RNG stream"
+
+
+def test_sharded_generation_is_deterministic_and_matches_its_own_shard_count(
+    tmp_path: Path,
+) -> None:
+    """Same seed + same worker count => byte-identical shards. Determinism must survive sharding."""
+    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
+
+    rng = random.Random(11)
+    models = [
+        GeneModel(
+            gene_id="G0",
+            mrna="".join(rng.choice("ACGT") for _ in range(2000)),
+            introns=("".join(rng.choice("ACGT") for _ in range(1000)),),
+        )
+    ]
+    cbs = ["ACGTACGTACGTACGT", "TTTTGGGGCCCCAAAA"]
+
+    def emit(sub: str) -> list[bytes]:
+        d = tmp_path / sub
+        cdna, _bc, _s = write_cost_fastqs_sharded(
+            models, n_reads=600, cbs=cbs, out_dir=d, tag="x", n_workers=3, seed=9
+        )
+        return [gzip.open(p, "rb").read() for p in cdna]
+
+    assert emit("a") == emit("b")
+
+
+def test_a_single_worker_shard_split_still_covers_every_read(tmp_path: Path) -> None:
+    """n_workers=1 must not be a special case that silently drops the remainder."""
+    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
+
+    models = [GeneModel(gene_id="G0", mrna="ACGT" * 500, introns=("TTGCA" * 200,))]
+    _c, _b, stats = write_cost_fastqs_sharded(
+        models, n_reads=101, cbs=["ACGTACGTACGTACGT"], out_dir=tmp_path, tag="s", n_workers=1
+    )
+    assert stats["n_reads"] == 101 and stats["n_shards"] == 1
+
+
+def test_an_uneven_shard_split_still_totals_the_requested_depth(tmp_path: Path) -> None:
+    """7 reads across 4 workers is 2/2/2/1 -- the remainder must not vanish."""
+    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
+
+    models = [GeneModel(gene_id="G0", mrna="ACGT" * 500, introns=("TTGCA" * 200,))]
+    _c, _b, stats = write_cost_fastqs_sharded(
+        models, n_reads=7, cbs=["ACGTACGTACGTACGT"], out_dir=tmp_path, tag="u", n_workers=4
+    )
+    assert stats["n_reads"] == 7 and stats["n_shards"] == 4
+
+
+def test_star_reads_sharded_mates_as_comma_separated_lists() -> None:
+    """STAR's --readFilesIn takes a list per mate, which is what lets sharding skip a merge."""
+    from seqforge.e2e import _fq_arg
+
+    assert _fq_arg(Path("/a/one.fastq.gz")) == "/a/one.fastq.gz"
+    assert _fq_arg([Path("/a/s0.gz"), Path("/a/s1.gz")]) == "/a/s0.gz,/a/s1.gz"
+
+
+def test_an_empty_shard_list_is_refused_rather_than_passed_to_star_as_nothing() -> None:
+    from seqforge.e2e import E2EUnavailable, _fq_arg
+
+    with pytest.raises(E2EUnavailable, match="shards"):
+        _fq_arg([])
+
+
+def test_two_points_are_refused_because_their_residual_cannot_falsify_anything() -> None:
+    """A line through 2 points fits them exactly, so max_residual_gb would be 0.0 whatever the truth.
+
+    Found by an adversarial audit of this very file, and it is the sharpest version of the failure
+    this repo keeps hitting: `_fit_line`'s docstring PROMISED the residual made linearity "falsifiable
+    by its own output", and at n=2 that promise silently inverted -- the run with the LEAST evidence
+    advertised the STRONGEST possible evidence of linearity. It is not hypothetical: the sweep is
+    deliberately resilient to a point exhausting the cgroup, and the default sweep is three points, so
+    one lost point lands on n=2. If the MIDDLE point is lost, every other field is identical to a
+    healthy run -- same max_measured_reads, same extrapolation_factor -- and only the slope moves,
+    absorbing the noise that should have shown up as residual.
+    """
+    from seqforge.e2e import _fit_line
+
+    # a wildly nonlinear truth and a perfect line are indistinguishable at n=2
+    verdict = _fit_line([(2_000_000, 30.0), (8_000_000, 45.0)])
+    assert not verdict["ok"], "2 points must not report a fit"
+    assert verdict["n_points"] == 2
+    assert verdict["degrees_of_freedom"] == 0
+    assert "0.0 by construction" in str(verdict["reason"])
+    assert "max_residual_gb" not in verdict, "a refused fit must not report a residual at all"
+
+    # and a physically impossible one (memory FALLING with reads) must not sail through either
+    assert not _fit_line([(2_000_000, 30.0), (8_000_000, 12.0)])["ok"]
+
+
+def test_three_points_is_the_smallest_fit_that_can_be_wrong() -> None:
+    """3 points leave 1 degree of freedom, which is the least that makes the residual mean something."""
+    from seqforge.e2e import _fit_line
+
+    ok = _fit_line([(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)])
+    assert ok["ok"] and ok["n_points"] == 3
+    assert ok["max_residual_gb"] > 1.0, "a bent curve must still surface as a residual"
+
+
+def test_revcomp_is_applied_to_uppercase_so_a_soft_masked_base_cannot_be_laundered(
+    tmp_path: Path,
+) -> None:
+    """A lowercase base must be complemented, not merely reversed and then upper-cased.
+
+    `_COMPLEMENT` maps ACGTN only, so `translate` passes lowercase through untouched. The mRNA path
+    used to revcomp first and `.upper()` after, which turned a soft-masked base into a REVERSED BUT
+    UNCOMPLEMENTED one wearing plausible uppercase. Every assembly this lab currently ships is
+    unmasked (hg38: 1 lowercase base in 119,396,956), so it was dormant -- which is the reason to make
+    it structural rather than leave it depending on a property of the FASTA nobody checks. The intron
+    path in the same loop was always correct, by the accident of upper-casing first.
+    """
+    from seqforge.e2e import _revcomp, load_cost_models
+
+    # decisive at the primitive level
+    assert _revcomp("acgt".upper()) == "ACGT"
+    assert _revcomp("acgt").upper() != _revcomp("acgt".upper()), "the bug's shape, pinned"
+
+    # and through the real loader, on a minus-strand gene whose exons are soft-masked
+    body = "acgtacgtac" * 120  # 1200 bp, entirely lowercase
+    (tmp_path / "m.fa").write_text(
+        ">chr1\n" + "\n".join(body[i : i + 60] for i in range(0, 1200, 60)) + "\n"
+    )
+    (tmp_path / "m.gtf").write_text(
+        'chr1\ts\texon\t1\t500\t.\t-\t.\tgene_id "G1"; gene_biotype "protein_coding";\n'
+        'chr1\ts\texon\t900\t1200\t.\t-\t.\tgene_id "G1"; gene_biotype "protein_coding";\n'
+    )
+    models = load_cost_models(tmp_path / "m.fa", tmp_path / "m.gtf", min_len=100, min_intron=100)
+    assert models, "fixture must build a model"
+    mrna = models[0].mrna
+    assert set(mrna) <= set("ACGTN"), "sequence must be uppercase"
+    # the true answer: uppercase the genomic exons, splice, THEN revcomp
+    spliced = (body[0:500] + body[899:1200]).upper()
+    assert mrna == _revcomp(spliced)

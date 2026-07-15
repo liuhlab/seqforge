@@ -157,7 +157,8 @@ io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet
 hooks/      PreToolUse/PostToolUse/Stop guards, behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (NOT a package): root app + 9 sub-typers. JSON by default
-e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11)
+e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11),
+            plus `kb e2e-cost` (hg38) — the PRICE arm, which proves nothing and measures memory
 evals/      ground-truth corpus + harness
 ─── repo root ───
 skills/     SKILL.md agent skills (no installer yet)
