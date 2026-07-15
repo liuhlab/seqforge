@@ -60,5 +60,17 @@ backend:
   # in ReadsPerGene.out.tab. Same law as soloFeatures: when the aligner computes every alternative in
   # one pass and the outputs are small, compute them all and let the consumer choose.
 
-confusable_with: []
-decidable_by: []
+confusable_with:
+  - id: splitseq
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      This entry is the GENERIC PAIRED-END FALLBACK: it requires two reads and forbids very little,
+      so at rungs 0-2 it accepts SPLiT-seq's cdna+bc pair as readily as real bulk data. Computed, not
+      assumed — `rung02_separable(bulk, splitseq)` is False, which is what forced this declaration.
+      The two are maximally divergent downstream (map/star vs map/starsolo: no barcodes at all vs
+      three rounds of them), so silently preferring the alphabetically-luckier entry would emit a
+      bulk gene-count matrix for a single-cell library and exit 0. Only the onlist separates them:
+      SPLiT-seq's round1/2/3 barcodes hit their whitelists at rung 3 and bulk has no whitelist to
+      hit, which is why the resolver reaches rung 3 here rather than deciding at rung 2.
+decidable_by: [onlist]
