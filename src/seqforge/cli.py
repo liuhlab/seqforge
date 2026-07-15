@@ -312,25 +312,51 @@ def io_onlist_show(
 
 
 @io_app.command("peek")
-def io_peek(uri: str = typer.Argument(..., help="Remote FASTQ URI to range-read.")) -> None:
-    """Range-read a remote FASTQ header into a partial Observation (not yet implemented)."""
+def io_peek(
+    uri: str = typer.Argument(..., help="Remote FASTQ URI to range-read."),
+    max_reads: int = typer.Option(4, help="Records to report from the fetched prefix."),
+    max_bytes: int = typer.Option(1 << 16, help="Compressed bytes to range-read (R3 budget)."),
+) -> None:
+    """Range-read the head of a remote gzipped FASTQ. Never downloads the file (R3).
+
+    64 KB is ~0.013% of a 517 MB run. Exit 1 if the host ignores Range and answers 200 with the whole
+    file — bounded means bounded by the server, not by our intentions.
+    """
+    from .io.remote import RemoteError
+
     try:
-        typer.echo(json.dumps(peek(uri)))
-    except NotYetImplemented as exc:
-        typer.echo(str(exc), err=True)
+        typer.echo(json.dumps(peek(uri, max_reads=max_reads, max_bytes=max_bytes), indent=2))
+    except (NotYetImplemented, RemoteError) as exc:
+        typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
         raise typer.Exit(1) from exc
 
 
 @io_app.command("resolve")
 def io_resolve(
-    accession: str = typer.Argument(..., help="ENA/SRA/GEO/BioProject accession."),
+    accession: str = typer.Argument(..., help="GSE/GSM, PRJNA/PRJEB, SRP/SRX/SRR, SAMN..."),
+    check_reads: bool = typer.Option(
+        True,
+        "--check-reads/--no-check-reads",
+        help="Compare SRA's per-read table to what ENA published (detects a dropped technical read).",
+    ),
 ) -> None:
-    """Expand an accession into a file inventory (not yet implemented)."""
+    """Expand an accession into runs + declared metadata, and flag a dropped technical read.
+
+    The important part is the flag, not the inventory: fasterq-dump skips technical reads BY DEFAULT,
+    so a 10x barcode read routinely vanishes from the published FASTQ while staying inside the .sra —
+    leaving a dataset that looks like plain single-end RNA-seq. Two metadata calls catch it before a
+    byte is downloaded (R11 rung 0). Exit 4 if any run is missing one: a human must re-fetch it.
+    """
+    from .io.remote import RemoteError
+
     try:
-        typer.echo(json.dumps(resolve_accession(accession)))
-    except NotYetImplemented as exc:
-        typer.echo(str(exc), err=True)
+        result = resolve_accession(accession, check_reads=check_reads)
+    except (NotYetImplemented, RemoteError) as exc:
+        typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
         raise typer.Exit(1) from exc
+    typer.echo(json.dumps(result, indent=2))
+    if result.get("n_runs_missing_technical_read"):
+        raise typer.Exit(4)
 
 
 @resolve_app.command("score")
