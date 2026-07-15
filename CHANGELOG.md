@@ -43,9 +43,17 @@ increments per release within the month and resets when the month changes. The v
   always runs (KB-faithfulness + KB-vs-observed-layout cross-derivation + `--readFilesIn` order);
   **wiring** (`snakemake -n`/`--lint`) and **e2e** (count matrix) report `skip` when their toolchain
   is absent — never a silent `pass`. `ComposeResult.gate` gained `skip` for exactly this reason.
+- **`kb e2e` — the real count-matrix run, implemented and passing.** Simulates reads from sacCer3
+  transcripts with injected barcodes/UMIs and drives the whole compiler (probe → resolve → fill →
+  validate → compose → STARsolo **with the composed params**), asserting against the injected truth:
+  0 spurious pairs, 0 inflated counts, ≤2% loss unexplained by STAR's own multimapper rate, and a
+  proven strand-inversion collapse. First green run on arc/GPU71FM (STAR 2.7.11b via liulab-runtime's
+  `align-rna`; sacCer3 + index via liulab-genome): resolve decided `10x-3p-gex-v3` from bytes alone;
+  1909/2000 recovered, 0 spurious, 0.7% unexplained; inverted strand collapsed to 49/2000.
+  Skip-gated (exit 1 + a reason) wherever STAR/liulab-genome are absent.
 - **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
-  emits the evidence matrices), `manifest fill|validate|hash`, and `compose` (exit 3 on a Blocker or
-  failed gate, 4 on an open Conflict/question).
+  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, and `kb e2e` (exit 3 on a
+  Blocker or failed gate, 4 on an open Conflict/question).
 - **mypy --strict** scope extended again to `manifest/`, `compose/`, and `workflows/` — a wrong type
   there poisons every emitted pipeline parameter.
 - **Day-one negatives** — truncated gzip → `TRUNCATED_GZIP`; an ONT run absent from the KB →

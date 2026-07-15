@@ -1030,12 +1030,30 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    and the `--readFilesIn` order (cDNA read before barcode read, derived from the role assignment)
    match the KB `backend.params`. These are the semantic bugs a linter *cannot* see and must **not**
    be attributed to `snakemake -n`.
-3. **`kb e2e`** — the brief's one real end-to-end run: `Genome("sacCer3")` (12 Mb, STAR index ~1 min)
-   + reads **simulated from sacCer3 transcripts with injected barcodes/UMIs** (same generator as
-   §2.5), run through the real STARsolo module, asserting **the count matrix equals the injected
-   ground truth**. This is the only thing that catches a strand inversion. Plus an **intron-rich
-   fixture** (a small intron-rich region or a designed synthetic genome), because yeast is nearly
-   intron-free and cannot exercise `GeneFull`.
+3. **`kb e2e`** — the brief's one real end-to-end run (**IMPLEMENTED and passing**): reads simulated
+   from sacCer3 transcripts with injected barcodes/UMIs, driven through the *whole* compiler —
+   probe → resolve (which must decide the chemistry from the bytes alone, no metadata hint) → fill →
+   validate → compose → **STARsolo run with the composed params** → assert the matrix against the
+   injected truth. Runs on a Linux compute node (STAR + liulab-genome); `skip` elsewhere.
+
+   **The assertion is "accounted", not naively exact.** Real transcripts mean real ambiguity: reads
+   from paralog/subtelomeric-repeat families (Y′/`YRF1`) legitimately multimap and STARsolo drops
+   them, so `observed == injected` is unachievable and demanding it would only teach us to weaken the
+   gate. Instead the gate asserts what indicts *us*:
+   - **0 spurious pairs** — never count a read for a gene it did not come from;
+   - **0 inflated counts** — never invent a UMI (a dedup/geometry bug looks exactly like this);
+   - **`unexplained_loss <= 2%`** — subtract STAR's own multimapper loss (read from `Log.final.out`);
+     what remains is the compiler's error, and it must be ~0;
+   - **strand sensitivity** — the same reads re-run under an inverted `--soloStrand` must collapse,
+     or the gate could not have caught an inversion in the first place.
+
+   Measured on arc (2 000 reads, 120 genes, 8 cells): resolve decided `10x-3p-gex-v3` unaided;
+   1 909/2 000 recovered with **0 spurious / 0 inflated**; STAR uniquely mapped 1 923 (77 multi/too-many
+   loci), leaving **0.7 % unexplained**; the inverted strand collapsed to **49/2 000 (2.5 %)**.
+
+   Still open: an **intron-rich fixture** (yeast is nearly intron-free and cannot exercise
+   `GeneFull`), and a **SPLiT-seq** e2e — this run certifies 10x 3′ v3's `soloStrand Forward` only, so
+   `splitseq`'s strand FLAG stays open until it gets its own simulation.
 
 ### 4.2 Skill → verb map, hooks, state
 
