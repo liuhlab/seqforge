@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from .core import ComposeError, ComposePlan, compose, plan
 from .gates import e2e_gate, wiring_gate
-from .params import params_gate, render_param
+from .params import RECIPE_PARAM_KEYS, param_owners, params_gate, processing_params, render_param
 
 __all__ = [
     "compose",
@@ -19,6 +19,9 @@ __all__ = [
     "ComposePlan",
     "ComposeError",
     "params_gate",
+    "param_owners",
+    "processing_params",
+    "RECIPE_PARAM_KEYS",
     "render_param",
     "wiring_gate",
     "e2e_gate",

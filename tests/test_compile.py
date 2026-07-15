@@ -412,7 +412,7 @@ def test_params_gate_fails_when_kb_offsets_contradict_the_observed_layout(tmp_pa
         }
     )
     p = plan(manifest, _processing(manifest), registry=reg)
-    status, problems = params_gate(manifest, lying, p.config)
+    status, problems = params_gate(manifest, _processing(manifest), lying, p.config)
     assert status == "fail"
     assert any("soloUMIlen" in problem for problem in problems)
 
@@ -423,7 +423,7 @@ def test_params_gate_fails_when_config_drops_a_chemistry_knob(tmp_path: Path) ->
     p = plan(manifest, _processing(manifest), registry=reg)
     mangled = dict(p.config)
     mangled["solo"] = {k: v for k, v in p.config["solo"].items() if k != "soloStrand"}  # type: ignore[union-attr]
-    status, problems = params_gate(manifest, spec, mangled)
+    status, problems = params_gate(manifest, _processing(manifest), spec, mangled)
     assert status == "fail"
     assert any("soloStrand" in problem for problem in problems)
 
@@ -434,7 +434,7 @@ def test_params_gate_fails_when_read_files_in_swaps_cdna_and_barcode(tmp_path: P
     p = plan(manifest, _processing(manifest), registry=reg)
     swapped = dict(p.config)
     swapped["read_files_in"] = {"cdna": "R1", "barcode": "R2"}  # barcode read fed as the cDNA read
-    status, problems = params_gate(manifest, spec, swapped)
+    status, problems = params_gate(manifest, _processing(manifest), spec, swapped)
     assert status == "fail"
     assert any("cdna" in problem for problem in problems)
 
@@ -504,11 +504,99 @@ def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -
     manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
     spec = kb.load_spec("bulk-rnaseq-pe")
     p = plan(manifest, _processing(manifest), registry=reg)
-    assert params_gate(manifest, spec, p.config) == ("pass", [])
+    assert params_gate(manifest, _processing(manifest), spec, p.config) == ("pass", [])
 
     corrupted = {**p.config, "solo": {"soloType": "CB_UMI_Simple"}}
     del corrupted["bulk"]
-    status, problems = params_gate(manifest, spec, corrupted)
+    status, problems = params_gate(manifest, _processing(manifest), spec, corrupted)
     assert status == "fail"
     assert any("no 'bulk' param block" in p for p in problems), problems
     assert not any("quantMode" in p and "drops" in p for p in problems), problems
+
+
+# ---------- R14: the gate is where the parse/count line stops being a convention ----------
+def test_param_owners_computes_the_line(tmp_path: Path) -> None:
+    """The parse/count line as a COMPUTED FACT, directly testable, not a comment nobody re-reads."""
+    from seqforge.compose import param_owners
+
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    owners = param_owners(kb.load_spec("10x-3p-gex-v3"), _processing(manifest))
+    assert owners["soloType"] == "kb"
+    assert owners["soloCBwhitelist"] == "kb"
+    assert owners["soloStrand"] == "kb"
+    assert owners["soloFeatures"] == "processing"  # the whole point of the move
+
+
+def test_quantification_is_no_longer_decorative(tmp_path: Path) -> None:
+    """It used to be written to the manifest and then IGNORED by compose, which read the KB instead.
+
+    Two sources of truth for one decision, unable to disagree only because one was never consulted.
+    Change the manifest's intent, and the emitted config must follow it.
+    """
+    from seqforge.models.processing import SoloQuant
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    assert plan(manifest, p, registry=reg).config["solo"]["soloFeatures"] == "Gene"
+
+    q = p.processing.quantification
+    genefull = p.model_copy(
+        update={
+            "processing": p.processing.model_copy(
+                update={
+                    "quantification": q.model_copy(
+                        update={"value": SoloQuant(features=["GeneFull", "Gene"])}
+                    )
+                }
+            )
+        }
+    )
+    config = plan(manifest, genefull, registry=reg).config
+    assert config["solo"]["soloFeatures"] == "GeneFull Gene"
+    # ...and "which matrix is THE matrix" is emitted as a VALUE, not left as a positional convention:
+    # STARsolo does not care about order, so the list order has no aligner-side referent.
+    assert config["primary_feature"] == "GeneFull"
+
+
+def test_params_gate_fails_when_the_config_disagrees_with_the_manifest(tmp_path: Path) -> None:
+    """The check that makes `quantification` load-bearing: a decorative field cannot be caught."""
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    config = plan(manifest, p, registry=reg).config
+    corrupted = {**config, "solo": {**config["solo"], "soloFeatures": "GeneFull"}}  # type: ignore[dict-item]
+    status, problems = params_gate(manifest, p, kb.load_spec("10x-3p-gex-v3"), corrupted)
+    assert status == "fail"
+    assert any("does not match the processing manifest" in problem for problem in problems)
+
+
+def test_params_gate_fails_when_the_kb_declares_a_count_key(tmp_path: Path) -> None:
+    """Belt to the schema validator's braces — it catches the model_copy'd specs tests build."""
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    spec = kb.load_spec("10x-3p-gex-v3")
+    misowned = spec.model_copy(
+        update={
+            "backend": spec.backend.model_copy(
+                update={"params": {**spec.backend.params, "soloFeatures": ["Gene"]}}
+            )
+        }
+    )
+    status, problems = params_gate(manifest, p, misowned, plan(manifest, p, registry=reg).config)
+    assert status == "fail"
+    assert any("count key" in problem and "R14" in problem for problem in problems)
+
+
+def test_params_gate_fails_on_an_emitted_key_with_no_owner(tmp_path: Path) -> None:
+    """Coverage: the emitted key set must be EXACTLY the union of the two owners.
+
+    Disjointness alone is the decorative bug in reverse — it proves the two sources cannot disagree,
+    not that either key arrives. Before this, the gate iterated the KB alone, so a key moved out of
+    the KB silently stopped being gated at all, and an orphan was invisible.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    config = plan(manifest, p, registry=reg).config
+    orphaned = {**config, "solo": {**config["solo"], "outFilterMismatchNmax": "10"}}  # type: ignore[dict-item]
+    status, problems = params_gate(manifest, p, kb.load_spec("10x-3p-gex-v3"), orphaned)
+    assert status == "fail"
+    assert any("no owner declares" in problem for problem in problems)

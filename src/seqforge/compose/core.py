@@ -32,10 +32,16 @@ from ..kb import load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
 from ..models.dataset import DatasetManifest
-from ..models.processing import DatasetPin, ProcessingManifest
+from ..models.processing import DatasetPin, ProcessingManifest, Quantification, SoloQuant
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import get_module
-from .params import find_read_with_role, param_block_key, params_gate, render_param
+from .params import (
+    find_read_with_role,
+    param_block_key,
+    params_gate,
+    processing_params,
+    render_param,
+)
 
 
 class ComposeError(RuntimeError):
@@ -84,8 +90,13 @@ def plan(
         raise ComposeError(str(exc)) from exc
 
     onlist_files: dict[str, list[str]] = {}
-    params = _resolve_params(manifest, spec, registry, onlist_files)
     intent = processing.processing
+    # Two owners, one block (R14). The KB says how to PARSE; the processing manifest says what to
+    # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
+    params = _resolve_params(manifest, spec, registry, onlist_files)
+    params.update(
+        {k: render_param(v) for k, v in processing_params(intent.quantification.value).items()}
+    )
 
     config: dict[str, object] = {
         "chemistry": list(chemistry),
@@ -100,6 +111,15 @@ def plan(
         "samples": [s.sample_id for s in manifest.experiment.samples],
     }
     config[param_block_key(spec)] = params
+    primary = _primary_feature(intent.quantification.value)
+    if primary is not None:
+        # Top level, NOT inside config["solo"] — that block must stay "every key is a STAR CLI flag"
+        # for the gate's coverage check, and STARsolo has no --primaryFeature. Order in the manifest
+        # is a seqforge-side annotation with no aligner-side referent (STARsolo writes one
+        # Solo.out/<Feature>/ per value and does not care about order), so it gets projected out to
+        # an explicit value rather than leaving a positional convention load-bearing for every
+        # downstream reader.
+        config["primary_feature"] = primary
 
     return ComposePlan(
         config=config,
@@ -108,6 +128,11 @@ def plan(
         spec=spec,
         onlist_files=onlist_files,
     )
+
+
+def _primary_feature(quant: Quantification) -> str | None:
+    """Which ``Solo.out/<Feature>/`` is THE matrix for this run. ``None`` for bulk (no such split)."""
+    return quant.features[0] if isinstance(quant, SoloQuant) else None
 
 
 def _check_pin(manifest: DatasetManifest, processing: ProcessingManifest) -> None:
@@ -178,7 +203,7 @@ def compose(
 
     from .gates import e2e_gate, wiring_gate
 
-    status, problems = params_gate(manifest, p.spec, p.config)
+    status, problems = params_gate(manifest, processing, p.spec, p.config)
     gate: dict[str, str] = {
         "params": status,
         "wiring": wiring_gate(pipeline_dir, p) if run_wiring_gate else "skip",

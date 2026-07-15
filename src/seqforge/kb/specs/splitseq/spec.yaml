@@ -137,7 +137,10 @@ backend:
     # run GSE110823 both ways (SRR6750042 is the scg_lib_structs control; SRR6750041 is cheapest at
     # 77.6M reads) — the correct strand assigns ~an order of magnitude more reads. Bounded per R3.
     soloStrand: Forward
-    soloFeatures: [Gene]
+    # soloFeatures is NOT here, and that is the point (R14). It says what to COUNT, and 10x 3' v3.1
+    # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
+    # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
+    # It lives in the processing manifest now, where a user may instruct it.
     # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
     # (FLAG-3: never hand-enter a position quadruple from memory — generate it from the element model).
 

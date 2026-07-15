@@ -44,10 +44,21 @@ signature:
 
 backend:
   module: map/star                       # plain STAR (no solo): bulk has no barcode/UMI demultiplex
-  params:
-    quantMode: GeneCounts
-    outSAMtype: [BAM, SortedByCoordinate]
-    # library strandedness is resolved at compose from processing policy / inferred prep, not here.
+  params: {}
+  # EMPTY, and meaningfully so — not degenerate. Bulk paired-end RNA-seq has nothing byte-decided to
+  # pass: no barcode, no UMI, no whitelist, no offsets. Every knob that used to live here was on the
+  # wrong side of the parse/count line (R14):
+  #   - quantMode: GeneCounts        -> COUNTING. Now processing.quantification (BulkQuant.mode).
+  #   - outSAMtype: [BAM, Sorted..]  -> an OUTPUT FORMAT: neither parse nor count. It is a module
+  #     implementation detail, and the proof was already in this repo — starsolo.smk hardcoded
+  #     `--outSAMtype BAM Unsorted` in its shell block while star.smk read the same knob from config.
+  #     Two hand-written modules, two answers, one detail. star.smk now hardcodes it too.
+  #
+  # There is also no strandedness knob, and none is needed. This file used to promise that "library
+  # strandedness is resolved at compose from processing policy" — no code ever implemented it, because
+  # there was never a decision to make: `--quantMode GeneCounts` already emits ALL THREE strand columns
+  # in ReadsPerGene.out.tab. Same law as soloFeatures: when the aligner computes every alternative in
+  # one pass and the outputs are small, compute them all and let the consumer choose.
 
 confusable_with: []
 decidable_by: []

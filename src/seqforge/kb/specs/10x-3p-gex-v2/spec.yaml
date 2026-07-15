@@ -62,7 +62,10 @@ backend:
     soloUMIlen: 10                        # 10 bp UMI (vs v3's 12) -> 26 bp R1
     soloCBwhitelist: "{onlist:cb_whitelist}"
     soloStrand: Forward
-    soloFeatures: [Gene]
+    # soloFeatures is NOT here, and that is the point (R14). It says what to COUNT, and 10x 3' v3.1
+    # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
+    # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
+    # It lives in the processing manifest now, where a user may instruct it.
 
 # v2 vs v3 are length-separable (26 vs 28 bp) at rungs 0-2, so neither is confusable with the other.
 confusable_with: []

@@ -191,3 +191,50 @@ def test_a_declared_twin_that_diverges_would_be_caught() -> None:
     assert "10x-3p-gex-v3.1" in declared_equivalents(v3)  # ...but still declared benign
     # => identical(False) != declared(True) => the biconditional above would fail. A strand
     #    inversion recorded as a benign twin is precisely the silent corpus killer.
+
+
+# ---------- R14: the parse/count line, as a property of the DSL ----------
+@pytest.mark.parametrize("tech", kb.list_spec_ids())
+def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
+    """The four-line test that would have caught the original misfiling on day one.
+
+    soloFeatures sat in backend.params because that is where the aligner's flags live — and it cost a
+    measured 40.7% of a nuclear library, because 10x 3' v3.1 chemistry is byte-identical for cells and
+    nuclei. Counting was never a chemistry property.
+    """
+    from seqforge.compose import RECIPE_PARAM_KEYS
+    from seqforge.kb.schema import KB_PARSE_KEYS
+
+    params = kb.load_spec(tech).backend.params
+    assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params (R14)"
+    assert not set(params) & RECIPE_PARAM_KEYS, (
+        f"{tech}: a count key is misfiled as chemistry (R14)"
+    )
+
+
+def test_the_kb_cannot_even_express_a_count_key() -> None:
+    """Not a convention — a validator. It fires in load_spec, kb lint, and every test that loads."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    payload = spec.backend.model_dump()
+    payload["params"] = {**payload["params"], "soloFeatures": ["Gene"]}
+    with pytest.raises(ValidationError, match="PARSE"):
+        type(spec.backend).model_validate(payload)
+
+
+def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
+    """The proof that "a user instruction contradicts the observed bytes" is INEXPRESSIBLE.
+
+    Not deprioritized by a runtime comparison — the user has no vocabulary in which to say it. That is
+    the strongest form of R2 available, and it holds only while these two sets stay disjoint. If
+    someone later moves soloStrand into the instructable surface, this goes red, because at that point
+    the contradiction becomes sayable.
+    """
+    from seqforge.compose import RECIPE_PARAM_KEYS
+    from seqforge.kb.schema import KB_PARSE_KEYS
+
+    assert not (KB_PARSE_KEYS & RECIPE_PARAM_KEYS)
+
+
+def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
+    """Empty, not degenerate: bulk PE has no barcode, no UMI, no whitelist, no offsets to declare."""
+    assert kb.load_spec("bulk-rnaseq-pe").backend.params == {}
