@@ -66,7 +66,6 @@ one failure this project exists to prevent, because nothing downstream ever ques
 - **Never** pick between conflicting values yourself. Code decides or a human decides.
 - **Never** read a whole FASTQ. Use `seqforge probe`; a hook blocks the alternatives (R3).
 - **Never** write an absolute path into a manifest (R9). A hook blocks that too.
-- **Never** touch a held-out acceptance case. It runs once, pre-registered, on the maintainer's word.
 
 ## Context hygiene
 

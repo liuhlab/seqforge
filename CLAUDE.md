@@ -87,12 +87,20 @@ behaviour.
 | R14 | **The instructable surface is closed, and the line is parse vs count.** `backend.params` says how to **parse** reads (soloType, CB/UMI offsets, whitelist, strand) — byte-decided, never instructable. The processing manifest says what to **count**, and against which genome, aligner, env, resources. The two key sets are **disjoint**, which is what makes "a user instruction contradicts the observed bytes" *inexpressible* rather than merely deprioritized: the user has no vocabulary in which to say it. | `Backend` key-allowlist validator (`kb lint` + every `load_spec`); `params_gate` disjointness + coverage + **three-owner** faithfulness (kb / derived / processing); `extra="forbid"` on `ProcessingSection` + `ProcessingManifest`, so an unknown key is a validation error rather than a silent drop |
 | R15 | **Produce every answer rather than ask.** §12 says never escalate an ambiguity that cannot change the output; this is its sibling — never escalate one whose every answer you can afford to emit. `soloFeatures` defaults to all five: one alignment, five counting rules, one pass. Escalate only where the answers are genuinely exclusive (a genome, an aligner). An ambiguity a second counting rule would settle is not a `Question`. | `kb e2e-introns` with the override deleted (`composed_soloFeatures ⊇ {Gene, GeneFull}` on the compiler's own params); eval "questions asked" |
 
-**Held-out acceptance cases — do not touch.** `PRJNA1027859` is the pilot's single real acceptance
-test (more will follow). Do not read, sample, list, stat, profile, or tune against a held-out case.
-Build against synthetic KB round-trip fixtures only. Each runs **once**, pre-registered, when the
-maintainer says so. **Their on-disk locations are deliberately not in this repo** — they live in
-local, out-of-git config (`~/.claude/`), so this public repo carries the *rule*, not the paths. A
-`PreToolUse` guard blocks access to the held-out roots (e.g. `/scratch/**`).
+**`PRJNA1027859` is the demo dataset, and there are no held-out cases.** Retired 2026-07-15 by
+maintainer decision: reserving this dataset was a misunderstanding of what it was for. It is the
+pilot's worked example — read it, run it, write the tutorial from it. The `PreToolUse` held-out guard,
+the `SEQFORGE_CASE_*` root registry, and the "runs once, pre-registered" rule are **deleted**, not
+suspended; if a future case should be reserved, that machinery gets rebuilt deliberately rather than
+inherited.
+
+Two things that survive, because neither depended on the held-out idea:
+
+- **Real data stays out of git**, and so does its path. A `kind: local` eval case names an env var; the
+  root lives outside the repo because a lab path is not a project fact, and this repo is public.
+  `test_skill_never_leaks_a_lab_path` is the guard.
+- **Pre-register `expected.yaml` before a run.** That is what separates a prediction from a
+  transcript, and only a prediction can be wrong.
 
 ## Toolchain
 

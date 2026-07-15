@@ -1,10 +1,13 @@
-# The pilot's single real acceptance case. Its data is NOT in this repo and MUST NOT be read until
-# the maintainer says so — see expected.yaml. The root is resolved from the environment at run time,
-# so the path lives in local out-of-git config and never enters git history. Unset/absent => SKIP,
-# never a pass and never a fail.
+# The pilot's demo dataset. Its data is NOT in this repo: real FASTQs are far too large for git, and
+# the root is a lab path this public repo must not carry. The root is resolved from the environment at
+# run time. Unset/absent => SKIP, never a pass and never a fail.
 #
-# Per-case env var (not one global $SEQFORGE_HELDOUT): there will be more held-out cases, and each
-# should name its own root rather than fight over a single variable.
+# Per-case env var (not one global $SEQFORGE_ROOT): there will be more local cases, and each should
+# name its own root rather than fight over a single variable.
+#
+# The `SEQFORGE_CASE_` prefix is a leftover of the retired held-out regime, in which a PreToolUse
+# guard protected every root named `SEQFORGE_CASE_*`. That guard is gone (2026-07-15); the prefix now
+# means only "where this case's data lives".
 generate:
   kind: local
   root_env: SEQFORGE_CASE_PRJNA1027859

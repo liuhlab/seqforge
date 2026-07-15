@@ -721,31 +721,31 @@ Plus three negative fixtures that must pass from day one:
 Ship all four stages (probe / harvest / resolve / compile) at reduced coverage rather than one
 stage at full coverage. Breadth first, then depth — the abstractions are what we are testing.
 
-## 12. Held-out acceptance case: PRJNA1027859
+## 12. The pilot's demo dataset: PRJNA1027859
 
 ```
-<held-out-case>/        # FASTQ, _1/_2 per SRX, 6 SRX
-<held-out-case>/info/   # the paper PDF for this dataset
+<case-root>/        # FASTQ, _1/_2 per SRX, 6 SRX
+<case-root>/info/   # the paper PDF for this dataset
 ```
 
 > The concrete on-disk root is intentionally **not** recorded in this repo (it is a lab path); it
-> lives in local, out-of-git config. This is the first of several held-out cases.
+> lives in local, out-of-git config.
+
+**This was designated a held-out acceptance case, and that designation was retired on 2026-07-15.**
+Reserving it was a misunderstanding of what it is for: it is the pilot's worked example — the dataset
+the tutorial is written from and the thing "it works end to end" means. The project has no held-out
+case and does not currently want one. The rest of this section is kept because almost all of it was
+never about holding the data back: it is what the case is designed to catch, and that is unchanged.
 
 Declared technology (from GEO): 10x Chromium, Single Cell 3' v3.1 Reagent Kit. Organism: a worm.
 The FASTQs came from `fasterq-dump`, so the `_1` / `_2` suffixes carry **no reliable role
 information** — they are an artifact of the dump order, not a statement about R1 and R2.
 
-### This is a held-out acceptance test, not a development fixture
-
-Do not read it, sample it, profile it, or tune against it during pilot development. Build against
-the synthetic KB round-trips (§6). Run this dataset **once**, when the pilot is otherwise complete.
-If we iterate against it, we convert our only real acceptance case into a training set and it stops
-telling us anything.
-
 ### Pre-register the expected outcome, in writing, before running it
 
-This is what makes it a test rather than a demo. Commit the expectations to
-`evals/cases/PRJNA1027859/expected.yaml` *first*:
+**This survives the retirement above, and is the one piece of that discipline worth keeping.** It
+costs nothing and it is what separates a prediction from a transcript: only a prediction can be
+wrong. Commit the expectations to `evals/cases/PRJNA1027859/expected.yaml` *first*:
 
 - **role assignment**: exactly one 28 bp read (16 CB + 12 UMI) and one cDNA read. The `_1` / `_2`
   ordering must be **derived from the bytes, never assumed from the filename.**
@@ -762,8 +762,8 @@ Then run it and diff against the pre-registration.
 ### The pre-registration is not yet gradeable — fix this BEFORE the run
 
 Half of what is pre-registered above cannot be checked by the harness as it stands, and one item
-cannot even be attempted. Every fix below must land **before** the run: changing the grader afterwards
-to accommodate a result is how a held-out case quietly becomes a training set.
+cannot even be attempted. Every fix below must land **before** the run: a grader adjusted afterwards
+to accommodate a result is not grading anything.
 
 - **Harvest cannot run on this case at all.** The harness enables the language model only when a case
   "has prose", and a local-files case has no way to point at a document — so the paper is unreachable
@@ -838,9 +838,9 @@ and verify against **that**.
 
 This is built and works as specified; two details differ from the sketch above. The canonical text
 lives at `.seqforge/normalized/<doc_sha256>.txt` — content-addressed **under the workspace, never
-inside the dataset root**, because writing into a held-out root is itself a violation of the rule
-that governs this case. And a `normalized_sha256` is recorded alongside, so that normalization drift
-invalidates verification rather than silently passing it.
+inside the dataset root**, because a dataset root is somebody's read-only data and our derived
+artifacts do not belong in it. And a `normalized_sha256` is recorded alongside, so that normalization
+drift invalidates verification rather than silently passing it.
 
 ## 13. Engineering conventions
 
@@ -937,9 +937,9 @@ maintained by hand, beside the code it describes, checked against itself.**
 - **inDrop's W1 linker** (§11) — SPLiT-seq covers combinatorial indexing but not a variable-length
   barcode or an anchored motif, so the generalization claim is only partly tested.
 
-### Before the held-out run — blocking
+### Before the PRJNA1027859 run — blocking
 
-- **Harvest cannot run on the held-out case**: a local-files case has no `docs_glob`, so `has_prose`
+- **Harvest cannot run on this case**: a local-files case has no `docs_glob`, so `has_prose`
   is false, so the language model never runs, so the organism can never come from the paper — the
   one thing §12 designed this case to prove.
 - **`pypdf` is undeclared**; PDF extraction fails loudly on day one.

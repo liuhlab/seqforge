@@ -12,8 +12,8 @@ critic demanded — one canonical spelling for every wire-format, and the previo
 score/compile output models — is applied here. Genomics values that could not be verified from first
 principles are collected under **§8 FLAGS**; do not ship them without checking.
 
-**Held-out acceptance case.** `PRJNA1027859` is untouched and
-stays untouched (see §9).
+**Demo dataset.** `PRJNA1027859` is the pilot's worked example (see §8). It was designated a held-out
+acceptance case; that was retired on 2026-07-15.
 
 ---
 
@@ -1308,13 +1308,19 @@ read first, then barcode read.
 
 ---
 
-## 8. Held-out acceptance case — untouched
+## 8. Demo dataset — PRJNA1027859
 
-`PRJNA1027859` is the pilot's single real acceptance test (more cases will follow; their on-disk
-roots live in local, out-of-git config, never in this repo).
-It has **not** been read, sampled, listed, stat'd, profiled, or tuned against, and will not be until
-the maintainer says so. `ce11` (C. elegans, taxid 6239, WBcel235) is confirmed available in
-liulab-genome, so the case is *resolvable* without touching it. Its pre-registration
-(`evals/cases/PRJNA1027859/expected.yaml`) is a later task, written from GEO-declared metadata +
-provider-independent prior knowledge only, committed before any run — never from a value read out of
-the data.
+The pilot's worked example: the dataset the tutorial is written from, and what "it works end to end"
+means. Its on-disk root lives in local, out-of-git config, never in this repo — real FASTQs are far
+too large for git, and a lab path is not a project fact. `ce11` (C. elegans, taxid 6239, WBcel235) is
+confirmed available in liulab-genome.
+
+**It was a held-out acceptance case until 2026-07-15**, when the maintainer retired the designation:
+reserving it was a misunderstanding of what it is for. The `PreToolUse` guard and the
+`SEQFORGE_CASE_*` root registry that enforced it are deleted, not suspended. The project has no
+held-out case.
+
+Its pre-registration (`evals/cases/PRJNA1027859/expected.yaml`) stands and stays honoured — written
+from declared metadata and provider-independent prior knowledge only, committed before any run, never
+from a value read out of the data. That discipline never depended on the data being reserved: it is
+what makes the file a prediction rather than a transcript, and only a prediction can be wrong.

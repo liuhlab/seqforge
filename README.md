@@ -24,7 +24,7 @@ compose(manifest, processing)          -> config.yaml + units.tsv + module selec
 
 Same dataset + a different recipe = a different pipeline, and the dataset's hash **does not move**.
 
-**Status: Milestone 0 landed; the held-out acceptance case has not been run.** The deterministic
+**Status: Milestone 0 landed; the demo dataset has not been run.** The deterministic
 spine is implemented and green, end to end on synthetic yeast and worm fixtures with ground-truth
 counts injected. It has not yet processed a real dataset.
 

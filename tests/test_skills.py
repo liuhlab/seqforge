@@ -83,18 +83,23 @@ def test_skill_documents_only_real_cli_verbs(skill: Path) -> None:
     assert not unknown, f"{skill.name} documents non-existent verb(s): {sorted(unknown)}"
 
 
-#: A CONCRETE path under a held-out-looking root: two real segments. `/scratch/...` in prose is the
-#: rule being stated, not a leak — flagging it is the same false-positive class as rejecting a URI
-#: for looking like a path, and a check that cries wolf gets deleted.
+#: A CONCRETE lab path: two real segments under a cluster root. `/scratch/...` in prose is the rule
+#: being stated, not a leak — flagging it is the same false-positive class as rejecting a URI for
+#: looking like a path, and a check that cries wolf gets deleted.
 _CONCRETE_SCRATCH = re.compile(r"/scratch/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+")
 
 
 @pytest.mark.parametrize("skill", _skill_dirs(), ids=lambda p: p.name)
-def test_skill_never_leaks_a_heldout_path(skill: Path) -> None:
-    """Design §8: this public repo carries the rule, never the paths."""
+def test_skill_never_leaks_a_lab_path(skill: Path) -> None:
+    """This repo is public: it carries rules and accessions, never a path on our cluster.
+
+    The held-out designation that first motivated this check was retired on 2026-07-15; the check was
+    not, because it never depended on it. A lab path in a public repo is a leak regardless of what the
+    data behind it is for.
+    """
     body = (skill / "SKILL.md").read_text()
     found = _CONCRETE_SCRATCH.findall(body)
-    assert not found, f"{skill.name} leaks a concrete held-out path: {found}"
+    assert not found, f"{skill.name} leaks a concrete lab path: {found}"
 
 
 def test_the_leak_check_can_actually_catch_a_leak() -> None:

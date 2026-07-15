@@ -1191,7 +1191,7 @@ def eval_run(
 
 @hook_app.command("pre-tool-use")
 def hook_pre_tool_use() -> None:
-    """Deny an unbounded FASTQ stream (R3), an absolute path in a manifest (R9), or held-out access.
+    """Deny an unbounded FASTQ stream (R3) or an absolute path in a manifest (R9).
 
     Reads the hook payload on stdin, emits a permissionDecision on stdout. Exit 0 always: the decision
     travels in the JSON, and a crashing guard must never wedge the agent.
@@ -1362,25 +1362,20 @@ def hook_check(
     A hook that silently never fires is indistinguishable from one that always allows — so this
     exercises every rule against a known-bad payload and reports what it caught.
     """
-    from .hooks import HOOKS_VERSION, heldout_roots, pre_tool_use, questions_outstanding
+    from .hooks import HOOKS_VERSION, pre_tool_use, questions_outstanding
 
-    roots = heldout_roots()
-    probe = "/tmp/__seqforge_probe_root__"
     cases = [
         (
             "R3 unbounded FASTQ",
             {"tool_name": "Bash", "tool_input": {"command": "zcat big.fastq.gz | wc -l"}},
-            [],
         ),
         (
             "R3 allows a bounded stream",
             {"tool_name": "Bash", "tool_input": {"command": "zcat big.fastq.gz | head -n 400"}},
-            [],
         ),
         (
             "R3 allows the seqforge verb",
             {"tool_name": "Bash", "tool_input": {"command": "seqforge probe big.fastq.gz --json"}},
-            [],
         ),
         (
             "R9 absolute path in manifest",
@@ -1388,25 +1383,14 @@ def hook_check(
                 "tool_name": "Write",
                 "tool_input": {
                     "file_path": "manifest.yaml",
-                    "file_text": "genome: /scratch/ref/hg38.fa\n",
+                    "file_text": "genome: /data/ref/hg38.fa\n",
                 },
             },
-            [],
-        ),
-        (
-            "held-out ad-hoc access",
-            {"tool_name": "Bash", "tool_input": {"command": f"ls {probe}/reads"}},
-            [probe],
-        ),
-        (
-            "held-out via the sanctioned verb",
-            {"tool_name": "Bash", "tool_input": {"command": f"seqforge probe {probe}/a.fastq.gz"}},
-            [probe],
         ),
     ]
     results = []
-    for name, payload, extra in cases:
-        denial = pre_tool_use(payload, roots=extra or roots)
+    for name, payload in cases:
+        denial = pre_tool_use(payload)
         results.append(
             {"case": name, "denied": denial is not None, "rule": denial.rule if denial else None}
         )
@@ -1414,7 +1398,6 @@ def hook_check(
         json.dumps(
             {
                 "hooks_version": HOOKS_VERSION,
-                "heldout_roots_configured": len(roots),
                 "open_questions": [str(p) for p in questions_outstanding(workspace)],
                 "checks": results,
             },

@@ -10,8 +10,9 @@ Layout, per the brief::
 **Inputs are a recipe, never committed bytes.** A recipe is a few hundred bytes, is deterministic in
 ``(spec, seed)``, and regenerates byte-identically on any machine — so a case is diffable, a KB spec
 change is *visible* in the inputs it produces, and no FASTQ ever enters git history. It also lets a
-held-out case (whose data lives at a path deliberately absent from this repo) use the same format via
-``kind: local``: the ground truth is committed, the bytes stay wherever the maintainer keeps them.
+case backed by **real** data (which is far too large for git, and whose path is a lab fact this public
+repo must not carry) use the same format via ``kind: local``: the ground truth is committed, the bytes
+stay wherever the maintainer keeps them.
 
 The recipe deliberately reuses ``kb.generate`` — the same R10 round-trip generator the KB self-tests
 run on. Evals therefore measure the compiler, not a second, drifting notion of what a FASTQ looks like.
@@ -73,10 +74,11 @@ class RandomRecipe(BaseModel):
 
 
 class LocalRecipe(BaseModel):
-    """Real files at a path this repo does not contain (held-out cases; design §8).
+    """Real files at a path this repo does not contain.
 
-    ``root`` is resolved from the environment at run time, never committed. A case whose root is unset
-    or absent **skips** — it never fails and never silently passes.
+    ``root`` is resolved from the environment at run time, never committed — the data is too large for
+    git and its location is a lab fact, not a project fact. A case whose root is unset or absent
+    **skips**: it never fails and never silently passes.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -136,7 +138,7 @@ class Expected(BaseModel):
 
     outcome: Literal["decide", "refuse", "ask"]
     description: str = ""
-    #: Which code the expectation was written against — required for a HELD-OUT case, meaningless
+    #: Which code the expectation was written against — required for a case over real data, meaningless
     #: for a synthetic one.
     #:
     #: A pre-registration mixes two kinds of claim and only one is sacred:
@@ -144,7 +146,7 @@ class Expected(BaseModel):
     #: (a) claims about the DATASET — organism, chemistry, what the record declares. From public
     #:     metadata. **Never change these.** Editing one after a run is cheating, full stop.
     #: (b) claims about OUR COMPILER'S OUTPUT on that dataset — a function of code version. Editing
-    #:     one after a code change is not tuning against held-out data; it is keeping a prediction
+    #:     one after a code change is not tuning against the answer; it is keeping a prediction
     #:     well-typed.
     #:
     #: This stamp is what makes the difference auditable from `git log` alone: was every (a) claim
@@ -193,7 +195,7 @@ class CaseError(RuntimeError):
 
 
 class CaseSkipped(RuntimeError):
-    """A case cannot run here (held-out root unset, LLM needed but disabled). Never a pass or fail."""
+    """A case cannot run here (local root unset, LLM needed but disabled). Never a pass or fail."""
 
 
 def default_cases_dir() -> Path:
@@ -245,7 +247,9 @@ def _materialize_local(gen: LocalRecipe) -> Materialized:
 
     root = os.environ.get(gen.root_env)
     if not root:
-        raise CaseSkipped(f"${gen.root_env} is not set (held-out root lives in out-of-git config)")
+        raise CaseSkipped(
+            f"${gen.root_env} is not set (a local case's root lives outside the repo)"
+        )
     base = Path(root)
     if not base.is_dir():
         raise CaseSkipped(f"${gen.root_env}={root} does not exist on this machine")

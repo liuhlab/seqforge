@@ -497,16 +497,16 @@ def test_unknown_spec_is_a_case_error(tmp_path: Path) -> None:
         materialize(case, tmp_path / "x")
 
 
-def test_held_out_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
-    """Design §8: a held-out root lives in out-of-git config. Absent => skip, never pass, never fail."""
-    monkeypatch.delenv("SEQFORGE_TEST_HELDOUT", raising=False)
+def test_a_local_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
+    """A local case's data lives outside the repo. Absent => skip, never pass, never fail."""
+    monkeypatch.delenv("SEQFORGE_TEST_LOCAL", raising=False)
     recipe = Recipe.model_validate(
-        {"generate": {"kind": "local", "root_env": "SEQFORGE_TEST_HELDOUT"}}
+        {"generate": {"kind": "local", "root_env": "SEQFORGE_TEST_LOCAL"}}
     )
-    case = Case("held", tmp_path, recipe, Expected(outcome="decide"), [])
+    case = Case("local", tmp_path, recipe, Expected(outcome="decide"), [])
     run = run_case(case)
     assert run.skipped is not None
-    assert "SEQFORGE_TEST_HELDOUT" in run.skipped
+    assert "SEQFORGE_TEST_LOCAL" in run.skipped
     assert build_report([run]).n_cases == 0
 
 
