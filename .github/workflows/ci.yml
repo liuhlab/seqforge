@@ -1,0 +1,65 @@
+name: CI
+
+# The BACKSTOP, not the mechanism. Most of seqforge's non-negotiable rules are enforced by tests
+# (the parse/count line, the KB round-trip over every spec, the rung-0-2 separability guard, the
+# read/byte budget), and `.pre-commit-config.yaml` runs those before a commit exists. This catches
+# what a `--no-verify` waved through, and proves the suite is green on a machine that is not yours.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint + typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          environments: default
+          locked: true
+      - name: ruff (lint)
+        run: pixi run -e default lint
+      - name: ruff format check
+        run: pixi run -e default fmt-check
+      - name: mypy --strict
+        run: pixi run -e default typecheck
+
+  test:
+    name: test (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - test-py312
+          - test-py313
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          environments: ${{ matrix.environment }}
+          locked: true
+      - name: pytest
+        run: pixi run -e ${{ matrix.environment }} test
+
+  build:
+    name: build wheel + sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          environments: default
+          locked: true
+      - name: build
+        run: pixi run -e default build
