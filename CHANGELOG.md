@@ -78,6 +78,12 @@ GeneFull_Ex50pAS, Velocyto]`, `primary_feature = Gene`. Gene counted **none** of
 intronic reads (1186 vs 1212 exonic); GeneFull recovered 1940 of 2000. The 40.7 % is now a
 *counterfactual* measured on a run that did not throw the signal away.
 
+**No regression on sacCer3** (job 2680656): passed, and *bit-identical* to the pre-change baseline —
+1 909/2 000 recovered, STAR uniquely mapped 1 923 with 77 multi/too-many, strand inversion still
+caught at 49. Every number matches the run recorded in design.md §4.1 before the split. The all-5
+default costs yeast nothing but four extra count directories, which is the known price of certifying
+one counting rule on an intron-free genome.
+
 **A second defect the same run surfaced, at scale.** At 10⁶ reads, Gene-only produced **207 spurious
 (cell, gene) pairs where GeneFull produced 0** — intronic reads landing in an *overlapping* gene's
 exon. So exon-only counting on a nuclear library does not merely lose 40.7 % of it, it also
