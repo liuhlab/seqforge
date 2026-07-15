@@ -158,6 +158,14 @@ class ProcessingSection(BaseModel):
     inspection.
     """
 
+    # `extra="forbid"` is R14's enforcement at the model, not just at the gate. The instructable
+    # surface is *enumerated*; an unknown key must be a validation error, never a silent drop. It was
+    # a silent drop until 2026-07-15 — `ProcessingSection(soloStrand="Reverse")` constructed happily
+    # and discarded the field — which is pydantic's default, and the wrong default here: this is the
+    # artifact a user hands us, so an unrecognised key is either a typo or an attempt to reach a
+    # parse decision, and both deserve to fail loudly rather than be dropped on the floor.
+    model_config = ConfigDict(extra="forbid")
+
     genome: EvidencedGenome
     aligner: EvidencedStr
     quantification: EvidencedQuantification
@@ -197,7 +205,7 @@ class ProcessingManifest(BaseModel):
     *state*, not that disk is *input*.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     processing_id: str  # a human slug, e.g. "default-2026.7" / "genefull-primary"
     dataset: DatasetPin | None = None
