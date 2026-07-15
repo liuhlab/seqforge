@@ -43,10 +43,12 @@ violates one must change the rule here first.
 | R11 | **Cheap first, expensive only on ambiguity.** Default path is escalation-ladder rungs 0–3; rungs 4+ only when metadata is absent, rung-3 disagrees, or a `Conflict` surfaces. Record which rung resolved each field. | `resolve score` rung provenance |
 | R12 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong upstream in `liulab-genome` / `liulab-runtime`. If a feature belongs in one of those, it goes there. | code review + CI import check |
 
-**Held-out acceptance case — do not touch.** `/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859`
-(arc server) is the single real acceptance test. Do not read, sample, list, stat, profile, or tune
-against it. Build against synthetic KB round-trip fixtures only. It runs **once**, pre-registered,
-when the maintainer says so. A `PreToolUse` guard blocks `/scratch/**` access.
+**Held-out acceptance cases — do not touch.** `PRJNA1027859` is the pilot's single real acceptance
+test (more will follow). Do not read, sample, list, stat, profile, or tune against a held-out case.
+Build against synthetic KB round-trip fixtures only. Each runs **once**, pre-registered, when the
+maintainer says so. **Their on-disk locations are deliberately not in this repo** — they live in
+local, out-of-git config (`~/.claude/`), so this public repo carries the *rule*, not the paths. A
+`PreToolUse` guard blocks access to the held-out roots (e.g. `/scratch/**`).
 
 ## Toolchain
 

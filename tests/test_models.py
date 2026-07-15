@@ -128,7 +128,7 @@ def test_chemistry_is_an_equivalence_class() -> None:
 @pytest.mark.parametrize(
     "bad_uri",
     [
-        "/scratch/zhoulab/x.fastq.gz",
+        "/data/x.fastq.gz",
         "~/data/x.fastq.gz",
         "C:\\reads\\x.fastq.gz",
         "\\\\host\\share\\x",

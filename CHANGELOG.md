@@ -47,7 +47,7 @@ increments per release within the month and resets when the month changes. The v
   transcripts with injected barcodes/UMIs and drives the whole compiler (probe → resolve → fill →
   validate → compose → STARsolo **with the composed params**), asserting against the injected truth:
   0 spurious pairs, 0 inflated counts, ≤2% loss unexplained by STAR's own multimapper rate, and a
-  proven strand-inversion collapse. First green run on arc/GPU71FM (STAR 2.7.11b via liulab-runtime's
+  proven strand-inversion collapse. First green run on the lab GPU cluster (STAR 2.7.11b via liulab-runtime's
   `align-rna`; sacCer3 + index via liulab-genome): resolve decided `10x-3p-gex-v3` from bytes alone;
   1909/2000 recovered, 0 spurious, 0.7% unexplained; inverted strand collapsed to 49/2000.
   Skip-gated (exit 1 + a reason) wherever STAR/liulab-genome are absent.

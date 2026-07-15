@@ -12,7 +12,7 @@ critic demanded — one canonical spelling for every wire-format, and the previo
 score/compile output models — is applied here. Genomics values that could not be verified from first
 principles are collected under **§8 FLAGS**; do not ship them without checking.
 
-**Held-out acceptance case.** `/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859` is untouched and
+**Held-out acceptance case.** `PRJNA1027859` is untouched and
 stays untouched (see §9).
 
 ---
@@ -1152,7 +1152,8 @@ read first, then barcode read.
 
 ## 8. Held-out acceptance case — untouched
 
-`/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859` (arc server) is the single real acceptance test.
+`PRJNA1027859` is the pilot's single real acceptance test (more cases will follow; their on-disk
+roots live in local, out-of-git config, never in this repo).
 It has **not** been read, sampled, listed, stat'd, profiled, or tuned against, and will not be until
 the maintainer says so. `ce11` (C. elegans, taxid 6239, WBcel235) is confirmed available in
 liulab-genome, so the case is *resolvable* without touching it. Its pre-registration

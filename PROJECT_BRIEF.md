@@ -396,9 +396,12 @@ stage at full coverage. Breadth first, then depth — the abstractions are what 
 ## 12. Held-out acceptance case: PRJNA1027859
 
 ```
-/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859/        # FASTQ, _1/_2 per SRX, 6 SRX
-/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859/info/   # the paper PDF for this dataset
+<held-out-case>/        # FASTQ, _1/_2 per SRX, 6 SRX
+<held-out-case>/info/   # the paper PDF for this dataset
 ```
+
+> The concrete on-disk root is intentionally **not** recorded in this repo (it is a lab path); it
+> lives in local, out-of-git config. This is the first of several held-out cases.
 
 Declared technology (from GEO): 10x Chromium, Single Cell 3' v3.1 Reagent Kit. Organism: a worm.
 The FASTQs came from `fasterq-dump`, so the `_1` / `_2` suffixes carry **no reliable role
@@ -529,6 +532,6 @@ Paste this after dropping `PROJECT_BRIEF.md` in an empty repo:
 > later.
 >
 > One hard rule up front: §12 describes a real GEO dataset at
-> `/scratch/zhoulab/hanliu/260612-worm/PRJNA1027859`. It is our **held-out acceptance case**. Do
+> `PRJNA1027859`. It is our **held-out acceptance case**. Do
 > not read it, sample it, or tune anything against it during pilot development — build against
 > synthetic fixtures only. I will tell you when to run it.
