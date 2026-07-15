@@ -64,6 +64,45 @@ description: >-
   This expectation is unaffected (it asserts RESOLVE-level facts, which are correct either way), but
   the compose-level defect is real and tracked separately. Found from the metadata, before the run,
   without touching the data — which is what pre-registration is for.
+
+  ---------------------------------------------------------------------------------------------------
+  AMENDMENT 2026-07-15 — the gap above is CLOSED. Still no byte of this dataset has been read.
+
+  The paragraph above is kept VERBATIM and is not to be tidied: it is the dated record that we found
+  the defect from metadata, before the run. What changed is our code, not our reading of the record.
+
+  Nothing in the sacred half of this file moved. `fields:` is byte-identical to the pre-registration
+  commit — every claim about the DATASET (organism, the declared v3.1 chemistry, the §12 equivalence
+  class, the outcome) is untouched, exactly as the paragraph above predicted it would be: it asserts
+  RESOLVE-level facts, which are correct either way. This amendment edits only prose describing OUR
+  COMPILER, which is a function of code version and is therefore allowed to change when the code does.
+  The audit question is answerable from `git log` alone: every (a) claim byte-identical, and this (b)
+  change cites a code diff rather than a result. It cites no run, because there has been none.
+
+  What the code now does (R13/R14/R15, `predicts:` below pins the versions):
+    - soloFeatures LEFT `backend.params`. The KB can no longer express a count key at all; the
+      Backend validator rejects it. The parse/count line is checked, not conventional.
+    - soloFeatures defaults to ALL FIVE (Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS
+      Velocyto). So GeneFull is counted on this case WITHOUT anyone asserting a nuclei-vs-cells fact,
+      and without a question. The gap is dissolved rather than answered.
+    - The remedy the CHANGELOG proposed at the time — an unknown prep becoming a Question (exit 4) —
+      was WITHDRAWN, not implemented. Note what that means for this case specifically: had it shipped,
+      this pre-registration's `outcome: decide` would have FAILED, not because the science was wrong
+      but because the proposal changed the contract the case was written against. Counting everything
+      keeps `decide` correct and costs no question.
+
+  Two things this amendment deliberately does NOT do, because either would be cheating:
+    - it does not add a compose-level assertion. The harness grades a ResolveResult and never runs
+      compose, and `Expected.fields` supports only library.*/rung — so "the compiler emits GeneFull"
+      is not expressible here today. Making it gradeable means changing `Expected` AND the grader,
+      which is legitimate but must land as its own commit, before the run, not bundled with a claim.
+    - it does not touch `fields:`, `outcome:`, or any DECLARED FACT above.
+  ---------------------------------------------------------------------------------------------------
+predicts:
+  # The code this expectation was written against. A (b) claim is only meaningful with one.
+  seqforge: "2026.7.0"
+  kb: "2026.7.1"
+  workflow: "2026.7.1"
 fields:
   library.chemistry: 10x-3p-gex-v3
   library.equivalence_members:
