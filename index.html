@@ -697,9 +697,10 @@ when it cannot be sure.</p>
     classDef output fill:#37474f,stroke:#263238
     class D,RECIPE artifact
     class OUT output</code></pre>
-<p>The language model appears exactly once, inside <code>harvest</code>, with one job: <strong>find claims in prose and
-point at where it found them.</strong> It decides nothing. Every claim carries the sentence it came from,
-and code checks that the sentence really says that. Everything else is deterministic.</p>
+<p><strong>The model proposes; code decides.</strong> Its job is prose: find claims and point at where it found each
+one. Every claim carries the sentence it came from, and code checks that the sentence really says
+that, or throws the claim away. The model never supplies a value of its own, never overrides the
+bytes, and nothing it produces reaches a manifest without passing a validator.</p>
 <h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Dataset manifest</strong> — what the data <em>is</em>. Written once, identified by a hash of its contents.</li>
