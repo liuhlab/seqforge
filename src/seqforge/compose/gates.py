@@ -5,8 +5,9 @@ that toolchain is absent. A gate that silently reports ``pass`` because it did n
 no gate at all: green CI would then be mistaken for coverage.
 
 - **wiring** (`snakemake -n` + `--lint`): needs the `snakemake` binary. Touches zero-byte files at
-  every units path **and** every resolved onlist path first, so a declared whitelist input does not
-  raise a spurious `MissingInputException`.
+  every units path first, so an absent FASTQ does not raise a spurious `MissingInputException`.
+  Onlists are NOT touched here — ``compose`` materializes them before calling this, which is why the
+  whitelist input resolves. Calling ``wiring_gate`` directly, without that step, will not.
 - **e2e** (the real count-matrix run): needs STAR + liulab-genome + network. It is a Linux/cluster
   operation, deliberately NOT run inside `compose`; `seqforge kb e2e` owns it.
 """

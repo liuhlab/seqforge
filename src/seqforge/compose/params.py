@@ -39,15 +39,84 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Literal
 
-from ..kb.schema import KB_PARSE_KEYS, Spec
+from ..kb.schema import KB_PARSE_KEYS, Element, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import ProcessingManifest, Quantification, SoloQuant
 
 GateStatus = Literal["pass", "fail"]
-ParamOwner = Literal["kb", "processing"]
+ParamOwner = Literal["kb", "processing", "derived"]
 
 RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
 """Every backend param sourced from the processing manifest. Each says what to **COUNT** (R14)."""
+
+DERIVED_PARAM_KEYS: frozenset[str] = frozenset({"soloCBposition", "soloUMIposition"})
+"""Params computed from the element model rather than declared by anyone.
+
+Still parse keys (R14) — byte-decided, never instructable — but the bytes already answered them in
+the spec's element coordinates, so a KB that *also* declared the quadruple would carry the same fact
+twice and let the two drift. A third owner, because "one fact, one owner" is the whole point of
+:func:`param_owners`; folding these into ``kb`` would make the gate certify a value the KB never
+stated.
+"""
+
+
+def derived_params(spec: Spec) -> dict[str, str]:
+    """Locate a ``CB_UMI_Complex`` chemistry's barcodes/UMI from its elements, as STAR wants them.
+
+    STARsolo's complex chemistries take position quadruples
+    (``startAnchor_startPos_endAnchor_endPos``; anchor 0 = read start, positions 0-based INCLUSIVE)
+    rather than the start/length pair a simple chemistry uses. The splitseq spec says outright why
+    this is computed and not written down: *"never hand-enter a position quadruple from memory —
+    generate it from the element model"*. A published quadruple is also chemistry-specific in a way
+    that invites exactly that error — v1's Round1 sits at 86-93 and Parse/v2's at 78-85, so a
+    remembered value is a coin flip between two real chemistries.
+
+    Order is load-bearing: STARsolo pairs the Nth ``soloCBwhitelist`` with the Nth
+    ``soloCBposition``, so the quadruples are emitted in the whitelist's declared order, never the
+    elements' positional order.
+    """
+    if spec.backend.params.get("soloType") != "CB_UMI_Complex":
+        return {}
+
+    by_onlist: dict[str, Element] = {}
+    umi: Element | None = None
+    for read in spec.reads:
+        for el in read.elements:
+            if el.type == "barcode" and el.onlist:
+                by_onlist[el.onlist] = el
+            elif el.type == "umi":
+                umi = el
+
+    whitelist = spec.backend.params.get("soloCBwhitelist")
+    aliases = [
+        v[len("{onlist:") : -1]
+        for v in (whitelist if isinstance(whitelist, list) else [whitelist])
+        if isinstance(v, str) and v.startswith("{onlist:")
+    ]
+    out: dict[str, str] = {}
+    positions = [q for a in aliases if (q := _quadruple(by_onlist.get(a))) is not None]
+    if positions:
+        out["soloCBposition"] = " ".join(positions)
+    umi_pos = _quadruple(umi)
+    if umi_pos is not None:
+        out["soloUMIposition"] = umi_pos
+    return out
+
+
+def _quadruple(el: Element | None) -> str | None:
+    """One element -> ``0_<start>_0_<end>``: anchored at the read start, both ends inclusive.
+
+    The element model is half-open ``[start, end)`` (Python's convention); STAR's quadruple is
+    closed. That off-by-one is the whole reason this is a function with a name.
+
+    ``None`` when the element is absent or open-ended: a quadruple needs both coordinates, and an
+    element without them (cDNA runs to the end of the read) has no position to state. Returning
+    ``None`` keeps the key out of the config entirely rather than emitting ``0_0_0_-1``, which STAR
+    would accept as a real and wrong instruction.
+    """
+    if el is None or el.start is None or el.end is None:
+        return None
+    return f"0_{el.start}_0_{el.end - 1}"
 
 
 def processing_params(quant: Quantification) -> dict[str, object]:
@@ -71,6 +140,8 @@ def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamO
     on.
     """
     owners: dict[str, ParamOwner] = dict.fromkeys(spec.backend.params, "kb")
+    for key in derived_params(spec):
+        owners[key] = "derived"
     for key in processing_params(processing.processing.quantification.value):
         owners[key] = "processing"
     return owners
@@ -128,6 +199,7 @@ def params_gate(
     problems: list[str] = []
     params = spec.backend.params
     from_processing = processing_params(processing.processing.quantification.value)
+    from_derived = derived_params(spec)
 
     # ---- 1. disjointness: one key, one owner (R14) ----
     both = sorted(set(params) & RECIPE_PARAM_KEYS)
@@ -139,6 +211,13 @@ def params_gate(
     stray = sorted(set(params) - KB_PARSE_KEYS)
     if stray:
         problems.append(f"KB declares non-parse key(s) {stray} (R14)")
+    redeclared = sorted(set(params) & DERIVED_PARAM_KEYS)
+    if redeclared:
+        problems.append(
+            f"KB declares derived key(s) {redeclared}: these are computed from the element "
+            f"coordinates, which already state them. Declaring them here is the same fact twice, "
+            f"and the two copies can drift"
+        )
 
     block = param_block_key(spec)
     found = config.get(block)
@@ -149,8 +228,8 @@ def params_gate(
         problems.append(f"config has no {block!r} param block (module is {spec.backend.module!r})")
     else:
         emitted: dict[str, object] = found
-        # ---- 2. coverage: the emitted key set is EXACTLY the union of the two owners ----
-        expected_keys = set(params) | set(from_processing)
+        # ---- 2. coverage: the emitted key set is EXACTLY the union of the three owners ----
+        expected_keys = set(params) | set(from_processing) | set(from_derived)
         orphans = sorted(set(emitted) - expected_keys)
         if orphans:
             problems.append(f"config emits param(s) {orphans} that no owner declares (R14)")
@@ -173,6 +252,13 @@ def params_gate(
                 problems.append(
                     f"config {key}={got!r} does not match the processing manifest's "
                     f"{key}={want!r} — quantification must not be decorative"
+                )
+        for key, expected_d in from_derived.items():
+            got = emitted.get(key)
+            if got is not None and str(got) != expected_d:
+                problems.append(
+                    f"config {key}={got!r} does not match {key}={expected_d!r} derived from the "
+                    f"element coordinates — the spec's elements are the only source for this"
                 )
 
     # ---- 4. cross-derivation: KB offsets/lengths must agree with the OBSERVED read layout ----

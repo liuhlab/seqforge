@@ -85,6 +85,12 @@ def escalate(
     conflicts = _detect_conflicts(
         hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
     )
+    # Pre-trimming can only be judged once a role is known — it is variable length *on a read the
+    # chemistry says is fixed*, so it needs the winner's assignment, not raw bytes. Hence here and
+    # not in `_integrity_blockers`.
+    trimmed = _pretrimmed_blockers(top, top_spec, observations)
+    if trimmed:
+        return Escalation(candidates=[], blockers=trimmed, conflicts=conflicts, rung_reached=rung)
     equiv_members = sorted(set(top.equivalence_members) | {e.tech for e in equivalent_ties})
 
     if not divergent_ties:
@@ -115,6 +121,57 @@ def escalate(
         rung_reached=7,
         winner=None,
     )
+
+
+def _pretrimmed_blockers(
+    top: TechEvaluation, spec: Spec, observations: list[Observation]
+) -> list[Blocker]:
+    """Variable length on a read the chemistry declares FIXED => someone trimmed before uploading.
+
+    This is the quiet failure §5 is built around, and it survives every other check by construction.
+    ``read_length_compatible`` matches on the **mode**, so a file whose reads are mostly 28 bp with a
+    trimmed tail scores exactly like a clean one and wins its candidate outright. Nothing downstream
+    looks again: STARsolo reads the barcode from a fixed offset, and on a shifted read that offset is
+    an arbitrary 16-mer. It matches no whitelist, the cell is dropped, the matrix comes out thin, and
+    STAR exits 0.
+
+    A fixed-cycle Illumina run does not produce variable-length reads. If the technical read is
+    variable, a trimmer ran — and cutadapt/trimmomatic do not know a barcode from an adapter.
+    """
+    by_sha = {o.file.sha256: o for o in observations}
+    fixed_roles = {
+        r.id: r.min_len
+        for r in spec.reads
+        if r.min_len is not None and r.min_len == r.max_len  # a declared fixed-cycle read
+    }
+    assigned = top.role_assignment_shas()
+    blockers: list[Blocker] = []
+    for role_id, declared in fixed_roles.items():
+        sha = assigned.get(role_id)
+        obs = by_sha.get(sha) if sha else None
+        if obs is None or obs.read_length.n_distinct == 1:
+            continue
+        ref = obs.file.basename
+        blockers.append(
+            Blocker(
+                id=f"blk-pretrimmed-{obs.file.sha256[:8]}",
+                code=BlockerCode.PRETRIMMED_VARIABLE_LENGTH,
+                message=(
+                    f"{ref}: {spec.identity.id} declares read {role_id!r} as fixed-cycle "
+                    f"({declared} bp), but the file carries {obs.read_length.n_distinct} distinct "
+                    f"read lengths (mode {obs.read_length.mode}). A trimmer ran before upload, so "
+                    f"barcode/UMI offsets may have shifted — counts would be silently wrong."
+                ),
+                remedy=(
+                    "Re-fetch the untrimmed original (SRA's sra-pub-src-* buckets preserve the "
+                    "submitter's files), or confirm the technical read was excluded from trimming "
+                    "and re-probe."
+                ),
+                subject=BlockerSubject(kind="file", ref=ref),
+                evidence=[obs.file.sha256],
+            )
+        )
+    return blockers
 
 
 def _integrity_blockers(observations: list[Observation]) -> list[Blocker]:

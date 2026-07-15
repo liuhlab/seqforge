@@ -83,6 +83,40 @@ def backend_identical(a: Spec, b: Spec) -> bool:
     return canonical_backend(a) == canonical_backend(b)
 
 
+def accepts_at_rungs_0_2(spec: Spec, probes: list[object]) -> bool:
+    """Would ``spec`` claim this data using only the CHEAP probes — no onlist, no network?
+
+    The onlist is withheld by handing the evaluator an **empty registry**, so every
+    ``onlist_hit_rate`` test abstains and the verdict rests on geometry, segmentation, distinct-value
+    ratios and header grammar alone. That is precisely rungs 0-2 (§5), expressed by removing the
+    rung-3 evidence rather than by reimplementing the scorer without it.
+
+    This is the primitive behind :func:`rung02_separable`, and it is why "ask the human" can be a
+    computed property instead of a prompt hope.
+    """
+    from ..io import OnlistRegistry
+    from .scoring import build_tech_evaluation
+    from .window import WindowProbe
+
+    wps = [p for p in probes if isinstance(p, WindowProbe)]
+    return build_tech_evaluation(spec, wps, OnlistRegistry(offline=True)).valid
+
+
+def rung02_separable(a: Spec, a_probes: list[object], b: Spec, b_probes: list[object]) -> bool:
+    """Do the cheap probes tell these two chemistries apart at all? (design §2.4, fact 1)
+
+    Separable iff **neither** spec accepts the other's data on geometry alone. If A would happily
+    claim B's reads, no amount of scoring rigour separates them below rung 3 — the honest thing is
+    for the KB to *say so* via ``confusable_with``, so the resolver knows to reach for the onlist or
+    a human rather than picking the alphabetically-luckier entry.
+
+    Some distinctions are provably undecidable from reads (10x 3' and 5' share CB/UMI geometry;
+    inDrop v2 and v3 share oligos). The system must KNOW that rather than guess, which is the whole
+    point of computing this instead of hand-maintaining a truth table.
+    """
+    return not (accepts_at_rungs_0_2(a, b_probes) or accepts_at_rungs_0_2(b, a_probes))
+
+
 def declared_equivalents(spec: Spec) -> set[str]:
     """Ids the spec declares as ``processing_equivalent`` twins (benign, ``§12`` record-both)."""
     return {c.id for c in spec.confusable_with if c.relationship == "processing_equivalent"}

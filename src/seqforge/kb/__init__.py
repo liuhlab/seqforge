@@ -13,9 +13,12 @@ from .roundtrip import run_roundtrip
 from .schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when spec semantics change. Folded into dataset candidate cache keys.
+#: 2026.7.2 — bulk-rnaseq-pe <-> splitseq declared processing_divergent, distinguishable_by onlist.
+#: Found by the new rung-0-2 separability guard on its first run: the generic paired-end fallback
+#: accepts SPLiT-seq's cdna+bc pair on geometry alone and had declared nothing.
 #: 2026.7.1 — the parse/count line (R14): soloFeatures / quantMode / outSAMtype left backend.params,
 #: which now declares ONLY byte-decided parse keys. Also adds the 10x-3p-gex-v3.1 benign twin.
-KB_VERSION = "2026.7.1"
+KB_VERSION = "2026.7.2"
 
 __all__ = [
     "KB_VERSION",

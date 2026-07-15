@@ -1,0 +1,55 @@
+# Pre-commit hooks for seqforge.
+#
+# Install once per clone:  pixi run -- pre-commit install
+# Run on all files:        pixi run -- pre-commit run --all-files
+#
+# Ruff is installed by pre-commit in its own ephemeral env (pinned below); mypy and pytest run
+# through pixi so they see the project's resolved env — the same shape liulab-genome uses.
+#
+# WHY the test suite runs here and not only in CI: most of this repo's rules are enforced by tests
+# (the parse/count line, the KB round-trip over every spec, the rung-0-2 separability guard, the
+# read/byte budget). CI is the backstop for a `--no-verify`; this is the mechanism. ~18 s.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy --strict (via pixi)
+        entry: pixi run --no-progress typecheck
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true
+
+      - id: pytest
+        name: pytest (via pixi)
+        entry: pixi run --no-progress test
+        language: system
+        # Not `types: [python]`: a KB spec.yaml, a .smk module and a skill's SKILL.md are all inputs
+        # the suite asserts over, so a YAML-only commit can break it just as easily as a code one.
+        pass_filenames: false
+        always_run: true
+        require_serial: true

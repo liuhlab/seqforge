@@ -144,5 +144,15 @@ backend:
     # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
     # (FLAG-3: never hand-enter a position quadruple from memory — generate it from the element model).
 
-confusable_with: []                      # onlist + combinatorial geometry separate it from 10x / inDrop
-decidable_by: []
+# The combinatorial geometry + onlists separate this from 10x / inDrop. What it does NOT separate
+# itself from is the generic paired-end fallback, which forbids so little that it accepts these two
+# files at rungs 0-2 — the confusion runs in that direction, and the relation is symmetric, so it is
+# declared on both sides. See bulk-rnaseq-pe's note.
+confusable_with:
+  - id: bulk-rnaseq-pe
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The generic paired-end fallback accepts cdna+bc on geometry alone. Rung 3 decides it: the
+      round1/2/3 whitelists hit, and bulk has no whitelist to hit.
+decidable_by: [onlist]

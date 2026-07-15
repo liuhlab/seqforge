@@ -85,14 +85,20 @@ def test_roundtrip_10x_geometry(tmp_path: Path) -> None:
     assert len({len(s) for s in reads["R2"]}) > 1
 
 
-def test_kb_roundtrip_self_test_passes() -> None:
-    result = kb.run_roundtrip("10x-3p-gex-v3", seed=0)
-    assert result["passed"] is True
-    assert result["checks"]  # length + barcode-recurrence + umi-uniqueness checks all ran
+@pytest.mark.parametrize("tech", kb.list_spec_ids())
+def test_every_kb_spec_roundtrips(tech: str) -> None:
+    """R10: *every* KB entry is executable and self-testing — so collect from the KB, not a list.
 
+    This was three hardcoded ids plus a separate v3-only test, and the KB has five. The uncovered
+    one was `10x-3p-gex-v3.1`, whose own spec comment says it exists because "a predicate cannot be
+    computed about a spec that does not exist" — and it was the one spec this predicate was not
+    computed over. The brief's "adding a technology automatically adds its own test" was false for
+    exactly as long as this list was written by hand.
 
-@pytest.mark.parametrize("tech", ["10x-3p-gex-v2", "bulk-rnaseq-pe", "splitseq"])
-def test_all_pilot_techs_roundtrip(tech: str) -> None:
+    Parametrizing over `list_spec_ids()` (the idiom already used twice below) is what makes the
+    claim true going forward: the next spec added to the KB is round-tripped because it exists, not
+    because someone remembered.
+    """
     result = kb.run_roundtrip(tech, seed=0)
     assert result["passed"] is True, result
     assert result["checks"]  # non-vacuous (bulk exercises the open-ended cDNA-variable check)
@@ -276,3 +282,90 @@ def test_the_only_list_valued_parse_param_left_is_positional() -> None:
         if isinstance(value, list)
     }
     assert list_params == {("splitseq", "soloCBwhitelist")}
+
+
+# ---------- R10: the rung-0-2 separability guard (design §2.4, fact 1) ----------
+def _probes_for(spec: Spec, workdir: Path) -> list[object]:
+    """Synthetic reads for one spec, probed — the input a scorer sees for a dataset of this tech."""
+    from seqforge.resolve.window import WindowProbe
+
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    out: list[object] = []
+    for read_id, seqs in reads.items():
+        path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
+        _write_fastq_gz(path, seqs)
+        out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
+    return out
+
+
+def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None:
+    """The under-declaration guard design §2.4 specified and nobody built.
+
+    `decidable_by` and `confusable_with` were hand-maintained claims: nothing computed whether the
+    cheap probes ACTUALLY separate two entries, so a new technology that silently collided with an
+    existing one passed lint, round-trip and the whole suite. R10 promised such a merge would be
+    blocked. It would not have been.
+
+    Computed, not asserted-to: generate each spec's own synthetic reads, then ask every OTHER spec
+    whether it would claim them using rungs 0-2 alone (the onlist is withheld via an empty registry,
+    so rung-3 evidence cannot rescue the answer). If A accepts B's data, A must say so.
+
+    It found one on its first run. `bulk-rnaseq-pe` — the generic paired-end fallback — accepts
+    SPLiT-seq's cdna+bc pair on geometry alone, and declared nothing. The system already knew: a test
+    comment called bulk "the generic bulk fallback that merely fails to be forbidden (rung 2)". The
+    KB is where that has to be written down, because the KB is what the resolver reads.
+    """
+    from seqforge.resolve.confuse import accepts_at_rungs_0_2
+
+    ids = kb.list_spec_ids()
+    specs = {i: kb.load_spec(i) for i in ids}
+    probes = {i: _probes_for(specs[i], tmp_path) for i in ids}
+
+    undeclared: list[str] = []
+    for a in ids:
+        declared = {c.id for c in specs[a].confusable_with}
+        for b in ids:
+            if a == b or b in declared:
+                continue
+            if accepts_at_rungs_0_2(specs[a], probes[b]):
+                undeclared.append(
+                    f"{a!r} accepts {b!r}'s reads at rungs 0-2 but does not list it in "
+                    f"confusable_with — the resolver would pick one and never ask"
+                )
+    assert not undeclared, "R10 under-declaration:\n" + "\n".join(undeclared)
+
+
+def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
+    """ "Ask the human" must be a COMPUTED property, not a prompt hope (§6).
+
+    A pair that the cheap probes cannot separate has to name the mechanism that can — onlist,
+    metadata, alignment or a user — because that name is what the escalation ladder branches on. A
+    `distinguishable_by: [none]` on a *divergent* pair would be a dead end the resolver cannot act
+    on, which the schema already refuses; this asserts the rest of the KB actually says something.
+    """
+    for tech in kb.list_spec_ids():
+        spec = kb.load_spec(tech)
+        for c in spec.confusable_with:
+            assert c.distinguishable_by, f"{tech} -> {c.id}: confusable but no mechanism named"
+            if c.relationship == "processing_divergent":
+                assert c.distinguishable_by != ["none"], (
+                    f"{tech} -> {c.id}: divergent AND undecidable is a dead end, not a declaration"
+                )
+
+
+def test_the_separability_guard_can_actually_catch_a_collision(tmp_path: Path) -> None:
+    """Prove the guard fires: a spec IS confusable with itself, by construction.
+
+    A tautology, and that is the point — if `accepts_at_rungs_0_2` cannot recognise a spec's own
+    synthetic reads, it recognises nothing and every "declared OK" above is vacuous.
+    """
+    from seqforge.resolve.confuse import accepts_at_rungs_0_2, rung02_separable
+
+    spec = kb.load_spec("10x-3p-gex-v3")
+    own = _probes_for(spec, tmp_path)
+    assert accepts_at_rungs_0_2(spec, own)
+    assert not rung02_separable(spec, own, spec, own)  # nothing is separable from itself
+
+    # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
+    splitseq = kb.load_spec("splitseq")
+    assert not accepts_at_rungs_0_2(spec, _probes_for(splitseq, tmp_path))

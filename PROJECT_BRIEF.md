@@ -1,8 +1,12 @@
 # PROJECT_BRIEF.md
 
-> Drop this in the repo root, then run `/init` in Claude Code and give it the
-> bootstrap prompt at the bottom of this file.
-> `seqforge` below is a placeholder name — replace it.
+> The design rationale for `seqforge` — **why** the system is shaped this way. The rules you are
+> actually checked against live in [`CLAUDE.md`](CLAUDE.md); the schemas, scoring function and CLI
+> surface live in [`docs/design.md`](docs/design.md).
+>
+> This brief is a **living document, not a historical record**: where the built system diverges from
+> what is written here, the text is wrong and gets corrected. §14 is the running tally of what is
+> designed here but not yet built. Read it before trusting any present-tense claim below.
 
 ---
 
@@ -56,8 +60,8 @@ exactly what §12 is for.
 |---|---|---|
 | **probe** | deterministic code, no LLM | `Observation` — facts derived from bytes |
 | **harvest** | LLM | `Assertion` — claims from prose, each with a verifiable source span |
-| **resolve** | code scores; LLM adjudicates only what code flags ambiguous | ranked candidates, `Conflict`s, `Question`s |
-| **compile** | deterministic code | pipeline config + workflow module selection |
+| **resolve** | code scores; LLM adjudicates only what code flags ambiguous *(adjudication unbuilt — §14)* | ranked candidates, `Conflict`s, `Question`s |
+| **compose** | deterministic code | pipeline config + workflow module selection |
 
 The LLM has exactly two jobs: (a) parse unstructured prose into structured assertions,
 (b) arbitrate ambiguity that the deterministic layer has *already identified as ambiguous*.
@@ -87,8 +91,9 @@ Everything else is a verifier. Do not let this line blur.
    deterministic `seqforge <verb> --json` command that works with no LLM in the loop.
 10. **Bounded work, not bounded time.** The probe's contract is a *read budget* (`--max-reads`,
     default 200k) and a byte cap — never wall-clock, which varies with filesystem, gzip level,
-    and whether you are on a login node. Time is an emergent consequence. CI asserts that
-    probing a 50 GB file reads under N bytes. Probes are embarrassingly parallel across files;
+    and whether you are on a login node. Time is an emergent consequence. A unit test asserts the
+    budget stops the stream early (`tests/test_probe.py`, on a 5 000-read fixture); the large-file
+    assertion this principle wants is **not yet written**. Probes are embarrassingly parallel across files;
     ~10 s/file is an acceptable envelope. If a code path *can* touch a whole multi-GB FASTQ,
     that is a bug.
 11. **The manifest is machine-independent. No absolute filesystem paths, ever.**
@@ -112,8 +117,11 @@ Everything else is a verifier. Do not let this line blur.
     against which genome, with which aligner, in which environment, at what resources. A user may
     tell us to count introns. A user may not tell us the UMI is 10 bp — the reads already answered
     that, and a human who disagrees is a `Conflict`, not an instruction. The instructable keys are
-    enumerated and the recipe model forbids extras: an open instruction surface is a
-    prompt-injection path from a GEO description into `--soloStrand`, and a wrong strand exits 0.
+    enumerated and the recipe model forbids extras: an open instruction surface is a prompt-injection
+    path from a GEO description into `--soloStrand`, and a wrong strand exits 0. Both halves are
+    enforced — `params_gate` proves no unknown key reaches a command line, and `extra="forbid"` on
+    the processing models makes an unknown key a validation error rather than a silent drop (it was
+    a silent drop until 2026-07-15).
 14. **Do not ask a question whose answer you can afford to produce twice.**
     §12 gives the benign rule: never escalate an ambiguity that cannot change the output. This is
     its sibling — never escalate one whose every answer you can afford to emit. `soloFeatures`
@@ -130,43 +138,55 @@ Single repo, single `pyproject.toml`, clear internal module boundaries. Do not s
 separate distributions yet.
 
 ```
-seqforge/
-  models/          pydantic v2 schemas; JSON Schema export is the single source of truth
-                   (used for validation, LLM structured output, and docs)
+src/seqforge/
+  models/          pydantic v2 schemas; `schema export` is the single source of truth
+                   (used for validation and LLM structured output; docs reuse is unbuilt)
   probe/           deterministic FASTQ fingerprinting  (no LLM, no network)
-  kb/              knowledge base: one directory per technology (see §6)
+  kb/              knowledge base: one directory per technology under kb/specs/ (see §6)
   resolve/         candidate scoring, role assignment, confusability, escalation
-  compose/         manifest -> snakemake config + module selection
+  manifest/        fill/validate/hash both artifacts; policy.py owns the precedence ladder (§7)
+  compose/         (dataset, processing) -> snakemake config + module selection
   io/              remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
-  workflows/       hand-written, versioned, tested Snakemake modules  (NOT generated)
-  cli/             typer app; every command supports --json
-skills/            SKILL.md agent skills (open Agent Skills standard) + installer
-evals/             ground-truth corpus + harness (see §9)
+  workflows/       hand-written, versioned Snakemake modules  (NOT generated). map/ only
+  hooks/           PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` (see §10)
+  cli.py           a single typer module, not a package: root app + 9 sub-typers. JSON by default
+  e2e.py           ground-truth end-to-end runs behind `kb e2e` / `kb e2e-introns` (see §8)
+  evals/           the harness (see §9)
+skills/            SKILL.md agent skills (open Agent Skills standard). Installer unbuilt
+evals/cases/       ground-truth corpus (see §9)
 tests/
 ```
 
 ## 5. The core algorithm
 
 ```
-probe(files)                     -> Observation
-harvest(prose, metadata)         -> Assertions          # LLM, span-verified
-score(Observation, KB)           -> candidates x role_assignment
-resolve(candidates, Assertions)  -> Decision | Conflict | Question
-compile(Decision)                -> config + module selection
+probe(files)                          -> Observation
+harvest(prose, instructions)          -> Assertions       # LLM, span-verified
+resolve(Observations, KB, hypothesis?) -> ResolveResult{candidates, Conflicts, Questions, Blockers}
+plan(Assertions, flags, policy)       -> ProcessingSection
+compose(manifest, processing)         -> config + units.tsv + module selection
 ```
+
+Note there is no `compile` verb and no `Decision` object: scoring and role assignment happen inside
+`resolve`, and composition takes **two artifacts** (§7), not one decision.
 
 ### `probe` — computed from a bounded head-limited stream, no LLM, no network
 
-**Tier A — free structural signals (no KB, no whitelist, computed while streaming anyway).**
+**Tier A — free structural signals (no whitelist, no network, computed while streaming anyway).**
 These do most of the work, and they alone are enough to solve role assignment.
 
-- **Per-cycle base composition.** This recovers the read layout with zero external input. Any
-  cycle where one base exceeds ~90% is *constant sequence* — that is a linker / TSO / adapter,
-  located and read off directly. Uniform-ACGT cycles are random regions. A run of T-dominant
-  cycles is polyT. "16 random + 12 random + polyT" falls straight out of the profile.
+- **Per-cycle base composition.** This recovers the read's *segmentation* with zero external input.
+  Any cycle where one base exceeds ~90% is *constant sequence* — a linker / TSO / adapter, located
+  and read off directly. Uniform-ACGT cycles are random regions. A run of T-dominant cycles is
+  polyT. **Adjacent random spans do not separate themselves**: a 10x v3 R1 is 16 bp of barcode
+  followed by 12 bp of UMI, both uniform-ACGT, so the profile yields one 28 bp random span, not
+  "16 + 12". The boundary inside it comes from the KB's declared geometry, which the profile then
+  *corroborates* — segmentation is KB-free, but the 16/12 split is not.
 - **Distinct-value ratio** over a candidate window (200k reads): cell barcodes recur because
   cells are resampled, so distinct/total lands around 0.05–0.3. UMIs and cDNA sit near 1.0.
-  This separates CB from UMI **with no whitelist at all.**
+  This separates CB from UMI **with no whitelist at all** — but not with no KB: the ratio is
+  computed over the KB-declared element offsets, since (per the previous bullet) the bytes alone
+  do not know where the barcode stops.
 - **Read-name grammar.** Parse Illumina headers into instrument / flowcell / lane / tile, and
   pull the index sequence out of the comment field (giving dual-vs-single index and index length
   for free). If SRA has normalized the header away, *detect and record that* — the absence of a
@@ -175,7 +195,9 @@ These do most of the work, and they alone are enough to solve role assignment.
   `n_distinct > 1`. Its value is **not** technology detection (short-read FASTQs are usually
   fixed-length). Its value is *data integrity*: variable length in a fixed-cycle Illumina run
   means someone already ran cutadapt/trimmomatic before uploading. That is common in GEO and it
-  is a `Blocker` — if barcode offsets have shifted, we will silently produce garbage.
+  **must be** a `Blocker` — if barcode offsets have shifted, we will silently produce garbage.
+  `BlockerCode.PRETRIMMED_VARIABLE_LENGTH` is declared for exactly this and **nothing emits it**
+  (§14): the integrity blockers computed today are truncated and corrupt gzip only.
 - N-rate, quality encoding, estimated total reads from file size / bytes-per-read.
 
 **Tier B — targeted onlist verification (the hypothesis test).**
@@ -184,15 +206,25 @@ The onlist test is a *verification* of a stated hypothesis, not an open-ended se
 proposes "10x 3' v3"; we load **one** list and check it. Full-panel search is the fallback, run
 only when metadata is absent, verification fails, or a conflict surfaces.
 
+**This is the design, and the code currently inverts it.** `resolve_dataset` builds an evaluation for
+*every* spec in the KB unconditionally, then lets the hypothesis act as a scoring prior rather than a
+gate. At five specs the distinction is invisible — the whole panel is under a second, which is why
+this has cost nothing so far. It stops being invisible as the KB grows, and the fix is a gate, not a
+rewrite (§14).
+
 It is cheap, and the numbers matter because the instinct is that it is not:
 a 16bp barcode is exactly 32 bits, so it is a `uint32`; the 6.8M-entry v3 whitelist is a 27 MB
 sorted `uint32` array; `np.searchsorted` over 200k reads is milliseconds. **The whole test is
 ~100 ms including an mmap'd load.** Testing against the *entire* panel is still under a second,
 because the other lists are far smaller (737K lists are 3 MB; SPLiT-seq's combinatorial lists are
-96 entries). Precompile to `.npy` and cache. Exact matching suffices — at Q30 over 90% of real
-barcodes match exactly, against a random-hit floor of 6.8M/4^16 ~= 0.16%. That is roughly 500:1
-signal-to-noise. **Always test the reverse complement** — reverse-complemented ATAC barcodes are
-a perennial trap.
+96 entries). Exact matching suffices — at Q30 over 90% of real barcodes match exactly, against a
+random-hit floor of 6.8M/4^16 ~= 0.16%. That is roughly 500:1 signal-to-noise. **Always test the
+reverse complement** — reverse-complemented ATAC barcodes are a perennial trap.
+
+Two gaps here (§14). Precompiling to `.npy` was specified and never built: packing is recomputed per
+process and cached in memory only, so every fresh CLI invocation re-packs. And "always" is not
+enforced — revcomp is tested only when a spec's onlist declares `orientation: either|revcomp`, and a
+spec that pins `forward` silently opts out of the trap this sentence exists to catch.
 
 Onlists are a **registry, not vendored data**: `{name -> URL, sha256, barcode length, orientation}`,
 fetched with pooch and hash-verified. 10x whitelists ship under Cell Ranger's license, so we do not
@@ -231,18 +263,26 @@ never enough to skip the check.
 ```
 0  metadata / prose (LLM, span-verified)   proposes the hypothesis
 1  filename / directory structure          free       weak prior, never decisive
-2  Tier A structural probe                 free       layout, roles, integrity — no KB needed
-3  targeted onlist check (ONE list)        ~100 ms    verifies the hypothesis
---- everything below runs only if 0 is absent, 3 disagrees, or a Conflict surfaces ---
-4  full-panel onlist + motif search        ~1 s/file  open-ended detection
-5  k-mer sketch vs organism panel          ~seconds
-6  mini-alignment to tiny reference        ~1 CPU-min (strand, 3'/5' bias)
+2  Tier A structural probe + KB geometry   free       layout, roles, integrity — no onlist needed
+3  targeted onlist check                   ~100 ms    verifies the hypothesis
+--- below runs only when a processing-DIVERGENT tie survives 3 and metadata cannot settle it ---
+4  full-panel onlist + motif search        ~1 s/file  open-ended detection        [NOT BUILT]
+5  k-mer sketch vs organism panel          ~seconds                               [NOT BUILT]
+6  mini-alignment to tiny reference        ~1 CPU-min (strand, 3'/5' bias)        [NOT BUILT]
 7  ask the human                           expensive — and that is the point
 ```
 
-Rungs 0-3 are the default path and cost well under a second. Rungs 4+ are the fallback, not the
-norm. Record which rung resolved each field: that record is both provenance and our primary eval
-signal.
+Rungs 0-3 are the default path and cost well under a second. Record which rung resolved each field:
+that record is both provenance and our primary eval signal.
+
+Two corrections to the ladder as originally drawn. **The trigger is narrower than "0 is absent or 3
+disagrees"**: the only thing that escalates is a processing-divergent tie — two or more candidates
+within θ of the top that would compile to *different* params. A `Conflict` does **not** escalate; it
+is detected in parallel and surfaced (§3.3). An ambiguity that cannot change the output is never
+escalated (§12), and neither is one whose every answer we can afford to emit (§3.14). **And rungs 4-6
+do not exist**: a tie surviving rung 3 goes straight to rung 7. Rung 4 in particular may never be
+needed — both of its halves already run unconditionally at rungs 2-3, so it is not a fallback so much
+as a description of what the default path does. Rungs 5 and 6 are real, unbuilt fallbacks (§14).
 
 ## 6. The knowledge base: executable and self-testing
 
@@ -262,16 +302,36 @@ spec.yaml --generate--> synthetic FASTQ set --probe--> recovered spec
 assert recovered == declared
 ```
 
-Adding a technology therefore automatically adds its own test, and requires no real data. Also
-generate adversarial variants from the same spec and assert the system emits the *correct
-Blocker or Conflict* rather than a wrong answer: SRA-mangled headers, dropped technical read,
-reverse-complemented barcodes, truncated gzip.
+Adding a technology therefore automatically adds its own test, and requires no real data. True as of
+2026-07-15, and it was not before: the round-trip was parametrized over a *hardcoded* list of spec
+ids, so `10x-3p-gex-v3.1` shipped with no round-trip at all. It collects from `kb.list_spec_ids()`
+now, which is what makes the sentence a mechanism rather than an aspiration.
 
-**Confusability matrix, computed in CI.** For every pair of KB entries, determine whether the
-cheap probe (rungs 0–2) actually distinguishes them. If it does not, the entry must declare
-`decidable_by: [metadata | alignment | user]`. This makes "ask the human" a computed property
-rather than a prompt hope, and it blocks any new technology that would silently collide with an
-existing one.
+Also generate adversarial variants from the same spec and assert the system emits the *correct
+Blocker or Conflict* rather than a wrong answer: SRA-mangled headers, dropped technical read,
+reverse-complemented barcodes, truncated gzip. **One of the four is built** — truncated gzip, as a
+mutation on the eval recipe with a negative test asserting the `Blocker`. The other three are §14.
+
+**Confusability, checked pairwise in the test suite.** For every pair of KB entries, determine
+whether the cheap probe (rungs 0–2) actually distinguishes them. If it does not, the entry must
+declare `decidable_by: [reads | onlist | metadata | alignment | user]`. This makes "ask the human" a
+computed property rather than a prompt hope, and it blocks any new technology that would silently
+collide with an existing one.
+
+Both halves are real as of 2026-07-15, and both are computed over every spec pair in
+`tests/test_kb.py`, collected from the KB rather than listed by hand:
+
+- the §12 biconditional — `backend_identical(A,B) ⟺ declared processing_equivalent`;
+- **rung-0–2 separability** — generate each spec's own synthetic reads, then ask every other spec
+  whether it would claim them using the cheap probes alone. The onlist is withheld by handing the
+  evaluator an empty registry, so rung-3 evidence cannot rescue the answer. `A accepts B ∧ B ∉
+  A.confusable_with` is an error.
+
+Until then `decidable_by` was hand-maintained: a claim, not a computed property. The guard found a
+real one on its first run — `bulk-rnaseq-pe`, the generic paired-end fallback, requires little and
+forbids less, and accepts SPLiT-seq's `cdna`+`bc` pair on geometry alone while declaring nothing.
+The system already *knew*, in the sense that a test comment called bulk "the generic bulk fallback
+that merely fails to be forbidden (rung 2)". A comment is not something the resolver can read.
 
 Some distinctions are provably undecidable from reads alone, and the system must *know* this
 rather than guess: 10x 3' and 5' have identical CB/UMI geometry; inDrop v2 and v3 share oligos
@@ -279,12 +339,20 @@ and differ only in sequencing configuration. Encode this honestly.
 
 ### Sources to ingest (with attribution)
 
+Both of these are **plans, not code** — no ingestion or export exists today (§14). Every mention of
+either in the repo is a hand-authored citation in a comment or README, which is attribution for
+knowledge a human transcribed, not a provenance trail from an automated harvest. Stated plainly
+because "sources to ingest" reads like a description of a pipeline that runs.
+
 - **scg_lib_structs** (Teichlab) — CC-BY-4.0, so we may legally derive from it with attribution.
   Ingest `docs/source/` markdown, which is more tractable than the HTML pages.
 - **seqspec** (pachterlab) — adopt its Assay/Region/Read decomposition as our *interchange*
   format, not our internal model. We emit valid seqspec as an export target, which gives us
   `seqspec index` (tool strings for STARsolo / kb-python / simpleaf) for free. Provenance,
   confidence, and processing intent live in our richer layer above it.
+  **The load-bearing half of this is done**: the decomposition is adopted, and every element carries
+  a required `seqspec_region_type` from a closed seqspec vocabulary (every read a `seqspec_read_id`),
+  so our specs are already shaped to map onto seqspec. What is missing is only the emitter.
 
 ## 7. Manifest schema — two artifacts, because a dataset and a recipe have different lifetimes
 
@@ -304,15 +372,24 @@ manifest is rebuilt from evidence and gets a new hash. It is never patched.
 Reference build + annotation version, aligner, counting features, whether variant calling is
 required, runtime environment, resource hints.
 
-Every field is **optional**, and that is the design, not laxity. A recipe is a sparse override set —
-`gcc` with no flags still compiles — so the empty recipe is legal and means "all policy defaults".
-One recipe can drive 10⁴ datasets, which is what uniform reprocessing *is*; a recipe that named its
-dataset would be worth nothing, because we would have 10⁴ of them and nobody would read one. The
-pairing is recorded at compile time, in provenance, never inside either input.
+Sparseness lives on the **input** side, and that is the design, not laxity. What a user hands us is a
+sparse override set — `gcc` with no flags still compiles — so the empty override set is legal and
+means "all policy defaults". What `plan` *produces* is the opposite: a fully-resolved intent in which
+every decision field carries a value and an `Evidenced` basis naming who decided it. Do not conflate
+the two; `processing.yaml` is the resolved artifact, so its fields are populated, not optional.
+
+One recipe can drive 10⁴ datasets, which is what uniform reprocessing *is*. So a recipe **need not**
+name its dataset, and that optionality is the whole design: **unpinned it is a template**, portable
+across the corpus; **pinned** to a `dataset_hash` it is bound, and `compose` refuses a mismatched pin
+with a `Blocker` rather than silently re-pinning. Compose always writes the bound form it actually
+used to `processing.lock.yaml`, so the pairing is recorded on disk whether or not it was recorded in
+the input.
 
 `plan(manifest, recipe) -> ProcessingSection` folds recipe, harvested instructions, and policy into a
-fully-resolved intent in which every field is `Evidenced` and its `basis` records which rung of the
-precedence ladder supplied it:
+fully-resolved intent in which every *decision* field is `Evidenced` and its `basis` records which
+rung of the precedence ladder supplied it. (`resources` — threads, memory, disk, GPUs — is the
+deliberate exception: an advisory scheduler hint, not a decision about the data, so it carries no
+basis.)
 
 | precedence | source | basis |
 |---|---|---|
@@ -338,14 +415,21 @@ dataset + different recipe = different pipeline, same manifest hash" a fact rath
 both, and embed both hashes — plus the KB version and the workflow version — in every run's
 provenance record: `run_id = H(manifest_hash, recipe_hash, kb_version, workflow_version)`.
 
-Use controlled vocabularies from day one (EFO/OBI assay terms, NCBI taxids, GENCODE/RefSeq
-accessions). The end product is a training corpus; lineage and stable IDs are what make it
-filterable and trustworthy later.
+Use controlled vocabularies from day one. Two of the three are in place: **EFO/OBI** assay CURIEs are
+pattern-enforced on `library.assay` (a KB spec without one is refused at fill), and **NCBI taxids**
+are required on `experiment.organism`. The third — **GENCODE/RefSeq accessions** — does not exist
+anywhere: annotation is a registered `liulab-genome` GTF *name* (`WS298`), which is a local registry
+key, not a stable public accession. That is a real gap for a corpus meant to stay filterable in three
+years, and it is §14, not a decision to drop the vocabulary.
+
+The end product is a training corpus; lineage and stable IDs are what make it filterable and
+trustworthy later.
 
 ## 8. Pipeline composition
 
-- `workflows/` contains **hand-written, versioned, CI-tested** Snakemake modules. Compose them
-  with Snakemake's `module` / `use rule ... from ...` mechanism.
+- `workflows/` contains **hand-written and versioned** Snakemake modules (`WORKFLOW_VERSION`, CalVer,
+  folded into provenance). Compose them with Snakemake's `module` / `use rule ... from ...`
+  mechanism. They are not yet *tested* in any meaningful sense — see the dry-run note below.
 - The composer emits `config.yaml` + `units.tsv` + a module selection. It never emits rule source.
 - `compose` is a **pure function of the (dataset manifest, resolved recipe) pair**. It requires no
   data on disk, local or remote. Two inputs, still no I/O: the recipe is data, not a side channel.
@@ -378,8 +462,16 @@ processing-equivalent. That is correct — they now genuinely are, and the recip
 Velocyto`. One alignment, five counting rules, one pass. So we do not ask whether the library is
 cells or nuclei: we emit every answer and let the consumer choose. Not free — `Velocyto` in
 particular costs memory — but small against a download and an alignment we are paying for regardless.
-**Measure it in `kb e2e` rather than assuming it; if the assumption ever breaks, this principle breaks
-with it.**
+
+**The instrument is `kb e2e-introns --quantify`** (not `kb e2e`, which measures nothing): it reports
+wall-clock and peak memory per feature set, so all-five can be priced against any subset. **The
+memory question is still open and is recorded as open.** On ce11 peak memory barely moved between
+2 000 reads and 10⁶ (2.804 → 2.809 GB) because that number is the *genome index*, not the counting —
+so what generalizes off this fixture is the slope (bytes per read per feature set), never the
+absolute. Whether all five breach the 32 GB `resources.mem_gb` hint on hg38, where the index alone
+approaches it, is **unmeasured**, deferred to real human data, and must not be inferred from a green
+ce11 number. Velocyto is currently unconditional by maintainer decision (2026-07-15) — a decision,
+not a measurement that passed.
 
 ### Validating the composer without any data
 
@@ -389,11 +481,44 @@ there. This validates config, wildcard resolution, rule wiring, and every genera
 string — with no FASTQ present anywhere. Run `snakemake --lint` alongside.
 **The composer is not done until both pass.** Wire it into the composer's unit tests.
 
+**This is the most dangerous gap in the repo, because it looks closed and is not.** The gate is
+written and wired into the unit tests — and it has never executed. `snakemake` is not a declared
+dependency in any environment, so the test skips, a skip is green, and the assertion
+(`gate["wiring"] in {"pass","skip"}`) forbids only the value that cannot occur. Everything this
+paragraph exists to catch — a misspelled flag, a broken wildcard, a rule wiring mistake — is
+therefore uncaught.
+
+**But do not over-credit the gate: `snakemake -n` would not catch our worst known wiring bug.**
+`starsolo.smk` hardcodes `--soloCBstart/CBlen/UMIstart/UMIlen`, which `CB_UMI_Complex` chemistries
+(SPLiT-seq) do not have. A dry run never formats the `shell:` block, so the failing lookup is never
+evaluated and the gate reports **pass** on a module guaranteed to `KeyError` on a compute node. The
+gate needs `-p` to force formatting, and `--lint` must come out of it entirely — lint fires on every
+rule here for a missing `log:`/`conda:` directive (see the environment note above), which would make
+the gate a constant red that misdiagnoses a correct config.
+
+**The instrument that did catch it cost nothing** (2026-07-15). `WorkflowModule.required_config`
+declares the config keys a module reads, and it omitted those four — while the test enforcing it
+checked against that same wrong list, over *one hardcoded chemistry per module*, which made SPLiT-seq
+structurally unrepresentable. Both halves of the guard were wrong in the same direction. The
+requirement is now derived from the module source by scanning it, and the coverage test iterates the
+KB, so the bug became a 0 ms failure naming the exact missing key. A dry-run gate is still worth
+having for what it genuinely covers — wildcards, DAG wiring, config resolution across chemistries
+nobody imagined — but it was never this bug's instrument (§14).
+
+The fix underneath: `starsolo.smk` now branches on `soloType`, because STARsolo spells barcode
+location two ways and a combinatorial chemistry has no start/length to give. The position quadruples
+are **computed from the element coordinates** (`derived_params`), never transcribed — a published
+SPLiT-seq quadruple is chemistry-specific (v1 puts Round1 at 86-93, Parse/v2 at 78-85), so a
+remembered one is a coin flip between two real chemistries. That makes the element model the single
+source for where a barcode is, and adds a third param owner beside the KB and the processing
+manifest: **derived**. One fact, one owner.
+
 ### Fetch and map are separate modules — decouple, do not omit
 
 Two workflow modules sharing one interface (the manifest's file inventory):
 
-- `fetch`: manifest -> local FASTQ tree
+- `fetch`: manifest -> local FASTQ tree   **[NOT BUILT — the registry holds only `map/star` and
+  `map/starsolo`. Everything below is the argument for building it, not a description of it.]**
 - `map`:   local FASTQ tree -> counts
 
 Users with local data never invoke `fetch`. But at 10^4 datasets, download is both the dominant
@@ -412,12 +537,18 @@ a bespoke `fetch` module unnecessary.
   execution profile maps that to a `pixi run -e` prefix or a `liulab-runtime` container.
   Environment definitions stay in liulab-runtime, in one place. We do not scatter conda YAMLs
   through the workflow, and we do not duplicate liulab-runtime's job.
+  **Half built:** the composer emits the env name into the config, but no rule declares or reads it —
+  neither `.smk` file carries a `conda:` or `container:` directive, so today the runner's ambient
+  environment decides which STAR runs. The name is recorded, not honoured (§14).
 
-### One real end-to-end run in CI, with ground-truth counts
+### One real end-to-end run with ground-truth counts (manual; CI pending)
 
 A dry run cannot catch a misspelled `--soloCBwhitelist`, an inverted `--soloStrand`, or a module
 whose output the next module cannot parse — and those are exactly the bugs a config compiler
-produces. So CI runs the real toolchain once, on data small enough to be free:
+produces. So we run the real toolchain once, on data small enough to be free. **This is built and
+green, and it is run by hand on a cluster** (`seqforge kb e2e`) — STAR is not in any environment
+here, so the test skips locally and CI has no aligner to run it either — this one really does need a
+cluster (§14):
 
 - Reference: `Genome("sacCer3")` — 12 Mb, already handled by our own package, STAR index builds
   in about a minute.
@@ -426,20 +557,27 @@ produces. So CI runs the real toolchain once, on data small enough to be free:
 - Assertion: not "it ran" but **"the count matrix equals the ground truth we injected."**
   This is the only thing that catches a strand inversion.
 
-Caveat: yeast is nearly intron-free, so intron-aware counting (`GeneFull`) needs a separate
-fixture later — either a small intron-rich region via liulab-genome, or a synthetic genome with
-designed introns.
+Yeast is nearly intron-free, so intron-aware counting (`GeneFull`) needs its own fixture. **That
+fixture exists**: `seqforge kb e2e-introns` takes the first of the two routes — a real intron-rich
+genome (ce11) via liulab-genome, with reads injected into clean intronic space. It is what priced the
+`soloFeatures` defect at 40.7 % (§3.14), and it carries the cost arm (`--quantify`) that prices the
+all-five default.
 
 ## 9. Evals — build these alongside the first feature, not after
 
 ```
 evals/cases/<case_id>/
-  inputs/                # FASTQ (real or synthetic), possibly truncated/corrupt
+  inputs/recipe.yaml     # HOW to build the FASTQ (kind: spec | random | local) — never the bytes
   metadata/              # GEO text, README, manuscript excerpt, or nothing
-  expected.yaml          # ground-truth manifest, OR expected_outcome: refuse | ask
+  expected.yaml          # outcome: decide | refuse | ask, plus the ground truth refining it
 ```
 
-Metrics tracked on every PR that touches prompts, KB, or resolve logic:
+Inputs are a **generator recipe, not committed FASTQ**: the bytes are materialized to a tempdir at
+run time from the same synthetic generator as §6, so the corpus stays diffable and weighs nothing.
+`outcome` is mandatory and primary; the ground-truth fields refine it. (The key is `outcome`, not
+`expected_outcome`, and the model forbids extras — a case file written the old way fails to load.)
+
+Metrics, tracked whenever prompts, KB, or resolve logic change:
 
 - field-level accuracy against ground truth
 - **false-accept rate** (produced a confident wrong manifest) — the metric that matters most
@@ -449,13 +587,22 @@ Metrics tracked on every PR that touches prompts, KB, or resolve logic:
 
 Treat prompt and KB changes as code changes. Without this harness the system rots invisibly.
 
+**Half true.** CI runs the unit suite on every PR — but not the evals, which need a real model and a
+key. So the metrics above are computed and real, and re-baselining after a prompt or KB change is
+still a manual step somebody has to remember. That is exactly the failure mode this section was
+written to prevent, and it is the strongest remaining argument for wiring `eval run --llm` into a
+scheduled job rather than a PR gate.
+
 ## 10. Agent layer
 
 Skills follow the open Agent Skills standard (`SKILL.md` + progressive disclosure), so they port
 across Claude Code, Codex CLI, Gemini CLI, etc. Ship an installer that places them in each
 product's discovery path (`.claude/skills/`, `.agents/skills/`, ...), since those paths still differ.
+**The installer is unbuilt (§14)** — the nine `SKILL.md` files exist and are copied by hand.
 
-Skills — each one a thin wrapper over `seqforge` CLI commands:
+Skills — each one a thin wrapper over `seqforge` CLI commands. A test asserts every verb a skill
+names actually exists, which is what keeps "thin client" honest; `journal` is the one skill that
+fails that standard today, wrapping four commands that do not exist:
 
 | skill | responsibility |
 |---|---|
@@ -479,20 +626,24 @@ orchestrator should never see a raw FASTQ line except as a short quoted example.
 .seqforge/
   observations/<file_sha>.json
   assertions.json
-  candidates.json
-  conflicts.json
-  questions.md            # open questions for the human
+  candidates/<dataset_id>.json   # dataset_id = sha256(sorted(file_shas) ⊕ kb_version), probe/
+                                 # resolve versions folded in. Conflicts live INSIDE this artifact,
+                                 # not in a separate file — one artifact, so they cannot drift apart
+  questions.md            # open questions for the human   [only ever READ — nothing writes it]
   manifest.draft.yaml
   manifest.yaml           # written only once validate passes
-  pipeline/
-  journal.jsonl
-  LESSONS.md
+  pipeline/<run_id>/      # config.yaml, units.tsv, onlists, processing.lock.yaml — keyed by RUN,
+                          # because one dataset compiled two ways is two runs (§3.12)
+  journal.jsonl           [NOT BUILT]
+  LESSONS.md              [NOT BUILT]
 ```
 
 **Hooks turn policy into mechanism** (do not rely on the prompt to enforce invariants):
 
-- `PreToolUse`: block any bash command that streams a FASTQ over ~200 MB without a head/subsample
-  flag. This makes the "seconds, not minutes" rule a hard invariant.
+- `PreToolUse`: block any bash command that streams a FASTQ with no read/byte bound — **regardless of
+  the file's size**. The guard never stats the file, deliberately: a path that *can* stream a
+  multi-GB FASTQ is a bug even when today's file happens to be small (§3.10). This makes the read/byte
+  budget (200k reads, 256 MB decompressed) a hard invariant. Wall-clock is never a budget.
 - `PostToolUse`: auto-run `seqforge manifest validate` after any manifest edit.
 - `Stop`: refuse to end the turn while `questions.md` is non-empty.
 
@@ -500,6 +651,12 @@ orchestrator should never see a raw FASTQ line except as a short quoted example.
 `LESSONS.md` is an explicit, human-approved step, and recurring lessons get *promoted into the KB
 via PR*. Make that promotion path low-friction: project journal -> distilled lesson -> KB entry ->
 CI test. That loop is how the package gets better with use instead of accumulating cruft.
+
+**None of this exists (§14).** No journal writer, no `distill` verb, no `LESSONS.md`; `grep -r journal
+src/` is empty, and the `journal` skill in the table above wraps four commands that were never built.
+The *back* of the path is real and now genuinely low-friction — a lesson can become a spec, and the
+round-trip and pairwise-confusability checks pick it up automatically because it exists — so what is
+missing is the front of the flywheel, not the whole thing.
 
 ## 11. Milestone 0 (the only thing to build first)
 
@@ -511,6 +668,10 @@ not popularity**:
 3. **inDrop v3 (or SPLiT-seq/Parse)** — anchored linker motif, variable-length barcode,
    combinatorial indexing. This is the one that proves the element model generalizes beyond 10x.
    If the abstractions survive inDrop's W1 linker, they will survive most things.
+   **SPLiT-seq was the branch taken, and it exercises two of the three properties**: combinatorial
+   indexing (three barcode rounds) and fixed linkers. It does *not* exercise a variable-length
+   barcode or an anchored (search-for-me) motif — its barcodes are fixed 8 bp at fixed offsets. The
+   generalization claim is therefore *partly* tested: inDrop's W1 remains the real proof (§14).
 
 Plus three negative fixtures that must pass from day one:
 
@@ -559,6 +720,22 @@ This is what makes it a test rather than a demo. Commit the expectations to
 
 Then run it and diff against the pre-registration.
 
+### The pre-registration is not yet gradeable — fix this BEFORE the run
+
+Half of what is pre-registered above cannot be checked by the harness as it stands, and one item
+cannot even be attempted. Every fix below must land **before** the run: changing the grader afterwards
+to accommodate a result is how a held-out case quietly becomes a training set.
+
+- **Harvest cannot run on this case at all.** The harness enables the language model only when a case
+  "has prose", and a local-files case has no way to point at a document — so the paper is unreachable
+  and the organism can never be recovered from it. That is the *single thing this case exists to
+  test* (see "The organism must come from the paper" below). Needs a `docs_glob` on the local recipe.
+- **`pypdf` is not a declared dependency.** PDF extraction fails loudly rather than silently, which is
+  correct, but it fails. Declare it or the run dies at the first document.
+- **Not expressible by the grader:** onlist name / orientation / hit-rate, sample count and the
+  SRX→sample mapping, organism, assembly, and every compose-level claim (the grader never runs
+  compose). Supported today are chemistry, equivalence members, per-file roles, and rung.
+
 ### The three things this case is specifically designed to catch
 
 **1. The missing technical read.** `fasterq-dump` without `--include-technical` silently drops the
@@ -578,7 +755,9 @@ family; the onlist collapses it to one.
 ### Derived adversarial fixtures — because the real dataset is too well-behaved
 
 PRJNA1027859 dumped cleanly, which means on its own it does **not** exercise the failure paths that
-matter most. Manufacture these from the same files and put them in `evals/cases/` alongside it:
+matter most. Manufacture these from the same files and put them in `evals/cases/` alongside it.
+**None of the three exists yet (§14)**; `-swapped` and `-lying-metadata` are buildable today, while
+`-no-technical` needs the missing-barcode-read `Blocker` built first:
 
 - `PRJNA1027859-no-technical`: only `*_2.fastq.gz` present. Expected: `Blocker`, naming the missing
   barcode read and the `--include-technical` / SDL remedy. This is the most common GEO 10x trap and
@@ -593,8 +772,13 @@ matter most. Manufacture these from the same files and put them in `evals/cases/
 `3M-february-2018` whitelist, so the probe cannot separate them — and it does not need to, because
 they emit **identical** STARsolo parameters. This generalizes into a schema requirement:
 
-> **Compute in CI whether two confusable KB entries produce identical `backend.params`. If they do,
+> **Compute whether two confusable KB entries produce identical `backend.params`. If they do,
 > the ambiguity is benign and the resolver must not escalate it.**
+
+This one is genuinely built: the biconditional runs over every spec pair in the test suite (§6). Note
+it is stronger now than when written — with `soloFeatures` moved out of `backend.params` (§8),
+"identical params" means precisely "these two chemistries parse reads identically", which is what
+processing-equivalence should have meant all along.
 
 A system that interrogates the user about distinctions that cannot change the output is a system
 nobody will use. `confusable_with` therefore needs to distinguish *confusable and
@@ -610,20 +794,32 @@ silent elsewhere (see the strand argument in §5). This exercises harvest -> Ass
 
 The anti-hallucination check (§3, principle 4) greps each Assertion's source span back into the
 source document. Naive grep against PDF-extracted text will fail on hyphenation, ligatures, and
-mid-sentence line breaks. Extract once into a normalized canonical text (`info/normalized/*.txt`),
-store offsets into **that**, and verify against **that**.
+mid-sentence line breaks. Extract once into a normalized canonical text, store offsets into **that**,
+and verify against **that**.
+
+This is built and works as specified; two details differ from the sketch above. The canonical text
+lives at `.seqforge/normalized/<doc_sha256>.txt` — content-addressed **under the workspace, never
+inside the dataset root**, because writing into a held-out root is itself a violation of the rule
+that governs this case. And a `normalized_sha256` is recorded alongside, so that normalization drift
+invalidates verification rather than silently passing it.
 
 ## 13. Engineering conventions
 
-- Python 3.12+, pixi, `src` layout, CalVer, ruff + mypy strict on `models/` and `probe/`.
+- Python 3.12+, pixi, `src` layout, CalVer, ruff + mypy strict on `models/`, `probe/`, `resolve/`,
+  `manifest/`, `compose/`, `workflows/`, `harvest/`, `evals/` — everything but `cli/`, `io/`, `kb/`,
+  `hooks/`.
 - Pydantic v2 models are the single source of truth; export JSON Schema and reuse it for
-  validation, LLM structured output, and docs.
-- Typer CLI, `--json` on every command. Anything a skill can do, a shell script can do.
-- pytest; `syrupy`/inline snapshots for golden manifests; hypothesis for the synthetic generator.
+  validation, LLM structured output, and docs. (The docs reuse is unbuilt — there is no docs site.)
+- Typer CLI emitting **JSON by default** — there is no `--json` flag, and `kb list` is the one
+  plain-text verb. Anything a skill can do, a shell script can do.
+- pytest. *Planned:* `syrupy`/inline snapshots for golden manifests; hypothesis for the synthetic
+  generator. Both are pinned; neither is imported yet (§14).
 - Content-address every artifact by (input hash + tool version + params); cache observations by
   file checksum so re-runs are instant.
 - Follow the existing liulab package conventions for CI/CD, lint, and release
-  (see `liulab-compute-skills` and `liulab-runtime`).
+  (see `liulab-compute-skills` and `liulab-runtime`). Lint, pre-commit and CI all follow the sibling
+  shape. Note CI is the **backstop**, not the mechanism: most rules here are enforced by tests, so
+  `pixi run check` before a commit is what actually holds the line.
 
 ### We are a consumer of the existing liulab stack, not a parallel universe of it
 
@@ -638,28 +834,84 @@ If a feature we want belongs in one of those two packages, it goes there, not he
 
 ---
 
-## Bootstrap prompt for Claude Code
+## 14. What is designed here but not yet built
 
-Paste this after dropping `PROJECT_BRIEF.md` in an empty repo:
+*Audited claim-by-claim against the code on 2026-07-15; the closable half was closed the same day.
+The bootstrap prompt that used to sit here — "drop this in an empty repo and run `/init`" — was
+deleted: it described work long since done, and an agent obeying it would have re-scaffolded a built
+package.*
 
-> Read `PROJECT_BRIEF.md` in full, plus `../liulab-compute-skills` and `../liulab-runtime` for our
-> existing CI/CD, lint, and release conventions.
->
-> Then run `/init` and write a `CLAUDE.md` that encodes the brief's fourteen non-negotiable design
-> principles as rules you will actually be checked against — especially: emit data never code;
-> agents propose and code decides; refusal is an exit code; never read a whole FASTQ.
->
-> Then, before writing any implementation code, produce a design document at `docs/design.md`
-> covering: (1) the Pydantic model hierarchy for Observation, Assertion, Conflict, Blocker, and
-> the three-section Manifest; (2) the KB `spec.yaml` schema including the `signature` and
-> `confusable_with` blocks; (3) the scoring function and the joint role-assignment optimization;
-> (4) the CLI verb surface. Show me the schemas and the scoring function and stop there. Do not
-> scaffold the package until I have reviewed the design.
->
-> Push back on anything in the brief you think is wrong. I would rather argue now than refactor
-> later.
->
-> One hard rule up front: §12 describes a real GEO dataset at
-> `PRJNA1027859`. It is our **held-out acceptance case**. Do
-> not read it, sample it, or tune anything against it during pilot development — build against
-> synthetic fixtures only. I will tell you when to run it.
+Everything in §1–§13 is the design. This section is the honest delta, kept so that a present-tense
+sentence up there never has to be read as a promise. **Rule for maintaining it: when you fix
+something, delete its line here and fix the tense above.** A stale §14 is worse than no §14.
+
+### What the audit closed (2026-07-15) — kept only as a warning about how these happen
+
+The audit's organising finding was *"there is no CI, and five rules cite it as their enforcement"*.
+The fix was not CI. **CI was never the mechanism those rules needed — a test was**; CI only schedules
+tests. So the four missing tests were written, and *then* `.pre-commit-config.yaml` (the mechanism)
+and `.github/workflows/ci.yml` (the backstop) were added to run them.
+
+Every one of these had the same shape, and it is worth naming because it will recur: **a contract
+maintained by hand, beside the code it describes, checked against itself.**
+
+- Round-trip coverage was a hardcoded list of 3 while the KB had 5 — so `10x-3p-gex-v3.1` had no
+  round-trip test, and "adding a tech adds its own test" was false. Now collects from
+  `kb.list_spec_ids()`.
+- `WorkflowModule.required_config` omitted four keys `starsolo.smk` dereferences, and the test
+  enforcing it validated against that same wrong list over one hardcoded chemistry per module — which
+  made SPLiT-seq structurally unrepresentable. The requirement is now **scanned out of the module
+  source**; SPLiT-seq composes.
+- `decidable_by` / `confusable_with` were hand-maintained claims. Now computed: the guard's first run
+  found `bulk-rnaseq-pe` accepting SPLiT-seq's reads at rungs 0–2 while declaring nothing.
+- `PRETRIMMED_VARIABLE_LENGTH` was declared and never emitted; R3's "50 GB" assertion was never
+  written; R12's import check and R1's rule-source check did not exist. All four now do.
+
+### Correctness gaps (the code disagrees with a stated guarantee)
+
+| gap | where | cost |
+|---|---|---|
+| The composer's `snakemake -n` / `--lint` gate **has never executed** — `snakemake` is undeclared, so the test skips, and a skip is green | §8 | wildcards, DAG wiring and config resolution are unchecked. It would *not* have caught the SPLiT-seq `KeyError` (dry-run never formats `shell:`), and `--lint` would make it a constant red. Wanted: `-n -p`, `--lint` moved out, `snakemake-minimal` in its own solve-group |
+| Onlist revcomp is tested only when a spec declares it; a spec pinning `forward` opts out silently | §5 | the ATAC trap §5 names is not actually guarded |
+| The hypothesis is a scoring prior, not a gate — every spec is evaluated unconditionally | §5 | invisible at 5 specs; not at 500 |
+| Workflow rules declare no environment (`conda:`/`container:`) — the env name is emitted and ignored | §8 | ambient STAR runs; §3.11's machine-independence is recorded, not honoured |
+| `resources` fields carry no `Evidenced` basis | §7 | deliberate (a hint, not a decision) — recorded so it stops reading as an oversight |
+
+### Unbuilt (promised, never started)
+
+- **The journal flywheel, entirely** — no `journal.jsonl` writer, no `distill`, no `LESSONS.md`; the
+  `journal` skill wraps four non-existent verbs. `questions.md` is read by the `Stop` hook and
+  written by nothing. (§10)
+- **`fetch` workflow module** — and the Snakemake-8 storage-plugin evaluation §8 asks for first. (§8)
+- **Escalation rungs 5 and 6** — k-mer sketch, mini-alignment. A tie surviving rung 3 asks a human.
+  Rung 4 is likely unnecessary: both halves already run at rungs 2–3. (§5)
+- **`resolve adjudicate`** — the LLM's second job (§2) has no verb. Only `resolve score` exists.
+- **seqspec export** and **scg_lib_structs ingestion** (§6). The seqspec *decomposition* is adopted;
+  only the emitter is missing.
+- **GENCODE/RefSeq accessions** (§7) — annotation is a local registry name, not a public accession.
+- **`.npy` onlist precompilation** (§5) — packing is in-memory per process; every CLI run re-packs.
+- **`syrupy` snapshots and `hypothesis` property tests** (§13) — pinned, never imported.
+- **Skills installer** (§10) — the nine `SKILL.md` files are copied by hand.
+- **Dual-index parsing** (§5) — the regex captures the second index; `parse_read_name` drops it, so
+  "dual-vs-single index for free" is half true.
+- **inDrop's W1 linker** (§11) — SPLiT-seq covers combinatorial indexing but not a variable-length
+  barcode or an anchored motif, so the generalization claim is only partly tested.
+
+### Before the held-out run — blocking
+
+- **Harvest cannot run on the held-out case**: a local-files case has no `docs_glob`, so `has_prose`
+  is false, so the language model never runs, so the organism can never come from the paper — the
+  one thing §12 designed this case to prove.
+- **`pypdf` is undeclared**; PDF extraction fails loudly on day one.
+- **The grader cannot express** onlist / orientation / hit-rate, sample count, SRX→sample mapping,
+  organism, assembly, or any compose-level claim. It never runs compose.
+- **The three adversarial fixtures** (`-no-technical`, `-swapped`, `-lying-metadata`) do not exist.
+
+### Open measurements
+
+- **Peak memory for all five counting rules at 10⁴ × hg38 is unmeasured** and deferred to real human
+  data. The instrument exists (`kb e2e-introns --quantify`). Measure the *slope*, not the absolute:
+  on ce11 a 500× read increase moved peak memory by 5 MB because that 2.8 GB is the genome index.
+- **Velocyto is unconditional by maintainer decision (2026-07-15), not by a measurement.** The
+  pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") was **retired, not
+  tested**. Recorded because a retired rule must never later be mistaken for one that passed.

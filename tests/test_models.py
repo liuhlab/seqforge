@@ -222,6 +222,30 @@ def test_the_processing_manifest_is_not_llm_facing() -> None:
     assert m.LLM_FACING == {"AssertionDraft", "ArbitrationRequest", "ArbitrationResponse"}
 
 
+def test_the_processing_manifest_refuses_an_unknown_key() -> None:
+    """R14 at the model: the instructable surface is ENUMERATED, so an unknown key is an error.
+
+    It was a silent drop until 2026-07-15. `ProcessingSection(soloStrand="Reverse")` constructed
+    happily and discarded the field, because the model set only `frozen=True` and inherited
+    pydantic's `extra="ignore"`. The brief claimed "the recipe model forbids extras: an unknown key
+    is a validation error, never a passthrough to a command line" — the second half was true (the
+    params gate closes that path) and the first half was not.
+
+    `soloStrand` is the case that matters: it is a PARSE decision, byte-decided and never
+    instructable, and a wrong strand leaves STARsolo exiting 0 on a matrix that merely looks thin.
+    A user has no vocabulary to say it — and now no way to say it quietly either.
+    """
+    valid = _valid_processing()
+    section = valid.processing.model_dump()
+
+    with pytest.raises(ValidationError) as exc:
+        m.ProcessingSection(**section, soloStrand="Reverse")
+    assert "soloStrand" in str(exc.value)
+
+    with pytest.raises(ValidationError):
+        m.ProcessingManifest.model_validate(valid.model_dump() | {"aligner": "star"})
+
+
 def test_processing_manifest_round_trips_and_discriminates_quantification() -> None:
     p = _valid_processing()
     again = m.ProcessingManifest.model_validate_json(p.model_dump_json())
