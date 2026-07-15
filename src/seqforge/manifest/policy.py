@@ -72,9 +72,36 @@ merely looks thin — the same failure shape as a strand inversion.
 4. Following a known-good precedent that runs at scale on real public data beats our own reasoning
    here, and it is citable: ArcInstitute/scRecounter, workflows/star_full.nf.
 
-The cost is real and is being measured, not assumed — Velocyto in particular is not free. If it proves
-pathological the default drops to four and ``--quantify`` restores it: an expensive default is not a
-trap precisely *because* the processing manifest exists to override it.
+**The cost is now measured, and it is ~nothing (2026-07-15).** `kb e2e-cost` on hg38 + GENCODE v50 +
+10x 3' v3, all five features, 16 threads, 5 000 cells, reads simulated from real hg38 sequence with
+barcodes drawn from the real 6 794 880-entry whitelist:
+
+===========  ==============
+reads        peak RSS
+===========  ==============
+10 000 000   34.570 GB
+40 000 000   34.600 GB
+100 000 000  34.659 GB
+===========  ==============
+
+**A 10x increase in depth costs 89 MB** — ~0.95 bytes/read — because the number is the *genome index*
+(~30 GB resident before a read is parsed), not the counting. Everything that could scale is either
+constant (the 6.8 M whitelist; the 78 733-gene feature axis, which comes from the index and so does
+not care which genes the reads came from) or negligible (the sparse matrices are ~100 MB and grow
+*sub*-linearly — 4x the reads gave 2x the non-zeros, as each cell's expressed genes fill in).
+
+So Velocyto is not "affordable", it is **free to three significant figures**: it rides on an index we
+pay for regardless. Provision ~48-64 GB per hg38 STARsolo job and depth is irrelevant across any real
+library size. The pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four")
+does not fire, and now it does not fire *because it was tested*.
+
+Read the number with its configuration or not at all: peak RSS includes STAR's per-thread buffers, so
+34.7 GB is a peak **at 16 threads**, and the measurement ran ``--outSAMtype None`` while the shipped
+module writes ``BAM Unsorted`` (streamed, so buffers — bounded, but not zero and not yet measured).
+Both are why ``kb e2e-fit`` refuses to merge runs that differ in either.
+
+If it ever does prove pathological the default drops to four and ``--quantify`` restores it: an
+expensive default is not a trap precisely *because* the processing manifest exists to override it.
 """
 
 

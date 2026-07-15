@@ -6,6 +6,30 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
+**Velocyto is free on hg38, and now we know rather than hope (2026-07-15).** `policy.py` has defaulted
+`soloFeatures` to all five since R15 landed, carrying a promise in its docstring — *"the cost is real
+and is being measured, not assumed"* — and a pre-registered kill rule (">2x wall-clock or over the
+mem_gb hint => drop to four") that had been **retired before it was ever tested**. `kb e2e-cost`
+tests it. It does not fire.
+
+| reads | peak RSS |
+|---|---|
+| 10,000,000 | 34.570 GB |
+| 40,000,000 | 34.600 GB |
+| 100,000,000 | 34.659 GB |
+
+A **10x increase in read depth costs 89 MB** (~0.95 bytes/read). The number is the ~30 GB genome
+index, resident before a read is parsed; everything that might have scaled is either a constant of the
+chemistry and annotation (the 6,794,880-entry whitelist, the 78,733-gene feature axis) or negligible
+(the sparse matrices are ~100 MB and grow *sub*-linearly). Provision ~48-64 GB per hg38 STARsolo job;
+depth is irrelevant across any real library size.
+
+The brief filed this as "deferred to real human data". That was wrong, and instructively so: it needed
+the real human **genome**, not real human **reads**. Simulated reads from real hg38 sequence exercise
+the same structures *harder* — random UMIs mean near-zero duplication, and 91.5% map uniquely against
+a real ~60-90% because there are no sequencing errors or adapters. Every bias over-estimates, which is
+the right direction for a `--mem` request. Waiting bought nothing.
+
 **The rules are enforced by tests now, not by claims about CI (2026-07-15).** A claim-by-claim audit
 of `CLAUDE.md` and `PROJECT_BRIEF.md` against the code checked 245 statements and found 39 stale, 42
 unbuilt and **27 contradicted** — a rule asserting a guarantee with no mechanism behind it. The

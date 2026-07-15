@@ -463,15 +463,24 @@ Velocyto`. One alignment, five counting rules, one pass. So we do not ask whethe
 cells or nuclei: we emit every answer and let the consumer choose. Not free — `Velocyto` in
 particular costs memory — but small against a download and an alignment we are paying for regardless.
 
-**The instrument is `kb e2e-introns --quantify`** (not `kb e2e`, which measures nothing): it reports
-wall-clock and peak memory per feature set, so all-five can be priced against any subset. **The
-memory question is still open and is recorded as open.** On ce11 peak memory barely moved between
-2 000 reads and 10⁶ (2.804 → 2.809 GB) because that number is the *genome index*, not the counting —
-so what generalizes off this fixture is the slope (bytes per read per feature set), never the
-absolute. Whether all five breach the 32 GB `resources.mem_gb` hint on hg38, where the index alone
-approaches it, is **unmeasured**, deferred to real human data, and must not be inferred from a green
-ce11 number. Velocyto is currently unconditional by maintainer decision (2026-07-15) — a decision,
-not a measurement that passed.
+**The instrument is `kb e2e-cost`** (not `kb e2e`, which measures nothing, and no longer
+`kb e2e-introns --quantify`, which is a correctness gate that happens to time itself and is capped at
+~16.8 M reads by its own unique-UMI trick). It sweeps read depth on hg38 and fits
+`peak_rss = intercept + slope × reads`, because a single number would be almost entirely index.
+
+**Measured 2026-07-15 and the answer is that depth does not matter.** 10 M → 34.570 GB, 40 M →
+34.600 GB, 100 M → 34.659 GB: a **10× increase in depth costs 89 MB** (~0.95 bytes/read). The ce11
+result generalized exactly as predicted — that 2.8 GB was the index, and on hg38 the ~30 GB index is
+likewise the whole bill. All five do **not** breach a 32 GB hint by any read-dependent term; they sit
+just above it because the *index* does, at any depth, with one counting rule or five.
+
+What sizes the run is fixed by the chemistry and the annotation, not the library: the 6 794 880-entry
+whitelist, the 78 733-gene feature axis (from the **index**, so it is unmoved by which genes the reads
+came from), and the index itself. The count matrices — the thing one might expect to grow — are ~100 MB
+and grow *sub*-linearly, 4× the reads giving 2× the non-zeros.
+
+So `--soloFeatures` is the rare knob that is free in memory and merely expensive in disk. Velocyto is
+unconditional **because it was measured**, not by decision. Provision ~48-64 GB.
 
 ### Validating the composer without any data
 
@@ -910,9 +919,14 @@ maintained by hand, beside the code it describes, checked against itself.**
 
 ### Open measurements
 
-- **Peak memory for all five counting rules at 10⁴ × hg38 is unmeasured** and deferred to real human
-  data. The instrument exists (`kb e2e-introns --quantify`). Measure the *slope*, not the absolute:
-  on ce11 a 500× read increase moved peak memory by 5 MB because that 2.8 GB is the genome index.
-- **Velocyto is unconditional by maintainer decision (2026-07-15), not by a measurement.** The
-  pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") was **retired, not
-  tested**. Recorded because a retired rule must never later be mistaken for one that passed.
+- ~~Peak memory for all five counting rules at 10⁴ × hg38 is unmeasured~~ — **measured 2026-07-15**;
+  see below. It was filed here as "deferred to real human data", and that was wrong in a way worth
+  keeping: it needed the real human **genome**, not real human **reads**. Reads simulated from real
+  hg38 sequence exercise the same structures and exercise them *harder* (random UMIs ⇒ near-zero
+  duplication ⇒ more distinct UMIs than real data; 91.5 % unique mapping vs a real ~60-90 %, because
+  there are no sequencing errors or adapters). Every bias runs toward over-estimating, which is the
+  right direction when the output is a `--mem` request. Waiting on real data cost nothing and bought
+  nothing.
+- ~~Velocyto is unconditional by maintainer decision, not by a measurement~~ — **it is now a
+  measurement.** The pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four")
+  was retired before it was tested; it has now been tested and does not fire.
