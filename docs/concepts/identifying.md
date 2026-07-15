@@ -7,10 +7,10 @@ actually is. This page explains how, and why it is done in that order.
 
 The single most important thing to understand: **`_1` and `_2` mean nothing.**
 
-When public data is downloaded from an archive, the tool that unpacks it numbers the files in the
-order it happens to find them. A file called `SRR123_1.fastq.gz` is not "read 1" in any biological
-sense. It might hold the cell barcodes. It might hold the actual RNA sequence. It might be missing
-entirely.
+Those numbers come from whatever wrote the files — an archive's unpacking tool numbering them in the
+order it happened to find them, a sequencer's demultiplexer, a script someone wrote once and forgot.
+A file called `SRR123_1.fastq.gz` is not "read 1" in any biological sense. It might hold the cell
+barcodes. It might hold the actual RNA sequence. It might be missing entirely.
 
 So seqforge never trusts the name. It opens the files and looks.
 

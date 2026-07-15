@@ -1,30 +1,42 @@
 # seqforge
 
-seqforge turns a folder of sequencing files and some human-written prose into a **pipeline that
-runs** — without a human reading the prose and typing the answers in.
+seqforge works out **what a sequencing dataset actually is** — which technology made it, which file
+holds what — and compiles that into a pipeline that processes it correctly.
+
+It does not care where the data came from: your own sequencer, a core facility, a collaborator's
+drive, or a public archive.
 
 ## The problem
 
-You have a public dataset. Somewhere there is a page saying *"single-cell RNA-seq, 10x Chromium 3′
-v3.1"*, and somewhere there is a folder of files called `SRR123_1.fastq.gz` and `SRR123_2.fastq.gz`.
+**Sequencing files do not say what they are.**
 
-To process it you must answer questions the page does not answer. Which file holds the cell
-barcodes? (The `_1`/`_2` suffixes are an artifact of how the data was downloaded — they carry no
-reliable information.) How long is the barcode, and where does it start? Which direction was the RNA
-read in?
+To process a dataset you have to know things no FASTQ file states. Which technology produced it.
+Which file holds the cell barcodes, how long a barcode is, and where in the read it starts. Which
+file holds the RNA, and which direction it was read in. Get any of them wrong and the results are
+wrong.
 
-Get one of those wrong and **nothing crashes**. The aligner exits successfully and hands you a count
+What you have instead is prose: a sentence in a paper, a line in a core facility's spreadsheet, a
+README, an email, or nothing at all. It was written by a human for a human — incomplete, sometimes
+wrong, and never twice in the same format.
+
+The filenames are no help either. The `_1` and `_2` suffixes come from how the files were written or
+downloaded; they say nothing about which read is which.
+
+So somebody reads the prose, fills the gaps with an educated guess, and types it into a config. When
+that guess is wrong, **nothing crashes**. The aligner exits successfully and hands you a count
 matrix. The matrix is simply wrong — a bit emptier than it should be, in a way you would only catch
 by knowing what the right answer looked like.
 
-seqforge derives those answers from the data and checks them, rather than assuming them.
+Those answers are knowable. They are in the bytes, not in the description. So seqforge reads the
+bytes to derive them, treats the prose as a hypothesis to check rather than a fact, and stops when it
+cannot be sure.
 
 ## How it works
 
 ```mermaid
 flowchart LR
     F["FASTQ files"] --> P["probe<br/><i>read the bytes</i>"]
-    M["prose &amp; database<br/>metadata"] --> H["harvest<br/><i>read the words</i>"]
+    M["prose &amp; metadata<br/><i>paper, README, database</i>"] --> H["harvest<br/><i>read the words</i>"]
     P --> R["resolve<br/><i>score &amp; decide</i>"]
     H --> R
     KB[("knowledge base<br/>one entry per<br/>technology")] --> R
