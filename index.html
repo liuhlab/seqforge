@@ -14,7 +14,7 @@
       
       
       
-        <link rel="next" href="concepts/artifacts/">
+        <link rel="next" href="getting-started/">
       
       
         
@@ -318,10 +318,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-concretely" class="md-nav__link">
+  <a href="#the-problem" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem, concretely
+        The problem
       
     </span>
   </a>
@@ -329,10 +329,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-idea-it-is-a-compiler-not-a-chatbot" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The idea: it is a compiler, not a chatbot
+        How it works
       
     </span>
   </a>
@@ -340,10 +340,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-comes-out" class="md-nav__link">
+  <a href="#what-you-get" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What comes out
+        What you get
       
     </span>
   </a>
@@ -375,6 +375,60 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="kb-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -389,10 +443,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -410,8 +464,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -512,60 +566,6 @@
   
 
     
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="getting-started/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting started
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="kb-authoring/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Adding a technology
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
   </ul>
 </nav>
                   </div>
@@ -593,10 +593,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-concretely" class="md-nav__link">
+  <a href="#the-problem" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem, concretely
+        The problem
       
     </span>
   </a>
@@ -604,10 +604,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-idea-it-is-a-compiler-not-a-chatbot" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The idea: it is a compiler, not a chatbot
+        How it works
       
     </span>
   </a>
@@ -615,10 +615,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-comes-out" class="md-nav__link">
+  <a href="#what-you-get" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What comes out
+        What you get
       
     </span>
   </a>
@@ -662,11 +662,9 @@
 
 
 <h1 id="seqforge">seqforge<a class="headerlink" href="#seqforge" title="Permanent link">&para;</a></h1>
-<p>seqforge turns a pile of sequencing files and some human-written prose into a <strong>pipeline that runs</strong>
-— without a human reading the prose and typing the answers in.</p>
-<p>That sounds like a small thing. It is not, because the prose is usually wrong, usually incomplete,
-and the ways it fails are quiet.</p>
-<h2 id="the-problem-concretely">The problem, concretely<a class="headerlink" href="#the-problem-concretely" title="Permanent link">&para;</a></h2>
+<p>seqforge turns a folder of sequencing files and some human-written prose into a <strong>pipeline that
+runs</strong> — without a human reading the prose and typing the answers in.</p>
+<h2 id="the-problem">The problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
 <p>You have a public dataset. Somewhere there is a page saying <em>"single-cell RNA-seq, 10x Chromium 3′
 v3.1"</em>, and somewhere there is a folder of files called <code>SRR123_1.fastq.gz</code> and <code>SRR123_2.fastq.gz</code>.</p>
 <p>To process it you must answer questions the page does not answer. Which file holds the cell
@@ -675,12 +673,9 @@ reliable information.) How long is the barcode, and where does it start? Which d
 read in?</p>
 <p>Get one of those wrong and <strong>nothing crashes</strong>. The aligner exits successfully and hands you a count
 matrix. The matrix is simply wrong — a bit emptier than it should be, in a way you would only catch
-by knowing what the right answer looked like. Do that ten thousand times and you have poisoned a
-training corpus, quietly, with no error message anywhere.</p>
-<p>seqforge exists to make those answers <em>derived and checked</em> rather than assumed.</p>
-<h2 id="the-idea-it-is-a-compiler-not-a-chatbot">The idea: it is a compiler, not a chatbot<a class="headerlink" href="#the-idea-it-is-a-compiler-not-a-chatbot" title="Permanent link">&para;</a></h2>
-<p>A compiler takes source code and produces a binary, and it does so the same way every time. It does
-not have opinions on Tuesdays. seqforge is shaped the same way:</p>
+by knowing what the right answer looked like.</p>
+<p>seqforge derives those answers from the data and checks them, rather than assuming them.</p>
+<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
     F["FASTQ files"] --&gt; P["probe&lt;br/&gt;&lt;i&gt;read the bytes&lt;/i&gt;"]
     M["prose &amp;amp; database&lt;br/&gt;metadata"] --&gt; H["harvest&lt;br/&gt;&lt;i&gt;read the words&lt;/i&gt;"]
@@ -702,41 +697,27 @@ not have opinions on Tuesdays. seqforge is shaped the same way:</p>
     classDef output fill:#37474f,stroke:#263238
     class D,RECIPE artifact
     class OUT output</code></pre>
-<p>A large language model appears exactly once in that picture, inside <code>harvest</code>, and it has one job:
-<strong>find claims in prose and point at where it found them.</strong> It does not decide anything. Every claim
-it produces carries the exact sentence it came from, and code checks that the sentence really is in
-the document and really does say that. If it does not, the claim is thrown away.</p>
-<p>Everything else is deterministic code. That is the whole design, and the rest of this site is a
-consequence of it.</p>
-<h2 id="what-comes-out">What comes out<a class="headerlink" href="#what-comes-out" title="Permanent link">&para;</a></h2>
-<p>Two files, with different lifetimes — and keeping them apart is the design decision everything else
-hangs off:</p>
+<p>A language model appears exactly once in that picture, inside <code>harvest</code>, and it has one job: <strong>find
+claims in prose and point at where it found them.</strong> It does not decide anything. Every claim it
+produces carries the exact sentence it came from, and code checks that the sentence really is in the
+document and really does say that. If it does not, the claim is thrown away.</p>
+<p>Everything else is deterministic code.</p>
+<h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
+<p>Two files, with different lifetimes:</p>
 <ul>
-<li><strong>The dataset manifest</strong> is <em>what the data is</em>. The experiment already happened; those molecules
-  went through that machine. It cannot change, so it is written once and identified by a hash of its
-  own contents.</li>
-<li><strong>The processing manifest</strong> is <em>what you want to do with it</em>. Which genome, which aligner, count
+<li><strong>The dataset manifest</strong> is <em>what the data is</em>. The experiment already happened, so it cannot
+  change: it is written once and identified by a hash of its own contents.</li>
+<li><strong>The processing manifest</strong> is <em>what you want done with it</em>. Which genome, which aligner, count
   introns or not. There can be many of these per dataset, and there usually are.</li>
 </ul>
-<p>Run the same dataset three ways and you get three pipelines and <strong>one unchanged dataset manifest</strong>.
-See <a href="concepts/artifacts/">The two artifacts</a> for why that matters more than it sounds.</p>
+<p>Run the same dataset three ways and you get three pipelines and <strong>one unchanged dataset manifest</strong>.</p>
 <h2 id="when-it-doesnt-know-it-says-so">When it doesn't know, it says so<a class="headerlink" href="#when-it-doesnt-know-it-says-so" title="Permanent link">&para;</a></h2>
-<p>The most important thing seqforge does is <strong>refuse</strong>.</p>
 <p>If the barcode file is missing, if the metadata contradicts the bytes, if two technologies are
 genuinely indistinguishable and the choice would change the output — it stops and tells you, with a
 specific reason and a suggested fix. It does not emit the best-scoring guess. A guess is how the
 quiet failures happen.</p>
-<p>See <a href="concepts/refusal/">When it refuses</a>.</p>
 <hr />
-<div class="admonition note">
-<p class="admonition-title">Status</p>
-<p>Milestone 0. The pipeline runs end to end on synthetic yeast and worm data with known-correct
-answers injected, so the counts can be checked against the truth. It has <strong>not</strong> yet processed a
-real public dataset — that is deliberately a held-out test, run once, with predictions written
-down in advance.</p>
-<p>The full engineering rationale is in <a href="https://github.com/liuhlab/seqforge/blob/main/PROJECT_BRIEF.md"><code>PROJECT_BRIEF.md</code></a>,
-whose §14 is a running, honest list of what is designed but not yet built.</p>
-</div>
+<p><strong>Next:</strong> <a href="getting-started/">Getting started</a> — install it and run your first dataset.</p>
 
 
 
