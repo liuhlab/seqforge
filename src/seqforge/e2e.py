@@ -32,6 +32,7 @@ import os
 import random
 import re
 import subprocess
+import sys
 import time
 from collections import defaultdict
 from collections.abc import Sequence
@@ -964,7 +965,7 @@ def run_cost_sweep(
 
     def note(msg: str) -> None:
         log.append(msg)
-        print(f"[cost] {msg}", flush=True)
+        _progress(msg)
 
     star_v = _star_version(assets.star_bin)
     note(f"loading whitelist {whitelist}")
@@ -1702,3 +1703,18 @@ def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, default=str))
     tmp.replace(path)
+
+
+def _progress(msg: str) -> None:
+    """Emit a progress line to **stderr**, because stdout belongs to the JSON (R8).
+
+    `kb e2e-cost` runs for tens of minutes, so it has to say what it is doing — and the obvious
+    `print()` put that narration on stdout, straight through the middle of the result. R8 says the CLI
+    emits JSON on stdout; a consumer doing `seqforge kb e2e-cost ... | jq` got a parse error, and a
+    consumer redirecting to a file got a file that is not JSON. Caught on the first real array run:
+    `cost-hg38-2681399.json` is unparseable for exactly this reason, and only the separately-written
+    `cost_sweep.partial.json` (R7 — disk is state) made its three measured points recoverable.
+
+    Progress is not a result. It goes to stderr, where a human reads it and a pipe ignores it.
+    """
+    print(f"[cost] {msg}", file=sys.stderr, flush=True)

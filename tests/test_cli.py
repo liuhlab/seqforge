@@ -328,3 +328,51 @@ def test_e2e_fit_skips_a_failed_point(tmp_path: Path) -> None:
     result = runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)])
     assert result.exit_code == 0, result.output
     assert [p["n_reads"] for p in json.loads(result.output)["points"]] == [10_000_000, 40_000_000]
+
+
+def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(capsys: object) -> None:
+    """R8: the CLI emits JSON on stdout. Progress narration is not a result and must not go there.
+
+    The incident: `kb e2e-cost` runs for tens of minutes, so it narrates -- via `print()`, which put
+    `[cost] ...` lines straight through the middle of its own JSON. The first real run produced
+    `cost-hg38-2681399.json` that `json.load` rejects at line 1 column 2, and `kb e2e-fit` (which
+    reads exactly those files) would have choked on every one. Only `cost_sweep.partial.json`, written
+    separately because R7 says disk is state, made the three measured points recoverable.
+
+    Pinned on the primitive rather than the verb because the verb needs STAR and a 30 GB index; the
+    property under test is one line of plumbing and does not.
+    """
+    import sys as _sys
+
+    from seqforge.e2e import _progress
+
+    _progress("hello")
+    captured = _sys.stdout, _sys.stderr  # noqa: F841  (capsys owns the streams)
+    out = capsys.readouterr()  # type: ignore[attr-defined]
+    assert out.out == "", "progress on stdout would corrupt the JSON result"
+    assert "[cost] hello" in out.err
+
+
+def test_no_module_under_src_prints_to_stdout() -> None:
+    """A bare print() in a library module lands in whatever a verb is emitting. Derive, don't declare.
+
+    This is the general form of the bug above, and the reason it is a scan rather than a note in a
+    docstring: the next `print()` someone adds for debugging is silent and corrupts a result the same
+    way. `typer.echo` is how a verb speaks; everything else goes to stderr.
+    """
+    import ast
+    from pathlib import Path as _P
+
+    offenders = []
+    for py in sorted((_P(__file__).parent.parent / "src" / "seqforge").rglob("*.py")):
+        tree = ast.parse(py.read_text())
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "print"):
+                continue
+            keywords = {k.arg for k in node.keywords}
+            if "file" not in keywords:
+                offenders.append(f"{py.name}:{node.lineno}")
+    assert not offenders, (
+        f"print() to stdout in a library module: {offenders}. stdout carries the JSON result (R8); "
+        f"send narration to stderr with file=sys.stderr."
+    )
