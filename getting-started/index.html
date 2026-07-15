@@ -643,18 +643,17 @@
 
 <h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
-<p>Everything goes through <a href="https://pixi.sh">pixi</a>. Do not use <code>pip</code>, <code>conda</code>, or <code>venv</code> directly — the
-environments are locked, and a hand-installed dependency is a difference between your machine and
-everyone else's that nobody will find later.</p>
+<p>Everything goes through <a href="https://pixi.sh">pixi</a> — not <code>pip</code>, <code>conda</code>, or <code>venv</code>. The environments are
+locked, and a hand-installed dependency is a difference between your machine and everyone else's that
+nobody will find later.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/liuhlab/seqforge
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>seqforge
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pixi<span class="w"> </span>install
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>version
 </code></pre></div>
 <h2 id="the-shape-of-a-session">The shape of a session<a class="headerlink" href="#the-shape-of-a-session" title="Permanent link">&para;</a></h2>
-<p>Every command prints JSON to standard output and says what it did through its <strong>exit code</strong>. There is
-no <code>--json</code> flag — JSON is simply what comes out, because the command line <em>is</em> the interface and an
-agent is just another caller.</p>
+<p>Every command prints JSON and reports what happened through its <strong>exit code</strong>. There is no <code>--json</code>
+flag — JSON is simply what comes out.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 1. what do the bytes say?</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>probe<span class="w"> </span>reads/*.fastq.gz
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
@@ -672,7 +671,7 @@ agent is just another caller.</p>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># 5. compile the two into something runnable</span>
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>compose<span class="w"> </span>manifest.yaml<span class="w"> </span>--processing<span class="w"> </span>processing.yaml
 </code></pre></div>
-<p>Step 3 and step 4 are separate on purpose. See <a href="../concepts/artifacts/">The two artifacts</a>.</p>
+<p>Steps 3 and 4 are separate on purpose — see <a href="../concepts/artifacts/">The two artifacts</a>.</p>
 <h2 id="exit-codes-are-the-api">Exit codes are the API<a class="headerlink" href="#exit-codes-are-the-api" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -710,10 +709,10 @@ agent is just another caller.</p>
 </tr>
 </tbody>
 </table>
-<p><code>3</code> and <code>4</code> are the interesting ones, and they are the point of the tool rather than an inconvenience.
-See <a href="../concepts/refusal/">When it refuses</a>.</p>
+<p><code>3</code> and <code>4</code> are the point of the tool, not an inconvenience. See
+<a href="../concepts/refusal/">When it refuses</a>.</p>
 <hr />
-<p><strong>Next:</strong> teach it a technology it does not know yet — <a href="../kb-authoring/">Adding a technology</a>.</p>
+<p><strong>Next:</strong> <a href="../kb-authoring/">Adding a technology</a>.</p>
 
 
 

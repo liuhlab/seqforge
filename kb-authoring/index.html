@@ -374,17 +374,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-an-entry-contains" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What an entry contains
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#the-round-trip-is-the-whole-idea" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -407,10 +396,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#before-you-open-the-pull-request" class="md-nav__link">
+  <a href="#two-things-that-will-trip-you-up" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Before you open the pull request
+        Two things that will trip you up
       
     </span>
   </a>
@@ -418,10 +407,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#two-things-that-will-trip-you-up" class="md-nav__link">
+  <a href="#before-you-open-the-pull-request" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Two things that will trip you up
+        Before you open the pull request
       
     </span>
   </a>
@@ -606,17 +595,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-an-entry-contains" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What an entry contains
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#the-round-trip-is-the-whole-idea" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -639,10 +617,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#before-you-open-the-pull-request" class="md-nav__link">
+  <a href="#two-things-that-will-trip-you-up" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Before you open the pull request
+        Two things that will trip you up
       
     </span>
   </a>
@@ -650,10 +628,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#two-things-that-will-trip-you-up" class="md-nav__link">
+  <a href="#before-you-open-the-pull-request" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Two things that will trip you up
+        Before you open the pull request
       
     </span>
   </a>
@@ -687,17 +665,15 @@
 
 <h1 id="adding-a-technology">Adding a technology<a class="headerlink" href="#adding-a-technology" title="Permanent link">&para;</a></h1>
 <p>The knowledge base has one directory per sequencing technology. Adding one is how seqforge learns to
-recognise something new.</p>
-<p>The rule that makes this trustworthy: <strong>every entry must be executable and self-testing.</strong> You do not
-add a technology and then write tests for it. You describe it, and the tests come from the
-description.</p>
-<h2 id="what-an-entry-contains">What an entry contains<a class="headerlink" href="#what-an-entry-contains" title="Permanent link">&para;</a></h2>
+recognise something new. The rule that makes it trustworthy: <strong>every entry is executable and
+self-testing.</strong> You describe the technology, and the tests come from the description.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>kb/specs/&lt;technology&gt;/
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    spec.yaml     what the machine needs: read layout, barcode positions, how to detect it
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    README.md     what a human needs: how the assay works, what it gets confused with, gotchas
 </code></pre></div>
 <h2 id="the-round-trip-is-the-whole-idea">The round-trip is the whole idea<a class="headerlink" href="#the-round-trip-is-the-whole-idea" title="Permanent link">&para;</a></h2>
-<p><code>spec.yaml</code> describes the reads. That description is enough to <em>generate</em> reads. So:</p>
+<p><code>spec.yaml</code> describes the reads well enough to <em>generate</em> reads. So generate them, probe them, and
+check you get back what you declared:</p>
 <pre class="mermaid"><code>flowchart LR
     S["&lt;span style='color:#fff'&gt;spec.yaml&lt;br/&gt;&lt;i&gt;what you declared&lt;/i&gt;&lt;/span&gt;"] --&gt; G["generate&lt;br/&gt;synthetic FASTQ"]
     G --&gt; P["probe&lt;br/&gt;&lt;i&gt;the real code path&lt;/i&gt;"]
@@ -707,16 +683,15 @@ description.</p>
     %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
     classDef artifact fill:#00695c,stroke:#004d40
     class S,REC artifact</code></pre>
-<p>If what comes back out does not match what you declared, your entry is wrong, and you find out
-immediately — with no real data, no download, and no waiting.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>kb<span class="w"> </span>roundtrip<span class="w"> </span>&lt;technology&gt;
 </code></pre></div>
-<p>This runs for <strong>every</strong> entry in the knowledge base automatically. Not a list someone maintains — the
-test collects the entries that exist. Add a directory and it is covered, because it exists.</p>
+<p>If what comes out does not match what you declared, your entry is wrong — no real data, no download,
+no waiting. This runs for <strong>every</strong> entry automatically: the test collects the entries that exist, so
+adding a directory covers it.</p>
 <h2 id="declaring-what-you-get-confused-with">Declaring what you get confused with<a class="headerlink" href="#declaring-what-you-get-confused-with" title="Permanent link">&para;</a></h2>
-<p>Some technologies are genuinely indistinguishable from the reads. Two versions of 10x share the same
-geometry and the same barcode list. That is a fact about biology and chemistry, not a gap in our
-code, and the honest thing is to write it down:</p>
+<p>Some technologies are genuinely indistinguishable from the reads — two versions of 10x share the same
+geometry and the same barcode list. That is a fact about the chemistry, not a gap in our code, so
+write it down:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">confusable_with</span><span class="p">:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">some-other-tech</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">relationship</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processing_equivalent</span><span class="w">   </span><span class="c1"># or: processing_divergent</span>
@@ -724,43 +699,30 @@ code, and the honest thing is to write it down:</p>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">note</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">      </span><span class="no">Why they collide, in a sentence someone can check.</span>
 </code></pre></div>
-<p>The relationship decides what the resolver does:</p>
 <ul>
-<li><strong><code>processing_equivalent</code></strong> — they produce identical settings, so the distinction cannot change
-  anything. Record both names, ask nothing.</li>
-<li><strong><code>processing_divergent</code></strong> — they would produce <em>different</em> pipelines. This must be resolved, by
-  whatever <code>distinguishable_by</code> names.</li>
+<li><strong><code>processing_equivalent</code></strong> — identical settings, so the distinction cannot change anything. Record
+  both names, ask nothing.</li>
+<li><strong><code>processing_divergent</code></strong> — different pipelines. Must be resolved, by whatever
+  <code>distinguishable_by</code> names.</li>
 </ul>
 <p><strong>You cannot get away with not declaring it.</strong> A check generates each entry's reads and asks every
 other entry whether it would claim them using only the cheap probes. If it would, and you did not
 declare it, that is an error.</p>
-<p>That check found a real one on its first run: the generic paired-end entry — which requires little
-and forbids less — happily accepts SPLiT-seq's files on geometry alone. The system already knew, in
-the sense that a test comment said so. But a comment is not something the resolver can read.</p>
+<h2 id="two-things-that-will-trip-you-up">Two things that will trip you up<a class="headerlink" href="#two-things-that-will-trip-you-up" title="Permanent link">&para;</a></h2>
+<p><strong>Only say how to parse, never what to count.</strong> <code>backend.params</code> is for what the <em>bytes</em> decide —
+where the barcode starts, how long it is, which strand. Not for what to count. An allowlist enforces
+it, because getting it wrong cost a measured 40.7% of a nuclear library: counting rules were filed as
+a property of the chemistry, when the chemistry is identical for cells and nuclei.</p>
+<p><strong>Never type a barcode position from memory.</strong> Positions are computed from the element coordinates
+you declare. SPLiT-seq's first-round barcode sits at 86–93 in the original and 78–85 in the
+commercial descendant — a remembered number is a coin flip between two real chemistries.</p>
 <h2 id="before-you-open-the-pull-request">Before you open the pull request<a class="headerlink" href="#before-you-open-the-pull-request" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>kb<span class="w"> </span>lint<span class="w"> </span>&lt;technology&gt;<span class="w">      </span><span class="c1"># schema + the parse/count line</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>kb<span class="w"> </span>roundtrip<span class="w"> </span>&lt;technology&gt;<span class="w"> </span><span class="c1"># declared == recovered</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>kb<span class="w"> </span>show<span class="w"> </span>&lt;technology&gt;<span class="w">      </span><span class="c1"># eyeball it</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>pre-commit<span class="w"> </span>install<span class="w">                 </span><span class="c1"># once per clone: format, lint, typecheck</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>check<span class="w">                                 </span><span class="c1"># the full suite, where the pairwise checks live</span>
 </code></pre></div>
-<p>Install the commit hooks once per clone. They run the fast checks — formatting, linting,
-type-checking:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>pre-commit<span class="w"> </span>install
-</code></pre></div>
-<p>The test suite is not among them, and it is where the pairwise checks above live, so run it yourself
-before you push:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>check
-</code></pre></div>
-<h2 id="two-things-that-will-trip-you-up">Two things that will trip you up<a class="headerlink" href="#two-things-that-will-trip-you-up" title="Permanent link">&para;</a></h2>
-<p><strong>Only say how to parse, never what to count.</strong> <code>backend.params</code> is for settings the <em>bytes</em> decide —
-where the barcode starts, how long it is, which strand. It is not for what to count. That distinction
-is enforced by an allowlist, and it exists because getting it wrong cost a measured 40.7% of a nuclear
-library: counting rules were filed as a property of the chemistry, when the chemistry is identical
-for cells and nuclei and what actually differs is how the sample was prepared.</p>
-<p><strong>Never type a barcode position from memory.</strong> Positions are computed from the element coordinates
-you declare, because a published position is specific to a chemistry version in a way that invites
-disaster. SPLiT-seq's first-round barcode sits at 86–93 in the original, and at 78–85 in the
-commercial descendant. A remembered number is a coin flip between two real chemistries. Declare where
-the elements are; let the code derive the rest.</p>
 
 
 

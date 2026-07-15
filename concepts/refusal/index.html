@@ -642,10 +642,9 @@
 
 
 <h1 id="when-it-refuses">When it refuses<a class="headerlink" href="#when-it-refuses" title="Permanent link">&para;</a></h1>
-<p>The most useful thing seqforge does is stop.</p>
-<p>A tool that always produces an answer is only trustworthy if you can check the answer. At ten
-thousand datasets, nobody checks. So seqforge is built to fail loudly in the cases where a normal
-pipeline would fail silently.</p>
+<p>The most useful thing seqforge does is stop. A tool that always produces an answer is only
+trustworthy if you check the answer, and at ten thousand datasets nobody checks. So it is built to
+fail loudly where a normal pipeline fails silently.</p>
 <h2 id="three-ways-it-can-end">Three ways it can end<a class="headerlink" href="#three-ways-it-can-end" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
     START["a dataset"] --&gt; Q{"can code decide it?"}
@@ -660,43 +659,35 @@ pipeline would fail silently.</p>
     class OK artifact
     class BLK blocked
     class ASK ask</code></pre>
-<p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed.
-The language model never gets a vote; at most it helps phrase the question.</p>
-<p>Every blocker carries a specific reason and an actionable remedy. "Could not process" is not a
-remedy. "The barcode read is missing — re-fetch including technical reads, or pull the submitter's
-original files" is.</p>
+<p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed;
+the language model never gets a vote, and at most helps phrase the question.</p>
+<p>Every blocker carries a reason and an actionable remedy. "Could not process" is not a remedy. "The
+barcode read is missing — re-fetch including technical reads, or pull the submitter's original files"
+is.</p>
 <h2 id="the-failures-worth-catching-are-the-quiet-ones">The failures worth catching are the quiet ones<a class="headerlink" href="#the-failures-worth-catching-are-the-quiet-ones" title="Permanent link">&para;</a></h2>
-<p>Loud failures take care of themselves. If a file is corrupt, everything downstream explodes and you
-notice. These are the ones seqforge is really built for:</p>
-<p><strong>The wrong strand.</strong> The RNA was read in one direction; the config says the other. About half the
-reads land unassigned. The aligner exits successfully and gives you a matrix that just looks like a
-thin dataset. Public metadata essentially never states the strand.</p>
-<p><strong>A trimmed barcode file.</strong> Someone ran a trimming tool before uploading. Most reads are still the
-right length, so the geometry checks all pass. But some reads shifted, so the barcode is read from
-the wrong position — an arbitrary sequence matching no real barcode. Those cells are dropped. The
-matrix is thin. Exit code 0.</p>
-<p><strong>The wrong genome.</strong> Everyone's default is human. Point a worm dataset at the human genome and
-almost nothing maps — which is loud, and therefore fine. The same mistake between two <em>similar</em>
-genomes is silent, and it produces a plausible matrix in the wrong coordinate space that nothing
-downstream would ever question.</p>
-<p><strong>Counting only exons on a nuclear sample.</strong> Nuclei are full of unspliced RNA sitting in introns.
-Count only exons and you throw it away. We measured this: <strong>40.7%</strong> of a nuclear library, gone, with
-no error. The chemistry is byte-identical to the whole-cell version, so no amount of looking at the
-reads can tell you which one you have.</p>
-<p>Notice the pattern. Every one of them exits 0.</p>
+<p>Loud failures take care of themselves: a corrupt file explodes and you notice. These do not.</p>
+<p><strong>The wrong strand.</strong> About half the reads land unassigned, and the matrix just looks like a thin
+dataset. Public metadata essentially never states the strand.</p>
+<p><strong>A trimmed barcode file.</strong> A trimming tool ran before upload. Most reads are still the right length,
+so the geometry checks pass — but some shifted, so the barcode is read from the wrong position and
+those cells are dropped.</p>
+<p><strong>The wrong genome.</strong> A worm dataset against the human genome barely maps: loud, therefore fine. The
+same mistake between two <em>similar</em> genomes is silent, and yields a plausible matrix in the wrong
+coordinate space.</p>
+<p><strong>Counting only exons on a nuclear sample.</strong> Nuclei are full of unspliced RNA sitting in introns;
+count only exons and you throw it away. We measured <strong>40.7%</strong> of a nuclear library, gone. The
+chemistry is byte-identical to the whole-cell version, so the reads cannot tell you which you have.</p>
+<p>Every one of them exits 0.</p>
 <h2 id="never-ask-a-question-you-dont-need-answered">Never ask a question you don't need answered<a class="headerlink" href="#never-ask-a-question-you-dont-need-answered" title="Permanent link">&para;</a></h2>
-<p>Refusing is expensive too — a system that interrogates you constantly is one you route around, and
-then it protects nobody. So there are two rules about when <em>not</em> to ask.</p>
+<p>Refusing is expensive too: a system that interrogates you constantly is one you route around, and
+then it protects nobody.</p>
 <p><strong>Don't ask if the answer can't change anything.</strong> Two versions of the 10x chemistry may be
-impossible to tell apart from the reads. If they produce <em>identical</em> settings, the distinction is
-irrelevant: record both names and move on. This is computed, not assumed — there is a check over
-every pair of technologies asserting that "these are indistinguishable" and "these produce identical
-settings" agree with each other.</p>
-<p><strong>Don't ask if you can afford every answer.</strong> The nuclear-versus-whole-cell question above is
-unanswerable from the reads. But we don't have to answer it — we can count <strong>all five ways at once</strong>.
-One alignment, five counting rules, one pass. Download and alignment dominate the cost so completely
-that the extra counting is close to free.</p>
-<p>So we don't ask. We produce every answer and let you pick.</p>
+indistinguishable from the reads. If they produce <em>identical</em> settings, record both names and move
+on. This is computed, not assumed: a check over every pair asserts that "indistinguishable" and
+"identical settings" agree.</p>
+<p><strong>Don't ask if you can afford every answer.</strong> Nuclear-versus-whole-cell is unanswerable from the
+reads — so count <strong>all five ways at once</strong>. One alignment, five counting rules, one pass. Download
+and alignment dominate the cost so completely that the extra counting is close to free.</p>
 <pre class="mermaid"><code>flowchart LR
     Q["'is this cells or nuclei?'&lt;br/&gt;— unanswerable from the reads"]
     Q --&gt; BAD["&lt;span style='color:#fff'&gt;ask the human&lt;br/&gt;&lt;i&gt;exit 4&lt;/i&gt;&lt;/span&gt;"]

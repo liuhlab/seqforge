@@ -662,28 +662,19 @@
 
 
 <h1 id="seqforge">seqforge<a class="headerlink" href="#seqforge" title="Permanent link">&para;</a></h1>
-<p>seqforge works out <strong>what a sequencing dataset actually is</strong> — which technology made it, which file
-holds what — and compiles that into a pipeline that processes it correctly.</p>
-<p>It does not care where the data came from: your own sequencer, a core facility, a collaborator's
-drive, or a public archive.</p>
+<p>seqforge works out <strong>what a sequencing dataset actually is</strong> — which technology, which file holds
+what — and compiles that into a pipeline that processes it correctly. Your own sequencer, a core
+facility, a collaborator, a public archive: it does not matter where the files came from.</p>
 <h2 id="the-problem">The problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
 <p><strong>Sequencing files do not say what they are.</strong></p>
-<p>To process a dataset you have to know things no FASTQ file states. Which technology produced it.
-Which file holds the cell barcodes, how long a barcode is, and where in the read it starts. Which
-file holds the RNA, and which direction it was read in. Get any of them wrong and the results are
-wrong.</p>
-<p>What you have instead is prose: a sentence in a paper, a line in a core facility's spreadsheet, a
-README, an email, or nothing at all. It was written by a human for a human — incomplete, sometimes
-wrong, and never twice in the same format.</p>
-<p>The filenames are no help either. The <code>_1</code> and <code>_2</code> suffixes come from how the files were written or
-downloaded; they say nothing about which read is which.</p>
-<p>So somebody reads the prose, fills the gaps with an educated guess, and types it into a config. When
-that guess is wrong, <strong>nothing crashes</strong>. The aligner exits successfully and hands you a count
-matrix. The matrix is simply wrong — a bit emptier than it should be, in a way you would only catch
-by knowing what the right answer looked like.</p>
-<p>Those answers are knowable. They are in the bytes, not in the description. So seqforge reads the
-bytes to derive them, treats the prose as a hypothesis to check rather than a fact, and stops when it
-cannot be sure.</p>
+<p>To process a dataset you need what no FASTQ states: the technology, which file holds the barcodes,
+how long they are and where they start, which file holds the RNA, which direction it was read in.</p>
+<p>What you have instead is prose — a sentence in a paper, a line in a spreadsheet, a README, an email,
+or nothing. The filenames are no help: <code>_1</code> and <code>_2</code> say nothing about which read is which.</p>
+<p>So somebody guesses and types it into a config. When the guess is wrong, <strong>nothing crashes</strong>. The
+aligner exits successfully and hands you a count matrix that is quietly, unrecoverably wrong.</p>
+<p>The answers are in the bytes. seqforge reads them, treats prose as a hypothesis to check, and stops
+when it cannot be sure.</p>
 <h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
     F["FASTQ files"] --&gt; P["probe&lt;br/&gt;&lt;i&gt;read the bytes&lt;/i&gt;"]
@@ -706,27 +697,21 @@ cannot be sure.</p>
     classDef output fill:#37474f,stroke:#263238
     class D,RECIPE artifact
     class OUT output</code></pre>
-<p>A language model appears exactly once in that picture, inside <code>harvest</code>, and it has one job: <strong>find
-claims in prose and point at where it found them.</strong> It does not decide anything. Every claim it
-produces carries the exact sentence it came from, and code checks that the sentence really is in the
-document and really does say that. If it does not, the claim is thrown away.</p>
-<p>Everything else is deterministic code.</p>
+<p>The language model appears exactly once, inside <code>harvest</code>, with one job: <strong>find claims in prose and
+point at where it found them.</strong> It decides nothing. Every claim carries the sentence it came from,
+and code checks that the sentence really says that. Everything else is deterministic.</p>
 <h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
-<p>Two files, with different lifetimes:</p>
 <ul>
-<li><strong>The dataset manifest</strong> is <em>what the data is</em>. The experiment already happened, so it cannot
-  change: it is written once and identified by a hash of its own contents.</li>
-<li><strong>The processing manifest</strong> is <em>what you want done with it</em>. Which genome, which aligner, count
-  introns or not. There can be many of these per dataset, and there usually are.</li>
+<li><strong>Dataset manifest</strong> — what the data <em>is</em>. Written once, identified by a hash of its contents.</li>
+<li><strong>Processing manifest</strong> — what to <em>do</em> with it: genome, aligner, introns or not. Many per dataset.</li>
 </ul>
-<p>Run the same dataset three ways and you get three pipelines and <strong>one unchanged dataset manifest</strong>.</p>
+<p>Run the same dataset three ways: three pipelines, one unchanged dataset manifest.</p>
 <h2 id="when-it-doesnt-know-it-says-so">When it doesn't know, it says so<a class="headerlink" href="#when-it-doesnt-know-it-says-so" title="Permanent link">&para;</a></h2>
-<p>If the barcode file is missing, if the metadata contradicts the bytes, if two technologies are
-genuinely indistinguishable and the choice would change the output — it stops and tells you, with a
-specific reason and a suggested fix. It does not emit the best-scoring guess. A guess is how the
-quiet failures happen.</p>
+<p>A missing barcode file, metadata contradicting the bytes, two technologies indistinguishable where
+the choice would change the output — it stops, with a reason and a suggested fix. It does not emit
+the best-scoring guess. A guess is how the quiet failures happen.</p>
 <hr />
-<p><strong>Next:</strong> <a href="getting-started/">Getting started</a> — install it and run your first dataset.</p>
+<p><strong>Next:</strong> <a href="getting-started/">Getting started</a>.</p>
 
 
 
