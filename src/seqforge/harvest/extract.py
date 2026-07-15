@@ -27,6 +27,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
+from .fields import DEFAULT_FIELDS
 from .normalize import NormalizedDoc
 from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
@@ -38,16 +39,6 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 #: pinned to a field it does not belong in. The old prompt said only "everything else: the document's
 #: own wording", which invites exactly that. See `verify.entails` for why R5 cannot catch this class.
 EXTRACT_PROMPT_VERSION = "2026.7.1"
-
-#: Manifest paths worth asking for. `library.*` is byte-decidable and only ever a HYPOTHESIS here
-#: (resolve owns the decision); `experiment.*` is the part bytes genuinely cannot see.
-DEFAULT_FIELDS = (
-    "library.chemistry",
-    "experiment.organism",
-    "experiment.accessions",
-    "experiment.samples.tissue",
-    "experiment.samples.condition",
-)
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as

@@ -3,15 +3,19 @@
 The LLM emits only ``{field, value, quote}``; it never emits offsets, because models cannot count
 characters and a wrong offset would reject a truthful claim. Code searches the normalized text,
 computes the offsets, and sets **both** verification flags. An Assertion only reaches ``manifest fill``
-if both hold:
+if all three hold:
 
+- ``field`` is in the allowlist — the claim names a manifest path the model may set at all. This is
+  the *only* check that is not about the document, and it is the one the other two cannot stand in
+  for: see :mod:`seqforge.harvest.fields` for the real quote that entails a real value on a field
+  nobody ever authorized.
 - ``span_verified``  — the quote really occurs in the cited document. Catches **fabricated provenance**.
 - ``entailment_ok``  — the quote actually *supports the value*. Catches the more common and more
   dangerous failure: a **real quote mis-attached to a wrong value** (a verbatim "single-cell RNA-seq"
   span pinned to "10x 3' v3.1"). Without this, span-verification alone is theatre — a model can quote
   the paper faithfully and still invent the conclusion.
 
-Both checks are deterministic. Anything unverifiable is rejected, never waved through.
+All three are deterministic. Anything unverifiable is rejected, never waved through.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from dataclasses import dataclass
 
 from ..kb import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
+from .fields import PERMITTED_FIELDS
 from .normalize import NormalizedDoc
 
 _WS = re.compile(r"\s+")
@@ -132,6 +137,14 @@ def verify_drafts(
     rejected: list[dict[str, object]] = []
 
     for i, draft in enumerate(drafts):
+        # FIRST, and before anything about the document: may the model set this field at all? A
+        # quote can be real and entailing on a field that was never on offer, so no amount of
+        # document-checking below can substitute for this one (see .fields).
+        if draft.field not in PERMITTED_FIELDS:
+            rejected.append(
+                _reject(draft, "field_not_permitted", f"{draft.field!r} is not an assertable field")
+            )
+            continue
         doc = by_sha.get(draft.span.doc_sha256)
         if doc is None:
             rejected.append(

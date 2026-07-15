@@ -27,7 +27,7 @@ from ..kb.schema import Spec
 from ..models.manifest import Manifest
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import get_module
-from .params import find_read_with_role, params_gate, render_param
+from .params import find_read_with_role, param_block_key, params_gate, render_param
 
 
 class ComposeError(RuntimeError):
@@ -80,7 +80,7 @@ def plan(
         "read_files_in": _read_files_in(manifest, spec),
         "samples": [s.sample_id for s in manifest.experiment.samples],
     }
-    config["solo" if spec.backend.module == "map/starsolo" else "bulk"] = params
+    config[param_block_key(spec)] = params
 
     return ComposePlan(
         config=config,

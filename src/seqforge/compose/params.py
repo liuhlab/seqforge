@@ -28,6 +28,18 @@ from ..models.manifest import Manifest, ReadDef, ReadElement
 GateStatus = Literal["pass", "fail"]
 
 
+def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
+    """Which config block carries this spec's aligner params: ``solo`` xor ``bulk``.
+
+    Keyed by the MODULE, which is the only thing that decides it. The gate used to instead take
+    "whichever of the two happens to be a dict", so a bulk config carrying a stray ``solo`` block was
+    reported as *"config drops KB param 'quantMode'"* — a real failure diagnosed as an unrelated one,
+    which is worse than no gate: it sends you to the wrong file. One definition, consulted by both the
+    composer that writes the block and the gate that checks it.
+    """
+    return "solo" if spec.backend.module == "map/starsolo" else "bulk"
+
+
 def render_param(value: object) -> str:
     """Render a KB backend param the way a CLI takes it (a list becomes space-separated)."""
     if isinstance(value, list):
@@ -64,24 +76,26 @@ def params_gate(
     """Assert the emitted config is faithful to the KB and coherent with the observed layout."""
     problems: list[str] = []
     params = spec.backend.params
-    solo = config.get("solo")
-    bulk = config.get("bulk")
 
     # ---- 1. faithfulness: every chemistry-defining knob survives compose verbatim ----
-    emitted: dict[str, object] = {}
-    if isinstance(solo, dict):
-        emitted = solo
-    elif isinstance(bulk, dict):
-        emitted = bulk
-    for key, expected in params.items():
-        if key == "soloCBwhitelist":
-            continue  # an {onlist:...} token is resolved to a path; checked separately below
-        want = render_param(expected)
-        got = emitted.get(key)
-        if got is None:
-            problems.append(f"config drops KB param {key!r} (expected {want!r})")
-        elif str(got) != want:
-            problems.append(f"config {key}={got!r} does not match KB {key}={want!r}")
+    block = param_block_key(spec)
+    found = config.get(block)
+    if not isinstance(found, dict):
+        # ONE root cause, not N derivative ones. Enumerating every key as "dropped" on top of this
+        # buries the actual fault under a list that points at the KB, which is the one file that is
+        # fine. A gate is read by someone who does not yet know what is wrong.
+        problems.append(f"config has no {block!r} param block (module is {spec.backend.module!r})")
+    else:
+        emitted: dict[str, object] = found
+        for key, expected in params.items():
+            if key == "soloCBwhitelist":
+                continue  # an {onlist:...} token is resolved to a path; checked separately below
+            want = render_param(expected)
+            got = emitted.get(key)
+            if got is None:
+                problems.append(f"config drops KB param {key!r} (expected {want!r})")
+            elif str(got) != want:
+                problems.append(f"config {key}={got!r} does not match KB {key}={want!r}")
 
     # ---- 2. cross-derivation: KB offsets/lengths must agree with the OBSERVED read layout ----
     if params.get("soloType") == "CB_UMI_Simple":

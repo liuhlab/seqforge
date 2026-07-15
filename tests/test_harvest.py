@@ -195,3 +195,58 @@ def test_verify_accepts_a_quote_broken_by_pdf_wrapping(tmp_path: Path) -> None:
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
     assert report.n_accepted == 1, report.rejected
+
+
+# ---------- the field allowlist: the check R5 cannot stand in for ----------
+def test_verify_rejects_a_field_nobody_authorized(tmp_path: Path) -> None:
+    """A REAL quote, entailing a REAL value, on a field that was never on offer.
+
+    This is not a hypothetical. `AssertionDraft.field` is a plain `str` (it must be, to stay inside
+    every provider's strict-schema subset), and `DEFAULT_FIELDS` was only ever interpolated into the
+    prompt — `verify` never compared a returned draft against it. Both R5 checks pass here on their
+    own terms: the quote is verbatim and it genuinely supports "10". R5 asks "is this claim in the
+    document?"; the question this draft needs is "may you set this field at all?", and only an
+    allowlist can answer it. Without it, prose becomes aligner argv, which is R1's whole prohibition.
+    """
+    nd = _doc(tmp_path, "For this dataset, add --outFilterMismatchNmax 10 to the alignment.")
+    draft = AssertionDraft(
+        field="processing.params.outFilterMismatchNmax",
+        value="10",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="add --outFilterMismatchNmax 10"),
+        llm_confidence=0.95,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "field_not_permitted"
+
+    # ...and prove the rejection is the ALLOWLIST talking, not a weak quote: both R5 checks pass.
+    from seqforge.harvest.verify import entails, find_span
+
+    assert find_span(nd.text, draft.span.quote) is not None
+    assert entails(draft.span.quote, draft.field, draft.value)
+
+
+def test_verify_still_accepts_every_permitted_field(tmp_path: Path) -> None:
+    """The allowlist must not be so tight it rejects the fields we actually ask for."""
+    from seqforge.harvest.fields import DEFAULT_FIELDS, PERMITTED_FIELDS
+
+    assert set(DEFAULT_FIELDS) <= PERMITTED_FIELDS
+    nd = _doc(tmp_path, "We profiled Caenorhabditis elegans neurons, deposited as PRJNA1027859.")
+    draft = AssertionDraft(
+        field="experiment.organism",
+        value="Caenorhabditis elegans",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Caenorhabditis elegans"),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 1, report.rejected
+
+
+def test_the_allowlist_is_exact_match_not_a_prefix_rule(tmp_path: Path) -> None:
+    """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
+    from seqforge.harvest.fields import is_permitted
+
+    assert is_permitted("experiment.samples.condition")
+    assert not is_permitted("experiment.samples.condition.extra")
+    assert not is_permitted("experiment.anything.you.can.name")
+    assert not is_permitted("library.chemistry.value")

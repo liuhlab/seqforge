@@ -115,3 +115,79 @@ def test_splitseq_recovers_fixed_linker_structure() -> None:
     # the two 30 bp placeholder linkers at [18,48) and [56,86) come back as constant segments
     assert (18, 48) in constant_spans
     assert (56, 86) in constant_spans
+
+
+# ---------- §12: the benign rule, as a computed biconditional (design §2.4) ----------
+def test_section_12_biconditional_holds_over_every_loaded_spec_pair() -> None:
+    """``backend_identical(A, B) <=> declared processing_equivalent`` — the rule the resolver is built on.
+
+    Both `confuse.py`'s docstring and design §2.4 asserted CI computed this. Nothing did:
+    `backend_identical` had zero callers, and the one pair it existed for (v3 <-> v3.1) named a spec
+    that was never written, so the flagship example of the rule was the one pair no one could check.
+
+    The two directions fail differently, which is why both halves matter:
+    - identical but NOT declared -> we would interrogate a user about a distinction that cannot change
+      a single byte of output. §12 exists to forbid exactly that.
+    - declared but NOT identical -> a FALSE BENIGN: two chemistries that really do compile differently
+      get recorded together and one config is emitted for both. That is a silent wrong answer, and it
+      is the failure this test is really here for.
+    """
+    from itertools import combinations
+
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    for a, b in combinations(sorted(specs), 2):
+        identical = backend_identical(specs[a], specs[b])
+        # union of both directions, mirroring what escalate() actually consults at runtime
+        declared = b in declared_equivalents(specs[a]) or a in declared_equivalents(specs[b])
+        assert identical == declared, (
+            f"§12 biconditional broken for {a} vs {b}: "
+            f"backend_identical={identical} but declared processing_equivalent={declared}"
+        )
+
+
+def test_the_biconditional_is_non_vacuous() -> None:
+    """A biconditional that never sees a True on either side proves nothing.
+
+    Pins the flagship pair: v3 and v3.1 exist, are byte-identical, and say so.
+    """
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    assert {"10x-3p-gex-v3", "10x-3p-gex-v3.1"} <= set(specs)
+    assert backend_identical(specs["10x-3p-gex-v3"], specs["10x-3p-gex-v3.1"])
+    assert "10x-3p-gex-v3.1" in declared_equivalents(specs["10x-3p-gex-v3"])
+    # ...and declared on BOTH sides, so the file reads as symmetric to a human
+    assert "10x-3p-gex-v3" in declared_equivalents(specs["10x-3p-gex-v3.1"])
+
+
+def test_a_divergent_pair_is_not_backend_identical() -> None:
+    """The other side of the biconditional, on real specs: v2 vs v3 differ (10 vs 12 bp UMI)."""
+    from seqforge.resolve.confuse import backend_identical
+
+    specs = kb.load_all_specs()
+    assert not backend_identical(specs["10x-3p-gex-v2"], specs["10x-3p-gex-v3"])
+    assert not backend_identical(specs["bulk-rnaseq-pe"], specs["splitseq"])
+
+
+def test_a_declared_twin_that_diverges_would_be_caught() -> None:
+    """Prove the guard fires: perturb one param and the biconditional must go red.
+
+    A gate that has never rejected anything is a gate nobody has tested.
+    """
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    v3, v31 = specs["10x-3p-gex-v3"], specs["10x-3p-gex-v3.1"]
+    diverged = v31.model_copy(
+        update={
+            "backend": v31.backend.model_copy(
+                update={"params": {**v31.backend.params, "soloStrand": "Reverse"}}
+            )
+        }
+    )
+    assert not backend_identical(v3, diverged)  # no longer identical...
+    assert "10x-3p-gex-v3.1" in declared_equivalents(v3)  # ...but still declared benign
+    # => identical(False) != declared(True) => the biconditional above would fail. A strand
+    #    inversion recorded as a benign twin is precisely the silent corpus killer.

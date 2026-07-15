@@ -251,3 +251,69 @@ def test_compose_refuses_when_the_whitelist_cannot_be_materialized(tmp_path: Pat
     )  # no onlist registered -> no --soloCBwhitelist is emittable
     with pytest.raises(ComposeError):
         compose(manifest, registry=empty, workspace=tmp_path)
+
+
+def test_every_module_required_config_key_is_actually_emitted(tmp_path: Path) -> None:
+    """``WorkflowModule.required_config`` says "checked in CI". Until now, nothing checked it.
+
+    The field's own comment reads "the composer must emit every one (checked in CI)" — a contract
+    with no enforcement. It matters most exactly when a key MOVES between owners: whichever side
+    forgets it, the module still declares it, snakemake resolves `config[...]` at rule-expansion time,
+    and the failure surfaces as a KeyError on a compute node long after compose exited 0.
+    """
+    cases = {"map/starsolo": "10x-3p-gex-v3", "map/star": "bulk-rnaseq-pe"}
+    assert set(cases) == set(list_modules()), "a module was added without a required_config case"
+
+    for module_name, tech in cases.items():
+        work = tmp_path / module_name.replace("/", "_")
+        work.mkdir(parents=True)
+        manifest, reg = _build(work, tech, ("R1", "R2"))
+        config = plan(manifest, registry=reg).config
+        for dotted in get_module(module_name).required_config:
+            node: object = config
+            for part in dotted.split("."):
+                assert isinstance(node, dict) and part in node, (
+                    f"{module_name}: config is missing required key {dotted!r} "
+                    f"(stopped at {part!r})"
+                )
+                node = node[part]
+
+
+def test_the_required_config_check_can_catch_a_missing_key(tmp_path: Path) -> None:
+    """Prove the guard fires — a contract test that has never failed proves nothing."""
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    config = plan(manifest, registry=reg).config
+    assert "soloFeatures" in config["solo"]  # type: ignore[operator,index]
+    del config["solo"]["soloFeatures"]  # type: ignore[index]
+    missing = [d for d in get_module("map/starsolo").required_config if not _has_dotted(config, d)]
+    assert missing == ["solo.soloFeatures"]
+
+
+def _has_dotted(config: object, dotted: str) -> bool:
+    node = config
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
+
+
+def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -> None:
+    """A stray ``solo`` block on a bulk config must not be misdiagnosed as "KB param dropped".
+
+    The gate used to take "whichever of solo/bulk is a dict", so this config reported
+    ``config drops KB param 'quantMode'`` — a true failure pinned on the wrong cause, which sends the
+    reader to the KB when the bug is in the composer. The block is a function of the module; it is
+    now read from the one definition the composer also writes through.
+    """
+    manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    p = plan(manifest, registry=reg)
+    assert params_gate(manifest, spec, p.config) == ("pass", [])
+
+    corrupted = {**p.config, "solo": {"soloType": "CB_UMI_Simple"}}
+    del corrupted["bulk"]
+    status, problems = params_gate(manifest, spec, corrupted)
+    assert status == "fail"
+    assert any("no 'bulk' param block" in p for p in problems), problems
+    assert not any("quantMode" in p and "drops" in p for p in problems), problems

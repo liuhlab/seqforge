@@ -53,9 +53,12 @@ def escalate(
     if integrity:
         return Escalation(candidates=[], blockers=integrity, rung_reached=2)
 
-    valid = sorted(
-        (e for e in evaluations if e.valid), key=lambda e: (e.value, e.rung), reverse=True
-    )
+    # `tech` is the LAST key and it is here for determinism, not for judgement: two candidates can tie
+    # on (value, rung) exactly — §12 benign twins do it BY CONSTRUCTION, since they are byte-identical
+    # — and without a final tiebreak the ordering falls through to the KB dict's iteration order. The
+    # representative of an equivalence class is arbitrary; it still has to be arbitrary the SAME way on
+    # every run, or `candidates[0].technology` flips between runs of an unchanged input (R7).
+    valid = sorted((e for e in evaluations if e.valid), key=lambda e: (-e.value, -e.rung, e.tech))
     if not valid:
         blocker = _no_candidate_blocker(evaluations, hypothesis_value, specs)
         return Escalation(candidates=[], blockers=[blocker], rung_reached=2)
@@ -66,7 +69,7 @@ def escalate(
     # separates a specific chemistry from the generic bulk fallback that merely failed to be forbidden.
     best_value = valid[0].value
     tie = [e for e in valid if best_value - e.value <= _THETA]
-    top = max(tie, key=lambda e: (e.rung, e.value))
+    top = sorted(tie, key=lambda e: (-e.rung, -e.value, e.tech))[0]
     top_spec = specs[top.tech]
     rung = max(e.rung for e in tie)
 
