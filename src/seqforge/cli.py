@@ -288,6 +288,11 @@ def kb_e2e_cost(
     quantify: str | None = typer.Option(
         None, "--quantify", help="Override soloFeatures. Omit to price the compiler's own default."
     ),
+    out_sam_type: str = typer.Option(
+        "None",
+        "--out-sam-type",
+        help="STAR --outSAMtype. The shipped module runs 'BAM Unsorted' — pass it to price the gap.",
+    ),
     keep_reads: bool = typer.Option(
         False, "--keep-reads", help="Do not delete FASTQs after a run."
     ),
@@ -333,6 +338,7 @@ def kb_e2e_cost(
             gen_jobs=gen_jobs,
             seed=seed,
             features=_parse_quantify(quantify),
+            out_sam_type=tuple(out_sam_type.split()),
             keep_reads=keep_reads,
         )
     except E2EUnavailable as exc:

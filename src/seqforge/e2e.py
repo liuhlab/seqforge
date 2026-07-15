@@ -25,6 +25,7 @@ everywhere else and runs on a Linux compute node.
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import multiprocessing
 import os
@@ -489,6 +490,7 @@ def run_starsolo(
     threads: int = 8,
     cost: dict[str, object] | None = None,
     timeout: int = 1800,
+    out_sam_type: tuple[str, ...] = ("None",),
     extra_args: tuple[str, ...] = (),
 ) -> Path:
     """Run STARsolo with the COMPOSED params (this is what makes the gate test the compiler).
@@ -531,8 +533,13 @@ def run_starsolo(
         *("--soloFeatures", *_feature_list(solo["soloFeatures"])),
         "--outFileNamePrefix",
         f"{outdir}/",
+        # `None` by default: the gates want a count matrix, not alignments, and writing a BAM they
+        # never read would be pure cost. But the SHIPPED module runs `BAM Unsorted`, so a cost arm
+        # that only ever prices `None` prices a command nobody runs -- which is why this is a
+        # parameter rather than a constant, and why `kb e2e-cost --out-sam-type` exists to measure
+        # the gap instead of estimating it in a docstring.
         "--outSAMtype",
-        "None",
+        *out_sam_type,
         *extra_args,
     ]
     code, elapsed, maxrss_kib, err_tail = _run_measured(cmd, outdir=outdir, timeout=timeout)
@@ -935,6 +942,7 @@ def run_cost_sweep(
     gen_jobs: int = 16,
     seed: int = 0,
     features: tuple[str, ...] | None = None,
+    out_sam_type: tuple[str, ...] = ("None",),
     timeout: int = 24 * 3600,
     keep_reads: bool = False,
 ) -> dict[str, object]:
@@ -958,6 +966,7 @@ def run_cost_sweep(
         log.append(msg)
         print(f"[cost] {msg}", flush=True)
 
+    star_v = _star_version(assets.star_bin)
     note(f"loading whitelist {whitelist}")
     barcodes = read_whitelist(whitelist)
     if len(barcodes) < n_cells:
@@ -997,9 +1006,23 @@ def run_cost_sweep(
     # so it is reloaded rather than recomputed. The features check is what makes that safe: the same
     # depth measured under a different --quantify is a different measurement wearing the same tag.
     partial_path = workdir / "cost_sweep.partial.json"
-    done = _load_resumable_points(partial_path, feature_list)
+    fingerprint = _cost_fingerprint(
+        feature_list=feature_list,
+        assembly=assets.assembly,
+        annotation=assets.annotation,
+        n_cells=n_cells,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        max_genes=max_genes,
+        threads=threads,
+        seed=seed,
+        star_version=star_v,
+        whitelist_entries=len(barcodes),
+        out_sam_type=out_sam_type,
+    )
+    done = _load_resumable_points(partial_path, fingerprint)
     if done:
-        note(f"resuming: depths {sorted(done)} already measured")
+        note(f"resuming ({fingerprint}): depths {sorted(done)} already measured")
 
     points: list[dict[str, object]] = []
     for n_reads in sweep:
@@ -1042,6 +1065,7 @@ def run_cost_sweep(
                 threads=threads,
                 cost=cost,
                 timeout=timeout,
+                out_sam_type=out_sam_type,
             )
         except E2EUnavailable as exc:
             note(f"{tag}: FAILED — {exc}")
@@ -1055,8 +1079,9 @@ def run_cost_sweep(
             note(f"{tag}: reads deleted (--keep-reads to retain)")
         # Disk is state (R7): a hard kill (Slurm OOM, wall-clock) must not cost us the points we
         # already paid for, so every point is durable the moment it exists rather than at the end.
-        (workdir / "cost_sweep.partial.json").write_text(
-            json.dumps({"points": points, "soloFeatures": feature_list}, indent=2, default=str)
+        _atomic_write_json(
+            partial_path,
+            {"fingerprint": fingerprint, "soloFeatures": feature_list, "points": points},
         )
 
     measured = [p for p in points if not p.get("failed")]
@@ -1064,7 +1089,8 @@ def run_cost_sweep(
     return {
         "assembly": assets.assembly,
         "annotation": assets.annotation,
-        "star_version": _star_version(assets.star_bin),
+        "star_version": star_v,
+        "fingerprint": fingerprint,
         "decided_technology": decided,
         "soloFeatures": feature_list,
         "n_cells": n_cells,
@@ -1076,6 +1102,7 @@ def run_cost_sweep(
         # peak measured at 16 threads is a peak AT 16 THREADS and says nothing on its own about 48.
         "threads": threads,
         "gen_jobs": gen_jobs,
+        "out_sam_type": list(out_sam_type),
         "points": points,
         "fit": fit,
         "log": log,
@@ -1169,26 +1196,77 @@ def _compose_cost_params(
     return solo, wl_path, decided
 
 
-def _load_resumable_points(
-    partial_path: Path, feature_list: list[str]
-) -> dict[int, dict[str, object]]:
-    """Reload depths already measured under ``feature_list``; ``{}`` if there is nothing safe to reuse.
+def _load_resumable_points(partial_path: Path, fingerprint: str) -> dict[int, dict[str, object]]:
+    """Reload depths already measured under ``fingerprint``; ``{}`` if nothing is safe to reuse.
 
-    The features check is the whole point. A preemptible requeue must not repay for a measurement it
-    already has, but the same depth measured under a different ``--quantify`` is a *different*
-    measurement wearing the same tag, and splicing a Gene-only number into an all-five curve would
-    corrupt the slope silently — the failure this whole arm exists to avoid. Anything unreadable is
-    treated as absent: a cache is never worth a wrong answer.
+    **The fingerprint must cover every input that moves the number, not just the interesting one.**
+    This checked only ``soloFeatures`` at first, on the reasoning that a Gene-only number spliced into
+    an all-five curve would corrupt the slope. True — and so would a number measured at different
+    threads (per-thread buffers are in the peak), different cells, a different assembly, or a
+    different read length. An audit caught it, and the sting was in the part I had not considered: the
+    partial file is **never deleted**, so a *completed* sweep leaves the resume armed. It needs no
+    preemption at all — a second invocation in the same workdir with ``--threads 48`` would silently
+    reuse the 16-thread points and report the blend as one line.
+
+    That is precisely the failure the guard was written to prevent, reintroduced by the guard being
+    narrower than the thing it guards. Anything unreadable is treated as absent: a cache is never
+    worth a wrong answer.
     """
     if not partial_path.is_file():
         return {}
     try:
         prior = json.loads(partial_path.read_text())
-        if prior.get("soloFeatures") != feature_list:
+        if prior.get("fingerprint") != fingerprint:
             return {}
         return {int(p["n_reads"]): p for p in prior.get("points", []) if not p.get("failed")}
     except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         return {}
+
+
+def _cost_fingerprint(
+    *,
+    feature_list: list[str],
+    assembly: str,
+    annotation: str,
+    n_cells: int,
+    intron_frac: float,
+    read_len: int,
+    max_genes: int,
+    threads: int,
+    seed: int,
+    star_version: str,
+    whitelist_entries: int,
+    out_sam_type: tuple[str, ...],
+) -> str:
+    """Everything a measured peak depends on, hashed — the key a resumed point must match.
+
+    Derived from the arguments rather than listed by hand somewhere else, because a hand-kept list of
+    what matters is the exact shape of defect this repo keeps finding. If a new knob starts moving the
+    number, it belongs in this signature and the type checker will say so at every call site.
+
+    ``gen_jobs`` is deliberately absent: it changes how fast the reads are written and nothing about
+    what they are (shard seeds derive from ``seed``), so it cannot move a peak. ``sweep`` is absent
+    too — depths are the x-axis, not a property of the curve, which is the whole reason a resumed run
+    may keep points from a shorter sweep.
+    """
+    payload = json.dumps(
+        {
+            "soloFeatures": feature_list,
+            "assembly": assembly,
+            "annotation": annotation,
+            "n_cells": n_cells,
+            "intron_frac": intron_frac,
+            "read_len": read_len,
+            "max_genes": max_genes,
+            "threads": threads,
+            "seed": seed,
+            "star_version": star_version,
+            "whitelist_entries": whitelist_entries,
+            "out_sam_type": list(out_sam_type),
+        },
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
 def _fit_line(points: list[tuple[int, float]]) -> dict[str, object]:
@@ -1610,3 +1688,17 @@ def discover_assets(
         assembly=assembly,
         annotation=annotation,
     )
+
+
+def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
+    """Write-then-rename, so a kill mid-write cannot leave truncated state behind.
+
+    ``rename`` is atomic within a filesystem, so a reader sees the old file or the new one and never
+    half of either. The sweep's whole reason for writing each point immediately is to survive a
+    preemption; a non-atomic write would make the preemption itself the thing that destroys the state
+    it was saving. ``resolve/cache.py`` already does it this way — this is the repo's existing idiom,
+    which it should have used from the start.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, default=str))
+    tmp.replace(path)

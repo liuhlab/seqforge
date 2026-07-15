@@ -397,38 +397,96 @@ def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
     assert not _fit_line([(1_000_000, 30.0), (1_000_000, 31.0)])["ok"]
 
 
-def test_resume_reloads_a_measured_point_but_only_for_the_same_features(tmp_path: Path) -> None:
-    """A requeue must not repay for a point already measured -- unless the features changed.
+def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint(
+    tmp_path: Path,
+) -> None:
+    """A requeue must not repay for a point it has -- unless ANY input to the number changed.
 
-    This is R7 (disk is state) doing real work rather than decorating: on a preemptible partition a
-    requeue at hour 5 of a 6 hour sweep is normal, and a sweep that restarted from zero would make the
-    free partition the expensive one. The features guard is the part worth testing: the same depth
-    measured under a different --quantify is a DIFFERENT measurement wearing the same tag, and
-    silently reusing it would put a Gene-only number in an all-five curve.
+    R7 (disk is state) doing real work: on a preemptible partition a requeue at hour 5 of a 6 hour
+    sweep is normal, and restarting from zero would make the free partition the expensive one.
+
+    The guard originally compared soloFeatures alone, which an audit caught, and the sting was in the
+    part not considered: the partial file is never deleted, so a COMPLETED sweep leaves the resume
+    armed. It needs no preemption -- a second run in the same workdir at --threads 48 would silently
+    reuse the 16-thread points, and per-thread buffers are IN the peak. The guard was narrower than
+    the thing it guarded, which is how it reintroduced the failure it existed to prevent.
     """
     from seqforge.e2e import _load_resumable_points
 
     partial = tmp_path / "cost_sweep.partial.json"
-    measured = {"n_reads": 10_000_000, "star_peak_rss_gb": 31.5}
-    five = ["Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "Velocyto"]
-    partial.write_text(json.dumps({"soloFeatures": five, "points": [measured]}))
+    measured = {"n_reads": 10_000_000, "star_peak_rss_gb": 34.57}
+    partial.write_text(json.dumps({"fingerprint": "abc123", "points": [measured]}))
 
-    assert _load_resumable_points(partial, five) == {10_000_000: measured}
-    assert _load_resumable_points(partial, ["Gene"]) == {}, "different features must not be reused"
+    assert _load_resumable_points(partial, "abc123") == {10_000_000: measured}
+    assert _load_resumable_points(partial, "different") == {}, "a changed input must not be reused"
+
+
+def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_path: Path) -> None:
+    """Change any one of them and the fingerprint must change; change none and it must not.
+
+    Pinned per-field rather than as one blob, because the failure mode is a knob QUIETLY missing from
+    the key -- and a test that only checks "same args => same hash" would pass with every field
+    dropped. Each case below is a measurement that would be silently reused as another's.
+    """
+    from seqforge.e2e import _cost_fingerprint
+
+    base = dict(
+        feature_list=["Gene", "Velocyto"],
+        assembly="hg38",
+        annotation="gencode_v50",
+        n_cells=5000,
+        intron_frac=0.4,
+        read_len=90,
+        max_genes=2000,
+        threads=16,
+        seed=0,
+        star_version="2.7.11b",
+        whitelist_entries=6_794_880,
+        out_sam_type=("None",),
+    )
+    ref = _cost_fingerprint(**base)  # type: ignore[arg-type]
+    assert _cost_fingerprint(**base) == ref, "the same inputs must give the same key"  # type: ignore[arg-type]
+
+    for field, changed in [
+        ("feature_list", ["Gene"]),  # a Gene-only number in an all-five curve
+        ("assembly", "mm39"),  # a different index is a different intercept
+        ("annotation", "gencode_v49"),  # a different feature axis
+        ("n_cells", 20_000),  # matrix occupancy
+        ("intron_frac", 0.1),  # what Velocyto actually has to do
+        ("read_len", 150),
+        ("max_genes", 20_000),
+        ("threads", 48),  # per-thread buffers are IN the peak -- the audit's case
+        ("seed", 1),
+        ("star_version", "2.7.10a"),  # a different aligner is a different allocator
+        ("whitelist_entries", 737_280),  # a different chemistry's onlist
+        ("out_sam_type", ("BAM", "Unsorted")),  # the module's real setting costs buffers
+    ]:
+        assert _cost_fingerprint(**{**base, field: changed}) != ref, (  # type: ignore[arg-type]
+            f"{field} changes the measured peak but not the resume key -- a run that varied it "
+            f"would silently reuse points measured under the old value"
+        )
 
 
 def test_resume_ignores_a_failed_point_and_unreadable_state(tmp_path: Path) -> None:
     from seqforge.e2e import _load_resumable_points
 
     partial = tmp_path / "p.json"
-    partial.write_text(
-        json.dumps({"soloFeatures": ["Gene"], "points": [{"n_reads": 5, "failed": True}]})
-    )
-    assert _load_resumable_points(partial, ["Gene"]) == {}, "a failed point is not a measurement"
+    partial.write_text(json.dumps({"fingerprint": "f", "points": [{"n_reads": 5, "failed": True}]}))
+    assert _load_resumable_points(partial, "f") == {}, "a failed point is not a measurement"
 
     partial.write_text("{ this is not json")
-    assert _load_resumable_points(partial, ["Gene"]) == {}
-    assert _load_resumable_points(tmp_path / "absent.json", ["Gene"]) == {}
+    assert _load_resumable_points(partial, "f") == {}
+    assert _load_resumable_points(tmp_path / "absent.json", "f") == {}
+
+
+def test_partial_state_is_written_atomically(tmp_path: Path) -> None:
+    """A preemption mid-write must not destroy the state that exists to survive preemption."""
+    from seqforge.e2e import _atomic_write_json, _load_resumable_points
+
+    p = tmp_path / "s.json"
+    _atomic_write_json(p, {"fingerprint": "f", "points": [{"n_reads": 1, "star_peak_rss_gb": 3.0}]})
+    assert _load_resumable_points(p, "f") == {1: {"n_reads": 1, "star_peak_rss_gb": 3.0}}
+    assert not list(tmp_path.glob("*.tmp")), "the temp file must not survive the rename"
 
 
 def test_sharded_generation_emits_distinct_reads_not_n_copies_of_one_stream(tmp_path: Path) -> None:
