@@ -962,9 +962,23 @@ def run_cost_sweep(
     feature_list = _feature_list(solo["soloFeatures"])
     note(f"compiler decided {decided!r}; soloFeatures = {feature_list}")
 
+    # Resume (R7: disk is state, context is cache). A preemptible partition can requeue this job at
+    # any moment, and a requeue that redid five hours of STAR would make the cheap partition the
+    # expensive one. A point already measured at this depth, under these same features, is a fact —
+    # so it is reloaded rather than recomputed. The features check is what makes that safe: the same
+    # depth measured under a different --quantify is a different measurement wearing the same tag.
+    partial_path = workdir / "cost_sweep.partial.json"
+    done = _load_resumable_points(partial_path, feature_list)
+    if done:
+        note(f"resuming: depths {sorted(done)} already measured")
+
     points: list[dict[str, object]] = []
     for n_reads in sweep:
         tag = f"{n_reads // 1_000_000}M"
+        if n_reads in done:
+            points.append(done[n_reads])
+            note(f"{tag}: already measured ({done[n_reads].get('star_peak_rss_gb')} GB) — skipping")
+            continue
         note(f"--- point {tag}: generating reads ---")
         cdna_fq = workdir / f"cost_{tag}_R2.fastq.gz"
         bc_fq = workdir / f"cost_{tag}_R1.fastq.gz"
@@ -1120,6 +1134,28 @@ def _compose_cost_params(
     for p in (probe_cdna, probe_bc):
         p.unlink(missing_ok=True)
     return solo, wl_path, decided
+
+
+def _load_resumable_points(
+    partial_path: Path, feature_list: list[str]
+) -> dict[int, dict[str, object]]:
+    """Reload depths already measured under ``feature_list``; ``{}`` if there is nothing safe to reuse.
+
+    The features check is the whole point. A preemptible requeue must not repay for a measurement it
+    already has, but the same depth measured under a different ``--quantify`` is a *different*
+    measurement wearing the same tag, and splicing a Gene-only number into an all-five curve would
+    corrupt the slope silently — the failure this whole arm exists to avoid. Anything unreadable is
+    treated as absent: a cache is never worth a wrong answer.
+    """
+    if not partial_path.is_file():
+        return {}
+    try:
+        prior = json.loads(partial_path.read_text())
+        if prior.get("soloFeatures") != feature_list:
+            return {}
+        return {int(p["n_reads"]): p for p in prior.get("points", []) if not p.get("failed")}
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return {}
 
 
 def _fit_line(points: list[tuple[int, float]]) -> dict[str, object]:

@@ -9,6 +9,7 @@ judge the compiler. A ground-truth harness that is itself wrong would silently b
 from __future__ import annotations
 
 import gzip
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -393,3 +394,37 @@ def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
 
     assert not _fit_line([(1_000_000, 30.0)])["ok"]
     assert not _fit_line([(1_000_000, 30.0), (1_000_000, 31.0)])["ok"]
+
+
+def test_resume_reloads_a_measured_point_but_only_for_the_same_features(tmp_path: Path) -> None:
+    """A requeue must not repay for a point already measured -- unless the features changed.
+
+    This is R7 (disk is state) doing real work rather than decorating: on a preemptible partition a
+    requeue at hour 5 of a 6 hour sweep is normal, and a sweep that restarted from zero would make the
+    free partition the expensive one. The features guard is the part worth testing: the same depth
+    measured under a different --quantify is a DIFFERENT measurement wearing the same tag, and
+    silently reusing it would put a Gene-only number in an all-five curve.
+    """
+    from seqforge.e2e import _load_resumable_points
+
+    partial = tmp_path / "cost_sweep.partial.json"
+    measured = {"n_reads": 10_000_000, "star_peak_rss_gb": 31.5}
+    five = ["Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "Velocyto"]
+    partial.write_text(json.dumps({"soloFeatures": five, "points": [measured]}))
+
+    assert _load_resumable_points(partial, five) == {10_000_000: measured}
+    assert _load_resumable_points(partial, ["Gene"]) == {}, "different features must not be reused"
+
+
+def test_resume_ignores_a_failed_point_and_unreadable_state(tmp_path: Path) -> None:
+    from seqforge.e2e import _load_resumable_points
+
+    partial = tmp_path / "p.json"
+    partial.write_text(
+        json.dumps({"soloFeatures": ["Gene"], "points": [{"n_reads": 5, "failed": True}]})
+    )
+    assert _load_resumable_points(partial, ["Gene"]) == {}, "a failed point is not a measurement"
+
+    partial.write_text("{ this is not json")
+    assert _load_resumable_points(partial, ["Gene"]) == {}
+    assert _load_resumable_points(tmp_path / "absent.json", ["Gene"]) == {}
