@@ -6,6 +6,25 @@ increments per release within the month and resets when the month changes. The v
 
 ## 2026.7.0 — 2026-07-14
 
+> **OPEN DESIGN QUESTION (needs the maintainer): `soloFeatures` is misfiled as chemistry.**
+> Surfaced by pre-registering PRJNA1027859 from declared metadata — before the run, without touching
+> the data — and then **priced at 40.7 % silent signal loss** by `kb e2e-introns`.
+>
+> The acceptance case is single-**nucleus** RNA-seq. Nuclei are full of unspliced pre-mRNA, so most
+> reads are intronic and STARsolo must count them with `--soloFeatures GeneFull`. The KB bakes
+> `soloFeatures: [Gene]` into `10x-3p-gex-v3.backend.params` — but 3′ v3.1 chemistry is
+> **byte-identical for cells and nuclei**: what differs is the RNA population, a property of *sample
+> prep*, not chemistry. Compiling the case today emits `Gene` and silently undercounts; STARsolo exits
+> 0 and the matrix merely looks thin — the same failure shape as a strand inversion.
+> Compounding it, `processing.quantification` is **decorative**: policy sets it to `"gene"`, writes it
+> to the manifest, and compose then ignores it and reads the KB instead. Two sources of truth for one
+> decision, unable to disagree only because one is never consulted.
+>
+> Proposed (not applied — it changes the KB/manifest contract): `backend.params` says how to **parse**
+> reads (soloType/CB/UMI/whitelist/strand); `processing` says what to **count** (soloFeatures), driven
+> by an asserted `nuclei | cells` sample-prep fact — with an **unknown prep on a single-cell chemistry
+> becoming a Question (exit 4), never a silent `Gene` default.**
+
 - **Milestone 0 scaffolding.** Package layout (`src/seqforge`), pixi environments + tasks
   (`test`/`typecheck`/`lint`/`fmt`/`check`/`docs-build`), ruff + mypy-strict config, packaging via
   hatchling.
@@ -27,9 +46,27 @@ increments per release within the month and resets when the month changes. The v
   artifacts (R7). `mypy --strict` scope extended to `resolve/`.
 - **KB** — added `10x-3p-gex-v2` (26 bp length gate vs v3), `bulk-rnaseq-pe` (the no-barcode PE
   branch), and `splitseq` (original SPLiT-seq, Rosenberg et al. Science 2018 — combinatorial 8 bp
-  round barcodes + two fixed 30 bp linkers, read structure + linker sequences pinned from
-  scg_lib_structs; Parse Evercode deliberately deferred to its own future entry). All pass
-  `kb roundtrip`.
+  round barcodes + two fixed 30 bp linkers; Parse Evercode deliberately deferred to its own future
+  entry). All pass `kb roundtrip`.
+  **`splitseq`'s `soloStrand` FLAG is now CLOSED — `Forward`, derived, never recalled.** The RT primer
+  (`/5Phos/AGGCCAGAGCATTCG` + bc1 + dT(15)VN) anneals to mRNA and RT extends its 3′ end, so
+  first-strand cDNA is antisense with bc1 at its 5′ end; rounds 2/3 ligate onto that same 5′ end.
+  Assembling the paper's own Table S12 oligos 5′→3′ **reconstructs both linkers base-for-base and
+  lands Read 2 on exactly 10+8+30+8+30+8 = 94 cycles** — so the spec is reproduced from primary
+  oligos, not copied from a diagram. Read 2 therefore reads the antisense first strand; Read 1 is its
+  mate = sense = `Forward`. Both primer types share that 5′ architecture and differ only in the
+  priming tail, which is why random-hexamer priming does **not** destroy strandedness here (the trap:
+  random-primed *bulk* RNA-seq genuinely is unstranded; this is not that). Corroborated independently
+  by the authors' own pipeline (read strand vs GTF strand, no flip == `featureCounts -s 1`; TSO found
+  at the **start** of read1 with no revcomp) and by scg_lib_structs running `Forward` on SRR6750042 —
+  GSE110823 itself. An adversarial search found **no** source claiming Reverse. Honest caveat kept:
+  most pipelines never *chose* — they inherited STARsolo's Forward default, and silence means Forward
+  by accident, not by verification; rung 6 (GSE110823 both ways, bounded) remains decisive.
+  Also captured: a **v1/v2 discriminator** from Read 2 alone (v1 = 30 bp linker2, Round1 at 86–93;
+  Parse/v2 = 22 bp linker2, Round1 at 78–85 — which is why published `soloCBposition` quadruples
+  disagree in the wild: different chemistries, not typos), and that there are **96 Round1 barcodes but
+  only 48 RT wells** (dT and hexamer in one well carry different barcodes, paired *i* ↔ *i+48*) — a
+  demultiplexer treating all 96 as distinct doubles the apparent cell count at half the depth.
 - **`manifest/`** — `fill` assembles the three-section manifest from a resolve Decision (library =
   observed bytes incl. the §12 equivalence class and byte-derived roles; experiment = asserted;
   processing = inferred policy), `validate` is the R4 refusal contract (referential integrity,
@@ -137,10 +174,24 @@ increments per release within the month and resets when the month changes. The v
        `stability` was then counted over — reporting **0.667 for three identical, perfectly stable
        trials**. It looked like real nondeterminism and was pure aliasing. Folding is now per-trial and
        non-mutating. A metric that is quietly wrong is worse than no metric.
-- **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
-  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`,
+- **`kb e2e-introns` — the GeneFull gate (closes the design's intron-rich caveat).** Yeast is nearly
+  intron-free, so the sacCer3 e2e certifies neither counting rule. This injects known **intronic**
+  reads — what a single-nucleus library actually contains — and asserts the rules disagree exactly as
+  they must, from **one** STARsolo run (`--soloFeatures Gene GeneFull`, so the alignment is identical
+  and only the counting rule differs). Measured on arc (ce11 + WS298): 1 212 exonic + 788 intronic
+  injected; `Gene` = **1 186** (the exonic truth, counting no intronic reads); `GeneFull` = **1 940**;
+  0 spurious, 0 inflated; resolve decided `10x-3p-gex-v3` from ce11 bytes unaided.
+  **It also priced a real defect: `gene_signal_lost = 0.407`** — `--soloFeatures Gene` silently
+  discards 40.7 % of a nuclear library, and `composed_soloFeatures` was `[Gene]`, i.e. the compiler
+  would emit exactly that. Honest about scope: the gate **overrides** that one param (the KB declares
+  `[Gene]`), so it proves the GeneFull path works and quantifies the cost — it does **not** prove the
+  compiler would choose GeneFull, because today it cannot. See the open design question above.
+- **CLI** — `probe` (bounded; never returns 3/4 — it only observes), `io onlist list|show`,
+  `io peek`, `io resolve --check-reads`, `resolve score --json` (`--explain` emits the evidence
+  matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`, `kb e2e-introns`,
   `harvest normalize|extract|verify` (exit 3 on a Blocker or failed gate, 4 on an open
-  Conflict/question or a claim that fails the tripwire), and `eval list|run`.
+  Conflict/question or a claim that fails the tripwire), `eval list|run`, and
+  `hook install|check|pre-tool-use|post-tool-use|stop`.
 - **Reproducible `.fastq.gz` — one writer, three callers.** The evals determinism test failed ~1 run in
   3 and the cause was real, not a test artifact: `gzip.open(path, "wt")` stamps the **current mtime**
   into the gzip header, so identical reads written a second apart produce different bytes. Everything
@@ -158,4 +209,47 @@ increments per release within the month and resets when the month changes. The v
   corrupts a metric (a broken measuring instrument is worse than none: it still reads green).
 - **Day-one negatives** — truncated gzip → `TRUNCATED_GZIP`; an ONT run absent from the KB →
   `UNSUPPORTED_TECHNOLOGY` (refused, not guessed); metadata v2 vs 28 bp reads → a surfaced `Conflict`.
+- **`io/` — the network surface, implemented and live-verified.** `io peek` range-reads the head of a
+  remote gzipped FASTQ: **65 536 bytes from a 517 597 461-byte file = 0.0127 %**, yielding 4 real
+  records with true lengths. It asserts **HTTP 206**, never `Accept-Ranges` — a server may advertise
+  ranges, ignore the header and answer 200 with the whole file, and trusting the advertisement is
+  exactly how a "bounded" read becomes a 40 GB download; a 200 is therefore a refusal. The budget caps
+  **decompressed** bytes (`decompress(blob, max_length)`), so it is a real R3 bound rather than a
+  compressed-byte proxy — and a zip bomb is a non-event.
+  **The valuable half is not fetching — it is detecting what the archive threw away.** `fasterq-dump`
+  skips technical reads **by default**, so a 10x barcode read routinely vanishes from the published
+  FASTQ while remaining inside the `.sra`, leaving something that looks like ordinary single-end
+  RNA-seq and is silently unprocessable as single-cell. `io resolve --check-reads` catches it from two
+  metadata calls, before a byte is downloaded (R11 rung 0) → exit 4. Verified live on SRR9170959: ENA
+  publishes 50.0 bases/spot in **one** file while declaring `library_layout=PAIRED`; SRA reports
+  `nreads=3`, `[50, 50, 10]`, `readTypes=TBT` → 60 bases/spot discarded. That NCBI and ENA disagree on
+  `base_count` for one run is not a bug to reconcile: they are two truths about what the file holds,
+  and **the disagreement IS the signal** (R6). Also verified live: the SuperSeries trap — GSE140511
+  declares no SRP, so eutils returns zero and a non-recursing resolver loses the dataset *while
+  reporting success*; recursion finds 2 sub-series → 2 studies.
+  Research corrected three assumptions before they shipped: SDL is form-encoded not JSON and has no
+  `filetype=src`; `sra-pub-src-1/-2` are public, not requester-pays; and SDL is usually the **wrong**
+  remedy (originals exist for select studies only), so the remedy now names
+  `fasterq-dump --include-technical` first. Two endpoints we depend on are undocumented, so both are
+  pinned behind parsers with offline tests over real captured payloads.
+- **`hooks/` — the rules as mechanism (design §4.2).** `CLAUDE.md` can *say* "never read a whole
+  FASTQ"; only a hook can stop one. `PreToolUse` denies an unbounded stream (R3), an absolute path
+  into a manifest (R9), and ad-hoc access to a held-out root (§8) — while allowing the sanctioned
+  `seqforge` verbs, which are bounded by construction. `PostToolUse` re-runs `manifest validate` after
+  any manifest edit (R2: the model does not grade its own work). `Stop` refuses to end a turn while
+  `questions.md` is non-empty, yielding on `stop_hook_active` so a guard can never hang the agent.
+  The logic is typed and tested rather than living in a shell script, because **a guard that silently
+  never fires is indistinguishable from one that always allows**. Held-out roots come from out-of-git
+  config + `SEQFORGE_CASE_*` env vars, so declaring an eval case automatically protects its data —
+  one source of truth, and the public repo still carries the rule and never a path (asserted by test).
+  Every guard is tested from both sides, which caught a real over-block: `s3://bucket/x.fastq.gz`
+  contains `/bucket/x.fastq.gz`, so the R9 scan rejected the very URIs R9 *wants*.
+- **`skills/` — brief §10's nine thin clients + a cross-product installer.** Each wraps deterministic
+  verbs and carries the judgement, not just the syntax: what a stage must **not** do is the part worth
+  writing down (`exam` must not volunteer a chemistry — it would usually be right, which is what makes
+  it dangerous; `compose` must never report a skipped gate as passing; `resolve` acts only on exit 4).
+  `test_skills.py` pins them against the real Typer app — a stale skill is a confident instruction to
+  run a verb that does not exist — and it earned itself immediately by catching that **`seqforge probe`
+  was in the design's CLI surface and named by four skills, but never registered as a command.** Now
+  implemented and verified.
 - Design (`docs/design.md`), rules (`CLAUDE.md`), and rationale (`PROJECT_BRIEF.md`) in place.
