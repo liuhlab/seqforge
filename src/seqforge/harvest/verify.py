@@ -21,11 +21,12 @@ All three are deterministic. Anything unverifiable is rejected, never waved thro
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..kb import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
-from .fields import PERMITTED_FIELDS
+from .fields import PERMITTED_FIELDS, permitted_for_role
 from .normalize import NormalizedDoc
 
 _WS = re.compile(r"\s+")
@@ -78,19 +79,42 @@ def find_span(text: str, quote: str) -> tuple[int, int] | None:
     return (match.start(), match.end()) if match else None
 
 
-def surface_forms(field: str, value: str) -> list[str]:
-    """Acceptable surface forms for a value — the value itself plus, for chemistry, its KB aliases.
+def _kb_chemistry_aliases(value: str) -> list[str]:
+    """A paper says "Chromium Single Cell 3' v3", not "10x-3p-gex-v3". The KB curates those aliases."""
+    forms: list[str] = []
+    for tech_id, spec in load_all_specs().items():
+        candidates = {tech_id, spec.identity.id, spec.identity.name, *spec.identity.aliases}
+        if any(_squash(c).lower() == _squash(value).lower() for c in candidates):
+            forms.extend(candidates)
+    return forms
 
-    A paper says "Chromium Single Cell 3' v3", not "10x-3p-gex-v3". The KB already curates those
-    aliases, so entailment consults the KB rather than inventing a synonym table.
-    """
-    forms = [value]
-    if "chemistry" in field or "assay" in field:
-        for tech_id, spec in load_all_specs().items():
-            candidates = {tech_id, spec.identity.id, spec.identity.name, *spec.identity.aliases}
-            if any(_squash(c).lower() == _squash(value).lower() for c in candidates):
-                forms.extend(candidates)
-    return list(dict.fromkeys(forms))
+
+#: field -> extra acceptable surface forms. EXACT-match dispatch, replacing a substring test
+#: (`if "chemistry" in field or "assay" in field`) that would have misfired the moment a field was
+#: named e.g. `processing.assay_override`.
+#:
+#: **`processing.quantification` is deliberately absent, and that absence is the design.** Its values
+#: are STARsolo's own spellings, so a quote naming the feature already matches the bare value —
+#: `entails` lowercases and substring-matches, so "pass --soloFeatures GeneFull" needs no alias. An
+#: alias table here could therefore only ever LOOSEN the check, and loosening is exactly the hazard:
+#: teach it `"nuclei" -> GeneFull` and the sentence "we prepared single nuclei" entails a processing
+#: decision, at which point R5 is theatre — the model would be INFERRING the decision from a biological
+#: fact, and that inference is code's to own. The instruction document's documented contract is **name
+#: the STARsolo feature**; "count introns too" is correctly rejected as not-entailed.
+#:
+#: That rigor is affordable only because of R15: the case that most tempts you to add the alias — a
+#: nuclear prep — is the case the all-five default already covers. If the default ever narrows,
+#: revisit this comment at the same time.
+_ALIAS_SOURCES: dict[str, Callable[[str], list[str]]] = {
+    "library.chemistry": _kb_chemistry_aliases,
+    "library.assay": _kb_chemistry_aliases,
+}
+
+
+def surface_forms(field: str, value: str) -> list[str]:
+    """Acceptable surface forms for a value — the value itself plus any curated aliases for its field."""
+    extra = _ALIAS_SOURCES.get(field)
+    return list(dict.fromkeys([value, *(extra(value) if extra else [])]))
 
 
 def entails(quote: str, field: str, value: str) -> bool:
@@ -137,8 +161,8 @@ def verify_drafts(
     rejected: list[dict[str, object]] = []
 
     for i, draft in enumerate(drafts):
-        # FIRST, and before anything about the document: may the model set this field at all? A
-        # quote can be real and entailing on a field that was never on offer, so no amount of
+        # FIRST, and before anything about the document's CONTENT: may the model set this field at
+        # all? A quote can be real and entailing on a field that was never on offer, so no amount of
         # document-checking below can substitute for this one (see .fields).
         if draft.field not in PERMITTED_FIELDS:
             rejected.append(
@@ -146,6 +170,19 @@ def verify_drafts(
             )
             continue
         doc = by_sha.get(draft.span.doc_sha256)
+        if doc is not None and not permitted_for_role(draft.field, doc.role):
+            # ...and may it set this field from THIS document? A downloaded methods PDF may never
+            # steer the pipeline. Role is code-owned (the flag it arrived under), so this is a
+            # deterministic refusal, not a judgement about the sentence.
+            rejected.append(
+                _reject(
+                    draft,
+                    "field_not_permitted_for_doc_role",
+                    f"{draft.field!r} may only be set by an --instruction document, and "
+                    f"{doc.source_basename!r} is a {doc.role}",
+                )
+            )
+            continue
         if doc is None:
             rejected.append(
                 _reject(draft, "unknown_doc", f"no normalized doc {draft.span.doc_sha256}")

@@ -538,7 +538,7 @@ def run_e2e(
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
     # --- compose emits the params; the aligner runs with exactly those ---
-    processing = fill_processing(
+    processing, _ = fill_processing(
         spec=spec,
         dataset=manifest,
         processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
@@ -710,7 +710,7 @@ def run_intron_e2e(
     if not report.ok:
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
-    processing = fill_processing(
+    processing, _ = fill_processing(
         spec=spec,
         dataset=manifest,
         processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),

@@ -18,7 +18,16 @@ from .fill import (
     fill_processing,
 )
 from .hash import dataset_content_hash, processing_content_hash, run_id
-from .policy import ProcessingDefaults, processing_defaults
+from .instruct import INSTRUCTABLE_FIELDS, Instruction, instructions_from_assertions
+from .policy import (
+    DEFAULT_SOLO_FEATURES,
+    PolicyError,
+    ProcessingDefaults,
+    ProcessingOverrides,
+    processing_defaults,
+    resolve_features,
+    resolve_processing,
+)
 from .validate import exit_code_for_report, validate_manifest, validate_processing
 
 __all__ = [
@@ -35,4 +44,12 @@ __all__ = [
     "run_id",
     "processing_defaults",
     "ProcessingDefaults",
+    "ProcessingOverrides",
+    "resolve_processing",
+    "resolve_features",
+    "DEFAULT_SOLO_FEATURES",
+    "PolicyError",
+    "Instruction",
+    "INSTRUCTABLE_FIELDS",
+    "instructions_from_assertions",
 ]

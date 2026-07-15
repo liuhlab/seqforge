@@ -8,10 +8,33 @@ there is no profile-indirection layer to invent here.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..kb.schema import Spec
-from ..models.processing import BulkQuant, Quantification, RuntimeEnv, SoloFeature, SoloQuant
+from ..models.base import Basis
+from ..models.blocker import BlockerSubject, ValidationWarning
+from ..models.dataset import DatasetManifest
+from ..models.evidenced import EvidencedBool, EvidencedStr
+from ..models.processing import (
+    BulkQuant,
+    EvidencedGenome,
+    EvidencedQuantification,
+    EvidencedRuntimeEnv,
+    GenomeRef,
+    ProcessingSection,
+    Quantification,
+    ResourceHints,
+    RuntimeEnv,
+    SoloFeature,
+    SoloQuant,
+)
+from .instruct import Instruction
+
+
+class PolicyError(RuntimeError):
+    """Intent cannot be resolved — a required choice has no safe default (R4: refuse, don't guess)."""
+
 
 #: KB backend module -> the aligner name recorded in `processing.aligner`.
 _ALIGNER_FOR_MODULE = {"map/starsolo": "starsolo", "map/star": "star"}
@@ -56,6 +79,23 @@ trap precisely *because* the processing manifest exists to override it.
 
 
 @dataclass(frozen=True)
+class ProcessingOverrides:
+    """CLI-typed overrides — the top of the precedence ladder.
+
+    A flag outranks an instruction document because it is more specific and it is later in time: both
+    are the user talking to seqforge, one just talks now. It also outranks it in *trust*, which is why
+    it may set fields an instruction document may not (``threads``, ``annotation_name``): a flag is
+    typed by a human, a document is read by a model.
+    """
+
+    assembly: str | None = None
+    annotation_name: str | None = None
+    features: tuple[SoloFeature, ...] | None = None  # --quantify: EXACT replacement, not a union
+    threads: int | None = None
+    environment: RuntimeEnv | None = None
+
+
+@dataclass(frozen=True)
 class ProcessingDefaults:
     """Policy-derived processing intent for one chemistry."""
 
@@ -87,3 +127,145 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
         environment=environment,
         variant_calling=False,
     )
+
+
+def resolve_features(
+    *,
+    instructions: Sequence[Instruction] = (),
+    override: tuple[SoloFeature, ...] | None = None,
+) -> tuple[list[SoloFeature], Basis, list[str], list[ValidationWarning]]:
+    """Fold policy + instructions + a flag into ONE ordered feature list, with its provenance.
+
+    **Prose promotes; it never narrows.** "This dataset should be aligned in GeneFull mode" is
+    ambiguous: *instead of* Gene, or *make sure* GeneFull is computed? We take the second — it is the
+    charitable reading, it is the cheap one, and it is consistent with counting everything by default
+    (R15). So an instructed feature is UNIONed with the default and promoted to the front, where it
+    becomes primary. Nothing is dropped.
+
+    That is also the safety argument for letting a model source this field at all: because the default
+    computes everything, a hallucinated instruction can only mislabel which matrix is primary — it
+    cannot destroy signal. The blast radius of the one failure R5 provably cannot catch is a wrong
+    label on a matrix we still computed.
+
+    **A flag replaces exactly.** The user typed the whole list; they mean it. Narrowing is the only
+    irreversible act available here, so it warns rather than passing silently.
+    """
+    warnings: list[ValidationWarning] = []
+    default = list(DEFAULT_SOLO_FEATURES)
+
+    if override is not None:
+        features = list(dict.fromkeys(override))
+        dropped = [f for f in default if f not in features]
+        if dropped:
+            warnings.append(
+                ValidationWarning(
+                    code="FEATURES_NARROWED",
+                    message=(
+                        f"--quantify drops {dropped} from the default. Counting is cheap next to the "
+                        f"alignment you are already paying for, and dropping is the only "
+                        f"irreversible act here: --soloFeatures Gene alone was measured to discard "
+                        f"40.7% of a nuclear library."
+                    ),
+                    subject=BlockerSubject(kind="field", ref="processing.quantification"),
+                )
+            )
+        return features, "user_confirmed", ["cli:--quantify"], warnings
+
+    named = [i for i in instructions if i.field == "processing.quantification"]
+    if named:
+        # promote, do not substitute: instructed features move to the front, the rest of the default
+        # follows in its own order. `dict.fromkeys` keeps first-seen order and de-duplicates.
+        promoted = [i.value for i in named]
+        features = list(dict.fromkeys([*promoted, *default]))  # type: ignore[list-item]
+        evidence = [e for i in named for e in i.evidence]
+        return features, "user_confirmed", evidence, warnings
+
+    return default, "inferred", ["policy:default-solo-features"], warnings
+
+
+def resolve_processing(
+    *,
+    spec: Spec,
+    dataset: DatasetManifest,
+    instructions: Sequence[Instruction] = (),
+    overrides: ProcessingOverrides | None = None,
+) -> tuple[ProcessingSection, list[ValidationWarning]]:
+    """THE single place precedence lives: policy default -> instruction -> CLI flag.
+
+    Pure: no bytes, no disk, no LLM, no network. A pure function of three inputs is exactly what you
+    want owning the rule that decides what gets counted.
+
+    Precedence is **silent** by design. A flag overriding an instruction, or an instruction overriding
+    a policy default, is not an ambiguity — it is what an instruction IS, and stopping to ask would
+    make the pipeline unusable by the people telling it what to do. What IS surfaced is a
+    *same-precedence* disagreement, which has no tiebreak; :func:`instructions_from_assertions` raises
+    those as ``Conflict``s (exit 4) before this function ever runs.
+    """
+    ov = overrides or ProcessingOverrides()
+    defaults = processing_defaults(spec)
+    rung = dataset.library.chemistry.rung
+
+    quant: Quantification
+    warnings: list[ValidationWarning] = []
+    if isinstance(defaults.quantification, SoloQuant):
+        features, basis, evidence, warnings = resolve_features(
+            instructions=instructions, override=ov.features
+        )
+        quant = SoloQuant(features=features)
+    else:
+        # bulk: counting is module-scoped, and there is nothing here a user needs to instruct —
+        # --quantMode GeneCounts already emits all three strand columns.
+        quant = defaults.quantification
+        basis, evidence = "inferred", ["policy:default-bulk-quant-mode"]
+
+    assembly = ov.assembly or _instructed(instructions, "processing.genome.assembly")
+    if assembly is None:
+        raise PolicyError(
+            f"no genome: this dataset's organism is taxid {dataset.experiment.organism.value}. "
+            "Pass --assembly/--annotation, or name an assembly in an --instruction document. "
+            "seqforge will not guess: taxid -> preferred assembly (hg38 vs hg19 vs T2T) is a policy "
+            "call, and that map belongs to liulab-genome (R12)."
+        )
+    if ov.annotation_name is None:
+        raise PolicyError(
+            "no annotation: --annotation names a GTF REGISTERED with liulab-genome (e.g. WS298). "
+            "It is a registry name, not something a paper writes, so there is nothing to infer."
+        )
+    genome_basis: Basis = "user_confirmed" if ov.assembly else "asserted"
+
+    section = ProcessingSection(
+        genome=EvidencedGenome(
+            value=GenomeRef(
+                assembly=assembly,
+                annotation_name=ov.annotation_name,
+                ncbi_taxid=dataset.experiment.organism.value,
+            ),
+            basis=genome_basis,
+            evidence=["cli:--assembly"] if ov.assembly else [],
+            confidence=0.9,
+            rung=0,
+        ),
+        aligner=EvidencedStr(value=defaults.aligner, basis="inferred", confidence=0.95, rung=rung),
+        quantification=EvidencedQuantification(
+            value=quant, basis=basis, evidence=evidence, confidence=0.9, rung=rung
+        ),
+        variant_calling=EvidencedBool(
+            value=defaults.variant_calling, basis="inferred", confidence=0.9, rung=0
+        ),
+        environment=EvidencedRuntimeEnv(
+            value=ov.environment or defaults.environment,
+            basis="user_confirmed" if ov.environment else "inferred",
+            confidence=0.95,
+            rung=0,
+        ),
+        resources=ResourceHints(threads=ov.threads) if ov.threads else ResourceHints(),
+    )
+    return section, warnings
+
+
+def _instructed(instructions: Sequence[Instruction], field: str) -> str | None:
+    """The instructed value for a single-valued field, if any. Same-field conflicts are already out."""
+    for i in instructions:
+        if i.field == field:
+            return i.value
+    return None

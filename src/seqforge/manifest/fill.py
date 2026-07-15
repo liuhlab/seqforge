@@ -19,12 +19,14 @@ local path the probe read (which stays in ``Observation.file.local_uri``, an int
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
 from ..io import OnlistRegistry
 from ..kb import KB_VERSION
 from ..kb.schema import Element, Spec
+from ..models.blocker import ValidationWarning
 from ..models.dataset import (
     DatasetManifest,
     DatasetProvenance,
@@ -41,7 +43,6 @@ from ..models.dataset import (
 from ..models.evidenced import (
     EvidencedAccessionList,
     EvidencedAssay,
-    EvidencedBool,
     EvidencedChemistrySet,
     EvidencedStr,
     EvidencedTaxid,
@@ -49,18 +50,16 @@ from ..models.evidenced import (
 from ..models.observation import Observation
 from ..models.processing import (
     DatasetPin,
-    EvidencedGenome,
-    EvidencedQuantification,
-    EvidencedRuntimeEnv,
-    GenomeRef,
     ProcessingManifest,
     ProcessingProvenance,
-    ProcessingSection,
+    RuntimeEnv,
+    SoloFeature,
 )
 from ..models.resolve import Candidate, ResolveResult
 from ..workflows import WORKFLOW_VERSION
 from .hash import dataset_content_hash, processing_content_hash
-from .policy import processing_defaults
+from .instruct import Instruction
+from .policy import ProcessingOverrides, resolve_processing
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -96,15 +95,18 @@ class ExperimentInputs:
 
 @dataclass(frozen=True)
 class ProcessingInputs:
-    """Reference selection (a liulab-genome assembly id + a REGISTERED GTF name — never a path).
+    """CLI-typed processing choices — the top of the precedence ladder.
 
-    CLI-sourced overrides for :func:`fill_processing`. This dataclass predates the split and was
-    already the processing manifest in miniature — badly named and half-built, sitting beside `fill`
-    instead of owning the artifact it describes.
+    Reference selection is a liulab-genome assembly id + a REGISTERED GTF name, never a path (R9).
+    This dataclass predates the split and was already the processing manifest in miniature — badly
+    named and half-built, sitting beside `fill` instead of owning the artifact it describes.
     """
 
-    assembly: str
-    annotation_name: str
+    assembly: str | None = None
+    annotation_name: str | None = None
+    features: tuple[SoloFeature, ...] | None = None  # --quantify: EXACT replacement
+    threads: int | None = None
+    environment: RuntimeEnv | None = None
 
 
 def fill_manifest(
@@ -211,43 +213,30 @@ def fill_processing(
     spec: Spec,
     dataset: DatasetManifest,
     processing: ProcessingInputs,
+    instructions: Sequence[Instruction] = (),
     processing_id: str = "default",
     pin: bool = True,
     seqforge_version: str,
-) -> ProcessingManifest:
-    """Build one :class:`ProcessingManifest` for a dataset from policy defaults + CLI overrides.
+) -> tuple[ProcessingManifest, list[ValidationWarning]]:
+    """Build one :class:`ProcessingManifest` for a dataset: policy -> instructions -> flags.
 
     ``pin=True`` binds it to this dataset's hash, so ``compose`` refuses any other. ``pin=False``
     leaves it a **template**: portable across datasets, which is what lets a single file drive a whole
     corpus. Both forms are legitimate and they are for different jobs — you publish a bound one and
     you reprocess with a template.
+
+    Precedence itself lives in :func:`~seqforge.manifest.policy.resolve_processing`, and only there.
     """
-    defaults = processing_defaults(spec)
-    rung = _rung_for(dataset)
-    section = ProcessingSection(
-        genome=EvidencedGenome(
-            value=GenomeRef(
-                assembly=processing.assembly,
-                annotation_name=processing.annotation_name,
-                ncbi_taxid=dataset.experiment.organism.value,
-            ),
-            basis="inferred",
-            confidence=0.8,
-            rung=0,
-        ),
-        aligner=EvidencedStr(value=defaults.aligner, basis="inferred", confidence=0.95, rung=rung),
-        quantification=EvidencedQuantification(
-            value=defaults.quantification,
-            basis="inferred",
-            evidence=["policy:default-quantification"],
-            confidence=0.8,
-            rung=rung,
-        ),
-        variant_calling=EvidencedBool(
-            value=defaults.variant_calling, basis="inferred", confidence=0.9, rung=0
-        ),
-        environment=EvidencedRuntimeEnv(
-            value=defaults.environment, basis="inferred", confidence=0.95, rung=0
+    section, warnings = resolve_processing(
+        spec=spec,
+        dataset=dataset,
+        instructions=instructions,
+        overrides=ProcessingOverrides(
+            assembly=processing.assembly,
+            annotation_name=processing.annotation_name,
+            features=processing.features,
+            threads=processing.threads,
+            environment=processing.environment,
         ),
     )
     draft = ProcessingManifest(
@@ -267,20 +256,18 @@ def fill_processing(
             seqforge_version=seqforge_version,
         ),
     )
-    return draft.model_copy(
-        update={
-            "provenance": ProcessingProvenance(
-                processing_hash=processing_content_hash(draft),
-                workflow_version=WORKFLOW_VERSION,
-                seqforge_version=seqforge_version,
-            )
-        }
+    return (
+        draft.model_copy(
+            update={
+                "provenance": ProcessingProvenance(
+                    processing_hash=processing_content_hash(draft),
+                    workflow_version=WORKFLOW_VERSION,
+                    seqforge_version=seqforge_version,
+                )
+            }
+        ),
+        warnings,
     )
-
-
-def _rung_for(dataset: DatasetManifest) -> int:
-    """The rung that settled chemistry — carried through to the intent derived from it."""
-    return dataset.library.chemistry.rung
 
 
 def _build_read_layout(

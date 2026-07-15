@@ -26,11 +26,13 @@ from .kb import list_spec_ids, load_spec, run_roundtrip
 from .manifest import (
     ExperimentInputs,
     FillError,
+    PolicyError,
     ProcessingInputs,
     dataset_content_hash,
     exit_code_for_report,
     fill_manifest,
     fill_processing,
+    instructions_from_assertions,
     processing_content_hash,
     validate_manifest,
     validate_processing,
@@ -442,20 +444,30 @@ def resolve_score(
 
 @harvest_app.command("normalize")
 def harvest_normalize(
-    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    instruction: list[Path] = typer.Option(
+        [],
+        "--instruction",
+        help="Document(s) authored FOR seqforge (e.g. alignment_instruction.md).",
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
 ) -> None:
-    """Extract each document ONCE into the canonical text that spans are computed against (R5)."""
+    """Extract each document ONCE into the canonical text that spans are computed against (R5).
+
+    A document's ROLE is the flag it arrived under, never its filename: only an --instruction document
+    may set processing.* (R13). `alignment_instruction.md` is a convention you pass here, load-bearing
+    nowhere — a filename trigger would be spoofable by renaming a downloaded PDF.
+    """
     from .harvest import normalize_document
 
     outdir = Path(workspace) / ".seqforge" / "normalized"
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
-    for doc in docs:
+    for doc, role in _roled(docs, instruction):
         try:
-            nd = normalize_document(doc)
+            nd = normalize_document(doc, role=role)
         except (OSError, RuntimeError) as exc:
             typer.echo(f"{doc}: {exc}", err=True)
             raise typer.Exit(1) from exc
@@ -464,6 +476,7 @@ def harvest_normalize(
         rows.append(
             {
                 "source": nd.source_basename,
+                "role": nd.role,
                 "doc_sha256": nd.doc_sha256,
                 "normalized_sha256": nd.normalized_sha256,
                 "normalizer_version": nd.normalizer_version,
@@ -474,9 +487,24 @@ def harvest_normalize(
     typer.echo(json.dumps({"normalized": rows}, indent=2))
 
 
+def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, str]]:
+    """Pair each document with the ROLE its flag assigned. Code owns role; a filename never does."""
+    pairs: list[tuple[Path, str]] = [(d, "reference") for d in (docs or [])]
+    pairs += [(d, "instruction") for d in (instruction or [])]
+    if not pairs:
+        typer.echo("give at least one document, or --instruction FILE", err=True)
+        raise typer.Exit(2)
+    return pairs
+
+
 @harvest_app.command("extract")
 def harvest_extract(
-    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    instruction: list[Path] = typer.Option(
+        [],
+        "--instruction",
+        help="Document(s) authored FOR seqforge; only these may set processing.*.",
+    ),
     provider: str | None = typer.Option(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
@@ -520,8 +548,8 @@ def harvest_extract(
     normalized = []
     usage_total: dict[str, int] = {}
     extractor = None
-    for doc in docs:
-        nd = normalize_document(doc)
+    for doc, role in _roled(docs, instruction):
+        nd = normalize_document(doc, role=role)
         normalized.append(nd)
         try:
             outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
@@ -553,9 +581,21 @@ def harvest_extract(
     )
     payload["n_accepted"] = report.n_accepted
     payload["n_rejected"] = len(report.rejected)
+    # what the user may act on: verified directives, projected onto the instructable surface
+    instructions, conflicts = instructions_from_assertions(
+        report.assertions,
+        instruction_docs=frozenset(d.doc_sha256 for d in normalized if d.role == "instruction"),
+    )
+    payload["instructions"] = [
+        {"field": i.field, "value": i.value, "basis": i.basis, "evidence": i.evidence}
+        for i in instructions
+    ]
+    payload["conflicts"] = [c.model_dump(mode="json") for c in conflicts]
     payload["rejected"] = report.rejected
     payload["assertions"] = [a.model_dump(mode="json") for a in report.assertions]
     typer.echo(json.dumps(payload, indent=2))
+    if conflicts:
+        raise typer.Exit(4)  # two instructions disagreeing has no tiebreak — only the author knows
     if report.rejected:
         raise typer.Exit(4)  # a claim that failed the tripwire needs a human, not a silent drop
 
@@ -708,6 +748,12 @@ def processing_new(
         ..., "--assembly", help="liulab-genome UCSC assembly id (e.g. ce11)."
     ),
     annotation: str = typer.Option(..., "--annotation", help="Registered GTF name (e.g. WS298)."),
+    quantify: str | None = typer.Option(
+        None,
+        "--quantify",
+        help="Comma-separated soloFeatures. EXACT replacement of the default (which counts all five).",
+    ),
+    threads: int | None = typer.Option(None, "--threads", help="Threads per mapping job."),
     processing_id: str = typer.Option("default", "--id", help="Human slug for this recipe."),
     pin: bool = typer.Option(
         True,
@@ -716,27 +762,55 @@ def processing_new(
     ),
     out: Path | None = typer.Option(None, "-o", "--out", help="Write here (default: stdout)."),
 ) -> None:
-    """Author a PROCESSING manifest: what to DO with a dataset (R13). Many per dataset."""
+    """Author a PROCESSING manifest: what to DO with a dataset (R13). Many per dataset.
+
+    With no flags you get the policy default, which counts every soloFeature (R15) — so the common
+    case needs no decision from you. --quantify replaces that list exactly; narrowing it warns,
+    because dropping a feature is the only irreversible act here.
+    """
     dataset = _load_manifest(dataset_path)
     spec = load_spec(dataset.library.chemistry.value[0])
-    processing = fill_processing(
-        spec=spec,
-        dataset=dataset,
-        processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
-        processing_id=processing_id,
-        pin=pin,
-        seqforge_version=__version__,
-    )
+    try:
+        processing, warnings = fill_processing(
+            spec=spec,
+            dataset=dataset,
+            processing=ProcessingInputs(
+                assembly=assembly,
+                annotation_name=annotation,
+                features=_parse_quantify(quantify),
+                threads=threads,
+            ),
+            processing_id=processing_id,
+            pin=pin,
+            seqforge_version=__version__,
+        )
+    except (PolicyError, ValidationError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
     report = validate_processing(processing, dataset=dataset)
     payload = yaml.safe_dump(processing.model_dump(mode="json"), sort_keys=True)
     if out is not None:
         out.write_text(payload)
         typer.echo(
-            json.dumps({"processing": str(out), "report": report.model_dump(mode="json")}, indent=2)
+            json.dumps(
+                {
+                    "processing": str(out),
+                    "report": report.model_dump(mode="json"),
+                    "warnings": [w.model_dump(mode="json") for w in warnings],
+                },
+                indent=2,
+            )
         )
     else:
         typer.echo(payload)
     raise typer.Exit(exit_code_for_report(report))
+
+
+def _parse_quantify(value: str | None) -> tuple[str, ...] | None:
+    """`--quantify Gene,GeneFull` -> the tuple. The MODEL validates membership, not this parser."""
+    if value is None:
+        return None
+    return tuple(v.strip() for v in value.split(",") if v.strip())
 
 
 @processing_app.command("validate")
@@ -821,7 +895,7 @@ def compose_cmd(
                 err=True,
             )
             raise typer.Exit(2)
-        processing = fill_processing(
+        processing, _ = fill_processing(
             spec=load_spec(manifest.library.chemistry.value[0]),
             dataset=manifest,
             processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),

@@ -88,7 +88,7 @@ def _processing(
     processing_id: str = "default",
     pin: bool = True,
 ) -> ProcessingManifest:
-    return fill_processing(
+    p, _ = fill_processing(
         spec=kb.load_spec(manifest.library.chemistry.value[0]),
         dataset=manifest,
         processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
@@ -96,6 +96,7 @@ def _processing(
         pin=pin,
         seqforge_version=__version__,
     )
+    return p
 
 
 def _pair(
@@ -137,7 +138,7 @@ def test_processing_carries_the_derived_intent(tmp_path: Path) -> None:
     # basis records WHO DECIDED; policy defaults are `inferred` + an evidence ref naming the rule,
     # which is why no `policy_default` basis is needed (design §1.0's open note).
     assert p.processing.quantification.basis == "inferred"
-    assert p.processing.quantification.evidence == ["policy:default-quantification"]
+    assert p.processing.quantification.evidence == ["policy:default-solo-features"]
     assert p.provenance.workflow_version == WORKFLOW_VERSION
 
 
@@ -658,3 +659,113 @@ def test_bulk_never_gets_solo_features(tmp_path: Path) -> None:
     assert config["bulk"] == {"quantMode": "GeneCounts"}
     assert "solo" not in config
     assert "primary_feature" not in config  # bulk has no Solo.out/<Feature>/ split
+
+
+# ---------- precedence: policy -> instruction -> flag, in ONE pure function ----------
+def _ins(field: str, value: str):
+    from seqforge.manifest import Instruction
+
+    return Instruction(field=field, value=value, basis="user_confirmed", evidence=["assert-x-0"])
+
+
+def test_policy_default_is_inferred_and_names_its_rule() -> None:
+    from seqforge.manifest import resolve_features
+
+    features, basis, evidence, warnings = resolve_features()
+    assert basis == "inferred"
+    assert evidence == [
+        "policy:default-solo-features"
+    ]  # the rule, by name — that is why no new basis
+    assert not warnings
+    assert features[0] == "Gene"
+
+
+def test_prose_promotes_it_never_narrows() -> None:
+    """ "...should be aligned in GeneFull mode" — instead of Gene, or make sure GeneFull is computed?
+
+    We take the second: charitable, cheap, and consistent with R15. The instructed feature is UNIONed
+    with the default and promoted to primary. Nothing is dropped — which is also the safety argument
+    for letting a model source this at all: a hallucinated instruction can only mislabel the primary,
+    never destroy signal.
+    """
+    from seqforge.manifest import DEFAULT_SOLO_FEATURES, resolve_features
+
+    features, basis, evidence, warnings = resolve_features(
+        instructions=[_ins("processing.quantification", "GeneFull")]
+    )
+    assert features[0] == "GeneFull", "the instructed feature becomes primary"
+    assert set(features) == set(DEFAULT_SOLO_FEATURES), "and NOTHING is dropped"
+    assert basis == "user_confirmed"
+    assert evidence == ["assert-x-0"]
+    assert not warnings
+
+
+def test_a_flag_replaces_exactly_and_warns_when_it_narrows() -> None:
+    """The user typed the whole list; they mean it. But narrowing is the only irreversible act here."""
+    from seqforge.manifest import resolve_features
+
+    features, basis, evidence, warnings = resolve_features(override=("Gene", "GeneFull"))
+    assert features == ["Gene", "GeneFull"]
+    assert basis == "user_confirmed" and evidence == ["cli:--quantify"]
+    assert [w.code for w in warnings] == ["FEATURES_NARROWED"]
+    assert "40.7%" in warnings[0].message  # the refusal cites the number that justifies the default
+
+
+def test_a_flag_beats_an_instruction_silently() -> None:
+    """Precedence is not an ambiguity. A flag overriding a file is a normal, intentional act."""
+    from seqforge.manifest import resolve_features
+
+    features, basis, evidence, _ = resolve_features(
+        instructions=[_ins("processing.quantification", "Velocyto")],
+        override=("Gene", "GeneFull"),
+    )
+    assert features == ["Gene", "GeneFull"], "the flag wins outright"
+    assert evidence == ["cli:--quantify"]
+    assert basis == "user_confirmed"
+
+
+def test_two_instructions_disagreeing_is_a_conflict() -> None:
+    """Same precedence, no tiebreak: R6 applies to intent exactly as it applies to truth."""
+    from seqforge.manifest import instructions_from_assertions
+    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
+
+    def _a(i: int, value: str) -> Assertion:
+        return Assertion(
+            id=f"assert-aa-{i}",
+            field="processing.genome.assembly",
+            value=value,
+            span=SourceSpan(doc_sha256="d" * 64, quote=f"align to {value}"),
+            span_verified=True,
+            entailment_ok=True,
+            llm_confidence=0.9,
+            extractor=ExtractorProvenance(model_id="m", prompt_version="p"),
+        )
+
+    _, conflicts = instructions_from_assertions(
+        [_a(0, "ce11"), _a(1, "hg38")], instruction_docs=frozenset({"d" * 64})
+    )
+    assert len(conflicts) == 1
+    assert conflicts[0].field == "processing.genome.assembly"
+    assert conflicts[0].kind == "asserted_vs_asserted"
+    assert conflicts[0].decidable_by == ["user"]  # the first real use of that vocabulary member
+    assert {p.value for p in conflicts[0].positions} == {"ce11", "hg38"}
+
+
+def test_an_instruction_from_a_reference_doc_never_becomes_an_instruction() -> None:
+    from seqforge.manifest import instructions_from_assertions
+    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
+
+    a = Assertion(
+        id="assert-bb-0",
+        field="processing.quantification",
+        value="GeneFull",
+        span=SourceSpan(doc_sha256="e" * 64, quote="in GeneFull mode"),
+        span_verified=True,
+        entailment_ok=True,
+        llm_confidence=0.9,
+        extractor=ExtractorProvenance(model_id="m", prompt_version="p"),
+    )
+    # not among the --instruction docs => dropped, not downgraded
+    assert instructions_from_assertions([a], instruction_docs=frozenset()) == ([], [])
+    ins, _ = instructions_from_assertions([a], instruction_docs=frozenset({"e" * 64}))
+    assert [i.field for i in ins] == ["processing.quantification"]
