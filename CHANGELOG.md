@@ -24,6 +24,16 @@ chemistry and annotation (the 6,794,880-entry whitelist, the 78,733-gene feature
 (the sparse matrices are ~100 MB and grow *sub*-linearly). Provision ~48-64 GB per hg38 STARsolo job;
 depth is irrelevant across any real library size.
 
+The sweep ran `--outSAMtype None` while the shipped module runs `BAM Unsorted`, so that gap was
+measured rather than estimated in a docstring: **+745 MB and +19% wall-clock** (34.600 → 35.345 GB at
+40M, one variable changed). A production run is ~35.3 GB; the recommendation does not move.
+
+Reproducibility was checked rather than assumed. The 40M point re-measured on a **different node**,
+through a **different code path** (32 sharded FASTQs vs one file), on **different reads** (shard seeds
+derive from the run seed) → **34.600 GB**, identical to three decimals. That also retires an objection
+raised while designing this: that node-to-node variance might swamp a 30 MB signal, so the sweep had
+to stay sequential on one node. Node variance is under 1 MB; the job array is fine.
+
 The brief filed this as "deferred to real human data". That was wrong, and instructively so: it needed
 the real human **genome**, not real human **reads**. Simulated reads from real hg38 sequence exercise
 the same structures *harder* — random UMIs mean near-zero duplication, and 91.5% map uniquely against

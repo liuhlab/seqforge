@@ -95,10 +95,21 @@ pay for regardless. Provision ~48-64 GB per hg38 STARsolo job and depth is irrel
 library size. The pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four")
 does not fire, and now it does not fire *because it was tested*.
 
-Read the number with its configuration or not at all: peak RSS includes STAR's per-thread buffers, so
-34.7 GB is a peak **at 16 threads**, and the measurement ran ``--outSAMtype None`` while the shipped
-module writes ``BAM Unsorted`` (streamed, so buffers — bounded, but not zero and not yet measured).
-Both are why ``kb e2e-fit`` refuses to merge runs that differ in either.
+The sweep ran ``--outSAMtype None`` and the shipped module runs ``BAM Unsorted``, so that gap was
+measured too rather than argued about — one variable, same depth, same node, same seed: **34.600 ->
+35.345 GB (+745 MB) and +19 % wall-clock**. So a production run is ~35.3 GB, and the recommendation
+does not move.
+
+Read the number with its configuration or not at all. Peak RSS includes STAR's per-thread buffers, so
+this is a peak **at 16 threads**, and the BAM delta is measured at **one depth** (40 M) — constant is
+the expectation, since the BAM is streamed and the buffers are per-thread rather than per-read, but
+expectation is not measurement and this docstring has been burned by that distinction once already.
+Both are why ``kb e2e-fit`` refuses to merge runs differing in either.
+
+Reproducibility is not assumed either: the 40 M point was re-measured on a different node, through a
+different code path (32 sharded FASTQs vs one file), on *different reads* (shard seeds derive from the
+run seed), and landed on **34.600 GB** again — the same number to three decimals. The measurement is
+dominated by the index, and it is stable.
 
 If it ever does prove pathological the default drops to four and ``--quantify`` restores it: an
 expensive default is not a trap precisely *because* the processing manifest exists to override it.

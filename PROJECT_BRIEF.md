@@ -482,6 +482,18 @@ and grow *sub*-linearly, 4× the reads giving 2× the non-zeros.
 So `--soloFeatures` is the rare knob that is free in memory and merely expensive in disk. Velocyto is
 unconditional **because it was measured**, not by decision. Provision ~48-64 GB.
 
+Two things were measured rather than reasoned about, both because reasoning about them is exactly how
+this document used to get things wrong:
+
+- The sweep ran `--outSAMtype None`; the shipped module runs `BAM Unsorted`. That gap is **+745 MB**
+  and +19% wall-clock (34.600 → 35.345 GB at 40 M, one variable changed). A production run is
+  ~35.3 GB. Measured at one depth only — constant is the *expectation* (the BAM is streamed; buffers
+  are per-thread, not per-read), and expectation is not measurement.
+- **Reproducibility**: the 40 M point re-measured on a different node, through a different code path
+  (32 sharded FASTQs vs one), on *different reads* → **34.600 GB**, identical to three decimals. Which
+  also retires an objection raised in this very session: that node variance might swamp the signal and
+  therefore the sweep had to stay on one node. Node variance is under 1 MB. The job array is fine.
+
 ### Validating the composer without any data
 
 `snakemake -n` raises `MissingInputException` on absent inputs, so the composer creates a scratch
