@@ -13,10 +13,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..models.manifest import RuntimeEnv
+from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
-WORKFLOW_VERSION = "2026.7.0"
+#: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
+#: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
+WORKFLOW_VERSION = "2026.7.1"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -44,6 +46,7 @@ MODULES: dict[str, WorkflowModule] = {
             "solo.soloCBwhitelist",
             "solo.soloStrand",
             "solo.soloFeatures",
+            "primary_feature",
             "read_files_in.cdna",
             "read_files_in.barcode",
             "genome.assembly",
@@ -60,7 +63,6 @@ MODULES: dict[str, WorkflowModule] = {
         snakefile=_MODULE_DIR / "map" / "star.smk",
         required_config=(
             "bulk.quantMode",
-            "bulk.outSAMtype",
             "read_files_in.mate1",
             "read_files_in.mate2",
             "genome.assembly",

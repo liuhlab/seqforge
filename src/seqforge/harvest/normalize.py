@@ -18,6 +18,8 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
+from .fields import DocRole
+
 #: CalVer YYYY.M.PATCH; bump when normalization changes (it re-defines the span space).
 NORMALIZER_VERSION = "2026.7.0"
 
@@ -54,12 +56,18 @@ class NormalizedDoc:
 
     ``doc_sha256`` identifies the SOURCE bytes (stable document identity, what an Assertion cites);
     ``normalized_sha256`` identifies the span space itself, so a normalization drift is detectable.
+
+    ``role`` is what the document IS to us, and it is **not** a property of the bytes: the same PDF is
+    a reference when you cite it and an instruction when you write it for us. So it is set by the CLI
+    from the flag the document arrived under, and it deliberately does NOT enter ``doc_sha256`` —
+    otherwise one file would have two identities and its cached normalization would fork.
     """
 
     doc_sha256: str
     normalized_sha256: str
     text: str
     source_basename: str
+    role: DocRole = "reference"
     normalizer_version: str = NORMALIZER_VERSION
     n_chars: int = 0
 
@@ -99,8 +107,13 @@ def read_document(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def normalize_document(path: str | Path) -> NormalizedDoc:
-    """Turn one source document into its :class:`NormalizedDoc` (the canonical span space)."""
+def normalize_document(path: str | Path, *, role: DocRole = "reference") -> NormalizedDoc:
+    """Turn one source document into its :class:`NormalizedDoc` (the canonical span space).
+
+    ``role`` comes from the caller — i.e. from which CLI flag the document arrived under — because it
+    is a fact about how the document was OFFERED, not about its contents. Never infer it from the
+    filename: that would be spoofable by renaming a downloaded PDF.
+    """
     p = Path(path)
     source_bytes = p.read_bytes()
     text = normalize_text(read_document(p))
@@ -109,5 +122,6 @@ def normalize_document(path: str | Path) -> NormalizedDoc:
         normalized_sha256=hashlib.sha256(text.encode()).hexdigest(),
         text=text,
         source_basename=p.name,
+        role=role,
         n_chars=len(text),
     )

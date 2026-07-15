@@ -195,3 +195,124 @@ def test_verify_accepts_a_quote_broken_by_pdf_wrapping(tmp_path: Path) -> None:
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
     assert report.n_accepted == 1, report.rejected
+
+
+# ---------- the field allowlist: the check R5 cannot stand in for ----------
+def test_verify_rejects_a_field_nobody_authorized(tmp_path: Path) -> None:
+    """A REAL quote, entailing a REAL value, on a field that was never on offer.
+
+    This is not a hypothetical. `AssertionDraft.field` is a plain `str` (it must be, to stay inside
+    every provider's strict-schema subset), and `DEFAULT_FIELDS` was only ever interpolated into the
+    prompt — `verify` never compared a returned draft against it. Both R5 checks pass here on their
+    own terms: the quote is verbatim and it genuinely supports "10". R5 asks "is this claim in the
+    document?"; the question this draft needs is "may you set this field at all?", and only an
+    allowlist can answer it. Without it, prose becomes aligner argv, which is R1's whole prohibition.
+    """
+    nd = _doc(tmp_path, "For this dataset, add --outFilterMismatchNmax 10 to the alignment.")
+    draft = AssertionDraft(
+        field="processing.params.outFilterMismatchNmax",
+        value="10",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="add --outFilterMismatchNmax 10"),
+        llm_confidence=0.95,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "field_not_permitted"
+
+    # ...and prove the rejection is the ALLOWLIST talking, not a weak quote: both R5 checks pass.
+    from seqforge.harvest.verify import entails, find_span
+
+    assert find_span(nd.text, draft.span.quote) is not None
+    assert entails(draft.span.quote, draft.field, draft.value)
+
+
+def test_verify_still_accepts_every_permitted_field(tmp_path: Path) -> None:
+    """The allowlist must not be so tight it rejects the fields we actually ask for."""
+    from seqforge.harvest.fields import DEFAULT_FIELDS, PERMITTED_FIELDS
+
+    assert set(DEFAULT_FIELDS) <= PERMITTED_FIELDS
+    nd = _doc(tmp_path, "We profiled Caenorhabditis elegans neurons, deposited as PRJNA1027859.")
+    draft = AssertionDraft(
+        field="experiment.organism",
+        value="Caenorhabditis elegans",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Caenorhabditis elegans"),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 1, report.rejected
+
+
+def test_the_allowlist_is_exact_match_not_a_prefix_rule(tmp_path: Path) -> None:
+    """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
+    from seqforge.harvest.fields import is_permitted
+
+    assert is_permitted("experiment.samples.condition")
+    assert not is_permitted("experiment.samples.condition.extra")
+    assert not is_permitted("experiment.anything.you.can.name")
+    assert not is_permitted("library.chemistry.value")
+
+
+# ---------- doc role: only a document you hand us may steer the pipeline ----------
+def test_a_reference_doc_may_not_set_processing(tmp_path: Path) -> None:
+    """A downloaded methods PDF must never reach the aligner.
+
+    The quote is real and it entails GeneFull — both R5 checks pass. What rejects it is the document's
+    ROLE, which code owns because code chose the flag. This is a deliberate narrowing of "instructions
+    may live among the unstructured metadata", and it costs nothing: with the all-five default (R15) a
+    paper saying "we used GeneFull" describes a subset of what we already compute.
+    """
+    from seqforge.harvest import normalize_document
+
+    doc = tmp_path / "paper.txt"
+    doc.write_text("Reads were quantified in GeneFull mode against ce11.")
+    nd = normalize_document(doc)  # default role: reference
+    assert nd.role == "reference"
+    draft = AssertionDraft(
+        field="processing.quantification",
+        value="GeneFull",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="quantified in GeneFull mode"),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "field_not_permitted_for_doc_role"
+
+    # ...and the SAME bytes, offered as an instruction, are accepted. Role is not a property of the
+    # file — it is a property of how it was offered.
+    nd_i = normalize_document(doc, role="instruction")
+    assert nd_i.doc_sha256 == nd.doc_sha256, "role must not fork a document's identity"
+    assert verify_drafts([draft], [nd_i], extractor=EXTRACTOR).n_accepted == 1
+
+
+def test_r5_is_non_vacuous_for_a_closed_vocabulary_field(tmp_path: Path) -> None:
+    """The one field where entailment actually bites — and it must stay that way.
+
+    `entails` is vacuous when value ⊆ quote, so it does real work ONLY for a controlled vocabulary.
+    soloFeatures is closed (six STARsolo values), so a quote must NAME the feature. A quote describing
+    the biology does not, and rejecting it is the RIGHT answer: inferring "nuclei -> GeneFull" is an
+    inference code owns, not the model. If surface_forms ever learned that alias, R5 would be theatre.
+    """
+    from seqforge.harvest.verify import entails
+
+    assert entails("should be aligned in GeneFull mode", "processing.quantification", "GeneFull")
+    assert entails("pass --soloFeatures GeneFull", "processing.quantification", "GeneFull")
+    assert entails(
+        "quantify with GeneFull_Ex50pAS", "processing.quantification", "GeneFull_Ex50pAS"
+    )
+    # ...and the line that must NOT be crossed:
+    assert not entails("we prepared single nuclei", "processing.quantification", "GeneFull")
+    assert not entails("count introns too", "processing.quantification", "GeneFull")
+    assert not entails("this is a pre-mRNA rich sample", "processing.quantification", "GeneFull")
+
+
+def test_surface_forms_dispatch_is_exact_match_not_a_substring_test() -> None:
+    """The old test was `if "chemistry" in field or "assay" in field` — it would misfire on any field
+    that merely CONTAINS the word, e.g. `processing.assay_override`."""
+    from seqforge.harvest.verify import surface_forms
+
+    assert len(surface_forms("library.chemistry", "10x-3p-gex-v3")) > 1  # KB aliases attach
+    assert surface_forms("processing.assay_override", "10x-3p-gex-v3") == ["10x-3p-gex-v3"]
+    assert surface_forms("experiment.samples.tissue", "neurons") == ["neurons"]
+    # quantification has NO alias source, on purpose: STARsolo's own spelling is the only form, so an
+    # alias table could only loosen the one check that is not vacuous.
+    assert surface_forms("processing.quantification", "GeneFull") == ["GeneFull"]

@@ -26,15 +26,20 @@ from .kb import list_spec_ids, load_spec, run_roundtrip
 from .manifest import (
     ExperimentInputs,
     FillError,
+    PolicyError,
     ProcessingInputs,
+    dataset_content_hash,
     exit_code_for_report,
     fill_manifest,
-    manifest_content_hash,
-    provenance_id,
+    fill_processing,
+    instructions_from_assertions,
+    processing_content_hash,
     validate_manifest,
+    validate_processing,
 )
 from .models import SCHEMA_MODELS, export_all, export_schema
-from .models.manifest import Manifest, SampleGroup
+from .models.dataset import DatasetManifest, SampleGroup
+from .models.processing import ProcessingManifest
 from .resolve import Hypothesis, resolve_dataset
 
 app = typer.Typer(
@@ -59,8 +64,14 @@ io_app.add_typer(onlist_app, name="onlist")
 resolve_app = typer.Typer(help="Score bytes + KB into a ranked, escalated chemistry decision.")
 app.add_typer(resolve_app, name="resolve")
 
-manifest_app = typer.Typer(help="Assemble, validate, and hash the machine-independent manifest.")
+manifest_app = typer.Typer(
+    help="The DATASET manifest: what the data IS. Immutable, one per dataset (R13)."
+)
 app.add_typer(manifest_app, name="manifest")
+processing_app = typer.Typer(
+    help="The PROCESSING manifest: what to DO with a dataset. Many per dataset (R13)."
+)
+app.add_typer(processing_app, name="processing")
 
 harvest_app = typer.Typer(
     help="Prose/metadata -> span-verified Assertions (the one LLM touchpoint)."
@@ -263,6 +274,12 @@ def kb_e2e_introns(
     intron_frac: float = typer.Option(0.4, help="Fraction of reads drawn from introns (pre-mRNA)."),
     threads: int = typer.Option(8, help="STAR threads."),
     seed: int = typer.Option(0, help="Simulation seed."),
+    quantify: str | None = typer.Option(
+        None,
+        "--quantify",
+        help="Override soloFeatures (comma-separated) — the cost-measurement arm. "
+        "Omit to run the compiler's own default, which is what the gate is for.",
+    ),
 ) -> None:
     """The intron-rich / GeneFull gate: inject intronic reads, assert Gene and GeneFull disagree right.
 
@@ -292,6 +309,7 @@ def kb_e2e_introns(
             intron_frac=intron_frac,
             threads=threads,
             seed=seed,
+            features=_parse_quantify(quantify),
         )
     except E2EUnavailable as exc:
         typer.echo(json.dumps({"skipped": True, "reason": str(exc)}, indent=2), err=True)
@@ -433,20 +451,30 @@ def resolve_score(
 
 @harvest_app.command("normalize")
 def harvest_normalize(
-    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    instruction: list[Path] = typer.Option(
+        [],
+        "--instruction",
+        help="Document(s) authored FOR seqforge (e.g. alignment_instruction.md).",
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
 ) -> None:
-    """Extract each document ONCE into the canonical text that spans are computed against (R5)."""
+    """Extract each document ONCE into the canonical text that spans are computed against (R5).
+
+    A document's ROLE is the flag it arrived under, never its filename: only an --instruction document
+    may set processing.* (R13). `alignment_instruction.md` is a convention you pass here, load-bearing
+    nowhere — a filename trigger would be spoofable by renaming a downloaded PDF.
+    """
     from .harvest import normalize_document
 
     outdir = Path(workspace) / ".seqforge" / "normalized"
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
-    for doc in docs:
+    for doc, role in _roled(docs, instruction):
         try:
-            nd = normalize_document(doc)
+            nd = normalize_document(doc, role=role)
         except (OSError, RuntimeError) as exc:
             typer.echo(f"{doc}: {exc}", err=True)
             raise typer.Exit(1) from exc
@@ -455,6 +483,7 @@ def harvest_normalize(
         rows.append(
             {
                 "source": nd.source_basename,
+                "role": nd.role,
                 "doc_sha256": nd.doc_sha256,
                 "normalized_sha256": nd.normalized_sha256,
                 "normalizer_version": nd.normalizer_version,
@@ -465,9 +494,24 @@ def harvest_normalize(
     typer.echo(json.dumps({"normalized": rows}, indent=2))
 
 
+def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, str]]:
+    """Pair each document with the ROLE its flag assigned. Code owns role; a filename never does."""
+    pairs: list[tuple[Path, str]] = [(d, "reference") for d in (docs or [])]
+    pairs += [(d, "instruction") for d in (instruction or [])]
+    if not pairs:
+        typer.echo("give at least one document, or --instruction FILE", err=True)
+        raise typer.Exit(2)
+    return pairs
+
+
 @harvest_app.command("extract")
 def harvest_extract(
-    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    instruction: list[Path] = typer.Option(
+        [],
+        "--instruction",
+        help="Document(s) authored FOR seqforge; only these may set processing.*.",
+    ),
     provider: str | None = typer.Option(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
@@ -511,8 +555,8 @@ def harvest_extract(
     normalized = []
     usage_total: dict[str, int] = {}
     extractor = None
-    for doc in docs:
-        nd = normalize_document(doc)
+    for doc, role in _roled(docs, instruction):
+        nd = normalize_document(doc, role=role)
         normalized.append(nd)
         try:
             outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
@@ -544,9 +588,21 @@ def harvest_extract(
     )
     payload["n_accepted"] = report.n_accepted
     payload["n_rejected"] = len(report.rejected)
+    # what the user may act on: verified directives, projected onto the instructable surface
+    instructions, conflicts = instructions_from_assertions(
+        report.assertions,
+        instruction_docs=frozenset(d.doc_sha256 for d in normalized if d.role == "instruction"),
+    )
+    payload["instructions"] = [
+        {"field": i.field, "value": i.value, "basis": i.basis, "evidence": i.evidence}
+        for i in instructions
+    ]
+    payload["conflicts"] = [c.model_dump(mode="json") for c in conflicts]
     payload["rejected"] = report.rejected
     payload["assertions"] = [a.model_dump(mode="json") for a in report.assertions]
     typer.echo(json.dumps(payload, indent=2))
+    if conflicts:
+        raise typer.Exit(4)  # two instructions disagreeing has no tiebreak — only the author knows
     if report.rejected:
         raise typer.Exit(4)  # a claim that failed the tripwire needs a human, not a silent drop
 
@@ -594,11 +650,19 @@ def harvest_verify(
         raise typer.Exit(4)  # a rejected claim needs a human, not a silent drop
 
 
-def _load_manifest(path: Path) -> Manifest:
+def _load_manifest(path: Path) -> DatasetManifest:
     try:
-        return Manifest.model_validate(yaml.safe_load(path.read_text()))
+        return DatasetManifest.model_validate(yaml.safe_load(path.read_text()))
     except (OSError, ValidationError, ValueError) as exc:
         typer.echo(f"cannot read manifest {path}: {exc}", err=True)
+        raise typer.Exit(2) from exc
+
+
+def _load_processing(path: Path) -> ProcessingManifest:
+    try:
+        return ProcessingManifest.model_validate(yaml.safe_load(path.read_text()))
+    except (OSError, ValidationError, ValueError) as exc:
+        typer.echo(f"cannot read processing manifest {path}: {exc}", err=True)
         raise typer.Exit(2) from exc
 
 
@@ -606,17 +670,17 @@ def _load_manifest(path: Path) -> Manifest:
 def manifest_fill(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
     organism: int = typer.Option(..., "--organism", help="NCBI taxid (metadata truth, e.g. 6239)."),
-    assembly: str = typer.Option(
-        ..., "--assembly", help="liulab-genome UCSC assembly id (e.g. ce11)."
-    ),
-    annotation: str = typer.Option(..., "--annotation", help="Registered GTF name (e.g. WS298)."),
     accession: list[str] = typer.Option([], "--accession", help="Accession(s) for this dataset."),
     sample_id: str = typer.Option("sample1", "--sample-id", help="Sample id for the file group."),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
 ) -> None:
-    """Probe -> resolve -> assemble a manifest. Writes manifest.yaml ONLY after a clean validate (R7)."""
+    """Probe -> resolve -> assemble the DATASET manifest: what the data IS (R13).
+
+    Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
+    lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
+    """
     out = resolve_dataset([str(f) for f in files], workspace=workspace, use_cache=False)
     if out.exit_code() != 0:
         typer.echo(json.dumps(out.result.model_dump(mode="json"), indent=2))
@@ -635,7 +699,6 @@ def manifest_fill(
             experiment=ExperimentInputs(
                 organism_taxid=organism, accessions=list(accession), samples=samples
             ),
-            processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
             seqforge_version=__version__,
         )
     except FillError as exc:
@@ -669,18 +732,123 @@ def manifest_validate(
 def manifest_hash_cmd(
     manifest_path: Path = typer.Argument(..., help="Path to a manifest.yaml."),
 ) -> None:
-    """Print the manifest's content hash and its provenance id."""
+    """Print the dataset manifest's content hash and whether it matches the recorded one."""
     manifest = _load_manifest(manifest_path)
-    content = manifest_content_hash(manifest)
+    content = dataset_content_hash(manifest)
     typer.echo(
         json.dumps(
             {
-                "manifest_hash": content,
-                "recorded_hash": manifest.provenance.manifest_hash,
-                "matches": content == manifest.provenance.manifest_hash,
-                "provenance_id": provenance_id(
-                    content, manifest.provenance.kb_version, manifest.provenance.workflow_version
-                ),
+                "dataset_hash": content,
+                "recorded_hash": manifest.provenance.dataset_hash,
+                "matches": content == manifest.provenance.dataset_hash,
+            },
+            indent=2,
+        )
+    )
+
+
+# ---------------------------------------------------------------- processing (the flags)
+@processing_app.command("new")
+def processing_new(
+    dataset_path: Path = typer.Argument(..., help="Path to the dataset manifest.yaml."),
+    assembly: str = typer.Option(
+        ..., "--assembly", help="liulab-genome UCSC assembly id (e.g. ce11)."
+    ),
+    annotation: str = typer.Option(..., "--annotation", help="Registered GTF name (e.g. WS298)."),
+    quantify: str | None = typer.Option(
+        None,
+        "--quantify",
+        help="Comma-separated soloFeatures. EXACT replacement of the default (which counts all five).",
+    ),
+    threads: int | None = typer.Option(None, "--threads", help="Threads per mapping job."),
+    processing_id: str = typer.Option("default", "--id", help="Human slug for this recipe."),
+    pin: bool = typer.Option(
+        True,
+        "--pin/--template",
+        help="Bind to this dataset's hash, or leave it portable across datasets.",
+    ),
+    out: Path | None = typer.Option(None, "-o", "--out", help="Write here (default: stdout)."),
+) -> None:
+    """Author a PROCESSING manifest: what to DO with a dataset (R13). Many per dataset.
+
+    With no flags you get the policy default, which counts every soloFeature (R15) — so the common
+    case needs no decision from you. --quantify replaces that list exactly; narrowing it warns,
+    because dropping a feature is the only irreversible act here.
+    """
+    dataset = _load_manifest(dataset_path)
+    spec = load_spec(dataset.library.chemistry.value[0])
+    try:
+        processing, warnings = fill_processing(
+            spec=spec,
+            dataset=dataset,
+            processing=ProcessingInputs(
+                assembly=assembly,
+                annotation_name=annotation,
+                features=_parse_quantify(quantify),
+                threads=threads,
+            ),
+            processing_id=processing_id,
+            pin=pin,
+            seqforge_version=__version__,
+        )
+    except (PolicyError, ValidationError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+    report = validate_processing(processing, dataset=dataset)
+    payload = yaml.safe_dump(processing.model_dump(mode="json"), sort_keys=True)
+    if out is not None:
+        out.write_text(payload)
+        typer.echo(
+            json.dumps(
+                {
+                    "processing": str(out),
+                    "report": report.model_dump(mode="json"),
+                    "warnings": [w.model_dump(mode="json") for w in warnings],
+                },
+                indent=2,
+            )
+        )
+    else:
+        typer.echo(payload)
+    raise typer.Exit(exit_code_for_report(report))
+
+
+def _parse_quantify(value: str | None) -> tuple[str, ...] | None:
+    """`--quantify Gene,GeneFull` -> the tuple. The MODEL validates membership, not this parser."""
+    if value is None:
+        return None
+    return tuple(v.strip() for v in value.split(",") if v.strip())
+
+
+@processing_app.command("validate")
+def processing_validate(
+    processing_path: Path = typer.Argument(..., help="Path to a processing.yaml."),
+    dataset_path: Path | None = typer.Option(
+        None, "--dataset", help="Cross-check against this dataset manifest (pin + organism)."
+    ),
+) -> None:
+    """Validate a processing manifest. Exit 3 on a Blocker (R4)."""
+    processing = _load_processing(processing_path)
+    dataset = _load_manifest(dataset_path) if dataset_path is not None else None
+    report = validate_processing(processing, dataset=dataset)
+    typer.echo(json.dumps(report.model_dump(mode="json"), indent=2))
+    raise typer.Exit(exit_code_for_report(report))
+
+
+@processing_app.command("hash")
+def processing_hash_cmd(
+    processing_path: Path = typer.Argument(..., help="Path to a processing.yaml."),
+) -> None:
+    """Print the processing manifest's content hash and whether it matches the recorded one."""
+    processing = _load_processing(processing_path)
+    content = processing_content_hash(processing)
+    typer.echo(
+        json.dumps(
+            {
+                "processing_hash": content,
+                "recorded_hash": processing.provenance.processing_hash,
+                "matches": content == processing.provenance.processing_hash,
+                "pinned_to": processing.dataset.dataset_hash if processing.dataset else None,
             },
             indent=2,
         )
@@ -690,23 +858,65 @@ def manifest_hash_cmd(
 @app.command("compose")
 def compose_cmd(
     manifest_path: Path = typer.Argument(..., help="Path to a validated manifest.yaml."),
+    processing_path: Path | None = typer.Option(
+        None, "--processing", help="A processing manifest. Omit to use policy defaults."
+    ),
+    assembly: str | None = typer.Option(
+        None, "--assembly", help="Genome, when composing without --processing."
+    ),
+    annotation: str | None = typer.Option(
+        None, "--annotation", help="Registered GTF name, when composing without --processing."
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
     outdir: str = typer.Option(
         "results", help="Pipeline output directory (written into the config)."
     ),
-    threads: int = typer.Option(8, help="Threads to request per mapping job."),
 ) -> None:
-    """Compile a manifest into config.yaml + units.tsv + a module selection. Exit 3 if a gate fails."""
+    """Compile (dataset, processing) -> config.yaml + units.tsv + a module selection.
+
+    ``--processing`` is optional: a processing manifest exists because someone wanted something
+    non-default, and requiring one per dataset would mean 10^4 boilerplate files nobody reads. Either
+    way compose writes the fully-resolved, dataset-bound manifest it used to processing.lock.yaml, so
+    the run's state is on disk regardless (R7). Exit 3 if a gate fails.
+    """
     manifest = _load_manifest(manifest_path)
     report = validate_manifest(manifest)
     if not report.ok:
         typer.echo(json.dumps(report.model_dump(mode="json"), indent=2), err=True)
         typer.echo("refusing to compose an invalid manifest", err=True)
         raise typer.Exit(exit_code_for_report(report))
+
+    if processing_path is not None:
+        processing = _load_processing(processing_path)
+    else:
+        if assembly is None or annotation is None:
+            # The one thing with no safe default. Deriving an assembly from experiment.organism would
+            # mean choosing hg38 vs hg19 vs T2T on the user's behalf — a policy call, and that map is
+            # liulab-genome's job (R12). Refuse, but make the refusal actionable (R4).
+            typer.echo(
+                f"compose needs a genome: this dataset's organism is taxid "
+                f"{manifest.experiment.organism.value}. Pass --assembly/--annotation, or author one "
+                f"with `seqforge processing new`.",
+                err=True,
+            )
+            raise typer.Exit(2)
+        processing, _ = fill_processing(
+            spec=load_spec(manifest.library.chemistry.value[0]),
+            dataset=manifest,
+            processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
+            seqforge_version=__version__,
+        )
+
+    p_report = validate_processing(processing, dataset=manifest)
+    if not p_report.ok:
+        typer.echo(json.dumps(p_report.model_dump(mode="json"), indent=2), err=True)
+        typer.echo("refusing to compose with an invalid processing manifest", err=True)
+        raise typer.Exit(exit_code_for_report(p_report))
+
     try:
-        result = compose(manifest, workspace=workspace, outdir=outdir, threads=threads)
+        result = compose(manifest, processing, workspace=workspace, outdir=outdir)
     except ComposeError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(3) from exc

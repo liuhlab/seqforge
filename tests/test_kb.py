@@ -115,3 +115,164 @@ def test_splitseq_recovers_fixed_linker_structure() -> None:
     # the two 30 bp placeholder linkers at [18,48) and [56,86) come back as constant segments
     assert (18, 48) in constant_spans
     assert (56, 86) in constant_spans
+
+
+# ---------- §12: the benign rule, as a computed biconditional (design §2.4) ----------
+def test_section_12_biconditional_holds_over_every_loaded_spec_pair() -> None:
+    """``backend_identical(A, B) <=> declared processing_equivalent`` — the rule the resolver is built on.
+
+    Both `confuse.py`'s docstring and design §2.4 asserted CI computed this. Nothing did:
+    `backend_identical` had zero callers, and the one pair it existed for (v3 <-> v3.1) named a spec
+    that was never written, so the flagship example of the rule was the one pair no one could check.
+
+    The two directions fail differently, which is why both halves matter:
+    - identical but NOT declared -> we would interrogate a user about a distinction that cannot change
+      a single byte of output. §12 exists to forbid exactly that.
+    - declared but NOT identical -> a FALSE BENIGN: two chemistries that really do compile differently
+      get recorded together and one config is emitted for both. That is a silent wrong answer, and it
+      is the failure this test is really here for.
+    """
+    from itertools import combinations
+
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    for a, b in combinations(sorted(specs), 2):
+        identical = backend_identical(specs[a], specs[b])
+        # union of both directions, mirroring what escalate() actually consults at runtime
+        declared = b in declared_equivalents(specs[a]) or a in declared_equivalents(specs[b])
+        assert identical == declared, (
+            f"§12 biconditional broken for {a} vs {b}: "
+            f"backend_identical={identical} but declared processing_equivalent={declared}"
+        )
+
+
+def test_the_biconditional_is_non_vacuous() -> None:
+    """A biconditional that never sees a True on either side proves nothing.
+
+    Pins the flagship pair: v3 and v3.1 exist, are byte-identical, and say so.
+    """
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    assert {"10x-3p-gex-v3", "10x-3p-gex-v3.1"} <= set(specs)
+    assert backend_identical(specs["10x-3p-gex-v3"], specs["10x-3p-gex-v3.1"])
+    assert "10x-3p-gex-v3.1" in declared_equivalents(specs["10x-3p-gex-v3"])
+    # ...and declared on BOTH sides, so the file reads as symmetric to a human
+    assert "10x-3p-gex-v3" in declared_equivalents(specs["10x-3p-gex-v3.1"])
+
+
+def test_a_divergent_pair_is_not_backend_identical() -> None:
+    """The other side of the biconditional, on real specs: v2 vs v3 differ (10 vs 12 bp UMI)."""
+    from seqforge.resolve.confuse import backend_identical
+
+    specs = kb.load_all_specs()
+    assert not backend_identical(specs["10x-3p-gex-v2"], specs["10x-3p-gex-v3"])
+    assert not backend_identical(specs["bulk-rnaseq-pe"], specs["splitseq"])
+
+
+def test_a_declared_twin_that_diverges_would_be_caught() -> None:
+    """Prove the guard fires: perturb one param and the biconditional must go red.
+
+    A gate that has never rejected anything is a gate nobody has tested.
+    """
+    from seqforge.resolve.confuse import backend_identical, declared_equivalents
+
+    specs = kb.load_all_specs()
+    v3, v31 = specs["10x-3p-gex-v3"], specs["10x-3p-gex-v3.1"]
+    diverged = v31.model_copy(
+        update={
+            "backend": v31.backend.model_copy(
+                update={"params": {**v31.backend.params, "soloStrand": "Reverse"}}
+            )
+        }
+    )
+    assert not backend_identical(v3, diverged)  # no longer identical...
+    assert "10x-3p-gex-v3.1" in declared_equivalents(v3)  # ...but still declared benign
+    # => identical(False) != declared(True) => the biconditional above would fail. A strand
+    #    inversion recorded as a benign twin is precisely the silent corpus killer.
+
+
+# ---------- R14: the parse/count line, as a property of the DSL ----------
+@pytest.mark.parametrize("tech", kb.list_spec_ids())
+def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
+    """The four-line test that would have caught the original misfiling on day one.
+
+    soloFeatures sat in backend.params because that is where the aligner's flags live — and it cost a
+    measured 40.7% of a nuclear library, because 10x 3' v3.1 chemistry is byte-identical for cells and
+    nuclei. Counting was never a chemistry property.
+    """
+    from seqforge.compose import RECIPE_PARAM_KEYS
+    from seqforge.kb.schema import KB_PARSE_KEYS
+
+    params = kb.load_spec(tech).backend.params
+    assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params (R14)"
+    assert not set(params) & RECIPE_PARAM_KEYS, (
+        f"{tech}: a count key is misfiled as chemistry (R14)"
+    )
+
+
+def test_the_kb_cannot_even_express_a_count_key() -> None:
+    """Not a convention — a validator. It fires in load_spec, kb lint, and every test that loads."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    payload = spec.backend.model_dump()
+    payload["params"] = {**payload["params"], "soloFeatures": ["Gene"]}
+    with pytest.raises(ValidationError, match="PARSE"):
+        type(spec.backend).model_validate(payload)
+
+
+def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
+    """The proof that "a user instruction contradicts the observed bytes" is INEXPRESSIBLE.
+
+    Not deprioritized by a runtime comparison — the user has no vocabulary in which to say it. That is
+    the strongest form of R2 available, and it holds only while these two sets stay disjoint. If
+    someone later moves soloStrand into the instructable surface, this goes red, because at that point
+    the contradiction becomes sayable.
+    """
+    from seqforge.compose import RECIPE_PARAM_KEYS
+    from seqforge.kb.schema import KB_PARSE_KEYS
+
+    assert not (KB_PARSE_KEYS & RECIPE_PARAM_KEYS)
+
+
+def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
+    """Empty, not degenerate: bulk PE has no barcode, no UMI, no whitelist, no offsets to declare."""
+    assert kb.load_spec("bulk-rnaseq-pe").backend.params == {}
+
+
+def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> None:
+    """A §12 FALSE BENIGN this repo shipped: canonical_backend used to SORT list-valued params.
+
+    Its only justification was `soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]` — and soloFeatures has
+    since left backend.params (R14). What remained under the sort was splitseq's `soloCBwhitelist`,
+    which is POSITIONAL: the rounds map to CB positions in order. So a spec and the same spec with its
+    rounds permuted — two chemistries that parse reads DIFFERENTLY — canonicalized byte-equal, i.e.
+    processing_equivalent, i.e. §12-benign: record both, ask zero questions, emit ONE config for both.
+
+    It never fired only by the alphabetical accident that round1 < round2 < round3. Rename the
+    registry entries bc3/bc2/bc1 and it does.
+    """
+    from seqforge.resolve.confuse import backend_identical
+
+    spec = kb.load_spec("splitseq")
+    wl = spec.backend.params["soloCBwhitelist"]
+    assert isinstance(wl, list) and len(wl) == 3
+    permuted = spec.model_copy(
+        update={
+            "backend": spec.backend.model_copy(
+                update={"params": {**spec.backend.params, "soloCBwhitelist": list(reversed(wl))}}
+            )
+        }
+    )
+    assert not backend_identical(spec, permuted), "permuted rounds are a DIFFERENT chemistry"
+
+
+def test_the_only_list_valued_parse_param_left_is_positional() -> None:
+    """Pins the reasoning above: if a non-positional list param ever returns, revisit _resolve_value."""
+    list_params = {
+        (tech, key)
+        for tech in kb.list_spec_ids()
+        for key, value in kb.load_spec(tech).backend.params.items()
+        if isinstance(value, list)
+    }
+    assert list_params == {("splitseq", "soloCBwhitelist")}

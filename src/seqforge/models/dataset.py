@@ -1,8 +1,22 @@
-"""The three-section :class:`Manifest` — three authorities, machine-independent (R9).
+""":class:`DatasetManifest` — a finished assay. Two truths, one lifetime, IMMUTABLE (R9/R13).
 
-``library`` (physical truth, authority = evidence), ``experiment`` (biological truth, authority =
-metadata + humans), ``processing`` (intent, authority = derived + policy). Every interpretive field
-is ``Evidenced[...]``; genome/software/data are names or URIs that resolve at run time, never paths.
+``library`` is physical truth about molecules and sequencer output (authority = **evidence**);
+``experiment`` is biological/metadata truth (authority = **metadata and humans**). Both are claims
+about *what the data is*. A finished assay does not change, so neither does this file: it is
+content-addressed, and nothing downstream may write to it. When a new fact arrives, the manifest is
+rebuilt from evidence and gets a new hash. It is never patched.
+
+**What is deliberately absent is the point.** There is no ``processing`` section here. What we choose
+to *do* with an assay is intent, not truth, and it lives in
+:mod:`~seqforge.models.processing` — of which there are many per dataset. The old three-section
+manifest made "three truths" (R6's three *bases*) and "three sections" line up by coincidence, and the
+pun cost us: ``processing`` inherited the grammar of a truth — ``Evidenced`` fields, an "authority", a
+uniform ``basis="inferred"`` stamped on by construction — and then ``compose`` read almost none of
+them. A field that is never read can never produce the ``Conflict`` R6 promises. ``base.py`` listing
+**four** bases against three sections was the tell.
+
+This module imports nothing from ``processing``, and must not. That independence is R13 as an import
+graph: a dataset cannot know how it will be processed, because it will be processed many ways.
 """
 
 from __future__ import annotations
@@ -11,14 +25,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .base import (
-    Accession,
-    AssayTerm,
-    ChemistryId,
-    Evidenced,
-    NcbiTaxid,
-    Sha256,
-    Uri,
+from .base import Evidenced, Sha256, Uri
+from .evidenced import (
+    EvidencedAccessionList,
+    EvidencedAssay,
+    EvidencedChemistrySet,
+    EvidencedStr,
+    EvidencedTaxid,
 )
 
 
@@ -67,6 +80,10 @@ class ReadLayout(BaseModel):
     reads: list[ReadDef]
 
 
+class EvidencedReadLayout(Evidenced[ReadLayout]):
+    """An ``Evidenced`` read layout."""
+
+
 class Onlist(BaseModel):
     """Barcode-whitelist registry entry; fetched via pooch + hash-verified, never vendored.
 
@@ -80,64 +97,6 @@ class Onlist(BaseModel):
     length: int = Field(ge=1)
     orientation_hint: Literal["forward", "reverse_complement"] | None = None
     n_entries: int | None = None
-
-
-class GenomeRef(BaseModel):
-    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path (R9)."""
-
-    assembly: str
-    annotation_name: str
-    ncbi_taxid: NcbiTaxid | None = None
-
-
-RuntimeEnv = Literal["align-rna", "align-dna", "ml", "ml-gpu"]
-"""A literal liulab-runtime environment name — the env name IS the identifier (no profile layer)."""
-
-
-class ResourceHints(BaseModel):
-    """Advisory resource requests for the workflow scheduler."""
-
-    threads: int = Field(ge=1, default=8)
-    mem_gb: int = Field(ge=1, default=32)
-    disk_gb: int | None = None
-    gpus: int = Field(ge=0, default=0)
-
-
-# ---- concrete Evidenced specializations: stable, named $defs for schema export ----
-class EvidencedStr(Evidenced[str]):
-    """An ``Evidenced`` string field."""
-
-
-class EvidencedBool(Evidenced[bool]):
-    """An ``Evidenced`` boolean field."""
-
-
-class EvidencedTaxid(Evidenced[NcbiTaxid]):
-    """An ``Evidenced`` NCBI taxid."""
-
-
-class EvidencedAssay(Evidenced[AssayTerm]):
-    """An ``Evidenced`` EFO/OBI assay CURIE."""
-
-
-class EvidencedChemistrySet(Evidenced[list[ChemistryId]]):
-    """An ``Evidenced`` chemistry equivalence class (benign twins recorded together, R6/§12)."""
-
-
-class EvidencedAccessionList(Evidenced[list[Accession]]):
-    """An ``Evidenced`` list of accessions."""
-
-
-class EvidencedReadLayout(Evidenced[ReadLayout]):
-    """An ``Evidenced`` read layout."""
-
-
-class EvidencedGenome(Evidenced[GenomeRef]):
-    """An ``Evidenced`` genome reference."""
-
-
-class EvidencedRuntimeEnv(Evidenced[RuntimeEnv]):
-    """An ``Evidenced`` liulab-runtime environment name."""
 
 
 class FileInventoryItem(BaseModel):
@@ -181,28 +140,22 @@ class ExperimentSection(BaseModel):
     samples: list[SampleGroup]
 
 
-class ProcessingSection(BaseModel):
-    """Intent. Authority = DERIVED from library + experiment + policy (basis usually ``inferred``)."""
+class DatasetProvenance(BaseModel):
+    """Binds a dataset manifest to the bytes and the KB that read them.
 
-    genome: EvidencedGenome
-    aligner: EvidencedStr
-    quantification: EvidencedStr
-    variant_calling: EvidencedBool
-    environment: EvidencedRuntimeEnv
-    resources: ResourceHints = Field(default_factory=ResourceHints)
+    ``workflow_version`` is deliberately ABSENT. Nothing in ``library``/``experiment`` depends on
+    which Snakemake module will one day run: the assay happened before we had an opinion about it.
+    It belongs to the processing manifest, and folding it in here would make a dataset's identity
+    churn every time a rule file changed — which is exactly the coupling R13 removes.
+    """
 
-
-class Provenance(BaseModel):
-    """Binds a compiled config to the inputs and tool versions that produced it."""
-
-    manifest_hash: str
+    dataset_hash: str
     kb_version: str
-    workflow_version: str
     seqforge_version: str
 
 
-class Manifest(BaseModel):
-    """One machine-independent manifest. ``compose()`` is a pure function of the three sections.
+class DatasetManifest(BaseModel):
+    """A finished assay: what the bench did. Two truths, two authorities, one lifetime (R13).
 
     Structural only: semantic cross-checks (referential integrity — every experiment ``file_uri`` in
     the library inventory — and the R9 no-absolute-path sweep) are enforced by ``manifest validate``
@@ -213,5 +166,19 @@ class Manifest(BaseModel):
 
     library: LibrarySection
     experiment: ExperimentSection
-    processing: ProcessingSection
-    provenance: Provenance
+    provenance: DatasetProvenance
+
+
+__all__ = [
+    "ReadElement",
+    "ReadDef",
+    "ReadLayout",
+    "EvidencedReadLayout",
+    "Onlist",
+    "FileInventoryItem",
+    "LibrarySection",
+    "SampleGroup",
+    "ExperimentSection",
+    "DatasetProvenance",
+    "DatasetManifest",
+]

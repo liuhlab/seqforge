@@ -1,15 +1,26 @@
 schema_version: 1
 
+# The §12 benign twin of 10x-3p-gex-v3, and the ONLY reason it is a separate file: `backend_identical`
+# is a computed predicate, and a predicate cannot be computed about a spec that does not exist. v3
+# declared `processing_equivalent: 10x-3p-gex-v3.1` from the start, but the twin was never written, so
+# the flagship example of the rule the whole resolver is built around was the one pair CI could not
+# check. Everything below except `identity` is byte-for-byte v3 — that IS the assertion.
+#
+# Do not "simplify" this by generating it from v3 at load time. The point is that two independently
+# authored specs are compared and found identical; deriving one from the other would make
+# `backend_identical(v3, v3.1)` true by construction and prove nothing.
+
 identity:
-  id: 10x-3p-gex-v3
-  version: "3"
-  name: "10x Chromium Single Cell 3' Gene Expression v3"
-  aliases: ["10x 3' v3", "Chromium 3' v3", "SC3Pv3", "single cell 3-prime v3"]
-  assay_ontology: ["EFO:0009922"]        # 10x 3' v3 — verified against live EFO (EBI OLS)
+  id: 10x-3p-gex-v3.1
+  version: "3.1"
+  name: "10x Chromium Single Cell 3' Gene Expression v3.1"
+  aliases: ["10x 3' v3.1", "Chromium 3' v3.1", "SC3Pv3.1", "single cell 3-prime v3.1", "Next GEM 3' v3.1"]
+  assay_ontology: ["EFO:0022980"]        # 10x 3' v3.1 — verified against live EFO (EBI OLS), FLAG-1
   modality: rna
 
 reads:
-  # R1 = the technical/barcode read. 28 bp = 16 CB + 12 UMI.
+  # Identical to v3: 28 bp = 16 CB + 12 UMI. This identity is the whole point — the probe cannot
+  # separate v3 from v3.1, and §12 says it does not need to.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
@@ -19,7 +30,6 @@ reads:
     elements:
       - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
       - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
-  # R2 = cDNA (open-ended). soloStrand Forward: R2 is sense to mRNA for 3' kits.
   - id: R2
     seqspec_read_id: R2
     file_hint: "_R2_"
@@ -30,7 +40,7 @@ reads:
       - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
 
 onlists:
-  cb_whitelist:                 # used by backend + a supports test
+  cb_whitelist:                 # the SAME list as v3 — this is why no onlist check can separate them
     registry: 3M-february-2018  # ~6,794,880 x 16 bp, forward orientation
     role: cell_barcode
     expected_orientation: forward
@@ -40,28 +50,28 @@ onlists:
     expected_orientation: forward
 
 signature:
-  requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
+  requires:
     - {test: read_count, roles: 2}
     - {test: segment_length, read: R1, length: 28, tolerance: 0}
     - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
     - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
-  supports:                     # additive evidence (rung 3+)
+  supports:
     - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
       weight: 5.0
     - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
-      weight: 2.0               # CB recurs -> low distinct ratio
+      weight: 2.0
     - when: {test: distinct_ratio, read: R1, start: 16, end: 28, expect: high}
-      weight: 1.0               # UMI ~ unique -> high distinct ratio
+      weight: 1.0
     - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
-      weight: 1.0               # cDNA is diverse -> the biological role is scored, not left at 0
+      weight: 1.0
     - when: {test: header_index, present: true}
       weight: 0.2
-  excludes:                     # anti-gate: if the Multiome list hits, it's not 3' GEX
+  excludes:
     - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: arc_v1_probe, orientation: forward, min: 0.6}
 
 backend:
   module: map/starsolo
-  params:                       # chemistry-defining MINIMUM (CellRanger-parity knobs come from processing policy)
+  params:                       # byte-identical to v3 -> backend_identical -> §12 benign
     soloType: CB_UMI_Simple
     soloCBstart: 1
     soloCBlen: 16
@@ -75,12 +85,14 @@ backend:
     # It lives in the processing manifest now, where a user may instruct it.
 
 confusable_with:
-  - id: 10x-3p-gex-v3.1
+  - id: 10x-3p-gex-v3
     relationship: processing_equivalent
     distinguishable_by: [none]
     note: >
-      Identical 16+12=28 bp geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo
-      params -> §12 benign: the resolver records both ids and asks 0 questions.
+      The back-edge of v3's declaration. Identical 16+12=28 bp geometry, identical 3M-february-2018
+      whitelist, byte-identical STARsolo params -> §12 benign: the resolver records both ids and asks
+      0 questions. Declared on both sides so the relation reads as symmetric in the file, which is
+      what a human checks; the CI biconditional takes the union of both directions regardless.
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]
@@ -92,7 +104,8 @@ confusable_with:
     distinguishable_by: [onlist]
     note: >
       REQUIRED declaration: GEM-X 3' v4 shares the 28 bp / 16+12 geometry and is separable only by
-      its newer whitelist. Without this entry the flagship fails the CI under-declaration check.
+      its newer whitelist. v3.1 inherits every one of v3's divergent confusables — it is the same
+      chemistry to the probe, so it is confusable with exactly the same things.
   - id: 10x-5p-gex
     relationship: processing_divergent
     distinguishable_by: [metadata, alignment]

@@ -63,5 +63,5 @@ rule star_count:
              --readFilesIn {input.mate1} {input.mate2} --readFilesCommand zcat \
              --quantMode {params.bulk[quantMode]} \
              --outFileNamePrefix {params.prefix} \
-             --outSAMtype {params.bulk[outSAMtype]}
+             --outSAMtype BAM SortedByCoordinate
         """

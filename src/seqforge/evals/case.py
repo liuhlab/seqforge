@@ -136,6 +136,22 @@ class Expected(BaseModel):
 
     outcome: Literal["decide", "refuse", "ask"]
     description: str = ""
+    #: Which code the expectation was written against — required for a HELD-OUT case, meaningless
+    #: for a synthetic one.
+    #:
+    #: A pre-registration mixes two kinds of claim and only one is sacred:
+    #:
+    #: (a) claims about the DATASET — organism, chemistry, what the record declares. From public
+    #:     metadata. **Never change these.** Editing one after a run is cheating, full stop.
+    #: (b) claims about OUR COMPILER'S OUTPUT on that dataset — a function of code version. Editing
+    #:     one after a code change is not tuning against held-out data; it is keeping a prediction
+    #:     well-typed.
+    #:
+    #: This stamp is what makes the difference auditable from `git log` alone: was every (a) claim
+    #: byte-identical to the pre-run commit, and did every (b) change cite only a code diff? A (b)
+    #: edit derived from a **diff** passes. One derived from a **run** does not. Never overwrite a
+    #: (b) claim — append, and let the old prediction stand in git as the dated record.
+    predicts: dict[str, str] = Field(default_factory=dict)
     #: Dotted manifest paths -> expected value. Supported: ``library.chemistry``,
     #: ``library.equivalence_members``, ``library.roles.<role_id>`` (value = a file label), ``rung``.
     fields: dict[str, Any] = Field(default_factory=dict)

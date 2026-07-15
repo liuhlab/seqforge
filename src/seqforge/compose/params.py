@@ -6,11 +6,28 @@ bugs a config compiler actually produces, and they fail **silently**: STARsolo e
 matrix that merely looks like a thin dataset. So they get deterministic assertions of their own, run
 on every compose, with no data and no aligner.
 
-Two independent checks:
-1. **Faithfulness** — the emitted config carries the KB's chemistry-defining params verbatim (catches
-   a composer that drops, renames, or mangles a knob).
-2. **Cross-derivation** — the KB's declared offsets/lengths agree with the *observed* read layout in
-   the manifest (catches a KB whose params contradict the bytes: ``soloCBlen 16`` over a 12 bp CB).
+Every emitted aligner param has exactly **one owner** (R14), and this gate is where that stops being
+a convention:
+
+- the **KB** owns how to PARSE reads — soloType, CB/UMI offsets, whitelist, strand. Byte-decided.
+- the **processing manifest** owns what to COUNT — soloFeatures, quantMode. Instructable.
+
+Four checks:
+
+1. **Disjointness** — the two owners' key sets never intersect. This is what makes "a user instruction
+   contradicts the observed bytes" *inexpressible* rather than merely deprioritized.
+2. **Coverage / no orphan** — the emitted key set is EXACTLY the union of the two. Disjointness alone
+   is the decorative-``quantification`` bug in reverse: it proves the two sources cannot disagree, not
+   that either key actually *arrives*. Requiring the exact union means every emitted key is
+   attributable to one owner and every declared key is emitted — so a key that MOVES between owners is
+   caught by whichever side forgot it. Before this, the gate iterated the KB alone, and a key moved out
+   of the KB silently stopped being gated at all.
+3. **Faithfulness, per key, per owner** — KB keys verbatim from the spec; processing keys verbatim from
+   the rendered manifest value. This is what stops ``processing.quantification`` being decorative:
+   policy used to write it to the manifest and compose ignored it, reading the KB instead — two sources
+   of truth for one decision, unable to disagree only because one was never consulted.
+4. **Cross-derivation** — the KB's declared offsets/lengths agree with the *observed* read layout
+   (catches a KB whose params contradict the bytes: ``soloCBlen 16`` over a 12 bp CB).
 
 Strand correctness itself is NOT decidable here — only the `kb e2e` count-matrix run can catch an
 inverted ``--soloStrand``. This gate asserts the value survives compose intact; the e2e asserts it is
@@ -22,10 +39,53 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Literal
 
-from ..kb.schema import Spec
-from ..models.manifest import Manifest, ReadDef, ReadElement
+from ..kb.schema import KB_PARSE_KEYS, Spec
+from ..models.dataset import DatasetManifest, ReadDef, ReadElement
+from ..models.processing import ProcessingManifest, Quantification, SoloQuant
 
 GateStatus = Literal["pass", "fail"]
+ParamOwner = Literal["kb", "processing"]
+
+RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
+"""Every backend param sourced from the processing manifest. Each says what to **COUNT** (R14)."""
+
+
+def processing_params(quant: Quantification) -> dict[str, object]:
+    """Render a counting decision into the aligner params it stands for.
+
+    Module-scoped by construction: ``soloFeatures`` is meaningless to plain STAR and ``quantMode`` is
+    meaningless to STARsolo, so the discriminated union is what keeps a processing manifest from being
+    a type error the moment it meets the other module.
+    """
+    if isinstance(quant, SoloQuant):
+        # space-joined, exactly as the KB's list rendering did — STAR takes repeated argv values
+        return {"soloFeatures": " ".join(quant.features)}
+    return {"quantMode": quant.mode}
+
+
+def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamOwner]:
+    """Every emittable aligner param key -> the artifact entitled to set it.
+
+    The parse/count line as a **computed fact**, directly unit-testable, rather than a comment nobody
+    re-reads. A key with two owners, or with none, is a bug this function surfaces and the gate fails
+    on.
+    """
+    owners: dict[str, ParamOwner] = dict.fromkeys(spec.backend.params, "kb")
+    for key in processing_params(processing.processing.quantification.value):
+        owners[key] = "processing"
+    return owners
+
+
+def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
+    """Which config block carries this spec's aligner params: ``solo`` xor ``bulk``.
+
+    Keyed by the MODULE, which is the only thing that decides it. The gate used to instead take
+    "whichever of the two happens to be a dict", so a bulk config carrying a stray ``solo`` block was
+    reported as *"config drops KB param 'quantMode'"* — a real failure diagnosed as an unrelated one,
+    which is worse than no gate: it sends you to the wrong file. One definition, consulted by both the
+    composer that writes the block and the gate that checks it.
+    """
+    return "solo" if spec.backend.module == "map/starsolo" else "bulk"
 
 
 def render_param(value: object) -> str:
@@ -50,7 +110,7 @@ def _element(read: ReadDef, role: str) -> ReadElement | None:
     return None
 
 
-def find_read_with_role(manifest: Manifest, role: str) -> ReadDef | None:
+def find_read_with_role(manifest: DatasetManifest, role: str) -> ReadDef | None:
     """The layout read carrying an element of ``role`` (e.g. the cDNA read, the CB-bearing read)."""
     for read in manifest.library.read_layout.value.reads:
         if any(el.role == role for el in read.elements):
@@ -59,31 +119,63 @@ def find_read_with_role(manifest: Manifest, role: str) -> ReadDef | None:
 
 
 def params_gate(
-    manifest: Manifest, spec: Spec, config: dict[str, object]
+    manifest: DatasetManifest,
+    processing: ProcessingManifest,
+    spec: Spec,
+    config: dict[str, object],
 ) -> tuple[GateStatus, list[str]]:
-    """Assert the emitted config is faithful to the KB and coherent with the observed layout."""
+    """Assert every emitted param is owned, arrives verbatim, and agrees with the observed layout."""
     problems: list[str] = []
     params = spec.backend.params
-    solo = config.get("solo")
-    bulk = config.get("bulk")
+    from_processing = processing_params(processing.processing.quantification.value)
 
-    # ---- 1. faithfulness: every chemistry-defining knob survives compose verbatim ----
-    emitted: dict[str, object] = {}
-    if isinstance(solo, dict):
-        emitted = solo
-    elif isinstance(bulk, dict):
-        emitted = bulk
-    for key, expected in params.items():
-        if key == "soloCBwhitelist":
-            continue  # an {onlist:...} token is resolved to a path; checked separately below
-        want = render_param(expected)
-        got = emitted.get(key)
-        if got is None:
-            problems.append(f"config drops KB param {key!r} (expected {want!r})")
-        elif str(got) != want:
-            problems.append(f"config {key}={got!r} does not match KB {key}={want!r}")
+    # ---- 1. disjointness: one key, one owner (R14) ----
+    both = sorted(set(params) & RECIPE_PARAM_KEYS)
+    if both:
+        problems.append(
+            f"KB declares count key(s) {both}, which the processing manifest owns: backend.params "
+            f"says how to PARSE reads, not what to COUNT (R14)"
+        )
+    stray = sorted(set(params) - KB_PARSE_KEYS)
+    if stray:
+        problems.append(f"KB declares non-parse key(s) {stray} (R14)")
 
-    # ---- 2. cross-derivation: KB offsets/lengths must agree with the OBSERVED read layout ----
+    block = param_block_key(spec)
+    found = config.get(block)
+    if not isinstance(found, dict):
+        # ONE root cause, not N derivative ones. Enumerating every key as "dropped" on top of this
+        # buries the actual fault under a list that points at the KB, which is the one file that is
+        # fine. A gate is read by someone who does not yet know what is wrong.
+        problems.append(f"config has no {block!r} param block (module is {spec.backend.module!r})")
+    else:
+        emitted: dict[str, object] = found
+        # ---- 2. coverage: the emitted key set is EXACTLY the union of the two owners ----
+        expected_keys = set(params) | set(from_processing)
+        orphans = sorted(set(emitted) - expected_keys)
+        if orphans:
+            problems.append(f"config emits param(s) {orphans} that no owner declares (R14)")
+        missing = sorted(expected_keys - set(emitted))
+        if missing:
+            problems.append(f"config drops declared param(s) {missing}")
+
+        # ---- 3. faithfulness, per key, per owner ----
+        for key, expected in params.items():
+            if key == "soloCBwhitelist":
+                continue  # an {onlist:...} token is resolved to a path; checked separately below
+            want = render_param(expected)
+            got = emitted.get(key)
+            if got is not None and str(got) != want:
+                problems.append(f"config {key}={got!r} does not match KB {key}={want!r}")
+        for key, expected_p in from_processing.items():
+            want = render_param(expected_p)
+            got = emitted.get(key)
+            if got is not None and str(got) != want:
+                problems.append(
+                    f"config {key}={got!r} does not match the processing manifest's "
+                    f"{key}={want!r} — quantification must not be decorative"
+                )
+
+    # ---- 4. cross-derivation: KB offsets/lengths must agree with the OBSERVED read layout ----
     if params.get("soloType") == "CB_UMI_Simple":
         bc_read = find_read_with_role(manifest, "CB")
         if bc_read is None:
@@ -91,7 +183,7 @@ def params_gate(
         else:
             problems += _check_simple_geometry(bc_read, params)
 
-    # ---- 3. readFilesIn order: the cDNA read must precede the barcode read ----
+    # ---- 5. readFilesIn order: the cDNA read must precede the barcode read ----
     problems += _check_read_files_in(manifest, config, params)
 
     return ("fail" if problems else "pass"), problems
@@ -126,7 +218,7 @@ def _check_simple_geometry(bc_read: ReadDef, params: Mapping[str, object]) -> li
 
 
 def _check_read_files_in(
-    manifest: Manifest, config: Mapping[str, object], params: Mapping[str, object]
+    manifest: DatasetManifest, config: Mapping[str, object], params: Mapping[str, object]
 ) -> list[str]:
     problems: list[str] = []
     rfi = config.get("read_files_in")

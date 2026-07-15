@@ -5,11 +5,13 @@ Three verbs, and only the middle one touches a model:
 - ``normalize`` (deterministic) — source docs -> the canonical text that spans are computed against.
 - ``extract``   (**LLM**)       — normalized text (+ KB prose) -> ``AssertionDraft[]``. The model emits
   ``{field, value, quote}`` and nothing else: no offsets (it cannot count characters) and no verdicts.
-- ``verify``    (deterministic) — greps each quote back into the canonical text, computes the offsets,
-  and checks the quote actually *entails* the value. Both flags are code-owned, so a hallucinated or
-  mis-attributed claim fails closed (R1/R2/R5).
+- ``verify``    (deterministic) — checks the field is one we allow at all, greps each quote back into
+  the canonical text, computes the offsets, and checks the quote actually *entails* the value. Every
+  flag is code-owned, so a hallucinated or mis-attributed claim fails closed (R1/R2/R5).
 
-Agents propose; code decides. Nothing here trusts the model's own account of its work.
+Agents propose; code decides. Nothing here trusts the model's own account of its work — including its
+account of *which field it is answering*: the vocabulary lives in :mod:`seqforge.harvest.fields` and is
+enforced there, not in the prompt. A prompt asks; only code refuses.
 """
 
 from __future__ import annotations
@@ -18,7 +20,6 @@ from __future__ import annotations
 HARVEST_VERSION = "2026.7.0"
 
 from .extract import (  # noqa: E402
-    DEFAULT_FIELDS,
     EXTRACT_PROMPT_VERSION,
     ExtractionOutcome,
     ExtractionResult,
@@ -28,6 +29,7 @@ from .extract import (  # noqa: E402
     extract_drafts,
     llm_schema,
 )
+from .fields import DEFAULT_FIELDS, PERMITTED_FIELDS, is_permitted  # noqa: E402
 from .normalize import (  # noqa: E402
     NORMALIZER_VERSION,
     NormalizedDoc,
@@ -69,6 +71,8 @@ __all__ = [
     # extract (the one LLM touchpoint)
     "EXTRACT_PROMPT_VERSION",
     "DEFAULT_FIELDS",
+    "PERMITTED_FIELDS",
+    "is_permitted",
     "extract_drafts",
     "build_kb_context",
     "build_system_prompt",

@@ -26,7 +26,9 @@ from __future__ import annotations
 
 import random
 import re
+import resource
 import subprocess
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,8 +38,14 @@ from .compose import plan as compose_plan
 from .io import OnlistRegistry
 from .kb import load_spec
 from .kb.generate import write_fastq_gz as _write_fastq_gz
-from .manifest import ExperimentInputs, ProcessingInputs, fill_manifest, validate_manifest
-from .models.manifest import SampleGroup
+from .manifest import (
+    ExperimentInputs,
+    ProcessingInputs,
+    fill_manifest,
+    fill_processing,
+    validate_manifest,
+)
+from .models.dataset import SampleGroup
 from .probe import probe_file
 from .resolve import resolve_dataset
 
@@ -429,8 +437,14 @@ def run_starsolo(
     solo: dict[str, object],
     outdir: Path,
     threads: int = 8,
+    cost: dict[str, object] | None = None,
 ) -> Path:
-    """Run STARsolo with the COMPOSED params (this is what makes the gate test the compiler)."""
+    """Run STARsolo with the COMPOSED params (this is what makes the gate test the compiler).
+
+    ``cost``, if given, is populated with this STAR run's wall-clock and peak RSS. It is an
+    out-param rather than a return value because every existing caller wants the matrix path and
+    nothing else; the measurement is a side channel for the one caller that is pricing a default.
+    """
     outdir.mkdir(parents=True, exist_ok=True)
     cmd = [
         assets.star_bin,
@@ -467,9 +481,20 @@ def run_starsolo(
         "--outSAMtype",
         "None",
     ]
+    started = time.monotonic()
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    elapsed = time.monotonic() - started
     if proc.returncode != 0:
         raise E2EUnavailable(f"STAR failed ({proc.returncode}): {proc.stderr[-2000:]}")
+    if cost is not None:
+        # ru_maxrss is a HIGH-WATER MARK over all reaped children, not a delta, so it is only
+        # attributable to STAR because STAR is the only heavy child of a `kb e2e-introns` process.
+        # Linux reports KiB (macOS bytes) — arc is Linux, and a cross-platform unit guess here would
+        # be a fabricated number, so record the raw value and its unit rather than converting.
+        maxrss_kib = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        cost["star_wall_s"] = round(elapsed, 2)
+        cost["star_peak_rss_gb"] = round(maxrss_kib / 1024 / 1024, 3)
+        cost["soloFeatures"] = _feature_list(solo["soloFeatures"])
     return outdir / "Solo.out" / _feature_list(solo["soloFeatures"])[0] / "raw"
 
 
@@ -525,7 +550,6 @@ def run_e2e(
             organism_taxid=559292,
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in (bc_fq, cdna_fq)])],
         ),
-        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
         seqforge_version=__version__,
     )
     report = validate_manifest(manifest)
@@ -533,7 +557,13 @@ def run_e2e(
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
     # --- compose emits the params; the aligner runs with exactly those ---
-    composed = compose_plan(manifest, registry=registry)
+    processing, _ = fill_processing(
+        spec=spec,
+        dataset=manifest,
+        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
+        seqforge_version=__version__,
+    )
+    composed = compose_plan(manifest, processing, registry=registry)
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
     wl_path = workdir / "whitelist.txt"
     wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
@@ -624,6 +654,7 @@ def run_intron_e2e(
     threads: int = 8,
     seed: int = 0,
     min_recovery: float = 0.90,
+    features: tuple[str, ...] | None = None,
 ) -> dict[str, object]:
     """The intron-rich / **GeneFull** gate (design §4.1 coverage caveat; needs ce11, not sacCer3).
 
@@ -644,11 +675,18 @@ def run_intron_e2e(
     the matrix merely looks like a thin dataset — the same failure shape as a strand inversion, and
     exactly the class §4.1 exists to catch.
 
-    NOTE ON WHAT THIS DOES AND DOES NOT PROVE. The KB declares ``soloFeatures: [Gene]`` for
-    10x-3p-gex-v3, so ``compose`` would emit ``Gene`` here; this gate **overrides** that single param
-    to run both, and records the override in the result. It therefore proves the GeneFull path works
-    end to end and quantifies what Gene costs on nuclear data — it does NOT prove the compiler would
-    choose GeneFull, because today it cannot. That gap is real and tracked separately.
+    This gate runs on the **compiler's own params**: no override. It used to force
+    ``soloFeatures = [Gene, GeneFull]`` past a compiler that would have emitted ``Gene``, and its
+    docstring had to admit the fixture "does NOT prove the compiler would choose GeneFull, because
+    today it cannot". It can now (R14/R15), so ``gene_signal_lost`` stops measuring our own bug and
+    starts measuring a **counterfactual**: what Gene-only would have cost, on a run where we did not
+    do it.
+
+    ``features`` overrides the compiler's default, and exists for exactly one job: the **cost arm**
+    of the all-5-vs-pair measurement. It cannot be used to make the gate pass — the assertion below
+    demands ``{Gene, GeneFull} ⊆ composed``, so any override that would hide the intron defect fails
+    the gate instead of quietly narrowing it. Leave it ``None`` and the compiler decides, which is
+    what the gate is *for*.
     """
     workdir.mkdir(parents=True, exist_ok=True)
     models = load_gene_models(assets.fasta, assets.gtf, seed=seed)
@@ -692,21 +730,40 @@ def run_intron_e2e(
             organism_taxid=6239,  # C. elegans — the intron-rich fixture's organism
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in (bc_fq, cdna_fq)])],
         ),
-        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
         seqforge_version=__version__,
     )
     report = validate_manifest(manifest)
     if not report.ok:
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
-    composed = compose_plan(manifest, registry=registry)
+    processing, _ = fill_processing(
+        spec=spec,
+        dataset=manifest,
+        processing=ProcessingInputs(
+            assembly=assets.assembly,
+            annotation_name=assets.annotation,
+            features=features,
+        ),
+        seqforge_version=__version__,
+    )
+    composed = compose_plan(manifest, processing, registry=registry)
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
     composed_features = _feature_list(solo["soloFeatures"])
-    solo["soloFeatures"] = ["Gene", "GeneFull"]  # THE OVERRIDE — see the docstring
+    # No override. The compiler's own params run, and both Gene and GeneFull are among them because
+    # the default counts everything (R15). If that ever regresses, this gate cannot even read its own
+    # matrices — which is the point of asserting it here rather than trusting the default.
+    if not {"Gene", "GeneFull"} <= set(composed_features):
+        return {
+            "passed": False,
+            "stage": "compose",
+            "reason": "the compiler no longer emits both Gene and GeneFull",
+            "composed_soloFeatures": composed_features,
+        }
 
     wl_path = workdir / "whitelist.txt"
     wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
     outdir = workdir / "star_intron"
+    cost: dict[str, object] = {}
     run_starsolo(
         assets,
         cdna_fq=cdna_fq,
@@ -715,6 +772,7 @@ def run_intron_e2e(
         solo=solo,
         outdir=outdir,
         threads=threads,
+        cost=cost,
     )
 
     gene = parse_solo_matrix(outdir / "Solo.out" / "Gene" / "raw")
@@ -758,10 +816,17 @@ def run_intron_e2e(
         "recovery_genefull_vs_full": round(recovery_full, 4),
         "gene_excludes_introns": gene_excludes_introns,
         "genefull_exceeds_gene": genefull_exceeds_gene,
-        # THE HEADLINE: what --soloFeatures Gene silently discards from a nuclear library.
+        # THE HEADLINE, and it is now a COUNTERFACTUAL: what --soloFeatures Gene alone WOULD have
+        # discarded from this nuclear library, measured on a run that did not discard it.
         "gene_signal_lost": round(1 - (gene_total / total), 4) if total else 0.0,
+        # what the real compiler emitted — no override (R15). This is the assertion.
         "composed_soloFeatures": composed_features,
-        "overridden_soloFeatures": ["Gene", "GeneFull"],
+        "primary_feature": composed.config.get("primary_feature"),
+        # What this arm cost. Both arms load the same genome index, so that fixed floor sits in
+        # BOTH numbers and biases the all-5/pair RATIO toward 1.0 — i.e. toward keeping Velocyto,
+        # the thing we already chose. Read `star_wall_s` as a floor-inclusive ratio and take the
+        # marginal difference as the honest figure.
+        "cost": cost,
         "star": star_stats(outdir),
         "gene_verdict": v_gene,
         "genefull_verdict": v_full,

@@ -4,9 +4,132 @@ Versioning is **CalVer `YYYY.M.PATCH`** — year, month without zero-padding, th
 increments per release within the month and resets when the month changes. The version tracks
 `[project].version` in `pyproject.toml`.
 
+## Unreleased
+
+**The manifest is now two artifacts: a dataset (the IR) and a processing manifest (the flags).**
+A finished assay is immutable; what you do with it is a choice, and there are several defensible
+ones. Same IR + different flags = different binaries. This closes the 2026.7.0 open design question
+below — see that entry for what was proposed and what superseded it.
+
+- **R13 — the dataset is immutable; the recipe is plural.** `manifest.yaml` (library + experiment) is
+  content-addressed and write-once; `processing.yaml` is what to *do* with it, many per dataset.
+  `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)` and `.seqforge/pipeline/<run_id>/`. The old
+  `provenance_id(manifest_hash, kb, wf)` folded intent into the manifest hash, so two recipes over one
+  dataset **collided on a single id** and compose's fixed output path silently overwrote the first with
+  the second — the collision case was exactly the use case the split exists for. Hash churn cost:
+  zero, verified (no pinned hash literals anywhere). The module graph enforces the split:
+  `models/dataset.py` and `models/processing.py` never import each other, and a test parses the ASTs
+  to say so.
+- **R14 — the instructable surface is closed; the line is parse vs count.** `KB_PARSE_KEYS` + a
+  `Backend` validator: the KB can no longer *express* a count key. `soloFeatures` left three specs;
+  `quantMode` and `outSAMtype` left `bulk-rnaseq-pe`, whose `backend.params` is now `{}` — meaningful,
+  not degenerate. `params_gate` goes from two checks to four (disjointness, coverage, per-owner
+  faithfulness, cross-derivation), because disjointness alone is the decorative bug in reverse: it
+  proves the owners cannot disagree, not that either key arrives.
+- **R15 — produce every answer rather than ask.** `soloFeatures` defaults to scRecounter's five
+  (`Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS Velocyto`, no SJ). One alignment, five
+  counting rules, one pass. **The `e2e.py` override is deleted**: `kb e2e-introns` runs on the
+  compiler's own params, so the fixture that *priced* the 40.7 % defect is now the gate that
+  *prevents* it, and `gene_signal_lost` measures a counterfactual instead of our own bug.
+- **User processing instructions**, via the sole LLM touchpoint. Precedence: CLI flag >
+  `--instruction` document > policy default, with `user_confirmed` finally written. Document **role**
+  decides the basis — the flag it arrived under, never its filename, and never the model's reading of
+  imperative-vs-declarative mood (that classification has no quote to check it against). Only an
+  `--instruction` doc may set `processing.*`; a downloaded methods PDF can never steer the pipeline.
+  Prose **promotes, never narrows**: an instructed feature is unioned with the default and promoted to
+  primary, so a hallucinated instruction can only mislabel the primary matrix, never destroy signal.
+- **`10x-3p-gex-v3.1` exists.** v3 declared it a `processing_equivalent` twin from the start and the
+  spec was never written, so the flagship example of the §12 rule was the one pair CI could not check.
+  `EFO:0022980`, verified against live EBI OLS (FLAG-1). The benign branch now fires on real data for
+  the first time: v3 and v3.1 tie exactly, both recorded, zero questions.
+- **Fixed: a §12 false-benign this repo shipped.** `canonical_backend` sorted list-valued params,
+  justified solely by `soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]`. After R14 the only list left
+  is splitseq's **positional** `soloCBwhitelist`, so a spec and the same spec with its rounds permuted
+  canonicalized byte-equal: two chemistries that parse reads *differently*, declared benign twins. It
+  never fired only by the accident that `round1 < round2 < round3` alphabetically.
+- **Fixed: `AssertionDraft.field` had no allowlist.** `DEFAULT_FIELDS` was only interpolated into the
+  prompt; `verify` never compared a returned draft against it, so
+  `field: "processing.params.outFilterMismatchNmax", value: "10"` passed both R5 checks on a real
+  quote. Nothing exploited it only because no Assertion→`fill` path existed — and this release builds
+  that path, so the allowlist landed first.
+- **Fixed: a latent nondeterminism in `escalate`.** `max(tie, key=(rung, value))` broke exact ties by
+  KB dict iteration order. Benign twins tie exactly by construction, so `candidates[0].technology`
+  could flip between runs of an unchanged input. Which twin represents the class is arbitrary; it must
+  still be arbitrary the *same way* every run (R7).
+- **Fixed: dead contracts.** `required_config` said "checked in CI" and was checked nowhere; the §12
+  biconditional was asserted by two docstrings and computed by nobody (`backend_identical` had zero
+  callers); `params_gate` picked its param block as "whichever of solo/bulk is a dict", so a bulk
+  config with a stray solo block reported "config drops KB param 'quantMode'" — a real failure pinned
+  on the wrong cause.
+- **New:** `seqforge processing new|validate|hash`; `compose --processing/--assembly/--annotation`;
+  `harvest {normalize,extract} --instruction`; `processing new --quantify`. `manifest fill` **drops**
+  `--assembly/--annotation` — choosing a reference is not something you learn by probing bytes.
+- **New:** `Blocker(GENOME_ORGANISM_MISMATCH)`. A user may instruct `hg38` on a worm dataset: that
+  contradicts no byte (probe cannot see organism), it contradicts `experiment.organism`. A
+  wrong-but-*valid* assembly is the worst failure this system can produce — it aligns, exits 0, and
+  emits a plausible matrix in the wrong coordinate space. `fill` set `ncbi_taxid` from the organism
+  while `assembly` came from a flag, and nothing ever compared them.
+- `KB_VERSION` → 2026.7.1, `WORKFLOW_VERSION` → 2026.7.1, `EXTRACT_PROMPT_VERSION` → 2026.7.2.
+
+**Verified on arc (job 2680654, ce11 + WS298, commit ac887c7).** The gate ran on the compiler's own
+params with the override deleted and reproduced the pre-registered number exactly:
+`gene_signal_lost = 0.407`, `composed_soloFeatures = [Gene, GeneFull, GeneFull_ExonOverIntron,
+GeneFull_Ex50pAS, Velocyto]`, `primary_feature = Gene`. Gene counted **none** of the 788 injected
+intronic reads (1186 vs 1212 exonic); GeneFull recovered 1940 of 2000. The 40.7 % is now a
+*counterfactual* measured on a run that did not throw the signal away.
+
+**Evals re-baselined after the prompt bump** (brief §9 treats a prompt edit as a code change), on
+`deepseek-v4-pro`, prompt `2026.7.2`: 9 gradeable cases, `field_accuracy = 1.0`,
+**`false_accept_rate = 0.0`**, `false_refuse_rate = 0.0`, 0 missed questions, 2 LLM calls. The two
+prose cases (`10x-v3-prose`, `chemistry-unstated-trap`) exercise the sole LLM touchpoint and both
+grade correct. `PRJNA1027859` skips, as it must until it is run once, on the maintainer's word.
+The baseline is **provider-scoped**: provenance records the provider because the same prompt on a
+different model is a different extractor, so this number is a claim about deepseek-v4-pro and does
+not transfer to another backend without re-running.
+
+**No regression on sacCer3** (job 2680656): passed, and *bit-identical* to the pre-change baseline —
+1 909/2 000 recovered, STAR uniquely mapped 1 923 with 77 multi/too-many, strand inversion still
+caught at 49. Every number matches the run recorded in design.md §4.1 before the split. The all-5
+default costs yeast nothing but four extra count directories, which is the known price of certifying
+one counting rule on an intron-free genome.
+
+**A second defect the same run surfaced, at scale.** At 10⁶ reads, Gene-only produced **207 spurious
+(cell, gene) pairs where GeneFull produced 0** — intronic reads landing in an *overlapping* gene's
+exon. So exon-only counting on a nuclear library does not merely lose 40.7 % of it, it also
+misassigns. Invisible at the gate's 2 000-read scale, which is where its `n_spurious_pairs == 0`
+assertion is calibrated; the assertion was left alone rather than loosened to fit a benchmark.
+
+**The Velocyto decision rule is retired — by the maintainer, not by a measurement (2026-07-15).**
+Velocyto is unconditional. Saying this plainly because the rule was pre-registered (">2× wall-clock
+or over the `mem_gb` hint ⇒ drop to four") and a retired rule must not be mistaken later for a rule
+that was tested and passed. It was not tested. `--quantify` still narrows for anyone who wants to.
+
+**Peak RSS at 10⁴ × hg38 is UNMEASURED and deferred to real human data.** The ce11 fixture cannot
+answer it, and a green ce11 number would be actively misleading: peak RSS was 2.804 GB at 2 000 reads
+and 2.809 GB at 10⁶ reads — a 500× read increase moved it 5 MB, because that 2.8 GB is the *ce11
+index* sitting in RAM and the counting is a rounding error on top of it. "All-5 fits in 32 GB on
+ce11" is a fact about ce11's index size, not about Velocyto. On hg38 the index alone approaches the
+32 GB hint before a single read is counted, which is the only configuration where the rule could ever
+have bitten. The instrument is built and waiting (`kb e2e-introns --quantify` + the `cost` block
+reporting `star_wall_s` / `star_peak_rss_gb`); what generalizes off ce11 is the *slope* — bytes per
+read per feature-set, additive with a genome-sized constant — not the absolute number.
+
+One correction to the rule's own wording: `mem_gb` is not a workflow-module property. It is
+`ResourceHints.mem_gb` on the **processing manifest** (default 32), i.e. it lives in the recipe —
+which is where a resource request belongs under R13.
+
 ## 2026.7.0 — 2026-07-14
 
-> **OPEN DESIGN QUESTION (needs the maintainer): `soloFeatures` is misfiled as chemistry.**
+> **~~OPEN DESIGN QUESTION (needs the maintainer)~~ — RESOLVED in Unreleased (R13/R14/R15).**
+> The diagnosis below stands and is kept verbatim as the record of finding the defect *before* the
+> acceptance run. Its **proposed remedy was withdrawn, not implemented**, and the reason is worth
+> keeping: it would have made an unknown prep a `Question` (exit 4) — trading a silent wrong answer
+> for a question. R15 buys back both by counting every feature, so the question never needs asking.
+> Shipping an exit-4 that never needed to fire trains people to route around exit codes; the path was
+> deleted before it was written. The `nuclei | cells` fact is likewise not needed: it would only
+> reorder which matrix is primary, never decide what gets computed.
+>
+> **`soloFeatures` is misfiled as chemistry.**
 > Surfaced by pre-registering PRJNA1027859 from declared metadata — before the run, without touching
 > the data — and then **priced at 40.7 % silent signal loss** by `kb e2e-introns`.
 >

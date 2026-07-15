@@ -296,3 +296,69 @@ def test_escalate_metadata_disambiguates_divergent_tie() -> None:
     )
     assert esc.winner == "techB"
     assert not esc.questions
+
+
+# ---------- §12 benign twins tie EXACTLY, so the representative must be deterministic ----------
+def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_order() -> None:
+    """Two processing-equivalent specs score identically BY CONSTRUCTION — they are byte-identical.
+
+    The old key was ``max(tie, key=lambda e: (e.rung, e.value))``. On an exact tie ``max`` returns the
+    first maximal element in ITERATION order, which here traces back to the KB dict — so
+    ``candidates[0].technology`` could flip between runs of an unchanged input, and with it the
+    manifest's winner field. R7 says a run is resumable and content-addressed; a winner that depends
+    on dict ordering is neither.
+
+    Which twin represents the class is arbitrary — that is what "equivalent" means. It still has to be
+    arbitrary the SAME way every time, so `tech` is the last key and only after rung and score.
+    """
+    specs = {
+        "techA": _mini_spec(
+            "techA",
+            [
+                {
+                    "id": "techB",
+                    "relationship": "processing_equivalent",
+                    "distinguishable_by": ["none"],
+                }
+            ],
+        ),
+        "techB": _mini_spec("techB"),
+    }
+    a, b = _te("techA", 1.0, equiv=["techB"]), _te("techB", 1.0)
+    forward = escalate([a, b], [], specs, None, None, 0.0)
+    reverse = escalate([b, a], [], specs, None, None, 0.0)
+
+    assert forward.winner == reverse.winner == "techA"  # lexicographically first, both orders
+    assert [c.technology for c in forward.candidates] == [c.technology for c in reverse.candidates]
+    # ...and it is still benign: both recorded, zero questions (§12)
+    assert not forward.questions and not reverse.questions
+    assert forward.candidates[0].equivalence_members == ["techB"]
+
+
+def test_the_real_kb_benign_twins_tie_and_ask_nothing(tmp_path: Path) -> None:
+    """End-to-end on the SHIPPED specs: v3 and v3.1 are the §12 rule's flagship, and now they exist.
+
+    Before the twin was written this path was unreachable — v3 declared a `processing_equivalent` edge
+    to a spec that was not in the KB, so the benign branch of `escalate` never once fired on real
+    data. It fires here: identical scores, both recorded, zero questions, exit 0.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    pools = kb.build_pools(spec, seed=0)
+    reg = OnlistRegistry(offline=True)
+    for alias, ref in spec.onlists.items():
+        if alias in pools:
+            reg.register_synthetic(ref.registry, pools[alias])
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    paths = []
+    for k in ("R1", "R2"):
+        p = tmp_path / f"s_{k}.fastq.gz"
+        _write_fastq_gz(p, reads[k])
+        paths.append(p)
+
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    scores = {c.technology: c.score.value for c in out.result.candidates}
+    assert scores["10x-3p-gex-v3"] == scores["10x-3p-gex-v3.1"], "twins must tie exactly"
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
+    assert out.result.candidates[0].equivalence_members == ["10x-3p-gex-v3.1"]
+    assert not out.result.questions, "§12: a benign ambiguity asks NOTHING"
+    assert out.exit_code() == 0

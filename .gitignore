@@ -17,3 +17,6 @@ site/
 # editor / OS
 .DS_Store
 .vscode/settings.local.json
+
+# Slurm job logs (lab convention: `mkdir -p sbatch` in the submit dir)
+sbatch/

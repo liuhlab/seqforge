@@ -292,7 +292,15 @@ class Warning(BaseModel):
 `MISSING_TECHNICAL_READ.remedy` is operable: *"re-fetch with `fasterq-dump --include-technical`, or
 pull the original submitted files `sra-pub-src-*` via the SRA Data Locator / SDL API."*
 
-### 1.6 `Manifest` — three sections, three authorities (R9)
+### 1.6 `DatasetManifest` — two truths, two authorities (R9/R13)
+
+> **The "three truths / three sections" pun did the damage, and it is gone.** R6's three
+> truths are the three *bases*; nothing in R6 ever depended on there being three *sections*.
+> But both were three, so `processing` inherited the grammar of a truth — `Evidenced` fields,
+> an "authority", a uniform `basis="inferred"` stamped on by construction — and then compose
+> read almost none of them (4 of its 6 fields had no reader at all). A field that is never read
+> cannot produce the `Conflict` R6 promises. §1.0 listing **four** bases against three sections
+> was the tell. Intent now lives in §1.6b, in its own artifact.
 
 ```python
 class ReadElement(BaseModel):
@@ -375,27 +383,77 @@ class ExperimentSection(BaseModel):
     accessions: EvidencedAccessionList
     samples: list[SampleGroup]
 
-class ProcessingSection(BaseModel):
-    """Intent. Authority = DERIVED from library+experiment + policy (basis usually 'inferred')."""
-    genome: EvidencedGenome
-    aligner: EvidencedStr
-    quantification: EvidencedStr              # "gene" / "gene_full" / "velocyto" / "sj" / "none"
-    variant_calling: EvidencedBool
-    environment: EvidencedRuntimeEnv          # literal liulab-runtime env name (R9/R12)
-    resources: ResourceHints = Field(default_factory=ResourceHints)
+class DatasetProvenance(BaseModel):
+    # workflow_version is deliberately ABSENT: the assay happened before we had an opinion about
+    # which rules would run over it. It belongs to the processing manifest (R13).
+    dataset_hash: str; kb_version: str; seqforge_version: str
 
-class Provenance(BaseModel):
-    manifest_hash: str; kb_version: str; workflow_version: str; seqforge_version: str
-
-class Manifest(BaseModel):
-    """One machine-independent manifest. compose() is a PURE function of the three sections.
+class DatasetManifest(BaseModel):
+    """A finished assay: what the bench did. TWO truths, one lifetime — IMMUTABLE (R13).
+    compose() is a PURE function of (this, ProcessingManifest).
     validate() ALSO enforces referential integrity: every experiment file_uri ∈ library inventory."""
     model_config = ConfigDict(frozen=True)
     library: LibrarySection
     experiment: ExperimentSection
-    processing: ProcessingSection
-    provenance: Provenance
+    provenance: DatasetProvenance
 ```
+
+### 1.6b `ProcessingManifest` — intent, plural (R13/R14/R15)
+
+The flags to §1.6's IR. Many per dataset; that plurality IS the design. `basis` here records **who
+decided**, not how we know — which is why `user_confirmed`, unwritten anywhere else in seqforge since
+the beginning, is the basis this section exists to carry.
+
+```python
+SoloFeature = Literal["Gene","SJ","GeneFull","GeneFull_ExonOverIntron","GeneFull_Ex50pAS","Velocyto"]
+
+class SoloQuant(BaseModel):
+    kind: Literal["solo"] = "solo"
+    features: list[SoloFeature] = Field(min_length=1)   # ORDERED; [0] is primary. Defaults to ALL FIVE.
+    # @model_validator: no duplicates; "Velocyto requires Gene" (a real STAR constraint, so a
+    # validator — no enum can express "this member requires that one").
+
+class BulkQuant(BaseModel):
+    kind: Literal["bulk"] = "bulk"
+    mode: Literal["GeneCounts","TranscriptomeSAM","None"] = "GeneCounts"
+    # no strandedness knob, and none is needed: --quantMode GeneCounts already emits all three
+    # strand columns. There was never a decision to make.
+
+Quantification = Annotated[SoloQuant | BulkQuant, Field(discriminator="kind")]  # module-scoped
+
+class ProcessingSection(BaseModel):
+    """INTENT. Not a truth; no authority. basis records WHO DECIDED:
+       CLI flag -> user_confirmed | --instruction doc -> user_confirmed | policy -> inferred.
+       The two user_confirmed tiers differ only in PRECEDENCE; the channel lives in `evidence`.
+       That resolves §1.0's open note: no `policy_default` basis is needed, because once a section
+       carries a VARYING basis, `inferred` + a ref naming the rule is distinguishable by inspection."""
+    genome: EvidencedGenome
+    aligner: EvidencedStr
+    quantification: EvidencedQuantification   # what to COUNT (R14). No longer decorative.
+    variant_calling: EvidencedBool
+    environment: EvidencedRuntimeEnv          # literal liulab-runtime env name (R9/R12)
+    resources: ResourceHints = Field(default_factory=ResourceHints)
+
+class DatasetPin(BaseModel):
+    dataset_hash: Sha256; accessions: list[Accession] = Field(default_factory=list)
+
+class ProcessingManifest(BaseModel):
+    """One way to process a dataset. `dataset is None` => a TEMPLATE, portable across 10^4 datasets
+    (that is uniform reprocessing, and a mandatory pin would destroy it). Set => BOUND; compose
+    refuses a mismatch with a Blocker and never auto-repins. compose ALWAYS writes the bound form it
+    used to processing.lock.yaml: R7 says disk is STATE, not that disk is INPUT."""
+    model_config = ConfigDict(frozen=True)
+    processing_id: str
+    dataset: DatasetPin | None = None
+    processing: ProcessingSection
+    provenance: ProcessingProvenance          # processing_hash, workflow_version, seqforge_version
+```
+
+`run_id = H(dataset_hash ⊕ processing_hash ⊕ kb_version ⊕ workflow_version)` — the pairing is
+recorded here, at compile time, never inside either input. The old `provenance_id(manifest_hash, kb,
+wf)` could not express it: with intent folded into the manifest hash, two recipes over one dataset
+**collided on a single id**, and compose's fixed output path meant the second silently overwrote the
+first. The collision case was exactly the use case the split exists for.
 
 ### 1.7 Score / compile output models (were missing — Blocker A)
 
@@ -790,10 +848,26 @@ no hand-maintained truth table:
    (different hashes prove the files differ, not that the barcode sets differ).
 
 3. **`backend_identical(A,B)`** — resolve each `backend.params`, expand `{onlist:alias}` to the
-   registry **sha256**, canonicalize (sort keys, normalize `soloFeatures` order), **and include the
-   read→role placement** (`readFilesIn` order derived from `reads`). Two are identical iff those
-   canonical forms are byte-equal. *(Including role placement matters: two techs differing only in
-   which read is biological would otherwise be falsely labeled benign.)*
+   registry **sha256**, canonicalize (sort keys — **never list order**), **and include the read→role
+   placement** (`readFilesIn` order derived from `reads`). Two are identical iff those canonical
+   forms are byte-equal. *(Including role placement matters: two techs differing only in which read
+   is biological would otherwise be falsely labeled benign.)*
+
+   **List order is significant and must not be normalized.** This rule used to say "normalize
+   `soloFeatures` order", which was its only justification for sorting — and soloFeatures has since
+   left `backend.params` (R14: it says what to *count*). What the sort would normalize now is the
+   only list-valued parse param left, splitseq's `soloCBwhitelist: [round1, round2, round3]`, which
+   is **positional**: rounds map to CB positions in order. Verified before deletion —
+   `backend_identical(splitseq, splitseq-with-rounds-reversed)` returned **True**: two chemistries
+   that parse reads differently, declared benign twins, one config emitted for both. It never fired
+   only by the alphabetical accident that `round1 < round2 < round3`.
+
+   Since R14, this predicate means exactly *"these two chemistries parse reads identically"* — which
+   is what `processing_equivalent` should always have meant, and makes the rule **stronger**: two
+   specs differing only in what they count are no longer distinguishable here, because that is not a
+   chemistry fact at all. (This also resolves an inconsistency: §2.1 named soloFeatures in the
+   canonicalization while the CellRanger-parity note argued `backend_identical` must stay insensitive
+   to policy. The second was right.)
 
 **§12 benign rule (the biconditional CI asserts):** `backend_identical(A,B) ⟺ relationship ==
 processing_equivalent`. v3 vs v3.1 → identical module + `soloCB*/UMI*` + whitelist sha + strand +
@@ -1040,7 +1114,7 @@ compressed-bytes-per-read (or reads the gzip ISIZE) — the naive decompressed f
 
 ### 4.1 The split compose gate + `kb e2e` (pushback #8)
 
-`compose` is a pure function of the manifest (no data on disk). Its gate has **three** parts, because
+`compose` is a pure function of the (dataset, processing) pair (no data on disk). Its gate has **three** parts, because
 a dry-run cannot catch a strand inversion.
 
 **`skip` is first-class (implemented).** Parts 1 and 3 depend on a toolchain seqforge does not own
@@ -1084,18 +1158,55 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    `GeneFull` totalled **1 940** (recovery 0.97 vs exon+intron). 0 spurious, 0 inflated; STAR placed
    1 971/2 000 uniquely. Resolve decided `10x-3p-gex-v3` from ce11 bytes unaided.
 
-   **That run also measured a real defect: `gene_signal_lost = 0.407`.** `--soloFeatures Gene` silently
-   discards **40.7 %** of a nuclear library, and `composed_soloFeatures` was `[Gene]` — i.e. the
-   compiler *would* emit it. The KB files `soloFeatures` under `backend.params`, but 10x 3′ v3.1
-   chemistry is byte-identical for cells and nuclei: what differs is the RNA population, a property of
-   **sample prep**, not chemistry. The coherent line is `backend.params` says how to **parse** reads
-   (soloType/CB/UMI/whitelist/strand); `processing` says what to **count** (soloFeatures). Compounding
-   it, `processing.quantification` is currently **decorative** — policy hardcodes `"gene"`, writes it
-   to the manifest, and compose then ignores it and reads the KB instead. Two sources of truth for one
-   decision, unable to disagree only because one is never consulted. Surfaced by pre-registering
+   **That run measured a real defect, and the defect is now FIXED: `gene_signal_lost = 0.407`.**
+   `--soloFeatures Gene` silently discards **40.7 %** of a nuclear library, and `composed_soloFeatures`
+   was `[Gene]` — i.e. the compiler *would* have emitted it. The KB filed `soloFeatures` under
+   `backend.params`, but 10x 3′ v3.1 chemistry is byte-identical for cells and nuclei: what differs is
+   the RNA population, a property of **sample prep**, not chemistry. Surfaced by pre-registering
    PRJNA1027859 (single-**nucleus** RNA-seq) from declared metadata — before the run, without touching
-   the data. **Open: a maintainer decision** (see §8); the fixture proves the GeneFull path works and
-   prices the gap, but does NOT prove the compiler would choose GeneFull, because today it cannot.
+   the data.
+
+   **Resolved (R13/R14/R15).** `backend.params` says how to **parse** reads
+   (soloType/CB/UMI/whitelist/strand); the **processing manifest** says what to **count**. And the
+   counting question is *dissolved rather than answered*: `soloFeatures` defaults to all five, so
+   GeneFull is computed whether or not anyone tells us the prep is nuclear. The CHANGELOG's earlier
+   proposed remedy — an unknown prep becoming a `Question` (exit 4) — was **withdrawn, not
+   implemented**: it traded a silent wrong answer for a question, and R15 buys back both. Shipping an
+   exit-4 that never needed to fire trains people to route around exit codes.
+
+   `processing.quantification` is no longer decorative: policy used to hardcode `"gene"`, write it to
+   the manifest, and let compose ignore it and read the KB instead — two sources of truth for one
+   decision, unable to disagree only because one was never consulted. `params_gate` now fails if the
+   emitted config disagrees with the manifest.
+
+   **The override is gone, which is how you know the change landed.** This fixture used to force
+   `soloFeatures = [Gene, GeneFull]` past a compiler that would have emitted `Gene`, and had to admit
+   it did NOT prove the compiler would choose GeneFull, "because today it cannot". It runs on the
+   compiler's own params now and asserts `composed_soloFeatures ⊇ {Gene, GeneFull}`; the fixture that
+   *priced* the defect is the gate that *prevents* it, and `gene_signal_lost` stops measuring our bug
+   and starts measuring a counterfactual. Superseded text follows for the record:
+
+   ~~the fixture proves the GeneFull path works and prices the gap, but does NOT prove the compiler
+   would choose GeneFull, because today it cannot.~~
+
+   **Velocyto is unconditional — a maintainer decision (2026-07-15), not a measurement.** The
+   pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") is **retired**.
+   Recording *how* it was retired, because a rule that was overridden and a rule that was tested and
+   passed leave the same trace unless someone writes down which happened: this one was never tested.
+   `--quantify` still narrows.
+
+   **Peak RSS at 10⁴ × hg38 remains UNMEASURED**, deferred to real human data. The ce11 fixture
+   cannot answer it and a green ce11 number would be worse than none: peak RSS moved 2.804 → 2.809 GB
+   across a 500× read increase, because 2.8 GB *is* the ce11 index and the counting is a rounding
+   error on it. On hg38 the index alone approaches the 32 GB hint before a read is counted — the only
+   configuration where the rule could have bitten. What generalizes off ce11 is the **slope** (bytes
+   per read per feature-set, additive with a genome-sized constant), never the absolute figure. The
+   instrument is built: `kb e2e-introns --quantify` plus the `cost` block reporting `star_wall_s` /
+   `star_peak_rss_gb`. An expensive default is not a trap precisely *because* the processing manifest
+   exists to override it.
+
+   (`mem_gb` is `ResourceHints.mem_gb` on the **processing manifest**, default 32 — not a workflow
+   module property. A resource request is intent, so R13 puts it in the recipe.)
 
    Still open: a **SPLiT-seq** e2e — this run certifies 10x 3′ v3's `soloStrand Forward` only. Note a
    simulation cannot settle `splitseq`'s strand FLAG on its own: simulating requires assuming the

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from .base import Basis, ChemistryId, Rung, Uri
 from .blocker import Blocker, ValidationWarning
 from .conflict import Conflict, ConflictPosition, Decidable
-from .manifest import RuntimeEnv
+from .processing import RuntimeEnv
 
 
 class TechScore(BaseModel):

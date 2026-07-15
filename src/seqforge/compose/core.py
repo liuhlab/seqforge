@@ -1,9 +1,15 @@
-"""``compose`` — manifest -> ``config.yaml`` + ``units.tsv`` + a workflow-module selection.
+"""``compose`` — (dataset, processing) -> ``config.yaml`` + ``units.tsv`` + a module selection.
 
 **Emit data, never code (R1).** The composer selects a hand-written, versioned module and emits its
-*configuration*; it never writes rule source. It is a pure function of the manifest plus two
-versioned inputs recorded in provenance (the KB and the workflow modules) — it needs no FASTQ on
-disk, local or remote.
+*configuration*; it never writes rule source. It is a pure function of **both** its inputs plus two
+versioned ones recorded in provenance (the KB and the workflow modules) — it needs no FASTQ on disk,
+local or remote. Two inputs, still no I/O: a processing manifest is data, not a side channel.
+
+Purity across *both* is what makes "same dataset + different processing = different pipeline, same
+dataset hash" a fact rather than a hope. Output is keyed by ``run_id = H(dataset ⊕ processing ⊕ kb ⊕
+workflow)``, so composing one dataset two ways yields two directories instead of the second silently
+overwriting the first — which is what a fixed ``.seqforge/pipeline/`` path used to do, in exactly the
+case the split exists to enable.
 
 The machine-independent/machine-specific boundary lives here: the **manifest** carries URIs and a
 ``liulab-genome`` assembly id (R9); the **config** it compiles to is the resolved, machine-specific
@@ -24,10 +30,18 @@ import yaml
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry, PackedOnlist
 from ..kb import load_spec
 from ..kb.schema import Spec
-from ..models.manifest import Manifest
+from ..manifest.hash import run_id
+from ..models.dataset import DatasetManifest
+from ..models.processing import DatasetPin, ProcessingManifest, Quantification, SoloQuant
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import get_module
-from .params import find_read_with_role, params_gate, render_param
+from .params import (
+    find_read_with_role,
+    param_block_key,
+    params_gate,
+    processing_params,
+    render_param,
+)
 
 
 class ComposeError(RuntimeError):
@@ -46,14 +60,24 @@ class ComposePlan:
 
 
 def plan(
-    manifest: Manifest,
+    manifest: DatasetManifest,
+    processing: ProcessingManifest,
     *,
     registry: OnlistRegistry | None = None,
     outdir: str = "results",
-    threads: int = 8,
 ) -> ComposePlan:
-    """Build the config + units + module selection for a manifest (no side effects)."""
+    """Build the config + units + module selection for one (dataset, processing) pair.
+
+    Both inputs are positional and required. Composing one dataset two ways is literally two calls
+    with one argument changed, producing two ``run_id``s over one unchanged ``dataset_hash``.
+
+    ``threads`` is deliberately NOT an argument: it lives in ``processing.resources.threads``. Having
+    it in both places was the same two-sources-of-truth disease this whole change is curing.
+    ``outdir`` stays an argument, because it is a path — a machine fact, which R9 forbids a manifest
+    from carrying. ``threads`` is intent; ``outdir`` is an invocation.
+    """
     registry = registry if registry is not None else DEFAULT_REGISTRY
+    _check_pin(manifest, processing)
     chemistry = manifest.library.chemistry.value
     if not chemistry:
         raise ComposeError("manifest.library.chemistry is empty; nothing to compile")
@@ -66,21 +90,36 @@ def plan(
         raise ComposeError(str(exc)) from exc
 
     onlist_files: dict[str, list[str]] = {}
+    intent = processing.processing
+    # Two owners, one block (R14). The KB says how to PARSE; the processing manifest says what to
+    # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
     params = _resolve_params(manifest, spec, registry, onlist_files)
+    params.update(
+        {k: render_param(v) for k, v in processing_params(intent.quantification.value).items()}
+    )
 
     config: dict[str, object] = {
         "chemistry": list(chemistry),
         "genome": {
-            "assembly": manifest.processing.genome.value.assembly,
-            "annotation": manifest.processing.genome.value.annotation_name,
+            "assembly": intent.genome.value.assembly,
+            "annotation": intent.genome.value.annotation_name,
         },
-        "env": manifest.processing.environment.value,
-        "threads": threads,
+        "env": intent.environment.value,
+        "threads": intent.resources.threads,
         "outdir": outdir,
         "read_files_in": _read_files_in(manifest, spec),
         "samples": [s.sample_id for s in manifest.experiment.samples],
     }
-    config["solo" if spec.backend.module == "map/starsolo" else "bulk"] = params
+    config[param_block_key(spec)] = params
+    primary = _primary_feature(intent.quantification.value)
+    if primary is not None:
+        # Top level, NOT inside config["solo"] — that block must stay "every key is a STAR CLI flag"
+        # for the gate's coverage check, and STARsolo has no --primaryFeature. Order in the manifest
+        # is a seqforge-side annotation with no aligner-side referent (STARsolo writes one
+        # Solo.out/<Feature>/ per value and does not care about order), so it gets projected out to
+        # an explicit value rather than leaving a positional convention load-bearing for every
+        # downstream reader.
+        config["primary_feature"] = primary
 
     return ComposePlan(
         config=config,
@@ -91,19 +130,47 @@ def plan(
     )
 
 
+def _primary_feature(quant: Quantification) -> str | None:
+    """Which ``Solo.out/<Feature>/`` is THE matrix for this run. ``None`` for bulk (no such split)."""
+    return quant.features[0] if isinstance(quant, SoloQuant) else None
+
+
+def _check_pin(manifest: DatasetManifest, processing: ProcessingManifest) -> None:
+    """A BOUND processing manifest must name this dataset. Never auto-repin (R13)."""
+    pin = processing.dataset
+    if pin is None:
+        return  # a template: portable by design — that is what drives a corpus
+    if pin.dataset_hash != manifest.provenance.dataset_hash:
+        raise ComposeError(
+            f"processing manifest {processing.processing_id!r} is pinned to dataset "
+            f"{pin.dataset_hash[:12]}… but this dataset is "
+            f"{manifest.provenance.dataset_hash[:12]}…. Re-run `seqforge processing new` against "
+            f"this dataset, or drop the pin to make it a template."
+        )
+
+
 def compose(
-    manifest: Manifest,
+    manifest: DatasetManifest,
+    processing: ProcessingManifest,
     *,
     registry: OnlistRegistry | None = None,
     workspace: str | Path = ".",
     outdir: str = "results",
-    threads: int = 8,
     run_wiring_gate: bool = True,
 ) -> ComposeResult:
-    """Compile a manifest into a runnable pipeline configuration + run the compose gates."""
-    p = plan(manifest, registry=registry, outdir=outdir, threads=threads)
+    """Compile a (dataset, processing) pair into a runnable configuration + run the compose gates."""
+    p = plan(manifest, processing, registry=registry, outdir=outdir)
 
-    pipeline_dir = Path(workspace) / ".seqforge" / "pipeline"
+    # Keyed by the RUN, not by the workspace. A fixed `.seqforge/pipeline/` path meant recipe B
+    # silently overwrote recipe A's config, units, and materialized onlists — and "one dataset, many
+    # recipes" is precisely the case this whole change exists to enable.
+    rid = run_id(
+        dataset_hash=manifest.provenance.dataset_hash,
+        processing_hash=processing.provenance.processing_hash,
+        kb_version=manifest.provenance.kb_version,
+        workflow_version=processing.provenance.workflow_version,
+    )
+    pipeline_dir = Path(workspace) / ".seqforge" / "pipeline" / rid
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     config_path = pipeline_dir / "config.yaml"
     units_path = pipeline_dir / "units.tsv"
@@ -115,10 +182,28 @@ def compose(
 
     config_path.write_text(yaml.safe_dump(p.config, sort_keys=True))
     units_path.write_text(_units_tsv(p.units))
+    # The resolved, dataset-BOUND processing manifest that produced this config, beside it. R7 says
+    # disk is state, not that disk is input: the default path takes no --processing and must still
+    # leave behind exactly what decided the run.
+    bound = (
+        processing
+        if processing.dataset is not None
+        else processing.model_copy(
+            update={
+                "dataset": DatasetPin(
+                    dataset_hash=manifest.provenance.dataset_hash,
+                    accessions=list(manifest.experiment.accessions.value),
+                )
+            }
+        )
+    )
+    (pipeline_dir / "processing.lock.yaml").write_text(
+        yaml.safe_dump(bound.model_dump(mode="json"), sort_keys=True)
+    )
 
     from .gates import e2e_gate, wiring_gate
 
-    status, problems = params_gate(manifest, p.spec, p.config)
+    status, problems = params_gate(manifest, processing, p.spec, p.config)
     gate: dict[str, str] = {
         "params": status,
         "wiring": wiring_gate(pipeline_dir, p) if run_wiring_gate else "skip",
@@ -139,7 +224,7 @@ def compose(
 
 
 def _resolve_params(
-    manifest: Manifest,
+    manifest: DatasetManifest,
     spec: Spec,
     registry: OnlistRegistry,
     onlist_files: dict[str, list[str]],
@@ -192,7 +277,7 @@ def _barcodes(packed: PackedOnlist) -> list[str]:
     return sorted(out)
 
 
-def _read_files_in(manifest: Manifest, spec: Spec) -> dict[str, str]:
+def _read_files_in(manifest: DatasetManifest, spec: Spec) -> dict[str, str]:
     """Map roles to the reads the module must pass to the aligner, cDNA FIRST for STARsolo."""
     if spec.backend.module == "map/starsolo":
         cdna = find_read_with_role(manifest, "cDNA") or find_read_with_role(manifest, "gDNA")
@@ -206,7 +291,7 @@ def _read_files_in(manifest: Manifest, spec: Spec) -> dict[str, str]:
     return {"mate1": reads[0].read_id, "mate2": reads[1].read_id}
 
 
-def _units(manifest: Manifest) -> list[dict[str, str]]:
+def _units(manifest: DatasetManifest) -> list[dict[str, str]]:
     """One row per (sample, read role, file). Falls back to a single implicit sample."""
     by_uri = {f.uri: f for f in manifest.library.files}
     rows: list[dict[str, str]] = []

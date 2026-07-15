@@ -27,6 +27,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
+from .fields import fields_for_role
 from .normalize import NormalizedDoc
 from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
@@ -37,17 +38,12 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 #: seeded with E. coli OP50 at 20 C") as an experimental *condition*: a real quote, correctly copied,
 #: pinned to a field it does not belong in. The old prompt said only "everything else: the document's
 #: own wording", which invites exactly that. See `verify.entails` for why R5 cannot catch this class.
-EXTRACT_PROMPT_VERSION = "2026.7.1"
-
-#: Manifest paths worth asking for. `library.*` is byte-decidable and only ever a HYPOTHESIS here
-#: (resolve owns the decision); `experiment.*` is the part bytes genuinely cannot see.
-DEFAULT_FIELDS = (
-    "library.chemistry",
-    "experiment.organism",
-    "experiment.accessions",
-    "experiment.samples.tissue",
-    "experiment.samples.condition",
-)
+#: 2026.7.2 — `processing.*` becomes askable, of --instruction documents ONLY (R13/R14). Note the
+#: hazard this sits on: 2026.7.1's regression WAS field misassignment, and this adds fields whose
+#: misassignment reaches the aligner. Three things contain it, none of them the prompt — the field
+#: allowlist (`harvest.fields`), the doc-role gate (`verify_drafts`), and R15's all-five default, which
+#: means a hallucinated instruction can only mislabel the primary matrix, never destroy signal.
+EXTRACT_PROMPT_VERSION = "2026.7.2"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -86,6 +82,13 @@ Values:
   — is NOT a condition. If the document describes no perturbation, omit the field: an unperturbed
   baseline experiment has no condition, and copying husbandry into this field is a wrong answer even
   though the words appear in the document.
+- `processing.quantification`: the STARsolo feature the document NAMES, exactly, as one of: Gene, SJ,
+  GeneFull, GeneFull_ExonOverIntron, GeneFull_Ex50pAS, Velocyto. Emit one assertion per feature named.
+  Only extract this when the document names the feature; a document describing the BIOLOGY ("single
+  nuclei", "pre-mRNA", "include introns") does NOT name a feature, and inferring one from biology is
+  not your job — omit the field. Asking for GeneFull adds it; it never removes anything else.
+- `processing.genome.assembly`: the UCSC assembly id the document NAMES (e.g. "ce11", "hg38",
+  "mm39"). An organism name is not an assembly — omit the field rather than translating one.
 - everything else: the document's own wording.
 """
 
@@ -168,10 +171,16 @@ def extract_drafts(
     *,
     provider: LLMProvider | None = None,
     model: str | None = None,
-    fields: tuple[str, ...] = DEFAULT_FIELDS,
+    fields: tuple[str, ...] | None = None,
     max_tokens: int = 8000,
 ) -> ExtractionOutcome:
-    """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides."""
+    """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides.
+
+    ``fields`` defaults to the set appropriate to the document's ROLE: a reference document is never
+    asked about ``processing.*``. Asking and enforcing are separate jobs, though — ``verify_drafts``
+    refuses an off-role field regardless of what was asked, because a prompt is not a boundary.
+    """
+    asked = fields if fields is not None else fields_for_role(doc.role)
     try:
         llm = provider if provider is not None else resolve_provider()
     except ProviderUnavailable as exc:
@@ -182,7 +191,7 @@ def extract_drafts(
     try:
         response = llm.complete_json(
             system=build_system_prompt(specs, schema),
-            user=_user_content(doc, fields),
+            user=_user_content(doc, asked),
             schema=schema,
             model=chosen,
             max_tokens=max_tokens,
