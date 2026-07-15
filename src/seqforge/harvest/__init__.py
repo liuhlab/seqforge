@@ -19,13 +19,14 @@ HARVEST_VERSION = "2026.7.0"
 
 from .extract import (  # noqa: E402
     DEFAULT_FIELDS,
-    DEFAULT_MODEL,
     EXTRACT_PROMPT_VERSION,
     ExtractionOutcome,
     ExtractionResult,
     ExtractUnavailable,
     build_kb_context,
+    build_system_prompt,
     extract_drafts,
+    llm_schema,
 )
 from .normalize import (  # noqa: E402
     NORMALIZER_VERSION,
@@ -33,6 +34,17 @@ from .normalize import (  # noqa: E402
     normalize_document,
     normalize_text,
     read_document,
+)
+from .providers import (  # noqa: E402
+    ANTHROPIC_DEFAULT_MODEL,
+    DEEPSEEK_DEFAULT_MODEL,
+    AnthropicProvider,
+    LLMProvider,
+    LLMResponse,
+    OpenAICompatibleProvider,
+    ProviderUnavailable,
+    deepseek_provider,
+    resolve_provider,
 )
 from .verify import (  # noqa: E402
     VerifyReport,
@@ -56,11 +68,22 @@ __all__ = [
     "surface_forms",
     # extract (the one LLM touchpoint)
     "EXTRACT_PROMPT_VERSION",
-    "DEFAULT_MODEL",
     "DEFAULT_FIELDS",
     "extract_drafts",
     "build_kb_context",
+    "build_system_prompt",
+    "llm_schema",
     "ExtractionResult",
     "ExtractionOutcome",
     "ExtractUnavailable",
+    # providers (the LLM is swappable; nothing downstream trusts it)
+    "LLMProvider",
+    "LLMResponse",
+    "AnthropicProvider",
+    "OpenAICompatibleProvider",
+    "deepseek_provider",
+    "resolve_provider",
+    "ProviderUnavailable",
+    "ANTHROPIC_DEFAULT_MODEL",
+    "DEEPSEEK_DEFAULT_MODEL",
 ]

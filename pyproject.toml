@@ -30,8 +30,10 @@ dependencies = [
     "requests>=2.31",
     "tqdm>=4",
     # `harvest extract` is the ONE stage that touches an LLM; every other verb runs without it
-    # (`run --no-llm` drives the whole compiler minus extraction).
+    # (`run --no-llm` drives the whole compiler minus extraction). Both clients are optional at
+    # runtime (lazy-imported) — the provider layer keeps seqforge un-locked-in to either vendor.
     "anthropic>=0.40",
+    "openai>=1.40",   # client for ANY OpenAI-compatible endpoint (DeepSeek, vLLM, Ollama, ...)
 ]
 
 [project.urls]
@@ -66,7 +68,8 @@ pooch = ">=1.8"
 typer = ">=0.12"
 requests = ">=2.31"
 tqdm = ">=4"
-anthropic = ">=0.40"   # harvest extract only — the single LLM touchpoint
+anthropic = ">=0.40"   # harvest extract only — one of two swappable LLM clients
+openai = ">=1.40"      # OpenAI-compatible endpoints (DeepSeek preset, vLLM, Ollama, ...)
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"

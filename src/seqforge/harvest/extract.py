@@ -9,17 +9,13 @@ Everything else in seqforge is a verifier. This module's entire job is to turn p
   which document we sent, so a fabricated or mistyped sha is not a failure mode we need to have.
 - **No verdicts.** The model never asserts that its own quote is real or supportive; ``verify`` owns
   both flags and fails closed.
+- **No trusted shape.** Whatever the provider returns is validated against the canonical Pydantic
+  model here. That is what makes the provider swappable (see :mod:`seqforge.harvest.providers`):
+  strict-schema providers and json-object providers differ in how *likely* a malformed batch is,
+  never in whether one could reach the manifest.
 
-The schema is derived from the canonical Pydantic model (``AssertionDraft``) by the SDK, not
-hand-maintained (R1 / design §1.8) — so the wire contract cannot drift from ``models/``. The SDK
-strips the constraints the strict-schema subset rejects (``Confidence``'s 0..1 bounds) and re-validates
-them client-side, which is exactly the "constraints live in the canonical schema; Pydantic enforces
-them at ingest" rule.
-
-Prompt caching: the KB context is the stable prefix (it changes only when the KB does) and the
-document is volatile, so the system blocks carry the cache breakpoint and the document goes in the
-user turn. Note Opus 4.8 will not cache a prefix under ~4096 tokens — check
-``usage.cache_read_input_tokens`` rather than assuming.
+The wire schema is derived from ``AssertionDraft`` (design §1.8) — never hand-maintained — so the
+contract cannot drift from ``models/``.
 """
 
 from __future__ import annotations
@@ -27,19 +23,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
 from .normalize import NormalizedDoc
+from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
-#: CalVer-ish; bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is
-#: reproducible and blamable, and evals treat a prompt edit as a code change (brief §9).
+#: Bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is reproducible and
+#: blamable, and evals treat a prompt edit as a code change (brief §9).
 EXTRACT_PROMPT_VERSION = "2026.7.0"
-
-#: Opus 4.8. Never downgrade for cost without the maintainer asking — a cheaper miss here is a
-#: silently thinner corpus, which is the failure mode this project exists to prevent.
-DEFAULT_MODEL = "claude-opus-4-8"
 
 #: Manifest paths worth asking for. `library.*` is byte-decidable and only ever a HYPOTHESIS here
 #: (resolve owns the decision); `experiment.*` is the part bytes genuinely cannot see.
@@ -51,8 +44,9 @@ DEFAULT_FIELDS = (
     "experiment.samples.condition",
 )
 
-_SYSTEM_INSTRUCTIONS = """\
-You extract factual claims from a scientific methods document into structured assertions.
+_INSTRUCTIONS = """\
+You extract factual claims from a scientific methods document into structured assertions, returned as
+json.
 
 You are one stage of a deterministic compiler. Downstream code independently re-greps every quote you
 produce and checks that the quote supports the value. Claims that fail either check are DISCARDED, so
@@ -67,10 +61,10 @@ Rules:
    conclude the value from it. A quote that merely sits near the fact is not enough: for example,
    "we performed single-cell RNA-seq" does NOT support a specific chemistry version.
 4. Keep the quote tight — the shortest span that still supports the value.
-5. Return an empty list if the document supports nothing. That is a CORRECT and common answer.
+5. Return an empty `drafts` list if the document supports nothing. That is a CORRECT and common answer.
 6. Never emit character offsets. Code computes them.
-7. `llm_confidence` is how sure you are that the document states the claim — not how plausible the
-   claim is in general.
+7. `llm_confidence` (0.0-1.0) is how sure you are that the document states the claim — not how
+   plausible the claim is in general.
 
 Values:
 - `library.chemistry`: use the knowledge-base `id` when the document names that technology by any of
@@ -82,7 +76,7 @@ Values:
 
 
 class ExtractUnavailable(RuntimeError):
-    """The LLM surface cannot be reached (SDK missing, no credential, or the API failed)."""
+    """The LLM surface could not produce a usable batch (no provider, API error, or bad shape)."""
 
 
 class ExtractionResult(BaseModel):
@@ -101,21 +95,23 @@ class ExtractionOutcome:
 
     drafts: list[AssertionDraft]
     extractor: ExtractorProvenance
+    provider: str = ""
     usage: dict[str, int] = field(default_factory=dict)
 
     @property
     def cache_hit(self) -> bool:
-        """True iff the KB prefix was served from cache (0 across repeated calls => an invalidator)."""
-        return self.usage.get("cache_read_input_tokens", 0) > 0
+        """True iff the stable prefix was served from cache (0 across repeats => an invalidator)."""
+        return self.usage.get("cache_read_tokens", 0) > 0
 
 
 def build_kb_context(specs: dict[str, Spec]) -> str:
     """The stable prefix: what each KB technology is called in the wild.
 
-    Deterministic and frozen — sorted, no timestamps, no per-request ids — because prompt caching is a
-    prefix match and any byte change invalidates it. This is the alias knowledge that lets the model
-    map a paper's "Chromium Single Cell 3' v3" onto the id `10x-3p-gex-v3`; `verify` then checks the
-    same aliases from the same KB, so extraction and verification cannot disagree about vocabulary.
+    Deterministic and frozen — sorted, no timestamps, no per-request ids — because prefix caching (
+    explicit on Anthropic, automatic on DeepSeek) is a byte-prefix match and any change invalidates
+    it. This is the alias knowledge that lets the model map a paper's "Chromium Single Cell 3' v3"
+    onto the id `10x-3p-gex-v3`; `verify` then checks the same aliases from the same KB, so
+    extraction and verification cannot disagree about vocabulary.
     """
     lines = ["Knowledge-base technologies (use these ids for library.chemistry):", ""]
     for tech_id in sorted(specs):
@@ -127,6 +123,11 @@ def build_kb_context(specs: dict[str, Spec]) -> str:
             f"  aliases: {aliases}",
         ]
     return "\n".join(lines)
+
+
+def build_system_prompt(specs: dict[str, Spec], schema: dict[str, Any]) -> str:
+    """Instructions + json contract + KB aliases — one prompt, every provider, one prompt_version."""
+    return "\n\n".join([_INSTRUCTIONS, schema_prompt(schema), build_kb_context(specs)])
 
 
 def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
@@ -141,60 +142,59 @@ def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
     )
 
 
-def _default_client() -> Any:
-    try:
-        import anthropic
-    except ImportError as exc:  # pragma: no cover - depends on the host
-        raise ExtractUnavailable(
-            "the `anthropic` SDK is not installed; harvest extract is the only stage that needs it"
-        ) from exc
-    return anthropic.Anthropic()
+def llm_schema() -> dict[str, Any]:
+    """The wire schema, derived from the canonical model (R1 / design §1.8)."""
+    return ExtractionResult.model_json_schema()
 
 
 def extract_drafts(
     doc: NormalizedDoc,
     specs: dict[str, Spec],
     *,
-    client: Any | None = None,
-    model: str = DEFAULT_MODEL,
+    provider: LLMProvider | None = None,
+    model: str | None = None,
     fields: tuple[str, ...] = DEFAULT_FIELDS,
     max_tokens: int = 8000,
 ) -> ExtractionOutcome:
-    """Ask the model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides."""
-    client = client if client is not None else _default_client()
-    system = [
-        {"type": "text", "text": _SYSTEM_INSTRUCTIONS},
-        # cache breakpoint on the LAST system block: render order is tools -> system -> messages, so
-        # this caches the instructions + KB context together while the document stays uncached.
-        {
-            "type": "text",
-            "text": build_kb_context(specs),
-            "cache_control": {"type": "ephemeral"},
-        },
-    ]
+    """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides."""
     try:
-        response = client.messages.parse(
-            model=model,
+        llm = provider if provider is not None else resolve_provider()
+    except ProviderUnavailable as exc:
+        raise ExtractUnavailable(str(exc)) from exc
+
+    chosen = model or llm.default_model()
+    schema = llm_schema()
+    try:
+        response = llm.complete_json(
+            system=build_system_prompt(specs, schema),
+            user=_user_content(doc, fields),
+            schema=schema,
+            model=chosen,
             max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": _user_content(doc, fields)}],
-            output_format=ExtractionResult,
-            thinking={"type": "adaptive"},
         )
-    except ExtractUnavailable:
-        raise
-    except Exception as exc:  # SDK/network/API failure — a refusal to guess, not a crash
-        raise ExtractUnavailable(f"extraction call failed: {exc}") from exc
+    except ProviderUnavailable as exc:
+        raise ExtractUnavailable(str(exc)) from exc
 
-    parsed = getattr(response, "parsed_output", None)
-    if parsed is None:
-        raise ExtractUnavailable("model returned no parseable structured output")
+    # THE gate. json-object providers do not enforce shape, so this is where a malformed batch dies —
+    # loudly and wholesale, rather than as a half-parsed assertion leaking into the manifest (R2).
+    try:
+        parsed = ExtractionResult.model_validate_json(response.text)
+    except ValidationError as exc:
+        raise ExtractUnavailable(
+            f"{llm.name} returned output that does not match the AssertionDraft schema: {exc}"
+        ) from exc
 
-    extractor = ExtractorProvenance(model_id=model, prompt_version=EXTRACT_PROMPT_VERSION)
+    extractor = ExtractorProvenance(
+        # provenance records the provider too: the same prompt on a different model is a different
+        # extractor, and evals must be able to tell those runs apart.
+        model_id=f"{llm.name}/{chosen}",
+        prompt_version=EXTRACT_PROMPT_VERSION,
+    )
     return ExtractionOutcome(
         drafts=[_anchor(d, doc) for d in parsed.drafts],
         extractor=extractor,
-        usage=_usage(response),
+        provider=llm.name,
+        usage=response.usage,
     )
 
 
@@ -216,16 +216,3 @@ def _anchor(draft: AssertionDraft, doc: NormalizedDoc) -> AssertionDraft:
             )
         }
     )
-
-
-def _usage(response: Any) -> dict[str, int]:
-    usage = getattr(response, "usage", None)
-    if usage is None:
-        return {}
-    keys = (
-        "input_tokens",
-        "output_tokens",
-        "cache_creation_input_tokens",
-        "cache_read_input_tokens",
-    )
-    return {k: int(getattr(usage, k, 0) or 0) for k in keys}

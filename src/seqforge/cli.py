@@ -349,7 +349,12 @@ def harvest_normalize(
 @harvest_app.command("extract")
 def harvest_extract(
     docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
-    model: str | None = typer.Option(None, "--model", help="Override the extraction model."),
+    provider: str | None = typer.Option(
+        None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
+    ),
+    model: str | None = typer.Option(
+        None, "--model", help="Override the model (default: the provider's own default)."
+    ),
     verify: bool = typer.Option(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately (R5)."
     ),
@@ -360,21 +365,28 @@ def harvest_extract(
     """The ONE LLM touchpoint: prose -> AssertionDraft[] -> (verified) Assertion[].
 
     The model only proposes `{field, value, quote}`; code computes the offsets and decides what
-    survives. Exit 1 if the LLM surface is unavailable, 4 if any claim fails verification.
+    survives — which is what makes the provider swappable. Auto-detects DEEPSEEK_API_KEY /
+    ANTHROPIC_API_KEY. Exit 1 if the LLM surface is unavailable, 4 if any claim fails verification.
     """
     from .harvest import (
-        DEFAULT_MODEL,
         ExtractUnavailable,
+        ProviderUnavailable,
         extract_drafts,
         normalize_document,
+        resolve_provider,
         verify_drafts,
     )
     from .kb import load_all_specs
 
     specs = load_all_specs()
-    chosen = model or DEFAULT_MODEL
     state = Path(workspace) / ".seqforge"
     state.mkdir(parents=True, exist_ok=True)
+    try:
+        llm = resolve_provider(provider)
+    except ProviderUnavailable as exc:
+        typer.echo(json.dumps({"error": "no_provider", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    chosen = model or llm.default_model()
 
     all_drafts = []
     normalized = []
@@ -384,7 +396,7 @@ def harvest_extract(
         nd = normalize_document(doc)
         normalized.append(nd)
         try:
-            outcome = extract_drafts(nd, specs, model=chosen)
+            outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
         except ExtractUnavailable as exc:
             typer.echo(
                 json.dumps({"error": "llm_unavailable", "detail": str(exc)}, indent=2), err=True
@@ -396,6 +408,7 @@ def harvest_extract(
             usage_total[k] = usage_total.get(k, 0) + v
 
     payload: dict[str, object] = {
+        "provider": llm.name,
         "model": chosen,
         "n_drafts": len(all_drafts),
         "usage": usage_total,

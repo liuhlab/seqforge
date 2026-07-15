@@ -466,6 +466,32 @@ class EvalReport(BaseModel):
     cost: dict[str, float]; per_case: list[dict]
 ```
 
+### 1.7b The LLM provider is pluggable (implemented)
+
+`harvest extract` is the only LLM touchpoint, and nothing downstream trusts it: code re-greps every
+quote, checks entailment, and validates the batch against `AssertionDraft` before anything reaches a
+manifest. **That is precisely what makes the vendor swappable** — the provider choice is about cost
+and extraction quality, never about correctness guarantees. seqforge is therefore not locked to any
+vendor:
+
+| provider | structured output | caching | default model |
+|---|---|---|---|
+| `anthropic` | strict `json_schema` — shape **guaranteed** | explicit `cache_control` | `claude-opus-4-8` |
+| `deepseek` | `json_object` only — shape **not** enforced | automatic prefix caching | `deepseek-v4-pro` (V4-Flash ≈3× cheaper) |
+| `openai-compatible` | as above, any `base_url` | provider-dependent | caller-supplied |
+
+**The capability gap is contained, not papered over.** For json-object providers the schema and a
+worked example travel in the prompt (DeepSeek *requires* the word "json" plus an example), and
+`ExtractionResult.model_validate_json` is the gate: a wrong shape fails the **whole batch** loudly
+rather than leaking a half-parsed assertion. R2 is doing exactly its job. One prompt serves every
+provider, so `prompt_version` stays comparable across them; `ExtractorProvenance.model_id` records
+`provider/model`, because the same prompt on a different model is a different extractor and evals
+must be able to tell those runs apart.
+
+Selection is explicit-beats-implicit (`--provider` / `SEQFORGE_LLM_PROVIDER`, else auto-detect from
+`DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`), and **refuses rather than guessing** when no credential is
+present — silently extracting with a different model than intended is a provenance bug.
+
 ### 1.8 JSON Schema export — the single source of truth
 
 `Manifest.model_json_schema()` (2020-12) feeds validation (Pydantic itself) and docs. The **only**

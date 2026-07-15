@@ -51,9 +51,26 @@ increments per release within the month and resets when the month changes. The v
   `align-rna`; sacCer3 + index via liulab-genome): resolve decided `10x-3p-gex-v3` from bytes alone;
   1909/2000 recovered, 0 spurious, 0.7% unexplained; inverted strand collapsed to 49/2000.
   Skip-gated (exit 1 + a reason) wherever STAR/liulab-genome are absent.
+- **`harvest/`** — the fourth stage. `normalize` builds the canonical span space (two-rule hyphen
+  handling: a wrap hyphen inside a word closes up, a digit-adjacent semantic hyphen survives;
+  ligatures, line-unwrapping, NFKC). `verify` is the R5 tripwire — both flags code-owned and
+  fail-closed: `span_verified` (the quote really occurs) catches fabricated provenance;
+  `entailment_ok` (the quote actually supports the value, checked against the KB's own aliases)
+  catches the more dangerous failure — a real quote pinned to a wrong conclusion.
+- **`harvest extract` — the ONE LLM touchpoint, and vendor-neutral.** The model only proposes
+  `{field, value, quote}`: code overwrites `span.doc_sha256` (we know which doc we sent), discards
+  model-supplied offsets (models can't count characters), and validates every batch against the
+  canonical `AssertionDraft`. Providers: **anthropic** (strict `json_schema`, `claude-opus-4-8`),
+  **deepseek** (`json_object` mode, default **`deepseek-v4-pro`**; `deepseek-chat`/`-reasoner` are
+  deprecated 2026-07-24 so a V4 model is named explicitly), and **openai-compatible** (any
+  `base_url` — vLLM, Ollama, Together). Auto-detects `DEEPSEEK_API_KEY`/`ANTHROPIC_API_KEY`;
+  refuses rather than guessing when neither is set. The wire schema is derived from the canonical
+  model, never hand-maintained, with a CI guard that the strict transform drops every constraint the
+  strict subset rejects.
 - **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
-  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, and `kb e2e` (exit 3 on a
-  Blocker or failed gate, 4 on an open Conflict/question).
+  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`, and
+  `harvest normalize|extract|verify` (exit 3 on a Blocker or failed gate, 4 on an open
+  Conflict/question or a claim that fails the tripwire).
 - **mypy --strict** scope extended again to `manifest/`, `compose/`, and `workflows/` — a wrong type
   there poisons every emitted pipeline parameter.
 - **Day-one negatives** — truncated gzip → `TRUNCATED_GZIP`; an ONT run absent from the KB →
