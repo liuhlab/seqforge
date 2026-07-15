@@ -662,23 +662,32 @@
 
 
 <h1 id="seqforge">seqforge<a class="headerlink" href="#seqforge" title="Permanent link">&para;</a></h1>
-<p>seqforge turns a folder of sequencing files and some human-written prose into a <strong>pipeline that
-runs</strong> — without a human reading the prose and typing the answers in.</p>
+<p>seqforge works out <strong>what a sequencing dataset actually is</strong> — which technology made it, which file
+holds what — and compiles that into a pipeline that processes it correctly.</p>
+<p>It does not care where the data came from: your own sequencer, a core facility, a collaborator's
+drive, or a public archive.</p>
 <h2 id="the-problem">The problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
-<p>You have a public dataset. Somewhere there is a page saying <em>"single-cell RNA-seq, 10x Chromium 3′
-v3.1"</em>, and somewhere there is a folder of files called <code>SRR123_1.fastq.gz</code> and <code>SRR123_2.fastq.gz</code>.</p>
-<p>To process it you must answer questions the page does not answer. Which file holds the cell
-barcodes? (The <code>_1</code>/<code>_2</code> suffixes are an artifact of how the data was downloaded — they carry no
-reliable information.) How long is the barcode, and where does it start? Which direction was the RNA
-read in?</p>
-<p>Get one of those wrong and <strong>nothing crashes</strong>. The aligner exits successfully and hands you a count
+<p><strong>Sequencing files do not say what they are.</strong></p>
+<p>To process a dataset you have to know things no FASTQ file states. Which technology produced it.
+Which file holds the cell barcodes, how long a barcode is, and where in the read it starts. Which
+file holds the RNA, and which direction it was read in. Get any of them wrong and the results are
+wrong.</p>
+<p>What you have instead is prose: a sentence in a paper, a line in a core facility's spreadsheet, a
+README, an email, or nothing at all. It was written by a human for a human — incomplete, sometimes
+wrong, and never twice in the same format.</p>
+<p>The filenames are no help either. The <code>_1</code> and <code>_2</code> suffixes come from how the files were written or
+downloaded; they say nothing about which read is which.</p>
+<p>So somebody reads the prose, fills the gaps with an educated guess, and types it into a config. When
+that guess is wrong, <strong>nothing crashes</strong>. The aligner exits successfully and hands you a count
 matrix. The matrix is simply wrong — a bit emptier than it should be, in a way you would only catch
 by knowing what the right answer looked like.</p>
-<p>seqforge derives those answers from the data and checks them, rather than assuming them.</p>
+<p>Those answers are knowable. They are in the bytes, not in the description. So seqforge reads the
+bytes to derive them, treats the prose as a hypothesis to check rather than a fact, and stops when it
+cannot be sure.</p>
 <h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
     F["FASTQ files"] --&gt; P["probe&lt;br/&gt;&lt;i&gt;read the bytes&lt;/i&gt;"]
-    M["prose &amp;amp; database&lt;br/&gt;metadata"] --&gt; H["harvest&lt;br/&gt;&lt;i&gt;read the words&lt;/i&gt;"]
+    M["prose &amp;amp; metadata&lt;br/&gt;&lt;i&gt;paper, README, database&lt;/i&gt;"] --&gt; H["harvest&lt;br/&gt;&lt;i&gt;read the words&lt;/i&gt;"]
     P --&gt; R["resolve&lt;br/&gt;&lt;i&gt;score &amp;amp; decide&lt;/i&gt;"]
     H --&gt; R
     KB[("knowledge base&lt;br/&gt;one entry per&lt;br/&gt;technology")] --&gt; R
