@@ -67,12 +67,58 @@ increments per release within the month and resets when the month changes. The v
   refuses rather than guessing when neither is set. The wire schema is derived from the canonical
   model, never hand-maintained, with a CI guard that the strict transform drops every constraint the
   strict subset rejects.
+- **`evals/` — the harness that measures what unit tests cannot (brief §9).** Every other stage can be
+  pinned by "same bytes in, same artifact out"; two things here cannot, and both are load-bearing: the
+  LLM stage is **nondeterministic** (the same document has yielded different, both-correct,
+  both-span-verified quotes across runs — there is no output to snapshot, only a rate to measure), and
+  **prompt/KB edits are silent** (adding a KB alias changes extraction behavior without changing a
+  single test). Structure:
+  - **Cases are recipes, never bytes** (`evals/cases/<id>/inputs/recipe.yaml`): a few hundred bytes,
+    deterministic in `(spec, seed)`, regenerating byte-identically anywhere via the same `kb.generate`
+    the R10 round-trip uses — so a KB spec edit *moves the inputs with it*, no FASTQ enters git, and a
+    held-out case (`kind: local`, root from out-of-git env) uses the same format: ground truth committed,
+    bytes wherever the maintainer keeps them. A missing root **skips** — never a pass, never a fail.
+  - **Grading encodes the asymmetry that a refusal is cheap and a wrong manifest is not.** A 3x3
+    confusion, not a pass/fail bit: `false_accept` (decided wrong, or decided at all when it should
+    have stopped) is the headline; `false_refuse`, `over_ask` (a cost regression, not a correctness
+    one), `mis_triage`, and `wrong_reason` (right outcome, wrong BlockerCode/conflict — counting it
+    green would let a blocker's *meaning* rot untested) are tracked apart because they cost differently.
+    A harvest hallucination **rolls up to `false_accept`**: bytes can never contradict `experiment.*`,
+    so a verified-but-wrong assertion reaches the manifest unchallenged.
+  - **Trials are first-class.** `--trials N` re-runs each prose case; a case is correct only if *every*
+    trial is. A stage right 4 times in 5 is not right, and averaging that away is how a harness lies.
+  - **9 seed cases** covering all three outcome classes: 4 byte-only positives (10x v2/v3 — the pair
+    that catches a length gate loosening; bulk PE — the case guarding *single-cell scoring well on bulk*;
+    splitseq — role inversion), the 3 day-one negatives, and 2 prose cases. The sharpest is
+    `chemistry-unstated-trap`: the bytes really *are* v3 and the prose really does describe that
+    experiment without naming it, so a model answering "v3" is **correct about the world and wrong at
+    its job** — the one case where being right is a failure. Verified: the R5 tripwire rejects it
+    unaided (no span entails the claim), before grading is even reached.
+  - `eval run` defaults to `--no-llm` (runs in a keyless CI; prose cases skip). Exit 3 on **any**
+    false-accept — not on a slider, because no threshold makes one tolerable — or below `--fail-under`.
+  - The harness immediately earned itself: it caught that a case asserted the metadata-vs-reads conflict
+    on `library.chemistry`, when design §958 specifies it on **geometry** (`library.read_layout.R1.length`,
+    26 asserted vs 28 observed). The design was right and the case was a guess; `positions` is now the
+    load-bearing assertion, since a field-name check alone passes even if both sides collapse to one value.
 - **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
-  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`, and
+  emits the evidence matrices), `manifest fill|validate|hash`, `compose`, `kb e2e`,
   `harvest normalize|extract|verify` (exit 3 on a Blocker or failed gate, 4 on an open
-  Conflict/question or a claim that fails the tripwire).
-- **mypy --strict** scope extended again to `manifest/`, `compose/`, and `workflows/` — a wrong type
-  there poisons every emitted pipeline parameter.
+  Conflict/question or a claim that fails the tripwire), and `eval list|run`.
+- **Reproducible `.fastq.gz` — one writer, three callers.** The evals determinism test failed ~1 run in
+  3 and the cause was real, not a test artifact: `gzip.open(path, "wt")` stamps the **current mtime**
+  into the gzip header, so identical reads written a second apart produce different bytes. Everything
+  downstream is content-addressed by file sha256 (R7), so a wall-clock-dependent header silently
+  changes the dataset id — two runs over the same synthetic input could never share a cache entry, and
+  "deterministic in (spec, seed)" was quietly false at the byte level where it is claimed. The writer
+  was duplicated at three production sites (`kb/roundtrip`, `e2e`, `evals/case`), each carrying the
+  same latent bug; there is now one `kb.generate.write_fastq_gz` (`mtime=0`, `filename=""`) and the
+  others delegate. Guarded by a test that asserts the header's mtime field directly, so the property
+  cannot regress back into an intermittent flake.
+- `resolve_dataset` takes `Sequence[str | Path]`, not `list` — mypy caught that an invariant `list`
+  forced callers holding a `list[Path]` to copy it. An API defect, not a caller bug.
+- **mypy --strict** scope extended again to `manifest/`, `compose/`, `workflows/`, `harvest/`, and
+  `evals/` — a wrong type poisons every emitted pipeline parameter, and in `evals/` it silently
+  corrupts a metric (a broken measuring instrument is worse than none: it still reads green).
 - **Day-one negatives** — truncated gzip → `TRUNCATED_GZIP`; an ONT run absent from the KB →
   `UNSUPPORTED_TECHNOLOGY` (refused, not guessed); metadata v2 vs 28 bp reads → a surfaced `Conflict`.
 - Design (`docs/design.md`), rules (`CLAUDE.md`), and rationale (`PROJECT_BRIEF.md`) in place.

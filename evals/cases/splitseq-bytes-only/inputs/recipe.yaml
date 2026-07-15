@@ -1,0 +1,7 @@
+# Combinatorial SPLiT-seq: 3 rounds of 8 bp barcodes separated by two fixed 30 bp linkers.
+generate:
+  kind: spec
+  spec: splitseq
+  n: 3000
+  seed: 0
+  onlists: synthetic

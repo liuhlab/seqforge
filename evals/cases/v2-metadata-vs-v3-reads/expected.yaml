@@ -1,0 +1,22 @@
+outcome: ask
+description: >-
+  Day-one negative 3, and the R6 case: observed bytes (28 bp -> v3) contradict asserted metadata (v2).
+
+  Note what is NOT expected. Not refuse — the disagreement is answerable, so blocking would strand a
+  human with no question (false_refuse). Not decide — even though the bytes are right and the library
+  does take v3, silently discarding the metadata claim would be a false_accept with a correct value:
+  the manifest would read as though nothing ever disagreed. Three truths, never merged.
+
+  The conflict is asserted on GEOMETRY, not on the chemistry name, per design §958: the surfaced pair
+  is "26 bp asserted vs 28 bp observed". That is the deliberate choice — the concrete, reads-decidable
+  quantity rather than the label inferred from it. (This case originally asserted library.chemistry;
+  the harness caught it, and the design was right.) positions is the real assertion here: a field-name
+  check alone would still pass if both sides collapsed to the same value.
+conflict:
+  kind: observed_vs_asserted
+  field: library.read_layout.R1.length
+  positions:
+    asserted: "26"
+    observed: "28"
+fields:
+  library.chemistry: 10x-3p-gex-v3

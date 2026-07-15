@@ -1,0 +1,7 @@
+# Paired-end bulk RNA-seq: no barcode, no UMI, no onlist to reach for.
+generate:
+  kind: spec
+  spec: bulk-rnaseq-pe
+  n: 3000
+  seed: 0
+  onlists: none

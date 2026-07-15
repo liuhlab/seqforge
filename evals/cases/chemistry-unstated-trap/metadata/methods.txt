@@ -1,0 +1,13 @@
+Droplet-based single-cell transcriptomic profiling of Caenorhabditis elegans neurons
+
+Methods
+
+Caenorhabditis elegans were maintained on NGM plates seeded with E. coli OP50 at 20 C. Neuronal
+nuclei were isolated from synchronized populations and subjected to droplet-based single-cell
+RNA-seq using a commercial microfluidic platform following the manufacturer's recommended protocol.
+
+Barcoded cDNA was amplified and libraries were sequenced to a depth of approximately 40,000 read
+pairs per cell. Sequencing was performed on an Illumina platform in paired-end mode.
+
+Count matrices were generated with a standard barcode-aware alignment pipeline and downstream
+analysis was performed in R.

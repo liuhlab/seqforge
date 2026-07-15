@@ -1,0 +1,18 @@
+Single-cell RNA sequencing of Caenorhabditis elegans L4-stage larvae
+
+Methods
+
+Synchronized L4-stage larvae of Caenorhabditis elegans (strain N2) were washed three times in M9
+buffer and dissociated at 20 C using a combination of SDS-DTT treatment and pronase digestion.
+Cell suspensions were passed through a 5 um filter and viability was confirmed by trypan blue
+exclusion (>90% viable). Approximately 12,000 cells were loaded per lane with a target recovery of
+7,000 cells.
+
+Libraries were prepared using the Chromium Single Cell 3' v3 Reagent Kit according to the
+manufacturer's instructions. Reverse transcription was carried out for 45 min at 53 C, followed by
+12 cycles of cDNA amplification. Final libraries were quantified by Qubit and sized on an Agilent
+Bioanalyzer, then sequenced on an Illumina NovaSeq 6000 with 28 cycles for read 1 and 91 cycles for
+read 2.
+
+Reads were aligned to the WBcel235 reference assembly. Cells with fewer than 200 detected genes or
+more than 25% mitochondrial counts were excluded from downstream analysis.

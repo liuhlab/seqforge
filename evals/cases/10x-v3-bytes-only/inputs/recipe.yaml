@@ -1,0 +1,7 @@
+# Clean 10x 3' GEX v3, whitelist available: the rung-3 happy path.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic

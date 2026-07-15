@@ -1,0 +1,7 @@
+# The bytes ARE v3. The prose never says so. Those two facts are the whole case.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic

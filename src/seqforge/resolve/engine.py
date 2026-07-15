@@ -8,6 +8,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,7 +61,9 @@ def exit_code_for(result: ResolveResult) -> int:
 
 
 def resolve_dataset(
-    paths: list[str | Path],
+    # Sequence, not list: the engine only iterates. `list` is invariant, so a caller holding a
+    # perfectly good list[Path] could not pass it without a copy — an API defect, not a caller bug.
+    paths: Sequence[str | Path],
     *,
     registry: OnlistRegistry | None = None,
     specs: dict[str, Spec] | None = None,

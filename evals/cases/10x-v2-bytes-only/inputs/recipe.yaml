@@ -1,0 +1,7 @@
+# v2 differs from v3 by 2 bp of barcode read (26 vs 28). The whole case is that gap.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v2
+  n: 3000
+  seed: 0
+  onlists: synthetic

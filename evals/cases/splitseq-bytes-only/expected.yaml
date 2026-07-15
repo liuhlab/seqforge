@@ -1,0 +1,11 @@
+outcome: decide
+description: >-
+  Combinatorial indexing — structurally unlike 10x: three 8 bp round barcodes pinned by two constant
+  30 bp linkers, and the biological read is R1 rather than R2. This case is why the harness generates
+  from spec.reads instead of shipping bytes: the linker sequences are pinned from scg_lib_structs, so
+  if the spec is edited the inputs move with it and a wrong edit surfaces as a failure here.
+  Guards the read-role inversion (cdna first, barcode second) that a 10x-shaped assumption would break.
+fields:
+  library.chemistry: splitseq
+  library.roles.cdna: cdna
+  library.roles.bc: bc

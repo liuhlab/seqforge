@@ -1,0 +1,24 @@
+outcome: decide
+description: >-
+  The full-stack happy path: prose and bytes agree, so harvest's hypothesis steers and resolve
+  confirms. The document is seeded with three traps that a pattern-completing extractor falls into:
+  an Illumina NovaSeq 6000 (a sequencer, not a chemistry), "28 cycles for read 1" (the v3 barcode
+  length spelled out in prose — a correct fact that must NOT be re-derived into a chemistry claim
+  from a quote about cycle counts), and WBcel235 (an assembly, not an organism, though it entails one
+  to anyone with background knowledge — which rule 1 forbids using).
+
+  forbidden_fields is the real assertion. The document never states a tissue or a condition, and
+  never gives an accession. "Whole L4-stage larvae" is not a tissue; a reader wanting to fill the
+  field would have to invent one. Silence is the correct answer, and only forbidden_fields rewards it
+  — measuring recall alone would train the prompt to guess.
+fields:
+  library.chemistry: 10x-3p-gex-v3
+assertions:
+  - field: library.chemistry
+    value: 10x-3p-gex-v3
+  - field: experiment.organism
+    value: Caenorhabditis elegans
+forbidden_fields:
+  - experiment.accessions
+  - experiment.samples.tissue
+  - experiment.samples.condition

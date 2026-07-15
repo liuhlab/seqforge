@@ -1,0 +1,8 @@
+# v3 bytes AND prose that names v3: metadata and bytes agree. No declared hypothesis — the whole
+# point is that harvest must produce it from the prose, so this case only runs under --llm.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic

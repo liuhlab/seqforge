@@ -1,0 +1,9 @@
+outcome: refuse
+description: >-
+  Day-one negative 1. The cruel part is that the surviving 60% of R1 is genuine v3 — every structural
+  test passes on it. A resolver that scored what it could read would decide 10x-3p-gex-v3 with high
+  confidence and be RIGHT about the chemistry while silently processing a truncated library. That is
+  why this expects refuse, not decide: the correct answer is not the chemistry, it is that these bytes
+  are unfit to process at all. Grades false_accept if it decides.
+blockers:
+  - TRUNCATED_GZIP

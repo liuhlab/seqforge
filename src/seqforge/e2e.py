@@ -24,7 +24,6 @@ everywhere else and runs on a Linux compute node.
 
 from __future__ import annotations
 
-import gzip
 import random
 import re
 import subprocess
@@ -36,6 +35,7 @@ from . import __version__
 from .compose import plan as compose_plan
 from .io import OnlistRegistry
 from .kb import load_spec
+from .kb.generate import write_fastq_gz as _write_fastq_gz
 from .manifest import ExperimentInputs, ProcessingInputs, fill_manifest, validate_manifest
 from .models.manifest import SampleGroup
 from .probe import probe_file
@@ -197,9 +197,8 @@ def simulate(
 
 
 def write_fastq_gz(path: Path, seqs: list[str], prefix: str) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@{prefix}:{i}\n{s}\n+\n{'I' * len(s)}\n")
+    """Reproducible fastq.gz. Delegates to the KB's single writer (mtime-pinned; see its docstring)."""
+    _write_fastq_gz(path, seqs, prefix=prefix)
 
 
 def parse_solo_matrix(solo_dir: Path) -> dict[tuple[str, str], int]:

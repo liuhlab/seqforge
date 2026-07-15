@@ -1,0 +1,10 @@
+# Valid v3 reads, then R1's gzip member is cut mid-stream at 60%: truncated, not merely corrupt.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic
+  truncate:
+    file: R1
+    fraction: 0.6

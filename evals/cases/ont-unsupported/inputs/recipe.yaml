@@ -1,0 +1,8 @@
+# A single long-read file (500-3000 bp): no KB technology's read set can be satisfied.
+generate:
+  kind: random
+  name: ont_run
+  n: 200
+  min_len: 500
+  max_len: 3000
+  seed: 0

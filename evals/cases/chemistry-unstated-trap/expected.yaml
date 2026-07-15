@@ -1,0 +1,29 @@
+outcome: decide
+description: >-
+  The hallucination trap, and the sharpest case in the set: the bytes really ARE 10x-3p-gex-v3, and
+  the prose really does describe that experiment — "droplet-based", "commercial microfluidic
+  platform", "barcoded cDNA" — without ever naming the chemistry. Every clue points at the right
+  answer. It is still not stated.
+
+  So a model that emits library.chemistry: 10x-3p-gex-v3 here is CORRECT about the world and wrong at
+  its job, and the harness must say so. It grades false_accept via forbidden_fields even though the
+  value matches what resolve independently decides from bytes. This is the one case where being right
+  is a failure, and it exists because a guess that happens to land is indistinguishable from
+  knowledge until the day it doesn't.
+
+  Note the assertion this makes about the R5 tripwire: quote-and-entail should catch this on its own,
+  because no verbatim span of this document entails a v3 chemistry. If a claim ever survives here,
+  entailment is too loose — and that is a finding about the verifier, not just the prompt.
+
+  Resolve still decides v3: the bytes are unambiguous and need no help from prose. Correct extraction
+  is silence on chemistry, and the organism (stated outright) is still required.
+fields:
+  library.chemistry: 10x-3p-gex-v3
+assertions:
+  - field: experiment.organism
+    value: Caenorhabditis elegans
+forbidden_fields:
+  - library.chemistry
+  - experiment.accessions
+  - experiment.samples.tissue
+  - experiment.samples.condition

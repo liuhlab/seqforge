@@ -7,21 +7,18 @@ distinct-ratio). Uses a temp directory; touches no real data.
 
 from __future__ import annotations
 
-import gzip
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from ..probe import probe_file
 from ..probe.signals import window_distinct_ratio
-from .generate import generate_reads
+from .generate import generate_reads, write_fastq_gz
 from .loader import load_spec
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+    write_fastq_gz(path, seqs)
 
 
 def run_roundtrip(tech_id: str, *, n: int = 2000, seed: int = 0) -> dict[str, Any]:

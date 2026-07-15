@@ -1,0 +1,8 @@
+outcome: decide
+description: >-
+  The confusability case, run from the other side. v2 and v3 are separated by 2 bp of barcode read
+  (26 vs 28) and nothing else structural. Paired with 10x-v3-bytes-only this is the pair that catches
+  a length gate loosening: widen the v3 tolerance and v2 gets swallowed, which shows up here as a
+  false_accept rather than as a green test suite.
+fields:
+  library.chemistry: 10x-3p-gex-v2

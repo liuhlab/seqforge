@@ -1,0 +1,8 @@
+outcome: refuse
+description: >-
+  Day-one negative 2. A technology the KB has never heard of. Refusal must be the answer even though
+  a nearest-neighbour ranking always exists — something always scores highest, and "highest" is not
+  "right". This is the case that keeps the scorer from becoming a classifier with no reject option,
+  which is precisely what would silently mislabel the long tail of ~10^4 public datasets.
+blockers:
+  - UNSUPPORTED_TECHNOLOGY

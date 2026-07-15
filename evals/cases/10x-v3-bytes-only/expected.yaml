@@ -1,0 +1,11 @@
+outcome: decide
+description: >-
+  Clean v3 with the whitelist registered. Bytes alone must settle chemistry AND the file->role map:
+  no metadata, no filename semantics. The role assertions are the real content here — the resolver
+  never sees the names R1/R2, it assigns by structure, so this pins WHICH file it called the barcode
+  read. Getting chemistry right while swapping the roles would emit a pipeline that reads cDNA as a
+  barcode, and no chemistry-only assertion would notice.
+fields:
+  library.chemistry: 10x-3p-gex-v3
+  library.roles.R1: R1
+  library.roles.R2: R2

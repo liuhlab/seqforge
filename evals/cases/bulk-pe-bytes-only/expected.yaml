@@ -1,0 +1,9 @@
+outcome: decide
+description: >-
+  The no-barcode branch: two diverse reads and nothing to look up. This is the case that guards the
+  scoring engine's most dangerous failure direction — a single-cell technology scoring well on bulk
+  data. Bulk has no positive structural signature, only the absence of one, so a chemistry whose
+  gates are too permissive lands HERE as a false_accept. A real instance of exactly this (bulk
+  outscoring splitseq on splitseq's own reads) is why the cDNA-role supports exist.
+fields:
+  library.chemistry: bulk-rnaseq-pe

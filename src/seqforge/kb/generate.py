@@ -8,11 +8,32 @@ the recurrence signal (low distinct-ratio) is realistic; UMIs are fresh-random (
 
 from __future__ import annotations
 
+import gzip
 import random
+from pathlib import Path
 
 from .schema import Element, Spec
 
 _BASES = "ACGT"
+
+
+def write_fastq_gz(path: Path, seqs: list[str], *, prefix: str = "SIM") -> None:
+    """Write a REPRODUCIBLE ``.fastq.gz``: same reads in, same bytes out, hence the same sha256.
+
+    ``gzip.open(path, "wt")`` stamps the current mtime into the gzip header (and embeds the source
+    filename), so regenerating identical reads a second later produces different bytes. Everything
+    downstream is content-addressed by file sha256 (R7), so a wall-clock-dependent header silently
+    changes the dataset id — two runs over the same synthetic input never share a cache entry, and
+    "deterministic in (spec, seed)" quietly stops being true at the byte level where it is claimed.
+    ``mtime=0`` + ``filename=""`` make the output a pure function of the reads.
+
+    One writer, because this was duplicated at three sites and each carried the same latent bug.
+    """
+    payload = "".join(
+        f"@{prefix}:{i}\n{s}\n+\n{'I' * len(s)}\n" for i, s in enumerate(seqs)
+    ).encode()
+    with open(path, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
+        gz.write(payload)
 
 
 def _rand(rng: random.Random, n: int) -> str:

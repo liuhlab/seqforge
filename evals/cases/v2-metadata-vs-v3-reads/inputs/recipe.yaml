@@ -1,0 +1,10 @@
+# The reads are v3 (28 bp). The metadata says v2. Both truths are stated; neither is deleted.
+# The hypothesis is declared here rather than harvested so this case runs in a CI with no API key —
+# the disagreement being tested is resolve's, not the extractor's.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic
+hypothesis: 10x-3p-gex-v2
