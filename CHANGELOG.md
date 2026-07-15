@@ -78,6 +78,15 @@ GeneFull_Ex50pAS, Velocyto]`, `primary_feature = Gene`. Gene counted **none** of
 intronic reads (1186 vs 1212 exonic); GeneFull recovered 1940 of 2000. The 40.7 % is now a
 *counterfactual* measured on a run that did not throw the signal away.
 
+**Evals re-baselined after the prompt bump** (brief §9 treats a prompt edit as a code change), on
+`deepseek-v4-pro`, prompt `2026.7.2`: 9 gradeable cases, `field_accuracy = 1.0`,
+**`false_accept_rate = 0.0`**, `false_refuse_rate = 0.0`, 0 missed questions, 2 LLM calls. The two
+prose cases (`10x-v3-prose`, `chemistry-unstated-trap`) exercise the sole LLM touchpoint and both
+grade correct. `PRJNA1027859` skips, as it must until it is run once, on the maintainer's word.
+The baseline is **provider-scoped**: provenance records the provider because the same prompt on a
+different model is a different extractor, so this number is a claim about deepseek-v4-pro and does
+not transfer to another backend without re-running.
+
 **No regression on sacCer3** (job 2680656): passed, and *bit-identical* to the pre-change baseline —
 1 909/2 000 recovered, STAR uniquely mapped 1 923 with 77 multi/too-many, strand inversion still
 caught at 49. Every number matches the run recorded in design.md §4.1 before the split. The all-5
