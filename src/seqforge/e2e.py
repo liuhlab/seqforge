@@ -24,13 +24,21 @@ everywhere else and runs on a Linux compute node.
 
 from __future__ import annotations
 
+import gzip
+import hashlib
+import json
+import multiprocessing
+import os
 import random
 import re
-import resource
 import subprocess
+import sys
 import time
 from collections import defaultdict
+from collections.abc import Sequence
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
+from itertools import product as _product
 from pathlib import Path
 
 from . import __version__
@@ -50,7 +58,15 @@ from .probe import probe_file
 from .resolve import resolve_dataset
 
 _GENE_ID = re.compile(r'gene_id "([^"]+)"')
-_BIOTYPE = re.compile(r'gene_biotype "([^"]+)"')
+#: Ensembl and WormBase spell it ``gene_biotype``; GENCODE spells it ``gene_type``. Match both.
+#:
+#: This was ``gene_biotype`` alone until hg38 arrived, and every assembly the gates had used until
+#: then (sacCer3/ensembl_R64-1-1, ce11/WS298) is Ensembl-flavoured — so the pattern was never wrong
+#: in a run anyone made. On a GENCODE GTF it matches nothing, and because the filter below reads
+#: ``if biotype and ...``, matching nothing meant *filtering* nothing: it failed OPEN, silently
+#: admitting every lncRNA and pseudogene to a fixture whose docstring promises protein-coding genes.
+#: :func:`_parse_exons` now refuses a GTF it cannot filter rather than quietly widening.
+_BIOTYPE = re.compile(r'gene_(?:bio)?type "([^"]+)"')
 _COMPLEMENT = str.maketrans("ACGTN", "TGCAN")
 
 #: The pilot's e2e chemistry: 16 bp CB + 12 bp UMI on R1, cDNA on R2, soloStrand Forward.
@@ -107,6 +123,46 @@ def read_fasta(path: Path) -> dict[str, str]:
     return chroms
 
 
+def _parse_exons(
+    gtf: Path, *, biotype: str = "protein_coding"
+) -> dict[str, list[tuple[str, int, int, str]]]:
+    """Collect ``gene_id -> [(chrom, start, end, strand)]`` for exons of the wanted biotype.
+
+    **This refuses rather than widens.** A GTF whose exon lines carry no recognized biotype attribute
+    at all cannot be filtered, and the honest options are to error or to silently keep everything.
+    Keeping everything is what the Ensembl-only pattern used to do on a GENCODE GTF, and it is the
+    worse failure precisely because it does not look like one: the fixture still builds, the gate
+    still passes, and the gene universe is quietly the wrong one. So we raise.
+    """
+    exons: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
+    n_exon_lines = 0
+    n_typed = 0
+    with open(gtf) as fh:
+        for line in fh:
+            if line.startswith("#"):
+                continue
+            f = line.rstrip("\n").split("\t")
+            if len(f) < 9 or f[2] != "exon":
+                continue
+            n_exon_lines += 1
+            found = _BIOTYPE.search(f[8])
+            if found is not None:
+                n_typed += 1
+                if found.group(1) != biotype:
+                    continue
+            gid = _GENE_ID.search(f[8])
+            if not gid:
+                continue
+            exons[gid.group(1)].append((f[0], int(f[3]), int(f[4]), f[6]))
+    if n_exon_lines and not n_typed:
+        raise E2EUnavailable(
+            f"{gtf} has {n_exon_lines} exon lines and not one carries `gene_biotype` or `gene_type`, "
+            f"so the {biotype!r} filter would pass every biotype through and the fixture would be "
+            "built from an annotation we cannot filter. Refusing instead of silently widening."
+        )
+    return exons
+
+
 def load_genes(
     fasta: Path, gtf: Path, *, min_len: int = 600, max_genes: int = 120, seed: int = 0
 ) -> list[tuple[str, str]]:
@@ -117,21 +173,7 @@ def load_genes(
     cDNA read carries — that identity is exactly what ``soloStrand Forward`` asserts.
     """
     chroms = read_fasta(fasta)
-    exons: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
-    with open(gtf) as fh:
-        for line in fh:
-            if line.startswith("#"):
-                continue
-            f = line.rstrip("\n").split("\t")
-            if len(f) < 9 or f[2] != "exon":
-                continue
-            biotype = _BIOTYPE.search(f[8])
-            if biotype and biotype.group(1) != "protein_coding":
-                continue
-            gid = _GENE_ID.search(f[8])
-            if not gid:
-                continue
-            exons[gid.group(1)].append((f[0], int(f[3]), int(f[4]), f[6]))
+    exons = _parse_exons(gtf)
 
     genes: list[tuple[str, str]] = []
     for gene_id, parts in exons.items():
@@ -146,11 +188,17 @@ def load_genes(
                 merged[-1] = (merged[-1][0], max(merged[-1][1], e))
             else:
                 merged.append((s, e))
-        seq = "".join(chroms[chrom][s - 1 : e] for s, e in merged)  # GTF is 1-based inclusive
+        # .upper() BEFORE _revcomp, not after: _COMPLEMENT maps ACGTN only, so a soft-masked base
+        # would be reversed but never complemented, and a trailing .upper() would then launder the
+        # wrong base into plausible sequence. Dormant on every assembly this lab currently ships
+        # (all are unmasked), which is exactly why it needs to be structural rather than lucky.
+        seq = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
         if strand == "-":
             seq = _revcomp(seq)
         if len(seq) >= min_len and "N" not in seq:
-            genes.append((gene_id, seq.upper()))
+            genes.append((gene_id, seq))
 
     genes.sort()  # deterministic before sampling
     rng = random.Random(seed)
@@ -210,21 +258,7 @@ def load_gene_models(
     than approximate — the same discipline as the unique-UMI trick in :func:`simulate`.
     """
     chroms = read_fasta(fasta)
-    exons: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
-    with open(gtf) as fh:
-        for line in fh:
-            if line.startswith("#"):
-                continue
-            f = line.rstrip("\n").split("\t")
-            if len(f) < 9 or f[2] != "exon":
-                continue
-            biotype = _BIOTYPE.search(f[8])
-            if biotype and biotype.group(1) != "protein_coding":
-                continue
-            gid = _GENE_ID.search(f[8])
-            if not gid:
-                continue
-            exons[gid.group(1)].append((f[0], int(f[3]), int(f[4]), f[6]))
+    exons = _parse_exons(gtf)
 
     # every exon, genome-wide (any biotype filter already applied) — the ambiguity mask
     all_exons: dict[str, list[tuple[int, int]]] = defaultdict(list)
@@ -244,7 +278,11 @@ def load_gene_models(
         if chrom not in chroms:
             continue
         merged = _merge([(s, e) for _c, s, e, _st in parts])
-        mrna = "".join(chroms[chrom][s - 1 : e] for s, e in merged)  # GTF is 1-based inclusive
+        # .upper() BEFORE _revcomp (see load_genes): complementing a lowercase base is a no-op, so
+        # revcomp-then-upper silently emits reversed-but-uncomplemented sequence.
+        mrna = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
         if strand == "-":
             mrna = _revcomp(mrna)
         if len(mrna) < min_len or "N" in mrna:
@@ -265,7 +303,7 @@ def load_gene_models(
                 continue
             introns.append(_revcomp(seq) if strand == "-" else seq)
         if introns:
-            models.append(GeneModel(gene_id=gene_id, mrna=mrna.upper(), introns=tuple(introns)))
+            models.append(GeneModel(gene_id=gene_id, mrna=mrna, introns=tuple(introns)))
 
     rng = random.Random(seed)
     rng.shuffle(models)
@@ -428,22 +466,39 @@ def parse_solo_matrix(solo_dir: Path) -> dict[tuple[str, str], int]:
     return counts
 
 
+def _fq_arg(fq: Path | Sequence[Path]) -> str:
+    """One path, or STAR's comma-separated list form for a sharded mate.
+
+    Order matters and is the caller's responsibility: STAR pairs the Nth cDNA shard with the Nth
+    barcode shard, so the two lists must be built in lockstep. They are — the sharder appends to both
+    in the same loop.
+    """
+    if isinstance(fq, Path):
+        return str(fq)
+    if not fq:
+        raise E2EUnavailable("no FASTQ shards were produced")
+    return ",".join(str(p) for p in fq)
+
+
 def run_starsolo(
     assets: E2EAssets,
     *,
-    cdna_fq: Path,
-    barcode_fq: Path,
+    cdna_fq: Path | Sequence[Path],
+    barcode_fq: Path | Sequence[Path],
     whitelist: Path,
     solo: dict[str, object],
     outdir: Path,
     threads: int = 8,
     cost: dict[str, object] | None = None,
+    timeout: int = 1800,
+    out_sam_type: tuple[str, ...] = ("None",),
+    extra_args: tuple[str, ...] = (),
 ) -> Path:
     """Run STARsolo with the COMPOSED params (this is what makes the gate test the compiler).
 
     ``cost``, if given, is populated with this STAR run's wall-clock and peak RSS. It is an
     out-param rather than a return value because every existing caller wants the matrix path and
-    nothing else; the measurement is a side channel for the one caller that is pricing a default.
+    nothing else; the measurement is a side channel for the callers that are pricing a default.
     """
     outdir.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -454,10 +509,11 @@ def run_starsolo(
         str(assets.star_index),
         "--runThreadN",
         str(threads),
-        # --readFilesIn takes the cDNA read FIRST, then the barcode read
+        # --readFilesIn takes the cDNA read FIRST, then the barcode read. Each mate may be a
+        # comma-separated LIST, which is what lets sharded generation skip a merge step entirely.
         "--readFilesIn",
-        str(cdna_fq),
-        str(barcode_fq),
+        _fq_arg(cdna_fq),
+        _fq_arg(barcode_fq),
         "--readFilesCommand",
         "zcat",
         "--soloType",
@@ -478,24 +534,64 @@ def run_starsolo(
         *("--soloFeatures", *_feature_list(solo["soloFeatures"])),
         "--outFileNamePrefix",
         f"{outdir}/",
+        # `None` by default: the gates want a count matrix, not alignments, and writing a BAM they
+        # never read would be pure cost. But the SHIPPED module runs `BAM Unsorted`, so a cost arm
+        # that only ever prices `None` prices a command nobody runs -- which is why this is a
+        # parameter rather than a constant, and why `kb e2e-cost --out-sam-type` exists to measure
+        # the gap instead of estimating it in a docstring.
         "--outSAMtype",
-        "None",
+        *out_sam_type,
+        *extra_args,
     ]
-    started = time.monotonic()
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
-    elapsed = time.monotonic() - started
-    if proc.returncode != 0:
-        raise E2EUnavailable(f"STAR failed ({proc.returncode}): {proc.stderr[-2000:]}")
+    code, elapsed, maxrss_kib, err_tail = _run_measured(cmd, outdir=outdir, timeout=timeout)
+    if code != 0:
+        raise E2EUnavailable(f"STAR failed ({code}): {err_tail}")
     if cost is not None:
-        # ru_maxrss is a HIGH-WATER MARK over all reaped children, not a delta, so it is only
-        # attributable to STAR because STAR is the only heavy child of a `kb e2e-introns` process.
-        # Linux reports KiB (macOS bytes) — arc is Linux, and a cross-platform unit guess here would
-        # be a fabricated number, so record the raw value and its unit rather than converting.
-        maxrss_kib = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        # Linux reports ru_maxrss in KiB (macOS in bytes) — arc is Linux, and a cross-platform unit
+        # guess here would be a fabricated number, so record the raw value and its unit.
         cost["star_wall_s"] = round(elapsed, 2)
         cost["star_peak_rss_gb"] = round(maxrss_kib / 1024 / 1024, 3)
+        cost["star_peak_rss_kib"] = maxrss_kib
         cost["soloFeatures"] = _feature_list(solo["soloFeatures"])
     return outdir / "Solo.out" / _feature_list(solo["soloFeatures"])[0] / "raw"
+
+
+def _run_measured(cmd: list[str], *, outdir: Path, timeout: int) -> tuple[int, float, int, str]:
+    """Run ``cmd`` to completion; return ``(exit_code, wall_s, peak_rss_kib, stderr_tail)``.
+
+    ``os.wait4`` reports rusage for **the one child it reaps**, and that is the whole reason this
+    exists. The measurement here used to be ``resource.getrusage(RUSAGE_CHILDREN).ru_maxrss``, which
+    is a high-water mark over *every* child the process has ever reaped — so a second STAR run in the
+    same process inherits the first one's peak and can never report a smaller number. That was
+    invisible while ``kb e2e-introns`` ran STAR exactly once, and its comment said as much: correct
+    "because STAR is the only heavy child". A sweep runs STAR many times in one process, and every
+    point after the first would have been silently ``max()``-ed with its predecessors — an increasing
+    curve that would look exactly like the memory growth we are trying to measure. The assumption was
+    load-bearing, asserted by a comment, and enforced by nothing.
+
+    Output goes to files rather than pipes on purpose: ``Popen.communicate`` reaps the child itself,
+    which would leave ``wait4`` nothing to collect rusage from.
+    """
+    outdir.mkdir(parents=True, exist_ok=True)
+    err_log = outdir / "star.stderr.log"
+    started = time.monotonic()
+    with open(outdir / "star.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
+        proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh)
+        deadline = started + timeout
+        while True:
+            pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
+            if pid != 0:
+                break
+            if time.monotonic() > deadline:
+                proc.kill()
+                os.wait4(proc.pid, 0)
+                proc.returncode = -9
+                raise E2EUnavailable(f"STAR exceeded its {timeout}s budget")
+            time.sleep(0.2)
+    # Tell Popen the child is already reaped, so its own wait() does not race for an ECHILD.
+    proc.returncode = os.waitstatus_to_exitcode(status)
+    elapsed = time.monotonic() - started
+    return proc.returncode, elapsed, usage.ru_maxrss, err_log.read_text()[-2000:]
 
 
 def _feature_list(value: object) -> list[str]:
@@ -833,6 +929,664 @@ def run_intron_e2e(
     }
 
 
+def run_cost_sweep(
+    assets: E2EAssets,
+    *,
+    workdir: Path,
+    whitelist: Path,
+    sweep: tuple[int, ...] = (2_000_000, 8_000_000, 32_000_000),
+    n_cells: int = 5_000,
+    intron_frac: float = 0.4,
+    read_len: int = 90,
+    max_genes: int = 2_000,
+    threads: int = 16,
+    gen_jobs: int = 16,
+    seed: int = 0,
+    features: tuple[str, ...] | None = None,
+    out_sam_type: tuple[str, ...] = ("None",),
+    timeout: int = 24 * 3600,
+    keep_reads: bool = False,
+) -> dict[str, object]:
+    """Price STARsolo's peak RSS against read depth, on the compiler's own params.
+
+    **Why a sweep and not one big run.** A single number would be dominated by the thing that does
+    not vary: the hg38 index is ~30 GB resident before a single read is parsed, and on ce11 a 500x
+    increase in reads moved peak RSS by 5 MB — the measurement was almost entirely index. What
+    transfers to a corpus of 10^4 datasets of *different depths* is the line, not a point: an
+    intercept you pay per job and a slope you pay per read. So we fit both, and report the fit's
+    residual so a reader can see whether the linear model deserved to be believed.
+
+    The extrapolation is the deliverable and also the weakest link, which is why the result carries
+    ``extrapolation_factor`` explicitly: fitting to 32 M reads and quoting 500 M is a 16x reach, and
+    a reader who does not know that cannot judge the number.
+    """
+    workdir.mkdir(parents=True, exist_ok=True)
+    log: list[str] = []
+
+    def note(msg: str) -> None:
+        log.append(msg)
+        _progress(msg)
+
+    star_v = _star_version(assets.star_bin)
+    note(f"loading whitelist {whitelist}")
+    barcodes = read_whitelist(whitelist)
+    if len(barcodes) < n_cells:
+        raise E2EUnavailable(f"whitelist has {len(barcodes)} barcodes; need >= {n_cells}")
+    rng = random.Random(seed)
+    cbs = rng.sample(barcodes, n_cells)
+    note(f"whitelist: {len(barcodes)} barcodes; sampled {n_cells} as cells")
+
+    note(f"building gene models from {assets.gtf}")
+    models = load_cost_models(assets.fasta, assets.gtf, max_genes=max_genes, seed=seed)
+    if not models:
+        raise E2EUnavailable(f"no usable gene models from {assets.gtf}")
+    note(f"gene models: {len(models)}")
+
+    # The params are the compiler's, derived ONCE from a small fixture: they do not depend on read
+    # depth, and re-deriving them per point would only add ways for the arms to differ. Driving the
+    # real compiler (rather than hand-writing a STAR command line) is what makes this a measurement
+    # of *our pipeline* instead of a measurement of STARsolo in the abstract.
+    note("deriving params: resolve -> fill -> compose on a small fixture")
+    solo, wl_path, decided = _compose_cost_params(
+        assets,
+        workdir=workdir,
+        models=models,
+        cbs=cbs,
+        barcodes=barcodes,
+        features=features,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        seed=seed,
+    )
+    feature_list = _feature_list(solo["soloFeatures"])
+    note(f"compiler decided {decided!r}; soloFeatures = {feature_list}")
+
+    # Resume (R7: disk is state, context is cache). A preemptible partition can requeue this job at
+    # any moment, and a requeue that redid five hours of STAR would make the cheap partition the
+    # expensive one. A point already measured at this depth, under these same features, is a fact —
+    # so it is reloaded rather than recomputed. The features check is what makes that safe: the same
+    # depth measured under a different --quantify is a different measurement wearing the same tag.
+    partial_path = workdir / "cost_sweep.partial.json"
+    fingerprint = _cost_fingerprint(
+        feature_list=feature_list,
+        assembly=assets.assembly,
+        annotation=assets.annotation,
+        n_cells=n_cells,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        max_genes=max_genes,
+        threads=threads,
+        seed=seed,
+        star_version=star_v,
+        whitelist_entries=len(barcodes),
+        out_sam_type=out_sam_type,
+    )
+    done = _load_resumable_points(partial_path, fingerprint)
+    if done:
+        note(f"resuming ({fingerprint}): depths {sorted(done)} already measured")
+
+    points: list[dict[str, object]] = []
+    for n_reads in sweep:
+        tag = f"{n_reads // 1_000_000}M"
+        if n_reads in done:
+            points.append(done[n_reads])
+            note(f"{tag}: already measured ({done[n_reads].get('star_peak_rss_gb')} GB) — skipping")
+            continue
+        note(f"--- point {tag}: generating reads on {gen_jobs} cores ---")
+        t0 = time.monotonic()
+        cdna_fq, bc_fq, gen = write_cost_fastqs_sharded(
+            models,
+            n_reads=n_reads,
+            cbs=cbs,
+            out_dir=workdir,
+            tag=tag,
+            n_workers=gen_jobs,
+            intron_frac=intron_frac,
+            read_len=read_len,
+            seed=seed,
+        )
+        note(
+            f"{tag}: generated {n_reads} reads in {gen['n_shards']} shards, {time.monotonic() - t0:.0f}s"
+        )
+
+        outdir = workdir / f"star_{tag}"
+        cost: dict[str, object] = {}
+        note(f"{tag}: running STAR ({threads} threads)")
+        # The sweep ascends, and a point can fail for the very reason we are measuring: the biggest
+        # depth is the one that can exhaust the cgroup. Losing it must not lose the points below it,
+        # which already determine the slope — so a failure is recorded and the sweep moves on.
+        try:
+            run_starsolo(
+                assets,
+                cdna_fq=cdna_fq,
+                barcode_fq=bc_fq,
+                whitelist=wl_path,
+                solo=solo,
+                outdir=outdir,
+                threads=threads,
+                cost=cost,
+                timeout=timeout,
+                out_sam_type=out_sam_type,
+            )
+        except E2EUnavailable as exc:
+            note(f"{tag}: FAILED — {exc}")
+            points.append({"n_reads": n_reads, **gen, "failed": True, "error": str(exc)})
+        else:
+            points.append({"n_reads": n_reads, **gen, **cost, "star": star_stats(outdir)})
+            note(f"{tag}: peak RSS {cost.get('star_peak_rss_gb')} GB in {cost.get('star_wall_s')}s")
+        if not keep_reads:
+            for p in (*cdna_fq, *bc_fq):
+                p.unlink(missing_ok=True)
+            note(f"{tag}: reads deleted (--keep-reads to retain)")
+        # Disk is state (R7): a hard kill (Slurm OOM, wall-clock) must not cost us the points we
+        # already paid for, so every point is durable the moment it exists rather than at the end.
+        _atomic_write_json(
+            partial_path,
+            {"fingerprint": fingerprint, "soloFeatures": feature_list, "points": points},
+        )
+
+    measured = [p for p in points if not p.get("failed")]
+    fit = _fit_line([(int(p["n_reads"]), float(p["star_peak_rss_gb"])) for p in measured])  # type: ignore[arg-type]
+    return {
+        "assembly": assets.assembly,
+        "annotation": assets.annotation,
+        "star_version": star_v,
+        "fingerprint": fingerprint,
+        "decided_technology": decided,
+        "soloFeatures": feature_list,
+        "n_cells": n_cells,
+        "n_gene_models": len(models),
+        "whitelist_entries": len(barcodes),
+        "intron_frac": intron_frac,
+        "read_len": read_len,
+        # Both are recorded because both change the number: STAR's per-thread buffers are real, so a
+        # peak measured at 16 threads is a peak AT 16 THREADS and says nothing on its own about 48.
+        "threads": threads,
+        "gen_jobs": gen_jobs,
+        "out_sam_type": list(out_sam_type),
+        "points": points,
+        "fit": fit,
+        "log": log,
+    }
+
+
+def _compose_cost_params(
+    assets: E2EAssets,
+    *,
+    workdir: Path,
+    models: list[GeneModel],
+    cbs: list[str],
+    barcodes: list[str],
+    features: tuple[str, ...] | None,
+    intron_frac: float,
+    read_len: int,
+    seed: int,
+    n_probe_reads: int = 200_000,
+) -> tuple[dict[str, object], Path, str | None]:
+    """Drive resolve -> fill -> compose on a small fixture and return the params STAR should run.
+
+    The fixture is small because the probe is budgeted (R3) and none of resolve/fill/compose cares
+    how deep the library is — only the aligner does. Deriving the params from data rather than typing
+    them here is what keeps this honest: if the compiler stopped recognizing 10x v3, or stopped
+    emitting Velocyto, this reports that instead of quietly measuring a command line we wrote by hand.
+
+    The technology is **reported, not asserted**. v3 and v3.1 are byte-identical and declared
+    processing-equivalent, so the resolver is free to pick either; demanding one would be asserting
+    something the KB explicitly says is not decidable, and it makes no difference to memory.
+    """
+    probe_cdna = workdir / "params_probe_R2.fastq.gz"
+    probe_bc = workdir / "params_probe_R1.fastq.gz"
+    write_cost_fastqs(
+        models,
+        n_reads=n_probe_reads,
+        cbs=cbs,
+        cdna_path=probe_cdna,
+        bc_path=probe_bc,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        seed=seed,
+    )
+    spec = load_spec(E2E_TECH)
+    registry = OnlistRegistry(offline=True)
+    registry.register_synthetic("3M-february-2018", barcodes)
+    resolved = resolve_dataset(
+        [probe_bc, probe_cdna], registry=registry, workspace=workdir, use_cache=False
+    )
+    if not resolved.result.candidates:
+        raise E2EUnavailable("the resolver found no candidate technology for the cost fixture")
+    decided = resolved.result.candidates[0].technology
+    observations = [probe_file(p) for p in (probe_bc, probe_cdna)]
+    manifest = fill_manifest(
+        result=resolved.result,
+        spec=spec,
+        observations=observations,
+        registry=registry,
+        experiment=ExperimentInputs(
+            organism_taxid=9606,  # H. sapiens — the whole point of this arm
+            samples=[
+                SampleGroup(sample_id="cost", file_uris=[p.name for p in (probe_bc, probe_cdna)])
+            ],
+        ),
+        seqforge_version=__version__,
+    )
+    report = validate_manifest(manifest)
+    if not report.ok:
+        raise E2EUnavailable(
+            f"cost fixture manifest is invalid: {[b.code for b in report.blockers]}"
+        )
+    processing, _ = fill_processing(
+        spec=spec,
+        dataset=manifest,
+        processing=ProcessingInputs(
+            assembly=assets.assembly, annotation_name=assets.annotation, features=features
+        ),
+        seqforge_version=__version__,
+    )
+    composed = compose_plan(manifest, processing, registry=registry)
+    solo = dict(composed.config["solo"])  # type: ignore[arg-type]
+
+    # run_starsolo takes the whitelist as a path of its own (the composed value is a run-dir-relative
+    # name), exactly as the gates do it.
+    wl_path = workdir / "whitelist.txt"
+    lines = next(iter(composed.onlist_files.values()), None)
+    if lines is None:
+        raise E2EUnavailable("compose materialized no onlist, so --soloCBwhitelist has no file")
+    wl_path.write_text("\n".join(lines) + "\n")
+    for p in (probe_cdna, probe_bc):
+        p.unlink(missing_ok=True)
+    return solo, wl_path, decided
+
+
+def _load_resumable_points(partial_path: Path, fingerprint: str) -> dict[int, dict[str, object]]:
+    """Reload depths already measured under ``fingerprint``; ``{}`` if nothing is safe to reuse.
+
+    **The fingerprint must cover every input that moves the number, not just the interesting one.**
+    This checked only ``soloFeatures`` at first, on the reasoning that a Gene-only number spliced into
+    an all-five curve would corrupt the slope. True — and so would a number measured at different
+    threads (per-thread buffers are in the peak), different cells, a different assembly, or a
+    different read length. An audit caught it, and the sting was in the part I had not considered: the
+    partial file is **never deleted**, so a *completed* sweep leaves the resume armed. It needs no
+    preemption at all — a second invocation in the same workdir with ``--threads 48`` would silently
+    reuse the 16-thread points and report the blend as one line.
+
+    That is precisely the failure the guard was written to prevent, reintroduced by the guard being
+    narrower than the thing it guards. Anything unreadable is treated as absent: a cache is never
+    worth a wrong answer.
+    """
+    if not partial_path.is_file():
+        return {}
+    try:
+        prior = json.loads(partial_path.read_text())
+        if prior.get("fingerprint") != fingerprint:
+            return {}
+        return {int(p["n_reads"]): p for p in prior.get("points", []) if not p.get("failed")}
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return {}
+
+
+def _cost_fingerprint(
+    *,
+    feature_list: list[str],
+    assembly: str,
+    annotation: str,
+    n_cells: int,
+    intron_frac: float,
+    read_len: int,
+    max_genes: int,
+    threads: int,
+    seed: int,
+    star_version: str,
+    whitelist_entries: int,
+    out_sam_type: tuple[str, ...],
+) -> str:
+    """Everything a measured peak depends on, hashed — the key a resumed point must match.
+
+    Derived from the arguments rather than listed by hand somewhere else, because a hand-kept list of
+    what matters is the exact shape of defect this repo keeps finding. If a new knob starts moving the
+    number, it belongs in this signature and the type checker will say so at every call site.
+
+    ``gen_jobs`` is deliberately absent: it changes how fast the reads are written and nothing about
+    what they are (shard seeds derive from ``seed``), so it cannot move a peak. ``sweep`` is absent
+    too — depths are the x-axis, not a property of the curve, which is the whole reason a resumed run
+    may keep points from a shorter sweep.
+    """
+    payload = json.dumps(
+        {
+            "soloFeatures": feature_list,
+            "assembly": assembly,
+            "annotation": annotation,
+            "n_cells": n_cells,
+            "intron_frac": intron_frac,
+            "read_len": read_len,
+            "max_genes": max_genes,
+            "threads": threads,
+            "seed": seed,
+            "star_version": star_version,
+            "whitelist_entries": whitelist_entries,
+            "out_sam_type": list(out_sam_type),
+        },
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+def _fit_line(points: list[tuple[int, float]]) -> dict[str, object]:
+    """Least-squares ``rss_gb = intercept + slope * reads``; the slope is the whole point.
+
+    Reports ``max_residual_gb`` so the linear model is falsifiable by its own output rather than
+    assumed: if the points do not sit on a line, extrapolating from them is not defensible and the
+    residual is what says so.
+
+    **Two points cannot do that, so two points are not a fit.** A line through two points passes
+    through them exactly: the residual is identically 0.0 whatever the truth is, so the one number
+    that exists to falsify linearity goes vacuous precisely on the run carrying the least evidence —
+    and reads as the *strongest* possible evidence while doing it. That is not hypothetical. The sweep
+    is deliberately resilient (a point that exhausts the cgroup is recorded and skipped), and the
+    default sweep is three points, so a single lost point lands here at n=2. Worse, if the MIDDLE
+    point is the one lost, every other field is unchanged — same max_measured_reads, same
+    extrapolation_factor — and only the slope silently absorbs the noise that should have surfaced as
+    residual. The run_cost_sweep comment that the remaining "points below already determine the slope"
+    is the fallacy in one line: two points always determine *a* slope, never that it is the right one.
+
+    So ``ok`` requires 3, and ``n_points``/``degrees_of_freedom`` ship with every verdict — a fit with
+    nothing left over may not advertise a perfect one.
+    """
+    n = len(points)
+    if n < 3:
+        return {
+            "ok": False,
+            "n_points": n,
+            "degrees_of_freedom": max(0, n - 2),
+            "reason": (
+                "need >= 3 points: a line through 2 points fits them exactly, so max_residual_gb "
+                "would be 0.0 by construction and could not falsify anything"
+            ),
+        }
+    mean_x = sum(x for x, _ in points) / n
+    mean_y = sum(y for _, y in points) / n
+    denom = sum((x - mean_x) ** 2 for x, _ in points)
+    if denom == 0:
+        return {"ok": False, "n_points": n, "reason": "all points at the same read depth"}
+    slope = sum((x - mean_x) * (y - mean_y) for x, y in points) / denom
+    intercept = mean_y - slope * mean_x
+    residuals = [abs(y - (intercept + slope * x)) for x, y in points]
+    max_reads = max(x for x, _ in points)
+    return {
+        "ok": True,
+        # Shipped with every verdict so max_residual_gb can never be read without knowing how much
+        # slack it actually had. A residual of 0.0 means "linear" at 5 points and means nothing at 2;
+        # the number alone cannot tell you which, so the number never travels alone.
+        "n_points": n,
+        "degrees_of_freedom": n - 2,
+        "intercept_gb": round(intercept, 3),
+        "bytes_per_read": round(slope * 1024**3, 1),
+        "gb_per_100m_reads": round(slope * 100e6, 3),
+        "max_residual_gb": round(max(residuals), 3),
+        "max_measured_reads": max_reads,
+        "projected": {
+            f"{d // 1_000_000}M_reads": {
+                "peak_rss_gb": round(intercept + slope * d, 1),
+                "extrapolation_factor": round(d / max_reads, 1),
+            }
+            for d in (100_000_000, 250_000_000, 500_000_000, 1_000_000_000)
+        },
+    }
+
+
+def _star_version(star_bin: str) -> str:
+    try:
+        return subprocess.run(
+            [star_bin, "--version"], capture_output=True, text=True, timeout=30
+        ).stdout.strip()
+    except Exception:  # pragma: no cover - a version string is never worth failing a run for
+        return "unknown"
+
+
+def load_cost_models(
+    fasta: Path,
+    gtf: Path,
+    *,
+    min_len: int = 600,
+    min_intron: int = 300,
+    max_genes: int = 2000,
+    seed: int = 0,
+) -> list[GeneModel]:
+    """Gene models for the COST probe: mRNA + introns, with none of the ambiguity screening.
+
+    :func:`load_gene_models` spends nearly all of its time proving each intron is unambiguously one
+    gene's, because the intron *gate* asserts an exact count and a read STAR could legitimately place
+    elsewhere would make the injected truth a fiction. The cost probe asserts nothing about counts —
+    it measures bytes — so that screening buys it nothing and costs a genome-wide overlap scan whose
+    inner loop rebuilds an O(n) list per candidate (fine on ce11, not on hg38).
+
+    What the cost probe does need is reads landing in **both** exons and introns, so that all five
+    counting rules — Velocyto above all, which is the one being priced — have real work to do.
+    """
+    chroms = read_fasta(fasta)
+    exons = _parse_exons(gtf)
+    models: list[GeneModel] = []
+    for gene_id, parts in sorted(exons.items()):
+        chrom, strand = parts[0][0], parts[0][3]
+        if chrom not in chroms:
+            continue
+        merged = _merge([(s, e) for _c, s, e, _st in parts])
+        # .upper() BEFORE _revcomp (see load_genes): complementing a lowercase base is a no-op, so
+        # revcomp-then-upper silently emits reversed-but-uncomplemented sequence.
+        mrna = "".join(
+            chroms[chrom][s - 1 : e] for s, e in merged
+        ).upper()  # GTF is 1-based inclusive
+        if strand == "-":
+            mrna = _revcomp(mrna)
+        if len(mrna) < min_len or "N" in mrna:
+            continue
+        introns: list[str] = []
+        for (_s1, e1), (s2, _e2) in zip(merged, merged[1:], strict=False):
+            istart, iend = e1 + 1, s2 - 1
+            if iend - istart + 1 < min_intron:
+                continue
+            seq = chroms[chrom][istart - 1 : iend].upper()
+            if "N" in seq:
+                continue
+            introns.append(_revcomp(seq) if strand == "-" else seq)
+        if introns:
+            models.append(GeneModel(gene_id=gene_id, mrna=mrna, introns=tuple(introns)))
+    rng = random.Random(seed)
+    rng.shuffle(models)
+    return models[:max_genes]
+
+
+#: All 4096 six-mers. A 12 bp UMI is two of them, so ``T[getrandbits(12)] + T[getrandbits(12)]``
+#: draws uniformly from the whole 4^12 space with two list lookups instead of twelve rng.choice
+#: calls. At 10^8 reads that difference is the run.
+_SIXMERS: list[str] = ["".join(p) for p in _product("ACGT", repeat=6)]
+
+
+def write_cost_fastqs(
+    models: list[GeneModel],
+    *,
+    n_reads: int,
+    cbs: list[str],
+    cdna_path: Path,
+    bc_path: Path,
+    intron_frac: float = 0.4,
+    read_len: int = 90,
+    seed: int = 0,
+    chunk: int = 200_000,
+) -> dict[str, int]:
+    """Emit ``n_reads`` 10x-3'-v3-shaped reads from pre-mRNA. No ground truth — this prices, not proves.
+
+    Two deliberate departures from :func:`simulate_nuclei`, both of which exist *because* it is a
+    cost arm and not a gate:
+
+    **UMIs are drawn at random, not forced globally unique.** The gate's uniqueness trick makes the
+    injected count exactly the read count, and it is also a hard ceiling: a 12 bp UMI has 4^12 =
+    16 777 216 values, so a run that demands a distinct one per read cannot exceed ~16.8 M reads and
+    the rejection sampling degrades long before that. A cost probe must reach corpus scale, and it
+    asserts no counts, so the constraint is pure cost. Drawing at random instead means near-zero
+    duplication, i.e. **more distinct UMIs than real data of the same depth** — which makes every
+    number here an over-estimate of the solo structures, and an over-estimate is the right side to
+    err on when the output is a memory request.
+
+    **Barcodes come from the real whitelist**, so STARsolo does the CB matching it would really do.
+    """
+    exon_src: list[tuple[str, int, int]] = []  # (seq, lo, hi) — 3'-biased window, as a 3' kit is
+    intron_src: list[tuple[str, int]] = []  # (seq, hi)
+    for model in models:
+        mrna = model.mrna
+        if len(mrna) >= read_len:
+            tail = min(len(mrna), 500)
+            exon_src.append((mrna, len(mrna) - tail, len(mrna) - read_len))
+        for intron in model.introns:
+            if len(intron) >= read_len:
+                intron_src.append((intron, len(intron) - read_len))
+    if not exon_src or not intron_src:
+        raise E2EUnavailable(
+            "the cost fixture needs both exonic and intronic source sequence; got "
+            f"{len(exon_src)} exon and {len(intron_src)} intron sources"
+        )
+
+    rng = random.Random(seed)
+    randrange, getrandbits, random_f = rng.randrange, rng.getrandbits, rng.random
+    sixmers, n_cb = _SIXMERS, len(cbs)
+    n_ex, n_in = len(exon_src), len(intron_src)
+    cdna_qual, bc_qual = "I" * read_len, "I" * (len(cbs[0]) + 12)
+    n_intronic = 0
+
+    with (
+        gzip.open(cdna_path, "wt", compresslevel=1) as cdna_fh,
+        gzip.open(bc_path, "wt", compresslevel=1) as bc_fh,
+    ):
+        written = 0
+        while written < n_reads:
+            n = min(chunk, n_reads - written)
+            cdna_buf: list[str] = []
+            bc_buf: list[str] = []
+            for i in range(written, written + n):
+                if random_f() < intron_frac:
+                    seq, hi = intron_src[randrange(n_in)]
+                    start = randrange(0, hi + 1)
+                    n_intronic += 1
+                else:
+                    seq, lo, hi = exon_src[randrange(n_ex)]
+                    start = randrange(lo, hi + 1)
+                cdna_buf.append(f"@SIM{i}\n{seq[start : start + read_len]}\n+\n{cdna_qual}\n")
+                umi = sixmers[getrandbits(12)] + sixmers[getrandbits(12)]
+                bc_buf.append(f"@SIM{i}\n{cbs[randrange(n_cb)]}{umi}\n+\n{bc_qual}\n")
+            cdna_fh.write("".join(cdna_buf))
+            bc_fh.write("".join(bc_buf))
+            written += n
+    return {"n_reads": n_reads, "n_intronic": n_intronic, "n_exonic": n_reads - n_intronic}
+
+
+#: Set in each worker by :func:`_init_gen_worker`. The models + barcode pool are read-only and big
+#: (2000 gene models carry their mRNA and intron sequence), so they are handed over ONCE per worker
+#: rather than per shard — under fork they cost nothing at all, being inherited copy-on-write.
+_GEN_STATE: dict[str, object] = {}
+
+
+def _init_gen_worker(models: list[GeneModel], cbs: list[str]) -> None:
+    _GEN_STATE["models"] = models
+    _GEN_STATE["cbs"] = cbs
+
+
+def _gen_shard(
+    args: tuple[int, int, Path, Path, float, int, int],
+) -> dict[str, int]:
+    idx, n_reads, cdna_path, bc_path, intron_frac, read_len, seed = args
+    return write_cost_fastqs(
+        _GEN_STATE["models"],  # type: ignore[arg-type]
+        n_reads=n_reads,
+        cbs=_GEN_STATE["cbs"],  # type: ignore[arg-type]
+        cdna_path=cdna_path,
+        bc_path=bc_path,
+        intron_frac=intron_frac,
+        read_len=read_len,
+        # Each shard MUST draw a different stream, or N workers would emit N identical copies of the
+        # same reads — which would still be n_reads records, still align, and still produce a
+        # plausible number. Deterministic in the caller's seed, distinct per shard.
+        seed=seed * 10_007 + idx,
+    )
+
+
+def write_cost_fastqs_sharded(
+    models: list[GeneModel],
+    *,
+    n_reads: int,
+    cbs: list[str],
+    out_dir: Path,
+    tag: str,
+    n_workers: int,
+    intron_frac: float = 0.4,
+    read_len: int = 90,
+    seed: int = 0,
+) -> tuple[list[Path], list[Path], dict[str, int]]:
+    """Generate reads across ``n_workers`` processes, as shards STAR reads natively.
+
+    Generation was ~40 % of this arm's wall-clock on one core while 47 sat idle, which is the kind of
+    waste that hides inside a job that "only" takes an hour. It parallelises perfectly — every read is
+    independent — and the shards need no merge step, because ``--readFilesIn`` takes a comma-separated
+    list per mate. So N cores buy an N-fold speedup and cost one extra comma.
+
+    The per-shard seed derivation is the part that matters: shards drawing the same stream would
+    duplicate reads rather than add them, and the run would still align, still count, and still report
+    a peak — just of the wrong library.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n_workers = max(1, min(n_workers, n_reads))
+    base, rem = divmod(n_reads, n_workers)
+    sizes = [base + (1 if i < rem else 0) for i in range(n_workers)]
+
+    jobs: list[tuple[int, int, Path, Path, float, int, int]] = []
+    cdna_paths: list[Path] = []
+    bc_paths: list[Path] = []
+    for i, size in enumerate(sizes):
+        cdna_p = out_dir / f"cost_{tag}_s{i:02d}_R2.fastq.gz"
+        bc_p = out_dir / f"cost_{tag}_s{i:02d}_R1.fastq.gz"
+        cdna_paths.append(cdna_p)
+        bc_paths.append(bc_p)
+        jobs.append((i, size, cdna_p, bc_p, intron_frac, read_len, seed))
+
+    if n_workers == 1:
+        results = [_gen_shard_inline(models, cbs, jobs[0])]
+    else:
+        # fork where available: the gene models are inherited copy-on-write instead of pickled to
+        # every worker (they are tens of MB of sequence). spawn still works, just pays the transfer.
+        ctx = multiprocessing.get_context(
+            "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
+        )
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            mp_context=ctx,
+            initializer=_init_gen_worker,
+            initargs=(models, cbs),
+        ) as pool:
+            results = list(pool.map(_gen_shard, jobs))
+
+    merged = {
+        "n_reads": sum(r["n_reads"] for r in results),
+        "n_intronic": sum(r["n_intronic"] for r in results),
+        "n_exonic": sum(r["n_exonic"] for r in results),
+        "n_shards": len(results),
+    }
+    if merged["n_reads"] != n_reads:  # pragma: no cover - arithmetic guard on the split
+        raise E2EUnavailable(f"sharding lost reads: asked {n_reads}, wrote {merged['n_reads']}")
+    return cdna_paths, bc_paths, merged
+
+
+def _gen_shard_inline(
+    models: list[GeneModel], cbs: list[str], job: tuple[int, int, Path, Path, float, int, int]
+) -> dict[str, int]:
+    _init_gen_worker(models, cbs)
+    return _gen_shard(job)
+
+
+def read_whitelist(path: Path) -> list[str]:
+    """Load a 10x whitelist (plain or gzipped) as barcode strings."""
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt") as fh:  # type: ignore[operator]
+        return [ln.strip() for ln in fh if ln.strip()]
+
+
 def star_stats(outdir: Path) -> dict[str, float]:
     """Parse STAR's Log.final.out so the recovery shortfall is ACCOUNTED FOR, not hand-waved.
 
@@ -935,3 +1689,32 @@ def discover_assets(
         assembly=assembly,
         annotation=annotation,
     )
+
+
+def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
+    """Write-then-rename, so a kill mid-write cannot leave truncated state behind.
+
+    ``rename`` is atomic within a filesystem, so a reader sees the old file or the new one and never
+    half of either. The sweep's whole reason for writing each point immediately is to survive a
+    preemption; a non-atomic write would make the preemption itself the thing that destroys the state
+    it was saving. ``resolve/cache.py`` already does it this way — this is the repo's existing idiom,
+    which it should have used from the start.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, default=str))
+    tmp.replace(path)
+
+
+def _progress(msg: str) -> None:
+    """Emit a progress line to **stderr**, because stdout belongs to the JSON (R8).
+
+    `kb e2e-cost` runs for tens of minutes, so it has to say what it is doing — and the obvious
+    `print()` put that narration on stdout, straight through the middle of the result. R8 says the CLI
+    emits JSON on stdout; a consumer doing `seqforge kb e2e-cost ... | jq` got a parse error, and a
+    consumer redirecting to a file got a file that is not JSON. Caught on the first real array run:
+    `cost-hg38-2681399.json` is unparseable for exactly this reason, and only the separately-written
+    `cost_sweep.partial.json` (R7 — disk is state) made its three measured points recoverable.
+
+    Progress is not a result. It goes to stderr, where a human reads it and a pipe ignores it.
+    """
+    print(f"[cost] {msg}", file=sys.stderr, flush=True)

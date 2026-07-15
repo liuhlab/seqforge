@@ -258,6 +258,177 @@ def kb_e2e(
         raise typer.Exit(3)
 
 
+@kb_app.command("e2e-cost")
+def kb_e2e_cost(
+    workdir: Path = typer.Option(..., "--workdir", help="Scratch dir for reads + STAR output."),
+    whitelist: Path = typer.Option(
+        ..., "--whitelist", help="Real 10x whitelist (.txt or .txt.gz)."
+    ),
+    assembly: str = typer.Option("hg38", help="Assembly to price against."),
+    annotation: str = typer.Option("gencode_v50", help="Registered GTF name."),
+    sweep: str = typer.Option(
+        "2000000,8000000,32000000", help="Comma-separated read depths to measure."
+    ),
+    n_cells: int = typer.Option(5000, help="Simulated cells (barcodes drawn from the whitelist)."),
+    intron_frac: float = typer.Option(0.4, help="Fraction of reads from introns (pre-mRNA)."),
+    max_genes: int = typer.Option(2000, help="Gene models to sample reads from."),
+    fasta: Path | None = typer.Option(None, help="Override: genome FASTA."),
+    gtf: Path | None = typer.Option(None, help="Override: GTF."),
+    star_index: Path | None = typer.Option(
+        None, "--star-index", help="Override: prebuilt STAR index."
+    ),
+    star: str | None = typer.Option(None, "--star", help="STAR binary (liulab-runtime align-rna)."),
+    threads: int = typer.Option(
+        16, help="STAR threads. Peak RSS depends on this — it is recorded."
+    ),
+    gen_jobs: int = typer.Option(
+        16, "--gen-jobs", help="Processes generating reads (it was 40% of wall-clock on one core)."
+    ),
+    seed: int = typer.Option(0, help="Simulation seed."),
+    quantify: str | None = typer.Option(
+        None, "--quantify", help="Override soloFeatures. Omit to price the compiler's own default."
+    ),
+    out_sam_type: str = typer.Option(
+        "None",
+        "--out-sam-type",
+        help="STAR --outSAMtype. The shipped module runs 'BAM Unsorted' — pass it to price the gap.",
+    ),
+    keep_reads: bool = typer.Option(
+        False, "--keep-reads", help="Do not delete FASTQs after a run."
+    ),
+) -> None:
+    """Measure STARsolo's peak RSS against read depth — what a counting rule costs, not whether it is right.
+
+    This is the PRICE arm, not a gate: it asserts nothing about counts and injects no ground truth.
+    A single measurement would be almost entirely genome index (~30 GB on hg38, paid before a read is
+    parsed), so this fits a line across several depths and reports the intercept you pay per job, the
+    slope you pay per read, and the residual that says whether the line deserved to be believed.
+
+    Prints JSON; exit 1 if the toolchain is unavailable. Needs STAR, an index, and real time.
+    """
+    from .e2e import E2EUnavailable, discover_assets, run_cost_sweep
+
+    try:
+        depths = tuple(int(float(s)) for s in sweep.split(",") if s.strip())
+    except ValueError as exc:
+        typer.echo(f"--sweep must be comma-separated read counts, got {sweep!r}", err=True)
+        raise typer.Exit(2) from exc
+    if not depths:
+        typer.echo("--sweep is empty", err=True)
+        raise typer.Exit(2)
+
+    try:
+        assets = discover_assets(
+            assembly=assembly,
+            annotation=annotation,
+            fasta=fasta,
+            gtf=gtf,
+            star_index=star_index,
+            star_bin=star,
+        )
+        result = run_cost_sweep(
+            assets,
+            workdir=workdir,
+            whitelist=whitelist,
+            sweep=depths,
+            n_cells=n_cells,
+            intron_frac=intron_frac,
+            max_genes=max_genes,
+            threads=threads,
+            gen_jobs=gen_jobs,
+            seed=seed,
+            features=_parse_quantify(quantify),
+            out_sam_type=tuple(out_sam_type.split()),
+            keep_reads=keep_reads,
+        )
+    except E2EUnavailable as exc:
+        typer.echo(json.dumps({"skipped": True, "reason": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(json.dumps(result, indent=2, default=str))
+
+
+@kb_app.command("e2e-fit")
+def kb_e2e_fit(
+    results: list[Path] = typer.Argument(..., help="cost JSONs to merge (one per array task)."),
+) -> None:
+    """Fit one line across cost runs measured separately — the collector for a job-array sweep.
+
+    The depths are independent, so a sweep parallelises across array tasks and each task emits its
+    own JSON. This merges them and fits the same line ``run_cost_sweep`` fits in-process, so an array
+    and a single sequential job produce the same answer in the same shape.
+
+    It refuses to merge runs whose soloFeatures, assembly, or thread count differ: the peak depends on
+    all three, so splicing them into one line would silently fit a curve through incomparable points —
+    the exact failure the per-shard seed and the resume guard exist to prevent elsewhere.
+    """
+    from .e2e import _fit_line
+
+    runs = []
+    for path in results:
+        try:
+            runs.append((path, json.loads(path.read_text())))
+        except (OSError, json.JSONDecodeError) as exc:
+            typer.echo(f"cannot read {path}: {exc}", err=True)
+            raise typer.Exit(1) from exc
+    if not runs:
+        typer.echo("no results given", err=True)
+        raise typer.Exit(2)
+
+    def key(r: dict[str, object]) -> tuple[object, ...]:
+        # soloFeatures arrives from JSON as a list, which is unhashable — tuple it before it meets a set.
+        features = r.get("soloFeatures")
+        return (
+            tuple(features) if isinstance(features, list) else features,
+            r.get("assembly"),
+            r.get("threads"),
+            r.get("n_cells"),
+        )
+
+    keys = {key(r) for _p, r in runs}
+    if len(keys) != 1:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": "refusing to fit incomparable runs",
+                    "detail": "soloFeatures/assembly/threads/n_cells must match across every result",
+                    "distinct": [list(k) for k in keys],
+                },
+                indent=2,
+                default=str,
+            ),
+            err=True,
+        )
+        raise typer.Exit(3)
+
+    points: list[dict[str, object]] = []
+    for _p, r in runs:
+        points.extend(p for p in r.get("points", []) if not p.get("failed"))
+    points.sort(key=lambda p: int(p["n_reads"]))
+    if len({int(p["n_reads"]) for p in points}) != len(points):
+        typer.echo("duplicate read depths across results; refusing to fit", err=True)
+        raise typer.Exit(3)
+
+    head = runs[0][1]
+    typer.echo(
+        json.dumps(
+            {
+                "assembly": head.get("assembly"),
+                "annotation": head.get("annotation"),
+                "soloFeatures": head.get("soloFeatures"),
+                "threads": head.get("threads"),
+                "n_cells": head.get("n_cells"),
+                "n_runs_merged": len(runs),
+                "points": points,
+                "fit": _fit_line(
+                    [(int(p["n_reads"]), float(p["star_peak_rss_gb"])) for p in points]
+                ),
+            },
+            indent=2,
+            default=str,
+        )
+    )
+
+
 @kb_app.command("e2e-introns")
 def kb_e2e_introns(
     workdir: Path = typer.Option(..., "--workdir", help="Scratch dir for reads + STAR output."),

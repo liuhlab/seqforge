@@ -43,11 +43,12 @@ pixi run lint                    # ruff check .
 pixi run typecheck               # mypy --strict on models/, probe/, resolve/, manifest/,
                                  #   compose/, workflows/, harvest/, evals/
 pixi run check                   # lint + fmt-check + typecheck + test
-pixi run -- pre-commit install   # once per clone — runs `check` before every commit
+pixi run -- pre-commit install   # once per clone — ruff, mypy, shellcheck (not the suite)
 ```
 
-Most of the non-negotiable rules in `CLAUDE.md` are enforced by tests, so `pixi run test` is the
-mechanism rather than a formality. CI runs the same thing as a backstop.
+Most of the non-negotiable rules in `CLAUDE.md` are enforced by tests, so `pixi run check` is the
+mechanism rather than a formality — and CI runs it on every push and PR. The pre-commit hooks are
+deliberately limited to the fast ones, so run `check` yourself when you change behaviour.
 
 ## Consumer of the liulab stack
 

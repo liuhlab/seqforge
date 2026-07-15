@@ -463,15 +463,54 @@ Velocyto`. One alignment, five counting rules, one pass. So we do not ask whethe
 cells or nuclei: we emit every answer and let the consumer choose. Not free — `Velocyto` in
 particular costs memory — but small against a download and an alignment we are paying for regardless.
 
-**The instrument is `kb e2e-introns --quantify`** (not `kb e2e`, which measures nothing): it reports
-wall-clock and peak memory per feature set, so all-five can be priced against any subset. **The
-memory question is still open and is recorded as open.** On ce11 peak memory barely moved between
-2 000 reads and 10⁶ (2.804 → 2.809 GB) because that number is the *genome index*, not the counting —
-so what generalizes off this fixture is the slope (bytes per read per feature set), never the
-absolute. Whether all five breach the 32 GB `resources.mem_gb` hint on hg38, where the index alone
-approaches it, is **unmeasured**, deferred to real human data, and must not be inferred from a green
-ce11 number. Velocyto is currently unconditional by maintainer decision (2026-07-15) — a decision,
-not a measurement that passed.
+**The instrument is `kb e2e-cost`** (not `kb e2e`, which measures nothing, and no longer
+`kb e2e-introns --quantify`, which is a correctness gate that happens to time itself and is capped at
+~16.8 M reads by its own unique-UMI trick). It sweeps read depth on hg38 and fits
+`peak_rss = intercept + slope × reads`, because a single number would be almost entirely index.
+
+**Measured 2026-07-15, and depth does not matter until suddenly it does.** 10 M → 34.570 GB, 40 M →
+34.600 GB, 100 M → 34.659 GB — a 10× increase costing 89 MB — and then **250 M → 44.055 GB, +9.4 GB**.
+
+Peak RSS is `max(alignment_peak, solo_peak(reads))`. Alignment is index-bound and flat (~34.6 GB, and
+the ce11 result generalized exactly as predicted: that 2.8 GB was the index, and here the ~30 GB index
+is the whole bill *below the knee*). The **Solo counting phase grows with depth** and overtakes the
+index between 100 M and 250 M. Live observation of the 250 M run shows it plainly: RSS ~17 GB early in
+Solo, climbing past the alignment peak, topping out at 44 GB while writing five matrices.
+
+Below the knee, what sizes the run is fixed by chemistry and annotation, not the library: the
+6 794 880-entry whitelist, the 78 733-gene feature axis (from the **index**, so unmoved by which genes
+the reads came from). The written matrices are ~100 MB and grow *sub*-linearly. Above the knee, none
+of that is the binding constraint.
+
+**This paragraph asserted "depth is irrelevant across any real library size" for three hours, on three
+points that fitted a line with `max_residual_gb: 0.0` and projected 34.8 GB at 250 M — a 27 %
+under-estimate from a fit reporting zero error.** The same day, `_fit_line` had been fixed to refuse
+*two*-point fits because a line through two points fits exactly and cannot be falsified by its own
+residual. Correct, and insufficient: three collinear points inside one regime cannot be falsified
+either. **A residual falsifies only within the range sampled; it can never say the range was too
+narrow.** Kept here in full because §14's job is to stop a sentence up there being read as a promise,
+and this is the sentence that most recently earned it.
+
+`--soloFeatures` is still the rare knob that is cheap in memory and merely expensive in disk — the knee
+is a property of counting 250 M reads at all, not of the fifth rule over the first. Velocyto is
+unconditional **because it was measured**, not by decision.
+
+**Provisioning:** ≤100 M → ~35 GB (three points). 250 M → ~44 GB (one point). **>250 M → unmeasured**;
+a linear `solo_peak` implies ~180-190 bytes/read and ~88 GB at 500 M, but that is arithmetic on one
+point and this document has already been wrong once today for precisely that move. Give a deep human
+library **128 GB** until 500 M is measured. That measurement is the open item.
+
+Two things were measured rather than reasoned about, both because reasoning about them is exactly how
+this document used to get things wrong:
+
+- The sweep ran `--outSAMtype None`; the shipped module runs `BAM Unsorted`. That gap is **+745 MB**
+  and +19% wall-clock (34.600 → 35.345 GB at 40 M, one variable changed). A production run is
+  ~35.3 GB. Measured at one depth only — constant is the *expectation* (the BAM is streamed; buffers
+  are per-thread, not per-read), and expectation is not measurement.
+- **Reproducibility**: the 40 M point re-measured on a different node, through a different code path
+  (32 sharded FASTQs vs one), on *different reads* → **34.600 GB**, identical to three decimals. Which
+  also retires an objection raised in this very session: that node variance might swamp the signal and
+  therefore the sweep had to stay on one node. Node variance is under 1 MB. The job array is fine.
 
 ### Validating the composer without any data
 
@@ -849,8 +888,9 @@ something, delete its line here and fix the tense above.** A stale §14 is worse
 
 The audit's organising finding was *"there is no CI, and five rules cite it as their enforcement"*.
 The fix was not CI. **CI was never the mechanism those rules needed — a test was**; CI only schedules
-tests. So the four missing tests were written, and *then* `.pre-commit-config.yaml` (the mechanism)
-and `.github/workflows/ci.yml` (the backstop) were added to run them.
+tests. So the four missing tests were written, and *then* a scheduler was added to run them: CI on
+every push and PR. Pre-commit carries the fast hooks only — running the suite on every commit taxed
+prose-only commits for no gain, so a red commit can now exist locally and is caught at push.
 
 Every one of these had the same shape, and it is worth naming because it will recur: **a contract
 maintained by hand, beside the code it describes, checked against itself.**
@@ -909,9 +949,19 @@ maintained by hand, beside the code it describes, checked against itself.**
 
 ### Open measurements
 
-- **Peak memory for all five counting rules at 10⁴ × hg38 is unmeasured** and deferred to real human
-  data. The instrument exists (`kb e2e-introns --quantify`). Measure the *slope*, not the absolute:
-  on ce11 a 500× read increase moved peak memory by 5 MB because that 2.8 GB is the genome index.
-- **Velocyto is unconditional by maintainer decision (2026-07-15), not by a measurement.** The
-  pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") was **retired, not
-  tested**. Recorded because a retired rule must never later be mistaken for one that passed.
+- ~~Peak memory for all five counting rules at 10⁴ × hg38 is unmeasured~~ — **measured 2026-07-15**;
+  see below. It was filed here as "deferred to real human data", and that was wrong in a way worth
+  keeping: it needed the real human **genome**, not real human **reads**. Reads simulated from real
+  hg38 sequence exercise the same structures and exercise them *harder* (random UMIs ⇒ near-zero
+  duplication ⇒ more distinct UMIs than real data; 91.5 % unique mapping vs a real ~60-90 %, because
+  there are no sequencing errors or adapters). Every bias runs toward over-estimating, which is the
+  right direction when the output is a `--mem` request. Waiting on real data cost nothing and bought
+  nothing.
+- ~~Velocyto is unconditional by maintainer decision, not by a measurement~~ — **it is now a
+  measurement.** The pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four")
+  was retired before it was tested; it has now been tested and does not fire.
+- **Peak memory above 250 M reads is UNMEASURED and the curve is known to bend there.** 100 M →
+  34.659 GB but 250 M → 44.055 GB, so the flat regime ends somewhere in between and everything past
+  250 M is extrapolation from a single post-knee point. `kb e2e-cost --sweep 250000000,500000000` on
+  hg38 settles it; until then a deep human library gets 128 GB. **Do not quote the ≤100 M numbers as
+  if they generalize** — that error has already been made once in this file.

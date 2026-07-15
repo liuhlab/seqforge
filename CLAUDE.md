@@ -63,9 +63,11 @@ names a **file you can open and run**, and where something is still unenforced i
 means it. A `PLEDGE:` is a debt — the fix is to build the checker and delete the marker, never to
 quietly widen the claim.
 
-CI was never the mechanism these rules needed; a *test* is. `pixi run check` before a commit is the
-enforcement (`.pre-commit-config.yaml` runs it), and `.github/workflows/ci.yml` is the backstop that
-catches a `--no-verify`.
+CI was never the mechanism these rules needed; a *test* is. `.github/workflows/ci.yml` runs
+`pixi run check` on every push and PR, and that is what makes the table below true. Pre-commit runs
+only the fast hooks (ruff, mypy, shellcheck) — the suite is deliberately **not** in it, so a red
+commit can exist locally and is caught at push. Run `pixi run check` yourself when you change
+behaviour.
 
 | # | Rule | Enforced by |
 |---|---|---|
@@ -105,14 +107,15 @@ pixi run test -- -k <expr>   # a single test / subset
 pixi run lint                # ruff check .
 pixi run fmt                 # ruff format .
 pixi run typecheck           # mypy --strict on 8 modules (see below)
-pixi run check               # lint + fmt-check + typecheck + test — what pre-commit and CI run
+pixi run check               # lint + fmt-check + typecheck + test — what CI runs
 pixi run -e docs docs-build  # mkdocs build --strict
-pixi run -- pre-commit install   # once per clone
+pixi run -- pre-commit install   # once per clone (fast hooks only: ruff, mypy, shellcheck)
 ```
 
-**`pixi run check` before a commit is the mechanism, not a formality** — most rules above are
-enforced by tests, so a green suite *is* the guarantee. `.pre-commit-config.yaml` runs it for you;
-`.github/workflows/ci.yml` is the backstop that catches a `--no-verify`.
+**`pixi run check` is the mechanism, not a formality** — most rules above are enforced by tests, so a
+green suite *is* the guarantee. `.github/workflows/ci.yml` runs it on every push and PR. Pre-commit
+runs only the fast hooks; the suite is not among them, so nothing runs `check` for you before a
+commit. Run it yourself when you change behaviour.
 
 - **Lint/format** (from `liulab-runtime`): ruff `line-length=100`, `target-version=py312`,
   `select=[E,W,F,I,UP,B]`, `ignore=[E501, UP046, UP047]`. `UP046`/`UP047` are off deliberately:
@@ -154,7 +157,8 @@ io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet
 hooks/      PreToolUse/PostToolUse/Stop guards, behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (NOT a package): root app + 9 sub-typers. JSON by default
-e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11)
+e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11),
+            plus `kb e2e-cost` (hg38) — the PRICE arm, which proves nothing and measures memory
 evals/      ground-truth corpus + harness
 ─── repo root ───
 skills/     SKILL.md agent skills (no installer yet)

@@ -72,9 +72,65 @@ merely looks thin — the same failure shape as a strand inversion.
 4. Following a known-good precedent that runs at scale on real public data beats our own reasoning
    here, and it is citable: ArcInstitute/scRecounter, workflows/star_full.nf.
 
-The cost is real and is being measured, not assumed — Velocyto in particular is not free. If it proves
-pathological the default drops to four and ``--quantify`` restores it: an expensive default is not a
-trap precisely *because* the processing manifest exists to override it.
+**The cost is measured (2026-07-15), and it has a KNEE.** `kb e2e-cost` on hg38 + GENCODE v50 + 10x
+3' v3, all five features, 16 threads, 5 000 cells, reads simulated from real hg38 sequence with
+barcodes drawn from the real 6 794 880-entry whitelist:
+
+===========  ==========  ==================
+reads        peak RSS    delta
+===========  ==========  ==================
+10 000 000   34.570 GB   —
+40 000 000   34.600 GB   +30 MB
+100 000 000  34.659 GB   +59 MB
+250 000 000  44.055 GB   **+9.4 GB**
+===========  ==========  ==================
+
+Read that bottom row before quoting any of the others. Up to ~100 M reads the number is the *genome
+index* (~30 GB resident before a read is parsed) and depth is irrelevant — 10x the reads cost 89 MB.
+Then it stops being flat. Peak RSS is really ``max(alignment_peak, solo_peak(reads))``: the alignment
+phase is index-bound and flat, the **Solo counting phase grows with depth**, and it overtakes the
+index somewhere between 100 M and 250 M. Watching the 250 M run live shows it directly — RSS sits at
+~17 GB early in Solo, climbs past the 34.6 GB alignment peak, and tops out at 44 GB while writing
+five matrices.
+
+**Provisioning, honestly:**
+
+- ≤ 100 M reads: ~35 GB. Solid — three points.
+- 250 M reads: ~44 GB. One point.
+- **> 250 M: UNMEASURED.** If ``solo_peak`` is ~linear the crossover implies ~180-190 bytes/read,
+  putting 500 M near ~88 GB — but that is arithmetic on a single point, not a measurement, and this
+  docstring has now been wrong once for exactly that reason. Give a deep human library **128 GB**
+  until somebody measures 500 M.
+
+**How this docstring was wrong for three hours, because the lesson outlives the number.** The first
+three points were fitted and reported ``max_residual_gb: 0.0`` — a perfect line — projecting 34.8 GB
+at 250 M. Reality: 44.055 GB, a **9.3 GB / 27 % under-estimate from a fit that reported zero error**.
+Earlier the same day ``_fit_line`` was fixed to refuse *two*-point fits, on the grounds that a line
+through two points fits exactly and so its residual cannot falsify anything. That was right and it was
+not enough: three *collinear* points inside one regime cannot falsify either. They were genuinely
+linear; the residual was genuinely 0.0; the model was genuinely wrong. **A residual can only falsify
+within the range sampled — it can never report that the range itself was too narrow.** The four-point
+fit does say so (``max_residual_gb: 2.312``), one point too late to have helped.
+
+The ``--outSAMtype`` gap was measured on the same principle: the sweep ran ``None``, the shipped
+module runs ``BAM Unsorted``, and one variable changed gives **34.600 -> 35.345 GB (+745 MB) and
++19 % wall-clock** at 40 M. Measured at one depth, and after the knee, "one depth" is a warning rather
+than a footnote.
+
+Read every number with its configuration or not at all: peak RSS includes STAR's per-thread buffers,
+so these are peaks **at 16 threads**. That is why ``kb e2e-fit`` refuses to merge runs differing in
+threads, cells, assembly or outSAMtype.
+
+Reproducibility is not assumed: the 40 M point was re-measured on a different node, through a
+different code path (32 sharded FASTQs vs one file), on *different reads*, and landed on **34.600 GB**
+again — identical to three decimals.
+
+**None of this changes the default.** Velocyto stays: the knee is a property of counting 250 M reads
+at all, the marginal cost of the fifth rule over the first is not what moves this number, and the
+pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four") is about the
+*feature set*, not the depth. What changed is the memory request, which is what the measurement was
+for. If it ever does prove pathological the default drops to four and ``--quantify`` restores it: an
+expensive default is not a trap precisely *because* the processing manifest exists to override it.
 """
 
 

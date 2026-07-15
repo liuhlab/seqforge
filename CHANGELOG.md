@@ -6,16 +6,64 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
+**Velocyto's cost on hg38 is measured, and the curve has a knee (2026-07-15).** `policy.py` has defaulted
+`soloFeatures` to all five since R15 landed, carrying a promise in its docstring — *"the cost is real
+and is being measured, not assumed"* — and a pre-registered kill rule (">2x wall-clock or over the
+mem_gb hint => drop to four") that had been **retired before it was ever tested**. `kb e2e-cost`
+tests it. It does not fire.
+
+| reads | peak RSS | delta |
+|---|---|---|
+| 10,000,000 | 34.570 GB | — |
+| 40,000,000 | 34.600 GB | +30 MB |
+| 100,000,000 | 34.659 GB | +59 MB |
+| 250,000,000 | **44.055 GB** | **+9.4 GB** |
+
+Peak RSS is `max(alignment_peak, solo_peak(reads))`. Below ~100M the ~30 GB genome index is the whole
+bill and 10x the reads costs 89 MB. The Solo counting phase grows with depth and overtakes the index
+between 100M and 250M — visible live: RSS ~17 GB early in Solo, climbing past the 34.6 GB alignment
+peak, topping out at 44 GB while writing five matrices.
+
+Provisioning: ≤100M → ~35 GB (three points); 250M → ~44 GB (one point); **>250M unmeasured** — give a
+deep human library 128 GB until 500M is run.
+
+**The three-point version of this entry claimed "depth is irrelevant across any real library size" and
+shipped for three hours.** Those points fitted a line reporting `max_residual_gb: 0.0` and projected
+34.8 GB at 250M — a 27% under-estimate from a fit reporting *zero error*. Earlier the same day
+`_fit_line` was fixed to reject two-point fits because a line through two points fits exactly and its
+residual cannot falsify anything. Right, and not enough: three collinear points inside one regime
+cannot falsify either. **A residual falsifies only within the range sampled; it can never say the
+range was too narrow.** The four-point fit reports `max_residual_gb: 2.312` — the mechanism works, one
+point too late.
+
+The sweep ran `--outSAMtype None` while the shipped module runs `BAM Unsorted`, so that gap was
+measured rather than estimated in a docstring: **+745 MB and +19% wall-clock** (34.600 → 35.345 GB at
+40M, one variable changed). A production run is ~35.3 GB; the recommendation does not move.
+
+Reproducibility was checked rather than assumed. The 40M point re-measured on a **different node**,
+through a **different code path** (32 sharded FASTQs vs one file), on **different reads** (shard seeds
+derive from the run seed) → **34.600 GB**, identical to three decimals. That also retires an objection
+raised while designing this: that node-to-node variance might swamp a 30 MB signal, so the sweep had
+to stay sequential on one node. Node variance is under 1 MB; the job array is fine.
+
+The brief filed this as "deferred to real human data". That was wrong, and instructively so: it needed
+the real human **genome**, not real human **reads**. Simulated reads from real hg38 sequence exercise
+the same structures *harder* — random UMIs mean near-zero duplication, and 91.5% map uniquely against
+a real ~60-90% because there are no sequencing errors or adapters. Every bias over-estimates, which is
+the right direction for a `--mem` request. Waiting bought nothing.
+
 **The rules are enforced by tests now, not by claims about CI (2026-07-15).** A claim-by-claim audit
 of `CLAUDE.md` and `PROJECT_BRIEF.md` against the code checked 245 statements and found 39 stale, 42
 unbuilt and **27 contradicted** — a rule asserting a guarantee with no mechanism behind it. The
 organising finding: five rules cited CI as their enforcement, and this repo had never had CI.
 
 The fix was not CI. **CI was never the mechanism those rules needed — a test is**; CI only schedules
-tests. So the missing tests were written first, and `.pre-commit-config.yaml` (the mechanism) and
-`.github/workflows/ci.yml` (the backstop for a `--no-verify`) were added to run them. Every
-enforcement cell in `CLAUDE.md` now names a file you can open; `PROJECT_BRIEF.md` §14 is the standing
-list of what remains, with the maintenance rule that a stale §14 is worse than none.
+tests. So the missing tests were written first, and `.github/workflows/ci.yml` was added to run them
+on every push and PR. `.pre-commit-config.yaml` carries the fast hooks (ruff, mypy, shellcheck) but
+deliberately **not** the suite: running it on every commit taxed prose-only commits for no gain, so a
+red commit can exist on a branch and is caught at push. Every enforcement cell in `CLAUDE.md` now
+names a file you can open; `PROJECT_BRIEF.md` §14 is the standing list of what remains, with the
+maintenance rule that a stale §14 is worse than none.
 
 Every defect below had the same shape, which is the thing worth remembering: **a contract maintained
 by hand, beside the code it describes, checked against itself.**

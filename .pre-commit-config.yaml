@@ -3,12 +3,14 @@
 # Install once per clone:  pixi run -- pre-commit install
 # Run on all files:        pixi run -- pre-commit run --all-files
 #
-# Ruff is installed by pre-commit in its own ephemeral env (pinned below); mypy and pytest run
-# through pixi so they see the project's resolved env — the same shape liulab-genome uses.
+# Ruff is installed by pre-commit in its own ephemeral env (pinned below); mypy runs through pixi so
+# it sees the project's resolved env — the same shape liulab-genome uses.
 #
-# WHY the test suite runs here and not only in CI: most of this repo's rules are enforced by tests
-# (the parse/count line, the KB round-trip over every spec, the rung-0-2 separability guard, the
-# read/byte budget). CI is the backstop for a `--no-verify`; this is the mechanism. ~18 s.
+# WHY pytest is NOT here: most of this repo's rules are enforced by tests, so the suite is the
+# mechanism — but a mechanism that runs on every commit taxes every commit, including the ones that
+# touch only prose. The suite runs in CI (`.github/workflows/ci.yml`) on push and PR; run it locally
+# with `pixi run check` when you have changed behaviour. The tradeoff is explicit: a broken commit can
+# now land on a branch and is caught at push instead of at commit.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -42,14 +44,4 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-        require_serial: true
-
-      - id: pytest
-        name: pytest (via pixi)
-        entry: pixi run --no-progress test
-        language: system
-        # Not `types: [python]`: a KB spec.yaml, a .smk module and a skill's SKILL.md are all inputs
-        # the suite asserts over, so a YAML-only commit can break it just as easily as a code one.
-        pass_filenames: false
-        always_run: true
         require_serial: true
