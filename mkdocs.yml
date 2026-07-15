@@ -1,0 +1,75 @@
+site_name: seqforge
+site_description: A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.
+site_url: https://liuhlab.github.io/seqforge/
+repo_url: https://github.com/liuhlab/seqforge
+repo_name: liuhlab/seqforge
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.tabs.link
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Concepts:
+      - The two artifacts: concepts/artifacts.md
+      - How a dataset is identified: concepts/identifying.md
+      - When it refuses: concepts/refusal.md
+  - Getting started: getting-started.md
+  - Adding a technology: kb-authoring.md
+
+# `design.md` stays in the repo and OUT of the site, deliberately. It is the agent-facing technical
+# source of truth (schemas, scoring function, CLI surface) and this site is the human layer on top of
+# it — but more concretely, three of its sections are internal deliberation rather than
+# documentation: a pushback appendix, a list of genomics values explicitly marked "unverified — do
+# not ship without checking", and the held-out acceptance case. Publishing those under a docs URL
+# would present open questions as settled guidance. Read it in the repo, where its status is obvious.
+exclude_docs: |
+  design.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  # mermaid ships inside mkdocs-material — no extra dependency, just the fence wiring. This is the
+  # one place seqforge extends the sibling repos' shared extension block rather than copying it.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true

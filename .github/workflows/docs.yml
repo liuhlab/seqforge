@@ -1,0 +1,41 @@
+name: Docs
+
+# Builds the MkDocs site and publishes it to the `gh-pages` branch on every push to main.
+# Mirrors liulab-runtime's mechanism (a gh-pages branch), not liulab-genome's (a Pages artifact):
+# the two siblings differ, and CLAUDE.md's own wording says gh-pages.
+#
+# Setup (one-off, by a maintainer):
+#   1. Let this workflow run once so it creates the `gh-pages` branch.
+#   2. Settings -> Pages -> Source: "Deploy from a branch".
+#   3. Branch: `gh-pages`, folder: `/ (root)`. Save.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & deploy to gh-pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: docs
+          locked: true
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: mkdocs gh-deploy
+        run: pixi run -e docs mkdocs gh-deploy --force --strict
