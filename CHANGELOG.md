@@ -64,7 +64,7 @@ increments per release within the month and resets when the month changes. The v
   shares that husbandry, and an unperturbed baseline experiment has no condition at all. The prompt
   had defined chemistry and organism, then said "everything else: the document's own wording", which
   invites exactly this. The fix says what each field IS and when to **omit** it; the corpus then
-  measured the fix (false-accept 0.111 → 0.0, and ~40% fewer output tokens).
+  measured the fix — false-accept **0.111 → 0.0**, field accuracy **0.933 → 1.0**, exit 3 → 0.
   **The finding underneath is architectural, and is now recorded in `verify.entails()` and pinned by a
   test: entailment is VACUOUS when the value is copied out of the quote.** R5's power comes entirely
   from `value` being a controlled-vocabulary term whose surface forms must appear in the quote —
@@ -114,8 +114,9 @@ increments per release within the month and resets when the month changes. The v
   - `eval run` defaults to `--no-llm` (runs in a keyless CI; prose cases skip). Exit 3 on **any**
     false-accept — not on a slider, because no threshold makes one tolerable — or below `--fail-under`.
   - **Live-verified on the lab cluster** (DeepSeek V4-Pro, 3 trials/prose case): 9 cases,
-    field_accuracy **1.0**, false_accept **0.0**, false_refuse **0.0**, 6 LLM calls, ~90 s, and
-    `cache_read_tokens: 7296` — the stable KB prefix now genuinely caches, measured rather than assumed.
+    field_accuracy **1.0**, false_accept **0.0**, false_refuse **0.0**, every case stable across all
+    trials, 6 LLM calls in ~90–130 s (wall-clock is API latency, so it moves run to run). `cost` reports
+    non-zero `cache_read_tokens` every run — the stable KB prefix genuinely caches, measured not assumed.
   - **It found four real defects, three of them in itself** — which is the point: a harness nobody has
     seen fail is indistinguishable from a broken one.
     1. *A case was wrong, not the design.* It asserted the metadata-vs-reads conflict on
@@ -125,9 +126,9 @@ increments per release within the month and resets when the month changes. The v
     2. *A case was wrong, not the model.* `chemistry-unstated-trap` forbade `experiment.samples.tissue`
        and the live run graded a false-accept for "neurons" — but the prose says "C. elegans neurons"
        and "Neuronal nuclei were isolated". Removed from `forbidden_fields` rather than promoted to a
-       required assertion: a later run returned "neuronal nuclei" for the same fact, so pinning an
-       exact string would measure string matching, not extraction. A harness that cries wolf gets
-       ignored exactly when it is right.
+       required assertion: later runs returned "neuronal nuclei" and "neurons" for the same fact
+       across runs, so pinning an exact string would measure string matching, not extraction. A
+       harness that cries wolf gets ignored exactly when it is right.
     3. *Trials kept only the LAST harvest*, so a model that hallucinated on trial 1 and behaved on
        trial 3 graded clean — the exact illusion trials exist to dispel. Now merged worst-wins:
        hallucinated/missing union, matched intersects, and come-and-go fields surface as `unstable`.
