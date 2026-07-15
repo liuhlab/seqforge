@@ -46,9 +46,10 @@ flowchart LR
     class OUT output
 ```
 
-The language model appears exactly once, inside `harvest`, with one job: **find claims in prose and
-point at where it found them.** It decides nothing. Every claim carries the sentence it came from,
-and code checks that the sentence really says that. Everything else is deterministic.
+**The model proposes; code decides.** Its job is prose: find claims and point at where it found each
+one. Every claim carries the sentence it came from, and code checks that the sentence really says
+that, or throws the claim away. The model never supplies a value of its own, never overrides the
+bytes, and nothing it produces reaches a manifest without passing a validator.
 
 ## What you get
 
