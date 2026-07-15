@@ -1,0 +1,14 @@
+# The pilot's single real acceptance case. Its data is NOT in this repo and MUST NOT be read until
+# the maintainer says so — see expected.yaml. The root is resolved from the environment at run time,
+# so the path lives in local out-of-git config and never enters git history. Unset/absent => SKIP,
+# never a pass and never a fail.
+#
+# Per-case env var (not one global $SEQFORGE_HELDOUT): there will be more held-out cases, and each
+# should name its own root rather than fight over a single variable.
+generate:
+  kind: local
+  root_env: SEQFORGE_CASE_PRJNA1027859
+  glob: "*.fastq.gz"
+
+# No `hypothesis:` on purpose. Declaring the chemistry here would hand resolve the answer and turn a
+# byte-level acceptance test into a tautology. The whole claim under test is that the BYTES decide.
