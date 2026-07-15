@@ -724,17 +724,19 @@ entirely.</p>
 <pre class="mermaid"><code>flowchart TD
     R0["&lt;b&gt;0 · the prose&lt;/b&gt;&lt;br/&gt;'10x 3′ v3.1', from a paper or database&lt;br/&gt;&lt;i&gt;a hypothesis — never a conclusion&lt;/i&gt;"]
     R1["&lt;b&gt;1 · the filenames&lt;/b&gt;&lt;br/&gt;&lt;i&gt;a weak hint, never decisive&lt;/i&gt;"]
-    R2["&lt;b&gt;2 · the shape of the reads&lt;/b&gt;&lt;br/&gt;read lengths, which stretches are random,&lt;br/&gt;which are fixed, which barcodes repeat&lt;br/&gt;&lt;i&gt;free — we are reading the bytes anyway&lt;/i&gt;"]
-    R3["&lt;b&gt;3 · check one barcode list&lt;/b&gt;&lt;br/&gt;do these barcodes appear in 10x's&lt;br/&gt;published list of real barcodes?&lt;br/&gt;&lt;i&gt;~100 milliseconds&lt;/i&gt;"]
+    R2["&lt;span style='color:#fff'&gt;&lt;b&gt;2 · the shape of the reads&lt;/b&gt;&lt;br/&gt;read lengths, which stretches are random,&lt;br/&gt;which are fixed, which barcodes repeat&lt;br/&gt;&lt;i&gt;free — we are reading the bytes anyway&lt;/i&gt;&lt;/span&gt;"]
+    R3["&lt;span style='color:#fff'&gt;&lt;b&gt;3 · check one barcode list&lt;/b&gt;&lt;br/&gt;do these barcodes appear in 10x's&lt;br/&gt;published list of real barcodes?&lt;br/&gt;&lt;i&gt;~100 milliseconds&lt;/i&gt;&lt;/span&gt;"]
     R7["&lt;b&gt;7 · ask a human&lt;/b&gt;&lt;br/&gt;&lt;i&gt;expensive — and that is the point&lt;/i&gt;"]
 
     R0 --&gt; R1 --&gt; R2 --&gt; R3
     R3 --&gt;|"a genuine tie that&lt;br/&gt;would change the output"| R7
-    R3 --&gt;|"decided"| DONE["dataset manifest"]
+    R3 --&gt;|"decided"| DONE["&lt;span style='color:#fff'&gt;dataset manifest&lt;/span&gt;"]
 
-    style R2 fill:#00695c,stroke:#004d40,color:#fff
-    style R3 fill:#00695c,stroke:#004d40,color:#fff
-    style DONE fill:#37474f,stroke:#263238,color:#fff</code></pre>
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef output fill:#37474f,stroke:#263238
+    class R2,R3 artifact
+    class DONE output</code></pre>
 <p>Rungs 0 to 3 cost well under a second, and they settle almost everything.</p>
 <div class="admonition info">
 <p class="admonition-title">Rungs 4–6 are not built yet</p>

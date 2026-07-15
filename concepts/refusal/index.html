@@ -651,13 +651,17 @@ pipeline would fail silently.</p>
 <h2 id="three-ways-it-can-end">Three ways it can end<a class="headerlink" href="#three-ways-it-can-end" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
     START["a dataset"] --&gt; Q{"can code decide it?"}
-    Q --&gt;|yes| OK["&lt;b&gt;manifest&lt;/b&gt;&lt;br/&gt;exit 0"]
-    Q --&gt;|"something is structurally wrong"| BLK["&lt;b&gt;blocker&lt;/b&gt;&lt;br/&gt;exit 3&lt;br/&gt;&lt;i&gt;this cannot be processed&lt;/i&gt;"]
-    Q --&gt;|"a real question only&lt;br/&gt;a human can settle"| ASK["&lt;b&gt;question&lt;/b&gt;&lt;br/&gt;exit 4&lt;br/&gt;&lt;i&gt;tell me, and I'll continue&lt;/i&gt;"]
+    Q --&gt;|yes| OK["&lt;span style='color:#fff'&gt;&lt;b&gt;manifest&lt;/b&gt;&lt;br/&gt;exit 0&lt;/span&gt;"]
+    Q --&gt;|"something is structurally wrong"| BLK["&lt;span style='color:#fff'&gt;&lt;b&gt;blocker&lt;/b&gt;&lt;br/&gt;exit 3&lt;br/&gt;&lt;i&gt;this cannot be processed&lt;/i&gt;&lt;/span&gt;"]
+    Q --&gt;|"a real question only&lt;br/&gt;a human can settle"| ASK["&lt;span style='color:#fff'&gt;&lt;b&gt;question&lt;/b&gt;&lt;br/&gt;exit 4&lt;br/&gt;&lt;i&gt;tell me, and I'll continue&lt;/i&gt;&lt;/span&gt;"]
 
-    style OK fill:#00695c,stroke:#004d40,color:#fff
-    style BLK fill:#b71c1c,stroke:#7f0000,color:#fff
-    style ASK fill:#e65100,stroke:#bf360c,color:#fff</code></pre>
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef blocked fill:#b71c1c,stroke:#7f0000
+    classDef ask fill:#bf360c,stroke:#7f2400
+    class OK artifact
+    class BLK blocked
+    class ASK ask</code></pre>
 <p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed.
 The language model never gets a vote; at most it helps phrase the question.</p>
 <p>Every blocker carries a specific reason and an actionable remedy. "Could not process" is not a
@@ -697,11 +701,14 @@ that the extra counting is close to free.</p>
 <p>So we don't ask. We produce every answer and let you pick.</p>
 <pre class="mermaid"><code>flowchart LR
     Q["'is this cells or nuclei?'&lt;br/&gt;— unanswerable from the reads"]
-    Q --&gt; BAD["ask the human&lt;br/&gt;&lt;i&gt;exit 4&lt;/i&gt;"]
-    Q --&gt; GOOD["count all five ways&lt;br/&gt;&lt;i&gt;exit 0&lt;/i&gt;"]
+    Q --&gt; BAD["&lt;span style='color:#fff'&gt;ask the human&lt;br/&gt;&lt;i&gt;exit 4&lt;/i&gt;&lt;/span&gt;"]
+    Q --&gt; GOOD["&lt;span style='color:#fff'&gt;count all five ways&lt;br/&gt;&lt;i&gt;exit 0&lt;/i&gt;&lt;/span&gt;"]
 
-    style BAD fill:#e65100,stroke:#bf360c,color:#fff
-    style GOOD fill:#00695c,stroke:#004d40,color:#fff</code></pre>
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef ask fill:#bf360c,stroke:#7f2400
+    classDef artifact fill:#00695c,stroke:#004d40
+    class BAD ask
+    class GOOD artifact</code></pre>
 <p>Save the interruptions for things that are genuinely exclusive — a genome, an aligner — where you
 really do have to choose one.</p>
 

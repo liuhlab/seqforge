@@ -697,13 +697,14 @@ description.</p>
 <h2 id="the-round-trip-is-the-whole-idea">The round-trip is the whole idea<a class="headerlink" href="#the-round-trip-is-the-whole-idea" title="Permanent link">&para;</a></h2>
 <p><code>spec.yaml</code> describes the reads. That description is enough to <em>generate</em> reads. So:</p>
 <pre class="mermaid"><code>flowchart LR
-    S["spec.yaml&lt;br/&gt;&lt;i&gt;what you declared&lt;/i&gt;"] --&gt; G["generate&lt;br/&gt;synthetic FASTQ"]
+    S["&lt;span style='color:#fff'&gt;spec.yaml&lt;br/&gt;&lt;i&gt;what you declared&lt;/i&gt;&lt;/span&gt;"] --&gt; G["generate&lt;br/&gt;synthetic FASTQ"]
     G --&gt; P["probe&lt;br/&gt;&lt;i&gt;the real code path&lt;/i&gt;"]
-    P --&gt; REC["what was recovered"]
+    P --&gt; REC["&lt;span style='color:#fff'&gt;what was recovered&lt;/span&gt;"]
     S -.-&gt;|"must match"| REC
 
-    style S fill:#00695c,stroke:#004d40,color:#fff
-    style REC fill:#00695c,stroke:#004d40,color:#fff</code></pre>
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class S,REC artifact</code></pre>
 <p>If what comes back out does not match what you declared, your entry is wrong, and you find out
 immediately — with no real data, no download, and no waiting.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>kb<span class="w"> </span>roundtrip<span class="w"> </span>&lt;technology&gt;

@@ -687,14 +687,21 @@ not have opinions on Tuesdays. seqforge is shaped the same way:</p>
     P --&gt; R["resolve&lt;br/&gt;&lt;i&gt;score &amp;amp; decide&lt;/i&gt;"]
     H --&gt; R
     KB[("knowledge base&lt;br/&gt;one entry per&lt;br/&gt;technology")] --&gt; R
-    R --&gt; D["&lt;b&gt;dataset manifest&lt;/b&gt;&lt;br/&gt;what the data IS"]
+    R --&gt; D["&lt;span style='color:#fff'&gt;&lt;b&gt;dataset manifest&lt;/b&gt;&lt;br/&gt;what the data IS&lt;/span&gt;"]
     D --&gt; C["compose"]
-    RECIPE["&lt;b&gt;processing manifest&lt;/b&gt;&lt;br/&gt;what to DO with it"] --&gt; C
-    C --&gt; OUT["pipeline config&lt;br/&gt;+ module selection"]
+    RECIPE["&lt;span style='color:#fff'&gt;&lt;b&gt;processing manifest&lt;/b&gt;&lt;br/&gt;what to DO with it&lt;/span&gt;"] --&gt; C
+    C --&gt; OUT["&lt;span style='color:#fff'&gt;pipeline config&lt;br/&gt;+ module selection&lt;/span&gt;"]
 
-    style D fill:#00695c,stroke:#004d40,color:#fff
-    style RECIPE fill:#00695c,stroke:#004d40,color:#fff
-    style OUT fill:#37474f,stroke:#263238,color:#fff</code></pre>
+    %% The white &lt;span&gt; on every dark-filled label is load-bearing, not decoration. Do not
+    %% replace it with `color:#fff` in the classDef below: mkdocs-material renders each diagram
+    %% into a *closed* shadow root and styles the label's inner &lt;p&gt; directly, so a classDef
+    %% colour lands on the wrapping element and loses to it — the text renders dark-on-dark.
+    %% An inline colour on the text itself is the only thing that wins. Same for every dark
+    %% node on this site.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef output fill:#37474f,stroke:#263238
+    class D,RECIPE artifact
+    class OUT output</code></pre>
 <p>A large language model appears exactly once in that picture, inside <code>harvest</code>, and it has one job:
 <strong>find claims in prose and point at where it found them.</strong> It does not decide anything. Every claim
 it produces carries the exact sentence it came from, and code checks that the sentence really is in

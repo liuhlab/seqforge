@@ -723,7 +723,7 @@ dataset hash never moves.</p>
 <h2 id="same-source-different-flags">Same source, different flags<a class="headerlink" href="#same-source-different-flags" title="Permanent link">&para;</a></h2>
 <p>The compiler analogy is doing real work here, not decorating:</p>
 <pre class="mermaid"><code>flowchart TD
-    D["dataset manifest&lt;br/&gt;&lt;code&gt;hash: a3f9…&lt;/code&gt;&lt;br/&gt;&lt;i&gt;never changes&lt;/i&gt;"]
+    D["&lt;span style='color:#fff'&gt;dataset manifest&lt;br/&gt;&lt;code&gt;hash: a3f9…&lt;/code&gt;&lt;br/&gt;&lt;i&gt;never changes&lt;/i&gt;&lt;/span&gt;"]
 
     D --&gt; C1["compose"]
     D --&gt; C2["compose"]
@@ -737,7 +737,9 @@ dataset hash never moves.</p>
     C2 --&gt; R2["run c3d4…"]
     C3 --&gt; R3["run e5f6…"]
 
-    style D fill:#00695c,stroke:#004d40,color:#fff</code></pre>
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class D artifact</code></pre>
 <p>Three runs, three distinct identities, one unchanged fact at the top. Each run's identity is computed
 from everything that went into it — the dataset, the choices, the knowledge base version, and the
 pipeline module version — so two runs can never collide, and a run can always be traced back to
