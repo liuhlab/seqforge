@@ -15,6 +15,21 @@ schema_version: 1
 # Read 1 (66 cycles) reads the cDNA. Round1 is the RT/first-round (oligo-dT/randN) barcode; Round3 is
 # nearest the sequencing primer. Whitelists: 96 x 8 bp per round (register the actual barcode files
 # from scg_lib_structs before a real run — the KB declares the registry name, never vendors the list).
+#
+# INDEPENDENTLY RECONSTRUCTED from the paper's own Table S12 oligos (PMC7643870): assembling the RT
+# primer + round-2/round-3 ligation oligos 5'->3' reproduces both linkers base-for-base and lands
+# Read 2 on exactly 10+8+30+8+30+8 = 94 cycles. The structure above is therefore derived from primary
+# oligos, not copied from a diagram. See `backend.params.soloStrand` for the full derivation.
+#
+# THE v1/v2 DISCRIMINATOR (cheap, from Read 2 alone, and the thing most likely to be silently
+# mismatched): this entry is v1 == the Science-2018 original, identified by a 30 bp linker2 with
+# Round1 at offset 86-93. Parse/v2 uses a 22 bp linker2 (ATCCACGTGCTTGAGACTGTGG) with Round1 at
+# 78-85. That single 8 bp shift is why published SPLiT-seq soloCBposition quadruples disagree in the
+# wild (`0_86_0_93` here vs `0_78_0_85` elsewhere) — they are different chemistries, not a typo.
+#
+# NB on demultiplexing (Table S12 footnote): there are 96 Round1 barcodes but only 48 RT WELLS — the
+# oligo-dT and random-hexamer primers in one well carry DIFFERENT barcodes, paired i <-> i+48. A
+# demultiplexer that treats all 96 as distinct doubles the apparent cell count at half the depth.
 # ============================================================================================
 
 identity:
@@ -85,16 +100,42 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
-    # FLAG (open, and the most dangerous value in this file): soloStrand is UNVERIFIED for SPLiT-seq.
-    # A wrong strand leaves ~half the reads unassigned while STARsolo exits 0 and emits a matrix that
-    # merely looks like a thin dataset. It cannot be caught by the params gate (which only proves the
-    # value survives compose intact) NOR by a simulated e2e (which would test our own assumed
-    # orientation against itself -- circular). Settle it non-circularly, in this order:
-    #   1. derive from Rosenberg et al., Science 2018 (doi:10.1126/science.aam8999) oligo
-    #      orientations / the scg_lib_structs diagram, and cite the derivation here;
-    #   2. decisive: run the paper's own raw data (GEO GSE110823) both ways -- the correct strand
-    #      assigns ~2x the reads. That is the design's rung-6 `alignment` check.
-    # Until then this entry must not process real data.
+    # soloStrand: DERIVED (FLAG closed). Was the most dangerous value in this file — a wrong strand
+    # leaves most reads unassigned while STARsolo exits 0 and emits a matrix that merely looks like a
+    # thin dataset. Neither gate can catch it: the params gate only proves the value survives compose
+    # intact, and a simulated e2e would test our own assumed orientation against itself (circular).
+    # So it is derived from the primary oligos, then corroborated by the authors' own code.
+    #
+    # DERIVATION (Rosenberg et al., Science 2018, doi:10.1126/science.aam8999; Supp. Table S12 oligos
+    # via PMC7643870 — note the Methods miscite the oligo table as "Table S1"; it is Table S12):
+    #   1. RT primer = /5Phos/AGGCCAGAGCATTCG + [bc1] + dT(15)VN (or N6). It anneals to the mRNA and
+    #      RT extends its 3' end, so first-strand cDNA is ANTISENSE with bc1 at its 5' end. Both
+    #      primer types share that 5' architecture and differ only in the 3' priming tail, which is
+    #      why random hexamer priming does NOT destroy strandedness here (the trap: random-primed
+    #      bulk RNA-seq genuinely is unstranded; this is not that).
+    #   2. Rounds 2/3 ligate onto that same 5' end. Assembling the Table S12 oligos 5'->3' gives
+    #      [PCR handle][UMI10][bc3][linker1][bc2][linker2][bc1][dT15VN]--antisense cDNA--, and the
+    #      ligation junctions reconstruct THIS FILE'S linker1/linker2 base-for-base, with Read2
+    #      landing on 10+8+30+8+30+8 = 94 cycles. The spec below is reproduced from primary oligos.
+    #   3. Read2 therefore reads the first strand = antisense; Read1 is its mate = SENSE to the mRNA.
+    #      STARsolo defines Forward as "read strand same as the original RNA molecule" -> Forward.
+    # CORROBORATION (independent of the derivation):
+    #   - The authors' own pipeline (github.com/Alex-Rosenberg/split-seq-pipeline, processv2.py)
+    #     compares the read strand to the gene's GTF strand with NO flip ("The current implementation
+    #     is stranded and will not return a gene on the opposite strand") == featureCounts -s 1.
+    #   - It finds the TSO (AAGCAGTGGTATCAACGCAGAGTGAATGGG) at the START of read1 and trims it, with
+    #     no reverse-complement on the counting path -> R1 reads sense.
+    #   - scg_lib_structs states it outright and runs --soloStrand Forward on SRR6750042, i.e. on
+    #     GSE110823 itself: "Read 1 comes from the coding strand. Therefore, use Forward".
+    #   - An adversarial search found NO source claiming Reverse. NB salmon's `-l ISR` is NOT a
+    #     Reverse signal: in alevin's convention (-1 barcode, -2 cDNA) ISR is the same library
+    #     STARsolo calls Forward.
+    # HONEST CAVEAT: the field's practice is weaker than its claim. Nobody chose Reverse, but most
+    # pipelines never chose at all — they inherited STARsolo's Forward default. The two affirmative
+    # sources are strong (one is the authors' code); the rest is silence, and silence here means
+    # Forward by accident, not by verification. The remaining non-circular confirmation is rung 6:
+    # run GSE110823 both ways (SRR6750042 is the scg_lib_structs control; SRR6750041 is cheapest at
+    # 77.6M reads) — the correct strand assigns ~an order of magnitude more reads. Bounded per R3.
     soloStrand: Forward
     soloFeatures: [Gene]
     # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
