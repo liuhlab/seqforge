@@ -110,12 +110,18 @@ class ModuleSelection(BaseModel):
 
 
 class ComposeResult(BaseModel):
-    """The output of ``compose``: selected modules, emitted config paths, and the gate verdicts."""
+    """The output of ``compose``: selected modules, emitted config paths, and the gate verdicts.
+
+    ``gate`` maps a gate name (``params`` / ``wiring`` / ``e2e``) to its verdict. ``skip`` is
+    first-class and distinct from ``pass``: the wiring and e2e gates depend on a toolchain seqforge
+    does not own (snakemake; STAR + liulab-genome + network), and a gate that reports ``pass``
+    because it never ran would let green CI be mistaken for coverage.
+    """
 
     modules: list[ModuleSelection]
     config_path: Uri
     units_path: Uri
-    gate: dict[str, Literal["pass", "fail"]]
+    gate: dict[str, Literal["pass", "fail", "skip"]]
     params_preview: dict[str, object]
 
 

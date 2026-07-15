@@ -30,8 +30,24 @@ increments per release within the month and resets when the month changes. The v
   round barcodes + two fixed 30 bp linkers, read structure + linker sequences pinned from
   scg_lib_structs; Parse Evercode deliberately deferred to its own future entry). All pass
   `kb roundtrip`.
-- **CLI** — `io onlist list|show`, `io peek`, `io resolve`, and `resolve score --json` (`--explain`
-  emits the evidence matrices; exit 3 on a Blocker, 4 on an open Conflict/question).
+- **`manifest/`** — `fill` assembles the three-section manifest from a resolve Decision (library =
+  observed bytes incl. the §12 equivalence class and byte-derived roles; experiment = asserted;
+  processing = inferred policy), `validate` is the R4 refusal contract (referential integrity,
+  no-absolute-path sweep, controlled vocab, role/layout coherence -> `Blocker`s + exit 3/4), and
+  `hash` binds a config to its inputs (content hash + `provenance_id`).
+- **`workflows/`** — hand-written, versioned `map/starsolo` + `map/star` Snakemake modules (never
+  generated) + `WORKFLOW_VERSION` (CalVer) + a module registry with a config contract. The genome
+  index resolves at run time via liulab-genome; no path is ever baked into a manifest.
+- **`compose/`** — pure fn manifest -> `config.yaml` + `units.tsv` + module selection, resolving
+  `{onlist:alias}` to a materialized whitelist. Three-part gate: the deterministic **params** gate
+  always runs (KB-faithfulness + KB-vs-observed-layout cross-derivation + `--readFilesIn` order);
+  **wiring** (`snakemake -n`/`--lint`) and **e2e** (count matrix) report `skip` when their toolchain
+  is absent — never a silent `pass`. `ComposeResult.gate` gained `skip` for exactly this reason.
+- **CLI** — `io onlist list|show`, `io peek`, `io resolve`, `resolve score --json` (`--explain`
+  emits the evidence matrices), `manifest fill|validate|hash`, and `compose` (exit 3 on a Blocker or
+  failed gate, 4 on an open Conflict/question).
+- **mypy --strict** scope extended again to `manifest/`, `compose/`, and `workflows/` — a wrong type
+  there poisons every emitted pipeline parameter.
 - **Day-one negatives** — truncated gzip → `TRUNCATED_GZIP`; an ONT run absent from the KB →
   `UNSUPPORTED_TECHNOLOGY` (refused, not guessed); metadata v2 vs 28 bp reads → a surfaced `Conflict`.
 - Design (`docs/design.md`), rules (`CLAUDE.md`), and rationale (`PROJECT_BRIEF.md`) in place.

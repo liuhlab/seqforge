@@ -87,6 +87,69 @@ def test_io_peek_not_implemented_exits_1() -> None:
     assert result.exit_code == 1
 
 
+def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
+    """The whole deterministic spine, driven through the real CLI: probe->resolve->manifest->compose.
+
+    Uses the no-barcode bulk branch so it needs no onlist: the default registry deliberately
+    materializes no real whitelist (they are license-restricted), which is exactly why the 10x path
+    refuses to compose until one is registered.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    filled = runner.invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            str(f1),
+            str(f2),
+            "--organism",
+            "559292",
+            "--assembly",
+            "sacCer3",
+            "--annotation",
+            "ensembl",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert filled.exit_code == 0, filled.stdout
+    assert json.loads(filled.stdout)["report"]["ok"] is True
+    # R7: manifest.yaml exists only because validate came back clean
+    manifest_path = tmp_path / ".seqforge" / "manifest.yaml"
+    assert manifest_path.is_file()
+    assert not (tmp_path / ".seqforge" / "manifest.draft.yaml").exists()
+
+    validated = runner.invoke(app, ["manifest", "validate", str(manifest_path)])
+    assert validated.exit_code == 0
+    assert json.loads(validated.stdout)["ok"] is True
+
+    hashed = runner.invoke(app, ["manifest", "hash", str(manifest_path)])
+    assert hashed.exit_code == 0
+    assert json.loads(hashed.stdout)["matches"] is True
+
+    composed = runner.invoke(app, ["compose", str(manifest_path), "-C", str(tmp_path)])
+    assert composed.exit_code == 0, composed.stdout
+    doc = json.loads(composed.stdout)
+    assert doc["modules"][0]["name"] == "map/star"
+    assert doc["gate"]["params"] == "pass"
+    assert doc["gate"]["e2e"] == "skip"  # honest: the count-matrix run needs STAR + liulab-genome
+    assert (tmp_path / ".seqforge" / "pipeline" / "config.yaml").is_file()
+    assert (tmp_path / ".seqforge" / "pipeline" / "units.tsv").is_file()
+
+
+def test_compose_refuses_invalid_manifest(tmp_path: Path) -> None:
+    bad = tmp_path / "nope.yaml"
+    bad.write_text("library: {}\n")
+    result = runner.invoke(app, ["compose", str(bad), "-C", str(tmp_path)])
+    assert result.exit_code == 2  # unreadable/invalid manifest is a usage error, not a silent pass
+
+
 def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=800, seed=0)

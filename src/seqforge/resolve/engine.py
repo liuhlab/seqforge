@@ -8,12 +8,13 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..io import DEFAULT_REGISTRY, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
+from ..models.observation import Observation
 from ..models.resolve import ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
@@ -34,10 +35,16 @@ class Hypothesis:
 
 @dataclass(frozen=True)
 class ResolveOutput:
-    """The engine's return: the wire :class:`ResolveResult` plus the JSON-safe evidence matrices."""
+    """The engine's return: the wire :class:`ResolveResult`, the evidence matrices, and the probes.
+
+    ``observations`` is carried so a downstream ``manifest fill`` can assemble the file inventory
+    without re-probing the bytes (the sample is already within the R3 budget; paying for it twice is
+    the bug this avoids).
+    """
 
     result: ResolveResult
     matrices: dict[str, dict[str, dict[str, dict[str, object]]]]
+    observations: list[Observation] = field(default_factory=list)
 
     def exit_code(self) -> int:
         return exit_code_for(self.result)
@@ -68,7 +75,7 @@ def resolve_dataset(
     kb_specs = specs if specs is not None else load_all_specs()
     cache = Cache(workspace)
 
-    observations = []
+    observations: list[Observation] = []
     wps: list[WindowProbe] = []
     for path in paths:
         obs, seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes)
@@ -102,4 +109,4 @@ def resolve_dataset(
         cache.write_resolve(ds_id, result)
 
     matrices = {e.tech: e.matrix_json() for e in evaluations}
-    return ResolveOutput(result=result, matrices=matrices)
+    return ResolveOutput(result=result, matrices=matrices, observations=observations)

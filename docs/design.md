@@ -452,8 +452,8 @@ class ModuleSelection(BaseModel):
 
 class ComposeResult(BaseModel):
     modules: list[ModuleSelection]; config_path: Uri; units_path: Uri
-    gate: dict[str, Literal["pass", "fail"]]   # {wiring, params, e2e}
-    params_preview: dict[str, object]
+    gate: dict[str, Literal["pass", "fail", "skip"]]   # {wiring, params, e2e}
+    params_preview: dict[str, object]                  # incl. params_problems: why a gate failed
 
 class RunResult(BaseModel):
     dataset_id: str; stages: dict[str, str]; exit: int
@@ -1015,7 +1015,12 @@ compressed-bytes-per-read (or reads the gzip ISIZE) — the naive decompressed f
 ### 4.1 The split compose gate + `kb e2e` (pushback #8)
 
 `compose` is a pure function of the manifest (no data on disk). Its gate has **three** parts, because
-a dry-run cannot catch a strand inversion:
+a dry-run cannot catch a strand inversion.
+
+**`skip` is first-class (implemented).** Parts 1 and 3 depend on a toolchain seqforge does not own
+(`snakemake`; STAR + liulab-genome + network), and the count-matrix run is a Linux/cluster operation.
+A gate reporting `pass` because it never ran would let green CI be mistaken for coverage, so each gate
+reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain — always runs.
 
 1. **Wiring** — touch zero-byte files at every path in the file inventory **∪ resolved-onlist cache
    paths** (so a whitelist declared as a Snakemake `input:` doesn't raise a spurious
