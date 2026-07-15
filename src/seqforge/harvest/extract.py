@@ -32,7 +32,12 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 
 #: Bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is reproducible and
 #: blamable, and evals treat a prompt edit as a code change (brief §9).
-EXTRACT_PROMPT_VERSION = "2026.7.0"
+#: 2026.7.1 — gave `experiment.samples.{tissue,condition}` and `accessions` operational definitions.
+#: `eval run --llm` caught DeepSeek V4-Pro filing standard worm husbandry ("maintained on NGM plates
+#: seeded with E. coli OP50 at 20 C") as an experimental *condition*: a real quote, correctly copied,
+#: pinned to a field it does not belong in. The old prompt said only "everything else: the document's
+#: own wording", which invites exactly that. See `verify.entails` for why R5 cannot catch this class.
+EXTRACT_PROMPT_VERSION = "2026.7.1"
 
 #: Manifest paths worth asking for. `library.*` is byte-decidable and only ever a HYPOTHESIS here
 #: (resolve owns the decision); `experiment.*` is the part bytes genuinely cannot see.
@@ -71,6 +76,16 @@ Values:
   its aliases. If the document names a technology not in the knowledge base, use the document's own
   wording.
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
+- `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
+  "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.
+- `experiment.samples.tissue`: the tissue, cell type, or body part the profiled cells came from, in
+  the document's wording. Whole organisms at a life stage are not a tissue — omit the field.
+- `experiment.samples.condition`: ONLY the experimental perturbation or treatment group that
+  distinguishes one sample from another (e.g. "heat shock", "auxin-treated", "control"). Routine
+  culture or husbandry shared by every sample — growth medium, temperature, food source, plate type
+  — is NOT a condition. If the document describes no perturbation, omit the field: an unperturbed
+  baseline experiment has no condition, and copying husbandry into this field is a wrong answer even
+  though the words appear in the document.
 - everything else: the document's own wording.
 """
 

@@ -89,6 +89,27 @@ def test_entailment_plain_value_substring() -> None:
     assert entails(
         "The organism was Caenorhabditis elegans.", "experiment.organism", "Caenorhabditis elegans"
     )
+
+
+def test_entailment_is_vacuous_when_the_value_is_copied_out_of_the_quote() -> None:
+    """Pin the LIMIT of R5, so nobody mistakes it for a guarantee it does not offer.
+
+    The check's power comes from `value` being a controlled-vocabulary term whose surface forms must
+    appear in the quote. For a free-text field the model copies the value out of the quote, so the
+    substring test is trivially satisfied and this returns True for ANY field label.
+
+    Hence: entailment catches fabricated and mis-attributed claims, never field-assignment errors. A
+    real quote filed under the wrong field passes here by construction — `eval run --llm` caught
+    exactly that (standard worm husbandry filed as an experimental `condition`). The defense is the
+    prompt's field definition plus the evals corpus, not this function.
+    """
+    husbandry = "maintained on NGM plates seeded with E. coli OP50 at 20 C"
+    quote = f"Caenorhabditis elegans were {husbandry}."
+    # A true statement, correctly quoted, filed under a field it does not belong in — and entails()
+    # cannot tell. It would say yes to any field name at all:
+    assert entails(quote, "experiment.samples.condition", husbandry)
+    assert entails(quote, "experiment.samples.tissue", husbandry)
+    assert entails(quote, "totally.made.up.field", husbandry)
     assert not entails(
         "The organism was Homo sapiens.", "experiment.organism", "Caenorhabditis elegans"
     )

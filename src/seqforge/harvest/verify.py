@@ -95,6 +95,18 @@ def entails(quote: str, field: str, value: str) -> bool:
     (order-independent — "Chromium Single Cell 3' v3" carries the alias "Chromium 3' v3"). Purely
     generic tokens cannot entail on their own, so a quote saying only "single-cell RNA-seq" can never
     entail a specific chemistry version.
+
+    **Know what this check cannot do.** Its power comes entirely from ``value`` being drawn from a
+    controlled vocabulary: for ``library.chemistry`` the value is a KB id, so the quote must contain a
+    real alias, and a quote about "droplet-based single-cell" cannot smuggle in a v3 chemistry. For a
+    free-text field the model supplies a value copied *out of* the quote, so ``form in quote`` is
+    trivially true and this returns True for anything. **Entailment is vacuous when value ⊆ quote.**
+
+    So R5 is a tripwire for fabricated and mis-attributed claims, NOT for field-assignment errors. A
+    real quote filed under the wrong field passes here by construction — `eval run --llm` caught
+    exactly that (worm husbandry filed as an experimental `condition`). The defense for free-text
+    fields is the prompt's operational definition of the field plus the evals corpus that measures it,
+    not this function. Tightening the matcher would not help; there is nothing here left to check.
     """
     q = _squash(quote).lower()
     q_tokens = set(_tokens(q))
