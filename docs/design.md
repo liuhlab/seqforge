@@ -1189,15 +1189,24 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    ~~the fixture proves the GeneFull path works and prices the gap, but does NOT prove the compiler
    would choose GeneFull, because today it cannot.~~
 
-   **Still open, and honestly so: Velocyto's cost is asserted, not measured.** "Count everything" is
-   sound arithmetic for `Gene`+`GeneFull` — one alignment, a cheap second counter — but `Velocyto` at
-   10⁴ × hg38 forces spliced/unspliced/ambiguous per CB×gene plus intron classification. The matrices
-   are small; the counting is not free. This project's own standard is the 40.7 % number: measure it.
-   `kb e2e-introns` is the instrument and it is already built — run it twice (all five vs
-   `--quantify Gene,GeneFull`) and record wall-clock + peak RAM. Decision rule, fixed in advance: >2×
-   wall-clock or over the module's `mem_gb` hint and the default drops to four, with `--quantify`
-   restoring Velocyto. An expensive default is not a trap precisely *because* the processing manifest
+   **Velocyto is unconditional — a maintainer decision (2026-07-15), not a measurement.** The
+   pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") is **retired**.
+   Recording *how* it was retired, because a rule that was overridden and a rule that was tested and
+   passed leave the same trace unless someone writes down which happened: this one was never tested.
+   `--quantify` still narrows.
+
+   **Peak RSS at 10⁴ × hg38 remains UNMEASURED**, deferred to real human data. The ce11 fixture
+   cannot answer it and a green ce11 number would be worse than none: peak RSS moved 2.804 → 2.809 GB
+   across a 500× read increase, because 2.8 GB *is* the ce11 index and the counting is a rounding
+   error on it. On hg38 the index alone approaches the 32 GB hint before a read is counted — the only
+   configuration where the rule could have bitten. What generalizes off ce11 is the **slope** (bytes
+   per read per feature-set, additive with a genome-sized constant), never the absolute figure. The
+   instrument is built: `kb e2e-introns --quantify` plus the `cost` block reporting `star_wall_s` /
+   `star_peak_rss_gb`. An expensive default is not a trap precisely *because* the processing manifest
    exists to override it.
+
+   (`mem_gb` is `ResourceHints.mem_gb` on the **processing manifest**, default 32 — not a workflow
+   module property. A resource request is intent, so R13 puts it in the recipe.)
 
    Still open: a **SPLiT-seq** e2e — this run certifies 10x 3′ v3's `soloStrand Forward` only. Note a
    simulation cannot settle `splitseq`'s strand FLAG on its own: simulating requires assuming the

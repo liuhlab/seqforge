@@ -71,11 +71,37 @@ below — see that entry for what was proposed and what superseded it.
   while `assembly` came from a flag, and nothing ever compared them.
 - `KB_VERSION` → 2026.7.1, `WORKFLOW_VERSION` → 2026.7.1, `EXTRACT_PROMPT_VERSION` → 2026.7.2.
 
-**Still open, and measured rather than assumed:** Velocyto's cost at 10⁴ × hg38. "Count everything" is
-sound arithmetic for Gene+GeneFull; Velocyto forces spliced/unspliced/ambiguous per CB×gene. The
-instrument (`kb e2e-introns`) is built; the run is outstanding. Decision rule fixed in advance: >2×
-wall-clock or over the module's `mem_gb` hint and the default drops to four, with `--quantify`
-restoring it.
+**Verified on arc (job 2680654, ce11 + WS298, commit ac887c7).** The gate ran on the compiler's own
+params with the override deleted and reproduced the pre-registered number exactly:
+`gene_signal_lost = 0.407`, `composed_soloFeatures = [Gene, GeneFull, GeneFull_ExonOverIntron,
+GeneFull_Ex50pAS, Velocyto]`, `primary_feature = Gene`. Gene counted **none** of the 788 injected
+intronic reads (1186 vs 1212 exonic); GeneFull recovered 1940 of 2000. The 40.7 % is now a
+*counterfactual* measured on a run that did not throw the signal away.
+
+**A second defect the same run surfaced, at scale.** At 10⁶ reads, Gene-only produced **207 spurious
+(cell, gene) pairs where GeneFull produced 0** — intronic reads landing in an *overlapping* gene's
+exon. So exon-only counting on a nuclear library does not merely lose 40.7 % of it, it also
+misassigns. Invisible at the gate's 2 000-read scale, which is where its `n_spurious_pairs == 0`
+assertion is calibrated; the assertion was left alone rather than loosened to fit a benchmark.
+
+**The Velocyto decision rule is retired — by the maintainer, not by a measurement (2026-07-15).**
+Velocyto is unconditional. Saying this plainly because the rule was pre-registered (">2× wall-clock
+or over the `mem_gb` hint ⇒ drop to four") and a retired rule must not be mistaken later for a rule
+that was tested and passed. It was not tested. `--quantify` still narrows for anyone who wants to.
+
+**Peak RSS at 10⁴ × hg38 is UNMEASURED and deferred to real human data.** The ce11 fixture cannot
+answer it, and a green ce11 number would be actively misleading: peak RSS was 2.804 GB at 2 000 reads
+and 2.809 GB at 10⁶ reads — a 500× read increase moved it 5 MB, because that 2.8 GB is the *ce11
+index* sitting in RAM and the counting is a rounding error on top of it. "All-5 fits in 32 GB on
+ce11" is a fact about ce11's index size, not about Velocyto. On hg38 the index alone approaches the
+32 GB hint before a single read is counted, which is the only configuration where the rule could ever
+have bitten. The instrument is built and waiting (`kb e2e-introns --quantify` + the `cost` block
+reporting `star_wall_s` / `star_peak_rss_gb`); what generalizes off ce11 is the *slope* — bytes per
+read per feature-set, additive with a genome-sized constant — not the absolute number.
+
+One correction to the rule's own wording: `mem_gb` is not a workflow-module property. It is
+`ResourceHints.mem_gb` on the **processing manifest** (default 32), i.e. it lives in the recipe —
+which is where a resource request belongs under R13.
 
 ## 2026.7.0 — 2026-07-14
 
