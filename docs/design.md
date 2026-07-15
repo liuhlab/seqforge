@@ -1077,9 +1077,30 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    1 909/2 000 recovered with **0 spurious / 0 inflated**; STAR uniquely mapped 1 923 (77 multi/too-many
    loci), leaving **0.7 % unexplained**; the inverted strand collapsed to **49/2 000 (2.5 %)**.
 
-   Still open: an **intron-rich fixture** (yeast is nearly intron-free and cannot exercise
-   `GeneFull`), and a **SPLiT-seq** e2e — this run certifies 10x 3′ v3's `soloStrand Forward` only, so
-   `splitseq`'s strand FLAG stays open until it gets its own simulation.
+   **Intron-rich fixture — CLOSED** (`kb e2e-introns`, ce11 + WS298, measured on arc): 2 000 reads =
+   1 212 exonic + 788 intronic injected across 120 genes; one STARsolo run with
+   `--soloFeatures Gene GeneFull` (identical alignment, so only the counting rule differs). `Gene`
+   totalled **1 186** — the exonic truth, counting none of the intronic reads (recovery 0.979);
+   `GeneFull` totalled **1 940** (recovery 0.97 vs exon+intron). 0 spurious, 0 inflated; STAR placed
+   1 971/2 000 uniquely. Resolve decided `10x-3p-gex-v3` from ce11 bytes unaided.
+
+   **That run also measured a real defect: `gene_signal_lost = 0.407`.** `--soloFeatures Gene` silently
+   discards **40.7 %** of a nuclear library, and `composed_soloFeatures` was `[Gene]` — i.e. the
+   compiler *would* emit it. The KB files `soloFeatures` under `backend.params`, but 10x 3′ v3.1
+   chemistry is byte-identical for cells and nuclei: what differs is the RNA population, a property of
+   **sample prep**, not chemistry. The coherent line is `backend.params` says how to **parse** reads
+   (soloType/CB/UMI/whitelist/strand); `processing` says what to **count** (soloFeatures). Compounding
+   it, `processing.quantification` is currently **decorative** — policy hardcodes `"gene"`, writes it
+   to the manifest, and compose then ignores it and reads the KB instead. Two sources of truth for one
+   decision, unable to disagree only because one is never consulted. Surfaced by pre-registering
+   PRJNA1027859 (single-**nucleus** RNA-seq) from declared metadata — before the run, without touching
+   the data. **Open: a maintainer decision** (see §8); the fixture proves the GeneFull path works and
+   prices the gap, but does NOT prove the compiler would choose GeneFull, because today it cannot.
+
+   Still open: a **SPLiT-seq** e2e — this run certifies 10x 3′ v3's `soloStrand Forward` only. Note a
+   simulation cannot settle `splitseq`'s strand FLAG on its own: simulating requires assuming the
+   strand, which is circular. That FLAG needs the Rosenberg-2018 oligo derivation or real GSE110823
+   data; a simulation can then only prove compose stays faithful to whatever the KB declares.
 
 ### 4.2 Skill → verb map, hooks, state
 
