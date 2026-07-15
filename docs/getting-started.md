@@ -24,6 +24,13 @@ If you intend to commit, install the hooks once:
 pixi run -- pre-commit install
 ```
 
+These are the fast ones — formatting, linting, type-checking. The test suite is not among them, so
+run it yourself before you push anything that changes behaviour:
+
+```bash
+pixi run check
+```
+
 ## The shape of a session
 
 Every command prints JSON to standard output and says what it did through its **exit code**. There is

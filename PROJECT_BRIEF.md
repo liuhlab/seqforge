@@ -849,8 +849,9 @@ something, delete its line here and fix the tense above.** A stale §14 is worse
 
 The audit's organising finding was *"there is no CI, and five rules cite it as their enforcement"*.
 The fix was not CI. **CI was never the mechanism those rules needed — a test was**; CI only schedules
-tests. So the four missing tests were written, and *then* `.pre-commit-config.yaml` (the mechanism)
-and `.github/workflows/ci.yml` (the backstop) were added to run them.
+tests. So the four missing tests were written, and *then* a scheduler was added to run them: CI on
+every push and PR. Pre-commit carries the fast hooks only — running the suite on every commit taxed
+prose-only commits for no gain, so a red commit can now exist locally and is caught at push.
 
 Every one of these had the same shape, and it is worth naming because it will recur: **a contract
 maintained by hand, beside the code it describes, checked against itself.**

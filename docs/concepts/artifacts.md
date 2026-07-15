@@ -44,7 +44,7 @@ The compiler analogy is doing real work here, not decorating:
 
 ```mermaid
 flowchart TD
-    D["dataset manifest<br/><code>hash: a3f9…</code><br/><i>never changes</i>"]
+    D["<span style='color:#fff'>dataset manifest<br/><code>hash: a3f9…</code><br/><i>never changes</i></span>"]
 
     D --> C1["compose"]
     D --> C2["compose"]
@@ -58,7 +58,9 @@ flowchart TD
     C2 --> R2["run c3d4…"]
     C3 --> R3["run e5f6…"]
 
-    style D fill:#00695c,stroke:#004d40,color:#fff
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class D artifact
 ```
 
 Three runs, three distinct identities, one unchanged fact at the top. Each run's identity is computed

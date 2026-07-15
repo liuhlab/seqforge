@@ -1,9 +1,9 @@
 name: CI
 
-# The BACKSTOP, not the mechanism. Most of seqforge's non-negotiable rules are enforced by tests
-# (the parse/count line, the KB round-trip over every spec, the rung-0-2 separability guard, the
-# read/byte budget), and `.pre-commit-config.yaml` runs those before a commit exists. This catches
-# what a `--no-verify` waved through, and proves the suite is green on a machine that is not yours.
+# THE mechanism. Most of seqforge's non-negotiable rules are enforced by tests (the parse/count line,
+# the KB round-trip over every spec, the rung-0-2 separability guard, the read/byte budget), and
+# nothing else runs them automatically: pre-commit deliberately carries only the fast hooks, so a red
+# commit can exist on a branch. This is where it is caught -- and on a machine that is not yours.
 
 on:
   push:

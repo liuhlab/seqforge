@@ -8,7 +8,9 @@ judge the compiler. A ground-truth harness that is itself wrong would silently b
 
 from __future__ import annotations
 
+import gzip
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -200,3 +202,194 @@ def test_intron_reads_come_only_from_introns() -> None:
     for read in sim.cdna:
         assert read in intron
         assert read not in mrna
+
+
+# --------------------------------------------------------------------------------------------
+# The cost arm (`kb e2e-cost`). It prices a counting rule rather than judging one, so none of the
+# ground-truth machinery above applies — but its two instruments (the GTF filter and the per-run
+# memory reading) are exactly the kind that fail silently, which is why they are pinned here.
+# --------------------------------------------------------------------------------------------
+
+_ENSEMBL_GTF = """\
+#!genome-build R64
+chrI\tsrc\texon\t1\t300\t.\t+\t.\tgene_id "G1"; gene_biotype "protein_coding";
+chrI\tsrc\texon\t500\t900\t.\t+\t.\tgene_id "G1"; gene_biotype "protein_coding";
+chrI\tsrc\texon\t1\t200\t.\t+\t.\tgene_id "L1"; gene_biotype "lncRNA";
+"""
+
+# GENCODE spells the same attribute `gene_type`. Byte-for-byte the same biology, and the Ensembl-only
+# pattern matched none of it -- which meant the protein_coding filter kept L1 as well as G1.
+_GENCODE_GTF = _ENSEMBL_GTF.replace("gene_biotype", "gene_type")
+
+# No biotype attribute at all: the filter cannot be applied, so the harness must refuse.
+_UNTYPED_GTF = """\
+chrI\tsrc\texon\t1\t300\t.\t+\t.\tgene_id "G1"; gene_name "g one";
+chrI\tsrc\texon\t500\t900\t.\t+\t.\tgene_id "G1"; gene_name "g one";
+"""
+
+
+@pytest.mark.parametrize("text", [_ENSEMBL_GTF, _GENCODE_GTF], ids=["ensembl", "gencode"])
+def test_the_biotype_filter_reads_both_gtf_dialects(tmp_path: Path, text: str) -> None:
+    """Ensembl says `gene_biotype`, GENCODE says `gene_type`; both must filter identically.
+
+    The incident: this pattern was `gene_biotype` only. Every assembly the gates had ever run on
+    (sacCer3/ensembl_R64-1-1, ce11/WS298) is Ensembl-flavoured, so it was never wrong in a real run
+    -- until hg38, whose GENCODE GTF is the annotation the human corpus actually uses. There it
+    matched nothing, and `if biotype and ...` turns matching nothing into filtering nothing: the
+    lncRNA below would have entered a fixture that promises protein-coding genes, with no error.
+    """
+    from seqforge.e2e import _parse_exons
+
+    gtf = tmp_path / "a.gtf"
+    gtf.write_text(text)
+    exons = _parse_exons(gtf)
+    assert set(exons) == {"G1"}, "the lncRNA must be filtered out in BOTH dialects"
+    assert len(exons["G1"]) == 2
+
+
+def test_an_unfilterable_gtf_is_refused_rather_than_silently_widened(tmp_path: Path) -> None:
+    """A GTF with no biotype attribute must raise, not quietly keep every gene.
+
+    This is the general form of the bug above: when the filter cannot be applied, the two honest
+    options are to error or to keep everything, and keeping everything is worse *because* it does not
+    look like a failure -- the fixture builds, the run passes, the gene universe is wrong.
+    """
+    from seqforge.e2e import E2EUnavailable, _parse_exons
+
+    gtf = tmp_path / "untyped.gtf"
+    gtf.write_text(_UNTYPED_GTF)
+    with pytest.raises(E2EUnavailable, match="gene_biotype"):
+        _parse_exons(gtf)
+
+
+def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> None:
+    """A second measured run must be able to report LESS memory than the first.
+
+    The regression this pins: the measurement used to be
+    `resource.getrusage(RUSAGE_CHILDREN).ru_maxrss`, a high-water mark over every child the process
+    has ever reaped. Running STAR once, that is STAR's peak. Running it N times -- which is exactly
+    what a sweep does -- every point after the first is silently max()-ed with its predecessors, so
+    the curve can only ever rise. That failure mode is indistinguishable from the memory growth the
+    sweep exists to measure, which is what makes it worth a test rather than a comment.
+
+    Big-then-small is the ordering that catches it: under the old code the second reading could not
+    fall below the first, so `small < big` is precisely the assertion the bug forbids.
+    """
+    from seqforge.e2e import _run_measured
+
+    def measure(mb: int, name: str) -> int:
+        code, _wall, kib, _err = _run_measured(
+            [sys.executable, "-c", f"x = bytearray({mb} * 1024 * 1024); print(len(x))"],
+            outdir=tmp_path / name,
+            timeout=120,
+        )
+        assert code == 0
+        return kib
+
+    big = measure(400, "big")
+    small = measure(1, "small")
+    assert small < big, (
+        f"peak RSS is accumulating across children: 400 MB run -> {big}, 1 MB run -> {small}. "
+        "Each measurement must belong to its own child."
+    )
+
+
+def test_a_measured_run_reports_a_failing_exit_code_with_its_stderr(tmp_path: Path) -> None:
+    from seqforge.e2e import _run_measured
+
+    code, _wall, _kib, err = _run_measured(
+        [sys.executable, "-c", "import sys; sys.stderr.write('boom'); sys.exit(3)"],
+        outdir=tmp_path / "fail",
+        timeout=120,
+    )
+    assert code == 3
+    assert "boom" in err
+
+
+def test_a_measured_run_that_overruns_its_budget_is_killed(tmp_path: Path) -> None:
+    from seqforge.e2e import E2EUnavailable, _run_measured
+
+    with pytest.raises(E2EUnavailable, match="budget"):
+        _run_measured(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            outdir=tmp_path / "slow",
+            timeout=1,
+        )
+
+
+def test_cost_reads_have_the_v3_geometry_and_come_from_the_models(tmp_path: Path) -> None:
+    """The cost fixture must still be 10x-v3-shaped, or the compiler cannot identify it."""
+    from seqforge.e2e import GeneModel, write_cost_fastqs
+
+    models = [GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTGCA" * 80,))]
+    cbs = ["ACGTACGTACGTACGT", "TTTTCCCCGGGGAAAA"]
+    cdna, bc = tmp_path / "r2.fastq.gz", tmp_path / "r1.fastq.gz"
+    stats = write_cost_fastqs(
+        models, n_reads=500, cbs=cbs, cdna_path=cdna, bc_path=bc, read_len=90, seed=1
+    )
+    assert stats["n_reads"] == 500
+    assert stats["n_exonic"] + stats["n_intronic"] == 500
+    assert stats["n_intronic"] > 0, "no intronic reads means Velocyto has nothing to price"
+
+    with gzip.open(cdna, "rt") as fh:
+        cdna_lines = fh.read().splitlines()
+    with gzip.open(bc, "rt") as fh:
+        bc_lines = fh.read().splitlines()
+    assert len(cdna_lines) == len(bc_lines) == 500 * 4
+
+    cdna_seqs = cdna_lines[1::4]
+    bc_seqs = bc_lines[1::4]
+    assert {len(s) for s in cdna_seqs} == {90}
+    assert {len(s) for s in bc_seqs} == {28}, "16 bp CB + 12 bp UMI is what v3 requires"
+    assert {s[:16] for s in bc_seqs} <= set(cbs), "every CB must come from the whitelist sample"
+    # a read that is not a substring of its source would mean the fixture is fabricating sequence
+    sources = models[0].mrna + "|" + models[0].introns[0]
+    assert all(s in sources for s in cdna_seqs)
+
+
+def test_cost_reads_are_deterministic_in_seed(tmp_path: Path) -> None:
+    from seqforge.e2e import GeneModel, write_cost_fastqs
+
+    models = [GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTGCA" * 80,))]
+    cbs = ["ACGTACGTACGTACGT"]
+
+    def emit(tag: str, seed: int) -> bytes:
+        cdna, bc = tmp_path / f"{tag}_r2.gz", tmp_path / f"{tag}_r1.gz"
+        write_cost_fastqs(
+            models, n_reads=200, cbs=cbs, cdna_path=cdna, bc_path=bc, read_len=90, seed=seed
+        )
+        return gzip.open(cdna, "rb").read() + gzip.open(bc, "rb").read()
+
+    assert emit("a", 7) == emit("b", 7)
+    assert emit("c", 7) != emit("d", 8)
+
+
+def test_the_line_fit_recovers_a_known_slope_and_intercept() -> None:
+    """The fit is the deliverable, so it gets a test with an answer known in advance."""
+    from seqforge.e2e import _fit_line
+
+    # 30 GB fixed + 16 bytes per read -- the shape we expect from a genome index plus per-read arrays
+    per_read = 16 / 1024**3
+    pts = [(n, 30.0 + per_read * n) for n in (2_000_000, 8_000_000, 32_000_000)]
+    fit = _fit_line(pts)
+    assert fit["ok"]
+    assert fit["intercept_gb"] == pytest.approx(30.0, abs=0.01)
+    assert fit["bytes_per_read"] == pytest.approx(16.0, abs=0.1)
+    assert fit["max_residual_gb"] == pytest.approx(0.0, abs=0.001)
+    # and the extrapolation must be labelled as one, since that is the number people will quote
+    assert fit["projected"]["500M_reads"]["extrapolation_factor"] == pytest.approx(15.6, abs=0.1)
+
+
+def test_the_fit_reports_a_residual_that_can_falsify_the_line() -> None:
+    """A curve must not be reported as a line with a clean conscience."""
+    from seqforge.e2e import _fit_line
+
+    bent = [(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)]
+    assert _fit_line(bent)["max_residual_gb"] > 1.0
+
+
+def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
+    from seqforge.e2e import _fit_line
+
+    assert not _fit_line([(1_000_000, 30.0)])["ok"]
+    assert not _fit_line([(1_000_000, 30.0), (1_000_000, 31.0)])["ok"]

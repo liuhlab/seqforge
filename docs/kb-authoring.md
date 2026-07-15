@@ -21,13 +21,14 @@ kb/specs/<technology>/
 
 ```mermaid
 flowchart LR
-    S["spec.yaml<br/><i>what you declared</i>"] --> G["generate<br/>synthetic FASTQ"]
+    S["<span style='color:#fff'>spec.yaml<br/><i>what you declared</i></span>"] --> G["generate<br/>synthetic FASTQ"]
     G --> P["probe<br/><i>the real code path</i>"]
-    P --> REC["what was recovered"]
+    P --> REC["<span style='color:#fff'>what was recovered</span>"]
     S -.->|"must match"| REC
 
-    style S fill:#00695c,stroke:#004d40,color:#fff
-    style REC fill:#00695c,stroke:#004d40,color:#fff
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class S,REC artifact
 ```
 
 If what comes back out does not match what you declared, your entry is wrong, and you find out

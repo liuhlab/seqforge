@@ -22,17 +22,19 @@ Answers are ranked by what they cost. seqforge starts at the bottom and only cli
 flowchart TD
     R0["<b>0 · the prose</b><br/>'10x 3′ v3.1', from a paper or database<br/><i>a hypothesis — never a conclusion</i>"]
     R1["<b>1 · the filenames</b><br/><i>a weak hint, never decisive</i>"]
-    R2["<b>2 · the shape of the reads</b><br/>read lengths, which stretches are random,<br/>which are fixed, which barcodes repeat<br/><i>free — we are reading the bytes anyway</i>"]
-    R3["<b>3 · check one barcode list</b><br/>do these barcodes appear in 10x's<br/>published list of real barcodes?<br/><i>~100 milliseconds</i>"]
+    R2["<span style='color:#fff'><b>2 · the shape of the reads</b><br/>read lengths, which stretches are random,<br/>which are fixed, which barcodes repeat<br/><i>free — we are reading the bytes anyway</i></span>"]
+    R3["<span style='color:#fff'><b>3 · check one barcode list</b><br/>do these barcodes appear in 10x's<br/>published list of real barcodes?<br/><i>~100 milliseconds</i></span>"]
     R7["<b>7 · ask a human</b><br/><i>expensive — and that is the point</i>"]
 
     R0 --> R1 --> R2 --> R3
     R3 -->|"a genuine tie that<br/>would change the output"| R7
-    R3 -->|"decided"| DONE["dataset manifest"]
+    R3 -->|"decided"| DONE["<span style='color:#fff'>dataset manifest</span>"]
 
-    style R2 fill:#00695c,stroke:#004d40,color:#fff
-    style R3 fill:#00695c,stroke:#004d40,color:#fff
-    style DONE fill:#37474f,stroke:#263238,color:#fff
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef output fill:#37474f,stroke:#263238
+    class R2,R3 artifact
+    class DONE output
 ```
 
 Rungs 0 to 3 cost well under a second, and they settle almost everything.

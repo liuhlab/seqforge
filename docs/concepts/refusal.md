@@ -11,13 +11,17 @@ pipeline would fail silently.
 ```mermaid
 flowchart TD
     START["a dataset"] --> Q{"can code decide it?"}
-    Q -->|yes| OK["<b>manifest</b><br/>exit 0"]
-    Q -->|"something is structurally wrong"| BLK["<b>blocker</b><br/>exit 3<br/><i>this cannot be processed</i>"]
-    Q -->|"a real question only<br/>a human can settle"| ASK["<b>question</b><br/>exit 4<br/><i>tell me, and I'll continue</i>"]
+    Q -->|yes| OK["<span style='color:#fff'><b>manifest</b><br/>exit 0</span>"]
+    Q -->|"something is structurally wrong"| BLK["<span style='color:#fff'><b>blocker</b><br/>exit 3<br/><i>this cannot be processed</i></span>"]
+    Q -->|"a real question only<br/>a human can settle"| ASK["<span style='color:#fff'><b>question</b><br/>exit 4<br/><i>tell me, and I'll continue</i></span>"]
 
-    style OK fill:#00695c,stroke:#004d40,color:#fff
-    style BLK fill:#b71c1c,stroke:#7f0000,color:#fff
-    style ASK fill:#e65100,stroke:#bf360c,color:#fff
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef blocked fill:#b71c1c,stroke:#7f0000
+    classDef ask fill:#e65100,stroke:#bf360c
+    class OK artifact
+    class BLK blocked
+    class ASK ask
 ```
 
 A refusal is an **exit code**, not a warning in a log. Code decides whether processing may proceed.
@@ -74,11 +78,14 @@ So we don't ask. We produce every answer and let you pick.
 ```mermaid
 flowchart LR
     Q["'is this cells or nuclei?'<br/>— unanswerable from the reads"]
-    Q --> BAD["ask the human<br/><i>exit 4</i>"]
-    Q --> GOOD["count all five ways<br/><i>exit 0</i>"]
+    Q --> BAD["<span style='color:#fff'>ask the human<br/><i>exit 4</i></span>"]
+    Q --> GOOD["<span style='color:#fff'>count all five ways<br/><i>exit 0</i></span>"]
 
-    style BAD fill:#e65100,stroke:#bf360c,color:#fff
-    style GOOD fill:#00695c,stroke:#004d40,color:#fff
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef ask fill:#e65100,stroke:#bf360c
+    classDef artifact fill:#00695c,stroke:#004d40
+    class BAD ask
+    class GOOD artifact
 ```
 
 Save the interruptions for things that are genuinely exclusive — a genome, an aligner — where you

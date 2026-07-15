@@ -12,10 +12,12 @@ unbuilt and **27 contradicted** — a rule asserting a guarantee with no mechani
 organising finding: five rules cited CI as their enforcement, and this repo had never had CI.
 
 The fix was not CI. **CI was never the mechanism those rules needed — a test is**; CI only schedules
-tests. So the missing tests were written first, and `.pre-commit-config.yaml` (the mechanism) and
-`.github/workflows/ci.yml` (the backstop for a `--no-verify`) were added to run them. Every
-enforcement cell in `CLAUDE.md` now names a file you can open; `PROJECT_BRIEF.md` §14 is the standing
-list of what remains, with the maintenance rule that a stale §14 is worse than none.
+tests. So the missing tests were written first, and `.github/workflows/ci.yml` was added to run them
+on every push and PR. `.pre-commit-config.yaml` carries the fast hooks (ruff, mypy, shellcheck) but
+deliberately **not** the suite: running it on every commit taxed prose-only commits for no gain, so a
+red commit can exist on a branch and is caught at push. Every enforcement cell in `CLAUDE.md` now
+names a file you can open; `PROJECT_BRIEF.md` §14 is the standing list of what remains, with the
+maintenance rule that a stale §14 is worse than none.
 
 Every defect below had the same shape, which is the thing worth remembering: **a contract maintained
 by hand, beside the code it describes, checked against itself.**
