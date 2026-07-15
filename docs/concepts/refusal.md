@@ -18,7 +18,7 @@ flowchart TD
     %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
     classDef artifact fill:#00695c,stroke:#004d40
     classDef blocked fill:#b71c1c,stroke:#7f0000
-    classDef ask fill:#e65100,stroke:#bf360c
+    classDef ask fill:#bf360c,stroke:#7f2400
     class OK artifact
     class BLK blocked
     class ASK ask
@@ -82,7 +82,7 @@ flowchart LR
     Q --> GOOD["<span style='color:#fff'>count all five ways<br/><i>exit 0</i></span>"]
 
     %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
-    classDef ask fill:#e65100,stroke:#bf360c
+    classDef ask fill:#bf360c,stroke:#7f2400
     classDef artifact fill:#00695c,stroke:#004d40
     class BAD ask
     class GOOD artifact
