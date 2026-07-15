@@ -1,0 +1,14 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/bin/python",
+  "python.terminal.activateEnvironment": false,
+  "python.analysis.extraPaths": ["${workspaceFolder}/src"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["tests"],
+  "search.exclude": {
+    "**/.pixi": true
+  },
+  "files.watcherExclude": {
+    "**/.pixi/**": true
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:system"
+}
