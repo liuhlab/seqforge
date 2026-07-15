@@ -98,3 +98,105 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
 @pytest.mark.skipif(shutil.which("STAR") is None, reason="STAR not installed (Linux/cluster only)")
 def test_star_is_available_when_claimed() -> None:  # pragma: no cover - host dependent
     assert shutil.which("STAR")
+
+
+# --------------------------------------------------------------------------------------------
+# the intron-rich / GeneFull fixture
+#
+# The STARsolo run itself needs a cluster (skip-gated above), but the parts that decide whether the
+# ground truth is even MEANINGFUL are pure and testable here: intron cleanliness and the exon/intron
+# truth split. A fixture whose "intronic" reads secretly overlap an exon would pass while proving
+# nothing, so those are the assertions worth having.
+# --------------------------------------------------------------------------------------------
+
+
+def test_overlaps_detects_touching_intervals() -> None:
+    from seqforge.e2e import _overlaps
+
+    spans = [(10, 20), (40, 50), (100, 200)]
+    assert _overlaps(spans, 15, 16)  # inside
+    assert _overlaps(spans, 5, 10)  # touches the left edge
+    assert _overlaps(spans, 20, 25)  # touches the right edge
+    assert _overlaps(spans, 5, 300)  # engulfs
+    assert not _overlaps(spans, 21, 39)  # the gap between
+    assert not _overlaps(spans, 201, 500)  # past the end
+    assert not _overlaps(spans, 1, 9)  # before the start
+
+
+def test_merge_coalesces_adjacent_and_overlapping_spans() -> None:
+    from seqforge.e2e import _merge
+
+    assert _merge([(1, 5), (6, 9)]) == [(1, 9)]  # adjacent -> merged
+    assert _merge([(1, 5), (3, 9)]) == [(1, 9)]  # overlapping -> merged
+    assert _merge([(1, 5), (8, 9)]) == [(1, 5), (8, 9)]  # a real gap survives
+    assert _merge([(8, 9), (1, 5)]) == [(1, 5), (8, 9)]  # input order must not matter
+
+
+def test_feature_list_accepts_both_kb_shapes() -> None:
+    """KB params carry soloFeatures as a list or a string; STAR's CLI wants separate argv items."""
+    from seqforge.e2e import _feature_list
+
+    assert _feature_list(["Gene", "GeneFull"]) == ["Gene", "GeneFull"]
+    assert _feature_list("Gene GeneFull") == ["Gene", "GeneFull"]
+    assert _feature_list("Gene") == ["Gene"]
+    assert _feature_list(("Gene",)) == ["Gene"]
+
+
+def test_nuclei_simulation_splits_exonic_and_intronic_truth() -> None:
+    """The two truths must stay apart, and their sum must be every read — no read counted twice."""
+    from seqforge.e2e import GeneModel, simulate_nuclei
+
+    models = [
+        GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTTT" * 100,)),
+        GeneModel(gene_id="G2", mrna="TGCA" * 200, introns=("GGGG" * 100,)),
+    ]
+    sim = simulate_nuclei(models, n_cells=3, reads_per_cell=50, intron_frac=0.4, seed=0)
+
+    n_exonic = sum(sim.truth_exonic.values())
+    n_intronic = sum(sim.truth_intronic.values())
+    assert n_exonic + n_intronic == 150 == len(sim.cdna) == len(sim.barcode)
+    assert n_intronic > 0, "intron_frac=0.4 must actually produce intronic reads"
+    assert n_exonic > 0
+    # truth_full is the sum, per (cell, gene) — GeneFull's target
+    assert sum(sim.truth_full.values()) == 150
+    # unique UMIs => injected count == read count, which is what makes the assertion exact
+    umis = [b[16:] for b in sim.barcode]
+    assert len(set(umis)) == len(umis)
+
+
+def test_nuclei_simulation_is_deterministic_in_seed() -> None:
+    from seqforge.e2e import GeneModel, simulate_nuclei
+
+    models = [GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTTT" * 100,))]
+    a = simulate_nuclei(models, n_cells=2, reads_per_cell=20, seed=7)
+    b = simulate_nuclei(models, n_cells=2, reads_per_cell=20, seed=7)
+    assert a.cdna == b.cdna and a.barcode == b.barcode
+    assert a.truth_exonic == b.truth_exonic and a.truth_intronic == b.truth_intronic
+
+
+def test_nuclei_simulation_refuses_genes_with_no_usable_intron() -> None:
+    """Refuse loudly rather than emit a fixture that silently tests nothing."""
+    from seqforge.e2e import E2EUnavailable, GeneModel, simulate_nuclei
+
+    models = [GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTT",))]  # intron < read_len
+    with pytest.raises(E2EUnavailable, match="intron"):
+        simulate_nuclei(models, n_cells=1, reads_per_cell=5, seed=0)
+
+
+def test_intron_reads_come_only_from_introns() -> None:
+    """The fixture's core claim: an 'intronic' read must not be findable in the mRNA.
+
+    If intronic reads overlapped exons, `Gene` would legitimately count them, the Gene-vs-GeneFull
+    assertion would collapse, and the fixture would pass while proving nothing.
+    """
+    from seqforge.e2e import GeneModel, simulate_nuclei
+
+    mrna = "ACGT" * 250
+    intron = "TTTTGGGG" * 60  # shares no 90-mer with mrna
+    models = [GeneModel(gene_id="G1", mrna=mrna, introns=(intron,))]
+    sim = simulate_nuclei(models, n_cells=2, reads_per_cell=100, intron_frac=1.0, seed=1)
+    assert sum(sim.truth_exonic.values()) == 0
+    assert sum(sim.truth_intronic.values()) == 200
+    for read in sim.cdna:
+        assert read in intron
+        assert read not in mrna

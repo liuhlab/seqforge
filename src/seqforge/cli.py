@@ -211,6 +211,60 @@ def kb_e2e(
         raise typer.Exit(3)
 
 
+@kb_app.command("e2e-introns")
+def kb_e2e_introns(
+    workdir: Path = typer.Option(..., "--workdir", help="Scratch dir for reads + STAR output."),
+    assembly: str = typer.Option("ce11", help="Must be intron-rich; sacCer3 cannot test this."),
+    annotation: str = typer.Option("WS298", help="Registered GTF name."),
+    fasta: Path | None = typer.Option(None, help="Override: genome FASTA."),
+    gtf: Path | None = typer.Option(None, help="Override: GTF."),
+    star_index: Path | None = typer.Option(
+        None, "--star-index", help="Override: prebuilt STAR index."
+    ),
+    star: str | None = typer.Option(None, "--star", help="STAR binary (liulab-runtime align-rna)."),
+    n_cells: int = typer.Option(8, help="Simulated cells."),
+    reads_per_cell: int = typer.Option(250, help="Simulated reads per cell."),
+    intron_frac: float = typer.Option(0.4, help="Fraction of reads drawn from introns (pre-mRNA)."),
+    threads: int = typer.Option(8, help="STAR threads."),
+    seed: int = typer.Option(0, help="Simulation seed."),
+) -> None:
+    """The intron-rich / GeneFull gate: inject intronic reads, assert Gene and GeneFull disagree right.
+
+    Yeast is nearly intron-free, so the sacCer3 e2e certifies neither counting rule. This injects a
+    known number of intronic reads (what a single-NUCLEUS library actually contains) and asserts Gene
+    recovers only the exonic truth while GeneFull recovers exon+intron — both from ONE STARsolo run,
+    so the alignment is identical and only the counting rule differs. Reports `gene_signal_lost`: what
+    `--soloFeatures Gene` silently discards from a nuclear library. Exit 3 on failure, 1 if the
+    toolchain is unavailable.
+    """
+    from .e2e import E2EUnavailable, discover_assets, run_intron_e2e
+
+    try:
+        assets = discover_assets(
+            assembly=assembly,
+            annotation=annotation,
+            fasta=fasta,
+            gtf=gtf,
+            star_index=star_index,
+            star_bin=star,
+        )
+        result = run_intron_e2e(
+            assets,
+            workdir=workdir,
+            n_cells=n_cells,
+            reads_per_cell=reads_per_cell,
+            intron_frac=intron_frac,
+            threads=threads,
+            seed=seed,
+        )
+    except E2EUnavailable as exc:
+        typer.echo(json.dumps({"skipped": True, "reason": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(json.dumps(result, indent=2, default=str))
+    if not result.get("passed"):
+        raise typer.Exit(3)
+
+
 @onlist_app.command("list")
 def io_onlist_list() -> None:
     """List the onlists declared in the default registry (none are materialized in the pilot)."""
