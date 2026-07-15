@@ -21,6 +21,38 @@ seqforge harvest verify DRAFTS                # -> the R5 tripwire, on its own
 Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
 `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` and **refuses rather than guessing** when neither is set.
 
+## Document ROLE: only a file you hand us may steer the pipeline
+
+```bash
+seqforge harvest extract PAPER.pdf --instruction notes.md
+#                        ^ reference             ^ instruction
+```
+
+A **reference** document is one you cite; it may set `library.*`/`experiment.*` and nothing else. An
+**instruction** document is one you wrote *for seqforge*; it may additionally set
+`processing.quantification` and `processing.genome.assembly`.
+
+Three things about this are load-bearing:
+
+1. **Role is the flag, never the filename.** `alignment_instruction.md` is a convention you pass to
+   `--instruction`; it is load-bearing nowhere. A filename trigger would be spoofable by renaming a
+   downloaded PDF.
+2. **A downloaded methods PDF may never set `processing.*`.** A GEO description is an untrusted
+   input, and prose reaching `--soloStrand` is prompt injection from a database field into an
+   aligner. `verify` rejects it (`field_not_permitted_for_doc_role`) regardless of what was asked.
+3. **You are not classifying mood.** "we used GeneFull" (declarative) and "align this in GeneFull
+   mode" (imperative) are treated identically — role subsumes mood by fiat, because a mood judgement
+   has no quote to check it against and would land in exactly the class R5 is blind to.
+
+An instruction **promotes; it never narrows.** "Align in GeneFull mode" makes GeneFull the primary
+matrix; it does not drop the other four. So a hallucinated instruction can mislabel which matrix is
+primary — it cannot destroy signal. That is the safety property that makes this path acceptable at
+all.
+
+Name the STARsolo feature. "count introns too" is **correctly rejected** as not-entailed: inferring
+`nuclei -> GeneFull` is an inference code owns, not the model, and teaching `entails` that alias
+would make R5 theatre on the one field where it is not vacuous.
+
 ## What the model is allowed to do
 
 Emit `{field, value, quote}`. That is all. It does **not** emit character offsets (it cannot count

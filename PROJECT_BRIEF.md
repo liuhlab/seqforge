@@ -16,6 +16,40 @@ The end goal is large-scale, uniform reprocessing of public genomic data for dow
 genomic-AI training. That means the system runs headless across thousands of datasets, not
 interactively across ten. Design for that.
 
+### Why this is one package and not two
+
+Two ArcInstitute tools bracket this problem. **SRAgent** — "agentic workflows for obtaining data
+from the Sequence Read Archive" — is an LLM agent that turns an accession plus its prose into
+structured metadata: which organism, which tissue, is it single-cell, which 10x version, and
+(exactly) *"single nucleus or single cell RNA sequencing?"*. **scRecounter** — "a Nextflow pipeline
+to re-process single-cell RNA-seq data from the Sequence Read Archive" — does the other half: fetch,
+STARsolo, count matrix. Each is good at its own job.
+
+Nothing joins them, and the consequence is concrete and expensive. scRecounter does not trust SRA
+metadata at all, so it *searches* for STAR parameters — barcode whitelist version, CB length, UMI
+length, strand, reference index — by "mapping the reads using various parameter combinations" and
+picking the winner by fraction of valid barcodes. It re-derives by brute force, on real alignments,
+facts that were sitting in prose that SRAgent already read. And the nuclei-vs-cells fact SRAgent
+extracts by name is the one that should set `soloFeatures` — it has nowhere to go. The gap between
+the two tools is not a missing feature. It is a missing **interface**.
+
+The manifest is that interface, and once it exists the two tools are one compiler. `harvest` is
+SRAgent's job, demoted to a frontend that *proposes* rather than concludes. `compile` is
+scRecounter's job, driven by a decided manifest instead of a search. Beyond the glue, the interface
+buys three things neither tool has: **span verification**, so extracted metadata carries a tripwire
+rather than a confidence score (§3.4); **cheap eager verification** — one targeted onlist check,
+~100 ms, where scRecounter spends a subsample alignment (§5); and **refusal**, so a dataset that
+cannot be decided yields a `Blocker` instead of the best-scoring guess. And because processing is a
+separate artifact (§7), scRecounter's uniform reprocessing becomes *one recipe among many* rather
+than the only thing the pipeline can do — which is what lets us rebuild the corpus under a different
+aligner without re-deriving what the data is.
+
+State the claim honestly: it is architectural, not a track record. SRAgent has working SRA search and
+discovery; our `io peek` / `io resolve` are thin. scRecounter has run at scale on real public data;
+seqforge has run end-to-end on simulated yeast and worm reads and has not yet processed a single real
+dataset. What we have is the interface and the verifiers. Whether that beats two mature tools is
+exactly what §12 is for.
+
 ## 2. The governing metaphor: this is a compiler, not a chatbot
 
 | Stage | Executor | Output |
@@ -63,6 +97,32 @@ Everything else is a verifier. Do not let this line blur.
     Data -> a URI.
     Everything resolves at run time, on whatever cluster. This is what lets us replay a manifest
     on a different machine in three years — which matters, because we will rebuild this corpus.
+12. **The dataset is immutable; the recipe is not. Two artifacts, never one.**
+    A finished assay is a fact — those molecules, that flowcell, those bytes — and facts do not get
+    a v2. What to *do* with the assay is a choice, and there are several defensible ones. So the
+    manifest splits: `manifest.yaml` (library + experiment) is what the data **is**,
+    content-addressed and immutable; `processing.yaml` is a **recipe** — what to do with it — and a
+    dataset carries as many as we care to run. `compile(dataset, recipe)` is a pure function of
+    both. Aligning one dataset three ways is three recipes against one unchanged manifest, never
+    three forks of the truth. If re-running a dataset with a different aligner edits
+    `manifest.yaml`, that is a bug.
+13. **The instructable surface is closed, and the line is parse vs. count.**
+    `backend.params` says how to **parse** reads — soloType, CB/UMI offsets, whitelist, strand.
+    Those are decided by bytes and are never instructable. The recipe says what to **count**, and
+    against which genome, with which aligner, in which environment, at what resources. A user may
+    tell us to count introns. A user may not tell us the UMI is 10 bp — the reads already answered
+    that, and a human who disagrees is a `Conflict`, not an instruction. The instructable keys are
+    enumerated and the recipe model forbids extras: an open instruction surface is a
+    prompt-injection path from a GEO description into `--soloStrand`, and a wrong strand exits 0.
+14. **Do not ask a question whose answer you can afford to produce twice.**
+    §12 gives the benign rule: never escalate an ambiguity that cannot change the output. This is
+    its sibling — never escalate one whose every answer you can afford to emit. `soloFeatures`
+    therefore defaults to all five (`Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS
+    Velocyto`): one alignment, five counting rules, one pass, with download and alignment dominating
+    the cost by orders of magnitude. That dissolves the cells-vs-nuclei question rather than
+    answering it. We measured the alternative: `--soloFeatures Gene` silently discards **40.7 %** of
+    a nuclear library. Reserve escalation for choices that are genuinely exclusive — a genome, an
+    aligner — and let the recipe be where a human answers those once, in writing.
 
 ## 4. Repository layout
 
@@ -226,21 +286,57 @@ and differ only in sequencing configuration. Encode this honestly.
   `seqspec index` (tool strings for STARsolo / kb-python / simpleaf) for free. Provenance,
   confidence, and processing intent live in our richer layer above it.
 
-## 7. Manifest schema
+## 7. Manifest schema — two artifacts, because a dataset and a recipe have different lifetimes
 
-One YAML file, three top-level sections, three Pydantic models, three distinct authorities:
+**`manifest.yaml` — the dataset. Two top-level sections, two distinct authorities. Immutable.**
 
 - `library` — physical truth about molecules and sequencer output: assay, chemistry, read layout,
   onlists, file inventory with checksums. Authority: **evidence**.
 - `experiment` — biological/metadata truth: organism, tissue, condition, sample grouping,
   accessions, sample-to-file mapping. Authority: **metadata and humans**.
-- `processing` — intent: reference build and annotation version, aligner, quantification mode
-  (coverage-based vs ratio-based), whether variant calling is required, resource hints.
-  Authority: **derived from the first two, plus policy defaults**.
 
-`compose` must be a pure function of these three sections. Purity is what makes pipeline
-generation reproducible and diffable. Hash the manifest and embed the hash, the KB version, and
-the workflow version in every run's provenance record.
+Both are claims about *what the data is*. A finished assay does not change, so neither does this
+file: it is content-addressed, and nothing downstream may write to it. When a new fact arrives, the
+manifest is rebuilt from evidence and gets a new hash. It is never patched.
+
+**`processing.yaml` — the recipe. What to do with the dataset. Authority: the user, then policy.**
+
+Reference build + annotation version, aligner, counting features, whether variant calling is
+required, runtime environment, resource hints.
+
+Every field is **optional**, and that is the design, not laxity. A recipe is a sparse override set —
+`gcc` with no flags still compiles — so the empty recipe is legal and means "all policy defaults".
+One recipe can drive 10⁴ datasets, which is what uniform reprocessing *is*; a recipe that named its
+dataset would be worth nothing, because we would have 10⁴ of them and nobody would read one. The
+pairing is recorded at compile time, in provenance, never inside either input.
+
+`plan(manifest, recipe) -> ProcessingSection` folds recipe, harvested instructions, and policy into a
+fully-resolved intent in which every field is `Evidenced` and its `basis` records which rung of the
+precedence ladder supplied it:
+
+| precedence | source | basis |
+|---|---|---|
+| 1 | an explicit CLI flag | `user_confirmed` |
+| 2 | `alignment_instruction.md` — a document authored **for** seqforge | `user_confirmed` |
+| 3 | a policy default seqforge chose | `inferred` |
+
+1 and 2 share a basis and differ only in precedence: both are the user talking to seqforge, one just
+talks later. The *channel* lives in `evidence`. An instruction is not a new kind of input — it is
+prose about `processing.*` instead of `experiment.*`, span-verified like any other `Assertion`, which
+is why it needs no new LLM job (§2) and inherits the hallucination tripwire for free. This is the
+first real use of `user_confirmed`, which had sat in the `Basis` literal, unwritten, since the
+beginning.
+
+Note the ladder has no tier for a *downloaded* paper: only a document you hand us under
+`--instruction` may set `processing.*`. A GEO description is an untrusted input, and prose reaching
+`--soloStrand` would be prompt injection from a database field into an aligner. Under §3.14 that
+costs nothing — a paper saying "we used GeneFull" describes a subset of what we already compute.
+
+`compile` must be a pure function of `(manifest, ProcessingSection)` and nothing else. Purity across
+*both* inputs is what makes pipeline generation reproducible and diffable, and what makes "same
+dataset + different recipe = different pipeline, same manifest hash" a fact rather than a hope. Hash
+both, and embed both hashes — plus the KB version and the workflow version — in every run's
+provenance record: `run_id = H(manifest_hash, recipe_hash, kb_version, workflow_version)`.
 
 Use controlled vocabularies from day one (EFO/OBI assay terms, NCBI taxids, GENCODE/RefSeq
 accessions). The end product is a training corpus; lineage and stable IDs are what make it
@@ -251,7 +347,39 @@ filterable and trustworthy later.
 - `workflows/` contains **hand-written, versioned, CI-tested** Snakemake modules. Compose them
   with Snakemake's `module` / `use rule ... from ...` mechanism.
 - The composer emits `config.yaml` + `units.tsv` + a module selection. It never emits rule source.
-- `compose` is a **pure function of the manifest**. It requires no data on disk, local or remote.
+- `compose` is a **pure function of the (dataset manifest, resolved recipe) pair**. It requires no
+  data on disk, local or remote. Two inputs, still no I/O: the recipe is data, not a side channel.
+
+### The instructable surface is closed — parse is not negotiable, count is
+
+`backend.params` says how to **parse** reads: `soloType`, CB/UMI offsets and lengths, whitelist,
+strand. Every one is decided by bytes, and the recipe may not touch any of them. The recipe says what
+to **count** (`soloFeatures`), and against which genome, with which aligner, in which environment, at
+what resources. The keys are enumerated and the KB model forbids extras; an unknown key is a
+validation error, never a passthrough to a command line.
+
+The two key sets being **disjoint** is what makes "a user instruction contradicts the observed bytes"
+*inexpressible* rather than merely deprioritized — the user has no vocabulary in which to say it.
+That is the strongest form of §3.1 available, and it is why moving a key across this line has to be
+an explicit, gated act rather than an edit.
+
+This resolves the `soloFeatures` misfiling that `kb e2e-introns` priced at **40.7 % silent signal
+loss**. It sat in `backend.params` because that is where the aligner's flags live — but 10x 3′ v3.1
+chemistry is byte-identical for cells and nuclei. What differs is the RNA population, a property of
+*sample prep*, not of chemistry. It was never a parse decision, and it moves to the recipe.
+
+Note the consequence for §6's confusability matrix: with `soloFeatures` gone, the CI comparison runs
+over a strictly smaller set of params, so two entries differing only in what they count become
+processing-equivalent. That is correct — they now genuinely are, and the recipe decides the rest.
+
+### Count everything; do not ask which
+
+`soloFeatures` defaults to all five — `Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS
+Velocyto`. One alignment, five counting rules, one pass. So we do not ask whether the library is
+cells or nuclei: we emit every answer and let the consumer choose. Not free — `Velocyto` in
+particular costs memory — but small against a download and an alignment we are paying for regardless.
+**Measure it in `kb e2e` rather than assuming it; if the assumption ever breaks, this principle breaks
+with it.**
 
 ### Validating the composer without any data
 
@@ -517,7 +645,7 @@ Paste this after dropping `PROJECT_BRIEF.md` in an empty repo:
 > Read `PROJECT_BRIEF.md` in full, plus `../liulab-compute-skills` and `../liulab-runtime` for our
 > existing CI/CD, lint, and release conventions.
 >
-> Then run `/init` and write a `CLAUDE.md` that encodes the brief's ten non-negotiable design
+> Then run `/init` and write a `CLAUDE.md` that encodes the brief's fourteen non-negotiable design
 > principles as rules you will actually be checked against — especially: emit data never code;
 > agents propose and code decides; refusal is an exit code; never read a whole FASTQ.
 >

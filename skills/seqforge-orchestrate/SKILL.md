@@ -24,14 +24,25 @@ stop. If you ever find yourself reasoning about what the data probably is, you h
 ## The pipeline
 
 ```bash
-seqforge io resolve ACC --json          # optional: accession -> runs (+ dropped-read check)
-seqforge probe FILES --json             # bytes -> Observation      (no LLM, no network)
-seqforge harvest normalize DOCS         # prose -> canonical text
-seqforge harvest extract DOCS --verify  # THE one LLM touchpoint    (delegate to seqforge-harvest)
-seqforge resolve score FILES --json     # Obs + KB -> decision      (no LLM)
-seqforge manifest fill ... && seqforge manifest validate MANIFEST
-seqforge compose MANIFEST --json
+seqforge io resolve ACC --json           # optional: accession -> runs (+ dropped-read check)
+seqforge probe FILES --json              # bytes -> Observation      (no LLM, no network)
+seqforge harvest normalize DOCS          # prose -> canonical text
+seqforge harvest extract DOCS --verify \
+        [--instruction notes.md]         # THE one LLM touchpoint    (delegate to seqforge-harvest)
+seqforge resolve score FILES --json      # Obs + KB -> decision      (no LLM)
+# --- the IR: what the data IS. One per dataset, immutable (R13). Takes no genome. ---
+seqforge manifest fill FILES --organism N && seqforge manifest validate MANIFEST
+# --- the flags: what to DO with it. Many per dataset. Optional — compose defaults them. ---
+seqforge processing new MANIFEST --assembly ce11 --annotation WS298 -o processing.yaml
+seqforge compose MANIFEST --processing processing.yaml
 ```
+
+**Two artifacts, and the difference matters to you (R13).** `manifest.yaml` is what the data *is* —
+immutable, content-addressed, one per dataset. `processing.yaml` is what to *do* with it, and there
+may be many. Re-running a dataset a different way means a **new processing manifest**, never an edit
+to `manifest.yaml`: same IR, different flags. If you catch yourself editing the dataset manifest to
+change how something is processed, stop — that is the bug the split exists to prevent, and the
+`dataset_hash` is what proves it did not happen.
 
 `seqforge run` (alias `compile`) does all of it headlessly; `--no-llm` makes it fully deterministic;
 `--resume` picks up after a kill (disk is state — R7).
