@@ -24,10 +24,13 @@ instructable path adds no new LLM authority is the whole point: **we can accept 
 we never trust the model to *act* on them, only to *find* them.** Everything else is a verifier — do
 not let that line blur.
 
-**Status: pre-implementation.** The authoritative design is [`docs/design.md`](docs/design.md)
-(Pydantic model hierarchy, KB `spec.yaml` schema, scoring function + joint role-assignment, CLI
-surface); the full rationale is [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md). Read both before writing
-code. The pipeline is a five-stage compiler over two artifacts:
+**Status: Milestone 0 landed; the held-out case has not been run.** The deterministic spine — models,
+probe, kb, resolve, manifest, compose, hooks, evals — is implemented and green (`pixi run check`), and
+runs end to end on synthetic sacCer3 and ce11 fixtures. The authoritative design is
+[`docs/design.md`](docs/design.md) (Pydantic model hierarchy, KB `spec.yaml` schema, scoring function
++ joint role-assignment, CLI surface); the full rationale is
+[`PROJECT_BRIEF.md`](PROJECT_BRIEF.md), whose §14 tracks what is still unbuilt. Read all three before
+writing code. The pipeline is a five-stage compiler over two artifacts:
 
 ```
 probe(files)                    -> Observation   deterministic, no LLM, no network, bytes only
@@ -46,28 +49,40 @@ compile(manifest, processing)   -> config + workflow-module selection   determin
   different pipelines, dataset hash unchanged.
 ```
 
-## Non-negotiable rules (checked, not aspirational)
+## Non-negotiable rules
 
 These encode `PROJECT_BRIEF.md` §3 principles 1–14 (the numbering is deliberately offset: brief #1 →
 R2, brief #2 → R1, and R12 derives from §13, not §3). Each names how it is enforced; a change that
 violates one must change the rule here first.
 
+**Read the enforcement column literally.** This table was once headed "checked, not aspirational"
+while five rows cited a CI that did not exist and three cited checkers that were never built
+(`kb confusability`, a "determinism ledger", `--resume`). A rule enforced by a fictional mechanism is
+worse than an unenforced one: it buys the feeling of a guarantee at no cost. So every cell below now
+names a **file you can open and run**, and where something is still unenforced it says `PLEDGE:` and
+means it. A `PLEDGE:` is a debt — the fix is to build the checker and delete the marker, never to
+quietly widen the claim.
+
+CI was never the mechanism these rules needed; a *test* is. `pixi run check` before a commit is the
+enforcement (`.pre-commit-config.yaml` runs it), and `.github/workflows/ci.yml` is the backstop that
+catches a `--no-verify`.
+
 | # | Rule | Enforced by |
 |---|---|---|
-| R1 | **Emit data, never code.** No LLM generates Snakefile/rule source. LLM output must validate against an exported JSON Schema. The composer emits `config.yaml` / `units.tsv` / a module selection — never rule source. | CI grep + composer unit tests |
+| R1 | **Emit data, never code.** No LLM generates Snakefile/rule source. LLM output must validate against an exported JSON Schema. The composer emits `config.yaml` / `units.tsv` / a module selection — never rule source. | `test_the_generated_wrapper_contains_no_rule_source` + `test_shipped_modules_are_hand_written_not_generated` (`tests/test_compile.py`); `LLM_FACING` exact-equality pin (`tests/test_models.py`); composer unit tests |
 | R2 | **Agents propose, code decides.** No field enters the manifest without passing a validator. LLM `confidence` is advisory and never overrides observed bytes. | Pydantic validators; `manifest validate` |
-| R3 | **Never read a whole FASTQ.** Every FASTQ touch is bounded by `--max-reads` (default 200 000) **and** `--max-bytes` (256 MB decompressed). Wall-clock is never a budget. A code path that *can* stream a whole multi-GB FASTQ is a bug. | `PreToolUse` hook + CI "50 GB reads < N bytes" |
+| R3 | **Never read a whole FASTQ.** Every FASTQ touch is bounded by `--max-reads` (default 200 000) **and** `--max-bytes` (256 MB decompressed). Wall-clock is never a budget. A code path that *can* stream a whole multi-GB FASTQ is a bug. | `PreToolUse` hook (`hooks/guards.py`, size-blind by design) + `test_the_read_budget_bounds_bytes_read_however_large_the_file` / `test_the_byte_budget_binds_when_the_reads_are_long` (`tests/test_probe.py`: a 128 MB-decompressed fixture, 434 KB on disk, of which the probe reads ~10 %) |
 | R4 | **Refusal is an exit code.** `manifest validate` returns structured `Blocker`s + a nonzero exit. Code decides whether we may compile; the LLM only decides *what question to ask*. | exit-code contract + `PostToolUse` hook |
-| R5 | **Span-verified extraction.** Every `Assertion` carries a `quote` that (a) greps back into the normalized canonical text and (b) *entails* its value; else reject. This is the hallucination tripwire. | `harvest verify` (deterministic) |
-| R6 | **Three truths, never merged.** Every manifest field is `Evidenced{value, basis, evidence, confidence, rung}`. `observed`↔`asserted` disagreement is a surfaced first-class `Conflict`, never auto-picked. The three truths are the three *bases* — nothing here ever depended on there being three *sections*, and conflating the two is what let `processing` masquerade as a truth for a year. | `Evidenced[T]` type; resolver |
-| R7 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `.seqforge/`. Any run is resumable after a kill; the agent never holds state only in context. | artifact layout + `--resume` |
-| R8 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb> --json` that runs with no LLM in the loop. Only `harvest extract` (and opt-in `resolve adjudicate`, off by default) touch an LLM. | determinism ledger + CI |
+| R5 | **Span-verified extraction.** Every `Assertion` carries a `quote` that (a) greps back into the normalized canonical text and (b) *entails* its value; else reject. This is the hallucination tripwire. | `verify_drafts` (`harvest/verify.py`), deterministic, run inside `harvest extract`; `tests/test_harvest.py`. There is no separate `harvest verify` verb |
+| R6 | **Three truths, never merged.** Every *interpretive* manifest field is `Evidenced{value, basis, evidence, confidence, rung}` — raw identity (`uri`, `sha256`, `size`) and provenance are not interpretations and carry no basis; `resources` is an advisory hint, not a decision. `observed`↔`asserted` disagreement is a surfaced first-class `Conflict`, never auto-picked. The three truths are the three *bases* — nothing here ever depended on there being three *sections*, and conflating the two is what let `processing` masquerade as a truth for a year. | `Evidenced[T]` type; resolver |
+| R7 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `.seqforge/`. Any run is resumable after a kill; the agent never holds state only in context. | artifact layout + content-addressed cache hits (`resolve/cache.py`, atomic write-then-rename). Resume is *implicit* — re-running finds the artifact; `--no-cache` opts out. There is no `--resume` flag |
+| R8 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` that runs with no LLM in the loop and emits JSON on stdout **by default** (there is no `--json` flag; `kb list` is the one plain-text verb). `harvest extract` is the sole LLM touchpoint in a headless run; `eval run --llm` is opt-in. (`resolve adjudicate` is planned, not built.) | `test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`) — introspects the live Typer app, so a renamed verb goes red. No "determinism ledger" exists or ever did; the phrase named nothing |
 | R9 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC assembly id + registered GTF name; software = a literal `liulab-runtime` env name; data = a URI. Everything resolves at run time. | `Uri` validator + `PreToolUse` `/scratch` guard |
-| R10 | **Every KB entry is executable and self-testing.** Each technology ships a `spec.yaml`; `kb roundtrip` (spec→synth→probe→recover) and `kb confusability` gate CI. A new tech that silently collides with an existing one blocks the merge. | `kb roundtrip` / `kb confusability` in CI |
-| R11 | **Cheap first, expensive only on ambiguity.** Default path is escalation-ladder rungs 0–3; rungs 4+ only when metadata is absent, rung-3 disagrees, or a `Conflict` surfaces. Record which rung resolved each field. | `resolve score` rung provenance |
-| R12 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong upstream in `liulab-genome` / `liulab-runtime`. If a feature belongs in one of those, it goes there. | code review + CI import check |
+| R10 | **Every KB entry is executable and self-testing.** Each technology ships a `spec.yaml`; `kb roundtrip` (spec→synth→probe→recover) proves it recovers what it declares; the §12 biconditional proves two entries with identical `backend.params` are declared processing-equivalent; and a new tech that silently collides with an existing one at rungs 0–2 without declaring it fails. | `kb roundtrip` (`cli.py`, exit 3) + `test_every_kb_spec_roundtrips`, `test_section_12_biconditional_holds_over_every_loaded_spec_pair`, `test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) — **all three collect from `kb.list_spec_ids()`**, so a new spec is covered because it exists, not because someone remembered. There is no `kb confusability` verb; the pairwise checks live in the suite |
+| R11 | **Cheap first, expensive only on ambiguity.** Default path is escalation-ladder rungs 0–3. Escalation past 3 fires on exactly one trigger: a **processing-divergent tie** that metadata cannot settle (a `Conflict` does *not* escalate — it is surfaced in parallel). Record which rung resolved each field. | `resolve score` rung provenance; `resolve/escalate.py`. **Note:** rungs 4–6 (full-panel, k-mer sketch, mini-alignment) are unbuilt, so a surviving tie escalates straight to rung 7 (ask the human) |
+| R12 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong upstream in `liulab-genome` / `liulab-runtime`. If a feature belongs in one of those, it goes there. | `test_seqforge_defines_no_genome_machinery` (AST: no `class Genome` / `def build_star_index` / `def register_gtf` anywhere in `src/`) + `test_seqforge_defines_no_aligner_environments` (`RuntimeEnv` is a closed literal; no conda YAML / Dockerfile in the tree) — `tests/test_compile.py` |
 | R13 | **The dataset is immutable; the recipe is plural.** `manifest.yaml` (library + experiment) is what the data *is* — content-addressed, write-once. `processing.yaml` is what to *do* with it, and a dataset carries as many as we care to run. `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`; a change of intent must **never** perturb `dataset_hash`. If re-running a dataset with a different aligner edits `manifest.yaml`, that is a bug. | `dataset_content_hash` covers 2 sections; recipe-sweep hash-invariance test; `models/{dataset,processing}.py` import-graph test; `compose` refuses a mismatched pin |
-| R14 | **The instructable surface is closed, and the line is parse vs count.** `backend.params` says how to **parse** reads (soloType, CB/UMI offsets, whitelist, strand) — byte-decided, never instructable. The processing manifest says what to **count**, and against which genome, aligner, env, resources. The two key sets are **disjoint**, which is what makes "a user instruction contradicts the observed bytes" *inexpressible* rather than merely deprioritized: the user has no vocabulary in which to say it. | `Backend` key-allowlist validator (`kb lint` + every `load_spec`); `params_gate` disjointness + coverage + per-owner faithfulness |
+| R14 | **The instructable surface is closed, and the line is parse vs count.** `backend.params` says how to **parse** reads (soloType, CB/UMI offsets, whitelist, strand) — byte-decided, never instructable. The processing manifest says what to **count**, and against which genome, aligner, env, resources. The two key sets are **disjoint**, which is what makes "a user instruction contradicts the observed bytes" *inexpressible* rather than merely deprioritized: the user has no vocabulary in which to say it. | `Backend` key-allowlist validator (`kb lint` + every `load_spec`); `params_gate` disjointness + coverage + **three-owner** faithfulness (kb / derived / processing); `extra="forbid"` on `ProcessingSection` + `ProcessingManifest`, so an unknown key is a validation error rather than a silent drop |
 | R15 | **Produce every answer rather than ask.** §12 says never escalate an ambiguity that cannot change the output; this is its sibling — never escalate one whose every answer you can afford to emit. `soloFeatures` defaults to all five: one alignment, five counting rules, one pass. Escalate only where the answers are genuinely exclusive (a genome, an aligner). An ambiguity a second counting rule would settle is not a `Question`. | `kb e2e-introns` with the override deleted (`composed_soloFeatures ⊇ {Gene, GeneFull}` on the compiler's own params); eval "questions asked" |
 
 **Held-out acceptance cases — do not touch.** `PRJNA1027859` is the pilot's single real acceptance
@@ -80,50 +95,69 @@ local, out-of-git config (`~/.claude/`), so this public repo carries the *rule*,
 ## Toolchain
 
 Everything runs through **pixi** (do not use `pip`/`conda`/`venv` directly). Conventions follow the
-sibling repos; `seqforge` is the family's first real Python library, so it also introduces mypy and a
-test task (no in-family precedent — see below).
+sibling repos; `seqforge` is the family's first real Python library, so it introduced mypy and a test
+task with no in-family precedent.
 
 ```bash
 pixi install                 # build environments
-pixi run test                # pytest (unit + KB round-trip + composer dry-run gates)
+pixi run test                # pytest (unit + KB round-trip + composer gates)
 pixi run test -- -k <expr>   # a single test / subset
 pixi run lint                # ruff check .
 pixi run fmt                 # ruff format .
-pixi run typecheck           # mypy --strict on models/ and probe/
-pixi run docs-build          # mkdocs build --strict
+pixi run typecheck           # mypy --strict on 8 modules (see below)
+pixi run check               # lint + fmt-check + typecheck + test — what pre-commit and CI run
+pixi run -e docs docs-build  # mkdocs build --strict
 pixi run -- pre-commit install   # once per clone
 ```
 
+**`pixi run check` before a commit is the mechanism, not a formality** — most rules above are
+enforced by tests, so a green suite *is* the guarantee. `.pre-commit-config.yaml` runs it for you;
+`.github/workflows/ci.yml` is the backstop that catches a `--no-verify`.
+
 - **Lint/format** (from `liulab-runtime`): ruff `line-length=100`, `target-version=py312`,
-  `select=[E,W,F,I,UP,B]`, `ignore=[E501]`; pre-commit = std hooks + ruff + shellcheck.
-- **Typing** (new, per brief §13): `[tool.mypy]` **strict on `models/` and `probe/`** — the two
-  modules where a wrong type silently poisons the corpus. No in-family precedent; introduce it.
-- **Tests:** pytest, `syrupy`/inline snapshots for golden manifests, `hypothesis` for the synthetic
-  generator. No in-family `test`/`typecheck`/`build` pixi tasks exist yet — add them.
+  `select=[E,W,F,I,UP,B]`, `ignore=[E501, UP046, UP047]`. `UP046`/`UP047` are off deliberately:
+  classic `Generic[T]` / `TypeVar` has better-tested pydantic-v2 + mypy support than PEP-695 syntax.
+- **Typing:** `[tool.mypy] strict = true`, scoped by the `typecheck` task to **`models/`, `probe/`,
+  `resolve/`, `manifest/`, `compose/`, `workflows/`, `harvest/`, `evals/`** — everything except
+  `cli/`, `io/`, `kb/`, `hooks/`. (The rule of thumb is unchanged: a wrong type in these modules
+  silently poisons the corpus.)
+- **Tests:** pytest, 15 modules, `strict-markers` / `strict-config` / `xfail_strict` /
+  `filterwarnings=error`. *Planned, not built:* `syrupy` snapshots for golden manifests and
+  `hypothesis` for the synthetic generator — both are pinned as test deps but neither is imported
+  anywhere yet.
 - **Packaging** (from `liulab-genome`): hatchling, `src/` layout, `requires-python>=3.12`,
   channels `conda-forge` + `bioconda`. Versioning is **CalVer `YYYY.M.PATCH`** — static in
   `[project].version` + `CHANGELOG.md` (patch resets monthly). **Component/tool-stamp versions use
   CalVer too** (`PROBE_VERSION`, `kb_version`, `resolve_version`, `workflow_version`), since they are
   folded into content-addressed cache keys — never SemVer.
-- **Docs:** mkdocs-material → gh-pages, same as the sibling repos.
+- **Docs:** mkdocs-material → **gh-pages branch**, following `liulab-runtime` (the siblings differ —
+  `liulab-genome` uses a Pages artifact). Published from `main` by `.github/workflows/docs.yml`.
+  The site is the **human** layer: approachable pages with mermaid diagrams (bundled with
+  mkdocs-material — no extra pin). `docs/design.md` is deliberately **excluded** from it
+  (`exclude_docs`): it is the agent-facing technical source of truth and carries a pushback appendix
+  plus values marked *unverified*, which must not read as settled guidance under a docs URL.
 
-## Repository layout (planned — brief §4)
+## Repository layout
 
 Single repo, single `pyproject.toml`, clear internal module boundaries; do **not** split into
-separate distributions.
+separate distributions. Everything below is under `src/seqforge/` except the last three, which sit at
+the repo root.
 
 ```
-models/     pydantic v2 schemas; JSON Schema export is the single source of truth
+models/     pydantic v2 schemas; `schema export` is the single source of truth
 probe/      deterministic FASTQ fingerprinting (no LLM, no network)
-kb/         knowledge base: one directory per technology (spec.yaml + README.md)
+kb/         knowledge base: one directory per technology (spec.yaml + README.md), under kb/specs/
 resolve/    candidate scoring, role assignment, confusability, escalation
 manifest/   fill/validate/hash both artifacts; `policy.py` is where precedence lives (R13/R15)
 compose/    (dataset, processing) -> snakemake config + module selection
 io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
-workflows/  hand-written, versioned, CI-tested Snakemake modules (NOT generated)
-cli/        typer app; every command supports --json
-skills/     SKILL.md agent skills + installer
+workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet
+hooks/      PreToolUse/PostToolUse/Stop guards, behind `seqforge hook …` — policy as mechanism
+cli.py      a single typer module (NOT a package): root app + 9 sub-typers. JSON by default
+e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11)
 evals/      ground-truth corpus + harness
+─── repo root ───
+skills/     SKILL.md agent skills (no installer yet)
 tests/
 ```
 
@@ -153,7 +187,14 @@ with the second. Each run dir carries `config.yaml`, `units.tsv`, materialized o
 not that disk is *input* — a mandatory recipe file per dataset would mean 10⁴ boilerplate files nobody
 reads.
 
-`journal.jsonl` is append-only and distills to `LESSONS.md` as an explicit, human-approved step. Hooks
-turn policy into mechanism: `PreToolUse` blocks unbounded FASTQ streams and `/scratch`/absolute-path
-writes; `PostToolUse` auto-runs `manifest validate` after any manifest edit; `Stop` refuses to end a
-turn while `questions.md` is non-empty.
+Hooks turn policy into mechanism, and these are real: `PreToolUse` blocks unbounded FASTQ streams
+(size-blind — a path that *can* stream a multi-GB file is denied regardless of the file's actual
+size) and `/scratch`/absolute-path writes; `PostToolUse` auto-runs `manifest validate` after any
+manifest edit; `Stop` refuses to end a turn while `questions.md` is non-empty.
+
+Two things the layout above does **not** yet contain, despite the design calling for them:
+`questions.md` is only ever *read* (by the `Stop` hook) — no code writes it, so the hook guards a
+file the pipeline never produces. And the journal flywheel — `journal.jsonl` append-only, distilled
+to `LESSONS.md` by an explicit human-approved step — is **entirely unbuilt**: no writer, no verb, no
+file, and `grep -r journal src/` is empty. The `seqforge-journal` skill wraps four commands that do
+not exist.

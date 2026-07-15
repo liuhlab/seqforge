@@ -6,6 +6,61 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
+**The rules are enforced by tests now, not by claims about CI (2026-07-15).** A claim-by-claim audit
+of `CLAUDE.md` and `PROJECT_BRIEF.md` against the code checked 245 statements and found 39 stale, 42
+unbuilt and **27 contradicted** — a rule asserting a guarantee with no mechanism behind it. The
+organising finding: five rules cited CI as their enforcement, and this repo had never had CI.
+
+The fix was not CI. **CI was never the mechanism those rules needed — a test is**; CI only schedules
+tests. So the missing tests were written first, and `.pre-commit-config.yaml` (the mechanism) and
+`.github/workflows/ci.yml` (the backstop for a `--no-verify`) were added to run them. Every
+enforcement cell in `CLAUDE.md` now names a file you can open; `PROJECT_BRIEF.md` §14 is the standing
+list of what remains, with the maintenance rule that a stale §14 is worse than none.
+
+Every defect below had the same shape, which is the thing worth remembering: **a contract maintained
+by hand, beside the code it describes, checked against itself.**
+
+- **SPLiT-seq could never have run.** `starsolo.smk` dereferenced `--soloCBstart/CBlen/UMIstart/UMIlen`
+  unconditionally; `CB_UMI_Complex` chemistries have no such values. `WorkflowModule.required_config`
+  omitted all four, and the test enforcing that contract validated against the same wrong list — over
+  *one hardcoded chemistry per module*, which made SPLiT-seq structurally unrepresentable. Its
+  docstring predicted the exact failure it could not see: *"a KeyError on a compute node long after
+  compose exited 0."* The requirement is now **scanned out of the module source**, the coverage test
+  iterates the KB, and the module branches on `soloType`. Barcode positions are **computed from the
+  element coordinates** (`derived_params`), never transcribed — a published SPLiT-seq quadruple is
+  version-specific (v1 puts Round1 at 86-93, Parse/v2 at 78-85), so a remembered one is a coin flip
+  between two real chemistries. This adds a third param owner beside the KB and the processing
+  manifest: **derived**. `WORKFLOW_VERSION` → 2026.7.2.
+- **The KB now blocks a silent collision.** Rung-0–2 separability is computed (generate each spec's
+  reads; ask every other spec whether it would claim them with the onlist withheld). Its first run
+  found `bulk-rnaseq-pe` — the generic paired-end fallback — accepting SPLiT-seq's `cdna`+`bc` pair on
+  geometry alone while declaring nothing. Both specs now declare the pair `processing_divergent`,
+  `distinguishable_by: [onlist]`. `KB_VERSION` → 2026.7.2.
+- **Every KB entry round-trips.** The parametrize was a hardcoded list of three while the KB had five,
+  so `10x-3p-gex-v3.1` had no round-trip test at all and "adding a technology automatically adds its
+  own test" was false. It collects from `kb.list_spec_ids()` now.
+- **`PRETRIMMED_VARIABLE_LENGTH` is emitted.** Declared since the beginning, never raised. It is the
+  quiet one: read-length compatibility matches on the *mode*, so a barcode read that is mostly 28 bp
+  with a trimmed tail scores exactly like a clean one. Fixtures both ways — cDNA is legitimately
+  variable and must not trip it.
+- **R3's large-file assertion exists.** It claimed a "50 GB reads < N bytes" check that was never
+  written; the only budget test used a 5 000-read fixture. A 128 MB-decompressed fixture (434 KB on
+  disk, 0.2 s to build) now proves `bytes_read` is a function of the budget, not the file: ~10 % read.
+- **R1 and R12 have checkers.** The generated Snakefile wrapper is asserted to contain no `rule`
+  block (the claim `gates.py` previously only commented), and an AST check asserts seqforge defines
+  no `Genome` / `build_star_index` / `register_gtf` and ships no conda YAML or Dockerfile.
+- **The processing models reject unknown keys.** `ProcessingSection(soloStrand="Reverse")` used to
+  construct happily and silently drop the field. `extra="forbid"` on both models.
+- **A human-facing docs site**, mkdocs-material → gh-pages with mermaid diagrams (bundled; no new
+  pin). `docs/design.md` is deliberately excluded: it carries a pushback appendix and values marked
+  *unverified*, which must not read as settled guidance under a docs URL.
+
+Corrected honestly: the first draft of the §8 rewrite claimed a working `snakemake -n` gate "would
+have caught" the SPLiT-seq bug. **It would not** — dry-run never formats the `shell:` block, so the
+failing lookup is never evaluated and the gate reports *pass*. `--lint` would also fail on every rule
+in both modules for a missing `log:`/`conda:` directive, making it a constant red. The gate remains
+worth having for wildcards and DAG wiring; it is not that bug's instrument, and §14 now says so.
+
 **The manifest is now two artifacts: a dataset (the IR) and a processing manifest (the flags).**
 A finished assay is immutable; what you do with it is a choice, and there are several defensible
 ones. Same IR + different flags = different binaries. This closes the 2026.7.0 open design question
