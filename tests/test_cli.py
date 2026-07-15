@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import gzip
 import json
+from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seqforge import __version__
+from seqforge import __version__, kb
 from seqforge.cli import app
 
 runner = CliRunner()
+
+
+def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
+    with gzip.open(path, "wt") as fh:
+        for i, s in enumerate(seqs):
+            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def test_version() -> None:
@@ -65,3 +73,32 @@ def test_kb_roundtrip_passes() -> None:
     result = runner.invoke(app, ["kb", "roundtrip", "10x-3p-gex-v3"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["passed"] is True
+
+
+def test_io_onlist_list_shows_known_lists() -> None:
+    result = runner.invoke(app, ["io", "onlist", "list"])
+    assert result.exit_code == 0
+    names = {o["name"] for o in json.loads(result.stdout)["onlists"]}
+    assert "3M-february-2018" in names
+
+
+def test_io_peek_not_implemented_exits_1() -> None:
+    result = runner.invoke(app, ["io", "peek", "s3://bucket/reads.fastq.gz"])
+    assert result.exit_code == 1
+
+
+def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=800, seed=0)
+    f1 = tmp_path / "R1.fastq.gz"
+    f2 = tmp_path / "R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+    result = runner.invoke(
+        app, ["resolve", "score", str(f1), str(f2), "-C", str(tmp_path), "--no-cache"]
+    )
+    assert result.exit_code == 0
+    doc = json.loads(result.stdout)
+    # geometry-only path (default registry materializes no onlist) still decides v3 at rung 2
+    assert doc["candidates"][0]["technology"] == "10x-3p-gex-v3"
+    assert doc["rung_reached"] == 2

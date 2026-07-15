@@ -1,0 +1,69 @@
+schema_version: 1
+
+identity:
+  id: 10x-3p-gex-v2
+  version: "2"
+  name: "10x Chromium Single Cell 3' Gene Expression v2"
+  aliases: ["10x 3' v2", "Chromium 3' v2", "SC3Pv2", "single cell 3-prime v2"]
+  assay_ontology: ["EFO:0009899"]        # 10x 3' v2 — verified against live EFO (EBI OLS), not memory
+  modality: rna
+
+reads:
+  # R1 = the technical/barcode read. 26 bp = 16 CB + 10 UMI (the 2 bp shorter UMI is what separates
+  # v2 from v3's 28 bp: the segment_length gate below is the discriminator, NOT the whitelist).
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 26
+    max_len: 26
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 26,                       seqspec_region_type: umi}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists:
+  cb_whitelist:
+    registry: 737K-august-2016           # ~737,280 x 16 bp, forward orientation (v2 whitelist)
+    role: cell_barcode
+    expected_orientation: forward
+
+signature:
+  requires:                              # length is the gate that separates v2 (26 bp) from v3 (28 bp)
+    - {test: read_count, roles: 2}
+    - {test: segment_length, read: R1, length: 26, tolerance: 0}
+    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
+    - {test: has_segment, read: R1, start: 16, end: 26, kind: random}
+  supports:
+    - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0
+    - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
+      weight: 2.0
+    - when: {test: distinct_ratio, read: R1, start: 16, end: 26, expect: high}
+      weight: 1.0
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0               # cDNA is diverse -> the biological role is scored, not left at 0
+  excludes: []
+
+backend:
+  module: map/starsolo
+  params:
+    soloType: CB_UMI_Simple
+    soloCBstart: 1
+    soloCBlen: 16
+    soloUMIstart: 17
+    soloUMIlen: 10                        # 10 bp UMI (vs v3's 12) -> 26 bp R1
+    soloCBwhitelist: "{onlist:cb_whitelist}"
+    soloStrand: Forward
+    soloFeatures: [Gene]
+
+# v2 vs v3 are length-separable (26 vs 28 bp) at rungs 0-2, so neither is confusable with the other.
+confusable_with: []
+decidable_by: []

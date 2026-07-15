@@ -662,60 +662,73 @@ confusable_with:
 decidable_by: [onlist, metadata, alignment]     # CI-computed union over divergent confusables
 ```
 
-### 2.3 Worked spec — `splitseq-parse` (combinatorial; pilot #3)
+### 2.3 Worked spec — `splitseq` (combinatorial; pilot #3)
 
-SPLiT-seq / Parse Evercode stresses **combinatorial multi-block indexing**: the cell barcode is the
-concatenation of three round-specific barcodes drawn from small (~48–96-entry) whitelists, separated
-by **fixed** linkers. Unlike inDrop the positions are fixed, so no `anchor` is needed — the `anchor`
-path stays in the schema for a future inDrop entry (coverage caveat, §7). Exact coordinates,
-linker sequences, and round count vary by kit and **must** come from scg_lib_structs (CC-BY, cited)
-and be pinned by kit version — the values below are structural placeholders (FLAG-8).
+SPLiT-seq stresses **combinatorial multi-block indexing**: the cell barcode is the concatenation of
+three round-specific 8 bp barcodes drawn from small (~96-entry) whitelists, separated by **fixed**
+linkers. Unlike inDrop the positions are fixed, so no `anchor` is needed — the `anchor` path stays in
+the schema for a future inDrop entry (coverage caveat, §7).
+
+**Scope decision (implemented):** this entry models the **original published SPLiT-seq only**
+(Rosenberg et al., *Science* 2018, doi:10.1126/science.aam8999). Parse Biosciences **Evercode** is a
+separate, actively-versioned commercial descendant with different linkers/whitelists — it is
+**deferred to its own future KB entry** and never conflated with `splitseq`. The read structure and
+the two 30 bp linker sequences below are **pinned verbatim from scg_lib_structs** (CC-BY): the
+[methods page](https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html) and the
+["Published Manuscript" read-2 variant in issue #13](https://github.com/Teichlab/scg_lib_structs/issues/13).
+Read 2 (94 cycles) is `[10 UMI][8 bc3][30 linker1][8 bc2][30 linker2][8 bc1]`; Read 1 (66 cycles) is
+the cDNA. Still-open FLAGs: the round whitelists (register the real barcode files from scg_lib_structs
+with URL + sha256), `soloStrand`, and the EFO CURIE. Per FLAG-3, `soloCBposition`/`soloUMIposition`
+are **omitted from the KB and derived from the element coordinates at compose time**, never hand-typed.
 
 ```yaml
-# kb/splitseq-parse/spec.yaml         # FLAG-8: coordinates are PLACEHOLDER — pin from scg_lib_structs per kit
+# kb/specs/splitseq/spec.yaml         # linkers pinned from scg_lib_structs (Science-2018 SPLiT-seq)
 schema_version: 1
 identity:
-  id: splitseq-parse
-  version: "wt-v2"                       # pin the exact kit (SPLiT-seq WT / Parse Evercode v1/v2)
-  name: "SPLiT-seq / Parse Evercode (combinatorial split-pool)"
-  aliases: ["SPLiT-seq", "Parse", "Evercode", "split-pool"]
-  assay_ontology: ["EFO:0030059"]        # FLAG-1: verify
+  id: splitseq
+  version: science-2018                  # published-manuscript variant (not preprint, not Parse)
+  name: "SPLiT-seq (combinatorial split-pool barcoding, Rosenberg et al. 2018)"
+  aliases: ["SPLiT-seq", "split-pool", "combinatorial indexing", "split-pool ligation"]
+  assay_ontology: []                     # FLAG: pin the SPLiT-seq EFO/OBI CURIE from live EFO
   modality: rna
 reads:
   - id: cdna
-    seqspec_read_id: R1
+    seqspec_read_id: R1                  # Read 1 (66 cycles) = cDNA
     strand: pos
     min_len: 25
     max_len: null
     elements:
       - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
-  - id: bc                               # barcode read: UMI + bc3 + linker + bc2 + linker + bc1 (fixed offsets)
+  - id: bc                               # Read 2 (94 cycles): UMI + bc3 + linker1 + bc2 + linker2 + bc1
     seqspec_read_id: R2
     strand: pos
-    min_len: 60                          # FLAG-8
+    min_len: 94
     max_len: 94
     elements:
       - {type: umi,     name: UMI, start: 0,  end: 10, seqspec_region_type: umi}
       - {type: barcode, name: bc3, start: 10, end: 18, onlist: round3, seqspec_region_type: barcode}
-      - {type: linker,  name: l2,  start: 18, end: 48, sequence: "NNNN...", seqspec_region_type: linker}  # FLAG-8 seq
+      - {type: linker,  name: linker1, start: 18, end: 48, seqspec_region_type: linker,
+         sequence: "GTGGCCGATGTTTCGCATCGGCGTACGACT"}    # verbatim Science-2018 Round3->Round2 spacer
       - {type: barcode, name: bc2, start: 48, end: 56, onlist: round2, seqspec_region_type: barcode}
-      - {type: linker,  name: l1,  start: 56, end: 86, sequence: "NNNN...", seqspec_region_type: linker}  # FLAG-8 seq
+      - {type: linker,  name: linker2, start: 56, end: 86, seqspec_region_type: linker,
+         sequence: "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"}    # verbatim Science-2018 Round2->Round1 spacer
       - {type: barcode, name: bc1, start: 86, end: 94, onlist: round1, seqspec_region_type: barcode}
 onlists:
-  round1: {registry: parse-wt-v2-bc1, role: cell_barcode, expected_orientation: forward}   # ~48-96 entries
-  round2: {registry: parse-wt-v2-bc2, role: cell_barcode, expected_orientation: forward}
-  round3: {registry: parse-wt-v2-bc3, role: cell_barcode, expected_orientation: forward}
+  round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
+  round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}
+  round3: {registry: splitseq-round3, role: cell_barcode, expected_orientation: forward}
   tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}
 signature:
   requires:
     - {test: read_count, roles: 2}
-    - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}    # linker l2 (fixed)
-    - {test: has_segment, read: bc, start: 56, end: 86, kind: constant}    # linker l1 (fixed)
+    - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}    # linker1 (fixed)
+    - {test: has_segment, read: bc, start: 56, end: 86, kind: constant}    # linker2 (fixed)
   supports:
     - {when: {test: onlist_hit_rate, read: bc, element: bc1, onlist: round1, orientation: forward, min: 0.5}, weight: 3.0}
     - {when: {test: onlist_hit_rate, read: bc, element: bc2, onlist: round2, orientation: forward, min: 0.5}, weight: 3.0}
     - {when: {test: onlist_hit_rate, read: bc, element: bc3, onlist: round3, orientation: forward, min: 0.5}, weight: 3.0}
-    - {when: {test: motif_present,   read: bc, motif: "...", where: window, search_start: 18, search_end: 48}, weight: 1.0}  # FLAG-8
+    - {when: {test: distinct_ratio,  read: bc, start: 0, end: 10, expect: high}, weight: 1.0}   # UMI ~unique
+    - {when: {test: distinct_ratio,  read: cdna, start: 0, end: 20, expect: high}, weight: 1.0}  # score the cDNA role
   excludes:
     - {test: onlist_hit_rate, read: bc, start: 0, end: 16, onlist: tenx_probe, orientation: forward, min: 0.6}  # a 16bp 10x CB => not SPLiT-seq
 backend:
@@ -723,10 +736,9 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
-    soloCBposition: ["0_86_0_93", "0_48_0_55", "0_10_0_17"]   # FLAG-8: fixed read-start anchors; pin offsets
-    soloUMIposition: "0_0_0_9"
-    soloStrand: Forward                  # FLAG-8: confirm
+    soloStrand: Forward                  # FLAG: confirm SPLiT-seq cDNA strand before the e2e run
     soloFeatures: [Gene]
+    # soloCBposition / soloUMIposition: DERIVED from the element coordinates at compose (FLAG-3).
 confusable_with: []                       # onlist + combinatorial geometry separate it from 10x/inDrop
 decidable_by: []
 ```
@@ -792,7 +804,7 @@ starsolo` against `backend.params` — two independent derivations of the geomet
 **Caveat (FLAG-6):** seqspec's starsolo emitter targets fixed `CB_UMI_Simple` geometry; whether it
 emits `CB_UMI_Complex` position strings for combinatorial/anchored barcodes is unverified, so the
 dual-derivation check is currently scoped to fixed-offset chemistries — confirm before relying on it
-for `splitseq-parse`.
+for `splitseq`.
 
 ---
 
@@ -1073,8 +1085,9 @@ Ranked; ✔ = folded into this design, ✱ = open for the maintainer. Full detai
 Vertical slice, all four stages at reduced coverage (breadth before depth), for three technologies
 chosen for architectural coverage: **(1) bulk Illumina RNA-seq PE** (no-barcode branch, header
 parsing, run/lane grouping); **(2) 10x 3′ GEX v3** (onlist matching, technical-read identification,
-SRA-mangling); **(3) SPLiT-seq / Parse Evercode** (combinatorial multi-block indexing — the pilot-#3
-generalization test). Plus the three day-one negatives: truncated gzip → `Blocker`; a KB-absent
+SRA-mangling); **(3) SPLiT-seq** (original Rosenberg-2018 combinatorial multi-block indexing — the
+pilot-#3 generalization test; Parse Evercode deferred to its own future entry). Plus the three
+day-one negatives: truncated gzip → `Blocker`; a KB-absent
 technology (ONT) → `UNSUPPORTED_TECHNOLOGY`, not a guess; a contradiction (metadata v2, reads v3) →
 surfaced `Conflict`.
 
@@ -1088,14 +1101,17 @@ before claiming the element model fully generalizes.
 
 ## 7. Genomics-correctness FLAGS (unverified — do not ship without checking)
 
-1. **EFO/OBI CURIEs** — `EFO:0009922` (3′ v3), the SPLiT-seq/Parse term, and all others: confirm
-   against live EFO/OBI before use.
+1. **EFO/OBI CURIEs — all four pilot techs verified against the EBI OLS** (not memory): `EFO:0009922`
+   (10x 3′ v3), `EFO:0009899` (10x 3′ v2), `EFO:0009919` (SPLiT-seq), `EFO:0008896` ("RNA-Seq", bulk).
+   Any *future* tech must be looked up against live EFO/OBI the same way before use. (Noted for later:
+   v3.1 has its own term `EFO:0022980`, and Parse Evercode's are `EFO:0022600/1/2` — distinct assays.)
 2. **GEM-X 3′ v4 whitelist filename** — referenced conceptually; register it by URL+sha256, do not
    invent a filename.
-3. **SPLiT-seq / Parse coordinates, linker sequences, round count, `soloCBposition` offsets, and
-   `soloStrand`** — all PLACEHOLDER in §2.3; take them from scg_lib_structs (CC-BY, cite it) and pin
-   by exact kit version; verify via `kb roundtrip`. Never hand-enter a `soloCBposition` quadruple from
-   memory — generate it from the element model.
+3. **SPLiT-seq — DONE (read structure + linkers) / still-open (whitelists, strand).** The Read-2
+   layout and both 30 bp linker sequences are now pinned verbatim from scg_lib_structs (Science-2018
+   variant; see §2.3). Still to pin: the three round whitelists (register the real barcode files by
+   URL+sha256), `soloStrand`, and the EFO CURIE. `soloCBposition`/`soloUMIposition` are generated from
+   the element model at compose, never hand-entered (FLAG-3). Parse Evercode is a separate future entry.
 4. **10x 5′ `soloStrand`** — 5′ vs 3′ have identical CB/UMI geometry (read-undecidable); 5′ is a known
    confusion source. KB carries `soloStrand` per chemistry; CI round-trip confirms it. Do not assert
    from memory.

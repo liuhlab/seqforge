@@ -7,7 +7,7 @@ through the probe. ``KB_VERSION`` (CalVer) is folded into dataset-level cache ke
 
 from __future__ import annotations
 
-from .generate import generate_reads
+from .generate import build_pools, generate_reads
 from .loader import list_spec_ids, load_all_specs, load_spec
 from .roundtrip import run_roundtrip
 from .schema import Spec
@@ -22,5 +22,6 @@ __all__ = [
     "load_all_specs",
     "list_spec_ids",
     "generate_reads",
+    "build_pools",
     "run_roundtrip",
 ]

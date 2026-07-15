@@ -96,8 +96,9 @@ docs       = { features = ["py313", "docs"], solve-group = "default" }
 lint      = "ruff check ."
 fmt       = "ruff format ."
 fmt-check = "ruff format --check ."
-# mypy is STRICT and scoped to the two modules where a wrong type poisons the corpus (brief §13).
-typecheck = "mypy src/seqforge/models src/seqforge/probe"
+# mypy is STRICT and scoped to the modules where a wrong type poisons the corpus (brief §13):
+# models/ + probe/ + resolve/ (a wrong type in the scorer silently poisons a decision).
+typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve"
 test      = "pytest"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
@@ -124,12 +125,16 @@ ignore = ["E501", "UP046", "UP047"]
 # Typer uses call expressions (Option/Argument) as parameter defaults by design.
 extend-immutable-calls = ["typer.Argument", "typer.Option"]
 
-# mypy --strict, scoped by the `typecheck` task to models/ and probe/ only.
+# mypy --strict, scoped by the `typecheck` task to models/, probe/, and resolve/.
 [tool.mypy]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
+# Strict is applied to the modules passed on the command line; imports they pull in that are NOT in
+# scope (io/, kb/) are followed for types but their own errors are silenced — so resolve/ is checked
+# strictly against a concrete io/kb interface without forcing numpy/yaml internals under --strict.
+follow_imports = "silent"
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

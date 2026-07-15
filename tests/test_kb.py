@@ -89,3 +89,29 @@ def test_kb_roundtrip_self_test_passes() -> None:
     result = kb.run_roundtrip("10x-3p-gex-v3", seed=0)
     assert result["passed"] is True
     assert result["checks"]  # length + barcode-recurrence + umi-uniqueness checks all ran
+
+
+@pytest.mark.parametrize("tech", ["10x-3p-gex-v2", "bulk-rnaseq-pe", "splitseq"])
+def test_all_pilot_techs_roundtrip(tech: str) -> None:
+    result = kb.run_roundtrip(tech, seed=0)
+    assert result["passed"] is True, result
+    assert result["checks"]  # non-vacuous (bulk exercises the open-ended cDNA-variable check)
+
+
+def test_splitseq_recovers_fixed_linker_structure() -> None:
+    # the combinatorial barcode read has TWO fixed internal linkers -> two constant segments recovered
+    spec = kb.load_spec("splitseq")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    import gzip as _gz
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "bc.fastq.gz"
+        with _gz.open(path, "wt") as fh:
+            for i, s in enumerate(reads["bc"]):
+                fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+        obs = probe_file(path)
+    constant_spans = [(s.start, s.end) for s in obs.segments if isinstance(s, ConstantSegment)]
+    # the two 30 bp placeholder linkers at [18,48) and [56,86) come back as constant segments
+    assert (18, 48) in constant_spans
+    assert (56, 86) in constant_spans

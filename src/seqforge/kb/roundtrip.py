@@ -47,6 +47,20 @@ def run_roundtrip(tech_id: str, *, n: int = 2000, seed: int = 0) -> dict[str, An
                         "recovered": obs.read_length.mode,
                     }
                 )
+            # an open-ended cDNA/gDNA read must probe back as variable-length (non-vacuous for the
+            # no-barcode bulk branch, whose only structural claim is "two variable cDNA reads").
+            has_open_cdna = any(
+                el.type in ("cdna", "gdna") and el.end is None for el in read.elements
+            )
+            if has_open_cdna and read.min_len != read.max_len:
+                checks.append(
+                    {
+                        "read": read.id,
+                        "check": "cdna_variable",
+                        "ok": obs.read_length.n_distinct > 1,
+                        "n_distinct": obs.read_length.n_distinct,
+                    }
+                )
             for el in read.elements:
                 if el.start is None or el.end is None:
                     continue

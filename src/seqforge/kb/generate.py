@@ -27,19 +27,13 @@ def _fixed_length(el: Element) -> int | None:
     return None
 
 
-def generate_reads(
-    spec: Spec,
-    *,
-    n: int = 2000,
-    seed: int = 0,
-    pool_size: int = 64,
-    cdna_min: int = 60,
-    cdna_max: int = 91,
-) -> dict[str, list[str]]:
-    """Generate ``n`` synthetic reads per declared read, keyed by ``Read.id``.
+def build_pools(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> dict[str, list[str]]:
+    """Build the synthetic barcode pool backing each onlist *alias*, keyed by ``Element.onlist``.
 
-    ``pool_size`` sets how many distinct barcodes back each onlist (drives the recurrence signal);
-    keep it well below ``n`` so the cell-barcode distinct-ratio lands in-band.
+    Deterministic in ``(seed, pool_size)`` and independent of read generation, so a test can
+    reconstruct the exact whitelist the reads will be drawn from (to register it as a synthetic
+    onlist for the resolver). ``pool_size`` distinct barcodes drive the low-distinct-ratio recurrence
+    signal; keep it well below the read count.
     """
     rng = random.Random(seed)
     pools: dict[str, list[str]] = {}
@@ -48,7 +42,28 @@ def generate_reads(
             if el.onlist and el.onlist not in pools:
                 length = _fixed_length(el) or 16
                 pools[el.onlist] = [_rand(rng, length) for _ in range(pool_size)]
+    return pools
 
+
+def generate_reads(
+    spec: Spec,
+    *,
+    n: int = 2000,
+    seed: int = 0,
+    pool_size: int = 64,
+    cdna_min: int = 60,
+    cdna_max: int = 91,
+    pools: dict[str, list[str]] | None = None,
+) -> dict[str, list[str]]:
+    """Generate ``n`` synthetic reads per declared read, keyed by ``Read.id``.
+
+    ``pool_size`` sets how many distinct barcodes back each onlist (drives the recurrence signal);
+    keep it well below ``n`` so the cell-barcode distinct-ratio lands in-band. Pass ``pools`` (from
+    :func:`build_pools` with the same ``seed``/``pool_size``) to reuse a known whitelist.
+    """
+    if pools is None:
+        pools = build_pools(spec, seed=seed, pool_size=pool_size)
+    rng = random.Random(seed + 1)  # a stream distinct from pool construction, still deterministic
     result: dict[str, list[str]] = {}
     for read in spec.reads:
         seqs: list[str] = []

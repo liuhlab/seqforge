@@ -24,7 +24,7 @@ DEFAULT_MAX_READS = 200_000
 DEFAULT_MAX_BYTES = 256 * 1024 * 1024
 
 # Imported last: core depends on the budget constants above (keeps the package import acyclic).
-from .core import hash_file, probe_file  # noqa: E402
+from .core import hash_file, probe_file, probe_sample  # noqa: E402
 
 __all__ = [
     "PROBE_VERSION",
@@ -32,4 +32,5 @@ __all__ = [
     "DEFAULT_MAX_BYTES",
     "hash_file",
     "probe_file",
+    "probe_sample",
 ]

@@ -1,0 +1,53 @@
+schema_version: 1
+
+identity:
+  id: bulk-rnaseq-pe
+  version: illumina-pe
+  name: "Bulk Illumina paired-end RNA-seq (no cell barcode)"
+  aliases: ["bulk RNA-seq", "paired-end RNA-seq", "Illumina PE RNA-seq", "polyA RNA-seq PE", "RNA-seq PE"]
+  assay_ontology: ["EFO:0008896"]        # "RNA-Seq" (generic bulk) — verified against live EFO (EBI OLS)
+  modality: rna
+
+reads:
+  # Two symmetric cDNA mates, no cell barcode / UMI. The min_len gate (>=40) is what excludes a short
+  # single-cell barcode read (26/28 bp) from ever filling a bulk role.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna_r1, start: 0, end: null, seqspec_region_type: cdna}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: neg                          # the reverse mate
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna_r2, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists: {}
+
+signature:
+  requires:
+    - {test: read_count, roles: 2}       # two reads, both biological; no barcode role to fill
+  supports:                              # diverse cDNA => high distinct-ratio (not a repeated barcode)
+    - when: {test: distinct_ratio, read: R1, start: 0, end: 25, expect: high}
+      weight: 2.0
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 25, expect: high}
+      weight: 2.0
+    - when: {test: header_index, present: true}     # real Illumina headers carry the sample index
+      weight: 0.5
+  excludes: []
+
+backend:
+  module: map/star                       # plain STAR (no solo): bulk has no barcode/UMI demultiplex
+  params:
+    quantMode: GeneCounts
+    outSAMtype: [BAM, SortedByCoordinate]
+    # library strandedness is resolved at compose from processing policy / inferred prep, not here.
+
+confusable_with: []
+decidable_by: []

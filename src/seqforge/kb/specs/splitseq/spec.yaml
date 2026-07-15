@@ -1,0 +1,94 @@
+schema_version: 1
+
+# ============================================================================================
+# ORIGINAL SPLiT-seq (Rosenberg et al., Science 2018, doi:10.1126/science.aam8999).
+# Read structure + linker sequences pinned from scg_lib_structs (CC-BY):
+#   https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html
+#   https://github.com/Teichlab/scg_lib_structs/issues/13  (the "Published Manuscript" read-2 variant)
+#
+# This entry models the PUBLISHED-MANUSCRIPT SPLiT-seq only. Parse Biosciences Evercode is a separate,
+# updated commercial descendant with different linkers/whitelists and multiple kit versions — it is
+# deliberately OUT OF SCOPE for this pilot and must get its own KB entry, never conflated with this one.
+#
+# Read 2 (94 cycles) reads, 5'->3':
+#   [10 bp UMI][8 bp Round3][30 bp linker1][8 bp Round2][30 bp linker2][8 bp Round1]
+# Read 1 (66 cycles) reads the cDNA. Round1 is the RT/first-round (oligo-dT/randN) barcode; Round3 is
+# nearest the sequencing primer. Whitelists: 96 x 8 bp per round (register the actual barcode files
+# from scg_lib_structs before a real run — the KB declares the registry name, never vendors the list).
+# ============================================================================================
+
+identity:
+  id: splitseq
+  version: science-2018                  # the published-manuscript variant (not preprint, not Parse)
+  name: "SPLiT-seq (combinatorial split-pool barcoding, Rosenberg et al. 2018)"
+  aliases: ["SPLiT-seq", "split-pool", "combinatorial indexing", "split-pool ligation"]
+  assay_ontology: ["EFO:0009919"]        # SPLiT-seq — verified against live EFO (EBI OLS), not memory.
+                                         # NB: Parse Evercode has its own terms (EFO:0022600/1/2) — a
+                                         # separate future entry, never this one.
+  modality: rna
+
+reads:
+  - id: cdna
+    seqspec_read_id: R1                  # Read 1 (66 cycles) = cDNA
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+  # Read 2 (94 cycles) = UMI + three round barcodes separated by two fixed linkers.
+  - id: bc
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 94
+    max_len: 94
+    elements:
+      - {type: umi,     name: UMI, start: 0,  end: 10,                    seqspec_region_type: umi}
+      - {type: barcode, name: bc3, start: 10, end: 18, onlist: round3,    seqspec_region_type: barcode}
+      # linker1 = the Round3->Round2 spacer (Science-2018 sequence, verbatim from scg_lib_structs)
+      - {type: linker,  name: linker1, start: 18, end: 48, seqspec_region_type: linker,
+         sequence: "GTGGCCGATGTTTCGCATCGGCGTACGACT"}
+      - {type: barcode, name: bc2, start: 48, end: 56, onlist: round2,    seqspec_region_type: barcode}
+      # linker2 = the Round2->Round1 spacer (Science-2018 sequence, verbatim from scg_lib_structs)
+      - {type: linker,  name: linker2, start: 56, end: 86, seqspec_region_type: linker,
+         sequence: "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"}
+      - {type: barcode, name: bc1, start: 86, end: 94, onlist: round1,    seqspec_region_type: barcode}
+
+onlists:
+  round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
+  round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}
+  round3: {registry: splitseq-round3, role: cell_barcode, expected_orientation: forward}
+  tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}  # exclude only
+
+signature:
+  requires:                              # the two FIXED linkers are the structural signature
+    - {test: read_count, roles: 2}
+    - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}   # linker1
+    - {test: has_segment, read: bc, start: 56, end: 86, kind: constant}   # linker2
+  supports:                              # each round barcode hits its own small whitelist (width-generic 8 bp)
+    - when: {test: onlist_hit_rate, read: bc, element: bc1, onlist: round1, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: onlist_hit_rate, read: bc, element: bc2, onlist: round2, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: onlist_hit_rate, read: bc, element: bc3, onlist: round3, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: distinct_ratio, read: bc, start: 0, end: 10, expect: high}   # UMI ~unique
+      weight: 1.0
+    - when: {test: distinct_ratio, read: cdna, start: 0, end: 20, expect: high} # cDNA role is scored too
+      weight: 1.0
+  excludes:                              # a 16 bp 10x CB at read start => not SPLiT-seq
+    - {test: onlist_hit_rate, read: bc, start: 0, end: 16, onlist: tenx_probe, orientation: forward, min: 0.6}
+
+backend:
+  module: map/starsolo
+  params:
+    soloType: CB_UMI_Complex
+    soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
+    soloStrand: Forward                  # FLAG: confirm SPLiT-seq cDNA strand (Read 1) before the e2e run
+    soloFeatures: [Gene]
+    # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
+    # (FLAG-3: never hand-enter a position quadruple from memory — generate it from the element model).
+
+confusable_with: []                      # onlist + combinatorial geometry separate it from 10x / inDrop
+decidable_by: []

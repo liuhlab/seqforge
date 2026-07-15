@@ -5,7 +5,7 @@ identity:
   version: "3"
   name: "10x Chromium Single Cell 3' Gene Expression v3"
   aliases: ["10x 3' v3", "Chromium 3' v3", "SC3Pv3", "single cell 3-prime v3"]
-  assay_ontology: ["EFO:0009922"]        # FLAG: verify exact EFO id before shipping
+  assay_ontology: ["EFO:0009922"]        # 10x 3' v3 — verified against live EFO (EBI OLS)
   modality: rna
 
 reads:
@@ -52,6 +52,8 @@ signature:
       weight: 2.0               # CB recurs -> low distinct ratio
     - when: {test: distinct_ratio, read: R1, start: 16, end: 28, expect: high}
       weight: 1.0               # UMI ~ unique -> high distinct ratio
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0               # cDNA is diverse -> the biological role is scored, not left at 0
     - when: {test: header_index, present: true}
       weight: 0.2
   excludes:                     # anti-gate: if the Multiome list hits, it's not 3' GEX

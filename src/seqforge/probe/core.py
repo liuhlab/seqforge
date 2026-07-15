@@ -77,23 +77,20 @@ def _estimate_reads(
     return n_reads, "compressed_ratio"
 
 
-def probe_file(
+def probe_sample(
     path: str | Path,
     *,
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
     sha256: str | None = None,
-) -> Observation:
-    """Fingerprint one FASTQ gzip into a role-free :class:`Observation` under a bounded budget (R3).
+) -> tuple[Observation, list[str]]:
+    """Fingerprint one FASTQ gzip and ALSO return its bounded sampled sequences.
 
-    Parameters
-    ----------
-    path
-        Local path to a gzip-compressed FASTQ.
-    max_reads, max_bytes
-        The read budget and decompressed-byte cap (R3).
-    sha256
-        Precomputed content hash; if omitted it is computed from the file bytes (see :func:`hash_file`).
+    :class:`Observation` is structural + role-free and cached to disk; the raw sampled ``seqs`` are
+    the same bounded, in-memory sample used to build it. ``resolve`` needs those seqs to answer
+    role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
+    which the structural Observation deliberately does not carry. The sample stays within the R3
+    budget — this returns it, it does not re-read the file.
     """
     p = Path(path)
     sample = sample_fastq_gz(p, max_reads=max_reads, max_bytes=max_bytes)
@@ -116,7 +113,7 @@ def probe_file(
         sample.budget_exhausted,
     )
 
-    return Observation(
+    observation = Observation(
         file=FileIdentity(
             sha256=sha256 or hash_file(p),
             size_bytes=file_size,
@@ -141,3 +138,26 @@ def probe_file(
         est_method=est_method,
         gzip=GzipIntegrity(ok=sample.ok, truncated=sample.truncated),
     )
+    return observation, sample.seqs
+
+
+def probe_file(
+    path: str | Path,
+    *,
+    max_reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    sha256: str | None = None,
+) -> Observation:
+    """Fingerprint one FASTQ gzip into a role-free :class:`Observation` under a bounded budget (R3).
+
+    Parameters
+    ----------
+    path
+        Local path to a gzip-compressed FASTQ.
+    max_reads, max_bytes
+        The read budget and decompressed-byte cap (R3).
+    sha256
+        Precomputed content hash; if omitted it is computed from the file bytes (see :func:`hash_file`).
+    """
+    observation, _seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes, sha256=sha256)
+    return observation
