@@ -41,7 +41,10 @@ from dataclasses import dataclass, field
 from itertools import product as _product
 from pathlib import Path
 
+import yaml
+
 from . import __version__
+from .compose import compose
 from .compose import plan as compose_plan
 from .io import OnlistRegistry
 from .kb import load_spec
@@ -53,7 +56,8 @@ from .manifest import (
     fill_processing,
     validate_manifest,
 )
-from .models.dataset import SampleGroup
+from .models.dataset import DatasetManifest, SampleGroup
+from .models.processing import ProcessingManifest
 from .probe import probe_file
 from .resolve import resolve_dataset
 
@@ -494,11 +498,28 @@ def run_starsolo(
     out_sam_type: tuple[str, ...] = ("None",),
     extra_args: tuple[str, ...] = (),
 ) -> Path:
-    """Run STARsolo with the COMPOSED params (this is what makes the gate test the compiler).
+    """Invoke STAR **directly**, with the composed params. The MEMORY INSTRUMENT — not a gate.
 
-    ``cost``, if given, is populated with this STAR run's wall-clock and peak RSS. It is an
-    out-param rather than a return value because every existing caller wants the matrix path and
-    nothing else; the measurement is a side channel for the callers that are pricing a default.
+    Only `kb e2e-cost` uses this now, and the distinction is the whole point:
+
+    - a **gate** asks "is the artifact we ship correct?", so it must run the artifact we ship. Both
+      correctness arms do that via `run_composed`, which runs the emitted Snakefile.
+    - an **instrument** asks "how much memory does STAR need at depth N?", so it must reap STAR
+      itself. Under snakemake, `wait4` reaps snakemake and `ru_maxrss` folds in descendants, which
+      turns an exact number into an approximate one — and this file already carries the scar of a
+      memory reading that was silently a `max()` over several children.
+
+    This function used to back the gates too, and its docstring said running STAR with the composed
+    params "is what makes the gate test the compiler". That was true of the *params* and false of
+    everything else: it meant STARsolo's command line was rendered twice, by hand, in two places that
+    could not see each other — here, and in `starsolo.smk`, which nothing had ever executed. They had
+    already drifted: the argv below hardcodes `--soloCBstart/CBlen/UMIstart/UMIlen`, so it cannot run
+    a `CB_UMI_Complex` chemistry at all, while the module branches on `soloType` to handle one.
+
+    Keep that in mind before adding a flag here: this is a measuring device pointed at STAR, and it is
+    NOT evidence about the pipeline. If you want a claim about what users run, put it in `run_composed`.
+
+    ``cost``, if given, is populated with this STAR run's wall-clock and peak RSS.
     """
     outdir.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -556,7 +577,14 @@ def run_starsolo(
     return outdir / "Solo.out" / _feature_list(solo["soloFeatures"])[0] / "raw"
 
 
-def _run_measured(cmd: list[str], *, outdir: Path, timeout: int) -> tuple[int, float, int, str]:
+def _run_measured(
+    cmd: list[str],
+    *,
+    outdir: Path,
+    timeout: int,
+    env: dict[str, str] | None = None,
+    log_prefix: str = "star",
+) -> tuple[int, float, int, str]:
     """Run ``cmd`` to completion; return ``(exit_code, wall_s, peak_rss_kib, stderr_tail)``.
 
     ``os.wait4`` reports rusage for **the one child it reaps**, and that is the whole reason this
@@ -573,10 +601,10 @@ def _run_measured(cmd: list[str], *, outdir: Path, timeout: int) -> tuple[int, f
     which would leave ``wait4`` nothing to collect rusage from.
     """
     outdir.mkdir(parents=True, exist_ok=True)
-    err_log = outdir / "star.stderr.log"
+    err_log = outdir / f"{log_prefix}.stderr.log"
     started = time.monotonic()
-    with open(outdir / "star.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
-        proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh)
+    with open(outdir / f"{log_prefix}.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
+        proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh, env=env)
         deadline = started + timeout
         while True:
             pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
@@ -586,12 +614,104 @@ def _run_measured(cmd: list[str], *, outdir: Path, timeout: int) -> tuple[int, f
                 proc.kill()
                 os.wait4(proc.pid, 0)
                 proc.returncode = -9
-                raise E2EUnavailable(f"STAR exceeded its {timeout}s budget")
+                raise E2EUnavailable(f"{log_prefix} exceeded its {timeout}s budget")
             time.sleep(0.2)
     # Tell Popen the child is already reaped, so its own wait() does not race for an ECHILD.
     proc.returncode = os.waitstatus_to_exitcode(status)
     elapsed = time.monotonic() - started
     return proc.returncode, elapsed, usage.ru_maxrss, err_log.read_text()[-2000:]
+
+
+def run_composed(
+    assets: E2EAssets,
+    *,
+    manifest: DatasetManifest,
+    processing: ProcessingManifest,
+    registry: OnlistRegistry,
+    workspace: Path,
+    fastq_dir: Path,
+    threads: int = 8,
+    timeout: int = 1800,
+    config_patch: dict[str, dict[str, str]] | None = None,
+) -> tuple[Path, Path]:
+    """Compose the pipeline and **run the Snakefile it emitted**. Returns `(solo_raw, star_prefix)`.
+
+    **This is what makes `kb e2e` a test of the compiler's output rather than of its params dict.**
+
+    It used to call `run_starsolo`, which took the composed `solo` block and hand-assembled its own
+    STAR argv. That tested the params — its docstring said so, and it was true — and it never touched
+    `starsolo.smk`. So the command line was rendered twice, by hand, in two places that could not see
+    each other: once in the module we ship to users, once in the test we trust. Nothing ever ran the
+    first one. The two had already drifted — the test's copy hardcodes `--soloCBstart/CBlen/UMIstart/
+    UMIlen` and so cannot run a `CB_UMI_Complex` chemistry at all, while the module branches on
+    `soloType` to handle exactly that.
+
+    Now there is one rendering, in the module, and the ground-truth assertion — *the matrix equals the
+    barcodes and UMIs we injected* — covers the artifact a user actually submits.
+
+    Two consequences worth naming rather than discovering:
+
+    - **`--outSAMtype BAM Unsorted`** is what the module hardcodes, so that is what runs here; the old
+      path passed `None` to save time. Slower and bigger, and correct: a gate that runs a command
+      nobody ships is measuring the wrong thing. On a 12 Mb yeast fixture the difference is noise.
+    - **The `genome_index` rule now executes**, resolving the index through liulab-genome exactly as a
+      real run does, instead of the test handing STAR a path it found itself. `build_star_index` is
+      cached upstream, so this costs nothing and covers a rule that had no coverage at all.
+
+    No peak-RSS is reported from this path, deliberately. `wait4` would be reaping *snakemake*, and its
+    `ru_maxrss` folds in descendants it has waited for — so the number would be "STAR's peak, probably,
+    unless snakemake's was higher". `kb e2e-cost` keeps a direct STAR invocation precisely because a
+    memory instrument may not be approximate; see `run_starsolo`.
+    """
+    result = compose(
+        manifest,
+        processing,
+        registry=registry,
+        workspace=workspace,
+        fastq_dir=fastq_dir,
+        # We are about to really run it. A dry run first would re-derive, at some cost, a subset of
+        # what the real run is about to prove.
+        run_wiring_gate=False,
+    )
+    rundir = (workspace / result.snakefile_path).parent
+    if config_patch:
+        config = yaml.safe_load((rundir / "config.yaml").read_text())
+        for block, entries in config_patch.items():
+            config[block].update(entries)
+        (rundir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+
+    # The module invokes a bare `STAR`, as it must: a module may not carry a machine's path (R9).
+    # `assets.star_bin` is this host's answer, so put its directory on PATH for the child rather than
+    # rewriting the module's shell block.
+    env = dict(os.environ)
+    env["PATH"] = os.pathsep.join(
+        [str(Path(assets.star_bin).resolve().parent), env.get("PATH", "")]
+    )
+    code, _elapsed, _rss, err_tail = _run_measured(
+        [
+            "snakemake",
+            "-s",
+            str(rundir / "Snakefile"),
+            "-d",
+            str(rundir),
+            "--cores",
+            str(threads),
+            "-p",
+            "--nolock",
+        ],
+        outdir=rundir,
+        timeout=timeout,
+        env=env,
+        log_prefix="snakemake",
+    )
+    if code != 0:
+        raise E2EUnavailable(f"the composed pipeline failed ({code}): {err_tail}")
+
+    config = yaml.safe_load((rundir / "config.yaml").read_text())
+    sample = str(config["samples"][0])
+    star_prefix = rundir / str(config["outdir"]) / sample
+    primary = str(config["primary_feature"])
+    return star_prefix / "Solo.out" / primary / "raw", star_prefix
 
 
 def _feature_list(value: object) -> list[str]:
@@ -661,21 +781,21 @@ def run_e2e(
     )
     composed = compose_plan(manifest, processing, registry=registry)
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
-    wl_path = workdir / "whitelist.txt"
-    wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
 
-    solo_raw = run_starsolo(
+    # Run the Snakefile COMPOSE EMITTED — not a second, hand-written STAR command line that merely
+    # uses the same params. See `run_composed`.
+    solo_raw, star_prefix = run_composed(
         assets,
-        cdna_fq=cdna_fq,
-        barcode_fq=bc_fq,
-        whitelist=wl_path,
-        solo=solo,
-        outdir=workdir / "star_forward",
+        manifest=manifest,
+        processing=processing,
+        registry=registry,
+        workspace=workdir / "forward",
+        fastq_dir=workdir,
         threads=threads,
     )
     observed = parse_solo_matrix(solo_raw)
     verdict = _compare(sim.truth, observed)
-    stats = star_stats(workdir / "star_forward")
+    stats = star_stats(star_prefix)
 
     # What the gate actually asserts, and why each clause earns its place:
     #  - no spurious pair  : a read must never be counted for a gene it did not come from.
@@ -717,16 +837,18 @@ def run_e2e(
 
     # --- prove the gate can actually SEE a strand inversion (else it proves nothing) ---
     if check_strand_inversion:
-        inverted = dict(solo)
-        inverted["soloStrand"] = "Reverse"
-        inv_raw = run_starsolo(
+        # Patch the EMITTED config rather than compose a second one: the point is that this exact
+        # pipeline, with one flag flipped, must lose the signal. A separate workspace because a run
+        # directory is keyed by run_id, and the two runs share every hash that feeds it.
+        inv_raw, _ = run_composed(
             assets,
-            cdna_fq=cdna_fq,
-            barcode_fq=bc_fq,
-            whitelist=wl_path,
-            solo=inverted,
-            outdir=workdir / "star_reverse",
+            manifest=manifest,
+            processing=processing,
+            registry=registry,
+            workspace=workdir / "reverse",
+            fastq_dir=workdir,
             threads=threads,
+            config_patch={"solo": {"soloStrand": "Reverse"}},
         )
         inv_counts = parse_solo_matrix(inv_raw)
         inv_total = sum(inv_counts.values())
@@ -856,23 +978,19 @@ def run_intron_e2e(
             "composed_soloFeatures": composed_features,
         }
 
-    wl_path = workdir / "whitelist.txt"
-    wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
-    outdir = workdir / "star_intron"
-    cost: dict[str, object] = {}
-    run_starsolo(
+    _raw, star_prefix = run_composed(
         assets,
-        cdna_fq=cdna_fq,
-        barcode_fq=bc_fq,
-        whitelist=wl_path,
-        solo=solo,
-        outdir=outdir,
+        manifest=manifest,
+        processing=processing,
+        registry=registry,
+        workspace=workdir / "composed",
+        fastq_dir=workdir,
         threads=threads,
-        cost=cost,
     )
+    solo_out = star_prefix / "Solo.out"
 
-    gene = parse_solo_matrix(outdir / "Solo.out" / "Gene" / "raw")
-    full = parse_solo_matrix(outdir / "Solo.out" / "GeneFull" / "raw")
+    gene = parse_solo_matrix(solo_out / "Gene" / "raw")
+    full = parse_solo_matrix(solo_out / "GeneFull" / "raw")
     v_gene = _compare(sim.truth_exonic, gene)
     v_full = _compare(sim.truth_full, full)
 
@@ -918,12 +1036,13 @@ def run_intron_e2e(
         # what the real compiler emitted — no override (R15). This is the assertion.
         "composed_soloFeatures": composed_features,
         "primary_feature": composed.config.get("primary_feature"),
-        # What this arm cost. Both arms load the same genome index, so that fixed floor sits in
-        # BOTH numbers and biases the all-5/pair RATIO toward 1.0 — i.e. toward keeping Velocyto,
-        # the thing we already chose. Read `star_wall_s` as a floor-inclusive ratio and take the
-        # marginal difference as the honest figure.
-        "cost": cost,
-        "star": star_stats(outdir),
+        # No `cost` key any more, and its absence is the honest answer rather than a regression.
+        # This arm now runs the composed Snakefile, so the process it could time is *snakemake*, and
+        # `wait4`'s `ru_maxrss` folds in descendants — the number would be "STAR's peak, probably".
+        # A memory instrument may not be approximate. `kb e2e-cost` invokes STAR directly and is the
+        # instrument; PROJECT_BRIEF §8 already says so ("no longer `kb e2e-introns --quantify`, which
+        # is a correctness gate that happens to time itself"). This is that sentence becoming true.
+        "star": star_stats(star_prefix),
         "gene_verdict": v_gene,
         "genefull_verdict": v_full,
     }

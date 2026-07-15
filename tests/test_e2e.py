@@ -105,6 +105,44 @@ def test_star_is_available_when_claimed() -> None:  # pragma: no cover - host de
 
 
 # --------------------------------------------------------------------------------------------
+# the gates must run the SHIPPED module, not a private copy of its command line
+# --------------------------------------------------------------------------------------------
+
+
+def test_the_correctness_arms_run_the_composed_snakefile() -> None:
+    """The ground-truth gates must drive `starsolo.smk`, never a second hand-written STAR argv.
+
+    For the life of the repo, `kb e2e` built the composed config and then assembled its **own** STAR
+    command line. It tested the params dict — its docstring said exactly that — and it never touched
+    the module. So STARsolo's command line existed twice, by hand, in two places that could not see
+    each other, and only the copy nobody ships was ever checked against ground truth.
+
+    They had already drifted, which is the proof this is not hypothetical: `run_starsolo` hardcodes
+    the four `soloCB/UMI` start/len flags and cannot run a `CB_UMI_Complex` chemistry at all, while
+    `starsolo.smk` branches on `soloType` to handle one.
+
+    This is a source-level check because the thing it guards is a structural claim about which code
+    path the gates take, and the gates themselves need a cluster — so a test that only ran on a
+    cluster would leave this unguarded exactly where it regressed before.
+    """
+    import inspect
+
+    from seqforge import e2e
+
+    for arm in (e2e.run_e2e, e2e.run_intron_e2e):
+        src = inspect.getsource(arm)
+        assert "run_composed(" in src, f"{arm.__name__} does not run the composed Snakefile"
+        assert "run_starsolo(" not in src, (
+            f"{arm.__name__} calls run_starsolo -- that renders a SECOND STAR command line by hand "
+            f"and leaves the shipped module unexecuted, which is the bug this test exists for"
+        )
+    # run_starsolo may still exist: it is the memory instrument. But only the cost sweep may use it,
+    # because reaping snakemake instead of STAR makes ru_maxrss approximate, and a memory instrument
+    # may not be approximate.
+    assert "run_starsolo(" in inspect.getsource(e2e.run_cost_sweep)
+
+
+# --------------------------------------------------------------------------------------------
 # the intron-rich / GeneFull fixture
 #
 # The STARsolo run itself needs a cluster (skip-gated above), but the parts that decide whether the
