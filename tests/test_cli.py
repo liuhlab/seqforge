@@ -143,6 +143,46 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert (tmp_path / ".seqforge" / "pipeline" / "units.tsv").is_file()
 
 
+def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
+    doc = tmp_path / "methods.txt"
+    doc.write_text("Libraries were prepared with the Chromium Single Cell 3' v3 kit.")
+    norm = runner.invoke(app, ["harvest", "normalize", str(doc), "-C", str(tmp_path)])
+    assert norm.exit_code == 0
+    row = json.loads(norm.stdout)["normalized"][0]
+    assert row["source"] == "methods.txt" and row["n_chars"] > 0
+    assert (tmp_path / ".seqforge" / "normalized" / f"{row['doc_sha256']}.txt").is_file()
+
+    # one truthful draft + one with a real quote pinned to a wrong value
+    drafts = tmp_path / "drafts.json"
+    drafts.write_text(
+        json.dumps(
+            [
+                {
+                    "field": "library.chemistry",
+                    "value": "10x-3p-gex-v3",
+                    "span": {
+                        "doc_sha256": row["doc_sha256"],
+                        "quote": "Chromium Single Cell 3' v3",
+                    },
+                    "llm_confidence": 0.9,
+                },
+                {
+                    "field": "experiment.organism",
+                    "value": "Caenorhabditis elegans",
+                    "span": {"doc_sha256": row["doc_sha256"], "quote": "Libraries were prepared"},
+                    "llm_confidence": 0.9,
+                },
+            ]
+        )
+    )
+    ver = runner.invoke(app, ["harvest", "verify", str(drafts), "--doc", str(doc)])
+    assert ver.exit_code == 4  # a rejected claim needs a human, not a silent drop
+    doc_out = json.loads(ver.stdout)
+    assert doc_out["n_accepted"] == 1 and doc_out["n_rejected"] == 1
+    assert doc_out["rejected"][0]["reason"] == "not_entailed"
+    assert doc_out["assertions"][0]["span_verified"] is True
+
+
 def test_compose_refuses_invalid_manifest(tmp_path: Path) -> None:
     bad = tmp_path / "nope.yaml"
     bad.write_text("library: {}\n")

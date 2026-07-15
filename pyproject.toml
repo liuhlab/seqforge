@@ -99,7 +99,7 @@ fmt-check = "ruff format --check ."
 # mypy is STRICT and scoped to the modules where a wrong type poisons the corpus (brief §13):
 # models/ + probe/ (the brief's two) + resolve/ (a wrong type there poisons a decision) +
 # manifest/ + compose/ + workflows/ (a wrong type there poisons every emitted pipeline param).
-typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows"
+typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest"
 test      = "pytest"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }

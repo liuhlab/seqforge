@@ -62,6 +62,11 @@ app.add_typer(resolve_app, name="resolve")
 manifest_app = typer.Typer(help="Assemble, validate, and hash the machine-independent manifest.")
 app.add_typer(manifest_app, name="manifest")
 
+harvest_app = typer.Typer(
+    help="Prose/metadata -> span-verified Assertions (the one LLM touchpoint)."
+)
+app.add_typer(harvest_app, name="harvest")
+
 
 @app.command()
 def version() -> None:
@@ -305,6 +310,83 @@ def resolve_score(
     code = output.exit_code()
     if code != 0:
         raise typer.Exit(code)
+
+
+@harvest_app.command("normalize")
+def harvest_normalize(
+    docs: list[Path] = typer.Argument(..., help="Source documents (.txt/.md/.pdf)."),
+    workspace: Path = typer.Option(
+        Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
+    ),
+) -> None:
+    """Extract each document ONCE into the canonical text that spans are computed against (R5)."""
+    from .harvest import normalize_document
+
+    outdir = Path(workspace) / ".seqforge" / "normalized"
+    outdir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for doc in docs:
+        try:
+            nd = normalize_document(doc)
+        except (OSError, RuntimeError) as exc:
+            typer.echo(f"{doc}: {exc}", err=True)
+            raise typer.Exit(1) from exc
+        target = outdir / f"{nd.doc_sha256}.txt"
+        target.write_text(nd.text)
+        rows.append(
+            {
+                "source": nd.source_basename,
+                "doc_sha256": nd.doc_sha256,
+                "normalized_sha256": nd.normalized_sha256,
+                "normalizer_version": nd.normalizer_version,
+                "n_chars": nd.n_chars,
+                "path": str(target.relative_to(Path(workspace))),
+            }
+        )
+    typer.echo(json.dumps({"normalized": rows}, indent=2))
+
+
+@harvest_app.command("verify")
+def harvest_verify(
+    drafts_json: Path = typer.Argument(..., help="AssertionDraft[] JSON (from `harvest extract`)."),
+    docs: list[Path] = typer.Option(..., "--doc", help="Source document(s) the drafts cite."),
+    model_id: str = typer.Option("unknown", help="Model that produced the drafts (provenance)."),
+    prompt_version: str = typer.Option("unknown", help="Prompt version (provenance)."),
+) -> None:
+    """Grep each quote back into the canonical text + check it entails the value. Exit 4 if any fail.
+
+    Both flags are code-owned, so a hallucinated or mis-attributed claim fails closed (R5).
+    """
+    from .harvest import normalize_document, verify_drafts
+    from .models.assertion import AssertionDraft, ExtractorProvenance
+
+    try:
+        raw = json.loads(drafts_json.read_text())
+        drafts = [AssertionDraft.model_validate(d) for d in raw]
+    except (OSError, ValidationError, ValueError) as exc:
+        typer.echo(f"cannot read drafts {drafts_json}: {exc}", err=True)
+        raise typer.Exit(2) from exc
+
+    normalized = [normalize_document(d) for d in docs]
+    report = verify_drafts(
+        drafts,
+        normalized,
+        extractor=ExtractorProvenance(model_id=model_id, prompt_version=prompt_version),
+    )
+    typer.echo(
+        json.dumps(
+            {
+                "n_drafts": len(drafts),
+                "n_accepted": report.n_accepted,
+                "n_rejected": len(report.rejected),
+                "assertions": [a.model_dump(mode="json") for a in report.assertions],
+                "rejected": report.rejected,
+            },
+            indent=2,
+        )
+    )
+    if report.rejected:
+        raise typer.Exit(4)  # a rejected claim needs a human, not a silent drop
 
 
 def _load_manifest(path: Path) -> Manifest:

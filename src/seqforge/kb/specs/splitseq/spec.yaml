@@ -85,7 +85,17 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
-    soloStrand: Forward                  # FLAG: confirm SPLiT-seq cDNA strand (Read 1) before the e2e run
+    # FLAG (open, and the most dangerous value in this file): soloStrand is UNVERIFIED for SPLiT-seq.
+    # A wrong strand leaves ~half the reads unassigned while STARsolo exits 0 and emits a matrix that
+    # merely looks like a thin dataset. It cannot be caught by the params gate (which only proves the
+    # value survives compose intact) NOR by a simulated e2e (which would test our own assumed
+    # orientation against itself -- circular). Settle it non-circularly, in this order:
+    #   1. derive from Rosenberg et al., Science 2018 (doi:10.1126/science.aam8999) oligo
+    #      orientations / the scg_lib_structs diagram, and cite the derivation here;
+    #   2. decisive: run the paper's own raw data (GEO GSE110823) both ways -- the correct strand
+    #      assigns ~2x the reads. That is the design's rung-6 `alignment` check.
+    # Until then this entry must not process real data.
+    soloStrand: Forward
     soloFeatures: [Gene]
     # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
     # (FLAG-3: never hand-enter a position quadruple from memory — generate it from the element model).

@@ -39,8 +39,20 @@ It stresses machinery the two 10x-family entries don't:
 ## Still to pin before a real run
 - **Whitelists.** `spec.yaml` declares registry names `splitseq-round{1,2,3}` (96 × 8 bp each). Register
   the actual barcode files from scg_lib_structs with URL + sha256; the KB never vendors them.
-- **`soloStrand`.** Marked FLAG — confirm the cDNA (Read 1) strand for SPLiT-seq before trusting the
-  count matrix (the `kb e2e` run is what will certify it).
+- **`soloStrand` — the most dangerous unverified value here.** A wrong strand leaves ~half the reads
+  unassigned while STARsolo **exits 0**, emitting a matrix that merely looks like a thin dataset.
+  Note what *cannot* settle it: the params gate only proves the value survives compose intact, and a
+  *simulated* `kb e2e` would test our own assumed orientation against itself — circular, and a green
+  result there would be false confidence. Two non-circular routes, in order:
+  1. derive it from [Rosenberg et al., *Science* 2018](https://doi.org/10.1126/science.aam8999) oligo
+     orientations / the scg_lib_structs diagram, and cite the derivation;
+  2. **decisive** — run the paper's own raw data ([GEO GSE110823](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE110823))
+     both ways; the correct strand assigns ~2× the reads. This is the design's rung-6 `alignment`
+     check, and the same trick scRecounter uses by grid search.
+
+  Until then this entry must not process real data. (It cannot yet anyway: its whitelists are not
+  registered and compose does not derive `soloCBposition` for `CB_UMI_Complex` — so the risk is
+  latent, not active.)
 
 `assay_ontology` is pinned to **`EFO:0009919`** ("SPLiT-seq"), verified against the EBI Ontology
 Lookup Service (not memory). Parse Evercode's distinct EFO terms (`EFO:0022600/1/2`) confirm it is a
