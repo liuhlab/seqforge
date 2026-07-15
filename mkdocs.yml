@@ -35,14 +35,16 @@ theme:
 plugins:
   - search
 
+# Concepts sits last on purpose: it is the "why it is shaped this way" layer, and a first-time
+# reader should reach the commands before the reasoning.
 nav:
   - Home: index.md
+  - Getting started: getting-started.md
+  - Adding a technology: kb-authoring.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
       - How a dataset is identified: concepts/identifying.md
       - When it refuses: concepts/refusal.md
-  - Getting started: getting-started.md
-  - Adding a technology: kb-authoring.md
 
 # `design.md` stays in the repo and OUT of the site, deliberately. It is the agent-facing technical
 # source of truth (schemas, scoring function, CLI surface) and this site is the human layer on top of

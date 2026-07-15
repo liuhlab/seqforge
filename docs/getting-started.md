@@ -1,10 +1,5 @@
 # Getting started
 
-!!! warning "Pre-alpha"
-
-    seqforge runs end to end on synthetic data and has not yet processed a real public dataset. The
-    commands below work; the corpus they are meant to build does not exist yet.
-
 ## Install
 
 Everything goes through [pixi](https://pixi.sh). Do not use `pip`, `conda`, or `venv` directly — the
@@ -16,12 +11,6 @@ git clone https://github.com/liuhlab/seqforge
 cd seqforge
 pixi install
 pixi run -- seqforge version
-```
-
-If you intend to commit, install the hooks once:
-
-```bash
-pixi run -- pre-commit install
 ```
 
 ## The shape of a session
@@ -64,34 +53,6 @@ Step 3 and step 4 are separate on purpose. See [The two artifacts](concepts/arti
 `3` and `4` are the interesting ones, and they are the point of the tool rather than an inconvenience.
 See [When it refuses](concepts/refusal.md).
 
-## Checking it actually works
+---
 
-The interesting test is not "did it run" but "**did it get the right answer**". So the end-to-end
-check simulates reads from a real yeast genome with barcodes and molecule identifiers that we chose,
-runs the real aligner, and asserts the resulting count matrix equals the truth we injected:
-
-```bash
-pixi run -- seqforge kb e2e --assembly sacCer3 --annotation <name>
-```
-
-This needs a real aligner and a real genome, so it runs on a cluster rather than on a laptop.
-
-Yeast has almost no introns, which makes it useless for testing intron-aware counting — so there is a
-second fixture on a worm genome, which is intron-rich:
-
-```bash
-pixi run -- seqforge kb e2e-introns --intron-frac 0.4
-```
-
-That is the fixture that measured the 40.7% signal loss described in
-[When it refuses](concepts/refusal.md).
-
-## Where the rules live
-
-- [`CLAUDE.md`](https://github.com/liuhlab/seqforge/blob/main/CLAUDE.md) — the rules, and for each
-  one, the thing that actually enforces it. Where nothing enforces it yet, it says so.
-- [`PROJECT_BRIEF.md`](https://github.com/liuhlab/seqforge/blob/main/PROJECT_BRIEF.md) — why the
-  system is shaped this way. Its §14 is the running list of what is designed but not built.
-- [`docs/design.md`](https://github.com/liuhlab/seqforge/blob/main/docs/design.md) — the schemas, the
-  scoring function, the full CLI surface. Deliberately not published as a site page: it carries open
-  arguments and values marked *unverified*, which belong in a repo rather than under a docs URL.
+**Next:** teach it a technology it does not know yet — [Adding a technology](kb-authoring.md).

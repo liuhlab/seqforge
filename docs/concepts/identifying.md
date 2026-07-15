@@ -37,13 +37,9 @@ flowchart TD
     class DONE output
 ```
 
-Rungs 0 to 3 cost well under a second, and they settle almost everything.
-
-!!! info "Rungs 4–6 are not built yet"
-
-    The design reserves three more rungs between the barcode check and asking a human — a broader
-    barcode search, a genome sketch, a trial alignment. None are implemented. Today, an ambiguity
-    that survives rung 3 goes straight to a human.
+Rungs 0 to 3 cost well under a second, and they settle almost everything. The numbering leaves room
+between the barcode check and asking a human for intermediate rungs — a broader barcode search, a
+genome sketch, a trial alignment — so an ambiguity that survives rung 3 goes straight to a human.
 
 ## The prose proposes; the bytes decide
 

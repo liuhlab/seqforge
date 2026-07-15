@@ -41,13 +41,6 @@ pixi run -- seqforge kb roundtrip <technology>
 This runs for **every** entry in the knowledge base automatically. Not a list someone maintains — the
 test collects the entries that exist. Add a directory and it is covered, because it exists.
 
-!!! note "This was not always true"
-
-    The round-trip used to run over a hand-written list of three technologies while the knowledge
-    base had five. One entry had no round-trip test at all, and the sentence "adding a technology
-    automatically adds its own test" was simply false for as long as that list was written by hand.
-    A list of what the code does is a comment with a tuple's syntax.
-
 ## Declaring what you get confused with
 
 Some technologies are genuinely indistinguishable from the reads. Two versions of 10x share the same
@@ -81,10 +74,23 @@ the sense that a test comment said so. But a comment is not something the resolv
 ## Before you open the pull request
 
 ```bash
-pixi run -- seqforge kb lint <technology>     # schema + the parse/count line
+pixi run -- seqforge kb lint <technology>      # schema + the parse/count line
 pixi run -- seqforge kb roundtrip <technology> # declared == recovered
 pixi run -- seqforge kb show <technology>      # eyeball it
-pixi run test                                  # the pairwise checks live here
+```
+
+Install the commit hooks once per clone. They run the fast checks — formatting, linting,
+type-checking:
+
+```bash
+pixi run -- pre-commit install
+```
+
+The test suite is not among them, and it is where the pairwise checks above live, so run it yourself
+before you push:
+
+```bash
+pixi run check
 ```
 
 ## Two things that will trip you up
