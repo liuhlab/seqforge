@@ -52,16 +52,22 @@ class HarvestGrade:
     hallucinated: list[str] = field(default_factory=list)
     #: Drafts the R5 tripwire rejected. Not a failure: this is the safety net doing its job.
     n_rejected: int = 0
+    #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
+    #: times in three is a field you cannot depend on, and that is a finding in its own right.
+    unstable: list[str] = field(default_factory=list)
     extracted: dict[str, str] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out = {
             "matched": self.matched,
             "missing": self.missing,
             "hallucinated": self.hallucinated,
             "n_rejected": self.n_rejected,
             "extracted": self.extracted,
         }
+        if self.unstable:
+            out["unstable"] = self.unstable
+        return out
 
 
 @dataclass
@@ -125,7 +131,7 @@ def run_case(
     n = trials if use_llm else 1
 
     grades: list[CaseGrade] = []
-    harvest: HarvestGrade | None = None
+    harvests: list[HarvestGrade] = []
     usage: dict[str, int] = {}
     calls = 0
 
@@ -145,7 +151,7 @@ def run_case(
                 hypothesis = Hypothesis(value=case.recipe.hypothesis, id="recipe", confidence=0.9)
             if use_llm:
                 try:
-                    harvest, hyp, u = _run_harvest(case, provider=provider, model=model)
+                    hg, hyp, u = _run_harvest(case, provider=provider, model=model)
                 except ExtractUnavailable as exc:
                     return CaseRun(
                         case.id,
@@ -153,6 +159,7 @@ def run_case(
                         skipped=f"LLM unavailable: {exc}",
                         seconds=time.monotonic() - started,
                     )
+                harvests.append(hg)
                 calls += len(case.metadata_docs)
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
@@ -176,6 +183,7 @@ def run_case(
                 )
             )
 
+    harvest = _merge_harvest(harvests) if harvests else None
     worst = _worst(grades)
     if harvest is not None:
         worst = _fold_harvest(worst, harvest)
@@ -298,6 +306,32 @@ def _run_harvest(
     if chem is not None:
         hypothesis = Hypothesis(value=str(chem.value), id="harvest", confidence=0.9)
     return grade, hypothesis, usage
+
+
+def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
+    """Across trials, keep the WORST — never the last.
+
+    Extraction is nondeterministic, so a field the model invented in 1 of 3 trials is a field it *can*
+    invent, and a field it extracted in only 2 of 3 is not one you can rely on. Reporting the final
+    trial (the bug this replaces) let a real hallucination vanish on a re-run — exactly the illusion
+    trials exist to dispel.
+
+    So: ``hallucinated`` and ``missing`` union (any trial failing is a failure), ``matched``
+    intersects (a field counts only if EVERY trial got it), and fields that come and go are surfaced
+    as ``unstable`` rather than silently averaged into a rate.
+    """
+    if len(grades) == 1:
+        return grades[0]
+    merged = HarvestGrade()
+    merged.hallucinated = sorted({f for g in grades for f in g.hallucinated})
+    merged.missing = sorted({f for g in grades for f in g.missing})
+    merged.matched = sorted(set.intersection(*(set(g.matched) for g in grades)))
+    merged.n_rejected = sum(g.n_rejected for g in grades)
+    seen = {f for g in grades for f in g.matched}
+    merged.unstable = sorted(seen - set(merged.matched))
+    for g in grades:
+        merged.extracted.update(g.extracted)
+    return merged
 
 
 def _fold_harvest(grade: CaseGrade, harvest: HarvestGrade) -> CaseGrade:

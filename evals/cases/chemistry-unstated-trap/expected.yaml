@@ -11,12 +11,17 @@ description: >-
   is a failure, and it exists because a guess that happens to land is indistinguishable from
   knowledge until the day it doesn't.
 
-  Note the assertion this makes about the R5 tripwire: quote-and-entail should catch this on its own,
-  because no verbatim span of this document entails a v3 chemistry. If a claim ever survives here,
-  entailment is too loose — and that is a finding about the verifier, not just the prompt.
+  The tripwire should catch a chemistry claim unaided, since no verbatim span entails a v3 chemistry
+  — confirmed live (DeepSeek V4-Pro, 3/3 trials: no chemistry claim; and a planted
+  "droplet-based single-cell" -> v3 draft is rejected by entailment).
 
-  Resolve still decides v3: the bytes are unambiguous and need no help from prose. Correct extraction
-  is silence on chemistry, and the organism (stated outright) is still required.
+  NB experiment.samples.tissue was originally listed as forbidden here, and the first live run duly
+  graded a false_accept for "neurons". The model was right and the case was wrong: the title says
+  "C. elegans neurons" and the body says "Neuronal nuclei were isolated". It is simply removed from
+  forbidden_fields rather than promoted to a required assertion — the document's wording for it is
+  genuinely open ("neurons" / "neuronal nuclei"), so pinning one exact string would measure string
+  matching rather than extraction quality. Recorded because the failure mode is instructive: a wrong
+  expectation makes a harness cry wolf, and one that cries wolf gets ignored exactly when it is right.
 fields:
   library.chemistry: 10x-3p-gex-v3
 assertions:
@@ -25,5 +30,4 @@ assertions:
 forbidden_fields:
   - library.chemistry
   - experiment.accessions
-  - experiment.samples.tissue
   - experiment.samples.condition

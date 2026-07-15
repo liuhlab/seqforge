@@ -660,6 +660,62 @@ def test_harvest_hypothesis_steers_resolve() -> None:
     assert sorted(run.harvest.matched) == ["experiment.organism", "library.chemistry"]
 
 
+class _FlakyProvider:
+    """Returns a different payload per call — a stand-in for real extraction nondeterminism."""
+
+    name = "flaky"
+
+    def __init__(self, payloads: list[list[dict]]) -> None:
+        self._payloads = payloads
+        self.calls = 0
+
+    def default_model(self) -> str:
+        return "flaky-1"
+
+    def complete_json(self, **kwargs):
+        import json as _json
+
+        from seqforge.harvest import LLMResponse
+
+        payload = self._payloads[min(self.calls, len(self._payloads) - 1)]
+        self.calls += 1
+        return LLMResponse(text=_json.dumps({"drafts": payload}), usage={})
+
+
+def test_a_hallucination_in_any_trial_survives_to_the_grade() -> None:
+    """Regression: trials kept only the LAST harvest, so a real failure vanished on a re-run.
+
+    The model hallucinates on trial 1 and behaves on trials 2-3. Reporting the final trial would
+    grade this clean — which is exactly the illusion trials exist to dispel.
+    """
+    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    bad = good + [
+        _draft("experiment.samples.condition", "heat shock", "single-cell RNA-seq"),
+    ]
+    provider = _FlakyProvider([bad, good, good])
+    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
+    assert provider.calls == 3
+    assert run.harvest is not None
+    # If the claim survived verify it must reach the grade; if verify killed it, that is also fine —
+    # what must NOT happen is a trial-1 failure being forgotten because trial 3 was clean.
+    if "experiment.samples.condition" in run.harvest.extracted:
+        assert run.harvest.hallucinated == ["experiment.samples.condition"]
+        assert run.grade.grade is Grade.FALSE_ACCEPT
+    else:
+        assert run.harvest.n_rejected >= 1
+
+
+def test_a_field_found_in_only_some_trials_is_reported_unstable() -> None:
+    """Extraction that comes and goes is a finding, not a rounding error."""
+    with_org = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    provider = _FlakyProvider([with_org, [], with_org])
+    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
+    assert run.harvest is not None
+    assert run.harvest.matched == [], "a field missed in any trial must not count as matched"
+    assert run.harvest.unstable == ["experiment.organism"]
+    assert run.harvest.missing == ["experiment.organism"]
+
+
 def test_trials_run_the_llm_case_repeatedly_and_report_stability() -> None:
     case = _trap_case()
     provider = _StubProvider(
