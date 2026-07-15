@@ -2,9 +2,9 @@
 
 ## Install
 
-Everything goes through [pixi](https://pixi.sh). Do not use `pip`, `conda`, or `venv` directly — the
-environments are locked, and a hand-installed dependency is a difference between your machine and
-everyone else's that nobody will find later.
+Everything goes through [pixi](https://pixi.sh) — not `pip`, `conda`, or `venv`. The environments are
+locked, and a hand-installed dependency is a difference between your machine and everyone else's that
+nobody will find later.
 
 ```bash
 git clone https://github.com/liuhlab/seqforge
@@ -15,9 +15,8 @@ pixi run -- seqforge version
 
 ## The shape of a session
 
-Every command prints JSON to standard output and says what it did through its **exit code**. There is
-no `--json` flag — JSON is simply what comes out, because the command line *is* the interface and an
-agent is just another caller.
+Every command prints JSON and reports what happened through its **exit code**. There is no `--json`
+flag — JSON is simply what comes out.
 
 ```bash
 # 1. what do the bytes say?
@@ -38,7 +37,7 @@ pixi run -- seqforge processing new --dataset manifest.yaml \
 pixi run -- seqforge compose manifest.yaml --processing processing.yaml
 ```
 
-Step 3 and step 4 are separate on purpose. See [The two artifacts](concepts/artifacts.md).
+Steps 3 and 4 are separate on purpose — see [The two artifacts](concepts/artifacts.md).
 
 ## Exit codes are the API
 
@@ -50,9 +49,9 @@ Step 3 and step 4 are separate on purpose. See [The two artifacts](concepts/arti
 | `3` | **blocked** | the data cannot be processed as-is. The blocker names a remedy |
 | `4` | **needs a human** | a real ambiguity. Answer it and re-run |
 
-`3` and `4` are the interesting ones, and they are the point of the tool rather than an inconvenience.
-See [When it refuses](concepts/refusal.md).
+`3` and `4` are the point of the tool, not an inconvenience. See
+[When it refuses](concepts/refusal.md).
 
 ---
 
-**Next:** teach it a technology it does not know yet — [Adding a technology](kb-authoring.md).
+**Next:** [Adding a technology](kb-authoring.md).

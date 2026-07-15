@@ -1,22 +1,17 @@
 # How a dataset is identified
 
-Given a folder of FASTQ files and maybe a sentence of prose, seqforge has to work out what the data
-actually is. This page explains how, and why it is done in that order.
-
 ## Filenames are not evidence
 
-The single most important thing to understand: **`_1` and `_2` mean nothing.**
-
-Those numbers come from whatever wrote the files — an archive's unpacking tool numbering them in the
-order it happened to find them, a sequencer's demultiplexer, a script someone wrote once and forgot.
-A file called `SRR123_1.fastq.gz` is not "read 1" in any biological sense. It might hold the cell
-barcodes. It might hold the actual RNA sequence. It might be missing entirely.
+**`_1` and `_2` mean nothing.** Those numbers come from whatever wrote the files — an archive's
+unpacking tool numbering them in the order it found them, a sequencer's demultiplexer, a script
+someone wrote once and forgot. `SRR123_1.fastq.gz` is not "read 1" in any biological sense. It might
+hold the barcodes, it might hold the RNA, it might be missing.
 
 So seqforge never trusts the name. It opens the files and looks.
 
 ## Cheap things first
 
-Answers are ranked by what they cost. seqforge starts at the bottom and only climbs when it has to:
+Answers are ranked by cost. seqforge starts at the bottom and climbs only when it has to:
 
 ```mermaid
 flowchart TD
@@ -37,57 +32,46 @@ flowchart TD
     class DONE output
 ```
 
-Rungs 0 to 3 cost well under a second, and they settle almost everything. The numbering leaves room
-between the barcode check and asking a human for intermediate rungs — a broader barcode search, a
-genome sketch, a trial alignment — so an ambiguity that survives rung 3 goes straight to a human.
+Rungs 0 to 3 cost well under a second and settle almost everything. The numbering leaves room for
+intermediate rungs — a broader barcode search, a genome sketch, a trial alignment — so an ambiguity
+surviving rung 3 goes straight to a human.
 
 ## The prose proposes; the bytes decide
 
 Notice where the prose sits: at the **bottom**, as rung 0.
 
-That is not disrespect. Metadata is genuinely useful — it turns an open-ended search ("what could
-this be?") into a cheap yes/no check ("the page says 10x v3; do these barcodes match 10x v3's
-list?"). One targeted check instead of trying everything.
+That is not disrespect. Metadata turns an open-ended search ("what could this be?") into a cheap
+yes/no check ("the page says 10x v3; do these barcodes match v3's list?"). Trust it enough to skip
+the search, never enough to skip the check.
 
-But it is only ever a *hypothesis*. Trust it enough to skip the search; never enough to skip the
-check. If the page says one thing and the bytes say another, that disagreement is **surfaced as a
-conflict**, and the bytes win on the factual question. Nobody is asked to take the page's word.
+If the page and the bytes disagree, that is **surfaced as a conflict**, and the bytes win on the
+factual question.
 
 ## What the bytes give away for free
 
-While streaming a bounded sample of reads, some things fall out at no cost:
+While streaming a bounded sample:
 
-- **Which stretches are fixed and which are random.** If almost every read has the same base at
-  position 30, that position is a fixed piece of adapter, not data. Long runs of `T` are a poly-T
-  tail. Uniform random stretches are where the real information is.
-- **Which stretches repeat.** Cell barcodes recur, because you sequence the same cell many times. So
-  if a stretch has few distinct values across many reads, it is a barcode. Unique molecular
-  identifiers and actual RNA are nearly all distinct. This tells barcodes from identifiers **with no
-  barcode list at all**.
+- **Which stretches are fixed and which are random.** The same base at position 30 in almost every
+  read is adapter, not data. Long runs of `T` are a poly-T tail.
+- **Which stretches repeat.** Barcodes recur, because you sequence the same cell many times; UMIs and
+  RNA are nearly all distinct. This tells barcodes from UMIs **with no barcode list at all**.
 - **Whether someone already trimmed the file.** A sequencer produces reads of exactly one length. If
-  a technical read has several lengths, someone ran a trimming tool before uploading — and trimming
-  tools do not know a barcode from an adapter. Offsets may have shifted. That is a refusal, not a
-  warning.
+  a technical read has several, a trimming tool ran before upload — and trimming tools do not know a
+  barcode from an adapter. Offsets may have shifted. That is a refusal, not a warning.
 
 ## Roles are solved, not guessed
 
-Once seqforge knows what a technology *expects* — say, "one 28-base read holding a barcode, and one
-variable-length read holding RNA" — it tries every way of matching the files to those slots and keeps
-the arrangement best supported by the evidence.
-
-The technology's score **is** the score of its best arrangement. So a swapped `_1`/`_2` produces an
-identical answer, because the filenames were never consulted.
+Once seqforge knows what a technology *expects* — "one 28-base read holding a barcode, one
+variable-length read holding RNA" — it tries every way of matching files to slots and keeps the
+arrangement best supported by the evidence. The technology's score **is** its best arrangement's
+score, so a swapped `_1`/`_2` gives an identical answer.
 
 ## Reading a whole file is a bug
 
-Every look at a FASTQ is bounded: at most 200,000 reads and at most 256 MB of decompressed data,
-whichever comes first.
+Every look at a FASTQ is bounded: at most 200,000 reads and 256 MB decompressed, whichever comes
+first. A code path that *can* stream a whole multi-gigabyte file is a defect even if today's file is
+small — because eventually it won't be, and by then the path is load-bearing. A test hands the probe
+a 128 MB file and asserts it reads about a tenth and stops.
 
-This is a hard rule, not a performance tip. A code path that *can* stream a whole multi-gigabyte file
-is considered a defect even if today's file happens to be small — because eventually it won't be, and
-by then the code path is load-bearing. There is a test that hands the probe a file which is 128 MB
-when decompressed and asserts it reads about a tenth of it and stops.
-
-Note what the budget is measured in: **reads and bytes, never seconds.** Wall-clock time depends on
-the disk, the compression level, and whether the machine is busy. It is a consequence, not a
-constraint.
+Note the units: **reads and bytes, never seconds.** Wall-clock depends on the disk, the compression
+level, and whether the machine is busy. It is a consequence, not a constraint.
