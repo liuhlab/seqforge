@@ -15,7 +15,7 @@ import pytest
 import yaml
 
 from seqforge import __version__, kb
-from seqforge.compose import ComposeError, compose, gates, params_gate, plan
+from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import (
@@ -37,7 +37,7 @@ from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.confuse import canonical_backend
-from seqforge.workflows import WORKFLOW_VERSION, get_module, list_modules
+from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
@@ -333,8 +333,15 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"
-    # the infra-dependent gates must report skip, never a silent pass
-    assert result.gate["wiring"] in {"pass", "skip"}
+    # The wiring gate must PASS, not skip. This assertion used to read `in {"pass", "skip"}` and so
+    # forbade only "fail" -- the one value that could not occur, because `snakemake` was in no
+    # dependency table, `have("snakemake")` was False, and the gate returned "skip" every time. A
+    # skip is green, so the gate was decorative for the life of the repo. `snakemake-minimal` is now
+    # declared in every environment that runs this suite; if it ever goes missing, that is a broken
+    # environment and this test says so instead of quietly covering nothing.
+    assert result.gate["wiring"] == "pass"
+    # e2e stays skip: it is the real count-matrix run and belongs to `seqforge kb e2e`, never to
+    # compose. Its toolchain (STAR, liulab-genome, a cluster) is genuinely absent here.
     assert result.gate["e2e"] == "skip"
 
     # read the path compose REPORTS, not one reconstructed here: the layout is keyed by run_id and a
@@ -353,6 +360,81 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "read_id", "path"]
     assert len(units) == 3  # header + 2 reads
+
+
+def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> None:
+    """The Snakefile is the DELIVERABLE, so nothing optional may be its reason for existing.
+
+    It used to be written inside `wiring_gate`, after an early `return "skip"` when `snakemake` was
+    absent from PATH — and `snakemake` was in no dependency table, so that branch always taken. The
+    product of the compiler was a side effect of a validation step that could not fire, and `compose`
+    exited 0 having emitted nothing runnable.
+
+    `run_wiring_gate=False` is the sharpest way to state the invariant: no gate ran, and the
+    deliverable is still on disk and still complete.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(
+        manifest, _processing(manifest), registry=reg, workspace=tmp_path, run_wiring_gate=False
+    )
+    assert result.gate["wiring"] == "skip"
+    snakefile = tmp_path / result.snakefile_path
+    assert snakefile.is_file(), "compose ran a gate-free path and emitted no Snakefile"
+    assert get_module("map/starsolo").snakefile.name in snakefile.read_text()
+
+
+def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(tmp_path: Path) -> None:
+    """The gate stands in zero-byte FASTQs; they must never land where the pipeline will read them.
+
+    They were touched straight into the run directory (`pipeline_dir / row["path"]`) and never
+    removed. Invisible only because the gate never ran: `snakemake` was undeclared. The moment it
+    ran, the run directory would hold zero-byte files named exactly like the FASTQs, STAR would read
+    them, and the pipeline would emit an empty matrix and **exit 0**.
+
+    That is the failure this whole project exists to prevent — silent, plausible, wrong — and it
+    would have been introduced by the very commit that made the gate work.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.gate["wiring"] == "pass", (
+        "the gate must have actually run for this to mean anything"
+    )
+    run_dir = (tmp_path / result.snakefile_path).parent
+    strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
+    assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
+
+
+def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(tmp_path: Path) -> None:
+    """A dry run that plans zero jobs exits 0. The gate must not read that as success.
+
+    This is what the wrapper did for the life of the repo: `configfile:` + `include:` parses clean,
+    lists every rule, and plans **nothing**, because an `include:`d rule is not a default target.
+    Exit code 0. A gate that only checks the return code cannot tell "correct" from "did nothing",
+    so it has to look at the output.
+
+    Rather than trust that argument, this builds the broken wrapper on purpose and asserts the gate
+    catches it.
+    """
+    from seqforge.compose.gates import wiring_gate
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = plan(manifest, _processing(manifest), registry=reg)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "config.yaml").write_text(yaml.safe_dump(p.config, sort_keys=True))
+    (run_dir / "units.tsv").write_text(core._units_tsv(p.units))
+    for rel, lines in p.onlist_files.items():
+        t = run_dir / rel
+        t.parent.mkdir(parents=True, exist_ok=True)
+        t.write_text("\n".join(lines) + "\n")
+    module = get_module(p.module.name)
+    # the OLD wrapper, verbatim in shape: include: instead of module/use rule
+    (run_dir / "Snakefile").write_text(
+        f'configfile: "config.yaml"\ninclude: "{module.snakefile.resolve()}"\n'
+    )
+    assert wiring_gate(run_dir, p) == "fail", (
+        "an include:-only wrapper plans zero jobs and exits 0; the gate must not call that a pass"
+    )
 
 
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
@@ -643,18 +725,40 @@ _RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
 def test_the_generated_wrapper_contains_no_rule_source() -> None:
     """R1, at the ONE place seqforge writes Snakemake syntax at all.
 
-    `gates.py` generates a Snakefile so the dry run has an entry point, and its own first line says
-    "rule source is never generated" — a claim defended by a comment. Everything the pipeline
-    actually executes must come from the hand-written `.smk` modules via `include:`; the moment the
-    composer emits a `rule`, R1 is gone and nobody finds out from a comment.
+    `compose` generates a Snakefile — the deliverable — and its own header says "rule source is never
+    generated". Everything the pipeline actually executes must come from the hand-written `.smk`
+    modules; the moment the composer emits a `rule`, R1 is gone and nobody finds out from a comment.
 
     Asserted against the template rather than a rendered instance because the template is the thing
     a future edit would change.
     """
-    wrapper = gates._WRAPPER
+    wrapper = core._WRAPPER
     assert not _RULE_DEF.search(wrapper), f"the composer emits rule source (R1):\n{wrapper}"
-    assert "include:" in wrapper  # it composes by inclusion...
-    assert "configfile:" in wrapper  # ...and parameterises by data
+    assert "configfile:" in wrapper  # it parameterises by data...
+    assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
+
+
+def test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets() -> None:
+    """The deliverable must DO something when a user runs bare `snakemake`. It did not.
+
+    Snakemake's default target is the first rule defined in the *main* Snakefile, and an `include:`d
+    rule is not one. The wrapper was `configfile:` + `include:`, which parses clean, lists all three
+    rules, and then plans **zero jobs**: "Nothing to be done", exit 0. Measured 2026-07-15 — the same
+    module content inlined builds 3 jobs, via `include:` builds 0.
+
+    Nothing caught it because the only thing that would run the wrapper was a gate that could not run
+    (`snakemake` was in no dependency table), and the gate would not have caught it either: it
+    checked the exit code, and planning nothing exits 0.
+
+    `use rule * from m as *` re-declares the rules in this workflow, so `all` becomes a real default
+    target. This test pins the property, not the spelling: a future wrapper may compose however it
+    likes as long as bare `snakemake` still reaches the rules.
+    """
+    wrapper = core._WRAPPER
+    assert "include:" not in wrapper, (
+        "an `include:`d rule is not a default target -- the wrapper would plan zero jobs and exit 0"
+    )
+    assert "use rule * from" in wrapper
 
 
 def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
@@ -683,81 +787,34 @@ def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> Non
     assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
 
 
-#: ``units_tsv`` is injected by the generated run wrapper (``compose/gates.py``), never by the
-#: composer's config. Named here so that a module reading some *other* undeclared key stays a
-#: failure rather than being waved through by a broad exception.
-_WRAPPER_SUPPLIED_KEYS = frozenset({"units_tsv"})
-
-
-def _keys_read_by(snakefile: Path) -> set[str]:
-    """Derive the dotted config keys a module actually reads, from its source.
-
-    Two forms, because the module uses both: `config["a"]["b"]` directly, and the indirection
-    `params: solo=config["solo"]` followed by `{params.solo[soloCBlen]}` in the shell block.
-
-    Comments are stripped first, and that is not fussiness — starsolo.smk's own header prose says
-    "every chemistry-defining knob arrives via `config["solo"]`", which a naive scan reads as a bare
-    read of the whole block and reports as undeclared. Same lesson as `test_skills.py`'s
-    `_code_spans`: narrow the haystack, because a check that cries wolf gets deleted.
-    """
-    code = "\n".join(line.split("#")[0] for line in snakefile.read_text().splitlines())
-    keys: set[str] = set()
-
-    # A bare `<name> = config["<section>"]` binds the whole block to a name. Track those, including
-    # one rebinding hop (`SOLO = config["solo"]` at module level, then `solo=SOLO` in a params
-    # block), because that chain is exactly how the shell reaches `{params.solo[soloType]}`.
-    # The lookahead matters: `ASSEMBLY = config["genome"]["assembly"]` is a nested read, not a
-    # binding, and must fall through to the direct scan below.
-    bound = dict(re.findall(r'(\w+)\s*=\s*config\["(\w+)"\](?!\[)', code))
-    for name, src in re.findall(r"^\s*(\w+)\s*=\s*(\w+)\s*,?\s*$", code, re.M):
-        if src in bound:
-            bound.setdefault(name, bound[src])
-
-    for name, section in bound.items():
-        # `{params.<name>[<key>]}` in a shell block, or `<NAME>["<key>"]` in Python.
-        subscripts = set(re.findall(rf"\{{params\.{name}\[(\w+)\]\}}", code)) | set(
-            re.findall(rf"""\b{name}\[["'](\w+)["']\]""", code)
-        )
-        # Subscripted -> it is a block alias and each subscript is the real read. Never subscripted
-        # -> it was a scalar read all along (`OUTDIR = config["outdir"]`), so the section IS the key.
-        keys |= {f"{section}.{k}" for k in subscripts} or {section}
-
-    # Direct reads: config["a"]["b"] -> a.b | config["a"] -> a. Binding sites are already accounted
-    # for above, so drop them here rather than double-count the block as a bare key.
-    direct = re.sub(r'\w+\s*=\s*config\["\w+"\](?!\[)', "", code)
-    for section, sub in re.findall(r'config\["(\w+)"\](?:\["(\w+)"\])?', direct):
-        keys.add(f"{section}.{sub}" if sub else section)
-
-    return keys - _WRAPPER_SUPPLIED_KEYS
-
-
 @pytest.mark.parametrize("module_name", list_modules())
-def test_required_config_covers_every_key_the_module_reads(module_name: str) -> None:
-    """The contract is DERIVED from the module source, not hand-maintained beside it.
+def test_required_config_is_exactly_what_the_module_reads(module_name: str) -> None:
+    """The contract is COMPUTED from the module source, so neither direction can drift.
 
-    `starsolo.smk` has always dereferenced `{params.solo[soloCBstart]}`, `[soloCBlen]`,
-    `[soloUMIstart]` and `[soloUMIlen]`; `required_config` declared none of the four. Nothing
-    noticed, because the only thing checking the contract compared the config against that same
-    wrong list. A hand-maintained list of what the code does is a comment with a tuple's syntax.
+    It used to be a hand-written tuple checked one way against a scanner that lived here in the test
+    file. Both halves were wrong at once: it *under*-declared the four soloCB/UMI keys `starsolo.smk`
+    has always dereferenced (a `KeyError` on a compute node, long after compose exited 0), and it
+    *over*-declared `primary_feature` and `env`, which no rule reads and nothing checked.
 
-    Under-declaration is the dangerous direction and the only one asserted here: the module reads a
-    key the composer was never told to emit. Over-declaration (a key declared but unread) is merely
-    untidy — compose emits it and nothing breaks.
+    There is now one list and the module source is it, so this test asserts an identity rather than
+    an inclusion. That reads as tautological and is not: it pins that `required_config` never goes
+    back to being typed by hand, and `test_the_required_config_scanner_can_catch_an_undeclared_key`
+    is what proves the derivation itself is not vacuous.
     """
     module = get_module(module_name)
-    undeclared = _keys_read_by(module.snakefile) - set(module.required_config)
-    assert not undeclared, (
-        f"{module_name}: reads {sorted(undeclared)} but does not declare them in required_config. "
-        f"Nothing will emit them, and STAR dies at rule-expansion time on a compute node."
-    )
+    assert set(module.required_config) == set(keys_read_by(module.snakefile))
+    assert module.required_config == tuple(sorted(module.required_config))
 
 
-def test_the_required_config_scanner_can_actually_catch_an_undeclared_key(tmp_path: Path) -> None:
+def test_the_required_config_scanner_can_catch_an_undeclared_key(tmp_path: Path) -> None:
     """Prove the scanner fires — a derived check that has never failed proves nothing.
 
-    Both forms must be caught: the direct `config[...]` read and the `params` alias indirection
-    that hid the real bug for as long as it existed. And prose in a comment must NOT be caught —
-    the first draft of this scanner reported starsolo's own header as two undeclared keys.
+    This is the load-bearing test of the pair: `required_config` is now *defined* as this scanner's
+    output, so if the scanner silently missed a key, the identity test above would still pass while
+    the composer dropped it. Both forms must be caught: the direct `config[...]` read and the
+    `params` alias indirection that hid the real bug for as long as it existed. And prose in a
+    comment must NOT be caught — the first draft of this scanner reported starsolo's own header as
+    two undeclared keys.
     """
     smk = tmp_path / "fake.smk"
     smk.write_text(
@@ -769,12 +826,12 @@ def test_the_required_config_scanner_can_actually_catch_an_undeclared_key(tmp_pa
         '    params:\n        solo=config["solo"],\n'
         '    shell:\n        r"STAR --soloCBlen {params.solo[soloCBlen]} --x {params.solo[oops]}"\n'
     )
-    found = _keys_read_by(smk)
+    found = keys_read_by(smk)
     assert "solo.soloCBlen" in found  # the alias indirection resolves
     assert "solo.oops" in found  # ... and an undeclared one is visible
     assert "outdir" in found  # the direct form resolves
     assert "genome.assembly" in found  # ... including the nested form
-    assert "units_tsv" not in found  # the wrapper supplies it; not the composer's job
+    assert "units_tsv" in found  # the COMPOSER emits it now; no wrapper injects it
     assert "solo" not in found  # the alias BINDING is not a read of the whole block
     assert "read_files_in" not in found  # and neither is a mention in a comment
 

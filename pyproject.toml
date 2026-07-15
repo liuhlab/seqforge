@@ -29,6 +29,11 @@ dependencies = [
     "pooch>=1.8",
     "requests>=2.31",
     "tqdm>=4",
+    # PDF text extraction for `harvest`. A hard dependency, not an extra: `read_document` advertises
+    # .pdf, and a paper is the normal shape of the prose seqforge is handed. It was lazily imported
+    # with a "pip install pypdf" remedy, which meant no supported install of seqforge could read the
+    # one document type the pilot dataset ships.
+    "pypdf>=4",
     # `harvest extract` is the ONE stage that touches an LLM; every other verb runs without it
     # (`run --no-llm` drives the whole compiler minus extraction). Both clients are optional at
     # runtime (lazy-imported) — the provider layer keeps seqforge un-locked-in to either vendor.
@@ -68,8 +73,23 @@ pooch = ">=1.8"
 typer = ">=0.12"
 requests = ">=2.31"
 tqdm = ">=4"
+pypdf = ">=4"          # harvest reads the paper; see the comment in [project].dependencies
 anthropic = ">=0.40"   # harvest extract only — one of two swappable LLM clients
 openai = ">=1.40"      # OpenAI-compatible endpoints (DeepSeek preset, vLLM, Ollama, ...)
+
+# `snakemake-minimal`: the workflow toolchain, present so compose's wiring gate ACTUALLY RUNS.
+#
+# It is `minimal` because we need the DAG builder and nothing else — no executor plugins, no cluster
+# submission (that is the user's job, deliberately). And it is in a feature of its own so the reason
+# it exists stays legible: this is not a test dependency, it is what makes a gate a gate.
+#
+# **It must be in every environment that runs the suite, and that is the whole point.** `snakemake`
+# was in no dependency table at all, so `have("snakemake")` was False everywhere, so `wiring_gate`
+# returned "skip", so the test asserting `gate["wiring"] in {"pass","skip"}` forbade only the value
+# that could not occur. A skip is green. Everything the gate exists to catch -- a misspelled flag, a
+# broken wildcard, a rule wiring mistake -- was uncaught for the life of the repo.
+[tool.pixi.feature.wf.dependencies]
+snakemake-minimal = ">=8"
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -94,9 +114,9 @@ types-requests = "*"
 mkdocs-material = "*"
 
 [tool.pixi.environments]
-default    = { features = ["py313", "dev", "test", "docs"], solve-group = "default" }
-test-py312 = { features = ["py312", "test"], solve-group = "py312" }
-test-py313 = { features = ["py313", "test"], solve-group = "default" }
+default    = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
+test-py312 = { features = ["py312", "test", "wf"], solve-group = "py312" }
+test-py313 = { features = ["py313", "test", "wf"], solve-group = "default" }
 docs       = { features = ["py313", "docs"], solve-group = "default" }
 
 [tool.pixi.tasks]

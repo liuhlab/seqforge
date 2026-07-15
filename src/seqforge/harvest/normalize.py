@@ -94,15 +94,21 @@ def normalize_text(raw: str) -> str:
 
 
 def read_document(path: Path) -> str:
-    """Read a source document to raw text. PDF support is optional and fails loudly, never silently."""
+    """Read a source document to raw text.
+
+    PDF is one *extractor* behind the canonical-text contract, not a special kind of input: anything
+    else falls through to plain text, so a hand-written `.md` or a `.txt` works with no extra code.
+    The contract is the load-bearing part — `normalize_text` produces the one canonical string that
+    R5's span verification greps against, whatever the source format was.
+
+    `pypdf` is imported lazily because a PDF is the uncommon case, but it is a **declared dependency**
+    now, so this import does not fail. It used to be undeclared, with a remedy telling the user to
+    install it by hand — which meant no supported install of seqforge could read a paper, the one
+    document type the pilot dataset actually ships.
+    """
     if path.suffix.lower() == ".pdf":
-        try:
-            from pypdf import PdfReader  # type: ignore[import-not-found]
-        except ImportError as exc:  # pragma: no cover - depends on the host
-            raise RuntimeError(
-                f"{path.name}: reading PDF needs `pypdf`, which is not installed. Add it to the "
-                "environment, or pre-extract the text and pass the .txt."
-            ) from exc
+        from pypdf import PdfReader
+
         return "\n\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
     return path.read_text(encoding="utf-8", errors="replace")
 

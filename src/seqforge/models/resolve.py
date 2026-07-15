@@ -119,6 +119,12 @@ class ComposeResult(BaseModel):
     """
 
     modules: list[ModuleSelection]
+    #: The run wrapper — **the thing a user submits**, and the reason `compose` exists. It is named
+    #: here beside the config rather than left to be discovered on disk: it was previously written as
+    #: a side effect of a gate that could not run, so `compose` reported success while emitting no
+    #: runnable artifact at all. A deliverable absent from the result object is a deliverable nobody
+    #: notices is missing.
+    snakefile_path: Uri
     config_path: Uri
     units_path: Uri
     gate: dict[str, Literal["pass", "fail", "skip"]]

@@ -1044,8 +1044,14 @@ def compose_cmd(
     outdir: str = typer.Option(
         "results", help="Pipeline output directory (written into the config)."
     ),
+    fastq_dir: Path | None = typer.Option(
+        None,
+        "--fastq-dir",
+        help="Where this machine keeps the FASTQs. Without it units.tsv carries bare basenames "
+        "and the pipeline cannot find its input.",
+    ),
 ) -> None:
-    """Compile (dataset, processing) -> config.yaml + units.tsv + a module selection.
+    """Compile (dataset, processing) -> Snakefile + config.yaml + units.tsv.
 
     ``--processing`` is optional: a processing manifest exists because someone wanted something
     non-default, and requiring one per dataset would mean 10^4 boilerplate files nobody reads. Either
@@ -1087,7 +1093,9 @@ def compose_cmd(
         raise typer.Exit(exit_code_for_report(p_report))
 
     try:
-        result = compose(manifest, processing, workspace=workspace, outdir=outdir)
+        result = compose(
+            manifest, processing, workspace=workspace, outdir=outdir, fastq_dir=fastq_dir
+        )
     except ComposeError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(3) from exc
