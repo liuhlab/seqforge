@@ -35,14 +35,21 @@ flowchart LR
     P --> R["resolve<br/><i>score &amp; decide</i>"]
     H --> R
     KB[("knowledge base<br/>one entry per<br/>technology")] --> R
-    R --> D["<b>dataset manifest</b><br/>what the data IS"]
+    R --> D["<span style='color:#fff'><b>dataset manifest</b><br/>what the data IS</span>"]
     D --> C["compose"]
-    RECIPE["<b>processing manifest</b><br/>what to DO with it"] --> C
-    C --> OUT["pipeline config<br/>+ module selection"]
+    RECIPE["<span style='color:#fff'><b>processing manifest</b><br/>what to DO with it</span>"] --> C
+    C --> OUT["<span style='color:#fff'>pipeline config<br/>+ module selection</span>"]
 
-    style D fill:#00695c,stroke:#004d40,color:#fff
-    style RECIPE fill:#00695c,stroke:#004d40,color:#fff
-    style OUT fill:#37474f,stroke:#263238,color:#fff
+    %% The white <span> on every dark-filled label is load-bearing, not decoration. Do not
+    %% replace it with `color:#fff` in the classDef below: mkdocs-material renders each diagram
+    %% into a *closed* shadow root and styles the label's inner <p> directly, so a classDef
+    %% colour lands on the wrapping element and loses to it — the text renders dark-on-dark.
+    %% An inline colour on the text itself is the only thing that wins. Same for every dark
+    %% node on this site.
+    classDef artifact fill:#00695c,stroke:#004d40
+    classDef output fill:#37474f,stroke:#263238
+    class D,RECIPE artifact
+    class OUT output
 ```
 
 A large language model appears exactly once in that picture, inside `harvest`, and it has one job:
