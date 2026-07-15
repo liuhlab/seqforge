@@ -16,9 +16,11 @@ from pathlib import Path
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.2 — starsolo's required_config gains the four soloCB/UMI keys starsolo.smk has always
+#: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.1"
+WORKFLOW_VERSION = "2026.7.2"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -31,7 +33,11 @@ class WorkflowModule:
     version: str
     env: RuntimeEnv
     snakefile: Path
-    #: dotted config keys the module reads — the composer must emit every one (checked in CI).
+    #: Dotted config keys the module reads — the composer must emit every one. Derived from the
+    #: module source and checked by ``test_required_config_covers_every_key_the_module_reads``:
+    #: this list was hand-maintained until it under-declared four keys `starsolo.smk` dereferences,
+    #: which is a `KeyError` on a compute node long after compose exited 0. ``units_tsv`` is
+    #: deliberately absent — the run wrapper injects it, the composer does not emit it.
     required_config: tuple[str, ...]
 
 
@@ -43,6 +49,16 @@ MODULES: dict[str, WorkflowModule] = {
         snakefile=_MODULE_DIR / "map" / "starsolo.smk",
         required_config=(
             "solo.soloType",
+            # CB/UMI geometry, spelled two ways because STARsolo spells it two ways: start/len for a
+            # simple chemistry, a position quadruple for a combinatorial one. Every chemistry needs
+            # exactly ONE of these groups and cannot supply the other — so this tuple is the union of
+            # what the module MAY read, and `param_owners` decides which apply to a given spec.
+            "solo.soloCBstart",
+            "solo.soloCBlen",
+            "solo.soloUMIstart",
+            "solo.soloUMIlen",
+            "solo.soloCBposition",
+            "solo.soloUMIposition",
             "solo.soloCBwhitelist",
             "solo.soloStrand",
             "solo.soloFeatures",

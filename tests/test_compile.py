@@ -8,13 +8,15 @@ chemistry-defining knob, must both FAIL — silently emitting them is how a corp
 from __future__ import annotations
 
 import gzip
+import re
 from pathlib import Path
 
 import pytest
 import yaml
 
 from seqforge import __version__, kb
-from seqforge.compose import ComposeError, compose, params_gate, plan
+from seqforge.compose import ComposeError, compose, gates, params_gate, plan
+from seqforge.compose.params import param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import (
     ExperimentInputs,
@@ -34,6 +36,7 @@ from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
+from seqforge.resolve.confuse import canonical_backend
 from seqforge.workflows import WORKFLOW_VERSION, get_module, list_modules
 
 
@@ -53,13 +56,19 @@ def _registry_for(spec: kb.Spec) -> OnlistRegistry:
 
 
 def _build(
-    tmp_path: Path, tech: str, keys: tuple[str, str]
+    tmp_path: Path, tech: str, keys: tuple[str, ...] | None = None
 ) -> tuple[DatasetManifest, OnlistRegistry]:
+    """Build a manifest from synthetic reads. ``keys`` defaults to the spec's own read ids.
+
+    Callers used to pass ``("R1", "R2")`` unconditionally, which silently pinned this helper to 10x
+    and bulk naming and made splitseq (whose reads are ``cdna``/``bc``) raise ``KeyError: 'R1'``
+    rather than compose. Deriving the default from the spec is what lets a test iterate the KB.
+    """
     spec = kb.load_spec(tech)
     reg = _registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     paths = []
-    for k in keys:
+    for k in keys or tuple(r.id for r in spec.reads):
         p = tmp_path / f"s_{k}.fastq.gz"
         _write_fastq_gz(p, reads[k])
         paths.append(p)
@@ -449,30 +458,325 @@ def test_compose_refuses_when_the_whitelist_cannot_be_materialized(tmp_path: Pat
         compose(manifest, _processing(manifest), registry=empty, workspace=tmp_path)
 
 
-def test_every_module_required_config_key_is_actually_emitted(tmp_path: Path) -> None:
+def _one_spec_per_distinct_backend() -> list[str]:
+    """One representative per processing-equivalence class — the §12 biconditional, used as leverage.
+
+    Composing "10x-3p-gex-v3.1 specifically" is not a thing the system can do: it is byte-identical
+    to v3, so the resolver picks v3 and `fill` refuses the mismatch. That is §12 working, not a bug.
+    And it costs no coverage: backend-identical specs render an identical config **by definition**,
+    which is exactly what `processing_equivalent` asserts. So collapse the class and test one.
+
+    Derived from `canonical_backend`, never hardcoded — if a new spec is genuinely divergent it gets
+    its own case automatically, which is the property the old `{module: tech}` dict destroyed.
+    """
+    seen: dict[str, str] = {}
+    for tech in kb.list_spec_ids():
+        seen.setdefault(canonical_backend(kb.load_spec(tech)), tech)
+    return sorted(seen.values())
+
+
+@pytest.mark.parametrize("tech", _one_spec_per_distinct_backend())
+def test_every_module_required_config_key_is_actually_emitted(tech: str, tmp_path: Path) -> None:
     """``WorkflowModule.required_config`` says "checked in CI". Until now, nothing checked it.
 
     The field's own comment reads "the composer must emit every one (checked in CI)" — a contract
     with no enforcement. It matters most exactly when a key MOVES between owners: whichever side
     forgets it, the module still declares it, snakemake resolves `config[...]` at rule-expansion time,
     and the failure surfaces as a KeyError on a compute node long after compose exited 0.
-    """
-    cases = {"map/starsolo": "10x-3p-gex-v3", "map/star": "bulk-rnaseq-pe"}
-    assert set(cases) == set(list_modules()), "a module was added without a required_config case"
 
-    for module_name, tech in cases.items():
-        work = tmp_path / module_name.replace("/", "_")
-        work.mkdir(parents=True)
-        manifest, reg = _build(work, tech, ("R1", "R2"))
-        config = plan(manifest, _processing(manifest), registry=reg).config
-        for dotted in get_module(module_name).required_config:
-            node: object = config
-            for part in dotted.split("."):
-                assert isinstance(node, dict) and part in node, (
-                    f"{module_name}: config is missing required key {dotted!r} "
-                    f"(stopped at {part!r})"
-                )
-                node = node[part]
+    That prediction came true, and this test was blind to it twice over. It checked ONE hardcoded
+    chemistry per module — `{"map/starsolo": "10x-3p-gex-v3"}` — which made a second starsolo
+    chemistry structurally unrepresentable, so SPLiT-seq was never composed here at all. And it
+    validated against a `required_config` that was itself missing the four keys `starsolo.smk`
+    dereferences. Both halves of the guard were wrong in the same direction.
+
+    Now every KB spec is composed against whichever module its backend selects, so a chemistry
+    cannot hide behind a dict key.
+    """
+    work = tmp_path / tech.replace(".", "_")
+    work.mkdir(parents=True)
+    manifest, reg = _build(work, tech)  # read ids come from the spec, not from 10x's naming
+    spec = kb.load_spec(tech)
+    module_name = spec.backend.module
+    processing = _processing(manifest)
+    config = plan(manifest, processing, registry=reg).config
+    block = param_block_key(spec)
+
+    # A param key applies to THIS chemistry only if some owner declares it (KB, derived, or the
+    # processing manifest). STARsolo's CB geometry is spelled start/len for a simple chemistry and
+    # as a quadruple for a combinatorial one, so `required_config` is the union of what the module
+    # may read and this is where the branch is resolved. Non-param keys are unconditional.
+    # `params_gate` separately proves the block is EXACTLY its owners' union, so nothing gets to be
+    # quietly absent by being quietly unowned.
+    owned = set(param_owners(spec, processing))
+    for dotted in get_module(module_name).required_config:
+        if dotted.startswith(f"{block}.") and dotted.split(".", 1)[1] not in owned:
+            continue
+        assert _has_dotted(config, dotted), (
+            f"{tech} -> {module_name}: config is missing required key {dotted!r}. "
+            f"The module dereferences it; compose did not emit it. This is a KeyError on a "
+            f"compute node, long after compose exited 0."
+        )
+
+
+@pytest.mark.parametrize("tech", _one_spec_per_distinct_backend())
+def test_the_params_gate_passes_for_every_chemistry(tech: str, tmp_path: Path) -> None:
+    """The gate ran on 10x and bulk and had never once seen a combinatorial chemistry.
+
+    `splitseq` appeared in no compose test at all, so the three-owner coverage check — every emitted
+    param attributable to exactly one of KB / derived / processing — was only ever exercised against
+    two owners. This is where the third one earns its keep.
+    """
+    manifest, reg = _build(tmp_path, tech)
+    processing = _processing(manifest)
+    config = plan(manifest, processing, registry=reg).config
+    status, problems = params_gate(manifest, processing, kb.load_spec(tech), config)
+    assert status == "pass", problems
+
+
+def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(tmp_path: Path) -> None:
+    """SPLiT-seq's barcodes are derived from the element model, in whitelist order.
+
+    `starsolo.smk` dereferenced `--soloCBstart` unconditionally, which `CB_UMI_Complex` does not
+    have and cannot supply: a KeyError on a compute node, long after compose exited 0. Nothing
+    caught it because no test composed splitseq.
+
+    The quadruples are COMPUTED from the element coordinates, never transcribed: a published
+    SPLiT-seq quadruple is chemistry-specific (v1 puts Round1 at 86-93, Parse/v2 at 78-85), so a
+    remembered one is a coin flip between two real chemistries. Order is load-bearing — STARsolo
+    pairs the Nth whitelist with the Nth position.
+    """
+    manifest, reg = _build(tmp_path, "splitseq")
+    solo = plan(manifest, _processing(manifest), registry=reg).config["solo"]
+    assert isinstance(solo, dict)
+
+    assert solo["soloType"] == "CB_UMI_Complex"
+    # round1, round2, round3 -> bc1 @ [86,94), bc2 @ [48,56), bc3 @ [10,18); ends are inclusive
+    assert solo["soloCBposition"] == "0_86_0_93 0_48_0_55 0_10_0_17"
+    assert solo["soloUMIposition"] == "0_0_0_9"
+    assert "soloCBstart" not in solo  # the simple-chemistry spelling must not appear
+    assert len(str(solo["soloCBwhitelist"]).split()) == 3  # one whitelist per split-pool round
+
+
+# ---------- R12: consumer, not parallel universe ----------
+#: Names owned upstream by `liulab-genome`. seqforge may CALL them; defining one here means we have
+#: started reimplementing the package whose whole job this is.
+_UPSTREAM_GENOME_NAMES = frozenset({"Genome", "build_star_index", "register_gtf"})
+
+#: Filenames that would mean seqforge had begun defining aligner environments — `liulab-runtime`'s
+#: job. seqforge names an env (`align-rna`); it never says what is inside one.
+_ENV_DEFINITION_FILES = ("environment.yml", "environment.yaml", "conda.yml", "Dockerfile")
+
+
+def _src_root() -> Path:
+    import seqforge
+
+    return Path(seqforge.__file__).parent
+
+
+def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
+    """R12, as an AST check rather than a code-review habit.
+
+    `Genome(assembly).build_star_index(gtf=name)` is a *consumer call* and is exactly right. A
+    `def build_star_index` or `class Genome` in this tree is the opposite: it means the resolution
+    of assemblies, annotations and indexes — liulab-genome's entire remit — is being duplicated
+    here, where it will drift and where R9's "no absolute path in a manifest" stops being anybody's
+    invariant.
+    """
+    import ast
+
+    offenders: list[str] = []
+    for py in sorted(_src_root().rglob("*.py")):
+        tree = ast.parse(py.read_text())
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+                and node.name in _UPSTREAM_GENOME_NAMES
+            ):
+                offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")
+    assert not offenders, "R12: seqforge is redefining liulab-genome's job:\n" + "\n".join(
+        offenders
+    )
+
+
+def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_path: Path) -> None:
+    """Prove the guard fires — and that it tolerates the consumer call it must allow."""
+    import ast
+
+    def defines_upstream(source: str) -> bool:
+        return any(
+            isinstance(n, ast.ClassDef | ast.FunctionDef) and n.name in _UPSTREAM_GENOME_NAMES
+            for n in ast.walk(ast.parse(source))
+        )
+
+    assert defines_upstream("class Genome:\n    pass\n")
+    assert defines_upstream("def build_star_index(gtf):\n    return 1\n")
+    # the real, correct usage must NOT trip it
+    assert not defines_upstream(
+        "from genome import Genome\nindex = Genome(assembly).build_star_index(gtf=annotation)\n"
+    )
+
+
+def test_seqforge_defines_no_aligner_environments() -> None:
+    """R12's other half: an env is NAMED here and DEFINED in liulab-runtime.
+
+    `RuntimeEnv` is a closed literal of liulab-runtime env names — there is deliberately no profile
+    indirection, the name *is* the identifier. A conda YAML or Dockerfile appearing in this tree
+    would mean we had started duplicating liulab-runtime, scattering env definitions across two
+    repos that then disagree about which STAR ran.
+    """
+    from typing import get_args
+
+    from seqforge.models.processing import RuntimeEnv
+
+    assert set(get_args(RuntimeEnv)) == {"align-rna", "align-dna", "ml", "ml-gpu"}
+    found = [str(p) for name in _ENV_DEFINITION_FILES for p in _src_root().rglob(name)]
+    assert not found, f"R12: seqforge is defining an aligner environment: {found}"
+
+
+# ---------- R1: emit data, never code ----------
+#: A Snakemake rule definition. `rule x:` / `checkpoint x:` are the only ways to introduce rule
+#: source, so this is the whole vocabulary R1 forbids the composer from emitting.
+_RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
+
+
+def test_the_generated_wrapper_contains_no_rule_source() -> None:
+    """R1, at the ONE place seqforge writes Snakemake syntax at all.
+
+    `gates.py` generates a Snakefile so the dry run has an entry point, and its own first line says
+    "rule source is never generated" — a claim defended by a comment. Everything the pipeline
+    actually executes must come from the hand-written `.smk` modules via `include:`; the moment the
+    composer emits a `rule`, R1 is gone and nobody finds out from a comment.
+
+    Asserted against the template rather than a rendered instance because the template is the thing
+    a future edit would change.
+    """
+    wrapper = gates._WRAPPER
+    assert not _RULE_DEF.search(wrapper), f"the composer emits rule source (R1):\n{wrapper}"
+    assert "include:" in wrapper  # it composes by inclusion...
+    assert "configfile:" in wrapper  # ...and parameterises by data
+
+
+def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
+    """Prove the guard fires, and that it does not cry wolf on the words it must tolerate."""
+    assert _RULE_DEF.search("rule starsolo_count:\n    shell: 'STAR'\n")
+    assert _RULE_DEF.search("checkpoint split:\n")
+    assert _RULE_DEF.search('include: "x.smk"\nrule all:\n    input: []\n')
+    # ...but the prose and directives a legitimate wrapper contains are not rule source
+    assert not _RULE_DEF.search("# includes the module whose rules we never generate\n")
+    assert not _RULE_DEF.search('include: "map/starsolo.smk"\nconfigfile: "config.yaml"\n')
+    assert not _RULE_DEF.search('config["ruleset"] = "x"\n')
+
+
+@pytest.mark.parametrize("module_name", list_modules())
+def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> None:
+    """The other half of R1: the rules that DO exist are checked-in source, not build artifacts.
+
+    A module whose rules were generated would defeat the wrapper check by moving the generation one
+    step earlier, so the modules must be real files under version control, carrying the header that
+    says what they are.
+    """
+    snakefile = get_module(module_name).snakefile
+    assert snakefile.is_file(), f"{module_name}: {snakefile} is not on disk"
+    text = snakefile.read_text()
+    assert _RULE_DEF.search(text), f"{module_name} defines no rules — is it really a module?"
+    assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
+
+
+#: ``units_tsv`` is injected by the generated run wrapper (``compose/gates.py``), never by the
+#: composer's config. Named here so that a module reading some *other* undeclared key stays a
+#: failure rather than being waved through by a broad exception.
+_WRAPPER_SUPPLIED_KEYS = frozenset({"units_tsv"})
+
+
+def _keys_read_by(snakefile: Path) -> set[str]:
+    """Derive the dotted config keys a module actually reads, from its source.
+
+    Two forms, because the module uses both: `config["a"]["b"]` directly, and the indirection
+    `params: solo=config["solo"]` followed by `{params.solo[soloCBlen]}` in the shell block.
+
+    Comments are stripped first, and that is not fussiness — starsolo.smk's own header prose says
+    "every chemistry-defining knob arrives via `config["solo"]`", which a naive scan reads as a bare
+    read of the whole block and reports as undeclared. Same lesson as `test_skills.py`'s
+    `_code_spans`: narrow the haystack, because a check that cries wolf gets deleted.
+    """
+    code = "\n".join(line.split("#")[0] for line in snakefile.read_text().splitlines())
+    keys: set[str] = set()
+
+    # A bare `<name> = config["<section>"]` binds the whole block to a name. Track those, including
+    # one rebinding hop (`SOLO = config["solo"]` at module level, then `solo=SOLO` in a params
+    # block), because that chain is exactly how the shell reaches `{params.solo[soloType]}`.
+    # The lookahead matters: `ASSEMBLY = config["genome"]["assembly"]` is a nested read, not a
+    # binding, and must fall through to the direct scan below.
+    bound = dict(re.findall(r'(\w+)\s*=\s*config\["(\w+)"\](?!\[)', code))
+    for name, src in re.findall(r"^\s*(\w+)\s*=\s*(\w+)\s*,?\s*$", code, re.M):
+        if src in bound:
+            bound.setdefault(name, bound[src])
+
+    for name, section in bound.items():
+        # `{params.<name>[<key>]}` in a shell block, or `<NAME>["<key>"]` in Python.
+        subscripts = set(re.findall(rf"\{{params\.{name}\[(\w+)\]\}}", code)) | set(
+            re.findall(rf"""\b{name}\[["'](\w+)["']\]""", code)
+        )
+        # Subscripted -> it is a block alias and each subscript is the real read. Never subscripted
+        # -> it was a scalar read all along (`OUTDIR = config["outdir"]`), so the section IS the key.
+        keys |= {f"{section}.{k}" for k in subscripts} or {section}
+
+    # Direct reads: config["a"]["b"] -> a.b | config["a"] -> a. Binding sites are already accounted
+    # for above, so drop them here rather than double-count the block as a bare key.
+    direct = re.sub(r'\w+\s*=\s*config\["\w+"\](?!\[)', "", code)
+    for section, sub in re.findall(r'config\["(\w+)"\](?:\["(\w+)"\])?', direct):
+        keys.add(f"{section}.{sub}" if sub else section)
+
+    return keys - _WRAPPER_SUPPLIED_KEYS
+
+
+@pytest.mark.parametrize("module_name", list_modules())
+def test_required_config_covers_every_key_the_module_reads(module_name: str) -> None:
+    """The contract is DERIVED from the module source, not hand-maintained beside it.
+
+    `starsolo.smk` has always dereferenced `{params.solo[soloCBstart]}`, `[soloCBlen]`,
+    `[soloUMIstart]` and `[soloUMIlen]`; `required_config` declared none of the four. Nothing
+    noticed, because the only thing checking the contract compared the config against that same
+    wrong list. A hand-maintained list of what the code does is a comment with a tuple's syntax.
+
+    Under-declaration is the dangerous direction and the only one asserted here: the module reads a
+    key the composer was never told to emit. Over-declaration (a key declared but unread) is merely
+    untidy — compose emits it and nothing breaks.
+    """
+    module = get_module(module_name)
+    undeclared = _keys_read_by(module.snakefile) - set(module.required_config)
+    assert not undeclared, (
+        f"{module_name}: reads {sorted(undeclared)} but does not declare them in required_config. "
+        f"Nothing will emit them, and STAR dies at rule-expansion time on a compute node."
+    )
+
+
+def test_the_required_config_scanner_can_actually_catch_an_undeclared_key(tmp_path: Path) -> None:
+    """Prove the scanner fires — a derived check that has never failed proves nothing.
+
+    Both forms must be caught: the direct `config[...]` read and the `params` alias indirection
+    that hid the real bug for as long as it existed. And prose in a comment must NOT be caught —
+    the first draft of this scanner reported starsolo's own header as two undeclared keys.
+    """
+    smk = tmp_path / "fake.smk"
+    smk.write_text(
+        '# knobs arrive via `config["solo"]` and `config["read_files_in"]`  <- prose, not a read\n'
+        'UNITS = _load_units(config["units_tsv"])\n'
+        'OUT = config["outdir"]\n'
+        'ASSEMBLY = config["genome"]["assembly"]\n'
+        "rule r:\n"
+        '    params:\n        solo=config["solo"],\n'
+        '    shell:\n        r"STAR --soloCBlen {params.solo[soloCBlen]} --x {params.solo[oops]}"\n'
+    )
+    found = _keys_read_by(smk)
+    assert "solo.soloCBlen" in found  # the alias indirection resolves
+    assert "solo.oops" in found  # ... and an undeclared one is visible
+    assert "outdir" in found  # the direct form resolves
+    assert "genome.assembly" in found  # ... including the nested form
+    assert "units_tsv" not in found  # the wrapper supplies it; not the composer's job
+    assert "solo" not in found  # the alias BINDING is not a read of the whole block
+    assert "read_files_in" not in found  # and neither is a mention in a comment
 
 
 def test_the_required_config_check_can_catch_a_missing_key(tmp_path: Path) -> None:
@@ -482,7 +786,11 @@ def test_the_required_config_check_can_catch_a_missing_key(tmp_path: Path) -> No
     assert "soloFeatures" in config["solo"]  # type: ignore[operator,index]
     del config["solo"]["soloFeatures"]  # type: ignore[index]
     missing = [d for d in get_module("map/starsolo").required_config if not _has_dotted(config, d)]
-    assert missing == ["solo.soloFeatures"]
+    assert "solo.soloFeatures" in missing
+    # The position quadruples are also absent, and legitimately so: this is a CB_UMI_Simple
+    # chemistry, which locates its barcode by start/length and has no quadruple to give. That is
+    # why the real check intersects with `param_owners` rather than demanding the whole union.
+    assert set(missing) == {"solo.soloFeatures", "solo.soloCBposition", "solo.soloUMIposition"}
 
 
 def _has_dotted(config: object, dotted: str) -> bool:

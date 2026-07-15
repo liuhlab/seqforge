@@ -36,6 +36,7 @@ from ..models.processing import DatasetPin, ProcessingManifest, Quantification, 
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import get_module
 from .params import (
+    derived_params,
     find_read_with_role,
     param_block_key,
     params_gate,
@@ -94,6 +95,10 @@ def plan(
     # Two owners, one block (R14). The KB says how to PARSE; the processing manifest says what to
     # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
     params = _resolve_params(manifest, spec, registry, onlist_files)
+    # Derived before processing, both after the KB: three owners, one key each, and `param_owners`
+    # is the definition all three agree on. A complex chemistry locates its barcodes by quadruple,
+    # computed from the element model rather than hand-entered (see `derived_params`).
+    params.update(derived_params(spec))
     params.update(
         {k: render_param(v) for k, v in processing_params(intent.quantification.value).items()}
     )
