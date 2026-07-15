@@ -106,6 +106,62 @@ def test_bounded_budget_and_read_estimate(tmp_path: Path) -> None:
     assert obs.estimated_total_reads > 1000  # extrapolated from compressed bytes-per-read
 
 
+def _write_enormous_fastq_gz(path: Path, *, chunk_mb: int = 1, n_chunks: int = 128) -> int:
+    """A FASTQ whose DECOMPRESSED stream dwarfs any budget, written in a fraction of a second.
+
+    Highly repetitive reads compress ~300:1, so ~130 MB of decompressed FASTQ costs ~450 KB on disk
+    and a quarter-second to build. That is the trick that makes R3's claim testable at all: the rule
+    is about a 50 GB file, and the thing under test is *bytes_read*, which must not care how big the
+    file is. Returns the decompressed size in bytes.
+    """
+    rec = b"@SIM:1\n" + b"ACGT" * 7 + b"\n+\n" + b"I" * 28 + b"\n"
+    per_chunk = (chunk_mb * 1_000_000) // len(rec)
+    chunk = rec * per_chunk
+    with gzip.open(path, "wb", compresslevel=6) as fh:
+        for _ in range(n_chunks):
+            fh.write(chunk)
+    return len(chunk) * n_chunks
+
+
+def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path) -> None:
+    """R3: "a code path that CAN stream a whole multi-GB FASTQ is a bug" — asserted, not asserted-to.
+
+    R3 cited a "50 GB reads < N bytes" check that was never written; what existed proved the budget
+    bit on a 5 000-read fixture, which is a scale at which nothing could go wrong. This is the
+    property that actually matters: `bytes_read` is a function of the BUDGET, not of the file. A
+    regression that streamed to EOF would pass every small-fixture test in this file and fail here.
+    """
+    path = tmp_path / "enormous.fastq.gz"
+    decompressed = _write_enormous_fastq_gz(path)
+    on_disk = path.stat().st_size
+    assert decompressed > 100_000_000  # the fixture really is enormous once decompressed...
+    assert on_disk < 2_000_000  # ...while costing the test suite ~450 KB and ~0.2 s
+
+    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+
+    assert obs.probe.n_reads_sampled == 200_000  # stopped at the budget, not at EOF
+    assert obs.probe.bytes_read < decompressed / 5  # touched a small prefix, not the file
+    # The read budget binds first here (200k x ~40 B is well under the 256 MB byte cap), so this is
+    # the number to pin: a whole-file stream would be ~134 MB, two orders of magnitude larger.
+    assert obs.probe.bytes_read < 20_000_000
+    assert obs.estimated_total_reads > 1_000_000  # and it still knows the file is huge
+
+
+def test_the_byte_budget_binds_when_the_reads_are_long(tmp_path: Path) -> None:
+    """The other half of R3's contract: `--max-reads` AND `--max-bytes`, not either alone.
+
+    A read budget alone is not a byte budget — 200 000 long reads is unbounded work. The byte cap is
+    what makes the guarantee hold for a chemistry we have not met yet.
+    """
+    path = tmp_path / "enormous.fastq.gz"
+    _write_enormous_fastq_gz(path)
+
+    obs = probe_file(path, max_reads=10_000_000, max_bytes=1_000_000)
+
+    assert obs.probe.bytes_read <= 1_100_000  # the byte cap bound it, with a decoder-block margin
+    assert obs.probe.n_reads_sampled < 10_000_000  # ...and stopped it well short of the read budget
+
+
 def test_hash_file_is_content_stable(tmp_path: Path) -> None:
     rng = random.Random(6)
     a = tmp_path / "a.fastq.gz"
