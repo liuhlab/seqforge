@@ -10,8 +10,8 @@ from seqforge import models as m
 HEX64 = "a" * 64
 
 
-def _valid_manifest() -> m.Manifest:
-    """Build a minimal, fully valid manifest (a §12-shaped 10x 3' v3 worm dataset)."""
+def _valid_manifest() -> m.DatasetManifest:
+    """Build a minimal, fully valid DATASET manifest (a §12-shaped 10x 3' v3 worm dataset)."""
     read_layout = m.ReadLayout(
         modality="rna",
         reads=[
@@ -87,7 +87,20 @@ def _valid_manifest() -> m.Manifest:
             )
         ],
     )
-    processing = m.ProcessingSection(
+    return m.DatasetManifest(
+        library=library,
+        experiment=experiment,
+        provenance=m.DatasetProvenance(
+            dataset_hash=HEX64,
+            kb_version="0.1",
+            seqforge_version="2026.7.0",
+        ),
+    )
+
+
+def _valid_processing() -> m.ProcessingManifest:
+    """Build a minimal, fully valid PROCESSING manifest for the dataset above."""
+    section = m.ProcessingSection(
         genome=m.EvidencedGenome(
             value=m.GenomeRef(assembly="ce11", annotation_name="WS298", ncbi_taxid=6239),
             basis="inferred",
@@ -95,28 +108,31 @@ def _valid_manifest() -> m.Manifest:
             rung=0,
         ),
         aligner=m.EvidencedStr(value="starsolo", basis="inferred", confidence=1.0, rung=0),
-        quantification=m.EvidencedStr(value="gene", basis="inferred", confidence=1.0, rung=0),
+        quantification=m.EvidencedQuantification(
+            value=m.SoloQuant(features=["Gene", "GeneFull"]),
+            basis="user_confirmed",
+            evidence=["cli:--quantify"],
+            confidence=1.0,
+            rung=0,
+        ),
         variant_calling=m.EvidencedBool(value=False, basis="inferred", confidence=1.0, rung=0),
         environment=m.EvidencedRuntimeEnv(
             value="align-rna", basis="inferred", confidence=1.0, rung=0
         ),
     )
-    return m.Manifest(
-        library=library,
-        experiment=experiment,
-        processing=processing,
-        provenance=m.Provenance(
-            manifest_hash=HEX64,
-            kb_version="0.1",
-            workflow_version="0.1",
-            seqforge_version="2026.7.0",
+    return m.ProcessingManifest(
+        processing_id="default",
+        dataset=m.DatasetPin(dataset_hash=HEX64, accessions=["PRJNA1027859"]),
+        processing=section,
+        provenance=m.ProcessingProvenance(
+            processing_hash=HEX64, workflow_version="0.1", seqforge_version="2026.7.0"
         ),
     )
 
 
 def test_manifest_round_trips_through_json() -> None:
     man = _valid_manifest()
-    again = m.Manifest.model_validate_json(man.model_dump_json())
+    again = m.DatasetManifest.model_validate_json(man.model_dump_json())
     assert again == man
 
 
@@ -188,12 +204,80 @@ def test_schema_export_covers_every_registered_model() -> None:
     )
 
 
-def test_export_all_includes_manifest_and_defs() -> None:
+def test_export_all_includes_both_manifests_and_defs() -> None:
     allschemas = m.export_all()
-    assert "Manifest" in allschemas
-    assert "$defs" in allschemas["Manifest"]
+    # TWO artifacts, two schemas (R13). A split that exported only one would silently lose coverage.
+    for name in ("DatasetManifest", "ProcessingManifest"):
+        assert name in allschemas
+        assert "$defs" in allschemas[name]
+
+
+def test_the_processing_manifest_is_not_llm_facing() -> None:
+    """The LLM emits AssertionDraft; CODE composes the processing manifest. That boundary is R1.
+
+    If ProcessingManifest ever became a structured-output surface, a model would be authoring pipeline
+    parameters directly instead of proposing claims that code adjudicates.
+    """
+    assert "ProcessingManifest" not in m.LLM_FACING
+    assert m.LLM_FACING == {"AssertionDraft", "ArbitrationRequest", "ArbitrationResponse"}
+
+
+def test_processing_manifest_round_trips_and_discriminates_quantification() -> None:
+    p = _valid_processing()
+    again = m.ProcessingManifest.model_validate_json(p.model_dump_json())
+    assert again == p
+    assert isinstance(again.processing.quantification.value, m.SoloQuant)
+    assert again.processing.quantification.value.features == ["Gene", "GeneFull"]
+
+
+def test_solo_quant_rejects_velocyto_without_gene() -> None:
+    """STARsolo: "Velocyto quantification requires Gene features" — a real aligner constraint.
+
+    No enum can express "this member requires that one", which is the clearest proof that a closed
+    vocabulary is not by itself armor. STAR would error out anyway — but only AFTER the download and
+    the alignment we were amortizing, so we refuse first (R4).
+    """
+    with pytest.raises(ValidationError, match="Velocyto"):
+        m.SoloQuant(features=["GeneFull", "Velocyto"])
+    m.SoloQuant(features=["Gene", "Velocyto"])  # legal
+
+
+def test_solo_quant_rejects_duplicates_and_emptiness() -> None:
+    with pytest.raises(ValidationError, match="duplicate"):
+        m.SoloQuant(features=["Gene", "Gene"])
+    with pytest.raises(ValidationError):
+        m.SoloQuant(features=[])
+
+
+def test_solo_quant_rejects_a_feature_starsolo_does_not_have() -> None:
+    """The closure is what makes R5 non-vacuous for this field — see verify.entails."""
+    with pytest.raises(ValidationError):
+        m.SoloQuant(features=["GeneFullish"])
 
 
 def test_export_schema_unknown_model_raises() -> None:
     with pytest.raises(KeyError):
         m.export_schema("NotAModel")
+
+
+def test_the_module_graph_enforces_the_split() -> None:
+    """R13 as an import graph, not as a comment.
+
+    `dataset` and `processing` must never import each other. A dataset cannot know how it will be
+    processed, because it will be processed many ways; and intent has no business reaching back into
+    what the data is. Layering is base -> evidenced -> {dataset, processing}, and the two leaves never
+    meet. If someone later needs a type from the other side, that is the split leaking and it should
+    hurt here first — a docstring saying "must not" is not a constraint.
+    """
+    import ast
+    from pathlib import Path
+
+    root = Path(m.__file__).parent
+    for module, forbidden in (("dataset", "processing"), ("processing", "dataset")):
+        tree = ast.parse((root / f"{module}.py").read_text())
+        imported = {
+            node.module
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module
+        }
+        assert forbidden not in imported, f"models/{module}.py imports {forbidden} — R13 has leaked"

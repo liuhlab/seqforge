@@ -1,11 +1,16 @@
-"""``manifest fill`` — assemble the three-section :class:`Manifest` from a resolve Decision.
+"""``manifest fill`` — assemble the two-section :class:`DatasetManifest` from a resolve Decision.
 
 Each section keeps its own authority (design §1.6):
+
 - ``library``   = **evidence**. Chemistry, read layout, and the file->role assignment all come from
   the winning candidate, so every field is ``basis="observed"`` with the file shas as evidence.
 - ``experiment``= **metadata/humans**. Organism and accessions cannot be read off bytes, so they
   arrive as inputs (normally span-verified Assertions from ``harvest``) and are ``basis="asserted"``.
-- ``processing``= **derived + policy** — ``basis="inferred"``.
+
+**There is no third section, and `fill` takes no genome.** Intent lives in a separate
+:class:`~seqforge.models.processing.ProcessingManifest`, built by :func:`fill_processing`. That is
+also why ``--assembly``/``--annotation`` left this verb: choosing a reference is not something you
+learn by probing bytes, and it never belonged on the verb that probes them.
 
 The manifest is machine-independent (R9): a file's ``uri`` is its *basename*, never the absolute
 local path the probe read (which stays in ``Observation.file.local_uri``, an internal-only field).
@@ -20,33 +25,41 @@ from typing import Literal
 from ..io import OnlistRegistry
 from ..kb import KB_VERSION
 from ..kb.schema import Element, Spec
-from ..models.manifest import (
-    EvidencedAccessionList,
-    EvidencedAssay,
-    EvidencedBool,
-    EvidencedChemistrySet,
-    EvidencedGenome,
+from ..models.dataset import (
+    DatasetManifest,
+    DatasetProvenance,
     EvidencedReadLayout,
-    EvidencedRuntimeEnv,
-    EvidencedStr,
-    EvidencedTaxid,
     ExperimentSection,
     FileInventoryItem,
-    GenomeRef,
     LibrarySection,
-    Manifest,
     Onlist,
-    ProcessingSection,
-    Provenance,
     ReadDef,
     ReadElement,
     ReadLayout,
     SampleGroup,
 )
+from ..models.evidenced import (
+    EvidencedAccessionList,
+    EvidencedAssay,
+    EvidencedBool,
+    EvidencedChemistrySet,
+    EvidencedStr,
+    EvidencedTaxid,
+)
 from ..models.observation import Observation
+from ..models.processing import (
+    DatasetPin,
+    EvidencedGenome,
+    EvidencedQuantification,
+    EvidencedRuntimeEnv,
+    GenomeRef,
+    ProcessingManifest,
+    ProcessingProvenance,
+    ProcessingSection,
+)
 from ..models.resolve import Candidate, ResolveResult
 from ..workflows import WORKFLOW_VERSION
-from .hash import manifest_content_hash
+from .hash import dataset_content_hash, processing_content_hash
 from .policy import processing_defaults
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -83,7 +96,12 @@ class ExperimentInputs:
 
 @dataclass(frozen=True)
 class ProcessingInputs:
-    """Reference selection (a liulab-genome assembly id + a REGISTERED GTF name — never a path)."""
+    """Reference selection (a liulab-genome assembly id + a REGISTERED GTF name — never a path).
+
+    CLI-sourced overrides for :func:`fill_processing`. This dataclass predates the split and was
+    already the processing manifest in miniature — badly named and half-built, sitting beside `fill`
+    instead of owning the artifact it describes.
+    """
 
     assembly: str
     annotation_name: str
@@ -96,10 +114,13 @@ def fill_manifest(
     observations: list[Observation],
     registry: OnlistRegistry,
     experiment: ExperimentInputs,
-    processing: ProcessingInputs,
     seqforge_version: str,
-) -> Manifest:
-    """Assemble a :class:`Manifest` from a clean resolve Decision + metadata/policy inputs."""
+) -> DatasetManifest:
+    """Assemble a :class:`DatasetManifest` from a clean resolve Decision + metadata inputs.
+
+    Bytes and metadata only. Takes no ``processing`` argument, by construction: a dataset does not
+    know how it will be processed, because it will be processed many ways (R13).
+    """
     if result.blockers:
         raise FillError(f"cannot fill a manifest over {len(result.blockers)} unresolved Blocker(s)")
     if not result.candidates:
@@ -164,21 +185,63 @@ def fill_manifest(
         samples=list(experiment.samples),
     )
 
+    draft = DatasetManifest(
+        library=library,
+        experiment=experiment_section,
+        provenance=DatasetProvenance(
+            dataset_hash="",
+            kb_version=KB_VERSION,
+            seqforge_version=seqforge_version,
+        ),
+    )
+    # the hash covers only the two truth sections, so filling it in cannot perturb it
+    return draft.model_copy(
+        update={
+            "provenance": DatasetProvenance(
+                dataset_hash=dataset_content_hash(draft),
+                kb_version=KB_VERSION,
+                seqforge_version=seqforge_version,
+            )
+        }
+    )
+
+
+def fill_processing(
+    *,
+    spec: Spec,
+    dataset: DatasetManifest,
+    processing: ProcessingInputs,
+    processing_id: str = "default",
+    pin: bool = True,
+    seqforge_version: str,
+) -> ProcessingManifest:
+    """Build one :class:`ProcessingManifest` for a dataset from policy defaults + CLI overrides.
+
+    ``pin=True`` binds it to this dataset's hash, so ``compose`` refuses any other. ``pin=False``
+    leaves it a **template**: portable across datasets, which is what lets a single file drive a whole
+    corpus. Both forms are legitimate and they are for different jobs — you publish a bound one and
+    you reprocess with a template.
+    """
     defaults = processing_defaults(spec)
-    processing_section = ProcessingSection(
+    rung = _rung_for(dataset)
+    section = ProcessingSection(
         genome=EvidencedGenome(
             value=GenomeRef(
                 assembly=processing.assembly,
                 annotation_name=processing.annotation_name,
-                ncbi_taxid=experiment.organism_taxid,
+                ncbi_taxid=dataset.experiment.organism.value,
             ),
             basis="inferred",
             confidence=0.8,
             rung=0,
         ),
         aligner=EvidencedStr(value=defaults.aligner, basis="inferred", confidence=0.95, rung=rung),
-        quantification=EvidencedStr(
-            value=defaults.quantification, basis="inferred", confidence=0.8, rung=rung
+        quantification=EvidencedQuantification(
+            value=defaults.quantification,
+            basis="inferred",
+            evidence=["policy:default-quantification"],
+            confidence=0.8,
+            rung=rung,
         ),
         variant_calling=EvidencedBool(
             value=defaults.variant_calling, basis="inferred", confidence=0.9, rung=0
@@ -187,29 +250,37 @@ def fill_manifest(
             value=defaults.environment, basis="inferred", confidence=0.95, rung=0
         ),
     )
-
-    draft = Manifest(
-        library=library,
-        experiment=experiment_section,
-        processing=processing_section,
-        provenance=Provenance(
-            manifest_hash="",
-            kb_version=KB_VERSION,
+    draft = ProcessingManifest(
+        processing_id=processing_id,
+        dataset=(
+            DatasetPin(
+                dataset_hash=dataset.provenance.dataset_hash,
+                accessions=list(dataset.experiment.accessions.value),
+            )
+            if pin
+            else None
+        ),
+        processing=section,
+        provenance=ProcessingProvenance(
+            processing_hash="",
             workflow_version=WORKFLOW_VERSION,
             seqforge_version=seqforge_version,
         ),
     )
-    # the hash covers only the three truth sections, so filling it in cannot perturb it
     return draft.model_copy(
         update={
-            "provenance": Provenance(
-                manifest_hash=manifest_content_hash(draft),
-                kb_version=KB_VERSION,
+            "provenance": ProcessingProvenance(
+                processing_hash=processing_content_hash(draft),
                 workflow_version=WORKFLOW_VERSION,
                 seqforge_version=seqforge_version,
             )
         }
     )
+
+
+def _rung_for(dataset: DatasetManifest) -> int:
+    """The rung that settled chemistry — carried through to the intent derived from it."""
+    return dataset.library.chemistry.rung
 
 
 def _build_read_layout(

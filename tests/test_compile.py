@@ -20,12 +20,17 @@ from seqforge.manifest import (
     ExperimentInputs,
     FillError,
     ProcessingInputs,
+    dataset_content_hash,
     exit_code_for_report,
     fill_manifest,
-    manifest_content_hash,
+    fill_processing,
+    processing_content_hash,
+    run_id,
     validate_manifest,
+    validate_processing,
 )
-from seqforge.models.manifest import Manifest, SampleGroup
+from seqforge.models.dataset import DatasetManifest, SampleGroup
+from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
@@ -47,7 +52,9 @@ def _registry_for(spec: kb.Spec) -> OnlistRegistry:
     return reg
 
 
-def _build(tmp_path: Path, tech: str, keys: tuple[str, str]) -> tuple[Manifest, OnlistRegistry]:
+def _build(
+    tmp_path: Path, tech: str, keys: tuple[str, str]
+) -> tuple[DatasetManifest, OnlistRegistry]:
     spec = kb.load_spec(tech)
     reg = _registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
@@ -68,10 +75,34 @@ def _build(tmp_path: Path, tech: str, keys: tuple[str, str]) -> tuple[Manifest, 
             accessions=["PRJNA1027859"],
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in paths])],
         ),
-        processing=ProcessingInputs(assembly="sacCer3", annotation_name="ensembl"),
         seqforge_version=__version__,
     )
     return manifest, reg
+
+
+def _processing(
+    manifest: DatasetManifest,
+    *,
+    assembly: str = "sacCer3",
+    annotation: str = "ensembl",
+    processing_id: str = "default",
+    pin: bool = True,
+) -> ProcessingManifest:
+    return fill_processing(
+        spec=kb.load_spec(manifest.library.chemistry.value[0]),
+        dataset=manifest,
+        processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
+        processing_id=processing_id,
+        pin=pin,
+        seqforge_version=__version__,
+    )
+
+
+def _pair(
+    tmp_path: Path, tech: str, keys: tuple[str, str]
+) -> tuple[DatasetManifest, ProcessingManifest, OnlistRegistry]:
+    manifest, reg = _build(tmp_path, tech, keys)
+    return manifest, _processing(manifest), reg
 
 
 # ---------- manifest ----------
@@ -85,8 +116,29 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(tmp_path: Pat
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
     # R9: the manifest carries a relative uri, never the probe's absolute local path
     assert all(not f.uri.startswith("/") for f in manifest.library.files)
-    assert manifest.processing.aligner.value == "starsolo"
-    assert manifest.processing.environment.value == "align-rna"
+
+
+def test_the_dataset_manifest_carries_no_intent(tmp_path: Path) -> None:
+    """R13: a dataset does not know how it will be processed, because it will be processed many ways."""
+    assert "processing" not in DatasetManifest.model_fields
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    assert set(DatasetManifest.model_fields) == {"library", "experiment", "provenance"}
+    # ...and its provenance carries no workflow_version: the assay happened before we had an opinion
+    # about which rules would one day run over it.
+    assert "workflow_version" not in type(manifest.provenance).model_fields
+
+
+def test_processing_carries_the_derived_intent(tmp_path: Path) -> None:
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    assert p.processing.aligner.value == "starsolo"
+    assert p.processing.environment.value == "align-rna"
+    assert p.processing.genome.value.assembly == "sacCer3"
+    # basis records WHO DECIDED; policy defaults are `inferred` + an evidence ref naming the rule,
+    # which is why no `policy_default` basis is needed (design §1.0's open note).
+    assert p.processing.quantification.basis == "inferred"
+    assert p.processing.quantification.evidence == ["policy:default-quantification"]
+    assert p.provenance.workflow_version == WORKFLOW_VERSION
 
 
 def test_fill_uses_observed_geometry_not_just_declared(tmp_path: Path) -> None:
@@ -100,9 +152,106 @@ def test_fill_uses_observed_geometry_not_just_declared(tmp_path: Path) -> None:
 
 def test_manifest_hash_is_stable_and_matches_provenance(tmp_path: Path) -> None:
     manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
-    assert manifest_content_hash(manifest) == manifest.provenance.manifest_hash
+    assert dataset_content_hash(manifest) == manifest.provenance.dataset_hash
     assert manifest.provenance.kb_version == kb.KB_VERSION
-    assert manifest.provenance.workflow_version == WORKFLOW_VERSION
+
+
+# ---------- R13: the dataset is immutable; the processing manifest is plural ----------
+def test_dataset_hash_is_invariant_across_a_processing_sweep(tmp_path: Path) -> None:
+    """THE test for the whole split: change the intent, and what the data IS must not move.
+
+    Aligning one dataset three ways is three processing manifests against one unchanged dataset hash,
+    never three forks of the truth. If this ever goes red, the split has leaked.
+    """
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    before = manifest.provenance.dataset_hash
+    sweep = [
+        _processing(manifest, processing_id="default"),
+        _processing(manifest, assembly="ce11", annotation="WS298", processing_id="worm"),
+        _processing(manifest, processing_id="template", pin=False),
+    ]
+    assert len({p.provenance.processing_hash for p in sweep}) == 3, "three recipes, three hashes"
+    assert manifest.provenance.dataset_hash == before == dataset_content_hash(manifest)
+
+
+def test_run_id_differs_per_processing_manifest(tmp_path: Path) -> None:
+    """One dataset x N processing manifests = N runs.
+
+    `provenance_id(manifest_hash, kb, workflow)` could not express this: with intent folded into the
+    manifest hash, two recipes over one dataset produced an IDENTICAL id — and the composer's fixed
+    output path meant the second silently overwrote the first. The collision case was exactly the use
+    case the split exists for.
+    """
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    a = _processing(manifest, processing_id="gene")
+    b = _processing(manifest, assembly="ce11", annotation="WS298", processing_id="worm")
+    ids = [
+        run_id(
+            dataset_hash=manifest.provenance.dataset_hash,
+            processing_hash=p.provenance.processing_hash,
+            kb_version=manifest.provenance.kb_version,
+            workflow_version=p.provenance.workflow_version,
+        )
+        for p in (a, b)
+    ]
+    assert ids[0] != ids[1]
+
+
+def test_processing_hash_matches_provenance_and_ignores_it(tmp_path: Path) -> None:
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = _processing(manifest)
+    assert processing_content_hash(p) == p.provenance.processing_hash
+
+
+def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_path: Path) -> None:
+    """Both forms are legitimate and they are for different jobs.
+
+    A template is how you drive a corpus — a mandatory pin would mean 10^4 near-identical files that
+    nobody reads. A bound manifest is how you publish a run, and it must never auto-repin.
+    """
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    a, reg = _build(tmp_path / "a", "10x-3p-gex-v3", ("R1", "R2"))
+    b, _ = _build(tmp_path / "b", "10x-3p-gex-v2", ("R1", "R2"))
+    assert a.provenance.dataset_hash != b.provenance.dataset_hash
+
+    template = _processing(a, pin=False)
+    assert template.dataset is None
+    plan(a, template, registry=reg)  # portable: composes against a dataset it was not built for
+
+    bound = _processing(b)  # pinned to b...
+    with pytest.raises(ComposeError, match="pinned to dataset"):
+        plan(a, bound, registry=reg)  # ...so composing it against a is a refusal, not a repin
+
+    report = validate_processing(bound, dataset=a)
+    assert not report.ok
+    assert [blk.code for blk in report.blockers] == ["DATASET_PIN_MISMATCH"]
+    assert exit_code_for_report(report) == 3
+
+
+def test_validate_processing_blocks_a_genome_organism_mismatch(tmp_path: Path) -> None:
+    """A wrong-but-VALID assembly is the worst failure this system can produce.
+
+    It is not a crash and it does not look empty: STAR aligns, exits 0, and emits a plausible matrix
+    in the wrong coordinate space. Every other check catches something that would look broken; this
+    one catches something that looks fine.
+    """
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))  # organism = 559292 (yeast)
+    p = _processing(manifest)
+    assert validate_processing(p, dataset=manifest).ok
+
+    worm = p.processing.genome.value.model_copy(update={"assembly": "ce11", "ncbi_taxid": 6239})
+    lying = p.model_copy(
+        update={
+            "processing": p.processing.model_copy(
+                update={"genome": p.processing.genome.model_copy(update={"value": worm})}
+            )
+        }
+    )
+    report = validate_processing(lying, dataset=manifest)
+    assert not report.ok
+    assert [blk.code for blk in report.blockers] == ["GENOME_ORGANISM_MISMATCH"]
+    assert all(blk.remedy for blk in report.blockers)  # R4: every refusal is actionable
 
 
 def test_validate_clean_manifest(tmp_path: Path) -> None:
@@ -154,7 +303,6 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
             observations=[],
             registry=OnlistRegistry(offline=True),
             experiment=ExperimentInputs(organism_taxid=559292),
-            processing=ProcessingInputs(assembly="sacCer3", annotation_name="ensembl"),
             seqforge_version=__version__,
         )
 
@@ -172,37 +320,84 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
 # ---------- compose ----------
 def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) -> None:
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
-    result = compose(manifest, registry=reg, workspace=tmp_path)
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"
     # the infra-dependent gates must report skip, never a silent pass
     assert result.gate["wiring"] in {"pass", "skip"}
     assert result.gate["e2e"] == "skip"
 
-    config = yaml.safe_load((tmp_path / ".seqforge" / "pipeline" / "config.yaml").read_text())
+    # read the path compose REPORTS, not one reconstructed here: the layout is keyed by run_id and a
+    # test that hardcodes it is testing its own arithmetic
+    pipeline_dir = (tmp_path / result.config_path).parent
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["solo"]["soloCBlen"] == "16"
     assert config["solo"]["soloUMIlen"] == "12"
     assert config["solo"]["soloStrand"] == "Forward"
     # --readFilesIn order: the cDNA read precedes the barcode read
     assert config["read_files_in"] == {"cdna": "R2", "barcode": "R1"}
     # the whitelist token resolved to a materialized file
-    wl = tmp_path / ".seqforge" / "pipeline" / config["solo"]["soloCBwhitelist"]
+    wl = pipeline_dir / config["solo"]["soloCBwhitelist"]
     assert wl.is_file() and len(wl.read_text().split()) == 64
 
-    units = (tmp_path / ".seqforge" / "pipeline" / "units.tsv").read_text().splitlines()
+    units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "read_id", "path"]
     assert len(units) == 3  # header + 2 reads
 
 
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
     manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
-    result = compose(manifest, registry=reg, workspace=tmp_path)
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/star"
     assert result.gate["params"] == "pass"
-    config = yaml.safe_load((tmp_path / ".seqforge" / "pipeline" / "config.yaml").read_text())
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["bulk"]["quantMode"] == "GeneCounts"
     assert config["read_files_in"] == {"mate1": "R1", "mate2": "R2"}
     assert "solo" not in config
+
+
+def test_two_processing_manifests_do_not_overwrite_each_other(tmp_path: Path) -> None:
+    """The headline use case, and the R7 bug that would have broken it.
+
+    compose wrote to a FIXED `.seqforge/pipeline/config.yaml`, so composing one dataset two ways left
+    one config on disk — the second silently clobbering the first, along with its units.tsv and its
+    materialized onlists. Keying by run_id is what makes "the same dataset paired with multiple
+    processing manifests" mean anything.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    a = compose(
+        manifest, _processing(manifest, processing_id="yeast"), registry=reg, workspace=tmp_path
+    )
+    b = compose(
+        manifest,
+        _processing(manifest, assembly="ce11", annotation="WS298", processing_id="worm"),
+        registry=reg,
+        workspace=tmp_path,
+    )
+    assert a.config_path != b.config_path, "two runs must not share one config path"
+    assert (tmp_path / a.config_path).is_file() and (tmp_path / b.config_path).is_file()
+    assert yaml.safe_load((tmp_path / a.config_path).read_text())["genome"]["assembly"] == "sacCer3"
+    assert yaml.safe_load((tmp_path / b.config_path).read_text())["genome"]["assembly"] == "ce11"
+
+
+def test_compose_writes_the_bound_processing_lock(tmp_path: Path) -> None:
+    """R7 says disk is STATE, not that disk is INPUT.
+
+    compose takes no --processing on the default path — 10^4 boilerplate files nobody reads is not a
+    design — but whatever decided the run must still be recoverable from disk afterwards. So the
+    fully-resolved, dataset-BOUND manifest lands beside the config it produced, even when the input
+    was a template with no pin.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    template = _processing(manifest, pin=False)
+    assert template.dataset is None
+    result = compose(manifest, template, registry=reg, workspace=tmp_path)
+
+    lock = (tmp_path / result.config_path).parent / "processing.lock.yaml"
+    assert lock.is_file()
+    written = ProcessingManifest.model_validate(yaml.safe_load(lock.read_text()))
+    assert written.dataset is not None, "the lock must be BOUND even when the input was not"
+    assert written.dataset.dataset_hash == manifest.provenance.dataset_hash
 
 
 def test_params_gate_fails_when_kb_offsets_contradict_the_observed_layout(tmp_path: Path) -> None:
@@ -216,7 +411,7 @@ def test_params_gate_fails_when_kb_offsets_contradict_the_observed_layout(tmp_pa
             )
         }
     )
-    p = plan(manifest, registry=reg)
+    p = plan(manifest, _processing(manifest), registry=reg)
     status, problems = params_gate(manifest, lying, p.config)
     assert status == "fail"
     assert any("soloUMIlen" in problem for problem in problems)
@@ -225,7 +420,7 @@ def test_params_gate_fails_when_kb_offsets_contradict_the_observed_layout(tmp_pa
 def test_params_gate_fails_when_config_drops_a_chemistry_knob(tmp_path: Path) -> None:
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
     spec = kb.load_spec("10x-3p-gex-v3")
-    p = plan(manifest, registry=reg)
+    p = plan(manifest, _processing(manifest), registry=reg)
     mangled = dict(p.config)
     mangled["solo"] = {k: v for k, v in p.config["solo"].items() if k != "soloStrand"}  # type: ignore[union-attr]
     status, problems = params_gate(manifest, spec, mangled)
@@ -236,7 +431,7 @@ def test_params_gate_fails_when_config_drops_a_chemistry_knob(tmp_path: Path) ->
 def test_params_gate_fails_when_read_files_in_swaps_cdna_and_barcode(tmp_path: Path) -> None:
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
     spec = kb.load_spec("10x-3p-gex-v3")
-    p = plan(manifest, registry=reg)
+    p = plan(manifest, _processing(manifest), registry=reg)
     swapped = dict(p.config)
     swapped["read_files_in"] = {"cdna": "R1", "barcode": "R2"}  # barcode read fed as the cDNA read
     status, problems = params_gate(manifest, spec, swapped)
@@ -250,7 +445,7 @@ def test_compose_refuses_when_the_whitelist_cannot_be_materialized(tmp_path: Pat
         offline=True
     )  # no onlist registered -> no --soloCBwhitelist is emittable
     with pytest.raises(ComposeError):
-        compose(manifest, registry=empty, workspace=tmp_path)
+        compose(manifest, _processing(manifest), registry=empty, workspace=tmp_path)
 
 
 def test_every_module_required_config_key_is_actually_emitted(tmp_path: Path) -> None:
@@ -268,7 +463,7 @@ def test_every_module_required_config_key_is_actually_emitted(tmp_path: Path) ->
         work = tmp_path / module_name.replace("/", "_")
         work.mkdir(parents=True)
         manifest, reg = _build(work, tech, ("R1", "R2"))
-        config = plan(manifest, registry=reg).config
+        config = plan(manifest, _processing(manifest), registry=reg).config
         for dotted in get_module(module_name).required_config:
             node: object = config
             for part in dotted.split("."):
@@ -282,7 +477,7 @@ def test_every_module_required_config_key_is_actually_emitted(tmp_path: Path) ->
 def test_the_required_config_check_can_catch_a_missing_key(tmp_path: Path) -> None:
     """Prove the guard fires — a contract test that has never failed proves nothing."""
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
-    config = plan(manifest, registry=reg).config
+    config = plan(manifest, _processing(manifest), registry=reg).config
     assert "soloFeatures" in config["solo"]  # type: ignore[operator,index]
     del config["solo"]["soloFeatures"]  # type: ignore[index]
     missing = [d for d in get_module("map/starsolo").required_config if not _has_dotted(config, d)]
@@ -308,7 +503,7 @@ def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -
     """
     manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
     spec = kb.load_spec("bulk-rnaseq-pe")
-    p = plan(manifest, registry=reg)
+    p = plan(manifest, _processing(manifest), registry=reg)
     assert params_gate(manifest, spec, p.config) == ("pass", [])
 
     corrupted = {**p.config, "solo": {"soloType": "CB_UMI_Simple"}}

@@ -26,6 +26,12 @@ class BlockerCode(StrEnum):
     UNRESOLVED_CONFLICT = "UNRESOLVED_CONFLICT"
     MISSING_CONTROLLED_VOCAB = "MISSING_CONTROLLED_VOCAB"
     ABSOLUTE_PATH = "ABSOLUTE_PATH"
+    #: A processing manifest's genome does not belong to the dataset's organism. A wrong-but-VALID
+    #: assembly is the most catastrophic silent failure available here: it aligns, exits 0, and emits
+    #: a plausible matrix in the wrong coordinate space. Nothing downstream would ever notice.
+    GENOME_ORGANISM_MISMATCH = "GENOME_ORGANISM_MISMATCH"
+    #: A processing manifest bound to a different dataset than the one being compiled.
+    DATASET_PIN_MISMATCH = "DATASET_PIN_MISMATCH"
 
 
 class BlockerSubject(BaseModel):

@@ -6,6 +6,7 @@ import gzip
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from seqforge import __version__, kb
@@ -26,11 +27,12 @@ def test_version() -> None:
     assert __version__ in result.stdout
 
 
-def test_schema_export_manifest_is_valid_json() -> None:
-    result = runner.invoke(app, ["schema", "export", "Manifest"])
+@pytest.mark.parametrize("model", ["DatasetManifest", "ProcessingManifest"])
+def test_schema_export_each_manifest_is_valid_json(model: str) -> None:
+    result = runner.invoke(app, ["schema", "export", model])
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
-    assert doc["title"] == "Manifest"
+    assert doc["title"] == model
     assert "$defs" in doc
 
 
@@ -43,13 +45,13 @@ def test_schema_export_all_covers_every_model() -> None:
     result = runner.invoke(app, ["schema", "export", "--all"])
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
-    assert "Manifest" in doc and "Observation" in doc
+    assert {"DatasetManifest", "ProcessingManifest", "Observation"} <= set(doc)
 
 
-def test_schema_list_lists_manifest() -> None:
+def test_schema_list_lists_both_manifests() -> None:
     result = runner.invoke(app, ["schema", "list"])
     assert result.exit_code == 0
-    assert "Manifest" in result.stdout
+    assert "DatasetManifest" in result.stdout and "ProcessingManifest" in result.stdout
 
 
 def test_kb_list_shows_10x() -> None:
@@ -110,10 +112,6 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
             str(f2),
             "--organism",
             "559292",
-            "--assembly",
-            "sacCer3",
-            "--annotation",
-            "ensembl",
             "-C",
             str(tmp_path),
         ],
@@ -133,14 +131,50 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert hashed.exit_code == 0
     assert json.loads(hashed.stdout)["matches"] is True
 
-    composed = runner.invoke(app, ["compose", str(manifest_path), "-C", str(tmp_path)])
+    # a genome has no safe default, and compose must refuse rather than guess one (R4/R12)
+    naked = runner.invoke(app, ["compose", str(manifest_path), "-C", str(tmp_path)])
+    assert naked.exit_code == 2
+    assert "559292" in naked.stdout + naked.stderr, "the refusal must be actionable"
+
+    proc_path = tmp_path / "processing.yaml"
+    authored = runner.invoke(
+        app,
+        [
+            "processing",
+            "new",
+            str(manifest_path),
+            "--assembly",
+            "sacCer3",
+            "--annotation",
+            "ensembl",
+            "-o",
+            str(proc_path),
+        ],
+    )
+    assert authored.exit_code == 0, authored.stdout
+    assert proc_path.is_file()
+    assert (
+        runner.invoke(
+            app, ["processing", "validate", str(proc_path), "--dataset", str(manifest_path)]
+        ).exit_code
+        == 0
+    )
+    p_hashed = runner.invoke(app, ["processing", "hash", str(proc_path)])
+    assert p_hashed.exit_code == 0
+    assert json.loads(p_hashed.stdout)["matches"] is True
+
+    composed = runner.invoke(
+        app, ["compose", str(manifest_path), "--processing", str(proc_path), "-C", str(tmp_path)]
+    )
     assert composed.exit_code == 0, composed.stdout
     doc = json.loads(composed.stdout)
     assert doc["modules"][0]["name"] == "map/star"
     assert doc["gate"]["params"] == "pass"
     assert doc["gate"]["e2e"] == "skip"  # honest: the count-matrix run needs STAR + liulab-genome
-    assert (tmp_path / ".seqforge" / "pipeline" / "config.yaml").is_file()
-    assert (tmp_path / ".seqforge" / "pipeline" / "units.tsv").is_file()
+    assert (tmp_path / doc["config_path"]).is_file()
+    assert (tmp_path / doc["units_path"]).is_file()
+    # R7: whatever decided the run is recoverable from disk, bound to this dataset
+    assert ((tmp_path / doc["config_path"]).parent / "processing.lock.yaml").is_file()
 
 
 def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:

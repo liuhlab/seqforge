@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..models.manifest import RuntimeEnv
+from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
 WORKFLOW_VERSION = "2026.7.0"

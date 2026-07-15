@@ -1,9 +1,11 @@
-"""``manifest`` — assemble, validate, and hash the three-section :class:`Manifest`.
+"""``manifest`` — assemble, validate, and hash the two artifacts (R13).
 
-Operations on the manifest live here; the *schema* is :mod:`seqforge.models.manifest`. ``fill``
-assembles a Decision into a manifest (each section keeping its own authority), ``validate`` is the R4
-refusal contract (structured ``Blocker``s + a nonzero exit), and ``hash`` binds a compiled config to
-the exact inputs and tool versions that produced it (R7).
+Operations live here; the *schemas* are :mod:`seqforge.models.dataset` (the IR: what the data is) and
+:mod:`seqforge.models.processing` (the flags: what to do with it). ``fill`` assembles a Decision into
+a dataset manifest — each section keeping its own authority — and ``fill_processing`` builds one of
+the many processing manifests a dataset may be paired with. ``validate`` is the R4 refusal contract
+(structured ``Blocker``s + a nonzero exit), and ``hash`` gives each artifact a content-addressed
+identity plus the ``run_id`` that records their pairing (R7).
 """
 
 from __future__ import annotations
@@ -13,20 +15,24 @@ from .fill import (
     FillError,
     ProcessingInputs,
     fill_manifest,
+    fill_processing,
 )
-from .hash import manifest_content_hash, provenance_id
+from .hash import dataset_content_hash, processing_content_hash, run_id
 from .policy import ProcessingDefaults, processing_defaults
-from .validate import exit_code_for_report, validate_manifest
+from .validate import exit_code_for_report, validate_manifest, validate_processing
 
 __all__ = [
     "fill_manifest",
+    "fill_processing",
     "ExperimentInputs",
     "ProcessingInputs",
     "FillError",
     "validate_manifest",
+    "validate_processing",
     "exit_code_for_report",
-    "manifest_content_hash",
-    "provenance_id",
+    "dataset_content_hash",
+    "processing_content_hash",
+    "run_id",
     "processing_defaults",
     "ProcessingDefaults",
 ]

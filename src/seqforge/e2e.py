@@ -37,7 +37,7 @@ from .io import OnlistRegistry
 from .kb import load_spec
 from .kb.generate import write_fastq_gz as _write_fastq_gz
 from .manifest import ExperimentInputs, ProcessingInputs, fill_manifest, validate_manifest
-from .models.manifest import SampleGroup
+from .models.dataset import SampleGroup
 from .probe import probe_file
 from .resolve import resolve_dataset
 

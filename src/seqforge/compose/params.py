@@ -23,7 +23,7 @@ from collections.abc import Mapping
 from typing import Literal
 
 from ..kb.schema import Spec
-from ..models.manifest import Manifest, ReadDef, ReadElement
+from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 
 GateStatus = Literal["pass", "fail"]
 
@@ -62,7 +62,7 @@ def _element(read: ReadDef, role: str) -> ReadElement | None:
     return None
 
 
-def find_read_with_role(manifest: Manifest, role: str) -> ReadDef | None:
+def find_read_with_role(manifest: DatasetManifest, role: str) -> ReadDef | None:
     """The layout read carrying an element of ``role`` (e.g. the cDNA read, the CB-bearing read)."""
     for read in manifest.library.read_layout.value.reads:
         if any(el.role == role for el in read.elements):
@@ -71,7 +71,7 @@ def find_read_with_role(manifest: Manifest, role: str) -> ReadDef | None:
 
 
 def params_gate(
-    manifest: Manifest, spec: Spec, config: dict[str, object]
+    manifest: DatasetManifest, spec: Spec, config: dict[str, object]
 ) -> tuple[GateStatus, list[str]]:
     """Assert the emitted config is faithful to the KB and coherent with the observed layout."""
     problems: list[str] = []
@@ -140,7 +140,7 @@ def _check_simple_geometry(bc_read: ReadDef, params: Mapping[str, object]) -> li
 
 
 def _check_read_files_in(
-    manifest: Manifest, config: Mapping[str, object], params: Mapping[str, object]
+    manifest: DatasetManifest, config: Mapping[str, object], params: Mapping[str, object]
 ) -> list[str]:
     problems: list[str] = []
     rfi = config.get("read_files_in")

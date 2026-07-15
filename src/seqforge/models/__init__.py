@@ -1,8 +1,13 @@
 """Pydantic v2 models — the single source of truth (R1/R2).
 
-``Manifest.model_json_schema()`` feeds validation and docs; the only LLM-facing schemas are
-:class:`AssertionDraft` and the arbitration pair. :func:`export_schema` dumps any model's JSON Schema
-(the ``seqforge schema export`` backend).
+The manifest is **two** artifacts with two lifetimes (R13): :class:`DatasetManifest` is what the data
+*is* (immutable, one per dataset), :class:`ProcessingManifest` is what to *do* with it (many per
+dataset). Their JSON Schemas feed validation and docs; the only LLM-facing schemas are
+:class:`AssertionDraft` and the arbitration pair — the processing manifest is deliberately **not**
+among them. The LLM emits ``AssertionDraft``; code composes the processing manifest from verified
+assertions plus policy. That boundary is what keeps R1 alive.
+
+:func:`export_schema` dumps any model's JSON Schema (the ``seqforge schema export`` backend).
 """
 
 from __future__ import annotations
@@ -42,30 +47,26 @@ from .conflict import (
     Decidable,
     Resolution,
 )
-from .manifest import (
+from .dataset import (
+    DatasetManifest,
+    DatasetProvenance,
+    EvidencedReadLayout,
+    ExperimentSection,
+    FileInventoryItem,
+    LibrarySection,
+    Onlist,
+    ReadDef,
+    ReadElement,
+    ReadLayout,
+    SampleGroup,
+)
+from .evidenced import (
     EvidencedAccessionList,
     EvidencedAssay,
     EvidencedBool,
     EvidencedChemistrySet,
-    EvidencedGenome,
-    EvidencedReadLayout,
-    EvidencedRuntimeEnv,
     EvidencedStr,
     EvidencedTaxid,
-    ExperimentSection,
-    FileInventoryItem,
-    GenomeRef,
-    LibrarySection,
-    Manifest,
-    Onlist,
-    ProcessingSection,
-    Provenance,
-    ReadDef,
-    ReadElement,
-    ReadLayout,
-    ResourceHints,
-    RuntimeEnv,
-    SampleGroup,
 )
 from .observation import (
     ConstantSegment,
@@ -79,6 +80,22 @@ from .observation import (
     ReadLengthProfile,
     ReadNameGrammar,
     WindowDistinctRatio,
+)
+from .processing import (
+    BulkQuant,
+    DatasetPin,
+    EvidencedGenome,
+    EvidencedQuantification,
+    EvidencedRuntimeEnv,
+    GenomeRef,
+    ProcessingManifest,
+    ProcessingProvenance,
+    ProcessingSection,
+    Quantification,
+    ResourceHints,
+    RuntimeEnv,
+    SoloFeature,
+    SoloQuant,
 )
 from .resolve import (
     ArbitrationRequest,
@@ -116,8 +133,9 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         ArbitrationRequest,
         ArbitrationResponse,
         ValidationReport,
-        # compile / manifest
-        Manifest,
+        # compile / manifest — TWO artifacts, two lifetimes (R13)
+        DatasetManifest,
+        ProcessingManifest,
         ComposeResult,
         RunResult,
         EvalReport,
@@ -168,6 +186,7 @@ __all__ = [
     "EvidencedReadLayout",
     "EvidencedGenome",
     "EvidencedRuntimeEnv",
+    "EvidencedQuantification",
     "Basis",
     "Sha256",
     "Uri",
@@ -205,21 +224,29 @@ __all__ = [
     "BlockerCode",
     "BlockerSubject",
     "ValidationWarning",
-    # manifest
-    "Manifest",
+    # dataset manifest — the IR: what the data IS (immutable, one per dataset)
+    "DatasetManifest",
+    "DatasetProvenance",
     "LibrarySection",
     "ExperimentSection",
-    "ProcessingSection",
-    "Provenance",
     "ReadLayout",
     "ReadDef",
     "ReadElement",
     "Onlist",
+    "FileInventoryItem",
+    "SampleGroup",
+    # processing manifest — the flags: what to DO with it (many per dataset)
+    "ProcessingManifest",
+    "ProcessingProvenance",
+    "ProcessingSection",
+    "DatasetPin",
     "GenomeRef",
     "RuntimeEnv",
     "ResourceHints",
-    "FileInventoryItem",
-    "SampleGroup",
+    "SoloFeature",
+    "SoloQuant",
+    "BulkQuant",
+    "Quantification",
     # resolve outputs
     "TechScore",
     "RoleAssignment",

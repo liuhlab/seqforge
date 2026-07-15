@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..kb.schema import Spec
-from ..models.manifest import RuntimeEnv
+from ..models.processing import BulkQuant, Quantification, RuntimeEnv, SoloQuant
 
 #: KB backend module -> the aligner name recorded in `processing.aligner`.
 _ALIGNER_FOR_MODULE = {"map/starsolo": "starsolo", "map/star": "star"}
@@ -23,7 +23,7 @@ class ProcessingDefaults:
 
     module: str
     aligner: str
-    quantification: str
+    quantification: Quantification
     environment: RuntimeEnv
     variant_calling: bool
 
@@ -34,10 +34,16 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     aligner = _ALIGNER_FOR_MODULE.get(module, module.rsplit("/", 1)[-1])
     # Every Milestone-0 technology is RNA; ATAC/multiome would select a different env here.
     environment: RuntimeEnv = "align-rna"
+    # Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
+    # meaningless to STARsolo. A processing manifest that carried one shape unconditionally would be
+    # a type error the moment it met the other module.
+    quantification: Quantification = (
+        SoloQuant(features=["Gene"]) if module == "map/starsolo" else BulkQuant(mode="GeneCounts")
+    )
     return ProcessingDefaults(
         module=module,
         aligner=aligner,
-        quantification="gene",
+        quantification=quantification,
         environment=environment,
         variant_calling=False,
     )

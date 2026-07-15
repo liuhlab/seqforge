@@ -15,7 +15,8 @@ from __future__ import annotations
 
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.conflict import Conflict
-from ..models.manifest import Manifest
+from ..models.dataset import DatasetManifest
+from ..models.processing import ProcessingManifest
 from ..models.resolve import ValidationReport
 
 
@@ -29,7 +30,7 @@ def _looks_absolute(uri: str) -> bool:
 
 
 def validate_manifest(
-    manifest: Manifest, *, conflicts: list[Conflict] | None = None
+    manifest: DatasetManifest, *, conflicts: list[Conflict] | None = None
 ) -> ValidationReport:
     """Validate a manifest's cross-section integrity. Any Blocker => not compilable."""
     blockers: list[Blocker] = []
@@ -149,6 +150,76 @@ def validate_manifest(
         blockers=blockers,
         conflicts=open_conflicts,
         warnings=warnings,
+    )
+
+
+def validate_processing(
+    processing: ProcessingManifest,
+    *,
+    dataset: DatasetManifest | None = None,
+    conflicts: list[Conflict] | None = None,
+) -> ValidationReport:
+    """Validate one processing manifest, and its coherence with the dataset it will be paired with.
+
+    Most of the intent surface needs no checking here: it is closed vocabulary enforced at
+    construction (``SoloFeature``, ``RuntimeEnv``), and the parse/count line means a user has no
+    vocabulary in which to contradict the bytes at all.
+
+    **Genome is the exception, and it is the one worth the code.** A user may instruct
+    ``assembly: hg38`` on a *C. elegans* dataset. That contradicts no byte — the probe cannot see
+    organism — it contradicts ``experiment.organism``, which is itself ``asserted``. And a
+    wrong-but-valid assembly is the worst failure this system can produce: STAR aligns, exits 0, and
+    emits a plausible matrix in the wrong coordinate space. Every other check in this file catches
+    something that would otherwise crash or look empty; this one catches something that looks *fine*.
+
+    Deliberately narrow: it fires only when the manifest already carries an ``ncbi_taxid`` for the
+    genome. A full assembly->taxid table belongs in ``liulab-genome`` (R12), not here.
+    """
+    blockers: list[Blocker] = []
+    open_conflicts = [c for c in (conflicts or []) if c.status == "open"]
+    genome = processing.processing.genome.value
+
+    if dataset is not None:
+        pin = processing.dataset
+        if pin is not None and pin.dataset_hash != dataset.provenance.dataset_hash:
+            blockers.append(
+                Blocker(
+                    id="blk-pin-mismatch",
+                    code=BlockerCode.DATASET_PIN_MISMATCH,
+                    message=(
+                        f"processing manifest {processing.processing_id!r} is pinned to dataset "
+                        f"{pin.dataset_hash[:12]}…, not {dataset.provenance.dataset_hash[:12]}…."
+                    ),
+                    remedy=(
+                        "Run `seqforge processing new` against this dataset, or drop the pin to make "
+                        "it a portable template."
+                    ),
+                    subject=BlockerSubject(kind="field", ref="dataset.dataset_hash"),
+                )
+            )
+        organism = dataset.experiment.organism.value
+        if genome.ncbi_taxid is not None and genome.ncbi_taxid != organism:
+            blockers.append(
+                Blocker(
+                    id="blk-genome-organism",
+                    code=BlockerCode.GENOME_ORGANISM_MISMATCH,
+                    message=(
+                        f"processing selects assembly {genome.assembly!r} (taxid "
+                        f"{genome.ncbi_taxid}), but the dataset's organism is taxid {organism}."
+                    ),
+                    remedy=(
+                        f"Pick an assembly for taxid {organism}, or correct experiment.organism. A "
+                        "wrong-but-valid assembly aligns and exits 0 — nothing downstream catches it."
+                    ),
+                    subject=BlockerSubject(kind="field", ref="processing.genome.assembly"),
+                )
+            )
+
+    return ValidationReport(
+        ok=not blockers and not open_conflicts,
+        blockers=blockers,
+        conflicts=open_conflicts,
+        warnings=[],
     )
 
 
