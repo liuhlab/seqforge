@@ -274,6 +274,12 @@ def kb_e2e_introns(
     intron_frac: float = typer.Option(0.4, help="Fraction of reads drawn from introns (pre-mRNA)."),
     threads: int = typer.Option(8, help="STAR threads."),
     seed: int = typer.Option(0, help="Simulation seed."),
+    quantify: str | None = typer.Option(
+        None,
+        "--quantify",
+        help="Override soloFeatures (comma-separated) — the cost-measurement arm. "
+        "Omit to run the compiler's own default, which is what the gate is for.",
+    ),
 ) -> None:
     """The intron-rich / GeneFull gate: inject intronic reads, assert Gene and GeneFull disagree right.
 
@@ -303,6 +309,7 @@ def kb_e2e_introns(
             intron_frac=intron_frac,
             threads=threads,
             seed=seed,
+            features=_parse_quantify(quantify),
         )
     except E2EUnavailable as exc:
         typer.echo(json.dumps({"skipped": True, "reason": str(exc)}, indent=2), err=True)
