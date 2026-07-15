@@ -36,7 +36,13 @@ from .compose import plan as compose_plan
 from .io import OnlistRegistry
 from .kb import load_spec
 from .kb.generate import write_fastq_gz as _write_fastq_gz
-from .manifest import ExperimentInputs, ProcessingInputs, fill_manifest, validate_manifest
+from .manifest import (
+    ExperimentInputs,
+    ProcessingInputs,
+    fill_manifest,
+    fill_processing,
+    validate_manifest,
+)
 from .models.dataset import SampleGroup
 from .probe import probe_file
 from .resolve import resolve_dataset
@@ -525,7 +531,6 @@ def run_e2e(
             organism_taxid=559292,
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in (bc_fq, cdna_fq)])],
         ),
-        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
         seqforge_version=__version__,
     )
     report = validate_manifest(manifest)
@@ -533,7 +538,13 @@ def run_e2e(
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
     # --- compose emits the params; the aligner runs with exactly those ---
-    composed = compose_plan(manifest, registry=registry)
+    processing = fill_processing(
+        spec=spec,
+        dataset=manifest,
+        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
+        seqforge_version=__version__,
+    )
+    composed = compose_plan(manifest, processing, registry=registry)
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
     wl_path = workdir / "whitelist.txt"
     wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
@@ -644,11 +655,12 @@ def run_intron_e2e(
     the matrix merely looks like a thin dataset — the same failure shape as a strand inversion, and
     exactly the class §4.1 exists to catch.
 
-    NOTE ON WHAT THIS DOES AND DOES NOT PROVE. The KB declares ``soloFeatures: [Gene]`` for
-    10x-3p-gex-v3, so ``compose`` would emit ``Gene`` here; this gate **overrides** that single param
-    to run both, and records the override in the result. It therefore proves the GeneFull path works
-    end to end and quantifies what Gene costs on nuclear data — it does NOT prove the compiler would
-    choose GeneFull, because today it cannot. That gap is real and tracked separately.
+    This gate runs on the **compiler's own params**: no override. It used to force
+    ``soloFeatures = [Gene, GeneFull]`` past a compiler that would have emitted ``Gene``, and its
+    docstring had to admit the fixture "does NOT prove the compiler would choose GeneFull, because
+    today it cannot". It can now (R14/R15), so ``gene_signal_lost`` stops measuring our own bug and
+    starts measuring a **counterfactual**: what Gene-only would have cost, on a run where we did not
+    do it.
     """
     workdir.mkdir(parents=True, exist_ok=True)
     models = load_gene_models(assets.fasta, assets.gtf, seed=seed)
@@ -692,17 +704,31 @@ def run_intron_e2e(
             organism_taxid=6239,  # C. elegans — the intron-rich fixture's organism
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in (bc_fq, cdna_fq)])],
         ),
-        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
         seqforge_version=__version__,
     )
     report = validate_manifest(manifest)
     if not report.ok:
         return {"passed": False, "stage": "validate", "blockers": [b.code for b in report.blockers]}
 
-    composed = compose_plan(manifest, registry=registry)
+    processing = fill_processing(
+        spec=spec,
+        dataset=manifest,
+        processing=ProcessingInputs(assembly=assets.assembly, annotation_name=assets.annotation),
+        seqforge_version=__version__,
+    )
+    composed = compose_plan(manifest, processing, registry=registry)
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
     composed_features = _feature_list(solo["soloFeatures"])
-    solo["soloFeatures"] = ["Gene", "GeneFull"]  # THE OVERRIDE — see the docstring
+    # No override. The compiler's own params run, and both Gene and GeneFull are among them because
+    # the default counts everything (R15). If that ever regresses, this gate cannot even read its own
+    # matrices — which is the point of asserting it here rather than trusting the default.
+    if not {"Gene", "GeneFull"} <= set(composed_features):
+        return {
+            "passed": False,
+            "stage": "compose",
+            "reason": "the compiler no longer emits both Gene and GeneFull",
+            "composed_soloFeatures": composed_features,
+        }
 
     wl_path = workdir / "whitelist.txt"
     wl_path.write_text("\n".join(sorted(sim.whitelist)) + "\n")
@@ -758,10 +784,12 @@ def run_intron_e2e(
         "recovery_genefull_vs_full": round(recovery_full, 4),
         "gene_excludes_introns": gene_excludes_introns,
         "genefull_exceeds_gene": genefull_exceeds_gene,
-        # THE HEADLINE: what --soloFeatures Gene silently discards from a nuclear library.
+        # THE HEADLINE, and it is now a COUNTERFACTUAL: what --soloFeatures Gene alone WOULD have
+        # discarded from this nuclear library, measured on a run that did not discard it.
         "gene_signal_lost": round(1 - (gene_total / total), 4) if total else 0.0,
+        # what the real compiler emitted — no override (R15). This is the assertion.
         "composed_soloFeatures": composed_features,
-        "overridden_soloFeatures": ["Gene", "GeneFull"],
+        "primary_feature": composed.config.get("primary_feature"),
         "star": star_stats(outdir),
         "gene_verdict": v_gene,
         "genefull_verdict": v_full,

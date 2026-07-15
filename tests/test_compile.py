@@ -537,7 +537,12 @@ def test_quantification_is_no_longer_decorative(tmp_path: Path) -> None:
 
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
     p = _processing(manifest)
-    assert plan(manifest, p, registry=reg).config["solo"]["soloFeatures"] == "Gene"
+    default = plan(manifest, p, registry=reg).config
+    assert (
+        default["solo"]["soloFeatures"]
+        == "Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS Velocyto"
+    )
+    assert default["primary_feature"] == "Gene"
 
     q = p.processing.quantification
     genefull = p.model_copy(
@@ -600,3 +605,56 @@ def test_params_gate_fails_on_an_emitted_key_with_no_owner(tmp_path: Path) -> No
     status, problems = params_gate(manifest, p, kb.load_spec("10x-3p-gex-v3"), orphaned)
     assert status == "fail"
     assert any("no owner declares" in problem for problem in problems)
+
+
+# ---------- R15: produce every answer rather than ask ----------
+def test_the_default_is_screcounters_five_in_screcounters_order() -> None:
+    """Exactly scRecounter's five, that order, and deliberately no SJ.
+
+    Their five is a PRECEDENT, not a derivation — adopting it wholesale without pinning it here would
+    import someone else's unstated scope decision silently. (Source: ArcInstitute/scRecounter,
+    workflows/star_full.nf: `--soloFeatures Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS
+    Velocyto`.)
+    """
+    from seqforge.manifest.policy import DEFAULT_SOLO_FEATURES
+
+    assert DEFAULT_SOLO_FEATURES == (
+        "Gene",
+        "GeneFull",
+        "GeneFull_ExonOverIntron",
+        "GeneFull_Ex50pAS",
+        "Velocyto",
+    )
+    assert "SJ" not in DEFAULT_SOLO_FEATURES, (
+        "a splice-junction matrix has a different feature axis"
+    )
+    # Gene first: the primary matrix matches the common whole-cell expectation, and Velocyto's
+    # "requires Gene" constraint is satisfied by construction rather than by luck.
+    assert DEFAULT_SOLO_FEATURES[0] == "Gene"
+
+
+def test_the_default_counts_the_nuclear_features_without_being_asked(tmp_path: Path) -> None:
+    """The 40.7% defect, dissolved rather than answered.
+
+    The KB used to bake soloFeatures:[Gene] into chemistry, so a single-NUCLEUS dataset compiled to
+    Gene-only and silently dropped 40.7% of its signal — STARsolo exits 0 and the matrix merely looks
+    thin. No nuclei/cells fact is asserted anywhere in this test, and none is needed: GeneFull is
+    computed regardless. That is the whole point — we do not ask a question whose every answer we can
+    afford to emit.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    features = plan(manifest, _processing(manifest), registry=reg).config["solo"]["soloFeatures"]
+    assert {"Gene", "GeneFull"} <= set(str(features).split())
+
+
+def test_bulk_never_gets_solo_features(tmp_path: Path) -> None:
+    """Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR.
+
+    A processing manifest that carried one shape unconditionally would be a type error the moment it
+    met the other module — which is why Quantification is a discriminated union rather than a list.
+    """
+    manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
+    config = plan(manifest, _processing(manifest), registry=reg).config
+    assert config["bulk"] == {"quantMode": "GeneCounts"}
+    assert "solo" not in config
+    assert "primary_feature" not in config  # bulk has no Solo.out/<Feature>/ split

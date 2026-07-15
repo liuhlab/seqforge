@@ -1,12 +1,20 @@
 """Confusability helpers — the ``§12`` benign rule and its ``backend_identical`` biconditional.
 
 Two technologies are **processing-equivalent** iff, after resolving every ``{onlist:alias}`` to its
-registry name and normalizing key order + list order **and** the read->role placement, their
-``backend.params`` canonical forms are byte-equal. Including role placement matters: two techs that
-differ only in *which* read is biological must not be called benign. The CI biconditional is
+registry name and normalizing key order **and** the read->role placement, their ``backend.params``
+canonical forms are byte-equal. Including role placement matters: two techs that differ only in
+*which* read is biological must not be called benign. The CI biconditional is
 ``backend_identical(A, B) <=> declared processing_equivalent`` (§2.4); this module provides the
 ``backend_identical`` primitive and the declared-relationship lookups the resolver consults at
 runtime to decide a benign record-both vs a divergent tie.
+
+Since R14 moved counting out of ``backend.params``, this predicate means exactly *"these two
+chemistries parse reads identically"* — which is what ``processing_equivalent`` should have meant all
+along, and it makes the rule **stronger**, not weaker: two specs differing only in what they count are
+no longer distinguishable here, because that difference is no longer a chemistry fact at all. It is
+the processing manifest's to make, per dataset.
+
+**List order is significant** and is never normalized; see :func:`_resolve_value`.
 """
 
 from __future__ import annotations
@@ -47,8 +55,18 @@ def _resolve_value(value: object, spec: Spec) -> object:
     if isinstance(value, str):
         return _resolve_token(value, spec)
     if isinstance(value, list):
-        # normalize list order so soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]
-        return sorted(_resolve_token(v, spec) if isinstance(v, str) else v for v in value)
+        # ORDER IS PRESERVED, and it must be. This used to sort, justified by exactly one comment:
+        # "normalize list order so soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]". soloFeatures has
+        # since moved to the processing manifest (R14 — it says what to COUNT, not how to parse), and
+        # with it the only reason the sort existed.
+        #
+        # What it would sort NOW is the only list-valued parse param left: splitseq's
+        # `soloCBwhitelist: [round1, round2, round3]` — which is POSITIONAL. The rounds map to CB
+        # positions in order. Sorting it made `backend_identical` return True for a spec against
+        # itself-with-rounds-permuted: two chemistries that parse reads DIFFERENTLY, declared byte-
+        # equal, hence §12-benign, hence one config emitted for both. It never fired only by the
+        # alphabetical accident that round1 < round2 < round3.
+        return [_resolve_token(v, spec) if isinstance(v, str) else v for v in value]
     return value
 
 

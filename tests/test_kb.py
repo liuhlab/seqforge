@@ -238,3 +238,41 @@ def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
 def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
     """Empty, not degenerate: bulk PE has no barcode, no UMI, no whitelist, no offsets to declare."""
     assert kb.load_spec("bulk-rnaseq-pe").backend.params == {}
+
+
+def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> None:
+    """A §12 FALSE BENIGN this repo shipped: canonical_backend used to SORT list-valued params.
+
+    Its only justification was `soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]` — and soloFeatures has
+    since left backend.params (R14). What remained under the sort was splitseq's `soloCBwhitelist`,
+    which is POSITIONAL: the rounds map to CB positions in order. So a spec and the same spec with its
+    rounds permuted — two chemistries that parse reads DIFFERENTLY — canonicalized byte-equal, i.e.
+    processing_equivalent, i.e. §12-benign: record both, ask zero questions, emit ONE config for both.
+
+    It never fired only by the alphabetical accident that round1 < round2 < round3. Rename the
+    registry entries bc3/bc2/bc1 and it does.
+    """
+    from seqforge.resolve.confuse import backend_identical
+
+    spec = kb.load_spec("splitseq")
+    wl = spec.backend.params["soloCBwhitelist"]
+    assert isinstance(wl, list) and len(wl) == 3
+    permuted = spec.model_copy(
+        update={
+            "backend": spec.backend.model_copy(
+                update={"params": {**spec.backend.params, "soloCBwhitelist": list(reversed(wl))}}
+            )
+        }
+    )
+    assert not backend_identical(spec, permuted), "permuted rounds are a DIFFERENT chemistry"
+
+
+def test_the_only_list_valued_parse_param_left_is_positional() -> None:
+    """Pins the reasoning above: if a non-positional list param ever returns, revisit _resolve_value."""
+    list_params = {
+        (tech, key)
+        for tech in kb.list_spec_ids()
+        for key, value in kb.load_spec(tech).backend.params.items()
+        if isinstance(value, list)
+    }
+    assert list_params == {("splitseq", "soloCBwhitelist")}
