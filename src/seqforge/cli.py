@@ -903,6 +903,9 @@ def resolve_score(
     ),
     max_reads: int = typer.Option(200_000, help="Bounded read budget (R3)."),
     max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap (R3)."),
+    cpus: int = typer.Option(
+        0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
+    ),
 ) -> None:
     """Score FASTQ bytes + KB into a ResolveResult. Exit 3 on a Blocker, 4 on an open Conflict/question."""
     hypothesis = Hypothesis(value=assert_chemistry) if assert_chemistry else None
@@ -913,6 +916,7 @@ def resolve_score(
         max_reads=max_reads,
         max_bytes=max_bytes,
         use_cache=not no_cache,
+        cpus=_auto_cpus(cpus),
     )
     payload: dict[str, object] = output.result.model_dump(mode="json")
     if explain:
@@ -1240,6 +1244,21 @@ def _emit(out: _StageOut) -> None:
     raise typer.Exit(out.code)
 
 
+def _auto_cpus(cpus: int) -> int:
+    """Resolve ``--cpus``: a positive value is taken as-is; ``0`` means auto = ``min(8, detected)``.
+
+    Files probe in parallel across processes, and cores are not a budget (R3) — this only decides how
+    fast, never what. ``0`` is the default so the common multicore case is fast without a flag, while a
+    shared login node can be pinned with ``--cpus 1``. The cap at 8 keeps a 96-core node from
+    fork-bombing itself on a 12-file dataset where the win is already gone by 8.
+    """
+    if cpus > 0:
+        return cpus
+    import os
+
+    return max(1, min(8, os.cpu_count() or 1))
+
+
 def _load_manifest(path: Path) -> DatasetManifest:
     try:
         return DatasetManifest.model_validate(yaml.safe_load(path.read_text()))
@@ -1297,6 +1316,9 @@ def manifest_fill(
     offline: bool = typer.Option(
         False, "--offline", help="Never reach the network. --accession then REFUSES, never quietly."
     ),
+    cpus: int = typer.Option(
+        0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
@@ -1343,6 +1365,7 @@ def manifest_fill(
             assertions=assertions,
             offline=offline,
             workspace=workspace,
+            cpus=_auto_cpus(cpus),
         )
     )
 
@@ -1355,6 +1378,7 @@ def _fill_manifest_pipeline(
     assertions: Path | None,
     offline: bool,
     workspace: Path,
+    cpus: int = 1,
 ) -> _StageOut:
     """Probe -> resolve -> metadata -> assemble + validate the DATASET manifest, returned as a value.
 
@@ -1385,6 +1409,7 @@ def _fill_manifest_pipeline(
         hypothesis=_chemistry_hypothesis(parsed),
         workspace=workspace,
         use_cache=False,
+        cpus=cpus,
     )
     if multi.exit_code() != 0:
         return _StageOut(
@@ -1948,6 +1973,9 @@ def run_cmd(
     ),
     outdir: str = typer.Option("results", help="Pipeline output directory (written into config)."),
     offline: bool = typer.Option(False, "--offline", help="Never reach the network."),
+    cpus: int = typer.Option(
+        0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
@@ -2019,6 +2047,7 @@ def run_cmd(
         assertions=assertions_path,
         offline=offline,
         workspace=workspace,
+        cpus=_auto_cpus(cpus),
     )
     stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
     if fill.code != 0:

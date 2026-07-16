@@ -61,6 +61,41 @@ def exit_code_for(result: ResolveResult) -> int:
     return 0
 
 
+def _probe_paths(
+    paths: Sequence[str | Path], *, max_reads: int, max_bytes: int, cpus: int
+) -> dict[str, tuple[Observation, list[str]]]:
+    """Probe every file, across up to ``cpus`` processes, keyed by ``str(path)``.
+
+    Each FASTQ is an independent, CPU-bound pure-Python fingerprint whose hot loop holds the GIL, so
+    files parallelize across PROCESSES — threads would just serialize. The result is byte-identical to
+    a sequential probe: ``probe_sample`` is deterministic over a head-bounded sample, order does not
+    matter (the map is keyed by path and the manifest is assembled by content hash), and **core count
+    is folded into no hash** — cores are not a budget any more than wall-clock is (R3). One shared pool
+    for the whole dataset is why a 12-file / 6-run study saturates the cores at once, rather than two
+    files at a time inside each run.
+    """
+    keyed = list(dict.fromkeys(str(p) for p in paths))  # de-dup, order-preserving
+    if cpus <= 1 or len(keyed) <= 1:
+        return {p: probe_sample(p, max_reads=max_reads, max_bytes=max_bytes) for p in keyed}
+
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
+
+    # Use a `fork` context where the OS has one (every POSIX box we run on). The probe stage is
+    # single-threaded, so fork is safe here, and it sidesteps `spawn`'s footgun of re-importing the
+    # caller's `__main__` — which is what makes a `--cpus 4` run explode under pytest or a bare script.
+    ctx = mp.get_context("fork") if "fork" in mp.get_all_start_methods() else None
+
+    out: dict[str, tuple[Observation, list[str]]] = {}
+    with ProcessPoolExecutor(max_workers=min(cpus, len(keyed)), mp_context=ctx) as pool:
+        futures = {
+            pool.submit(probe_sample, p, max_reads=max_reads, max_bytes=max_bytes): p for p in keyed
+        }
+        for fut in futures:
+            out[futures[fut]] = fut.result()
+    return out
+
+
 def resolve_dataset(
     # Sequence, not list: the engine only iterates. `list` is invariant, so a caller holding a
     # perfectly good list[Path] could not pass it without a copy — an API defect, not a caller bug.
@@ -73,16 +108,27 @@ def resolve_dataset(
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
     use_cache: bool = True,
+    cpus: int = 1,
+    _probed: dict[str, tuple[Observation, list[str]]] | None = None,
 ) -> ResolveOutput:
-    """Score a dataset's FASTQ files against the KB and return the ranked, escalated verdict."""
+    """Score a dataset's FASTQ files against the KB and return the ranked, escalated verdict.
+
+    ``cpus`` bounds a per-file probe pool; ``_probed`` lets a caller (``resolve_runs``) hand in a probe
+    map it already computed across the whole dataset, so the files are not probed twice.
+    """
     registry = registry if registry is not None else DEFAULT_REGISTRY
     kb_specs = specs if specs is not None else load_all_specs()
     cache = Cache(workspace)
 
+    probed = (
+        _probed
+        if _probed is not None
+        else _probe_paths(paths, max_reads=max_reads, max_bytes=max_bytes, cpus=cpus)
+    )
     observations: list[Observation] = []
     wps: list[WindowProbe] = []
     for path in paths:
-        obs, seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes)
+        obs, seqs = probed[str(path)]
         if use_cache:
             cache.write_observation(obs)
         observations.append(obs)
@@ -171,6 +217,7 @@ def resolve_runs(
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
     use_cache: bool = True,
+    cpus: int = 1,
 ) -> MultiRunOutput:
     """Group `paths` into runs and resolve **each run on its own bytes**.
 
@@ -191,8 +238,17 @@ def resolve_runs(
     """
     from .group import group_runs
 
+    grouped = group_runs(paths)
+    # Probe every file of every run ONCE, in one pool across the whole dataset (12 files, not 2 a
+    # run), then hand each run its slice. Probing per-run would cap parallelism at a run's file count.
+    probed = _probe_paths(
+        [p for run_paths in grouped.values() for p in run_paths],
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+        cpus=cpus,
+    )
     runs: list[RunResolution] = []
-    for run_id, run_paths in group_runs(paths).items():
+    for run_id, run_paths in grouped.items():
         output = resolve_dataset(
             run_paths,
             registry=registry,
@@ -202,6 +258,7 @@ def resolve_runs(
             max_reads=max_reads,
             max_bytes=max_bytes,
             use_cache=use_cache,
+            _probed=probed,
         )
         runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
 

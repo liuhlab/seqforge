@@ -252,6 +252,57 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     assert (tmp_path / "seqforge" / "manifest.yaml").is_file()  # the IR still landed
 
 
+def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None:
+    """`--cpus` is a speed knob, never a truth knob (R3): cores are not a budget any more than the
+
+    wall clock is. Probing the files across a process pool must produce the byte-identical manifest a
+    sequential probe does — so the content hash is the same whether you used 1 core or 4.
+
+    The FASTQs are written ONCE and reused across both runs: ``gzip`` stamps the current mtime into its
+    header, so regenerating a "logically identical" file yields different bytes and a different (and
+    correct) content hash. Same input bytes in, same hash out is precisely the property under test.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    data = tmp_path / "data"
+    data.mkdir()
+    f1 = data / "s_R1.fastq.gz"
+    f2 = data / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    def hash_with(cpus: int, ws: Path) -> str:
+        ws.mkdir()
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                str(f1),
+                str(f2),
+                "--organism",
+                "559292",
+                "--assembly",
+                "sacCer3",
+                "--annotation",
+                "ensembl",
+                "--no-llm",
+                "--fastq-dir",
+                str(data),
+                "--cpus",
+                str(cpus),
+                "-C",
+                str(ws),
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+        import yaml as _yaml
+
+        manifest = _yaml.safe_load((ws / "seqforge" / "manifest.yaml").read_text())
+        return manifest["provenance"]["dataset_hash"]
+
+    assert hash_with(1, tmp_path / "seq") == hash_with(4, tmp_path / "par")
+
+
 def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     doc = tmp_path / "methods.txt"
     doc.write_text("Libraries were prepared with the Chromium Single Cell 3' v3 kit.")

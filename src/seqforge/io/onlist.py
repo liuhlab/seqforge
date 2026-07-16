@@ -40,6 +40,13 @@ Strand = Literal["forward", "revcomp"]
 _BASE_TO_BITS = {"A": 0, "C": 1, "G": 2, "T": 3}
 _COMPLEMENT = str.maketrans("ACGT", "TGCA")
 
+#: ``ord(base) -> 2-bit code`` for uppercase ACGT (matching ``_BASE_TO_BITS``); everything else — N,
+#: lowercase, any non-ACGT, and pad — maps to 255, the "unpackable" sentinel. It is ``>= 4``, so any
+#: window touching one drops out of the packable set exactly as ``pack_barcode`` returns ``None``.
+_ORD_TO_BITS = np.full(256, 255, dtype=np.uint8)
+for _base, _bits in _BASE_TO_BITS.items():
+    _ORD_TO_BITS[ord(_base)] = _bits
+
 
 def revcomp(seq: str) -> str:
     """Reverse-complement an ACGT string (non-ACGT chars pass through unchanged)."""
@@ -73,9 +80,12 @@ class PackedOnlist:
 
     def __init__(self, width: int, codes: np.ndarray) -> None:
         self.width = width
-        #: sorted, unique packed codes (dtype uint32 for <=16 bp, uint64 for <=32 bp)
+        #: sorted, unique packed codes (dtype uint32 for <=16 bp, uint64 for <=32 bp). This IS the
+        #: membership index: it is sorted, so `np.searchsorted` answers containment in O(log n) with
+        #: ~27 MB, and there is no reason to also materialize a 6.8M-entry Python `frozenset` (which
+        #: cost ~700 MB and was the resolver's whole memory ceiling). Vectorized membership over a
+        #: read sample is one `searchsorted` call — see `onlist_hit_rate`.
         self.codes = codes
-        self._members: frozenset[int] = frozenset(int(c) for c in codes.tolist())
 
     @classmethod
     def from_barcodes(cls, barcodes: list[str]) -> PackedOnlist:
@@ -107,8 +117,9 @@ class PackedOnlist:
         return self.n_entries / (4.0**self.width)
 
     def contains(self, code: int) -> bool:
-        """Membership test for an already-packed barcode code."""
-        return code in self._members
+        """Membership test for an already-packed barcode code, by binary search on the sorted codes."""
+        i = int(np.searchsorted(self.codes, code))
+        return i < self.codes.size and int(self.codes[i]) == int(code)
 
 
 def unpack_barcodes(packed: PackedOnlist) -> list[str]:
@@ -187,6 +198,43 @@ class HitResult:
         return max(0.0, min(1.0, (self.hit_rate - self.floor) / span))
 
 
+def _encode_sample(sample: list[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Sample reads -> a padded ``(n, maxlen)`` uint8 matrix of 2-bit base codes + a lengths vector.
+
+    Built ONCE and reused across every ``(strand, offset)`` window — that reuse is the speedup. A
+    window scan then becomes a column slice, a vectorized pack, and one ``searchsorted``, in place of
+    ``strands * offsets * n`` Python ``pack_barcode`` calls. Non-ACGT bases and pad positions are 255,
+    which is ``>= 4``, so any window touching one is unpackable exactly as ``pack_barcode`` is ``None``.
+    """
+    n = len(sample)
+    lengths = np.fromiter((len(s) for s in sample), dtype=np.int64, count=n)
+    maxlen = int(lengths.max()) if n else 0
+    mat = np.full((n, maxlen), 255, dtype=np.uint8)
+    for i, seq in enumerate(sample):
+        if seq:
+            raw = np.frombuffer(seq.encode("ascii", "replace"), dtype=np.uint8)
+            mat[i, : raw.size] = _ORD_TO_BITS[raw]
+    return mat, lengths
+
+
+def _pack_window(mat: np.ndarray, s: int, width: int, *, rc: bool) -> tuple[np.ndarray, np.ndarray]:
+    """Pack column window ``[s, s+width)`` into codes + an all-ACGT validity mask, both vectorized.
+
+    Forward packing matches ``pack_barcode``: the first base is most significant (big-endian base-4).
+    Reverse-complement is ``3 - base`` (A<->T, C<->G) on the reversed window — reverse-then-complement
+    equals complement-then-reverse since the complement is per-base, and it is computed on the encoded
+    matrix, never by re-reading strings. ``valid`` is taken from the forward window (reversal does not
+    change which reads are all-ACGT), so an invalid row's garbage code is dropped by the caller.
+    """
+    win = mat[:, s : s + width].astype(np.uint64)
+    valid = (win < 4).all(axis=1)
+    if rc:
+        win = np.uint64(3) - win[:, ::-1]
+    weights = np.uint64(4) ** np.arange(width - 1, -1, -1, dtype=np.uint64)
+    packed = (win * weights).sum(axis=1, dtype=np.uint64)
+    return packed, valid
+
+
 def onlist_hit_rate(
     seqs: list[str],
     start: int,
@@ -201,6 +249,10 @@ def onlist_hit_rate(
     Tests forward and/or reverse-complement (per ``orientation``) across offsets
     ``[-offset_scan, +offset_scan]`` and returns the winning ``(orientation, offset, hit_rate)``.
     Bounded by ``max_reads`` (R3): the sample is already head-limited, and this caps the work again.
+
+    Vectorized: the sample is encoded once into a base-code matrix, and each window is a slice + a
+    ``searchsorted`` against the onlist's sorted codes. ``n_tested`` counts reads long enough to hold
+    the window (as before, including non-ACGT reads that cannot hit); ``hit_rate = hits / n_tested``.
     """
     width = onlist.width
     strands: list[Strand]
@@ -213,26 +265,32 @@ def onlist_hit_rate(
 
     sample = seqs[:max_reads]
     best = HitResult(hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor)
+    if not sample:
+        return best
+
+    mat, lengths = _encode_sample(sample)
+    maxcol = mat.shape[1]
+    wl = onlist.codes  # sorted, unique
     for strand in strands:
         for delta in range(-offset_scan, offset_scan + 1):
             s = start + delta
-            if s < 0:
-                continue
             e = s + width
-            hits = 0
-            tested = 0
-            for seq in sample:
-                if len(seq) < e:
-                    continue
-                window = seq[s:e]
-                if strand == "revcomp":
-                    window = revcomp(window)
-                tested += 1
-                code = pack_barcode(window)
-                if code is not None and onlist.contains(code):
-                    hits += 1
+            # Guard the column range: e > maxcol means no read is long enough (inrange would be empty
+            # anyway), but slicing past the matrix would silently return a NARROWER window and pack the
+            # wrong width. s < 0 is off the read's 5' end.
+            if s < 0 or e > maxcol:
+                continue
+            inrange = lengths >= e
+            tested = int(inrange.sum())
             if tested == 0:
                 continue
+            packed, valid = _pack_window(mat[inrange], s, width, rc=strand == "revcomp")
+            packable = packed[valid]
+            if packable.size:
+                idx = np.clip(np.searchsorted(wl, packable), 0, wl.size - 1)
+                hits = int((wl[idx] == packable).sum())
+            else:
+                hits = 0
             rate = hits / tested
             if rate > best.hit_rate:
                 best = HitResult(

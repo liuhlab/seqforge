@@ -88,6 +88,89 @@ def test_onlist_hit_rate_random_reads_near_floor() -> None:
     assert hit.hit_rate < 0.05  # ~ floor: random barcodes essentially never hit
 
 
+def _naive_hit_rate(seqs, start, onlist, orientation, offset_scan=2):
+    """The pre-vectorization loop, kept as an executable oracle for the numpy rewrite."""
+    from seqforge.io.onlist import HitResult
+
+    width = onlist.width
+    strands = (
+        ["forward"]
+        if orientation == "forward"
+        else ["revcomp"]
+        if orientation == "revcomp"
+        else ["forward", "revcomp"]
+    )
+    best = HitResult(hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor)
+    for strand in strands:
+        for delta in range(-offset_scan, offset_scan + 1):
+            s = start + delta
+            if s < 0:
+                continue
+            e = s + width
+            hits = tested = 0
+            for seq in seqs:
+                if len(seq) < e:
+                    continue
+                window = revcomp(seq[s:e]) if strand == "revcomp" else seq[s:e]
+                tested += 1
+                code = pack_barcode(window)
+                if code is not None and onlist.contains(code):
+                    hits += 1
+            if tested and hits / tested > best.hit_rate:
+                best = HitResult(
+                    hit_rate=hits / tested,
+                    orientation=strand,
+                    offset=delta,
+                    n_tested=tested,
+                    floor=onlist.floor,
+                )
+    return best
+
+
+def test_vectorized_hit_rate_matches_the_naive_loop_including_edges() -> None:
+    """The numpy rewrite must agree with the read-by-read loop it replaced, byte for byte.
+
+    Covers the cases that make packing subtle: N bases (unpackable, counted in `tested` but never a
+    hit), reads shorter than the window, non-zero anchors + offsets, revcomp, and an empty sample.
+    """
+    rng = random.Random(11)
+    pool = _pool(rng, 300, 16)
+    onlist = PackedOnlist.from_barcodes(pool)
+
+    def rand_read() -> str:
+        prefix = "".join(rng.choice("ACGT") for _ in range(rng.choice([0, 1, 2])))
+        core = (
+            rng.choice(pool)
+            if rng.random() < 0.5
+            else "".join(rng.choice("ACGTN") for _ in range(16))
+        )
+        return prefix + core + "".join(rng.choice("ACGT") for _ in range(rng.choice([0, 3, 20])))
+
+    for _ in range(30):
+        seqs = [rand_read() for _ in range(rng.choice([0, 1, 40, 300]))]
+        for orientation in ("forward", "revcomp", "either"):
+            for start in (0, 1, 2):
+                got = onlist_hit_rate(seqs, start, onlist, orientation=orientation)
+                want = _naive_hit_rate(seqs, start, onlist, orientation)
+                assert got.hit_rate == pytest.approx(want.hit_rate)
+                assert (got.n_tested, got.orientation, got.offset) == (
+                    want.n_tested,
+                    want.orientation,
+                    want.offset,
+                )
+
+
+def test_packed_onlist_keeps_no_python_set() -> None:
+    """Regression: membership is `searchsorted` on the sorted array, not a 6.8M-entry `frozenset`.
+
+    That set was ~700 MB — the resolver's whole memory ceiling — and it duplicated information the
+    sorted `codes` array already holds. If someone reintroduces it, this fails.
+    """
+    onlist = PackedOnlist.from_barcodes(_pool(random.Random(5), 128, 16))
+    assert not hasattr(onlist, "_members")
+    assert onlist.codes.tolist() == sorted(onlist.codes.tolist())  # sorted -> searchsorted is valid
+
+
 def test_intersect_fraction() -> None:
     a = PackedOnlist.from_barcodes(["AAAAAAAA", "CCCCCCCC", "GGGGGGGG"])
     b = PackedOnlist.from_barcodes(["CCCCCCCC", "GGGGGGGG", "TTTTTTTT"])
