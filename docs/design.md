@@ -75,60 +75,25 @@ deferred annotation), so the module concatenates and compiles top-to-bottom.
 
 ### 1.0 Scalars & controlled vocabulary
 
-```python
-from __future__ import annotations
-from enum import Enum
-from typing import Annotated, Generic, Literal, TypeVar
-from pydantic import (BaseModel, ConfigDict, Field, PositiveInt,
-                      StringConstraints, AfterValidator)
-
-def _reject_absolute_or_local(s: str) -> str:
-    """P9/R7: a manifest URI is a relative path, a non-file scheme (s3://,gs://,https://,sra:),
-    or a bare accession — NEVER an absolute or local filesystem path."""
-    bad = (s.startswith(("/", "~")) or s.startswith("file:///")
-           or (len(s) > 1 and s[1] == ":")          # C:\ ...
-           or s.startswith("\\\\"))                    # UNC \\host\share
-    if bad:
-        raise ValueError(f"absolute/local path forbidden in a manifest URI: {s!r}")
-    return s
-
-Sha256    = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
-Uri       = Annotated[str, StringConstraints(min_length=1), AfterValidator(_reject_absolute_or_local)]
-LocalPath = Annotated[str, StringConstraints(min_length=1)]        # internal-only (Observation.local_uri)
-AssayTerm = Annotated[str, StringConstraints(pattern=r"^(EFO|OBI):\d{4,}$")]   # EFO/OBI CURIE
-NcbiTaxid = PositiveInt                                             # 9606, 10090, 559292, 6239, ...
-# NCBI + ENA + DDBJ runs/experiments/studies/samples, GEO, BioProject, and EBI/DDBJ BioSample:
-Accession = Annotated[str, StringConstraints(
-    pattern=r"^([SED]R[RXPS]\d+|GS[EM]\d+|PRJ[A-Z]{2}\d+|SAM[NED][A-Z]?\d+)$")]
-ChemistryId = str                          # KB primary key, e.g. "10x-3p-gex-v3"; validated vs KB in code
-Confidence  = Annotated[float, Field(ge=0.0, le=1.0)]
-Rung        = Annotated[int,   Field(ge=0, le=7)]      # escalation-ladder rung 0..7
-Basis       = Literal["observed", "asserted", "inferred", "user_confirmed"]
-# NOTE (open, minor): processing policy-defaults use basis="inferred" with an `evidence` ref naming
-# the policy rule. If policy-defaults must be distinguishable from evidence-inferred, add a
-# "policy_default" basis. Kept to the four bases for now.
-```
+Scalars and validators live in [`models/base.py`](../src/seqforge/models/base.py). The
+load-bearing ones: `Uri` runs an `AfterValidator` that rejects any absolute or local filesystem path
+(`/…`, `~`, `file:///`, `C:\…`, UNC `\\host\share`) — a manifest URI must be a relative path, a
+non-file scheme (`s3://`, `gs://`, `https://`, `sra:`), or a bare accession, never a path to one
+machine. `Basis` is a closed set of **four** — `observed` (from bytes), `asserted` (from humans/DBs),
+`inferred` (derived), `user_confirmed` — and `Rung` is the escalation-ladder step `0..7`. Policy
+defaults are stamped `basis="inferred"` with an `evidence` ref naming the policy rule; whether to add a
+distinct `policy_default` basis is left open (§5), and §1.6b's varying basis makes it unnecessary in
+practice.
 
 ### 1.1 `Evidenced[T]` — the three-truths carrier (R4)
 
-```python
-T = TypeVar("T")
-
-class Evidenced(BaseModel, Generic[T]):
-    """Wraps EVERY interpretive manifest field. A value never travels without its provenance.
-
-    basis      how we know it: observed=from bytes, asserted=from humans/DBs, inferred=derived,
-               user_confirmed. Disagreement across bases is a first-class Conflict, never a silent merge.
-    evidence   ids of the Observation / Assertion / onlist-check records that justify the value.
-    rung       the cheapest escalation-ladder step that settled this field (provenance + eval signal).
-    """
-    model_config = ConfigDict(frozen=True)
-    value: T
-    basis: Basis
-    evidence: list[str] = Field(default_factory=list)
-    confidence: Confidence
-    rung: Rung
-```
+[`models/base.py`](../src/seqforge/models/base.py) (`Evidenced[T]`; the concrete
+`Evidenced[…]` specializations are stable named `$defs` in
+[`models/evidenced.py`](../src/seqforge/models/evidenced.py)). It wraps **every** interpretive manifest
+field so a value never travels without its provenance: `basis` (how we know it), `evidence` (ids of the
+Observation / Assertion / onlist-check records that justify it), `confidence`, and `rung` (the cheapest
+ladder step that settled it, a provenance + eval signal). Disagreement across bases is a first-class
+`Conflict`, never a silent merge.
 
 `frozen=True` makes a validated field immutable (R2: nothing edits a value post-validation).
 Manifests are hashed by canonical serialization, never `hash()`, so the unhashable `list` field is a
@@ -141,82 +106,15 @@ distinct-value ratios, header grammar and integrity — and assigns **no roles**
 is structural (`constant` / `random` / `homopolymer`); mapping `constant→linker/TSO`,
 `random→CB|UMI|cDNA`, `homopolymer-T→polyT` is the resolver's job, scored and second-guessable.
 
-```python
-class CycleComposition(BaseModel):
-    """Base fractions at one 0-based cycle; a+c+g+t+n ~= 1.0."""
-    cycle: int = Field(ge=0); a: float; c: float; g: float; t: float; n: float
-
-class ConstantSegment(BaseModel):
-    """A cycle span where one base dominates (>~90%): linker/adapter/TSO CANDIDATE (role NOT assigned)."""
-    kind: Literal["constant"] = "constant"
-    start: int; end: int; consensus: str; purity: Confidence   # consensus read straight off composition
-
-class RandomSegment(BaseModel):
-    """Near-uniform ACGT span: CB/UMI/cDNA CANDIDATE (role NOT assigned)."""
-    kind: Literal["random"] = "random"
-    start: int; end: int; mean_entropy_bits: float             # ~2.0 for uniform ACGT
-
-class HomopolymerSegment(BaseModel):
-    """A run of one base (polyT capture / polyA tail): structural only."""
-    kind: Literal["homopolymer"] = "homopolymer"
-    base: Literal["A", "C", "G", "T"]; start: int; end: int; mean_run: float
-
-Segment = Annotated[ConstantSegment | RandomSegment | HomopolymerSegment,
-                    Field(discriminator="kind")]
-
-class FileIdentity(BaseModel):
-    """Content identity of one FASTQ. Observation is internal, so a LOCAL path is allowed here only."""
-    sha256: Sha256; size_bytes: PositiveInt; basename: str
-    local_uri: LocalPath | None = None       # where probe read bytes; NEVER copied into a Manifest
-
-class ProbeProvenance(BaseModel):
-    """What the bounded probe did under its read/byte budget (R3). bytes_read = DECOMPRESSED;
-    compressed_bytes_read drives estimated_total_reads (avoids the compression-ratio undercount)."""
-    n_reads_sampled: int = Field(ge=0)
-    bytes_read: int = Field(ge=0)
-    compressed_bytes_read: int = Field(ge=0)
-    tool_version: str
-    params_hash: str                         # hash of {max_reads, max_bytes, seed}
-
-class ReadLengthProfile(BaseModel):
-    mode: int = Field(ge=0); n_distinct: int = Field(ge=1)
-    min_len: int = Field(ge=0); max_len: int = Field(ge=0)
-    percentiles: dict[str, int] | None = None
-    # n_distinct>1 on a fixed-geometry read => pre-trimmed upload => PRETRIMMED_VARIABLE_LENGTH Blocker.
-
-class WindowDistinctRatio(BaseModel):
-    """distinct/total over a candidate cycle window. DEPTH-DEPENDENT: a SUPPORTS signal only, never a
-    gate. Normalize with 4^len and sampled-N before interpreting (see §4.1)."""
-    start: int; end: int; distinct_ratio: Confidence; n_sampled: int = Field(ge=1)
-
-class ReadNameGrammar(BaseModel):
-    """Parsed Illumina header; all optional. sra_normalized flags an @SRR....N rewrite (index gone)."""
-    parsed: bool = False
-    instrument: str | None = None; run: str | None = None; flowcell: str | None = None
-    lane: int | None = None; tile: int | None = None
-    index: str | None = None; sra_normalized: bool = False
-
-class GzipIntegrity(BaseModel):
-    ok: bool; truncated: bool                # truncated -> TRUNCATED_GZIP Blocker
-    bgzf: bool | None = None; member_count: int | None = None
-
-class Observation(BaseModel):
-    """Deterministic, LLM-free, network-free probe output for ONE file, cached by file sha256.
-    Structural signals ONLY — it MUST NOT assign roles."""
-    model_config = ConfigDict(frozen=True)
-    file: FileIdentity
-    probe: ProbeProvenance
-    per_cycle_composition: list[CycleComposition]
-    segments: list[Segment]                                     # structural, NOT roles
-    read_length: ReadLengthProfile
-    distinct_value_windows: list[WindowDistinctRatio]
-    read_name: ReadNameGrammar
-    quality_encoding: Literal["phred33", "phred64", "unknown"]
-    n_rate: Confidence
-    estimated_total_reads: int = Field(ge=0)                    # extrapolated, never a full scan
-    est_method: Literal["isize", "compressed_ratio"]
-    gzip: GzipIntegrity
-```
+Model: [`models/observation.py`](../src/seqforge/models/observation.py). The decisions the field
+list can't show: a distinct-value window is **SUPPORTS-only, never a gate** — it is depth-dependent, so
+normalize with `4^len` and the sampled-N before reading it (§4.1); `ABSTAIN` ("the probe cannot see
+this signal") is first-class and distinct from "the signal is absent", and it never gates; `n_distinct
+> 1` on a fixed-geometry read means a pre-trimmed upload → `PRETRIMMED_VARIABLE_LENGTH` Blocker, and a
+truncated member → `TRUNCATED_GZIP`; `estimated_total_reads` is extrapolated from **compressed**
+bytes-per-read (or the gzip ISIZE), never a full scan, because the naive decompressed form undercounts
+by the ~3–5× compression ratio; and `FileIdentity.local_uri` is the one place a local path is allowed
+— it records where probe read bytes and is NEVER copied into a manifest.
 
 ### 1.3 `Assertion` — LLM-facing draft split from stored (R1/R2)
 
@@ -224,37 +122,11 @@ The LLM cannot count character offsets, so it emits only `{doc_sha256, quote, co
 deterministic code searches the normalized document for the quote, computes offsets, and sets the
 two verification flags. This makes the P4 tripwire *fail-closed* instead of *false-rejecting*.
 
-```python
-class SourceSpan(BaseModel):
-    doc_sha256: str
-    quote: str                               # the exact substring the claim derives from
-    context: str | None = None               # optional short left/right context to disambiguate
-    char_start: int | None = None            # COMPUTED by code (not the LLM)
-    char_end: int | None = None
-
-class AssertionDraft(BaseModel):
-    """The ONLY LLM structured-output surface for harvest (job a). Kept trivially simple: no unions,
-    no offsets, value is a plain string."""
-    field: str                               # dotted manifest path, e.g. "experiment.organism"
-    value: str
-    span: SourceSpan                          # LLM supplies doc_sha256 + quote (+ context) only
-    llm_confidence: Confidence
-
-class ExtractorProvenance(BaseModel):
-    model_id: str; prompt_version: str
-
-class Assertion(BaseModel):
-    """Composed by code from an AssertionDraft. Both verification flags are code-owned so a
-    hallucinated or mis-attributed claim fails closed."""
-    id: str
-    field: str
-    value: str
-    span: SourceSpan
-    span_verified: bool = False              # code sets True: quote FOUND in normalized doc (R2)
-    entailment_ok: bool = False              # code sets True: quote ENTAILS value (R2)
-    llm_confidence: Confidence
-    extractor: ExtractorProvenance
-```
+Model: [`models/assertion.py`](../src/seqforge/models/assertion.py). `AssertionDraft` —
+`{field, value, span:{doc_sha256, quote, context?}, llm_confidence}`, no offsets, value a plain string
+— is the LLM's only structured-output surface; code searches the normalized doc for the quote, computes
+the offsets, composes the stored `Assertion`, and **owns** both flags (`span_verified`,
+`entailment_ok`).
 
 `span_verified` catches *fabricated provenance*; `entailment_ok` catches a *real quote mis-attached
 to a wrong value* (the more common LLM failure — a verbatim "single-cell RNA-seq" span pinned to
@@ -262,28 +134,10 @@ to a wrong value* (the more common LLM failure — a verbatim "single-cell RNA-s
 
 ### 1.4 `Conflict` — first-class, surfaced (R4)
 
-```python
-Decidable = Literal["reads", "onlist", "metadata", "alignment", "user"]   # includes onlist
-
-class ConflictPosition(BaseModel):
-    value: str; basis: Basis                  # value is the canonical string form (heterogeneous fields)
-    evidence: list[str] = Field(default_factory=list); confidence: Confidence
-
-class Resolution(BaseModel):
-    chosen_value: str; basis: Basis; rung: Rung
-    decided_by: Literal["code", "user", "benign_equivalence"]; note: str | None = None
-
-class Conflict(BaseModel):
-    """A surfaced disagreement between truths, never auto-picked. positions[] generalizes the common
-    observed/asserted pair; kind is derivable from the position bases."""
-    id: str
-    field: str                                # dotted manifest path
-    positions: list[ConflictPosition] = Field(min_length=2)
-    kind: Literal["observed_vs_asserted", "asserted_vs_asserted", "other"]
-    decidable_by: list[Decidable]
-    status: Literal["open", "resolved", "benign"] = "open"
-    resolution: Resolution | None = None
-```
+Model: [`models/conflict.py`](../src/seqforge/models/conflict.py). A surfaced disagreement
+between truths, never auto-picked: `positions[]` (min 2) generalizes the common observed/asserted
+pair, `kind` is derivable from the position bases, and `resolution` records who decided (`code` /
+`user` / `benign_equivalence`).
 
 `status="benign"` is the §2.4 escape hatch: two confusable KB entries that emit *identical*
 `backend.params` (v3 vs v3.1) are recorded together with zero questions. `decidable_by` includes
@@ -291,35 +145,14 @@ class Conflict(BaseModel):
 
 ### 1.5 `Blocker` / `Warning` — refusal as an exit code (R2)
 
-```python
-class BlockerCode(str, Enum):
-    MISSING_TECHNICAL_READ     = "MISSING_TECHNICAL_READ"
-    TRUNCATED_GZIP             = "TRUNCATED_GZIP"
-    CORRUPT_FASTQ              = "CORRUPT_FASTQ"
-    UNSUPPORTED_TECHNOLOGY     = "UNSUPPORTED_TECHNOLOGY"
-    PRETRIMMED_VARIABLE_LENGTH = "PRETRIMMED_VARIABLE_LENGTH"
-    NO_VALID_ROLE_ASSIGNMENT   = "NO_VALID_ROLE_ASSIGNMENT"
-    ONLIST_VERIFICATION_FAILED = "ONLIST_VERIFICATION_FAILED"
-    UNRESOLVED_CONFLICT        = "UNRESOLVED_CONFLICT"
-    MISSING_CONTROLLED_VOCAB   = "MISSING_CONTROLLED_VOCAB"
-    ABSOLUTE_PATH              = "ABSOLUTE_PATH"
-
-class BlockerSubject(BaseModel):
-    kind: Literal["file", "field", "dataset"]
-    ref: str                                  # basename / dotted path / dataset id — never an absolute path
-
-class Blocker(BaseModel):
-    """A structured refusal emitted alongside a nonzero exit. A Blocker is ALWAYS fatal — advisory
-    diagnostics are a separate Warning type, so branching code never inspects severity to know if it blocks."""
-    id: str; code: BlockerCode
-    message: str                              # human-readable diagnosis
-    remedy: str                               # MUST be actionable
-    subject: BlockerSubject
-    evidence: list[str] = Field(default_factory=list)
-
-class Warning(BaseModel):
-    code: str; message: str; subject: BlockerSubject     # non-blocking; exits 0
-```
+Model: [`models/blocker.py`](../src/seqforge/models/blocker.py). A `Blocker` is a structured
+refusal emitted alongside a nonzero exit, and is **always fatal** — advisory diagnostics are a separate
+`Warning` type (non-blocking, exits 0), so branching code never inspects a severity field to learn
+whether it blocks. Every Blocker carries an actionable `remedy` and a `subject` that is a basename /
+dotted path / dataset id, never an absolute path. The closed `BlockerCode` set is
+`MISSING_TECHNICAL_READ`, `TRUNCATED_GZIP`, `CORRUPT_FASTQ`, `UNSUPPORTED_TECHNOLOGY`,
+`PRETRIMMED_VARIABLE_LENGTH`, `NO_VALID_ROLE_ASSIGNMENT`, `ONLIST_VERIFICATION_FAILED`,
+`UNRESOLVED_CONFLICT`, `MISSING_CONTROLLED_VOCAB`, `ABSOLUTE_PATH`.
 
 `MISSING_TECHNICAL_READ.remedy` is operable: *"re-fetch with `fasterq-dump --include-technical`, or
 pull the original submitted files `sra-pub-src-*` via the SRA Data Locator / SDL API."*
@@ -334,144 +167,36 @@ pull the original submitted files `sra-pub-src-*` via the SRA Data Locator / SDL
 > cannot produce the `Conflict` R4 promises. §1.0 listing **four** bases against three sections
 > was the tell. Intent now lives in §1.6b, in its own artifact.
 
-```python
-class ReadElement(BaseModel):
-    """One ordered sub-region of a read. A SUPERSET/adapter over a seqspec Region: adds a derived
-    `start` and an interpretive `role` that seqspec Regions do not carry (seqspec derives position
-    from ordering + min_len/max_len). seqspec sequence_type maps: fixed->sequence; random->random ACGT;
-    onlist->onlist_ref."""
-    role: Literal["CB", "UMI", "cDNA", "gDNA", "index", "linker", "polyT", "polyA"]
-    region_type: Literal["barcode", "umi", "cdna", "gdna", "index5", "index7",
-                         "linker", "poly_A", "poly_t", "custom_primer"]
-    start: int | None = None; length: int | None = None       # None if variable/leading
-    min_len: int | None = None; max_len: int | None = None    # seqspec-canonical for variable elements
-    sequence: str | None = None                                # fixed linker/adapter IUPAC
-    onlist_ref: str | None = None                              # Onlist.name backing a barcode element
+Model: [`models/dataset.py`](../src/seqforge/models/dataset.py). The manifest is a finished
+assay — what the bench did — with TWO truths and ONE lifetime, **immutable**. `compose()` is a pure
+function of `(DatasetManifest, ProcessingManifest)`, and `validate()` also enforces referential
+integrity (every experiment `file_uri` ∈ the library inventory). The decisions the field list can't
+show:
 
-class ReadDef(BaseModel):
-    read_id: str                              # role id "R1"/"R2"/"I1" — NOT a filename claim
-    strand: Literal["pos", "neg"]
-    min_len: int = Field(ge=0); max_len: int = Field(ge=0)
-    elements: list[ReadElement]               # ordered 5'->3'
-
-class ReadLayout(BaseModel):
-    modality: Literal["rna", "atac", "protein", "crispr", "dna"]
-    reads: list[ReadDef]
-
-class Onlist(BaseModel):
-    """Barcode-whitelist registry entry; fetched via pooch + hash-verified, NEVER vendored.
-    orientation_hint is a NON-authoritative default; the authoritative orientation lives per-read in
-    the KB (one list can be forward for GEX and revcomp for ATAC). Tier B tests both anyway."""
-    name: str; uri: Uri; sha256: Sha256; length: int = Field(ge=1)
-    orientation_hint: Literal["forward", "reverse_complement"] | None = None
-    n_entries: int | None = None
-
-class GenomeRef(BaseModel):
-    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path (R7).
-    liulab-genome does not fetch annotations; seqforge stages the GTF and calls register_gtf(name)."""
-    assembly: str                             # hg38 / mm39 / sacCer3 / ce11 (validated live vs UCSC)
-    annotation_name: str                      # "gencode" / "ensembl" / "WS298"
-    ncbi_taxid: NcbiTaxid | None = None
-
-RuntimeEnv = Literal["align-rna", "align-dna", "ml", "ml-gpu"]   # literal liulab-runtime env; no profile layer
-
-class ResourceHints(BaseModel):
-    threads: int = Field(ge=1, default=8); mem_gb: int = Field(ge=1, default=32)
-    disk_gb: int | None = None; gpus: int = Field(ge=0, default=0)
-
-# --- concrete Evidenced specializations: stable named $defs for schema export; MUST precede use ---
-class EvidencedStr(Evidenced[str]): ...
-class EvidencedBool(Evidenced[bool]): ...
-class EvidencedTaxid(Evidenced[NcbiTaxid]): ...
-class EvidencedAssay(Evidenced[AssayTerm]): ...
-class EvidencedChemistrySet(Evidenced[list[ChemistryId]]): ...   # equivalence class, not a single pick
-class EvidencedAccessionList(Evidenced[list[Accession]]): ...
-class EvidencedReadLayout(Evidenced[ReadLayout]): ...
-class EvidencedGenome(Evidenced[GenomeRef]): ...
-class EvidencedRuntimeEnv(Evidenced[RuntimeEnv]): ...
-
-class FileInventoryItem(BaseModel):
-    """One physical file + checksum + assigned role. NO absolute path (R7). Identity is raw observed
-    truth; the role ASSIGNMENT is the joint-optimization output, so read_id is Evidenced."""
-    uri: Uri; basename: str; sha256: Sha256; size_bytes: PositiveInt
-    read_id: str | None = None                # -> ReadLayout.reads[].read_id. NOT Evidenced: the role
-                                              # assignment and the chemistry come out of ONE joint
-                                              # optimization, and `library.chemistry` carries its score.
-
-class AssayLabel(BaseModel):
-    """One chemistry, spelled three ways. Derived from the chemistry, so it carries no confidence."""
-    chemistry: ChemistryId                    # 10x-3p-gex-v3
-    curie: AssayTerm                          # EFO:0009922
-    name: str                                 # "10x 3' v3" — EFO's own label, from io/efo/labels.json
-
-class LibrarySection(BaseModel):
-    """Physical truth. Authority = EVIDENCE. ONE decision, ONE envelope.
-
-    `chemistry` is the decision — the joint optimization over (which technology, which file is which
-    read) — and it is the only Evidenced field here. Everything else FOLLOWS from it: `assay` is the
-    same answer in EFO's vocabulary, `read_layout` is the KB's structure filled in with measured
-    lengths, `files[].read_id` is the assignment half of the same optimization.
-
-    They each used to carry their own envelope, and the pilot's manifest showed what that bought:
-    `confidence: 0.750672` printed four times, identical, because it was always one number about one
-    decision. Four envelopes filled from one variable cannot disagree, so they were never four truths
-    — and R4 has never asked for four. R4 asks that a value not travel without its provenance, which
-    one honest envelope does.
-    """
-    chemistry: EvidencedChemistrySet          # equivalence class: benign twins (v3 + v3.1) are machine-visible
-    assay: list[AssayLabel] = []              # one per member of the class, same order
-    read_layout: ReadLayout
-    onlists: list[Onlist] = Field(default_factory=list)
-    files: list[FileInventoryItem]
-
-class SampleGroup(BaseModel):
-    """One biological sample, the files that carry it, and what is declared about it.
-
-    `attributes` is keyed by an NCBI HARMONIZED BioSample attribute name — one of 960, with NCBI's
-    definitions — and the validator refuses anything else. Two typed fields (`tissue`, `condition`)
-    used to sit here and both were wrong: `condition` was ours (no archive defines it, and a field
-    named "condition" accepts anything you can call a condition — a model duly filed worm husbandry
-    into it), and two fields cannot hold `strain`, which is the only structured field separating the
-    pilot's wild-type samples from its daf-2 mutants. An open dict rather than 960 pydantic fields:
-    a typed list mirroring somebody else's vocabulary rots the moment they add to it.
-    """
-    sample_id: str                            # the archive's accession when joined; the run key otherwise
-    accession: Accession | None = None        # None for a dataset that never went near an archive
-    attributes: dict[str, EvidencedStr] = {}  # key ∈ NCBI's 960; see io/attributes.py
-    file_uris: list[Uri] = Field(default_factory=list)   # sample -> file mapping
-
-class Study(BaseModel):
-    """The study, as the archive declares it. NOT Evidenced: none of it is an interpretation.
-
-    The record says the title is X and we copied X, exactly as we copy a sha256. The abstract is
-    deliberately absent — it is prose, it belongs in a document a quote can grep into, and pasting a
-    paragraph of English into a content-addressed manifest would make the dataset's identity depend
-    on it.
-    """
-    accession: Accession | None = None; title: str | None = None; center: str | None = None
-    data_type: str | None = None; released: str | None = None
-
-class ExperimentSection(BaseModel):
-    """Biological/metadata truth. Authority = METADATA + humans."""
-    organism: EvidencedTaxid                  # NCBI taxid; probe cannot see it -> basis is asserted/inferred
-    accessions: EvidencedAccessionList
-    samples: list[SampleGroup]
-    study: Study | None = None
-
-class DatasetProvenance(BaseModel):
-    # workflow_version is deliberately ABSENT: the assay happened before we had an opinion about
-    # which rules would run over it. It belongs to the processing manifest (R11).
-    dataset_hash: str; kb_version: str; seqforge_version: str
-
-class DatasetManifest(BaseModel):
-    """A finished assay: what the bench did. TWO truths, one lifetime — IMMUTABLE (R11).
-    compose() is a PURE function of (this, ProcessingManifest).
-    validate() ALSO enforces referential integrity: every experiment file_uri ∈ library inventory."""
-    model_config = ConfigDict(frozen=True)
-    library: LibrarySection
-    experiment: ExperimentSection
-    provenance: DatasetProvenance
-```
+- **`LibrarySection` — physical truth, authority = evidence, one decision → one envelope.** `chemistry`
+  is the *only* `Evidenced` field: it is the joint optimization over (which technology, which file is
+  which read), carried as an equivalence class (`EvidencedChemistrySet`) because benign twins (v3 +
+  v3.1) are recorded together. Everything else *follows* from it — `assay` is the same answer in EFO's
+  vocabulary, `read_layout` is the KB's structure filled with measured lengths, `files[].read_id` is
+  the assignment half of the same optimization (so it is **not** `Evidenced`; the score rides on
+  `chemistry`). They each used to carry their own envelope, and the pilot's manifest showed what that
+  bought: `confidence: 0.750672` printed four times, identical, because it was always one number about
+  one decision. Four envelopes filled from one variable cannot disagree — they were never four truths,
+  and R4 asks only that a value not travel without its provenance, which one honest envelope does.
+- **`SampleGroup.attributes` is keyed by NCBI's 960 harmonized BioSample names**, with NCBI's own
+  definitions ([`io/attributes.py`](../src/seqforge/io/attributes.py)), and the validator refuses
+  anything else. Two typed fields (`tissue`, `condition`) used to sit here and both were wrong:
+  `condition` was *ours* — no archive defines it, and a field named "condition" accepts anything you can
+  call a condition, so a model duly filed worm husbandry into it — and two typed fields cannot hold
+  `strain`, the only structured field separating the pilot's wild-type samples from its daf-2 mutants.
+  An open dict over a controlled vocabulary rather than 960 pydantic fields, because a typed list
+  mirroring somebody else's vocabulary rots the moment they add to it.
+- **`Study` is NOT `Evidenced`** — none of it is an interpretation; the record says the title is X and
+  we copy X exactly as we copy a sha256. The abstract is deliberately absent: it is prose, it belongs
+  in a document a quote can grep into, and pasting a paragraph of English into a content-addressed
+  manifest would make the dataset's identity depend on it.
+- **`DatasetProvenance` omits `workflow_version`** on purpose — the assay happened before we had an
+  opinion about which rules would run over it; that belongs to the processing manifest.
 
 ### 1.6b `ProcessingManifest` — intent, plural (R11)
 
@@ -479,50 +204,22 @@ The flags to §1.6's IR. Many per dataset; that plurality IS the design. `basis`
 decided**, not how we know — which is why `user_confirmed`, unwritten anywhere else in seqforge since
 the beginning, is the basis this section exists to carry.
 
-```python
-SoloFeature = Literal["Gene","SJ","GeneFull","GeneFull_ExonOverIntron","GeneFull_Ex50pAS","Velocyto"]
+Model: [`models/processing.py`](../src/seqforge/models/processing.py). The decisions:
 
-class SoloQuant(BaseModel):
-    kind: Literal["solo"] = "solo"
-    features: list[SoloFeature] = Field(min_length=1)   # ORDERED; [0] is primary. Defaults to ALL FIVE.
-    # @model_validator: no duplicates; "Velocyto requires Gene" (a real STAR constraint, so a
-    # validator — no enum can express "this member requires that one").
-
-class BulkQuant(BaseModel):
-    kind: Literal["bulk"] = "bulk"
-    mode: Literal["GeneCounts","TranscriptomeSAM","None"] = "GeneCounts"
-    # no strandedness knob, and none is needed: --quantMode GeneCounts already emits all three
-    # strand columns. There was never a decision to make.
-
-Quantification = Annotated[SoloQuant | BulkQuant, Field(discriminator="kind")]  # module-scoped
-
-class ProcessingSection(BaseModel):
-    """INTENT. Not a truth; no authority. basis records WHO DECIDED:
-       CLI flag -> user_confirmed | --instruction doc -> user_confirmed | policy -> inferred.
-       The two user_confirmed tiers differ only in PRECEDENCE; the channel lives in `evidence`.
-       That resolves §1.0's open note: no `policy_default` basis is needed, because once a section
-       carries a VARYING basis, `inferred` + a ref naming the rule is distinguishable by inspection."""
-    genome: EvidencedGenome
-    aligner: EvidencedStr
-    quantification: EvidencedQuantification   # what to COUNT (R11). No longer decorative.
-    variant_calling: EvidencedBool
-    environment: EvidencedRuntimeEnv          # literal liulab-runtime env name (R7/R10)
-    resources: ResourceHints = Field(default_factory=ResourceHints)
-
-class DatasetPin(BaseModel):
-    dataset_hash: Sha256; accessions: list[Accession] = Field(default_factory=list)
-
-class ProcessingManifest(BaseModel):
-    """One way to process a dataset. `dataset is None` => a TEMPLATE, portable across 10^4 datasets
-    (that is uniform reprocessing, and a mandatory pin would destroy it). Set => BOUND; compose
-    refuses a mismatch with a Blocker and never auto-repins. compose ALWAYS writes the bound form it
-    used to processing.lock.yaml: R5 says disk is STATE, not that disk is INPUT."""
-    model_config = ConfigDict(frozen=True)
-    processing_id: str
-    dataset: DatasetPin | None = None
-    processing: ProcessingSection
-    provenance: ProcessingProvenance          # processing_hash, workflow_version, seqforge_version
-```
+- **`quantification` is a discriminated union** (`SoloQuant | BulkQuant`) and is no longer decorative —
+  `params_gate` fails if the emitted config disagrees with it. `SoloQuant.features` is **ordered**
+  (`[0]` primary) and **defaults to all five** solo features; a validator enforces "no duplicates" and
+  "Velocyto requires Gene" (a real STAR constraint no enum can express). `BulkQuant` needs no
+  strandedness knob — `--quantMode GeneCounts` already emits all three strand columns, so there was
+  never a decision to make there.
+- **`basis` records *who decided*:** a CLI flag or an `--instruction` doc → `user_confirmed`, policy →
+  `inferred`. The two `user_confirmed` tiers differ only in *precedence*; the channel lives in
+  `evidence`. That is why §1.0 needs no `policy_default` basis — once a section carries a *varying*
+  basis, `inferred` + a ref naming the rule is distinguishable by inspection.
+- **`dataset is None` ⇒ a template**, portable across 10⁴ datasets (a mandatory pin would destroy
+  uniform reprocessing); set ⇒ **bound**, and `compose` refuses a mismatch with a Blocker and never
+  auto-repins. `compose` ALWAYS writes the bound form it used to `processing.lock.yaml` — disk is
+  state, not input.
 
 `run_id = H(dataset_hash ⊕ processing_hash ⊕ kb_version ⊕ workflow_version)` — the pairing is
 recorded here, at compile time, never inside either input. The old `provenance_id(manifest_hash, kb,
@@ -536,68 +233,12 @@ The four-stage contract emits ranked candidates, decisions, questions, and compi
 a first-class Pydantic type so `schema export` references only types that exist, and every stdout
 object round-trips through JSON Schema.
 
-```python
-class TechScore(BaseModel):
-    """JSON-safe: no ±inf ever appears in serialized output. 'forbidden' == a requires/excludes gate
-    failed; 'scored' carries the finite normalized value."""
-    technology: ChemistryId
-    status: Literal["forbidden", "scored"]
-    value: float | None = None; reason: str | None = None
-
-class RoleAssignment(BaseModel):
-    assignment: dict[str, str]                # role_id -> file sha256
-    unassigned: list[str] = Field(default_factory=list)   # leftover file shas (index/ignored)
-
-class Candidate(BaseModel):
-    technology: ChemistryId
-    score: TechScore
-    role_assignment: RoleAssignment
-    rung_resolved: dict[str, int]             # per-field deciding rung (provenance + eval signal)
-    equivalence_members: list[ChemistryId] = Field(default_factory=list)   # CI-proven processing_equivalent twins
-    evidence: list[str] = Field(default_factory=list)
-
-class Question(BaseModel):
-    id: str; field: str; prompt: str
-    options: list[str]                        # code decides the option set; the LLM/human picks among it
-    decidable_by: list[Decidable]; rung: Rung
-
-class Decision(BaseModel):
-    question_id: str; chosen: str; basis: Basis
-    actor: Literal["user", "agent", "code"]; evidence: list[str] = Field(default_factory=list)
-
-class ResolveResult(BaseModel):
-    dataset_id: str; kb_version: str; rung_reached: Rung
-    candidates: list[Candidate]; conflicts: list[Conflict]
-    questions: list[Question]; blockers: list[Blocker] = Field(default_factory=list)
-
-class ArbitrationRequest(BaseModel):          # LLM job (b) INPUT schema (opt-in resolve adjudicate)
-    conflict_id: str; positions: list[ConflictPosition]
-
-class ArbitrationResponse(BaseModel):         # LLM job (b) OUTPUT schema — references by index, re-derives no values
-    conflict_id: str; chosen_index: int; rationale: str
-
-class ValidationReport(BaseModel):
-    ok: bool; blockers: list[Blocker]; conflicts: list[Conflict]
-    warnings: list[Warning] = Field(default_factory=list)
-
-class ModuleSelection(BaseModel):
-    name: str; version: str; env: RuntimeEnv
-
-class ComposeResult(BaseModel):
-    modules: list[ModuleSelection]; config_path: Uri; units_path: Uri
-    gate: dict[str, Literal["pass", "fail", "skip"]]   # {wiring, params, e2e}
-    params_preview: dict[str, object]                  # incl. params_problems: why a gate failed
-
-class RunResult(BaseModel):
-    dataset_id: str; stages: dict[str, str]; exit: int
-    artifacts: dict[str, Uri]; provenance_id: str
-
-class EvalReport(BaseModel):
-    n_cases: int; field_accuracy: float
-    false_accept_rate: float; false_refuse_rate: float
-    questions_asked: dict[str, float]         # {mean, needed_but_not_asked}
-    cost: dict[str, float]; per_case: list[dict]
-```
+Models: [`models/`](../src/seqforge/models/) (the score / resolve / compose / run / eval result
+types). Two decisions worth stating: `TechScore` is
+**JSON-safe** — no ±inf ever appears in serialized output, `status="forbidden"` means a
+requires/excludes gate failed and `status="scored"` carries the finite normalized value; and
+`ArbitrationRequest` / `ArbitrationResponse` are the opt-in, still-unbuilt LLM job-(b) schemas, where
+the response references a position by *index* and re-derives no values.
 
 ### 1.7b The LLM provider is pluggable (implemented)
 
@@ -607,19 +248,16 @@ manifest. **That is precisely what makes the vendor swappable** — the provider
 and extraction quality, never about correctness guarantees. seqforge is therefore not locked to any
 vendor:
 
-| provider | structured output | caching | default model |
-|---|---|---|---|
-| `anthropic` | strict `json_schema` — shape **guaranteed** | explicit `cache_control` | `claude-opus-4-8` |
-| `deepseek` | `json_object` only — shape **not** enforced | automatic prefix caching | `deepseek-v4-pro` (V4-Flash ≈3× cheaper) |
-| `openai-compatible` | as above, any `base_url` | provider-dependent | caller-supplied |
-
-**The capability gap is contained, not papered over.** For json-object providers the schema and a
-worked example travel in the prompt (DeepSeek *requires* the word "json" plus an example), and
-`ExtractionResult.model_validate_json` is the gate: a wrong shape fails the **whole batch** loudly
-rather than leaking a half-parsed assertion. R2 is doing exactly its job. One prompt serves every
-provider, so `prompt_version` stays comparable across them; `ExtractorProvenance.model_id` records
-`provider/model`, because the same prompt on a different model is a different extractor and evals
-must be able to tell those runs apart.
+Three providers ship: `anthropic` (strict `json_schema`, shape **guaranteed**; explicit
+`cache_control`; default `claude-opus-4-8`), `deepseek` (`json_object` only, shape **not** enforced;
+automatic prefix caching; `deepseek-v4-pro`, V4-Flash ≈3× cheaper), and `openai-compatible` (any
+`base_url`, caller-supplied model). **The capability gap is contained, not papered over:** for
+json-object providers the schema and a worked example travel in the prompt (DeepSeek *requires* the
+word "json" plus an example), and `ExtractionResult.model_validate_json` is the gate — a wrong shape
+fails the **whole batch** loudly rather than leaking a half-parsed assertion. One prompt serves every
+provider, so `prompt_version` stays comparable; `ExtractorProvenance.model_id` records `provider/model`,
+because the same prompt on a different model is a different extractor and evals must tell those runs
+apart.
 
 Selection is explicit-beats-implicit (`--provider` / `SEQFORGE_LLM_PROVIDER`, else auto-detect from
 `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`), and **refuses rather than guessing** when no credential is
@@ -632,13 +270,12 @@ LLM-facing schemas are `AssertionDraft` and `ArbitrationRequest`/`ArbitrationRes
 LLM-facing variant from the canonical one with a deterministic, CI-tested transform — never a
 hand-maintained second schema:
 
-- emit with `model_json_schema(ref_template="#/$defs/{model}")`;
-- for the provider "strict" subset: rewrite `oneOf → anyOf`, drop the `discriminator` keyword (keep
-  the literal tag field), inline single-member `allOf`, hoist `$ref`-sibling descriptions onto the
-  referenced `$def`, strip `default`, set `additionalProperties: false`, put every property in
-  `required` (nullability via the null branch);
-- keep numeric/`pattern` constraints in the canonical schema only (Pydantic enforces them at ingest —
-  the real guardrail per R2); strip them from the LLM schema.
+emit with `ref_template="#/$defs/{model}"`, then for the provider "strict" subset rewrite `oneOf →
+anyOf`, drop the `discriminator` keyword (keep the literal tag field), inline single-member `allOf`,
+hoist `$ref`-sibling descriptions onto the referenced `$def`, strip `default`, set
+`additionalProperties: false`, and put every property in `required` (nullability via the null branch);
+numeric/`pattern` constraints stay in the canonical schema only (Pydantic enforces them at ingest, the
+real guardrail), stripped from the LLM schema.
 
 Generics are materialized via the named `Evidenced[...]` subclasses (stable `$defs`); no `value: Any`
 anywhere (`Assertion.value` and `ConflictPosition.value` are `str`); discriminated unions live only
@@ -657,109 +294,25 @@ human-authored and CI-validated, not LLM output.
 
 ### 2.1 The schema (abridged; full closed vocabularies)
 
-```python
-ElementType  = Literal["barcode","umi","cdna","gdna","linker","poly_a","poly_t","fixed","index"]
-Mechanism    = Literal["none","onlist","metadata","alignment","user"]
-Decidable    = Literal["reads","onlist","metadata","alignment","user"]
-Orientation  = Literal["forward","revcomp","either"]
-SeqspecRegion= Literal["barcode","umi","cdna","gdna","index5","index7","linker","poly_A","poly_t","custom_primer"]
+Schema model: [`kb/schema.py`](../src/seqforge/kb/schema.py). The decisions the field list can't show:
 
-class Anchor(BaseModel):           # locate a variable/floating element (inDrop-class; SPLiT-seq is fixed)
-    model_config = ConfigDict(extra="forbid")
-    relative_to: Literal["read_start","read_end","element"] = "read_start"
-    ref_element: str | None = None; ref_side: Literal["start","end"] = "end"
-    offset: int = 0; motif: str | None = None; max_mismatch: int = 0
-
-class Element(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: ElementType; name: str
-    start: int | None = None; end: int | None = None          # 0-based half-open; end=null => open (cdna)
-    min_len: int | None = None; max_len: int | None = None    # variable/anchored
-    anchor: Anchor | None = None; sequence: str | None = None  # fixed linker IUPAC
-    onlist: str | None = None                                  # local alias into spec.onlists
-    seqspec_region_type: SeqspecRegion                         # Literal, validated for export
-    # model_validator enforces: exactly one coherent addressing mode (fixed [start,end) XOR anchor
-    #   XOR (min_len/max_len)); linker/fixed require `sequence`; end=null only for cdna/gdna.
-
-class Read(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str                                    # ROLE label (R1/R2/bc/cdna) — not a filename claim
-    seqspec_read_id: str                       # a role id ("R1"); the real filename is substituted at export
-    file_hint: str | None = None               # rung-1 weak prior only
-    strand: Literal["pos","neg"] = "pos"
-    min_len: int | None = None; max_len: int | None = None
-    elements: list[Element]
-
-class OnlistRef(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    registry: str                              # pooch-registry name holding URL+sha256+length+orientation
-    role: Literal["cell_barcode","sample_index","feature","atac_barcode"]
-    expected_orientation: Orientation = "forward"   # non-authoritative hint
-
-# ---- signature tests: a CLOSED set == the scorer's evaluators (§3). every leaf: extra="forbid" ----
-class _Seg(BaseModel):                          # address a segment by element name XOR (start,end)
-    model_config = ConfigDict(extra="forbid")
-    read: str; element: str | None = None; start: int | None = None; end: int | None = None
-class ReadCount(BaseModel):     test: Literal["read_count"];  roles: int          # biological+barcode ROLE count, not raw files
-class SegmentLength(BaseModel): test: Literal["segment_length"]; read: str; length: int; tolerance: int = 0
-class HasSegment(_Seg):         test: Literal["has_segment"]; kind: Literal["constant","random","polyT","polyA"]
-class DistinctRatio(_Seg):      test: Literal["distinct_ratio"]; expect: Literal["low","high"]   # SUPPORTS-ONLY
-class OnlistHitRate(_Seg):      test: Literal["onlist_hit_rate"]; onlist: str
-                                orientation: Orientation = "either"; min: float                  # width from registry length
-class MotifPresent(BaseModel):  test: Literal["motif_present"]; read: str; motif: str
-                                where: Literal["read_start","read_end","anywhere","window"] = "anywhere"
-                                search_start: int | None = None; search_end: int | None = None   # inclusive; cover W1@11
-                                max_mismatch: int = 1; min_rate: float = 0.5
-class BaseComposition(_Seg):    test: Literal["base_composition"]; base: Literal["A","C","G","T","N"]; min_fraction: float
-class HeaderIndex(BaseModel):   test: Literal["header_index"]; present: bool
-
-Test = Annotated[ReadCount | SegmentLength | HasSegment | DistinctRatio | OnlistHitRate
-                 | MotifPresent | BaseComposition | HeaderIndex, Field(discriminator="test")]
-
-class Support(BaseModel):   model_config = ConfigDict(extra="forbid"); when: Test; weight: float = 1.0
-class Signature(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    requires: list[Test]      # hard AND-gates. NO distinct_ratio here (depth-dependent).
-    supports: list[Support]   # additive positive evidence (onlist + distinct_ratio live here)
-    excludes: list[Test]      # anti-gates: ANY pass => disqualify
-
-class Backend(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    module: str                                # versioned, CI-tested workflow module id, e.g. "map/starsolo"
-    params: dict[str, str | int | float | list[str]]     # CHEMISTRY-DEFINING MINIMUM only
-    # only interpolation token allowed anywhere in params is "{onlist:<alias>}" (validated); any other {..} fails.
-
-class Confusable(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str; relationship: Literal["processing_equivalent","processing_divergent"]
-    distinguishable_by: list[Mechanism]; note: str = ""
-
-class Spec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    schema_version: int
-    identity: "Identity"                       # id, version, name, aliases, assay_ontology[CURIE], modality
-    reads: list[Read]
-    onlists: dict[str, OnlistRef]
-    signature: Signature
-    backend: Backend
-    confusable_with: list[Confusable] = []
-
-    @property
-    def decidable_by(self) -> list[Decidable]:
-        """DERIVED: the union of `distinguishable_by` over the processing-divergent confusables.
-
-        It was a hand-typed FIELD on every spec, read by nothing, and two specs carried the comment
-        "CI-computed union over the divergent confusables". No CI computed it. `escalate` builds a
-        Question's decidable_by from `confusable_with[].distinguishable_by` inline — exactly the
-        union the comment described — so the field caused no behaviour and was free to drift with
-        nothing to notice. That is `RegistryEntry.fetchable` again, and `required_config` before it.
-        The derivation reproduces all five hand-typed values exactly, which is how you know it was
-        only ever a comment.
-        """
-    # Spec._cross_refs resolves EVERY test `read`/`element`, every anchor.ref_element, and every onlist
-    # alias against the reads/elements block (not just onlist aliases). Cross-entry facts
-    # (confusable labels) are validated by the test matrix, not here.
-```
+- An `Element` must have **exactly one coherent addressing mode** — a fixed `[start,end)` XOR an
+  `anchor` (a floating element, inDrop-class) XOR `min_len/max_len` — enforced by a model validator;
+  `linker`/`fixed` require a `sequence`, and `end=null` (open) is allowed only for `cdna`/`gdna`.
+- The `signature` tests are a **closed set, identical to the scorer's evaluators** (§3): `requires` are
+  hard AND-gates (no `distinct_ratio`, which is depth-dependent), `supports` are additive positive
+  evidence (onlist + distinct_ratio live here), `excludes` are anti-gates (any pass disqualifies).
+  `read_count` counts biological + barcode ROLES, not raw files.
+- `Backend.params` is the **chemistry-defining minimum only** (CellRanger-parity knobs are processing
+  policy, below); the one interpolation token allowed anywhere in it is `{onlist:<alias>}`, validated —
+  any other `{…}` fails.
+- **`decidable_by` is a derived `Spec` property**, not a stored field: the union of `distinguishable_by`
+  over the processing-divergent confusables. It used to be hand-typed on every spec, read by nothing,
+  under a comment claiming a "CI-computed union" that no CI computed — so it drifted freely with nothing
+  to notice (the same failure as `RegistryEntry.fetchable`, and `required_config` before it). The
+  derivation reproduces all five hand-typed values exactly, which is how you know it was only ever a
+  comment. `Spec._cross_refs` resolves every test `read`/`element`, every `anchor.ref_element`, and
+  every onlist alias against the reads/elements block.
 
 **What moved out of the KB backend:** CellRanger-parity knobs (`soloUMIdedup 1MM_CR`,
 `soloUMIfiltering MultiGeneUMI_CR`, `clipAdapterType CellRanger4`, `outFilterScoreMin 30`) are
@@ -768,70 +321,17 @@ processing **policy**, not chemistry — they are applied at `compose` time from
 
 ### 2.2 Worked spec — `10x-3p-gex-v3` (fixed offsets)
 
-```yaml
-# kb/10x-3p-gex-v3/spec.yaml
-schema_version: 1
-identity:
-  id: 10x-3p-gex-v3
-  version: "3"
-  name: "10x Chromium Single Cell 3' Gene Expression v3"
-  aliases: ["10x 3' v3", "Chromium 3' v3", "SC3Pv3"]
-  assay_ontology: ["EFO:0009922"]        # FLAG-1: verify exact EFO id
-  modality: rna
-reads:
-  - id: R1                                # technical/barcode read: 28bp = 16 CB + 12 UMI
-    seqspec_read_id: R1
-    strand: pos
-    min_len: 28
-    max_len: 28
-    elements:
-      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
-      - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
-  - id: R2                                # cDNA (open-ended)
-    seqspec_read_id: R2
-    strand: pos
-    min_len: 25
-    max_len: null
-    elements:
-      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
-onlists:
-  cb_whitelist:  {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}
-  arc_v1_probe:  {registry: 737K-arc-v1,      role: cell_barcode, expected_orientation: forward}   # exclude probe
-signature:
-  requires:                               # structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
-    - {test: read_count, roles: 2}
-    - {test: segment_length, read: R1, length: 28, tolerance: 0}
-    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
-    - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
-  supports:                               # additive evidence (rung 3+)
-    - {when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}, weight: 5.0}
-    - {when: {test: distinct_ratio,  read: R1, start: 0,  end: 16, expect: low},  weight: 2.0}   # CB recurs
-    - {when: {test: distinct_ratio,  read: R1, start: 16, end: 28, expect: high}, weight: 1.0}   # UMI ~unique
-    - {when: {test: header_index, present: true}, weight: 0.2}
-  excludes:                               # anti-gate: if the Multiome list hits, it's not 3' GEX
-    - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: arc_v1_probe, orientation: forward, min: 0.6}
-backend:
-  module: map/starsolo
-  params:                                 # chemistry-defining MINIMUM (parity knobs come from processing policy)
-    soloType: CB_UMI_Simple
-    soloCBstart: 1
-    soloCBlen: 16
-    soloUMIstart: 17
-    soloUMIlen: 12
-    soloCBwhitelist: "{onlist:cb_whitelist}"
-    soloStrand: Forward
-    soloFeatures: [Gene]
-confusable_with:
-  - {id: 10x-3p-gex-v3.1,  relationship: processing_equivalent, distinguishable_by: [none],
-     note: "identical 16+12=28bp geometry + 3M-february-2018 + identical params -> §2.4 benign, 0 questions"}
-  - {id: 10x-multiome-gex, relationship: processing_divergent,  distinguishable_by: [onlist],
-     note: "same 28bp geometry, whitelist 737K-arc-v1 not 3M -> rung-3 onlist separates; params differ in soloCBwhitelist"}
-  - {id: 10x-gemx-3p-v4,   relationship: processing_divergent,  distinguishable_by: [onlist],
-     note: "REQUIRED: same 28bp/16+12 geometry, newer GEM-X whitelist. Without this the flagship fails its own CI."}
-  - {id: 10x-5p-gex,       relationship: processing_divergent,  distinguishable_by: [metadata, alignment],
-     note: "5' reads antisense cDNA -> soloStrand Reverse; read-undecidable when geometry+whitelist coincide (FLAG-7)"}
-# no `decidable_by:` — it is DERIVED from confusable_with. Writing one is now a validation error.
-```
+Worked spec: [`kb/specs/10x-3p-gex-v3/spec.yaml`](../src/seqforge/kb/specs/10x-3p-gex-v3/spec.yaml).
+Fixed offsets — R1 is 28 bp = 16 bp CB + 12 bp UMI (`soloType CB_UMI_Simple`), R2 is open-ended cDNA.
+Its `signature` shows the rung structure: `requires` are structural gates friendly to rungs 0–2 (read
+count, 28 bp segment length, two random segments; **no** onlist, **no** distinct_ratio), `supports` add
+the rung-3 `onlist_hit_rate` (weight 5) plus depth-dependent distinct-ratio priors, and `excludes`
+anti-gate the Multiome `737K-arc-v1` list. The load-bearing part is `confusable_with`: v3.1 is
+`processing_equivalent` / `[none]` (identical geometry, whitelist, and params → §2.4 benign, 0
+questions); Multiome and GEM-X v4 share the 28 bp / 16+12 geometry and are `processing_divergent`,
+separated only by onlist at rung 3 — **`10x-gemx-3p-v4` is a *required* entry** (without it the
+flagship fails its own rung-0–2 under-declaration CI, §2.4); 10x 5′ is metadata/alignment-decidable
+(antisense cDNA → `soloStrand Reverse`; read-undecidable when geometry and whitelist coincide, FLAG-7).
 
 ### 2.3 Worked spec — `splitseq` (combinatorial; pilot #3)
 
@@ -852,66 +352,11 @@ the cDNA. Still-open FLAGs: the round whitelists (register the real barcode file
 with URL + sha256), `soloStrand`, and the EFO CURIE. Per FLAG-3, `soloCBposition`/`soloUMIposition`
 are **omitted from the KB and derived from the element coordinates at compose time**, never hand-typed.
 
-```yaml
-# kb/specs/splitseq/spec.yaml         # linkers pinned from scg_lib_structs (Science-2018 SPLiT-seq)
-schema_version: 1
-identity:
-  id: splitseq
-  version: science-2018                  # published-manuscript variant (not preprint, not Parse)
-  name: "SPLiT-seq (combinatorial split-pool barcoding, Rosenberg et al. 2018)"
-  aliases: ["SPLiT-seq", "split-pool", "combinatorial indexing", "split-pool ligation"]
-  assay_ontology: []                     # FLAG: pin the SPLiT-seq EFO/OBI CURIE from live EFO
-  modality: rna
-reads:
-  - id: cdna
-    seqspec_read_id: R1                  # Read 1 (66 cycles) = cDNA
-    strand: pos
-    min_len: 25
-    max_len: null
-    elements:
-      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
-  - id: bc                               # Read 2 (94 cycles): UMI + bc3 + linker1 + bc2 + linker2 + bc1
-    seqspec_read_id: R2
-    strand: pos
-    min_len: 94
-    max_len: 94
-    elements:
-      - {type: umi,     name: UMI, start: 0,  end: 10, seqspec_region_type: umi}
-      - {type: barcode, name: bc3, start: 10, end: 18, onlist: round3, seqspec_region_type: barcode}
-      - {type: linker,  name: linker1, start: 18, end: 48, seqspec_region_type: linker,
-         sequence: "GTGGCCGATGTTTCGCATCGGCGTACGACT"}    # verbatim Science-2018 Round3->Round2 spacer
-      - {type: barcode, name: bc2, start: 48, end: 56, onlist: round2, seqspec_region_type: barcode}
-      - {type: linker,  name: linker2, start: 56, end: 86, seqspec_region_type: linker,
-         sequence: "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"}    # verbatim Science-2018 Round2->Round1 spacer
-      - {type: barcode, name: bc1, start: 86, end: 94, onlist: round1, seqspec_region_type: barcode}
-onlists:
-  round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
-  round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}
-  round3: {registry: splitseq-round3, role: cell_barcode, expected_orientation: forward}
-  tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}
-signature:
-  requires:
-    - {test: read_count, roles: 2}
-    - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}    # linker1 (fixed)
-    - {test: has_segment, read: bc, start: 56, end: 86, kind: constant}    # linker2 (fixed)
-  supports:
-    - {when: {test: onlist_hit_rate, read: bc, element: bc1, onlist: round1, orientation: forward, min: 0.5}, weight: 3.0}
-    - {when: {test: onlist_hit_rate, read: bc, element: bc2, onlist: round2, orientation: forward, min: 0.5}, weight: 3.0}
-    - {when: {test: onlist_hit_rate, read: bc, element: bc3, onlist: round3, orientation: forward, min: 0.5}, weight: 3.0}
-    - {when: {test: distinct_ratio,  read: bc, start: 0, end: 10, expect: high}, weight: 1.0}   # UMI ~unique
-    - {when: {test: distinct_ratio,  read: cdna, start: 0, end: 20, expect: high}, weight: 1.0}  # score the cDNA role
-  excludes:
-    - {test: onlist_hit_rate, read: bc, start: 0, end: 16, onlist: tenx_probe, orientation: forward, min: 0.6}  # a 16bp 10x CB => not SPLiT-seq
-backend:
-  module: map/starsolo
-  params:
-    soloType: CB_UMI_Complex
-    soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
-    soloStrand: Forward                  # FLAG: confirm SPLiT-seq cDNA strand before the e2e run
-    soloFeatures: [Gene]
-    # soloCBposition / soloUMIposition: DERIVED from the element coordinates at compose (FLAG-3).
-confusable_with: []                       # onlist + combinatorial geometry separate it from 10x/inDrop
-```
+Worked spec: [`kb/specs/splitseq/spec.yaml`](../src/seqforge/kb/specs/splitseq/spec.yaml) — `soloType
+CB_UMI_Complex`, the three round whitelists concatenated in **positional** order (rounds map to CB
+positions in order, so §2.4 must **not** sort this list). Its `signature` gates the two fixed 30 bp
+linkers as `requires` `has_segment … kind: constant`, scores the three round barcodes as weight-3
+onlist `supports`, and `excludes` a 16 bp 10x CB hit.
 
 The `onlist_hit_rate` evaluator is **width-generic**: it reads the barcode length from the registry
 entry (8 bp here → still a `uint32` pack, small sorted arrays), not a hardcoded 16 bp window (R4/§4.1).
@@ -1135,26 +580,17 @@ ABSTAINs on both.
 
 Byte-derived roles: f1 → CB16+UMI12, f2 → cDNA. Candidate family (28 bp, 16+12) = {v3, v3.1, GEM-X
 v4, Multiome}. Hypothesis "10x 3′ v3" selects `3M-february-2018`: forward hit 0.82 (>0.6), RC ≈ floor.
-
-```
-             f1                                   f2
- CB    1.00 (28 PASS; 3M .82 PASS; supports .5+.3+.2)   FORBIDDEN (segment_length 28 FAIL: 90≠28)
- cDNA  FORBIDDEN (len≥40 FAIL: 28<40)                    1.00 (90 PASS; supports .6+.4)
-```
-
-Only one valid injective A: CB→f1, cDNA→f2; `raw = 2.00`, `|R_t|=2` → `score(3′v3) = 1.00`. **3′v3.1**
+The evidence matrix leaves one valid injective assignment — CB→f1 (28 PASS, 3M .82 PASS, cell 1.00),
+cDNA→f2 (90 PASS, 1.00); the cross-assignments f1-as-cDNA and f2-as-CB are both FORBIDDEN on
+`segment_length` — so `raw = 2.00`, `|R_t|=2` → `score(3′v3) = 1.00`. **3′v3.1**
 identical matrix → 1.00. **GEM-X v4** and **Multiome** require their own onlists which hit ≈ floor on
 these reads → FORBIDDEN → excluded *(FLAG-8: certified by CI cross-hit, not memory; if a whitelist
 were a superset the pair would become a divergent tie routed to `decidable_by`, not silently gated)*.
 Tie {v3, v3.1} is CI-proven `processing_equivalent` → **Decision: record both**, `library.chemistry =
-["10x-3p-gex-v3","10x-3p-gex-v3.1"]`, `basis: observed`, **Questions = 0, Conflicts = 0**, rung 3.
-
-| Adversarial variant | Outcome | Rung | Q | Conflicts |
-|---|---|---|---|---|
-| Base (benign) | Decision — record {v3, v3.1}, identical STARsolo params | 3 | 0 | 0 |
-| No technical read (both ~90 bp) | `Blocker(MISSING_TECHNICAL_READ)` + `--include-technical`/SDL remedy | 2 | 0 | — |
-| Swapped `_1/_2` names | Identical manifest (byte-driven; β sub-threshold) | 2 | 0 | 0 |
-| Lying metadata (asserted v2) | `Conflict` (26 bp asserted vs 28 bp observed), surfaced; library → observed v3/v3.1 | 3 | →user | 1 |
+["10x-3p-gex-v3","10x-3p-gex-v3.1"]`, `basis: observed`, **Questions = 0, Conflicts = 0**, rung 3. The
+adversarial variants off this same fixture — no technical read → `Blocker(MISSING_TECHNICAL_READ)`,
+swapped `_1/_2` → identical manifest (byte-driven; β sub-threshold), lying "asserted v2" metadata → a
+surfaced `Conflict` (library keeps observed v3/v3.1) — each land the outcome §2.5 and §3.5 predict.
 
 ---
 
@@ -1227,10 +663,10 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    validate → compose → **STARsolo run with the composed params** → assert the matrix against the
    injected truth. Runs on a Linux compute node (STAR + liulab-genome); `skip` elsewhere.
 
-   **The assertion is "accounted", not naively exact.** Real transcripts mean real ambiguity: reads
-   from paralog/subtelomeric-repeat families (Y′/`YRF1`) legitimately multimap and STARsolo drops
-   them, so `observed == injected` is unachievable and demanding it would only teach us to weaken the
-   gate. Instead the gate asserts what indicts *us*:
+   **The assertion is "accounted", not naively exact.** Real transcripts multimap — paralog/
+   subtelomeric families (Y′/`YRF1`) that STARsolo legitimately drops — so `observed == injected` is
+   unachievable, and demanding it would only teach us to weaken the gate. Instead the gate asserts what
+   indicts *us*:
    - **0 spurious pairs** — never count a read for a gene it did not come from;
    - **0 inflated counts** — never invent a UMI (a dedup/geometry bug looks exactly like this);
    - **`unexplained_loss <= 2%`** — subtract STAR's own multimapper loss (read from `Log.final.out`);
@@ -1238,16 +674,13 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    - **strand sensitivity** — the same reads re-run under an inverted `--soloStrand` must collapse,
      or the gate could not have caught an inversion in the first place.
 
-   Measured on arc (2 000 reads, 120 genes, 8 cells): resolve decided `10x-3p-gex-v3` unaided;
-   1 909/2 000 recovered with **0 spurious / 0 inflated**; STAR uniquely mapped 1 923 (77 multi/too-many
-   loci), leaving **0.7 % unexplained**; the inverted strand collapsed to **49/2 000 (2.5 %)**.
-
-   **Intron-rich fixture — CLOSED** (`kb e2e-introns`, ce11 + WS298, measured on arc): 2 000 reads =
-   1 212 exonic + 788 intronic injected across 120 genes; one STARsolo run with
-   `--soloFeatures Gene GeneFull` (identical alignment, so only the counting rule differs). `Gene`
-   totalled **1 186** — the exonic truth, counting none of the intronic reads (recovery 0.979);
-   `GeneFull` totalled **1 940** (recovery 0.97 vs exon+intron). 0 spurious, 0 inflated; STAR placed
-   1 971/2 000 uniquely. Resolve decided `10x-3p-gex-v3` from ce11 bytes unaided.
+   Measured on arc (2 000 reads, 120 genes, 8 cells): resolve decided `10x-3p-gex-v3` unaided,
+   recovered with **0 spurious / 0 inflated** and **0.7 % unexplained** (the rest is STAR's own
+   multimapper loss), and the inverted strand **collapsed** — the proof the gate can catch an inversion.
+   **Intron-rich fixture — CLOSED** (`kb e2e-introns`, ce11 + WS298): one STARsolo run with
+   `--soloFeatures Gene GeneFull` (identical alignment, only the counting rule differs) counted `Gene` =
+   the exonic truth alone (recovery 0.979) and `GeneFull` = exon + intron (0.97), again 0 spurious /
+   0 inflated, resolve deciding the chemistry from ce11 bytes unaided.
 
    **That run measured a real defect, and the defect is now FIXED: `gene_signal_lost = 0.407`.**
    `--soloFeatures Gene` silently discards **40.7 %** of a nuclear library, and `composed_soloFeatures`
@@ -1257,45 +690,33 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    PRJNA1027859 (single-**nucleus** RNA-seq) from declared metadata — before the run, without touching
    the data.
 
-   **Resolved (R11).** `backend.params` says how to **parse** reads
-   (soloType/CB/UMI/whitelist/strand); the **processing manifest** says what to **count**. And the
-   counting question is *dissolved rather than answered*: `soloFeatures` defaults to all five, so
-   GeneFull is computed whether or not anyone tells us the prep is nuclear. The CHANGELOG's earlier
-   proposed remedy — an unknown prep becoming a `Question` (exit 4) — was **withdrawn, not
-   implemented**: it traded a silent wrong answer for a question, and R11 buys back both. Shipping an
-   exit-4 that never needed to fire trains people to route around exit codes.
-
-   `processing.quantification` is no longer decorative: policy used to hardcode `"gene"`, write it to
-   the manifest, and let compose ignore it and read the KB instead — two sources of truth for one
-   decision, unable to disagree only because one was never consulted. `params_gate` now fails if the
-   emitted config disagrees with the manifest.
-
-   **The override is gone, which is how you know the change landed.** This fixture used to force
-   `soloFeatures = [Gene, GeneFull]` past a compiler that would have emitted `Gene`, and had to admit
-   it did NOT prove the compiler would choose GeneFull, "because today it cannot". It runs on the
-   compiler's own params now and asserts `composed_soloFeatures ⊇ {Gene, GeneFull}`; the fixture that
-   *priced* the defect is the gate that *prevents* it, and `gene_signal_lost` stops measuring our bug
-   and starts measuring a counterfactual. Superseded text follows for the record:
-
-   ~~the fixture proves the GeneFull path works and prices the gap, but does NOT prove the compiler
-   would choose GeneFull, because today it cannot.~~
+   **Resolved (R11).** `backend.params` says how to **parse** reads (soloType/CB/UMI/whitelist/strand);
+   the **processing manifest** says what to **count** — and `params_gate` now fails if the emitted
+   config disagrees with it (policy used to hardcode `"gene"` into the manifest and let compose ignore
+   it for the KB: two sources of truth that couldn't disagree only because one was never read). The
+   counting question is then *dissolved, not answered*: `soloFeatures` defaults to all five, so GeneFull
+   is computed whether or not anyone says the prep is nuclear. The CHANGELOG's earlier remedy — an
+   unknown prep raising a `Question` (exit 4) — was **withdrawn, not implemented**: it traded a silent
+   wrong answer for a question, and the all-five default buys back both; an exit-4 that never needed to
+   fire only trains people to route around exit codes. The fixture proves it landed — with its
+   `[Gene, GeneFull]` override deleted it runs on the compiler's own params and asserts
+   `composed_soloFeatures ⊇ {Gene, GeneFull}`, so the fixture that *priced* the defect is now the gate
+   that *prevents* it.
 
    **Velocyto is unconditional — a maintainer decision (2026-07-15), not a measurement.** The
-   pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") is **retired**.
-   Recording *how* it was retired, because a rule that was overridden and a rule that was tested and
-   passed leave the same trace unless someone writes down which happened: this one was never tested.
-   `--quantify` still narrows.
+   pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") is **retired**, and
+   retired rather than tested-and-passed — the two leave the same trace unless someone records which
+   happened, and this one was never tested. `--quantify` still narrows.
 
    **Peak RSS at 10⁴ × hg38 is measured** (`kb e2e-cost` on hg38, 2026-07-15): **34.7 GB at 100 M
-   reads, 44.1 GB at 250 M**, so the flat regime ends between and `peak_rss ≈ genome-sized intercept +
-   slope × reads`. The ce11 fixture cannot answer this and a green ce11 number would be worse than
-   none: peak RSS moved only 2.804 → 2.809 GB across a 500× read increase, because 2.8 GB *is* the ce11
-   index and the counting is a rounding error on it. What generalizes off ce11 is the **slope**, never
-   the absolute figure — the number needed the real hg38 index. The instrument is `kb e2e-cost` /
-   `kb e2e-introns --quantify` plus a `cost` block reporting `star_wall_s` / `star_peak_rss_gb`.
-   **Still open (§9):** above 250 M reads is extrapolation from one post-knee point, so a deep human
-   library is provisioned 128 GB until the sweep extends. An expensive default is not a trap precisely
-   *because* the processing manifest exists to override it.
+   reads, 44.1 GB at 250 M**, so the flat regime ends between, and `peak_rss ≈ genome-sized intercept +
+   slope × reads`. The ce11 fixture cannot answer this — peak RSS moved only 2.804 → 2.809 GB across a
+   500× read increase, because 2.8 GB *is* the ce11 index and the counting is a rounding error on it, so
+   a green ce11 number would be worse than none. Only the **slope** generalizes off ce11; the absolute
+   figure needed the real hg38 index. The instrument is `kb e2e-cost` / `kb e2e-introns --quantify` with
+   a `cost` block reporting `star_wall_s` / `star_peak_rss_gb`. **Still open (§9):** above 250 M reads is
+   extrapolation from one post-knee point, so a deep human library is provisioned 128 GB until the sweep
+   extends — an expensive default is not a trap, because the processing manifest can override it.
 
    (`mem_gb` is `ResourceHints.mem_gb` on the **processing manifest**, default 32 — not a workflow
    module property. A resource request is intent, so R11 puts it in the recipe.)
