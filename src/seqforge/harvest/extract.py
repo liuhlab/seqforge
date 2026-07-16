@@ -27,7 +27,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
-from .fields import fields_for_role
+from .fields import describe_asked, fields_for
 from .normalize import NormalizedDoc
 from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
@@ -149,11 +149,21 @@ def build_system_prompt(specs: dict[str, Spec], schema: dict[str, Any]) -> str:
 
 
 def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
+    """The per-document half of the prompt: which fields, and the document.
+
+    The ask is scoped, so a sample record's document is never even asked for a chemistry, and the
+    sample-attribute definitions come from NCBI's own list rather than from a paraphrase here — see
+    `fields.describe_asked`.
+
+    Note what this does NOT say: which sample the document is about. It does not need to. The document
+    holds one record's prose and nothing else, so "which sample" is answered by which file we handed
+    the model, and code already knows the answer because code chose the file.
+    """
     return (
         f"Document sha256: {doc.doc_sha256}\n"
         f"Echo that exact string as span.doc_sha256 on every assertion.\n\n"
         f"Fields to look for (omit any the document does not state):\n"
-        + "\n".join(f"- {f}" for f in fields)
+        + describe_asked(fields)
         + "\n\n<document>\n"
         + doc.text
         + "\n</document>"
@@ -176,11 +186,12 @@ def extract_drafts(
 ) -> ExtractionOutcome:
     """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides.
 
-    ``fields`` defaults to the set appropriate to the document's ROLE: a reference document is never
-    asked about ``processing.*``. Asking and enforcing are separate jobs, though — ``verify_drafts``
-    refuses an off-role field regardless of what was asked, because a prompt is not a boundary.
+    ``fields`` defaults to the set appropriate to the document's SCOPE and ROLE: a reference document
+    is never asked about ``processing.*``, and a sample record's document is never asked about the
+    chemistry. Asking and enforcing are separate jobs, though — ``verify_drafts`` refuses an
+    off-scope field regardless of what was asked, because a prompt is not a boundary.
     """
-    asked = fields if fields is not None else fields_for_role(doc.role)
+    asked = fields if fields is not None else fields_for(doc.scope, doc.role)
     try:
         llm = provider if provider is not None else resolve_provider()
     except ProviderUnavailable as exc:

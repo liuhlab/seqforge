@@ -14,6 +14,7 @@ from pathlib import Path
 
 from ..models.observation import Observation
 from ..models.resolve import ResolveResult
+from ..workspace import state_dir
 
 
 def dataset_id(
@@ -29,7 +30,7 @@ class Cache:
     """Reader/writer for the ``.seqforge/`` artifact tree rooted at a workspace."""
 
     def __init__(self, workspace: str | Path) -> None:
-        self.root = Path(workspace) / ".seqforge"
+        self.root = state_dir(workspace)
 
     def _obs_path(self, sha: str) -> Path:
         return self.root / "observations" / f"{sha}.json"

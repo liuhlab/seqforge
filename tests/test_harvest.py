@@ -246,8 +246,10 @@ def test_the_allowlist_is_exact_match_not_a_prefix_rule(tmp_path: Path) -> None:
     """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
     from seqforge.harvest.fields import is_permitted
 
-    assert is_permitted("experiment.samples.condition")
-    assert not is_permitted("experiment.samples.condition.extra")
+    assert is_permitted("experiment.samples.tissue")
+    assert not is_permitted("experiment.samples.tissue.extra")
+    # `condition` was OURS, not NCBI's. It is gone -- see io/attributes.py.
+    assert not is_permitted("experiment.samples.condition")
     assert not is_permitted("experiment.anything.you.can.name")
     assert not is_permitted("library.chemistry.value")
 
@@ -275,7 +277,7 @@ def test_a_reference_doc_may_not_set_processing(tmp_path: Path) -> None:
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
     assert report.n_accepted == 0
-    assert report.rejected[0]["reason"] == "field_not_permitted_for_doc_role"
+    assert report.rejected[0]["reason"] == "field_not_permitted_for_doc"
 
     # ...and the SAME bytes, offered as an instruction, are accepted. Role is not a property of the
     # file — it is a property of how it was offered.

@@ -40,6 +40,8 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..workspace import state_dir
+
 _EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
 #: Names we resolve without a network call. **Every entry was verified against NCBI E-utilities on
@@ -163,4 +165,4 @@ def seed_names() -> dict[str, int]:
 
 #: Where a resolved lookup is cached under a workspace, so a second run is offline and instant.
 def cache_path(workspace: str | Path) -> Path:
-    return Path(workspace) / ".seqforge" / "taxonomy.json"
+    return state_dir(workspace, "taxonomy.json")

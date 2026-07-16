@@ -15,6 +15,7 @@ from .fill import (
     FillError,
     ProcessingInputs,
     dataset_uris,
+    experiment_from_metadata,
     fill_manifest,
     fill_processing,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "fill_manifest",
     "fill_processing",
     "ExperimentInputs",
+    "experiment_from_metadata",
     "ProcessingInputs",
     "FillError",
     "validate_manifest",

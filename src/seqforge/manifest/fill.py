@@ -32,9 +32,9 @@ from ..kb import KB_VERSION
 from ..kb.schema import Element, Spec
 from ..models.blocker import ValidationWarning
 from ..models.dataset import (
+    AssayLabel,
     DatasetManifest,
     DatasetProvenance,
-    EvidencedReadLayout,
     ExperimentSection,
     FileInventoryItem,
     LibrarySection,
@@ -43,12 +43,11 @@ from ..models.dataset import (
     ReadElement,
     ReadLayout,
     SampleGroup,
+    Study,
 )
 from ..models.evidenced import (
     EvidencedAccessionList,
-    EvidencedAssay,
     EvidencedChemistrySet,
-    EvidencedStr,
     EvidencedTaxid,
 )
 from ..models.observation import Observation
@@ -59,7 +58,7 @@ from ..models.processing import (
     RuntimeEnv,
     SoloFeature,
 )
-from ..models.resolve import Candidate, ResolveResult
+from ..models.resolve import Candidate, MetadataResolution, ResolveResult
 from ..workflows import WORKFLOW_VERSION
 from .hash import dataset_content_hash, processing_content_hash
 from .instruct import Instruction
@@ -89,12 +88,73 @@ class FillError(RuntimeError):
 
 @dataclass(frozen=True)
 class ExperimentInputs:
-    """Biological truth that bytes cannot supply — normally span-verified Assertions from harvest."""
+    """Biological truth that bytes cannot supply.
 
-    organism_taxid: int
+    Normally built by :func:`experiment_from_metadata` out of a
+    :class:`~seqforge.models.resolve.MetadataResolution`, so every value here traces to a record or a
+    span-verified assertion. The docstring used to say "normally span-verified Assertions from
+    harvest" while the only caller passed a CLI flag and an empty sample list — an aspiration written
+    in the present tense, which is how a comment becomes a lie.
+    """
+
+    organism: EvidencedTaxid
     accessions: list[str] = field(default_factory=list)
     samples: list[SampleGroup] = field(default_factory=list)
-    confidence: float = 0.9
+    study: Study | None = None
+    #: Confidence for ``accessions`` only: a list of accessions a human typed or a record declared.
+    accession_confidence: float | None = None
+
+
+def experiment_from_metadata(
+    resolution: MetadataResolution,
+    observations: list[Observation],
+    *,
+    organism_taxid: int | None = None,
+) -> ExperimentInputs:
+    """A :class:`MetadataResolution` -> the manifest's experiment inputs. The only conversion.
+
+    The resolver speaks in file **hashes**, because that is what a sample is carried by and it has no
+    business knowing what a URI is; the manifest speaks in URIs, because R9 says a manifest is
+    machine-independent. :func:`dataset_uris` owns that translation and always has — this is its
+    second caller, and the first one that was written knowing it existed. (The first time
+    ``SampleGroup.file_uris`` was built beside it out of basenames, ``manifest fill`` refused its own
+    manifest with six referential-integrity Blockers.)
+
+    ``organism_taxid`` overrides the record — a flag beats a database, which is the same precedence
+    the processing manifest uses and for the same reason: a human typing a taxid is asserting it now,
+    about this data, having looked.
+    """
+    uris = dataset_uris(observations)
+    samples = [
+        SampleGroup(
+            sample_id=s.sample_id,
+            accession=s.accession,
+            attributes=dict(s.attributes),
+            file_uris=[uris[sha] for sha in s.file_shas if sha in uris],
+        )
+        for s in resolution.samples
+    ]
+    if organism_taxid is not None:
+        organism = EvidencedTaxid(value=organism_taxid, basis="user_confirmed", rung=0)
+    elif resolution.organism is not None:
+        organism = resolution.organism
+    else:
+        raise FillError(
+            "no organism: the archive record does not declare one and none was given. Pass "
+            "`--organism <taxid>`. There is no default, and there must not be — a wrong taxid aligns "
+            "cleanly against the wrong genome, exits 0, and nothing downstream ever asks again."
+        )
+    accessions = sorted({s.accession for s in resolution.samples if s.accession})
+    if resolution.project is not None and resolution.project.accession:
+        accessions.append(resolution.project.accession)
+    study = Study(**resolution.project.model_dump()) if resolution.project is not None else None
+    return ExperimentInputs(
+        organism=organism,
+        accessions=sorted(set(accessions)),
+        samples=samples,
+        study=study,
+        accession_confidence=None,  # transcribed from the record; no judgement was made
+    )
 
 
 @dataclass(frozen=True)
@@ -122,6 +182,7 @@ def fill_manifest(
     experiment: ExperimentInputs,
     seqforge_version: str,
     role_of_sha: dict[str, str] | None = None,
+    specs: dict[str, Spec] | None = None,
 ) -> DatasetManifest:
     """Assemble a :class:`DatasetManifest` from a clean resolve Decision + metadata inputs.
 
@@ -151,51 +212,38 @@ def fill_manifest(
         )
 
     obs_by_sha = {o.file.sha256: o for o in observations}
+    # ONE decision, so ONE confidence and ONE rung. `chemistry` carries them; everything else in
+    # `library` is a consequence of that decision and carries no envelope of its own. See
+    # `LibrarySection` for why four copies of one number was never four truths.
     confidence = min(1.0, max(0.0, winner.score.value if winner.score.value is not None else 0.5))
     rung = winner.rung_resolved.get("chemistry", 2)
-    evidence = sorted(obs_by_sha)
+    chemistry = sorted({winner.technology, *winner.equivalence_members})
 
     library = LibrarySection(
-        assay=EvidencedAssay(
-            value=spec.identity.assay_ontology[0],
-            basis="observed",
-            evidence=evidence,
-            confidence=confidence,
-            rung=rung,
-        ),
         chemistry=EvidencedChemistrySet(
             # the §12 equivalence class: benign twins are recorded together, machine-visibly
-            value=sorted({winner.technology, *winner.equivalence_members}),
+            value=chemistry,
             basis="observed",
-            evidence=evidence,
+            evidence=sorted(obs_by_sha),
             confidence=confidence,
             rung=rung,
         ),
-        read_layout=EvidencedReadLayout(
-            value=_build_read_layout(spec, winner, obs_by_sha),
-            basis="observed",
-            evidence=evidence,
-            confidence=confidence,
-            rung=rung,
-        ),
+        assay=_assay_labels(chemistry, specs),
+        read_layout=_build_read_layout(spec, winner, obs_by_sha),
         onlists=_build_onlists(spec, registry),
-        files=_build_files(winner, observations, confidence, rung, role_of_sha),
+        files=_build_files(winner, observations, role_of_sha),
     )
 
     experiment_section = ExperimentSection(
-        organism=EvidencedTaxid(
-            value=experiment.organism_taxid,
-            basis="asserted",
-            confidence=experiment.confidence,
-            rung=0,
-        ),
+        organism=experiment.organism,
         accessions=EvidencedAccessionList(
             value=list(experiment.accessions),
             basis="asserted",
-            confidence=experiment.confidence,
+            confidence=experiment.accession_confidence,
             rung=0,
         ),
         samples=list(experiment.samples),
+        study=experiment.study,
     )
 
     draft = DatasetManifest(
@@ -279,6 +327,34 @@ def fill_processing(
         ),
         warnings,
     )
+
+
+def _assay_labels(chemistry: list[str], specs: dict[str, Spec] | None) -> list[AssayLabel]:
+    """The chemistry set, spelled in EFO. One label per member — including the §12 twin.
+
+    This is where the pilot's ``assay: EFO:0009922`` beside ``chemistry: [v3, v3.1]`` came from: the
+    assay field held one CURIE and the chemistry field held two ids, so v3.1's own term
+    (``EFO:0022980``) was silently dropped and the two fields read as if they disagreed. They never
+    did. They are the same answer, and now they are the same shape.
+
+    A member whose spec declares no CURIE, or whose CURIE has no shipped EFO label, is **skipped
+    rather than guessed at** — ``kb lint`` refuses both, so reaching that branch means a spec got in
+    without linting and a blank name would hide it.
+    """
+    from ..io.efo import has_term, term
+    from ..kb import load_all_specs
+
+    all_specs = specs if specs is not None else load_all_specs()
+    out: list[AssayLabel] = []
+    for chem in chemistry:
+        s = all_specs.get(chem)
+        if s is None or not s.identity.assay_ontology:
+            continue
+        curie = s.identity.assay_ontology[0]
+        if not has_term(curie):
+            continue
+        out.append(AssayLabel(chemistry=chem, curie=curie, name=term(curie).name))
+    return out
 
 
 def _build_read_layout(
@@ -391,36 +467,25 @@ def dataset_uris(observations: list[Observation]) -> dict[str, str]:
 def _build_files(
     winner: Candidate,
     observations: list[Observation],
-    confidence: float,
-    rung: int,
     role_of_sha: dict[str, str] | None = None,
 ) -> list[FileInventoryItem]:
-    """File identity is raw observed truth; the role assignment is the joint-optimization output."""
+    """File identity is raw observed truth; the role is the other half of the chemistry decision.
+
+    No confidence per file: the assignment and the chemistry came out of one joint optimization, and
+    ``library.chemistry`` carries its score. Twelve files each restating it is one number thirteen
+    times, which is exactly what the pilot's manifest looked like.
+    """
     uris = dataset_uris(observations)
     if role_of_sha is None:
         role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
-    items: list[FileInventoryItem] = []
-    for obs in observations:
-        role = role_of_sha.get(obs.file.sha256)
-        read_id = (
-            EvidencedStr(
-                value=role,
-                basis="observed",
-                evidence=[obs.file.sha256],
-                confidence=confidence,
-                rung=rung,
-            )
-            if role is not None
-            else None
+    return [
+        FileInventoryItem(
+            # relative to the dataset root; never Observation.file.local_uri, which is absolute (R9)
+            uri=uris[obs.file.sha256],
+            basename=obs.file.basename,
+            sha256=obs.file.sha256,
+            size_bytes=obs.file.size_bytes,
+            read_id=role_of_sha.get(obs.file.sha256),
         )
-        items.append(
-            FileInventoryItem(
-                # relative to the dataset root; never Observation.file.local_uri, which is absolute (R9)
-                uri=uris[obs.file.sha256],
-                basename=obs.file.basename,
-                sha256=obs.file.sha256,
-                size_bytes=obs.file.size_bytes,
-                read_id=read_id,
-            )
-        )
-    return items
+        for obs in observations
+    ]

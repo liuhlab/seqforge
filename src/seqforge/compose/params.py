@@ -183,7 +183,7 @@ def _element(read: ReadDef, role: str) -> ReadElement | None:
 
 def find_read_with_role(manifest: DatasetManifest, role: str) -> ReadDef | None:
     """The layout read carrying an element of ``role`` (e.g. the cDNA read, the CB-bearing read)."""
-    for read in manifest.library.read_layout.value.reads:
+    for read in manifest.library.read_layout.reads:
         if any(el.role == role for el in read.elements):
             return read
     return None
@@ -328,7 +328,7 @@ def _check_read_files_in(
             problems.append("read_files_in maps the cDNA and barcode roles to the same read")
     else:  # bulk: two biological mates, no barcode role
         mates = [rfi.get("mate1"), rfi.get("mate2")]
-        roles = [r.read_id for r in manifest.library.read_layout.value.reads]
+        roles = [r.read_id for r in manifest.library.read_layout.reads]
         if any(m not in roles for m in mates):
             problems.append(f"read_files_in mates {mates} are not layout reads {roles}")
         if mates[0] == mates[1]:

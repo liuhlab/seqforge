@@ -12,8 +12,9 @@ verbs are declared and raise a clear "not yet implemented" until their stage lan
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 import typer
 import yaml
@@ -27,14 +28,13 @@ from .io.taxonomy import TaxonomyUnavailable
 from .io.taxonomy import resolve as resolve_organism
 from .kb import list_spec_ids, load_spec, run_roundtrip
 from .manifest import (
-    ExperimentInputs,
     FillError,
     Instruction,
     PolicyError,
     ProcessingInputs,
     dataset_content_hash,
-    dataset_uris,
     exit_code_for_report,
+    experiment_from_metadata,
     fill_manifest,
     fill_processing,
     instructions_from_assertions,
@@ -44,9 +44,26 @@ from .manifest import (
 )
 from .models import SCHEMA_MODELS, export_all, export_schema
 from .models.assertion import Assertion
-from .models.dataset import DatasetManifest, SampleGroup
+from .models.dataset import DatasetManifest
 from .models.processing import ProcessingManifest
 from .resolve import Hypothesis, resolve_dataset, resolve_runs
+from .workspace import STATE_DIRNAME, legacy_state_dir, state_dir
+
+if TYPE_CHECKING:
+    from .models.records import ArchiveRecordSet
+
+
+def _today() -> str:
+    """Today, for the ``fetched`` stamp on a generated vocabulary file.
+
+    Local import and a function rather than a module constant: a constant would be evaluated at import
+    time, and every artifact seqforge writes is content-addressed — a clock reachable from module
+    scope is a clock that eventually ends up inside a hash.
+    """
+    import datetime
+
+    return datetime.date.today().isoformat()
+
 
 app = typer.Typer(
     name="seqforge",
@@ -692,6 +709,148 @@ def io_resolve(
         raise typer.Exit(4)
 
 
+@io_app.command("records")
+def io_records(
+    accession: str = typer.Argument(..., help="GSE/GSM, PRJNA/PRJEB, SRP/SRX/SRR, SAMN..."),
+    workspace: Path = typer.Option(
+        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
+    ),
+) -> None:
+    """Fetch what the archive DECLARES about a dataset: project, sample, experiment, run.
+
+    A transcriber, not a resolver. It reports the record and stops — `resolve` decides what any of it
+    means. This is where per-sample metadata comes from: `strain`, `tissue`, `sex`, `dev_stage` live
+    on the BioSample record and were fetched by no code at all until now, which is why the pilot's six
+    samples all said `tissue: null`.
+
+    Cached under `seqforge/records/` (R7): a record is a fact about the archive at a moment, so
+    re-fetching it should be a choice.
+    """
+    from .io.archive import fetch_records
+    from .io.remote import RemoteError
+
+    try:
+        records = fetch_records(accession)
+    except RemoteError as exc:
+        typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+
+    state = Path(workspace) / STATE_DIRNAME / "records"
+    state.mkdir(parents=True, exist_ok=True)
+    target = state / f"{accession}.json"
+    target.write_text(json.dumps(records.model_dump(mode="json"), indent=2))
+    typer.echo(
+        json.dumps(
+            {
+                "records": str(target),
+                "query": records.query,
+                "source": records.source,
+                "n": {
+                    level: len(records.at(level))  # type: ignore[arg-type]
+                    for level in ("project", "sample", "experiment", "run")
+                },
+            },
+            indent=2,
+        )
+    )
+
+
+@io_app.command("attributes")
+def io_attributes(
+    name: str | None = typer.Argument(None, help="Show one attribute; omit to list them all."),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Re-fetch NCBI's list and rewrite the shipped vocabulary."
+    ),
+) -> None:
+    """NCBI's harmonized BioSample attribute names — the key space a sample fact must use.
+
+    960 curated names with NCBI's own definitions. We enforce against all of them and ask a model for
+    a hand-picked few. `condition` is NOT one of them, which is why it is no longer one of ours.
+    """
+    from .io.attributes import (
+        ATTRIBUTES_URL,
+        get_attribute,
+        load_attributes,
+        parse_ncbi_attributes_xml,
+        source_provenance,
+        write_attributes,
+    )
+
+    if refresh:
+        from .io.remote import _get
+
+        attrs = parse_ncbi_attributes_xml(_get(ATTRIBUTES_URL, timeout=120))
+        path = write_attributes(attrs, fetched=_today())
+        typer.echo(json.dumps({"wrote": str(path), "n": len(attrs)}, indent=2))
+        return
+
+    if name:
+        attr = get_attribute(name)
+        typer.echo(
+            json.dumps(
+                {
+                    "name": attr.name,
+                    "display": attr.display,
+                    "description": attr.description,
+                    "synonyms": list(attr.synonyms),
+                },
+                indent=2,
+            )
+        )
+        return
+    typer.echo(
+        json.dumps(
+            {**source_provenance(), "names": sorted(load_attributes())},
+            indent=2,
+        )
+    )
+
+
+@io_app.command("efo")
+def io_efo(
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Re-fetch labels for every CURIE the KB declares."
+    ),
+) -> None:
+    """The EFO labels behind `library.assay` — what `EFO:0009922` is actually called.
+
+    `assay: EFO:0009922` is good standardization and unreadable. The name comes from EFO via EBI's
+    OLS4, never from us: a label we maintain by hand drifts from the ontology it claims to quote.
+    `--refresh` re-fetches every CURIE the KB's specs declare, so adding a technology is: add the
+    spec, run this, commit.
+    """
+    import json as _json
+    import urllib.parse
+    import urllib.request
+
+    from .io.efo import OLS4_TERMS, EfoTerm, iri_for, load_terms, parse_ols4_term, write_terms
+    from .kb import load_all_specs
+
+    if not refresh:
+        typer.echo(
+            _json.dumps(
+                {c: {"name": t.name, "iri": t.iri} for c, t in sorted(load_terms().items())},
+                indent=2,
+            )
+        )
+        return
+
+    curies = sorted({c for spec in load_all_specs().values() for c in spec.identity.assay_ontology})
+    terms: dict[str, EfoTerm] = {}
+    for curie in curies:
+        # OLS4 wants the IRI **double**-URL-encoded in the path. A singly-encoded one 404s, which is
+        # the kind of thing that belongs in code rather than in someone's memory.
+        quoted = urllib.parse.quote(urllib.parse.quote(iri_for(curie), safe=""), safe="")
+        with urllib.request.urlopen(OLS4_TERMS + quoted, timeout=60) as response:  # noqa: S310
+            terms[curie] = parse_ols4_term(_json.load(response))
+    path = write_terms(terms, fetched=_today())
+    typer.echo(
+        _json.dumps(
+            {"wrote": str(path), "terms": {c: t.name for c, t in sorted(terms.items())}}, indent=2
+        )
+    )
+
+
 @resolve_app.command("score")
 def resolve_score(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
@@ -751,7 +910,7 @@ def harvest_normalize(
     """
     from .harvest import normalize_document
 
-    outdir = Path(workspace) / ".seqforge" / "normalized"
+    outdir = state_dir(workspace, "documents")
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
     for doc, role in _roled(docs, instruction):
@@ -760,12 +919,14 @@ def harvest_normalize(
         except (OSError, RuntimeError) as exc:
             typer.echo(f"{doc}: {exc}", err=True)
             raise typer.Exit(1) from exc
-        target = outdir / f"{nd.doc_sha256}.txt"
+        target = outdir / _document_filename(nd)
         target.write_text(nd.text)
         rows.append(
             {
                 "source": nd.source_basename,
                 "role": nd.role,
+                "scope": nd.scope,
+                "subject": nd.subject,
                 "doc_sha256": nd.doc_sha256,
                 "normalized_sha256": nd.normalized_sha256,
                 "normalizer_version": nd.normalizer_version,
@@ -774,6 +935,31 @@ def harvest_normalize(
             }
         )
     typer.echo(json.dumps({"normalized": rows}, indent=2))
+
+
+#: How much of a sha256 to keep in a readable filename. Twelve hex characters is 48 bits; at the
+#: scale this addresses -- documents in one dataset, pipelines for one dataset -- a collision is not a
+#: thing that happens, and the full 64 is what made the directory unreadable.
+_SHORT_HASH = 12
+
+
+def _readable(name: str) -> str:
+    """A filename component that is safe on every filesystem and still recognisable."""
+    kept = "".join(c if (c.isalnum() or c in "-_.") else "-" for c in name).strip("-.")
+    return re.sub(r"-{2,}", "-", kept)[:60] or "doc"
+
+
+def _document_filename(doc: Any) -> str:
+    """``paper.pdf`` -> ``paper-3f8a1c2d9b04.txt``; a record -> ``sample-SAMN40935621-....txt``.
+
+    The hash stays, because two documents can share a name and the identity is the hash. But a
+    directory of bare 64-hex filenames is a directory you cannot read, and the pilot's
+    `.seqforge/normalized/` was exactly that: nothing in it said which file was the paper. The source
+    name is already known -- we opened the file -- so printing it costs nothing and no model is
+    involved in producing it.
+    """
+    stem = Path(doc.source_basename).stem
+    return f"{_readable(stem)}-{doc.doc_sha256[:_SHORT_HASH]}.txt"
 
 
 def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, str]]:
@@ -794,6 +980,12 @@ def harvest_extract(
         "--instruction",
         help="Document(s) authored FOR seqforge; only these may set processing.*.",
     ),
+    records_path: Path | None = typer.Option(
+        None,
+        "--records",
+        help="A record set from `seqforge io records`. Each record's free text becomes its OWN "
+        "document, which is how a claim gets to name a sample.",
+    ),
     provider: str | None = typer.Option(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
@@ -804,7 +996,7 @@ def harvest_extract(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately (R5)."
     ),
     workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
+        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
 ) -> None:
     """The ONE LLM touchpoint: prose -> AssertionDraft[] -> (verified) Assertion[].
@@ -812,19 +1004,28 @@ def harvest_extract(
     The model only proposes `{field, value, quote}`; code computes the offsets and decides what
     survives — which is what makes the provider swappable. Auto-detects DEEPSEEK_API_KEY /
     ANTHROPIC_API_KEY. Exit 1 if the LLM surface is unavailable, 4 if any claim fails verification.
+
+    **`--records` is how a claim names a sample.** Each archive record is rendered as its own
+    document and asked only what a record at that level can answer: a BioSample's document is asked
+    for sample attributes and never for a chemistry; an experiment's protocol paragraph is asked for
+    the chemistry and nothing else. Since a sample's document contains one sample's prose, "which
+    sample" is answered by which file we handed the model — the model never names one, and cannot.
     """
     from .harvest import (
         ExtractUnavailable,
         ProviderUnavailable,
         extract_drafts,
+        has_prose,
         normalize_document,
+        normalize_record,
         resolve_provider,
         verify_drafts,
     )
     from .kb import load_all_specs
+    from .models.records import ArchiveRecordSet
 
     specs = load_all_specs()
-    state = Path(workspace) / ".seqforge"
+    state = state_dir(workspace)
     state.mkdir(parents=True, exist_ok=True)
     try:
         llm = resolve_provider(provider)
@@ -837,9 +1038,22 @@ def harvest_extract(
     normalized = []
     usage_total: dict[str, int] = {}
     extractor = None
-    for doc, role in _roled(docs, instruction):
-        nd = normalize_document(doc, role=role)
+    sources: list[tuple[object, str]] = [(d, r) for d, r in _roled(docs, instruction)]
+    for doc, role in sources:
+        nd = normalize_document(doc, role=role)  # type: ignore[arg-type]
         normalized.append(nd)
+
+    if records_path is not None:
+        records = ArchiveRecordSet.model_validate_json(records_path.read_text())
+        # Only records that HAVE prose, and only levels we ask anything of. A record with an empty
+        # ask costs an API call to be told nothing; `fields_for` already knows which those are.
+        from .harvest.fields import fields_for
+
+        for record in records.records:
+            if has_prose(record) and fields_for(record.level, "reference"):
+                normalized.append(normalize_record(record))
+
+    for nd in normalized:
         try:
             outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
         except ExtractUnavailable as exc:
@@ -871,15 +1085,30 @@ def harvest_extract(
     # and it lived only in this process's memory, so the artifact could not reconstruct the
     # instructable surface and `processing new` had no way to consume it. The join existed in
     # `fill_processing` the whole time and nothing could reach it.
+    # `document_subjects` is the same idea one level up: which RECORD each document was rendered
+    # from. It is what lets `manifest fill` tell a sample's own alias (a declaration about that
+    # sample) from a paper about six samples (an inference about each), and it too lived only in this
+    # process's memory. Code owns both mappings because code chose both documents.
     (state / "assertions.json").write_text(
         json.dumps(
             {
                 "instruction_docs": sorted(instruction_docs),
+                "document_subjects": [
+                    {"doc_sha256": d.doc_sha256, "scope": d.scope, "subject": d.subject}
+                    for d in sorted(normalized, key=lambda d: d.doc_sha256)
+                ],
                 "assertions": [a.model_dump(mode="json") for a in report.assertions],
             },
             indent=2,
         )
     )
+    # The rendered documents, on disk, under readable names. A span citation is only checkable if the
+    # exact text it was greppedded against still exists -- and for a record-derived document these
+    # bytes exist nowhere else, because we made them.
+    docdir = state / "documents"
+    docdir.mkdir(parents=True, exist_ok=True)
+    for nd in normalized:
+        (docdir / _document_filename(nd)).write_text(nd.text)
     payload["n_accepted"] = report.n_accepted
     payload["n_rejected"] = len(report.rejected)
     # what the user may act on: verified directives, projected onto the instructable surface
@@ -974,43 +1203,81 @@ def _resolve_organism(value: str, *, offline: bool = False) -> int:
 @manifest_app.command("fill")
 def manifest_fill(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
-    organism: str = typer.Option(
-        ...,
+    organism: str | None = typer.Option(
+        None,
         "--organism",
-        help="NCBI taxid (6239) or scientific name ('Caenorhabditis elegans'). A name is resolved "
-        "against NCBI and round-trip verified.",
+        help="NCBI taxid (6239) or scientific name ('Caenorhabditis elegans'). Optional when "
+        "--accession is given: the archive record declares the organism. A flag beats the record.",
     ),
-    accession: list[str] = typer.Option([], "--accession", help="Accession(s) for this dataset."),
+    accession: list[str] = typer.Option(
+        [],
+        "--accession",
+        help="Accession(s) for this dataset. Each is FETCHED: the archive's per-sample records are "
+        "where strain/tissue/sex/dev_stage come from.",
+    ),
+    records_path: Path | None = typer.Option(
+        None,
+        "--records",
+        help="An already-fetched record set (`seqforge io records`), instead of fetching now.",
+    ),
+    assertions: Path | None = typer.Option(
+        None,
+        "--assertions",
+        help="Span-verified assertions from `harvest extract` (seqforge/assertions.json). Without "
+        "this, prose contributes nothing and the model might as well not have run.",
+    ),
     offline: bool = typer.Option(
-        False, "--offline", help="Never reach the network; an unseeded organism name then refuses."
+        False, "--offline", help="Never reach the network. --accession then REFUSES, never quietly."
     ),
     workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
+        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
 ) -> None:
     """Probe -> resolve -> assemble the DATASET manifest: what the data IS (R13).
+
+    **Two resolvers, and they answer different questions.** `resolve score` reads the bytes and says
+    what the library is. The metadata resolver reads the archive record and any prose and says which
+    sample each file is, and what that sample was. Both can refuse; neither is shown the other's
+    input.
 
     **Multi-run by construction.** Files are grouped into runs by name and each run's roles are
     decided from its own bytes, so one sample per run falls out. Hand it all 12 files of a 6-run
     dataset and you get 6 samples, not one guess.
 
-    That is new, and the old behaviour is why: every file went into ONE global role assignment, which
-    picks a single (R1, R2) pair out of twelve and leaves ten files with no role — dropped by compose,
-    blessed by validate, recorded as a clean content-addressed manifest. `--sample-id` is gone with
-    it: it took one string and named the single group, which is a flag that only makes sense while the
-    bug does.
+    **An accession is fetched, not decoration.** `--accession PRJNA1027859` pulls the project,
+    sample, experiment and run records and joins them to your files. That is where `tissue`, `strain`,
+    `sex` and `dev_stage` live; before this they were fetched by no code at all, which is why every
+    sample in the pilot's manifest said `tissue: null` under a paper that says "neurons".
+
+    **No accession is fine.** Most sequencing data never had one. You get samples grouped by run with
+    no facts attached, exit 0, and a manifest that is quieter and just as true.
 
     Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
     """
-    # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
-    # verified span -- the model already does its job -- so the join it needed was a lookup table,
-    # not more model. See io/taxonomy.py for why the round trip is what makes that safe.
+    from .io.remote import RemoteError
+    from .resolve.records import resolve_metadata
+
+    organism_taxid: int | None = None
+    if organism is not None:
+        # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
+        # verified span -- the model already does its job -- so the join it needed was a lookup
+        # table, not more model. See io/taxonomy.py for why the round trip is what makes that safe.
+        try:
+            organism_taxid = _resolve_organism(organism, offline=offline)
+        except TaxonomyUnavailable as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(2) from exc
+
     try:
-        organism_taxid = _resolve_organism(organism, offline=offline)
-    except TaxonomyUnavailable as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(2) from exc
+        records = _load_records(accession, records_path, offline=offline)
+    except RemoteError as exc:
+        # Decision: no network is a refusal, not a quieter answer. You asked for this accession's
+        # facts; a manifest that silently omits them is content-addressed and permanent.
+        typer.echo(
+            json.dumps({"error": "records_unavailable", "detail": str(exc)}, indent=2), err=True
+        )
+        raise typer.Exit(3) from exc
 
     multi = resolve_runs([str(f) for f in files], workspace=workspace, use_cache=False)
     if multi.exit_code() != 0:
@@ -1025,33 +1292,40 @@ def manifest_fill(
         )
         raise typer.Exit(multi.exit_code())
 
+    parsed, subjects = _assertions_and_subjects(assertions)
+    metadata = resolve_metadata(
+        # Identity only: the metadata resolver is handed no probe signal and cannot read one.
+        files=[o.file for o in multi.observations],
+        records=records,
+        assertions=parsed,
+        subjects=subjects,
+    )
+    if metadata.blockers:
+        typer.echo(
+            json.dumps(
+                {"blockers": [b.model_dump(mode="json") for b in metadata.blockers]}, indent=2
+            )
+        )
+        raise typer.Exit(3)
+
     # Every run agreed (else the Blocker above fired), so any run's verdict is the dataset's.
     first = multi.runs[0].output.result
     winner = first.candidates[0]
     spec = load_spec(winner.technology)
-    # The SAME function `fill_manifest` uses, over the SAME observations, because a sample's
-    # `file_uris` must be the URIs that end up in `library.files` -- `validate` checks exactly that.
-    # These were built from `o.file.basename` here while fill built relative paths there: one fact,
-    # two owners, and `manifest fill` refused its own manifest with six referential-integrity
-    # Blockers the first time they disagreed.
-    uris = dataset_uris(multi.observations)
-    samples = [
-        SampleGroup(
-            sample_id=run.run_id,
-            file_uris=[uris[o.file.sha256] for o in run.output.observations],
-        )
-        for run in multi.runs
+    conflicts = [
+        *(c for run in multi.runs for c in run.output.result.conflicts),
+        *metadata.conflicts,
     ]
-    conflicts = [c for run in multi.runs for c in run.output.result.conflicts]
     try:
+        experiment = experiment_from_metadata(
+            metadata, multi.observations, organism_taxid=organism_taxid
+        )
         manifest = fill_manifest(
             result=first,
             spec=spec,
             observations=multi.observations,
             registry=DEFAULT_REGISTRY,
-            experiment=ExperimentInputs(
-                organism_taxid=organism_taxid, accessions=list(accession), samples=samples
-            ),
+            experiment=experiment,
             seqforge_version=__version__,
             # The dataset-level file->role map. A single run's RoleAssignment maps role -> ONE sha,
             # so it cannot describe six R1s; this is the merged inverse, built per run from bytes.
@@ -1062,16 +1336,101 @@ def manifest_fill(
         raise typer.Exit(3) from exc
 
     report = validate_manifest(manifest, conflicts=conflicts)
-    state = Path(workspace) / ".seqforge"
+    state = state_dir(workspace)
     state.mkdir(parents=True, exist_ok=True)
     payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)
-    # R7: manifest.yaml exists only if it validated clean; otherwise it stays a draft.
-    target = state / ("manifest.yaml" if report.ok else "manifest.draft.yaml")
-    target.write_text(payload)
-    typer.echo(
-        json.dumps({"manifest": str(target), "report": report.model_dump(mode="json")}, indent=2)
-    )
+    # R7: manifest.yaml exists only if it validated clean; otherwise it stays a draft. Exactly ONE of
+    # the two exists afterwards -- see `_write_manifest` for the stale-draft bug this closes.
+    target = _write_manifest(state, payload, ok=report.ok)
+    out: dict[str, object] = {"manifest": str(target), "report": report.model_dump(mode="json")}
+    if (old := legacy_state_dir(workspace)) is not None:
+        out["note"] = (
+            f"{old} is from an older seqforge, which hid its state behind a dot. State now lives in "
+            f"{state}/ because it is the output, not plumbing. Nothing reads the old directory; "
+            f"delete it when you have what you need."
+        )
+    typer.echo(json.dumps(out, indent=2))
     raise typer.Exit(exit_code_for_report(report))
+
+
+def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
+    """Write manifest.yaml OR manifest.draft.yaml, and remove the other.
+
+    The removal is the fix. `fill` wrote one name or the other and never unlinked its sibling, so a
+    run that failed and was then fixed left `manifest.draft.yaml` sitting next to a good
+    `manifest.yaml` forever -- and, far worse, a manifest that USED to validate and now does not left
+    the stale clean `manifest.yaml` in place while reporting a draft. Every downstream verb reads
+    `manifest.yaml` by name. It would have compiled the old one and said nothing.
+
+    Exactly one of the two exists when this returns. That is the whole contract, and it is what "R7:
+    manifest.yaml exists only if it validated clean" was always supposed to mean.
+    """
+    target = state / ("manifest.yaml" if ok else "manifest.draft.yaml")
+    other = state / ("manifest.draft.yaml" if ok else "manifest.yaml")
+    target.write_text(payload)
+    other.unlink(missing_ok=True)
+    return target
+
+
+def _load_records(
+    accessions: list[str], records_path: Path | None, *, offline: bool
+) -> ArchiveRecordSet | None:
+    """The archive records for this dataset, or ``None`` if nobody named one.
+
+    ``None`` is the common case and is not a degradation: a plate sequenced last week has no
+    accession. But an accession that was *given* and cannot be fetched is a refusal — you asked for
+    those facts, and a manifest is content-addressed and never rewritten, so quietly omitting them
+    would bake the omission in.
+    """
+    from .io.archive import fetch_records
+    from .io.remote import RemoteError
+    from .models.records import ArchiveRecordSet
+
+    if records_path is not None:
+        return ArchiveRecordSet.model_validate_json(records_path.read_text())
+    if not accessions:
+        return None
+    if offline:
+        raise RemoteError(
+            f"--accession {', '.join(accessions)} needs the archive, and --offline forbids it. "
+            f"Fetch the records once with `seqforge io records {accessions[0]}` and pass "
+            f"`--records`, or drop --accession to compile with no sample facts."
+        )
+    merged: list[Any] = []
+    for acc in accessions:
+        merged.extend(fetch_records(acc).records)
+    return ArchiveRecordSet(
+        source="ncbi-sra+biosample", query=", ".join(accessions), records=merged
+    )
+
+
+def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[Any]]:
+    """Read `harvest extract`'s artifact: the claims, and which record each document came from.
+
+    ``document_subjects`` is the same trick as ``instruction_docs`` beside it — a code-owned mapping
+    from document to what code knows about it, written down so a later process can reconstruct it.
+    Without it, an assertion's ``doc_sha256`` is an opaque hash and the resolver cannot tell a
+    sample's own alias from a paper about six samples, which is the entire difference between a
+    declaration and an inference.
+    """
+    from .resolve.records import DocumentSubject
+
+    if path is None:
+        return [], []
+    payload = json.loads(path.read_text())
+    if isinstance(payload, list):
+        raise ValueError(
+            "this looks like a pre-2026.7 assertions.json (a bare list). It cannot say which "
+            "document each claim came from, so re-run `seqforge harvest extract`."
+        )
+    parsed = [Assertion.model_validate(a) for a in payload.get("assertions", ())]
+    subjects = [
+        DocumentSubject(
+            doc_sha256=str(d["doc_sha256"]), scope=str(d["scope"]), subject=d.get("subject")
+        )
+        for d in payload.get("document_subjects", ())
+    ]
+    return parsed, subjects
 
 
 @manifest_app.command("validate")

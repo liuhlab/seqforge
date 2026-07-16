@@ -1,0 +1,55 @@
+{
+ "fetched": "2026-07-16",
+ "source": "https://www.ebi.ac.uk/ols4/api/ontologies/efo/terms/",
+ "terms": {
+  "EFO:0008896": {
+   "iri": "http://www.ebi.ac.uk/efo/EFO_0008896",
+   "name": "RNA-Seq",
+   "synonyms": []
+  },
+  "EFO:0009899": {
+   "iri": "http://www.ebi.ac.uk/efo/EFO_0009899",
+   "name": "10x 3' v2",
+   "synonyms": [
+    "10X 3' v2",
+    "10X 3' v2 sequencing",
+    "10X v2",
+    "10X v2 sequencing",
+    "10XV2",
+    "10x 3' v2 sequencing",
+    "10x v2",
+    "10x v2 sequencing",
+    "10x_v2"
+   ]
+  },
+  "EFO:0009919": {
+   "iri": "http://www.ebi.ac.uk/efo/EFO_0009919",
+   "name": "SPLiT-seq",
+   "synonyms": [
+    "split-pool ligation-based transcriptome sequencing"
+   ]
+  },
+  "EFO:0009922": {
+   "iri": "http://www.ebi.ac.uk/efo/EFO_0009922",
+   "name": "10x 3' v3",
+   "synonyms": [
+    "10X 3' v3",
+    "10X v3",
+    "10X v3 sequencing",
+    "10XV3",
+    "10x 3' v3 sequencing",
+    "10x v3",
+    "10x v3 sequencing"
+   ]
+  },
+  "EFO:0022980": {
+   "iri": "http://www.ebi.ac.uk/efo/EFO_0022980",
+   "name": "10x 3' v3.1",
+   "synonyms": [
+    "10X v3.1",
+    "10X v3.1 sequencing",
+    "10x 3' v3.1 sequencing"
+   ]
+  }
+ }
+}

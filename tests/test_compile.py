@@ -33,6 +33,7 @@ from seqforge.manifest import (
     validate_processing,
 )
 from seqforge.models.dataset import DatasetManifest, SampleGroup
+from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
@@ -81,13 +82,24 @@ def _build(
         observations=obs,
         registry=reg,
         experiment=ExperimentInputs(
-            organism_taxid=559292,
+            organism=_taxid(559292),
             accessions=["PRJNA1027859"],
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in paths])],
         ),
         seqforge_version=__version__,
     )
     return manifest, reg
+
+
+def _taxid(value: int) -> EvidencedTaxid:
+    """An organism as the manifest holds it: a value that knows how we know it.
+
+    `ExperimentInputs` takes an `EvidencedTaxid` rather than a bare int because the manifest field is
+    evidenced and something has to supply the basis. It used to take the int and stamp
+    `basis="asserted"` on it unconditionally -- including for a taxid a human typed on the command
+    line, which is `user_confirmed` and not the same claim at all.
+    """
+    return EvidencedTaxid(value=value, basis="user_confirmed", rung=0)
 
 
 def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> DatasetManifest:
@@ -97,7 +109,7 @@ def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> Dataset
         spec=kb.load_spec(tech),
         observations=[probe_file(p) for p in paths],
         registry=reg,
-        experiment=ExperimentInputs(organism_taxid=6239, accessions=["PRJNA1027859"]),
+        experiment=ExperimentInputs(organism=_taxid(6239), accessions=["PRJNA1027859"]),
         seqforge_version=__version__,
     )
 
@@ -211,8 +223,14 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(tmp_path: Pat
     # §12 benign twins recorded together, basis observed
     assert manifest.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
     assert manifest.library.chemistry.basis == "observed"
-    assert manifest.library.assay.value == "EFO:0009922"
-    roles = {f.basename: (f.read_id.value if f.read_id else None) for f in manifest.library.files}
+    # One label per member of the class, and the twin keeps its OWN curie. `assay` used to be a
+    # single EvidencedAssay, so v3.1's EFO:0022980 was silently dropped and the manifest read as if
+    # `assay` and `chemistry` disagreed.
+    assert [a.chemistry for a in manifest.library.assay] == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
+    assert [a.curie for a in manifest.library.assay] == ["EFO:0009922", "EFO:0022980"]
+    # ...and the name is a human's answer to "what IS EFO:0009922", straight from EFO.
+    assert [a.name for a in manifest.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
+    roles = {f.basename: (f.read_id if f.read_id else None) for f in manifest.library.files}
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
     # R9: the manifest carries a relative uri, never the probe's absolute local path
     assert all(not f.uri.startswith("/") for f in manifest.library.files)
@@ -243,7 +261,7 @@ def test_processing_carries_the_derived_intent(tmp_path: Path) -> None:
 
 def test_fill_uses_observed_geometry_not_just_declared(tmp_path: Path) -> None:
     manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
-    reads = {r.read_id: r for r in manifest.library.read_layout.value.reads}
+    reads = {r.read_id: r for r in manifest.library.read_layout.reads}
     assert (reads["R1"].min_len, reads["R1"].max_len) == (28, 28)  # fixed barcode read
     assert reads["R2"].min_len < reads["R2"].max_len  # open-ended cDNA is variable
     cb = next(e for e in reads["R1"].elements if e.role == "CB")
@@ -402,7 +420,7 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
             spec=spec,
             observations=[],
             registry=OnlistRegistry(offline=True),
-            experiment=ExperimentInputs(organism_taxid=559292),
+            experiment=ExperimentInputs(organism=_taxid(559292)),
             seqforge_version=__version__,
         )
 

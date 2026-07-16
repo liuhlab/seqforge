@@ -176,7 +176,7 @@ def test_pre_tool_use_has_no_opinion_on_unrelated_tools() -> None:
 
 def test_post_tool_use_targets_manifest_edits_only() -> None:
     assert post_tool_use_targets(
-        {"tool_name": "Write", "tool_input": {"file_path": "/w/.seqforge/manifest.yaml"}}
+        {"tool_name": "Write", "tool_input": {"file_path": "/w/seqforge/manifest.yaml"}}
     )
     assert post_tool_use_targets(
         {"tool_name": "Edit", "tool_input": {"file_path": "manifest.draft.yaml"}}
@@ -194,7 +194,7 @@ def test_post_tool_use_targets_manifest_edits_only() -> None:
 
 
 def test_stop_blocks_while_a_question_is_open(tmp_path: Path) -> None:
-    q = tmp_path / ".seqforge" / "ds1" / "questions.md"
+    q = tmp_path / "seqforge" / "ds1" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("- Which chemistry: v2 or v3?\n")
     reason = stop_decision({}, workspace=tmp_path)
@@ -208,7 +208,7 @@ def test_stop_allows_when_no_questions_are_open(tmp_path: Path) -> None:
 
 def test_stop_ignores_an_empty_questions_file(tmp_path: Path) -> None:
     """An empty ledger is a closed ledger; whitespace must not wedge the turn."""
-    q = tmp_path / ".seqforge" / "questions.md"
+    q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("   \n\n")
     assert stop_decision({}, workspace=tmp_path) is None
@@ -221,7 +221,7 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
     A guard that can hang the agent is worse than the risk it manages: "can never finish" is a worse
     failure than "finished with an open question", because the second is at least visible.
     """
-    q = tmp_path / ".seqforge" / "questions.md"
+    q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("- unresolved\n")
     assert stop_decision({"stop_hook_active": True}, workspace=tmp_path) is None
@@ -230,7 +230,7 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
 
 def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
     for ds in ("a", "b"):
-        p = tmp_path / ".seqforge" / ds / "questions.md"
+        p = tmp_path / "seqforge" / ds / "questions.md"
         p.parent.mkdir(parents=True)
         p.write_text(f"- open in {ds}\n")
     assert len(questions_outstanding(tmp_path)) == 2

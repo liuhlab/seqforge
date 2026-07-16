@@ -94,15 +94,15 @@ def validate_manifest(
         )
 
     # --- role/layout coherence: an assigned read_id must name a read in the layout ---
-    layout_roles = {r.read_id for r in manifest.library.read_layout.value.reads}
+    layout_roles = {r.read_id for r in manifest.library.read_layout.reads}
     for f in manifest.library.files:
-        if f.read_id is not None and f.read_id.value not in layout_roles:
+        if f.read_id is not None and f.read_id not in layout_roles:
             blockers.append(
                 Blocker(
                     id=f"blk-role-{f.sha256[:8]}",
                     code=BlockerCode.NO_VALID_ROLE_ASSIGNMENT,
                     message=(
-                        f"{f.basename} is assigned role {f.read_id.value!r}, which is not a read in "
+                        f"{f.basename} is assigned role {f.read_id!r}, which is not a read in "
                         f"the declared layout ({sorted(layout_roles)})."
                     ),
                     remedy="Re-run `seqforge resolve score`; the role assignment must match the layout.",
@@ -110,9 +110,7 @@ def validate_manifest(
                 )
             )
     for role in sorted(layout_roles):
-        if not any(
-            f.read_id is not None and f.read_id.value == role for f in manifest.library.files
-        ):
+        if not any(f.read_id == role for f in manifest.library.files):
             blockers.append(
                 Blocker(
                     id=f"blk-unfilled-{role}",
@@ -162,7 +160,7 @@ def validate_manifest(
 
     # --- onlists: a barcode element naming an unmaterialized whitelist is advisory, not fatal ---
     onlist_names = {o.name for o in manifest.library.onlists}
-    for read in manifest.library.read_layout.value.reads:
+    for read in manifest.library.read_layout.reads:
         for el in read.elements:
             if el.onlist_ref and el.onlist_ref not in onlist_names:
                 warnings.append(

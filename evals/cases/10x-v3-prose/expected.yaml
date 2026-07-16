@@ -7,7 +7,7 @@ description: >-
   from a quote about cycle counts), and WBcel235 (an assembly, not an organism, though it entails one
   to anyone with background knowledge — which rule 1 forbids using).
 
-  forbidden_fields is the real assertion. The document never states a tissue or a condition, and
+  forbidden_fields is the real assertion. The document never states a tissue or a treatment, and
   never gives an accession. "Whole L4-stage larvae" is not a tissue; a reader wanting to fill the
   field would have to invent one. Silence is the correct answer, and only forbidden_fields rewards it
   — measuring recall alone would train the prompt to guess.
@@ -21,4 +21,4 @@ assertions:
 forbidden_fields:
   - experiment.accessions
   - experiment.samples.tissue
-  - experiment.samples.condition
+  - experiment.samples.treatment

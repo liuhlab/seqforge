@@ -119,9 +119,9 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert filled.exit_code == 0, filled.stdout
     assert json.loads(filled.stdout)["report"]["ok"] is True
     # R7: manifest.yaml exists only because validate came back clean
-    manifest_path = tmp_path / ".seqforge" / "manifest.yaml"
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
     assert manifest_path.is_file()
-    assert not (tmp_path / ".seqforge" / "manifest.draft.yaml").exists()
+    assert not (tmp_path / "seqforge" / "manifest.draft.yaml").exists()
 
     validated = runner.invoke(app, ["manifest", "validate", str(manifest_path)])
     assert validated.exit_code == 0
@@ -184,7 +184,15 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     assert norm.exit_code == 0
     row = json.loads(norm.stdout)["normalized"][0]
     assert row["source"] == "methods.txt" and row["n_chars"] > 0
-    assert (tmp_path / ".seqforge" / "normalized" / f"{row['doc_sha256']}.txt").is_file()
+    # A readable name, not a bare 64-hex one. The hash stays -- it is the identity, and two documents
+    # can share a name -- but `seqforge/documents/` used to be a directory in which nothing said
+    # which file was the paper.
+    written = tmp_path / "seqforge" / "documents" / f"methods-{row['doc_sha256'][:12]}.txt"
+    assert written.is_file()
+    assert row["path"] == str(written.relative_to(tmp_path))
+    # ...and a human-supplied document is about the whole dataset. It is the only honest reading of
+    # "here is the paper", and it is what stops its sample claims being recorded as declarations.
+    assert row["scope"] == "dataset" and row["subject"] is None
 
     # one truthful draft + one with a real quote pinned to a wrong value
     drafts = tmp_path / "drafts.json"
@@ -421,7 +429,7 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
 
     import yaml
 
-    manifest = yaml.safe_load((tmp_path / ".seqforge" / "manifest.yaml").read_text())
+    manifest = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
     files = manifest["library"]["files"]
     assert len(files) == 12, "every input file is in the inventory"
     assert all(f["read_id"] is not None for f in files), "and every one of them has a role"
@@ -440,9 +448,20 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
     )
 
     # the roles came from BYTES: _1/_2 is fasterq-dump's dump order and means nothing
-    roles = {f["basename"]: f["read_id"]["value"] for f in files}
+    roles = {f["basename"]: f["read_id"] for f in files}
     assert set(roles.values()) == {"R1", "R2"}
-    assert all(f["read_id"]["basis"] == "observed" for f in files)
+    # ...and each file states its role once, as a string. It used to carry a full Evidenced envelope
+    # holding a copy of the chemistry's confidence -- twelve copies of one number, because the role
+    # assignment and the chemistry are two halves of ONE joint optimization. That number lives on
+    # `library.chemistry`, which is the decision it is about.
+    assert manifest["library"]["chemistry"]["confidence"] is not None
+    assert all(isinstance(f["read_id"], str) for f in files)
+
+    # No accession was given, so nothing was fetched and no sample carries a fact. That is not a
+    # degraded mode -- most sequencing data never had an accession -- and it must not be a refusal.
+    assert all(s["attributes"] == {} for s in samples)
+    assert all(s["accession"] is None for s in samples)
+    assert manifest["experiment"]["study"] is None
 
 
 def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: Path) -> None:
@@ -481,7 +500,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
         ],
     )
     assert filled.exit_code == 0, filled.stdout
-    manifest_path = tmp_path / ".seqforge" / "manifest.yaml"
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
 
     # the organism arrived as a NAME and was resolved to a taxid by code, not retyped by a human
     manifest = _yaml.safe_load(manifest_path.read_text())
@@ -562,7 +581,7 @@ def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> 
         [
             "processing",
             "new",
-            str(tmp_path / ".seqforge" / "manifest.yaml"),
+            str(tmp_path / "seqforge" / "manifest.yaml"),
             "--annotation",
             "WS298",
             "--assertions",

@@ -47,6 +47,7 @@ from ..models.processing import (
 )
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import WorkflowModule, container_uri, get_module
+from ..workspace import state_dir
 from .params import (
     derived_params,
     find_read_with_role,
@@ -289,7 +290,7 @@ def compose(
         kb_version=manifest.provenance.kb_version,
         workflow_version=processing.provenance.workflow_version,
     )
-    pipeline_dir = Path(workspace) / ".seqforge" / "pipeline" / rid
+    pipeline_dir = state_dir(workspace, "pipeline", rid)
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     config_path = pipeline_dir / _CONFIG_NAME
     units_path = pipeline_dir / _UNITS_TSV_NAME
@@ -420,7 +421,7 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
         if cdna is None or barcode is None:
             raise ComposeError("a barcoded chemistry needs both a cDNA read and a CB-bearing read")
         return {"cdna": cdna.read_id, "barcode": barcode.read_id}
-    reads = manifest.library.read_layout.value.reads
+    reads = manifest.library.read_layout.reads
     if len(reads) < 2:
         raise ComposeError(f"bulk paired-end needs 2 reads, found {len(reads)}")
     return {"mate1": reads[0].read_id, "mate2": reads[1].read_id}
@@ -449,7 +450,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
                 rows.append(
                     {
                         "sample_id": "sample1",
-                        "read_id": f.read_id.value,
+                        "read_id": f.read_id,
                         "path": _resolve_uri(f.uri, fastq_dir),
                     }
                 )
@@ -462,7 +463,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
             rows.append(
                 {
                     "sample_id": sample.sample_id,
-                    "read_id": item.read_id.value,
+                    "read_id": item.read_id,
                     "path": _resolve_uri(item.uri, fastq_dir),
                 }
             )

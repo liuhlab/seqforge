@@ -27,6 +27,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..workspace import state_dir
+
 #: CalVer YYYY.M.PATCH. Bump when a guard's semantics change.
 #: 2026.7.1 — the held-out guard is REMOVED. `PRJNA1027859` became the pilot's demo dataset, so
 #: reserving it was a misunderstanding rather than a rule worth keeping; the `SEQFORGE_CASE_*` root
@@ -186,7 +188,7 @@ def post_tool_use_targets(payload: dict[str, Any]) -> str | None:
 
 def questions_outstanding(workspace: Path) -> list[Path]:
     """Every non-empty ``questions.md`` under ``.seqforge/`` — the open-ambiguity ledger."""
-    state = Path(workspace) / ".seqforge"
+    state = state_dir(workspace)
     if not state.is_dir():
         return []
     return [p for p in sorted(state.rglob("questions.md")) if p.read_text().strip()]
