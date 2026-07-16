@@ -12,7 +12,6 @@ verbs are declared and raise a clear "not yet implemented" until their stage lan
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -47,7 +46,7 @@ from .models.assertion import Assertion
 from .models.dataset import DatasetManifest
 from .models.processing import ProcessingManifest
 from .resolve import Hypothesis, resolve_dataset, resolve_runs
-from .workspace import STATE_DIRNAME, legacy_state_dir, state_dir
+from .workspace import STATE_DIRNAME, legacy_state_dir, readable, state_dir
 
 if TYPE_CHECKING:
     from .models.records import ArchiveRecordSet
@@ -559,6 +558,39 @@ def io_onlist_show(
     )
 
 
+@onlist_app.command("write")
+def io_onlist_write(
+    name: str = typer.Argument(..., help="Registry name, e.g. 3M-february-2018."),
+    out: Path = typer.Option(..., "--out", "-o", help="Where to write the barcode text."),
+    onlist_dir: Path | None = typer.Option(
+        None, "--onlist-dir", help="A directory of already-downloaded whitelists."
+    ),
+) -> None:
+    """Materialize a whitelist as the text STARsolo reads. Called BY the composed Snakefile.
+
+    This is the verb behind `rule onlist`, and the reason that rule exists. 10x's v3 whitelist is
+    6 794 880 barcodes = 111 MB of text, and `compose` used to write it into every run directory --
+    so one dataset compiled three ways cost a third of a gigabyte of identical bytes, permanently,
+    for a file STAR opens once. Now the pipeline builds it, uses it, and `temp()` deletes it.
+
+    The shipped form is 522 kB of packed deltas; this is the expansion. Nothing is fetched when the
+    list ships with the package, which is the case for every 10x whitelist.
+    """
+    from .io.onlist import OnlistNotAvailable, write_onlist_text
+
+    registry = (
+        default_registry(offline=False, local_dir=onlist_dir) if onlist_dir else DEFAULT_REGISTRY
+    )
+    try:
+        n = write_onlist_text(registry, name, out)
+    except OnlistNotAvailable as exc:
+        typer.echo(
+            json.dumps({"error": "onlist_unavailable", "detail": str(exc)}, indent=2), err=True
+        )
+        raise typer.Exit(3) from exc
+    typer.echo(json.dumps({"onlist": name, "path": str(out), "n_entries": n}, indent=2))
+
+
 @onlist_app.command("pack")
 def io_onlist_pack(
     text: Path = typer.Argument(..., help="The whitelist as text (.txt or .txt.gz)."),
@@ -937,18 +969,6 @@ def harvest_normalize(
     typer.echo(json.dumps({"normalized": rows}, indent=2))
 
 
-#: How much of a sha256 to keep in a readable filename. Twelve hex characters is 48 bits; at the
-#: scale this addresses -- documents in one dataset, pipelines for one dataset -- a collision is not a
-#: thing that happens, and the full 64 is what made the directory unreadable.
-_SHORT_HASH = 12
-
-
-def _readable(name: str) -> str:
-    """A filename component that is safe on every filesystem and still recognisable."""
-    kept = "".join(c if (c.isalnum() or c in "-_.") else "-" for c in name).strip("-.")
-    return re.sub(r"-{2,}", "-", kept)[:60] or "doc"
-
-
 def _document_filename(doc: Any) -> str:
     """``paper.pdf`` -> ``paper-3f8a1c2d9b04.txt``; a record -> ``sample-SAMN40935621-....txt``.
 
@@ -958,8 +978,7 @@ def _document_filename(doc: Any) -> str:
     name is already known -- we opened the file -- so printing it costs nothing and no model is
     involved in producing it.
     """
-    stem = Path(doc.source_basename).stem
-    return f"{_readable(stem)}-{doc.doc_sha256[:_SHORT_HASH]}.txt"
+    return readable(Path(doc.source_basename).stem, doc.doc_sha256) + ".txt"
 
 
 def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, str]]:

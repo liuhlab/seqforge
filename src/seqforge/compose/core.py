@@ -33,7 +33,7 @@ from pathlib import Path
 
 import yaml
 
-from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry, PackedOnlist
+from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
@@ -47,7 +47,7 @@ from ..models.processing import (
 )
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..workflows import WorkflowModule, container_uri, get_module
-from ..workspace import state_dir
+from ..workspace import readable, state_dir
 from .params import (
     derived_params,
     find_read_with_role,
@@ -125,7 +125,9 @@ class ComposePlan:
     units: list[dict[str, str]]
     module: ModuleSelection
     spec: Spec
-    onlist_files: dict[str, list[str]]  # relative path -> barcode lines to materialize
+    #: relative path -> the registry name `rule onlist` will build it from. NOT the barcodes:
+    #: see `_resolve_token` and workflows/map/starsolo.smk for why compose does not write 111 MB.
+    onlist_files: dict[str, list[str]]
 
 
 def plan(
@@ -290,16 +292,21 @@ def compose(
         kb_version=manifest.provenance.kb_version,
         workflow_version=processing.provenance.workflow_version,
     )
-    pipeline_dir = state_dir(workspace, "pipeline", rid)
+    # `pipeline/default-a3f8c19d2b04/`, not `pipeline/a3f8c19d…696/`. The run_id stays the identity
+    # -- it is what keeps two recipes over one dataset apart -- but the recipe already has a name and
+    # printing it costs nothing. The pilot's workspace was a directory of 64-hex names in which
+    # nothing said which pipeline was which.
+    pipeline_dir = state_dir(workspace, "pipeline", readable(processing.processing_id, rid))
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     config_path = pipeline_dir / _CONFIG_NAME
     units_path = pipeline_dir / _UNITS_TSV_NAME
 
-    for rel, lines in p.onlist_files.items():
-        target = pipeline_dir / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("\n".join(lines) + "\n")
-
+    # The whitelists are NOT written here. `rule onlist` builds each one when a job needs it and
+    # `temp()` deletes it after — see workflows/map/starsolo.smk. Compose used to expand 6 794 880
+    # packed barcodes into 111 MB of text per run directory, at compile time, for a file STAR opens
+    # once; compiling one dataset three ways cost a third of a gigabyte of identical bytes that
+    # nothing ever cleaned up. What compose owes the pipeline is the whitelist's NAME, which is a
+    # decision, and `_resolve_token` still verifies the registry can produce it before emitting one.
     config_path.write_text(yaml.safe_dump(p.config, sort_keys=True))
     units_path.write_text(_units_tsv(p.units))
     # The Snakefile is THE DELIVERABLE, so the composer writes it — always, unconditionally, like the
@@ -381,29 +388,18 @@ def _resolve_token(
     name = ref.registry
     rel = f"onlists/{name}.txt"
     try:
-        packed = registry.packed(name)
+        registry.packed(name)
     except OnlistNotAvailable as exc:
         raise ComposeError(
             f"onlist {name!r} is not materialized, so --soloCBwhitelist cannot be emitted: {exc}. "
             "Register it (URL + sha256) or run with a registry that can fetch it."
         ) from exc
-    onlist_files[rel] = _barcodes(packed)
+    # Verified, not materialized. `registry.packed(name)` above is what proves the whitelist EXISTS
+    # and is the declared barcode set -- refusing here, at compile time, is the R11 rung-3 promise
+    # `compose` makes. What it must not do is write the 111 MB: that is `rule onlist`'s job, and
+    # `temp()`'s. The name is recorded so the gate and the tests can still see which list was chosen.
+    onlist_files[rel] = [name]
     return rel
-
-
-def _barcodes(packed: PackedOnlist) -> list[str]:
-    """Unpack a whitelist back to barcode text (the form STARsolo's --soloCBwhitelist expects)."""
-    bases = "ACGT"
-    width = int(packed.width)
-    out: list[str] = []
-    for code in packed.codes.tolist():
-        chars = []
-        c = int(code)
-        for _ in range(width):
-            chars.append(bases[c & 0b11])
-            c >>= 2
-        out.append("".join(reversed(chars)))
-    return sorted(out)
 
 
 def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[str, str]:

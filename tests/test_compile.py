@@ -461,9 +461,13 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert config["solo"]["soloStrand"] == "Forward"
     # --readFilesIn order: the cDNA read precedes the barcode read
     assert config["read_files_in"] == {"cdna": "R2", "barcode": "R1"}
-    # the whitelist token resolved to a materialized file
-    wl = pipeline_dir / config["solo"]["soloCBwhitelist"]
-    assert wl.is_file() and len(wl.read_text().split()) == 64
+    # The whitelist token resolved to a PATH, and compose did not write the file. `rule onlist`
+    # builds it and `temp()` deletes it: 10x's real v3 list is 111 MB of text, and writing it into
+    # every run directory at compile time cost a third of a gigabyte for one dataset compiled three
+    # ways -- for a file STAR opens once. Compose still VERIFIES the registry can produce it, which
+    # is the compile-time refusal that matters.
+    assert config["solo"]["soloCBwhitelist"] == "onlists/3M-february-2018.txt"
+    assert not (pipeline_dir / config["solo"]["soloCBwhitelist"]).exists()
 
     units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "read_id", "path"]
@@ -1510,3 +1514,47 @@ def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(tmp_path: Path
     assert "orphan.fastq.gz" in blocker.message
     assert blocker.remedy, "a Blocker with no way forward is a wall (R4)"
     assert exit_code_for_report(report) == 3
+
+
+# ---------- the whitelist is built by a rule, used, and deleted (point 9) ----------
+
+
+def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(tmp_path: Path) -> None:
+    """111 MB of barcodes is a build artifact, and compose used to write it into every run dir.
+
+    10x's v3 whitelist is 6 794 880 barcodes. It ships packed (522 kB of deltas) and expands to
+    111 MB of text that STAR opens exactly once. Compose wrote that expansion into the run directory
+    at compile time, permanently, per recipe -- so one dataset compiled three ways cost a third of a
+    gigabyte of identical bytes nothing ever cleaned up.
+
+    `temp()` was also meaningless before this rule existed: the whitelist was bound to
+    `starsolo_count.input` with no producing rule, and snakemake cannot delete a file it did not make.
+    """
+    manifest, processing, reg = _pair(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.config_path).parent
+    assert not (pipeline_dir / "onlists").exists(), "compose wrote the whitelist"
+
+    module = (_src_root() / "workflows" / "map" / "starsolo.smk").read_text()
+    assert 'temp("onlists/{name}.txt")' in module
+    assert "seqforge io onlist write" in module
+
+
+def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(tmp_path: Path) -> None:
+    """The gate that catches the mistake this change nearly made.
+
+    A rule declared above `rule all` becomes the workflow's default target, and a default target with
+    a wildcard is a hard snakemake error -- which is exactly what happened on the first attempt here.
+    A dry run is the only thing that knows.
+    """
+    import shutil as _shutil
+
+    if not _shutil.which("snakemake"):
+        pytest.skip("snakemake not installed")
+    manifest, processing, reg = _pair(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.gate["wiring"] == "pass"
+    p = core.plan(manifest, processing, registry=reg)
+    plan_text = _dry_run((tmp_path / result.config_path).parent, p)
+    assert "rule onlist" in plan_text, "the whitelist has no producing job in the plan"
+    assert "3M-february-2018" in plan_text

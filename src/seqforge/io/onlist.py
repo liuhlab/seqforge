@@ -111,6 +111,50 @@ class PackedOnlist:
         return code in self._members
 
 
+def unpack_barcodes(packed: PackedOnlist) -> list[str]:
+    """A packed whitelist -> the barcode text ``--soloCBwhitelist`` expects. Inverse of packing.
+
+    Lives here, beside :func:`pack_barcode`, because it is the same fact read backwards. It used to
+    live in ``compose``, which is how ``compose`` came to write a 111 MB file: the code that could
+    produce the text was in the module that decided when to.
+    """
+    bases = "ACGT"
+    width = int(packed.width)
+    out: list[str] = []
+    for code in packed.codes.tolist():
+        chars = []
+        c = int(code)
+        for _ in range(width):
+            chars.append(bases[c & 0b11])
+            c >>= 2
+        out.append("".join(reversed(chars)))
+    return sorted(out)
+
+
+def write_onlist_text(registry: OnlistRegistry, name: str, path: str | Path) -> int:
+    """Materialize a whitelist as text at ``path``. Returns the number of barcodes written.
+
+    **This is a build step, not a compile step**, and that distinction is the whole point of it
+    existing. 10x's v3 whitelist is 6 794 880 barcodes = 111 MB of text, and ``compose`` used to
+    write it into every run directory: one dataset compiled three ways cost a third of a gigabyte of
+    identical bytes, sitting there permanently, for a file STAR reads once. Now a Snakemake rule
+    builds it, STAR reads it, and ``temp()`` deletes it — which is exactly what ``temp()`` is for and
+    what the shipped ``.smk`` now declares.
+
+    Writes to a sibling temp file and renames, so a killed run leaves no half-written whitelist for
+    the next one to read. A truncated whitelist does not fail loudly: STARsolo exits 0 and emits a
+    matrix that merely looks like a thin dataset — the same failure shape as an inverted strand.
+    """
+    packed = registry.packed(name)
+    barcodes = unpack_barcodes(packed)
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".partial")
+    tmp.write_text("\n".join(barcodes) + "\n")
+    tmp.replace(target)
+    return len(barcodes)
+
+
 def intersect_fraction(a: PackedOnlist, b: PackedOnlist) -> float:
     """Fraction of the smaller whitelist that also appears in the larger (onlist_separable, §2.4).
 
