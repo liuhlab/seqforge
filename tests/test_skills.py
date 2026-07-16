@@ -7,6 +7,7 @@ that changed. These tests pin the skill set against the actual CLI surface so dr
 
 from __future__ import annotations
 
+import itertools
 import re
 from pathlib import Path
 
@@ -66,21 +67,98 @@ def test_skill_documents_only_real_cli_verbs(skill: Path) -> None:
     Scans `seqforge <verb>` in CODE contexts only and checks it against the real Typer app, so
     renaming a verb turns this red instead of silently misleading an agent. It has already earned
     itself once: it caught that `seqforge probe` was documented everywhere and never registered.
+
+    **It now checks the SUBcommand too, and that is the gap this closes.** Checking only the group
+    meant `seqforge io onlist fetch` passed because `io` exists — so the io skill documented
+    `onlist list|show|fetch|add` while the app has `list|show|pack|write`, and two of the four were
+    fiction. An agent following it runs a command that does not exist. The group is the part least
+    likely to be wrong; the leaf is the part that gets renamed.
+    """
+    used = _verbs_used((skill / "SKILL.md").read_text())
+    real = _real_verbs()
+    unknown = sorted(v for v in used if v not in real and v.split()[0] not in _PLANNED)
+    assert not unknown, (
+        f"{skill.name} documents non-existent verb(s): {unknown}\n"
+        f"real: {sorted(v for v in real if v.split()[0] in {u.split()[0] for u in unknown})}"
+    )
+
+
+#: Declared in the design's CLI surface, stage not yet landed. Listed EXPLICITLY so that documenting
+#: a verb without implementing it stays a deliberate act. A group here exempts its whole subtree,
+#: because there is nothing to check a leaf against when the group itself does not exist.
+_PLANNED = {"run", "compile", "status", "journal"}
+
+
+def _real_cli() -> tuple[set[str], set[str]]:
+    """The live app's surface: ``(every invocation it answers to, the ones that are GROUPS)``.
+
+    Introspected, never listed. A hand-written list of what the CLI offers is the exact shape this
+    repo keeps finding rotted — and here it would rot in the direction of *permitting* fiction.
+
+    Groups are returned separately because they are what makes the check precise: a word after a
+    group must be one of its subcommands, and a word after a leaf command is just an argument.
     """
     from seqforge.cli import app
 
-    registered = {g.name for g in app.registered_groups} | {
-        c.name or (c.callback.__name__ if c.callback else "") for c in app.registered_commands
-    }
-    # declared in the design's CLI surface, stage not yet landed. Listed EXPLICITLY so that adding a
-    # verb to a skill without implementing it stays a deliberate act, not an accident.
-    planned = {"run", "compile", "status", "journal"}
+    def _leaves(a: object) -> set[str]:
+        return {
+            c.name or (c.callback.__name__ if c.callback else "")
+            for c in getattr(a, "registered_commands", [])
+        }
 
-    used = set(
-        re.findall(r"\bseqforge ([a-z][a-z-]*)", _code_spans((skill / "SKILL.md").read_text()))
-    )
-    unknown = used - registered - planned
-    assert not unknown, f"{skill.name} documents non-existent verb(s): {sorted(unknown)}"
+    verbs: set[str] = _leaves(app)
+    groups: set[str] = set()
+
+    def _walk(typer_app: object, prefix: str) -> None:
+        for group in getattr(typer_app, "registered_groups", []):
+            path = f"{prefix} {group.name}".strip()
+            verbs.add(path)
+            groups.add(path)
+            if group.typer_instance is None:
+                continue
+            verbs.update(f"{path} {leaf}" for leaf in _leaves(group.typer_instance))
+            _walk(group.typer_instance, path)
+
+    _walk(app, "")
+    return verbs, groups
+
+
+def _verbs_used(body: str) -> set[str]:
+    """`seqforge io onlist write --out x` -> {"io onlist write"}. Every claimed invocation, expanded.
+
+    Two things a naive scanner gets wrong, and both were live here:
+
+    **Falling back to a shorter prefix hides the bad leaf.** `io onlist fetch` is not real, but
+    `io onlist` is — so "longest real prefix wins" quietly reports `io onlist` and passes. The rule
+    that actually works: a word following a **group** must be one of its subcommands; a word
+    following a **leaf command** is an argument and is ignored. `seqforge manifest fill FILES` stops
+    at `manifest fill` because that is a command; `seqforge io onlist fetch` does not stop at
+    `io onlist`, because that is a group and `fetch` is claiming to be one of its verbs.
+
+    **`a|b|c` must be expanded.** Every skill documents its surface as
+    `seqforge manifest fill|validate|hash`, so a scanner that stops at the first `|` checks the first
+    alternative and blesses the rest. That is exactly how `seqforge io onlist list|show|fetch|add`
+    survived: `list` and `show` are real, `fetch` and `add` never existed, and only `list` was ever
+    looked at.
+    """
+    verbs, groups = _real_cli()
+    out: set[str] = set()
+    for match in re.finditer(r"\bseqforge((?:\s+[a-z][a-z0-9|-]*){1,3})", _code_spans(body)):
+        for combo in itertools.product(*[w.split("|") for w in match.group(1).split()]):
+            path = ""
+            for word in combo:
+                candidate = f"{path} {word}".strip()
+                if path and path not in groups:
+                    break  # `path` is a command; `word` is its argument
+                path = candidate
+                if path not in verbs:
+                    break  # unknown: report it at the depth it went wrong
+            out.add(path)
+    return out
+
+
+def _real_verbs() -> set[str]:
+    return _real_cli()[0]
 
 
 #: A CONCRETE lab path: two real segments under a cluster root. `/scratch/...` in prose is the rule
@@ -118,3 +196,43 @@ def test_installer_discovers_every_skill() -> None:
     assert {p.name for p in module.discover()} == EXPECTED
     # the paths are the only thing that varies per product — that is why they are a table
     assert set(module.TARGETS) >= {"claude", "agents"}
+
+
+def test_the_verb_check_catches_a_fictional_SUBcommand() -> None:
+    """Prove the guard fires on the thing it was blind to. It has never been green honestly before.
+
+    Checking only the group meant every one of these passed:
+
+      - `seqforge io onlist fetch` / `add` — the io skill's own listed surface; neither ever existed.
+      - `seqforge kb confusability` — documented for a year. CLAUDE.md says outright "There is no
+        `kb confusability` verb"; the skill said there was.
+      - `seqforge resolve apply` / `adjudicate` — modelled, never built.
+
+    Three skills, five fictional verbs, all found the day the guard learned to look one level down.
+    """
+    real = _real_verbs()
+    assert "io onlist write" in real, "the check must know real subcommands"
+    assert "io onlist fetch" not in real
+
+    # a group's leaf is checked...
+    assert _verbs_used("`seqforge io onlist fetch`") == {"io onlist fetch"}
+    assert _verbs_used("`seqforge kb confusability`") == {"kb confusability"}
+    # ...and every alternative in a `a|b|c` listing, not just the first
+    assert _verbs_used("`seqforge io onlist list|show|fetch`") == {
+        "io onlist list",
+        "io onlist show",
+        "io onlist fetch",
+    }
+
+
+def test_the_verb_check_does_not_cry_wolf_over_arguments() -> None:
+    """A word after a COMMAND is its argument. A guard that flags `manifest fill FILES` gets deleted.
+
+    This is the same false-positive class the lab-path check is careful about: the rule has to tell a
+    claim apart from a mention. `fill` is a command, so `files` is an argument; `onlist` is a group,
+    so the next word is claiming to be a verb.
+    """
+    assert _verbs_used("`seqforge manifest fill files`") == {"manifest fill"}
+    assert _verbs_used("`seqforge kb show tech`") == {"kb show"}
+    # prose is not code: the scanner never looks outside a fence or an inline span
+    assert _verbs_used("seqforge kb confusability is not a thing") == set()

@@ -13,10 +13,29 @@ description: >-
 The **only** place seqforge touches the network.
 
 ```bash
-seqforge io resolve ACC --json          # accession -> runs + declared metadata + dropped-read check
-seqforge io peek URI --json             # first records via HTTP Range (~64 KB, never the file)
-seqforge io onlist list|show|fetch|add  # barcode whitelists (pooch-cached, sha256-verified)
+seqforge io resolve ACC                 # accession -> runs + declared metadata + dropped-read check
+seqforge io records ACC                 # accession -> project/sample/experiment/run, as DECLARED
+seqforge io peek URI                    # first records via HTTP Range (~64 KB, never the file)
+seqforge io onlist list|show|pack|write # barcode whitelists (shipped pre-packed, sha256-verified)
+seqforge io attributes [NAME]           # NCBI's 960 harmonized BioSample names, with definitions
+seqforge io efo                         # what EFO:0009922 is actually called
 ```
+
+There is **no `--json` flag**: every verb emits JSON on stdout by default (R8). `kb list` is the one
+plain-text exception, and it is not in this skill.
+
+## `io records` is where per-sample metadata comes from
+
+`io resolve` answers "what runs are in this accession". `io records` answers "what does the archive
+SAY about them" — and those are different questions with different answers. `strain`, `tissue`, `sex`
+and `dev_stage` live on the **BioSample** record; the ENA fields `io resolve` returns are
+byte-identical across every run of a study ("Model organism or animal sample from Caenorhabditis
+elegans" x6 on the pilot). Until 2026-07-16 nothing fetched the BioSample record at all, which is why
+the pilot's manifest said `tissue: null` on six samples under a paper that says "neurons".
+
+It is a **transcriber**: it reports what the record declares and stops. What any of it means is
+`resolve`'s job — pass the result to `manifest fill --accession` (which fetches it for you) or
+`--records` (which reuses what you already fetched).
 
 ## The most important thing this does
 

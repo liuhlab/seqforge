@@ -11,12 +11,26 @@ description: >-
 # seqforge resolve
 
 ```bash
-seqforge resolve score FILES --json [--explain] [--assert-chemistry ID]
-seqforge resolve apply --question-id ID --chosen VALUE --actor user
-seqforge resolve adjudicate           # opt-in LLM job (b); OFF in `run` by default
+seqforge resolve score FILES [--explain] [--assert-chemistry ID]   # the LIBRARY, from bytes
 ```
 
-`--explain` emits the evidence matrix `M[role][file]` — read it when asked *why*.
+`--explain` emits the evidence matrix `M[role][file]` — read it when asked *why*. No `--json` flag:
+JSON on stdout is the default (R8).
+
+`resolve apply` and `resolve adjudicate` are **not built**. This skill listed both as if they were,
+which is a confident instruction to fail — found 2026-07-16 when the verb guard learned to check
+subcommands. `adjudicate` is LLM job (b) and is modelled (`ArbitrationRequest`/`ArbitrationResponse`)
+but has no verb.
+
+## There are two resolvers
+
+`resolve score` answers **"what IS this library?"** from bytes. It is what this skill is about.
+
+`resolve_metadata` answers **"which sample is each file, and what was that sample?"** from archive
+records and prose — it is a sibling, not a helper, and `manifest fill` runs it. It is handed
+`FileIdentity`, never `Observation`, so it cannot see a probe signal: there is no byte in a FASTQ that
+bears on `tissue` or `strain`, and a probe-sighted reader would settle ties the probe itself created
+and log the wrong reason.
 
 ## Your lane
 
