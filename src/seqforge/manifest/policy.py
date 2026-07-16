@@ -126,6 +126,16 @@ Reproducibility is not assumed: the 40 M point was re-measured on a different no
 different code path (32 sharded FASTQs vs one file), on *different reads*, and landed on **34.600 GB**
 again — identical to three decimals.
 
+**The instrument that produced these had a floor, found 2026-07-15 and fixed.** ``wait4``'s
+``ru_maxrss`` reports ``max(parent_rss_at_fork, child_peak)`` on Linux — a child's address space
+begins as a copy of its parent's, and ``exec`` never lowers the high-water mark. Measured: beside an
+879 MB parent, a child allocating 1 MB reported ``879260 KiB``, the parent's RSS to the byte. **Every
+number in this table stands**, because the floor was the harness (~1 GB at the very worst) and these
+readings are 34–44 GB — but that is an argument, not a check, so ``kb e2e-cost`` now records
+``harness_peak_rss_kib`` beside every reading and takes the peak from the child's own ``/proc``
+``VmHWM``, which ``exec`` resets. The lesson is the same one this docstring already carries twice: an
+instrument that cannot be wrong in a way you would notice has not been checked.
+
 **None of this changes the default.** Velocyto stays: the knee is a property of counting 250 M reads
 at all, the marginal cost of the fifth rule over the first is not what moves this number, and the
 pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four") is about the

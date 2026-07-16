@@ -31,6 +31,7 @@ import multiprocessing
 import os
 import random
 import re
+import resource
 import subprocess
 import sys
 import time
@@ -577,6 +578,13 @@ def run_starsolo(
         cost["star_wall_s"] = round(elapsed, 2)
         cost["star_peak_rss_gb"] = round(maxrss_kib / 1024 / 1024, 3)
         cost["star_peak_rss_kib"] = maxrss_kib
+        # This measuring process's own peak, recorded BESIDE the reading rather than trusted to be
+        # small. `wait4`'s rusage put a silent floor under every child at exactly this number (see
+        # `_run_measured`), and the reason that bug never corrupted a published figure is that STAR
+        # weighs ~34 GB and this process weighs ~1 -- which is an argument, not a measurement, until
+        # the two numbers sit in the same JSON. Now they do: any future reading within an order of
+        # magnitude of `harness_peak_rss_kib` deserves suspicion.
+        cost["harness_peak_rss_kib"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         cost["soloFeatures"] = _feature_list(solo["soloFeatures"])
     return outdir / "Solo.out" / _feature_list(solo["soloFeatures"])[0] / "raw"
 
