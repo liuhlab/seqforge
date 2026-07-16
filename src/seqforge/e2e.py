@@ -1796,6 +1796,19 @@ def discover_assets(
     """
     import shutil
 
+    # Resolve STAR FIRST and put it on PATH, because liulab-genome shells out to it: building an
+    # index is a STAR invocation, so `build_star_index` raises ToolNotFoundError unless `STAR` is
+    # findable in this process's environment. `--star` used to be read *after* the Genome block, so
+    # telling seqforge exactly where STAR lived did not help the one call that needed to know.
+    resolved_star = star_bin or shutil.which("STAR")
+    if not resolved_star:
+        raise E2EUnavailable(
+            "STAR is not on PATH; pass --star (e.g. liulab-runtime's align-rna env)"
+        )
+    star_dir = str(Path(resolved_star).resolve().parent)
+    if star_dir not in os.environ.get("PATH", "").split(os.pathsep):
+        os.environ["PATH"] = os.pathsep.join([star_dir, os.environ.get("PATH", "")])
+
     if fasta is None or gtf is None or star_index is None:
         try:
             from genome import Genome
@@ -1807,11 +1820,6 @@ def discover_assets(
         fasta = fasta or Path(str(g.fasta_path))
         gtf = gtf or Path(str(g.default_gtf_path))
         star_index = star_index or Path(str(g.build_star_index(gtf=annotation)))
-    resolved_star = star_bin or shutil.which("STAR")
-    if not resolved_star:
-        raise E2EUnavailable(
-            "STAR is not on PATH; pass --star (e.g. liulab-runtime's align-rna env)"
-        )
     return E2EAssets(
         fasta=Path(fasta),
         gtf=Path(gtf),
