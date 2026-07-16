@@ -29,6 +29,7 @@ from ..models.processing import (
     SoloFeature,
     SoloQuant,
 )
+from ..workflows import get_module
 from .instruct import Instruction
 
 
@@ -166,8 +167,13 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     """Derive the processing section's policy defaults from the identified chemistry's backend."""
     module = spec.backend.module
     aligner = _ALIGNER_FOR_MODULE.get(module, module.rsplit("/", 1)[-1])
-    # Every Milestone-0 technology is RNA; ATAC/multiome would select a different env here.
-    environment: RuntimeEnv = "align-rna"
+    # Asked of the MODULE, which is the only thing that knows what software it needs. This was a
+    # hardcoded `"align-rna"` sitting beside a module that also declared `align-rna` — two owners of
+    # one fact, harmless only because no rule read the env. The moment `starsolo_count` grew a
+    # `container:`, that pair could disagree into a container with no STAR in it. An ATAC module
+    # declaring `align-dna` is now simply right, instead of being overridden here by a comment
+    # promising someone would remember.
+    environment: RuntimeEnv = get_module(module).env
     # Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
     # meaningless to STARsolo. A processing manifest that carried one shape unconditionally would be
     # a type error the moment it met the other module.

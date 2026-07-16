@@ -1281,6 +1281,13 @@ def compose_cmd(
         help="Directory of downloaded barcode whitelists (<name>.txt.gz). Checked before the "
         "network, so a compute node with no internet still composes. Env: SEQFORGE_ONLIST_DIR.",
     ),
+    sif_dir: Path | None = typer.Option(
+        None,
+        "--sif-dir",
+        envvar="LIU_LAB_PACKAGES",
+        help="Directory of prebuilt liulab-runtime images (liulab-runtime_<env>.sif). Used instead "
+        "of the ghcr tag when the file is there, for nodes that cannot reach ghcr.io.",
+    ),
 ) -> None:
     """Compile (dataset, processing) -> Snakefile + config.yaml + units.tsv.
 
@@ -1331,6 +1338,7 @@ def compose_cmd(
             workspace=workspace,
             outdir=outdir,
             fastq_dir=fastq_dir,
+            sif_dir=sif_dir,
         )
     except ComposeError as exc:
         typer.echo(str(exc), err=True)

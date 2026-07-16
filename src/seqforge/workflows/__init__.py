@@ -19,6 +19,13 @@ from typing import Literal
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.5 — `starsolo_count` declares `container:`, so the recorded env name is load-bearing at
+#: last instead of emitted and ignored. `config["env"]` is REPLACED by `config["container"]`: the
+#: manifest carries the env name, and the config carries this machine's rendering of it (R9's
+#: boundary, same as fastq paths). Only the STAR rule gets one — `genome_index` is a `run:` block,
+#: and Snakemake wraps containers in `shell.py`, so a `container:` there is silently ignored.
+#: 2026.7.4 — `starsolo_count` declares its per-feature matrices as NAMED outputs instead of
+#: `directory(Solo.out)`, and `solo_to_h5ad` packages them: the default target is the deliverable.
 #: 2026.7.3 — `required_config` is COMPUTED from the module source instead of typed beside it, so
 #: over- and under-declaration are both impossible rather than one being tested. `units_tsv` joins it
 #: (the composer emits it now; no wrapper injects it). `read_layout_kind` replaces the hardcoded
@@ -27,9 +34,38 @@ from ..models.processing import RuntimeEnv
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.3"
+WORKFLOW_VERSION = "2026.7.5"
 
 _MODULE_DIR = Path(__file__).parent
+
+#: liulab-runtime's published image. **A reference to their artifact, never a definition of one**
+#: (R12): we name a tag they build and push, and this repo still contains no conda YAML, no
+#: Dockerfile, and no aligner in any dependency table. `align-rna` is where STAR comes from.
+RUNTIME_IMAGE = "ghcr.io/liuhlab/liulab-runtime"
+
+#: How liulab-runtime names a prebuilt Singularity image. Read off their own `build-sifs.sh` on
+#: 2026-07-15 (`$LIU_LAB_PACKAGES/liulab-runtime_<env>.sif`), not remembered — the four files there
+#: are exactly the four `RuntimeEnv` names, which is an independent confirmation of that literal.
+_SIF_NAME = "liulab-runtime_{env}.sif"
+
+
+def container_uri(env: RuntimeEnv, sif_dir: str | Path | None = None) -> str:
+    """The container image for ``env``: a ghcr tag, or a prebuilt ``.sif`` if one is on this machine.
+
+    ``docker://`` by default, which is portable and needs no setup — Snakemake pulls it. But a
+    compute node that cannot reach ghcr.io cannot pull anything, and the lab already builds these
+    images ahead of time, so ``sif_dir`` names where. Missing dir or missing file falls back to the
+    ghcr tag rather than emitting a path to nothing: a config naming an absent SIF fails at run time
+    on a node, while the tag at least tries.
+
+    This is a **machine fact**, so it belongs in the config and never in the manifest (R9) — same
+    boundary as ``--fastq-dir`` and ``--onlist-dir``, and the same escape hatch for the same reason.
+    """
+    if sif_dir is not None:
+        sif = Path(sif_dir) / _SIF_NAME.format(env=env)
+        if sif.is_file():
+            return str(sif.resolve())
+    return f"docker://{RUNTIME_IMAGE}:{env}"
 
 
 @cache
@@ -146,8 +182,10 @@ def list_modules() -> list[str]:
 
 __all__ = [
     "WORKFLOW_VERSION",
+    "RUNTIME_IMAGE",
     "WorkflowModule",
     "MODULES",
+    "container_uri",
     "get_module",
     "keys_read_by",
     "list_modules",

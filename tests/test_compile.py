@@ -10,6 +10,7 @@ from __future__ import annotations
 import gzip
 import re
 from pathlib import Path
+from typing import get_args
 
 import pytest
 import yaml
@@ -522,6 +523,97 @@ def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
                 assert any(" ".join(words[:n]) in known for n in range(len(words), 0, -1)), (
                     f"{name} shells out to `seqforge {verb}`, which is not a registered verb"
                 )
+
+
+def _rule_blocks(snakefile: Path) -> dict[str, str]:
+    """`rule <name>:` -> its body text. Snakemake rules are top-level and flat, so a split suffices."""
+    text = snakefile.read_text()
+    parts = re.split(r"^rule (\w+):$", text, flags=re.M)[1:]
+    return dict(zip(parts[0::2], parts[1::2], strict=True))
+
+
+def test_no_run_directive_rule_declares_a_container() -> None:
+    """A `container:` on a `run:` rule is ACCEPTED AND SILENTLY IGNORED — so declaring one is a lie.
+
+    Measured against snakemake's own source on 2026-07-15, not recalled from the docs: the container
+    wrap lives in `snakemake/shell.py` and therefore only ever wraps a `shell:` command. A `run:`
+    block executes Python in the snakemake process and never passes through it. Snakemake's own
+    linter agrees — it excludes `is_run` rules from its "missing software definition" check.
+
+    That makes this exactly the failure class this repo is built against: the directive parses, the
+    dry run is clean, the pipeline exits 0, and the software was never pinned. Nothing else in the
+    stack would say so, so this test does. `genome_index` is the rule that would tempt someone.
+    """
+    for name in list_modules():
+        for rule, body in _rule_blocks(get_module(name).snakefile).items():
+            if re.search(r"^\s{4}run:$", body, re.M):
+                assert not re.search(r"^\s{4}container:", body, re.M), (
+                    f"{name}:{rule} declares a container on a `run:` rule, where snakemake ignores "
+                    f"it. Make it a `shell:` (see `solo_to_h5ad`) or drop the directive."
+                )
+
+
+def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
+    """The env name was recorded and read by nothing, so every run used whatever STAR was on PATH."""
+    for name in list_modules():
+        blocks = _rule_blocks(get_module(name).snakefile)
+        aligner = [r for r, b in blocks.items() if "STAR --runMode alignReads" in b]
+        assert aligner, (
+            f"{name} has no rule that invokes STAR; this test is looking at the wrong one"
+        )
+        for rule in aligner:
+            assert 'container: config["container"]' in blocks[rule], (
+                f"{name}:{rule} invokes STAR with no container, so the aligner is whatever the "
+                f"submitting shell happened to have"
+            )
+    # ...and the composer must actually emit the key those rules read.
+    assert "container" in get_module("map/starsolo").required_config
+
+
+def test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here() -> None:
+    """R12: we NAME liulab-runtime's artifact. Naming is the opposite of defining."""
+    from seqforge.models.processing import RuntimeEnv
+    from seqforge.workflows import RUNTIME_IMAGE, container_uri
+
+    for env in get_args(RuntimeEnv):
+        assert container_uri(env) == f"docker://{RUNTIME_IMAGE}:{env}"
+
+
+def test_a_prebuilt_sif_beats_the_ghcr_tag_but_only_if_it_is_really_there(tmp_path: Path) -> None:
+    """A compute node that cannot reach ghcr.io cannot pull; the lab prebuilds these images.
+
+    The naming (`liulab-runtime_<env>.sif`) is read off liulab-runtime's own `build-sifs.sh`, whose
+    header says apptainer is not even installed on the arc login node. A *missing* file falls back to
+    the tag rather than emitting a path to nothing: a config naming an absent SIF fails on a node.
+    """
+    from seqforge.workflows import container_uri
+
+    assert container_uri("align-rna", tmp_path).startswith("docker://")  # empty dir -> tag
+    sif = tmp_path / "liulab-runtime_align-rna.sif"
+    sif.touch()
+    assert container_uri("align-rna", tmp_path) == str(sif.resolve())
+
+
+def test_compose_refuses_a_recipe_whose_env_cannot_supply_the_aligner(tmp_path: Path) -> None:
+    """`map/starsolo` in the `ml` env is a container with no STAR in it — refuse, never correct."""
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    processing = _processing(manifest)
+    section = processing.processing.model_copy(
+        update={"environment": processing.processing.environment.model_copy(update={"value": "ml"})}
+    )
+    broken = processing.model_copy(update={"processing": section})
+
+    with pytest.raises(ComposeError, match="align-rna"):
+        compose(manifest, broken, registry=reg, workspace=tmp_path)
+
+
+def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
+    """One owner. It was hardcoded `"align-rna"` beside a module that also declared `align-rna`."""
+    for tech in kb.list_spec_ids():
+        spec = kb.load_spec(tech)
+        from seqforge.manifest.policy import processing_defaults
+
+        assert processing_defaults(spec).environment == get_module(spec.backend.module).env
 
 
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:

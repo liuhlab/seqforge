@@ -635,6 +635,11 @@ that was assumed did not.
 R12 has no opinion and no liulab-runtime env or container is needed for it. **Only the STAR step needs
 a container.** Note `RuntimeEnv`'s four names are *correct* and `single-cell` is not among them — it is
 a liulab-runtime **feature**, consumed by the `ml`/`ml-gpu` envs, and there is no `single-cell.sif`.
+Confirmed twice over: `$LIU_LAB_PACKAGES` on arc holds exactly four SIFs, named for exactly those four
+envs. The plan argued against *deriving* that literal (an unknown env fails loudly, and a cross-check
+test that skips when liulab-runtime is absent is `wiring_gate`'s disease); what makes the literal safe
+now is that something reads it — a wrong env is a container with no aligner in it, and `compose`
+refuses a recipe whose env is not the one its module needs.
 
 ### Fetch and map are separate modules — decouple, do not omit
 
@@ -997,7 +1002,7 @@ maintained by hand, beside the code it describes, checked against itself.**
 |---|---|---|
 | Onlist revcomp is tested only when a spec declares it; a spec pinning `forward` opts out silently | §5 | the ATAC trap §5 names is not actually guarded |
 | The hypothesis is a scoring prior, not a gate — every spec is evaluated unconditionally | §5 | invisible at 5 specs; not at 500 |
-| Workflow rules declare no environment (`conda:`/`container:`) — the env name is emitted and ignored | §8 | ambient STAR runs; §3.11's machine-independence is recorded, not honoured. The prebuilt `liulab-runtime_align-rna.sif` on arc is what a `container:` would name |
+| ~~Workflow rules declare no environment~~ — **fixed 2026-07-15.** The aligner rule declares `container: config["container"]`, compose resolves the env name to a ghcr tag or a prebuilt `.sif` (`--sif-dir`, env `LIU_LAB_PACKAGES`), and `config["env"]` — emitted and read by nothing — is gone. **Two limits, both measured, both stated in the module:** the directive is inert unless the run passes `--software-deployment-method apptainer` (snakemake's contract, and the user submits); and `genome_index` gets none, because snakemake wraps containers in `shell.py` and so **silently ignores** one on a `run:` rule. That last is guarded by `test_no_run_directive_rule_declares_a_container`, and the index is liulab-genome's artifact anyway (R12) | §8 | — |
 | `resources` fields carry no `Evidenced` basis | §7 | deliberate (a hint, not a decision) — recorded so it stops reading as an oversight |
 
 ### Closed 2026-07-15 by running the thing — kept as the warning they earned
