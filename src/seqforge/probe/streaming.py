@@ -1,4 +1,4 @@
-"""Bounded FASTQ streaming — the R3 invariant made mechanical.
+"""Bounded FASTQ streaming — the bounded-read invariant made mechanical.
 
 Decompress a gzip FASTQ incrementally and stop at whichever budget trips first: ``max_reads`` records
 or ``max_bytes`` *decompressed* bytes. There is no random-access seek plan and no whole-file
@@ -36,9 +36,9 @@ def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamS
     path
         Local path to a gzip-compressed FASTQ.
     max_reads
-        Hard cap on records read (R3).
+        Hard cap on records read.
     max_bytes
-        Hard cap on *decompressed* bytes read (R3). Whichever cap trips first stops the stream.
+        Hard cap on *decompressed* bytes read. Whichever cap trips first stops the stream.
 
     Returns
     -------

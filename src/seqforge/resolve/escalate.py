@@ -57,7 +57,7 @@ def escalate(
     # on (value, rung) exactly — §12 benign twins do it BY CONSTRUCTION, since they are byte-identical
     # — and without a final tiebreak the ordering falls through to the KB dict's iteration order. The
     # representative of an equivalence class is arbitrary; it still has to be arbitrary the SAME way on
-    # every run, or `candidates[0].technology` flips between runs of an unchanged input (R7).
+    # every run, or `candidates[0].technology` flips between runs of an unchanged input.
     valid = sorted((e for e in evaluations if e.valid), key=lambda e: (-e.value, -e.rung, e.tech))
     if not valid:
         blocker = _no_candidate_blocker(evaluations, hypothesis_value, specs)

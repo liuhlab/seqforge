@@ -4,7 +4,7 @@ The structural :class:`Observation` is deliberately role-free and carries no raw
 resolver needs role-conditioned answers — distinct-ratio and onlist hit-rate over *arbitrary*
 ``[start, end)`` windows a candidate technology proposes. ``WindowProbe`` pairs the Observation with
 the same bounded, in-memory sample that produced it (from :func:`probe.probe_sample`) and answers
-those window queries. It never re-reads the file: the sample is already within the R3 budget.
+those window queries. It never re-reads the file: the sample is already within the budget.
 """
 
 from __future__ import annotations

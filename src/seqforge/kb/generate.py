@@ -1,4 +1,4 @@
-"""Synthetic FASTQ generation derived PURELY from ``spec.reads`` (R10 round-trip).
+"""Synthetic FASTQ generation derived PURELY from ``spec.reads`` (round-trip).
 
 The generator never reads ``signature`` or ``backend`` — that is what makes the round-trip
 (``spec -> synth -> probe -> recover; assert recovered == declared``) a real test rather than a
@@ -22,7 +22,7 @@ def write_fastq_gz(path: Path, seqs: list[str], *, prefix: str = "SIM") -> None:
 
     ``gzip.open(path, "wt")`` stamps the current mtime into the gzip header (and embeds the source
     filename), so regenerating identical reads a second later produces different bytes. Everything
-    downstream is content-addressed by file sha256 (R7), so a wall-clock-dependent header silently
+    downstream is content-addressed by file sha256, so a wall-clock-dependent header silently
     changes the dataset id — two runs over the same synthetic input never share a cache entry, and
     "deterministic in (spec, seed)" quietly stops being true at the byte level where it is claimed.
     ``mtime=0`` + ``filename=""`` make the output a pure function of the reads.

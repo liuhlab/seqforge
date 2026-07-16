@@ -53,7 +53,7 @@ def test_truncated_gzip_blocks(tmp_path: Path) -> None:
     codes = {b.code for b in out.result.blockers}
     assert BlockerCode.TRUNCATED_GZIP in codes
     blk = next(b for b in out.result.blockers if b.code == BlockerCode.TRUNCATED_GZIP)
-    assert blk.remedy  # actionable, non-empty (R4)
+    assert blk.remedy  # actionable, non-empty
 
 
 def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
@@ -88,7 +88,7 @@ def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
     assert not out.result.candidates  # refused: no manifest may be filled over this
     blk = next(b for b in out.result.blockers if b.code == BlockerCode.PRETRIMMED_VARIABLE_LENGTH)
     assert blk.subject.ref == "sample_R1.fastq.gz"  # names the trimmed file, not the clean cDNA
-    assert "sra-pub-src" in blk.remedy  # actionable: where the untrimmed original lives (R4)
+    assert "sra-pub-src" in blk.remedy  # actionable: where the untrimmed original lives
 
 
 def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Path) -> None:

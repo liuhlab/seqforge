@@ -248,7 +248,7 @@ def onlist_hit_rate(
 
     Tests forward and/or reverse-complement (per ``orientation``) across offsets
     ``[-offset_scan, +offset_scan]`` and returns the winning ``(orientation, offset, hit_rate)``.
-    Bounded by ``max_reads`` (R3): the sample is already head-limited, and this caps the work again.
+    Bounded by ``max_reads``: the sample is already head-limited, and this caps the work again.
 
     Vectorized: the sample is encoded once into a base-code matrix, and each window is a slice + a
     ``searchsorted`` against the onlist's sorted codes. ``n_tested`` counts reads long enough to hold

@@ -1,4 +1,4 @@
-"""Tests for the KB: schema validation, the DSL guards, and the R10 round-trip self-test."""
+"""Tests for the KB: schema validation, the DSL guards, and the round-trip self-test."""
 
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ def test_roundtrip_10x_geometry(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("tech", kb.list_spec_ids())
 def test_every_kb_spec_roundtrips(tech: str) -> None:
-    """R10: *every* KB entry is executable and self-testing — so collect from the KB, not a list.
+    """*Every* KB entry is executable and self-testing — so collect from the KB, not a list.
 
     This was three hardcoded ids plus a separate v3-only test, and the KB has five. The uncovered
     one was `10x-3p-gex-v3.1`, whose own spec comment says it exists because "a predicate cannot be
@@ -199,7 +199,7 @@ def test_a_declared_twin_that_diverges_would_be_caught() -> None:
     #    inversion recorded as a benign twin is precisely the silent corpus killer.
 
 
-# ---------- R14: the parse/count line, as a property of the DSL ----------
+# ---------- The parse/count line, as a property of the DSL ----------
 @pytest.mark.parametrize("tech", kb.list_spec_ids())
 def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     """The four-line test that would have caught the original misfiling on day one.
@@ -212,10 +212,8 @@ def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     from seqforge.kb.schema import KB_PARSE_KEYS
 
     params = kb.load_spec(tech).backend.params
-    assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params (R14)"
-    assert not set(params) & RECIPE_PARAM_KEYS, (
-        f"{tech}: a count key is misfiled as chemistry (R14)"
-    )
+    assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params"
+    assert not set(params) & RECIPE_PARAM_KEYS, f"{tech}: a count key is misfiled as chemistry"
 
 
 def test_the_kb_cannot_even_express_a_count_key() -> None:
@@ -231,7 +229,7 @@ def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
     """The proof that "a user instruction contradicts the observed bytes" is INEXPRESSIBLE.
 
     Not deprioritized by a runtime comparison — the user has no vocabulary in which to say it. That is
-    the strongest form of R2 available, and it holds only while these two sets stay disjoint. If
+    the strongest form of that guarantee available, and it holds only while these two sets stay disjoint. If
     someone later moves soloStrand into the instructable surface, this goes red, because at that point
     the contradiction becomes sayable.
     """
@@ -250,7 +248,7 @@ def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> No
     """A §12 FALSE BENIGN this repo shipped: canonical_backend used to SORT list-valued params.
 
     Its only justification was `soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]` — and soloFeatures has
-    since left backend.params (R14). What remained under the sort was splitseq's `soloCBwhitelist`,
+    since left backend.params. What remained under the sort was splitseq's `soloCBwhitelist`,
     which is POSITIONAL: the rounds map to CB positions in order. So a spec and the same spec with its
     rounds permuted — two chemistries that parse reads DIFFERENTLY — canonicalized byte-equal, i.e.
     processing_equivalent, i.e. §12-benign: record both, ask zero questions, emit ONE config for both.
@@ -284,7 +282,7 @@ def test_the_only_list_valued_parse_param_left_is_positional() -> None:
     assert list_params == {("splitseq", "soloCBwhitelist")}
 
 
-# ---------- R10: the rung-0-2 separability guard (design §2.4, fact 1) ----------
+# ---------- The rung-0-2 separability guard (design §2.4, fact 1) ----------
 def _probes_for(spec: Spec, workdir: Path) -> list[object]:
     """Synthetic reads for one spec, probed — the input a scorer sees for a dataset of this tech."""
     from seqforge.resolve.window import WindowProbe
@@ -303,7 +301,7 @@ def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None
 
     `decidable_by` and `confusable_with` were hand-maintained claims: nothing computed whether the
     cheap probes ACTUALLY separate two entries, so a new technology that silently collided with an
-    existing one passed lint, round-trip and the whole suite. R10 promised such a merge would be
+    existing one passed lint, round-trip and the whole suite. The self-test promised such a merge would be
     blocked. It would not have been.
 
     Computed, not asserted-to: generate each spec's own synthetic reads, then ask every OTHER spec
@@ -332,7 +330,7 @@ def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but does not list it in "
                     f"confusable_with — the resolver would pick one and never ask"
                 )
-    assert not undeclared, "R10 under-declaration:\n" + "\n".join(undeclared)
+    assert not undeclared, "under-declaration:\n" + "\n".join(undeclared)
 
 
 def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:

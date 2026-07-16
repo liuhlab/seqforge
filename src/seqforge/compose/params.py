@@ -6,7 +6,7 @@ bugs a config compiler actually produces, and they fail **silently**: STARsolo e
 matrix that merely looks like a thin dataset. So they get deterministic assertions of their own, run
 on every compose, with no data and no aligner.
 
-Every emitted aligner param has exactly **one owner** (R14), and this gate is where that stops being
+Every emitted aligner param has exactly **one owner**, and this gate is where that stops being
 a convention:
 
 - the **KB** owns how to PARSE reads — soloType, CB/UMI offsets, whitelist, strand. Byte-decided.
@@ -48,12 +48,12 @@ GateStatus = Literal["pass", "fail"]
 ParamOwner = Literal["kb", "processing", "derived"]
 
 RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
-"""Every backend param sourced from the processing manifest. Each says what to **COUNT** (R14)."""
+"""Every backend param sourced from the processing manifest. Each says what to **COUNT**."""
 
 DERIVED_PARAM_KEYS: frozenset[str] = frozenset({"soloCBposition", "soloUMIposition"})
 """Params computed from the element model rather than declared by anyone.
 
-Still parse keys (R14) — byte-decided, never instructable — but the bytes already answered them in
+Still parse keys — byte-decided, never instructable — but the bytes already answered them in
 the spec's element coordinates, so a KB that *also* declared the quadruple would carry the same fact
 twice and let the two drift. A third owner, because "one fact, one owner" is the whole point of
 :func:`param_owners`; folding these into ``kb`` would make the gate certify a value the KB never
@@ -207,16 +207,16 @@ def params_gate(
     from_processing = processing_params(processing.processing.quantification.value)
     from_derived = derived_params(spec)
 
-    # ---- 1. disjointness: one key, one owner (R14) ----
+    # ---- 1. disjointness: one key, one owner ----
     both = sorted(set(params) & RECIPE_PARAM_KEYS)
     if both:
         problems.append(
             f"KB declares count key(s) {both}, which the processing manifest owns: backend.params "
-            f"says how to PARSE reads, not what to COUNT (R14)"
+            f"says how to PARSE reads, not what to COUNT"
         )
     stray = sorted(set(params) - KB_PARSE_KEYS)
     if stray:
-        problems.append(f"KB declares non-parse key(s) {stray} (R14)")
+        problems.append(f"KB declares non-parse key(s) {stray}")
     redeclared = sorted(set(params) & DERIVED_PARAM_KEYS)
     if redeclared:
         problems.append(
@@ -238,7 +238,7 @@ def params_gate(
         expected_keys = set(params) | set(from_processing) | set(from_derived)
         orphans = sorted(set(emitted) - expected_keys)
         if orphans:
-            problems.append(f"config emits param(s) {orphans} that no owner declares (R14)")
+            problems.append(f"config emits param(s) {orphans} that no owner declares")
         missing = sorted(expected_keys - set(emitted))
         if missing:
             problems.append(f"config drops declared param(s) {missing}")

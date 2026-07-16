@@ -47,7 +47,7 @@ backend:
   params: {}
   # EMPTY, and meaningfully so — not degenerate. Bulk paired-end RNA-seq has nothing byte-decided to
   # pass: no barcode, no UMI, no whitelist, no offsets. Every knob that used to live here was on the
-  # wrong side of the parse/count line (R14):
+  # wrong side of the parse/count line:
   #   - quantMode: GeneCounts        -> COUNTING. Now processing.quantification (BulkQuant.mode).
   #   - outSAMtype: [BAM, Sorted..]  -> an OUTPUT FORMAT: neither parse nor count. It is a module
   #     implementation detail, and the proof was already in this repo — starsolo.smk hardcoded

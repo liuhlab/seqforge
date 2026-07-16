@@ -4,15 +4,15 @@
 every provider's strict-schema subset. That makes the vocabulary a **code** obligation rather than a
 type one, and until this module existed there was nothing discharging it. ``DEFAULT_FIELDS`` was only
 ever interpolated into the prompt; ``verify`` never compared a returned draft against it. So the
-model could name any field it liked and both R5 checks would still pass:
+model could name any field it liked and both span-verification checks would still pass:
 
     field: "processing.params.outFilterMismatchNmax"   value: "10"
     quote: "add --outFilterMismatchNmax 10 to the alignment"
 
 That quote is real, it is contiguous, and it genuinely entails "10". ``span_verified`` and
-``entailment_ok`` both hold. R5 is working exactly as designed and it does not help, because R5 asks
-*"is this claim in the document?"* and the question here is *"is this a field you may set at all?"*.
-Prose would have become aligner argv, which is R1's whole prohibition.
+``entailment_ok`` both hold. Span verification is working exactly as designed and it does not help,
+because it asks *"is this claim in the document?"* and the question here is *"is this a field you may
+set at all?"*. Prose would have become aligner argv, which is precisely what we forbid.
 
 **Asking and enforcing are different jobs.** The prompt asks for these fields; this module refuses
 everything else. Conflating the two is how a prompt quietly becomes a security boundary — and a
@@ -93,7 +93,7 @@ DEFAULT_FIELDS: tuple[str, ...] = (
 #:
 #: A downloaded methods PDF may never set these: a GEO description is an untrusted input, and prose
 #: reaching ``--soloStrand`` would be a prompt-injection path from a database field into an aligner.
-#: With the default counting everything (R15), excluding reference docs costs nothing — a paper saying
+#: With the default counting everything, excluding reference docs costs nothing — a paper saying
 #: "we used GeneFull" describes a subset of what we already compute.
 #:
 #: `processing.genome.annotation_name` is deliberately absent: it is a liulab-genome registry name

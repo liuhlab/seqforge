@@ -8,7 +8,7 @@ canonical forms are byte-equal. Including role placement matters: two techs that
 ``backend_identical`` primitive and the declared-relationship lookups the resolver consults at
 runtime to decide a benign record-both vs a divergent tie.
 
-Since R14 moved counting out of ``backend.params``, this predicate means exactly *"these two
+Since counting moved out of ``backend.params``, this predicate means exactly *"these two
 chemistries parse reads identically"* — which is what ``processing_equivalent`` should have meant all
 along, and it makes the rule **stronger**, not weaker: two specs differing only in what they count are
 no longer distinguishable here, because that difference is no longer a chemistry fact at all. It is
@@ -57,7 +57,7 @@ def _resolve_value(value: object, spec: Spec) -> object:
     if isinstance(value, list):
         # ORDER IS PRESERVED, and it must be. This used to sort, justified by exactly one comment:
         # "normalize list order so soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]". soloFeatures has
-        # since moved to the processing manifest (R14 — it says what to COUNT, not how to parse), and
+        # since moved to the processing manifest (it says what to COUNT, not how to parse), and
         # with it the only reason the sort existed.
         #
         # What it would sort NOW is the only list-valued parse param left: splitseq's

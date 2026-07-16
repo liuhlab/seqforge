@@ -347,13 +347,13 @@ def test_the_verb_check_does_not_cry_wolf_over_arguments() -> None:
 def test_the_flag_check_catches_a_fictional_flag() -> None:
     """Prove it fires. It found three the day it was written, and two were in the same skill.
 
-    `--json` on `probe`, `io peek`, `io resolve` and `resolve score`: R8 says JSON on stdout is the
+    `--json` on `probe`, `io peek`, `io resolve` and `resolve score`: JSON on stdout is the
     default and there IS no flag, and four documented invocations passed one anyway. `processing new
     --dataset manifest.yaml` in `getting-started.md`: the manifest is a positional argument. Every one
     of those verbs is real, so the verb check was green and every command exits 2.
     """
     flags = _real_flags()
-    assert "--json" not in flags["probe"], "R8: JSON is the default; there is no --json flag"
+    assert "--json" not in flags["probe"], "JSON is the default; there is no --json flag"
     assert "--accession" in flags["manifest fill"]
     assert "--dataset" not in flags["processing new"]
     # and the scanner reads the flag off the line it is on, not the next command's

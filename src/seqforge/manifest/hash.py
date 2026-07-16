@@ -1,4 +1,4 @@
-"""Content-addressed identity for the two artifacts and for the run that pairs them (R7/R13).
+"""Content-addressed identity for the two artifacts and for the run that pairs them.
 
 Three hashes, because there are three things worth identifying and they have different lifetimes:
 

@@ -188,7 +188,7 @@ def test_parse_run_new_tolerates_missing_statistics() -> None:
 
 
 # ---------------------------------------------------------------------------------------------
-# the dropped-technical-read detector (R11 rung 0 — two metadata calls, zero bytes)
+# the dropped-technical-read detector (rung 0 — two metadata calls, zero bytes)
 # ---------------------------------------------------------------------------------------------
 
 
@@ -276,7 +276,7 @@ def test_decompress_prefix_tolerates_a_truncated_tail() -> None:
 
 
 def test_decompress_prefix_enforces_a_decompressed_byte_budget() -> None:
-    """The budget is on DECOMPRESSED bytes (R3), not a compressed-byte proxy — also a zip-bomb guard."""
+    """The budget is on DECOMPRESSED bytes, not a compressed-byte proxy — also a zip-bomb guard."""
     out = decompress_prefix(_fastq_gz(5000), max_bytes=1000)
     assert len(out) <= 1000
 

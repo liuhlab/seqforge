@@ -1,4 +1,4 @@
-"""The ``seqforge`` Typer application — the CLI is the API (R8).
+"""The ``seqforge`` Typer application — the CLI is the API.
 
 Every skill action maps to a deterministic ``seqforge <verb>`` (JSON on stdout by default) that runs with no LLM in the
 loop (only ``harvest extract`` and the opt-in ``resolve adjudicate`` touch an LLM). Exit codes are
@@ -75,7 +75,7 @@ app = typer.Typer(
 schema_app = typer.Typer(help="Export JSON Schema from the Pydantic models (the source of truth).")
 app.add_typer(schema_app, name="schema")
 
-kb_app = typer.Typer(help="The executable, self-testing knowledge base (R10).")
+kb_app = typer.Typer(help="The executable, self-testing knowledge base.")
 app.add_typer(kb_app, name="kb")
 
 io_app = typer.Typer(help="The network + onlist surface (pooch-cached, sha256-verified).")
@@ -88,11 +88,11 @@ resolve_app = typer.Typer(help="Score bytes + KB into a ranked, escalated chemis
 app.add_typer(resolve_app, name="resolve")
 
 manifest_app = typer.Typer(
-    help="The DATASET manifest: what the data IS. Immutable, one per dataset (R13)."
+    help="The DATASET manifest: what the data IS. Immutable, one per dataset."
 )
 app.add_typer(manifest_app, name="manifest")
 processing_app = typer.Typer(
-    help="The PROCESSING manifest: what to DO with a dataset. Many per dataset (R13)."
+    help="The PROCESSING manifest: what to DO with a dataset. Many per dataset."
 )
 app.add_typer(processing_app, name="processing")
 
@@ -120,11 +120,11 @@ def probe_cmd(
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
-    max_reads: int = typer.Option(200_000, help="Bounded read budget (R3)."),
-    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap (R3)."),
+    max_reads: int = typer.Option(200_000, help="Bounded read budget."),
+    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
     no_cache: bool = typer.Option(False, "--no-cache", help="Do not write seqforge/ artifacts."),
 ) -> None:
-    """Fingerprint FASTQ bytes into role-free Observations. No LLM, no network, bounded (R3).
+    """Fingerprint FASTQ bytes into role-free Observations. No LLM, no network, bounded.
 
     The budget is the point: a 40 GB file costs the same as a 40 MB one, because probe stops at
     --max-reads AND --max-bytes, whichever comes first. Never returns 3/4 — it only observes; refusal
@@ -665,7 +665,7 @@ def io_h5ad(
     """Package a Solo.out's raw matrices as .h5ad — the last step of the composed pipeline.
 
     Called by `starsolo.smk`'s `solo_to_h5ad` rule, which is why it is a verb and not a `run:` block:
-    a `shell:` is rendered by `snakemake -n -p`, so compose's wiring gate can see it (R8 besides).
+    a `shell:` is rendered by `snakemake -n -p`, so compose's wiring gate can see it.
 
     Exit 3 on a Blocker-shaped refusal — the axes of the features being stacked disagree, or a matrix
     STAR was supposed to write is absent.
@@ -698,9 +698,9 @@ def io_h5ad(
 def io_peek(
     uri: str = typer.Argument(..., help="Remote FASTQ URI to range-read."),
     max_reads: int = typer.Option(4, help="Records to report from the fetched prefix."),
-    max_bytes: int = typer.Option(1 << 16, help="Compressed bytes to range-read (R3 budget)."),
+    max_bytes: int = typer.Option(1 << 16, help="Compressed bytes to range-read (budget)."),
 ) -> None:
-    """Range-read the head of a remote gzipped FASTQ. Never downloads the file (R3).
+    """Range-read the head of a remote gzipped FASTQ. Never downloads the file.
 
     64 KB is ~0.013% of a 517 MB run. Exit 1 if the host ignores Range and answers 200 with the whole
     file — bounded means bounded by the server, not by our intentions.
@@ -728,7 +728,7 @@ def io_resolve(
     The important part is the flag, not the inventory: fasterq-dump skips technical reads BY DEFAULT,
     so a 10x barcode read routinely vanishes from the published FASTQ while staying inside the .sra —
     leaving a dataset that looks like plain single-end RNA-seq. Two metadata calls catch it before a
-    byte is downloaded (R11 rung 0). Exit 4 if any run is missing one: a human must re-fetch it.
+    byte is downloaded (rung 0). Exit 4 if any run is missing one: a human must re-fetch it.
     """
     from .io.remote import RemoteError
 
@@ -756,7 +756,7 @@ def io_records(
     on the BioSample record and were fetched by no code at all until now, which is why the pilot's six
     samples all said `tissue: null`.
 
-    Cached under `seqforge/records/` (R7): a record is a fact about the archive at a moment, so
+    Cached under `seqforge/records/`: a record is a fact about the archive at a moment, so
     re-fetching it should be a choice.
     """
     from .io.archive import fetch_records
@@ -901,8 +901,8 @@ def resolve_score(
     no_cache: bool = typer.Option(
         False, "--no-cache", help="Do not read/write seqforge/ artifacts."
     ),
-    max_reads: int = typer.Option(200_000, help="Bounded read budget (R3)."),
-    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap (R3)."),
+    max_reads: int = typer.Option(200_000, help="Bounded read budget."),
+    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
     ),
@@ -939,10 +939,10 @@ def harvest_normalize(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
 ) -> None:
-    """Extract each document ONCE into the canonical text that spans are computed against (R5).
+    """Extract each document ONCE into the canonical text that spans are computed against.
 
     A document's ROLE is the flag it arrived under, never its filename: only an --instruction document
-    may set processing.* (R13). `alignment_instruction.md` is a convention you pass here, load-bearing
+    may set processing.*. `alignment_instruction.md` is a convention you pass here, load-bearing
     nowhere — a filename trigger would be spoofable by renaming a downloaded PDF.
     """
     from .harvest import normalize_document
@@ -1017,7 +1017,7 @@ def harvest_extract(
         None, "--model", help="Override the model (default: the provider's own default)."
     ),
     verify: bool = typer.Option(
-        True, "--verify/--no-verify", help="Span-verify the drafts immediately (R5)."
+        True, "--verify/--no-verify", help="Span-verify the drafts immediately."
     ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
@@ -1148,7 +1148,7 @@ def _harvest_extract_pipeline(
             }
         )
 
-    # The cost ledger (R7: disk is state). Written whether or not we go on to verify, because the call
+    # The cost ledger (disk is state). Written whether or not we go on to verify, because the call
     # happened and cost tokens regardless. `n_calls` is per-document; `cache_read_tokens > 0` means the
     # stable KB prefix was served from cache, so a second run over the same documents is much cheaper.
     (state / "usage.json").write_text(
@@ -1180,7 +1180,7 @@ def _harvest_extract_pipeline(
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
     instruction_docs = frozenset(d.doc_sha256 for d in normalized if d.role == "instruction")
     # An OBJECT, not a bare list, and the `instruction_docs` key is the reason. Which documents were
-    # authored FOR seqforge is what decides whether an assertion may touch `processing.*` (R14) --
+    # authored FOR seqforge is what decides whether an assertion may touch `processing.*` --
     # and it lived only in this process's memory, so the artifact could not reconstruct the
     # instructable surface and `processing new` had no way to consume it. The join existed in
     # `fill_processing` the whole time and nothing could reach it.
@@ -1236,7 +1236,7 @@ def harvest_verify(
 ) -> None:
     """Grep each quote back into the canonical text + check it entails the value. Exit 4 if any fail.
 
-    Both flags are code-owned, so a hallucinated or mis-attributed claim fails closed (R5).
+    Both flags are code-owned, so a hallucinated or mis-attributed claim fails closed.
     """
     from .harvest import normalize_document, verify_drafts
     from .models.assertion import AssertionDraft, ExtractorProvenance
@@ -1287,7 +1287,7 @@ class _StageOut:
 
 
 def _emit(out: _StageOut) -> None:
-    """Print a stage result the way a standalone verb does, then exit with its code (R4/R8)."""
+    """Print a stage result the way a standalone verb does, then exit with its code."""
     body = out.payload if isinstance(out.payload, str) else json.dumps(out.payload, indent=2)
     typer.echo(body, err=out.err)
     raise typer.Exit(out.code)
@@ -1296,7 +1296,7 @@ def _emit(out: _StageOut) -> None:
 def _auto_cpus(cpus: int) -> int:
     """Resolve ``--cpus``: a positive value is taken as-is; ``0`` means auto = ``min(8, detected)``.
 
-    Files probe in parallel across processes, and cores are not a budget (R3) — this only decides how
+    Files probe in parallel across processes, and cores are not a budget — this only decides how
     fast, never what. ``0`` is the default so the common multicore case is fast without a flag, while a
     shared login node can be pinned with ``--cpus 1``. The cap at 8 keeps a 96-core node from
     fork-bombing itself on a 12-file dataset where the win is already gone by 8.
@@ -1372,7 +1372,7 @@ def manifest_fill(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
 ) -> None:
-    """Probe -> resolve -> assemble the DATASET manifest: what the data IS (R13).
+    """Probe -> resolve -> assemble the DATASET manifest: what the data IS.
 
     **Two resolvers, and they answer different questions.** `resolve score` reads the bytes and says
     what the library is. The metadata resolver reads the archive record and any prose and says which
@@ -1392,7 +1392,7 @@ def manifest_fill(
     no facts attached, exit 0, and a manifest that is quieter and just as true.
 
     Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
-    lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
+    lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate.
     """
     from .io.remote import RemoteError
 
@@ -1510,7 +1510,7 @@ def _fill_manifest_pipeline(
     state = state_dir(workspace)
     state.mkdir(parents=True, exist_ok=True)
     payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)
-    # R7: manifest.yaml exists only if it validated clean; otherwise it stays a draft. Exactly ONE of
+    # manifest.yaml exists only if it validated clean; otherwise it stays a draft. Exactly ONE of
     # the two exists afterwards -- see `_write_manifest` for the stale-draft bug this closes.
     target = _write_manifest(state, payload, ok=report.ok)
     out: dict[str, object] = {"manifest": str(target), "report": report.model_dump(mode="json")}
@@ -1532,8 +1532,8 @@ def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
     the stale clean `manifest.yaml` in place while reporting a draft. Every downstream verb reads
     `manifest.yaml` by name. It would have compiled the old one and said nothing.
 
-    Exactly one of the two exists when this returns. That is the whole contract, and it is what "R7:
-    manifest.yaml exists only if it validated clean" was always supposed to mean.
+    Exactly one of the two exists when this returns. That is the whole contract, and it is what
+    "manifest.yaml exists only if it validated clean" was always supposed to mean.
     """
     target = state / ("manifest.yaml" if ok else "manifest.draft.yaml")
     other = state / ("manifest.draft.yaml" if ok else "manifest.yaml")
@@ -1629,7 +1629,7 @@ def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[A
 def manifest_validate(
     manifest_path: Path = typer.Argument(..., help="Path to a manifest.yaml."),
 ) -> None:
-    """Validate a manifest. Exit 3 on a Blocker, 4 on an open Conflict (R4)."""
+    """Validate a manifest. Exit 3 on a Blocker, 4 on an open Conflict."""
     report = validate_manifest(_load_manifest(manifest_path))
     typer.echo(json.dumps(report.model_dump(mode="json"), indent=2))
     raise typer.Exit(exit_code_for_report(report))
@@ -1664,7 +1664,7 @@ def _instructions_from(path: Path | None) -> list[Instruction]:
     `instructions=` from any production caller. This is the last mile of a join that already existed.
 
     Note what is NOT happening: the model does not decide anything here. It found a claim in prose and
-    code verified the quote greps back and entails the value (R5); this reads that record and applies
+    code verified the quote greps back and entails the value; this reads that record and applies
     precedence. "We can accept instructions because we never trust the model to act on them, only to
     find them."
     """
@@ -1674,7 +1674,7 @@ def _instructions_from(path: Path | None) -> list[Instruction]:
     if isinstance(payload, list):
         raise ValueError(
             "this looks like a pre-2026.7 assertions.json (a bare list). It cannot say which "
-            "documents were --instruction, and only those may set processing.* (R14). Re-run "
+            "documents were --instruction, and only those may set processing.*. Re-run "
             "`seqforge harvest extract`."
         )
     docs = frozenset(payload.get("instruction_docs", ()))
@@ -1717,9 +1717,9 @@ def processing_new(
     ),
     out: Path | None = typer.Option(None, "-o", "--out", help="Write here (default: stdout)."),
 ) -> None:
-    """Author a PROCESSING manifest: what to DO with a dataset (R13). Many per dataset.
+    """Author a PROCESSING manifest: what to DO with a dataset. Many per dataset.
 
-    With no flags you get the policy default, which counts every soloFeature (R15) — so the common
+    With no flags you get the policy default, which counts every soloFeature — so the common
     case needs no decision from you. --quantify replaces that list exactly; narrowing it warns,
     because dropping a feature is the only irreversible act here.
     """
@@ -1781,7 +1781,7 @@ def processing_validate(
         None, "--dataset", help="Cross-check against this dataset manifest (pin + organism)."
     ),
 ) -> None:
-    """Validate a processing manifest. Exit 3 on a Blocker (R4)."""
+    """Validate a processing manifest. Exit 3 on a Blocker."""
     processing = _load_processing(processing_path)
     dataset = _load_manifest(dataset_path) if dataset_path is not None else None
     report = validate_processing(processing, dataset=dataset)
@@ -1852,7 +1852,7 @@ def compose_cmd(
     ``--processing`` is optional: a processing manifest exists because someone wanted something
     non-default, and requiring one per dataset would mean 10^4 boilerplate files nobody reads. Either
     way compose writes the fully-resolved, dataset-bound manifest it used to processing.lock.yaml, so
-    the run's state is on disk regardless (R7). Exit 3 if a gate fails.
+    the run's state is on disk regardless. Exit 3 if a gate fails.
     """
     manifest = _load_manifest(manifest_path)
     report = validate_manifest(manifest)
@@ -1867,7 +1867,7 @@ def compose_cmd(
         if assembly is None or annotation is None:
             # The one thing with no safe default. Deriving an assembly from experiment.organism would
             # mean choosing hg38 vs hg19 vs T2T on the user's behalf — a policy call, and that map is
-            # liulab-genome's job (R12). Refuse, but make the refusal actionable (R4).
+            # liulab-genome's job. Refuse, but make the refusal actionable.
             typer.echo(
                 f"compose needs a genome: this dataset's organism is taxid "
                 f"{manifest.experiment.organism.value}. Pass --assembly/--annotation, or author one "
@@ -1913,7 +1913,7 @@ def _run_records_stage(
     """Fetch + cache the archive records for `run`, returning (the set, a file harvest can render from).
 
     Where `manifest fill` fetches into memory, `run` writes each record set under `seqforge/records/`
-    — the same place `io records` caches — because `run` is the convenience path and R7 says every
+    — the same place `io records` caches — because `run` is the convenience path and every
     stage leaves a resumable artifact. Harvest renders record documents from a *file*, so `run` hands
     the same file to both harvest and fill. `--offline` with an accession refuses, for the reason fill
     does: you asked for those facts, and the manifest is content-addressed and permanent.
@@ -1960,7 +1960,7 @@ def _run_records_stage(
 
 
 def _run_finish(stages: dict[str, object], code: int) -> None:
-    """Emit the single `run` summary and exit with the pipeline's code (R4/R8). Always raises."""
+    """Emit the single `run` summary and exit with the pipeline's code. Always raises."""
     summary: dict[str, object] = {"ok": code == 0, "exit_code": code, "stages": stages}
     harvest = stages.get("harvest")
     if isinstance(harvest, dict) and isinstance(harvest.get("usage"), dict):
@@ -1982,7 +1982,7 @@ def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
     halts `run` — the first decides a value nothing else can, the second means the LLM stage could not
     run at all. A **rejected reference claim** does not: it never entered `assertions.json`, so the
     manifest is built from the accepted claims and the bytes, and chemistry comes from bytes anyway. It
-    is reported in the summary (`needs_review` + the `rejected` list), which is what R5 asks — "not a
+    is reported in the summary (`needs_review` + the `rejected` list), which is what we ask for — "not a
     silent drop" — while letting a paper whose prose the span-checker cannot formally tie to a KB id
     still compile. Standalone `harvest extract` keeps exiting 4 on a rejection; only `run` steps past.
     """
@@ -2053,13 +2053,13 @@ def run_cmd(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
 ) -> None:
-    """One pass: FASTQ + metadata -> manifest.yaml AND a runnable Snakefile (R8).
+    """One pass: FASTQ + metadata -> manifest.yaml AND a runnable Snakefile.
 
     Chains the deterministic verbs — records, harvest, manifest fill, processing new, compose — in
     order, stops at the first refusal, and emits ONE JSON summary keyed by stage. It decides nothing
     itself: chemistry, read roles and organism come from the same code the individual verbs run, and
     the exit-code contract is preserved (3 BLOCKED, 4 NEEDS_HUMAN). Re-running is resumable through
-    each stage's own content-addressed cache (R7); there is no --resume flag.
+    each stage's own content-addressed cache; there is no --resume flag.
 
     The genome is the one real decision and has no safe default: pass --assembly/--annotation, or state
     it in an --instruction document. Everything else is optional — no accession, no paper, and
@@ -2113,7 +2113,7 @@ def run_cmd(
         if harvested.code == 4:
             # rejected reference claims survived the halt check: surface them, do not stop (see
             # `_harvest_halts_run`). They were dropped from assertions.json already; this is the "not
-            # a silent drop" R5 asks for, in a field a headless caller still sees.
+            # a silent drop" we ask for, in a field a headless caller still sees.
             cast(dict, stages["harvest"])["needs_review"] = (
                 "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
                 "was built from the accepted claims and the bytes"
@@ -2286,7 +2286,7 @@ def eval_run(
 
 @hook_app.command("pre-tool-use")
 def hook_pre_tool_use() -> None:
-    """Deny an unbounded FASTQ stream (R3) or an absolute path in a manifest (R9).
+    """Deny an unbounded FASTQ stream or an absolute path in a manifest.
 
     Reads the hook payload on stdin, emits a permissionDecision on stdout. Exit 0 always: the decision
     travels in the JSON, and a crashing guard must never wedge the agent.
@@ -2312,7 +2312,7 @@ def hook_pre_tool_use() -> None:
 
 @hook_app.command("post-tool-use")
 def hook_post_tool_use() -> None:
-    """After any manifest edit, re-run `manifest validate`. The model does not grade its own work (R2)."""
+    """After any manifest edit, re-run `manifest validate`. The model does not grade its own work."""
     from .hooks import post_tool_use_targets
 
     payload = _hook_payload()
@@ -2351,7 +2351,7 @@ def hook_post_tool_use() -> None:
                 "decision": "block",
                 "reason": (
                     f"manifest validate FAILED on {Path(target).name} (exit "
-                    f"{exit_code_for_report(report)}): {codes}. Refusal is the contract (R4) — fix "
+                    f"{exit_code_for_report(report)}): {codes}. Refusal is the contract — fix "
                     "the manifest; do not proceed as though it validated."
                 ),
             }
@@ -2461,19 +2461,19 @@ def hook_check(
 
     cases = [
         (
-            "R3 unbounded FASTQ",
+            "unbounded FASTQ",
             {"tool_name": "Bash", "tool_input": {"command": "zcat big.fastq.gz | wc -l"}},
         ),
         (
-            "R3 allows a bounded stream",
+            "allows a bounded stream",
             {"tool_name": "Bash", "tool_input": {"command": "zcat big.fastq.gz | head -n 400"}},
         ),
         (
-            "R3 allows the seqforge verb",
+            "allows the seqforge verb",
             {"tool_name": "Bash", "tool_input": {"command": "seqforge probe big.fastq.gz"}},
         ),
         (
-            "R9 absolute path in manifest",
+            "absolute path in manifest",
             {
                 "tool_name": "Write",
                 "tool_input": {

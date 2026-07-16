@@ -1,4 +1,4 @@
-"""Project verified :class:`Assertion`s onto the instructable surface. Deterministic; no LLM (R2).
+"""Project verified :class:`Assertion`s onto the instructable surface. Deterministic; no LLM.
 
 A user may tell seqforge what to do, in prose, in a document they hand us:
 
@@ -20,7 +20,7 @@ authored the file for us; every sentence in it is addressed to us.
 Note what cannot reach this module: a ``processing.*`` draft from a **reference** document.
 :mod:`seqforge.harvest.fields` refuses it at verify time, so a downloaded methods PDF can never steer
 the pipeline. That is a deliberate narrowing of "instructions may live among the unstructured
-metadata", and it costs nothing: with the default counting everything (R15), a paper saying "we used
+metadata", and it costs nothing: with the default counting everything, a paper saying "we used
 GeneFull" describes a subset of what we already compute.
 """
 
@@ -67,7 +67,8 @@ def instructions_from_assertions(
     reference document has no business setting intent at all.
 
     Two instructions disagreeing **at the same precedence** on one field is a :class:`Conflict`
-    (exit 4): there is no tiebreak, and R6 applies to intent exactly as it applies to truth. Note this
+    (exit 4): there is no tiebreak, and a disagreement is surfaced for intent exactly as it is for
+    truth. Note this
     is a *same-basis* disagreement; an instruction differing from a policy default is not a conflict at
     all — that is what an instruction IS.
     """

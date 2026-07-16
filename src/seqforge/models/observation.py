@@ -1,6 +1,6 @@
 """``Observation`` — deterministic, LLM-free, network-free probe output for ONE file.
 
-Cached by file sha256 (R7). Reports structural signals ONLY; it MUST NOT assign roles — mapping
+Cached by file sha256. Reports structural signals ONLY; it MUST NOT assign roles — mapping
 ``constant -> linker/TSO``, ``random -> CB|UMI|cDNA``, ``homopolymer-T -> polyT`` is the resolver's
 job, scored and second-guessable.
 """
@@ -73,7 +73,7 @@ class FileIdentity(BaseModel):
 
 
 class ProbeProvenance(BaseModel):
-    """What the bounded probe did under its read/byte budget (R3).
+    """What the bounded probe did under its read/byte budget.
 
     ``bytes_read`` is decompressed; ``compressed_bytes_read`` drives ``estimated_total_reads``
     (avoids the compression-ratio undercount).
@@ -132,7 +132,7 @@ class GzipIntegrity(BaseModel):
 
 
 class Observation(BaseModel):
-    """Structural, role-free probe output for one file, cached by ``file.sha256`` (R3/R7)."""
+    """Structural, role-free probe output for one file, cached by ``file.sha256``."""
 
     model_config = ConfigDict(frozen=True)
 

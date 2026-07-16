@@ -1,4 +1,4 @@
-"""``harvest extract`` — **the one LLM touchpoint in the whole compiler** (R1/R2).
+"""``harvest extract`` — **the one LLM touchpoint in the whole compiler**.
 
 Everything else in seqforge is a verifier. This module's entire job is to turn prose into
 ``AssertionDraft{field, value, quote}`` candidates. It decides nothing:
@@ -37,11 +37,11 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 #: `eval run --llm` caught DeepSeek V4-Pro filing standard worm husbandry ("maintained on NGM plates
 #: seeded with E. coli OP50 at 20 C") as an experimental *condition*: a real quote, correctly copied,
 #: pinned to a field it does not belong in. The old prompt said only "everything else: the document's
-#: own wording", which invites exactly that. See `verify.entails` for why R5 cannot catch this class.
-#: 2026.7.2 — `processing.*` becomes askable, of --instruction documents ONLY (R13/R14). Note the
+#: own wording", which invites exactly that. See `verify.entails` for why span verification cannot catch this class.
+#: 2026.7.2 — `processing.*` becomes askable, of --instruction documents ONLY. Note the
 #: hazard this sits on: 2026.7.1's regression WAS field misassignment, and this adds fields whose
 #: misassignment reaches the aligner. Three things contain it, none of them the prompt — the field
-#: allowlist (`harvest.fields`), the doc-role gate (`verify_drafts`), and R15's all-five default, which
+#: allowlist (`harvest.fields`), the doc-role gate (`verify_drafts`), and the all-five default, which
 #: means a hallucinated instruction can only mislabel the primary matrix, never destroy signal.
 #: 2026.7.3 — dropped the hand-written `experiment.samples.condition` definition. `condition` was
 #: removed from the asked vocabulary (no archive defines it; NCBI's `treatment`/`genotype`/
@@ -178,7 +178,7 @@ def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
 
 
 def llm_schema() -> dict[str, Any]:
-    """The wire schema, derived from the canonical model (R1 / design §1.8)."""
+    """The wire schema, derived from the canonical model (design §1.8)."""
     return ExtractionResult.model_json_schema()
 
 
@@ -218,7 +218,7 @@ def extract_drafts(
         raise ExtractUnavailable(str(exc)) from exc
 
     # THE gate. json-object providers do not enforce shape, so this is where a malformed batch dies —
-    # loudly and wholesale, rather than as a half-parsed assertion leaking into the manifest (R2).
+    # loudly and wholesale, rather than as a half-parsed assertion leaking into the manifest.
     try:
         parsed = ExtractionResult.model_validate_json(response.text)
     except ValidationError as exc:

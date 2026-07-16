@@ -1,8 +1,7 @@
 """Hook guards — the rules turned into mechanism (design §4.2).
 
-`CLAUDE.md` says R3 (never read a whole FASTQ), R9 (no absolute paths in a manifest) and R4 (refusal
-is an exit code). Written down, those are aspirations. Here they become something that actually stops
-a tool call.
+`CLAUDE.md` says never read a whole FASTQ, no absolute paths in a manifest, and refusal is an exit
+code. Written down, those are aspirations. Here they become something that actually stops a tool call.
 
 **The logic lives here, not in a shell script, for one reason: a guard that silently never fires is
 indistinguishable from a guard that always allows — and that is the worst possible failure for a
@@ -14,7 +13,7 @@ Three events, three jobs:
 
 - ``PreToolUse``  — deny an unbounded FASTQ stream, and deny writing an absolute path into a manifest.
 - ``PostToolUse`` — re-run ``manifest validate`` after any manifest edit; the model does not get to
-  decide whether its own edit was valid (R2).
+  decide whether its own edit was valid.
 - ``Stop``        — refuse to end a turn while ``questions.md`` is non-empty; exit 4 and this hook are
   the only ways ambiguity clears, and both route to a human.
 """
@@ -49,12 +48,12 @@ _FASTQ = re.compile(r"[^\s'\"]+\.(fastq|fq)(\.gz|\.bz2|\.xz)?\b", re.IGNORECASE)
 
 _ABS_PATH = re.compile(r"(?<![\w.])/(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+")
 
-#: A URI is what R9 *wants* for data, but `s3://bucket/x.fastq.gz` contains `/bucket/x.fastq.gz`,
+#: A URI is what the manifest *wants* for data, but `s3://bucket/x.fastq.gz` contains `/bucket/x.fastq.gz`,
 #: which looks exactly like an absolute path. Scrub URIs before the path scan or the guard rejects
 #: the very manifests it exists to encourage — and a guard that blocks correct work gets switched off.
 _URI = re.compile(r"\b[a-z][a-z0-9+.\-]*://\S+", re.IGNORECASE)
 
-#: Manifest/config files R9 applies to.
+#: Manifest/config files the machine-independent-path rule applies to.
 _MANIFEST_FILE = re.compile(r"(manifest[^/]*\.ya?ml|config\.ya?ml|units\.tsv)$", re.IGNORECASE)
 
 #: Keys a manifest legitimately carries that look like paths but are not (assembly ids, env names).
@@ -74,7 +73,7 @@ class Denial:
 
 
 def _is_seqforge_command(command: str) -> bool:
-    """Is this a sanctioned seqforge verb? Those are bounded by construction (R3) and are the API (R8).
+    """Is this a sanctioned seqforge verb? Those are bounded by construction and are the API.
 
     This is the line the guard draws: `seqforge probe` is the sanctioned, bounded, auditable path.
     `cat` on the same file is the leak. Blocking both would make the tool unusable; blocking neither
@@ -96,7 +95,7 @@ def _is_seqforge_command(command: str) -> bool:
 
 
 def check_unbounded_fastq(command: str) -> Denial | None:
-    """R3: a code path that CAN stream a whole multi-GB FASTQ is a bug, not a risk to manage."""
+    """A code path that CAN stream a whole multi-GB FASTQ is a bug, not a risk to manage."""
     if not command or _is_seqforge_command(command):
         return None
     hits = _FASTQ.findall(command)
@@ -107,7 +106,7 @@ def check_unbounded_fastq(command: str) -> Denial | None:
     if _BOUNDED.search(command):
         return None
     return Denial(
-        rule="R3 (never read a whole FASTQ)",
+        rule="never read a whole FASTQ",
         reason=(
             "this streams a FASTQ with no read/byte bound. Wall-clock is not a budget: the file may "
             "be 40 GB and the command would happily read all of it."
@@ -120,7 +119,7 @@ def check_unbounded_fastq(command: str) -> Denial | None:
 
 
 def check_absolute_path_write(file_path: str, content: str) -> Denial | None:
-    """R9: a manifest with a machine-specific path is not a manifest, it is a note to one machine."""
+    """A manifest with a machine-specific path is not a manifest, it is a note to one machine."""
     if not file_path or not _MANIFEST_FILE.search(file_path):
         return None
     scrubbed = _URI.sub(" ", content or "")  # a URI is the RIGHT answer here, not a violation
@@ -129,7 +128,7 @@ def check_absolute_path_write(file_path: str, content: str) -> Denial | None:
         if path.startswith(_ALLOWED_ABS_PREFIXES):
             continue
         return Denial(
-            rule="R9 (machine-independent manifest)",
+            rule="machine-independent manifest",
             reason=(
                 f"{Path(file_path).name} would carry the absolute path {path!r}. The manifest must "
                 "resolve on any machine; a baked path silently pins it to this one."
@@ -174,7 +173,7 @@ def pre_tool_use(payload: dict[str, Any]) -> Denial | None:
 def post_tool_use_targets(payload: dict[str, Any]) -> str | None:
     """The manifest a PostToolUse call just edited, if any — else ``None``.
 
-    R2 in one line: the model does not get to decide whether its own edit was valid. If it touched a
+    In one line: the model does not get to decide whether its own edit was valid. If it touched a
     manifest, `manifest validate` runs, and the exit code (not the model's opinion) is the verdict.
     """
     tool = str(payload.get("tool_name") or payload.get("toolName") or "")

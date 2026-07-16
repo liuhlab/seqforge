@@ -305,7 +305,7 @@ def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_orde
     The old key was ``max(tie, key=lambda e: (e.rung, e.value))``. On an exact tie ``max`` returns the
     first maximal element in ITERATION order, which here traces back to the KB dict — so
     ``candidates[0].technology`` could flip between runs of an unchanged input, and with it the
-    manifest's winner field. R7 says a run is resumable and content-addressed; a winner that depends
+    manifest's winner field. A run is resumable and content-addressed; a winner that depends
     on dict ordering is neither.
 
     Which twin represents the class is arbitrary — that is what "equivalent" means. It still has to be
@@ -470,4 +470,4 @@ def test_resolve_runs_blocks_when_runs_disagree_on_chemistry(tmp_path: Path) -> 
         pytest.skip(f"both runs resolved to {techs}; this fixture cannot exercise disagreement")
     assert multi.blockers, "runs disagreed and nothing said so"
     assert multi.exit_code() == 3
-    assert multi.blockers[0].remedy, "a Blocker with no way forward is a wall (R4)"
+    assert multi.blockers[0].remedy, "a Blocker with no way forward is a wall"

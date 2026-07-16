@@ -737,7 +737,7 @@ def run_composed(
             config[block].update(entries)
         (rundir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
 
-    # The module invokes a bare `STAR`, as it must: a module may not carry a machine's path (R9).
+    # The module invokes a bare `STAR`, as it must: a module may not carry a machine's path.
     # `assets.star_bin` is this host's answer, so put its directory on PATH for the child rather than
     # rewriting the module's shell block.
     env = dict(os.environ)
@@ -955,7 +955,7 @@ def run_intron_e2e(
     This gate runs on the **compiler's own params**: no override. It used to force
     ``soloFeatures = [Gene, GeneFull]`` past a compiler that would have emitted ``Gene``, and its
     docstring had to admit the fixture "does NOT prove the compiler would choose GeneFull, because
-    today it cannot". It can now (R14/R15), so ``gene_signal_lost`` stops measuring our own bug and
+    today it cannot". It can now, so ``gene_signal_lost`` stops measuring our own bug and
     starts measuring a **counterfactual**: what Gene-only would have cost, on a run where we did not
     do it.
 
@@ -1027,7 +1027,7 @@ def run_intron_e2e(
     solo = dict(composed.config["solo"])  # type: ignore[arg-type]
     composed_features = _feature_list(solo["soloFeatures"])
     # No override. The compiler's own params run, and both Gene and GeneFull are among them because
-    # the default counts everything (R15). If that ever regresses, this gate cannot even read its own
+    # the default counts everything. If that ever regresses, this gate cannot even read its own
     # matrices — which is the point of asserting it here rather than trusting the default.
     if not {"Gene", "GeneFull"} <= set(composed_features):
         return {
@@ -1096,7 +1096,7 @@ def run_intron_e2e(
         # THE HEADLINE, and it is now a COUNTERFACTUAL: what --soloFeatures Gene alone WOULD have
         # discarded from this nuclear library, measured on a run that did not discard it.
         "gene_signal_lost": round(1 - (gene_total / total), 4) if total else 0.0,
-        # what the real compiler emitted — no override (R15). This is the assertion.
+        # what the real compiler emitted — no override. This is the assertion.
         "composed_soloFeatures": composed_features,
         "primary_feature": composed.config.get("primary_feature"),
         # No `cost` key any more, and its absence is the honest answer rather than a regression.
@@ -1183,7 +1183,7 @@ def run_cost_sweep(
     feature_list = _feature_list(solo["soloFeatures"])
     note(f"compiler decided {decided!r}; soloFeatures = {feature_list}")
 
-    # Resume (R7: disk is state, context is cache). A preemptible partition can requeue this job at
+    # Resume (disk is state, context is cache). A preemptible partition can requeue this job at
     # any moment, and a requeue that redid five hours of STAR would make the cheap partition the
     # expensive one. A point already measured at this depth, under these same features, is a fact —
     # so it is reloaded rather than recomputed. The features check is what makes that safe: the same
@@ -1260,7 +1260,7 @@ def run_cost_sweep(
             for p in (*cdna_fq, *bc_fq):
                 p.unlink(missing_ok=True)
             note(f"{tag}: reads deleted (--keep-reads to retain)")
-        # Disk is state (R7): a hard kill (Slurm OOM, wall-clock) must not cost us the points we
+        # Disk is state: a hard kill (Slurm OOM, wall-clock) must not cost us the points we
         # already paid for, so every point is durable the moment it exists rather than at the end.
         _atomic_write_json(
             partial_path,
@@ -1307,7 +1307,7 @@ def _compose_cost_params(
 ) -> tuple[dict[str, object], Path, str | None]:
     """Drive resolve -> fill -> compose on a small fixture and return the params STAR should run.
 
-    The fixture is small because the probe is budgeted (R3) and none of resolve/fill/compose cares
+    The fixture is small because the probe is budgeted and none of resolve/fill/compose cares
     how deep the library is — only the aligner does. Deriving the params from data rather than typing
     them here is what keeps this honest: if the compiler stopped recognizing 10x v3, or stopped
     emitting Velocyto, this reports that instead of quietly measuring a command line we wrote by hand.
@@ -1844,7 +1844,7 @@ def discover_assets(
     star_index: Path | None = None,
     star_bin: str | None = None,
 ) -> E2EAssets:
-    """Resolve the run's assets, preferring liulab-genome (R12: we consume it, never reimplement it).
+    """Resolve the run's assets, preferring liulab-genome (we consume it, never reimplement it).
 
     `build_star_index` — not `get_star_index`, which this called for as long as it existed and which
     **liulab-genome has never had**. It was a lazy import inside an arm that only runs on a cluster,
@@ -1908,14 +1908,14 @@ def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
 
 
 def _progress(msg: str) -> None:
-    """Emit a progress line to **stderr**, because stdout belongs to the JSON (R8).
+    """Emit a progress line to **stderr**, because stdout belongs to the JSON.
 
     `kb e2e-cost` runs for tens of minutes, so it has to say what it is doing — and the obvious
-    `print()` put that narration on stdout, straight through the middle of the result. R8 says the CLI
+    `print()` put that narration on stdout, straight through the middle of the result. The CLI
     emits JSON on stdout; a consumer doing `seqforge kb e2e-cost ... | jq` got a parse error, and a
     consumer redirecting to a file got a file that is not JSON. Caught on the first real array run:
     `cost-hg38-2681399.json` is unparseable for exactly this reason, and only the separately-written
-    `cost_sweep.partial.json` (R7 — disk is state) made its three measured points recoverable.
+    `cost_sweep.partial.json` (disk is state) made its three measured points recoverable.
 
     Progress is not a result. It goes to stderr, where a human reads it and a pipe ignores it.
     """

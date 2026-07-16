@@ -167,7 +167,7 @@ def test_the_assay_cannot_disagree_with_the_chemistry_it_names() -> None:
 def test_one_decision_carries_exactly_one_confidence() -> None:
     """`confidence: 0.750672` appeared on four fields of the pilot's manifest. It was one number.
 
-    Four envelopes filled from one variable cannot disagree, so they were never four truths. R6 asks
+    Four envelopes filled from one variable cannot disagree, so they were never four truths. We ask
     that a value not travel without its provenance -- which one honest envelope does. A field
     repeated is decoration that looks like provenance, which is worse than none.
     """
@@ -181,7 +181,7 @@ def test_one_decision_carries_exactly_one_confidence() -> None:
 
 
 def test_a_sample_attribute_key_must_be_one_ncbi_defines() -> None:
-    """R2: no field enters the manifest without passing a validator, and the key space is NCBI's.
+    """No field enters the manifest without passing a validator, and the key space is NCBI's.
 
     `condition` was ours. No archive uses it, and a field named "condition" accepts anything you can
     call a condition -- which is how the pilot's extraction filed routine worm husbandry into it.
@@ -263,14 +263,14 @@ def test_schema_export_covers_every_registered_model() -> None:
 
 def test_export_all_includes_both_manifests_and_defs() -> None:
     allschemas = m.export_all()
-    # TWO artifacts, two schemas (R13). A split that exported only one would silently lose coverage.
+    # TWO artifacts, two schemas. A split that exported only one would silently lose coverage.
     for name in ("DatasetManifest", "ProcessingManifest"):
         assert name in allschemas
         assert "$defs" in allschemas[name]
 
 
 def test_the_processing_manifest_is_not_llm_facing() -> None:
-    """The LLM emits AssertionDraft; CODE composes the processing manifest. That boundary is R1.
+    """The LLM emits AssertionDraft; CODE composes the processing manifest. That is the emit-data-never-code boundary.
 
     If ProcessingManifest ever became a structured-output surface, a model would be authoring pipeline
     parameters directly instead of proposing claims that code adjudicates.
@@ -280,11 +280,11 @@ def test_the_processing_manifest_is_not_llm_facing() -> None:
 
 
 def test_the_processing_manifest_refuses_an_unknown_key() -> None:
-    """R14 at the model: the instructable surface is ENUMERATED, so an unknown key is an error.
+    """At the model: the instructable surface is ENUMERATED, so an unknown key is an error.
 
     It was a silent drop until 2026-07-15. `ProcessingSection(soloStrand="Reverse")` constructed
     happily and discarded the field, because the model set only `frozen=True` and inherited
-    pydantic's `extra="ignore"`. R14 claims "the recipe model forbids extras: an unknown key
+    pydantic's `extra="ignore"`. The design claims "the recipe model forbids extras: an unknown key
     is a validation error, never a passthrough to a command line" — the second half was true (the
     params gate closes that path) and the first half was not.
 
@@ -316,7 +316,7 @@ def test_solo_quant_rejects_velocyto_without_gene() -> None:
 
     No enum can express "this member requires that one", which is the clearest proof that a closed
     vocabulary is not by itself armor. STAR would error out anyway — but only AFTER the download and
-    the alignment we were amortizing, so we refuse first (R4).
+    the alignment we were amortizing, so we refuse first.
     """
     with pytest.raises(ValidationError, match="Velocyto"):
         m.SoloQuant(features=["GeneFull", "Velocyto"])
@@ -331,7 +331,7 @@ def test_solo_quant_rejects_duplicates_and_emptiness() -> None:
 
 
 def test_solo_quant_rejects_a_feature_starsolo_does_not_have() -> None:
-    """The closure is what makes R5 non-vacuous for this field — see verify.entails."""
+    """The closure is what makes span-verification non-vacuous for this field — see verify.entails."""
     with pytest.raises(ValidationError):
         m.SoloQuant(features=["GeneFullish"])
 
@@ -342,7 +342,7 @@ def test_export_schema_unknown_model_raises() -> None:
 
 
 def test_the_module_graph_enforces_the_split() -> None:
-    """R13 as an import graph, not as a comment.
+    """The two-artifact split as an import graph, not as a comment.
 
     `dataset` and `processing` must never import each other. A dataset cannot know how it will be
     processed, because it will be processed many ways; and intent has no business reaching back into
@@ -361,4 +361,6 @@ def test_the_module_graph_enforces_the_split() -> None:
             for node in ast.walk(tree)
             if isinstance(node, ast.ImportFrom) and node.module
         }
-        assert forbidden not in imported, f"models/{module}.py imports {forbidden} — R13 has leaked"
+        assert forbidden not in imported, (
+            f"models/{module}.py imports {forbidden} — the split has leaked"
+        )

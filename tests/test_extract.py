@@ -80,7 +80,7 @@ def _batch(
     )
 
 
-# ---------- the wire schema (R1 / design §1.8) ----------
+# ---------- the wire schema (design §1.8) ----------
 def test_llm_schema_is_derived_from_the_canonical_model() -> None:
     schema = llm_schema()
     assert "AssertionDraft" in schema["$defs"]

@@ -115,7 +115,7 @@ def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> Dataset
 
 
 def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Path) -> None:
-    """A URI is RELATIVE, not FLAT — R9 forbids an absolute path, not structure.
+    """A URI is RELATIVE, not FLAT — the manifest forbids an absolute path, not structure.
 
     Found by running the pilot dataset, which `fasterq-dump` had written one directory per accession
     (`SRX24283130/SRR28716558_1.fastq.gz`). Bare basenames made `compose --fastq-dir <root>` resolve
@@ -232,12 +232,12 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(tmp_path: Pat
     assert [a.name for a in manifest.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
     roles = {f.basename: (f.read_id if f.read_id else None) for f in manifest.library.files}
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
-    # R9: the manifest carries a relative uri, never the probe's absolute local path
+    # the manifest carries a relative uri, never the probe's absolute local path
     assert all(not f.uri.startswith("/") for f in manifest.library.files)
 
 
 def test_the_dataset_manifest_carries_no_intent(tmp_path: Path) -> None:
-    """R13: a dataset does not know how it will be processed, because it will be processed many ways."""
+    """A dataset does not know how it will be processed, because it will be processed many ways."""
     assert "processing" not in DatasetManifest.model_fields
     manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
     assert set(DatasetManifest.model_fields) == {"library", "experiment", "provenance"}
@@ -274,7 +274,7 @@ def test_manifest_hash_is_stable_and_matches_provenance(tmp_path: Path) -> None:
     assert manifest.provenance.kb_version == kb.KB_VERSION
 
 
-# ---------- R13: the dataset is immutable; the processing manifest is plural ----------
+# ---------- the dataset is immutable; the processing manifest is plural ----------
 def test_dataset_hash_is_invariant_across_a_processing_sweep(tmp_path: Path) -> None:
     """THE test for the whole split: change the intent, and what the data IS must not move.
 
@@ -369,7 +369,7 @@ def test_validate_processing_blocks_a_genome_organism_mismatch(tmp_path: Path) -
     report = validate_processing(lying, dataset=manifest)
     assert not report.ok
     assert [blk.code for blk in report.blockers] == ["GENOME_ORGANISM_MISMATCH"]
-    assert all(blk.remedy for blk in report.blockers)  # R4: every refusal is actionable
+    assert all(blk.remedy for blk in report.blockers)  # every refusal is actionable
 
 
 def test_validate_clean_manifest(tmp_path: Path) -> None:
@@ -392,7 +392,7 @@ def test_validate_catches_referential_integrity_break(tmp_path: Path) -> None:
     assert not report.ok
     assert exit_code_for_report(report) == 3
     assert any("ghost.fastq.gz" in b.message for b in report.blockers)
-    assert all(b.remedy for b in report.blockers)  # R4: every refusal is actionable
+    assert all(b.remedy for b in report.blockers)  # every refusal is actionable
 
 
 def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
@@ -682,7 +682,7 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
 
 
 def test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here() -> None:
-    """R12: we NAME liulab-runtime's artifact. Naming is the opposite of defining."""
+    """We NAME liulab-runtime's artifact. Naming is the opposite of defining."""
     from seqforge.models.processing import RuntimeEnv
     from seqforge.workflows import RUNTIME_IMAGE, container_uri
 
@@ -739,7 +739,7 @@ def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
 
 
 def test_two_processing_manifests_do_not_overwrite_each_other(tmp_path: Path) -> None:
-    """The headline use case, and the R7 bug that would have broken it.
+    """The headline use case, and the disk-state bug that would have broken it.
 
     compose wrote to a FIXED `.seqforge/pipeline/config.yaml`, so composing one dataset two ways left
     one config on disk — the second silently clobbering the first, along with its units.tsv and its
@@ -763,7 +763,7 @@ def test_two_processing_manifests_do_not_overwrite_each_other(tmp_path: Path) ->
 
 
 def test_compose_writes_the_bound_processing_lock(tmp_path: Path) -> None:
-    """R7 says disk is STATE, not that disk is INPUT.
+    """Disk is STATE, not INPUT.
 
     compose takes no --processing on the default path — 10^4 boilerplate files nobody reads is not a
     design — but whatever decided the run must still be recoverable from disk afterwards. So the
@@ -930,7 +930,7 @@ def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(tmp_path: Path) -
     assert len(str(solo["soloCBwhitelist"]).split()) == 3  # one whitelist per split-pool round
 
 
-# ---------- R12: consumer, not parallel universe ----------
+# ---------- consumer, not parallel universe ----------
 #: Names owned upstream by `liulab-genome`. seqforge may CALL them; defining one here means we have
 #: started reimplementing the package whose whole job this is.
 _UPSTREAM_GENOME_NAMES = frozenset({"Genome", "build_star_index", "register_gtf"})
@@ -947,12 +947,12 @@ def _src_root() -> Path:
 
 
 def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
-    """R12, as an AST check rather than a code-review habit.
+    """Consumer, not parallel universe, as an AST check rather than a code-review habit.
 
     `Genome(assembly).build_star_index(gtf=name)` is a *consumer call* and is exactly right. A
     `def build_star_index` or `class Genome` in this tree is the opposite: it means the resolution
     of assemblies, annotations and indexes — liulab-genome's entire remit — is being duplicated
-    here, where it will drift and where R9's "no absolute path in a manifest" stops being anybody's
+    here, where it will drift and where the "no absolute path in a manifest" rule stops being anybody's
     invariant.
     """
     import ast
@@ -966,12 +966,10 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
                 and node.name in _UPSTREAM_GENOME_NAMES
             ):
                 offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")
-    assert not offenders, "R12: seqforge is redefining liulab-genome's job:\n" + "\n".join(
-        offenders
-    )
+    assert not offenders, "seqforge is redefining liulab-genome's job:\n" + "\n".join(offenders)
 
 
-#: Every liulab-genome attribute seqforge calls. R12 says we are a consumer, and a consumer has an
+#: Every liulab-genome attribute seqforge calls. We are a consumer, and a consumer has an
 #: import surface — this is it.
 #:
 #: **This is a hand-written list, and that is fine here, because it is checked against the REAL
@@ -981,7 +979,7 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
 #: moves. Nothing here can drift silently.
 _GENOME_API = {
     "build_star_index",  # starsolo.smk / star.smk rule genome_index; e2e discover_assets
-    "register_gtf",  # staging an annotation (see the R12 note in CLAUDE.md)
+    "register_gtf",  # staging an annotation (see the consumer note in CLAUDE.md)
     "fasta_path",  # e2e: simulate reads from real sequence
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered
@@ -1044,7 +1042,7 @@ def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_pa
 
 
 def test_seqforge_defines_no_aligner_environments() -> None:
-    """R12's other half: an env is NAMED here and DEFINED in liulab-runtime.
+    """The other half of consumer-not-parallel-universe: an env is NAMED here and DEFINED in liulab-runtime.
 
     `RuntimeEnv` is a closed literal of liulab-runtime env names — there is deliberately no profile
     indirection, the name *is* the identifier. A conda YAML or Dockerfile appearing in this tree
@@ -1057,27 +1055,27 @@ def test_seqforge_defines_no_aligner_environments() -> None:
 
     assert set(get_args(RuntimeEnv)) == {"align-rna", "align-dna", "ml", "ml-gpu"}
     found = [str(p) for name in _ENV_DEFINITION_FILES for p in _src_root().rglob(name)]
-    assert not found, f"R12: seqforge is defining an aligner environment: {found}"
+    assert not found, f"seqforge is defining an aligner environment: {found}"
 
 
-# ---------- R1: emit data, never code ----------
+# ---------- emit data, never code ----------
 #: A Snakemake rule definition. `rule x:` / `checkpoint x:` are the only ways to introduce rule
-#: source, so this is the whole vocabulary R1 forbids the composer from emitting.
+#: source, so this is the whole vocabulary the composer is forbidden from emitting.
 _RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
 
 
 def test_the_generated_wrapper_contains_no_rule_source() -> None:
-    """R1, at the ONE place seqforge writes Snakemake syntax at all.
+    """Emit data, never code, at the ONE place seqforge writes Snakemake syntax at all.
 
     `compose` generates a Snakefile — the deliverable — and its own header says "rule source is never
     generated". Everything the pipeline actually executes must come from the hand-written `.smk`
-    modules; the moment the composer emits a `rule`, R1 is gone and nobody finds out from a comment.
+    modules; the moment the composer emits a `rule`, that guarantee is gone and nobody finds out from a comment.
 
     Asserted against the template rather than a rendered instance because the template is the thing
     a future edit would change.
     """
     wrapper = core._WRAPPER
-    assert not _RULE_DEF.search(wrapper), f"the composer emits rule source (R1):\n{wrapper}"
+    assert not _RULE_DEF.search(wrapper), f"the composer emits rule source:\n{wrapper}"
     assert "configfile:" in wrapper  # it parameterises by data...
     assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
 
@@ -1118,7 +1116,7 @@ def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
 
 @pytest.mark.parametrize("module_name", list_modules())
 def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> None:
-    """The other half of R1: the rules that DO exist are checked-in source, not build artifacts.
+    """The other half of emit-data-never-code: the rules that DO exist are checked-in source, not build artifacts.
 
     A module whose rules were generated would defeat the wrapper check by moving the generation one
     step earlier, so the modules must be real files under version control, carrying the header that
@@ -1224,7 +1222,7 @@ def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -
     assert not any("quantMode" in p and "drops" in p for p in problems), problems
 
 
-# ---------- R14: the gate is where the parse/count line stops being a convention ----------
+# ---------- the gate is where the parse/count line stops being a convention ----------
 def test_param_owners_computes_the_line(tmp_path: Path) -> None:
     """The parse/count line as a COMPUTED FACT, directly testable, not a comment nobody re-reads."""
     from seqforge.compose import param_owners
@@ -1298,7 +1296,7 @@ def test_params_gate_fails_when_the_kb_declares_a_count_key(tmp_path: Path) -> N
     )
     status, problems = params_gate(manifest, p, misowned, plan(manifest, p, registry=reg).config)
     assert status == "fail"
-    assert any("count key" in problem and "R14" in problem for problem in problems)
+    assert any("count key" in problem for problem in problems)
 
 
 def test_params_gate_fails_on_an_emitted_key_with_no_owner(tmp_path: Path) -> None:
@@ -1317,7 +1315,7 @@ def test_params_gate_fails_on_an_emitted_key_with_no_owner(tmp_path: Path) -> No
     assert any("no owner declares" in problem for problem in problems)
 
 
-# ---------- R15: produce every answer rather than ask ----------
+# ---------- produce every answer rather than ask ----------
 def test_the_default_is_screcounters_five_in_screcounters_order() -> None:
     """Exactly scRecounter's five, that order, and deliberately no SJ.
 
@@ -1392,7 +1390,7 @@ def test_policy_default_is_inferred_and_names_its_rule() -> None:
 def test_prose_promotes_it_never_narrows() -> None:
     """ "...should be aligned in GeneFull mode" — instead of Gene, or make sure GeneFull is computed?
 
-    We take the second: charitable, cheap, and consistent with R15. The instructed feature is UNIONed
+    We take the second: charitable, cheap, and consistent with counting everything by default. The instructed feature is UNIONed
     with the default and promoted to primary. Nothing is dropped — which is also the safety argument
     for letting a model source this at all: a hallucinated instruction can only mislabel the primary,
     never destroy signal.
@@ -1434,7 +1432,7 @@ def test_a_flag_beats_an_instruction_silently() -> None:
 
 
 def test_two_instructions_disagreeing_is_a_conflict() -> None:
-    """Same precedence, no tiebreak: R6 applies to intent exactly as it applies to truth."""
+    """Same precedence, no tiebreak: a disagreement is surfaced for intent exactly as for truth."""
     from seqforge.manifest import instructions_from_assertions
     from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 
@@ -1512,7 +1510,7 @@ def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(tmp_path: Path
     assert not report.ok
     blocker = next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
     assert "orphan.fastq.gz" in blocker.message
-    assert blocker.remedy, "a Blocker with no way forward is a wall (R4)"
+    assert blocker.remedy, "a Blocker with no way forward is a wall"
     assert exit_code_for_report(report) == 3
 
 

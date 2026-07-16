@@ -1,8 +1,8 @@
-"""``workflows`` — hand-written, versioned, CI-tested Snakemake modules (NEVER generated, R1/R12).
+"""``workflows`` — hand-written, versioned, CI-tested Snakemake modules (NEVER generated).
 
 The composer selects a module by id and emits its ``config.yaml`` + ``units.tsv``; it never writes
 rule source. Aligner *environments* and genome *indexes* belong to ``liulab-runtime`` / ``liulab-genome``
-and resolve at run time (R9/R12) — a module names an env and an assembly id, never a path.
+and resolve at run time — a module names an env and an assembly id, never a path.
 
 ``WORKFLOW_VERSION`` is CalVer and is folded into a manifest's provenance so a compiled config is
 bound to the exact module source that will run it.
@@ -21,8 +21,8 @@ from ..models.processing import RuntimeEnv
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
 #: 2026.7.5 — `starsolo_count` declares `container:`, so the recorded env name is load-bearing at
 #: last instead of emitted and ignored. `config["env"]` is REPLACED by `config["container"]`: the
-#: manifest carries the env name, and the config carries this machine's rendering of it (R9's
-#: boundary, same as fastq paths). Only the STAR rule gets one — `genome_index` is a `run:` block,
+#: manifest carries the env name, and the config carries this machine's rendering of it (the
+#: machine-independence boundary, same as fastq paths). Only the STAR rule gets one — `genome_index` is a `run:` block,
 #: and Snakemake wraps containers in `shell.py`, so a `container:` there is silently ignored.
 #: 2026.7.4 — `starsolo_count` declares its per-feature matrices as NAMED outputs instead of
 #: `directory(Solo.out)`, and `solo_to_h5ad` packages them: the default target is the deliverable.
@@ -38,8 +38,8 @@ WORKFLOW_VERSION = "2026.7.5"
 
 _MODULE_DIR = Path(__file__).parent
 
-#: liulab-runtime's published image. **A reference to their artifact, never a definition of one**
-#: (R12): we name a tag they build and push, and this repo still contains no conda YAML, no
+#: liulab-runtime's published image. **A reference to their artifact, never a definition of one**:
+#: we name a tag they build and push, and this repo still contains no conda YAML, no
 #: Dockerfile, and no aligner in any dependency table. `align-rna` is where STAR comes from.
 RUNTIME_IMAGE = "ghcr.io/liuhlab/liulab-runtime"
 
@@ -58,7 +58,7 @@ def container_uri(env: RuntimeEnv, sif_dir: str | Path | None = None) -> str:
     ghcr tag rather than emitting a path to nothing: a config naming an absent SIF fails at run time
     on a node, while the tag at least tries.
 
-    This is a **machine fact**, so it belongs in the config and never in the manifest (R9) — same
+    This is a **machine fact**, so it belongs in the config and never in the manifest — same
     boundary as ``--fastq-dir`` and ``--onlist-dir``, and the same escape hatch for the same reason.
     """
     if sif_dir is not None:

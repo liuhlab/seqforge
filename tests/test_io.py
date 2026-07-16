@@ -292,7 +292,7 @@ def test_a_local_dir_makes_offline_irrelevant_rather_than_fatal(tmp_path: Path) 
     bare = OnlistRegistry(offline=True)
     bare.register(entry)
     with pytest.raises(OnlistNotAvailable, match="onlist-dir"):
-        bare.packed("L")  # ...and without one, the refusal names the way forward (R4)
+        bare.packed("L")  # ...and without one, the refusal names the way forward
 
 
 def test_fetchable_is_derived_from_the_uri_and_cannot_disagree_with_it() -> None:

@@ -1,11 +1,11 @@
-"""Pydantic v2 models — the single source of truth (R1/R2).
+"""Pydantic v2 models — the single source of truth.
 
-The manifest is **two** artifacts with two lifetimes (R13): :class:`DatasetManifest` is what the data
+The manifest is **two** artifacts with two lifetimes: :class:`DatasetManifest` is what the data
 *is* (immutable, one per dataset), :class:`ProcessingManifest` is what to *do* with it (many per
 dataset). Their JSON Schemas feed validation and docs; the only LLM-facing schemas are
 :class:`AssertionDraft` and the arbitration pair — the processing manifest is deliberately **not**
 among them. The LLM emits ``AssertionDraft``; code composes the processing manifest from verified
-assertions plus policy. That boundary is what keeps R1 alive.
+assertions plus policy. That boundary is what keeps emit-data-never-code alive.
 
 :func:`export_schema` dumps any model's JSON Schema (the ``seqforge schema export`` backend).
 """
@@ -135,7 +135,7 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         ArbitrationRequest,
         ArbitrationResponse,
         ValidationReport,
-        # compile / manifest — TWO artifacts, two lifetimes (R13)
+        # compile / manifest — TWO artifacts, two lifetimes
         DatasetManifest,
         ProcessingManifest,
         ComposeResult,

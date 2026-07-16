@@ -3,7 +3,7 @@
 ``seqforge/``, not ``.seqforge/``. The leading dot said "this is plumbing, look away", and that was
 exactly backwards: this directory holds the manifest, the resolve verdicts, the rendered documents a
 citation greps into, and the compiled Snakefile the user submits. It is not cache — it is the
-**output**, and R7's "disk is state, context is cache" is a statement about which of the two matters.
+**output**, and "disk is state, context is cache" is a statement about which of the two matters.
 A user who does not know it exists cannot read their own manifest, and hiding the artifacts of a
 compiler whose whole product is artifacts is a strange thing to have done.
 

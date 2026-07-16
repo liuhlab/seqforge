@@ -14,7 +14,7 @@ description: >-
 seqforge manifest fill FILES… [--accession PRJNA…] [--assertions seqforge/assertions.json] \
         [--organism 6239] [--records seqforge/records/PRJNA….json] [--offline]
                                                                 # the DATASET: what the data IS
-seqforge manifest validate MANIFEST                             # the refusal contract (R4)
+seqforge manifest validate MANIFEST                             # the refusal contract
 seqforge manifest hash MANIFEST
 
 seqforge processing new MANIFEST --assembly ce11 --annotation WS298 \
@@ -23,7 +23,7 @@ seqforge processing validate PROCESSING [--dataset MANIFEST]
 seqforge processing hash PROCESSING
 ```
 
-## Two artifacts, two lifetimes (R13)
+## Two artifacts, two lifetimes
 
 A finished assay is immutable; what you do with it is a choice. So there are two files:
 
@@ -35,7 +35,7 @@ A finished assay is immutable; what you do with it is a choice. So there are two
 The dataset manifest is the compiler's **IR**; the processing manifest is its **flags**. Same IR +
 different flags = different binaries. Aligning one dataset three ways is three processing manifests
 against one unchanged `dataset_hash` — never three forks of the truth. **If you find yourself editing
-`manifest.yaml` to change how something is processed, stop: that is the bug R13 exists to prevent.**
+`manifest.yaml` to change how something is processed, stop: that is the bug this separation exists to prevent.**
 
 `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, and `seqforge/pipeline/<recipe>-<run_id[:12]>/`
 is keyed by it, so two recipes over one dataset produce two runs rather than one silently overwriting
@@ -86,7 +86,7 @@ half of the same joint optimization. They used to each carry a copy of the same 
 of a BioSample record is a transcription, not a judgement — `basis: asserted` plus the record
 accession in `evidence` already says everything true about how we know it.
 
-## basis means different things in the two files (R6)
+## basis means different things in the two files
 
 | section | authority | basis |
 |---|---|---|
@@ -100,7 +100,7 @@ categorically different from "GeneFull because policy defaults to all five". Eve
 `Evidenced{value, basis, evidence, confidence, rung}`.
 
 **Never merge the three truths.** If observed and asserted disagree, that is a first-class `Conflict`
-— surface it; do not average it, pick between them, or quietly prefer the "better" one. Note R6's
+— surface it; do not average it, pick between them, or quietly prefer the "better" one. Note the
 three truths are the three *bases*, not three sections; that pun is exactly what let `processing`
 masquerade as a truth until the split.
 
@@ -115,7 +115,7 @@ contract. Loop: fix → re-validate → repeat. `manifest.yaml` is written **onl
 until then it is `manifest.draft.yaml`.
 
 A `PostToolUse` hook re-runs `validate` after any manifest edit, because the model does not get to
-decide whether its own edit was valid (R2). If it blocks, the manifest is wrong — not the hook.
+decide whether its own edit was valid. If it blocks, the manifest is wrong — not the hook.
 
 Two refusals worth recognizing on sight:
 
@@ -126,7 +126,7 @@ Two refusals worth recognizing on sight:
 - `DATASET_PIN_MISMATCH` — a bound processing manifest aimed at a different dataset. Do not "fix" it
   by editing the pin; re-run `processing new`, or use `--template` if you meant it to be portable.
 
-## R9: no absolute paths, ever
+## No absolute paths, ever
 
 A manifest with a machine-specific path is not a manifest; it is a note to one machine. Reference:
 

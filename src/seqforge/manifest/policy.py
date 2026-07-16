@@ -1,8 +1,8 @@
-"""Processing policy — the default a user gets when they instruct nothing (R15).
+"""Processing policy — the default a user gets when they instruct nothing.
 
 seqforge picks the best default pipeline option; a user instruction overrides it. This module is the
 "picks" half: small, explicit, and derived. The aligner and runtime env follow from the KB's backend
-module, never from a guess, and the runtime env is a **literal** ``liulab-runtime`` name (R9/R12) —
+module, never from a guess, and the runtime env is a **literal** ``liulab-runtime`` name —
 there is no profile-indirection layer to invent here.
 """
 
@@ -34,7 +34,7 @@ from .instruct import Instruction
 
 
 class PolicyError(RuntimeError):
-    """Intent cannot be resolved — a required choice has no safe default (R4: refuse, don't guess)."""
+    """Intent cannot be resolved — a required choice has no safe default (refuse, don't guess)."""
 
 
 #: KB backend module -> the aligner name recorded in `processing.aligner`.
@@ -47,7 +47,7 @@ DEFAULT_SOLO_FEATURES: tuple[SoloFeature, ...] = (
     "GeneFull_Ex50pAS",
     "Velocyto",
 )
-"""Count everything; do not ask which (R15).
+"""Count everything; do not ask which.
 
 One alignment, five counting rules, one pass. Download and alignment dominate the cost by orders of
 magnitude, and count matrices are small — so we emit every answer and let the consumer choose. That
@@ -216,14 +216,14 @@ def resolve_features(
 
     **Prose promotes; it never narrows.** "This dataset should be aligned in GeneFull mode" is
     ambiguous: *instead of* Gene, or *make sure* GeneFull is computed? We take the second — it is the
-    charitable reading, it is the cheap one, and it is consistent with counting everything by default
-    (R15). So an instructed feature is UNIONed with the default and promoted to the front, where it
+    charitable reading, it is the cheap one, and it is consistent with counting everything by default.
+    So an instructed feature is UNIONed with the default and promoted to the front, where it
     becomes primary. Nothing is dropped.
 
     That is also the safety argument for letting a model source this field at all: because the default
     computes everything, a hallucinated instruction can only mislabel which matrix is primary — it
-    cannot destroy signal. The blast radius of the one failure R5 provably cannot catch is a wrong
-    label on a matrix we still computed.
+    cannot destroy signal. The blast radius of the one failure span-verification provably cannot catch
+    is a wrong label on a matrix we still computed.
 
     **A flag replaces exactly.** The user typed the whole list; they mean it. Narrowing is the only
     irreversible act available here, so it warns rather than passing silently.
@@ -303,7 +303,7 @@ def resolve_processing(
             f"no genome: this dataset's organism is taxid {dataset.experiment.organism.value}. "
             "Pass --assembly/--annotation, or name an assembly in an --instruction document. "
             "seqforge will not guess: taxid -> preferred assembly (hg38 vs hg19 vs T2T) is a policy "
-            "call, and that map belongs to liulab-genome (R12)."
+            "call, and that map belongs to liulab-genome."
         )
     if ov.annotation_name is None:
         raise PolicyError(

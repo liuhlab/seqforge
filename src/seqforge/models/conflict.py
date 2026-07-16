@@ -1,4 +1,4 @@
-"""``Conflict`` — a surfaced disagreement between truths, never auto-picked (R6).
+"""``Conflict`` — a surfaced disagreement between truths, never auto-picked.
 
 ``positions`` generalizes the common observed/asserted pair; ``status="benign"`` is the §12 escape
 hatch for two confusable KB entries that emit identical ``backend.params``.
@@ -36,7 +36,7 @@ class Resolution(BaseModel):
 
 
 class Conflict(BaseModel):
-    """A first-class, surfaced disagreement between truths (R6)."""
+    """A first-class, surfaced disagreement between truths."""
 
     id: str
     field: str

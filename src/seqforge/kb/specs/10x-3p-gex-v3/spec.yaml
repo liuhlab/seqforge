@@ -69,7 +69,7 @@ backend:
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
     soloStrand: Forward
-    # soloFeatures is NOT here, and that is the point (R14). It says what to COUNT, and 10x 3' v3.1
+    # soloFeatures is NOT here, and that is the point. It says what to COUNT, and 10x 3' v3.1
     # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
     # It lives in the processing manifest now, where a user may instruct it.

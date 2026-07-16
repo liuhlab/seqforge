@@ -1,8 +1,8 @@
 """``hooks`` — policy becomes mechanism (design §4.2).
 
 `CLAUDE.md` can *say* "never read a whole FASTQ". Only a hook can stop one. These are the checked
-edges of the rules: R3 (bounded reads), R9 (no absolute path in a manifest), and R2/R4 (code, not the
-model, decides whether an edit validated).
+edges of the rules: bounded reads, no absolute path in a manifest, and code — not the model — decides
+whether an edit validated.
 
 Wire them with ``seqforge hook install`` — see :mod:`.guards` for why the logic is typed and tested
 rather than living in a shell script.

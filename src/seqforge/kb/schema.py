@@ -1,4 +1,4 @@
-"""The KB ``spec.yaml`` schema — machine-checkable, closed-vocabulary, self-validating (R1/R10).
+"""The KB ``spec.yaml`` schema — machine-checkable, closed-vocabulary, self-validating.
 
 One directory per technology: ``kb/specs/<tech>/{spec.yaml, README.md}``. ``spec.yaml`` declares the
 read layout (element coordinates), onlist references, a detection ``signature`` (requires / supports /
@@ -211,7 +211,7 @@ KB_PARSE_KEYS: frozenset[str] = frozenset(
         "soloBarcodeReadLength",
     }
 )
-"""Every key the KB may declare. Each says how to **parse** reads, and each is decided by bytes (R14).
+"""Every key the KB may declare. Each says how to **parse** reads, and each is decided by bytes.
 
 The line is parse vs. count. What to COUNT — ``soloFeatures``, ``quantMode`` — is *intent*: it belongs
 to the processing manifest, where a user may instruct it and a gate may check it. ``soloFeatures``
@@ -221,7 +221,7 @@ chemistry property at all.
 
 The disjointness of this set from the instructable surface is what makes "a user instruction
 contradicts the observed bytes" **structurally inexpressible** rather than merely deprioritized — the
-user has no vocabulary in which to say it. That is the strongest form of R2 available, and it is why
+user has no vocabulary in which to say it. That is the strongest form of that guarantee available, and it is why
 moving a key across this line has to be an explicit, gated act.
 """
 
@@ -234,7 +234,7 @@ class Backend(_Forbid):
 
     @model_validator(mode="after")
     def _only_parse_keys(self) -> Backend:
-        """R14: a count/reference/runtime knob may not be declared here.
+        """A count/reference/runtime knob may not be declared here.
 
         ``params`` is a ``dict``, so ``extra="forbid"`` cannot reach inside it — hence an explicit
         validator. It fires in ``load_spec``, in ``kb lint``, and in every test that loads a spec,
@@ -245,7 +245,7 @@ class Backend(_Forbid):
             raise ValueError(
                 f"backend.params declares non-parse key(s) {stray}: backend.params says how to "
                 f"PARSE reads (byte-decided); what to COUNT belongs in the processing manifest, "
-                f"where a user may instruct it (R14). Known parse keys: {sorted(KB_PARSE_KEYS)}"
+                f"where a user may instruct it. Known parse keys: {sorted(KB_PARSE_KEYS)}"
             )
         return self
 

@@ -23,18 +23,18 @@ from seqforge.hooks import (
 )
 
 # ---------------------------------------------------------------------------------------------
-# R3 — never read a whole FASTQ
+# never read a whole FASTQ
 # ---------------------------------------------------------------------------------------------
 
 
-def test_r3_denies_an_unbounded_fastq_stream() -> None:
+def test_denies_an_unbounded_fastq_stream() -> None:
     d = check_unbounded_fastq("zcat sample_R1.fastq.gz | wc -l")
     assert d is not None
-    assert "R3" in d.rule
-    assert d.remedy  # a block with no way forward is a wall (R4: remedies must be actionable)
+    assert "FASTQ" in d.rule
+    assert d.remedy  # a block with no way forward is a wall
 
 
-def test_r3_denies_every_streaming_reader() -> None:
+def test_denies_every_streaming_reader() -> None:
     for cmd in (
         "cat reads.fastq",
         "zcat reads.fq.gz | awk '{print}'",
@@ -44,7 +44,7 @@ def test_r3_denies_every_streaming_reader() -> None:
         assert check_unbounded_fastq(cmd) is not None, cmd
 
 
-def test_r3_allows_a_bounded_stream() -> None:
+def test_allows_a_bounded_stream() -> None:
     """`head` caps the read. This is the neighbouring command that must NOT be blocked."""
     for cmd in (
         "zcat reads.fastq.gz | head -n 4000",
@@ -54,7 +54,7 @@ def test_r3_allows_a_bounded_stream() -> None:
         assert check_unbounded_fastq(cmd) is None, cmd
 
 
-def test_r3_allows_the_sanctioned_seqforge_verb() -> None:
+def test_allows_the_sanctioned_seqforge_verb() -> None:
     """`seqforge probe` is bounded by construction (200k reads / 256 MB) — blocking it is nonsense."""
     for cmd in (
         "seqforge probe reads.fastq.gz --json",
@@ -64,36 +64,36 @@ def test_r3_allows_the_sanctioned_seqforge_verb() -> None:
         assert check_unbounded_fastq(cmd) is None, cmd
 
 
-def test_r3_ignores_commands_with_no_fastq() -> None:
+def test_ignores_commands_with_no_fastq() -> None:
     assert check_unbounded_fastq("cat README.md") is None
     assert check_unbounded_fastq("zcat archive.tar.gz | tar t") is None
     assert check_unbounded_fastq("") is None
 
 
-def test_r3_does_not_fire_on_merely_naming_a_fastq() -> None:
+def test_does_not_fire_on_merely_naming_a_fastq() -> None:
     """Naming a file is not streaming it — `ls` and `rm` must pass."""
     assert check_unbounded_fastq("ls -l reads.fastq.gz") is None
     assert check_unbounded_fastq("rm reads.fastq.gz") is None
 
 
 # ---------------------------------------------------------------------------------------------
-# R9 — no absolute path in a manifest
+# no absolute path in a manifest
 # ---------------------------------------------------------------------------------------------
 
 
-def test_r9_denies_an_absolute_path_in_a_manifest() -> None:
+def test_denies_an_absolute_path_in_a_manifest() -> None:
     d = check_absolute_path_write("manifest.yaml", "genome:\n  fasta: /scratch/ref/hg38.fa\n")
     assert d is not None
-    assert "R9" in d.rule
+    assert "machine-independent" in d.rule
     assert "/scratch/ref/hg38.fa" in d.reason
 
 
-def test_r9_covers_every_emitted_artifact() -> None:
+def test_covers_every_emitted_artifact() -> None:
     for name in ("manifest.yaml", "manifest.draft.yaml", "config.yaml", "units.tsv"):
         assert check_absolute_path_write(name, "p: /data/x/y.fa") is not None, name
 
 
-def test_r9_allows_a_machine_independent_manifest() -> None:
+def test_allows_a_machine_independent_manifest() -> None:
     """The whole point: assembly id + registered GTF name + literal env name + a URI."""
     good = (
         "genome:\n  assembly: ce11\n  annotation_name: WS298\n"
@@ -104,10 +104,10 @@ def test_r9_allows_a_machine_independent_manifest() -> None:
     assert check_absolute_path_write("manifest.yaml", good) is None
 
 
-def test_r9_does_not_mistake_a_uri_for_an_absolute_path() -> None:
+def test_does_not_mistake_a_uri_for_an_absolute_path() -> None:
     """Regression: `s3://bucket/x.fastq.gz` contains `/bucket/x.fastq.gz`.
 
-    R9 says data SHOULD be a URI, so flagging one rejects the exact manifest the rule wants. A guard
+    Data SHOULD be a URI, so flagging one rejects the exact manifest the rule wants. A guard
     that blocks correct work gets switched off, and then it guards nothing.
     """
     for uri in (
@@ -119,7 +119,7 @@ def test_r9_does_not_mistake_a_uri_for_an_absolute_path() -> None:
         assert check_absolute_path_write("manifest.yaml", f"files:\n  - {uri}\n") is None, uri
 
 
-def test_r9_still_catches_an_absolute_path_next_to_a_uri() -> None:
+def test_still_catches_an_absolute_path_next_to_a_uri() -> None:
     """Scrubbing URIs must not blind the guard to a real violation beside one."""
     content = "files:\n  - s3://bucket/ok.fastq.gz\ngenome:\n  fasta: /scratch/ref/hg38.fa\n"
     d = check_absolute_path_write("manifest.yaml", content)
@@ -127,7 +127,7 @@ def test_r9_still_catches_an_absolute_path_next_to_a_uri() -> None:
     assert "/scratch/ref/hg38.fa" in d.reason
 
 
-def test_r9_ignores_files_that_are_not_manifests() -> None:
+def test_ignores_files_that_are_not_manifests() -> None:
     """A script may legitimately hold an absolute path; a manifest may not."""
     assert check_absolute_path_write("run.sh", "cat /scratch/ref/hg38.fa") is None
     assert check_absolute_path_write("notes.md", "see /scratch/data") is None
@@ -170,7 +170,7 @@ def test_pre_tool_use_has_no_opinion_on_unrelated_tools() -> None:
 
 
 # ---------------------------------------------------------------------------------------------
-# PostToolUse — code decides whether the edit validated, not the model (R2)
+# PostToolUse — code decides whether the edit validated, not the model
 # ---------------------------------------------------------------------------------------------
 
 

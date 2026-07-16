@@ -1,14 +1,14 @@
-"""``manifest validate`` — refusal is an exit code, not a vibe (R4).
+"""``manifest validate`` — refusal is an exit code, not a vibe.
 
 Returns a structured :class:`ValidationReport`; the CLI maps it to the uniform exit contract
 (``0`` OK, ``3`` BLOCKED, ``4`` NEEDS_HUMAN). ``manifest.yaml`` is written **only** after a clean
-validate (R7).
+validate.
 
 Type-level guards (the ``Uri`` validator's absolute-path rejection, the ``AssayTerm`` CURIE pattern,
 the ``Sha256`` pattern) already fail at *construction*; this pass owns the checks Pydantic cannot do
 locally — **referential integrity across sections**, controlled-vocabulary presence, and
-role/layout/onlist coherence. The absolute-path sweep is kept as defence in depth: R9 is the rule most
-expensive to get wrong, so it is enforced twice.
+role/layout/onlist coherence. The absolute-path sweep is kept as defence in depth: no-absolute-path is
+the rule most expensive to get wrong, so it is enforced twice.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ def validate_manifest(
     warnings = list(warnings or [])
     open_conflicts = [c for c in (conflicts or []) if c.status == "open"]
 
-    # --- R9: no absolute/local path may ever reach a manifest (defence in depth) ---
+    # --- no absolute/local path may ever reach a manifest (defence in depth) ---
     for f in manifest.library.files:
         if _looks_absolute(f.uri):
             blockers.append(
@@ -213,7 +213,7 @@ def validate_processing(
     something that would otherwise crash or look empty; this one catches something that looks *fine*.
 
     Deliberately narrow: it fires only when the manifest already carries an ``ncbi_taxid`` for the
-    genome. A full assembly->taxid table belongs in ``liulab-genome`` (R12), not here.
+    genome. A full assembly->taxid table belongs in ``liulab-genome``, not here.
     """
     blockers: list[Blocker] = []
     open_conflicts = [c for c in (conflicts or []) if c.status == "open"]

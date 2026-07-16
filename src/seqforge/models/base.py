@@ -1,6 +1,6 @@
 """Shared scalars, controlled vocabularies, and the ``Evidenced[T]`` three-truths carrier.
 
-These are the atoms every other model is built from. ``Evidenced[T]`` (R6) wraps every interpretive
+These are the atoms every other model is built from. ``Evidenced[T]`` wraps every interpretive
 manifest field so a value never travels without its provenance.
 """
 
@@ -19,7 +19,7 @@ from pydantic import (
 
 
 def _reject_absolute_or_local(value: str) -> str:
-    """Reject absolute or local filesystem paths in a manifest URI (R9).
+    """Reject absolute or local filesystem paths in a manifest URI.
 
     A manifest URI is a relative path, a non-file scheme (``s3://``, ``gs://``, ``https://``,
     ``sra:``), or a bare accession — never ``/abs``, ``~/x``, ``C:\\...``, a UNC ``\\\\host``, or a
@@ -70,7 +70,7 @@ T = TypeVar("T")
 
 
 class Evidenced(BaseModel, Generic[T]):
-    """A single manifest field value tagged with its epistemic provenance (R6).
+    """A single manifest field value tagged with its epistemic provenance.
 
     Wraps every interpretive manifest field. ``basis`` records how we know it
     (``observed`` from bytes, ``asserted`` from humans/DBs, ``inferred`` derived,

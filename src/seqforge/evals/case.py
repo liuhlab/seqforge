@@ -14,7 +14,7 @@ case backed by **real** data (which is far too large for git, and whose path is 
 repo must not carry) use the same format via ``kind: local``: the ground truth is committed, the bytes
 stay wherever the maintainer keeps them.
 
-The recipe deliberately reuses ``kb.generate`` — the same R10 round-trip generator the KB self-tests
+The recipe deliberately reuses ``kb.generate`` — the same round-trip generator the KB self-tests
 run on. Evals therefore measure the compiler, not a second, drifting notion of what a FASTQ looks like.
 """
 
@@ -47,7 +47,7 @@ class Truncate(BaseModel):
 
 
 class SpecRecipe(BaseModel):
-    """Synthesize inputs from a KB spec via the R10 round-trip generator."""
+    """Synthesize inputs from a KB spec via the round-trip generator."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -187,7 +187,7 @@ class Case:
     #: `<case>/records.json` — what the archive declares, as `seqforge io records` fetched it.
     #:
     #: Committed rather than fetched at run time, for the same reason the FASTQ is a recipe: a case
-    #: must be reproducible and must not need the network. It is public metadata (no lab path, R8's
+    #: must be reproducible and must not need the network. It is public metadata (no lab path,
     #: `test_skill_never_leaks_a_lab_path` still applies), it is an INPUT rather than an expectation,
     #: and it is byte-identical to what `io records` returns today.
     records: ArchiveRecordSet | None = None

@@ -99,7 +99,7 @@ class ArchiveRecord(BaseModel):
 class ArchiveRecordSet(BaseModel):
     """Every record fetched for one query, across all four levels.
 
-    Content-addressed and cached under the workspace (R7): a record is a fact about the archive at a
+    Content-addressed and cached under the workspace: a record is a fact about the archive at a
     moment, so re-fetching it should be a choice rather than a side effect of re-running.
     """
 

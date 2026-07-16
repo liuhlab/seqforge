@@ -17,7 +17,7 @@ seqforge probe FILES...            # local; bounded by construction
 seqforge io peek URI               # remote; HTTP Range, ~64 KB, never the file
 ```
 
-## The budget is not negotiable (R3)
+## The budget is not negotiable
 
 `probe` stops at **200 000 reads AND 256 MB decompressed**, whichever comes first. Wall-clock is
 never a budget. A 40 GB FASTQ costs the same as a 40 MB one, and a code path that *can* stream a

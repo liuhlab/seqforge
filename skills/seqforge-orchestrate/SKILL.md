@@ -46,8 +46,8 @@ seqforge run FILES... \
   in prose, that arrives as a verified instruction instead; otherwise pass the flags.
 - **`--fastq-dir`** is where this machine keeps the FASTQs, so `units.tsv` can find them.
 
-**Run it in the foreground — do NOT background it.** `seqforge run` is a single bounded command (R3
-caps every FASTQ read; the probe reads ~10 MB of a 20 GB file, not the whole thing) and finishes in
+**Run it in the foreground — do NOT background it.** `seqforge run` is a single bounded command (the
+read budget caps every FASTQ read; the probe reads ~10 MB of a 20 GB file, not the whole thing) and finishes in
 roughly a minute or two, paper included. Let the command block and read its JSON summary when it
 returns. Backgrounding it is the one reliable way to lose the whole run: in a headless (`-p`) session
 there is no next turn to receive a background-completion notification, so a backgrounded pipeline is
@@ -59,7 +59,7 @@ vectorized resolver; `--cpus` defaults to using several cores.)
 
 The summary's `snakefile` path is the deliverable. `run` writes `manifest.yaml`, `processing.yaml`,
 and the pipeline directory under `seqforge/`; re-running is resumable through each stage's
-content-addressed cache (R7) — **there is no `--resume` flag**, you just run it again.
+content-addressed cache — **there is no `--resume` flag**, you just run it again.
 
 `compile` is an alias for `run`.
 
@@ -72,7 +72,7 @@ seqforge io records ACC           # accession -> project/sample/experiment/run r
 seqforge probe FILES              # bytes -> Observation      (no LLM, no network)
 seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the one LLM touchpoint
 seqforge resolve score FILES      # Obs + KB -> library decision  (no LLM)
-# --- the IR: what the data IS. One per dataset, immutable (R13). Takes no genome. ---
+# --- the IR: what the data IS. One per dataset, immutable. Takes no genome. ---
 seqforge manifest fill FILES --accession ACC --assertions seqforge/assertions.json
 seqforge manifest validate seqforge/manifest.yaml
 # --- the flags: what to DO with it. Many per dataset. Optional — compose defaults them. ---
@@ -80,14 +80,14 @@ seqforge processing new seqforge/manifest.yaml --assembly ce11 --annotation WS29
 seqforge compose seqforge/manifest.yaml --processing seqforge/processing.yaml --fastq-dir DIR
 ```
 
-**Two artifacts, and the difference matters to you (R13).** `manifest.yaml` is what the data *is* —
+**Two artifacts, and the difference matters to you.** `manifest.yaml` is what the data *is* —
 immutable, content-addressed, one per dataset. `processing.yaml` is what to *do* with it, and there
 may be many. Re-running a dataset a different way means a **new processing manifest**, never an edit
 to `manifest.yaml`: same IR, different flags. If you catch yourself editing the dataset manifest to
 change how something is processed, stop — that is the bug the split exists to prevent, and the
 `dataset_hash` is what proves it did not happen.
 
-## Exit codes are the contract (R4)
+## Exit codes are the contract
 
 Whether you run `run` or the stages, the codes are the same, and they are how the compiler talks to
 you:
@@ -111,8 +111,8 @@ stop; do not work around it.
 - **Never** decide chemistry, read roles, the organism, or which sample is which yourself. Code
   decides from bytes and records; a human decides a genuine ambiguity.
 - **Never** pick between conflicting values. Code decides or a human decides.
-- **Never** read a whole FASTQ. Use `seqforge run`/`probe`; a hook blocks the alternatives (R3).
-- **Never** write an absolute path into a manifest (R9). A hook blocks that too.
+- **Never** read a whole FASTQ. Use `seqforge run`/`probe`; a hook blocks the alternatives.
+- **Never** write an absolute path into a manifest. A hook blocks that too.
 
 ## Context hygiene
 

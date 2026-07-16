@@ -15,7 +15,7 @@ seqforge resolve score FILES [--explain] [--assert-chemistry ID]   # the LIBRARY
 ```
 
 `--explain` emits the evidence matrix `M[role][file]` — read it when asked *why*. No `--json` flag:
-JSON on stdout is the default (R8).
+JSON on stdout is the default.
 
 `resolve apply` and `resolve adjudicate` are **not built**. This skill listed both as if they were,
 which is a confident instruction to fail — found 2026-07-16 when the verb guard learned to check

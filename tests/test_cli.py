@@ -118,7 +118,7 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     )
     assert filled.exit_code == 0, filled.stdout
     assert json.loads(filled.stdout)["report"]["ok"] is True
-    # R7: manifest.yaml exists only because validate came back clean
+    # manifest.yaml exists only because validate came back clean
     manifest_path = tmp_path / "seqforge" / "manifest.yaml"
     assert manifest_path.is_file()
     assert not (tmp_path / "seqforge" / "manifest.draft.yaml").exists()
@@ -131,7 +131,7 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert hashed.exit_code == 0
     assert json.loads(hashed.stdout)["matches"] is True
 
-    # a genome has no safe default, and compose must refuse rather than guess one (R4/R12)
+    # a genome has no safe default, and compose must refuse rather than guess one
     naked = runner.invoke(app, ["compose", str(manifest_path), "-C", str(tmp_path)])
     assert naked.exit_code == 2
     assert "559292" in naked.stdout + naked.stderr, "the refusal must be actionable"
@@ -173,7 +173,7 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert doc["gate"]["e2e"] == "skip"  # honest: the count-matrix run needs STAR + liulab-genome
     assert (tmp_path / doc["config_path"]).is_file()
     assert (tmp_path / doc["units_path"]).is_file()
-    # R7: whatever decided the run is recoverable from disk, bound to this dataset
+    # whatever decided the run is recoverable from disk, bound to this dataset
     assert ((tmp_path / doc["config_path"]).parent / "processing.lock.yaml").is_file()
 
 
@@ -224,7 +224,7 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     assert (tmp_path / "seqforge" / "processing.yaml").is_file()
     # the deliverable, and it is where the summary says it is
     assert (tmp_path / summary["snakefile"]).is_file()
-    # R13: the recipe file did not perturb the dataset — validate still comes back clean by name
+    # the recipe file did not perturb the dataset — validate still comes back clean by name
     assert runner.invoke(app, ["manifest", "validate", str(manifest_path)]).exit_code == 0
 
 
@@ -232,7 +232,7 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     """The one real decision has no safe default: no --assembly, no instruction -> exit 2, not a guess.
 
     And the manifest is still written — the IR is what the data IS, independent of what you do with
-    it — so the refusal is precisely at the `processing` stage, with an actionable message (R4/R12).
+    it — so the refusal is precisely at the `processing` stage, with an actionable message.
     """
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=600, seed=0)
@@ -272,7 +272,7 @@ def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> 
 
 
 def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None:
-    """`--cpus` is a speed knob, never a truth knob (R3): cores are not a budget any more than the
+    """`--cpus` is a speed knob, never a truth knob: cores are not a budget any more than the
 
     wall clock is. Probing the files across a process pool must produce the byte-identical manifest a
     sequential probe does — so the content hash is the same whether you used 1 core or 4.
@@ -489,13 +489,13 @@ def test_e2e_fit_skips_a_failed_point(tmp_path: Path) -> None:
 
 
 def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(capsys: object) -> None:
-    """R8: the CLI emits JSON on stdout. Progress narration is not a result and must not go there.
+    """The CLI emits JSON on stdout. Progress narration is not a result and must not go there.
 
     The incident: `kb e2e-cost` runs for tens of minutes, so it narrates -- via `print()`, which put
     `[cost] ...` lines straight through the middle of its own JSON. The first real run produced
     `cost-hg38-2681399.json` that `json.load` rejects at line 1 column 2, and `kb e2e-fit` (which
     reads exactly those files) would have choked on every one. Only `cost_sweep.partial.json`, written
-    separately because R7 says disk is state, made the three measured points recoverable.
+    separately because disk is state, made the three measured points recoverable.
 
     Pinned on the primitive rather than the verb because the verb needs STAR and a 30 GB index; the
     property under test is one line of plumbing and does not.
@@ -531,7 +531,7 @@ def test_no_module_under_src_prints_to_stdout() -> None:
             if "file" not in keywords:
                 offenders.append(f"{py.name}:{node.lineno}")
     assert not offenders, (
-        f"print() to stdout in a library module: {offenders}. stdout carries the JSON result (R8); "
+        f"print() to stdout in a library module: {offenders}. stdout carries the JSON result; "
         f"send narration to stderr with file=sys.stderr."
     )
 
@@ -619,7 +619,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
 
     Note where the model is and is not. It FOUND `processing.genome.assembly: ce11` in a document the
     user handed us with `--instruction`, and code verified the quote greps back and entails the value
-    (R5). Applying precedence is code, here. No new LLM authority -- which is the whole reason the
+    Applying precedence is code, here. No new LLM authority -- which is the whole reason the
     instructable path is allowed to exist.
     """
     import yaml as _yaml
@@ -700,7 +700,7 @@ def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> 
     """A bare list cannot say which documents were --instruction, and only those may set processing.*.
 
     Silently treating every assertion as instructable would turn a downloaded GEO description into a
-    path to --soloStrand: prompt injection from a database field into an aligner (R14). Refuse.
+    path to --soloStrand: prompt injection from a database field into an aligner. Refuse.
     """
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=400, seed=0)

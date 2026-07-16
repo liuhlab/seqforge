@@ -102,7 +102,7 @@ def test_bounded_budget_and_read_estimate(tmp_path: Path) -> None:
 
     obs = probe_file(path, max_reads=100)
     assert obs.probe.n_reads_sampled == 100  # stopped at the budget, did NOT read all 5000
-    assert obs.probe.bytes_read < 20_000  # only a bounded decompressed prefix was touched (R3)
+    assert obs.probe.bytes_read < 20_000  # only a bounded decompressed prefix was touched
     assert obs.estimated_total_reads > 1000  # extrapolated from compressed bytes-per-read
 
 
@@ -110,7 +110,7 @@ def _write_enormous_fastq_gz(path: Path, *, chunk_mb: int = 1, n_chunks: int = 1
     """A FASTQ whose DECOMPRESSED stream dwarfs any budget, written in a fraction of a second.
 
     Highly repetitive reads compress ~300:1, so ~130 MB of decompressed FASTQ costs ~450 KB on disk
-    and a quarter-second to build. That is the trick that makes R3's claim testable at all: the rule
+    and a quarter-second to build. That is the trick that makes the bounded-read claim testable at all: the rule
     is about a 50 GB file, and the thing under test is *bytes_read*, which must not care how big the
     file is. Returns the decompressed size in bytes.
     """
@@ -124,9 +124,9 @@ def _write_enormous_fastq_gz(path: Path, *, chunk_mb: int = 1, n_chunks: int = 1
 
 
 def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path) -> None:
-    """R3: "a code path that CAN stream a whole multi-GB FASTQ is a bug" — asserted, not asserted-to.
+    """A code path that CAN stream a whole multi-GB FASTQ is a bug — asserted, not asserted-to.
 
-    R3 cited a "50 GB reads < N bytes" check that was never written; what existed proved the budget
+    The bounded-read rule cited a "50 GB reads < N bytes" check that was never written; what existed proved the budget
     bit on a 5 000-read fixture, which is a scale at which nothing could go wrong. This is the
     property that actually matters: `bytes_read` is a function of the BUDGET, not of the file. A
     regression that streamed to EOF would pass every small-fixture test in this file and fail here.
@@ -148,7 +148,7 @@ def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path
 
 
 def test_the_byte_budget_binds_when_the_reads_are_long(tmp_path: Path) -> None:
-    """The other half of R3's contract: `--max-reads` AND `--max-bytes`, not either alone.
+    """The other half of the bounded-read contract: `--max-reads` AND `--max-bytes`, not either alone.
 
     A read budget alone is not a byte budget — 200 000 long reads is unbounded work. The byte cap is
     what makes the guarantee hold for a chemistry we have not met yet.

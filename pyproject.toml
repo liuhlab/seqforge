@@ -36,11 +36,11 @@ dependencies = [
     "pypdf>=4",
     # The pilot's deliverable format. A normal dependency, not an environment: writing an .h5ad is
     # seqforge's own output-format job, the same shape of thing as reading a PDF — it is not an
-    # aligner, so R12 has no opinion and no liulab-runtime env or container is needed for it. Only
+    # aligner, so no liulab-runtime env or container is needed for it. Only
     # the STAR step needs one.
     "anndata>=0.10",
     # Reference assemblies, annotations and aligner indexes are liulab-genome's job and we consume
-    # them (R12). The pixi tables pin the git source; this entry is what `pip install seqforge` needs.
+    # them. The pixi tables pin the git source; this entry is what `pip install seqforge` needs.
     "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git",
     # `harvest extract` is the ONE stage that touches an LLM; every other verb runs without it
     # (`run --no-llm` drives the whole compiler minus extraction). Both clients are optional at
@@ -86,11 +86,11 @@ platforms = ["osx-arm64", "linux-64", "osx-64"]
 
 [tool.pixi.pypi-dependencies]
 seqforge = { path = ".", editable = true }
-# R12 in one line: we are a CONSUMER of liulab-genome, so we depend on it rather than reimplement it.
+# In one line: we are a CONSUMER of liulab-genome, so we depend on it rather than reimplement it.
 # Two things need it importable, and both are real: `rule genome_index` resolves the STAR index in a
 # `run:` directive (which executes in the snakemake process, so the env running the pipeline must have
 # it), and `kb e2e`'s `discover_assets` uses it to find a reference. Declaring the dependency is the
-# opposite of the "parallel universe" R12 forbids — the AST guard still refuses a `class Genome`,
+# opposite of the "parallel universe" we forbid — the AST guard still refuses a `class Genome`,
 # `def build_star_index` or `def register_gtf` anywhere in src/, and that is the line that matters.
 liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
 
@@ -127,8 +127,8 @@ ucsc-twobitinfo = "*"   # twoBitInfo, shelled out to by liulab-genome
 # broken wildcard, a rule wiring mistake -- was uncaught for the life of the repo.
 #
 # **STAR is deliberately absent from every table in this file.** An aligner environment is
-# liulab-runtime's to define (R12), and `star = "*"` here is precisely the "parallel universe" that
-# rule forbids. It comes from `ghcr.io/liuhlab/liulab-runtime:align-rna`, named by the module.
+# liulab-runtime's to define, and `star = "*"` here is precisely the "parallel universe" this repo
+# forbids. It comes from `ghcr.io/liuhlab/liulab-runtime:align-rna`, named by the module.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 

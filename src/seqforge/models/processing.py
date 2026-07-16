@@ -1,4 +1,4 @@
-""":class:`ProcessingManifest` — one way to process a dataset. Many per dataset (R13/R14).
+""":class:`ProcessingManifest` — one way to process a dataset. Many per dataset.
 
 A finished assay is immutable; what you *do* with it is a choice, and there are several defensible
 ones. So the manifest is two artifacts with two lifetimes:
@@ -31,7 +31,7 @@ from .evidenced import EvidencedBool, EvidencedStr
 
 
 class GenomeRef(BaseModel):
-    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path (R9)."""
+    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path."""
 
     assembly: str
     annotation_name: str
@@ -61,7 +61,7 @@ SoloFeature = Literal[
 """STARsolo's complete ``--soloFeatures`` vocabulary.
 
 Closed on purpose, and it is the closure that does the safety work: ``verify.entails`` is **vacuous
-when value ⊆ quote**, so R5 only bites for a controlled vocabulary. Because this one is closed,
+when value ⊆ quote**, so span-verification only bites for a controlled vocabulary. Because this one is closed,
 "aligned in GeneFull mode" entails ``GeneFull`` and "count introns too" does not — and the second
 rejection is the *right* answer, not a gap to paper over with aliases.
 """
@@ -90,7 +90,7 @@ class SoloQuant(BaseModel):
             raise ValueError(f"duplicate soloFeatures: {self.features}")
         # STARsolo's docs: "Velocyto quantification requires Gene features". A real aligner
         # constraint, so it is a validator and not a comment — STAR would error out, but only AFTER
-        # the download and the alignment we were amortizing. Refuse first, with a remedy (R4). This
+        # the download and the alignment we were amortizing. Refuse first, with a remedy. This
         # is also the clearest proof that a closed vocabulary is not by itself armor: no enum can
         # express "this member requires that one".
         if "Velocyto" in self.features and "Gene" not in self.features:
@@ -158,7 +158,7 @@ class ProcessingSection(BaseModel):
     inspection.
     """
 
-    # `extra="forbid"` is R14's enforcement at the model, not just at the gate. The instructable
+    # `extra="forbid"` is that enforcement at the model, not just at the gate. The instructable
     # surface is *enumerated*; an unknown key must be a validation error, never a silent drop. It was
     # a silent drop until 2026-07-15 — `ProcessingSection(soloStrand="Reverse")` constructed happily
     # and discarded the field — which is pydantic's default, and the wrong default here: this is the
@@ -190,7 +190,7 @@ class ProcessingProvenance(BaseModel):
 
 
 class ProcessingManifest(BaseModel):
-    """One way to process a dataset. Many per dataset — that plurality IS the design (R13).
+    """One way to process a dataset. Many per dataset — that plurality IS the design.
 
     ``dataset is None`` => a **template**: it applies to any dataset, which is what lets one file drive
     10^4 of them (this is scRecounter's uniform reprocessing, and it is the half of the design that a
@@ -201,8 +201,8 @@ class ProcessingManifest(BaseModel):
     ``Blocker`` (exit 3), and never auto-repins.
 
     ``compose`` always writes the bound form it actually used next to the config it produced, so the
-    default path leaves recoverable state on disk without demanding an input file. R7 says disk is
-    *state*, not that disk is *input*.
+    default path leaves recoverable state on disk without demanding an input file. Disk is
+    *state*, not *input*.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

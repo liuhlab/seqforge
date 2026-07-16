@@ -1,4 +1,4 @@
-"""Provider layer — the LLM is a swappable component, not a foundation (R2).
+"""Provider layer — the LLM is a swappable component, not a foundation.
 
 seqforge is a compiler whose only LLM touchpoint proposes claims that code then re-verifies from
 first principles. That makes the provider genuinely pluggable: nothing downstream trusts the model,
@@ -14,7 +14,7 @@ Two providers ship:
 **That capability gap is contained, not papered over.** For json-object providers we put the schema
 and a worked example in the prompt, and then — as always — ``ExtractionResult.model_validate_json``
 is the gate. A provider that returns the wrong shape fails validation and the batch is refused; it
-cannot produce a half-parsed assertion. This is R2 doing exactly its job: agents propose, code decides.
+cannot produce a half-parsed assertion. This is exactly the division of labor working: agents propose, code decides.
 """
 
 from __future__ import annotations

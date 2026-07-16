@@ -1,4 +1,4 @@
-# workflows/map/starsolo.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated (R1).
+# workflows/map/starsolo.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated.
 #
 # STARsolo mapping for barcoded single-cell RNA-seq (10x 3' v2/v3, SPLiT-seq, ...). The composer
 # emits `config.yaml` + `units.tsv` and selects this module by id `map/starsolo`; it NEVER writes
@@ -6,7 +6,7 @@
 # backend.params and asserted by compose's params gate); the read->role placement arrives via
 # `config["read_files_in"]`, cDNA FIRST.
 #
-# The genome index resolves at RUN TIME from a `liulab-genome` assembly id (R9/R12) — no genome path
+# The genome index resolves at RUN TIME from a `liulab-genome` assembly id — no genome path
 # is ever baked into a config or a manifest, and we do not reimplement liulab-genome's job here.
 
 import csv
@@ -96,7 +96,7 @@ rule onlist:
 
     No `container:` directive, deliberately. This runs `seqforge`, which is not an aligner -- the
     ambient environment is the one that just ran `seqforge compose`, so it is by construction the one
-    that has it. Naming `align-rna` here would put our own tool inside STAR's image (R12).
+    that has it. Naming `align-rna` here would put our own tool inside STAR's image.
     """
     output:
         temp("onlists/{name}.txt"),
@@ -121,7 +121,7 @@ rule genome_index:
     STAR on PATH. If that STAR and the container's disagree on index version, STAR refuses loudly,
     which is the failure mode we can live with.
 
-    The deeper reason not to fight this: the index is **liulab-genome's artifact** (R12). How it gets
+    The deeper reason not to fight this: the index is **liulab-genome's artifact**. How it gets
     built, and in what environment, is theirs. We consume it.
     """
     output:
@@ -151,7 +151,7 @@ rule starsolo_count:
         matrices=SOLO_MATRICES,
     # The pinned aligner: liulab-runtime's `align-rna`, resolved by compose to a ghcr tag or to a
     # prebuilt .sif on this machine. Naming it here is CONSUMING liulab-runtime's artifact, not
-    # defining an environment (R12) -- no conda YAML, no Dockerfile, no STAR in any dependency table.
+    # defining an environment -- no conda YAML, no Dockerfile, no STAR in any dependency table.
     #
     # Honoured only when the run passes `--software-deployment-method apptainer` (measured: without
     # it, snakemake plans the same jobs and never mentions the image). That is snakemake's contract
@@ -182,7 +182,7 @@ rule solo_to_h5ad:
 
     A `shell:` calling a seqforge verb, not a `run:` block, and that is deliberate: `snakemake -n -p`
     renders every shell block while planning and cannot see inside a `run:` block, so this way
-    compose's wiring gate covers the packaging step too. It is also the R8 line -- the CLI is the API.
+    compose's wiring gate covers the packaging step too. It is also the CLI-is-the-API line.
 
     No `container:`. Writing an .h5ad is seqforge's own output-format job, not an aligner's; `anndata`
     is a plain dependency of this package. Only `starsolo_count` needs liulab-runtime.

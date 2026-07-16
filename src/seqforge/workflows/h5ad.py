@@ -7,7 +7,7 @@ which is coupling with no interface — the same generalisation-from-a-sample-si
 declined for the aligner plugin API. A second aligner packages its own output; that is what a module
 is for.
 
-Writing an ``.h5ad`` is not an aligner, so R12 has no opinion on it and it needs no liulab-runtime
+Writing an ``.h5ad`` is not an aligner, so the aligner-environment rule has no opinion on it and it needs no liulab-runtime
 environment: ``anndata`` is a plain dependency, like ``pypdf``. Only the STAR step needs a container.
 
 **Why the rule shells out to a CLI verb instead of using a Snakemake ``run:`` block.** ``snakemake -n

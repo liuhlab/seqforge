@@ -312,7 +312,7 @@ def test_a_document_code_did_not_place_names_no_sample(records: ArchiveRecordSet
 def test_a_papers_wrong_reading_is_a_warning_the_record_wins_and_it_still_compiles(
     records: ArchiveRecordSet,
 ) -> None:
-    """The error R5 provably cannot catch, caught by having two independent sources — and now resolved.
+    """The error span verification provably cannot catch, caught by having two independent sources — and now resolved.
 
     "we dissected neurons and body wall muscle" entails tissue=neurons AND tissue=muscle: both quotes
     are real, both pass span verification and entailment. The record separates them: it is a
@@ -412,7 +412,7 @@ def test_rendering_a_record_is_deterministic(records: ArchiveRecordSet) -> None:
     """The rendering IS the document, so its sha256 is what a citation cites.
 
     A human handed the record must be able to regenerate the exact bytes a quote was checked against,
-    or R5's span check is unfalsifiable for every record-derived claim.
+    or the span check is unfalsifiable for every record-derived claim.
     """
     from seqforge.harvest import normalize_record
 
@@ -453,7 +453,7 @@ def test_the_ask_is_scoped_so_a_biosample_is_never_asked_for_a_chemistry() -> No
 
 
 def test_a_record_document_may_never_set_processing(records: ArchiveRecordSet) -> None:
-    """An archive field is an untrusted input. Prose reaching --soloStrand is R14's whole prohibition."""
+    """An archive field is an untrusted input. Prose reaching --soloStrand is precisely what we forbid."""
     from seqforge.harvest.fields import fields_for, permitted_for
 
     for scope in ("project", "sample", "experiment", "run"):

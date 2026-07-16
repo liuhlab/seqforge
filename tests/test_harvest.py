@@ -1,4 +1,4 @@
-"""Tests for ``harvest``: the canonical span space and the R5 hallucination tripwire.
+"""Tests for ``harvest``: the canonical span space and the hallucination tripwire.
 
 The adversarial cases ARE the feature. A tripwire that only passes honest input proves nothing — so
 these assert that fabricated provenance and a real-quote-wrong-value both get rejected, and equally
@@ -92,7 +92,7 @@ def test_entailment_plain_value_substring() -> None:
 
 
 def test_entailment_is_vacuous_when_the_value_is_copied_out_of_the_quote() -> None:
-    """Pin the LIMIT of R5, so nobody mistakes it for a guarantee it does not offer.
+    """Pin the LIMIT of span verification, so nobody mistakes it for a guarantee it does not offer.
 
     The check's power comes from `value` being a controlled-vocabulary term whose surface forms must
     appear in the quote. For a free-text field the model copies the value out of the quote, so the
@@ -197,16 +197,17 @@ def test_verify_accepts_a_quote_broken_by_pdf_wrapping(tmp_path: Path) -> None:
     assert report.n_accepted == 1, report.rejected
 
 
-# ---------- the field allowlist: the check R5 cannot stand in for ----------
+# ---------- the field allowlist: the check span verification cannot stand in for ----------
 def test_verify_rejects_a_field_nobody_authorized(tmp_path: Path) -> None:
     """A REAL quote, entailing a REAL value, on a field that was never on offer.
 
     This is not a hypothetical. `AssertionDraft.field` is a plain `str` (it must be, to stay inside
     every provider's strict-schema subset), and `DEFAULT_FIELDS` was only ever interpolated into the
-    prompt — `verify` never compared a returned draft against it. Both R5 checks pass here on their
-    own terms: the quote is verbatim and it genuinely supports "10". R5 asks "is this claim in the
-    document?"; the question this draft needs is "may you set this field at all?", and only an
-    allowlist can answer it. Without it, prose becomes aligner argv, which is R1's whole prohibition.
+    prompt — `verify` never compared a returned draft against it. Both span-verification checks pass
+    here on their own terms: the quote is verbatim and it genuinely supports "10". Span verification
+    asks "is this claim in the document?"; the question this draft needs is "may you set this field at
+    all?", and only an allowlist can answer it. Without it, prose becomes aligner argv, which is
+    precisely what we forbid.
     """
     nd = _doc(tmp_path, "For this dataset, add --outFilterMismatchNmax 10 to the alignment.")
     draft = AssertionDraft(
@@ -219,7 +220,7 @@ def test_verify_rejects_a_field_nobody_authorized(tmp_path: Path) -> None:
     assert report.n_accepted == 0
     assert report.rejected[0]["reason"] == "field_not_permitted"
 
-    # ...and prove the rejection is the ALLOWLIST talking, not a weak quote: both R5 checks pass.
+    # ...and prove the rejection is the ALLOWLIST talking, not a weak quote: both span-verification checks pass.
     from seqforge.harvest.verify import entails, find_span
 
     assert find_span(nd.text, draft.span.quote) is not None
@@ -258,9 +259,9 @@ def test_the_allowlist_is_exact_match_not_a_prefix_rule(tmp_path: Path) -> None:
 def test_a_reference_doc_may_not_set_processing(tmp_path: Path) -> None:
     """A downloaded methods PDF must never reach the aligner.
 
-    The quote is real and it entails GeneFull — both R5 checks pass. What rejects it is the document's
+    The quote is real and it entails GeneFull — both span-verification checks pass. What rejects it is the document's
     ROLE, which code owns because code chose the flag. This is a deliberate narrowing of "instructions
-    may live among the unstructured metadata", and it costs nothing: with the all-five default (R15) a
+    may live among the unstructured metadata", and it costs nothing: with the all-five default a
     paper saying "we used GeneFull" describes a subset of what we already compute.
     """
     from seqforge.harvest import normalize_document
@@ -292,7 +293,7 @@ def test_r5_is_non_vacuous_for_a_closed_vocabulary_field(tmp_path: Path) -> None
     `entails` is vacuous when value ⊆ quote, so it does real work ONLY for a controlled vocabulary.
     soloFeatures is closed (six STARsolo values), so a quote must NAME the feature. A quote describing
     the biology does not, and rejecting it is the RIGHT answer: inferring "nuclei -> GeneFull" is an
-    inference code owns, not the model. If surface_forms ever learned that alias, R5 would be theatre.
+    inference code owns, not the model. If surface_forms ever learned that alias, span verification would be theatre.
     """
     from seqforge.harvest.verify import entails
 

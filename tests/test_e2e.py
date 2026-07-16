@@ -520,7 +520,7 @@ def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint
 ) -> None:
     """A requeue must not repay for a point it has -- unless ANY input to the number changed.
 
-    R7 (disk is state) doing real work: on a preemptible partition a requeue at hour 5 of a 6 hour
+    Disk is state, doing real work: on a preemptible partition a requeue at hour 5 of a 6 hour
     sweep is normal, and restarting from zero would make the free partition the expensive one.
 
     The guard originally compared soloFeatures alone, which an audit caught, and the sting was in the

@@ -1,11 +1,11 @@
-"""``manifest`` — assemble, validate, and hash the two artifacts (R13).
+"""``manifest`` — assemble, validate, and hash the two artifacts.
 
 Operations live here; the *schemas* are :mod:`seqforge.models.dataset` (the IR: what the data is) and
 :mod:`seqforge.models.processing` (the flags: what to do with it). ``fill`` assembles a Decision into
 a dataset manifest — each section keeping its own authority — and ``fill_processing`` builds one of
-the many processing manifests a dataset may be paired with. ``validate`` is the R4 refusal contract
+the many processing manifests a dataset may be paired with. ``validate`` is the refusal contract
 (structured ``Blocker``s + a nonzero exit), and ``hash`` gives each artifact a content-addressed
-identity plus the ``run_id`` that records their pairing (R7).
+identity plus the ``run_id`` that records their pairing.
 """
 
 from __future__ import annotations

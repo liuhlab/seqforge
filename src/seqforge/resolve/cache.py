@@ -1,4 +1,4 @@
-"""Content-addressed, resumable ``.seqforge/`` artifacts (R7): disk is state, context is cache.
+"""Content-addressed, resumable ``.seqforge/`` artifacts: disk is state, context is cache.
 
 Per-file :class:`Observation` keyed by file sha256; the dataset :class:`ResolveResult` keyed by
 ``dataset_id = sha256(sorted(file_shas) ⊕ kb_version)`` with ``probe_version`` / ``resolve_version``

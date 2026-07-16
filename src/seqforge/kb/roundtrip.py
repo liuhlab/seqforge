@@ -1,4 +1,4 @@
-"""``kb roundtrip`` — the R10 self-test: spec -> synth FASTQ -> probe -> recover; assert == declared.
+"""``kb roundtrip`` — the self-test: spec -> synth FASTQ -> probe -> recover; assert == declared.
 
 Generic over any spec: for every declared read it checks that the probe recovers the declared fixed
 length, that barcode windows recur (low distinct-ratio), and that UMI windows are ~unique (high

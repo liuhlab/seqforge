@@ -54,7 +54,7 @@ class HarvestGrade:
     missing: list[str] = field(default_factory=list)
     #: Forbidden fields that survived verification — a claim the prose does not make. Corpus poison.
     hallucinated: list[str] = field(default_factory=list)
-    #: Drafts the R5 tripwire rejected. Not a failure: this is the safety net doing its job.
+    #: Drafts the span-verification tripwire rejected. Not a failure: this is the safety net doing its job.
     n_rejected: int = 0
     #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
     #: times in three is a field you cannot depend on, and that is a finding in its own right.

@@ -1,4 +1,4 @@
-""":class:`DatasetManifest` — a finished assay. Two truths, one lifetime, IMMUTABLE (R9/R13).
+""":class:`DatasetManifest` — a finished assay. Two truths, one lifetime, IMMUTABLE.
 
 ``library`` is physical truth about molecules and sequencer output (authority = **evidence**);
 ``experiment`` is biological/metadata truth (authority = **metadata and humans**). Both are claims
@@ -9,14 +9,15 @@ rebuilt from evidence and gets a new hash. It is never patched.
 **What is deliberately absent is the point.** There is no ``processing`` section here. What we choose
 to *do* with an assay is intent, not truth, and it lives in
 :mod:`~seqforge.models.processing` — of which there are many per dataset. The old three-section
-manifest made "three truths" (R6's three *bases*) and "three sections" line up by coincidence, and the
+manifest made "three truths" (the three *bases*) and "three sections" line up by coincidence, and the
 pun cost us: ``processing`` inherited the grammar of a truth — ``Evidenced`` fields, an "authority", a
 uniform ``basis="inferred"`` stamped on by construction — and then ``compose`` read almost none of
-them. A field that is never read can never produce the ``Conflict`` R6 promises. ``base.py`` listing
+them. A field that is never read can never produce the ``Conflict`` the three-truths rule promises. ``base.py`` listing
 **four** bases against three sections was the tell.
 
-This module imports nothing from ``processing``, and must not. That independence is R13 as an import
-graph: a dataset cannot know how it will be processed, because it will be processed many ways.
+This module imports nothing from ``processing``, and must not. That independence is the two-artifact
+split expressed as an import graph: a dataset cannot know how it will be processed, because it will be
+processed many ways.
 """
 
 from __future__ import annotations
@@ -99,7 +100,7 @@ class Onlist(BaseModel):
 
 
 class FileInventoryItem(BaseModel):
-    """One physical file + checksum + assigned role. No absolute path (R9).
+    """One physical file + checksum + assigned role. No absolute path.
 
     ``read_id`` is a plain string, not ``Evidenced``, and that is not a demotion. The role assignment
     and the chemistry come out of **one** joint optimization — ``Candidate`` is literally
@@ -158,7 +159,7 @@ class LibrarySection(BaseModel):
     They used to each carry their own ``Evidenced`` envelope, and the pilot's manifest showed what
     that bought: ``confidence: 0.750672`` printed four times, identical, because it was always one
     number about one decision wearing four hats. Four envelopes cannot disagree — they were filled
-    from the same variable — so they were never four truths, and R6 has never asked for four. R6 asks
+    from the same variable — so they were never four truths, and we never asked for four. We ask
     that a value not travel without its provenance, which is exactly what one honest envelope does.
     A field repeated is not provenance; it is decoration that looks like provenance, which is worse
     than none.
@@ -203,7 +204,7 @@ class SampleGroup(BaseModel):
     @field_validator("attributes")
     @classmethod
     def _keys_are_ncbi_attributes(cls, value: dict[str, EvidencedStr]) -> dict[str, EvidencedStr]:
-        """Fail closed on a key NCBI does not define. R2: no field enters a manifest unvalidated."""
+        """Fail closed on a key NCBI does not define: no field enters a manifest unvalidated."""
         from ..io.attributes import is_attribute
 
         unknown = sorted(k for k in value if not is_attribute(k))
@@ -246,7 +247,7 @@ class DatasetProvenance(BaseModel):
     ``workflow_version`` is deliberately ABSENT. Nothing in ``library``/``experiment`` depends on
     which Snakemake module will one day run: the assay happened before we had an opinion about it.
     It belongs to the processing manifest, and folding it in here would make a dataset's identity
-    churn every time a rule file changed — which is exactly the coupling R13 removes.
+    churn every time a rule file changed — which is exactly the coupling the two-artifact split removes.
     """
 
     dataset_hash: str
@@ -255,10 +256,10 @@ class DatasetProvenance(BaseModel):
 
 
 class DatasetManifest(BaseModel):
-    """A finished assay: what the bench did. Two truths, two authorities, one lifetime (R13).
+    """A finished assay: what the bench did. Two truths, two authorities, one lifetime.
 
     Structural only: semantic cross-checks (referential integrity — every experiment ``file_uri`` in
-    the library inventory — and the R9 no-absolute-path sweep) are enforced by ``manifest validate``
+    the library inventory — and the no-absolute-path sweep) are enforced by ``manifest validate``
     as ``Blocker``s, not as construction-time ``ValidationError``s.
     """
 

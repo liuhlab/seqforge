@@ -1,4 +1,4 @@
-"""``Blocker`` — refusal as an exit code (R4).
+"""``Blocker`` — refusal as an exit code.
 
 A ``Blocker`` is ALWAYS fatal (its presence => nonzero exit). Advisory diagnostics are a separate
 :class:`ValidationWarning` (renamed from the design's ``Warning`` to avoid shadowing the builtin), so
@@ -48,7 +48,7 @@ class BlockerSubject(BaseModel):
 
 
 class Blocker(BaseModel):
-    """A structured refusal emitted alongside a nonzero exit (R4). ``remedy`` MUST be actionable."""
+    """A structured refusal emitted alongside a nonzero exit. ``remedy`` MUST be actionable."""
 
     id: str
     code: BlockerCode

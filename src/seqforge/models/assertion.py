@@ -1,4 +1,4 @@
-"""``Assertion`` — the LLM's structured output (job a), span-verified by deterministic code (R1/R5).
+"""``Assertion`` — the LLM's structured output (job a), span-verified by deterministic code.
 
 The LLM emits an :class:`AssertionDraft` (``field``, ``value``, a ``quote``), never character
 offsets — LLMs cannot count them. Deterministic code searches the normalized document for the quote,
@@ -14,7 +14,7 @@ from .base import Confidence
 
 
 class SourceSpan(BaseModel):
-    """Exact, greppable provenance for one claim (R5). Offsets are COMPUTED by code, not the LLM."""
+    """Exact, greppable provenance for one claim. Offsets are COMPUTED by code, not the LLM."""
 
     doc_sha256: str
     quote: str

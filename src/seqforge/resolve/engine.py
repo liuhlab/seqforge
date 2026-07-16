@@ -2,7 +2,7 @@
 
 Deterministic and LLM-free. The optional ``hypothesis`` (a span-verified metadata assertion) is a
 control-flow input only — it selects/orders and can break a genuinely-non-decisive tie, but never
-enters the evidence matrix. Every stage is content-addressed under ``.seqforge/`` (R7): the per-file
+enters the evidence matrix. Every stage is content-addressed under ``.seqforge/``: the per-file
 Observation and the dataset ResolveResult are cached, so a killed run resumes.
 """
 
@@ -40,7 +40,7 @@ class ResolveOutput:
     """The engine's return: the wire :class:`ResolveResult`, the evidence matrices, and the probes.
 
     ``observations`` is carried so a downstream ``manifest fill`` can assemble the file inventory
-    without re-probing the bytes (the sample is already within the R3 budget; paying for it twice is
+    without re-probing the bytes (the sample is already within the budget; paying for it twice is
     the bug this avoids).
     """
 
@@ -70,7 +70,7 @@ def _probe_paths(
     files parallelize across PROCESSES — threads would just serialize. The result is byte-identical to
     a sequential probe: ``probe_sample`` is deterministic over a head-bounded sample, order does not
     matter (the map is keyed by path and the manifest is assembled by content hash), and **core count
-    is folded into no hash** — cores are not a budget any more than wall-clock is (R3). One shared pool
+    is folded into no hash** — cores are not a budget any more than wall-clock is. One shared pool
     for the whole dataset is why a 12-file / 6-run study saturates the cores at once, rather than two
     files at a time inside each run.
     """

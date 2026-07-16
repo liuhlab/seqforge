@@ -1,4 +1,4 @@
-"""``harvest verify`` — the hallucination tripwire, owned by code and failing closed (R1/R5).
+"""``harvest verify`` — the hallucination tripwire, owned by code and failing closed.
 
 The LLM emits only ``{field, value, quote}``; it never emits offsets, because models cannot count
 characters and a wrong offset would reject a truthful claim. Code searches the normalized text,
@@ -98,11 +98,11 @@ def _kb_chemistry_aliases(value: str) -> list[str]:
 #: `entails` lowercases and substring-matches, so "pass --soloFeatures GeneFull" needs no alias. An
 #: alias table here could therefore only ever LOOSEN the check, and loosening is exactly the hazard:
 #: teach it `"nuclei" -> GeneFull` and the sentence "we prepared single nuclei" entails a processing
-#: decision, at which point R5 is theatre — the model would be INFERRING the decision from a biological
+#: decision, at which point span verification is theatre — the model would be INFERRING the decision from a biological
 #: fact, and that inference is code's to own. The instruction document's documented contract is **name
 #: the STARsolo feature**; "count introns too" is correctly rejected as not-entailed.
 #:
-#: That rigor is affordable only because of R15: the case that most tempts you to add the alias — a
+#: That rigor is affordable only because of the all-five default: the case that most tempts you to add the alias — a
 #: nuclear prep — is the case the all-five default already covers. If the default ever narrows,
 #: revisit this comment at the same time.
 _ALIAS_SOURCES: dict[str, Callable[[str], list[str]]] = {
@@ -131,7 +131,7 @@ def entails(quote: str, field: str, value: str) -> bool:
     free-text field the model supplies a value copied *out of* the quote, so ``form in quote`` is
     trivially true and this returns True for anything. **Entailment is vacuous when value ⊆ quote.**
 
-    So R5 is a tripwire for fabricated and mis-attributed claims, NOT for field-assignment errors. A
+    So span verification is a tripwire for fabricated and mis-attributed claims, NOT for field-assignment errors. A
     real quote filed under the wrong field passes here by construction — `eval run --llm` caught
     exactly that (worm husbandry filed as an experimental `condition`). The defense for free-text
     fields is the prompt's operational definition of the field plus the evals corpus that measures it,

@@ -20,11 +20,11 @@ _HASH_CHUNK = 1 << 20  # 1 MiB
 
 
 def hash_file(path: str | Path) -> str:
-    """Return the sha256 of a file's bytes (content-addressing, R7).
+    """Return the sha256 of a file's bytes (content-addressing).
 
     Note
     ----
-    This reads the whole *compressed* file (constant memory, no decompression). The R3 bounded-work
+    This reads the whole *compressed* file (constant memory, no decompression). The bounded-work
     invariant governs the *decompressed parse* — :func:`~seqforge.probe.streaming.sample_fastq_gz` —
     which is the expensive path. At 10^4-dataset scale the content sha256 is expected to come from
     ``io resolve`` (provider md5/sha) so even this linear scan is avoided; the pilot's synthetic
@@ -89,7 +89,7 @@ def probe_sample(
     :class:`Observation` is structural + role-free and cached to disk; the raw sampled ``seqs`` are
     the same bounded, in-memory sample used to build it. ``resolve`` needs those seqs to answer
     role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
-    which the structural Observation deliberately does not carry. The sample stays within the R3
+    which the structural Observation deliberately does not carry. The sample stays within the
     budget — this returns it, it does not re-read the file.
     """
     p = Path(path)
@@ -148,14 +148,14 @@ def probe_file(
     max_bytes: int = DEFAULT_MAX_BYTES,
     sha256: str | None = None,
 ) -> Observation:
-    """Fingerprint one FASTQ gzip into a role-free :class:`Observation` under a bounded budget (R3).
+    """Fingerprint one FASTQ gzip into a role-free :class:`Observation` under a bounded budget.
 
     Parameters
     ----------
     path
         Local path to a gzip-compressed FASTQ.
     max_reads, max_bytes
-        The read budget and decompressed-byte cap (R3).
+        The read budget and decompressed-byte cap.
     sha256
         Precomputed content hash; if omitted it is computed from the file bytes (see :func:`hash_file`).
     """

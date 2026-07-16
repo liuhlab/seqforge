@@ -15,7 +15,7 @@ The only stage where a model proposes anything. Everything else in seqforge is a
 ```bash
 seqforge harvest normalize DOCS               # -> canonical span space (deterministic)
 seqforge harvest extract DOCS --verify        # -> AssertionDraft[] -> Assertion[]  (LLM)
-seqforge harvest verify DRAFTS                # -> the R5 tripwire, on its own
+seqforge harvest verify DRAFTS                # -> the span-verification tripwire, on its own
 ```
 
 Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
@@ -42,7 +42,7 @@ Three things about this are load-bearing:
    aligner. `verify` rejects it (`field_not_permitted_for_doc`) regardless of what was asked.
 3. **You are not classifying mood.** "we used GeneFull" (declarative) and "align this in GeneFull
    mode" (imperative) are treated identically — role subsumes mood by fiat, because a mood judgement
-   has no quote to check it against and would land in exactly the class R5 is blind to.
+   has no quote to check it against and would land in exactly the class span-verification is blind to.
 
 An instruction **promotes; it never narrows.** "Align in GeneFull mode" makes GeneFull the primary
 matrix; it does not drop the other four. So a hallucinated instruction can mislabel which matrix is
@@ -51,7 +51,7 @@ all.
 
 Name the STARsolo feature. "count introns too" is **correctly rejected** as not-entailed: inferring
 `nuclei -> GeneFull` is an inference code owns, not the model, and teaching `entails` that alias
-would make R5 theatre on the one field where it is not vacuous.
+would make span-verification theatre on the one field where it is not vacuous.
 
 ## What the model is allowed to do
 

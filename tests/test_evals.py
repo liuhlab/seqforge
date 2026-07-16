@@ -627,7 +627,7 @@ def test_the_trap_fires_on_a_guess_that_happens_to_be_right() -> None:
     )
     run = run_case(case, llm=True, provider=provider)
     assert run.harvest is not None
-    # Either the R5 tripwire rejects the claim (entailment fails), or it survives and the case
+    # Either the span-verification tripwire rejects the claim (entailment fails), or it survives and the case
     # grades false_accept. Both are acceptable; silently passing is not.
     if run.harvest.hallucinated:
         assert run.grade.grade is Grade.FALSE_ACCEPT

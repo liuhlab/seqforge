@@ -7,7 +7,7 @@ Three verbs, and only the middle one touches a model:
   ``{field, value, quote}`` and nothing else: no offsets (it cannot count characters) and no verdicts.
 - ``verify``    (deterministic) — checks the field is one we allow at all, greps each quote back into
   the canonical text, computes the offsets, and checks the quote actually *entails* the value. Every
-  flag is code-owned, so a hallucinated or mis-attributed claim fails closed (R1/R2/R5).
+  flag is code-owned, so a hallucinated or mis-attributed claim fails closed.
 
 Agents propose; code decides. Nothing here trusts the model's own account of its work — including its
 account of *which field it is answering*: the vocabulary lives in :mod:`seqforge.harvest.fields` and is
@@ -16,7 +16,7 @@ enforced there, not in the prompt. A prompt asks; only code refuses.
 
 from __future__ import annotations
 
-#: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys (R7).
+#: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys.
 HARVEST_VERSION = "2026.7.0"
 
 from .extract import (  # noqa: E402

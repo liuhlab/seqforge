@@ -44,7 +44,7 @@ question for a human, and a single sample annotation is no reason to stop a whol
 Only the byte resolver's ``observed`` vs ``asserted`` conflict blocks: that one decides what the data
 *is*, and code may not auto-pick it.
 
-That asymmetry still catches the error R5 provably cannot. "We dissected neurons and body wall muscle"
+That asymmetry still catches the error span verification provably cannot. "We dissected neurons and body wall muscle"
 entails ``tissue=neurons`` *and* ``tissue=muscle`` — both quotes are real, both pass span verification
 and entailment. What separates them is that the record says ``Neurons``: it is a declaration about this
 sample (``asserted``) and the paper's reading is our inference (``inferred``), so the record's value
@@ -76,7 +76,7 @@ from ..models.resolve import MetadataResolution, ProjectFacts, ResolvedSample
 from .group import run_key
 
 #: Which authority wins when two sources disagree about one sample attribute. Never a vote and never
-#: a confidence comparison: an LLM's self-reported confidence is advisory (R2) and would happily
+#: a confidence comparison: an LLM's self-reported confidence is advisory and would happily
 #: outrank a database.
 _BASIS_RANK: dict[Basis, int] = {
     "observed": 3,

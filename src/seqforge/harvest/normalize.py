@@ -1,4 +1,4 @@
-"""``harvest normalize`` — build the canonical text that spans are computed against (R5).
+"""``harvest normalize`` — build the canonical text that spans are computed against.
 
 Span verification is the hallucination tripwire, and it dies on raw PDF text: a naive grep for a
 quote fails on soft hyphens, ligatures (``ﬁ`` vs ``fi``), non-breaking spaces, smart quotes, and
@@ -108,7 +108,7 @@ def read_document(path: Path) -> str:
     PDF is one *extractor* behind the canonical-text contract, not a special kind of input: anything
     else falls through to plain text, so a hand-written `.md` or a `.txt` works with no extra code.
     The contract is the load-bearing part — `normalize_text` produces the one canonical string that
-    R5's span verification greps against, whatever the source format was.
+    span verification greps against, whatever the source format was.
 
     `pypdf` is imported lazily because a PDF is the uncommon case, but it is a **declared dependency**
     now, so this import does not fail. It used to be undeclared, with a remedy telling the user to
@@ -149,7 +149,7 @@ def render_record(record: ArchiveRecord) -> str:
     """One archive record -> the text a model reads. Deterministic, and the ONLY renderer.
 
     Deterministic matters more than it looks. This text *is* the document: its sha256 is the identity
-    an assertion cites, and R5's span check greps this exact string. So the rendering must be
+    an assertion cites, and the span check greps this exact string. So the rendering must be
     reproducible from the record forever — a human handed the record and this function must be able to
     regenerate the bytes a quote was checked against, or the citation is unfalsifiable.
 

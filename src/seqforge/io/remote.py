@@ -1,4 +1,4 @@
-"""``io peek`` / ``io resolve`` — the ONLY network surface (design §4, R3).
+"""``io peek`` / ``io resolve`` — the ONLY network surface (design §4).
 
 Two verbs, both bounded:
 
@@ -13,9 +13,9 @@ SRA normalizes runs, and ``fasterq-dump`` **skips technical reads by default**
 archive-generated FASTQ while remaining inside the ``.sra``. What is published then looks like plain
 single-end RNA-seq and is silently unprocessable as single-cell. :func:`run_statistics` reads SRA's
 own per-read table and :func:`dropped_reads` compares it against what ENA actually published — so we
-learn this from two metadata calls, **before** downloading a byte. That is the R11 rung-0 check.
+learn this from two metadata calls, **before** downloading a byte. That is the rung-0 check.
 
-The comparison is a genuine R6 disagreement rather than a bug: NCBI and ENA report different
+The comparison is a genuine disagreement rather than a bug: NCBI and ENA report different
 ``base_count`` for the same run (8 757 663 750 vs 3 980 756 250 for SRR9170959) because they are two
 different truths about what the file contains. The disagreement IS the signal.
 
@@ -283,7 +283,7 @@ class DroppedReads:
 def dropped_reads(run: dict[str, str], stats: RunStatistics) -> DroppedReads | None:
     """Did the archive drop a read? Compare SRA's own spot length to what ENA published.
 
-    Two metadata calls, no bytes — the R11 rung-0 check. A dropped 10x barcode read turns a
+    Two metadata calls, no bytes — the rung-0 check. A dropped 10x barcode read turns a
     single-cell dataset into something that merely looks like single-end RNA-seq, and no amount of
     downstream cleverness recovers it from the published FASTQ.
 
@@ -355,7 +355,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
 
     GEO is resolved to SRP first (ENA rejects GSE outright), recursing through SuperSeries. This
     reports declared facts and abstains loudly; it never guesses a chemistry — that is resolve's job,
-    from bytes (R2/R6).
+    from bytes.
     """
     acc = accession.strip()
     kind = classify_accession(acc)
@@ -395,7 +395,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
 
 @dataclass
 class PeekResult:
-    """What a bounded range-read saw. ``compressed_bytes_read`` is the R3 receipt."""
+    """What a bounded range-read saw. ``compressed_bytes_read`` is the bounded-read receipt."""
 
     uri: str
     compressed_bytes_read: int
@@ -421,7 +421,7 @@ def decompress_prefix(blob: bytes, *, max_bytes: int) -> bytes:
     ``wbits=31`` = 16 (gzip wrapper) + 15 (window). A truncated deflate stream does **not** raise —
     you simply get fewer bytes back and ``eof`` stays False. So "handling the truncation" means
     stopping and dropping the last partial record, nothing more. ``max_length`` caps expansion per
-    call, which makes the budget a real *decompressed*-byte bound (R3) rather than a compressed-byte
+    call, which makes the budget a real *decompressed*-byte bound rather than a compressed-byte
     proxy — and incidentally makes a zip bomb a non-event.
     """
     decomp = zlib.decompressobj(31)
@@ -451,7 +451,7 @@ def parse_fastq_prefix(text: str, *, max_reads: int) -> tuple[list[str], list[in
 def peek(
     uri: str, *, max_reads: int = 4, max_bytes: int = 1 << 16, decompressed_cap: int = 1 << 22
 ) -> dict[str, Any]:
-    """Range-read the head of a remote gzipped FASTQ. Never downloads the file (R3).
+    """Range-read the head of a remote gzipped FASTQ. Never downloads the file.
 
     The defaults fetch 64 KB — 0.013 % of a 517 MB run, and several thousand reads' worth.
 
@@ -473,7 +473,7 @@ def peek(
         if response.status_code == 200:
             raise RemoteError(
                 f"{uri}: the server ignored our Range header and answered 200 — that is the whole "
-                "file. Refusing to read it: R3 means bounded by the server, not by our intentions. "
+                "file. Refusing to read it: 'bounded' means bounded by the server, not by our intentions. "
                 "Fetch it deliberately, or use a host that honours Range."
             )
         if response.status_code != 206:

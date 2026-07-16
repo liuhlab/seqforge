@@ -20,17 +20,17 @@ processing manifest is data, not a side channel.
 `--processing` is optional. A processing manifest exists because someone wanted something
 non-default; requiring one per dataset would mean 10⁴ boilerplate files nobody reads. Either way
 compose writes the fully-resolved, dataset-**bound** manifest it used to
-`seqforge/pipeline/<run_id>/processing.lock.yaml` — R7 says disk is *state*, not that disk is
-*input*, so the run's decisions are recoverable regardless.
+`seqforge/pipeline/<run_id>/processing.lock.yaml` — disk is *state*, not *input*, so the run's
+decisions are recoverable regardless.
 
 Output is keyed by `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, **not** by the workspace: one
 dataset compiled two ways is two runs, and a fixed path would silently overwrite the first.
 
 `threads` is not a flag — it lives in `processing.resources.threads`. It used to be both, which is
 the two-sources-of-truth disease this design cures. `outdir` stays a flag because it is a path, i.e.
-a machine fact, and R9 forbids a manifest from carrying one.
+a machine fact, and a manifest may not carry one.
 
-## R1: emit data, never code
+## Emit data, never code
 
 The composer emits `config.yaml` + `units.tsv` + a **selection** from `workflows/`. It never
 generates Snakefile or rule source, and neither do you. The workflow modules are hand-written,
@@ -41,14 +41,14 @@ a module and test it — never to synthesise rules on the fly.
 
 | gate | what it proves | when |
 |---|---|---|
-| `params` | every emitted param is **owned** (R14), arrives verbatim from its owner, and agrees with the observed layout | always |
+| `params` | every emitted param is **owned**, arrives verbatim from its owner, and agrees with the observed layout | always |
 | `wiring` | `snakemake -n` / `--lint` | needs snakemake, else `skip` |
 | `e2e` | a real count matrix vs injected truth | needs STAR + a genome, else `skip` |
 
 **`skip` is not `pass`.** A gate reporting `pass` because it never ran would let green CI be mistaken
 for coverage — that distinction is load-bearing, so never report a skipped gate as passing.
 
-## One key, one owner (R14)
+## One key, one owner
 
 Every aligner param in the emitted config has exactly one source, and the gate proves it:
 
@@ -57,7 +57,7 @@ Every aligner param in the emitted config has exactly one source, and the gate p
 
 The two key sets are disjoint, which is *why* a user instruction cannot contradict the bytes: not
 because we rank them, but because the user has no vocabulary in which to say it. If you are tempted
-to move a key across that line, that is a design change — start with R14, not with the spec file.
+to move a key across that line, that is a design change — start with the parse/count line, not with the spec file.
 
 `primary_feature` is emitted at config **top level**, not inside `config["solo"]`, which must stay
 "every key is a STAR CLI flag" for the gate's coverage check. STARsolo has no `--primaryFeature`; it
@@ -73,7 +73,7 @@ class, which is exactly why it exists.
 
 Measured: `kb e2e-introns` on ce11 showed `--soloFeatures Gene` discards **40.7%** of a nuclear
 library, silently. That defect is fixed — `soloFeatures` defaults to all five, so GeneFull is counted
-whether or not anyone tells us the prep is nuclear (R15) — and the number now survives as a
+whether or not anyone tells us the prep is nuclear — and the number now survives as a
 counterfactual the fixture re-measures on every run. Do not "optimise" the default back down to Gene;
 `--quantify` narrowing warns for this reason.
 

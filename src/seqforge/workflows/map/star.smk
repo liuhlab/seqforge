@@ -1,8 +1,8 @@
-# workflows/map/star.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated (R1).
+# workflows/map/star.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated.
 #
 # Plain STAR mapping for bulk paired-end RNA-seq (no cell barcode / UMI demultiplex). Selected by the
 # composer's module id `map/star`; gene counts come from STAR's own `--quantMode GeneCounts`. The
-# genome index resolves at RUN TIME from a `liulab-genome` assembly id (R9/R12).
+# genome index resolves at RUN TIME from a `liulab-genome` assembly id.
 
 import csv
 
@@ -43,7 +43,7 @@ rule genome_index:
     STAR on PATH. If that STAR and the container's disagree on index version, STAR refuses loudly,
     which is the failure mode we can live with.
 
-    The deeper reason not to fight this: the index is **liulab-genome's artifact** (R12). How it gets
+    The deeper reason not to fight this: the index is **liulab-genome's artifact**. How it gets
     built, and in what environment, is theirs. We consume it.
     """
     output:
@@ -71,7 +71,7 @@ rule star_count:
     output:
         f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
     # liulab-runtime's `align-rna`, resolved by compose. See starsolo.smk's note: consuming their
-    # artifact, not defining an env (R12), and honoured only under `--software-deployment-method`.
+    # artifact, not defining an env, and honoured only under `--software-deployment-method`.
     container: config["container"]
     threads: config["threads"]
     params:

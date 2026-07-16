@@ -21,7 +21,7 @@ seqforge io attributes [NAME]           # NCBI's 960 harmonized BioSample names,
 seqforge io efo                         # what EFO:0009922 is actually called
 ```
 
-There is **no `--json` flag**: every verb emits JSON on stdout by default (R8). `kb list` is the one
+There is **no `--json` flag**: every verb emits JSON on stdout by default. `kb list` is the one
 plain-text exception, and it is not in this skill.
 
 ## `io records` is where per-sample metadata comes from
@@ -73,4 +73,4 @@ truths about what the file contains, and the disagreement IS the signal.
 
 64 KB gets several thousand reads' worth (0.013% of a 517 MB run). It asserts **HTTP 206**, not
 `Accept-Ranges` — a server can advertise ranges, ignore the header, and send the whole file. A 200 is
-a refusal: bounded means bounded by the server, not by our intentions (R3).
+a refusal: bounded means bounded by the server, not by our intentions.

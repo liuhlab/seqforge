@@ -1,4 +1,4 @@
-"""``compose`` — manifest -> pipeline configuration (emit data, never code: R1).
+"""``compose`` — manifest -> pipeline configuration (emit data, never code).
 
 A pure function of the manifest plus two versioned inputs recorded in provenance (the KB and the
 hand-written workflow modules). It selects a module and emits ``config.yaml`` + ``units.tsv``; it

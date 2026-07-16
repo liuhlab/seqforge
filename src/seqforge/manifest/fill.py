@@ -12,7 +12,7 @@ Each section keeps its own authority (design §1.6):
 also why ``--assembly``/``--annotation`` left this verb: choosing a reference is not something you
 learn by probing bytes, and it never belonged on the verb that probes them.
 
-The manifest is machine-independent (R9): a file's ``uri`` is its path **relative to the dataset's
+The manifest is machine-independent: a file's ``uri`` is its path **relative to the dataset's
 own root**, never the absolute local path the probe read (which stays in
 ``Observation.file.local_uri``, an internal-only field). Relative, not *flat* — see
 :func:`dataset_uris` for the two things a bare basename broke on the first real dataset.
@@ -114,7 +114,7 @@ def experiment_from_metadata(
     """A :class:`MetadataResolution` -> the manifest's experiment inputs. The only conversion.
 
     The resolver speaks in file **hashes**, because that is what a sample is carried by and it has no
-    business knowing what a URI is; the manifest speaks in URIs, because R9 says a manifest is
+    business knowing what a URI is; the manifest speaks in URIs, because a manifest is
     machine-independent. :func:`dataset_uris` owns that translation and always has — this is its
     second caller, and the first one that was written knowing it existed. (The first time
     ``SampleGroup.file_uris`` was built beside it out of basenames, ``manifest fill`` refused its own
@@ -161,7 +161,7 @@ def experiment_from_metadata(
 class ProcessingInputs:
     """CLI-typed processing choices — the top of the precedence ladder.
 
-    Reference selection is a liulab-genome assembly id + a REGISTERED GTF name, never a path (R9).
+    Reference selection is a liulab-genome assembly id + a REGISTERED GTF name, never a path.
     This dataclass predates the split and was already the processing manifest in miniature — badly
     named and half-built, sitting beside `fill` instead of owning the artifact it describes.
     """
@@ -187,7 +187,7 @@ def fill_manifest(
     """Assemble a :class:`DatasetManifest` from a clean resolve Decision + metadata inputs.
 
     Bytes and metadata only. Takes no ``processing`` argument, by construction: a dataset does not
-    know how it will be processed, because it will be processed many ways (R13).
+    know how it will be processed, because it will be processed many ways.
 
     ``role_of_sha`` carries the **dataset-level** file->role map, which a single `ResolveResult`
     cannot express: its `RoleAssignment` maps role -> one sha, because it describes one library's
@@ -427,7 +427,7 @@ def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
 
 
 def dataset_uris(observations: list[Observation]) -> dict[str, str]:
-    """sha256 -> the file's URI: its path **relative to the dataset's own root** (R9).
+    """sha256 -> the file's URI: its path **relative to the dataset's own root**.
 
     **Public, and that is the point.** The URI form has exactly one owner, because the moment it had
     two they disagreed: this function got it right and `cli.py` built `SampleGroup.file_uris` out of
@@ -448,9 +448,10 @@ def dataset_uris(observations: list[Observation]) -> dict[str, str]:
        reads would quietly become the other's. Nothing would have said so.
 
     A path relative to the common root keeps every URI distinct and machine-independent, which is all
-    R9 ever asked for: it forbids an *absolute* path, not structure. A flat directory degenerates to
-    the basenames this always produced. Files with no shared root fall back to basenames — there is
-    no relative name that spans two filesystems, and inventing one would be worse than the fallback.
+    machine-independence ever asked for: it forbids an *absolute* path, not structure. A flat
+    directory degenerates to the basenames this always produced. Files with no shared root fall back
+    to basenames — there is no relative name that spans two filesystems, and inventing one would be
+    worse than the fallback.
     """
     locals_ = {o.file.sha256: o.file.local_uri for o in observations if o.file.local_uri}
     if len(locals_) == len(observations) > 0:
@@ -480,7 +481,7 @@ def _build_files(
         role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     return [
         FileInventoryItem(
-            # relative to the dataset root; never Observation.file.local_uri, which is absolute (R9)
+            # relative to the dataset root; never Observation.file.local_uri, which is absolute
             uri=uris[obs.file.sha256],
             basename=obs.file.basename,
             sha256=obs.file.sha256,

@@ -9,7 +9,7 @@ manifest without either half importing the other. A wrapper over a *domain* type
 type — :class:`~seqforge.models.dataset.EvidencedReadLayout` in ``dataset``,
 :class:`~seqforge.models.processing.EvidencedGenome` in ``processing``. That is not a stylistic
 preference: it is what keeps ``dataset`` and ``processing`` from importing each other, and that
-independence is R13 expressed as an import graph rather than as a comment.
+independence is the two-artifact split expressed as an import graph rather than as a comment.
 
     base  ->  evidenced  ->  dataset
                          ->  processing        (dataset and processing never meet)
@@ -37,7 +37,7 @@ class EvidencedAssay(Evidenced[AssayTerm]):
 
 
 class EvidencedChemistrySet(Evidenced[list[ChemistryId]]):
-    """An ``Evidenced`` chemistry equivalence class (benign twins recorded together, R6/§12)."""
+    """An ``Evidenced`` chemistry equivalence class (benign twins recorded together, §12)."""
 
 
 class EvidencedAccessionList(Evidenced[list[Accession]]):

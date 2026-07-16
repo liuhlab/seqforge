@@ -17,7 +17,7 @@ seqforge kb e2e --workdir DIR     # the real count matrix, vs injected truth
 seqforge kb e2e-introns --workdir DIR --assembly ce11   # the GeneFull path
 ```
 
-## R10: every entry is executable and self-testing
+## Every entry is executable and self-testing
 
 A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the
 pairwise checks live in the SUITE, not in a verb: `test_no_spec_pair_is_confusable_without_declaring_it`
