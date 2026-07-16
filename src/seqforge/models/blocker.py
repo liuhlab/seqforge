@@ -32,6 +32,12 @@ class BlockerCode(StrEnum):
     GENOME_ORGANISM_MISMATCH = "GENOME_ORGANISM_MISMATCH"
     #: A processing manifest bound to a different dataset than the one being compiled.
     DATASET_PIN_MISMATCH = "DATASET_PIN_MISMATCH"
+    #: An archive record was supplied and does not account for the files on disk. Only ever raised
+    #: when a record EXISTS: a dataset with no accession has nothing to join and is not a refusal.
+    #: Half-joining is the failure this exists to prevent — the files it could not place would get no
+    #: sample facts, and a manifest that is confidently right about four samples and silent about two
+    #: reads as a manifest about six.
+    RECORD_JOIN_INCOMPLETE = "RECORD_JOIN_INCOMPLETE"
 
 
 class BlockerSubject(BaseModel):

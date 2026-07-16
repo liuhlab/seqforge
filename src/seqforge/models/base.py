@@ -76,6 +76,19 @@ class Evidenced(BaseModel, Generic[T]):
     (``observed`` from bytes, ``asserted`` from humans/DBs, ``inferred`` derived,
     ``user_confirmed``); disagreement across bases becomes a first-class ``Conflict``, never a
     silent merge. ``rung`` is the cheapest escalation-ladder step that settled the field.
+
+    ``confidence`` is **optional, and ``None`` is the informative value**: it means no judgement was
+    made, so there is no confidence to report. Copying a ``strain = CQ758`` out of a BioSample record
+    involves no interpretation — the record says it, we transcribed it, and ``basis="asserted"`` plus
+    the record accession in ``evidence`` already says everything true about how we know it. Writing
+    ``1.0`` there would invite exactly the question it cannot answer ("you are certain the strain is
+    CQ758?"); we are certain the *record declares* it, which is a different claim and the one we make.
+
+    So: a number here means somebody or something weighed evidence and could have been wrong. That is
+    the winning candidate's score, or a language model's advisory self-report on reading prose. It is
+    never a decoration, and it is never copied from a neighbouring field — a value repeated across
+    four fields is one judgement wearing four hats, which is the ``processing``-masquerading-as-a-truth
+    mistake in miniature.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -83,5 +96,5 @@ class Evidenced(BaseModel, Generic[T]):
     value: T
     basis: Basis
     evidence: list[str] = Field(default_factory=list)
-    confidence: Confidence
+    confidence: Confidence | None = None
     rung: Rung

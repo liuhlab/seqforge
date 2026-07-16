@@ -11,9 +11,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .base import Basis, ChemistryId, Rung, Uri
+from .base import Accession, Basis, ChemistryId, Rung, Sha256, Uri
 from .blocker import Blocker, ValidationWarning
 from .conflict import Conflict, ConflictPosition, Decidable
+from .evidenced import EvidencedStr, EvidencedTaxid
 from .processing import RuntimeEnv
 
 
@@ -74,6 +75,64 @@ class ResolveResult(BaseModel):
     candidates: list[Candidate]
     conflicts: list[Conflict]
     questions: list[Question]
+    blockers: list[Blocker] = Field(default_factory=list)
+
+
+class ResolvedSample(BaseModel):
+    """One biological sample, the files that carry it, and what we know about it.
+
+    ``sample_id`` always exists and is always code's: it is the archive's sample accession when a
+    record was joined, and the run grouping otherwise. There is no path on which a language model
+    names a sample — that is the whole reason a per-record document works.
+
+    ``attributes`` is keyed by an NCBI harmonized attribute name (``strain``, ``tissue``,
+    ``dev_stage``). Open-keyed rather than a fixed set of typed fields, because the key space is
+    NCBI's 960 and mirroring 960 names into pydantic fields is the hand-maintained contract this repo
+    keeps getting bitten by. Enforcement lives in the validator, against the shipped vocabulary.
+    """
+
+    sample_id: str
+    accession: Accession | None = None
+    attributes: dict[str, EvidencedStr] = Field(default_factory=dict)
+    #: The files carrying this sample, by content hash. ``fill`` turns these into manifest URIs; the
+    #: resolver does not know what a URI is and should not.
+    file_shas: list[Sha256] = Field(default_factory=list)
+
+
+class ProjectFacts(BaseModel):
+    """The study, as the archive declares it. Structured facts only (design decision, 2026-07-16).
+
+    Not ``Evidenced``: none of this is an interpretation. The record says the title is X and we copied
+    X, exactly as we copy a file's ``sha256`` — a basis and a confidence would be theatre. The study
+    *abstract* is deliberately absent: it is prose, it belongs in a document a quote can grep back
+    into, and pasting it into a content-addressed manifest would make the dataset's identity depend on
+    a paragraph of English.
+    """
+
+    accession: Accession | None = None
+    title: str | None = None
+    center: str | None = None
+    data_type: str | None = None
+    released: str | None = None
+
+
+class MetadataResolution(BaseModel):
+    """The output of the metadata resolver — the sibling of ``resolve score``, over records not bytes.
+
+    Same discipline and the same shape of answer, because it has the same ways of being wrong: it
+    emits evidenced values, surfaces disagreements it will not arbitrate, and can refuse. A dataset
+    with no archive record and no prose resolves to samples-with-no-facts, which is a real answer and
+    the honest one — most sequencing data has never had an accession.
+    """
+
+    samples: list[ResolvedSample] = Field(default_factory=list)
+    project: ProjectFacts | None = None
+    #: The organism, when a record or a document declares it. ``None`` means nobody said, and the
+    #: caller must supply it — never a default, because a wrong taxid aligns cleanly against the wrong
+    #: genome and nothing downstream ever asks again.
+    organism: EvidencedTaxid | None = None
+    conflicts: list[Conflict] = Field(default_factory=list)
+    questions: list[Question] = Field(default_factory=list)
     blockers: list[Blocker] = Field(default_factory=list)
 
 
