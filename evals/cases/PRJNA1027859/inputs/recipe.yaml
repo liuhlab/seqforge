@@ -1,14 +1,24 @@
-# The pilot's single real acceptance case. Its data is NOT in this repo and MUST NOT be read until
-# the maintainer says so — see expected.yaml. The root is resolved from the environment at run time,
-# so the path lives in local out-of-git config and never enters git history. Unset/absent => SKIP,
-# never a pass and never a fail.
+# The pilot's demo dataset. Its data is NOT in this repo: real FASTQs are far too large for git, and
+# the root is a lab path this public repo must not carry. The root is resolved from the environment at
+# run time. Unset/absent => SKIP, never a pass and never a fail.
 #
-# Per-case env var (not one global $SEQFORGE_HELDOUT): there will be more held-out cases, and each
-# should name its own root rather than fight over a single variable.
+# Per-case env var (not one global $SEQFORGE_ROOT): there will be more local cases, and each should
+# name its own root rather than fight over a single variable.
+#
+# The `SEQFORGE_CASE_` prefix is a leftover of the retired held-out regime, in which a PreToolUse
+# guard protected every root named `SEQFORGE_CASE_*`. That guard is gone (2026-07-15); the prefix now
+# means only "where this case's data lives".
 generate:
   kind: local
   root_env: SEQFORGE_CASE_PRJNA1027859
-  glob: "*.fastq.gz"
+  # The FASTQs live one directory down per SRX (SRX24283130/SRR28716558_1.fastq.gz, ...), which is
+  # how `fasterq-dump` was pointed at them. `manifest fill` groups them back into runs from the file
+  # names, so the directory layout is not load-bearing -- but the glob has to reach them.
+  glob: "*/*.fastq.gz"
+  # The paper. THIS is what the case is for: the organism must come from prose, not a default
+  # (§12) -- and without a docs_glob a local case had no way to name a document at all, so the
+  # language model never ran and the one thing this case tests could not happen.
+  docs_glob: "info/*.pdf"
 
 # No `hypothesis:` on purpose. Declaring the chemistry here would hand resolve the answer and turn a
 # byte-level acceptance test into a tautology. The whole claim under test is that the BYTES decide.

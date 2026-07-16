@@ -42,6 +42,7 @@ from typing import Literal
 from ..kb.schema import KB_PARSE_KEYS, Element, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import ProcessingManifest, Quantification, SoloQuant
+from ..workflows import get_module
 
 GateStatus = Literal["pass", "fail"]
 ParamOwner = Literal["kb", "processing", "derived"]
@@ -147,7 +148,7 @@ def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamO
     return owners
 
 
-def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
+def param_block_key(spec: Spec) -> str:
     """Which config block carries this spec's aligner params: ``solo`` xor ``bulk``.
 
     Keyed by the MODULE, which is the only thing that decides it. The gate used to instead take
@@ -155,8 +156,13 @@ def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
     reported as *"config drops KB param 'quantMode'"* — a real failure diagnosed as an unrelated one,
     which is worse than no gate: it sends you to the wrong file. One definition, consulted by both the
     composer that writes the block and the gate that checks it.
+
+    And the module reads it off its own source. This function used to be
+    ``"solo" if spec.backend.module == "map/starsolo" else "bulk"`` — the last string compare against
+    a module name in the tree, and the same shape as the `_read_files_in` bug that preceded it: every
+    module that is not starsolo silently means bulk. See :attr:`WorkflowModule.param_block`.
     """
-    return "solo" if spec.backend.module == "map/starsolo" else "bulk"
+    return str(get_module(spec.backend.module).param_block)
 
 
 def render_param(value: object) -> str:
@@ -183,7 +189,7 @@ def _element(read: ReadDef, role: str) -> ReadElement | None:
 
 def find_read_with_role(manifest: DatasetManifest, role: str) -> ReadDef | None:
     """The layout read carrying an element of ``role`` (e.g. the cDNA read, the CB-bearing read)."""
-    for read in manifest.library.read_layout.value.reads:
+    for read in manifest.library.read_layout.reads:
         if any(el.role == role for el in read.elements):
             return read
     return None
@@ -328,7 +334,7 @@ def _check_read_files_in(
             problems.append("read_files_in maps the cDNA and barcode roles to the same read")
     else:  # bulk: two biological mates, no barcode role
         mates = [rfi.get("mate1"), rfi.get("mate2")]
-        roles = [r.read_id for r in manifest.library.read_layout.value.reads]
+        roles = [r.read_id for r in manifest.library.read_layout.reads]
         if any(m not in roles for m in mates):
             problems.append(f"read_files_in mates {mates} are not layout reads {roles}")
         if mates[0] == mates[1]:

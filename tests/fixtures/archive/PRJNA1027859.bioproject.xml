@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<RecordSet><DocumentSummary uid="1027859">
+    <Project>
+        <ProjectID>
+            <ArchiveID accession="PRJNA1027859" archive="NCBI" id="1027859"/>
+            <LocalID>bp0</LocalID>
+            <LocalID>bp0</LocalID>
+        </ProjectID>
+        <ProjectDescr>
+            <Name>Caenorhabditis elegans</Name>
+            <Title>A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles</Title>
+            <Description>The invariant lineage of each of C. elegans 302 neurons is known, and most adult neurons have specific functions. Previously, we determined the transcriptome of C. elegans major tissues, including neurons. However, the transcripts that allow specific functions for each individual adult neuron, including each neurons complement of chemoreceptors, are unknown. The insulin-insulin-like growth factor signaling (IIS) pathway regulates many aspects of an organisms biological functions, including lifespan and memory ability. While whole-worm and tissue-specific transcriptomic analyses have identified IIS targets, a higher resolution single-cell approach is required to answer questions about individual neuronal changes that confer neuron-specific improvements. We used the deep neuronal resolution of single-nucleus RNA-sequencing to identify and characterize GPCRs that have specific functions in wild-type and daf-2 mutants in specific neurons.</Description>
+            <Relevance>
+                <ModelOrganism>yes</ModelOrganism>
+            </Relevance>
+        </ProjectDescr>
+        <ProjectType>
+            <ProjectTypeSubmission>
+                <Target capture="eWhole" material="eGenome" sample_scope="eMultiisolate">
+                    <Organism species="6239" taxID="6239">
+                        <OrganismName>Caenorhabditis elegans</OrganismName>
+                        <Supergroup>eEukaryotes</Supergroup>
+                    </Organism>
+                    <Description>Both wild type (N2) and daf-2(e1370) mutant animals were sequenced.</Description>
+                </Target>
+                <Method method_type="eSequencing"/>
+                <Objectives>
+                    <Data data_type="eRawSequenceReads"/>
+                </Objectives>
+                <IntendedDataTypeSet>
+                    <DataType>raw sequence reads</DataType>
+                </IntendedDataTypeSet>
+                <ProjectDataTypeSet>
+                    <DataType>raw sequence reads</DataType>
+                </ProjectDataTypeSet>
+            </ProjectTypeSubmission>
+        </ProjectType>
+    </Project>
+    <Submission last_update="2023-10-13" submission_id="SUB13900222" submitted="2023-10-13">
+        <Description>
+            <!-- Submitter information has been removed -->
+            <Organization role="owner" type="institute">
+                <Name>Princeton University</Name>
+                <!-- Contact information has been removed -->
+            </Organization>
+            <Access>public</Access>
+        </Description>
+        <Action action_id="SUB13900222-bp0"/>
+    </Submission>
+</DocumentSummary>
+
+</RecordSet>

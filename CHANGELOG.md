@@ -6,6 +6,108 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
+**The pilot ran, and its manifest said `tissue: null` on six samples (2026-07-16).** Reading the
+pilot's own output is what produced everything below. The paper says "neurons"; the six BioSample
+records say `tissue=Neurons`; the manifest said null. Three causes, none of them the model's fault:
+nothing fetched the archive records — `strain`/`tissue`/`sex`/`dev_stage` were read by **zero lines of
+code** in the whole repo — `manifest fill` had no `--assertions` flag, so the model's answers went to
+a file nobody read, and a claim had no way to name *which* of six samples it was about.
+
+**Metadata resolution is a stage, and `resolve` now has two resolvers.** `resolve_metadata` is a
+sibling of `score`, not a side-input to `fill`: same discipline, same outputs (evidenced values,
+conflicts, blockers), because matching a project to its samples to its runs to the files on disk is a
+real resolution problem with real ways to be wrong. On the pilot's records: 6 samples, `tissue=Neurons`
+×6, `CQ757` ×3 / `CQ758` ×3, organism 6239 citing all six BioSamples — and `--organism` is no longer
+required, because the record declares it.
+
+**`seqforge run` compiles a dataset in one pass.** The planned headless verb landed: `run` (alias
+`compile`) chains records → harvest → manifest fill → processing new → compose, stops at the first
+refusal, and emits one JSON summary keyed by stage. It decides nothing the stages did not already
+decide — the fill and harvest bodies were lifted into `_fill_manifest_pipeline` /
+`_harvest_extract_pipeline` and are now called by both the standalone verbs and `run`, so there is one
+implementation of the spine, not two that can drift. `--no-llm` skips the one LLM stage for a fully
+deterministic pass; the genome stays the one decision with no default (missing it exits 2, actionably).
+`run`/`compile` left the skill guard's `_PLANNED` set the moment they shipped — a planned verb that
+ships must graduate, or the guard rubber-stamps the fiction it exists to catch. The
+`seqforge-orchestrate` skill now leads with `run` and carries the exit-code discipline itself, so a
+`claude -p` one-liner needs no safety preamble.
+
+- **The subject is the document.** `AssertionDraft` gains **no** `subject` field. Each archive record
+  is rendered as its own document, so a sample-level document holds one sample's prose and "which
+  sample" is answered by which file we handed the model. The trick `instruct.py` already shipped for
+  document role: code knows it because code chose it. The two-jobs sentence survives verbatim.
+- **Basis is not a vote.** A record's typed slot is a declaration about that sample (`asserted`); a
+  paper's sentence holding of one of six is our inference (`inferred`). So a paper saying "we
+  dissected neurons and body wall muscle" lands as an open Conflict beside the record's `Neurons`
+  instead of as a fact — which is the error class R5 **provably cannot** catch, since both quotes are
+  real and both entail. Two *equal* authorities disagreeing store nothing: a wrong value here is
+  permanent (`experiment` is inside `dataset_hash` and the manifest is never rewritten).
+- **No accession is the normal case, not the degraded one.** Most sequencing data never had one and
+  never will. No record → filenames group, samples carry no facts, exit 0. The refusal is narrower and
+  real: a record that *exists* and does not account for the files, because half-joining reads as whole.
+- **`condition` is gone.** It was ours; no archive defines it, and a field named "condition" accepts
+  anything you can call a condition — which is how the pilot's extraction filed routine worm husbandry
+  into it. The key space is NCBI's 960 harmonized BioSample names, shipped as diffable JSON with a
+  refresh verb. *Narrowing by the record's declared package looks right and is wrong*: the pilot
+  declares `Model.organism.animal.1.0` and carries `strain`, which NCBI lists under neither — it would
+  have dropped the one attribute separating WT from daf-2.
+
+**One judgement, one envelope.** `confidence: 0.750672` appeared on four fields of the pilot's manifest
+because it was one number about one decision wearing four hats. Four envelopes filled from one variable
+cannot disagree, so they were never four truths — R6 asks that a value not travel without its
+provenance, which one honest envelope does. `library` now holds exactly one `Evidenced` field
+(`chemistry`); the layout, the assay labels and the per-file roles follow from it. A fact transcribed
+out of a record carries `confidence: null`, which is the informative value: nothing was judged.
+
+**`assay` is a label per chemistry.** `assay: EFO:0009922` beside `chemistry: [v3, v3.1]` was two
+puzzles at once — and the second was a real bug: the assay field held one CURIE where the chemistry
+held two ids, so v3.1's own term (`EFO:0022980`) was silently dropped. They are one answer in two
+vocabularies, so they are now the same shape, with EFO's own name beside each. An assay that disagrees
+with its chemistry is now *inexpressible*. Names come from EBI's OLS4 via a generated file; the spec
+comments claiming them were never checked by anything.
+
+**Three KB claims that nothing executed.**
+
+- `decidable_by` was a hand-typed list on every spec, read by **nothing**, two of them carrying the
+  comment "CI-computed union over the divergent confusables". No CI computed it. Now derived — and the
+  derivation reproduces all five hand-typed values exactly, which is how you know it was only ever a
+  comment. Same shape as `RegistryEntry.fetchable` and `required_config` before it.
+- **SPLiT-seq does not work on real data.** Its spec names three barcode whitelists and says "Rung 3
+  decides it"; we ship three whitelists and all three are 10x's, so the three weight-3.0 onlist tests
+  ABSTAIN and the mechanism the spec calls decisive can never fire. The failure is *safe* — it
+  over-asks — which is exactly why it survived: nothing was red, and every test that seems to prove
+  otherwise builds a synthetic registry from the spec's own aliases. Now found by a derived check and
+  recorded as an exact-pinned debt. Deliberately **not** closed by guessing barcodes: a wrong whitelist
+  does not fail loudly, it emits a matrix that looks like a thin dataset.
+- `param_block_key` was `"solo" if module == "map/starsolo" else "bulk"` — the same silent
+  fall-through `read_layout_kind` was created to kill, one function later. Now read off what the module
+  source dereferences. The AST guard written for it immediately found a **third** instance in
+  `policy.py`, where any future module quietly got `quantMode=GeneCounts`.
+
+**`seqforge/`, not `.seqforge/`.** The dot said "plumbing, look away" about the directory holding the
+manifest and the Snakefile. One owner for the name (it was a literal in five modules). Names a human
+reads keep a stem and a 12-char hash: `pipeline/default-d94c737eb677/`, `documents/methods-3f8a1c2d9b04.txt`.
+A `.gitignore` entry must be **anchored** — unanchored, `seqforge/` matches `src/seqforge/`.
+
+**The 111 MB whitelist is built by a rule, used, and deleted.** `rule onlist` materializes it and
+`temp()` removes it. Compose used to write it into every run directory at compile time — one dataset
+compiled three ways cost a third of a gigabyte of identical bytes, for a file STAR opens once. `temp()`
+was meaningless before the rule existed: the whitelist was bound to `starsolo_count.input` with no
+producing rule, and snakemake cannot delete a file it did not make.
+
+**`manifest fill` writes one of `manifest.yaml`/`manifest.draft.yaml` and unlinks the other.** It never
+unlinked. A manifest that *stopped* validating left the stale clean one in place while reporting a
+draft — and every downstream verb reads `manifest.yaml` by name.
+
+**The pre-registration can be wrong now.** The harness graded a `ResolveResult`, which has no samples,
+so "3 WT (strain CQ757) + 3 daf-2 (CQ758); tissue=Neurons" lived in a `description:` string where
+nothing read it (PROJECT_BRIEF §14 named this gap and it stayed named as long as nothing produced
+samples to grade). The grading surface learned `experiment.samples.*.<attr>` and
+`experiment.samples.<accession>.<attr>` — you want both, because `*` alone passes on a shuffled join.
+The amendment moving the claims says plainly that the run had already happened, cites the line each was
+transcribed from, and shows the edit could only turn the case red. Tuning to the answer would have
+meant writing `tissue: null`.
+
 **Velocyto's cost on hg38 is measured, and the curve has a knee (2026-07-15).** `policy.py` has defaulted
 `soloFeatures` to all five since R15 landed, carrying a promise in its docstring — *"the cost is real
 and is being measured, not assumed"* — and a pre-registered kill rule (">2x wall-clock or over the

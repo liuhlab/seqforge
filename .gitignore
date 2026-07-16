@@ -10,7 +10,12 @@ __pycache__/
 .hypothesis/
 build/
 dist/
-# seqforge working state (resumable, content-addressed — never committed)
+# seqforge working state (resumable, content-addressed — never committed).
+#
+# ANCHORED, and it has to be. An unanchored `seqforge/` matches a directory of that name at ANY
+# depth, which in this repo is `src/seqforge/` — git would ignore our own source tree, silently.
+# The leading slash pins it to the repo root, which is where a `-C .` run puts it.
+/seqforge/
 .seqforge/
 # docs build
 site/

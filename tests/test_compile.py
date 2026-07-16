@@ -10,12 +10,13 @@ from __future__ import annotations
 import gzip
 import re
 from pathlib import Path
+from typing import get_args
 
 import pytest
 import yaml
 
 from seqforge import __version__, kb
-from seqforge.compose import ComposeError, compose, gates, params_gate, plan
+from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import (
@@ -32,12 +33,13 @@ from seqforge.manifest import (
     validate_processing,
 )
 from seqforge.models.dataset import DatasetManifest, SampleGroup
+from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.confuse import canonical_backend
-from seqforge.workflows import WORKFLOW_VERSION, get_module, list_modules
+from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
@@ -80,13 +82,113 @@ def _build(
         observations=obs,
         registry=reg,
         experiment=ExperimentInputs(
-            organism_taxid=559292,
+            organism=_taxid(559292),
             accessions=["PRJNA1027859"],
             samples=[SampleGroup(sample_id="s1", file_uris=[p.name for p in paths])],
         ),
         seqforge_version=__version__,
     )
     return manifest, reg
+
+
+def _taxid(value: int) -> EvidencedTaxid:
+    """An organism as the manifest holds it: a value that knows how we know it.
+
+    `ExperimentInputs` takes an `EvidencedTaxid` rather than a bare int because the manifest field is
+    evidenced and something has to supply the basis. It used to take the int and stamp
+    `basis="asserted"` on it unconditionally -- including for a taxid a human typed on the command
+    line, which is `user_confirmed` and not the same claim at all.
+    """
+    return EvidencedTaxid(value=value, basis="user_confirmed", rung=0)
+
+
+def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> DatasetManifest:
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    return fill_manifest(
+        result=out.result,
+        spec=kb.load_spec(tech),
+        observations=[probe_file(p) for p in paths],
+        registry=reg,
+        experiment=ExperimentInputs(organism=_taxid(6239), accessions=["PRJNA1027859"]),
+        seqforge_version=__version__,
+    )
+
+
+def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Path) -> None:
+    """A URI is RELATIVE, not FLAT — R9 forbids an absolute path, not structure.
+
+    Found by running the pilot dataset, which `fasterq-dump` had written one directory per accession
+    (`SRX24283130/SRR28716558_1.fastq.gz`). Bare basenames made `compose --fastq-dir <root>` resolve
+    to `<root>/SRR28716558_1.fastq.gz` — a path that does not exist, inside a units.tsv that looks
+    entirely reasonable. No test saw it because every fixture until now put its FASTQs in one flat
+    directory.
+
+    Two runs in sibling directories, which is the shape that has structure to lose. A dataset whose
+    files all sit in ONE directory has that directory as its root, so its URIs are basenames and
+    always were — that is the same rule, not an exception to it, and it is why every existing fixture
+    stayed green.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    paths = []
+    for run, seed in (("SRX999", 0), ("SRX998", 1)):
+        reads = kb.generate_reads(spec, n=600, seed=seed)
+        for k in ("R1", "R2"):
+            p = tmp_path / run / f"{run}_{k}.fastq.gz"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    uris = sorted(f.uri for f in manifest.library.files)
+    assert uris == [
+        "SRX998/SRX998_R1.fastq.gz",
+        "SRX998/SRX998_R2.fastq.gz",
+        "SRX999/SRX999_R1.fastq.gz",
+        "SRX999/SRX999_R2.fastq.gz",
+    ], f"the subdirectory was dropped: {uris}"
+    # ...and the whole point: joined to the root, each URI is the file that was actually probed.
+    for f in manifest.library.files:
+        assert (tmp_path / f.uri).is_file()
+
+
+def test_a_flat_dataset_still_gets_bare_basenames(tmp_path: Path) -> None:
+    """One directory IS the root, so its URIs are basenames -- the same rule, not an exception."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    paths = []
+    for k in ("R1", "R2"):
+        p = tmp_path / f"s_{k}.fastq.gz"
+        _write_fastq_gz(p, reads[k])
+        paths.append(p)
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    assert sorted(f.uri for f in manifest.library.files) == ["s_R1.fastq.gz", "s_R2.fastq.gz"]
+
+
+def test_two_runs_with_the_same_basename_do_not_collapse_to_one_uri(tmp_path: Path) -> None:
+    """The silent half of the same bug, and the reason this is a correctness fix and not ergonomics.
+
+    A basename is not unique across a dataset. Two runs each carrying `reads_1.fastq.gz` in their own
+    directory produce the same URI — and `compose._units` looks files up BY URI, so one run's reads
+    quietly become the other's. The matrices come out plausible and wrong, which is the failure class
+    this project exists to prevent. Nothing anywhere would have said so.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    paths = []
+    for run, seed in (("runA", 0), ("runB", 1)):
+        reads = kb.generate_reads(spec, n=600, seed=seed)
+        for k in ("R1", "R2"):
+            p = tmp_path / run / f"reads_{k}.fastq.gz"  # IDENTICAL basenames across the two runs
+            p.parent.mkdir(parents=True, exist_ok=True)
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    uris = [f.uri for f in manifest.library.files]
+    assert len(set(uris)) == len(paths) == 4, f"URIs collided across runs: {uris}"
+    assert len({f.sha256 for f in manifest.library.files}) == 4
 
 
 def _processing(
@@ -121,8 +223,14 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(tmp_path: Pat
     # §12 benign twins recorded together, basis observed
     assert manifest.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
     assert manifest.library.chemistry.basis == "observed"
-    assert manifest.library.assay.value == "EFO:0009922"
-    roles = {f.basename: (f.read_id.value if f.read_id else None) for f in manifest.library.files}
+    # One label per member of the class, and the twin keeps its OWN curie. `assay` used to be a
+    # single EvidencedAssay, so v3.1's EFO:0022980 was silently dropped and the manifest read as if
+    # `assay` and `chemistry` disagreed.
+    assert [a.chemistry for a in manifest.library.assay] == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
+    assert [a.curie for a in manifest.library.assay] == ["EFO:0009922", "EFO:0022980"]
+    # ...and the name is a human's answer to "what IS EFO:0009922", straight from EFO.
+    assert [a.name for a in manifest.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
+    roles = {f.basename: (f.read_id if f.read_id else None) for f in manifest.library.files}
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
     # R9: the manifest carries a relative uri, never the probe's absolute local path
     assert all(not f.uri.startswith("/") for f in manifest.library.files)
@@ -153,7 +261,7 @@ def test_processing_carries_the_derived_intent(tmp_path: Path) -> None:
 
 def test_fill_uses_observed_geometry_not_just_declared(tmp_path: Path) -> None:
     manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
-    reads = {r.read_id: r for r in manifest.library.read_layout.value.reads}
+    reads = {r.read_id: r for r in manifest.library.read_layout.reads}
     assert (reads["R1"].min_len, reads["R1"].max_len) == (28, 28)  # fixed barcode read
     assert reads["R2"].min_len < reads["R2"].max_len  # open-ended cDNA is variable
     cb = next(e for e in reads["R1"].elements if e.role == "CB")
@@ -312,7 +420,7 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
             spec=spec,
             observations=[],
             registry=OnlistRegistry(offline=True),
-            experiment=ExperimentInputs(organism_taxid=559292),
+            experiment=ExperimentInputs(organism=_taxid(559292)),
             seqforge_version=__version__,
         )
 
@@ -333,8 +441,15 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"
-    # the infra-dependent gates must report skip, never a silent pass
-    assert result.gate["wiring"] in {"pass", "skip"}
+    # The wiring gate must PASS, not skip. This assertion used to read `in {"pass", "skip"}` and so
+    # forbade only "fail" -- the one value that could not occur, because `snakemake` was in no
+    # dependency table, `have("snakemake")` was False, and the gate returned "skip" every time. A
+    # skip is green, so the gate was decorative for the life of the repo. `snakemake-minimal` is now
+    # declared in every environment that runs this suite; if it ever goes missing, that is a broken
+    # environment and this test says so instead of quietly covering nothing.
+    assert result.gate["wiring"] == "pass"
+    # e2e stays skip: it is the real count-matrix run and belongs to `seqforge kb e2e`, never to
+    # compose. Its toolchain (STAR, liulab-genome, a cluster) is genuinely absent here.
     assert result.gate["e2e"] == "skip"
 
     # read the path compose REPORTS, not one reconstructed here: the layout is keyed by run_id and a
@@ -346,13 +461,270 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert config["solo"]["soloStrand"] == "Forward"
     # --readFilesIn order: the cDNA read precedes the barcode read
     assert config["read_files_in"] == {"cdna": "R2", "barcode": "R1"}
-    # the whitelist token resolved to a materialized file
-    wl = pipeline_dir / config["solo"]["soloCBwhitelist"]
-    assert wl.is_file() and len(wl.read_text().split()) == 64
+    # The whitelist token resolved to a PATH, and compose did not write the file. `rule onlist`
+    # builds it and `temp()` deletes it: 10x's real v3 list is 111 MB of text, and writing it into
+    # every run directory at compile time cost a third of a gigabyte for one dataset compiled three
+    # ways -- for a file STAR opens once. Compose still VERIFIES the registry can produce it, which
+    # is the compile-time refusal that matters.
+    assert config["solo"]["soloCBwhitelist"] == "onlists/3M-february-2018.txt"
+    assert not (pipeline_dir / config["solo"]["soloCBwhitelist"]).exists()
 
     units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "read_id", "path"]
     assert len(units) == 3  # header + 2 reads
+
+
+def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> None:
+    """The Snakefile is the DELIVERABLE, so nothing optional may be its reason for existing.
+
+    It used to be written inside `wiring_gate`, after an early `return "skip"` when `snakemake` was
+    absent from PATH — and `snakemake` was in no dependency table, so that branch always taken. The
+    product of the compiler was a side effect of a validation step that could not fire, and `compose`
+    exited 0 having emitted nothing runnable.
+
+    `run_wiring_gate=False` is the sharpest way to state the invariant: no gate ran, and the
+    deliverable is still on disk and still complete.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(
+        manifest, _processing(manifest), registry=reg, workspace=tmp_path, run_wiring_gate=False
+    )
+    assert result.gate["wiring"] == "skip"
+    snakefile = tmp_path / result.snakefile_path
+    assert snakefile.is_file(), "compose ran a gate-free path and emitted no Snakefile"
+    assert get_module("map/starsolo").snakefile.name in snakefile.read_text()
+
+
+def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(tmp_path: Path) -> None:
+    """The gate stands in zero-byte FASTQs; they must never land where the pipeline will read them.
+
+    They were touched straight into the run directory (`pipeline_dir / row["path"]`) and never
+    removed. Invisible only because the gate never ran: `snakemake` was undeclared. The moment it
+    ran, the run directory would hold zero-byte files named exactly like the FASTQs, STAR would read
+    them, and the pipeline would emit an empty matrix and **exit 0**.
+
+    That is the failure this whole project exists to prevent — silent, plausible, wrong — and it
+    would have been introduced by the very commit that made the gate work.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.gate["wiring"] == "pass", (
+        "the gate must have actually run for this to mean anything"
+    )
+    run_dir = (tmp_path / result.snakefile_path).parent
+    strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
+    assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
+
+
+def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(tmp_path: Path) -> None:
+    """A dry run that plans zero jobs exits 0. The gate must not read that as success.
+
+    This is what the wrapper did for the life of the repo: `configfile:` + `include:` parses clean,
+    lists every rule, and plans **nothing**, because an `include:`d rule is not a default target.
+    Exit code 0. A gate that only checks the return code cannot tell "correct" from "did nothing",
+    so it has to look at the output.
+
+    Rather than trust that argument, this builds the broken wrapper on purpose and asserts the gate
+    catches it.
+    """
+    from seqforge.compose.gates import wiring_gate
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    p = plan(manifest, _processing(manifest), registry=reg)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "config.yaml").write_text(yaml.safe_dump(p.config, sort_keys=True))
+    (run_dir / "units.tsv").write_text(core._units_tsv(p.units))
+    for rel, lines in p.onlist_files.items():
+        t = run_dir / rel
+        t.parent.mkdir(parents=True, exist_ok=True)
+        t.write_text("\n".join(lines) + "\n")
+    module = get_module(p.module.name)
+    # the OLD wrapper, verbatim in shape: include: instead of module/use rule
+    (run_dir / "Snakefile").write_text(
+        f'configfile: "config.yaml"\ninclude: "{module.snakefile.resolve()}"\n'
+    )
+    assert wiring_gate(run_dir, p) == "fail", (
+        "an include:-only wrapper plans zero jobs and exits 0; the gate must not call that a pass"
+    )
+
+
+def _dry_run(pipeline_dir: Path, p: core.ComposePlan) -> str:
+    """The wiring gate's dry run, but returning the PLAN instead of a verdict."""
+    import shutil
+    import subprocess
+
+    from seqforge.compose.gates import _replica
+
+    scratch = _replica(pipeline_dir, p)
+    try:
+        proc = subprocess.run(
+            ["snakemake", "-d", str(scratch), "-s", str(scratch / "Snakefile"), "-n", "-p"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout + proc.stderr
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def test_the_composed_pipeline_plans_the_h5ad_as_its_deliverable(tmp_path: Path) -> None:
+    """The pilot's product is a matrix a human can open, so the default target must BE that file.
+
+    `rule all` used to demand `directory(Solo.out)`, which meant a green pipeline ended in a folder
+    of Matrix Market files — and, worse, that STAR writing three of five features and exiting 0 was
+    indistinguishable from success, since the directory existed either way.
+
+    This reads the actual plan rather than the exit code, for the reason the gate does: a dry run
+    that plans NOTHING also exits 0.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+    p = plan(manifest, _processing(manifest), registry=reg)
+
+    planned = _dry_run(pipeline_dir, p)
+    assert "solo_to_h5ad" in planned, "the packaging step is not reachable from the default target"
+    # `-p` renders every shell block while planning, which is the only reason this is visible at all
+    # (a `run:` block would be opaque here) — and it is why the packaging step is a `shell:`.
+    assert "seqforge io h5ad" in planned
+    sample = manifest.experiment.samples[0].sample_id
+    assert f"rule all:\n    input: results/{sample}/{sample}.h5ad" in planned, (
+        f"the default target is not the deliverable. Planned:\n{planned}"
+    )
+    assert f"{sample}.velocyto.h5ad" in planned
+
+
+def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
+    """A module's `shell:` naming a verb we renamed fails hours into a run, on a compute node.
+
+    Derived from the live Typer app on one side and the module source on the other, so neither can be
+    kept true by hand. This is `test_skill_documents_only_real_cli_verbs` pointed at the other place
+    that hardcodes our own CLI — and the shipped modules are the more expensive place to be wrong.
+    """
+    import typer
+
+    from seqforge.cli import app
+
+    def paths(a: typer.Typer, prefix: tuple[str, ...] = ()) -> set[str]:
+        out = {
+            " ".join((*prefix, c.name or (c.callback.__name__ if c.callback else "")))
+            for c in a.registered_commands
+        }
+        for g in a.registered_groups:
+            assert g.typer_instance is not None and g.name is not None
+            out |= paths(g.typer_instance, (*prefix, g.name))
+        return out
+
+    known = paths(app)
+    for name in list_modules():
+        # `shell:` blocks only. Scanning the whole file reads the rule's own docstring — which says
+        # "a `shell:` calling a seqforge verb" — and reports `seqforge verb` as missing. Same lesson
+        # `keys_read_by` learned: a scanner pointed at prose cries wolf, and then gets deleted.
+        for block in re.findall(
+            r"shell:\s*\n\s*r?\"\"\"(.*?)\"\"\"", get_module(name).snakefile.read_text(), re.DOTALL
+        ):
+            # `[a-z0-9-]`, not `[a-z-]`: the first verb this test ever met was `h5ad`, and a
+            # name-shaped regex that stops at a digit matches `io h` and reports *that* as missing.
+            for verb in re.findall(r"\bseqforge ((?:[a-z][a-z0-9-]* ){0,2}[a-z][a-z0-9-]*)", block):
+                # longest match first: `io h5ad` is a command; `io` alone is only its group
+                words = verb.split()
+                assert any(" ".join(words[:n]) in known for n in range(len(words), 0, -1)), (
+                    f"{name} shells out to `seqforge {verb}`, which is not a registered verb"
+                )
+
+
+def _rule_blocks(snakefile: Path) -> dict[str, str]:
+    """`rule <name>:` -> its body text. Snakemake rules are top-level and flat, so a split suffices."""
+    text = snakefile.read_text()
+    parts = re.split(r"^rule (\w+):$", text, flags=re.M)[1:]
+    return dict(zip(parts[0::2], parts[1::2], strict=True))
+
+
+def test_no_run_directive_rule_declares_a_container() -> None:
+    """A `container:` on a `run:` rule is ACCEPTED AND SILENTLY IGNORED — so declaring one is a lie.
+
+    Measured against snakemake's own source on 2026-07-15, not recalled from the docs: the container
+    wrap lives in `snakemake/shell.py` and therefore only ever wraps a `shell:` command. A `run:`
+    block executes Python in the snakemake process and never passes through it. Snakemake's own
+    linter agrees — it excludes `is_run` rules from its "missing software definition" check.
+
+    That makes this exactly the failure class this repo is built against: the directive parses, the
+    dry run is clean, the pipeline exits 0, and the software was never pinned. Nothing else in the
+    stack would say so, so this test does. `genome_index` is the rule that would tempt someone.
+    """
+    for name in list_modules():
+        for rule, body in _rule_blocks(get_module(name).snakefile).items():
+            if re.search(r"^\s{4}run:$", body, re.M):
+                assert not re.search(r"^\s{4}container:", body, re.M), (
+                    f"{name}:{rule} declares a container on a `run:` rule, where snakemake ignores "
+                    f"it. Make it a `shell:` (see `solo_to_h5ad`) or drop the directive."
+                )
+
+
+def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
+    """The env name was recorded and read by nothing, so every run used whatever STAR was on PATH."""
+    for name in list_modules():
+        blocks = _rule_blocks(get_module(name).snakefile)
+        aligner = [r for r, b in blocks.items() if "STAR --runMode alignReads" in b]
+        assert aligner, (
+            f"{name} has no rule that invokes STAR; this test is looking at the wrong one"
+        )
+        for rule in aligner:
+            assert 'container: config["container"]' in blocks[rule], (
+                f"{name}:{rule} invokes STAR with no container, so the aligner is whatever the "
+                f"submitting shell happened to have"
+            )
+    # ...and the composer must actually emit the key those rules read.
+    assert "container" in get_module("map/starsolo").required_config
+
+
+def test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here() -> None:
+    """R12: we NAME liulab-runtime's artifact. Naming is the opposite of defining."""
+    from seqforge.models.processing import RuntimeEnv
+    from seqforge.workflows import RUNTIME_IMAGE, container_uri
+
+    for env in get_args(RuntimeEnv):
+        assert container_uri(env) == f"docker://{RUNTIME_IMAGE}:{env}"
+
+
+def test_a_prebuilt_sif_beats_the_ghcr_tag_but_only_if_it_is_really_there(tmp_path: Path) -> None:
+    """A compute node that cannot reach ghcr.io cannot pull; the lab prebuilds these images.
+
+    The naming (`liulab-runtime_<env>.sif`) is read off liulab-runtime's own `build-sifs.sh`, whose
+    header says apptainer is not even installed on the arc login node. A *missing* file falls back to
+    the tag rather than emitting a path to nothing: a config naming an absent SIF fails on a node.
+    """
+    from seqforge.workflows import container_uri
+
+    assert container_uri("align-rna", tmp_path).startswith("docker://")  # empty dir -> tag
+    sif = tmp_path / "liulab-runtime_align-rna.sif"
+    sif.touch()
+    assert container_uri("align-rna", tmp_path) == str(sif.resolve())
+
+
+def test_compose_refuses_a_recipe_whose_env_cannot_supply_the_aligner(tmp_path: Path) -> None:
+    """`map/starsolo` in the `ml` env is a container with no STAR in it — refuse, never correct."""
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    processing = _processing(manifest)
+    section = processing.processing.model_copy(
+        update={"environment": processing.processing.environment.model_copy(update={"value": "ml"})}
+    )
+    broken = processing.model_copy(update={"processing": section})
+
+    with pytest.raises(ComposeError, match="align-rna"):
+        compose(manifest, broken, registry=reg, workspace=tmp_path)
+
+
+def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
+    """One owner. It was hardcoded `"align-rna"` beside a module that also declared `align-rna`."""
+    for tech in kb.list_spec_ids():
+        spec = kb.load_spec(tech)
+        from seqforge.manifest.policy import processing_defaults
+
+        assert processing_defaults(spec).environment == get_module(spec.backend.module).env
 
 
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
@@ -599,6 +971,60 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
     )
 
 
+#: Every liulab-genome attribute seqforge calls. R12 says we are a consumer, and a consumer has an
+#: import surface — this is it.
+#:
+#: **This is a hand-written list, and that is fine here, because it is checked against the REAL
+#: package rather than against itself.** That distinction is the whole lesson of this repo: a list
+#: mirroring code and validated by a test that reads the same list proves nothing (`required_config`);
+#: a list asserted against the actual object is a contract test, and it goes red the moment upstream
+#: moves. Nothing here can drift silently.
+_GENOME_API = {
+    "build_star_index",  # starsolo.smk / star.smk rule genome_index; e2e discover_assets
+    "register_gtf",  # staging an annotation (see the R12 note in CLAUDE.md)
+    "fasta_path",  # e2e: simulate reads from real sequence
+    "default_gtf_path",  # e2e: build gene models
+    "annotations",  # e2e/docs: which GTF names are registered
+}
+
+
+def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
+    """The consumer surface is real, checked at test time, in every environment.
+
+    `discover_assets` called `Genome.get_star_index(...)` — a method liulab-genome **has never had**.
+    It was a lazy import, inside an arm that only runs on a cluster, against a dependency that was not
+    declared, so nothing could have noticed: the `AttributeError` simply waited for whoever ran it. It
+    waited until 2026-07-15.
+
+    Same shape as the STAR-argv bug one commit earlier: two renderings of "how do I get an index",
+    by hand, in two places that could not see each other — `starsolo.smk` said `build_star_index` and
+    was right, `e2e.py` said `get_star_index` and was wrong, and the one nobody executed was the
+    broken one.
+
+    liulab-genome is a declared dependency now, so this check runs everywhere rather than on a cluster
+    nobody visits. That is the fix; renaming the method was just the symptom.
+    """
+    from genome import Genome
+
+    missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
+    assert not missing, (
+        f"seqforge calls liulab-genome attributes that do not exist: {missing}. "
+        f"Either upstream moved and our calls need updating, or this list has grown a name nobody "
+        f"calls. Both are real; neither is silent any more."
+    )
+
+
+def test_the_genome_api_check_would_catch_the_method_that_did_not_exist() -> None:
+    """Prove the guard fires — on the exact name that broke, not a hypothetical one."""
+    from genome import Genome
+
+    assert not hasattr(Genome, "get_star_index"), (
+        "if liulab-genome ever grows `get_star_index`, this test is stale -- but the bug it records "
+        "was real: e2e.py called it for the life of the repo and it never existed"
+    )
+    assert hasattr(Genome, "build_star_index"), "the name the module used, and the correct one"
+
+
 def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_path: Path) -> None:
     """Prove the guard fires — and that it tolerates the consumer call it must allow."""
     import ast
@@ -643,18 +1069,40 @@ _RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
 def test_the_generated_wrapper_contains_no_rule_source() -> None:
     """R1, at the ONE place seqforge writes Snakemake syntax at all.
 
-    `gates.py` generates a Snakefile so the dry run has an entry point, and its own first line says
-    "rule source is never generated" — a claim defended by a comment. Everything the pipeline
-    actually executes must come from the hand-written `.smk` modules via `include:`; the moment the
-    composer emits a `rule`, R1 is gone and nobody finds out from a comment.
+    `compose` generates a Snakefile — the deliverable — and its own header says "rule source is never
+    generated". Everything the pipeline actually executes must come from the hand-written `.smk`
+    modules; the moment the composer emits a `rule`, R1 is gone and nobody finds out from a comment.
 
     Asserted against the template rather than a rendered instance because the template is the thing
     a future edit would change.
     """
-    wrapper = gates._WRAPPER
+    wrapper = core._WRAPPER
     assert not _RULE_DEF.search(wrapper), f"the composer emits rule source (R1):\n{wrapper}"
-    assert "include:" in wrapper  # it composes by inclusion...
-    assert "configfile:" in wrapper  # ...and parameterises by data
+    assert "configfile:" in wrapper  # it parameterises by data...
+    assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
+
+
+def test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets() -> None:
+    """The deliverable must DO something when a user runs bare `snakemake`. It did not.
+
+    Snakemake's default target is the first rule defined in the *main* Snakefile, and an `include:`d
+    rule is not one. The wrapper was `configfile:` + `include:`, which parses clean, lists all three
+    rules, and then plans **zero jobs**: "Nothing to be done", exit 0. Measured 2026-07-15 — the same
+    module content inlined builds 3 jobs, via `include:` builds 0.
+
+    Nothing caught it because the only thing that would run the wrapper was a gate that could not run
+    (`snakemake` was in no dependency table), and the gate would not have caught it either: it
+    checked the exit code, and planning nothing exits 0.
+
+    `use rule * from m as *` re-declares the rules in this workflow, so `all` becomes a real default
+    target. This test pins the property, not the spelling: a future wrapper may compose however it
+    likes as long as bare `snakemake` still reaches the rules.
+    """
+    wrapper = core._WRAPPER
+    assert "include:" not in wrapper, (
+        "an `include:`d rule is not a default target -- the wrapper would plan zero jobs and exit 0"
+    )
+    assert "use rule * from" in wrapper
 
 
 def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
@@ -683,81 +1131,34 @@ def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> Non
     assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
 
 
-#: ``units_tsv`` is injected by the generated run wrapper (``compose/gates.py``), never by the
-#: composer's config. Named here so that a module reading some *other* undeclared key stays a
-#: failure rather than being waved through by a broad exception.
-_WRAPPER_SUPPLIED_KEYS = frozenset({"units_tsv"})
-
-
-def _keys_read_by(snakefile: Path) -> set[str]:
-    """Derive the dotted config keys a module actually reads, from its source.
-
-    Two forms, because the module uses both: `config["a"]["b"]` directly, and the indirection
-    `params: solo=config["solo"]` followed by `{params.solo[soloCBlen]}` in the shell block.
-
-    Comments are stripped first, and that is not fussiness — starsolo.smk's own header prose says
-    "every chemistry-defining knob arrives via `config["solo"]`", which a naive scan reads as a bare
-    read of the whole block and reports as undeclared. Same lesson as `test_skills.py`'s
-    `_code_spans`: narrow the haystack, because a check that cries wolf gets deleted.
-    """
-    code = "\n".join(line.split("#")[0] for line in snakefile.read_text().splitlines())
-    keys: set[str] = set()
-
-    # A bare `<name> = config["<section>"]` binds the whole block to a name. Track those, including
-    # one rebinding hop (`SOLO = config["solo"]` at module level, then `solo=SOLO` in a params
-    # block), because that chain is exactly how the shell reaches `{params.solo[soloType]}`.
-    # The lookahead matters: `ASSEMBLY = config["genome"]["assembly"]` is a nested read, not a
-    # binding, and must fall through to the direct scan below.
-    bound = dict(re.findall(r'(\w+)\s*=\s*config\["(\w+)"\](?!\[)', code))
-    for name, src in re.findall(r"^\s*(\w+)\s*=\s*(\w+)\s*,?\s*$", code, re.M):
-        if src in bound:
-            bound.setdefault(name, bound[src])
-
-    for name, section in bound.items():
-        # `{params.<name>[<key>]}` in a shell block, or `<NAME>["<key>"]` in Python.
-        subscripts = set(re.findall(rf"\{{params\.{name}\[(\w+)\]\}}", code)) | set(
-            re.findall(rf"""\b{name}\[["'](\w+)["']\]""", code)
-        )
-        # Subscripted -> it is a block alias and each subscript is the real read. Never subscripted
-        # -> it was a scalar read all along (`OUTDIR = config["outdir"]`), so the section IS the key.
-        keys |= {f"{section}.{k}" for k in subscripts} or {section}
-
-    # Direct reads: config["a"]["b"] -> a.b | config["a"] -> a. Binding sites are already accounted
-    # for above, so drop them here rather than double-count the block as a bare key.
-    direct = re.sub(r'\w+\s*=\s*config\["\w+"\](?!\[)', "", code)
-    for section, sub in re.findall(r'config\["(\w+)"\](?:\["(\w+)"\])?', direct):
-        keys.add(f"{section}.{sub}" if sub else section)
-
-    return keys - _WRAPPER_SUPPLIED_KEYS
-
-
 @pytest.mark.parametrize("module_name", list_modules())
-def test_required_config_covers_every_key_the_module_reads(module_name: str) -> None:
-    """The contract is DERIVED from the module source, not hand-maintained beside it.
+def test_required_config_is_exactly_what_the_module_reads(module_name: str) -> None:
+    """The contract is COMPUTED from the module source, so neither direction can drift.
 
-    `starsolo.smk` has always dereferenced `{params.solo[soloCBstart]}`, `[soloCBlen]`,
-    `[soloUMIstart]` and `[soloUMIlen]`; `required_config` declared none of the four. Nothing
-    noticed, because the only thing checking the contract compared the config against that same
-    wrong list. A hand-maintained list of what the code does is a comment with a tuple's syntax.
+    It used to be a hand-written tuple checked one way against a scanner that lived here in the test
+    file. Both halves were wrong at once: it *under*-declared the four soloCB/UMI keys `starsolo.smk`
+    has always dereferenced (a `KeyError` on a compute node, long after compose exited 0), and it
+    *over*-declared `primary_feature` and `env`, which no rule reads and nothing checked.
 
-    Under-declaration is the dangerous direction and the only one asserted here: the module reads a
-    key the composer was never told to emit. Over-declaration (a key declared but unread) is merely
-    untidy — compose emits it and nothing breaks.
+    There is now one list and the module source is it, so this test asserts an identity rather than
+    an inclusion. That reads as tautological and is not: it pins that `required_config` never goes
+    back to being typed by hand, and `test_the_required_config_scanner_can_catch_an_undeclared_key`
+    is what proves the derivation itself is not vacuous.
     """
     module = get_module(module_name)
-    undeclared = _keys_read_by(module.snakefile) - set(module.required_config)
-    assert not undeclared, (
-        f"{module_name}: reads {sorted(undeclared)} but does not declare them in required_config. "
-        f"Nothing will emit them, and STAR dies at rule-expansion time on a compute node."
-    )
+    assert set(module.required_config) == set(keys_read_by(module.snakefile))
+    assert module.required_config == tuple(sorted(module.required_config))
 
 
-def test_the_required_config_scanner_can_actually_catch_an_undeclared_key(tmp_path: Path) -> None:
+def test_the_required_config_scanner_can_catch_an_undeclared_key(tmp_path: Path) -> None:
     """Prove the scanner fires — a derived check that has never failed proves nothing.
 
-    Both forms must be caught: the direct `config[...]` read and the `params` alias indirection
-    that hid the real bug for as long as it existed. And prose in a comment must NOT be caught —
-    the first draft of this scanner reported starsolo's own header as two undeclared keys.
+    This is the load-bearing test of the pair: `required_config` is now *defined* as this scanner's
+    output, so if the scanner silently missed a key, the identity test above would still pass while
+    the composer dropped it. Both forms must be caught: the direct `config[...]` read and the
+    `params` alias indirection that hid the real bug for as long as it existed. And prose in a
+    comment must NOT be caught — the first draft of this scanner reported starsolo's own header as
+    two undeclared keys.
     """
     smk = tmp_path / "fake.smk"
     smk.write_text(
@@ -769,12 +1170,12 @@ def test_the_required_config_scanner_can_actually_catch_an_undeclared_key(tmp_pa
         '    params:\n        solo=config["solo"],\n'
         '    shell:\n        r"STAR --soloCBlen {params.solo[soloCBlen]} --x {params.solo[oops]}"\n'
     )
-    found = _keys_read_by(smk)
+    found = keys_read_by(smk)
     assert "solo.soloCBlen" in found  # the alias indirection resolves
     assert "solo.oops" in found  # ... and an undeclared one is visible
     assert "outdir" in found  # the direct form resolves
     assert "genome.assembly" in found  # ... including the nested form
-    assert "units_tsv" not in found  # the wrapper supplies it; not the composer's job
+    assert "units_tsv" in found  # the COMPOSER emits it now; no wrapper injects it
     assert "solo" not in found  # the alias BINDING is not a read of the whole block
     assert "read_files_in" not in found  # and neither is a mention in a comment
 
@@ -1077,3 +1478,145 @@ def test_an_instruction_from_a_reference_doc_never_becomes_an_instruction() -> N
     assert instructions_from_assertions([a], instruction_docs=frozenset()) == ([], [])
     ins, _ = instructions_from_assertions([a], instruction_docs=frozenset({"e" * 64}))
     assert [i.field for i in ins] == ["processing.quantification"]
+
+
+def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(tmp_path: Path) -> None:
+    """A file with no role is a file the pipeline drops in silence. That must be a Blocker.
+
+    This is the check whose absence let a 6-run dataset validate clean while 5/6 of it evaporated:
+    `resolve` did ONE global assignment across all 12 files, ten came back with `read_id=None`,
+    `compose._units` skipped them without a word, and the manifest was content-addressed and blessed.
+    Exit 0, wrong answer, no symptom.
+
+    The inverse check ("is every declared role filled?") existed the whole time and passed, because it
+    only ever needed ONE file per role. Both directions are needed; only one was there.
+    """
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    assert validate_manifest(manifest).ok, "the fixture must start clean or this proves nothing"
+
+    files = list(manifest.library.files)
+    files.append(
+        files[0].model_copy(
+            update={
+                "read_id": None,
+                "basename": "orphan.fastq.gz",
+                "uri": "orphan.fastq.gz",
+                "sha256": "f" * 64,
+            }
+        )
+    )
+    orphaned = manifest.model_copy(
+        update={"library": manifest.library.model_copy(update={"files": files})}
+    )
+    report = validate_manifest(orphaned)
+    assert not report.ok
+    blocker = next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
+    assert "orphan.fastq.gz" in blocker.message
+    assert blocker.remedy, "a Blocker with no way forward is a wall (R4)"
+    assert exit_code_for_report(report) == 3
+
+
+# ---------- the whitelist is built by a rule, used, and deleted (point 9) ----------
+
+
+def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(tmp_path: Path) -> None:
+    """111 MB of barcodes is a build artifact, and compose used to write it into every run dir.
+
+    10x's v3 whitelist is 6 794 880 barcodes. It ships packed (522 kB of deltas) and expands to
+    111 MB of text that STAR opens exactly once. Compose wrote that expansion into the run directory
+    at compile time, permanently, per recipe -- so one dataset compiled three ways cost a third of a
+    gigabyte of identical bytes nothing ever cleaned up.
+
+    `temp()` was also meaningless before this rule existed: the whitelist was bound to
+    `starsolo_count.input` with no producing rule, and snakemake cannot delete a file it did not make.
+    """
+    manifest, processing, reg = _pair(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.config_path).parent
+    assert not (pipeline_dir / "onlists").exists(), "compose wrote the whitelist"
+
+    module = (_src_root() / "workflows" / "map" / "starsolo.smk").read_text()
+    assert 'temp("onlists/{name}.txt")' in module
+    assert "seqforge io onlist write" in module
+
+
+def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(tmp_path: Path) -> None:
+    """The gate that catches the mistake this change nearly made.
+
+    A rule declared above `rule all` becomes the workflow's default target, and a default target with
+    a wildcard is a hard snakemake error -- which is exactly what happened on the first attempt here.
+    A dry run is the only thing that knows.
+    """
+    import shutil as _shutil
+
+    if not _shutil.which("snakemake"):
+        pytest.skip("snakemake not installed")
+    manifest, processing, reg = _pair(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.gate["wiring"] == "pass"
+    p = core.plan(manifest, processing, registry=reg)
+    plan_text = _dry_run((tmp_path / result.config_path).parent, p)
+    assert "rule onlist" in plan_text, "the whitelist has no producing job in the plan"
+    assert "3M-february-2018" in plan_text
+
+
+def test_the_config_block_is_read_off_the_module_not_matched_on_its_name() -> None:
+    """The last `== "map/starsolo"` in the tree, and the last silent "everything else is bulk".
+
+    `param_block_key` was `"solo" if spec.backend.module == "map/starsolo" else "bulk"`, which is the
+    same bug `read_layout_kind` was created to kill one function earlier: a third module gets its
+    params written into a `bulk:` block it never reads, and the params gate agrees with the composer
+    because the gate calls this same function. Two things wrong identically look, from inside a test,
+    exactly like two things right.
+
+    Now it is read off what the module source actually dereferences.
+    """
+    import ast
+
+    from seqforge.workflows import MODULES, list_modules
+
+    assert MODULES["map/starsolo"].param_block == "solo"
+    assert MODULES["map/star"].param_block == "bulk"
+
+    # A COMPARISON against a module name, not a mention of one: the docstrings deliberately keep the
+    # old line so the bug it names stays findable. Grepping the text would forbid the record of the
+    # fix along with the fix, which is how a guard teaches people to delete their own history.
+    names = set(list_modules())
+    offenders: list[str] = []
+    for py in sorted(_src_root().rglob("*.py")):
+        for node in ast.walk(ast.parse(py.read_text())):
+            if isinstance(node, ast.Compare) and any(
+                isinstance(c, ast.Constant) and c.value in names for c in node.comparators
+            ):
+                offenders.append(f"{py.relative_to(_src_root())}:{node.lineno}")
+    assert not offenders, (
+        "a workflow module is being dispatched on by NAME. Every module that is not the one named "
+        "silently takes the other branch, and nothing goes red — that is how `_read_files_in` "
+        "emitted mate1/mate2 for a barcoded chemistry. Declare the fact on the module:\n"
+        + "\n".join(offenders)
+    )
+
+
+def test_a_module_whose_config_contract_is_unreadable_refuses() -> None:
+    """Guessing which block a module reads is how the wrong params reach an aligner."""
+    from seqforge.workflows import WorkflowModule
+
+    ghost = WorkflowModule(
+        name="map/ghost",
+        version="0.0.0",
+        env="align-rna",
+        snakefile=tmp_snakefile(),
+        read_layout_kind="paired",
+    )
+    with pytest.raises(ValueError, match="exactly one of solo/bulk"):
+        _ = ghost.param_block
+
+
+def tmp_snakefile() -> Path:
+    """A module that reads neither aligner-param block. Written to a real path: `required_config`
+    scans the source, which is the whole point of it being derived."""
+    import tempfile
+
+    p = Path(tempfile.mkdtemp()) / "ghost.smk"
+    p.write_text('rule x:\n    output: "y"\n    shell: "echo {config[outdir]}"\n')
+    return p

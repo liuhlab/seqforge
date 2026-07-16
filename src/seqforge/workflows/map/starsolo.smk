@@ -11,6 +11,13 @@
 
 import csv
 
+# seqforge's own helpers, imported rather than restated. `h5ad_suffixes` decides both what the
+# packaging rule DECLARES below and what `seqforge io h5ad` WRITES, so the two cannot drift; a rule
+# that declared its outputs separately from the code producing them would be two sources of truth for
+# one fact, which is the bug this repo keeps finding. The import is the same assumption
+# `rule genome_index` already makes of `genome`: the env running snakemake is the env that has them.
+from seqforge.workflows.h5ad import h5ad_suffixes, solo_raw_files
+
 
 def _load_units(path):
     with open(path, newline="") as fh:
@@ -22,6 +29,9 @@ SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
 ASSEMBLY = config["genome"]["assembly"]
 SOLO = config["solo"]
+# STAR takes --soloFeatures as N space-separated values and writes one Solo.out/<Feature>/ per value.
+FEATURES = SOLO["soloFeatures"].split()
+PRIMARY = config["primary_feature"]
 
 
 def fastqs(sample, role):
@@ -54,13 +64,66 @@ def cb_umi_geometry():
     )
 
 
+# Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
+# file-by-file, and that is the point. `starsolo_count` used to declare
+# `directory(f"{OUTDIR}/{{sample}}/Solo.out")`, under which STAR writing three of five features and
+# exiting 0 was indistinguishable from success: the directory exists, snakemake is satisfied, and the
+# missing counts surface later as an h5ad nobody can explain. A named output cannot be missing.
+# The `{{{{sample}}}}` is snakemake's usual escape -- expand() fills `f` and leaves `sample` a wildcard.
+SOLO_MATRICES = expand(f"{OUTDIR}/{{{{sample}}}}/Solo.out/{{f}}", f=solo_raw_files(FEATURES))
+
+
 rule all:
     input:
-        expand(f"{OUTDIR}/{{sample}}/Solo.out", sample=SAMPLES),
+        expand(
+            f"{OUTDIR}/{{sample}}/{{sample}}{{suffix}}",
+            sample=SAMPLES,
+            suffix=h5ad_suffixes(FEATURES),
+        ),
+
+
+rule onlist:
+    """Materialize one barcode whitelist, for STAR to read once and snakemake to then delete.
+
+    `temp()` is the entire point. 10x's v3 whitelist is 6 794 880 barcodes = 111 MB of text, and
+    `compose` used to write it into the run directory at compile time -- so one dataset compiled
+    three ways cost a third of a gigabyte of identical bytes, sitting there forever, for a file STAR
+    opens once. Now it is built on demand and deleted when the last job that needs it is done.
+
+    It was also `temp()`-able in name only before this rule existed: the whitelist was bound to
+    `starsolo_count.input` with NO producing rule, and snakemake cannot delete what it did not make.
+    An input with no rule is a file snakemake merely requires to already be there.
+
+    No `container:` directive, deliberately. This runs `seqforge`, which is not an aligner -- the
+    ambient environment is the one that just ran `seqforge compose`, so it is by construction the one
+    that has it. Naming `align-rna` here would put our own tool inside STAR's image (R12).
+    """
+    output:
+        temp("onlists/{name}.txt"),
+    localrule: True
+    shell:
+        "seqforge io onlist write {wildcards.name} --out {output}"
 
 
 rule genome_index:
-    """Resolve/build the STAR index via liulab-genome at run time (never a path in the manifest)."""
+    """Resolve/build the STAR index via liulab-genome at run time (never a path in the manifest).
+
+    **No `container:`, and that is a measured fact rather than an oversight.** Snakemake wraps a
+    container around a `shell:` command (in `shell.py`); a `run:` block executes Python in the
+    snakemake process and never passes through that wrap, so a `container:` here would be accepted
+    and silently ignored. Snakemake's own linter agrees -- it excludes `is_run` rules from
+    "missing software definition".
+
+    So this rule borrows the ambient STAR, and only when it has to: liulab-genome caches the index and
+    `build_star_index` re-runs `genomeGenerate` only if there is no cached one. On a machine where
+    LIULAB_DATA is populated -- the normal case -- no STAR is invoked here at all, and the container on
+    the alignment rule pins the aligner that does the work. On a fresh machine the first run needs a
+    STAR on PATH. If that STAR and the container's disagree on index version, STAR refuses loudly,
+    which is the failure mode we can live with.
+
+    The deeper reason not to fight this: the index is **liulab-genome's artifact** (R12). How it gets
+    built, and in what environment, is theirs. We consume it.
+    """
     output:
         directory(f"{OUTDIR}/index/{ASSEMBLY}"),
     params:
@@ -85,7 +148,15 @@ rule starsolo_count:
         index=rules.genome_index.output,
         whitelist=whitelists(),
     output:
-        directory(f"{OUTDIR}/{{sample}}/Solo.out"),
+        matrices=SOLO_MATRICES,
+    # The pinned aligner: liulab-runtime's `align-rna`, resolved by compose to a ghcr tag or to a
+    # prebuilt .sif on this machine. Naming it here is CONSUMING liulab-runtime's artifact, not
+    # defining an environment (R12) -- no conda YAML, no Dockerfile, no STAR in any dependency table.
+    #
+    # Honoured only when the run passes `--software-deployment-method apptainer` (measured: without
+    # it, snakemake plans the same jobs and never mentions the image). That is snakemake's contract
+    # and it is the user's call -- they submit, we do not.
+    container: config["container"]
     threads: config["threads"]
     params:
         solo=SOLO,
@@ -103,4 +174,30 @@ rule starsolo_count:
              --soloFeatures {params.solo[soloFeatures]} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM Unsorted
+        """
+
+
+rule solo_to_h5ad:
+    """Package Solo.out's raw matrices as .h5ad -- THE deliverable of this pipeline.
+
+    A `shell:` calling a seqforge verb, not a `run:` block, and that is deliberate: `snakemake -n -p`
+    renders every shell block while planning and cannot see inside a `run:` block, so this way
+    compose's wiring gate covers the packaging step too. It is also the R8 line -- the CLI is the API.
+
+    No `container:`. Writing an .h5ad is seqforge's own output-format job, not an aligner's; `anndata`
+    is a plain dependency of this package. Only `starsolo_count` needs liulab-runtime.
+    """
+    input:
+        matrices=rules.starsolo_count.output.matrices,
+    output:
+        expand(f"{OUTDIR}/{{{{sample}}}}/{{{{sample}}}}{{suffix}}", suffix=h5ad_suffixes(FEATURES)),
+    params:
+        solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
+        prefix=lambda wc: f"{OUTDIR}/{wc.sample}/{wc.sample}",
+        features=" ".join(FEATURES),
+        primary=PRIMARY,
+    shell:
+        r"""
+        seqforge io h5ad --solo-dir {params.solo} --features "{params.features}" \
+             --primary {params.primary} --out-prefix {params.prefix}
         """

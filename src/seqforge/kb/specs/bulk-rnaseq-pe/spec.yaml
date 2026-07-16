@@ -73,4 +73,3 @@ confusable_with:
       bulk gene-count matrix for a single-cell library and exit 0. Only the onlist separates them:
       SPLiT-seq's round1/2/3 barcodes hit their whitelists at rung 3 and bulk has no whitelist to
       hit, which is why the resolver reaches rung 3 here rather than deciding at rung 2.
-decidable_by: [onlist]

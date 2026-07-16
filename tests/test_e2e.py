@@ -11,15 +11,16 @@ from __future__ import annotations
 import gzip
 import json
 import random
+import resource
 import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from seqforge.e2e import (
     _compare,
-    parse_solo_matrix,
     simulate,
     star_stats,
 )
@@ -46,15 +47,29 @@ def test_simulate_bookkeeping_is_self_consistent() -> None:
         assert gene in by_id
 
 
-def test_parse_solo_matrix(tmp_path: Path) -> None:
-    (tmp_path / "barcodes.tsv").write_text("CELL1\nCELL2\n")
-    (tmp_path / "features.tsv").write_text("GENE_A\tA\tGene\nGENE_B\tB\tGene\n")
-    # Matrix Market: gene(row) barcode(col) value; a 0 entry must not become a phantom count
-    (tmp_path / "matrix.mtx").write_text(
-        "%%MatrixMarket matrix coordinate integer general\n%\n2 2 3\n1 1 5\n2 2 7\n1 2 0\n"
-    )
-    counts = parse_solo_matrix(tmp_path)
-    assert counts == {("CELL1", "GENE_A"): 5, ("CELL2", "GENE_B"): 7}
+def test_parse_h5ad_reads_x_and_layers(tmp_path: Path) -> None:
+    """The ground-truth reader opens the DELIVERABLE, so the h5ad is what these gates assert on.
+
+    It replaced `parse_solo_matrix`, which read STAR's Matrix Market files: everything downstream of
+    those (the transpose to cells x genes, which feature became X, which layer got which name) sat
+    outside the only test in this repo that checks a count against ground truth.
+    """
+    import anndata as ad
+    from scipy.sparse import csr_matrix
+
+    from seqforge.e2e import parse_h5ad
+
+    adata = ad.AnnData(X=csr_matrix(np.array([[5, 0], [0, 7]], dtype=np.int32)))
+    adata.obs_names = ["CELL1", "CELL2"]
+    adata.var_names = ["GENE_A", "GENE_B"]
+    adata.layers["GeneFull"] = csr_matrix(np.array([[6, 0], [0, 9]], dtype=np.int32))
+    adata.write_h5ad(tmp_path / "s1.h5ad")
+
+    assert parse_h5ad(tmp_path / "s1.h5ad") == {("CELL1", "GENE_A"): 5, ("CELL2", "GENE_B"): 7}
+    assert parse_h5ad(tmp_path / "s1.h5ad", layer="GeneFull") == {
+        ("CELL1", "GENE_A"): 6,
+        ("CELL2", "GENE_B"): 9,
+    }
 
 
 def test_star_stats_parses_log(tmp_path: Path) -> None:
@@ -102,6 +117,78 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
 @pytest.mark.skipif(shutil.which("STAR") is None, reason="STAR not installed (Linux/cluster only)")
 def test_star_is_available_when_claimed() -> None:  # pragma: no cover - host dependent
     assert shutil.which("STAR")
+
+
+# --------------------------------------------------------------------------------------------
+# the gates must run the SHIPPED module, not a private copy of its command line
+# --------------------------------------------------------------------------------------------
+
+
+def test_the_correctness_arms_run_the_composed_snakefile() -> None:
+    """The ground-truth gates must drive `starsolo.smk`, never a second hand-written STAR argv.
+
+    For the life of the repo, `kb e2e` built the composed config and then assembled its **own** STAR
+    command line. It tested the params dict — its docstring said exactly that — and it never touched
+    the module. So STARsolo's command line existed twice, by hand, in two places that could not see
+    each other, and only the copy nobody ships was ever checked against ground truth.
+
+    They had already drifted, which is the proof this is not hypothetical: `run_starsolo` hardcodes
+    the four `soloCB/UMI` start/len flags and cannot run a `CB_UMI_Complex` chemistry at all, while
+    `starsolo.smk` branches on `soloType` to handle one.
+
+    This is a source-level check because the thing it guards is a structural claim about which code
+    path the gates take, and the gates themselves need a cluster — so a test that only ran on a
+    cluster would leave this unguarded exactly where it regressed before.
+    """
+    import inspect
+
+    from seqforge import e2e
+
+    for arm in (e2e.run_e2e, e2e.run_intron_e2e):
+        src = inspect.getsource(arm)
+        assert "run_composed(" in src, f"{arm.__name__} does not run the composed Snakefile"
+        assert "run_starsolo(" not in src, (
+            f"{arm.__name__} calls run_starsolo -- that renders a SECOND STAR command line by hand "
+            f"and leaves the shipped module unexecuted, which is the bug this test exists for"
+        )
+    # run_starsolo may still exist: it is the memory instrument. But only the cost sweep may use it,
+    # because reaping snakemake instead of STAR makes ru_maxrss approximate, and a memory instrument
+    # may not be approximate.
+    assert "run_starsolo(" in inspect.getsource(e2e.run_cost_sweep)
+
+
+def test_e2e_constructs_experiment_inputs_with_real_fields() -> None:
+    """Every `ExperimentInputs(...)` in e2e.py must name fields the dataclass actually has.
+
+    These constructions sit behind a STAR-availability gate, so they execute only on a cluster and
+    every local `pixi run check` skips them. That is exactly how `organism_taxid=` — a parameter of
+    the `experiment_from_metadata` factory, never a field of `ExperimentInputs` (the field is
+    `organism: EvidencedTaxid`) — sat in three call sites and crashed all three `kb e2e*` arms while
+    the suite stayed green. Check the call statically (the same shape as the AST guards over the
+    liulab-genome consumer surface), so a field rename cannot hide behind the skip again.
+    """
+    import ast
+    import dataclasses
+    import inspect
+
+    from seqforge import e2e
+    from seqforge.manifest.fill import ExperimentInputs
+
+    fields = {f.name for f in dataclasses.fields(ExperimentInputs)}
+    calls = [
+        node
+        for node in ast.walk(ast.parse(inspect.getsource(e2e)))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "ExperimentInputs"
+    ]
+    assert calls, "sanity: e2e.py should construct ExperimentInputs"
+    for call in calls:
+        used = {kw.arg for kw in call.keywords if kw.arg is not None}
+        assert used <= fields, (
+            f"e2e.py builds ExperimentInputs with non-field kwarg(s) {sorted(used - fields)}; "
+            f"real fields are {sorted(fields)} — this crashes `kb e2e` where the suite cannot see it"
+        )
 
 
 # --------------------------------------------------------------------------------------------
@@ -264,6 +351,26 @@ def test_an_unfilterable_gtf_is_refused_rather_than_silently_widened(tmp_path: P
         _parse_exons(gtf)
 
 
+def _measure_mb(tmp_path: Path, mb: int, name: str) -> int:
+    from seqforge.e2e import _run_measured
+
+    code, _wall, kib, _err = _run_measured(
+        # touch every page: an untouched bytearray is not necessarily resident, and this test is
+        # about RESIDENT memory
+        [
+            sys.executable,
+            "-c",
+            f"x = bytearray({mb} * 1024 * 1024)\n"
+            f"for i in range(0, len(x), 4096): x[i] = 1\n"
+            f"print(len(x))",
+        ],
+        outdir=tmp_path / name,
+        timeout=120,
+    )
+    assert code == 0
+    return kib
+
+
 def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> None:
     """A second measured run must be able to report LESS memory than the first.
 
@@ -277,23 +384,42 @@ def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> 
     Big-then-small is the ordering that catches it: under the old code the second reading could not
     fall below the first, so `small < big` is precisely the assertion the bug forbids.
     """
-    from seqforge.e2e import _run_measured
-
-    def measure(mb: int, name: str) -> int:
-        code, _wall, kib, _err = _run_measured(
-            [sys.executable, "-c", f"x = bytearray({mb} * 1024 * 1024); print(len(x))"],
-            outdir=tmp_path / name,
-            timeout=120,
-        )
-        assert code == 0
-        return kib
-
-    big = measure(400, "big")
-    small = measure(1, "small")
+    big = _measure_mb(tmp_path, 400, "big")
+    small = _measure_mb(tmp_path, 1, "small")
     assert small < big, (
         f"peak RSS is accumulating across children: 400 MB run -> {big}, 1 MB run -> {small}. "
         "Each measurement must belong to its own child."
     )
+
+
+def test_peak_rss_does_not_inherit_the_measuring_process_own_memory(tmp_path: Path) -> None:
+    """A fat parent must not raise the floor under a thin child.
+
+    **The test above passed on macOS and was red on arc, and the code was wrong both times.** On
+    Linux a spawned child's address space starts as a copy of its parent's, `ru_maxrss` is a
+    high-water mark, and `exec` never lowers it -- so `wait4` reported `max(parent_rss, child_peak)`.
+    Measured: with an 879 MB parent, a 1 MB child reported `879260 KiB`, the parent's RSS to the
+    byte, and so did a 400 MB child. macOS spawns via `posix_spawn` and does not do this, which is
+    the only reason the sibling test above ever passed locally -- it was green for a reason unrelated
+    to the code being right, and went red only under a suite fat enough to cross the floor.
+
+    So this test makes the parent fat ON PURPOSE, which is the condition the bug needs. It fails on
+    the old `wait4` code on Linux and passes on macOS, and that asymmetry is the point: a measuring
+    instrument may not silently report the weight of the person holding it.
+    """
+    ballast = bytearray(700 * 1024 * 1024)
+    for i in range(0, len(ballast), 4096):
+        ballast[i] = 1  # make it genuinely resident, not just mapped
+    parent = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss  # KiB on Linux, bytes on macOS
+    try:
+        small = _measure_mb(tmp_path, 1, "small")
+        assert small < parent / 2, (
+            f"a 1 MB child reported {small} while this process holds {parent} -- the measurement is "
+            f"reporting the PARENT's memory, so every number below the parent's RSS is a floor, not "
+            f"a reading"
+        )
+    finally:
+        del ballast
 
 
 def test_a_measured_run_reports_a_failing_exit_code_with_its_stderr(tmp_path: Path) -> None:
@@ -380,14 +506,6 @@ def test_the_line_fit_recovers_a_known_slope_and_intercept() -> None:
     assert fit["max_residual_gb"] == pytest.approx(0.0, abs=0.001)
     # and the extrapolation must be labelled as one, since that is the number people will quote
     assert fit["projected"]["500M_reads"]["extrapolation_factor"] == pytest.approx(15.6, abs=0.1)
-
-
-def test_the_fit_reports_a_residual_that_can_falsify_the_line() -> None:
-    """A curve must not be reported as a line with a clean conscience."""
-    from seqforge.e2e import _fit_line
-
-    bent = [(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)]
-    assert _fit_line(bent)["max_residual_gb"] > 1.0
 
 
 def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
@@ -625,7 +743,8 @@ def test_three_points_is_the_smallest_fit_that_can_be_wrong() -> None:
 
     ok = _fit_line([(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)])
     assert ok["ok"] and ok["n_points"] == 3
-    assert ok["max_residual_gb"] > 1.0, "a bent curve must still surface as a residual"
+    # a bent curve must surface as a residual, not be reported as a line with a clean conscience
+    assert ok["max_residual_gb"] > 1.0
 
 
 def test_revcomp_is_applied_to_uppercase_so_a_soft_masked_base_cannot_be_laundered(

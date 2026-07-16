@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 #: Anthropic. Adaptive thinking + strict schema.
@@ -45,6 +45,10 @@ class LLMResponse:
 
     text: str
     usage: dict[str, int]
+    #: How the call was made, recorded for the cost/provenance ledger: reasoning ``thinking`` mode,
+    #: the ``max_tokens`` ceiling, and which structured-output ``response_format`` was in force. The
+    #: same prompt at a different effort is a different run, and this is what lets a reader see it.
+    mode: dict[str, Any] = field(default_factory=dict)
 
 
 class LLMProvider(Protocol):
@@ -100,7 +104,15 @@ class AnthropicProvider:
         except Exception as exc:
             raise ProviderUnavailable(f"anthropic call failed: {exc}") from exc
         text = next((b.text for b in response.content if getattr(b, "type", None) == "text"), "")
-        return LLMResponse(text=text, usage=_anthropic_usage(response))
+        return LLMResponse(
+            text=text,
+            usage=_anthropic_usage(response),
+            mode={
+                "thinking": "adaptive",
+                "max_tokens": max_tokens,
+                "response_format": "json_schema",
+            },
+        )
 
 
 class OpenAICompatibleProvider:
@@ -170,7 +182,18 @@ class OpenAICompatibleProvider:
             # DeepSeek documents that json_object mode can occasionally return empty content.
             # Refuse loudly rather than let an empty batch read as "the document says nothing".
             raise ProviderUnavailable(f"{self.name} returned empty content in JSON mode")
-        return LLMResponse(text=text, usage=_openai_usage(response))
+        # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no toggle,
+        # so it is reported as the model name's business, not a flag we set. `response_format` is the
+        # weaker json_object contract, which is why Pydantic — not the provider — enforces the shape.
+        return LLMResponse(
+            text=text,
+            usage=_openai_usage(response),
+            mode={
+                "thinking": "model-default",
+                "max_tokens": max_tokens,
+                "response_format": "json_object",
+            },
+        )
 
 
 def deepseek_provider(api_key: str | None = None, **kwargs: Any) -> OpenAICompatibleProvider:

@@ -7,7 +7,7 @@ description: >-
   does take v3, silently discarding the metadata claim would be a false_accept with a correct value:
   the manifest would read as though nothing ever disagreed. Three truths, never merged.
 
-  The conflict is asserted on GEOMETRY, not on the chemistry name, per design §958: the surfaced pair
+  The conflict is asserted on GEOMETRY, not on the chemistry name, per design §3.5: the surfaced pair
   is "26 bp asserted vs 28 bp observed". That is the deliberate choice — the concrete, reads-decidable
   quantity rather than the label inferred from it. (This case originally asserted library.chemistry;
   the harness caught it, and the design was right.) positions is the real assertion here: a field-name

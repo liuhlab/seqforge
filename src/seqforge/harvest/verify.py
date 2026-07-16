@@ -26,7 +26,7 @@ from dataclasses import dataclass
 
 from ..kb import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
-from .fields import PERMITTED_FIELDS, permitted_for_role
+from .fields import PERMITTED_FIELDS, permitted_for
 from .normalize import NormalizedDoc
 
 _WS = re.compile(r"\s+")
@@ -170,16 +170,18 @@ def verify_drafts(
             )
             continue
         doc = by_sha.get(draft.span.doc_sha256)
-        if doc is not None and not permitted_for_role(draft.field, doc.role):
+        if doc is not None and not permitted_for(draft.field, doc.scope, doc.role):
             # ...and may it set this field from THIS document? A downloaded methods PDF may never
-            # steer the pipeline. Role is code-owned (the flag it arrived under), so this is a
-            # deterministic refusal, not a judgement about the sentence.
+            # steer the pipeline, and a BioSample record has no opinion about the chemistry. Both
+            # scope and role are code-owned — the flag the document arrived under, and the record it
+            # was rendered from — so this is a deterministic refusal, not a judgement about the
+            # sentence.
             rejected.append(
                 _reject(
                     draft,
-                    "field_not_permitted_for_doc_role",
-                    f"{draft.field!r} may only be set by an --instruction document, and "
-                    f"{doc.source_basename!r} is a {doc.role}",
+                    "field_not_permitted_for_doc",
+                    f"{draft.field!r} may not be set by {doc.source_basename!r}, which is a "
+                    f"{doc.scope}-scoped {doc.role} document",
                 )
             )
             continue

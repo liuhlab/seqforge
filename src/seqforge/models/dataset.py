@@ -23,12 +23,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .base import Evidenced, Sha256, Uri
+from .base import Accession, AssayTerm, ChemistryId, Evidenced, Sha256, Uri
 from .evidenced import (
     EvidencedAccessionList,
-    EvidencedAssay,
     EvidencedChemistrySet,
     EvidencedStr,
     EvidencedTaxid,
@@ -102,34 +101,134 @@ class Onlist(BaseModel):
 class FileInventoryItem(BaseModel):
     """One physical file + checksum + assigned role. No absolute path (R9).
 
-    Identity (uri/sha256/size) is raw observed truth; the role assignment is the joint-optimization
-    output, so ``read_id`` is ``Evidenced``.
+    ``read_id`` is a plain string, not ``Evidenced``, and that is not a demotion. The role assignment
+    and the chemistry come out of **one** joint optimization — ``Candidate`` is literally
+    ``(technology, score, role_assignment)``, and the score scores the pair — so the confidence in
+    "this file is R1" and the confidence in "this library is v3" are the same number, and
+    ``library.chemistry`` is where it lives. Twelve files each carrying a copy of it was the pilot's
+    manifest saying one thing thirteen times.
     """
 
     uri: Uri
     basename: str
     sha256: Sha256
     size_bytes: int = Field(gt=0)
-    read_id: EvidencedStr | None = None
+    #: The read role the joint optimization assigned, e.g. ``R1``. ``None`` = unassigned, which
+    #: ``validate`` surfaces: an unassigned file is one ``compose`` will silently skip.
+    read_id: str | None = None
+
+
+class AssayLabel(BaseModel):
+    """One chemistry, spelled three ways: our key, EFO's id, and EFO's words.
+
+    This exists because ``assay: EFO:0009922`` beside ``chemistry: [10x-3p-gex-v3,
+    10x-3p-gex-v3.1]`` was two puzzles at once. *What is the difference between them?* — none, they
+    are the same fact in two vocabularies. *Why is one a list and the other not?* — because the
+    §12 equivalence class has two members and the assay field could only hold one, so it silently
+    dropped v3.1's CURIE.
+
+    Making it a label per chemistry answers both and removes a third problem nobody had noticed: an
+    assay CURIE that disagrees with the chemistry it names is now **inexpressible** rather than
+    merely absent. There is nowhere to write it.
+
+    ``name`` is EFO's own label, generated into ``io/efo/labels.json`` from EBI's OLS4. Never typed
+    here: a label we maintain by hand is a label that drifts from the ontology it claims to quote.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    #: The KB's primary key, e.g. ``10x-3p-gex-v3``.
+    chemistry: ChemistryId
+    #: The controlled-vocabulary id, e.g. ``EFO:0009922``.
+    curie: AssayTerm
+    #: What EFO calls it, e.g. ``10x 3' v3``. The thing a human reads.
+    name: str
 
 
 class LibrarySection(BaseModel):
-    """Physical truth. Authority = EVIDENCE."""
+    """Physical truth. Authority = EVIDENCE.
 
-    assay: EvidencedAssay
+    **One decision, one confidence.** ``chemistry`` is the decision — the joint optimization over
+    (which technology, which file is which read) that ``resolve score`` performs — and it is the only
+    ``Evidenced`` field here. Everything else follows from it: ``assay`` is the same answer in EFO's
+    vocabulary, ``read_layout`` is the KB's declared structure for that chemistry filled in with
+    measured lengths, ``files[].read_id`` is the assignment half of the very same optimization, and
+    ``onlists`` are the whitelists that chemistry uses.
+
+    They used to each carry their own ``Evidenced`` envelope, and the pilot's manifest showed what
+    that bought: ``confidence: 0.750672`` printed four times, identical, because it was always one
+    number about one decision wearing four hats. Four envelopes cannot disagree — they were filled
+    from the same variable — so they were never four truths, and R6 has never asked for four. R6 asks
+    that a value not travel without its provenance, which is exactly what one honest envelope does.
+    A field repeated is not provenance; it is decoration that looks like provenance, which is worse
+    than none.
+    """
+
     chemistry: EvidencedChemistrySet
-    read_layout: EvidencedReadLayout
+    #: One per chemistry in the equivalence class, same order. Derived, so it carries no confidence.
+    assay: list[AssayLabel] = Field(default_factory=list)
+    read_layout: ReadLayout
     onlists: list[Onlist] = Field(default_factory=list)
     files: list[FileInventoryItem]
 
 
 class SampleGroup(BaseModel):
-    """One biological sample and the files that carry it."""
+    """One biological sample, the files that carry it, and what is declared about it.
+
+    ``attributes`` is keyed by an **NCBI harmonized BioSample attribute name** — ``strain``,
+    ``tissue``, ``dev_stage``, ``genotype``, all 960 of them — and the validator refuses anything
+    else. Two named fields (``tissue``, ``condition``) used to sit here instead, and both were wrong
+    in the same way:
+
+    - ``condition`` is not a vocabulary anyone else uses. We invented it, and a field named
+      "condition" accepts anything you can call a condition; on the pilot a language model filed worm
+      husbandry into it. NCBI's ``treatment`` / ``genotype`` / ``disease`` are the real keys, each
+      with a definition somebody else maintains.
+    - Two typed fields cannot hold ``strain``, and ``strain`` is the only structured field that
+      separates the pilot's wild-type samples from its daf-2 mutants.
+
+    An open dict rather than 960 pydantic fields, because a typed list mirroring somebody else's
+    vocabulary is the shape this repo keeps getting bitten by: it rots the moment they add an
+    attribute, and nothing goes red. The vocabulary is the file NCBI's list was generated into, and
+    the validator reads *it*.
+    """
 
     sample_id: str
-    tissue: EvidencedStr | None = None
-    condition: EvidencedStr | None = None
+    #: The archive's id for this sample, when there is one. ``None`` for a dataset that never went
+    #: near an archive — which is most of them, and not a defect.
+    accession: Accession | None = None
+    attributes: dict[str, EvidencedStr] = Field(default_factory=dict)
     file_uris: list[Uri] = Field(default_factory=list)
+
+    @field_validator("attributes")
+    @classmethod
+    def _keys_are_ncbi_attributes(cls, value: dict[str, EvidencedStr]) -> dict[str, EvidencedStr]:
+        """Fail closed on a key NCBI does not define. R2: no field enters a manifest unvalidated."""
+        from ..io.attributes import is_attribute
+
+        unknown = sorted(k for k in value if not is_attribute(k))
+        if unknown:
+            raise ValueError(
+                f"not NCBI harmonized BioSample attribute name(s): {unknown}. A sample attribute's "
+                f"key space is NCBI's 960 curated names (`seqforge io attributes list`), not ours."
+            )
+        return value
+
+
+class Study(BaseModel):
+    """The study these files came from, as the archive declares it.
+
+    Deliberately **not** ``Evidenced``: none of it is an interpretation. The record says the title is
+    X and we copied X, exactly as we copy a file's ``sha256``. The abstract is deliberately absent —
+    it is prose, it belongs in a document a quote can grep back into, and pasting a paragraph of
+    English into a content-addressed manifest would make the dataset's identity depend on it.
+    """
+
+    accession: Accession | None = None
+    title: str | None = None
+    center: str | None = None
+    data_type: str | None = None
+    released: str | None = None
 
 
 class ExperimentSection(BaseModel):
@@ -138,6 +237,7 @@ class ExperimentSection(BaseModel):
     organism: EvidencedTaxid
     accessions: EvidencedAccessionList
     samples: list[SampleGroup]
+    study: Study | None = None
 
 
 class DatasetProvenance(BaseModel):
@@ -176,8 +276,10 @@ __all__ = [
     "EvidencedReadLayout",
     "Onlist",
     "FileInventoryItem",
+    "AssayLabel",
     "LibrarySection",
     "SampleGroup",
+    "Study",
     "ExperimentSection",
     "DatasetProvenance",
     "DatasetManifest",

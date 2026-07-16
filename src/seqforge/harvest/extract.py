@@ -27,7 +27,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
-from .fields import fields_for_role
+from .fields import describe_asked, fields_for
 from .normalize import NormalizedDoc
 from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
@@ -43,7 +43,15 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 #: misassignment reaches the aligner. Three things contain it, none of them the prompt — the field
 #: allowlist (`harvest.fields`), the doc-role gate (`verify_drafts`), and R15's all-five default, which
 #: means a hallucinated instruction can only mislabel the primary matrix, never destroy signal.
-EXTRACT_PROMPT_VERSION = "2026.7.2"
+#: 2026.7.3 — dropped the hand-written `experiment.samples.condition` definition. `condition` was
+#: removed from the asked vocabulary (no archive defines it; NCBI's `treatment`/`genotype`/
+#: `disease` replaced it), so the prompt was teaching a field `verify` is guaranteed to reject as
+#: `field_not_permitted`: wasted extraction, and a standing invitation to re-file husbandry the way
+#: 2026.7.1 did. Also trimmed the `tissue` gloss — it duplicated the NCBI definition `describe_asked`
+#: now supplies per attribute and conflated tissue with `cell_type` (its own attribute since 7.2).
+#: `test_prompt_names_only_permitted_fields` derives the ⊆ PERMITTED_FIELDS invariant so the prompt
+#: cannot drift from `fields.py` again — the hand-maintained-mirror rot this whole module warns about.
+EXTRACT_PROMPT_VERSION = "2026.7.3"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -74,14 +82,10 @@ Values:
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
 - `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
   "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.
-- `experiment.samples.tissue`: the tissue, cell type, or body part the profiled cells came from, in
-  the document's wording. Whole organisms at a life stage are not a tissue — omit the field.
-- `experiment.samples.condition`: ONLY the experimental perturbation or treatment group that
-  distinguishes one sample from another (e.g. "heat shock", "auxin-treated", "control"). Routine
-  culture or husbandry shared by every sample — growth medium, temperature, food source, plate type
-  — is NOT a condition. If the document describes no perturbation, omit the field: an unperturbed
-  baseline experiment has no condition, and copying husbandry into this field is a wrong answer even
-  though the words appear in the document.
+- `experiment.samples.tissue`: a whole organism at a life stage ("adult worm", "L4 larva") is NOT a
+  tissue — omit it rather than filing the life stage here (that is `dev_stage`). Each asked sample
+  attribute arrives with its own NCBI definition; keep each value in its own field — a cell type is
+  `cell_type`, a perturbation is `treatment`, a mutation is `genotype`, none of them `tissue`.
 - `processing.quantification`: the STARsolo feature the document NAMES, exactly, as one of: Gene, SJ,
   GeneFull, GeneFull_ExonOverIntron, GeneFull_Ex50pAS, Velocyto. Emit one assertion per feature named.
   Only extract this when the document names the feature; a document describing the BIOLOGY ("single
@@ -109,11 +113,14 @@ class ExtractionResult(BaseModel):
 
 @dataclass(frozen=True)
 class ExtractionOutcome:
-    """What extract returns: the drafts, who made them, and what the call cost."""
+    """What extract returns: the drafts, who made them, the call MODE, and what it cost."""
 
     drafts: list[AssertionDraft]
     extractor: ExtractorProvenance
     provider: str = ""
+    model: str = ""
+    #: How the call was made — thinking/effort, max_tokens, response_format (see ``LLMResponse.mode``).
+    mode: dict[str, object] = field(default_factory=dict)
     usage: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -149,11 +156,21 @@ def build_system_prompt(specs: dict[str, Spec], schema: dict[str, Any]) -> str:
 
 
 def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
+    """The per-document half of the prompt: which fields, and the document.
+
+    The ask is scoped, so a sample record's document is never even asked for a chemistry, and the
+    sample-attribute definitions come from NCBI's own list rather than from a paraphrase here — see
+    `fields.describe_asked`.
+
+    Note what this does NOT say: which sample the document is about. It does not need to. The document
+    holds one record's prose and nothing else, so "which sample" is answered by which file we handed
+    the model, and code already knows the answer because code chose the file.
+    """
     return (
         f"Document sha256: {doc.doc_sha256}\n"
         f"Echo that exact string as span.doc_sha256 on every assertion.\n\n"
         f"Fields to look for (omit any the document does not state):\n"
-        + "\n".join(f"- {f}" for f in fields)
+        + describe_asked(fields)
         + "\n\n<document>\n"
         + doc.text
         + "\n</document>"
@@ -176,11 +193,12 @@ def extract_drafts(
 ) -> ExtractionOutcome:
     """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides.
 
-    ``fields`` defaults to the set appropriate to the document's ROLE: a reference document is never
-    asked about ``processing.*``. Asking and enforcing are separate jobs, though — ``verify_drafts``
-    refuses an off-role field regardless of what was asked, because a prompt is not a boundary.
+    ``fields`` defaults to the set appropriate to the document's SCOPE and ROLE: a reference document
+    is never asked about ``processing.*``, and a sample record's document is never asked about the
+    chemistry. Asking and enforcing are separate jobs, though — ``verify_drafts`` refuses an
+    off-scope field regardless of what was asked, because a prompt is not a boundary.
     """
-    asked = fields if fields is not None else fields_for_role(doc.role)
+    asked = fields if fields is not None else fields_for(doc.scope, doc.role)
     try:
         llm = provider if provider is not None else resolve_provider()
     except ProviderUnavailable as exc:
@@ -218,6 +236,8 @@ def extract_drafts(
         drafts=[_anchor(d, doc) for d in parsed.drafts],
         extractor=extractor,
         provider=llm.name,
+        model=chosen,
+        mode=response.mode,
         usage=response.usage,
     )
 

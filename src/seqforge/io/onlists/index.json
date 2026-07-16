@@ -1,0 +1,26 @@
+{
+  "3M-february-2018": {
+    "n_entries": 6794880,
+    "orientation": "forward",
+    "sha256": "53d8182fd8d4c705ff99b6a583c640e28f58b847ac5bc7b20bb8f4f11ebe50ee",
+    "source_sha256": "843a6f7038db8cb3c06f3dc21cc69d04139ffa10689780518d7a9e42dc2e819b",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-february-2018.txt.gz",
+    "width": 16
+  },
+  "737K-arc-v1": {
+    "n_entries": 736320,
+    "orientation": "forward",
+    "sha256": "e267adf2a1605adcd40fbb67800d0d19ab8c35170ace26fe1f0d3523766d2234",
+    "source_sha256": "fde6ac9705089a87cb078993500af6bcac89176953fac46f2173c6dd1b613108",
+    "uri": "",
+    "width": 16
+  },
+  "737K-august-2016": {
+    "n_entries": 737280,
+    "orientation": "forward",
+    "sha256": "199f7ae76cc1341d54c8024fd9a11a256145f64c999d5ce04f144a9acd8e8b5c",
+    "source_sha256": "b0dda4b114d8fc7ea8def94fb472e6205c1831a72e3ac245ed13cc332d9f20d1",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/737K-august-2016.txt.gz",
+    "width": 16
+  }
+}

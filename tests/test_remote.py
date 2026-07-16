@@ -80,6 +80,9 @@ _SOFT_SUPERSERIES = """\
 
 
 def test_parse_soft_finds_the_srp() -> None:
+    """Exact match, which also proves the BioProject is not read as the SRA study: both arrive as
+    `!Series_relation` and only the SRA one carries `term=SRP...`, so `== ["SRP299835"]` (no stray
+    PRJNA692883) subsumes a separate not-confused check."""
     assert parse_soft_srp(_SOFT_WITH_SRP) == ["SRP299835"]
 
 
@@ -90,11 +93,6 @@ def test_parse_soft_superseries_is_detected() -> None:
     """
     assert parse_soft_superseries(_SOFT_SUPERSERIES) == ["GSE140399", "GSE140510"]
     assert parse_soft_srp(_SOFT_SUPERSERIES) == [], "a SuperSeries declares no SRP of its own"
-
-
-def test_parse_soft_does_not_confuse_bioproject_for_sra() -> None:
-    """Both arrive as `!Series_relation`; only the SRA one carries `term=SRP...`."""
-    assert "PRJNA692883" not in str(parse_soft_srp(_SOFT_WITH_SRP))
 
 
 # ---------------------------------------------------------------------------------------------

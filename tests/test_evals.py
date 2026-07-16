@@ -497,16 +497,16 @@ def test_unknown_spec_is_a_case_error(tmp_path: Path) -> None:
         materialize(case, tmp_path / "x")
 
 
-def test_held_out_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
-    """Design §8: a held-out root lives in out-of-git config. Absent => skip, never pass, never fail."""
-    monkeypatch.delenv("SEQFORGE_TEST_HELDOUT", raising=False)
+def test_a_local_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
+    """A local case's data lives outside the repo. Absent => skip, never pass, never fail."""
+    monkeypatch.delenv("SEQFORGE_TEST_LOCAL", raising=False)
     recipe = Recipe.model_validate(
-        {"generate": {"kind": "local", "root_env": "SEQFORGE_TEST_HELDOUT"}}
+        {"generate": {"kind": "local", "root_env": "SEQFORGE_TEST_LOCAL"}}
     )
-    case = Case("held", tmp_path, recipe, Expected(outcome="decide"), [])
+    case = Case("local", tmp_path, recipe, Expected(outcome="decide"), [])
     run = run_case(case)
     assert run.skipped is not None
-    assert "SEQFORGE_TEST_HELDOUT" in run.skipped
+    assert "SEQFORGE_TEST_LOCAL" in run.skipped
     assert build_report([run]).n_cases == 0
 
 
@@ -705,7 +705,7 @@ def test_a_hallucination_in_any_trial_survives_to_the_grade() -> None:
     """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     bad = good + [
-        _draft("experiment.samples.condition", "heat shock", "single-cell RNA-seq"),
+        _draft("experiment.samples.treatment", "heat shock", "single-cell RNA-seq"),
     ]
     provider = _FlakyProvider([bad, good, good])
     run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
@@ -713,8 +713,8 @@ def test_a_hallucination_in_any_trial_survives_to_the_grade() -> None:
     assert run.harvest is not None
     # If the claim survived verify it must reach the grade; if verify killed it, that is also fine —
     # what must NOT happen is a trial-1 failure being forgotten because trial 3 was clean.
-    if "experiment.samples.condition" in run.harvest.extracted:
-        assert run.harvest.hallucinated == ["experiment.samples.condition"]
+    if "experiment.samples.treatment" in run.harvest.extracted:
+        assert run.harvest.hallucinated == ["experiment.samples.treatment"]
         assert run.grade.grade is Grade.FALSE_ACCEPT
     else:
         assert run.harvest.n_rejected >= 1
@@ -729,13 +729,17 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
     """
     bad = [
         _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
+        # The real 2026.7.1 regression, in the vocabulary that replaced ours: DeepSeek filed
+        # standard worm husbandry as an experimental condition. `condition` was our invention and is
+        # gone; NCBI's `treatment` is the field that inherits the trap, and it inherits NCBI's
+        # definition with it, which is the point.
         _draft(
-            "experiment.samples.condition", "maintained on NGM plates", "maintained on NGM plates"
+            "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
         ),
     ]
     run = run_case(_trap_case(), llm=True, provider=_StubProvider(bad), trials=3)
     assert run.harvest is not None
-    assert run.harvest.hallucinated == ["experiment.samples.condition"]
+    assert run.harvest.hallucinated == ["experiment.samples.treatment"]
     assert run.grade.grade is Grade.FALSE_ACCEPT
     assert run.stability == 0.0, (
         "all three trials failed identically; stability is 0, not a fraction"
@@ -752,9 +756,12 @@ def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
 def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
     """A real 2-in-3 failure — the case this metric exists to report."""
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    # `condition` is no longer an assertable field, so a draft naming it now dies at the allowlist
+    # and never reaches the fold this test is about. The trap moves to NCBI's `treatment`, which is
+    # what `condition` was trying to be and is what the case's forbidden_fields now names.
     bad = good + [
         _draft(
-            "experiment.samples.condition", "maintained on NGM plates", "maintained on NGM plates"
+            "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
         )
     ]
     run = run_case(_trap_case(), llm=True, provider=_FlakyProvider([bad, good, good]), trials=3)

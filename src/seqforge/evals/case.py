@@ -10,8 +10,9 @@ Layout, per the brief::
 **Inputs are a recipe, never committed bytes.** A recipe is a few hundred bytes, is deterministic in
 ``(spec, seed)``, and regenerates byte-identically on any machine — so a case is diffable, a KB spec
 change is *visible* in the inputs it produces, and no FASTQ ever enters git history. It also lets a
-held-out case (whose data lives at a path deliberately absent from this repo) use the same format via
-``kind: local``: the ground truth is committed, the bytes stay wherever the maintainer keeps them.
+case backed by **real** data (which is far too large for git, and whose path is a lab fact this public
+repo must not carry) use the same format via ``kind: local``: the ground truth is committed, the bytes
+stay wherever the maintainer keeps them.
 
 The recipe deliberately reuses ``kb.generate`` — the same R10 round-trip generator the KB self-tests
 run on. Evals therefore measure the compiler, not a second, drifting notion of what a FASTQ looks like.
@@ -19,8 +20,9 @@ run on. Evals therefore measure the compiler, not a second, drifting notion of w
 
 from __future__ import annotations
 
+import os
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -30,6 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .. import kb
 from ..io import OnlistRegistry
 from ..kb.generate import write_fastq_gz
+from ..models.records import ArchiveRecordSet
 
 CASES_DIRNAME = "cases"
 
@@ -73,10 +76,11 @@ class RandomRecipe(BaseModel):
 
 
 class LocalRecipe(BaseModel):
-    """Real files at a path this repo does not contain (held-out cases; design §8).
+    """Real files at a path this repo does not contain.
 
-    ``root`` is resolved from the environment at run time, never committed. A case whose root is unset
-    or absent **skips** — it never fails and never silently passes.
+    ``root`` is resolved from the environment at run time, never committed — the data is too large for
+    git and its location is a lab fact, not a project fact. A case whose root is unset or absent
+    **skips**: it never fails and never silently passes.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -85,6 +89,14 @@ class LocalRecipe(BaseModel):
     #: Name of the env var holding the dataset root. The value lives in out-of-git config.
     root_env: str
     glob: str = "*.fastq.gz"
+    #: Prose that lives WITH the data rather than in the case directory — a glob under ``root``,
+    #: e.g. ``info/*.pdf``.
+    #:
+    #: Without this a local case could not point at a document at all, so ``has_prose`` was false, so
+    #: the language model never ran, so the organism could never come from the paper — **the single
+    #: thing PRJNA1027859 exists to test**. A synthetic case keeps its prose in ``metadata/``; a real
+    #: one cannot, because the paper is 10 MB and lives beside 220 GB of FASTQ, outside the repo.
+    docs_glob: str = ""
 
 
 class Recipe(BaseModel):
@@ -101,7 +113,7 @@ class Recipe(BaseModel):
 class ExpectedConflict(BaseModel):
     """The conflict a case must surface.
 
-    ``positions`` is the load-bearing assertion, not ``field``: design §958 specifies the conflict by
+    ``positions`` is the load-bearing assertion, not ``field``: design §3.5 specifies the conflict by
     the values that disagree (26 bp asserted vs 28 bp observed), because *that* is the decidable pair
     a human is being shown. Asserting only the field name would let both positions collapse to the
     same value and still pass.
@@ -136,7 +148,7 @@ class Expected(BaseModel):
 
     outcome: Literal["decide", "refuse", "ask"]
     description: str = ""
-    #: Which code the expectation was written against — required for a HELD-OUT case, meaningless
+    #: Which code the expectation was written against — required for a case over real data, meaningless
     #: for a synthetic one.
     #:
     #: A pre-registration mixes two kinds of claim and only one is sacred:
@@ -144,7 +156,7 @@ class Expected(BaseModel):
     #: (a) claims about the DATASET — organism, chemistry, what the record declares. From public
     #:     metadata. **Never change these.** Editing one after a run is cheating, full stop.
     #: (b) claims about OUR COMPILER'S OUTPUT on that dataset — a function of code version. Editing
-    #:     one after a code change is not tuning against held-out data; it is keeping a prediction
+    #:     one after a code change is not tuning against the answer; it is keeping a prediction
     #:     well-typed.
     #:
     #: This stamp is what makes the difference auditable from `git log` alone: was every (a) claim
@@ -172,10 +184,17 @@ class Case:
     recipe: Recipe
     expected: Expected
     metadata_docs: list[Path]
+    #: `<case>/records.json` — what the archive declares, as `seqforge io records` fetched it.
+    #:
+    #: Committed rather than fetched at run time, for the same reason the FASTQ is a recipe: a case
+    #: must be reproducible and must not need the network. It is public metadata (no lab path, R8's
+    #: `test_skill_never_leaks_a_lab_path` still applies), it is an INPUT rather than an expectation,
+    #: and it is byte-identical to what `io records` returns today.
+    records: ArchiveRecordSet | None = None
 
     @property
     def has_prose(self) -> bool:
-        return bool(self.metadata_docs)
+        return bool(self.metadata_docs) or bool(self.records)
 
 
 @dataclass(frozen=True)
@@ -186,6 +205,9 @@ class Materialized:
     registry: OnlistRegistry | None
     #: Label per file basename, e.g. ``R1.fastq.gz`` -> ``R1``, for role-assignment assertions.
     labels: dict[str, str]
+    #: The case's archive records, carried through so the metadata resolver gets the same input the
+    #: CLI would give it. ``None`` for a case with no accession, which is most of them.
+    records: ArchiveRecordSet | None = None
 
 
 class CaseError(RuntimeError):
@@ -193,7 +215,7 @@ class CaseError(RuntimeError):
 
 
 class CaseSkipped(RuntimeError):
-    """A case cannot run here (held-out root unset, LLM needed but disabled). Never a pass or fail."""
+    """A case cannot run here (local root unset, LLM needed but disabled). Never a pass or fail."""
 
 
 def default_cases_dir() -> Path:
@@ -218,7 +240,38 @@ def load_case(root: Path) -> Case:
 
     meta_dir = root / "metadata"
     docs = sorted(p for p in meta_dir.glob("*") if p.is_file()) if meta_dir.is_dir() else []
-    return Case(id=root.name, root=root, recipe=recipe, expected=expected, metadata_docs=docs)
+    docs += _docs_beside_the_data(recipe)
+
+    records_path = root / "records.json"
+    records = (
+        ArchiveRecordSet.model_validate_json(records_path.read_text())
+        if records_path.is_file()
+        else None
+    )
+    return Case(
+        id=root.name,
+        root=root,
+        recipe=recipe,
+        expected=expected,
+        metadata_docs=docs,
+        records=records,
+    )
+
+
+def _docs_beside_the_data(recipe: Recipe) -> list[Path]:
+    """Prose living at a local case's data root (`docs_glob`), if the root is set and present.
+
+    Silent when the root is unset: the case is about to skip for that reason anyway, and raising here
+    would turn "this machine does not have the data" into a load error for every OTHER case in the
+    corpus, since `discover_cases` loads them all.
+    """
+    gen = recipe.generate
+    if not isinstance(gen, LocalRecipe) or not gen.docs_glob:
+        return []
+    root = os.environ.get(gen.root_env)
+    if not root or not Path(root).is_dir():
+        return []
+    return sorted(p for p in Path(root).glob(gen.docs_glob) if p.is_file())
 
 
 def discover_cases(cases_dir: Path | None = None) -> list[Case]:
@@ -234,18 +287,20 @@ def materialize(case: Case, dest: Path) -> Materialized:
     gen = case.recipe.generate
     dest.mkdir(parents=True, exist_ok=True)
     if isinstance(gen, LocalRecipe):
-        return _materialize_local(gen)
-    if isinstance(gen, RandomRecipe):
-        return _materialize_random(gen, dest)
-    return _materialize_spec(gen, dest)
+        built = _materialize_local(gen)
+    elif isinstance(gen, RandomRecipe):
+        built = _materialize_random(gen, dest)
+    else:
+        built = _materialize_spec(gen, dest)
+    return replace(built, records=case.records)
 
 
 def _materialize_local(gen: LocalRecipe) -> Materialized:
-    import os
-
     root = os.environ.get(gen.root_env)
     if not root:
-        raise CaseSkipped(f"${gen.root_env} is not set (held-out root lives in out-of-git config)")
+        raise CaseSkipped(
+            f"${gen.root_env} is not set (a local case's root lives outside the repo)"
+        )
     base = Path(root)
     if not base.is_dir():
         raise CaseSkipped(f"${gen.root_env}={root} does not exist on this machine")

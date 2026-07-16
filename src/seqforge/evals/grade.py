@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
-from ..models.resolve import ResolveResult
+from ..models.resolve import MetadataResolution, ResolveResult
 
 
 class Grade(StrEnum):
@@ -108,11 +108,18 @@ def grade_case(
     result: ResolveResult,
     exit_code: int,
     labels: dict[str, str],
+    metadata: MetadataResolution | None = None,
 ) -> CaseGrade:
     """Grade one resolve outcome against a case's ``expected.yaml``.
 
     ``labels`` maps file sha256 -> a stable label (``R1``/``R2``) so role assertions can be written
     against the recipe's read ids rather than machine-dependent hashes.
+
+    ``metadata`` is the second resolver's answer, and until it existed the harness could not see a
+    sample at all: it graded a ``ResolveResult``, which has candidates and conflicts and no samples,
+    so every sample-level claim in a pre-registration was un-checkable prose. design.md §9 named
+    that gap ("the grader cannot express … SRX→sample mapping") and it stayed named for as long as
+    nothing produced samples to grade.
     """
     actual = outcome_of(exit_code)
     exp = expected.outcome
@@ -121,11 +128,15 @@ def grade_case(
     if actual == "error":
         return CaseGrade(case_id, Grade.FALSE_REFUSE, exp, actual, notes=[f"exit {exit_code}"])
 
-    # Field checks run on `ask` too, not just `decide`: design §958 says the library section takes the
+    # Field checks run on `ask` too, not just `decide`: design §3.5 says the library section takes the
     # observed value while the conflict stays attached. So "what did the library land on" is a real
     # assertion even when the case correctly stops to ask, and skipping it would leave the value
     # untested on exactly the path where metadata is known to be lying.
-    checks = _check_fields(expected.fields, result, labels) if actual in ("decide", "ask") else []
+    checks = (
+        _check_fields(expected.fields, result, labels, metadata)
+        if actual in ("decide", "ask")
+        else []
+    )
 
     if exp == "decide":
         if actual == "decide":
@@ -198,17 +209,28 @@ def _check_conflict(want: Any, result: ResolveResult) -> tuple[bool, str]:
 
 
 def _check_fields(
-    want: dict[str, Any], result: ResolveResult, labels: dict[str, str]
+    want: dict[str, Any],
+    result: ResolveResult,
+    labels: dict[str, str],
+    metadata: MetadataResolution | None = None,
 ) -> list[FieldCheck]:
     checks: list[FieldCheck] = []
     top = result.candidates[0] if result.candidates else None
     for path, expected in sorted(want.items()):
-        actual = _extract_field(path, result, top, labels)
+        actual = _extract_field(path, result, top, labels, metadata)
         checks.append(FieldCheck(path, expected, actual, _equal(expected, actual)))
     return checks
 
 
-def _extract_field(path: str, result: ResolveResult, top: Any, labels: dict[str, str]) -> Any:
+def _extract_field(
+    path: str,
+    result: ResolveResult,
+    top: Any,
+    labels: dict[str, str],
+    metadata: MetadataResolution | None = None,
+) -> Any:
+    if path.startswith("experiment."):
+        return _extract_experiment_field(path, metadata)
     if top is None:
         return None
     if path == "library.chemistry":
@@ -221,6 +243,46 @@ def _extract_field(path: str, result: ResolveResult, top: Any, labels: dict[str,
         role = path.split(".", 2)[2]
         sha = top.role_assignment.assignment.get(role)
         return labels.get(sha or "", sha)
+    return f"<unsupported field {path}>"
+
+
+def _extract_experiment_field(path: str, metadata: MetadataResolution | None) -> Any:
+    """The sample-level half of the grading surface. ``None`` when the resolver said nothing.
+
+    ``None`` rather than an ``<unsupported field>`` sentinel, and the difference is the whole reason
+    this exists: a pre-registration saying `tissue: Neurons` must FAIL against a manifest that says
+    null. A sentinel string would also fail, but it would fail for the wrong reason and would keep
+    failing after the bug was fixed.
+
+    Two shapes, both dotted:
+
+    - ``experiment.samples.<sample_id>.<attr>`` — one sample's attribute. The sample id is the
+      archive's accession when a record was joined, so this is a claim about a specific BioSample.
+    - ``experiment.samples.*.<attr>`` — the attribute across EVERY sample, sorted. This is what a
+      pre-registration usually wants: "tissue=Neurons" was never a claim about one of the six.
+    - ``experiment.organism`` / ``experiment.study.<field>``.
+    """
+    if metadata is None:
+        return None
+    if path == "experiment.organism":
+        return metadata.organism.value if metadata.organism is not None else None
+    if path.startswith("experiment.study."):
+        field = path.split(".", 2)[2]
+        return getattr(metadata.project, field, None) if metadata.project else None
+    if path.startswith("experiment.samples."):
+        rest = path[len("experiment.samples.") :]
+        sample_id, _, attr = rest.rpartition(".")
+        if not sample_id:  # `experiment.samples.tissue` with no subject names no sample
+            return f"<unsupported field {path}: name a sample id, or '*' for all of them>"
+        if sample_id == "*":
+            return sorted(
+                s.attributes[attr].value for s in metadata.samples if attr in s.attributes
+            )
+        for sample in metadata.samples:
+            if sample.sample_id == sample_id:
+                found = sample.attributes.get(attr)
+                return found.value if found is not None else None
+        return None
     return f"<unsupported field {path}>"
 
 

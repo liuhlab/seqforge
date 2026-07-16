@@ -92,7 +92,7 @@ def test_every_kb_spec_roundtrips(tech: str) -> None:
     This was three hardcoded ids plus a separate v3-only test, and the KB has five. The uncovered
     one was `10x-3p-gex-v3.1`, whose own spec comment says it exists because "a predicate cannot be
     computed about a spec that does not exist" — and it was the one spec this predicate was not
-    computed over. The brief's "adding a technology automatically adds its own test" was false for
+    computed over. The claim that "adding a technology automatically adds its own test" was false for
     exactly as long as this list was written by hand.
 
     Parametrizing over `list_spec_ids()` (the idiom already used twice below) is what makes the
@@ -369,3 +369,117 @@ def test_the_separability_guard_can_actually_catch_a_collision(tmp_path: Path) -
     # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
     splitseq = kb.load_spec("splitseq")
     assert not accepts_at_rungs_0_2(spec, _probes_for(splitseq, tmp_path))
+
+
+# ---------------------------------------------------------------- the mechanism must be able to fire
+
+
+#: KB entries whose declared onlists we do not ship, and which therefore CANNOT be resolved the way
+#: their own spec says they are. An exact pin, not a filter: this is a debt, and a debt you can forget
+#: is a debt you keep.
+#:
+#: **What is actually broken.** `splitseq` declares three barcode whitelists (`splitseq-round1/2/3`)
+#: and says of the one technology it is confusable with: "Rung 3 decides it: the round1/2/3
+#: whitelists hit, and bulk has no whitelist to hit." We ship three whitelists and all three are
+#: 10x's. So `DEFAULT_REGISTRY.has("splitseq-round1")` is False, the three weight-3.0 onlist tests
+#: ABSTAIN, and the one mechanism the spec calls decisive can never fire. A real SPLiT-seq dataset
+#: does not resolve — it asks a human.
+#:
+#: That failure is safe (it over-asks; it does not answer wrongly), which is exactly why it survived:
+#: nothing was red. Every test that appears to prove SPLiT-seq works builds a synthetic registry from
+#: the spec's own aliases — proving the spec agrees with itself, which was never in doubt.
+#:
+#: To close it: obtain the real 96 x 8 bp round1/2/3 barcodes from an authoritative source, verify
+#: them against a real SPLiT-seq dataset, `seqforge io onlist pack` them, and delete the entry below.
+#: Do NOT close it by guessing barcodes: a wrong whitelist does not fail loudly — STARsolo exits 0 and
+#: emits a matrix that merely looks like a thin dataset.
+UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {
+    "splitseq": ["splitseq-round1", "splitseq-round2", "splitseq-round3"],
+}
+
+
+def _onlists_that_would_decide(spec) -> list[str]:
+    """The registry names a spec's own rung-3 claim depends on.
+
+    An onlist referenced only by an `excludes` anti-gate is a detection probe, not a decider, so it
+    is not counted — the same distinction `_build_onlists` already draws in `fill`.
+    """
+    used = {el.onlist for read in spec.reads for el in read.elements if el.onlist}
+    return sorted({spec.onlists[alias].registry for alias in used})
+
+
+def test_a_spec_that_calls_onlists_decisive_can_actually_reach_one() -> None:
+    """The gap this repo could not see: a KB entry declaring what the code cannot execute.
+
+    Adding a technology really is one YAML file and zero Python — SPLiT-seq proves it. But a spec can
+    *declare* a mechanism that does not exist, and that fails SILENTLY: the tests abstain, resolve
+    over-asks, and nothing is red. This is the check that makes the declaration cost something.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+
+    gaps: dict[str, list[str]] = {}
+    for spec_id in kb.list_spec_ids():
+        spec = kb.load_spec(spec_id)
+        if "onlist" not in spec.decidable_by:
+            continue
+        missing = [n for n in _onlists_that_would_decide(spec) if not DEFAULT_REGISTRY.has(n)]
+        if missing:
+            gaps[spec_id] = missing
+
+    assert gaps == UNSHIPPED_ONLIST_DEBT, (
+        "the KB's rung-3 claims no longer match what ships.\n"
+        f"  found:    {gaps}\n"
+        f"  recorded: {UNSHIPPED_ONLIST_DEBT}\n"
+        "If you shipped a whitelist, delete its entry from UNSHIPPED_ONLIST_DEBT. If you added a "
+        "spec that declares onlists we do not have, either ship them or record the debt here — but "
+        "do not leave it unrecorded: a spec whose decisive mechanism cannot fire looks exactly like "
+        "one that works, right up until a real dataset arrives."
+    )
+
+
+def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:
+    """It was a hand-typed field on every spec, read by nothing, with a comment claiming CI computed it.
+
+    `escalate` builds a Question's decidable_by from `confusable_with[].distinguishable_by` inline —
+    the very union the comment described — so the field caused no behaviour and was free to drift.
+    That is `RegistryEntry.fetchable` again, and `required_config` before it.
+    """
+    assert "decidable_by" not in Spec.model_fields
+    for spec_id in kb.list_spec_ids():
+        spec = kb.load_spec(spec_id)
+        expected = sorted(
+            {
+                m
+                for c in spec.confusable_with
+                if c.relationship == "processing_divergent"
+                for m in c.distinguishable_by
+                if m != "none"
+            }
+        )
+        assert spec.decidable_by == expected
+
+
+def test_writing_a_decidable_by_into_a_spec_is_now_an_error() -> None:
+    """Deriving it is only half the fix. The other half is that you cannot re-declare it.
+
+    `Spec` forbids extra keys, so a spec.yaml carrying `decidable_by:` fails to load rather than
+    being silently ignored beside the property that replaced it — which is exactly how a
+    hand-maintained contract comes back.
+    """
+    import yaml
+
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    Spec.model_validate(raw)  # the real spec loads
+    with pytest.raises(ValidationError, match="decidable_by"):
+        Spec.model_validate({**raw, "decidable_by": ["onlist"]})
+
+
+def test_a_spec_with_no_divergent_confusable_is_decidable_by_nothing() -> None:
+    """Not a bug: nothing to decide. §12's equivalent twins are recorded together, never chosen between."""
+    v2 = kb.load_spec("10x-3p-gex-v2")
+    assert v2.decidable_by == []
+    assert all(c.relationship == "processing_equivalent" for c in v2.confusable_with) or not (
+        v2.confusable_with
+    )

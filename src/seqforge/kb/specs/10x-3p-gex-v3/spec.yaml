@@ -100,4 +100,3 @@ confusable_with:
       5' chemistry reads antisense cDNA -> soloStrand Reverse. Read-undecidable when geometry and
       whitelist coincide; metadata (rung 0) or alignment (rung 6) resolves it.
 
-decidable_by: [onlist, metadata, alignment]   # CI-computed union over the divergent confusables

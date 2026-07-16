@@ -30,11 +30,19 @@ def _looks_absolute(uri: str) -> bool:
 
 
 def validate_manifest(
-    manifest: DatasetManifest, *, conflicts: list[Conflict] | None = None
+    manifest: DatasetManifest,
+    *,
+    conflicts: list[Conflict] | None = None,
+    warnings: list[ValidationWarning] | None = None,
 ) -> ValidationReport:
-    """Validate a manifest's cross-section integrity. Any Blocker => not compilable."""
+    """Validate a manifest's cross-section integrity. Any Blocker => not compilable.
+
+    ``warnings`` seeds the report's advisory notes — the metadata resolver's non-blocking
+    sample-attribute decisions (kept-by-precedence or left-null) arrive here — and never touch ``ok``.
+    Only an ``open`` conflict or a Blocker makes a manifest non-compilable.
+    """
     blockers: list[Blocker] = []
-    warnings: list[ValidationWarning] = []
+    warnings = list(warnings or [])
     open_conflicts = [c for c in (conflicts or []) if c.status == "open"]
 
     # --- R9: no absolute/local path may ever reach a manifest (defence in depth) ---
@@ -94,15 +102,15 @@ def validate_manifest(
         )
 
     # --- role/layout coherence: an assigned read_id must name a read in the layout ---
-    layout_roles = {r.read_id for r in manifest.library.read_layout.value.reads}
+    layout_roles = {r.read_id for r in manifest.library.read_layout.reads}
     for f in manifest.library.files:
-        if f.read_id is not None and f.read_id.value not in layout_roles:
+        if f.read_id is not None and f.read_id not in layout_roles:
             blockers.append(
                 Blocker(
                     id=f"blk-role-{f.sha256[:8]}",
                     code=BlockerCode.NO_VALID_ROLE_ASSIGNMENT,
                     message=(
-                        f"{f.basename} is assigned role {f.read_id.value!r}, which is not a read in "
+                        f"{f.basename} is assigned role {f.read_id!r}, which is not a read in "
                         f"the declared layout ({sorted(layout_roles)})."
                     ),
                     remedy="Re-run `seqforge resolve score`; the role assignment must match the layout.",
@@ -110,9 +118,7 @@ def validate_manifest(
                 )
             )
     for role in sorted(layout_roles):
-        if not any(
-            f.read_id is not None and f.read_id.value == role for f in manifest.library.files
-        ):
+        if not any(f.read_id == role for f in manifest.library.files):
             blockers.append(
                 Blocker(
                     id=f"blk-unfilled-{role}",
@@ -126,9 +132,43 @@ def validate_manifest(
                 )
             )
 
+    # --- every file must have a role: a file with none is a file we will silently not process ---
+    #
+    # This is the check that was missing, and its absence is how a 6-run dataset validated clean while
+    # 5/6 of it evaporated. `resolve` did ONE global assignment across all 12 files, so ten came back
+    # with `read_id=None`; `compose._units` skips those without a word; the manifest was
+    # content-addressed and blessed. Exit 0, wrong answer, no symptom.
+    #
+    # The inverse check above ("is every declared role filled?") passed the whole time, because it
+    # only ever needed ONE file per role. Both directions are needed and only one existed.
+    #
+    # No KB spec declares an unusable read (grep `type: index` -> nothing), so today an unassigned
+    # file is always a dropped file, never a legitimately-ignored index read. If a chemistry ever
+    # ships one, it declares the role and gets assigned — and if it truly cannot be, that is a KB
+    # decision to make explicitly, not a default to inherit from silence.
+    for f in manifest.library.files:
+        if f.read_id is None:
+            blockers.append(
+                Blocker(
+                    id=f"blk-unassigned-{f.sha256[:8]}",
+                    code=BlockerCode.NO_VALID_ROLE_ASSIGNMENT,
+                    message=(
+                        f"{f.basename} was given no read role, so the pipeline would not read it. "
+                        f"Its reads would be dropped, and nothing downstream would say so."
+                    ),
+                    remedy=(
+                        "Usually this means the files were resolved as one library when they are "
+                        "several runs: use `seqforge manifest fill` on the whole set (it groups by "
+                        "run and assigns roles per run), or drop the file if it does not belong to "
+                        "this dataset."
+                    ),
+                    subject=BlockerSubject(kind="file", ref=f.basename),
+                )
+            )
+
     # --- onlists: a barcode element naming an unmaterialized whitelist is advisory, not fatal ---
     onlist_names = {o.name for o in manifest.library.onlists}
-    for read in manifest.library.read_layout.value.reads:
+    for read in manifest.library.read_layout.reads:
         for el in read.elements:
             if el.onlist_ref and el.onlist_ref not in onlist_names:
                 warnings.append(

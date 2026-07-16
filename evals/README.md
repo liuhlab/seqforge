@@ -80,11 +80,16 @@ forbidden_fields:                       # fields the prose does NOT state — si
 `forbidden_fields` is not an afterthought. Rewarding recall alone trains the prompt to guess; these
 are the cases where the right answer is to say nothing.
 
-## Held-out cases
+## Cases backed by real data
 
-A held-out case uses `kind: local` with `root_env`, so its ground truth is committed while its bytes
-stay at a path this repo does not contain. If the root is unset or absent the case **skips** — never a
-pass, never a fail. Pre-register `expected.yaml` from declared metadata only, **before** any run.
+A case over real data uses `kind: local` with `root_env`, so its ground truth is committed while its
+bytes stay at a path this repo does not contain — real FASTQs are far too large for git, and their
+location is a lab fact rather than a project fact. If the root is unset or absent the case **skips**:
+never a pass, never a fail.
+
+Pre-register `expected.yaml` from declared metadata only, **before** any run. That discipline is
+independent of whether a case is reserved: it is what separates "we predicted this" from "we wrote
+down what happened", and only the first can be wrong.
 
 ## Conventions
 

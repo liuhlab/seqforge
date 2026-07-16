@@ -30,4 +30,4 @@ assertions:
 forbidden_fields:
   - library.chemistry
   - experiment.accessions
-  - experiment.samples.condition
+  - experiment.samples.treatment

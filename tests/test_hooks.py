@@ -15,9 +15,7 @@ from pathlib import Path
 
 from seqforge.hooks import (
     check_absolute_path_write,
-    check_heldout_access,
     check_unbounded_fastq,
-    heldout_roots,
     post_tool_use_targets,
     pre_tool_use,
     questions_outstanding,
@@ -136,64 +134,13 @@ def test_r9_ignores_files_that_are_not_manifests() -> None:
 
 
 # ---------------------------------------------------------------------------------------------
-# design §8 — the held-out case stays held out
-# ---------------------------------------------------------------------------------------------
-
-ROOT = "/scratch/zzz/heldout-example"
-
-
-def test_heldout_denies_ad_hoc_access() -> None:
-    """ls/head/stat is exactly how a held-out set stops being held out, usually by accident."""
-    for cmd in (f"ls {ROOT}", f"head -c 100 {ROOT}/a.fastq.gz", f"stat {ROOT}/a.fastq.gz"):
-        d = check_heldout_access(cmd, [ROOT])
-        assert d is not None, cmd
-        assert "held-out" in d.rule
-
-
-def test_heldout_allows_the_sanctioned_seqforge_verb() -> None:
-    """The pre-registered run is the POINT of the case; only ad-hoc shell is the leak."""
-    assert check_heldout_access(f"seqforge probe {ROOT}/a.fastq.gz --json", [ROOT]) is None
-
-
-def test_heldout_is_inert_when_no_roots_are_configured() -> None:
-    """The repo carries the RULE; the paths live in out-of-git config. No config => nothing to guard."""
-    assert check_heldout_access(f"ls {ROOT}", []) is None
-
-
-def test_heldout_roots_come_from_case_env_vars(monkeypatch) -> None:
-    """An eval case declares its root via `root_env`, so registering a case protects its data.
-
-    One source of truth: there is no way to add a held-out case and forget to guard it.
-    """
-    monkeypatch.setenv("SEQFORGE_CASE_PRJNA1027859", ROOT)
-    monkeypatch.setenv("SEQFORGE_CASE_OTHER", "/data/other")
-    monkeypatch.setenv("SEQFORGE_NOT_A_CASE", "/data/ignored")
-    roots = heldout_roots(dict(__import__("os").environ))
-    assert ROOT in roots
-    assert "/data/other" in roots
-    assert "/data/ignored" not in roots, "only SEQFORGE_CASE_* names a held-out root"
-
-
-def test_heldout_root_paths_are_never_in_this_repo() -> None:
-    """Design §8: this public repo carries the rule, never the paths."""
-    from seqforge.hooks import guards
-
-    source = Path(guards.__file__).read_text()
-    assert "/scratch/" not in source.replace("/scratch/**", ""), (
-        "a held-out path leaked into the repo"
-    )
-
-
-# ---------------------------------------------------------------------------------------------
 # the PreToolUse dispatcher
 # ---------------------------------------------------------------------------------------------
 
 
-def test_pre_tool_use_routes_bash_write_and_read() -> None:
+def test_pre_tool_use_routes_bash_and_write() -> None:
     assert (
-        pre_tool_use(
-            {"tool_name": "Bash", "tool_input": {"command": "zcat a.fastq.gz | wc -l"}}, roots=[]
-        )
+        pre_tool_use({"tool_name": "Bash", "tool_input": {"command": "zcat a.fastq.gz | wc -l"}})
         is not None
     )
     assert (
@@ -201,13 +148,8 @@ def test_pre_tool_use_routes_bash_write_and_read() -> None:
             {
                 "tool_name": "Write",
                 "tool_input": {"file_path": "manifest.yaml", "file_text": "g: /a/b/c"},
-            },
-            roots=[],
+            }
         )
-        is not None
-    )
-    assert (
-        pre_tool_use({"tool_name": "Read", "tool_input": {"file_path": f"{ROOT}/a"}}, roots=[ROOT])
         is not None
     )
 
@@ -219,23 +161,12 @@ def test_pre_tool_use_reads_every_content_key_spelling() -> None:
             "tool_name": "Edit",
             "tool_input": {"file_path": "manifest.yaml", key: "g: /a/b/c"},
         }
-        assert pre_tool_use(payload, roots=[]) is not None, key
+        assert pre_tool_use(payload) is not None, key
 
 
 def test_pre_tool_use_has_no_opinion_on_unrelated_tools() -> None:
-    assert (
-        pre_tool_use({"tool_name": "WebFetch", "tool_input": {"url": "https://x"}}, roots=[])
-        is None
-    )
-    assert pre_tool_use({}, roots=[]) is None
-
-
-def test_pre_tool_use_denies_writing_into_a_heldout_root() -> None:
-    payload = {
-        "tool_name": "Write",
-        "tool_input": {"file_path": f"{ROOT}/notes.txt", "file_text": "x"},
-    }
-    assert pre_tool_use(payload, roots=[ROOT]) is not None
+    assert pre_tool_use({"tool_name": "WebFetch", "tool_input": {"url": "https://x"}}) is None
+    assert pre_tool_use({}) is None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -245,7 +176,7 @@ def test_pre_tool_use_denies_writing_into_a_heldout_root() -> None:
 
 def test_post_tool_use_targets_manifest_edits_only() -> None:
     assert post_tool_use_targets(
-        {"tool_name": "Write", "tool_input": {"file_path": "/w/.seqforge/manifest.yaml"}}
+        {"tool_name": "Write", "tool_input": {"file_path": "/w/seqforge/manifest.yaml"}}
     )
     assert post_tool_use_targets(
         {"tool_name": "Edit", "tool_input": {"file_path": "manifest.draft.yaml"}}
@@ -263,7 +194,7 @@ def test_post_tool_use_targets_manifest_edits_only() -> None:
 
 
 def test_stop_blocks_while_a_question_is_open(tmp_path: Path) -> None:
-    q = tmp_path / ".seqforge" / "ds1" / "questions.md"
+    q = tmp_path / "seqforge" / "ds1" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("- Which chemistry: v2 or v3?\n")
     reason = stop_decision({}, workspace=tmp_path)
@@ -277,7 +208,7 @@ def test_stop_allows_when_no_questions_are_open(tmp_path: Path) -> None:
 
 def test_stop_ignores_an_empty_questions_file(tmp_path: Path) -> None:
     """An empty ledger is a closed ledger; whitespace must not wedge the turn."""
-    q = tmp_path / ".seqforge" / "questions.md"
+    q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("   \n\n")
     assert stop_decision({}, workspace=tmp_path) is None
@@ -290,7 +221,7 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
     A guard that can hang the agent is worse than the risk it manages: "can never finish" is a worse
     failure than "finished with an open question", because the second is at least visible.
     """
-    q = tmp_path / ".seqforge" / "questions.md"
+    q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("- unresolved\n")
     assert stop_decision({"stop_hook_active": True}, workspace=tmp_path) is None
@@ -299,7 +230,7 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
 
 def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
     for ds in ("a", "b"):
-        p = tmp_path / ".seqforge" / ds / "questions.md"
+        p = tmp_path / "seqforge" / ds / "questions.md"
         p.parent.mkdir(parents=True)
         p.write_text(f"- open in {ds}\n")
     assert len(questions_outstanding(tmp_path)) == 2

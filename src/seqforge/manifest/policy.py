@@ -29,6 +29,7 @@ from ..models.processing import (
     SoloFeature,
     SoloQuant,
 )
+from ..workflows import get_module
 from .instruct import Instruction
 
 
@@ -125,6 +126,16 @@ Reproducibility is not assumed: the 40 M point was re-measured on a different no
 different code path (32 sharded FASTQs vs one file), on *different reads*, and landed on **34.600 GB**
 again — identical to three decimals.
 
+**The instrument that produced these had a floor, found 2026-07-15 and fixed.** ``wait4``'s
+``ru_maxrss`` reports ``max(parent_rss_at_fork, child_peak)`` on Linux — a child's address space
+begins as a copy of its parent's, and ``exec`` never lowers the high-water mark. Measured: beside an
+879 MB parent, a child allocating 1 MB reported ``879260 KiB``, the parent's RSS to the byte. **Every
+number in this table stands**, because the floor was the harness (~1 GB at the very worst) and these
+readings are 34–44 GB — but that is an argument, not a check, so ``kb e2e-cost`` now records
+``harness_peak_rss_kib`` beside every reading and takes the peak from the child's own ``/proc``
+``VmHWM``, which ``exec`` resets. The lesson is the same one this docstring already carries twice: an
+instrument that cannot be wrong in a way you would notice has not been checked.
+
 **None of this changes the default.** Velocyto stays: the knee is a property of counting 250 M reads
 at all, the marginal cost of the fifth rule over the first is not what moves this number, and the
 pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four") is about the
@@ -166,14 +177,25 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     """Derive the processing section's policy defaults from the identified chemistry's backend."""
     module = spec.backend.module
     aligner = _ALIGNER_FOR_MODULE.get(module, module.rsplit("/", 1)[-1])
-    # Every Milestone-0 technology is RNA; ATAC/multiome would select a different env here.
-    environment: RuntimeEnv = "align-rna"
+    # Asked of the MODULE, which is the only thing that knows what software it needs. This was a
+    # hardcoded `"align-rna"` sitting beside a module that also declared `align-rna` — two owners of
+    # one fact, harmless only because no rule read the env. The moment `starsolo_count` grew a
+    # `container:`, that pair could disagree into a container with no STAR in it. An ATAC module
+    # declaring `align-dna` is now simply right, instead of being overridden here by a comment
+    # promising someone would remember.
+    environment: RuntimeEnv = get_module(module).env
     # Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
     # meaningless to STARsolo. A processing manifest that carried one shape unconditionally would be
     # a type error the moment it met the other module.
+    #
+    # Keyed on the block the module READS, not on its name. `if module == "map/starsolo"` was the
+    # same silent fall-through as `param_block_key`'s and `_read_files_in`'s before it: any third
+    # module quietly gets `quantMode=GeneCounts`, which is a real and wrong instruction to an aligner
+    # that may not take it. `param_block` refuses a module whose contract is neither solo nor bulk,
+    # so the `else` here can only be bulk — by construction rather than by hope.
     quantification: Quantification = (
         SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
-        if module == "map/starsolo"
+        if get_module(module).param_block == "solo"
         else BulkQuant(mode="GeneCounts")
     )
     return ProcessingDefaults(
@@ -274,7 +296,8 @@ def resolve_processing(
         quant = defaults.quantification
         basis, evidence = "inferred", ["policy:default-bulk-quant-mode"]
 
-    assembly = ov.assembly or _instructed(instructions, "processing.genome.assembly")
+    instructed = _instructed_entry(instructions, "processing.genome.assembly")
+    assembly = ov.assembly or (instructed.value if instructed else None)
     if assembly is None:
         raise PolicyError(
             f"no genome: this dataset's organism is taxid {dataset.experiment.organism.value}. "
@@ -287,7 +310,21 @@ def resolve_processing(
             "no annotation: --annotation names a GTF REGISTERED with liulab-genome (e.g. WS298). "
             "It is a registry name, not something a paper writes, so there is nothing to infer."
         )
-    genome_basis: Basis = "user_confirmed" if ov.assembly else "asserted"
+    # §7's ladder: a CLI flag and an --instruction document are BOTH `user_confirmed` and differ only
+    # in PRECEDENCE — they are the same user, one talking later. The channel lives in `evidence`.
+    #
+    # This read `"user_confirmed" if ov.assembly else "asserted"`, and `asserted` is what a database
+    # or a paper says — the opposite of the user talking. The branch could only fire when the assembly
+    # came from an instruction, and no production caller ever passed one, so it was dead code AND
+    # wrong. Making the path reachable is what surfaced it.
+    genome_basis: Basis
+    genome_evidence: list[str]
+    if ov.assembly:
+        genome_basis, genome_evidence = "user_confirmed", ["cli:--assembly"]
+    elif instructed is not None:
+        genome_basis, genome_evidence = instructed.basis, list(instructed.evidence)
+    else:  # pragma: no cover - `assembly is None` already raised above
+        genome_basis, genome_evidence = "inferred", []
 
     section = ProcessingSection(
         genome=EvidencedGenome(
@@ -297,7 +334,7 @@ def resolve_processing(
                 ncbi_taxid=dataset.experiment.organism.value,
             ),
             basis=genome_basis,
-            evidence=["cli:--assembly"] if ov.assembly else [],
+            evidence=genome_evidence,
             confidence=0.9,
             rung=0,
         ),
@@ -319,9 +356,15 @@ def resolve_processing(
     return section, warnings
 
 
-def _instructed(instructions: Sequence[Instruction], field: str) -> str | None:
-    """The instructed value for a single-valued field, if any. Same-field conflicts are already out."""
+def _instructed_entry(instructions: Sequence[Instruction], field: str) -> Instruction | None:
+    """The instruction for a single-valued field, if any. Same-field conflicts are already out.
+
+    Returns the Instruction rather than its value, because the basis and evidence are the point: an
+    instruction is the USER talking (`user_confirmed`), and its evidence names the assertion whose
+    quote greps back into the document. Returning a bare string is what let the caller stamp
+    `asserted` — a database's basis — on something a human wrote for us.
+    """
     for i in instructions:
         if i.field == field:
-            return i.value
+            return i
     return None

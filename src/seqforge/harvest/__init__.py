@@ -29,13 +29,22 @@ from .extract import (  # noqa: E402
     extract_drafts,
     llm_schema,
 )
-from .fields import DEFAULT_FIELDS, PERMITTED_FIELDS, is_permitted  # noqa: E402
+from .fields import (  # noqa: E402
+    ASKED_SAMPLE_ATTRIBUTES,
+    DEFAULT_FIELDS,
+    PERMITTED_FIELDS,
+    DocScope,
+    is_permitted,
+)
 from .normalize import (  # noqa: E402
     NORMALIZER_VERSION,
     NormalizedDoc,
+    has_prose,
     normalize_document,
+    normalize_record,
     normalize_text,
     read_document,
+    render_record,
 )
 from .providers import (  # noqa: E402
     ANTHROPIC_DEFAULT_MODEL,
@@ -61,6 +70,9 @@ __all__ = [
     "NORMALIZER_VERSION",
     "NormalizedDoc",
     "normalize_document",
+    "normalize_record",
+    "render_record",
+    "has_prose",
     "normalize_text",
     "read_document",
     "VerifyReport",
@@ -73,6 +85,8 @@ __all__ = [
     "DEFAULT_FIELDS",
     "PERMITTED_FIELDS",
     "is_permitted",
+    "ASKED_SAMPLE_ATTRIBUTES",
+    "DocScope",
     "extract_drafts",
     "build_kb_context",
     "build_system_prompt",

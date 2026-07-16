@@ -28,7 +28,24 @@ rule all:
 
 
 rule genome_index:
-    """Resolve/build the STAR index via liulab-genome at run time (never a path in the manifest)."""
+    """Resolve/build the STAR index via liulab-genome at run time (never a path in the manifest).
+
+    **No `container:`, and that is a measured fact rather than an oversight.** Snakemake wraps a
+    container around a `shell:` command (in `shell.py`); a `run:` block executes Python in the
+    snakemake process and never passes through that wrap, so a `container:` here would be accepted
+    and silently ignored. Snakemake's own linter agrees -- it excludes `is_run` rules from
+    "missing software definition".
+
+    So this rule borrows the ambient STAR, and only when it has to: liulab-genome caches the index and
+    `build_star_index` re-runs `genomeGenerate` only if there is no cached one. On a machine where
+    LIULAB_DATA is populated -- the normal case -- no STAR is invoked here at all, and the container on
+    the alignment rule pins the aligner that does the work. On a fresh machine the first run needs a
+    STAR on PATH. If that STAR and the container's disagree on index version, STAR refuses loudly,
+    which is the failure mode we can live with.
+
+    The deeper reason not to fight this: the index is **liulab-genome's artifact** (R12). How it gets
+    built, and in what environment, is theirs. We consume it.
+    """
     output:
         directory(f"{OUTDIR}/index/{ASSEMBLY}"),
     params:
@@ -53,6 +70,9 @@ rule star_count:
         index=rules.genome_index.output,
     output:
         f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
+    # liulab-runtime's `align-rna`, resolved by compose. See starsolo.smk's note: consuming their
+    # artifact, not defining an env (R12), and honoured only under `--software-deployment-method`.
+    container: config["container"]
     threads: config["threads"]
     params:
         bulk=config["bulk"],

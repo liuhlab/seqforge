@@ -119,9 +119,9 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert filled.exit_code == 0, filled.stdout
     assert json.loads(filled.stdout)["report"]["ok"] is True
     # R7: manifest.yaml exists only because validate came back clean
-    manifest_path = tmp_path / ".seqforge" / "manifest.yaml"
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
     assert manifest_path.is_file()
-    assert not (tmp_path / ".seqforge" / "manifest.draft.yaml").exists()
+    assert not (tmp_path / "seqforge" / "manifest.draft.yaml").exists()
 
     validated = runner.invoke(app, ["manifest", "validate", str(manifest_path)])
     assert validated.exit_code == 0
@@ -177,6 +177,151 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert ((tmp_path / doc["config_path"]).parent / "processing.lock.yaml").is_file()
 
 
+def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
+    """`seqforge run` chains probe->resolve->manifest->processing->compose and emits one summary.
+
+    The same deterministic spine as `test_manifest_fill_validate_hash_compose_spine`, but driven
+    through the single verb an agent (or `claude -p`) actually calls. `--no-llm` keeps it network- and
+    provider-free, which is the branch CI can run; the bulk path needs no onlist. It proves the one
+    thing a chain of separately-green stages does not: that the composition itself produces every
+    artifact.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(f1),
+            str(f2),
+            "--organism",
+            "559292",
+            "--assembly",
+            "sacCer3",
+            "--annotation",
+            "ensembl",
+            "--no-llm",
+            "--fastq-dir",
+            str(tmp_path),
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    summary = json.loads(result.stdout)
+    assert summary["ok"] is True
+    # one summary, keyed by stage — records was skipped (no accession), harvest skipped (--no-llm)
+    assert set(summary["stages"]) == {"manifest", "processing", "compose"}
+    assert summary["stages"]["compose"]["gate"]["params"] == "pass"
+
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
+    assert manifest_path.is_file() and summary["manifest"] == str(manifest_path)
+    assert (tmp_path / "seqforge" / "processing.yaml").is_file()
+    # the deliverable, and it is where the summary says it is
+    assert (tmp_path / summary["snakefile"]).is_file()
+    # R13: the recipe file did not perturb the dataset — validate still comes back clean by name
+    assert runner.invoke(app, ["manifest", "validate", str(manifest_path)]).exit_code == 0
+
+
+def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
+    """The one real decision has no safe default: no --assembly, no instruction -> exit 2, not a guess.
+
+    And the manifest is still written — the IR is what the data IS, independent of what you do with
+    it — so the refusal is precisely at the `processing` stage, with an actionable message (R4/R12).
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app, ["run", str(f1), str(f2), "--organism", "559292", "--no-llm", "-C", str(tmp_path)]
+    )
+    assert result.exit_code == 2, result.stdout
+    summary = json.loads(result.stdout)
+    assert summary["ok"] is False
+    assert set(summary["stages"]) == {"manifest", "processing"}  # stopped exactly at the genome
+    assert "559292" in summary["stages"]["processing"]["error"], "the refusal must be actionable"
+    assert (tmp_path / "seqforge" / "manifest.yaml").is_file()  # the IR still landed
+
+
+def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> None:
+    """`run` must complete one-pass on a real paper whose prose the span-checker cannot fully entail.
+
+    A rejected reference claim (the pilot's "Single Cell 3' v3.1" prose the entailment could not tie to
+    a KB id) never enters the manifest and the bytes decide chemistry, so it is surfaced, not fatal. A
+    conflict (instructions disagreeing) and an unavailable provider still stop the pass.
+    """
+    from seqforge.cli import _harvest_halts_run
+
+    assert _harvest_halts_run({"n_accepted": 9}, 0) is False  # clean
+    assert (
+        _harvest_halts_run({"rejected": [{"field": "library.chemistry"}], "conflicts": []}, 4)
+        is False
+    )
+    assert _harvest_halts_run({"conflicts": [{"field": "processing.genome.assembly"}]}, 4) is True
+    assert _harvest_halts_run({"error": "no_provider"}, 1) is True  # the LLM stage could not run
+    assert _harvest_halts_run("some string payload", 4) is True  # not a dict -> cannot clear it
+
+
+def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None:
+    """`--cpus` is a speed knob, never a truth knob (R3): cores are not a budget any more than the
+
+    wall clock is. Probing the files across a process pool must produce the byte-identical manifest a
+    sequential probe does — so the content hash is the same whether you used 1 core or 4.
+
+    The FASTQs are written ONCE and reused across both runs: ``gzip`` stamps the current mtime into its
+    header, so regenerating a "logically identical" file yields different bytes and a different (and
+    correct) content hash. Same input bytes in, same hash out is precisely the property under test.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    data = tmp_path / "data"
+    data.mkdir()
+    f1 = data / "s_R1.fastq.gz"
+    f2 = data / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    def hash_with(cpus: int, ws: Path) -> str:
+        ws.mkdir()
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                str(f1),
+                str(f2),
+                "--organism",
+                "559292",
+                "--assembly",
+                "sacCer3",
+                "--annotation",
+                "ensembl",
+                "--no-llm",
+                "--fastq-dir",
+                str(data),
+                "--cpus",
+                str(cpus),
+                "-C",
+                str(ws),
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+        import yaml as _yaml
+
+        manifest = _yaml.safe_load((ws / "seqforge" / "manifest.yaml").read_text())
+        return manifest["provenance"]["dataset_hash"]
+
+    assert hash_with(1, tmp_path / "seq") == hash_with(4, tmp_path / "par")
+
+
 def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     doc = tmp_path / "methods.txt"
     doc.write_text("Libraries were prepared with the Chromium Single Cell 3' v3 kit.")
@@ -184,7 +329,15 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     assert norm.exit_code == 0
     row = json.loads(norm.stdout)["normalized"][0]
     assert row["source"] == "methods.txt" and row["n_chars"] > 0
-    assert (tmp_path / ".seqforge" / "normalized" / f"{row['doc_sha256']}.txt").is_file()
+    # A readable name, not a bare 64-hex one. The hash stays -- it is the identity, and two documents
+    # can share a name -- but `seqforge/documents/` used to be a directory in which nothing said
+    # which file was the paper.
+    written = tmp_path / "seqforge" / "documents" / f"methods-{row['doc_sha256'][:12]}.txt"
+    assert written.is_file()
+    assert row["path"] == str(written.relative_to(tmp_path))
+    # ...and a human-supplied document is about the whole dataset. It is the only honest reading of
+    # "here is the paper", and it is what stops its sample claims being recorded as declarations.
+    assert row["scope"] == "dataset" and row["subject"] is None
 
     # one truthful draft + one with a real quote pinned to a wrong value
     drafts = tmp_path / "drafts.json"
@@ -236,9 +389,14 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
-    # geometry-only path (default registry materializes no onlist) still decides v3 at rung 2
     assert doc["candidates"][0]["technology"] == "10x-3p-gex-v3"
-    assert doc["rung_reached"] == 2
+    # Rung 3, because the real `3M-february-2018` now SHIPS and the onlist check actually runs. This
+    # asserted `== 2` and was right at the time: every registry entry carried `uri=""`/`sha256=""`,
+    # so nothing could be materialized and the ladder stopped at geometry. These reads are synthetic,
+    # so their random barcodes miss the real whitelist and rung 3 contributes no support -- v3 still
+    # wins on geometry. What changed is that the rung is REACHED, which is the difference between a
+    # 10x dataset composing and `compose` exiting 3.
+    assert doc["rung_reached"] == 3
 
 
 # --------------------------------------------------------------------------------------------
@@ -376,3 +534,204 @@ def test_no_module_under_src_prints_to_stdout() -> None:
         f"print() to stdout in a library module: {offenders}. stdout carries the JSON result (R8); "
         f"send narration to stderr with file=sys.stderr."
     )
+
+
+def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> None:
+    """The pilot's shape, through the real CLI: 12 files, 6 runs, 6 samples, 0 files dropped.
+
+    Before this, `manifest fill` handed every file to one `resolve_dataset` call, which does one
+    global role assignment: two files got roles, TEN got `read_id=None`, `compose._units` skipped
+    them in silence, and `validate` said ok. A clean, content-addressed manifest recording a wrong
+    answer, exit 0 -- on a dataset that is 6 runs, which the pilot's is.
+
+    Bulk paired-end so no onlist is needed; the multi-run machinery is chemistry-blind.
+
+    **The files are one directory per accession, because that is the pilot's ACTUAL shape** -- it is
+    how `fasterq-dump` wrote them. This test laid them out flat while claiming to be the pilot's
+    shape, and the gap was not cosmetic: a flat directory is its own dataset root, so every URI is a
+    basename and the one code path that has to agree about URIs was never exercised. On the real
+    dataset `manifest fill` refused its own manifest with six referential-integrity Blockers, because
+    `cli.py` built `SampleGroup.file_uris` from basenames while `fill_manifest` built relative paths.
+    Every fixture in this repo was flat; that is why nothing saw it.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    accessions = [f"SRR2871655{i}" for i in range(3, 9)]
+    paths: list[str] = []
+    for i, acc in enumerate(accessions):
+        reads = kb.generate_reads(spec, n=400, seed=i)
+        run_dir = tmp_path / "data" / f"SRX2428313{i}"
+        run_dir.mkdir(parents=True)
+        for mate, role in (("1", "R1"), ("2", "R2")):
+            p = run_dir / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(str(p))
+
+    filled = runner.invoke(
+        app, ["manifest", "fill", *paths, "--organism", "6239", "-C", str(tmp_path)]
+    )
+    assert filled.exit_code == 0, filled.stdout
+    assert json.loads(filled.stdout)["report"]["ok"] is True
+
+    import yaml
+
+    manifest = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
+    files = manifest["library"]["files"]
+    assert len(files) == 12, "every input file is in the inventory"
+    assert all(f["read_id"] is not None for f in files), "and every one of them has a role"
+
+    samples = manifest["experiment"]["samples"]
+    assert [s["sample_id"] for s in samples] == sorted(accessions), "one sample per RUN"
+    assert sum(len(s["file_uris"]) for s in samples) == 12
+
+    # Every sample URI is an inventory URI. `validate`'s referential-integrity check says this too,
+    # and said it on arc -- but only once the layout had subdirectories for the two builders to
+    # disagree about. Asserted here so the disagreement is a unit-test failure, not a cluster one.
+    assert {u for s in samples for u in s["file_uris"]} == {f["uri"] for f in files}
+    # ...and the URIs kept the directory, which is what makes `compose --fastq-dir <root>` resolve
+    assert all(f["uri"].startswith("SRX2428313") for f in files), (
+        f"the per-accession directory was dropped: {sorted(f['uri'] for f in files)[:2]}"
+    )
+
+    # the roles came from BYTES: _1/_2 is fasterq-dump's dump order and means nothing
+    roles = {f["basename"]: f["read_id"] for f in files}
+    assert set(roles.values()) == {"R1", "R2"}
+    # ...and each file states its role once, as a string. It used to carry a full Evidenced envelope
+    # holding a copy of the chemistry's confidence -- twelve copies of one number, because the role
+    # assignment and the chemistry are two halves of ONE joint optimization. That number lives on
+    # `library.chemistry`, which is the decision it is about.
+    assert manifest["library"]["chemistry"]["confidence"] is not None
+    assert all(isinstance(f["read_id"], str) for f in files)
+
+    # No accession was given, so nothing was fetched and no sample carries a fact. That is not a
+    # degraded mode -- most sequencing data never had an accession -- and it must not be a refusal.
+    assert all(s["attributes"] == {} for s in samples)
+    assert all(s["accession"] is None for s in samples)
+    assert manifest["experiment"]["study"] is None
+
+
+def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: Path) -> None:
+    """The last mile of a join that already existed and was unreachable.
+
+    `resolve_processing` has always implemented flag > instruction > policy, and its PolicyError even
+    says "Pass --assembly/--annotation, **or name an assembly in an --instruction document**". That
+    branch could not be reached: `--assembly` was a REQUIRED option, and no production caller ever
+    passed `instructions=`. So the instructable surface was real in the API and absent from the CLI.
+
+    Note where the model is and is not. It FOUND `processing.genome.assembly: ce11` in a document the
+    user handed us with `--instruction`, and code verified the quote greps back and entails the value
+    (R5). Applying precedence is code, here. No new LLM authority -- which is the whole reason the
+    instructable path is allowed to exist.
+    """
+    import yaml as _yaml
+
+    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
+
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    for k in ("R1", "R2"):
+        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+    filled = runner.invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            str(tmp_path / "s_R1.fastq.gz"),
+            str(tmp_path / "s_R2.fastq.gz"),
+            "--organism",
+            "Caenorhabditis elegans",
+            "--offline",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert filled.exit_code == 0, filled.stdout
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
+
+    # the organism arrived as a NAME and was resolved to a taxid by code, not retyped by a human
+    manifest = _yaml.safe_load(manifest_path.read_text())
+    assert manifest["experiment"]["organism"]["value"] == 6239
+
+    doc_sha = "a" * 64
+    span = SourceSpan(
+        doc_sha256=doc_sha, quote="align this dataset against ce11", char_start=0, char_end=31
+    )
+    assertions = {
+        "instruction_docs": [doc_sha],
+        "assertions": [
+            Assertion(
+                id="a1",
+                field="processing.genome.assembly",
+                value="ce11",
+                span=span,
+                span_verified=True,
+                entailment_ok=True,
+                llm_confidence=0.9,
+                extractor=ExtractorProvenance(model_id="test/fixture", prompt_version="v1"),
+            ).model_dump(mode="json")
+        ],
+    }
+    apath = tmp_path / "assertions.json"
+    apath.write_text(json.dumps(assertions))
+
+    out = tmp_path / "processing.yaml"
+    made = runner.invoke(
+        app,
+        [
+            "processing",
+            "new",
+            str(manifest_path),
+            "--annotation",
+            "WS298",
+            "--assertions",
+            str(apath),
+            "-o",
+            str(out),
+        ],
+    )
+    assert made.exit_code == 0, made.stdout
+    doc = _yaml.safe_load(out.read_text())
+    genome = doc["processing"]["genome"]
+    assert genome["value"]["assembly"] == "ce11", "the instruction never reached the manifest"
+    # basis records WHO DECIDED: a document the user authored for seqforge is the user talking (§7)
+    assert genome["basis"] == "user_confirmed"
+
+
+def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> None:
+    """A bare list cannot say which documents were --instruction, and only those may set processing.*.
+
+    Silently treating every assertion as instructable would turn a downloaded GEO description into a
+    path to --soloStrand: prompt injection from a database field into an aligner (R14). Refuse.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    for k in ("R1", "R2"):
+        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+    runner.invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            str(tmp_path / "s_R1.fastq.gz"),
+            str(tmp_path / "s_R2.fastq.gz"),
+            "--organism",
+            "6239",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps([{"field": "processing.genome.assembly", "value": "ce11"}]))
+    res = runner.invoke(
+        app,
+        [
+            "processing",
+            "new",
+            str(tmp_path / "seqforge" / "manifest.yaml"),
+            "--annotation",
+            "WS298",
+            "--assertions",
+            str(old),
+        ],
+    )
+    assert res.exit_code == 2
+    assert "harvest extract" in res.stdout + str(res.stderr or "")

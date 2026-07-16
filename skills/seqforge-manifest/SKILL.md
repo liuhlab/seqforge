@@ -11,7 +11,9 @@ description: >-
 # seqforge manifest + processing
 
 ```bash
-seqforge manifest fill FILES… --organism 6239 [--accession …]   # the DATASET: what the data IS
+seqforge manifest fill FILES… [--accession PRJNA…] [--assertions seqforge/assertions.json] \
+        [--organism 6239] [--records seqforge/records/PRJNA….json] [--offline]
+                                                                # the DATASET: what the data IS
 seqforge manifest validate MANIFEST                             # the refusal contract (R4)
 seqforge manifest hash MANIFEST
 
@@ -35,11 +37,54 @@ different flags = different binaries. Aligning one dataset three ways is three p
 against one unchanged `dataset_hash` — never three forks of the truth. **If you find yourself editing
 `manifest.yaml` to change how something is processed, stop: that is the bug R13 exists to prevent.**
 
-`run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, and `.seqforge/pipeline/<run_id>/` is keyed by it,
-so two recipes over one dataset produce two runs rather than one silently overwriting the other.
+`run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, and `seqforge/pipeline/<recipe>-<run_id[:12]>/`
+is keyed by it, so two recipes over one dataset produce two runs rather than one silently overwriting
+the other.
 
 `manifest fill` takes **no genome**. Choosing a reference is intent, not something you learn by
 probing bytes — it lives in `processing new`.
+
+## An accession is fetched, not decoration
+
+`--accession PRJNA1027859` pulls the project, sample, experiment and run records and joins them to the
+files. **That is where per-sample metadata comes from** — `strain`, `tissue`, `sex`, `dev_stage` live
+on the BioSample record, and until 2026-07-16 they were fetched by no code at all, which is why every
+sample in the pilot's manifest said `tissue: null` under a paper that says "neurons".
+
+`--organism` becomes optional when you pass one: the record declares the taxid. A flag still beats the
+record — a human typing a taxid is asserting it now, having looked.
+
+**No accession is fine and is the common case.** Most sequencing data never had one. You get samples
+grouped by run, no facts attached, exit 0. What is *not* fine is an accession that cannot be fetched:
+that exits 3. You asked for those facts, and a manifest is content-addressed and never rewritten, so
+quietly omitting them would bake the omission in. `--offline` with `--accession` refuses for the same
+reason; fetch once with `seqforge io records` and pass `--records`.
+
+**`--assertions` is how prose reaches the manifest.** Without it the model might as well not have run:
+`harvest extract` writes `seqforge/assertions.json` and nothing read it. Pass
+`harvest extract --records` too, and each archive record becomes its own document — which is how a
+claim gets to name a sample.
+
+## Sample attributes are NCBI's vocabulary, not ours
+
+`experiment.samples[].attributes` is keyed by an **NCBI harmonized BioSample attribute name** — one of
+960, with NCBI's definitions (`seqforge io attributes` lists them; `seqforge io attributes <name>`
+explains one). The validator refuses anything else.
+
+There is no `condition`. It was ours, no archive defines it, and a field named "condition" accepts
+anything you can call a condition — a model duly filed routine worm husbandry into it. Use NCBI's
+`treatment` / `genotype` / `disease`.
+
+## One decision, one confidence
+
+`library` holds exactly one `Evidenced` field: `chemistry`. Everything else there follows from it —
+`assay` is the same answer in EFO's vocabulary (one label per chemistry, with EFO's own name),
+`read_layout` is the KB's structure filled in with measured lengths, `files[].read_id` is the other
+half of the same joint optimization. They used to each carry a copy of the same number.
+
+`confidence: null` is legal and informative: it means nothing was judged. A `strain: CQ758` copied out
+of a BioSample record is a transcription, not a judgement — `basis: asserted` plus the record
+accession in `evidence` already says everything true about how we know it.
 
 ## basis means different things in the two files (R6)
 

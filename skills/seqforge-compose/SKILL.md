@@ -20,7 +20,7 @@ processing manifest is data, not a side channel.
 `--processing` is optional. A processing manifest exists because someone wanted something
 non-default; requiring one per dataset would mean 10⁴ boilerplate files nobody reads. Either way
 compose writes the fully-resolved, dataset-**bound** manifest it used to
-`.seqforge/pipeline/<run_id>/processing.lock.yaml` — R7 says disk is *state*, not that disk is
+`seqforge/pipeline/<run_id>/processing.lock.yaml` — R7 says disk is *state*, not that disk is
 *input*, so the run's decisions are recoverable regardless.
 
 Output is keyed by `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, **not** by the workspace: one

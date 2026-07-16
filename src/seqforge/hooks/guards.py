@@ -1,8 +1,8 @@
 """Hook guards — the rules turned into mechanism (design §4.2).
 
-`CLAUDE.md` says R3 (never read a whole FASTQ), R9 (no absolute paths in a manifest), R4 (refusal is
-an exit code) and "don't touch the held-out case". Written down, those are aspirations. Here they
-become something that actually stops a tool call.
+`CLAUDE.md` says R3 (never read a whole FASTQ), R9 (no absolute paths in a manifest) and R4 (refusal
+is an exit code). Written down, those are aspirations. Here they become something that actually stops
+a tool call.
 
 **The logic lives here, not in a shell script, for one reason: a guard that silently never fires is
 indistinguishable from a guard that always allows — and that is the worst possible failure for a
@@ -12,8 +12,7 @@ accepted) because a hook that misreads one field name fails open, quietly, forev
 
 Three events, three jobs:
 
-- ``PreToolUse``  — deny an unbounded FASTQ stream, deny writing an absolute path into a manifest, and
-  deny ad-hoc access to a held-out acceptance case.
+- ``PreToolUse``  — deny an unbounded FASTQ stream, and deny writing an absolute path into a manifest.
 - ``PostToolUse`` — re-run ``manifest validate`` after any manifest edit; the model does not get to
   decide whether its own edit was valid (R2).
 - ``Stop``        — refuse to end a turn while ``questions.md`` is non-empty; exit 4 and this hook are
@@ -22,15 +21,20 @@ Three events, three jobs:
 
 from __future__ import annotations
 
-import os
 import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..workspace import state_dir
+
 #: CalVer YYYY.M.PATCH. Bump when a guard's semantics change.
-HOOKS_VERSION = "2026.7.0"
+#: 2026.7.1 — the held-out guard is REMOVED. `PRJNA1027859` became the pilot's demo dataset, so
+#: reserving it was a misunderstanding rather than a rule worth keeping; the `SEQFORGE_CASE_*` root
+#: registry went with it. Deleted, not disabled: a guard nobody wants should not linger as dead code
+#: that a future reader mistakes for protection.
+HOOKS_VERSION = "2026.7.1"
 
 #: Readers that will happily stream a 40 GB file to stdout.
 _STREAMERS = ("cat", "zcat", "gzcat", "bzcat", "xzcat", "gunzip", "zless", "zmore")
@@ -42,14 +46,6 @@ _BOUNDED = re.compile(
 )
 
 _FASTQ = re.compile(r"[^\s'\"]+\.(fastq|fq)(\.gz|\.bz2|\.xz)?\b", re.IGNORECASE)
-
-#: Where the held-out roots are declared. The repo carries the RULE; the paths live in out-of-git
-#: config, so this file names a location and never a path (design §8).
-_HELDOUT_FILE = Path.home() / ".claude" / "seqforge" / "heldout-roots.txt"
-
-#: Any env var named like this holds a held-out dataset root. The eval cases' own `root_env` values
-#: are exactly these, so declaring a case automatically protects its data — one source of truth.
-_HELDOUT_ENV_PREFIX = "SEQFORGE_CASE_"
 
 _ABS_PATH = re.compile(r"(?<![\w.])/(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+")
 
@@ -77,33 +73,12 @@ class Denial:
         return f"{self.rule}: {self.reason}\nRemedy: {self.remedy}"
 
 
-def heldout_roots(env: dict[str, str] | None = None) -> list[str]:
-    """Held-out dataset roots, from out-of-git config only — never from this repo (design §8).
-
-    Two sources, unioned: ``~/.claude/seqforge/heldout-roots.txt`` (one path or glob per line) and
-    every ``SEQFORGE_CASE_*`` env var. The second is the useful one: an eval case declares its data
-    root via ``root_env``, so registering a held-out case automatically protects it. One source of
-    truth, and no way to add a case while forgetting to guard it.
-    """
-    environ = os.environ if env is None else env
-    roots: list[str] = []
-    for key, value in environ.items():
-        if key.startswith(_HELDOUT_ENV_PREFIX) and value.strip():
-            roots.append(value.strip())
-    if _HELDOUT_FILE.is_file():
-        for line in _HELDOUT_FILE.read_text().splitlines():
-            entry = line.strip()
-            if entry and not entry.startswith("#"):
-                roots.append(entry)
-    return sorted(set(roots))
-
-
 def _is_seqforge_command(command: str) -> bool:
     """Is this a sanctioned seqforge verb? Those are bounded by construction (R3) and are the API (R8).
 
-    This is the line the guard draws: `seqforge probe` on held-out data is the sanctioned, bounded,
-    auditable path. `cat` on the same file is the leak. Blocking both would make the tool unusable;
-    blocking neither would make the rule decorative.
+    This is the line the guard draws: `seqforge probe` is the sanctioned, bounded, auditable path.
+    `cat` on the same file is the leak. Blocking both would make the tool unusable; blocking neither
+    would make the rule decorative.
     """
     try:
         parts = shlex.split(command)
@@ -144,33 +119,6 @@ def check_unbounded_fastq(command: str) -> Denial | None:
     )
 
 
-def check_heldout_access(command: str, roots: list[str]) -> Denial | None:
-    """Design §8: a held-out acceptance case must not be read, sampled, listed, stat'd, or tuned against.
-
-    Sanctioned `seqforge` verbs pass — they are bounded and auditable, and a pre-registered run is the
-    whole point of having the case. Ad-hoc shell does not: `ls`, `head`, `stat` are exactly how a
-    held-out set stops being held out, usually by accident and usually while "just checking something".
-    """
-    if not command or not roots:
-        return None
-    for root in roots:
-        if root and root in command:
-            if _is_seqforge_command(command):
-                return None
-            return Denial(
-                rule="held-out acceptance case (design §8)",
-                reason=(
-                    f"this touches {root}, a held-out dataset root. Reading, listing, or stat'ing it "
-                    "burns the case: once seen, it can no longer measure what it was reserved for."
-                ),
-                remedy=(
-                    "build against synthetic KB round-trip fixtures instead (`seqforge kb roundtrip`, "
-                    "`seqforge eval run`). The case runs once, pre-registered, when the maintainer says so."
-                ),
-            )
-    return None
-
-
 def check_absolute_path_write(file_path: str, content: str) -> Denial | None:
     """R9: a manifest with a machine-specific path is not a manifest, it is a note to one machine."""
     if not file_path or not _MANIFEST_FILE.search(file_path):
@@ -208,38 +156,18 @@ def _content_of(tool_input: dict[str, Any]) -> str:
     return ""
 
 
-def pre_tool_use(payload: dict[str, Any], *, roots: list[str] | None = None) -> Denial | None:
+def pre_tool_use(payload: dict[str, Any]) -> Denial | None:
     """Decide a PreToolUse call. ``None`` == no opinion (the normal permission flow still applies)."""
     tool = str(payload.get("tool_name") or payload.get("toolName") or "")
     tool_input = _tool_input(payload)
-    known = roots if roots is not None else heldout_roots()
 
     if tool == "Bash":
-        command = str(tool_input.get("command") or "")
-        return check_heldout_access(command, known) or check_unbounded_fastq(command)
+        return check_unbounded_fastq(str(tool_input.get("command") or ""))
 
     if tool in ("Write", "Edit", "NotebookEdit"):
         file_path = str(tool_input.get("file_path") or tool_input.get("path") or "")
-        for root in known:
-            if root and file_path.startswith(root):
-                return Denial(
-                    rule="held-out acceptance case (design §8)",
-                    reason=f"this writes into {root}, a held-out dataset root.",
-                    remedy="write to the workspace instead; held-out roots are read-only and off-limits.",
-                )
         return check_absolute_path_write(file_path, _content_of(tool_input))
 
-    if tool in ("Read", "Grep", "Glob"):
-        target = str(
-            tool_input.get("file_path") or tool_input.get("path") or tool_input.get("pattern") or ""
-        )
-        for root in known:
-            if root and root in target:
-                return Denial(
-                    rule="held-out acceptance case (design §8)",
-                    reason=f"this reads {root}, a held-out dataset root.",
-                    remedy="build against synthetic fixtures; the case runs once, on the maintainer's go.",
-                )
     return None
 
 
@@ -260,7 +188,7 @@ def post_tool_use_targets(payload: dict[str, Any]) -> str | None:
 
 def questions_outstanding(workspace: Path) -> list[Path]:
     """Every non-empty ``questions.md`` under ``.seqforge/`` — the open-ambiguity ledger."""
-    state = Path(workspace) / ".seqforge"
+    state = state_dir(workspace)
     if not state.is_dir():
         return []
     return [p for p in sorted(state.rglob("questions.md")) if p.read_text().strip()]

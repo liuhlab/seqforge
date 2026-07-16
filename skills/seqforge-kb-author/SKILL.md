@@ -2,7 +2,7 @@
 name: seqforge-kb-author
 description: >-
   Author a new knowledge-base technology entry (spec.yaml + README.md +
-  fixtures) and prove it with `seqforge kb roundtrip|lint|confusability`. Use
+  fixtures) and prove it with `seqforge kb roundtrip|lint|e2e`. Use
   when adding support for a sequencing chemistry seqforge does not know, or when
   editing an existing spec. The skill drafts prose; the verbs that write and
   verify are deterministic.
@@ -13,15 +13,29 @@ description: >-
 ```bash
 seqforge kb list | show TECH | lint
 seqforge kb roundtrip TECH        # spec -> synth -> probe -> recover; recovered == declared?
-seqforge kb confusability         # does this collide with an existing entry?
 seqforge kb e2e --workdir DIR     # the real count matrix, vs injected truth
 seqforge kb e2e-introns --workdir DIR --assembly ce11   # the GeneFull path
 ```
 
 ## R10: every entry is executable and self-testing
 
-A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` and
-`kb confusability` gate CI: a new tech that silently collides with an existing one blocks the merge.
+A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the
+pairwise checks live in the SUITE, not in a verb: `test_no_spec_pair_is_confusable_without_declaring_it`
+and `test_section_12_biconditional_holds_over_every_loaded_spec_pair` both collect from
+`kb.list_spec_ids()`, so your new spec is covered because it exists, not because someone remembered.
+
+**There is no `kb confusability` verb.** This skill documented one for a year and it was never built —
+found 2026-07-16 when the verb guard learned to check subcommands instead of only groups.
+
+**`decidable_by` is DERIVED, do not write one.** It is the union of `distinguishable_by` over your
+processing-divergent confusables. It used to be a hand-typed field on every spec that nothing read,
+two of them carrying the comment "CI-computed union over the divergent confusables" — no CI computed
+it. Declare the confusables honestly and the summary follows.
+
+**A whitelist you declare must be one we ship.** `test_a_spec_that_calls_onlists_decisive_can_actually
+_reach_one` checks it: a spec whose decisive mechanism cannot fire looks exactly like one that works,
+right up until a real dataset arrives. SPLiT-seq is the standing example — it names three barcode
+lists, we ship none of them, so its three most important tests silently ABSTAIN.
 
 The generator reads **only** `spec.reads` — never `signature` or `backend`. That is what makes the
 round-trip a real test rather than a tautology, so do not "help" by teaching the generator about the

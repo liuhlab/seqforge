@@ -3,7 +3,7 @@
 The model call is faked. That is the point: everything *around* the model is deterministic and must be
 provable without spending a token — the schema, the stability of the cached prefix, and above all that
 code (not the model) owns provenance, offsets, and the shape gate. Extraction *quality* is an evals
-concern (brief §9), not a unit-test one.
+concern (evals), not a unit-test one.
 
 Both provider shapes are covered, because they differ in a way that matters: a strict-schema provider
 guarantees the shape, a json-object provider (DeepSeek) does not. The gate must hold either way.
@@ -133,6 +133,32 @@ def test_system_prompt_satisfies_the_json_mode_contract() -> None:
         assert volatile not in prompt  # nothing per-request may enter the cached prefix
 
 
+def test_prompt_names_only_permitted_fields() -> None:
+    """Every manifest path the prompt names must be one code will actually accept.
+
+    `experiment.samples.condition` sat in the prompt for a version after it was cut from the
+    asked vocabulary, so the model was being taught to produce a draft `verify` is guaranteed to
+    reject as `field_not_permitted`: wasted extraction, and a standing re-invitation to the misfiling
+    that removing the field closed. Derive the invariant from the prompt text and PERMITTED_FIELDS
+    instead of trusting a human to keep the two in step — the hand-maintained-mirror rot `fields.py`
+    is entirely about.
+    """
+    import re
+
+    from seqforge.harvest.extract import _INSTRUCTIONS
+    from seqforge.harvest.fields import PERMITTED_FIELDS
+
+    named = {
+        tok
+        for tok in re.findall(r"`([a-z_]+(?:\.[a-z_]+)+)`", _INSTRUCTIONS)
+        if tok.split(".", 1)[0] in {"library", "experiment", "processing"}
+    }
+    assert named, "sanity: the prompt should name some fully-qualified fields"
+    assert named <= set(PERMITTED_FIELDS), (
+        f"prompt names fields code will reject: {sorted(named - set(PERMITTED_FIELDS))}"
+    )
+
+
 def test_extract_keeps_the_document_out_of_the_cached_prefix(tmp_path: Path) -> None:
     provider = _FakeProvider(json.dumps({"drafts": []}))
     extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
@@ -185,6 +211,38 @@ def test_extract_records_provider_in_provenance(tmp_path: Path) -> None:
     assert outcome.extractor.prompt_version == EXTRACT_PROMPT_VERSION
     assert outcome.provider == "fake"
     assert outcome.cache_hit is True
+
+
+def test_extract_carries_call_mode_and_model_for_the_cost_ledger(tmp_path: Path) -> None:
+    """The outcome records HOW the call was made (thinking/effort, max_tokens, response_format) and
+
+    which model, plus the token usage — the raw material the harvest stage writes to seqforge/usage.json
+    so a reader can see what understanding the prose cost and at what effort.
+    """
+
+    class _ModeProvider(_FakeProvider):
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            self.captured = kwargs
+            return LLMResponse(
+                text=str(self._payload),
+                usage={"input_tokens": 5, "output_tokens": 7},
+                mode={
+                    "thinking": "adaptive",
+                    "max_tokens": kwargs["max_tokens"],
+                    "response_format": "json_schema",
+                },
+            )
+
+    outcome = extract_drafts(
+        _doc(tmp_path),
+        kb.load_all_specs(),
+        provider=_ModeProvider(json.dumps({"drafts": []}), model="v4-test"),
+    )
+    assert outcome.model == "v4-test"
+    assert (
+        outcome.mode["thinking"] == "adaptive" and outcome.mode["response_format"] == "json_schema"
+    )
+    assert outcome.usage["input_tokens"] == 5 and outcome.usage["output_tokens"] == 7
 
 
 def test_extract_empty_is_a_valid_answer(tmp_path: Path) -> None:

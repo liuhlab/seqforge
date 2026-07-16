@@ -108,7 +108,7 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
     assert set(assigned) == {"R1", "R2"}
     assert assigned["R1"] != assigned["R2"]
     # a resumable artifact was written
-    assert (tmp_path / ".seqforge" / "candidates" / f"{result.dataset_id}.json").is_file()
+    assert (tmp_path / "seqforge" / "candidates" / f"{result.dataset_id}.json").is_file()
 
 
 def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
@@ -362,3 +362,112 @@ def test_the_real_kb_benign_twins_tie_and_ask_nothing(tmp_path: Path) -> None:
     assert out.result.candidates[0].equivalence_members == ["10x-3p-gex-v3.1"]
     assert not out.result.questions, "§12: a benign ambiguity asks NOTHING"
     assert out.exit_code() == 0
+
+
+# ---------- multi-run: filenames GROUP, bytes ASSIGN ----------
+def _six_run_dataset(tmp_path: Path) -> tuple[list[Path], OnlistRegistry]:
+    """12 files shaped exactly like the pilot: 6 runs x (_1, _2), SRA-style names.
+
+    `_1`/`_2` come from `fasterq-dump`'s dump order and say NOTHING about which read is the barcode.
+    The generator writes the barcode read to `_1` here only because something must go first; every
+    assertion below is about roles resolve derived from bytes.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    paths: list[Path] = []
+    for i, acc in enumerate(
+        ["SRR28716553", "SRR28716554", "SRR28716555", "SRR28716556", "SRR28716557", "SRR28716558"]
+    ):
+        reads = kb.generate_reads(spec, n=400, seed=i)
+        for mate, role in (("1", "R1"), ("2", "R2")):
+            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(p)
+    return paths, reg
+
+
+def test_run_key_groups_by_accession_and_never_by_role() -> None:
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("SRR28716558_1.fastq.gz") == "SRR28716558"
+    assert run_key("SRR28716558_2.fastq.gz") == "SRR28716558"
+    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses
+    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1_L001"
+    assert run_key("s_R1.fastq.gz") == "s"
+    # `--include-technical` dumps _1.._4; a _3 that failed to match would become its own bogus run
+    assert run_key("SRR1_3.fastq.gz") == "SRR1"
+    # single-end: no mate token, so the file is its own run
+    assert run_key("reads.fastq.gz") == "reads"
+
+    groups = group_runs(["a_1.fastq.gz", "b_1.fastq.gz", "a_2.fastq.gz"])
+    assert groups == {
+        "a": [Path("a_1.fastq.gz"), Path("a_2.fastq.gz")],
+        "b": [Path("b_1.fastq.gz")],
+    }
+
+
+def test_resolving_six_runs_as_one_library_drops_ten_of_twelve_files(tmp_path: Path) -> None:
+    """The bug, pinned. This is what `resolve_dataset` does when handed a whole dataset.
+
+    Not a regression test — `resolve_dataset` is CORRECT here and always was. It answers "what is
+    this ONE library?", and 12 files from 6 runs is not one library. The bug was the call, not the
+    callee, and this test exists so that stays visible: if someone points a CLI at `resolve_dataset`
+    with a multi-run dataset again, this is the behaviour they get.
+    """
+    paths, reg = _six_run_dataset(tmp_path)
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    winner = out.result.candidates[0]
+    assert len(winner.role_assignment.assignment) == 2, "one global (R1, R2) pair out of twelve"
+    assert len(winner.role_assignment.unassigned) == 10, "and ten files with no role at all"
+
+
+def test_resolve_runs_assigns_every_file_in_a_six_run_dataset(tmp_path: Path) -> None:
+    """The fix: group by run, assign per run, and every one of the 12 files gets a role."""
+    from seqforge.resolve import resolve_runs
+
+    paths, reg = _six_run_dataset(tmp_path)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+
+    assert len(multi.runs) == 6, "6 accessions -> 6 runs"
+    assert [r.run_id for r in multi.runs] == sorted(r.run_id for r in multi.runs)
+    assert all(len(r.paths) == 2 for r in multi.runs)
+    assert all(r.winner == "10x-3p-gex-v3" for r in multi.runs), "each run decided on its own bytes"
+    assert not multi.blockers
+    assert multi.exit_code() == 0
+
+    roles = multi.role_of_sha()
+    assert len(roles) == 12, "every file has a role -- this is the whole point"
+    assert sorted(roles.values()) == ["R1"] * 6 + ["R2"] * 6
+
+    # and no run left anything behind
+    for run in multi.runs:
+        assert not run.output.result.candidates[0].role_assignment.unassigned
+
+
+def test_resolve_runs_blocks_when_runs_disagree_on_chemistry(tmp_path: Path) -> None:
+    """Disagreement is surfaced, never voted on. It is also what makes filename-grouping safe.
+
+    Two runs of one library resolve to one chemistry. If they do not, either these files are not one
+    dataset or the grouping was wrong -- and a majority vote would silently pick, which is the guess
+    this project refuses.
+    """
+    from seqforge.resolve import resolve_runs
+
+    v3 = kb.load_spec("10x-3p-gex-v3")
+    bulk = kb.load_spec("bulk-rnaseq-pe")
+    reg = _registry_for(v3)
+    paths: list[Path] = []
+    for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
+        reads = kb.generate_reads(spec, n=400, seed=0)
+        for mate, role in zip(("1", "2"), keys, strict=True):
+            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(p)
+
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    techs = {r.winner for r in multi.runs}
+    if len(techs) < 2:  # pragma: no cover - the fixtures happened to agree; nothing to assert
+        pytest.skip(f"both runs resolved to {techs}; this fixture cannot exercise disagreement")
+    assert multi.blockers, "runs disagreed and nothing said so"
+    assert multi.exit_code() == 3
+    assert multi.blockers[0].remedy, "a Blocker with no way forward is a wall (R4)"

@@ -18,7 +18,8 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
-from .fields import DocRole
+from ..models.records import ArchiveRecord
+from .fields import DocRole, DocScope
 
 #: CalVer YYYY.M.PATCH; bump when normalization changes (it re-defines the span space).
 NORMALIZER_VERSION = "2026.7.0"
@@ -61,6 +62,12 @@ class NormalizedDoc:
     a reference when you cite it and an instruction when you write it for us. So it is set by the CLI
     from the flag the document arrived under, and it deliberately does NOT enter ``doc_sha256`` —
     otherwise one file would have two identities and its cached normalization would fork.
+
+    ``scope``/``subject`` are what the document is ABOUT, and they carry the same disclaimer for the
+    same reason: code sets them because code chose which record to render, and a document's contents
+    never get a vote. ``subject`` is the record's accession at a record scope, and ``None`` for a
+    document about the whole dataset. Together they are what lets a claim name a sample while
+    ``AssertionDraft`` stays four fields wide.
     """
 
     doc_sha256: str
@@ -68,6 +75,8 @@ class NormalizedDoc:
     text: str
     source_basename: str
     role: DocRole = "reference"
+    scope: DocScope = "dataset"
+    subject: str | None = None
     normalizer_version: str = NORMALIZER_VERSION
     n_chars: int = 0
 
@@ -94,15 +103,21 @@ def normalize_text(raw: str) -> str:
 
 
 def read_document(path: Path) -> str:
-    """Read a source document to raw text. PDF support is optional and fails loudly, never silently."""
+    """Read a source document to raw text.
+
+    PDF is one *extractor* behind the canonical-text contract, not a special kind of input: anything
+    else falls through to plain text, so a hand-written `.md` or a `.txt` works with no extra code.
+    The contract is the load-bearing part — `normalize_text` produces the one canonical string that
+    R5's span verification greps against, whatever the source format was.
+
+    `pypdf` is imported lazily because a PDF is the uncommon case, but it is a **declared dependency**
+    now, so this import does not fail. It used to be undeclared, with a remedy telling the user to
+    install it by hand — which meant no supported install of seqforge could read a paper, the one
+    document type the pilot dataset actually ships.
+    """
     if path.suffix.lower() == ".pdf":
-        try:
-            from pypdf import PdfReader  # type: ignore[import-not-found]
-        except ImportError as exc:  # pragma: no cover - depends on the host
-            raise RuntimeError(
-                f"{path.name}: reading PDF needs `pypdf`, which is not installed. Add it to the "
-                "environment, or pre-extract the text and pass the .txt."
-            ) from exc
+        from pypdf import PdfReader
+
         return "\n\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
     return path.read_text(encoding="utf-8", errors="replace")
 
@@ -123,5 +138,55 @@ def normalize_document(path: str | Path, *, role: DocRole = "reference") -> Norm
         text=text,
         source_basename=p.name,
         role=role,
+        # A document a human handed us is about the whole pile of files. There is no other honest
+        # reading of "here is the paper" — see `resolve/records.py` for what that costs a sample claim.
+        scope="dataset",
         n_chars=len(text),
     )
+
+
+def render_record(record: ArchiveRecord) -> str:
+    """One archive record -> the text a model reads. Deterministic, and the ONLY renderer.
+
+    Deterministic matters more than it looks. This text *is* the document: its sha256 is the identity
+    an assertion cites, and R5's span check greps this exact string. So the rendering must be
+    reproducible from the record forever — a human handed the record and this function must be able to
+    regenerate the bytes a quote was checked against, or the citation is unfalsifiable.
+
+    Only free text is rendered. The structured half (``strain = CQ758``) is code's to read and is
+    already a key and a value, so putting it in front of a model would be asking it to transcribe
+    something we can copy — a chance to be wrong and no chance to be useful.
+    """
+    lines = [f"{record.level} {record.accession}"]
+    for ft in record.free_text:
+        lines.append(f"{ft.label}: {ft.text}")
+    return "\n\n".join(lines)
+
+
+def normalize_record(record: ArchiveRecord) -> NormalizedDoc:
+    """An archive record -> its own document, scoped to itself.
+
+    This is the whole mechanism behind "a claim can name a sample without being able to name a
+    sample". The document holds one record's prose, so whatever the model finds in it is about that
+    record, because that is the only thing in it. ``subject`` is set from the record we rendered —
+    code knows it because code chose it, exactly as ``instruct.py`` decides document role.
+    """
+    text = normalize_text(render_record(record))
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    return NormalizedDoc(
+        # The rendering IS the source: there are no other bytes to identify. Both hashes are the same
+        # string's, and saying so is more honest than inventing a second identity for one document.
+        doc_sha256=digest,
+        normalized_sha256=digest,
+        text=text,
+        source_basename=f"{record.level}-{record.accession}.txt",
+        role="reference",  # an archive record is a database field, never an instruction to us
+        scope=record.level,
+        subject=record.accession,
+        n_chars=len(text),
+    )
+
+
+def has_prose(record: ArchiveRecord) -> bool:
+    """Is there anything here for a model to read? A record with no free text is not worth a call."""
+    return any(ft.text.strip() for ft in record.free_text)

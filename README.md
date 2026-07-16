@@ -24,13 +24,15 @@ compose(manifest, processing)          -> config.yaml + units.tsv + module selec
 
 Same dataset + a different recipe = a different pipeline, and the dataset's hash **does not move**.
 
-**Status: Milestone 0 landed; the held-out acceptance case has not been run.** The deterministic
-spine is implemented and green, end to end on synthetic yeast and worm fixtures with ground-truth
-counts injected. It has not yet processed a real dataset.
+**Status: the pilot compiles end to end.** The deterministic spine is implemented and green
+(`pixi run check`), and `seqforge run` takes the worm pilot PRJNA1027859 from its raw FASTQs and paper
+to a validated manifest + a runnable Snakefile in one headless pass. The ground-truth alignment runs
+(`kb e2e`) are still on synthetic yeast/worm fixtures with injected counts — it has not yet executed a
+pipeline on real reads at scale.
 
-Docs: **<https://liuhlab.github.io/seqforge/>** · design: [`docs/design.md`](docs/design.md) ·
-rationale: [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) (its §14 is the running list of what is *not* yet
-built) · rules: [`CLAUDE.md`](CLAUDE.md)
+Docs: **<https://liuhlab.github.io/seqforge/>** · design + rationale + scope delta:
+[`docs/design.md`](docs/design.md) (its §9 is the running list of what is *not* yet built) · rules:
+[`CLAUDE.md`](CLAUDE.md)
 
 ## Develop
 

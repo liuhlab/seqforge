@@ -29,6 +29,19 @@ dependencies = [
     "pooch>=1.8",
     "requests>=2.31",
     "tqdm>=4",
+    # PDF text extraction for `harvest`. A hard dependency, not an extra: `read_document` advertises
+    # .pdf, and a paper is the normal shape of the prose seqforge is handed. It was lazily imported
+    # with a "pip install pypdf" remedy, which meant no supported install of seqforge could read the
+    # one document type the pilot dataset ships.
+    "pypdf>=4",
+    # The pilot's deliverable format. A normal dependency, not an environment: writing an .h5ad is
+    # seqforge's own output-format job, the same shape of thing as reading a PDF — it is not an
+    # aligner, so R12 has no opinion and no liulab-runtime env or container is needed for it. Only
+    # the STAR step needs one.
+    "anndata>=0.10",
+    # Reference assemblies, annotations and aligner indexes are liulab-genome's job and we consume
+    # them (R12). The pixi tables pin the git source; this entry is what `pip install seqforge` needs.
+    "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git",
     # `harvest extract` is the ONE stage that touches an LLM; every other verb runs without it
     # (`run --no-llm` drives the whole compiler minus extraction). Both clients are optional at
     # runtime (lazy-imported) — the provider layer keeps seqforge un-locked-in to either vendor.
@@ -51,6 +64,20 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/seqforge"]
 
+# No `force-include` for the data files. `packages = ["src/seqforge"]` already carries every
+# non-Python file under the tree — the pre-packed whitelists (`io/onlists/*.codes.gz` + `index.json`),
+# the hand-written `.smk` modules, and the KB specs — and adding a force-include on top is a hard
+# build error ("a second file is being added at the same path"), not a silent duplicate. Verified by
+# `test_the_wheel_ships_the_data_the_package_cannot_work_without`, which builds a wheel and looks:
+# each of those absent is a specific, silent failure (compose exiting 3 on every 10x dataset; a
+# Snakefile including a module that is not there), and none of them is Python.
+
+# `liulab-genome` is a git dependency, not a PyPI one — it is a lab package and always will be. A
+# direct reference is the only way to say that in [project].dependencies, and hatchling refuses one
+# unless this is set. seqforge is not published to PyPI, so the restriction this lifts does not apply.
+[tool.hatch.metadata]
+allow-direct-references = true
+
 # -------- pixi --------
 
 [tool.pixi.workspace]
@@ -59,6 +86,13 @@ platforms = ["osx-arm64", "linux-64", "osx-64"]
 
 [tool.pixi.pypi-dependencies]
 seqforge = { path = ".", editable = true }
+# R12 in one line: we are a CONSUMER of liulab-genome, so we depend on it rather than reimplement it.
+# Two things need it importable, and both are real: `rule genome_index` resolves the STAR index in a
+# `run:` directive (which executes in the snakemake process, so the env running the pipeline must have
+# it), and `kb e2e`'s `discover_assets` uses it to find a reference. Declaring the dependency is the
+# opposite of the "parallel universe" R12 forbids — the AST guard still refuses a `class Genome`,
+# `def build_star_index` or `def register_gtf` anywhere in src/, and that is the line that matters.
+liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
 
 [tool.pixi.dependencies]
 pydantic = ">=2.7"
@@ -68,8 +102,35 @@ pooch = ">=1.8"
 typer = ">=0.12"
 requests = ">=2.31"
 tqdm = ">=4"
+pypdf = ">=4"          # harvest reads the paper; see the comment in [project].dependencies
+anndata = ">=0.10"     # the pilot's deliverable format; see [project].dependencies
 anthropic = ">=0.40"   # harvest extract only — one of two swappable LLM clients
 openai = ">=1.40"      # OpenAI-compatible endpoints (DeepSeek preset, vLLM, Ollama, ...)
+# liulab-genome's transitive needs, mirrored from liulab-runtime's `lab` feature. A hand-kept mirror
+# of someone else's dependency list is the shape this repo distrusts — but it is upstream's list, the
+# honest alternative (importing their solve) does not exist, and the failure mode is loud: a missing
+# one is an ImportError at `import genome`, not a wrong number.
+pandas = ">=2.1,<3"     # liulab-genome needs pandas <3
+gffutils = "*"          # liulab-genome (genome.io.gtf)
+ucsc-fatotwobit = "*"   # faToTwoBit, shelled out to by liulab-genome
+ucsc-twobitinfo = "*"   # twoBitInfo, shelled out to by liulab-genome
+
+# `wf` — the workflow toolchain, present so compose's wiring gate ACTUALLY RUNS.
+#
+# `minimal` because we need the DAG builder and nothing else: no executor plugins, no cluster
+# submission (that is the user's job, deliberately).
+#
+# **It must be in every environment that runs the suite, and that is the whole point.** `snakemake`
+# was in no dependency table at all, so `have("snakemake")` was False everywhere, so `wiring_gate`
+# returned "skip", so the test asserting `gate["wiring"] in {"pass","skip"}` forbade only the value
+# that could not occur. A skip is green. Everything the gate exists to catch -- a misspelled flag, a
+# broken wildcard, a rule wiring mistake -- was uncaught for the life of the repo.
+#
+# **STAR is deliberately absent from every table in this file.** An aligner environment is
+# liulab-runtime's to define (R12), and `star = "*"` here is precisely the "parallel universe" that
+# rule forbids. It comes from `ghcr.io/liuhlab/liulab-runtime:align-rna`, named by the module.
+[tool.pixi.feature.wf.dependencies]
+snakemake-minimal = ">=8"
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -94,9 +155,9 @@ types-requests = "*"
 mkdocs-material = "*"
 
 [tool.pixi.environments]
-default    = { features = ["py313", "dev", "test", "docs"], solve-group = "default" }
-test-py312 = { features = ["py312", "test"], solve-group = "py312" }
-test-py313 = { features = ["py313", "test"], solve-group = "default" }
+default    = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
+test-py312 = { features = ["py312", "test", "wf"], solve-group = "py312" }
+test-py313 = { features = ["py313", "test", "wf"], solve-group = "default" }
 docs       = { features = ["py313", "docs"], solve-group = "default" }
 
 [tool.pixi.tasks]
@@ -145,6 +206,17 @@ plugins = ["pydantic.mypy"]
 # scope (io/, kb/) are followed for types but their own errors are silenced — so resolve/ is checked
 # strictly against a concrete io/kb interface without forcing numpy/yaml internals under --strict.
 follow_imports = "silent"
+
+# `scipy` ships no type information and `scipy-stubs` is a partial, separately-versioned third-party
+# effort. Untyped is the honest state, so say so here rather than sprinkle `# type: ignore` at each
+# import. Scoped to scipy alone — every other import in the strict modules is checked.
+#
+# The type of `csr_matrix` is not what protects the deliverable anyway: what does is
+# `test_the_matrix_is_transposed_to_cells_by_genes`, which asserts a specific count landed at a
+# specific (cell, gene) in a NON-square matrix. mypy could not have caught a transpose either way.
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
+ignore_missing_imports = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

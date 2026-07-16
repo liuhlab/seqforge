@@ -48,6 +48,7 @@ from .conflict import (
     Resolution,
 )
 from .dataset import (
+    AssayLabel,
     DatasetManifest,
     DatasetProvenance,
     EvidencedReadLayout,
@@ -59,6 +60,7 @@ from .dataset import (
     ReadElement,
     ReadLayout,
     SampleGroup,
+    Study,
 )
 from .evidenced import (
     EvidencedAccessionList,
@@ -235,6 +237,8 @@ __all__ = [
     "Onlist",
     "FileInventoryItem",
     "SampleGroup",
+    "AssayLabel",
+    "Study",
     # processing manifest — the flags: what to DO with it (many per dataset)
     "ProcessingManifest",
     "ProcessingProvenance",

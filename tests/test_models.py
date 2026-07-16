@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -41,14 +43,21 @@ def _valid_manifest() -> m.DatasetManifest:
         ],
     )
     library = m.LibrarySection(
-        assay=m.EvidencedAssay(value="EFO:0009922", basis="observed", confidence=0.9, rung=3),
-        # equivalence class: benign twins recorded together, not silently picked
+        # ONE decision, so ONE envelope. Everything else in `library` follows from the chemistry:
+        # the assay labels, the layout, the per-file roles. They used to each carry their own copy of
+        # this same confidence, which is how the pilot's manifest printed 0.750672 four times.
         chemistry=m.EvidencedChemistrySet(
-            value=["10x-3p-gex-v3", "10x-3p-gex-v3.1"], basis="observed", confidence=0.98, rung=3
+            # equivalence class: benign twins recorded together, not silently picked
+            value=["10x-3p-gex-v3", "10x-3p-gex-v3.1"],
+            basis="observed",
+            confidence=0.98,
+            rung=3,
         ),
-        read_layout=m.EvidencedReadLayout(
-            value=read_layout, basis="observed", confidence=0.95, rung=2
-        ),
+        assay=[
+            m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922", name="10x 3' v3"),
+            m.AssayLabel(chemistry="10x-3p-gex-v3.1", curie="EFO:0022980", name="10x 3' v3.1"),
+        ],
+        read_layout=read_layout,
         onlists=[
             m.Onlist(
                 name="3M-february-2018",
@@ -65,14 +74,14 @@ def _valid_manifest() -> m.DatasetManifest:
                 basename="SRR000_1.fastq.gz",
                 sha256=HEX64,
                 size_bytes=123,
-                read_id=m.EvidencedStr(value="R1", basis="observed", confidence=0.99, rung=2),
+                read_id="R1",
             ),
             m.FileInventoryItem(
                 uri="reads/SRR000_2.fastq.gz",
                 basename="SRR000_2.fastq.gz",
                 sha256=HEX64,
                 size_bytes=456,
-                read_id=m.EvidencedStr(value="R2", basis="observed", confidence=0.99, rung=2),
+                read_id="R2",
             ),
         ],
     )
@@ -139,6 +148,54 @@ def test_manifest_round_trips_through_json() -> None:
 def test_chemistry_is_an_equivalence_class() -> None:
     man = _valid_manifest()
     assert man.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
+
+
+def test_the_assay_cannot_disagree_with_the_chemistry_it_names() -> None:
+    """One label per chemistry, so the §12 twin keeps its own CURIE instead of being dropped.
+
+    The pilot's manifest printed `assay: EFO:0009922` beside `chemistry: [v3, v3.1]` and the user
+    reasonably asked what the difference was. There is none -- they are one answer in two
+    vocabularies -- but the assay field held one CURIE where the chemistry held two ids, so v3.1's
+    own term (EFO:0022980) silently vanished and the two fields read as if they disagreed.
+    """
+    man = _valid_manifest()
+    assert [a.chemistry for a in man.library.assay] == man.library.chemistry.value
+    assert [a.curie for a in man.library.assay] == ["EFO:0009922", "EFO:0022980"]
+    assert [a.name for a in man.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
+
+
+def test_one_decision_carries_exactly_one_confidence() -> None:
+    """`confidence: 0.750672` appeared on four fields of the pilot's manifest. It was one number.
+
+    Four envelopes filled from one variable cannot disagree, so they were never four truths. R6 asks
+    that a value not travel without its provenance -- which one honest envelope does. A field
+    repeated is decoration that looks like provenance, which is worse than none.
+    """
+    man = _valid_manifest()
+    library = json.dumps(man.model_dump(mode="json")["library"])
+    assert library.count('"confidence"') == 1, "library holds one decision, so one confidence"
+    assert man.library.chemistry.confidence == 0.98
+    assert not hasattr(man.library.read_layout, "confidence")
+    assert all(isinstance(f.read_id, str | type(None)) for f in man.library.files)
+    assert all(not hasattr(a, "confidence") for a in man.library.assay)
+
+
+def test_a_sample_attribute_key_must_be_one_ncbi_defines() -> None:
+    """R2: no field enters the manifest without passing a validator, and the key space is NCBI's.
+
+    `condition` was ours. No archive uses it, and a field named "condition" accepts anything you can
+    call a condition -- which is how the pilot's extraction filed routine worm husbandry into it.
+    """
+    ok = m.SampleGroup(
+        sample_id="s1",
+        attributes={"strain": m.EvidencedStr(value="CQ758", basis="asserted", rung=0)},
+    )
+    assert ok.attributes["strain"].value == "CQ758"
+    with pytest.raises(ValidationError, match="NCBI harmonized"):
+        m.SampleGroup(
+            sample_id="s1",
+            attributes={"condition": m.EvidencedStr(value="daf-2", basis="asserted", rung=0)},
+        )
 
 
 @pytest.mark.parametrize(
@@ -227,7 +284,7 @@ def test_the_processing_manifest_refuses_an_unknown_key() -> None:
 
     It was a silent drop until 2026-07-15. `ProcessingSection(soloStrand="Reverse")` constructed
     happily and discarded the field, because the model set only `frozen=True` and inherited
-    pydantic's `extra="ignore"`. The brief claimed "the recipe model forbids extras: an unknown key
+    pydantic's `extra="ignore"`. R14 claims "the recipe model forbids extras: an unknown key
     is a validation error, never a passthrough to a command line" — the second half was true (the
     params gate closes that path) and the first half was not.
 

@@ -39,7 +39,7 @@ Three things about this are load-bearing:
    downloaded PDF.
 2. **A downloaded methods PDF may never set `processing.*`.** A GEO description is an untrusted
    input, and prose reaching `--soloStrand` is prompt injection from a database field into an
-   aligner. `verify` rejects it (`field_not_permitted_for_doc_role`) regardless of what was asked.
+   aligner. `verify` rejects it (`field_not_permitted_for_doc`) regardless of what was asked.
 3. **You are not classifying mood.** "we used GeneFull" (declarative) and "align this in GeneFull
    mode" (imperative) are treated identically — role subsumes mood by fiat, because a mood judgement
    has no quote to check it against and would land in exactly the class R5 is blind to.

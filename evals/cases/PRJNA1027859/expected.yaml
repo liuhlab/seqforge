@@ -98,6 +98,80 @@ description: >-
       which is legitimate but must land as its own commit, before the run, not bundled with a claim.
     - it does not touch `fields:`, `outcome:`, or any DECLARED FACT above.
   ---------------------------------------------------------------------------------------------------
+  AMENDMENT 2026-07-15 (b) — the HELD-OUT DESIGNATION IS RETIRED. This case is the demo dataset.
+
+  Maintainer decision: reserving this dataset was a misunderstanding of what it is for. It is the
+  pilot's worked example — the dataset the tutorial is written from and the thing "it works end to
+  end" means. The project now has no held-out case and does not want one. The PreToolUse guard and the
+  SEQFORGE_CASE_* root registry that enforced the reservation are DELETED, not suspended: if a case
+  should ever be reserved again, that machinery gets rebuilt deliberately rather than inherited.
+
+  This changes NOTHING above and nothing below. Every word of this file was written from public
+  metadata before any run, and that is still true — the retirement is not a result, so recording it is
+  not editing a prediction to match one. The sacred half stays sacred for the reason it always was:
+  a claim you can revise after seeing the answer is not a claim. `fields:`, `outcome:` and every
+  DECLARED FACT remain byte-identical to the pre-registration commit; `git log` still answers the
+  audit question on its own.
+
+  What the retirement DOES change is that the earlier text's justification no longer applies as
+  written. Two sentences above are now historical rather than operative:
+    - "MUST NOT be read until the maintainer says so" — the maintainer has said so.
+    - "no byte of this dataset has been read" — true when written, and true as of this amendment, but
+      it is no longer a rule. The next run reads it, which is the point.
+  They are kept verbatim rather than tidied, because they are the dated record of what we knew and
+  when. Deleting them would be the dishonest move; so would leaving them to read as live rules.
+
+  The one piece of the discipline that survives, and is not up for debate: pre-register before you
+  run. That never depended on the data being reserved. It is what separates a prediction from a
+  transcript, and only a prediction can be wrong.
+  ---------------------------------------------------------------------------------------------------
+  AMENDMENT 2026-07-16 — the sample facts move from PROSE into `fields:`. THE RUN HAS HAPPENED.
+
+  Read that second sentence first, because it is the one that could make this amendment dishonest,
+  and it is why this note is long. The dataset was run. The maintainer read the output. Every sample
+  in it said `tissue: null`. So an edit to `fields:` now is happening AFTER the answer is known, and
+  the rule at the bottom of this file says a claim you can revise after seeing the answer is not a
+  claim. Here is the whole argument that this is a transcription and not a revision; check it rather
+  than take it.
+
+  1. The claims added below are not new. Every one is in the DECLARED FACTS block at the top of this
+     file, verbatim, committed before any run:
+       "samples : 6 BioSamples; 3 WT (strain CQ757) + 3 daf-2 (CQ758); tissue=Neurons;
+                  dev_stage=Adult Day 1; sex=hermaphrodite"
+       "organism : Caenorhabditis elegans, taxid 6239"
+     They came from the public BioSample records then, and they come from the same records now. I did
+     not learn them from the run.
+
+  2. They can only make this case FAIL. We already know the run produced null for all of them. This
+     edit moves the case from "silently untested" to "red", which is the exact opposite of the thing
+     the rule prohibits. Tuning to the answer would mean writing `tissue: null` here; that is the edit
+     that is forbidden, and it is the one that would have made the suite green.
+
+  3. The mechanism landed first, as the 2026-07-15 amendment required. That amendment declined to add
+     a compose-level assertion and said why: "Making it gradeable means changing `Expected` AND the
+     grader, which is legitimate but must land as its own commit, before the run, not bundled with a
+     claim." Same shape here, same discipline: `Expected.fields` and the grader learned to see
+     samples in their own commit, with their own tests, before this file changed. `git log` shows the
+     order.
+
+  4. The reason it was prose in the first place is a defect, not a choice. The harness graded a
+     `ResolveResult`, which has candidates and conflicts and NO SAMPLES, so there was no field on
+     which to write "tissue=Neurons" and have anything read it. design.md §9 already named this
+     gap ("the grader cannot express … SRX→sample mapping"). A pre-registration whose central claims
+     live in a `description:` string is a pre-registration that cannot be wrong, and one that cannot
+     be wrong is not one.
+
+  Nothing in the (a) half is edited, reworded, or deleted. `library.chemistry` and
+  `library.equivalence_members` are byte-identical to the pre-registration commit. The DELIBERATELY
+  NOT ASSERTED block stands unchanged and still binds — in particular `condition / genotype`, which
+  is now doubly right: the record declares no genotype attribute, and `condition` is no longer a
+  field seqforge has. NCBI's vocabulary has no such attribute either, which is a small independent
+  confirmation that the pre-registration was reading the record correctly and we were not.
+
+  `records.json` is committed beside this file: the archive's own four levels, exactly as
+  `seqforge io records PRJNA1027859` returns them. It is an INPUT, like `inputs/recipe.yaml`, not an
+  expectation — and it is public metadata, so it carries no lab path.
+  ---------------------------------------------------------------------------------------------------
 predicts:
   # The code this expectation was written against. A (b) claim is only meaningful with one.
   seqforge: "2026.7.0"
@@ -107,3 +181,21 @@ fields:
   library.chemistry: 10x-3p-gex-v3
   library.equivalence_members:
     - 10x-3p-gex-v3.1
+  # ---- transcribed 2026-07-16 from the DECLARED FACTS block above. See the amendment. ----
+  # `*` means "across every sample, sorted". These were never claims about one of the six: the
+  # record declares them per BioSample and they happen to agree, and that agreement is the claim.
+  experiment.organism: 6239
+  experiment.samples.*.tissue: [Neurons, Neurons, Neurons, Neurons, Neurons, Neurons]
+  # The ONLY structured field that separates this dataset's two conditions. 3 WT + 3 daf-2.
+  experiment.samples.*.strain: [CQ757, CQ757, CQ757, CQ758, CQ758, CQ758]
+  experiment.samples.*.sex:
+    [hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite]
+  experiment.samples.*.dev_stage:
+    ["Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1"]
+  # A named sample, to pin the JOIN itself rather than only the multiset. If the six sets of facts
+  # were attached to the wrong six samples, every `*` assertion above would still pass.
+  experiment.samples.SAMN40935621.strain: CQ758
+  experiment.samples.SAMN40935616.strain: CQ757
+  experiment.study.title: >-
+    A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles
+  experiment.study.center: Princeton University
