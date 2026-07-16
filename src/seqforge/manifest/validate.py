@@ -126,6 +126,40 @@ def validate_manifest(
                 )
             )
 
+    # --- every file must have a role: a file with none is a file we will silently not process ---
+    #
+    # This is the check that was missing, and its absence is how a 6-run dataset validated clean while
+    # 5/6 of it evaporated. `resolve` did ONE global assignment across all 12 files, so ten came back
+    # with `read_id=None`; `compose._units` skips those without a word; the manifest was
+    # content-addressed and blessed. Exit 0, wrong answer, no symptom.
+    #
+    # The inverse check above ("is every declared role filled?") passed the whole time, because it
+    # only ever needed ONE file per role. Both directions are needed and only one existed.
+    #
+    # No KB spec declares an unusable read (grep `type: index` -> nothing), so today an unassigned
+    # file is always a dropped file, never a legitimately-ignored index read. If a chemistry ever
+    # ships one, it declares the role and gets assigned — and if it truly cannot be, that is a KB
+    # decision to make explicitly, not a default to inherit from silence.
+    for f in manifest.library.files:
+        if f.read_id is None:
+            blockers.append(
+                Blocker(
+                    id=f"blk-unassigned-{f.sha256[:8]}",
+                    code=BlockerCode.NO_VALID_ROLE_ASSIGNMENT,
+                    message=(
+                        f"{f.basename} was given no read role, so the pipeline would not read it. "
+                        f"Its reads would be dropped, and nothing downstream would say so."
+                    ),
+                    remedy=(
+                        "Usually this means the files were resolved as one library when they are "
+                        "several runs: use `seqforge manifest fill` on the whole set (it groups by "
+                        "run and assigns roles per run), or drop the file if it does not belong to "
+                        "this dataset."
+                    ),
+                    subject=BlockerSubject(kind="file", ref=f.basename),
+                )
+            )
+
     # --- onlists: a barcode element naming an unmaterialized whitelist is advisory, not fatal ---
     onlist_names = {o.name for o in manifest.library.onlists}
     for read in manifest.library.read_layout.value.reads:

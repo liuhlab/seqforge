@@ -117,11 +117,18 @@ def fill_manifest(
     registry: OnlistRegistry,
     experiment: ExperimentInputs,
     seqforge_version: str,
+    role_of_sha: dict[str, str] | None = None,
 ) -> DatasetManifest:
     """Assemble a :class:`DatasetManifest` from a clean resolve Decision + metadata inputs.
 
     Bytes and metadata only. Takes no ``processing`` argument, by construction: a dataset does not
     know how it will be processed, because it will be processed many ways (R13).
+
+    ``role_of_sha`` carries the **dataset-level** file->role map, which a single `ResolveResult`
+    cannot express: its `RoleAssignment` maps role -> one sha, because it describes one library's
+    reads, and a six-run dataset has six R1s. `resolve_runs` resolves each run on its own bytes and
+    merges the inverse map; pass it here. Omitted, the winner's own assignment is used — correct for
+    a genuinely single-run dataset, and the reason this parameter is optional rather than required.
     """
     if result.blockers:
         raise FillError(f"cannot fill a manifest over {len(result.blockers)} unresolved Blocker(s)")
@@ -168,7 +175,7 @@ def fill_manifest(
             rung=rung,
         ),
         onlists=_build_onlists(spec, registry),
-        files=_build_files(winner, observations, confidence, rung),
+        files=_build_files(winner, observations, confidence, rung, role_of_sha),
     )
 
     experiment_section = ExperimentSection(
@@ -340,10 +347,15 @@ def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
 
 
 def _build_files(
-    winner: Candidate, observations: list[Observation], confidence: float, rung: int
+    winner: Candidate,
+    observations: list[Observation],
+    confidence: float,
+    rung: int,
+    role_of_sha: dict[str, str] | None = None,
 ) -> list[FileInventoryItem]:
     """File identity is raw observed truth; the role assignment is the joint-optimization output."""
-    role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
+    if role_of_sha is None:
+        role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     items: list[FileInventoryItem] = []
     for obs in observations:
         role = role_of_sha.get(obs.file.sha256)

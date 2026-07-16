@@ -1010,11 +1010,13 @@ loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injecte
 
 ### Before the PRJNA1027859 run — blocking
 
-- **Multi-run resolve is broken, and this is the big one.** The case is 6 runs × 2 mates. `resolve`
-  does one global role-injection across every file handed to it, so 12 files yield **one** 2-of-12
-  assignment and the other 10 land as `read_id=None` — dropped by `_units`, invisible to `validate`,
-  and recorded as a clean content-addressed manifest. It fails silently, which is the failure class
-  §5 exists to prevent. `manifest fill` also has no multi-sample CLI: `--sample-id` is one string.
+- ~~Multi-run resolve is broken~~ — **fixed 2026-07-15.** `resolve_runs` groups files into runs by
+  name and assigns roles per run, from each run's own bytes; `manifest fill` builds one sample per
+  run. `validate` now refuses any file with no role, which is the check whose absence let a 6-run
+  dataset validate clean while 5/6 of it evaporated. `--sample-id` is gone: it named the single group,
+  which is a flag that only makes sense while the bug does. Filenames **group** (an accession is not
+  an interpretation); bytes **assign**. Runs disagreeing on chemistry is a `Blocker`, never a vote —
+  which is also what makes filename-grouping safe.
 - **No real onlist can be materialized.** All three `_KNOWN` entries have `uri=""`/`sha256=""`, so
   compose exits 3 for any real 10x dataset — and this case's pre-registration *requires* the rung-3
   `3M-february-2018` check, because v3 is separable from Multiome and GEM-X by whitelist alone.

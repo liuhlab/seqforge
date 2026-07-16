@@ -15,6 +15,7 @@ from pathlib import Path
 from ..io import DEFAULT_REGISTRY, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
+from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.observation import Observation
 from ..models.resolve import ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
@@ -113,3 +114,128 @@ def resolve_dataset(
 
     matrices = {e.tech: e.matrix_json() for e in evaluations}
     return ResolveOutput(result=result, matrices=matrices, observations=observations)
+
+
+@dataclass(frozen=True)
+class RunResolution:
+    """One run: the files that came from it, and what the bytes said they are."""
+
+    run_id: str
+    paths: list[Path]
+    output: ResolveOutput
+
+    @property
+    def winner(self) -> str | None:
+        cands = self.output.result.candidates
+        return cands[0].technology if cands else None
+
+
+@dataclass(frozen=True)
+class MultiRunOutput:
+    """Every run in a dataset, resolved independently, plus the cross-run agreement check."""
+
+    runs: list[RunResolution]
+    blockers: list[Blocker] = field(default_factory=list)
+
+    @property
+    def observations(self) -> list[Observation]:
+        return [o for r in self.runs for o in r.output.observations]
+
+    def role_of_sha(self) -> dict[str, str]:
+        """Merged file-sha -> role across every run. The manifest's inventory is built from this.
+
+        A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of
+        one library have six R1s, so the dataset-level fact is the inverse map, and it only exists
+        once each run has been assigned on its own bytes.
+        """
+        merged: dict[str, str] = {}
+        for run in self.runs:
+            for cand in run.output.result.candidates[:1]:
+                for role, sha in cand.role_assignment.assignment.items():
+                    merged[sha] = role
+        return merged
+
+    def exit_code(self) -> int:
+        if self.blockers:
+            return 3
+        return max((r.output.exit_code() for r in self.runs), default=0)
+
+
+def resolve_runs(
+    paths: Sequence[str | Path],
+    *,
+    registry: OnlistRegistry | None = None,
+    specs: dict[str, Spec] | None = None,
+    hypothesis: Hypothesis | None = None,
+    workspace: str | Path = ".",
+    max_reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    use_cache: bool = True,
+) -> MultiRunOutput:
+    """Group `paths` into runs and resolve **each run on its own bytes**.
+
+    This is the multi-run entry point, and it exists because `resolve_dataset` answers "what is this
+    ONE library?" — correctly, and always did. Handing it a 6-run dataset's 12 files was the bug: one
+    global assignment picks a single (R1, R2) pair out of twelve and leaves ten files with no role,
+    which `_units` skips and `validate` blesses. Five sixths of the data, gone, exit 0.
+
+    Nothing here re-decides roles or reads a byte differently. It splits the input by filename (a
+    rung-1 prior about *identity*, never about role — see `group.py`), resolves each group, and then
+    checks that the runs agree with each other.
+
+    **Disagreement is a Blocker, not a vote.** Two runs of one library resolve to the same chemistry;
+    if they do not, either the grouping is wrong or these files are not one dataset, and both are
+    things a human must look at. Picking the majority would be exactly the silent guess this project
+    refuses — and it is also the check that makes filename-grouping safe, because a mis-grouped pair
+    fails it loudly.
+    """
+    from .group import group_runs
+
+    runs: list[RunResolution] = []
+    for run_id, run_paths in group_runs(paths).items():
+        output = resolve_dataset(
+            run_paths,
+            registry=registry,
+            specs=specs,
+            hypothesis=hypothesis,
+            workspace=workspace,
+            max_reads=max_reads,
+            max_bytes=max_bytes,
+            use_cache=use_cache,
+        )
+        runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
+
+    return MultiRunOutput(runs=runs, blockers=_disagreements(runs))
+
+
+def _disagreements(runs: list[RunResolution]) -> list[Blocker]:
+    """Every run must decide the same chemistry. Surface it; never pick a winner."""
+    decided = {r.run_id: r.winner for r in runs if r.winner is not None}
+    distinct = sorted({t for t in decided.values() if t is not None})
+    if len(distinct) < 2:
+        return []
+    by_tech: dict[str, list[str]] = {}
+    for run_id, tech in decided.items():
+        if tech is not None:
+            by_tech.setdefault(tech, []).append(run_id)
+    detail = "; ".join(
+        f"{tech} <- {', '.join(sorted(ids))}" for tech, ids in sorted(by_tech.items())
+    )
+    return [
+        Blocker(
+            id="blk-chemistry-disagreement",
+            code=BlockerCode.UNRESOLVED_CONFLICT,
+            message=(
+                f"the runs in this dataset do not agree on a chemistry: {detail}. Runs of one "
+                f"library resolve to one chemistry, so either these files are not one dataset or "
+                f"they were grouped into runs incorrectly."
+            ),
+            remedy=(
+                "Check the grouping (`seqforge resolve score` one run at a time to see each "
+                "verdict), or compose the runs as separate datasets. Do not merge them: a manifest "
+                "that averages two chemistries describes neither."
+            ),
+            subject=BlockerSubject(kind="dataset", ref="library.chemistry"),
+            evidence=sorted(decided),
+        )
+    ]

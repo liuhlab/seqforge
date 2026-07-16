@@ -1188,3 +1188,39 @@ def test_an_instruction_from_a_reference_doc_never_becomes_an_instruction() -> N
     assert instructions_from_assertions([a], instruction_docs=frozenset()) == ([], [])
     ins, _ = instructions_from_assertions([a], instruction_docs=frozenset({"e" * 64}))
     assert [i.field for i in ins] == ["processing.quantification"]
+
+
+def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(tmp_path: Path) -> None:
+    """A file with no role is a file the pipeline drops in silence. That must be a Blocker.
+
+    This is the check whose absence let a 6-run dataset validate clean while 5/6 of it evaporated:
+    `resolve` did ONE global assignment across all 12 files, ten came back with `read_id=None`,
+    `compose._units` skipped them without a word, and the manifest was content-addressed and blessed.
+    Exit 0, wrong answer, no symptom.
+
+    The inverse check ("is every declared role filled?") existed the whole time and passed, because it
+    only ever needed ONE file per role. Both directions are needed; only one was there.
+    """
+    manifest, _ = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    assert validate_manifest(manifest).ok, "the fixture must start clean or this proves nothing"
+
+    files = list(manifest.library.files)
+    files.append(
+        files[0].model_copy(
+            update={
+                "read_id": None,
+                "basename": "orphan.fastq.gz",
+                "uri": "orphan.fastq.gz",
+                "sha256": "f" * 64,
+            }
+        )
+    )
+    orphaned = manifest.model_copy(
+        update={"library": manifest.library.model_copy(update={"files": files})}
+    )
+    report = validate_manifest(orphaned)
+    assert not report.ok
+    blocker = next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
+    assert "orphan.fastq.gz" in blocker.message
+    assert blocker.remedy, "a Blocker with no way forward is a wall (R4)"
+    assert exit_code_for_report(report) == 3

@@ -40,7 +40,7 @@ from .manifest import (
 from .models import SCHEMA_MODELS, export_all, export_schema
 from .models.dataset import DatasetManifest, SampleGroup
 from .models.processing import ProcessingManifest
-from .resolve import Hypothesis, resolve_dataset
+from .resolve import Hypothesis, resolve_dataset, resolve_runs
 
 app = typer.Typer(
     name="seqforge",
@@ -842,41 +842,69 @@ def manifest_fill(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
     organism: int = typer.Option(..., "--organism", help="NCBI taxid (metadata truth, e.g. 6239)."),
     accession: list[str] = typer.Option([], "--accession", help="Accession(s) for this dataset."),
-    sample_id: str = typer.Option("sample1", "--sample-id", help="Sample id for the file group."),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
 ) -> None:
     """Probe -> resolve -> assemble the DATASET manifest: what the data IS (R13).
 
+    **Multi-run by construction.** Files are grouped into runs by name and each run's roles are
+    decided from its own bytes, so one sample per run falls out. Hand it all 12 files of a 6-run
+    dataset and you get 6 samples, not one guess.
+
+    That is new, and the old behaviour is why: every file went into ONE global role assignment, which
+    picks a single (R1, R2) pair out of twelve and leaves ten files with no role — dropped by compose,
+    blessed by validate, recorded as a clean content-addressed manifest. `--sample-id` is gone with
+    it: it took one string and named the single group, which is a flag that only makes sense while the
+    bug does.
+
     Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
     """
-    out = resolve_dataset([str(f) for f in files], workspace=workspace, use_cache=False)
-    if out.exit_code() != 0:
-        typer.echo(json.dumps(out.result.model_dump(mode="json"), indent=2))
-        raise typer.Exit(out.exit_code())
-    winner = out.result.candidates[0]
+    multi = resolve_runs([str(f) for f in files], workspace=workspace, use_cache=False)
+    if multi.exit_code() != 0:
+        typer.echo(
+            json.dumps(
+                {
+                    "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
+                    "blockers": [b.model_dump(mode="json") for b in multi.blockers],
+                },
+                indent=2,
+            )
+        )
+        raise typer.Exit(multi.exit_code())
+
+    # Every run agreed (else the Blocker above fired), so any run's verdict is the dataset's.
+    first = multi.runs[0].output.result
+    winner = first.candidates[0]
     spec = load_spec(winner.technology)
     samples = [
-        SampleGroup(sample_id=sample_id, file_uris=[o.file.basename for o in out.observations])
+        SampleGroup(
+            sample_id=run.run_id,
+            file_uris=[o.file.basename for o in run.output.observations],
+        )
+        for run in multi.runs
     ]
+    conflicts = [c for run in multi.runs for c in run.output.result.conflicts]
     try:
         manifest = fill_manifest(
-            result=out.result,
+            result=first,
             spec=spec,
-            observations=out.observations,
+            observations=multi.observations,
             registry=DEFAULT_REGISTRY,
             experiment=ExperimentInputs(
                 organism_taxid=organism, accessions=list(accession), samples=samples
             ),
             seqforge_version=__version__,
+            # The dataset-level file->role map. A single run's RoleAssignment maps role -> ONE sha,
+            # so it cannot describe six R1s; this is the merged inverse, built per run from bytes.
+            role_of_sha=multi.role_of_sha(),
         )
     except FillError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(3) from exc
 
-    report = validate_manifest(manifest, conflicts=out.result.conflicts)
+    report = validate_manifest(manifest, conflicts=conflicts)
     state = Path(workspace) / ".seqforge"
     state.mkdir(parents=True, exist_ok=True)
     payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)

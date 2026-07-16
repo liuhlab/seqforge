@@ -376,3 +376,46 @@ def test_no_module_under_src_prints_to_stdout() -> None:
         f"print() to stdout in a library module: {offenders}. stdout carries the JSON result (R8); "
         f"send narration to stderr with file=sys.stderr."
     )
+
+
+def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> None:
+    """The pilot's shape, through the real CLI: 12 files, 6 runs, 6 samples, 0 files dropped.
+
+    Before this, `manifest fill` handed every file to one `resolve_dataset` call, which does one
+    global role assignment: two files got roles, TEN got `read_id=None`, `compose._units` skipped
+    them in silence, and `validate` said ok. A clean, content-addressed manifest recording a wrong
+    answer, exit 0 -- on a dataset that is 6 runs, which the pilot's is.
+
+    Bulk paired-end so no onlist is needed; the multi-run machinery is chemistry-blind.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    accessions = [f"SRR2871655{i}" for i in range(3, 9)]
+    paths: list[str] = []
+    for i, acc in enumerate(accessions):
+        reads = kb.generate_reads(spec, n=400, seed=i)
+        for mate, role in (("1", "R1"), ("2", "R2")):
+            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(str(p))
+
+    filled = runner.invoke(
+        app, ["manifest", "fill", *paths, "--organism", "6239", "-C", str(tmp_path)]
+    )
+    assert filled.exit_code == 0, filled.stdout
+    assert json.loads(filled.stdout)["report"]["ok"] is True
+
+    import yaml
+
+    manifest = yaml.safe_load((tmp_path / ".seqforge" / "manifest.yaml").read_text())
+    files = manifest["library"]["files"]
+    assert len(files) == 12, "every input file is in the inventory"
+    assert all(f["read_id"] is not None for f in files), "and every one of them has a role"
+
+    samples = manifest["experiment"]["samples"]
+    assert [s["sample_id"] for s in samples] == sorted(accessions), "one sample per RUN"
+    assert sum(len(s["file_uris"]) for s in samples) == 12
+
+    # the roles came from BYTES: _1/_2 is fasterq-dump's dump order and means nothing
+    roles = {f["basename"]: f["read_id"]["value"] for f in files}
+    assert set(roles.values()) == {"R1", "R2"}
+    assert all(f["read_id"]["basis"] == "observed" for f in files)

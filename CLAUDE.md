@@ -30,9 +30,8 @@ not let that line blur.
 (`snakemake` was undeclared), the wrapper it wrote planned zero jobs (an `include:`d rule is not a
 default target), and `kb e2e` hand-assembled its own STAR command line instead. Each was found only by
 making the previous one run. The deterministic spine — models, probe, kb, resolve, manifest, compose,
-hooks, evals — is implemented and green (`pixi run check`). **The demo dataset has not been run**, and
-multi-run resolve is known broken (see `PROJECT_BRIEF.md` §14) — it is 6 runs, and today `resolve`
-would silently drop 10 of its 12 files. The authoritative design is
+hooks, evals — is implemented and green (`pixi run check`), and multi-run works: files are grouped
+into runs by name and assigned roles per run, from bytes. **The demo dataset has not been run.** The authoritative design is
 [`docs/design.md`](docs/design.md) (Pydantic model hierarchy, KB `spec.yaml` schema, scoring function
 + joint role-assignment, CLI surface); the full rationale is
 [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md), whose §14 tracks what is still unbuilt. Read all three before
@@ -168,7 +167,9 @@ the repo root.
 models/     pydantic v2 schemas; `schema export` is the single source of truth
 probe/      deterministic FASTQ fingerprinting (no LLM, no network)
 kb/         knowledge base: one directory per technology (spec.yaml + README.md), under kb/specs/
-resolve/    candidate scoring, role assignment, confusability, escalation
+resolve/    candidate scoring, role assignment, confusability, escalation. `group.py` splits a
+            dataset into RUNS by filename — filenames group (an accession is not an interpretation),
+            bytes assign roles. `resolve_runs` resolves each run on its own bytes
 manifest/   fill/validate/hash both artifacts; `policy.py` is where precedence lives (R13/R15)
 compose/    (dataset, processing) -> Snakefile + config + units.tsv  (the Snakefile is THE product)
 io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
