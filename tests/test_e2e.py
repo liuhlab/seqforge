@@ -11,6 +11,7 @@ from __future__ import annotations
 import gzip
 import json
 import random
+import resource
 import shutil
 import sys
 from pathlib import Path
@@ -316,6 +317,26 @@ def test_an_unfilterable_gtf_is_refused_rather_than_silently_widened(tmp_path: P
         _parse_exons(gtf)
 
 
+def _measure_mb(tmp_path: Path, mb: int, name: str) -> int:
+    from seqforge.e2e import _run_measured
+
+    code, _wall, kib, _err = _run_measured(
+        # touch every page: an untouched bytearray is not necessarily resident, and this test is
+        # about RESIDENT memory
+        [
+            sys.executable,
+            "-c",
+            f"x = bytearray({mb} * 1024 * 1024)\n"
+            f"for i in range(0, len(x), 4096): x[i] = 1\n"
+            f"print(len(x))",
+        ],
+        outdir=tmp_path / name,
+        timeout=120,
+    )
+    assert code == 0
+    return kib
+
+
 def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> None:
     """A second measured run must be able to report LESS memory than the first.
 
@@ -329,23 +350,42 @@ def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> 
     Big-then-small is the ordering that catches it: under the old code the second reading could not
     fall below the first, so `small < big` is precisely the assertion the bug forbids.
     """
-    from seqforge.e2e import _run_measured
-
-    def measure(mb: int, name: str) -> int:
-        code, _wall, kib, _err = _run_measured(
-            [sys.executable, "-c", f"x = bytearray({mb} * 1024 * 1024); print(len(x))"],
-            outdir=tmp_path / name,
-            timeout=120,
-        )
-        assert code == 0
-        return kib
-
-    big = measure(400, "big")
-    small = measure(1, "small")
+    big = _measure_mb(tmp_path, 400, "big")
+    small = _measure_mb(tmp_path, 1, "small")
     assert small < big, (
         f"peak RSS is accumulating across children: 400 MB run -> {big}, 1 MB run -> {small}. "
         "Each measurement must belong to its own child."
     )
+
+
+def test_peak_rss_does_not_inherit_the_measuring_process_own_memory(tmp_path: Path) -> None:
+    """A fat parent must not raise the floor under a thin child.
+
+    **The test above passed on macOS and was red on arc, and the code was wrong both times.** On
+    Linux a spawned child's address space starts as a copy of its parent's, `ru_maxrss` is a
+    high-water mark, and `exec` never lowers it -- so `wait4` reported `max(parent_rss, child_peak)`.
+    Measured: with an 879 MB parent, a 1 MB child reported `879260 KiB`, the parent's RSS to the
+    byte, and so did a 400 MB child. macOS spawns via `posix_spawn` and does not do this, which is
+    the only reason the sibling test above ever passed locally -- it was green for a reason unrelated
+    to the code being right, and went red only under a suite fat enough to cross the floor.
+
+    So this test makes the parent fat ON PURPOSE, which is the condition the bug needs. It fails on
+    the old `wait4` code on Linux and passes on macOS, and that asymmetry is the point: a measuring
+    instrument may not silently report the weight of the person holding it.
+    """
+    ballast = bytearray(700 * 1024 * 1024)
+    for i in range(0, len(ballast), 4096):
+        ballast[i] = 1  # make it genuinely resident, not just mapped
+    parent = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss  # KiB on Linux, bytes on macOS
+    try:
+        small = _measure_mb(tmp_path, 1, "small")
+        assert small < parent / 2, (
+            f"a 1 MB child reported {small} while this process holds {parent} -- the measurement is "
+            f"reporting the PARENT's memory, so every number below the parent's RSS is a floor, not "
+            f"a reading"
+        )
+    finally:
+        del ballast
 
 
 def test_a_measured_run_reports_a_failing_exit_code_with_its_stderr(tmp_path: Path) -> None:

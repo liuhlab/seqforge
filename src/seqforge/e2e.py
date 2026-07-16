@@ -581,6 +581,27 @@ def run_starsolo(
     return outdir / "Solo.out" / _feature_list(solo["soloFeatures"])[0] / "raw"
 
 
+#: How often to sample a running child's ``VmHWM``. Small because it is a ~1 KB read of a virtual
+#: file, and the thing being sampled (STAR's peak) is sustained for minutes; the cost of 20 reads a
+#: second across a 30-minute run is nothing next to missing the peak.
+_POLL_S = 0.05
+
+
+def _vm_hwm_kib(pid: int) -> int | None:
+    """A running process's own peak RSS in KiB, or ``None`` if it cannot be read.
+
+    ``None`` covers both "no ``/proc``" (macOS) and "already a zombie" (no ``mm`` to report), which
+    the caller treats the same way: keep whatever peak it already sampled.
+    """
+    try:
+        for line in Path(f"/proc/{pid}/status").read_text().splitlines():
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
 def _run_measured(
     cmd: list[str],
     *,
@@ -591,15 +612,32 @@ def _run_measured(
 ) -> tuple[int, float, int, str]:
     """Run ``cmd`` to completion; return ``(exit_code, wall_s, peak_rss_kib, stderr_tail)``.
 
-    ``os.wait4`` reports rusage for **the one child it reaps**, and that is the whole reason this
-    exists. The measurement here used to be ``resource.getrusage(RUSAGE_CHILDREN).ru_maxrss``, which
-    is a high-water mark over *every* child the process has ever reaped — so a second STAR run in the
-    same process inherits the first one's peak and can never report a smaller number. That was
-    invisible while ``kb e2e-introns`` ran STAR exactly once, and its comment said as much: correct
-    "because STAR is the only heavy child". A sweep runs STAR many times in one process, and every
-    point after the first would have been silently ``max()``-ed with its predecessors — an increasing
-    curve that would look exactly like the memory growth we are trying to measure. The assumption was
-    load-bearing, asserted by a comment, and enforced by nothing.
+    **The peak is the child's own ``VmHWM``, polled from ``/proc``, and NOT ``wait4``'s rusage.**
+    Two bugs deep, and each was found only after the previous fix:
+
+    1. It was ``resource.getrusage(RUSAGE_CHILDREN).ru_maxrss`` — a high-water mark over *every*
+       child the process has ever reaped, so a second STAR run inherited the first one's peak and
+       could never report a smaller number. Invisible while `kb e2e-introns` ran STAR once; fatal to
+       a sweep, whose every point after the first would be silently ``max()``-ed with its
+       predecessors — an increasing curve indistinguishable from the growth we are measuring.
+    2. ``os.wait4`` fixed that and was **still wrong on Linux**, which is where every real
+       measurement runs. Measured 2026-07-15: with an 879 MB parent, a child allocating 1 MB reports
+       ``879260 KiB`` — the parent's RSS *to the byte* — and so does a child allocating 400 MB. On
+       Linux a spawned child's address space begins as a copy of the parent's, ``ru_maxrss`` is a
+       high-water mark, and ``exec`` never lowers it. So ``wait4`` reports
+       ``max(parent_rss_at_fork, child_peak)``: a **floor**, silently, at whatever the caller happens
+       to weigh.
+
+    macOS does not do this — CPython spawns via ``posix_spawn`` there, and the same 1 MB child
+    reports ~10 MB beside a 903 MB parent. That is exactly why this survived: the guard test passed
+    locally for a reason that had nothing to do with the code being right, and only went red on arc,
+    under a full suite fat enough to cross the floor.
+
+    ``VmHWM`` is the kernel's per-process high-water mark and ``execve`` resets it with the rest of
+    the ``mm``, so it is the post-exec peak of *this* program and nothing else. Polling can in
+    principle miss a spike shorter than :data:`_POLL_S`; for the thing this measures — STAR holding a
+    30 GB index for minutes — it cannot. Where there is no ``/proc`` we fall back to ``wait4``, which
+    is right on macOS and is not where any published number comes from.
 
     Output goes to files rather than pipes on purpose: ``Popen.communicate`` reaps the child itself,
     which would leave ``wait4`` nothing to collect rusage from.
@@ -607,11 +645,15 @@ def _run_measured(
     outdir.mkdir(parents=True, exist_ok=True)
     err_log = outdir / f"{log_prefix}.stderr.log"
     started = time.monotonic()
+    peak_kib = 0
     with open(outdir / f"{log_prefix}.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
         proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh, env=env)
         deadline = started + timeout
         while True:
             pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
+            # Read before acting on `pid`: once reaped the child is a zombie with no `mm`, so this is
+            # the last chance at its high-water mark.
+            peak_kib = max(peak_kib, _vm_hwm_kib(proc.pid) or 0)
             if pid != 0:
                 break
             if time.monotonic() > deadline:
@@ -619,11 +661,13 @@ def _run_measured(
                 os.wait4(proc.pid, 0)
                 proc.returncode = -9
                 raise E2EUnavailable(f"{log_prefix} exceeded its {timeout}s budget")
-            time.sleep(0.2)
+            time.sleep(_POLL_S)
     # Tell Popen the child is already reaped, so its own wait() does not race for an ECHILD.
     proc.returncode = os.waitstatus_to_exitcode(status)
     elapsed = time.monotonic() - started
-    return proc.returncode, elapsed, usage.ru_maxrss, err_log.read_text()[-2000:]
+    # 0 means we never got a reading — no /proc (macOS), or a child too short-lived to poll. Falling
+    # back is right on macOS and merely imprecise elsewhere; silently reporting 0 GB would not be.
+    return proc.returncode, elapsed, peak_kib or usage.ru_maxrss, err_log.read_text()[-2000:]
 
 
 def run_composed(
