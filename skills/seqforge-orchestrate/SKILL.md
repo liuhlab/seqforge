@@ -24,12 +24,12 @@ stop. If you ever find yourself reasoning about what the data probably is, you h
 ## The pipeline
 
 ```bash
-seqforge io resolve ACC --json           # optional: accession -> runs (+ dropped-read check)
-seqforge probe FILES --json              # bytes -> Observation      (no LLM, no network)
+seqforge io resolve ACC           # optional: accession -> runs (+ dropped-read check)
+seqforge probe FILES              # bytes -> Observation      (no LLM, no network)
 seqforge harvest normalize DOCS          # prose -> canonical text
 seqforge harvest extract DOCS --verify \
         [--instruction notes.md]         # THE one LLM touchpoint    (delegate to seqforge-harvest)
-seqforge resolve score FILES --json      # Obs + KB -> decision      (no LLM)
+seqforge resolve score FILES      # Obs + KB -> decision      (no LLM)
 # --- the IR: what the data IS. One per dataset, immutable (R13). Takes no genome. ---
 seqforge manifest fill FILES --organism N && seqforge manifest validate MANIFEST
 # --- the flags: what to DO with it. Many per dataset. Optional — compose defaults them. ---

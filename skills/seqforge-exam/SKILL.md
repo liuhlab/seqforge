@@ -13,8 +13,8 @@ description: >-
 Turn bytes into an `Observation`. Deterministic: no LLM, no network, no interpretation.
 
 ```bash
-seqforge probe FILES... --json            # local; bounded by construction
-seqforge io peek URI --json               # remote; HTTP Range, ~64 KB, never the file
+seqforge probe FILES...            # local; bounded by construction
+seqforge io peek URI               # remote; HTTP Range, ~64 KB, never the file
 ```
 
 ## The budget is not negotiable (R3)

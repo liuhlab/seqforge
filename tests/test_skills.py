@@ -14,7 +14,15 @@ from pathlib import Path
 import pytest
 import yaml
 
-SKILLS = Path(__file__).resolve().parents[1] / "skills"
+_REPO = Path(__file__).resolve().parents[1]
+SKILLS = _REPO / "skills"
+
+#: The human-facing site. Same guard, same reason: a tutorial telling someone to run a verb that does
+#: not exist wastes their afternoon, and `docs/getting-started.md` really did say `seqforge probe` --
+#: which the SKILL guard had caught and deleted from the skills, in the skills only, leaving the
+#: identical claim standing three directories away. A guard scoped to where the bug was found is a
+#: guard scoped to nothing.
+DOCS = _REPO / "docs"
 EXPECTED = {
     "seqforge-orchestrate",
     "seqforge-exam",
@@ -58,6 +66,22 @@ def _code_spans(body: str) -> str:
     fences = re.findall(r"```[a-z]*\n(.*?)```", body, re.DOTALL)
     inline = re.findall(r"`([^`\n]+)`", body)
     return "\n".join([*fences, *inline])
+
+
+def _doc_pages() -> list[Path]:
+    """Every published page. `design.md` is excluded from the SITE and included here: it is the
+    agent-facing source of truth, and an agent following a fictional verb fails exactly as a human
+    does."""
+    return sorted(DOCS.rglob("*.md"))
+
+
+@pytest.mark.parametrize("page", [*_doc_pages(), _REPO / "README.md"], ids=lambda p: p.name)
+def test_docs_document_only_real_cli_verbs(page: Path) -> None:
+    """The same check as the skills', over the pages a human reads. See `_verbs_used`."""
+    used = _verbs_used(page.read_text())
+    real = _real_verbs()
+    unknown = sorted(v for v in used if v not in real and v.split()[0] not in _PLANNED)
+    assert not unknown, f"{page.name} documents non-existent verb(s): {unknown}"
 
 
 @pytest.mark.parametrize("skill", _skill_dirs(), ids=lambda p: p.name)
@@ -123,6 +147,21 @@ def _real_cli() -> tuple[set[str], set[str]]:
     return verbs, groups
 
 
+#: A seqforge INVOCATION, as opposed to a mention of the word. Three deliberate narrowings, each
+#: earned by a false positive this guard actually produced:
+#:
+#: - **line-start, or after `pixi run -- `**. That is how a command appears. Mid-sentence it is
+#:   English: `design.md` contains "liulab-genome does not fetch annotations; seqforge stages the
+#:   GTF", inside a docstring, inside a fence — and `stages` is a verb in the grammatical sense only.
+#: - **`[ \t]`, not `\s`**: a newline ends an invocation. `\s` crossed it, so a fenced block reading
+#:   `git clone .../seqforge` then `cd seqforge` parsed as the verb `seqforge cd`.
+#: - **at most three words**: past that you are reading arguments.
+#:
+#: A guard that cries wolf gets ignored exactly when it is right, which is the same reason
+#: `_CONCRETE_SCRATCH` below insists on two path segments.
+_INVOCATION = re.compile(r"(?m)(?:^|(?<=-- ))seqforge((?:[ \t]+[a-z][a-z0-9|-]*){1,3})")
+
+
 def _verbs_used(body: str) -> set[str]:
     """`seqforge io onlist write --out x` -> {"io onlist write"}. Every claimed invocation, expanded.
 
@@ -143,7 +182,10 @@ def _verbs_used(body: str) -> set[str]:
     """
     verbs, groups = _real_cli()
     out: set[str] = set()
-    for match in re.finditer(r"\bseqforge((?:\s+[a-z][a-z0-9|-]*){1,3})", _code_spans(body)):
+    # `[ \t]`, not `\s`: a newline ends the invocation. `\s` crossed it, so a fenced block reading
+    # `git clone .../seqforge` then `cd seqforge` parsed as the verb `seqforge cd` -- a guard that
+    # cries wolf gets ignored exactly when it is right.
+    for match in re.finditer(_INVOCATION, _code_spans(body)):
         for combo in itertools.product(*[w.split("|") for w in match.group(1).split()]):
             path = ""
             for word in combo:
@@ -159,6 +201,63 @@ def _verbs_used(body: str) -> set[str]:
 
 def _real_verbs() -> set[str]:
     return _real_cli()[0]
+
+
+def _real_flags() -> dict[str, set[str]]:
+    """verb -> the long options it really takes. Introspected from the live app's click commands."""
+    from typer.main import get_command
+
+    from seqforge.cli import app
+
+    out: dict[str, set[str]] = {}
+
+    def _walk(cmd: object, prefix: str) -> None:
+        commands = getattr(cmd, "commands", None)
+        if commands:
+            for name, sub in commands.items():
+                _walk(sub, f"{prefix} {name}".strip())
+            return
+        out[prefix] = {
+            opt
+            for param in getattr(cmd, "params", [])
+            for opt in getattr(param, "opts", [])
+            if opt.startswith("--")
+        }
+
+    _walk(get_command(app), "")
+    return out
+
+
+@pytest.mark.parametrize(
+    "page",
+    [*_doc_pages(), *[d / "SKILL.md" for d in _skill_dirs()], _REPO / "README.md"],
+    ids=lambda p: f"{p.parent.name}/{p.name}",
+)
+def test_documented_flags_exist(page: Path) -> None:
+    """A verb that exists, called with a flag that does not, fails just as hard.
+
+    `docs/getting-started.md` told people to run `manifest fill ... -o manifest.yaml` (there is no
+    `-o`; it writes to the workspace) and `processing new --dataset manifest.yaml` (the manifest is a
+    positional argument). Both verbs are real, so the verb check was green, and both commands exit 2.
+
+    Only long options, and only for verbs we can resolve: a short flag is ambiguous in prose, and a
+    placeholder like `--profile <your-cluster-profile>` belongs to snakemake, not to us.
+    """
+    flags = _real_flags()
+    verbs, _ = _real_cli()
+    body = _code_spans(page.read_text())
+    bad: list[str] = []
+    for match in _INVOCATION.finditer(body):
+        words = match.group(1).split()
+        verb = next((" ".join(words[:n]) for n in (3, 2, 1) if " ".join(words[:n]) in flags), None)
+        if verb is None:
+            continue
+        # the rest of THIS line only — the next line is the next command
+        line = body[match.end() : body.find("\n", match.end()) % (len(body) + 1)]
+        for flag in re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]*)", line):
+            if flag not in flags[verb] and flag not in {"--help"}:
+                bad.append(f"`seqforge {verb} {flag}` — real: {sorted(flags[verb])}")
+    assert not bad, f"{page.name} documents non-existent flag(s):\n" + "\n".join(bad)
 
 
 #: A CONCRETE lab path: two real segments under a cluster root. `/scratch/...` in prose is the rule
@@ -236,3 +335,19 @@ def test_the_verb_check_does_not_cry_wolf_over_arguments() -> None:
     assert _verbs_used("`seqforge kb show tech`") == {"kb show"}
     # prose is not code: the scanner never looks outside a fence or an inline span
     assert _verbs_used("seqforge kb confusability is not a thing") == set()
+
+
+def test_the_flag_check_catches_a_fictional_flag() -> None:
+    """Prove it fires. It found three the day it was written, and two were in the same skill.
+
+    `--json` on `probe`, `io peek`, `io resolve` and `resolve score`: R8 says JSON on stdout is the
+    default and there IS no flag, and four documented invocations passed one anyway. `processing new
+    --dataset manifest.yaml` in `getting-started.md`: the manifest is a positional argument. Every one
+    of those verbs is real, so the verb check was green and every command exits 2.
+    """
+    flags = _real_flags()
+    assert "--json" not in flags["probe"], "R8: JSON is the default; there is no --json flag"
+    assert "--accession" in flags["manifest fill"]
+    assert "--dataset" not in flags["processing new"]
+    # and the scanner reads the flag off the line it is on, not the next command's
+    assert "--workspace" in flags["manifest fill"]
