@@ -46,6 +46,17 @@ seqforge run FILES... \
   in prose, that arrives as a verified instruction instead; otherwise pass the flags.
 - **`--fastq-dir`** is where this machine keeps the FASTQs, so `units.tsv` can find them.
 
+**Run it in the foreground — do NOT background it.** `seqforge run` is a single bounded command (R3
+caps every FASTQ read; the probe reads ~10 MB of a 20 GB file, not the whole thing) and finishes in
+roughly a minute or two, paper included. Let the command block and read its JSON summary when it
+returns. Backgrounding it is the one reliable way to lose the whole run: in a headless (`-p`) session
+there is no next turn to receive a background-completion notification, so a backgrounded pipeline is
+**killed when the turn ends**, leaving a half-written workspace with only `records/`. If you catch
+yourself starting the pipeline in the background and then "waiting for a notification", stop — the
+notification is never coming. The same holds for the staged verbs: run each to completion in the
+foreground. (It is not slow. The reputation that the probe takes many minutes predates the parallel,
+vectorized resolver; `--cpus` defaults to using several cores.)
+
 The summary's `snakefile` path is the deliverable. `run` writes `manifest.yaml`, `processing.yaml`,
 and the pipeline directory under `seqforge/`; re-running is resumable through each stage's
 content-addressed cache (R7) — **there is no `--resume` flag**, you just run it again.
