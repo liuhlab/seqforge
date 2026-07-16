@@ -1558,3 +1558,65 @@ def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(tmp_path: Path) 
     plan_text = _dry_run((tmp_path / result.config_path).parent, p)
     assert "rule onlist" in plan_text, "the whitelist has no producing job in the plan"
     assert "3M-february-2018" in plan_text
+
+
+def test_the_config_block_is_read_off_the_module_not_matched_on_its_name() -> None:
+    """The last `== "map/starsolo"` in the tree, and the last silent "everything else is bulk".
+
+    `param_block_key` was `"solo" if spec.backend.module == "map/starsolo" else "bulk"`, which is the
+    same bug `read_layout_kind` was created to kill one function earlier: a third module gets its
+    params written into a `bulk:` block it never reads, and the params gate agrees with the composer
+    because the gate calls this same function. Two things wrong identically look, from inside a test,
+    exactly like two things right.
+
+    Now it is read off what the module source actually dereferences.
+    """
+    import ast
+
+    from seqforge.workflows import MODULES, list_modules
+
+    assert MODULES["map/starsolo"].param_block == "solo"
+    assert MODULES["map/star"].param_block == "bulk"
+
+    # A COMPARISON against a module name, not a mention of one: the docstrings deliberately keep the
+    # old line so the bug it names stays findable. Grepping the text would forbid the record of the
+    # fix along with the fix, which is how a guard teaches people to delete their own history.
+    names = set(list_modules())
+    offenders: list[str] = []
+    for py in sorted(_src_root().rglob("*.py")):
+        for node in ast.walk(ast.parse(py.read_text())):
+            if isinstance(node, ast.Compare) and any(
+                isinstance(c, ast.Constant) and c.value in names for c in node.comparators
+            ):
+                offenders.append(f"{py.relative_to(_src_root())}:{node.lineno}")
+    assert not offenders, (
+        "a workflow module is being dispatched on by NAME. Every module that is not the one named "
+        "silently takes the other branch, and nothing goes red — that is how `_read_files_in` "
+        "emitted mate1/mate2 for a barcoded chemistry. Declare the fact on the module:\n"
+        + "\n".join(offenders)
+    )
+
+
+def test_a_module_whose_config_contract_is_unreadable_refuses() -> None:
+    """Guessing which block a module reads is how the wrong params reach an aligner."""
+    from seqforge.workflows import WorkflowModule
+
+    ghost = WorkflowModule(
+        name="map/ghost",
+        version="0.0.0",
+        env="align-rna",
+        snakefile=tmp_snakefile(),
+        read_layout_kind="paired",
+    )
+    with pytest.raises(ValueError, match="exactly one of solo/bulk"):
+        _ = ghost.param_block
+
+
+def tmp_snakefile() -> Path:
+    """A module that reads neither aligner-param block. Written to a real path: `required_config`
+    scans the source, which is the whole point of it being derived."""
+    import tempfile
+
+    p = Path(tempfile.mkdtemp()) / "ghost.smk"
+    p.write_text('rule x:\n    output: "y"\n    shell: "echo {config[outdir]}"\n')
+    return p

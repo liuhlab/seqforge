@@ -42,6 +42,7 @@ from typing import Literal
 from ..kb.schema import KB_PARSE_KEYS, Element, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import ProcessingManifest, Quantification, SoloQuant
+from ..workflows import get_module
 
 GateStatus = Literal["pass", "fail"]
 ParamOwner = Literal["kb", "processing", "derived"]
@@ -147,7 +148,7 @@ def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamO
     return owners
 
 
-def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
+def param_block_key(spec: Spec) -> str:
     """Which config block carries this spec's aligner params: ``solo`` xor ``bulk``.
 
     Keyed by the MODULE, which is the only thing that decides it. The gate used to instead take
@@ -155,8 +156,13 @@ def param_block_key(spec: Spec) -> Literal["solo", "bulk"]:
     reported as *"config drops KB param 'quantMode'"* — a real failure diagnosed as an unrelated one,
     which is worse than no gate: it sends you to the wrong file. One definition, consulted by both the
     composer that writes the block and the gate that checks it.
+
+    And the module reads it off its own source. This function used to be
+    ``"solo" if spec.backend.module == "map/starsolo" else "bulk"`` — the last string compare against
+    a module name in the tree, and the same shape as the `_read_files_in` bug that preceded it: every
+    module that is not starsolo silently means bulk. See :attr:`WorkflowModule.param_block`.
     """
-    return "solo" if spec.backend.module == "map/starsolo" else "bulk"
+    return str(get_module(spec.backend.module).param_block)
 
 
 def render_param(value: object) -> str:

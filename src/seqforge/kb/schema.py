@@ -304,7 +304,30 @@ class Spec(_Forbid):
     signature: Signature
     backend: Backend
     confusable_with: list[Confusable] = Field(default_factory=list)
-    decidable_by: list[Decidable] = Field(default_factory=list)
+
+    @property
+    def decidable_by(self) -> list[Decidable]:
+        """How this technology can be separated from the ones it is confusable with. **Derived.**
+
+        This was a hand-typed field on every spec, and two of them carried the comment "CI-computed
+        union over the divergent confusables". No CI computed it. Nothing read it either — `escalate`
+        builds a Question's ``decidable_by`` from ``confusable_with[].distinguishable_by``, inline,
+        which is precisely the union the comment described. So the field was a claim about behaviour
+        that caused no behaviour: a comment with a list's syntax, free to drift from the thing it
+        claimed to summarize, with nothing to notice.
+
+        That is the exact shape of `RegistryEntry.fetchable` before it was derived, and of
+        `required_config` before that. Deriving it is the only fix that stays fixed.
+
+        ``processing_equivalent`` twins are excluded on purpose: §12 says two entries with identical
+        ``backend.params`` are declared equivalent and recorded together, so there is nothing to
+        decide between them and no mechanism that could.
+        """
+        out: set[Decidable] = set()
+        for c in self.confusable_with:
+            if c.relationship == "processing_divergent":
+                out.update(m for m in c.distinguishable_by if m != "none")
+        return sorted(out)  # type: ignore[arg-type]
 
     @model_validator(mode="after")
     def _cross_refs(self) -> Spec:

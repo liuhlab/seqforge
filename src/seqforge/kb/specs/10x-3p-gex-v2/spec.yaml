@@ -69,4 +69,3 @@ backend:
 
 # v2 vs v3 are length-separable (26 vs 28 bp) at rungs 0-2, so neither is confusable with the other.
 confusable_with: []
-decidable_by: []

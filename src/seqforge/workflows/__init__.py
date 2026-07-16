@@ -148,6 +148,33 @@ class WorkflowModule:
         """
         return tuple(sorted(keys_read_by(self.snakefile)))
 
+    @property
+    def param_block(self) -> str:
+        """Which config block carries this module's aligner params. **Read off the module source.**
+
+        `starsolo.smk` dereferences `config["solo"]`; `star.smk` dereferences `config["bulk"]`. That
+        is not a preference anyone declares — it is what the file does — so it is derived from
+        `required_config`, which is itself scanned out of the module.
+
+        It was `"solo" if spec.backend.module == "map/starsolo" else "bulk"`, the last surviving
+        string compare against a module name, and it is the same bug `read_layout_kind` was created
+        to kill: every module that is not starsolo silently means bulk. A third module would have had
+        its params written into a `bulk:` block it never reads, and the params gate — which uses this
+        same function — would have agreed with the composer, because both were wrong in the same
+        direction. Two things wrong identically is what a shared bug looks like from inside a test.
+
+        A module that reads neither block, or both, raises. That is a module whose config contract we
+        do not understand, and guessing would be how the wrong params reach an aligner.
+        """
+        blocks = sorted({k.split(".")[0] for k in self.required_config} & {"solo", "bulk"})
+        if len(blocks) != 1:
+            raise ValueError(
+                f"{self.name} reads {blocks or 'no'} aligner-param block(s) in its config; expected "
+                f"exactly one of solo/bulk. A module whose contract is unreadable must not be "
+                f"guessed at — add the block it reads, or teach `param_block` the new shape."
+            )
+        return blocks[0]
+
 
 MODULES: dict[str, WorkflowModule] = {
     "map/starsolo": WorkflowModule(

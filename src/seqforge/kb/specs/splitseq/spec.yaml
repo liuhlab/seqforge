@@ -155,4 +155,3 @@ confusable_with:
     note: >
       The generic paired-end fallback accepts cdna+bc on geometry alone. Rung 3 decides it: the
       round1/2/3 whitelists hit, and bulk has no whitelist to hit.
-decidable_by: [onlist]

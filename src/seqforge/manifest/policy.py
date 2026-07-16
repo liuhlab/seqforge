@@ -187,9 +187,15 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     # Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
     # meaningless to STARsolo. A processing manifest that carried one shape unconditionally would be
     # a type error the moment it met the other module.
+    #
+    # Keyed on the block the module READS, not on its name. `if module == "map/starsolo"` was the
+    # same silent fall-through as `param_block_key`'s and `_read_files_in`'s before it: any third
+    # module quietly gets `quantMode=GeneCounts`, which is a real and wrong instruction to an aligner
+    # that may not take it. `param_block` refuses a module whose contract is neither solo nor bulk,
+    # so the `else` here can only be bulk — by construction rather than by hope.
     quantification: Quantification = (
         SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
-        if module == "map/starsolo"
+        if get_module(module).param_block == "solo"
         else BulkQuant(mode="GeneCounts")
     )
     return ProcessingDefaults(
