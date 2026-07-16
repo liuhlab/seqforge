@@ -207,11 +207,15 @@ chemistry; an experiment's protocol paragraph is asked for the chemistry and not
 abstract is read by nobody, because "wild-type and daf-2 mutants" is true of the study and false of
 every individual sample in it.
 
-**Two sources disagreeing is a conflict, not a vote.** If the paper says "we dissected neurons and
-body wall muscle" and the model comes back with `tissue=muscle`, that quote is real and it does
-entail the value — the span check passes, and it is *right to* pass. What catches it is the record
-saying `Neurons`: the manifest keeps the record's value and surfaces an open Conflict, and you get
-exit 4 and a question instead of a fact.
+**Two sources disagreeing is decided by precedence, then noted — not voted, and not a refusal.** If
+the paper says "we dissected neurons and body wall muscle" and the model comes back with
+`tissue=muscle`, that quote is real and it does entail the value — the span check passes, and it is
+*right to* pass. What catches it is the record saying `Neurons`: the record is a declaration about
+that sample (`asserted`), the paper's reading is our inference (`inferred`), so **the record's value
+stands** and the paper's is surfaced as a non-blocking **warning**. The manifest still compiles — a
+single ambiguous sample annotation is no reason to refuse a dataset. And if two *equal* authorities
+disagree (two records, say), the field is left **null**: a missing value is not permanent, a wrong one
+is. Only a disagreement about what the data *is* — the byte-level chemistry — blocks.
 
 ## 5. Write down what you want DONE with it
 

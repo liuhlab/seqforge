@@ -90,11 +90,15 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
   <sample>.velocyto.h5ad. That is the default target: `rule all` demands the matrices, not a folder.
 ```
 
-**The two resolvers are siblings, not a stage and a side-input.** Both emit evidenced values, both
-surface disagreements they refuse to arbitrate, and both can refuse — because both have the same ways
-of being wrong. Treating sample metadata as "inputs `fill` happens to need" is what left `tissue:
-null` on six samples under a paper that says "neurons": the field had no writer, and a claim had no
-way to name a sample. Neither resolver reads the other's input, and the line is in
+**The two resolvers are siblings, not a stage and a side-input.** Both emit evidenced values and both
+can refuse — because both have the same ways of being wrong. They part on disagreement: the byte
+resolver surfaces an `observed`↔`asserted` conflict it will not arbitrate (that decides what the data
+*is*, and blocks), while the metadata resolver *decides* a sample-attribute disagreement — a stronger
+authority wins, equal authorities leave the field **null** — and surfaces it as a non-blocking
+**warning**. A single ambiguous annotation is no reason to refuse a whole dataset; null-over-wrong is
+a value, not a question. Treating sample metadata as "inputs `fill` happens to need" is what left
+`tissue: null` on six samples under a paper that says "neurons": the field had no writer, and a claim
+had no way to name a sample. Neither resolver reads the other's input, and the line is in
 [`resolve/records.py`](src/seqforge/resolve/records.py).
 
 The last artifact is the point: **a Snakefile the user can submit.** `seqforge` does not submit jobs —

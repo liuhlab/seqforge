@@ -30,11 +30,19 @@ def _looks_absolute(uri: str) -> bool:
 
 
 def validate_manifest(
-    manifest: DatasetManifest, *, conflicts: list[Conflict] | None = None
+    manifest: DatasetManifest,
+    *,
+    conflicts: list[Conflict] | None = None,
+    warnings: list[ValidationWarning] | None = None,
 ) -> ValidationReport:
-    """Validate a manifest's cross-section integrity. Any Blocker => not compilable."""
+    """Validate a manifest's cross-section integrity. Any Blocker => not compilable.
+
+    ``warnings`` seeds the report's advisory notes — the metadata resolver's non-blocking
+    sample-attribute decisions (kept-by-precedence or left-null) arrive here — and never touch ``ok``.
+    Only an ``open`` conflict or a Blocker makes a manifest non-compilable.
+    """
     blockers: list[Blocker] = []
-    warnings: list[ValidationWarning] = []
+    warnings = list(warnings or [])
     open_conflicts = [c for c in (conflicts or []) if c.status == "open"]
 
     # --- R9: no absolute/local path may ever reach a manifest (defence in depth) ---

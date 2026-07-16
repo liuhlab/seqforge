@@ -3,8 +3,10 @@
 ``score`` answers "what is this library?" from bytes. This answers "which sample is each file, and
 what is that sample?" from records and prose. They are siblings rather than one stage because they
 have the same ways of being wrong and therefore need the same discipline: both emit evidenced values,
-both surface disagreements they refuse to arbitrate, and both can refuse outright. What they must
-never do is talk to each other — see "the line", below.
+and both can refuse outright. They differ in one place — the byte resolver surfaces an observed-vs-
+asserted disagreement it will not arbitrate, while the metadata resolver decides a sample-attribute
+disagreement (by precedence, or null) and only *notes* it — for the reason in "Where basis comes
+from", below. What they must never do is talk to each other — see "the line", below.
 
 **The join is code's, at every level.** run -> experiment -> sample -> project comes out of the
 record, by accession; record-run -> file-on-disk comes out of the run accession in the filename or
@@ -33,17 +35,21 @@ a model reading a DATASET-level document     ``inferred``     the paper says it 
                                                               is our inference, not its claim
 ===========================================  ===============  ================================
 
-A disagreement across bases keeps the stronger basis's value **and stays open** — the §958 pattern,
-where the library takes the observed value and the conflict rides along. A disagreement *within* one
-basis stores **no value at all**: two equal authorities contradicting each other is not something
-code may break, and a wrong value here is permanent (``experiment`` is inside ``dataset_hash`` and
-the manifest is never rewritten).
+A disagreement across bases keeps the stronger basis's value (``asserted`` over ``inferred``); a
+disagreement *within* one basis stores **no value at all**, because two equal authorities contradicting
+each other is not something code may break, and a wrong value here is permanent (``experiment`` is
+inside ``dataset_hash`` and the manifest is never rewritten). Either way the resolver has **decided** —
+so the disagreement is a non-blocking ``warning``, not a refusal. Null-over-wrong is a value, not a
+question for a human, and a single sample annotation is no reason to stop a whole dataset compiling.
+Only the byte resolver's ``observed`` vs ``asserted`` conflict blocks: that one decides what the data
+*is*, and code may not auto-pick it.
 
-That asymmetry is the thing that catches the error R5 provably cannot. "We dissected neurons and body
-wall muscle" entails ``tissue=neurons`` *and* ``tissue=muscle`` — both quotes are real, both are
-contiguous, both pass span verification and entailment. What separates them is that the record says
-``Neurons``, so the wrong one lands as an open Conflict a human reads instead of a fact a corpus
-inherits.
+That asymmetry still catches the error R5 provably cannot. "We dissected neurons and body wall muscle"
+entails ``tissue=neurons`` *and* ``tissue=muscle`` — both quotes are real, both pass span verification
+and entailment. What separates them is that the record says ``Neurons``: it is a declaration about this
+sample (``asserted``) and the paper's reading is our inference (``inferred``), so the record's value
+stands and the paper's is surfaced as a warning a reader can see — never baked in as a fact a corpus
+inherits, and never a refusal that stops the compile.
 
 **No archive is the normal case, not the degraded one.** Most sequencing data has never had an
 accession and never will: a freshly sequenced plate on a lab filesystem has no BioProject, no
@@ -62,8 +68,7 @@ from dataclasses import dataclass
 from ..io.attributes import is_attribute
 from ..models.assertion import Assertion
 from ..models.base import Basis
-from ..models.blocker import Blocker, BlockerCode, BlockerSubject
-from ..models.conflict import Conflict, ConflictPosition
+from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.evidenced import EvidencedStr, EvidencedTaxid
 from ..models.observation import FileIdentity
 from ..models.records import ArchiveRecord, ArchiveRecordSet
@@ -140,10 +145,10 @@ def resolve_metadata(
 
     verified = [a for a in assertions if a.span_verified and a.entailment_ok]
     resolved: list[ResolvedSample] = []
-    conflicts: list[Conflict] = []
+    warnings: list[ValidationWarning] = []
     for sample in samples:
         positions = _positions_for(sample, verified, by_doc, subject_to_sample)
-        attrs, sample_conflicts = _decide(sample.sample_id, positions)
+        attrs, sample_warnings = _decide(sample.sample_id, positions)
         resolved.append(
             ResolvedSample(
                 sample_id=sample.sample_id,
@@ -152,13 +157,13 @@ def resolve_metadata(
                 file_shas=sample.file_shas,
             )
         )
-        conflicts.extend(sample_conflicts)
+        warnings.extend(sample_warnings)
 
     return MetadataResolution(
         samples=resolved,
         project=_project_facts(records),
         organism=_organism(records),
-        conflicts=conflicts,
+        warnings=warnings,
         blockers=blockers,
     )
 
@@ -355,10 +360,23 @@ def _basis_for(
 
 def _decide(
     sample_id: str, positions: dict[str, list[_Position]]
-) -> tuple[dict[str, EvidencedStr], list[Conflict]]:
-    """Turn each attribute's positions into at most one value, plus any conflict. Never a vote."""
+) -> tuple[dict[str, EvidencedStr], list[ValidationWarning]]:
+    """Turn each attribute's positions into at most one value, plus non-blocking notes. Never a vote.
+
+    The resolver DECIDES here rather than defer, and either way it is resolved — so a disagreement is a
+    ``warning``, not a blocking conflict:
+
+    - a stronger authority wins (``asserted`` over ``inferred``): keep its value, note the weaker
+      source that disagreed;
+    - equal authorities that disagree leave the attribute **null**, because a wrong value is permanent
+      and a missing one is not. Null is a value here, not a question for a human.
+
+    A null-or-precedence sample attribute must not stop a dataset compiling: the strain already tells
+    the pilot's two conditions apart, and most datasets have no such prose at all. Only the byte
+    resolver's ``observed`` vs ``asserted`` disagreement blocks — that one decides what the data *is*.
+    """
     attrs: dict[str, EvidencedStr] = {}
-    conflicts: list[Conflict] = []
+    warnings: list[ValidationWarning] = []
 
     for name, found in sorted(positions.items()):
         distinct = {p.value for p in found}
@@ -367,37 +385,29 @@ def _decide(
             attrs[name] = _evidenced(best)
             continue
 
-        conflicts.append(
-            Conflict(
-                id=f"conflict-sample-{sample_id}-{name}".replace(".", "-"),
-                field=f"{SAMPLE_FIELD_PREFIX}{name}",
-                positions=[
-                    ConflictPosition(
-                        value=p.value,
-                        basis=p.basis,
-                        evidence=list(p.evidence),
-                        confidence=p.confidence if p.confidence is not None else 1.0,
-                    )
-                    for p in sorted(found, key=lambda p: (-_BASIS_RANK[p.basis], p.value))
-                ],
-                kind="asserted_vs_asserted",
-                # No byte says what tissue a nucleus came from, so reads/onlist/alignment cannot
-                # settle this. Only the record, or the person who wrote both sentences.
-                decidable_by=["metadata", "user"],
-                status="open",
-            )
-        )
-
         ranked = sorted(found, key=lambda p: -_BASIS_RANK[p.basis])
         top = _BASIS_RANK[ranked[0].basis]
         winners = {p.value for p in ranked if _BASIS_RANK[p.basis] == top}
+        seen = ", ".join(sorted(f"{p.value!r} ({p.basis})" for p in found))
         if len(winners) == 1:
-            # a stronger authority exists: keep its value, keep the conflict open (§958's pattern)
+            # a stronger authority exists: keep its value; the weaker source is only a note
             attrs[name] = _evidenced(ranked[0])
-        # else: two equal authorities disagree. Store nothing. A wrong value here is permanent, a
-        # missing one is not, and code does not get to break a tie between equals.
+            resolution = f"kept the {ranked[0].basis} value {ranked[0].value!r}"
+        else:
+            # two equal authorities disagree: store nothing. A wrong value here is permanent, a
+            # missing one is not, and code does not get to break a tie between equals.
+            resolution = (
+                "left null — equal-authority sources disagree, and null beats a wrong guess"
+            )
+        warnings.append(
+            ValidationWarning(
+                code="sample_attribute_ambiguous",
+                message=f"{sample_id} {SAMPLE_FIELD_PREFIX}{name}: sources disagree ({seen}); {resolution}",
+                subject=BlockerSubject(kind="field", ref=f"{SAMPLE_FIELD_PREFIX}{name}"),
+            )
+        )
 
-    return attrs, conflicts
+    return attrs, warnings
 
 
 def _evidenced(p: _Position) -> EvidencedStr:

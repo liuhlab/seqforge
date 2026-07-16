@@ -1483,10 +1483,11 @@ def _fill_manifest_pipeline(
     first = multi.runs[0].output.result
     winner = first.candidates[0]
     spec = load_spec(winner.technology)
-    conflicts = [
-        *(c for run in multi.runs for c in run.output.result.conflicts),
-        *metadata.conflicts,
-    ]
+    # Only the BYTE resolver's conflicts block: an observed-vs-asserted disagreement decides what the
+    # data IS, and code may not auto-pick it. A metadata disagreement (two prose/record sources on one
+    # sample attribute) the resolver already decided — kept-by-precedence or left-null — so it rides
+    # in as a non-blocking warning. Null-over-wrong is a value, not a reason to refuse a compile.
+    conflicts = [c for run in multi.runs for c in run.output.result.conflicts]
     try:
         experiment = experiment_from_metadata(
             metadata, multi.observations, organism_taxid=organism_taxid
@@ -1505,7 +1506,7 @@ def _fill_manifest_pipeline(
     except FillError as exc:
         return _StageOut(str(exc), 3, err=True)
 
-    report = validate_manifest(manifest, conflicts=conflicts)
+    report = validate_manifest(manifest, conflicts=conflicts, warnings=metadata.warnings)
     state = state_dir(workspace)
     state.mkdir(parents=True, exist_ok=True)
     payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)

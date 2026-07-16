@@ -120,9 +120,12 @@ class MetadataResolution(BaseModel):
     """The output of the metadata resolver — the sibling of ``resolve score``, over records not bytes.
 
     Same discipline and the same shape of answer, because it has the same ways of being wrong: it
-    emits evidenced values, surfaces disagreements it will not arbitrate, and can refuse. A dataset
-    with no archive record and no prose resolves to samples-with-no-facts, which is a real answer and
-    the honest one — most sequencing data has never had an accession.
+    emits evidenced values, and can refuse with a ``Blocker`` (a record whose runs do not match the
+    files on disk). A sample-attribute *disagreement* is different from a refusal: the resolver decides
+    it — a stronger authority wins, equal authorities leave the field null — so it is a non-blocking
+    ``warning``, not something that stops the dataset compiling. A dataset with no archive record and
+    no prose resolves to samples-with-no-facts, which is a real answer and the honest one — most
+    sequencing data has never had an accession.
     """
 
     samples: list[ResolvedSample] = Field(default_factory=list)
@@ -131,8 +134,9 @@ class MetadataResolution(BaseModel):
     #: caller must supply it — never a default, because a wrong taxid aligns cleanly against the wrong
     #: genome and nothing downstream ever asks again.
     organism: EvidencedTaxid | None = None
-    conflicts: list[Conflict] = Field(default_factory=list)
-    questions: list[Question] = Field(default_factory=list)
+    #: Non-blocking notes on sample attributes the resolver decided under disagreement (precedence, or
+    #: null when it could not pick). Surfaced so the resolution is never silent; they never block.
+    warnings: list[ValidationWarning] = Field(default_factory=list)
     blockers: list[Blocker] = Field(default_factory=list)
 
 

@@ -305,18 +305,20 @@ def test_a_document_code_did_not_place_names_no_sample(records: ArchiveRecordSet
         assertions=[_assertion("experiment.samples.tissue", "muscle", "e" * 64)],
         subjects=[],  # code never placed this document
     )
-    assert not out.conflicts
+    assert not out.warnings
     assert all(s.attributes["tissue"].value == "Neurons" for s in out.samples)
 
 
-def test_a_papers_wrong_reading_becomes_a_conflict_the_record_wins(
+def test_a_papers_wrong_reading_is_a_warning_the_record_wins_and_it_still_compiles(
     records: ArchiveRecordSet,
 ) -> None:
-    """The error R5 provably cannot catch, caught by having two independent sources.
+    """The error R5 provably cannot catch, caught by having two independent sources — and now resolved.
 
     "we dissected neurons and body wall muscle" entails tissue=neurons AND tissue=muscle: both quotes
-    are real, both contiguous, both pass span verification and entailment. What separates them is the
-    record.
+    are real, both pass span verification and entailment. The record separates them: it is a
+    declaration about THIS sample (asserted), the paper's claim is our inference (inferred), and
+    asserted wins. The disagreement is a non-blocking WARNING — the record's value stands and the
+    dataset still compiles, because a sample annotation is not a reason to refuse a whole manifest.
     """
     doc = "f" * 64
     out = resolve_metadata(
@@ -325,18 +327,23 @@ def test_a_papers_wrong_reading_becomes_a_conflict_the_record_wins(
         assertions=[_assertion("experiment.samples.tissue", "muscle", doc)],
         subjects=[DocumentSubject(doc_sha256=doc, scope="dataset")],
     )
-    assert len(out.conflicts) == 6
-    conflict = out.conflicts[0]
-    assert conflict.field == "experiment.samples.tissue"
-    assert conflict.status == "open"
-    assert {p.value for p in conflict.positions} == {"Neurons", "muscle"}
-    # the record is a declaration about THIS sample; the paper's claim about it is our inference
+    assert len(out.warnings) == 6  # one per sample the paper's claim fanned onto
+    warning = out.warnings[0]
+    assert warning.subject.ref == "experiment.samples.tissue"
+    assert "muscle" in warning.message and "Neurons" in warning.message
+    # the record's value stands, and it is not an OPEN conflict — nothing here blocks a compile
     for sample in out.samples:
         assert sample.attributes["tissue"].value == "Neurons"
 
 
-def test_two_equal_authorities_disagreeing_store_nothing(records: ArchiveRecordSet) -> None:
-    """A wrong value here is permanent; a missing one is not. Code does not break a tie between equals."""
+def test_two_equal_authorities_disagreeing_leave_null_as_a_warning(
+    records: ArchiveRecordSet,
+) -> None:
+    """A wrong value here is permanent; a missing one is not. Code does not break a tie between equals,
+
+    so the attribute is left null — a value, per the "null beats a wrong guess" rule — and the
+    disagreement rides along as a non-blocking warning rather than a refusal.
+    """
     doc = "9" * 64
     out = resolve_metadata(
         files=_pilot_files(),
@@ -345,8 +352,11 @@ def test_two_equal_authorities_disagreeing_store_nothing(records: ArchiveRecordS
         subjects=[DocumentSubject(doc_sha256=doc, scope="sample", subject="SAMN40935621")],
     )
     target = next(s for s in out.samples if s.accession == "SAMN40935621")
-    assert "tissue" not in target.attributes
-    assert any(c.id.endswith("tissue") and "SAMN40935621" in c.id for c in out.conflicts)
+    assert "tissue" not in target.attributes  # left null: two asserted sources disagree
+    assert any(
+        "SAMN40935621" in w.message and w.subject.ref == "experiment.samples.tissue"
+        for w in out.warnings
+    )
     # every other sample is untouched: the document named one sample and only one
     for sample in out.samples:
         if sample.accession != "SAMN40935621":
