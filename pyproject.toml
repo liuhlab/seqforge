@@ -207,6 +207,17 @@ plugins = ["pydantic.mypy"]
 # strictly against a concrete io/kb interface without forcing numpy/yaml internals under --strict.
 follow_imports = "silent"
 
+# `scipy` ships no type information and `scipy-stubs` is a partial, separately-versioned third-party
+# effort. Untyped is the honest state, so say so here rather than sprinkle `# type: ignore` at each
+# import. Scoped to scipy alone — every other import in the strict modules is checked.
+#
+# The type of `csr_matrix` is not what protects the deliverable anyway: what does is
+# `test_the_matrix_is_transposed_to_cells_by_genes`, which asserts a specific count landed at a
+# specific (cell, gene) in a NON-square matrix. mypy could not have caught a transpose either way.
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
+ignore_missing_imports = true
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

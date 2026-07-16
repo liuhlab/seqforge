@@ -448,26 +448,30 @@ def write_fastq_gz(path: Path, seqs: list[str], prefix: str) -> None:
     _write_fastq_gz(path, seqs, prefix=prefix)
 
 
-def parse_solo_matrix(solo_dir: Path) -> dict[tuple[str, str], int]:
-    """Read STARsolo's raw Gene matrix (Matrix Market) into ``(barcode, gene) -> count``."""
-    barcodes = (solo_dir / "barcodes.tsv").read_text().split()
-    features = [
-        ln.split("\t")[0] for ln in (solo_dir / "features.tsv").read_text().splitlines() if ln
-    ]
-    counts: dict[tuple[str, str], int] = {}
-    with open(solo_dir / "matrix.mtx") as fh:
-        header_seen = False
-        for line in fh:
-            if line.startswith("%"):
-                continue
-            if not header_seen:  # dims line
-                header_seen = True
-                continue
-            gi, bi, val = line.split()
-            n = int(val)
-            if n:
-                counts[(barcodes[int(bi) - 1], features[int(gi) - 1])] = n
-    return counts
+def parse_h5ad(path: Path, layer: str | None = None) -> dict[tuple[str, str], int]:
+    """Read **the deliverable** into ``(barcode, gene) -> count``. ``layer=None`` reads ``X``.
+
+    This reads the ``.h5ad`` the composed pipeline produced, not the ``Solo.out`` it produced it
+    from, and that is the same argument that moved these gates onto the Snakefile in the first place:
+    a gate must assert on the artifact a user actually receives. It replaced ``parse_solo_matrix``,
+    which read STAR's Matrix Market files directly — everything downstream of those files (the
+    transpose to cells x genes, which feature became ``X``, which layer got which name) was then
+    outside the only test that checks a number against ground truth.
+
+    So the assertion now covers the whole chain. A transposed matrix stops being a thing the unit
+    tests alone believe in, and becomes something ``kb e2e`` would fail on real reads.
+    """
+    import anndata as ad
+
+    adata = ad.read_h5ad(path)
+    mat = (adata.X if layer is None else adata.layers[layer]).tocoo()
+    obs = list(adata.obs_names)
+    var = list(adata.var_names)
+    return {
+        (obs[int(i)], var[int(j)]): int(v)
+        for i, j, v in zip(mat.row, mat.col, mat.data, strict=True)
+        if v
+    }
 
 
 def _fq_arg(fq: Path | Sequence[Path]) -> str:
@@ -634,7 +638,7 @@ def run_composed(
     timeout: int = 1800,
     config_patch: dict[str, dict[str, str]] | None = None,
 ) -> tuple[Path, Path]:
-    """Compose the pipeline and **run the Snakefile it emitted**. Returns `(solo_raw, star_prefix)`.
+    """Compose the pipeline and **run the Snakefile it emitted**. Returns `(h5ad, star_prefix)`.
 
     **This is what makes `kb e2e` a test of the compiler's output rather than of its params dict.**
 
@@ -710,8 +714,10 @@ def run_composed(
     config = yaml.safe_load((rundir / "config.yaml").read_text())
     sample = str(config["samples"][0])
     star_prefix = rundir / str(config["outdir"]) / sample
-    primary = str(config["primary_feature"])
-    return star_prefix / "Solo.out" / primary / "raw", star_prefix
+    # The h5ad, not the Solo.out that fed it: this is the file the pipeline exists to make, so it is
+    # the file the ground-truth assertion has to open. `star_prefix` still comes back for `Log.final.out`
+    # — STAR's own mapping stats are the reconciliation term, not a count we are testing.
+    return star_prefix / f"{sample}.h5ad", star_prefix
 
 
 def _feature_list(value: object) -> list[str]:
@@ -784,7 +790,7 @@ def run_e2e(
 
     # Run the Snakefile COMPOSE EMITTED — not a second, hand-written STAR command line that merely
     # uses the same params. See `run_composed`.
-    solo_raw, star_prefix = run_composed(
+    h5ad, star_prefix = run_composed(
         assets,
         manifest=manifest,
         processing=processing,
@@ -793,7 +799,7 @@ def run_e2e(
         fastq_dir=workdir,
         threads=threads,
     )
-    observed = parse_solo_matrix(solo_raw)
+    observed = parse_h5ad(h5ad)
     verdict = _compare(sim.truth, observed)
     stats = star_stats(star_prefix)
 
@@ -840,7 +846,7 @@ def run_e2e(
         # Patch the EMITTED config rather than compose a second one: the point is that this exact
         # pipeline, with one flag flipped, must lose the signal. A separate workspace because a run
         # directory is keyed by run_id, and the two runs share every hash that feeds it.
-        inv_raw, _ = run_composed(
+        inv_h5ad, _ = run_composed(
             assets,
             manifest=manifest,
             processing=processing,
@@ -850,7 +856,7 @@ def run_e2e(
             threads=threads,
             config_patch={"solo": {"soloStrand": "Reverse"}},
         )
-        inv_counts = parse_solo_matrix(inv_raw)
+        inv_counts = parse_h5ad(inv_h5ad)
         inv_total = sum(inv_counts.values())
         total = sum(sim.truth.values())
         result["inverted_strand_total"] = inv_total
@@ -978,7 +984,7 @@ def run_intron_e2e(
             "composed_soloFeatures": composed_features,
         }
 
-    _raw, star_prefix = run_composed(
+    h5ad, star_prefix = run_composed(
         assets,
         manifest=manifest,
         processing=processing,
@@ -987,10 +993,14 @@ def run_intron_e2e(
         fastq_dir=workdir,
         threads=threads,
     )
-    solo_out = star_prefix / "Solo.out"
 
-    gene = parse_solo_matrix(solo_out / "Gene" / "raw")
-    full = parse_solo_matrix(solo_out / "GeneFull" / "raw")
+    # Both counts out of ONE file, which is the point of the packaging step: `Gene` is the primary
+    # feature so it is `X`, and `GeneFull` is a layer beside it. Reading them from the h5ad rather
+    # than from two Solo.out directories means this arm now also proves the two matrices landed on
+    # the SAME cells and the SAME genes — a misaligned layer would show up here as counts on the
+    # wrong gene, which is exactly what the exon-vs-full comparison is measuring.
+    gene = parse_h5ad(h5ad)
+    full = parse_h5ad(h5ad, layer="GeneFull")
     v_gene = _compare(sim.truth_exonic, gene)
     v_full = _compare(sim.truth_full, full)
 

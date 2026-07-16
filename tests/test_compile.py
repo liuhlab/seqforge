@@ -437,6 +437,93 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(tmp_path: Path) -> 
     )
 
 
+def _dry_run(pipeline_dir: Path, p: core.ComposePlan) -> str:
+    """The wiring gate's dry run, but returning the PLAN instead of a verdict."""
+    import shutil
+    import subprocess
+
+    from seqforge.compose.gates import _replica
+
+    scratch = _replica(pipeline_dir, p)
+    try:
+        proc = subprocess.run(
+            ["snakemake", "-d", str(scratch), "-s", str(scratch / "Snakefile"), "-n", "-p"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout + proc.stderr
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def test_the_composed_pipeline_plans_the_h5ad_as_its_deliverable(tmp_path: Path) -> None:
+    """The pilot's product is a matrix a human can open, so the default target must BE that file.
+
+    `rule all` used to demand `directory(Solo.out)`, which meant a green pipeline ended in a folder
+    of Matrix Market files — and, worse, that STAR writing three of five features and exiting 0 was
+    indistinguishable from success, since the directory existed either way.
+
+    This reads the actual plan rather than the exit code, for the reason the gate does: a dry run
+    that plans NOTHING also exits 0.
+    """
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+    p = plan(manifest, _processing(manifest), registry=reg)
+
+    planned = _dry_run(pipeline_dir, p)
+    assert "solo_to_h5ad" in planned, "the packaging step is not reachable from the default target"
+    # `-p` renders every shell block while planning, which is the only reason this is visible at all
+    # (a `run:` block would be opaque here) — and it is why the packaging step is a `shell:`.
+    assert "seqforge io h5ad" in planned
+    sample = manifest.experiment.samples[0].sample_id
+    assert f"rule all:\n    input: results/{sample}/{sample}.h5ad" in planned, (
+        f"the default target is not the deliverable. Planned:\n{planned}"
+    )
+    assert f"{sample}.velocyto.h5ad" in planned
+
+
+def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
+    """A module's `shell:` naming a verb we renamed fails hours into a run, on a compute node.
+
+    Derived from the live Typer app on one side and the module source on the other, so neither can be
+    kept true by hand. This is `test_skill_documents_only_real_cli_verbs` pointed at the other place
+    that hardcodes our own CLI — and the shipped modules are the more expensive place to be wrong.
+    """
+    import typer
+
+    from seqforge.cli import app
+
+    def paths(a: typer.Typer, prefix: tuple[str, ...] = ()) -> set[str]:
+        out = {
+            " ".join((*prefix, c.name or (c.callback.__name__ if c.callback else "")))
+            for c in a.registered_commands
+        }
+        for g in a.registered_groups:
+            assert g.typer_instance is not None and g.name is not None
+            out |= paths(g.typer_instance, (*prefix, g.name))
+        return out
+
+    known = paths(app)
+    for name in list_modules():
+        # `shell:` blocks only. Scanning the whole file reads the rule's own docstring — which says
+        # "a `shell:` calling a seqforge verb" — and reports `seqforge verb` as missing. Same lesson
+        # `keys_read_by` learned: a scanner pointed at prose cries wolf, and then gets deleted.
+        for block in re.findall(
+            r"shell:\s*\n\s*r?\"\"\"(.*?)\"\"\"", get_module(name).snakefile.read_text(), re.DOTALL
+        ):
+            # `[a-z0-9-]`, not `[a-z-]`: the first verb this test ever met was `h5ad`, and a
+            # name-shaped regex that stops at a digit matches `io h` and reports *that* as missing.
+            for verb in re.findall(r"\bseqforge ((?:[a-z][a-z0-9-]* ){0,2}[a-z][a-z0-9-]*)", block):
+                # longest match first: `io h5ad` is a command; `io` alone is only its group
+                words = verb.split()
+                assert any(" ".join(words[:n]) in known for n in range(len(words), 0, -1)), (
+                    f"{name} shells out to `seqforge {verb}`, which is not a registered verb"
+                )
+
+
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
     manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)

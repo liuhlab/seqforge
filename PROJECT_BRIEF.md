@@ -597,17 +597,26 @@ manifest: **derived**. One fact, one owner.
 
 ### The deliverable is `.h5ad`, and one `Solo.out` is not a uniform grid
 
-**[NOT BUILT.** No h5ad/anndata writer exists. What follows is measured from a real `Solo.out` on arc
-(STAR 2.7.11b, sacCer3, 2026-07-15), not reasoned about, because the reasoning was already wrong once
-below.**]**
+**[BUILT** (2026-07-15): `workflows/h5ad.py` + `starsolo.smk`'s `solo_to_h5ad` rule + `seqforge io
+h5ad`. What follows is measured from a real `Solo.out` on arc (STAR 2.7.11b, sacCer3), not reasoned
+about, because the reasoning was already wrong once below.**]**
 
 Five `soloFeatures` do not produce five equivalent matrices:
 
 - `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS` each write `raw/matrix.mtx` —
   one (cell × gene) matrix.
-- `Velocyto` writes `raw/{spliced,unspliced,ambiguous}.mtx` and **no `matrix.mtx` at all**. So
-  `parse_solo_matrix` — the repo's only matrix reader — cannot read the output of the feature we
-  spent a day pricing.
+- `Velocyto` writes `raw/{spliced,unspliced,ambiguous}.mtx` and **no `matrix.mtx` at all**.
+
+That asymmetry is `SOLO_FEATURE_OUTPUT`, a table with two guards behind it: a test that collects from
+`SoloFeature` itself (so a new feature must be classified or the suite goes red) and the run-time axis
+assertion below (so a wrong row fails loudly instead of mislabelling a matrix). It also decides what
+`starsolo_count` **declares as output** — file by file, because `directory(Solo.out)` made "STAR wrote
+three of five features and exited 0" indistinguishable from success.
+
+`parse_solo_matrix` — which could not read Velocyto's output, and was the observation that opened this
+section — is **gone** rather than taught the three-matrix shape. `kb e2e` now reads the `.h5ad`, so
+the transpose to cells × genes, the choice of `X`, and the layer names are all inside the one test in
+this repo that checks a count against ground truth.
 
 **The load-bearing fact, measured: all five share a byte-identical `raw/features.tsv` and
 `raw/barcodes.tsv`.** That is what makes layers legitimate rather than hopeful, and it is cheap to

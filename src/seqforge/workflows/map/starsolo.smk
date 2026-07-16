@@ -11,6 +11,13 @@
 
 import csv
 
+# seqforge's own helpers, imported rather than restated. `h5ad_suffixes` decides both what the
+# packaging rule DECLARES below and what `seqforge io h5ad` WRITES, so the two cannot drift; a rule
+# that declared its outputs separately from the code producing them would be two sources of truth for
+# one fact, which is the bug this repo keeps finding. The import is the same assumption
+# `rule genome_index` already makes of `genome`: the env running snakemake is the env that has them.
+from seqforge.workflows.h5ad import h5ad_suffixes, solo_raw_files
+
 
 def _load_units(path):
     with open(path, newline="") as fh:
@@ -22,6 +29,9 @@ SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
 ASSEMBLY = config["genome"]["assembly"]
 SOLO = config["solo"]
+# STAR takes --soloFeatures as N space-separated values and writes one Solo.out/<Feature>/ per value.
+FEATURES = SOLO["soloFeatures"].split()
+PRIMARY = config["primary_feature"]
 
 
 def fastqs(sample, role):
@@ -54,9 +64,22 @@ def cb_umi_geometry():
     )
 
 
+# Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
+# file-by-file, and that is the point. `starsolo_count` used to declare
+# `directory(f"{OUTDIR}/{{sample}}/Solo.out")`, under which STAR writing three of five features and
+# exiting 0 was indistinguishable from success: the directory exists, snakemake is satisfied, and the
+# missing counts surface later as an h5ad nobody can explain. A named output cannot be missing.
+# The `{{{{sample}}}}` is snakemake's usual escape -- expand() fills `f` and leaves `sample` a wildcard.
+SOLO_MATRICES = expand(f"{OUTDIR}/{{{{sample}}}}/Solo.out/{{f}}", f=solo_raw_files(FEATURES))
+
+
 rule all:
     input:
-        expand(f"{OUTDIR}/{{sample}}/Solo.out", sample=SAMPLES),
+        expand(
+            f"{OUTDIR}/{{sample}}/{{sample}}{{suffix}}",
+            sample=SAMPLES,
+            suffix=h5ad_suffixes(FEATURES),
+        ),
 
 
 rule genome_index:
@@ -85,7 +108,7 @@ rule starsolo_count:
         index=rules.genome_index.output,
         whitelist=whitelists(),
     output:
-        directory(f"{OUTDIR}/{{sample}}/Solo.out"),
+        matrices=SOLO_MATRICES,
     threads: config["threads"]
     params:
         solo=SOLO,
@@ -103,4 +126,30 @@ rule starsolo_count:
              --soloFeatures {params.solo[soloFeatures]} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM Unsorted
+        """
+
+
+rule solo_to_h5ad:
+    """Package Solo.out's raw matrices as .h5ad -- THE deliverable of this pipeline.
+
+    A `shell:` calling a seqforge verb, not a `run:` block, and that is deliberate: `snakemake -n -p`
+    renders every shell block while planning and cannot see inside a `run:` block, so this way
+    compose's wiring gate covers the packaging step too. It is also the R8 line -- the CLI is the API.
+
+    No `container:`. Writing an .h5ad is seqforge's own output-format job, not an aligner's; `anndata`
+    is a plain dependency of this package. Only `starsolo_count` needs liulab-runtime.
+    """
+    input:
+        matrices=rules.starsolo_count.output.matrices,
+    output:
+        expand(f"{OUTDIR}/{{{{sample}}}}/{{{{sample}}}}{{suffix}}", suffix=h5ad_suffixes(FEATURES)),
+    params:
+        solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
+        prefix=lambda wc: f"{OUTDIR}/{wc.sample}/{wc.sample}",
+        features=" ".join(FEATURES),
+        primary=PRIMARY,
+    shell:
+        r"""
+        seqforge io h5ad --solo-dir {params.solo} --features "{params.features}" \
+             --primary {params.primary} --out-prefix {params.prefix}
         """

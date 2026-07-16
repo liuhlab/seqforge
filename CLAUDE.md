@@ -53,6 +53,8 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
   => .seqforge/pipeline/<run_id>/Snakefile   THE DELIVERABLE. The user submits this.
   run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow). Same manifest + different recipes =
   different pipelines, dataset hash unchanged.
+  Running it ends in <sample>.h5ad (X = primary feature, one layer per other) +
+  <sample>.velocyto.h5ad. That is the default target: `rule all` demands the matrices, not a folder.
 ```
 
 The last artifact is the point: **a Snakefile the user can submit.** `seqforge` does not submit jobs —
@@ -173,7 +175,9 @@ resolve/    candidate scoring, role assignment, confusability, escalation. `grou
 manifest/   fill/validate/hash both artifacts; `policy.py` is where precedence lives (R13/R15)
 compose/    (dataset, processing) -> Snakefile + config + units.tsv  (the Snakefile is THE product)
 io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
-workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet
+workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
+            `h5ad.py` packages Solo.out as the deliverable; it lives here, not in a module of its
+            own, because its input contract IS STARsolo's output layout
 hooks/      PreToolUse/PostToolUse/Stop guards, behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (NOT a package): root app + 9 sub-typers. JSON by default
 e2e.py      the ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11). Both now

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import typer
 import yaml
@@ -595,6 +596,51 @@ def io_onlist_pack(
             indent=2,
         )
     )
+
+
+@io_app.command("h5ad")
+def io_h5ad(
+    solo_dir: Path = typer.Option(..., "--solo-dir", help="A STARsolo `Solo.out` directory."),
+    features: str = typer.Option(
+        ..., "--features", help="The run's --soloFeatures, space-separated (e.g. 'Gene GeneFull')."
+    ),
+    primary: str = typer.Option(
+        ..., "--primary", help="Which feature becomes X (the rest become layers)."
+    ),
+    out_prefix: Path = typer.Option(
+        ..., "--out-prefix", help="Output path prefix; '.h5ad' / '.velocyto.h5ad' are appended."
+    ),
+) -> None:
+    """Package a Solo.out's raw matrices as .h5ad — the last step of the composed pipeline.
+
+    Called by `starsolo.smk`'s `solo_to_h5ad` rule, which is why it is a verb and not a `run:` block:
+    a `shell:` is rendered by `snakemake -n -p`, so compose's wiring gate can see it (R8 besides).
+
+    Exit 3 on a Blocker-shaped refusal — the axes of the features being stacked disagree, or a matrix
+    STAR was supposed to write is absent.
+    """
+    from .models.processing import SoloFeature
+    from .workflows.h5ad import SOLO_FEATURE_OUTPUT, H5adError, write_h5ad
+
+    requested = features.split()
+    unknown = [f for f in [*requested, primary] if f not in SOLO_FEATURE_OUTPUT]
+    if unknown:
+        typer.echo(
+            json.dumps({"error": f"unknown --soloFeatures value(s): {sorted(set(unknown))}"}),
+            err=True,
+        )
+        raise typer.Exit(2)
+    try:
+        written = write_h5ad(
+            solo_dir,
+            cast(list[SoloFeature], requested),
+            cast(SoloFeature, primary),
+            out_prefix,
+        )
+    except H5adError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    typer.echo(json.dumps({"written": [str(p) for p in written]}, indent=2))
 
 
 @io_app.command("peek")

@@ -15,11 +15,11 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from seqforge.e2e import (
     _compare,
-    parse_solo_matrix,
     simulate,
     star_stats,
 )
@@ -46,15 +46,29 @@ def test_simulate_bookkeeping_is_self_consistent() -> None:
         assert gene in by_id
 
 
-def test_parse_solo_matrix(tmp_path: Path) -> None:
-    (tmp_path / "barcodes.tsv").write_text("CELL1\nCELL2\n")
-    (tmp_path / "features.tsv").write_text("GENE_A\tA\tGene\nGENE_B\tB\tGene\n")
-    # Matrix Market: gene(row) barcode(col) value; a 0 entry must not become a phantom count
-    (tmp_path / "matrix.mtx").write_text(
-        "%%MatrixMarket matrix coordinate integer general\n%\n2 2 3\n1 1 5\n2 2 7\n1 2 0\n"
-    )
-    counts = parse_solo_matrix(tmp_path)
-    assert counts == {("CELL1", "GENE_A"): 5, ("CELL2", "GENE_B"): 7}
+def test_parse_h5ad_reads_x_and_layers(tmp_path: Path) -> None:
+    """The ground-truth reader opens the DELIVERABLE, so the h5ad is what these gates assert on.
+
+    It replaced `parse_solo_matrix`, which read STAR's Matrix Market files: everything downstream of
+    those (the transpose to cells x genes, which feature became X, which layer got which name) sat
+    outside the only test in this repo that checks a count against ground truth.
+    """
+    import anndata as ad
+    from scipy.sparse import csr_matrix
+
+    from seqforge.e2e import parse_h5ad
+
+    adata = ad.AnnData(X=csr_matrix(np.array([[5, 0], [0, 7]], dtype=np.int32)))
+    adata.obs_names = ["CELL1", "CELL2"]
+    adata.var_names = ["GENE_A", "GENE_B"]
+    adata.layers["GeneFull"] = csr_matrix(np.array([[6, 0], [0, 9]], dtype=np.int32))
+    adata.write_h5ad(tmp_path / "s1.h5ad")
+
+    assert parse_h5ad(tmp_path / "s1.h5ad") == {("CELL1", "GENE_A"): 5, ("CELL2", "GENE_B"): 7}
+    assert parse_h5ad(tmp_path / "s1.h5ad", layer="GeneFull") == {
+        ("CELL1", "GENE_A"): 6,
+        ("CELL2", "GENE_B"): 9,
+    }
 
 
 def test_star_stats_parses_log(tmp_path: Path) -> None:
