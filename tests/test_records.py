@@ -258,6 +258,45 @@ def test_a_dataset_document_fans_to_every_sample_as_an_inference(records: Archiv
         assert sample.attributes["tissue"].basis == "inferred"
 
 
+def test_a_run_alias_asserts_its_samples_genotype_over_the_papers_inference(
+    records: ArchiveRecordSet,
+) -> None:
+    """The pilot's fix. The WT-vs-daf-2 contrast lives in the run alias ("N2_wild_type"), and a run
+
+    belongs to exactly one sample, so its document's claim is a declaration ABOUT that sample —
+    `asserted`, which beats the paper's dataset-level `inferred` daf-2. Before the run->sample join a
+    run document mapped to no sample and its claim was silently dropped, leaving the paper's inference
+    standing on the wild-type samples (exactly what sf-demo-4 produced: daf-2 on "WT replicate 2/3").
+    """
+    wt_run = next(
+        r for r in records.at("run") if r.accession == "SRR28716558"
+    )  # an N2 wild-type run
+    ancestor = records.ancestor(wt_run, "sample")
+    assert ancestor is not None
+    wt_sample = ancestor.accession
+    run_doc, paper = "r" * 64, "p" * 64
+    out = resolve_metadata(
+        files=_pilot_files(),
+        records=records,
+        assertions=[
+            _assertion("experiment.samples.genotype", "WT", run_doc),
+            _assertion("experiment.samples.genotype", "daf-2(e1370)", paper),
+        ],
+        subjects=[
+            DocumentSubject(doc_sha256=run_doc, scope="run", subject="SRR28716558"),
+            DocumentSubject(doc_sha256=paper, scope="dataset"),
+        ],
+    )
+    by_sample = {s.accession: s for s in out.samples}
+    # the WT run's sample takes genotype from its OWN run alias, asserted, not the paper's inference
+    assert by_sample[wt_sample].attributes["genotype"].value == "WT"
+    assert by_sample[wt_sample].attributes["genotype"].basis == "asserted"
+    # a sample with no run-scoped claim still takes the paper's inference — inferred, and clearly so
+    other = next(s for acc, s in by_sample.items() if acc != wt_sample)
+    assert other.attributes["genotype"].value == "daf-2(e1370)"
+    assert other.attributes["genotype"].basis == "inferred"
+
+
 def test_a_document_code_did_not_place_names_no_sample(records: ArchiveRecordSet) -> None:
     """The subject is the document, and code chooses the documents. An unplaced doc writes nothing."""
     out = resolve_metadata(

@@ -116,14 +116,20 @@ INSTRUCTION_FIELDS: tuple[str, ...] = (
 #:   *could* cite it, and no model reads it today: "wild-type and daf-2 mutants" is true of the study
 #:   and false of any single sample, and project-level facts (title, centre, data type) are
 #:   structured fields we transcribe rather than prose we interpret.
-#: - ``run``: nothing yet. A run alias ("Rep3 daf2 reads") describes the same thing its sample's
-#:   alias does, and its sample is the level that owns the fact.
+#: - ``run``: the same sample attributes as a sample document. A run alias ("N2_wild_type",
+#:   "daf-2_R3", "Rep3 daf2 reads") is often the ONLY place the WT-vs-mutant contrast is written in
+#:   plain words, and it is a per-run declaration of its sample's condition. A run belongs to exactly
+#:   one sample (run -> experiment -> sample, joined by code), so a claim from its document is a
+#:   declaration ABOUT that sample and ``_basis_for`` maps it home as ``asserted``. This was ``()`` on
+#:   the theory that the sample's own alias said the same thing; the pilot falsified it — harvest read
+#:   the "WT" alias from one of six sample documents and the paper's "daf-2" then fanned onto the two
+#:   wild-type samples it missed. The run aliases said "N2_wild_type" plainly, and went unread.
 _SCOPE_FIELDS: dict[DocScope, tuple[str, ...]] = {
     "dataset": DEFAULT_FIELDS,
     "sample": tuple(f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES),
     "experiment": ("library.chemistry",),
     "project": (),
-    "run": (),
+    "run": tuple(f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES),
 }
 
 #: Every field any draft may carry, from any document. A draft naming anything else is rejected by

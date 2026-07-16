@@ -136,12 +136,13 @@ def resolve_metadata(
     """
     by_doc = {d.doc_sha256: d for d in subjects}
     samples, blockers = _join(files, records)
+    subject_to_sample = _subject_to_sample(records)
 
     verified = [a for a in assertions if a.span_verified and a.entailment_ok]
     resolved: list[ResolvedSample] = []
     conflicts: list[Conflict] = []
     for sample in samples:
-        positions = _positions_for(sample, verified, by_doc)
+        positions = _positions_for(sample, verified, by_doc, subject_to_sample)
         attrs, sample_conflicts = _decide(sample.sample_id, positions)
         resolved.append(
             ResolvedSample(
@@ -262,10 +263,32 @@ def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
     )
 
 
+def _subject_to_sample(records: ArchiveRecordSet | None) -> dict[str, str]:
+    """Map any record accession (run, experiment, or sample) to its sample's accession.
+
+    A run or an experiment belongs to exactly one sample, so a claim from *its* document is a
+    declaration about *that* sample — the same standing a sample's own document has. This is the join
+    that lets ``_basis_for`` treat a run alias ("N2_wild_type", "daf-2 R3") as ``asserted`` of its
+    sample: the run names the sample by belonging to it, and code did the join, so no model was asked
+    "which sample". Without it a run document's claim maps to no sample and is silently discarded —
+    which is why the pilot's clearest genotype signal never reached the manifest.
+    """
+    if records is None:
+        return {}
+    out: dict[str, str] = {}
+    for level in ("sample", "experiment", "run"):
+        for rec in records.at(level):
+            sample = rec if level == "sample" else records.ancestor(rec, "sample")
+            if sample is not None:
+                out[rec.accession] = sample.accession
+    return out
+
+
 def _positions_for(
     sample: _Sample,
     assertions: Sequence[Assertion],
     by_doc: dict[str, DocumentSubject],
+    subject_to_sample: dict[str, str],
 ) -> dict[str, list[_Position]]:
     """Every source's answer for every attribute of one sample. Decides nothing."""
     out: dict[str, list[_Position]] = {}
@@ -295,7 +318,7 @@ def _positions_for(
         doc = by_doc.get(a.span.doc_sha256)
         if doc is None:
             continue  # a document code did not place has no subject, so it may not name one
-        basis = _basis_for(doc, sample)
+        basis = _basis_for(doc, sample, subject_to_sample)
         if basis is None:
             continue  # this document is about a different sample
         out.setdefault(name, []).append(
@@ -310,17 +333,22 @@ def _positions_for(
     return out
 
 
-def _basis_for(doc: DocumentSubject, sample: _Sample) -> Basis | None:
+def _basis_for(
+    doc: DocumentSubject, sample: _Sample, subject_to_sample: dict[str, str]
+) -> Basis | None:
     """What a claim from this document is, *about this sample*. ``None`` = it is not about it at all.
 
-    A sample-scoped document names its sample, so a claim from it is a declaration about that sample.
-    A dataset-scoped document (a paper) makes a claim about the study; that the claim holds of any one
-    of six samples is **our** inference, so it is recorded as one. The distinction is not pedantry: it
-    is what makes the precedence in :func:`_decide` principled rather than a tiebreak we invented.
+    A document that names a level *belonging to* this sample — the sample itself, or one of its
+    experiments or runs — is a declaration about that sample (``asserted``). ``subject_to_sample``
+    holds that join, computed by code from the record hierarchy, so a run alias is asserted of its
+    sample exactly as the sample's own alias is. A dataset-scoped document (a paper) makes a claim
+    about the study; that it holds of any one of six samples is **our** inference (``inferred``). That
+    distinction is what makes the precedence in :func:`_decide` principled rather than a tiebreak we
+    invented.
     """
     if doc.scope == "dataset":
         return "inferred"
-    if doc.scope == "sample" and doc.subject is not None and doc.subject == sample.accession:
+    if doc.subject is not None and subject_to_sample.get(doc.subject) == sample.accession:
         return "asserted"
     return None
 
