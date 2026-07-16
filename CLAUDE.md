@@ -24,9 +24,15 @@ instructable path adds no new LLM authority is the whole point: **we can accept 
 we never trust the model to *act* on them, only to *find* them.** Everything else is a verifier — do
 not let that line blur.
 
-**Status: Milestone 0 landed; the held-out case has not been run.** The deterministic spine — models,
-probe, kb, resolve, manifest, compose, hooks, evals — is implemented and green (`pixi run check`), and
-runs end to end on synthetic sacCer3 and ce11 fixtures. The authoritative design is
+**Status: `compose` emits a Snakefile that runs, and `kb e2e` proves its matrix against ground truth**
+(arc, 2026-07-15: recovery 0.9545, 0 spurious, 0 inflated, strand inversion collapses 2000 counts to
+49). Until that day **nothing had ever executed a Snakemake module** — the wiring gate could not run
+(`snakemake` was undeclared), the wrapper it wrote planned zero jobs (an `include:`d rule is not a
+default target), and `kb e2e` hand-assembled its own STAR command line instead. Each was found only by
+making the previous one run. The deterministic spine — models, probe, kb, resolve, manifest, compose,
+hooks, evals — is implemented and green (`pixi run check`). **The demo dataset has not been run**, and
+multi-run resolve is known broken (see `PROJECT_BRIEF.md` §14) — it is 6 runs, and today `resolve`
+would silently drop 10 of its 12 files. The authoritative design is
 [`docs/design.md`](docs/design.md) (Pydantic model hierarchy, KB `spec.yaml` schema, scoring function
 + joint role-assignment, CLI surface); the full rationale is
 [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md), whose §14 tracks what is still unbuilt. Read all three before
@@ -43,11 +49,15 @@ plan(Assertions, flags, policy) -> ProcessingSection   precedence: flag > instru
 ──────────────────────────────────────────────────────────────────────────────────────────────
   => processing.yaml   THE FLAGS. What to DO with it. Many per dataset. Sparse; empty is legal.
 
-compile(manifest, processing)   -> config + workflow-module selection   deterministic
+compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministic
 ──────────────────────────────────────────────────────────────────────────────────────────────
+  => .seqforge/pipeline/<run_id>/Snakefile   THE DELIVERABLE. The user submits this.
   run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow). Same manifest + different recipes =
   different pipelines, dataset hash unchanged.
 ```
+
+The last artifact is the point: **a Snakefile the user can submit.** `seqforge` does not submit jobs —
+no Slurm profile, no executor, no sbatch. Its output is artifacts, and the last one runs.
 
 ## Non-negotiable rules
 
@@ -71,7 +81,7 @@ behaviour.
 
 | # | Rule | Enforced by |
 |---|---|---|
-| R1 | **Emit data, never code.** No LLM generates Snakefile/rule source. LLM output must validate against an exported JSON Schema. The composer emits `config.yaml` / `units.tsv` / a module selection — never rule source. | `test_the_generated_wrapper_contains_no_rule_source` + `test_shipped_modules_are_hand_written_not_generated` (`tests/test_compile.py`); `LLM_FACING` exact-equality pin (`tests/test_models.py`); composer unit tests |
+| R1 | **Emit data, never code.** No LLM generates Snakefile/rule source. LLM output must validate against an exported JSON Schema. The composer emits a `Snakefile` (a `module` + `use rule *` wrapper — no rule bodies) / `config.yaml` / `units.tsv` — never rule source. | `test_the_generated_wrapper_contains_no_rule_source` + `test_shipped_modules_are_hand_written_not_generated` (`tests/test_compile.py`); `LLM_FACING` exact-equality pin (`tests/test_models.py`); composer unit tests |
 | R2 | **Agents propose, code decides.** No field enters the manifest without passing a validator. LLM `confidence` is advisory and never overrides observed bytes. | Pydantic validators; `manifest validate` |
 | R3 | **Never read a whole FASTQ.** Every FASTQ touch is bounded by `--max-reads` (default 200 000) **and** `--max-bytes` (256 MB decompressed). Wall-clock is never a budget. A code path that *can* stream a whole multi-GB FASTQ is a bug. | `PreToolUse` hook (`hooks/guards.py`, size-blind by design) + `test_the_read_budget_bounds_bytes_read_however_large_the_file` / `test_the_byte_budget_binds_when_the_reads_are_long` (`tests/test_probe.py`: a 128 MB-decompressed fixture, 434 KB on disk, of which the probe reads ~10 %) |
 | R4 | **Refusal is an exit code.** `manifest validate` returns structured `Blocker`s + a nonzero exit. Code decides whether we may compile; the LLM only decides *what question to ask*. | exit-code contract + `PostToolUse` hook |
@@ -82,7 +92,7 @@ behaviour.
 | R9 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC assembly id + registered GTF name; software = a literal `liulab-runtime` env name; data = a URI. Everything resolves at run time. | `Uri` validator + `PreToolUse` `/scratch` guard |
 | R10 | **Every KB entry is executable and self-testing.** Each technology ships a `spec.yaml`; `kb roundtrip` (spec→synth→probe→recover) proves it recovers what it declares; the §12 biconditional proves two entries with identical `backend.params` are declared processing-equivalent; and a new tech that silently collides with an existing one at rungs 0–2 without declaring it fails. | `kb roundtrip` (`cli.py`, exit 3) + `test_every_kb_spec_roundtrips`, `test_section_12_biconditional_holds_over_every_loaded_spec_pair`, `test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) — **all three collect from `kb.list_spec_ids()`**, so a new spec is covered because it exists, not because someone remembered. There is no `kb confusability` verb; the pairwise checks live in the suite |
 | R11 | **Cheap first, expensive only on ambiguity.** Default path is escalation-ladder rungs 0–3. Escalation past 3 fires on exactly one trigger: a **processing-divergent tie** that metadata cannot settle (a `Conflict` does *not* escalate — it is surfaced in parallel). Record which rung resolved each field. | `resolve score` rung provenance; `resolve/escalate.py`. **Note:** rungs 4–6 (full-panel, k-mer sketch, mini-alignment) are unbuilt, so a surviving tie escalates straight to rung 7 (ask the human) |
-| R12 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong upstream in `liulab-genome` / `liulab-runtime`. If a feature belongs in one of those, it goes there. | `test_seqforge_defines_no_genome_machinery` (AST: no `class Genome` / `def build_star_index` / `def register_gtf` anywhere in `src/`) + `test_seqforge_defines_no_aligner_environments` (`RuntimeEnv` is a closed literal; no conda YAML / Dockerfile in the tree) — `tests/test_compile.py` |
+| R12 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong upstream in `liulab-genome` / `liulab-runtime`. *Depending* on them is the opposite of defining them: `liulab-genome` is a declared dependency, and STAR is in no dependency table of ours at all. | `test_seqforge_defines_no_genome_machinery` (AST: no `class Genome` / `def build_star_index` / `def register_gtf` anywhere in `src/`) + `test_seqforge_defines_no_aligner_environments` (`RuntimeEnv` is a closed literal; no conda YAML / Dockerfile in the tree) + `test_seqforge_only_calls_liulab_genome_methods_that_exist` (our consumer surface, checked against the **real** class — `e2e` called `Genome.get_star_index` for the life of the repo and it has never existed) — `tests/test_compile.py` |
 | R13 | **The dataset is immutable; the recipe is plural.** `manifest.yaml` (library + experiment) is what the data *is* — content-addressed, write-once. `processing.yaml` is what to *do* with it, and a dataset carries as many as we care to run. `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`; a change of intent must **never** perturb `dataset_hash`. If re-running a dataset with a different aligner edits `manifest.yaml`, that is a bug. | `dataset_content_hash` covers 2 sections; recipe-sweep hash-invariance test; `models/{dataset,processing}.py` import-graph test; `compose` refuses a mismatched pin |
 | R14 | **The instructable surface is closed, and the line is parse vs count.** `backend.params` says how to **parse** reads (soloType, CB/UMI offsets, whitelist, strand) — byte-decided, never instructable. The processing manifest says what to **count**, and against which genome, aligner, env, resources. The two key sets are **disjoint**, which is what makes "a user instruction contradicts the observed bytes" *inexpressible* rather than merely deprioritized: the user has no vocabulary in which to say it. | `Backend` key-allowlist validator (`kb lint` + every `load_spec`); `params_gate` disjointness + coverage + **three-owner** faithfulness (kb / derived / processing); `extra="forbid"` on `ProcessingSection` + `ProcessingManifest`, so an unknown key is a validation error rather than a silent drop |
 | R15 | **Produce every answer rather than ask.** §12 says never escalate an ambiguity that cannot change the output; this is its sibling — never escalate one whose every answer you can afford to emit. `soloFeatures` defaults to all five: one alignment, five counting rules, one pass. Escalate only where the answers are genuinely exclusive (a genome, an aligner). An ambiguity a second counting rule would settle is not a `Question`. | `kb e2e-introns` with the override deleted (`composed_soloFeatures ⊇ {Gene, GeneFull}` on the compiler's own params); eval "questions asked" |
@@ -160,13 +170,15 @@ probe/      deterministic FASTQ fingerprinting (no LLM, no network)
 kb/         knowledge base: one directory per technology (spec.yaml + README.md), under kb/specs/
 resolve/    candidate scoring, role assignment, confusability, escalation
 manifest/   fill/validate/hash both artifacts; `policy.py` is where precedence lives (R13/R15)
-compose/    (dataset, processing) -> snakemake config + module selection
+compose/    (dataset, processing) -> Snakefile + config + units.tsv  (the Snakefile is THE product)
 io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet
 hooks/      PreToolUse/PostToolUse/Stop guards, behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (NOT a package): root app + 9 sub-typers. JSON by default
-e2e.py      the ground-truth end-to-end runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11),
-            plus `kb e2e-cost` (hg38) — the PRICE arm, which proves nothing and measures memory
+e2e.py      the ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11). Both now
+            RUN THE COMPOSED SNAKEFILE, so the matrix assertion covers the shipped module rather
+            than a second STAR argv written by hand. `kb e2e-cost` (hg38) is the PRICE arm: it
+            invokes STAR directly on purpose, because a memory instrument must reap STAR itself
 evals/      ground-truth corpus + harness
 ─── repo root ───
 skills/     SKILL.md agent skills (no installer yet)

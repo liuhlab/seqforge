@@ -520,20 +520,29 @@ there. This validates config, wildcard resolution, rule wiring, and every genera
 string — with no FASTQ present anywhere. Run `snakemake --lint` alongside.
 **The composer is not done until both pass.** Wire it into the composer's unit tests.
 
-**This is the most dangerous gap in the repo, because it looks closed and is not.** The gate is
-written and wired into the unit tests — and it has never executed. `snakemake` is not a declared
-dependency in any environment, so the test skips, a skip is green, and the assertion
-(`gate["wiring"] in {"pass","skip"}`) forbids only the value that cannot occur. Everything this
-paragraph exists to catch — a misspelled flag, a broken wildcard, a rule wiring mistake — is
-therefore uncaught.
+**This was the most dangerous gap in the repo, because it looked closed and was not — and it is now
+closed** (2026-07-15). The gate was written and wired into the unit tests and had **never executed**:
+`snakemake` was not a declared dependency in any environment, so the test skipped, a skip is green,
+and the assertion (`gate["wiring"] in {"pass","skip"}`) forbade only the value that could not occur.
 
-**But do not over-credit the gate: `snakemake -n` would not catch our worst known wiring bug.**
-`starsolo.smk` hardcodes `--soloCBstart/CBlen/UMIstart/UMIlen`, which `CB_UMI_Complex` chemistries
-(SPLiT-seq) do not have. A dry run never formats the `shell:` block, so the failing lookup is never
-evaluated and the gate reports **pass** on a module guaranteed to `KeyError` on a compute node. The
-gate needs `-p` to force formatting, and `--lint` must come out of it entirely — lint fires on every
-rule here for a missing `log:`/`conda:` directive (see the environment note above), which would make
-the gate a constant red that misdiagnoses a correct config.
+`snakemake-minimal` is declared, the assertion is `== "pass"`, and the gate runs `-n -p` in a
+throwaway replica of the run directory. Three things that fell out of making it run, all kept because
+each is a lesson rather than a fix:
+
+- **`-p` is load-bearing.** A dry run never *formats* a `shell:` block, so `starsolo.smk`'s
+  `--soloCBstart` lookup — which `CB_UMI_Complex` (SPLiT-seq) cannot supply — is never evaluated and
+  the gate reports **pass** on a module guaranteed to `KeyError` on a compute node. `-p` forces the
+  formatting.
+- **`--lint` is out, on evidence.** It fires on every rule we ship for a missing `log:`/`conda:` and
+  "mixed rules and functions in same snakefile" — style opinions, not wiring facts. A gate that is red
+  for a correct config gets ignored, and then it guards nothing.
+- **A gate cannot trust an exit code.** The first thing running it revealed is that the generated
+  wrapper planned **zero jobs**: an `include:`d rule is not a default target, so the workflow parsed,
+  listed every rule, and did nothing — *"Nothing to be done"*, exit 0. The gate as written checked
+  only `returncode != 0` and would have called that a pass. It reads the output now.
+
+**Do not over-credit it even so.** It proves wiring, wildcards and config resolution. It does not
+prove a matrix is right; only `kb e2e` does that, and only because it now runs this same Snakefile.
 
 **The instrument that did catch it cost nothing** (2026-07-15). `WorkflowModule.required_config`
 declares the config keys a module reads, and it omitted those four — while the test enforcing it
@@ -551,6 +560,38 @@ SPLiT-seq quadruple is chemistry-specific (v1 puts Round1 at 86-93, Parse/v2 at 
 remembered one is a coin flip between two real chemistries. That makes the element model the single
 source for where a barcode is, and adds a third param owner beside the KB and the processing
 manifest: **derived**. One fact, one owner.
+
+### The deliverable is `.h5ad`, and one `Solo.out` is not a uniform grid
+
+**[NOT BUILT.** No h5ad/anndata writer exists. What follows is measured from a real `Solo.out` on arc
+(STAR 2.7.11b, sacCer3, 2026-07-15), not reasoned about, because the reasoning was already wrong once
+below.**]**
+
+Five `soloFeatures` do not produce five equivalent matrices:
+
+- `Gene`, `GeneFull`, `GeneFull_ExonOverIntron`, `GeneFull_Ex50pAS` each write `raw/matrix.mtx` —
+  one (cell × gene) matrix.
+- `Velocyto` writes `raw/{spliced,unspliced,ambiguous}.mtx` and **no `matrix.mtx` at all**. So
+  `parse_solo_matrix` — the repo's only matrix reader — cannot read the output of the feature we
+  spent a day pricing.
+
+**The load-bearing fact, measured: all five share a byte-identical `raw/features.tsv` and
+`raw/barcodes.tsv`.** That is what makes layers legitimate rather than hopeful, and it is cheap to
+assert, so the writer asserts it and refuses rather than silently misaligning.
+
+Shape: `sample.h5ad` with `X` = the primary feature and layers for the other three (cell × gene);
+`sample.velocyto.h5ad` carrying the three velocyto layers. From `raw/`, not `filtered/` — raw shares
+one barcode axis across features, and cell calling is a downstream choice we should not bake in.
+
+**A guess that was wrong, kept because it is the point:** this section previously reasoned that
+Velocyto has no `filtered/`, which would have been a second argument for `raw/`. It does have one.
+`raw/` is still right, for the axis reason — but the argument that was checked survived and the one
+that was assumed did not.
+
+`anndata` is a plain dependency (like `pypdf`): writing our own output format is not an aligner, so
+R12 has no opinion and no liulab-runtime env or container is needed for it. **Only the STAR step needs
+a container.** Note `RuntimeEnv`'s four names are *correct* and `single-cell` is not among them — it is
+a liulab-runtime **feature**, consumed by the `ml`/`ml-gpu` envs, and there is no `single-cell.sif`.
 
 ### Fetch and map are separate modules — decouple, do not omit
 
@@ -911,11 +952,41 @@ maintained by hand, beside the code it describes, checked against itself.**
 
 | gap | where | cost |
 |---|---|---|
-| The composer's `snakemake -n` / `--lint` gate **has never executed** — `snakemake` is undeclared, so the test skips, and a skip is green | §8 | wildcards, DAG wiring and config resolution are unchecked. It would *not* have caught the SPLiT-seq `KeyError` (dry-run never formats `shell:`), and `--lint` would make it a constant red. Wanted: `-n -p`, `--lint` moved out, `snakemake-minimal` in its own solve-group |
 | Onlist revcomp is tested only when a spec declares it; a spec pinning `forward` opts out silently | §5 | the ATAC trap §5 names is not actually guarded |
 | The hypothesis is a scoring prior, not a gate — every spec is evaluated unconditionally | §5 | invisible at 5 specs; not at 500 |
-| Workflow rules declare no environment (`conda:`/`container:`) — the env name is emitted and ignored | §8 | ambient STAR runs; §3.11's machine-independence is recorded, not honoured |
+| Workflow rules declare no environment (`conda:`/`container:`) — the env name is emitted and ignored | §8 | ambient STAR runs; §3.11's machine-independence is recorded, not honoured. The prebuilt `liulab-runtime_align-rna.sif` on arc is what a `container:` would name |
 | `resources` fields carry no `Evidenced` basis | §7 | deliberate (a hint, not a decision) — recorded so it stops reading as an oversight |
+
+### Closed 2026-07-15 by running the thing — kept as the warning they earned
+
+The wiring gate, the wrapper, and `kb e2e` were three faces of one fact: **nothing had ever executed a
+Snakemake module.** Each was found by making the next one run, and none was findable by reading.
+
+- **The gate never ran.** `snakemake` was in no dependency table, so `have("snakemake")` was False, so
+  it returned `skip`, so the assertion `gate["wiring"] in {"pass","skip"}` forbade only the value that
+  could not occur. Declared in a `wf` feature; the assertion is now `== "pass"`.
+- **The wrapper planned zero jobs.** Snakemake's default target is the first rule in the *main*
+  Snakefile, and an `include:`d rule is not one — so `configfile:` + `include:` parsed clean, listed
+  all three rules, and did nothing: *"Nothing to be done"*, exit 0. Measured: the same module inlined
+  builds 3 jobs, via `include:` builds 0. It uses `module` + `use rule * as *` now — which is what §8
+  said all along. **The gate would not have caught this either**: it checked the exit code, and
+  planning nothing exits 0. It reads the output now.
+- **`kb e2e` never ran the module.** It hand-assembled its own STAR argv from the composed params, so
+  the command line existed twice and only the copy nobody ships was checked against ground truth. They
+  had already drifted: the test's copy cannot run a `CB_UMI_Complex` chemistry at all.
+- **`discover_assets` called `Genome.get_star_index`, which liulab-genome has never had.** Lazy import,
+  cluster-only arm, undeclared dependency: the `AttributeError` simply waited. `starsolo.smk` said
+  `build_star_index` and was right. **That is twice the module was correct and its never having run was
+  the only reason we did not know.**
+- **`--lint` is out of the gate, on evidence.** It fires on every rule we ship for a missing
+  `log:`/`conda:` and "mixed rules and functions" — style, not wiring. `-p` is in, and is load-bearing:
+  it forces `shell:` blocks to *format* during planning.
+- **`pypdf` and `liulab-genome` are declared.** `anndata` too. STAR is deliberately in no table here.
+
+**`seqforge kb e2e` now passes on sacCer3 by running the Snakefile `compose` emitted** (arc,
+2026-07-15): recovery 0.9545 against a 0.95 floor, 0 spurious pairs, 0 inflated pairs, unexplained
+loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injected counts to 49
+(`strand_sensitive: true`). The ground-truth assertion covers the artifact a user submits.
 
 ### Unbuilt (promised, never started)
 
@@ -939,13 +1010,24 @@ maintained by hand, beside the code it describes, checked against itself.**
 
 ### Before the PRJNA1027859 run — blocking
 
+- **Multi-run resolve is broken, and this is the big one.** The case is 6 runs × 2 mates. `resolve`
+  does one global role-injection across every file handed to it, so 12 files yield **one** 2-of-12
+  assignment and the other 10 land as `read_id=None` — dropped by `_units`, invisible to `validate`,
+  and recorded as a clean content-addressed manifest. It fails silently, which is the failure class
+  §5 exists to prevent. `manifest fill` also has no multi-sample CLI: `--sample-id` is one string.
+- **No real onlist can be materialized.** All three `_KNOWN` entries have `uri=""`/`sha256=""`, so
+  compose exits 3 for any real 10x dataset — and this case's pre-registration *requires* the rung-3
+  `3M-february-2018` check, because v3 is separable from Multiome and GEM-X by whitelist alone.
 - **Harvest cannot run on this case**: a local-files case has no `docs_glob`, so `has_prose`
   is false, so the language model never runs, so the organism can never come from the paper — the
   one thing §12 designed this case to prove.
-- **`pypdf` is undeclared**; PDF extraction fails loudly on day one.
+- **There is no organism-name → taxid mapping.** Harvest extracts `experiment.organism` as a *string*
+  with a verified span; `ExperimentInputs.organism_taxid` is an *int*. No converter, so the harvested
+  value is structurally unusable and the taxid must be retyped by hand.
 - **The grader cannot express** onlist / orientation / hit-rate, sample count, SRX→sample mapping,
   organism, assembly, or any compose-level claim. It never runs compose.
 - **The three adversarial fixtures** (`-no-technical`, `-swapped`, `-lying-metadata`) do not exist.
+- ~~`pypdf` is undeclared~~ — **declared 2026-07-15**, along with `liulab-genome` and `anndata`.
 
 ### Open measurements
 
