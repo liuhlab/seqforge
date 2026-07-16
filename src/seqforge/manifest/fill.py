@@ -12,15 +12,19 @@ Each section keeps its own authority (design §1.6):
 also why ``--assembly``/``--annotation`` left this verb: choosing a reference is not something you
 learn by probing bytes, and it never belonged on the verb that probes them.
 
-The manifest is machine-independent (R9): a file's ``uri`` is its *basename*, never the absolute
-local path the probe read (which stays in ``Observation.file.local_uri``, an internal-only field).
+The manifest is machine-independent (R9): a file's ``uri`` is its path **relative to the dataset's
+own root**, never the absolute local path the probe read (which stays in
+``Observation.file.local_uri``, an internal-only field). Relative, not *flat* — see
+:func:`_dataset_uris` for the two things a bare basename broke on the first real dataset.
 """
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 from ..io import OnlistRegistry
@@ -346,6 +350,37 @@ def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
     return out
 
 
+def _dataset_uris(observations: list[Observation]) -> dict[str, str]:
+    """sha256 -> the file's URI: its path **relative to the dataset's own root** (R9).
+
+    Not the basename, which is what this was. Two things broke on the first real dataset — 6 runs
+    that ``fasterq-dump`` had written one directory per accession
+    (``SRX24283130/SRR28716558_1.fastq.gz``):
+
+    1. ``compose --fastq-dir <root>`` joins the URI to the root, so bare basenames resolved to
+       ``<root>/SRR28716558_1.fastq.gz`` — a path that does not exist, in a `units.tsv` that looks
+       perfectly reasonable.
+    2. Worse and silent: a basename is **not unique**. Two runs each carrying ``reads_1.fastq.gz`` in
+       their own directory collapse to one URI, and `_units` looks files up *by URI* — so one run's
+       reads would quietly become the other's. Nothing would have said so.
+
+    A path relative to the common root keeps every URI distinct and machine-independent, which is all
+    R9 ever asked for: it forbids an *absolute* path, not structure. A flat directory degenerates to
+    the basenames this always produced. Files with no shared root fall back to basenames — there is
+    no relative name that spans two filesystems, and inventing one would be worse than the fallback.
+    """
+    locals_ = {o.file.sha256: o.file.local_uri for o in observations if o.file.local_uri}
+    if len(locals_) == len(observations) > 0:
+        paths = [Path(p) for p in locals_.values()]
+        try:
+            root = Path(os.path.commonpath([str(p.parent.resolve()) for p in paths]))
+        except ValueError:  # different drives / no common root
+            root = None
+        if root is not None:
+            return {sha: str(Path(p).resolve().relative_to(root)) for sha, p in locals_.items()}
+    return {o.file.sha256: o.file.basename for o in observations}
+
+
 def _build_files(
     winner: Candidate,
     observations: list[Observation],
@@ -354,6 +389,7 @@ def _build_files(
     role_of_sha: dict[str, str] | None = None,
 ) -> list[FileInventoryItem]:
     """File identity is raw observed truth; the role assignment is the joint-optimization output."""
+    uris = _dataset_uris(observations)
     if role_of_sha is None:
         role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     items: list[FileInventoryItem] = []
@@ -372,7 +408,8 @@ def _build_files(
         )
         items.append(
             FileInventoryItem(
-                uri=obs.file.basename,  # relative; never Observation.file.local_uri (R9)
+                # relative to the dataset root; never Observation.file.local_uri, which is absolute (R9)
+                uri=uris[obs.file.sha256],
                 basename=obs.file.basename,
                 sha256=obs.file.sha256,
                 size_bytes=obs.file.size_bytes,

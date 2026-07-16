@@ -90,6 +90,95 @@ def _build(
     return manifest, reg
 
 
+def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> DatasetManifest:
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    return fill_manifest(
+        result=out.result,
+        spec=kb.load_spec(tech),
+        observations=[probe_file(p) for p in paths],
+        registry=reg,
+        experiment=ExperimentInputs(organism_taxid=6239, accessions=["PRJNA1027859"]),
+        seqforge_version=__version__,
+    )
+
+
+def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Path) -> None:
+    """A URI is RELATIVE, not FLAT — R9 forbids an absolute path, not structure.
+
+    Found by running the pilot dataset, which `fasterq-dump` had written one directory per accession
+    (`SRX24283130/SRR28716558_1.fastq.gz`). Bare basenames made `compose --fastq-dir <root>` resolve
+    to `<root>/SRR28716558_1.fastq.gz` — a path that does not exist, inside a units.tsv that looks
+    entirely reasonable. No test saw it because every fixture until now put its FASTQs in one flat
+    directory.
+
+    Two runs in sibling directories, which is the shape that has structure to lose. A dataset whose
+    files all sit in ONE directory has that directory as its root, so its URIs are basenames and
+    always were — that is the same rule, not an exception to it, and it is why every existing fixture
+    stayed green.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    paths = []
+    for run, seed in (("SRX999", 0), ("SRX998", 1)):
+        reads = kb.generate_reads(spec, n=600, seed=seed)
+        for k in ("R1", "R2"):
+            p = tmp_path / run / f"{run}_{k}.fastq.gz"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    uris = sorted(f.uri for f in manifest.library.files)
+    assert uris == [
+        "SRX998/SRX998_R1.fastq.gz",
+        "SRX998/SRX998_R2.fastq.gz",
+        "SRX999/SRX999_R1.fastq.gz",
+        "SRX999/SRX999_R2.fastq.gz",
+    ], f"the subdirectory was dropped: {uris}"
+    # ...and the whole point: joined to the root, each URI is the file that was actually probed.
+    for f in manifest.library.files:
+        assert (tmp_path / f.uri).is_file()
+
+
+def test_a_flat_dataset_still_gets_bare_basenames(tmp_path: Path) -> None:
+    """One directory IS the root, so its URIs are basenames -- the same rule, not an exception."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    paths = []
+    for k in ("R1", "R2"):
+        p = tmp_path / f"s_{k}.fastq.gz"
+        _write_fastq_gz(p, reads[k])
+        paths.append(p)
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    assert sorted(f.uri for f in manifest.library.files) == ["s_R1.fastq.gz", "s_R2.fastq.gz"]
+
+
+def test_two_runs_with_the_same_basename_do_not_collapse_to_one_uri(tmp_path: Path) -> None:
+    """The silent half of the same bug, and the reason this is a correctness fix and not ergonomics.
+
+    A basename is not unique across a dataset. Two runs each carrying `reads_1.fastq.gz` in their own
+    directory produce the same URI — and `compose._units` looks files up BY URI, so one run's reads
+    quietly become the other's. The matrices come out plausible and wrong, which is the failure class
+    this project exists to prevent. Nothing anywhere would have said so.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    paths = []
+    for run, seed in (("runA", 0), ("runB", 1)):
+        reads = kb.generate_reads(spec, n=600, seed=seed)
+        for k in ("R1", "R2"):
+            p = tmp_path / run / f"reads_{k}.fastq.gz"  # IDENTICAL basenames across the two runs
+            p.parent.mkdir(parents=True, exist_ok=True)
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    uris = [f.uri for f in manifest.library.files]
+    assert len(set(uris)) == len(paths) == 4, f"URIs collided across runs: {uris}"
+    assert len({f.sha256 for f in manifest.library.files}) == 4
+
+
 def _processing(
     manifest: DatasetManifest,
     *,
