@@ -33,6 +33,7 @@ from .manifest import (
     PolicyError,
     ProcessingInputs,
     dataset_content_hash,
+    dataset_uris,
     exit_code_for_report,
     fill_manifest,
     fill_processing,
@@ -1028,10 +1029,16 @@ def manifest_fill(
     first = multi.runs[0].output.result
     winner = first.candidates[0]
     spec = load_spec(winner.technology)
+    # The SAME function `fill_manifest` uses, over the SAME observations, because a sample's
+    # `file_uris` must be the URIs that end up in `library.files` -- `validate` checks exactly that.
+    # These were built from `o.file.basename` here while fill built relative paths there: one fact,
+    # two owners, and `manifest fill` refused its own manifest with six referential-integrity
+    # Blockers the first time they disagreed.
+    uris = dataset_uris(multi.observations)
     samples = [
         SampleGroup(
             sample_id=run.run_id,
-            file_uris=[o.file.basename for o in run.output.observations],
+            file_uris=[uris[o.file.sha256] for o in run.output.observations],
         )
         for run in multi.runs
     ]

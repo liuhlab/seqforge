@@ -14,6 +14,7 @@ from .fill import (
     ExperimentInputs,
     FillError,
     ProcessingInputs,
+    dataset_uris,
     fill_manifest,
     fill_processing,
 )
@@ -31,6 +32,7 @@ from .policy import (
 from .validate import exit_code_for_report, validate_manifest, validate_processing
 
 __all__ = [
+    "dataset_uris",
     "fill_manifest",
     "fill_processing",
     "ExperimentInputs",

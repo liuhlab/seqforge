@@ -15,7 +15,7 @@ learn by probing bytes, and it never belonged on the verb that probes them.
 The manifest is machine-independent (R9): a file's ``uri`` is its path **relative to the dataset's
 own root**, never the absolute local path the probe read (which stays in
 ``Observation.file.local_uri``, an internal-only field). Relative, not *flat* — see
-:func:`_dataset_uris` for the two things a bare basename broke on the first real dataset.
+:func:`dataset_uris` for the two things a bare basename broke on the first real dataset.
 """
 
 from __future__ import annotations
@@ -350,8 +350,15 @@ def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
     return out
 
 
-def _dataset_uris(observations: list[Observation]) -> dict[str, str]:
+def dataset_uris(observations: list[Observation]) -> dict[str, str]:
     """sha256 -> the file's URI: its path **relative to the dataset's own root** (R9).
+
+    **Public, and that is the point.** The URI form has exactly one owner, because the moment it had
+    two they disagreed: this function got it right and `cli.py` built `SampleGroup.file_uris` out of
+    basenames beside it, so `manifest fill` refused its own manifest with six referential-integrity
+    Blockers ("sample 'SRR28716553' references 'SRR28716553_1.fastq.gz', which is not in the library
+    file inventory"). The validator did its job; the duplication was the bug. One function, every
+    caller.
 
     Not the basename, which is what this was. Two things broke on the first real dataset — 6 runs
     that ``fasterq-dump`` had written one directory per accession
@@ -389,7 +396,7 @@ def _build_files(
     role_of_sha: dict[str, str] | None = None,
 ) -> list[FileInventoryItem]:
     """File identity is raw observed truth; the role assignment is the joint-optimization output."""
-    uris = _dataset_uris(observations)
+    uris = dataset_uris(observations)
     if role_of_sha is None:
         role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     items: list[FileInventoryItem] = []

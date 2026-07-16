@@ -392,14 +392,24 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
     answer, exit 0 -- on a dataset that is 6 runs, which the pilot's is.
 
     Bulk paired-end so no onlist is needed; the multi-run machinery is chemistry-blind.
+
+    **The files are one directory per accession, because that is the pilot's ACTUAL shape** -- it is
+    how `fasterq-dump` wrote them. This test laid them out flat while claiming to be the pilot's
+    shape, and the gap was not cosmetic: a flat directory is its own dataset root, so every URI is a
+    basename and the one code path that has to agree about URIs was never exercised. On the real
+    dataset `manifest fill` refused its own manifest with six referential-integrity Blockers, because
+    `cli.py` built `SampleGroup.file_uris` from basenames while `fill_manifest` built relative paths.
+    Every fixture in this repo was flat; that is why nothing saw it.
     """
     spec = kb.load_spec("bulk-rnaseq-pe")
     accessions = [f"SRR2871655{i}" for i in range(3, 9)]
     paths: list[str] = []
     for i, acc in enumerate(accessions):
         reads = kb.generate_reads(spec, n=400, seed=i)
+        run_dir = tmp_path / "data" / f"SRX2428313{i}"
+        run_dir.mkdir(parents=True)
         for mate, role in (("1", "R1"), ("2", "R2")):
-            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            p = run_dir / f"{acc}_{mate}.fastq.gz"
             _write_fastq_gz(p, reads[role])
             paths.append(str(p))
 
@@ -419,6 +429,15 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
     samples = manifest["experiment"]["samples"]
     assert [s["sample_id"] for s in samples] == sorted(accessions), "one sample per RUN"
     assert sum(len(s["file_uris"]) for s in samples) == 12
+
+    # Every sample URI is an inventory URI. `validate`'s referential-integrity check says this too,
+    # and said it on arc -- but only once the layout had subdirectories for the two builders to
+    # disagree about. Asserted here so the disagreement is a unit-test failure, not a cluster one.
+    assert {u for s in samples for u in s["file_uris"]} == {f["uri"] for f in files}
+    # ...and the URIs kept the directory, which is what makes `compose --fastq-dir <root>` resolve
+    assert all(f["uri"].startswith("SRX2428313") for f in files), (
+        f"the per-accession directory was dropped: {sorted(f['uri'] for f in files)[:2]}"
+    )
 
     # the roles came from BYTES: _1/_2 is fasterq-dump's dump order and means nothing
     roles = {f["basename"]: f["read_id"]["value"] for f in files}
