@@ -1036,15 +1036,57 @@ Snakemake module.** Each was found by making the next one run, and none was find
 loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injected counts to 49
 (`strand_sensitive: true`). The ground-truth assertion covers the artifact a user submits.
 
+### Closed 2026-07-16 by running the pilot and reading its output
+
+**The demo dataset ran. Its manifest said `tissue: null` on six samples.** The paper says "neurons";
+the six BioSample records say `tissue=Neurons`. Everything below was found by looking at the output,
+and none of it was findable by reading the code — each part was individually defensible and the
+composition did nothing.
+
+- **The grader could not express an SRX→sample mapping** — this section said so, and the sentence
+  outlived its own diagnosis because nothing *produced* samples to grade. `Expected.fields` supported
+  `library.*` and `rung`; the harness graded a `ResolveResult`, which has candidates and conflicts and
+  no samples. So the pilot's central pre-registered claims ("3 WT (strain CQ757) + 3 daf-2 (CQ758);
+  tissue=Neurons") lived in a `description:` STRING. A pre-registration whose claims nothing reads
+  cannot be wrong, and one that cannot be wrong is not one. Now `experiment.samples.*.<attr>` and
+  `experiment.samples.<accession>.<attr>` — both, because `*` alone passes on a shuffled join.
+- **Per-sample metadata was fetched by zero lines of code.** Not "fetched and dropped" — the
+  comfortable assumption, and false. Of 24 ENA fields we request, the only useful ones are
+  byte-identical across all six runs ("Model organism or animal sample from Caenorhabditis elegans"
+  ×6); `sample_alias` / `library_name` / `run_alias` were never requested; and `strain` / `tissue` /
+  `sex` / `dev_stage` live on the BioSample record, which nothing ever asked for.
+- **`manifest fill` had no `--assertions` flag.** `harvest extract` wrote `assertions.json` and
+  nothing read it. The one LLM stage in the compiler was, end to end, a no-op for the manifest.
+- **A claim could not name a sample**, and the fix adds no model authority: each archive record is
+  rendered as its own document, so the subject is the document and code chose the document.
+- **`decidable_by` was a hand-typed field read by nothing**, two specs claiming "CI-computed union"
+  that no CI computed. Derived now; the derivation reproduces all five values exactly.
+- **`param_block_key` matched on a module name**, so every module that is not starsolo silently meant
+  bulk — the same shape as the `_read_files_in` bug fixed one function earlier. The AST guard written
+  for it found a third instance in `policy.py`.
+- **Five verbs across three skills did not exist** (`io onlist fetch`/`add`, `kb confusability`,
+  `resolve apply`, `resolve adjudicate`) and four documented `--json`, which R8 says is not a flag.
+  The verb guard checked the GROUP and stopped, so `io onlist fetch` passed because `io` exists.
+
 ### Unbuilt (promised, never started)
 
 - **The journal flywheel, entirely** — no `journal.jsonl` writer, no `distill`, no `LESSONS.md`; the
   `journal` skill wraps four non-existent verbs. `questions.md` is read by the `Stop` hook and
   written by nothing. (§10)
+- **SPLiT-seq's whitelists** — the spec names `splitseq-round1/2/3` and we ship none of them, so its
+  three weight-3.0 onlist tests ABSTAIN and the mechanism its own spec calls decisive ("Rung 3 decides
+  it") can never fire. A real SPLiT-seq dataset asks a human instead of resolving. The failure is
+  *safe*, which is why it survived: nothing was red, and every test that seems to prove otherwise
+  builds a synthetic registry from the spec's own aliases. Now found by a derived check and recorded
+  as an exact pin (`UNSHIPPED_ONLIST_DEBT`). **Do not close it by guessing barcodes** — a wrong
+  whitelist does not fail loudly; STARsolo exits 0 and emits a matrix that looks like a thin dataset.
+  (§11)
 - **`fetch` workflow module** — and the Snakemake-8 storage-plugin evaluation §8 asks for first. (§8)
 - **Escalation rungs 5 and 6** — k-mer sketch, mini-alignment. A tie surviving rung 3 asks a human.
   Rung 4 is likely unnecessary: both halves already run at rungs 2–3. (§5)
-- **`resolve adjudicate`** — the LLM's second job (§2) has no verb. Only `resolve score` exists.
+- **`resolve adjudicate`** — the LLM's second job (§2) has no verb. `resolve score` and the metadata
+  resolver are the two that exist; `ArbitrationRequest`/`ArbitrationResponse` are modelled and
+  unreachable. `resolve apply` likewise. Both were documented in the resolve skill as though built.
 - **seqspec export** and **scg_lib_structs ingestion** (§6). The seqspec *decomposition* is adopted;
   only the emitter is missing.
 - **GENCODE/RefSeq accessions** (§7) — annotation is a local registry name, not a public accession.

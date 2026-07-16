@@ -362,26 +362,69 @@ class FileInventoryItem(BaseModel):
     """One physical file + checksum + assigned role. NO absolute path (R9). Identity is raw observed
     truth; the role ASSIGNMENT is the joint-optimization output, so read_id is Evidenced."""
     uri: Uri; basename: str; sha256: Sha256; size_bytes: PositiveInt
-    read_id: EvidencedStr | None = None       # -> ReadLayout.reads[].read_id
+    read_id: str | None = None                # -> ReadLayout.reads[].read_id. NOT Evidenced: the role
+                                              # assignment and the chemistry come out of ONE joint
+                                              # optimization, and `library.chemistry` carries its score.
+
+class AssayLabel(BaseModel):
+    """One chemistry, spelled three ways. Derived from the chemistry, so it carries no confidence."""
+    chemistry: ChemistryId                    # 10x-3p-gex-v3
+    curie: AssayTerm                          # EFO:0009922
+    name: str                                 # "10x 3' v3" — EFO's own label, from io/efo/labels.json
 
 class LibrarySection(BaseModel):
-    """Physical truth. Authority = EVIDENCE."""
-    assay: EvidencedAssay
+    """Physical truth. Authority = EVIDENCE. ONE decision, ONE envelope.
+
+    `chemistry` is the decision — the joint optimization over (which technology, which file is which
+    read) — and it is the only Evidenced field here. Everything else FOLLOWS from it: `assay` is the
+    same answer in EFO's vocabulary, `read_layout` is the KB's structure filled in with measured
+    lengths, `files[].read_id` is the assignment half of the same optimization.
+
+    They each used to carry their own envelope, and the pilot's manifest showed what that bought:
+    `confidence: 0.750672` printed four times, identical, because it was always one number about one
+    decision. Four envelopes filled from one variable cannot disagree, so they were never four truths
+    — and R6 has never asked for four. R6 asks that a value not travel without its provenance, which
+    one honest envelope does.
+    """
     chemistry: EvidencedChemistrySet          # equivalence class: benign twins (v3 + v3.1) are machine-visible
-    read_layout: EvidencedReadLayout
+    assay: list[AssayLabel] = []              # one per member of the class, same order
+    read_layout: ReadLayout
     onlists: list[Onlist] = Field(default_factory=list)
     files: list[FileInventoryItem]
 
 class SampleGroup(BaseModel):
-    sample_id: str
-    tissue: EvidencedStr | None = None; condition: EvidencedStr | None = None
+    """One biological sample, the files that carry it, and what is declared about it.
+
+    `attributes` is keyed by an NCBI HARMONIZED BioSample attribute name — one of 960, with NCBI's
+    definitions — and the validator refuses anything else. Two typed fields (`tissue`, `condition`)
+    used to sit here and both were wrong: `condition` was ours (no archive defines it, and a field
+    named "condition" accepts anything you can call a condition — a model duly filed worm husbandry
+    into it), and two fields cannot hold `strain`, which is the only structured field separating the
+    pilot's wild-type samples from its daf-2 mutants. An open dict rather than 960 pydantic fields:
+    a typed list mirroring somebody else's vocabulary rots the moment they add to it.
+    """
+    sample_id: str                            # the archive's accession when joined; the run key otherwise
+    accession: Accession | None = None        # None for a dataset that never went near an archive
+    attributes: dict[str, EvidencedStr] = {}  # key ∈ NCBI's 960; see io/attributes.py
     file_uris: list[Uri] = Field(default_factory=list)   # sample -> file mapping
+
+class Study(BaseModel):
+    """The study, as the archive declares it. NOT Evidenced: none of it is an interpretation.
+
+    The record says the title is X and we copied X, exactly as we copy a sha256. The abstract is
+    deliberately absent — it is prose, it belongs in a document a quote can grep into, and pasting a
+    paragraph of English into a content-addressed manifest would make the dataset's identity depend
+    on it.
+    """
+    accession: Accession | None = None; title: str | None = None; center: str | None = None
+    data_type: str | None = None; released: str | None = None
 
 class ExperimentSection(BaseModel):
     """Biological/metadata truth. Authority = METADATA + humans."""
     organism: EvidencedTaxid                  # NCBI taxid; probe cannot see it -> basis is asserted/inferred
     accessions: EvidencedAccessionList
     samples: list[SampleGroup]
+    study: Study | None = None
 
 class DatasetProvenance(BaseModel):
     # workflow_version is deliberately ABSENT: the assay happened before we had an opinion about
@@ -668,10 +711,22 @@ class Spec(BaseModel):
     signature: Signature
     backend: Backend
     confusable_with: list[Confusable] = []
-    decidable_by: list[Decidable] = []         # CI-COMPUTED; a validator asserts it equals the computed union
+
+    @property
+    def decidable_by(self) -> list[Decidable]:
+        """DERIVED: the union of `distinguishable_by` over the processing-divergent confusables.
+
+        It was a hand-typed FIELD on every spec, read by nothing, and two specs carried the comment
+        "CI-computed union over the divergent confusables". No CI computed it. `escalate` builds a
+        Question's decidable_by from `confusable_with[].distinguishable_by` inline — exactly the
+        union the comment described — so the field caused no behaviour and was free to drift with
+        nothing to notice. That is `RegistryEntry.fetchable` again, and `required_config` before it.
+        The derivation reproduces all five hand-typed values exactly, which is how you know it was
+        only ever a comment.
+        """
     # Spec._cross_refs resolves EVERY test `read`/`element`, every anchor.ref_element, and every onlist
     # alias against the reads/elements block (not just onlist aliases). Cross-entry facts
-    # (decidable_by, confusable labels) are validated by the CI matrix, not here.
+    # (confusable labels) are validated by the test matrix, not here.
 ```
 
 **What moved out of the KB backend:** CellRanger-parity knobs (`soloUMIdedup 1MM_CR`,
@@ -743,7 +798,7 @@ confusable_with:
      note: "REQUIRED: same 28bp/16+12 geometry, newer GEM-X whitelist. Without this the flagship fails its own CI."}
   - {id: 10x-5p-gex,       relationship: processing_divergent,  distinguishable_by: [metadata, alignment],
      note: "5' reads antisense cDNA -> soloStrand Reverse; read-undecidable when geometry+whitelist coincide (FLAG-7)"}
-decidable_by: [onlist, metadata, alignment]     # CI-computed union over divergent confusables
+# no `decidable_by:` — it is DERIVED from confusable_with. Writing one is now a validation error.
 ```
 
 ### 2.3 Worked spec — `splitseq` (combinatorial; pilot #3)
@@ -824,7 +879,6 @@ backend:
     soloFeatures: [Gene]
     # soloCBposition / soloUMIposition: DERIVED from the element coordinates at compose (FLAG-3).
 confusable_with: []                       # onlist + combinatorial geometry separate it from 10x/inDrop
-decidable_by: []
 ```
 
 The `onlist_hit_rate` evaluator is **width-generic**: it reads the barcode length from the registry
@@ -875,7 +929,7 @@ role placement → benign → `distinguishable_by:[none]`. At runtime, a score t
 with a CI-proven `processing_equivalent` edge **must not** escalate: record both ids into
 `library.chemistry` (equivalence class) and ask **0** questions. `backend_identical == False` ⟹
 `processing_divergent`, `distinguishable_by` non-empty ≠ `[none]`; listing `onlist` requires
-`onlist_separable == True`. **`decidable_by` is generated** (per entry, the union over divergent
+`onlist_separable == True`. **`decidable_by` is derived** (a `Spec` property: the union over divergent
 confusables of the minimal sufficient mechanism) and asserted equal to the declared list.
 
 ### 2.5 Synthetic generation (round-trip, R10) and adversarial fixtures

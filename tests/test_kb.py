@@ -459,6 +459,23 @@ def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() ->
         assert spec.decidable_by == expected
 
 
+def test_writing_a_decidable_by_into_a_spec_is_now_an_error() -> None:
+    """Deriving it is only half the fix. The other half is that you cannot re-declare it.
+
+    `Spec` forbids extra keys, so a spec.yaml carrying `decidable_by:` fails to load rather than
+    being silently ignored beside the property that replaced it — which is exactly how a
+    hand-maintained contract comes back.
+    """
+    import yaml
+
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    Spec.model_validate(raw)  # the real spec loads
+    with pytest.raises(ValidationError, match="decidable_by"):
+        Spec.model_validate({**raw, "decidable_by": ["onlist"]})
+
+
 def test_a_spec_with_no_divergent_confusable_is_decidable_by_nothing() -> None:
     """Not a bug: nothing to decide. §12's equivalent twins are recorded together, never chosen between."""
     v2 = kb.load_spec("10x-3p-gex-v2")
