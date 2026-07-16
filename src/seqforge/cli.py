@@ -1920,6 +1920,24 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
     raise typer.Exit(code)
 
 
+def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
+    """Does a harvest result stop the one-pass, or is it surfaced and stepped past?
+
+    A **conflict** (two instructions disagreeing on a `processing.*` field) or an unavailable provider
+    halts `run` — the first decides a value nothing else can, the second means the LLM stage could not
+    run at all. A **rejected reference claim** does not: it never entered `assertions.json`, so the
+    manifest is built from the accepted claims and the bytes, and chemistry comes from bytes anyway. It
+    is reported in the summary (`needs_review` + the `rejected` list), which is what R5 asks — "not a
+    silent drop" — while letting a paper whose prose the span-checker cannot formally tie to a KB id
+    still compile. Standalone `harvest extract` keeps exiting 4 on a rejection; only `run` steps past.
+    """
+    if code == 0:
+        return False
+    if code == 4 and isinstance(payload, dict) and not (payload.get("conflicts") or []):
+        return False
+    return True
+
+
 @app.command("run")
 def run_cmd(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
@@ -2035,8 +2053,16 @@ def run_cmd(
             if isinstance(harvested.payload, dict)
             else {"error": harvested.payload}
         )
-        if harvested.code != 0:
+        if _harvest_halts_run(harvested.payload, harvested.code):
             _run_finish(stages, harvested.code)
+        if harvested.code == 4:
+            # rejected reference claims survived the halt check: surface them, do not stop (see
+            # `_harvest_halts_run`). They were dropped from assertions.json already; this is the "not
+            # a silent drop" R5 asks for, in a field a headless caller still sees.
+            cast(dict, stages["harvest"])["needs_review"] = (
+                "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
+                "was built from the accepted claims and the bytes"
+            )
         assertions_path = state_dir(workspace) / "assertions.json"
 
     # 3) The IR: what the data IS. Probe + resolve + metadata, both resolvers, both able to refuse.

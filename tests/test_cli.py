@@ -252,6 +252,25 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     assert (tmp_path / "seqforge" / "manifest.yaml").is_file()  # the IR still landed
 
 
+def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> None:
+    """`run` must complete one-pass on a real paper whose prose the span-checker cannot fully entail.
+
+    A rejected reference claim (the pilot's "Single Cell 3' v3.1" prose the entailment could not tie to
+    a KB id) never enters the manifest and the bytes decide chemistry, so it is surfaced, not fatal. A
+    conflict (instructions disagreeing) and an unavailable provider still stop the pass.
+    """
+    from seqforge.cli import _harvest_halts_run
+
+    assert _harvest_halts_run({"n_accepted": 9}, 0) is False  # clean
+    assert (
+        _harvest_halts_run({"rejected": [{"field": "library.chemistry"}], "conflicts": []}, 4)
+        is False
+    )
+    assert _harvest_halts_run({"conflicts": [{"field": "processing.genome.assembly"}]}, 4) is True
+    assert _harvest_halts_run({"error": "no_provider"}, 1) is True  # the LLM stage could not run
+    assert _harvest_halts_run("some string payload", 4) is True  # not a dict -> cannot clear it
+
+
 def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None:
     """`--cpus` is a speed knob, never a truth knob (R3): cores are not a budget any more than the
 
