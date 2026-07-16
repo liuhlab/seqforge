@@ -1781,12 +1781,24 @@ def discover_assets(
     star_index: Path | None = None,
     star_bin: str | None = None,
 ) -> E2EAssets:
-    """Resolve the run's assets, preferring liulab-genome (R12: we consume it, never reimplement it)."""
+    """Resolve the run's assets, preferring liulab-genome (R12: we consume it, never reimplement it).
+
+    `build_star_index` — not `get_star_index`, which this called for as long as it existed and which
+    **liulab-genome has never had**. It was a lazy import inside an arm that only runs on a cluster,
+    against an undeclared dependency, so the `AttributeError` waited there for anyone who tried. Found
+    on 2026-07-15 by running it.
+
+    Note the shape, because it is the same one twice over: `starsolo.smk` calls `build_star_index` and
+    was right; this called `get_star_index` and was wrong. Two renderings of "how do I get an index",
+    by hand, in two places that could not see each other — and the one nobody executed was the broken
+    one. `test_seqforge_only_calls_liulab_genome_methods_that_exist` now checks our calls against the
+    real package at import time, in every environment, rather than on a cluster nobody visits.
+    """
     import shutil
 
     if fasta is None or gtf is None or star_index is None:
         try:
-            from genome import Genome  # type: ignore[import-not-found]
+            from genome import Genome
         except ImportError as exc:  # pragma: no cover - depends on the host
             raise E2EUnavailable(
                 "liulab-genome is not importable and --fasta/--gtf/--star-index were not given"
@@ -1794,7 +1806,7 @@ def discover_assets(
         g = Genome(assembly)
         fasta = fasta or Path(str(g.fasta_path))
         gtf = gtf or Path(str(g.default_gtf_path))
-        star_index = star_index or Path(str(g.get_star_index(gtf=annotation)))
+        star_index = star_index or Path(str(g.build_star_index(gtf=annotation)))
     resolved_star = star_bin or shutil.which("STAR")
     if not resolved_star:
         raise E2EUnavailable(

@@ -681,6 +681,60 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
     )
 
 
+#: Every liulab-genome attribute seqforge calls. R12 says we are a consumer, and a consumer has an
+#: import surface — this is it.
+#:
+#: **This is a hand-written list, and that is fine here, because it is checked against the REAL
+#: package rather than against itself.** That distinction is the whole lesson of this repo: a list
+#: mirroring code and validated by a test that reads the same list proves nothing (`required_config`);
+#: a list asserted against the actual object is a contract test, and it goes red the moment upstream
+#: moves. Nothing here can drift silently.
+_GENOME_API = {
+    "build_star_index",  # starsolo.smk / star.smk rule genome_index; e2e discover_assets
+    "register_gtf",  # staging an annotation (see the R12 note in CLAUDE.md)
+    "fasta_path",  # e2e: simulate reads from real sequence
+    "default_gtf_path",  # e2e: build gene models
+    "annotations",  # e2e/docs: which GTF names are registered
+}
+
+
+def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
+    """The consumer surface is real, checked at test time, in every environment.
+
+    `discover_assets` called `Genome.get_star_index(...)` — a method liulab-genome **has never had**.
+    It was a lazy import, inside an arm that only runs on a cluster, against a dependency that was not
+    declared, so nothing could have noticed: the `AttributeError` simply waited for whoever ran it. It
+    waited until 2026-07-15.
+
+    Same shape as the STAR-argv bug one commit earlier: two renderings of "how do I get an index",
+    by hand, in two places that could not see each other — `starsolo.smk` said `build_star_index` and
+    was right, `e2e.py` said `get_star_index` and was wrong, and the one nobody executed was the
+    broken one.
+
+    liulab-genome is a declared dependency now, so this check runs everywhere rather than on a cluster
+    nobody visits. That is the fix; renaming the method was just the symptom.
+    """
+    from genome import Genome
+
+    missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
+    assert not missing, (
+        f"seqforge calls liulab-genome attributes that do not exist: {missing}. "
+        f"Either upstream moved and our calls need updating, or this list has grown a name nobody "
+        f"calls. Both are real; neither is silent any more."
+    )
+
+
+def test_the_genome_api_check_would_catch_the_method_that_did_not_exist() -> None:
+    """Prove the guard fires — on the exact name that broke, not a hypothetical one."""
+    from genome import Genome
+
+    assert not hasattr(Genome, "get_star_index"), (
+        "if liulab-genome ever grows `get_star_index`, this test is stale -- but the bug it records "
+        "was real: e2e.py called it for the life of the repo and it never existed"
+    )
+    assert hasattr(Genome, "build_star_index"), "the name the module used, and the correct one"
+
+
 def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_path: Path) -> None:
     """Prove the guard fires — and that it tolerates the consumer call it must allow."""
     import ast
