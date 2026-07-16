@@ -22,10 +22,13 @@ from . import __version__
 from .compose import ComposeError, compose
 from .io import DEFAULT_REGISTRY, default_registry
 from .io.remote import NotYetImplemented, peek, resolve_accession
+from .io.taxonomy import TaxonomyUnavailable
+from .io.taxonomy import resolve as resolve_organism
 from .kb import list_spec_ids, load_spec, run_roundtrip
 from .manifest import (
     ExperimentInputs,
     FillError,
+    Instruction,
     PolicyError,
     ProcessingInputs,
     dataset_content_hash,
@@ -38,6 +41,7 @@ from .manifest import (
     validate_processing,
 )
 from .models import SCHEMA_MODELS, export_all, export_schema
+from .models.assertion import Assertion
 from .models.dataset import DatasetManifest, SampleGroup
 from .models.processing import ProcessingManifest
 from .resolve import Hypothesis, resolve_dataset, resolve_runs
@@ -814,15 +818,26 @@ def harvest_extract(
 
     assert extractor is not None
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
+    instruction_docs = frozenset(d.doc_sha256 for d in normalized if d.role == "instruction")
+    # An OBJECT, not a bare list, and the `instruction_docs` key is the reason. Which documents were
+    # authored FOR seqforge is what decides whether an assertion may touch `processing.*` (R14) --
+    # and it lived only in this process's memory, so the artifact could not reconstruct the
+    # instructable surface and `processing new` had no way to consume it. The join existed in
+    # `fill_processing` the whole time and nothing could reach it.
     (state / "assertions.json").write_text(
-        json.dumps([a.model_dump(mode="json") for a in report.assertions], indent=2)
+        json.dumps(
+            {
+                "instruction_docs": sorted(instruction_docs),
+                "assertions": [a.model_dump(mode="json") for a in report.assertions],
+            },
+            indent=2,
+        )
     )
     payload["n_accepted"] = report.n_accepted
     payload["n_rejected"] = len(report.rejected)
     # what the user may act on: verified directives, projected onto the instructable surface
     instructions, conflicts = instructions_from_assertions(
-        report.assertions,
-        instruction_docs=frozenset(d.doc_sha256 for d in normalized if d.role == "instruction"),
+        report.assertions, instruction_docs=instruction_docs
     )
     payload["instructions"] = [
         {"field": i.field, "value": i.value, "basis": i.basis, "evidence": i.evidence}
@@ -897,11 +912,31 @@ def _load_processing(path: Path) -> ProcessingManifest:
         raise typer.Exit(2) from exc
 
 
+def _resolve_organism(value: str, *, offline: bool = False) -> int:
+    """`--organism` takes a taxid or a name. A bare integer is taken at face value.
+
+    Not "is it all digits, else look it up" with a fallback -- a name that happens to be numeric is
+    not a thing, and a taxid that fails to parse should say so rather than be searched for on NCBI.
+    """
+    text = value.strip()
+    if text.isdigit():
+        return int(text)
+    return resolve_organism(text, offline=offline)
+
+
 @manifest_app.command("fill")
 def manifest_fill(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
-    organism: int = typer.Option(..., "--organism", help="NCBI taxid (metadata truth, e.g. 6239)."),
+    organism: str = typer.Option(
+        ...,
+        "--organism",
+        help="NCBI taxid (6239) or scientific name ('Caenorhabditis elegans'). A name is resolved "
+        "against NCBI and round-trip verified.",
+    ),
     accession: list[str] = typer.Option([], "--accession", help="Accession(s) for this dataset."),
+    offline: bool = typer.Option(
+        False, "--offline", help="Never reach the network; an unseeded organism name then refuses."
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for .seqforge/ state."
     ),
@@ -921,6 +956,15 @@ def manifest_fill(
     Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
     """
+    # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
+    # verified span -- the model already does its job -- so the join it needed was a lookup table,
+    # not more model. See io/taxonomy.py for why the round trip is what makes that safe.
+    try:
+        organism_taxid = _resolve_organism(organism, offline=offline)
+    except TaxonomyUnavailable as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+
     multi = resolve_runs([str(f) for f in files], workspace=workspace, use_cache=False)
     if multi.exit_code() != 0:
         typer.echo(
@@ -953,7 +997,7 @@ def manifest_fill(
             observations=multi.observations,
             registry=DEFAULT_REGISTRY,
             experiment=ExperimentInputs(
-                organism_taxid=organism, accessions=list(accession), samples=samples
+                organism_taxid=organism_taxid, accessions=list(accession), samples=samples
             ),
             seqforge_version=__version__,
             # The dataset-level file->role map. A single run's RoleAssignment maps role -> ONE sha,
@@ -1007,13 +1051,54 @@ def manifest_hash_cmd(
 
 
 # ---------------------------------------------------------------- processing (the flags)
+def _instructions_from(path: Path | None) -> list[Instruction]:
+    """Rebuild the instructable surface from `harvest extract`'s artifact.
+
+    The precedence ladder (§7) is flag > instruction > policy, and `resolve_processing` has always
+    implemented it — its `PolicyError` even tells you to "name an assembly in an --instruction
+    document". That branch was unreachable: `--assembly` was a REQUIRED option, and nothing passed
+    `instructions=` from any production caller. This is the last mile of a join that already existed.
+
+    Note what is NOT happening: the model does not decide anything here. It found a claim in prose and
+    code verified the quote greps back and entails the value (R5); this reads that record and applies
+    precedence. "We can accept instructions because we never trust the model to act on them, only to
+    find them."
+    """
+    if path is None:
+        return []
+    payload = json.loads(path.read_text())
+    if isinstance(payload, list):
+        raise ValueError(
+            "this looks like a pre-2026.7 assertions.json (a bare list). It cannot say which "
+            "documents were --instruction, and only those may set processing.* (R14). Re-run "
+            "`seqforge harvest extract`."
+        )
+    docs = frozenset(payload.get("instruction_docs", ()))
+    parsed = [Assertion.model_validate(a) for a in payload.get("assertions", ())]
+    instructions, conflicts = instructions_from_assertions(parsed, instruction_docs=docs)
+    if conflicts:
+        raise ValueError(
+            f"{len(conflicts)} instruction(s) disagree with each other; only their author can "
+            f"settle that: " + "; ".join(c.field for c in conflicts)
+        )
+    return instructions
+
+
 @processing_app.command("new")
 def processing_new(
     dataset_path: Path = typer.Argument(..., help="Path to the dataset manifest.yaml."),
-    assembly: str = typer.Option(
-        ..., "--assembly", help="liulab-genome UCSC assembly id (e.g. ce11)."
+    assembly: str | None = typer.Option(
+        None, "--assembly", help="liulab-genome UCSC assembly id (e.g. ce11)."
     ),
-    annotation: str = typer.Option(..., "--annotation", help="Registered GTF name (e.g. WS298)."),
+    annotation: str | None = typer.Option(
+        None, "--annotation", help="Registered GTF name (e.g. WS298)."
+    ),
+    assertions: Path | None = typer.Option(
+        None,
+        "--assertions",
+        help="Span-verified assertions from `harvest extract` (.seqforge/assertions.json). "
+        "Instructions in them fill what no flag supplied.",
+    ),
     quantify: str | None = typer.Option(
         None,
         "--quantify",
@@ -1037,6 +1122,11 @@ def processing_new(
     dataset = _load_manifest(dataset_path)
     spec = load_spec(dataset.library.chemistry.value[0])
     try:
+        instructions = _instructions_from(assertions)
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.echo(f"{assertions}: {exc}", err=True)
+        raise typer.Exit(2) from exc
+    try:
         processing, warnings = fill_processing(
             spec=spec,
             dataset=dataset,
@@ -1046,6 +1136,7 @@ def processing_new(
                 features=_parse_quantify(quantify),
                 threads=threads,
             ),
+            instructions=instructions,
             processing_id=processing_id,
             pin=pin,
             seqforge_version=__version__,

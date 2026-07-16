@@ -20,6 +20,7 @@ run on. Evals therefore measure the compiler, not a second, drifting notion of w
 
 from __future__ import annotations
 
+import os
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -87,6 +88,14 @@ class LocalRecipe(BaseModel):
     #: Name of the env var holding the dataset root. The value lives in out-of-git config.
     root_env: str
     glob: str = "*.fastq.gz"
+    #: Prose that lives WITH the data rather than in the case directory — a glob under ``root``,
+    #: e.g. ``info/*.pdf``.
+    #:
+    #: Without this a local case could not point at a document at all, so ``has_prose`` was false, so
+    #: the language model never ran, so the organism could never come from the paper — **the single
+    #: thing PRJNA1027859 exists to test**. A synthetic case keeps its prose in ``metadata/``; a real
+    #: one cannot, because the paper is 10 MB and lives beside 220 GB of FASTQ, outside the repo.
+    docs_glob: str = ""
 
 
 class Recipe(BaseModel):
@@ -220,7 +229,24 @@ def load_case(root: Path) -> Case:
 
     meta_dir = root / "metadata"
     docs = sorted(p for p in meta_dir.glob("*") if p.is_file()) if meta_dir.is_dir() else []
+    docs += _docs_beside_the_data(recipe)
     return Case(id=root.name, root=root, recipe=recipe, expected=expected, metadata_docs=docs)
+
+
+def _docs_beside_the_data(recipe: Recipe) -> list[Path]:
+    """Prose living at a local case's data root (`docs_glob`), if the root is set and present.
+
+    Silent when the root is unset: the case is about to skip for that reason anyway, and raising here
+    would turn "this machine does not have the data" into a load error for every OTHER case in the
+    corpus, since `discover_cases` loads them all.
+    """
+    gen = recipe.generate
+    if not isinstance(gen, LocalRecipe) or not gen.docs_glob:
+        return []
+    root = os.environ.get(gen.root_env)
+    if not root or not Path(root).is_dir():
+        return []
+    return sorted(p for p in Path(root).glob(gen.docs_glob) if p.is_file())
 
 
 def discover_cases(cases_dir: Path | None = None) -> list[Case]:
@@ -243,8 +269,6 @@ def materialize(case: Case, dest: Path) -> Materialized:
 
 
 def _materialize_local(gen: LocalRecipe) -> Materialized:
-    import os
-
     root = os.environ.get(gen.root_env)
     if not root:
         raise CaseSkipped(

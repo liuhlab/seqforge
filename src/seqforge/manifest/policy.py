@@ -274,7 +274,8 @@ def resolve_processing(
         quant = defaults.quantification
         basis, evidence = "inferred", ["policy:default-bulk-quant-mode"]
 
-    assembly = ov.assembly or _instructed(instructions, "processing.genome.assembly")
+    instructed = _instructed_entry(instructions, "processing.genome.assembly")
+    assembly = ov.assembly or (instructed.value if instructed else None)
     if assembly is None:
         raise PolicyError(
             f"no genome: this dataset's organism is taxid {dataset.experiment.organism.value}. "
@@ -287,7 +288,21 @@ def resolve_processing(
             "no annotation: --annotation names a GTF REGISTERED with liulab-genome (e.g. WS298). "
             "It is a registry name, not something a paper writes, so there is nothing to infer."
         )
-    genome_basis: Basis = "user_confirmed" if ov.assembly else "asserted"
+    # §7's ladder: a CLI flag and an --instruction document are BOTH `user_confirmed` and differ only
+    # in PRECEDENCE — they are the same user, one talking later. The channel lives in `evidence`.
+    #
+    # This read `"user_confirmed" if ov.assembly else "asserted"`, and `asserted` is what a database
+    # or a paper says — the opposite of the user talking. The branch could only fire when the assembly
+    # came from an instruction, and no production caller ever passed one, so it was dead code AND
+    # wrong. Making the path reachable is what surfaced it.
+    genome_basis: Basis
+    genome_evidence: list[str]
+    if ov.assembly:
+        genome_basis, genome_evidence = "user_confirmed", ["cli:--assembly"]
+    elif instructed is not None:
+        genome_basis, genome_evidence = instructed.basis, list(instructed.evidence)
+    else:  # pragma: no cover - `assembly is None` already raised above
+        genome_basis, genome_evidence = "inferred", []
 
     section = ProcessingSection(
         genome=EvidencedGenome(
@@ -297,7 +312,7 @@ def resolve_processing(
                 ncbi_taxid=dataset.experiment.organism.value,
             ),
             basis=genome_basis,
-            evidence=["cli:--assembly"] if ov.assembly else [],
+            evidence=genome_evidence,
             confidence=0.9,
             rung=0,
         ),
@@ -319,9 +334,15 @@ def resolve_processing(
     return section, warnings
 
 
-def _instructed(instructions: Sequence[Instruction], field: str) -> str | None:
-    """The instructed value for a single-valued field, if any. Same-field conflicts are already out."""
+def _instructed_entry(instructions: Sequence[Instruction], field: str) -> Instruction | None:
+    """The instruction for a single-valued field, if any. Same-field conflicts are already out.
+
+    Returns the Instruction rather than its value, because the basis and evidence are the point: an
+    instruction is the USER talking (`user_confirmed`), and its evidence names the assertion whose
+    quote greps back into the document. Returning a bare string is what let the caller stamp
+    `asserted` — a database's basis — on something a human wrote for us.
+    """
     for i in instructions:
         if i.field == field:
-            return i.value
+            return i
     return None

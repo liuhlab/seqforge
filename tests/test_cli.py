@@ -424,3 +424,131 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
     roles = {f["basename"]: f["read_id"]["value"] for f in files}
     assert set(roles.values()) == {"R1", "R2"}
     assert all(f["read_id"]["basis"] == "observed" for f in files)
+
+
+def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: Path) -> None:
+    """The last mile of a join that already existed and was unreachable.
+
+    `resolve_processing` has always implemented flag > instruction > policy, and its PolicyError even
+    says "Pass --assembly/--annotation, **or name an assembly in an --instruction document**". That
+    branch could not be reached: `--assembly` was a REQUIRED option, and no production caller ever
+    passed `instructions=`. So the instructable surface was real in the API and absent from the CLI.
+
+    Note where the model is and is not. It FOUND `processing.genome.assembly: ce11` in a document the
+    user handed us with `--instruction`, and code verified the quote greps back and entails the value
+    (R5). Applying precedence is code, here. No new LLM authority -- which is the whole reason the
+    instructable path is allowed to exist.
+    """
+    import yaml as _yaml
+
+    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
+
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    for k in ("R1", "R2"):
+        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+    filled = runner.invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            str(tmp_path / "s_R1.fastq.gz"),
+            str(tmp_path / "s_R2.fastq.gz"),
+            "--organism",
+            "Caenorhabditis elegans",
+            "--offline",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert filled.exit_code == 0, filled.stdout
+    manifest_path = tmp_path / ".seqforge" / "manifest.yaml"
+
+    # the organism arrived as a NAME and was resolved to a taxid by code, not retyped by a human
+    manifest = _yaml.safe_load(manifest_path.read_text())
+    assert manifest["experiment"]["organism"]["value"] == 6239
+
+    doc_sha = "a" * 64
+    span = SourceSpan(
+        doc_sha256=doc_sha, quote="align this dataset against ce11", char_start=0, char_end=31
+    )
+    assertions = {
+        "instruction_docs": [doc_sha],
+        "assertions": [
+            Assertion(
+                id="a1",
+                field="processing.genome.assembly",
+                value="ce11",
+                span=span,
+                span_verified=True,
+                entailment_ok=True,
+                llm_confidence=0.9,
+                extractor=ExtractorProvenance(model_id="test/fixture", prompt_version="v1"),
+            ).model_dump(mode="json")
+        ],
+    }
+    apath = tmp_path / "assertions.json"
+    apath.write_text(json.dumps(assertions))
+
+    out = tmp_path / "processing.yaml"
+    made = runner.invoke(
+        app,
+        [
+            "processing",
+            "new",
+            str(manifest_path),
+            "--annotation",
+            "WS298",
+            "--assertions",
+            str(apath),
+            "-o",
+            str(out),
+        ],
+    )
+    assert made.exit_code == 0, made.stdout
+    doc = _yaml.safe_load(out.read_text())
+    genome = doc["processing"]["genome"]
+    assert genome["value"]["assembly"] == "ce11", "the instruction never reached the manifest"
+    # basis records WHO DECIDED: a document the user authored for seqforge is the user talking (§7)
+    assert genome["basis"] == "user_confirmed"
+
+
+def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> None:
+    """A bare list cannot say which documents were --instruction, and only those may set processing.*.
+
+    Silently treating every assertion as instructable would turn a downloaded GEO description into a
+    path to --soloStrand: prompt injection from a database field into an aligner (R14). Refuse.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    for k in ("R1", "R2"):
+        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+    runner.invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            str(tmp_path / "s_R1.fastq.gz"),
+            str(tmp_path / "s_R2.fastq.gz"),
+            "--organism",
+            "6239",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps([{"field": "processing.genome.assembly", "value": "ce11"}]))
+    res = runner.invoke(
+        app,
+        [
+            "processing",
+            "new",
+            str(tmp_path / ".seqforge" / "manifest.yaml"),
+            "--annotation",
+            "WS298",
+            "--assertions",
+            str(old),
+        ],
+    )
+    assert res.exit_code == 2
+    assert "harvest extract" in res.stdout + str(res.stderr or "")

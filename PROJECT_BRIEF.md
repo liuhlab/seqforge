@@ -1052,12 +1052,13 @@ loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injecte
   which is also what makes filename-grouping safe.
 - ~~No real onlist can be materialized~~ — **fixed 2026-07-15**: all three 10x lists ship pre-packed
   (576 kB), so the rung-3 check this case's pre-registration requires now runs with no setup.
-- **Harvest cannot run on this case**: a local-files case has no `docs_glob`, so `has_prose`
-  is false, so the language model never runs, so the organism can never come from the paper — the
-  one thing §12 designed this case to prove.
-- **There is no organism-name → taxid mapping.** Harvest extracts `experiment.organism` as a *string*
-  with a verified span; `ExperimentInputs.organism_taxid` is an *int*. No converter, so the harvested
-  value is structurally unusable and the taxid must be retyped by hand.
+- ~~Harvest cannot run on this case~~ — **fixed 2026-07-15**: `LocalRecipe.docs_glob` points at prose
+  living beside the data (`info/*.pdf`), so `has_prose` is true and the model runs on the paper.
+- ~~There is no organism-name → taxid mapping~~ — **fixed 2026-07-15**: `io/taxonomy.py`, seeded
+  offline and NCBI-backed, with a **round-trip verifier** (resolve the name, fetch the taxid back,
+  confirm it answers to that name — synonyms included, so "Rhabditis elegans" resolves to 6239). The
+  model already *found* the organism, span-verified; what was missing was a converter, and a converter
+  is a lookup table. `--organism` now takes a name or a taxid.
 - **The grader cannot express** onlist / orientation / hit-rate, sample count, SRX→sample mapping,
   organism, assembly, or any compose-level claim. It never runs compose.
 - **The three adversarial fixtures** (`-no-technical`, `-swapped`, `-lying-metadata`) do not exist.
