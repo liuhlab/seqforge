@@ -16,7 +16,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../kb-authoring/">
+        <link rel="next" href="../tutorial/">
       
       
         
@@ -394,6 +394,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial: a real dataset
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../kb-authoring/" class="md-nav__link">
         
   
@@ -434,10 +461,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -455,8 +482,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -660,18 +687,28 @@ flag — JSON is simply what comes out.</p>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 2. which technology is this, and how confident are we?</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>resolve<span class="w"> </span>score<span class="w"> </span>reads/*.fastq.gz
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 3. write down what the data IS  (immutable, content-addressed)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--organism<span class="w"> </span><span class="m">6239</span><span class="w"> </span>-o<span class="w"> </span>manifest.yaml
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>validate<span class="w"> </span>manifest.yaml
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># 4. write down what you want DONE with it  (one of many)</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>processing<span class="w"> </span>new<span class="w"> </span>--dataset<span class="w"> </span>manifest.yaml<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>-o<span class="w"> </span>processing.yaml
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># 5. compile the two into something runnable</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>compose<span class="w"> </span>manifest.yaml<span class="w"> </span>--processing<span class="w"> </span>processing.yaml
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 3. (optional) what does the archive DECLARE about it?</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>io<span class="w"> </span>records<span class="w"> </span>PRJNA1027859
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># 4. write down what the data IS  (immutable, content-addressed)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">#    --accession fetches the records and joins them to your files: that is where</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1">#    per-sample strain/tissue/sex/dev_stage come from. Without one you still get a</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1">#    manifest -- samples grouped by run, no facts attached. Most data has no accession.</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>validate<span class="w"> </span>seqforge/manifest.yaml
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># 5. write down what you want DONE with it  (one of many)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>processing<span class="w"> </span>new<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>--out<span class="w"> </span>seqforge/processing.yaml
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="c1"># 6. compile the two into something runnable</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>compose<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span>--processing<span class="w"> </span>seqforge/processing.yaml
 </code></pre></div>
-<p>Steps 3 and 4 are separate on purpose — see <a href="../concepts/artifacts/">The two artifacts</a>.</p>
+<p>Steps 4 and 5 are separate on purpose — see <a href="../concepts/artifacts/">The two artifacts</a>.</p>
+<p>Artifacts land under <code>seqforge/</code> in the working directory — visibly, because they are the point.
+<code>manifest fill</code> writes <code>seqforge/manifest.yaml</code> only once it validates clean; if it does not, you get
+<code>seqforge/manifest.draft.yaml</code> and exactly one of the two exists.</p>
+<p>For the whole thing on a real dataset, with real output, see the <a href="../tutorial/">tutorial</a>.</p>
 <h2 id="exit-codes-are-the-api">Exit codes are the API<a class="headerlink" href="#exit-codes-are-the-api" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

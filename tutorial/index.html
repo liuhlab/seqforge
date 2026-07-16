@@ -1,0 +1,1156 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+      
+      
+      
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/tutorial/">
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../kb-authoring/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Tutorial: a real dataset - seqforge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tutorial-compiling-a-real-dataset" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            seqforge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tutorial: a real dataset
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    seqforge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial: a real dataset
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial: a real dataset
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-what-you-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. What you have
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-short-version-one-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The short version: one pass
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-ask-the-bytes-what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Ask the bytes what this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-ask-the-archive-what-it-declares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ask the archive what it declares
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-write-down-what-the-data-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Write down what the data IS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Write down what the data IS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if-you-have-no-accession" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If you have no accession
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#if-the-accession-does-not-match-your-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If the accession does not match your files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-let-the-model-read-the-prose-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Let the model read the prose (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-write-down-what-you-want-done-with-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Write down what you want DONE with it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-compile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Compile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-submit-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Submit it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-read-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to read next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The two artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/identifying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a dataset is identified
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/refusal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    When it refuses
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-what-you-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. What you have
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-short-version-one-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The short version: one pass
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-ask-the-bytes-what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Ask the bytes what this is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-ask-the-archive-what-it-declares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ask the archive what it declares
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-write-down-what-the-data-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Write down what the data IS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Write down what the data IS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if-you-have-no-accession" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If you have no accession
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#if-the-accession-does-not-match-your-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If the accession does not match your files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-let-the-model-read-the-prose-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Let the model read the prose (optional)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-write-down-what-you-want-done-with-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Write down what you want DONE with it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-compile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Compile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-submit-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Submit it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-read-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to read next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/tutorial.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="tutorial-compiling-a-real-dataset">Tutorial: compiling a real dataset<a class="headerlink" href="#tutorial-compiling-a-real-dataset" title="Permanent link">&para;</a></h1>
+<p>This is the worked example, start to finish, on the dataset seqforge was built against:
+<strong><a href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1027859">PRJNA1027859</a></strong> — six single-nucleus RNA-seq
+runs of adult <em>C. elegans</em> neurons, wild-type versus <em>daf-2</em> mutants, from
+<a href="https://doi.org/10.1016/j.xgen.2024.100720">Cell Genomics 2024</a>.</p>
+<p>You will end with a Snakefile you can submit. <strong>seqforge does not submit it</strong> — no Slurm profile, no
+<code>sbatch</code>, no executor. Its output is artifacts, and the last one runs.</p>
+<p>Everything below is real output from a real run. Where a command is slow or needs 220 GB of FASTQ,
+that is said.</p>
+<hr />
+<h2 id="0-what-you-have">0. What you have<a class="headerlink" href="#0-what-you-have" title="Permanent link">&para;</a></h2>
+<p>Two things, and one of them is optional:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>data/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  SRX24283130/SRR28716558_1.fastq.gz    # 12 files, one directory per experiment,
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  SRX24283130/SRR28716558_2.fastq.gz    # which is how `fasterq-dump` wrote them
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  ...
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>info/
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  paper.pdf                             # optional
+</code></pre></div>
+<p>Plus an accession, <code>PRJNA1027859</code>, which is also optional — plenty of data never had one. Each of
+the three inputs makes the answer richer; none of them is required, and none of them is trusted.</p>
+<h2 id="the-short-version-one-pass">The short version: one pass<a class="headerlink" href="#the-short-version-one-pass" title="Permanent link">&para;</a></h2>
+<p>If you just want the manifest and the Snakefile, <code>seqforge run</code> does the whole thing and prints one
+summary:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>run<span class="w"> </span>data/*/*.fastq.gz<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span>--accession<span class="w"> </span>PRJNA1027859<span class="w"> </span>--doc<span class="w"> </span>info/paper.pdf<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>--fastq-dir<span class="w"> </span>data
+</code></pre></div>
+<p>It chains every stage below — records, the paper, the manifest, the recipe, the Snakefile — stops at
+the first refusal, and writes everything under <code>seqforge/</code>. The genome is the one argument with no
+default (a wrong one aligns cleanly and exits 0, so it will not guess). Reading the paper uses a
+language model, which needs its own <code>ANTHROPIC_API_KEY</code> or <code>DEEPSEEK_API_KEY</code> in the environment; add
+<code>--no-llm</code> to skip prose and stay fully deterministic.</p>
+<p>The rest of this page walks the same pipeline one verb at a time — which is what you want when a step
+needs inspecting, and what <code>run</code> is doing for you when it does not.</p>
+<h2 id="1-ask-the-bytes-what-this-is">1. Ask the bytes what this is<a class="headerlink" href="#1-ask-the-bytes-what-this-is" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>resolve<span class="w"> </span>score<span class="w"> </span>data/SRX24283130/*.fastq.gz
+</code></pre></div>
+<p>This reads the <strong>first 200 000 reads</strong> of each file and never more (it is bounded by
+<code>--max-reads</code> <em>and</em> by a 256 MB decompressed cap; a code path that could stream a whole multi-GB
+FASTQ is a bug here, not a slow path). It scores every technology in the knowledge base against what
+it saw and prints the ranked candidates, the role assigned to each file, and the rung that settled
+it.</p>
+<p>Note what it does <strong>not</strong> do: read the filenames for meaning. <code>_1</code> and <code>_2</code> are <code>fasterq-dump</code>'s dump
+order and say nothing about which read is the barcode. Roles come from bytes.</p>
+<p>Add <code>--explain</code> to see the evidence matrix — one row per read role, one column per file — when you
+want to know <em>why</em>.</p>
+<h2 id="2-ask-the-archive-what-it-declares">2. Ask the archive what it declares<a class="headerlink" href="#2-ask-the-archive-what-it-declares" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>io<span class="w"> </span>records<span class="w"> </span>PRJNA1027859
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;seqforge/records/PRJNA1027859.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PRJNA1027859&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ncbi-sra+biosample&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;n&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;project&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;experiment&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;run&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Four levels, joined by the archive's own accessions:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>BioProject PRJNA1027859      title, abstract, centre, data type
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  └─ BioSample SAMN40935621     strain=CQ758, tissue=Neurons, sex=hermaphrodite, dev_stage=Adult Day 1
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>       └─ Experiment SRX24283135   instrument, library strategy, and the protocol paragraph
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>            └─ Run SRR28716553        the alias &quot;Rep3 daf2 reads&quot;, and your files
+</code></pre></div>
+<p>This verb is a <strong>transcriber</strong>. It reports what the submitter typed and stops; it decides nothing.</p>
+<p><strong>This is where per-sample metadata comes from, and it is the part seqforge used to throw away.</strong>
+<code>strain</code>, <code>tissue</code>, <code>sex</code> and <code>dev_stage</code> live on the BioSample record. The fields you get from
+<code>io resolve</code> are byte-identical across all six runs of this study — every one of them says "Model
+organism or animal sample from Caenorhabditis elegans" — so they can tell you nothing about any
+individual sample.</p>
+<h2 id="3-write-down-what-the-data-is">3. Write down what the data IS<a class="headerlink" href="#3-write-down-what-the-data-is" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>data/*/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859
+</code></pre></div>
+<p>Two resolvers run here, and they answer different questions.</p>
+<p><code>resolve score</code> reads the <strong>bytes</strong> and decides the library: which chemistry, which file is which
+read. The metadata resolver reads the <strong>records</strong> and decides which sample each file is and what that
+sample was. Neither is shown the other's input — the metadata resolver is handed file names and
+hashes, not the probe's output, because there is no byte in a FASTQ that bears on <code>tissue</code>.</p>
+<p>Both can refuse.</p>
+<p>You get <code>seqforge/manifest.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">experiment</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">organism</span><span class="p">:</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6239</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">basis</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asserted</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SAMN40935617</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SAMN40935618</span><span class="p p-Indicator">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">               </span><span class="nv">SAMN40935619</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SAMN40935620</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SAMN40935621</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">confidence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">rung</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nt">study</span><span class="p">:</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="nt">accession</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PRJNA1027859</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="nt">center</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Princeton University</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">raw sequence reads</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">  </span><span class="nt">samples</span><span class="p">:</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sample_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMN40935616</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">      </span><span class="nt">accession</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMN40935616</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="nt">attributes</span><span class="p">:</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">        </span><span class="nt">strain</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">CQ757</span><span class="p p-Indicator">,</span><span class="nt">         basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">        </span><span class="nt">tissue</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">Neurons</span><span class="p p-Indicator">,</span><span class="nt">       basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">        </span><span class="nt">sex</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">hermaphrodite</span><span class="p p-Indicator">,</span><span class="nt"> basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">        </span><span class="nt">dev_stage</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">Adult Day 1</span><span class="p p-Indicator">,</span><span class="nt">   basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">      </span><span class="nt">file_uris</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SRX24283130/SRR28716558_1.fastq.gz</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SRX24283130/SRR28716558_2.fastq.gz</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">    </span><span class="c1"># ... five more</span>
+</code></pre></div>
+<p>Three things worth reading closely.</p>
+<p><strong>You did not pass <code>--organism</code>.</strong> The record declares it, and the manifest cites the six BioSamples
+it came from. A flag still wins if you pass one — a human typing a taxid is asserting it now, having
+looked — but nothing is defaulted. There is no default taxid and there must not be: a wrong one
+aligns cleanly against the wrong genome, exits 0, and nothing downstream ever asks again.</p>
+<p><strong><code>confidence: null</code> is the informative value.</strong> It means nothing was judged. Copying <code>strain: CQ758</code>
+out of a BioSample record is a transcription — <code>basis: asserted</code> plus the record accession in
+<code>evidence</code> already says everything true about how we know it. A <code>1.0</code> there would invite the question
+it cannot answer ("you are certain the strain is CQ758?"). We are certain the <em>record declares</em> it,
+which is a different claim and the one we make.</p>
+<p><strong>The attribute keys are NCBI's, not ours.</strong> <code>strain</code>, <code>tissue</code>, <code>dev_stage</code> are three of NCBI's 960
+harmonized BioSample attribute names, each with a definition somebody else maintains
+(<code>seqforge io attributes tissue</code> will read it to you). There is no <code>condition</code>: that was ours, no
+archive defines it, and a field named "condition" accepts anything you can call a condition.</p>
+<h3 id="if-you-have-no-accession">If you have no accession<a class="headerlink" href="#if-you-have-no-accession" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--organism<span class="w"> </span><span class="m">6239</span>
+</code></pre></div>
+<p>That works, and it is the common case. Files are grouped into runs by name, each run becomes a
+sample, and the samples carry no facts. Exit 0. A quieter manifest, and just as true.</p>
+<h3 id="if-the-accession-does-not-match-your-files">If the accession does not match your files<a class="headerlink" href="#if-the-accession-does-not-match-your-files" title="Permanent link">&para;</a></h3>
+<p>That is a refusal, not a shrug:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>RECORD_JOIN_INCOMPLETE: PRJNA1027859 declares 6 run(s) (SRR28716553, ...), and 1 file(s) on disk
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>match none of them by run accession or by the original filenames the record declares: mystery_1.fastq.gz
+</code></pre></div>
+<p>Half-joining would leave that file with no sample facts while the manifest still read as though it
+described everything.</p>
+<h2 id="4-let-the-model-read-the-prose-optional">4. Let the model read the prose (optional)<a class="headerlink" href="#4-let-the-model-read-the-prose-optional" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>harvest<span class="w"> </span>extract<span class="w"> </span>info/paper.pdf<span class="w"> </span>--records<span class="w"> </span>seqforge/records/PRJNA1027859.json
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>data/*/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span>--assertions<span class="w"> </span>seqforge/assertions.json
+</code></pre></div>
+<p>This is the <strong>only</strong> stage that touches a language model. It has exactly two jobs: turn prose into
+claims that carry a quote, and arbitrate an ambiguity code has already flagged. Everything else in
+seqforge is a verifier.</p>
+<p>Every claim it returns carries a verbatim quote. Code — not the model — greps that quote back into
+the normalized document, computes the offsets, and checks that the quote actually supports the value.
+A claim that fails either check is discarded.</p>
+<p><strong>How a claim names a sample.</strong> It doesn't. <code>--records</code> renders each archive record as its own
+document, so the document for SAMN40935621 contains that sample's prose and nothing else — which
+means "which sample" is answered by <em>which file we handed the model</em>. Code knows it because code
+chose it. The model is never asked to name a sample and could not.</p>
+<p>The ask is scoped the same way. A BioSample's document is asked for sample attributes and never for a
+chemistry; an experiment's protocol paragraph is asked for the chemistry and nothing else; the study
+abstract is read by nobody, because "wild-type and daf-2 mutants" is true of the study and false of
+every individual sample in it.</p>
+<p><strong>Two sources disagreeing is decided by precedence, then noted — not voted, and not a refusal.</strong> If
+the paper says "we dissected neurons and body wall muscle" and the model comes back with
+<code>tissue=muscle</code>, that quote is real and it does entail the value — the span check passes, and it is
+<em>right to</em> pass. What catches it is the record saying <code>Neurons</code>: the record is a declaration about
+that sample (<code>asserted</code>), the paper's reading is our inference (<code>inferred</code>), so <strong>the record's value
+stands</strong> and the paper's is surfaced as a non-blocking <strong>warning</strong>. The manifest still compiles — a
+single ambiguous sample annotation is no reason to refuse a dataset. And if two <em>equal</em> authorities
+disagree (two records, say), the field is left <strong>null</strong>: a missing value is not permanent, a wrong one
+is. Only a disagreement about what the data <em>is</em> — the byte-level chemistry — blocks.</p>
+<h2 id="5-write-down-what-you-want-done-with-it">5. Write down what you want DONE with it<a class="headerlink" href="#5-write-down-what-you-want-done-with-it" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>processing<span class="w"> </span>new<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>--out<span class="w"> </span>seqforge/processing.yaml
+</code></pre></div>
+<p>A dataset is immutable; what you do with it is a choice. So they are two files, and there are as many
+processing manifests as you care to run. <strong>If you find yourself editing <code>manifest.yaml</code> to change how
+something is processed, stop</strong> — that is the bug the split exists to prevent.</p>
+<p><code>manifest fill</code> takes no genome, deliberately. Choosing a reference is intent, not something you learn
+by probing bytes.</p>
+<p>You will not need <code>--quantify</code> here. The default counts all five STARsolo features in one pass — one
+alignment, five counting rules — so this being single-<em>nucleus</em> data (full of unspliced pre-mRNA, and
+therefore needing <code>GeneFull</code>) costs you no decision and no question. Where every answer is affordable,
+produce every answer.</p>
+<h2 id="6-compile">6. Compile<a class="headerlink" href="#6-compile" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>compose<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span>--processing<span class="w"> </span>seqforge/processing.yaml<span class="w"> </span>--fastq-dir<span class="w"> </span>data
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">&quot;snakefile_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;seqforge/pipeline/default-d94c737eb677/Snakefile&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">&quot;config_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;seqforge/pipeline/default-d94c737eb677/config.yaml&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">&quot;units_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;seqforge/pipeline/default-d94c737eb677/units.tsv&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="nt">&quot;gate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;params&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;wiring&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;e2e&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;skip&quot;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>The directory is named for the recipe plus the first 12 characters of the run id. The run id is
+<code>H(dataset ⊕ processing ⊕ kb ⊕ workflow)</code>, so compiling this dataset a second way gives you a second
+directory rather than silently overwriting the first — and the dataset's own hash does not move.</p>
+<p>The gates:</p>
+<ul>
+<li><strong>params</strong> — the semantic checks a dry run cannot make. Is <code>--soloUMIlen</code> 12 when the reads carry a
+  12 bp UMI? Does <code>--readFilesIn</code> put the cDNA read where the cDNA read belongs? These are the bugs a
+  config compiler actually produces, and they fail <em>silently</em>: STARsolo exits 0 and emits a matrix
+  that merely looks like a thin dataset.</li>
+<li><strong>wiring</strong> — <code>snakemake -n</code> over a throwaway replica. It proves the workflow plans jobs. A dry run
+  that plans <em>nothing</em> also exits 0, so the gate looks rather than trusting the code.</li>
+<li><strong>e2e</strong> — the real count-matrix run. Reported <code>skip</code>, never silently <code>pass</code>: it needs STAR and a
+  genome, and a gate that says "pass" because it never ran would let green CI be mistaken for
+  coverage.</li>
+</ul>
+<h2 id="7-submit-it">7. Submit it<a class="headerlink" href="#7-submit-it" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>seqforge/pipeline/default-d94c737eb677
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>snakemake<span class="w"> </span>--profile<span class="w"> </span>&lt;your-cluster-profile&gt;<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
+</code></pre></div>
+<p><strong>This part is yours.</strong> seqforge has no opinion about your scheduler, and it will not grow one.</p>
+<p><code>--software-deployment-method apptainer</code> is what makes the alignment rule run inside the pinned
+<code>liulab-runtime</code> image. Without it snakemake ignores the <code>container:</code> directive entirely and STAR
+comes from your <code>PATH</code>: the run still works, and it is no longer pinned.</p>
+<p>The default target is <code>all</code>, which demands the matrices — one <code>&lt;sample&gt;.h5ad</code> per sample, plus a
+<code>&lt;sample&gt;.velocyto.h5ad</code> — not a folder that might be empty.</p>
+<p>The 111 MB barcode whitelist is not in that directory, and should not be. A rule builds it, STAR
+reads it once, and snakemake deletes it.</p>
+<hr />
+<h2 id="what-to-read-next">What to read next<a class="headerlink" href="#what-to-read-next" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../concepts/artifacts/">The two artifacts</a> — why <code>manifest.yaml</code> and <code>processing.yaml</code> are separate
+  files with separate lifetimes.</li>
+<li><a href="../concepts/refusal/">When it refuses</a> — the exit-code contract, and why a refusal is cheap and a
+  confidently wrong manifest is not.</li>
+<li><a href="../concepts/identifying/">How a dataset is identified</a> — content addressing, and what moves a hash.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
