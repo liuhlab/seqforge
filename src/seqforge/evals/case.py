@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import os
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -32,6 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .. import kb
 from ..io import OnlistRegistry
 from ..kb.generate import write_fastq_gz
+from ..models.records import ArchiveRecordSet
 
 CASES_DIRNAME = "cases"
 
@@ -183,10 +184,17 @@ class Case:
     recipe: Recipe
     expected: Expected
     metadata_docs: list[Path]
+    #: `<case>/records.json` — what the archive declares, as `seqforge io records` fetched it.
+    #:
+    #: Committed rather than fetched at run time, for the same reason the FASTQ is a recipe: a case
+    #: must be reproducible and must not need the network. It is public metadata (no lab path, R8's
+    #: `test_skill_never_leaks_a_lab_path` still applies), it is an INPUT rather than an expectation,
+    #: and it is byte-identical to what `io records` returns today.
+    records: ArchiveRecordSet | None = None
 
     @property
     def has_prose(self) -> bool:
-        return bool(self.metadata_docs)
+        return bool(self.metadata_docs) or bool(self.records)
 
 
 @dataclass(frozen=True)
@@ -197,6 +205,9 @@ class Materialized:
     registry: OnlistRegistry | None
     #: Label per file basename, e.g. ``R1.fastq.gz`` -> ``R1``, for role-assignment assertions.
     labels: dict[str, str]
+    #: The case's archive records, carried through so the metadata resolver gets the same input the
+    #: CLI would give it. ``None`` for a case with no accession, which is most of them.
+    records: ArchiveRecordSet | None = None
 
 
 class CaseError(RuntimeError):
@@ -230,7 +241,21 @@ def load_case(root: Path) -> Case:
     meta_dir = root / "metadata"
     docs = sorted(p for p in meta_dir.glob("*") if p.is_file()) if meta_dir.is_dir() else []
     docs += _docs_beside_the_data(recipe)
-    return Case(id=root.name, root=root, recipe=recipe, expected=expected, metadata_docs=docs)
+
+    records_path = root / "records.json"
+    records = (
+        ArchiveRecordSet.model_validate_json(records_path.read_text())
+        if records_path.is_file()
+        else None
+    )
+    return Case(
+        id=root.name,
+        root=root,
+        recipe=recipe,
+        expected=expected,
+        metadata_docs=docs,
+        records=records,
+    )
 
 
 def _docs_beside_the_data(recipe: Recipe) -> list[Path]:
@@ -262,10 +287,12 @@ def materialize(case: Case, dest: Path) -> Materialized:
     gen = case.recipe.generate
     dest.mkdir(parents=True, exist_ok=True)
     if isinstance(gen, LocalRecipe):
-        return _materialize_local(gen)
-    if isinstance(gen, RandomRecipe):
-        return _materialize_random(gen, dest)
-    return _materialize_spec(gen, dest)
+        built = _materialize_local(gen)
+    elif isinstance(gen, RandomRecipe):
+        built = _materialize_random(gen, dest)
+    else:
+        built = _materialize_spec(gen, dest)
+    return replace(built, records=case.records)
 
 
 def _materialize_local(gen: LocalRecipe) -> Materialized:

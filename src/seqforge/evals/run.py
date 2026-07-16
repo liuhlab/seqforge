@@ -29,15 +29,19 @@ from ..harvest import (
     ExtractUnavailable,
     LLMProvider,
     extract_drafts,
+    has_prose,
     normalize_document,
+    normalize_record,
     resolve_provider,
     verify_drafts,
 )
+from ..harvest.fields import fields_for
 from ..harvest.normalize import NormalizedDoc
 from ..kb.loader import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance
 from ..models.resolve import EvalReport
 from ..resolve import Hypothesis, resolve_dataset
+from ..resolve.records import DocumentSubject, resolve_metadata
 from .case import Case, CaseError, CaseSkipped, Materialized, discover_cases, materialize
 from .grade import CaseGrade, Grade, grade_case
 
@@ -149,9 +153,13 @@ def run_case(
             hypothesis: Hypothesis | None = None
             if case.recipe.hypothesis:
                 hypothesis = Hypothesis(value=case.recipe.hypothesis, id="recipe", confidence=0.9)
+            verified: list[Assertion] = []
+            subjects: list[DocumentSubject] = []
             if use_llm:
                 try:
-                    hg, hyp, u = _run_harvest(case, provider=provider, model=model)
+                    hg, hyp, u, verified, subjects = _run_harvest(
+                        case, provider=provider, model=model
+                    )
                 except ExtractUnavailable as exc:
                     return CaseRun(
                         case.id,
@@ -173,8 +181,23 @@ def run_case(
                 workspace=ws,
                 use_cache=False,
             )
+            # The SECOND resolver, over the same files. It reads records and prose; it is handed no
+            # probe signal (`FileIdentity`, not `Observation`). Running it here is what lets a
+            # pre-registration's sample claims be graded at all -- before this the harness could not
+            # see a sample, so "tissue=Neurons" was prose in a description field.
+            metadata = resolve_metadata(
+                files=[o.file for o in out.observations],
+                records=built.records,
+                assertions=verified,
+                subjects=subjects,
+            )
             trial_grade = grade_case(
-                case.id, case.expected, out.result, out.exit_code(), _labels(out, built)
+                case.id,
+                case.expected,
+                out.result,
+                out.exit_code(),
+                _labels(out, built),
+                metadata,
             )
             # Fold THIS trial's harvest into THIS trial's grade. Folding once at the end against the
             # merged harvest would charge every trial for one trial's hallucination, and `stability`
@@ -268,12 +291,23 @@ def load_cases(cases_dir: Path | None = None, *, only: list[str] | None = None) 
 
 def _run_harvest(
     case: Case, *, provider: LLMProvider | None, model: str | None
-) -> tuple[HarvestGrade, Hypothesis | None, dict[str, int]]:
-    """normalize -> extract -> verify over the case's prose. Only verified claims are graded."""
+) -> tuple[HarvestGrade, Hypothesis | None, dict[str, int], list[Assertion], list[DocumentSubject]]:
+    """normalize -> extract -> verify over the case's prose. Only verified claims are graded.
+
+    "The case's prose" now means two things: the documents a human put beside it, and each archive
+    record rendered as its own document. The second is what lets a claim name a sample, so a harness
+    that ran only the first could never grade one.
+    """
     specs = load_all_specs()
     llm = provider if provider is not None else resolve_provider()
 
     docs: list[NormalizedDoc] = [normalize_document(p) for p in case.metadata_docs]
+    if case.records is not None:
+        docs += [
+            normalize_record(r)
+            for r in case.records.records
+            if has_prose(r) and fields_for(r.level, "reference")
+        ]
     drafts: list[AssertionDraft] = []
     usage: dict[str, int] = {}
     extractor: ExtractorProvenance | None = None
@@ -303,7 +337,10 @@ def _run_harvest(
     chem = by_field.get("library.chemistry")
     if chem is not None:
         hypothesis = Hypothesis(value=str(chem.value), id="harvest", confidence=0.9)
-    return grade, hypothesis, usage
+    subjects = [
+        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject) for d in docs
+    ]
+    return grade, hypothesis, usage, accepted, subjects
 
 
 def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:

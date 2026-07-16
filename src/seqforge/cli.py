@@ -1279,7 +1279,16 @@ def manifest_fill(
         )
         raise typer.Exit(3) from exc
 
-    multi = resolve_runs([str(f) for f in files], workspace=workspace, use_cache=False)
+    parsed, subjects = _assertions_and_subjects(assertions)
+    multi = resolve_runs(
+        [str(f) for f in files],
+        # The protocol paragraph, entering `score` as a SELECTOR and a tie-break -- never as
+        # evidence. This door has always been built and tested and no production caller ever used
+        # it, so a paper saying "Single Cell 3' v3.1 Reagent Kits" steered nothing.
+        hypothesis=_chemistry_hypothesis(parsed),
+        workspace=workspace,
+        use_cache=False,
+    )
     if multi.exit_code() != 0:
         typer.echo(
             json.dumps(
@@ -1292,7 +1301,6 @@ def manifest_fill(
         )
         raise typer.Exit(multi.exit_code())
 
-    parsed, subjects = _assertions_and_subjects(assertions)
     metadata = resolve_metadata(
         # Identity only: the metadata resolver is handed no probe signal and cannot read one.
         files=[o.file for o in multi.observations],
@@ -1370,6 +1378,28 @@ def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
     target.write_text(payload)
     other.unlink(missing_ok=True)
     return target
+
+
+def _chemistry_hypothesis(assertions: list[Assertion]) -> Hypothesis | None:
+    """The chemistry the prose claims, entering `score` as a hypothesis. ``None`` when it cannot.
+
+    **What this is allowed to do.** `score` builds a grid — one row per read role, one column per
+    file — from eight byte-tests, and the hypothesis touches none of them. It orders the candidates
+    (so the right whitelist is checked first) and it can break a tie the bytes genuinely cannot
+    settle. For prose to move a *score* there would have to be a ninth test, `metadata_says`, and a
+    spec could then declare a chemistry that identifies itself by being described rather than by
+    what is in its reads. That is the thing we do not build.
+
+    **Agreement or nothing.** Every chemistry claim in the dataset must say the same thing. Two
+    experiments describing two protocols is a real dataset, and one dataset-level hypothesis would
+    steer both — half of them wrongly. Dropping it costs only a hint: the bytes still decide, and if
+    the runs really are two chemistries, `resolve_runs` blocks on the disagreement, which is the right
+    answer arrived at honestly.
+    """
+    values = {a.value for a in assertions if a.field == "library.chemistry"}
+    if len(values) != 1:
+        return None
+    return Hypothesis(value=next(iter(values)), id="harvest", confidence=0.9)
 
 
 def _load_records(
