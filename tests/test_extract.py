@@ -187,6 +187,38 @@ def test_extract_records_provider_in_provenance(tmp_path: Path) -> None:
     assert outcome.cache_hit is True
 
 
+def test_extract_carries_call_mode_and_model_for_the_cost_ledger(tmp_path: Path) -> None:
+    """The outcome records HOW the call was made (thinking/effort, max_tokens, response_format) and
+
+    which model, plus the token usage — the raw material the harvest stage writes to seqforge/usage.json
+    so a reader can see what understanding the prose cost and at what effort.
+    """
+
+    class _ModeProvider(_FakeProvider):
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            self.captured = kwargs
+            return LLMResponse(
+                text=str(self._payload),
+                usage={"input_tokens": 5, "output_tokens": 7},
+                mode={
+                    "thinking": "adaptive",
+                    "max_tokens": kwargs["max_tokens"],
+                    "response_format": "json_schema",
+                },
+            )
+
+    outcome = extract_drafts(
+        _doc(tmp_path),
+        kb.load_all_specs(),
+        provider=_ModeProvider(json.dumps({"drafts": []}), model="v4-test"),
+    )
+    assert outcome.model == "v4-test"
+    assert (
+        outcome.mode["thinking"] == "adaptive" and outcome.mode["response_format"] == "json_schema"
+    )
+    assert outcome.usage["input_tokens"] == 5 and outcome.usage["output_tokens"] == 7
+
+
 def test_extract_empty_is_a_valid_answer(tmp_path: Path) -> None:
     outcome = extract_drafts(
         _doc(tmp_path, "We sequenced some things."),

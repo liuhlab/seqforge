@@ -1067,7 +1067,9 @@ def _harvest_extract_pipeline(
     documents to disk, because a span citation is only checkable while the exact text survives.
     """
     from .harvest import (
+        ExtractionOutcome,
         ExtractUnavailable,
+        NormalizedDoc,
         ProviderUnavailable,
         extract_drafts,
         has_prose,
@@ -1107,21 +1109,68 @@ def _harvest_extract_pipeline(
             if has_prose(record) and fields_for(record.level, "reference"):
                 normalized.append(normalize_record(record))
 
+    # The one place `run` cannot be deterministic, and now the one it need not be slow. Each document
+    # is an independent, network-bound LLM call, so they go out concurrently on a THREAD pool (I/O, so
+    # threads release the GIL — processes would only add IPC). Results are reassembled in `normalized`
+    # order below, so assertions.json is byte-identical no matter which call returned first.
+    def _extract(nd: NormalizedDoc) -> ExtractionOutcome:
+        return extract_drafts(nd, specs, provider=llm, model=chosen)
+
+    outcomes: dict[str, ExtractionOutcome] = {}
+    try:
+        if len(normalized) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+
+            with ThreadPoolExecutor(max_workers=min(8, len(normalized))) as pool:
+                futures = {pool.submit(_extract, nd): nd for nd in normalized}
+                for fut in futures:
+                    outcomes[futures[fut].doc_sha256] = fut.result()
+        else:
+            for nd in normalized:
+                outcomes[nd.doc_sha256] = _extract(nd)
+    except ExtractUnavailable as exc:
+        return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
+
+    usage_records: list[dict[str, object]] = []
     for nd in normalized:
-        try:
-            outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
-        except ExtractUnavailable as exc:
-            return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
+        outcome = outcomes[nd.doc_sha256]
         all_drafts.extend(outcome.drafts)
         extractor = outcome.extractor
         for k, v in outcome.usage.items():
             usage_total[k] = usage_total.get(k, 0) + v
+        usage_records.append(
+            {
+                "document": {"scope": nd.scope, "subject": nd.subject, "doc_sha256": nd.doc_sha256},
+                "provider": outcome.provider,
+                "model": outcome.model,
+                "mode": outcome.mode,
+                "usage": outcome.usage,
+            }
+        )
+
+    # The cost ledger (R7: disk is state). Written whether or not we go on to verify, because the call
+    # happened and cost tokens regardless. `n_calls` is per-document; `cache_read_tokens > 0` means the
+    # stable KB prefix was served from cache, so a second run over the same documents is much cheaper.
+    (state / "usage.json").write_text(
+        json.dumps(
+            {
+                "provider": llm.name,
+                "model": chosen,
+                "prompt_version": extractor.prompt_version if extractor else None,
+                "totals": {**usage_total, "n_calls": len(normalized)},
+                "calls": usage_records,
+            },
+            indent=2,
+        )
+    )
 
     payload: dict[str, object] = {
         "provider": llm.name,
         "model": chosen,
         "n_drafts": len(all_drafts),
-        "usage": usage_total,
+        "usage": {**usage_total, "n_calls": len(normalized)},
+        "usage_by_document": usage_records,
+        "usage_path": str(state / "usage.json"),
         "drafts": [d.model_dump(mode="json") for d in all_drafts],
     }
     if not verify:
@@ -1912,6 +1961,11 @@ def _run_records_stage(
 def _run_finish(stages: dict[str, object], code: int) -> None:
     """Emit the single `run` summary and exit with the pipeline's code (R4/R8). Always raises."""
     summary: dict[str, object] = {"ok": code == 0, "exit_code": code, "stages": stages}
+    harvest = stages.get("harvest")
+    if isinstance(harvest, dict) and isinstance(harvest.get("usage"), dict):
+        # The token cost of understanding the prose, surfaced at the top: the full per-document ledger
+        # is on disk (seqforge/usage.json) and in the harvest stage; this is the total a reader wants.
+        summary["llm_usage"] = harvest["usage"]
     if code == 0:
         summary["manifest"] = cast(dict, stages.get("manifest", {})).get("manifest")
         summary["processing"] = cast(dict, stages.get("processing", {})).get("processing")

@@ -109,11 +109,14 @@ class ExtractionResult(BaseModel):
 
 @dataclass(frozen=True)
 class ExtractionOutcome:
-    """What extract returns: the drafts, who made them, and what the call cost."""
+    """What extract returns: the drafts, who made them, the call MODE, and what it cost."""
 
     drafts: list[AssertionDraft]
     extractor: ExtractorProvenance
     provider: str = ""
+    model: str = ""
+    #: How the call was made — thinking/effort, max_tokens, response_format (see ``LLMResponse.mode``).
+    mode: dict[str, object] = field(default_factory=dict)
     usage: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -229,6 +232,8 @@ def extract_drafts(
         drafts=[_anchor(d, doc) for d in parsed.drafts],
         extractor=extractor,
         provider=llm.name,
+        model=chosen,
+        mode=response.mode,
         usage=response.usage,
     )
 
