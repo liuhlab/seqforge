@@ -64,6 +64,14 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/seqforge"]
 
+# No `force-include` for the data files. `packages = ["src/seqforge"]` already carries every
+# non-Python file under the tree — the pre-packed whitelists (`io/onlists/*.codes.gz` + `index.json`),
+# the hand-written `.smk` modules, and the KB specs — and adding a force-include on top is a hard
+# build error ("a second file is being added at the same path"), not a silent duplicate. Verified by
+# `test_the_wheel_ships_the_data_the_package_cannot_work_without`, which builds a wheel and looks:
+# each of those absent is a specific, silent failure (compose exiting 3 on every 10x dataset; a
+# Snakefile including a module that is not there), and none of them is Python.
+
 # `liulab-genome` is a git dependency, not a PyPI one — it is a lab package and always will be. A
 # direct reference is the only way to say that in [project].dependencies, and hatchling refuses one
 # unless this is set. seqforge is not published to PyPI, so the restriction this lifts does not apply.

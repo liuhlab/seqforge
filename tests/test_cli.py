@@ -236,9 +236,14 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
-    # geometry-only path (default registry materializes no onlist) still decides v3 at rung 2
     assert doc["candidates"][0]["technology"] == "10x-3p-gex-v3"
-    assert doc["rung_reached"] == 2
+    # Rung 3, because the real `3M-february-2018` now SHIPS and the onlist check actually runs. This
+    # asserted `== 2` and was right at the time: every registry entry carried `uri=""`/`sha256=""`,
+    # so nothing could be materialized and the ladder stopped at geometry. These reads are synthetic,
+    # so their random barcodes miss the real whitelist and rung 3 contributes no support -- v3 still
+    # wins on geometry. What changed is that the rung is REACHED, which is the difference between a
+    # 10x dataset composing and `compose` exiting 3.
+    assert doc["rung_reached"] == 3
 
 
 # --------------------------------------------------------------------------------------------

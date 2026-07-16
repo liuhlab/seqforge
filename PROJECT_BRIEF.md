@@ -221,16 +221,50 @@ because the other lists are far smaller (737K lists are 3 MB; SPLiT-seq's combin
 random-hit floor of 6.8M/4^16 ~= 0.16%. That is roughly 500:1 signal-to-noise. **Always test the
 reverse complement** — reverse-complemented ATAC barcodes are a perennial trap.
 
-Two gaps here (§14). Precompiling to `.npy` was specified and never built: packing is recomputed per
-process and cached in memory only, so every fresh CLI invocation re-packs. And "always" is not
-enforced — revcomp is tested only when a spec's onlist declares `orientation: either|revcomp`, and a
-spec that pins `forward` silently opts out of the trap this sentence exists to catch.
+One gap here (§14): "always" is not enforced — revcomp is tested only when a spec's onlist declares
+`orientation: either|revcomp`, and a spec that pins `forward` silently opts out of the trap this
+sentence exists to catch. (Precompilation is done: the packed form is what ships, so nothing re-packs
+per process.)
 
-Onlists are a **registry, not vendored data**: `{name -> URL, sha256, barcode length, orientation}`,
-fetched with pooch and hash-verified. 10x whitelists ship under Cell Ranger's license, so we do not
-redistribute them. Non-10x is easier than expected — scg_lib_structs publishes barcode CSVs under
-CC-BY, and seqspec's published assay specs carry `onlist` entries with URLs and checksums, so most
-of the registry can be *harvested from seqspec* rather than hand-curated.
+Onlists **ship with the package, pre-packed** — reversed on 2026-07-15 by maintainer decision, and
+the sentence that used to be here ("a registry, not vendored data … we do not redistribute them") was
+reasoning from a cost that turned out not to exist.
+
+The cost was assumed to be size. It is not: a barcode is 2 bits/base, so 10x's 6 794 880-entry v3
+list is a sorted `uint32` array, and *sorted* is the word doing the work — 6.8 M draws from 4^16 leave
+mean gaps of ~630, so the deltas need ~10 bits and gzip finishes the job. **522 kB**, against 12 MB
+for 10x's own `.txt.gz` and 27 MB for the `.npy` §14 originally asked for. All three lists are 576 kB;
+the whole wheel is 0.28 MB. There was never a size argument.
+
+What remains is the licence, and that is a maintainer's call, not an inference — it was made
+explicitly and it is recorded here rather than left to be discovered in a diff.
+
+This also closes §14's `.npy` precompilation, which wanted the opposite trade (a bigger artifact for
+the same benefit): nothing re-packs 6.8 M barcodes per process any more, because the packed form *is*
+what ships.
+
+**The identity is the barcode SET, not the file** (`codes_sha256`: sorted, unique, little-endian
+codes). Three ways of hashing were available and only one is right, which was measured rather than
+argued:
+
+- hashing the download pins the **packaging** — the same barcodes are a 12 MB `.gz` from Cell Ranger
+  and an 18 MB `.gz` from the scg_lib_structs mirror, agreeing on no bytes at all;
+- hashing the decompressed **text** pins byte order and line endings — `737K-arc-v1` genuinely has no
+  trailing newline, so a well-meant rewrite that adds one changes the hash and no barcode;
+- hashing the **set** answers the only question anyone asks of a whitelist: *is this the same set?*
+
+Every shipped hash was derived from bytes actually read and cross-checked three ways: the
+scg_lib_structs mirror, the lab's copy, and 10x's own Cell Ranger 7.2.0 all pack `3M-february-2018`
+to the same set. That agreement is what authenticates the mirror.
+
+`--onlist-dir` / `$SEQFORGE_ONLIST_DIR` remains for a list we do not ship, and `io onlist pack` is how
+a new one joins: pack it, commit the blob and the regenerated `index.json`. The index is **generated**
+and is checked against the blobs it describes by decoding them, so it cannot drift — the failure this
+repo keeps finding is a table beside the data, validated against itself.
+
+Non-10x is easier than expected — scg_lib_structs publishes barcode CSVs under CC-BY, and seqspec's
+published assay specs carry `onlist` entries with URLs and checksums, so most of the registry can be
+*harvested from seqspec* rather than hand-curated.
 
 **Why we verify eagerly rather than only on downstream error.** Because the dangerous failures do
 not error:
@@ -1000,7 +1034,6 @@ loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injecte
 - **seqspec export** and **scg_lib_structs ingestion** (§6). The seqspec *decomposition* is adopted;
   only the emitter is missing.
 - **GENCODE/RefSeq accessions** (§7) — annotation is a local registry name, not a public accession.
-- **`.npy` onlist precompilation** (§5) — packing is in-memory per process; every CLI run re-packs.
 - **`syrupy` snapshots and `hypothesis` property tests** (§13) — pinned, never imported.
 - **Skills installer** (§10) — the nine `SKILL.md` files are copied by hand.
 - **Dual-index parsing** (§5) — the regex captures the second index; `parse_read_name` drops it, so
@@ -1017,9 +1050,8 @@ loss 0.007 against a 0.02 ceiling, and a strand inversion collapses 2000 injecte
   which is a flag that only makes sense while the bug does. Filenames **group** (an accession is not
   an interpretation); bytes **assign**. Runs disagreeing on chemistry is a `Blocker`, never a vote —
   which is also what makes filename-grouping safe.
-- **No real onlist can be materialized.** All three `_KNOWN` entries have `uri=""`/`sha256=""`, so
-  compose exits 3 for any real 10x dataset — and this case's pre-registration *requires* the rung-3
-  `3M-february-2018` check, because v3 is separable from Multiome and GEM-X by whitelist alone.
+- ~~No real onlist can be materialized~~ — **fixed 2026-07-15**: all three 10x lists ship pre-packed
+  (576 kB), so the rung-3 check this case's pre-registration requires now runs with no setup.
 - **Harvest cannot run on this case**: a local-files case has no `docs_glob`, so `has_prose`
   is false, so the language model never runs, so the organism can never come from the paper — the
   one thing §12 designed this case to prove.

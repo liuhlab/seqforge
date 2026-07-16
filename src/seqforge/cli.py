@@ -20,7 +20,7 @@ from pydantic import ValidationError
 
 from . import __version__
 from .compose import ComposeError, compose
-from .io import DEFAULT_REGISTRY
+from .io import DEFAULT_REGISTRY, default_registry
 from .io.remote import NotYetImplemented, peek, resolve_accession
 from .kb import list_spec_ids, load_spec, run_roundtrip
 from .manifest import (
@@ -492,7 +492,7 @@ def kb_e2e_introns(
 
 @onlist_app.command("list")
 def io_onlist_list() -> None:
-    """List the onlists declared in the default registry (none are materialized in the pilot)."""
+    """List the onlists in the default registry. Shipped ones need no network and no setup."""
     rows = []
     for name in DEFAULT_REGISTRY.names():
         entry = DEFAULT_REGISTRY.get(name)
@@ -502,6 +502,7 @@ def io_onlist_list() -> None:
                 "width": entry.width,
                 "orientation": entry.orientation,
                 "n_entries": entry.n_entries,
+                "shipped": entry.shipped,
                 "fetchable": entry.fetchable,
             }
         )
@@ -526,7 +527,66 @@ def io_onlist_show(
                 "width": entry.width,
                 "orientation": entry.orientation,
                 "n_entries": entry.n_entries,
+                "shipped": entry.shipped,
                 "fetchable": entry.fetchable,
+                "source_sha256": entry.source_sha256,
+            },
+            indent=2,
+        )
+    )
+
+
+@onlist_app.command("pack")
+def io_onlist_pack(
+    text: Path = typer.Argument(..., help="The whitelist as text (.txt or .txt.gz)."),
+    name: str = typer.Option(..., "--name", help="Registry name, e.g. 3M-february-2018."),
+    uri: str = typer.Option(
+        "", "--uri", help="Where this list came from, recorded for provenance."
+    ),
+    orientation: str = typer.Option("forward", "--orientation", help="forward | revcomp | either."),
+) -> None:
+    """**Maintenance verb.** Pack a whitelist into the shipped form and record it in the index.
+
+    This is how a new barcode list joins the package: `pack` it, commit the `.codes.gz` and the
+    updated `index.json`, done. Nothing else to remember and nothing to hand-edit -- this verb is the
+    only writer of `index.json`, which is what stops the index drifting from the blobs beside it.
+
+    The shipped form is 2-bit-packed, sorted, de-duplicated, delta-encoded and gzipped: 10x's
+    6 794 880-barcode v3 list is 522 kB here against 12 MB as their `.txt.gz`. That is why shipping
+    them is cheap, and it also closes the `.npy` precompilation §14 has wanted since the beginning --
+    nothing re-packs 6.8M barcodes per process any more.
+    """
+    import gzip as _gzip
+    import hashlib as _hashlib
+
+    from .io.onlist import PackedOnlist, write_shipped
+
+    raw = text.read_bytes()
+    if raw[:2] == b"\x1f\x8b":
+        raw = _gzip.decompress(raw)
+    source_sha = _hashlib.sha256(raw).hexdigest()
+    barcodes = [line.strip() for line in raw.decode().splitlines() if line.strip()]
+    if not barcodes:
+        typer.echo(f"{text} contains no barcodes", err=True)
+        raise typer.Exit(2)
+    packed = PackedOnlist.from_barcodes(barcodes)
+    blob = write_shipped(
+        name,
+        packed.codes,
+        width=packed.width,
+        uri=uri,
+        orientation=orientation,  # type: ignore[arg-type]
+        source_sha256=source_sha,
+    )
+    typer.echo(
+        json.dumps(
+            {
+                "name": name,
+                "packed": str(blob),
+                "bytes": blob.stat().st_size,
+                "n_entries": packed.n_entries,
+                "width": packed.width,
+                "source_sha256": source_sha,
             },
             indent=2,
         )
@@ -1078,6 +1138,12 @@ def compose_cmd(
         help="Where this machine keeps the FASTQs. Without it units.tsv carries bare basenames "
         "and the pipeline cannot find its input.",
     ),
+    onlist_dir: Path | None = typer.Option(
+        None,
+        "--onlist-dir",
+        help="Directory of downloaded barcode whitelists (<name>.txt.gz). Checked before the "
+        "network, so a compute node with no internet still composes. Env: SEQFORGE_ONLIST_DIR.",
+    ),
 ) -> None:
     """Compile (dataset, processing) -> Snakefile + config.yaml + units.tsv.
 
@@ -1122,7 +1188,12 @@ def compose_cmd(
 
     try:
         result = compose(
-            manifest, processing, workspace=workspace, outdir=outdir, fastq_dir=fastq_dir
+            manifest,
+            processing,
+            registry=default_registry(offline=False, local_dir=onlist_dir),
+            workspace=workspace,
+            outdir=outdir,
+            fastq_dir=fastq_dir,
         )
     except ComposeError as exc:
         typer.echo(str(exc), err=True)
