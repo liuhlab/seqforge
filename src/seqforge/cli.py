@@ -12,6 +12,7 @@ verbs are declared and raise a clear "not yet implemented" until their stage lan
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -1030,6 +1031,37 @@ def harvest_extract(
     the chemistry and nothing else. Since a sample's document contains one sample's prose, "which
     sample" is answered by which file we handed the model — the model never names one, and cannot.
     """
+    _emit(
+        _harvest_extract_pipeline(
+            docs=docs,
+            instruction=instruction,
+            records_path=records_path,
+            provider=provider,
+            model=model,
+            verify=verify,
+            workspace=workspace,
+        )
+    )
+
+
+def _harvest_extract_pipeline(
+    *,
+    docs: list[Path] | None,
+    instruction: list[Path] | None,
+    records_path: Path | None,
+    provider: str | None,
+    model: str | None,
+    verify: bool,
+    workspace: Path,
+) -> _StageOut:
+    """The body of ``harvest extract``, returned as a value so ``seqforge run`` can chain it.
+
+    The one LLM stage, and the one place ``run`` cannot be fully deterministic — hence ``--no-llm``,
+    which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if no
+    provider or the endpoint fails, exit 4 if a claim fails the span tripwire (a rejected claim needs
+    a human, not a silent drop). On success it still writes ``assertions.json`` and the rendered
+    documents to disk, because a span citation is only checkable while the exact text survives.
+    """
     from .harvest import (
         ExtractUnavailable,
         ProviderUnavailable,
@@ -1049,8 +1081,7 @@ def harvest_extract(
     try:
         llm = resolve_provider(provider)
     except ProviderUnavailable as exc:
-        typer.echo(json.dumps({"error": "no_provider", "detail": str(exc)}, indent=2), err=True)
-        raise typer.Exit(1) from exc
+        return _StageOut({"error": "no_provider", "detail": str(exc)}, 1, err=True)
     chosen = model or llm.default_model()
 
     all_drafts = []
@@ -1076,10 +1107,7 @@ def harvest_extract(
         try:
             outcome = extract_drafts(nd, specs, provider=llm, model=chosen)
         except ExtractUnavailable as exc:
-            typer.echo(
-                json.dumps({"error": "llm_unavailable", "detail": str(exc)}, indent=2), err=True
-            )
-            raise typer.Exit(1) from exc
+            return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
         all_drafts.extend(outcome.drafts)
         extractor = outcome.extractor
         for k, v in outcome.usage.items():
@@ -1093,8 +1121,7 @@ def harvest_extract(
         "drafts": [d.model_dump(mode="json") for d in all_drafts],
     }
     if not verify:
-        typer.echo(json.dumps(payload, indent=2))
-        return
+        return _StageOut(payload, 0)
 
     assert extractor is not None
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
@@ -1141,11 +1168,10 @@ def harvest_extract(
     payload["conflicts"] = [c.model_dump(mode="json") for c in conflicts]
     payload["rejected"] = report.rejected
     payload["assertions"] = [a.model_dump(mode="json") for a in report.assertions]
-    typer.echo(json.dumps(payload, indent=2))
-    if conflicts:
-        raise typer.Exit(4)  # two instructions disagreeing has no tiebreak — only the author knows
-    if report.rejected:
-        raise typer.Exit(4)  # a claim that failed the tripwire needs a human, not a silent drop
+    # Exit 4 when the author must weigh in: two instructions disagreeing has no tiebreak, and a claim
+    # that failed the span tripwire needs a human rather than a silent drop.
+    code = 4 if (conflicts or report.rejected) else 0
+    return _StageOut(payload, code)
 
 
 @harvest_app.command("verify")
@@ -1189,6 +1215,29 @@ def harvest_verify(
     )
     if report.rejected:
         raise typer.Exit(4)  # a rejected claim needs a human, not a silent drop
+
+
+@dataclass(frozen=True)
+class _StageOut:
+    """One stage's result, decoupled from how it is printed.
+
+    A stage decides *what* to say and *whether it is a refusal* (the exit code); the command wrapper
+    decides *where* it goes. That split is what lets a single stage body serve both a standalone verb
+    (which echoes it and exits) and ``seqforge run`` (which folds it into one summary). ``payload`` is
+    a dict rendered as JSON, or a bare string echoed as-is — ``FillError`` prints a plain sentence,
+    ``records_unavailable`` prints JSON, and both must keep doing exactly that.
+    """
+
+    payload: dict[str, object] | str
+    code: int
+    err: bool = False
+
+
+def _emit(out: _StageOut) -> None:
+    """Print a stage result the way a standalone verb does, then exit with its code (R4/R8)."""
+    body = out.payload if isinstance(out.payload, str) else json.dumps(out.payload, indent=2)
+    typer.echo(body, err=out.err)
+    raise typer.Exit(out.code)
 
 
 def _load_manifest(path: Path) -> DatasetManifest:
@@ -1275,18 +1324,6 @@ def manifest_fill(
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate (R7).
     """
     from .io.remote import RemoteError
-    from .resolve.records import resolve_metadata
-
-    organism_taxid: int | None = None
-    if organism is not None:
-        # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
-        # verified span -- the model already does its job -- so the join it needed was a lookup
-        # table, not more model. See io/taxonomy.py for why the round trip is what makes that safe.
-        try:
-            organism_taxid = _resolve_organism(organism, offline=offline)
-        except TaxonomyUnavailable as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(2) from exc
 
     try:
         records = _load_records(accession, records_path, offline=offline)
@@ -1297,6 +1334,47 @@ def manifest_fill(
             json.dumps({"error": "records_unavailable", "detail": str(exc)}, indent=2), err=True
         )
         raise typer.Exit(3) from exc
+
+    _emit(
+        _fill_manifest_pipeline(
+            files=files,
+            organism=organism,
+            records=records,
+            assertions=assertions,
+            offline=offline,
+            workspace=workspace,
+        )
+    )
+
+
+def _fill_manifest_pipeline(
+    *,
+    files: list[Path],
+    organism: str | None,
+    records: ArchiveRecordSet | None,
+    assertions: Path | None,
+    offline: bool,
+    workspace: Path,
+) -> _StageOut:
+    """Probe -> resolve -> metadata -> assemble + validate the DATASET manifest, returned as a value.
+
+    This is the body of ``manifest fill`` with the network I/O lifted to the caller: ``manifest fill``
+    and ``seqforge run`` fetch the archive records differently (one refuses on a miss, one caches to
+    disk first), so they hand the already-fetched set in. Every exit is a ``_StageOut`` rather than a
+    ``typer.Exit`` — the standalone verb prints it and stops, ``run`` folds it into one summary and
+    decides whether to continue. Two resolvers, neither shown the other's input; both can refuse.
+    """
+    from .resolve.records import resolve_metadata
+
+    organism_taxid: int | None = None
+    if organism is not None:
+        # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
+        # verified span -- the model already does its job -- so the join it needed was a lookup
+        # table, not more model. See io/taxonomy.py for why the round trip is what makes that safe.
+        try:
+            organism_taxid = _resolve_organism(organism, offline=offline)
+        except TaxonomyUnavailable as exc:
+            return _StageOut(str(exc), 2, err=True)
 
     parsed, subjects = _assertions_and_subjects(assertions)
     multi = resolve_runs(
@@ -1309,16 +1387,13 @@ def manifest_fill(
         use_cache=False,
     )
     if multi.exit_code() != 0:
-        typer.echo(
-            json.dumps(
-                {
-                    "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
-                    "blockers": [b.model_dump(mode="json") for b in multi.blockers],
-                },
-                indent=2,
-            )
+        return _StageOut(
+            {
+                "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
+                "blockers": [b.model_dump(mode="json") for b in multi.blockers],
+            },
+            multi.exit_code(),
         )
-        raise typer.Exit(multi.exit_code())
 
     metadata = resolve_metadata(
         # Identity only: the metadata resolver is handed no probe signal and cannot read one.
@@ -1328,12 +1403,7 @@ def manifest_fill(
         subjects=subjects,
     )
     if metadata.blockers:
-        typer.echo(
-            json.dumps(
-                {"blockers": [b.model_dump(mode="json") for b in metadata.blockers]}, indent=2
-            )
-        )
-        raise typer.Exit(3)
+        return _StageOut({"blockers": [b.model_dump(mode="json") for b in metadata.blockers]}, 3)
 
     # Every run agreed (else the Blocker above fired), so any run's verdict is the dataset's.
     first = multi.runs[0].output.result
@@ -1359,8 +1429,7 @@ def manifest_fill(
             role_of_sha=multi.role_of_sha(),
         )
     except FillError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(3) from exc
+        return _StageOut(str(exc), 3, err=True)
 
     report = validate_manifest(manifest, conflicts=conflicts)
     state = state_dir(workspace)
@@ -1376,8 +1445,7 @@ def manifest_fill(
             f"{state}/ because it is the output, not plumbing. Nothing reads the old directory; "
             f"delete it when you have what you need."
         )
-    typer.echo(json.dumps(out, indent=2))
-    raise typer.Exit(exit_code_for_report(report))
+    return _StageOut(out, exit_code_for_report(report))
 
 
 def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
@@ -1761,6 +1829,256 @@ def compose_cmd(
     typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
     if any(v == "fail" for v in result.gate.values()):
         raise typer.Exit(3)
+
+
+# ---------------------------------------------------------------- run (the whole pipeline, one pass)
+def _run_records_stage(
+    accession: list[str], records_path: Path | None, *, workspace: Path, offline: bool
+) -> tuple[ArchiveRecordSet | None, Path | None]:
+    """Fetch + cache the archive records for `run`, returning (the set, a file harvest can render from).
+
+    Where `manifest fill` fetches into memory, `run` writes each record set under `seqforge/records/`
+    — the same place `io records` caches — because `run` is the convenience path and R7 says every
+    stage leaves a resumable artifact. Harvest renders record documents from a *file*, so `run` hands
+    the same file to both harvest and fill. `--offline` with an accession refuses, for the reason fill
+    does: you asked for those facts, and the manifest is content-addressed and permanent.
+    """
+    import hashlib
+
+    from .io.archive import fetch_records
+    from .io.remote import RemoteError
+    from .models.records import ArchiveRecordSet
+
+    if records_path is not None:
+        return ArchiveRecordSet.model_validate_json(records_path.read_text()), records_path
+    if not accession:
+        return None, None
+    if offline:
+        raise RemoteError(
+            f"--accession {', '.join(accession)} needs the archive, and --offline forbids it. "
+            f"Fetch once with `seqforge io records {accession[0]}` and pass --records, or drop "
+            f"--accession to compile with no sample facts."
+        )
+    outdir = state_dir(workspace, "records")
+    outdir.mkdir(parents=True, exist_ok=True)
+    merged: list[Any] = []
+    per_accession: list[Path] = []
+    for acc in accession:
+        record_set = fetch_records(acc)
+        target = outdir / f"{acc}.json"
+        target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
+        per_accession.append(target)
+        merged.extend(record_set.records)
+    if len(accession) == 1:
+        return ArchiveRecordSet(source="ncbi-sra+biosample", query=accession[0], records=merged), (
+            per_accession[0]
+        )
+    # Two accessions render one dataset: harvest needs them in a single document set, so write a
+    # combined file keyed by the accession list (the per-accession caches stay, for `io records`).
+    combined = ArchiveRecordSet(
+        source="ncbi-sra+biosample", query=", ".join(accession), records=merged
+    )
+    tag = hashlib.sha256(", ".join(sorted(accession)).encode()).hexdigest()
+    combined_path = outdir / (readable("combined", tag) + ".json")
+    combined_path.write_text(json.dumps(combined.model_dump(mode="json"), indent=2))
+    return combined, combined_path
+
+
+def _run_finish(stages: dict[str, object], code: int) -> None:
+    """Emit the single `run` summary and exit with the pipeline's code (R4/R8). Always raises."""
+    summary: dict[str, object] = {"ok": code == 0, "exit_code": code, "stages": stages}
+    if code == 0:
+        summary["manifest"] = cast(dict, stages.get("manifest", {})).get("manifest")
+        summary["processing"] = cast(dict, stages.get("processing", {})).get("processing")
+        summary["snakefile"] = cast(dict, stages.get("compose", {})).get("snakefile_path")
+    typer.echo(json.dumps(summary, indent=2))
+    raise typer.Exit(code)
+
+
+@app.command("run")
+def run_cmd(
+    files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
+    accession: list[str] = typer.Option(
+        [], "--accession", help="Accession(s): the archive's per-sample records. Optional."
+    ),
+    records_path: Path | None = typer.Option(
+        None, "--records", help="An already-fetched record set, instead of fetching now."
+    ),
+    doc: list[Path] = typer.Option(
+        [], "--doc", help="Reference document(s) — a paper .pdf/.txt/.md — to read for claims."
+    ),
+    instruction: list[Path] = typer.Option(
+        [],
+        "--instruction",
+        help="Document(s) authored FOR seqforge; only these may set processing.*.",
+    ),
+    organism: str | None = typer.Option(
+        None, "--organism", help="NCBI taxid or name. Optional when --accession declares it."
+    ),
+    assembly: str | None = typer.Option(
+        None,
+        "--assembly",
+        help="Genome: liulab-genome UCSC assembly id (e.g. ce11). The one decision.",
+    ),
+    annotation: str | None = typer.Option(
+        None, "--annotation", help="Registered GTF name (e.g. WS298)."
+    ),
+    no_llm: bool = typer.Option(
+        False, "--no-llm", help="Skip the one LLM stage; fully deterministic. Ignores --doc."
+    ),
+    provider: str | None = typer.Option(
+        None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
+    ),
+    model: str | None = typer.Option(None, "--model", help="Override the extraction model."),
+    processing_id: str = typer.Option("default", "--id", help="Human slug for the recipe."),
+    fastq_dir: Path | None = typer.Option(
+        None, "--fastq-dir", help="Where this machine keeps the FASTQs (for units.tsv)."
+    ),
+    onlist_dir: Path | None = typer.Option(
+        None,
+        "--onlist-dir",
+        envvar="SEQFORGE_ONLIST_DIR",
+        help="Directory of downloaded barcode whitelists (<name>.txt.gz).",
+    ),
+    sif_dir: Path | None = typer.Option(
+        None,
+        "--sif-dir",
+        envvar="LIU_LAB_PACKAGES",
+        help="Directory of prebuilt liulab-runtime images (liulab-runtime_<env>.sif).",
+    ),
+    outdir: str = typer.Option("results", help="Pipeline output directory (written into config)."),
+    offline: bool = typer.Option(False, "--offline", help="Never reach the network."),
+    workspace: Path = typer.Option(
+        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
+    ),
+) -> None:
+    """One pass: FASTQ + metadata -> manifest.yaml AND a runnable Snakefile (R8).
+
+    Chains the deterministic verbs — records, harvest, manifest fill, processing new, compose — in
+    order, stops at the first refusal, and emits ONE JSON summary keyed by stage. It decides nothing
+    itself: chemistry, read roles and organism come from the same code the individual verbs run, and
+    the exit-code contract is preserved (3 BLOCKED, 4 NEEDS_HUMAN). Re-running is resumable through
+    each stage's own content-addressed cache (R7); there is no --resume flag.
+
+    The genome is the one real decision and has no safe default: pass --assembly/--annotation, or state
+    it in an --instruction document. Everything else is optional — no accession, no paper, and
+    --no-llm each give a quieter, still-true manifest. `harvest extract` is the sole LLM touchpoint and
+    calls its own provider (DEEPSEEK_API_KEY / ANTHROPIC_API_KEY), which is why --no-llm exists.
+    """
+    from .io.remote import RemoteError
+
+    stages: dict[str, object] = {}
+
+    # 1) Archive records (optional): fetch + cache, or refuse offline.
+    records: ArchiveRecordSet | None = None
+    records_file: Path | None = None
+    try:
+        records, records_file = _run_records_stage(
+            accession, records_path, workspace=workspace, offline=offline
+        )
+    except RemoteError as exc:
+        stages["records"] = {"error": "records_unavailable", "detail": str(exc)}
+        _run_finish(stages, 3)
+    if records is not None:
+        stages["records"] = {
+            "source": records.source,
+            "n": {
+                level: len(records.at(level))  # type: ignore[arg-type]
+                for level in ("project", "sample", "experiment", "run")
+            },
+        }
+
+    # 2) Harvest — the one LLM stage. Skipped by --no-llm or when there is no prose to read.
+    assertions_path: Path | None = None
+    if no_llm and (doc or instruction):
+        stages["harvest"] = {"skipped": "--no-llm: documents were not read"}
+    elif not no_llm and (doc or instruction):
+        harvested = _harvest_extract_pipeline(
+            docs=doc,
+            instruction=instruction,
+            records_path=records_file,
+            provider=provider,
+            model=model,
+            verify=True,
+            workspace=workspace,
+        )
+        stages["harvest"] = (
+            harvested.payload
+            if isinstance(harvested.payload, dict)
+            else {"error": harvested.payload}
+        )
+        if harvested.code != 0:
+            _run_finish(stages, harvested.code)
+        assertions_path = state_dir(workspace) / "assertions.json"
+
+    # 3) The IR: what the data IS. Probe + resolve + metadata, both resolvers, both able to refuse.
+    fill = _fill_manifest_pipeline(
+        files=files,
+        organism=organism,
+        records=records,
+        assertions=assertions_path,
+        offline=offline,
+        workspace=workspace,
+    )
+    stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
+    if fill.code != 0:
+        _run_finish(stages, fill.code)
+    manifest_path = Path(cast(str, cast(dict, stages["manifest"])["manifest"]))
+    manifest = _load_manifest(manifest_path)
+
+    # 4) The flags: what to DO with it. The genome enters here (a flag, or a verified instruction).
+    try:
+        instructions = _instructions_from(assertions_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        stages["processing"] = {"error": str(exc)}
+        _run_finish(stages, 2)
+    try:
+        processing, warnings = fill_processing(
+            spec=load_spec(manifest.library.chemistry.value[0]),
+            dataset=manifest,
+            processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
+            instructions=instructions,
+            processing_id=processing_id,
+            pin=True,
+            seqforge_version=__version__,
+        )
+    except (PolicyError, ValidationError) as exc:
+        # The one real decision with no safe default. `fill_processing`'s own message already names the
+        # organism and says how to supply a genome, so pass it through rather than restating it.
+        stages["processing"] = {"error": str(exc)}
+        _run_finish(stages, 2)
+    p_report = validate_processing(processing, dataset=manifest)
+    proc_path = state_dir(workspace) / "processing.yaml"
+    proc_path.write_text(yaml.safe_dump(processing.model_dump(mode="json"), sort_keys=True))
+    stages["processing"] = {
+        "processing": str(proc_path),
+        "report": p_report.model_dump(mode="json"),
+        "warnings": [w.model_dump(mode="json") for w in warnings],
+    }
+    if not p_report.ok:
+        _run_finish(stages, exit_code_for_report(p_report))
+
+    # 5) The deliverable: the Snakefile.
+    try:
+        result = compose(
+            manifest,
+            processing,
+            registry=default_registry(offline=offline, local_dir=onlist_dir),
+            workspace=workspace,
+            outdir=outdir,
+            fastq_dir=fastq_dir,
+            sif_dir=sif_dir,
+        )
+    except ComposeError as exc:
+        stages["compose"] = {"error": str(exc)}
+        _run_finish(stages, 3)
+    stages["compose"] = result.model_dump(mode="json")
+    _run_finish(stages, 3 if any(v == "fail" for v in result.gate.values()) else 0)
+
+
+app.command(
+    "compile", help="Alias for `run`: FASTQ + metadata -> manifest + Snakefile in one pass."
+)(run_cmd)
 
 
 @eval_app.command("list")

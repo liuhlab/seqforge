@@ -110,7 +110,9 @@ def test_skill_documents_only_real_cli_verbs(skill: Path) -> None:
 #: Declared in the design's CLI surface, stage not yet landed. Listed EXPLICITLY so that documenting
 #: a verb without implementing it stays a deliberate act. A group here exempts its whole subtree,
 #: because there is nothing to check a leaf against when the group itself does not exist.
-_PLANNED = {"run", "compile", "status", "journal"}
+#: `run`/`compile` graduated out of here once they landed — a planned verb that ships must leave this
+#: set, or the guard would keep rubber-stamping the very fiction it exists to catch.
+_PLANNED = {"status", "journal"}
 
 
 def _real_cli() -> tuple[set[str], set[str]]:

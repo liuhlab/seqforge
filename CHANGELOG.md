@@ -20,6 +20,18 @@ real resolution problem with real ways to be wrong. On the pilot's records: 6 sa
 ×6, `CQ757` ×3 / `CQ758` ×3, organism 6239 citing all six BioSamples — and `--organism` is no longer
 required, because the record declares it.
 
+**`seqforge run` compiles a dataset in one pass.** The planned headless verb landed: `run` (alias
+`compile`) chains records → harvest → manifest fill → processing new → compose, stops at the first
+refusal, and emits one JSON summary keyed by stage. It decides nothing the stages did not already
+decide — the fill and harvest bodies were lifted into `_fill_manifest_pipeline` /
+`_harvest_extract_pipeline` and are now called by both the standalone verbs and `run`, so there is one
+implementation of the spine, not two that can drift. `--no-llm` skips the one LLM stage for a fully
+deterministic pass; the genome stays the one decision with no default (missing it exits 2, actionably).
+`run`/`compile` left the skill guard's `_PLANNED` set the moment they shipped — a planned verb that
+ships must graduate, or the guard rubber-stamps the fiction it exists to catch. The
+`seqforge-orchestrate` skill now leads with `run` and carries the exit-code discipline itself, so a
+`claude -p` one-liner needs no safety preamble.
+
 - **The subject is the document.** `AssertionDraft` gains **no** `subject` field. Each archive record
   is rendered as its own document, so a sample-level document holds one sample's prose and "which
   sample" is answered by which file we handed the model. The trick `instruct.py` already shipped for

@@ -29,6 +29,26 @@ info/
 Plus an accession, `PRJNA1027859`, which is also optional — plenty of data never had one. Each of
 the three inputs makes the answer richer; none of them is required, and none of them is trusted.
 
+## The short version: one pass
+
+If you just want the manifest and the Snakefile, `seqforge run` does the whole thing and prints one
+summary:
+
+```bash
+pixi run -- seqforge run data/*/*.fastq.gz \
+    --accession PRJNA1027859 --doc info/paper.pdf \
+    --assembly ce11 --annotation WS298 --fastq-dir data
+```
+
+It chains every stage below — records, the paper, the manifest, the recipe, the Snakefile — stops at
+the first refusal, and writes everything under `seqforge/`. The genome is the one argument with no
+default (a wrong one aligns cleanly and exits 0, so it will not guess). Reading the paper uses a
+language model, which needs its own `ANTHROPIC_API_KEY` or `DEEPSEEK_API_KEY` in the environment; add
+`--no-llm` to skip prose and stay fully deterministic.
+
+The rest of this page walks the same pipeline one verb at a time — which is what you want when a step
+needs inspecting, and what `run` is doing for you when it does not.
+
 ## 1. Ask the bytes what this is
 
 ```bash

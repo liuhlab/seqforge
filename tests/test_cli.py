@@ -177,6 +177,81 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert ((tmp_path / doc["config_path"]).parent / "processing.lock.yaml").is_file()
 
 
+def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
+    """`seqforge run` chains probe->resolve->manifest->processing->compose and emits one summary.
+
+    The same deterministic spine as `test_manifest_fill_validate_hash_compose_spine`, but driven
+    through the single verb an agent (or `claude -p`) actually calls. `--no-llm` keeps it network- and
+    provider-free, which is the branch CI can run; the bulk path needs no onlist. It proves the one
+    thing a chain of separately-green stages does not: that the composition itself produces every
+    artifact.
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(f1),
+            str(f2),
+            "--organism",
+            "559292",
+            "--assembly",
+            "sacCer3",
+            "--annotation",
+            "ensembl",
+            "--no-llm",
+            "--fastq-dir",
+            str(tmp_path),
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    summary = json.loads(result.stdout)
+    assert summary["ok"] is True
+    # one summary, keyed by stage — records was skipped (no accession), harvest skipped (--no-llm)
+    assert set(summary["stages"]) == {"manifest", "processing", "compose"}
+    assert summary["stages"]["compose"]["gate"]["params"] == "pass"
+
+    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
+    assert manifest_path.is_file() and summary["manifest"] == str(manifest_path)
+    assert (tmp_path / "seqforge" / "processing.yaml").is_file()
+    # the deliverable, and it is where the summary says it is
+    assert (tmp_path / summary["snakefile"]).is_file()
+    # R13: the recipe file did not perturb the dataset — validate still comes back clean by name
+    assert runner.invoke(app, ["manifest", "validate", str(manifest_path)]).exit_code == 0
+
+
+def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
+    """The one real decision has no safe default: no --assembly, no instruction -> exit 2, not a guess.
+
+    And the manifest is still written — the IR is what the data IS, independent of what you do with
+    it — so the refusal is precisely at the `processing` stage, with an actionable message (R4/R12).
+    """
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app, ["run", str(f1), str(f2), "--organism", "559292", "--no-llm", "-C", str(tmp_path)]
+    )
+    assert result.exit_code == 2, result.stdout
+    summary = json.loads(result.stdout)
+    assert summary["ok"] is False
+    assert set(summary["stages"]) == {"manifest", "processing"}  # stopped exactly at the genome
+    assert "559292" in summary["stages"]["processing"]["error"], "the refusal must be actionable"
+    assert (tmp_path / "seqforge" / "manifest.yaml").is_file()  # the IR still landed
+
+
 def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     doc = tmp_path / "methods.txt"
     doc.write_text("Libraries were prepared with the Chromium Single Cell 3' v3 kit.")
