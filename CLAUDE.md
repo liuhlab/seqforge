@@ -24,6 +24,22 @@ instructable path adds no new LLM authority is the whole point: **we can accept 
 we never trust the model to *act* on them, only to *find* them.** Everything else is a verifier — do
 not let that line blur.
 
+Sample metadata adds no third job either, and the mechanism is worth knowing because the obvious
+design does. Per-sample facts need a claim to name a *subject* — and giving `AssertionDraft` a
+`subject` field would hand the model a new authority, one with no quote to check it against, landing
+in exactly the class `entails()` is provably blind to. So we don't. **Each archive record is rendered
+as its own document**, and a sample-level document contains one sample's prose and nothing else, so
+"which sample" is answered by *which file we handed the model*. Code knows it because code chose it —
+the same trick [`instruct.py`](src/seqforge/manifest/instruct.py) already ships for document role.
+The model's job is unchanged: read one document, report what it says. It just finally gets handed the
+right documents.
+
+The line on the model *in* resolve: its reading may tell resolve **what to check first** and **how to
+break a tie the bytes cannot settle**. It may not tell resolve **what the answer is**. Concretely —
+`score` builds a grid from eight closed byte-tests; for prose to move a score there would have to be
+a ninth, `metadata_says`, and a spec could then declare a chemistry that identifies itself by being
+*described* rather than by what is in its reads. That is the thing we do not build.
+
 **Status: `compose` emits a Snakefile that runs, and `kb e2e` proves its matrix against ground truth**
 (arc, 2026-07-15: recovery 0.9545, 0 spurious, 0 inflated, strand inversion collapses 2000 counts to
 49). Until that day **nothing had ever executed a Snakemake module** — the wiring gate could not run
@@ -31,16 +47,33 @@ not let that line blur.
 default target), and `kb e2e` hand-assembled its own STAR command line instead. Each was found only by
 making the previous one run. The deterministic spine — models, probe, kb, resolve, manifest, compose,
 hooks, evals — is implemented and green (`pixi run check`), and multi-run works: files are grouped
-into runs by name and assigned roles per run, from bytes. **The demo dataset has not been run.** The authoritative design is
+into runs by name and assigned roles per run, from bytes.
+
+**The demo dataset HAS been run** (2026-07-16), and reading its output is what produced the current
+shape. Nine findings; the load-bearing one was that all six samples said `tissue: null` under a paper
+that says "neurons" and BioSample records that say `tissue=Neurons`. Nothing fetched the records
+(`strain`/`tissue`/`sex`/`dev_stage` were read by **zero lines of code**), `manifest fill` had no
+`--assertions` flag at all, and a claim had no way to name a sample — so the model's answers went to
+a file nobody read. Metadata resolution is now a stage; see the diagram. The authoritative design is
 [`docs/design.md`](docs/design.md) (Pydantic model hierarchy, KB `spec.yaml` schema, scoring function
 + joint role-assignment, CLI surface); the full rationale is
 [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md), whose §14 tracks what is still unbuilt. Read all three before
-writing code. The pipeline is a five-stage compiler over two artifacts:
+writing code. The pipeline is a compiler over two artifacts, and **`resolve` has two resolvers**:
 
 ```
 probe(files)                    -> Observation   deterministic, no LLM, no network, bytes only
-harvest(prose, instructions)    -> Assertion     LLM, each claim span-verified
+records(accession?)             -> ArchiveRecord project/sample/experiment/run. OPTIONAL: most
+                                                 sequencing data never had an accession.
+harvest(documents)              -> Assertion     LLM, each claim span-verified. A document is a
+                                                 file you handed us OR one archive record.
+──────────────────────────────────────────────────────────────────────────────────────────────
 score(Observation, KB, hypo?)   -> candidates x role_assignment, Conflicts, Questions
+      "what IS this library?"      from BYTES. The hypothesis selects and breaks ties; it never
+                                   enters the evidence matrix.
+resolve_metadata(FileIdentity,  -> samples x attributes, Conflicts, Blockers
+                 records?,         "which sample is each file, and what was it?" from RECORDS and
+                 assertions?)      PROSE. Handed no probe signal — it takes FileIdentity, not
+                                   Observation, so the signals are absent rather than unread.
 ──────────────────────────────────────────────────────────────────────────────────────────────
   => manifest.yaml     THE IR.    What the data IS.   One per dataset. Immutable, hashed.
 
@@ -50,12 +83,19 @@ plan(Assertions, flags, policy) -> ProcessingSection   precedence: flag > instru
 
 compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministic
 ──────────────────────────────────────────────────────────────────────────────────────────────
-  => .seqforge/pipeline/<run_id>/Snakefile   THE DELIVERABLE. The user submits this.
+  => seqforge/pipeline/<recipe>-<run_id[:12]>/Snakefile   THE DELIVERABLE. The user submits this.
   run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow). Same manifest + different recipes =
   different pipelines, dataset hash unchanged.
   Running it ends in <sample>.h5ad (X = primary feature, one layer per other) +
   <sample>.velocyto.h5ad. That is the default target: `rule all` demands the matrices, not a folder.
 ```
+
+**The two resolvers are siblings, not a stage and a side-input.** Both emit evidenced values, both
+surface disagreements they refuse to arbitrate, and both can refuse — because both have the same ways
+of being wrong. Treating sample metadata as "inputs `fill` happens to need" is what left `tissue:
+null` on six samples under a paper that says "neurons": the field had no writer, and a claim had no
+way to name a sample. Neither resolver reads the other's input, and the line is in
+[`resolve/records.py`](src/seqforge/resolve/records.py).
 
 The last artifact is the point: **a Snakefile the user can submit.** `seqforge` does not submit jobs —
 no Slurm profile, no executor, no sbatch. Its output is artifacts, and the last one runs.
@@ -87,8 +127,10 @@ behaviour.
 | R3 | **Never read a whole FASTQ.** Every FASTQ touch is bounded by `--max-reads` (default 200 000) **and** `--max-bytes` (256 MB decompressed). Wall-clock is never a budget. A code path that *can* stream a whole multi-GB FASTQ is a bug. | `PreToolUse` hook (`hooks/guards.py`, size-blind by design) + `test_the_read_budget_bounds_bytes_read_however_large_the_file` / `test_the_byte_budget_binds_when_the_reads_are_long` (`tests/test_probe.py`: a 128 MB-decompressed fixture, 434 KB on disk, of which the probe reads ~10 %) |
 | R4 | **Refusal is an exit code.** `manifest validate` returns structured `Blocker`s + a nonzero exit. Code decides whether we may compile; the LLM only decides *what question to ask*. | exit-code contract + `PostToolUse` hook |
 | R5 | **Span-verified extraction.** Every `Assertion` carries a `quote` that (a) greps back into the normalized canonical text and (b) *entails* its value; else reject. This is the hallucination tripwire. | `verify_drafts` (`harvest/verify.py`), deterministic, run inside `harvest extract`; `tests/test_harvest.py`. There is no separate `harvest verify` verb |
-| R6 | **Three truths, never merged.** Every *interpretive* manifest field is `Evidenced{value, basis, evidence, confidence, rung}` — raw identity (`uri`, `sha256`, `size`) and provenance are not interpretations and carry no basis; `resources` is an advisory hint, not a decision. `observed`↔`asserted` disagreement is a surfaced first-class `Conflict`, never auto-picked. The three truths are the three *bases* — nothing here ever depended on there being three *sections*, and conflating the two is what let `processing` masquerade as a truth for a year. | `Evidenced[T]` type; resolver |
-| R7 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `.seqforge/`. Any run is resumable after a kill; the agent never holds state only in context. | artifact layout + content-addressed cache hits (`resolve/cache.py`, atomic write-then-rename). Resume is *implicit* — re-running finds the artifact; `--no-cache` opts out. There is no `--resume` flag |
+| R6 | **Three truths, never merged.** Every *interpretive* manifest field is `Evidenced{value, basis, evidence, confidence, rung}` — raw identity (`uri`, `sha256`, `size`) and provenance are not interpretations and carry no basis; `resources` is an advisory hint, not a decision. `observed`↔`asserted` disagreement is a surfaced first-class `Conflict`, never auto-picked. The three truths are the three *bases* — nothing here ever depended on there being three *sections*, and conflating the two is what let `processing` masquerade as a truth for a year. **One judgement, one envelope**: a value repeated across fields that all came from one decision is that decision wearing N hats, not N truths, and it is the same pun one level down (`library` printed `confidence: 0.750672` four times because four envelopes were filled from one variable — they could not disagree, so they were never four). `confidence: null` is legal and informative: it means nothing was judged, which is the truth about a value transcribed out of a record. | `Evidenced[T]` type; resolver; `test_one_decision_carries_exactly_one_confidence` (`tests/test_models.py`) |
+| R6b | **A sample fact's key space is NCBI's, not ours.** `SampleGroup.attributes` is keyed by one of NCBI's 960 harmonized BioSample attribute names, with NCBI's definitions; we **ask** for a hand-picked few and **enforce** against all 960. `condition` was ours — no archive defines it, and a field named "condition" accepts anything you can call a condition, which is how the pilot's extraction filed worm husbandry into it. | `SampleGroup._keys_are_ncbi_attributes` validator against the shipped `io/biosample/attributes.json`; `test_every_asked_attribute_is_one_ncbi_defines` (`tests/test_records.py`) — derives the ask from the vocabulary rather than typing it twice |
+| R6c | **The subject of a claim is the document, and code chose the document.** `AssertionDraft` is `{field, value, span, llm_confidence}` and stays that way: it has no `subject`. A claim names a sample by being extracted from a document that holds one sample's prose — each archive record is rendered as its own document by `normalize_record`. A record's structured half is copied by code and never shown to a model. A dataset-scoped document (a paper) may still make sample claims, recorded as `inferred` rather than `asserted`, because "it holds of this one of six" is our inference and not the document's claim. | `LLM_FACING` exact-equality pin (`tests/test_models.py`); `test_a_record_becomes_its_own_document_scoped_to_itself`, `test_a_document_code_did_not_place_names_no_sample`, `test_a_dataset_document_fans_to_every_sample_as_an_inference` (`tests/test_records.py`) |
+| R7 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under **`seqforge/`** (no leading dot — it holds the manifest and the Snakefile, which are the *output*, not plumbing; a user who does not know it exists cannot read their own manifest). Any run is resumable after a kill; the agent never holds state only in context. Names a human reads keep a readable stem and a **12-char** hash (`pipeline/default-d94c737eb677/`, `documents/methods-3f8a1c2d9b04.txt`) — the hash is the identity, the stem is why you can find it. | artifact layout + content-addressed cache hits (`resolve/cache.py`, atomic write-then-rename). One owner for the name: `workspace.py` (`STATE_DIRNAME`, `readable`). Resume is *implicit* — re-running finds the artifact; `--no-cache` opts out. There is no `--resume` flag. **A `.gitignore` entry must be anchored (`/seqforge/`)** — unanchored it matches `src/seqforge/` and git silently ignores our own source tree |
 | R8 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` that runs with no LLM in the loop and emits JSON on stdout **by default** (there is no `--json` flag; `kb list` is the one plain-text verb). `harvest extract` is the sole LLM touchpoint in a headless run; `eval run --llm` is opt-in. (`resolve adjudicate` is planned, not built.) | `test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`) — introspects the live Typer app, so a renamed verb goes red. No "determinism ledger" exists or ever did; the phrase named nothing |
 | R9 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC assembly id + registered GTF name; software = a literal `liulab-runtime` env name; data = a URI. Everything resolves at run time. | `Uri` validator + `PreToolUse` `/scratch` guard |
 | R10 | **Every KB entry is executable and self-testing.** Each technology ships a `spec.yaml`; `kb roundtrip` (spec→synth→probe→recover) proves it recovers what it declares; the §12 biconditional proves two entries with identical `backend.params` are declared processing-equivalent; and a new tech that silently collides with an existing one at rungs 0–2 without declaring it fails. | `kb roundtrip` (`cli.py`, exit 3) + `test_every_kb_spec_roundtrips`, `test_section_12_biconditional_holds_over_every_loaded_spec_pair`, `test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) — **all three collect from `kb.list_spec_ids()`**, so a new spec is covered because it exists, not because someone remembered. There is no `kb confusability` verb; the pairwise checks live in the suite |
@@ -112,6 +154,18 @@ Two things that survive, because neither depended on the held-out idea:
   `test_skill_never_leaks_a_lab_path` is the guard.
 - **Pre-register `expected.yaml` before a run.** That is what separates a prediction from a
   transcript, and only a prediction can be wrong.
+
+  A prediction also has to be *checkable*, and for a year the pilot's central claims were not. "3 WT
+  (strain CQ757) + 3 daf-2 (CQ758); tissue=Neurons" sat in the `description:` string because
+  `Expected.fields` supported `library.*` and `rung` and nothing else — the harness graded a
+  `ResolveResult`, which has no samples. A pre-registration whose claims nothing reads cannot be
+  wrong, and one that cannot be wrong is not one. Those claims now live in `fields:`
+  (`experiment.samples.*.<attr>` for all samples, `experiment.samples.<accession>.<attr>` for one —
+  and you want both, because `*` alone passes on a shuffled join). The amendment that moved them says
+  plainly that the run had already happened, cites the line each was transcribed from, and shows the
+  edit could only turn the case red. **That is the shape of an honest post-run edit**: the mechanism
+  lands in its own commit first, the claim is transcribed rather than derived, and the direction of
+  the change is away from green.
 
 ## Toolchain
 
@@ -169,12 +223,20 @@ the repo root.
 models/     pydantic v2 schemas; `schema export` is the single source of truth
 probe/      deterministic FASTQ fingerprinting (no LLM, no network)
 kb/         knowledge base: one directory per technology (spec.yaml + README.md), under kb/specs/
-resolve/    candidate scoring, role assignment, confusability, escalation. `group.py` splits a
-            dataset into RUNS by filename — filenames group (an accession is not an interpretation),
-            bytes assign roles. `resolve_runs` resolves each run on its own bytes
+resolve/    TWO resolvers, siblings. `scoring`/`assign`/`escalate` decide the library from BYTES;
+            `records.py` decides which sample each file is, and what that sample was, from ARCHIVE
+            RECORDS and PROSE — and is handed `FileIdentity`, never `Observation`, so it cannot see
+            a probe signal. `group.py` splits a dataset into RUNS by filename — filenames group (an
+            accession is not an interpretation), bytes assign roles; with no archive record that
+            grouping IS the sample identity, which is the normal case
 manifest/   fill/validate/hash both artifacts; `policy.py` is where precedence lives (R13/R15)
 compose/    (dataset, processing) -> Snakefile + config + units.tsv  (the Snakefile is THE product)
-io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists
+io/         remote peeking, ENA/SRA/GEO/SDL resolution, pooch-cached onlists. `archive.py` fetches
+            the four record levels and TRANSCRIBES them — it decides nothing. `attributes.py` is
+            NCBI's 960 harmonized BioSample names (the key space of a sample fact); `efo.py` is what
+            `EFO:0009922` is called. Both ship as GENERATED data with a refresh verb: a vocabulary we
+            maintain by hand drifts from the one it claims to quote
+workspace.py the one place `seqforge/` is spelled, and the one place a readable-name-plus-hash is
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
             `h5ad.py` packages Solo.out as the deliverable; it lives here, not in a module of its
             own, because its input contract IS STARsolo's output layout
@@ -202,19 +264,35 @@ tests/
   `ghcr.io/liuhlab/liulab-runtime:<name>`. There is **no** profile-indirection layer — the env name
   *is* the identifier. Do not define aligner environments here.
 
-## On-disk state (`.seqforge/`, resumable + content-addressed)
+## On-disk state (`seqforge/`, resumable + content-addressed)
+
+**No leading dot, and one owner for the name** ([`workspace.py`](src/seqforge/workspace.py)). The dot
+said "plumbing, look away" about the directory holding the manifest and the Snakefile — which are the
+product. It was also written out as a literal in five modules, which is five chances for one to go
+stale. A `.gitignore` entry for it must be **anchored** (`/seqforge/`); unanchored, `seqforge/`
+matches `src/seqforge/` and git silently ignores the source tree.
 
 Per-file `Observation` keyed by file `sha256`; dataset `candidates` keyed by
-`sha256(sorted(file_shas) ⊕ kb_version)` (with `probe_version`/`resolve_version` folded in).
-`manifest.yaml` is written only after a clean `manifest validate`.
+`sha256(sorted(file_shas) ⊕ kb_version)` (with `probe_version`/`resolve_version` folded in);
+`records/<accession>.json` (a record is a fact about the archive at a moment, so re-fetching is a
+choice); `documents/<stem>-<hash12>.txt`, the canonical text a span citation greps into — including
+the ones we **rendered from records**, whose bytes exist nowhere else. `manifest.yaml` is written only
+after a clean `manifest validate`, and exactly one of `manifest.yaml`/`manifest.draft.yaml` exists at
+any time: `fill` unlinks the other, which it never used to, so a manifest that *stopped* validating
+left the stale clean one in place for every downstream verb to read by name.
 
-Compiled output lives under `.seqforge/pipeline/<run_id>/` — keyed by the **run**, not the workspace,
-because one dataset compiled two ways is two runs and a fixed path would silently overwrite the first
-with the second. Each run dir carries `config.yaml`, `units.tsv`, materialized onlists, and
+Compiled output lives under `seqforge/pipeline/<recipe>-<run_id[:12]>/` — keyed by the **run**, not
+the workspace, because one dataset compiled two ways is two runs and a fixed path would silently
+overwrite the first with the second. Each run dir carries `config.yaml`, `units.tsv`, and
 `processing.lock.yaml`: the fully-resolved, dataset-**bound** processing manifest that produced it.
 `compose` writes the lock even when it was handed no `--processing`, because R7 says disk is *state*,
 not that disk is *input* — a mandatory recipe file per dataset would mean 10⁴ boilerplate files nobody
 reads.
+
+**Onlists are not there, on purpose.** `rule onlist` materializes a whitelist, STAR reads it, and
+`temp()` deletes it. `compose` used to expand 6 794 880 packed barcodes into 111 MB of text per run
+directory at compile time — one dataset compiled three ways cost a third of a gigabyte of identical
+bytes, forever, for a file STAR opens once.
 
 Hooks turn policy into mechanism, and these are real: `PreToolUse` blocks unbounded FASTQ streams
 (size-blind — a path that *can* stream a multi-GB file is denied regardless of the file's actual
