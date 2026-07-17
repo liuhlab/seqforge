@@ -712,8 +712,10 @@ def run_composed(
       path passed `None` to save time. Slower and bigger, and correct: a gate that runs a command
       nobody ships is measuring the wrong thing. On a 12 Mb yeast fixture the difference is noise.
     - **The `genome_index` rule now executes**, resolving the index through liulab-genome exactly as a
-      real run does, instead of the test handing STAR a path it found itself. `build_star_index` is
-      cached upstream, so this costs nothing and covers a rule that had no coverage at all.
+      real run does (`get_star_index`, a pure lookup), instead of the test handing STAR a path it
+      found itself. seqforge never builds the index, so it must be prebuilt for this assembly +
+      annotation before `kb e2e` runs; the lookup then finds it and this costs nothing while covering
+      a rule that had no coverage at all.
 
     No peak-RSS is reported from this path, deliberately. `wait4` would be reaping *snakemake*, and its
     `ru_maxrss` folds in descendants it has waited for — so the number would be "STAR's peak, probably,
@@ -1846,23 +1848,25 @@ def discover_assets(
 ) -> E2EAssets:
     """Resolve the run's assets, preferring liulab-genome (we consume it, never reimplement it).
 
-    `build_star_index` — not `get_star_index`, which this called for as long as it existed and which
-    **liulab-genome has never had**. It was a lazy import inside an arm that only runs on a cluster,
-    against an undeclared dependency, so the `AttributeError` waited there for anyone who tried. Found
-    on 2026-07-15 by running it.
+    seqforge **never builds** a STAR index — not here, not in the `genome_index` rule. Building is
+    liulab-genome's concern, done ahead of any run by its own machinery; seqforge only *resolves* the
+    prebuilt artifact through `get_star_index`, which raises if none exists. So `kb e2e` requires the
+    index for `assembly` + `annotation` to be built beforehand; if it is not, the lookup fails loudly
+    ("build it first") exactly as the composed pipeline would on a real run.
 
-    Note the shape, because it is the same one twice over: `starsolo.smk` calls `build_star_index` and
-    was right; this called `get_star_index` and was wrong. Two renderings of "how do I get an index",
-    by hand, in two places that could not see each other — and the one nobody executed was the broken
-    one. `test_seqforge_only_calls_liulab_genome_methods_that_exist` now checks our calls against the
-    real package at import time, in every environment, rather than on a cluster nobody visits.
+    (Historical note: this arm once called `get_star_index` when liulab-genome had no such method,
+    and the `AttributeError` waited in a cluster-only lazy import until it was run on 2026-07-15.
+    liulab-genome added `get_star_index` as a resolve-only lookup on 2026-07-17, and seqforge dropped
+    `build_star_index` entirely on the same day; the guard
+    `test_seqforge_only_calls_liulab_genome_methods_that_exist` checks every call against the real
+    package at import time, in every environment, rather than on a cluster nobody visits.)
     """
     import shutil
 
-    # Resolve STAR FIRST and put it on PATH, because liulab-genome shells out to it: building an
-    # index is a STAR invocation, so `build_star_index` raises ToolNotFoundError unless `STAR` is
-    # findable in this process's environment. `--star` used to be read *after* the Genome block, so
-    # telling seqforge exactly where STAR lived did not help the one call that needed to know.
+    # Resolve STAR FIRST and put it on PATH, because the alignment rules (`starsolo_count` /
+    # `star_count`, and the direct `run_starsolo` instrument) invoke a bare `STAR`. We never build an
+    # index, so STAR is not needed for that — but it IS needed to map. `--star` used to be read *after*
+    # the Genome block, so telling seqforge exactly where STAR lived did not help the run that needed it.
     resolved_star = star_bin or shutil.which("STAR")
     if not resolved_star:
         raise E2EUnavailable(
@@ -1882,7 +1886,7 @@ def discover_assets(
         g = Genome(assembly)
         fasta = fasta or Path(str(g.fasta_path))
         gtf = gtf or Path(str(g.default_gtf_path))
-        star_index = star_index or Path(str(g.build_star_index(gtf=annotation)))
+        star_index = star_index or Path(str(g.get_star_index(gtf=annotation)))
     return E2EAssets(
         fasta=Path(fasta),
         gtf=Path(gtf),

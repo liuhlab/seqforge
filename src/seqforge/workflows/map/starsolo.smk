@@ -126,23 +126,19 @@ rule onlist:
 
 
 rule genome_index:
-    """Resolve/build the STAR index via liulab-genome at run time (never a path in the manifest).
+    """Resolve the STAR index via liulab-genome at run time (never a path in the manifest).
 
-    **No `container:`, and that is a measured fact rather than an oversight.** Snakemake wraps a
-    container around a `shell:` command (in `shell.py`); a `run:` block executes Python in the
-    snakemake process and never passes through that wrap, so a `container:` here would be accepted
-    and silently ignored. Snakemake's own linter agrees -- it excludes `is_run` rules from
-    "missing software definition".
+    This rule only **looks up** the index; it never builds one. `get_star_index` returns the genomeDir
+    liulab-genome already built for this assembly + annotation, and **raises if none exists** -- the
+    index is liulab-genome's artifact, built ahead of the run by its own machinery, in its own
+    environment. A machine with no prebuilt index fails loudly here ("build it first"), which is the
+    failure mode we want: the pipeline consumes the index, it does not decide when or how it is built.
 
-    So this rule borrows the ambient STAR, and only when it has to: liulab-genome caches the index and
-    `build_star_index` re-runs `genomeGenerate` only if there is no cached one. On a machine where
-    LIULAB_DATA is populated -- the normal case -- no STAR is invoked here at all, and the container on
-    the alignment rule pins the aligner that does the work. On a fresh machine the first run needs a
-    STAR on PATH. If that STAR and the container's disagree on index version, STAR refuses loudly,
-    which is the failure mode we can live with.
-
-    The deeper reason not to fight this: the index is **liulab-genome's artifact**. How it gets
-    built, and in what environment, is theirs. We consume it.
+    Because nothing is invoked here -- no STAR, no `genomeGenerate` -- this rule needs no tool on PATH
+    and no `container:`. (A `container:` would be moot anyway: snakemake wraps a container around a
+    `shell:` command in `shell.py`, but a `run:` block executes Python in the snakemake process and
+    never passes through that wrap; snakemake's own linter excludes `is_run` rules from "missing
+    software definition".) The container on the alignment rule pins the aligner that does the work.
     """
     output:
         directory(f"{OUTDIR}/index/{ASSEMBLY}"),
@@ -154,7 +150,7 @@ rule genome_index:
 
         from genome import Genome
 
-        index = Genome(params.assembly).build_star_index(gtf=params.annotation)
+        index = Genome(params.assembly).get_star_index(gtf=params.annotation)
         out = Path(output[0])
         out.parent.mkdir(parents=True, exist_ok=True)
         out.symlink_to(index)

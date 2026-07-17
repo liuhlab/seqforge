@@ -19,6 +19,10 @@ from typing import Literal
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.7 — `genome_index` (starsolo.smk + star.smk) now *resolves* the STAR index via
+#: liulab-genome's `get_star_index` (a lookup that raises if none is built) instead of
+#: `build_star_index` (build-if-missing). Building is liulab-genome's concern, done ahead of the run;
+#: the pipeline consumes the artifact and never decides when it is built. No STAR on PATH needed here.
 #: 2026.7.6 — `starsolo_count` passes `--soloBarcodeReadLength` when the chemistry declares it. 10x
 #: v2/v3/v3.1 set it to 0, which disables STARsolo's default check that the barcode read is exactly
 #: CB+UMI long — their R1 is routinely sequenced longer (a 150 nt R1) and the default FATALs on the
@@ -39,7 +43,7 @@ from ..models.processing import RuntimeEnv
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.6"
+WORKFLOW_VERSION = "2026.7.7"
 
 _MODULE_DIR = Path(__file__).parent
 

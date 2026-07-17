@@ -1026,7 +1026,7 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
 #: a list asserted against the actual object is a contract test, and it goes red the moment upstream
 #: moves. Nothing here can drift silently.
 _GENOME_API = {
-    "build_star_index",  # starsolo.smk / star.smk rule genome_index; e2e discover_assets
+    "get_star_index",  # starsolo.smk / star.smk rule genome_index + e2e: resolve the prebuilt index
     "register_gtf",  # staging an annotation (see the consumer note in CLAUDE.md)
     "fasta_path",  # e2e: simulate reads from real sequence
     "default_gtf_path",  # e2e: build gene models
@@ -1060,15 +1060,24 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     )
 
 
-def test_the_genome_api_check_would_catch_the_method_that_did_not_exist() -> None:
-    """Prove the guard fires — on the exact name that broke, not a hypothetical one."""
+def test_the_genome_api_check_would_catch_a_method_that_does_not_exist() -> None:
+    """Prove the guard discriminates — the names we call resolve, an invented one does not.
+
+    This once asserted `not hasattr(Genome, "get_star_index")`, pinning the exact bug that broke on
+    2026-07-15: e2e.py called `get_star_index` for the life of the repo and it never existed. On
+    2026-07-17 liulab-genome added it as a resolve-only lookup, and seqforge switched every index
+    reference to it (both the `genome_index` rule and e2e), dropping `build_star_index` entirely —
+    seqforge never builds an index, it only resolves the prebuilt one. So `get_star_index` now
+    resolves. The lesson the guard protects is unchanged — a name our code calls must exist on the
+    real object — so this checks that the name we use resolves, and that an invented one still would
+    not.
+    """
     from genome import Genome
 
-    assert not hasattr(Genome, "get_star_index"), (
-        "if liulab-genome ever grows `get_star_index`, this test is stale -- but the bug it records "
-        "was real: e2e.py called it for the life of the repo and it never existed"
+    assert hasattr(Genome, "get_star_index"), "seqforge resolves the prebuilt index through this"
+    assert not hasattr(Genome, "resolve_star_index_please"), (
+        "a name liulab-genome does not define must not resolve — else the guard proves nothing"
     )
-    assert hasattr(Genome, "build_star_index"), "the name the module used, and the correct one"
 
 
 def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_path: Path) -> None:
