@@ -287,6 +287,18 @@ The default target is `all`, which demands the matrices — one `<sample>.h5ad` 
 The 111 MB barcode whitelist is not in that directory, and should not be. A rule builds it, STAR
 reads it once, and snakemake deletes it.
 
+## When the project isn't uniform
+
+Every run of this dataset is the same 10x chemistry, so it compiled to **one** manifest and **one**
+Snakefile. A study that mixes chemistries — 10x v2 *and* v3 libraries in one series, say — compiles to
+one of each **per assay**: `seqforge/<assay>/manifest.yaml` and its own Snakefile, one per chemistry,
+with the split decided from the bytes rather than by you. Two project-level files then sit at the top,
+`sample_metadata.tsv` (every sample across every assay, one row each) and `project.yaml` (the assay
+index), and you submit each assay's Snakefile. The uniform case here is just the single-assay
+degenerate one — same artifacts, no subdirectory. See
+[the two artifacts](concepts/artifacts.md#one-project-one-or-more-datasets) for why a project splits
+this way.
+
 ---
 
 ## What to read next

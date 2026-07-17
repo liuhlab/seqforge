@@ -65,6 +65,18 @@ The summary's `snakefile` path is the deliverable. `run` writes `manifest.yaml`,
 and the pipeline directory under `seqforge/`; re-running is resumable through each stage's
 content-addressed cache — **there is no `--resume` flag**, you just run it again.
 
+**A project can split into assays, and then there is more than one deliverable.** When the FASTQ span
+more than one chemistry (say a study with both 10x v2 and v3 libraries), code partitions them: each
+chemistry becomes an *assay* with its own `seqforge/<assay>/` subdir holding a complete, ordinary
+single-chemistry `manifest.yaml` + Snakefile — the same artifacts a uniform dataset produces, one
+level down. The summary then carries an **`assays`** list (chemistry, subdir, sample count, snakefile)
+instead of the flat `manifest`/`snakefile` keys, and **each assay's Snakefile is submitted on its
+own**. Two project-level files sit at the `seqforge/` top: `sample_metadata.tsv` (one row per sample
+across every assay) and `project.yaml` (the assay index). The partition is decided from bytes, not by
+you — you never sort samples into assays. A single-assay project (the common case) stays flat and
+byte-identical to before, just with the added `sample_metadata.tsv`; `seqforge project metadata`
+rebuilds those two project views from the manifests without recompiling.
+
 `compile` is an alias for `run`.
 
 ## When you need the stages one at a time
