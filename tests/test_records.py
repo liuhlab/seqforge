@@ -297,6 +297,35 @@ def test_a_run_alias_asserts_its_samples_genotype_over_the_papers_inference(
     assert other.attributes["genotype"].basis == "inferred"
 
 
+def test_an_experiment_title_asserts_its_samples_diet(records: ArchiveRecordSet) -> None:
+    """GSE229022's fix, at the resolve layer. The diet ("feed with E. coli OP50") lives only in the
+
+    GEO GSM title, which the archive renders as the EXPERIMENT title. An experiment belongs to exactly
+    one sample, so a treatment claim from its document is a declaration ABOUT that sample — `asserted`
+    via `subject_to_sample`, the same join a run alias uses. This is why `fields.py` asks the
+    experiment scope for `treatment`: without this mapping the claim would land on no sample and be
+    dropped, which is how every GSE229022 sample said `treatment: null` under a title that named its
+    diet.
+    """
+    exp = records.at("experiment")[0]
+    sample = records.ancestor(exp, "sample")
+    assert sample is not None
+    exp_doc = "x" * 64
+    out = resolve_metadata(
+        files=_pilot_files(),
+        records=records,
+        assertions=[_assertion("experiment.samples.treatment", "E. coli OP50", exp_doc)],
+        subjects=[DocumentSubject(doc_sha256=exp_doc, scope="experiment", subject=exp.accession)],
+    )
+    by_sample = {s.accession: s for s in out.samples}
+    # the experiment's own sample takes the diet from its title, asserted — not null, not inferred
+    assert by_sample[sample.accession].attributes["treatment"].value == "E. coli OP50"
+    assert by_sample[sample.accession].attributes["treatment"].basis == "asserted"
+    # a sample the experiment does not belong to gets no treatment from it at all
+    other = next(s for acc, s in by_sample.items() if acc != sample.accession)
+    assert "treatment" not in other.attributes
+
+
 def test_a_document_code_did_not_place_names_no_sample(records: ArchiveRecordSet) -> None:
     """The subject is the document, and code chooses the documents. An unplaced doc writes nothing."""
     out = resolve_metadata(
@@ -445,8 +474,16 @@ def test_the_ask_is_scoped_so_a_biosample_is_never_asked_for_a_chemistry() -> No
 
     assert "library.chemistry" not in fields_for("sample", "reference")
     assert "experiment.samples.tissue" in fields_for("sample", "reference")
-    # ...and the experiment's protocol paragraph is asked for the chemistry and nothing else
-    assert fields_for("experiment", "reference") == ("library.chemistry",)
+    # ...and the experiment's protocol paragraph is asked for the chemistry, plus `treatment` (and only
+    # treatment): the GSM title carries the diet, which lives nowhere in the typed BioSample fields.
+    assert fields_for("experiment", "reference") == (
+        "library.chemistry",
+        "experiment.samples.treatment",
+    )
+    # ...but NOT strain/age/tissue: those are the BioSample's own typed fields, and asking the title
+    # for them would let "Day6" vs "day6" null a value the record already resolved.
+    assert "experiment.samples.strain" not in fields_for("experiment", "reference")
+    assert "experiment.samples.age" not in fields_for("experiment", "reference")
     # ...and the project level is asked nothing at all: "wild-type and daf-2 mutants" is true of the
     # study and false of every single sample in it.
     assert fields_for("project", "reference") == ()

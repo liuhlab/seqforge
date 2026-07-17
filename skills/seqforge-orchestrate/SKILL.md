@@ -29,7 +29,7 @@ manifest fill, processing new, compose — stops at the first refusal, and print
 
 ```bash
 seqforge run FILES... \
-    [--accession PRJNA...] [--doc paper.pdf] \
+    [--accession PRJNA...] [--doc paper.pdf --doc sample_info.txt] \
     --assembly ce11 --annotation WS298 \
     --fastq-dir DIR
 ```
@@ -38,9 +38,13 @@ seqforge run FILES... \
 - **`--accession`** pulls the archive's project/sample/experiment/run records (where `strain`,
   `tissue`, `sex`, `dev_stage` live). Omit it for data that never had one — most data.
 - **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the one LLM stage, which turns prose into
-  span-verified claims. This stage calls its **own** model provider (`DEEPSEEK_API_KEY` /
-  `ANTHROPIC_API_KEY` in the environment) — it is not you. If no key is set, `run` exits 1 telling
-  you so; add `--no-llm` to skip prose entirely and stay fully deterministic.
+  span-verified claims. **Repeat it once per document** and pass *every* unstructured file the user
+  gave you — the paper AND a sample sheet like `sample_info.txt`, not just one. Each is read
+  independently (and concurrently), so a sample sheet that names the per-sample diet and a methods PDF
+  that describes the chemistry both get mined; dropping either silently loses whatever only it said.
+  This stage calls its **own** model provider (`DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` in the
+  environment) — it is not you. If no key is set, `run` exits 1 telling you so; add `--no-llm` to skip
+  prose entirely and stay fully deterministic.
 - **`--assembly`/`--annotation`** are the genome — **the one real decision**, and it has no default.
   A wrong genome aligns cleanly and exits 0, so seqforge refuses to guess. If the user named a genome
   in prose, that arrives as a verified instruction instead; otherwise pass the flags.

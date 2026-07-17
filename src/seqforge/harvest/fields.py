@@ -109,9 +109,16 @@ INSTRUCTION_FIELDS: tuple[str, ...] = (
 #:
 #: - ``sample``: this record's own attributes, and nothing else. A BioSample record has no opinion
 #:   about the chemistry, so asking it for one would only invite a guess from an alias.
-#: - ``experiment``: the chemistry, from the protocol paragraph. That is what an experiment record's
-#:   prose describes — "Single Cell 3' v3.1 Reagent Kits ... 28+94 nt pair-end reads" — and it
-#:   enters ``resolve`` as a hypothesis, never as evidence.
+#: - ``experiment``: the chemistry from the protocol paragraph ("Single Cell 3' v3.1 Reagent Kits ...
+#:   28+94 nt pair-end reads"), which enters ``resolve`` as a hypothesis and never as evidence — plus
+#:   ``treatment``, and *only* ``treatment``. An experiment's title is the GEO GSM title ("Day1
+#:   Wild-type(N2) feed with E. coli OP50"), and an experiment belongs to exactly one sample, so a
+#:   treatment claim from it is a declaration ABOUT that sample — ``asserted`` via the same
+#:   ``subject_to_sample`` join that maps a run alias home, one level up. Treatment alone because the
+#:   diet is the one variable that lives ONLY in that title: a BioSample owns ``strain``, ``age`` and
+#:   ``tissue`` as typed fields, so asking the title for those too would only let a formatting
+#:   difference ("Day6" vs the record's "day6") null a value the record had already resolved. GSE229022
+#:   is 28 samples whose OP50/HT115/BW25113/delta-lon contrast is written nowhere else.
 #: - ``project``: nothing, deliberately. The study abstract is normalized into a document so a fact
 #:   *could* cite it, and no model reads it today: "wild-type and daf-2 mutants" is true of the study
 #:   and false of any single sample, and project-level facts (title, centre, data type) are
@@ -127,7 +134,7 @@ INSTRUCTION_FIELDS: tuple[str, ...] = (
 _SCOPE_FIELDS: dict[DocScope, tuple[str, ...]] = {
     "dataset": DEFAULT_FIELDS,
     "sample": tuple(f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES),
-    "experiment": ("library.chemistry",),
+    "experiment": ("library.chemistry", "experiment.samples.treatment"),
     "project": (),
     "run": tuple(f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES),
 }
