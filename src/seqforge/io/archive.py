@@ -15,9 +15,11 @@ assumption, and it was false.
 
 **Three calls, and each earns its place:**
 
-1. ENA's filereport expands *any* accession — GEO series, BioProject, study, run, BioSample — into
-   the experiments underneath it. It is reused rather than replaced because it already handles the
-   GEO -> SRP hop and the SuperSeries recursion, which are both real and both easy to get wrong.
+1. ``labdata.experiments_for`` expands *any* accession — GEO series, BioProject, study, run,
+   BioSample — into the experiments underneath it, over NCBI Entrez. It replaced our own ENA/SOFT
+   routing because its ``elink`` route traverses a GEO *SuperSeries* (which owns no runs of its own)
+   and a BioProject umbrella transitively — the recursion our SOFT parser missed, which lost a whole
+   SuperSeries dataset while reporting success.
 2. NCBI's ``efetch db=sra`` returns one ``EXPERIMENT_PACKAGE`` per experiment, and a package is the
    whole hierarchy in one object: STUDY (title, abstract, centre), EXPERIMENT (the protocol prose),
    SAMPLE (alias + attributes), RUN (accession, alias, original filenames). Everything but one thing.
@@ -41,13 +43,7 @@ from xml.etree import ElementTree
 
 from ..models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
 from .attributes import harmonize
-from .remote import (
-    RemoteError,
-    _get,
-    classify_accession,
-    ena_filereport,
-    geo_to_studies,
-)
+from .remote import RemoteError, _get
 
 #: NCBI E-utilities. ``efetch db=sra`` takes experiment accessions; ``db=biosample`` takes SAMN ids.
 EUTILS_EFETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -342,36 +338,33 @@ def parse_bioproject_set(xml: str) -> dict[str, list[RecordAttribute]]:
     return out
 
 
-def _experiments_for(accession: str) -> tuple[list[str], list[str]]:
-    """Any accession -> the experiment accessions under it, via ENA. Returns (experiments, studies).
+def _experiments_for(accession: str) -> list[str]:
+    """Any accession -> the SRA experiment accessions under it, via ``labdata``.
 
-    ENA rather than E-utilities because the routing is already written and already right: GEO series
-    reject outright at ENA and must be resolved to a study first, and a SuperSeries owns no runs at
-    all, so a resolver that does not recurse loses the dataset while reporting success.
+    Delegated to :func:`labdata.experiments_for`, whose Entrez ``elink`` route traverses a GEO
+    *SuperSeries* (which owns no runs of its own) and a BioProject umbrella transitively — the case
+    our own GEO/SOFT recursion missed, silently losing the whole dataset while reporting success.
+    ``labdata`` is a lab package that ships with ``liulab-genome`` in ``liulab-runtime``, so
+    depending on it adds no environment the cluster does not already have.
+
+    ``labdata`` raises on a malformed accession or a failed request and returns an empty list for a
+    record with no SRA data; both become a loud :class:`RemoteError` here, because an accession that
+    was *given* and resolves to nothing is a refusal, not a silent omission from a permanent manifest.
     """
-    kind = classify_accession(accession)
-    if kind == "unknown":
+    import labdata
+    from labdata.exceptions import LabdataError
+
+    try:
+        experiments = labdata.experiments_for(accession)
+    except LabdataError as exc:
+        raise RemoteError(f"{accession}: could not resolve experiments: {exc}") from exc
+    accessions = sorted({e.accession for e in experiments})
+    if not accessions:
         raise RemoteError(
-            f"unrecognized accession {accession!r}. Known: GSE/GSM, PRJNA/PRJEB, SRP/ERP, SRX/ERX, "
-            "SRR/ERR, SRS/ERS, SAMN/SAMEA."
+            f"{accession}: no experiments found. It may be unreleased (status=hup), or a record "
+            "that carries no raw SRA data."
         )
-    studies: list[str] = []
-    if kind in ("geo_series", "geo_sample"):
-        studies = geo_to_studies(accession)
-        rows = [
-            r
-            for s in studies
-            for r in ena_filereport(s, fields="run_accession,experiment_accession")
-        ]
-    else:
-        rows = ena_filereport(accession, fields="run_accession,experiment_accession")
-    experiments = sorted({r["experiment_accession"] for r in rows if r.get("experiment_accession")})
-    if not experiments:
-        raise RemoteError(
-            f"{accession}: no experiments found. It may be unreleased (status=hup), or a SuperSeries "
-            "whose sub-series must be resolved individually."
-        )
-    return experiments, studies
+    return accessions
 
 
 def fetch_records(accession: str) -> ArchiveRecordSet:
@@ -380,7 +373,7 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
     Never guesses and never half-succeeds silently: a level that cannot be fetched is absent from the
     result, and the caller (``resolve``) is the one entitled to have an opinion about that.
     """
-    experiments, _ = _experiments_for(accession)
+    experiments = _experiments_for(accession)
 
     packages: list[ArchiveRecord] = []
     for i in range(0, len(experiments), _BATCH):

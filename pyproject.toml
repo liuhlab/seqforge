@@ -42,6 +42,11 @@ dependencies = [
     # Reference assemblies, annotations and aligner indexes are liulab-genome's job and we consume
     # them. The pixi tables pin the git source; this entry is what `pip install seqforge` needs.
     "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git",
+    # Archive record resolution is liulab-data's (`labdata`) job — `io/archive.py` calls
+    # `labdata.experiments_for(accession)` to expand any GEO/SRA/BioProject accession (including a
+    # GEO SuperSeries, which our own GEO/SOFT recursion could not reach) into its SRA experiments,
+    # then keeps seqforge's `efetch db=sra` + BioSample harmonization to build the record set.
+    "liulab-data @ git+https://github.com/liuhlab/liulab-data.git",
     # `harvest extract` is the ONE stage that touches an LLM; every other verb runs without it
     # (`run --no-llm` drives the whole compiler minus extraction). Both clients are optional at
     # runtime (lazy-imported) — the provider layer keeps seqforge un-locked-in to either vendor.
@@ -93,6 +98,11 @@ seqforge = { path = ".", editable = true }
 # opposite of the "parallel universe" we forbid — the AST guard still refuses a `class Genome`,
 # `def build_star_index` or `def register_gtf` anywhere in src/, and that is the line that matters.
 liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
+# We are likewise a CONSUMER of liulab-data (`labdata`): `io/archive.py` calls its Entrez-backed
+# `experiments_for(accession)` resolver for the accession -> SRA-experiments hop, which fixes the GEO
+# SuperSeries case our own SOFT recursion missed. Both lab packages ship together in liulab-runtime's
+# `lab` feature, so this adds no environment the cluster does not already have.
+liulab-data = { git = "https://github.com/liuhlab/liulab-data.git" }
 
 [tool.pixi.dependencies]
 pydantic = ">=2.7"
