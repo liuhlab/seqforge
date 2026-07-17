@@ -77,6 +77,87 @@ def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(tmp_path: 
     assert not (tmp_path / "seqforge" / "manifest.yaml").exists()
 
 
+def test_project_views_union_every_assays_samples(tmp_path: Path) -> None:
+    """sample_metadata.tsv unions all samples across assays; project.yaml indexes the assays."""
+    import pytest
+
+    from seqforge.project import discover_assays, write_project_views
+
+    files = _two_chemistry_files(tmp_path)
+    out = _fill_manifest_pipeline(
+        files=files,
+        organism="6239",
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=tmp_path,
+    )
+    if not isinstance(out.payload, dict) or "assays" not in out.payload:  # pragma: no cover
+        pytest.skip("fixtures agreed on one chemistry")
+
+    assays = discover_assays(tmp_path)
+    assert len(assays) == 2
+    infos = [
+        {
+            "chemistry": None,  # filled from the manifest by discover flow below
+            "subdir": subdir,
+            "manifest": str(mpath),
+        }
+        for subdir, mpath in assays
+    ]
+    # emulate what the `project metadata` verb does: read chemistry/n_samples off each manifest
+    for info in infos:
+        doc = yaml.safe_load(Path(str(info["manifest"])).read_text())
+        info["chemistry"] = doc["library"]["chemistry"]["value"][0]
+        info["n_samples"] = len(doc["experiment"]["samples"])
+
+    tsv_path, project_path = write_project_views(tmp_path, infos)
+
+    # The TSV lives at the project top, not inside an assay subdir.
+    assert tsv_path == tmp_path / "seqforge" / "sample_metadata.tsv"
+    lines = tsv_path.read_text().splitlines()
+    header = lines[0].split("\t")
+    assert header[:4] == ["sample_id", "accession", "assay", "organism"]
+    assert header[-2:] == ["n_files", "files"]
+    # One row per sample (each run is its own sample here) across both assays.
+    assert len(lines) == 3  # header + 2 samples
+    assays_col = header.index("assay")
+    assert {ln.split("\t")[assays_col] for ln in lines[1:]} == {
+        "10x-3p-gex-v3",
+        "bulk-rnaseq-pe",
+    }
+
+    index = yaml.safe_load(project_path.read_text())
+    assert index["n_assays"] == 2
+    assert index["n_samples"] == 2
+    assert {a["chemistry"] for a in index["assays"]} == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+
+
+def test_project_metadata_verb_regenerates_from_manifests(tmp_path: Path) -> None:
+    """The standalone `seqforge project metadata` verb rebuilds the views from whatever is on disk."""
+    import pytest
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    files = _two_chemistry_files(tmp_path)
+    out = _fill_manifest_pipeline(
+        files=files,
+        organism="6239",
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=tmp_path,
+    )
+    if not isinstance(out.payload, dict) or "assays" not in out.payload:  # pragma: no cover
+        pytest.skip("fixtures agreed on one chemistry")
+
+    result = CliRunner().invoke(app, ["project", "metadata", "-C", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "seqforge" / "sample_metadata.tsv").is_file()
+    assert (tmp_path / "seqforge" / "project.yaml").is_file()
+
+
 def test_a_sample_split_across_chemistries_blocks(tmp_path: Path) -> None:
     """The relocated invariant end to end: if a records set claims ONE sample owns files that resolve
     to two chemistries, `_fill_manifest_pipeline` refuses rather than averaging them."""

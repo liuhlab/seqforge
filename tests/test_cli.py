@@ -215,13 +215,15 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.stdout
     summary = json.loads(result.stdout)
     assert summary["ok"] is True
-    # one summary, keyed by stage — records was skipped (no accession), harvest skipped (--no-llm)
-    assert set(summary["stages"]) == {"manifest", "processing", "compose"}
+    # one summary, keyed by stage — records was skipped (no accession), harvest skipped (--no-llm);
+    # `project` is the manifest-derived sample table + assay index, always written.
+    assert set(summary["stages"]) == {"manifest", "processing", "compose", "project"}
     assert summary["stages"]["compose"]["gate"]["params"] == "pass"
 
     manifest_path = tmp_path / "seqforge" / "manifest.yaml"
     assert manifest_path.is_file() and summary["manifest"] == str(manifest_path)
     assert (tmp_path / "seqforge" / "processing.yaml").is_file()
+    assert (tmp_path / "seqforge" / "sample_metadata.tsv").is_file()  # the one-study view
     # the deliverable, and it is where the summary says it is
     assert (tmp_path / summary["snakefile"]).is_file()
     # the recipe file did not perturb the dataset — validate still comes back clean by name
@@ -247,9 +249,12 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     assert result.exit_code == 2, result.stdout
     summary = json.loads(result.stdout)
     assert summary["ok"] is False
-    assert set(summary["stages"]) == {"manifest", "processing"}  # stopped exactly at the genome
+    # Stopped at the genome (no Snakefile), but the manifest-derived sample table still lands: it is
+    # what the data IS, independent of the genome, which is a choice.
+    assert set(summary["stages"]) == {"manifest", "processing", "project"}
     assert "559292" in summary["stages"]["processing"]["error"], "the refusal must be actionable"
     assert (tmp_path / "seqforge" / "manifest.yaml").is_file()  # the IR still landed
+    assert (tmp_path / "seqforge" / "sample_metadata.tsv").is_file()
 
 
 def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> None:

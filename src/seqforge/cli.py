@@ -107,11 +107,57 @@ app.add_typer(eval_app, name="eval")
 hook_app = typer.Typer(help="Agent hooks: the rules as mechanism, not aspiration (design §4.2).")
 app.add_typer(hook_app, name="hook")
 
+project_app = typer.Typer(
+    help="Project-level views over a multi-assay compile (sample_metadata.tsv + project.yaml)."
+)
+app.add_typer(project_app, name="project")
+
 
 @app.command()
 def version() -> None:
     """Print the seqforge version."""
     typer.echo(__version__)
+
+
+@project_app.command("metadata")
+def project_metadata(
+    workspace: Path = typer.Option(Path("."), "-C", "--workspace", help="Root holding seqforge/."),
+) -> None:
+    """Regenerate seqforge/sample_metadata.tsv + project.yaml from the per-assay manifest(s).
+
+    Reads whatever manifests are already under seqforge/ — a single top-level manifest.yaml, or one
+    per assay subdir — and unions their samples into the flat one-row-per-sample table + the assay
+    index. Deterministic: same manifests in, same files out. `run` writes these automatically; this
+    verb rebuilds them (after editing a manifest, say) without recompiling.
+    """
+    from .project import discover_assays, write_project_views
+
+    assays = discover_assays(workspace)
+    if not assays:
+        typer.echo(json.dumps({"error": "no manifest.yaml found under seqforge/"}), err=True)
+        raise typer.Exit(3)
+    infos: list[dict[str, object]] = []
+    for subdir, manifest_path in assays:
+        manifest = _load_manifest(manifest_path)
+        infos.append(
+            {
+                "chemistry": manifest.library.chemistry.value[0],
+                "subdir": subdir,
+                "n_samples": len(manifest.experiment.samples),
+                "manifest": str(manifest_path),
+            }
+        )
+    tsv_path, project_path = write_project_views(workspace, infos)
+    typer.echo(
+        json.dumps(
+            {
+                "sample_metadata": str(tsv_path),
+                "project": str(project_path),
+                "n_assays": len(infos),
+            },
+            indent=2,
+        )
+    )
 
 
 @app.command("probe")
@@ -2300,6 +2346,7 @@ def run_cmd(
 
     # 4-5) The flags + the deliverable, per assay. Each is a normal single-chemistry compile.
     compiled: list[tuple[str | None, str, dict[str, object], int]] = []
+    assay_infos: list[dict[str, object]] = []
     worst = 0
     for chemistry, subdir, manifest_path in targets:
         manifest = _load_manifest(manifest_path)
@@ -2321,6 +2368,27 @@ def run_cmd(
         )
         worst = max(worst, code)
         compiled.append((chemistry, str(manifest_path), summary, code))
+        assay_infos.append(
+            {
+                "chemistry": manifest.library.chemistry.value[0],
+                "subdir": subdir,
+                "n_samples": len(manifest.experiment.samples),
+                "manifest": str(manifest_path),
+                "snakefile": cast(dict, summary.get("compose", {})).get("snakefile_path"),
+            }
+        )
+
+    # The "one study" view over every assay: a flat sample table + an assay index, at the project top.
+    # Derived from the manifests (which all exist -- fill succeeded above), so it is written even if a
+    # downstream compose failed. See seqforge/project.py.
+    from .project import write_project_views
+
+    tsv_path, project_path = write_project_views(workspace, assay_infos)
+    stages["project"] = {
+        "sample_metadata": str(tsv_path),
+        "project": str(project_path),
+        "n_assays": len(assay_infos),
+    }
 
     if targets[0][0] is None:  # single assay: flat stages, byte-identical to before
         _, _, summary, code = compiled[0]
