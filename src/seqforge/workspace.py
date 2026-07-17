@@ -34,10 +34,50 @@ SHORT_HASH = 12
 #: and say so, rather than silently starting a second one beside it.
 LEGACY_STATE_DIRNAME = ".seqforge"
 
+#: The four named subtrees, spelled once. `seqforge/` had grown into a flat pile — the manifest sat
+#: beside the LLM cost ledger, the resolve cache, and the rendered documents, and nothing on disk
+#: said which of those a reader was meant to open. So the top level now carries only the artifacts a
+#: human reaches for (the manifest, the project views, `pipeline/`), and everything else sorts into
+#: one of these:
+#:   records/   what the archive DECLARED, and the documents rendered from it (records/documents/)
+#:   logs/      run/debug output: the LLM cost ledger, the harvested assertions, stage summaries
+#:   cache/     content-addressed, resumable, safe to delete: observations, candidates, taxonomy
+RECORDS_DIRNAME = "records"
+DOCUMENTS_DIRNAME = "documents"  #: under records/ — the bytes a span citation greps into
+LOGS_DIRNAME = "logs"
+CACHE_DIRNAME = "cache"
+
 
 def state_dir(workspace: str | Path = ".", *parts: str) -> Path:
     """``<workspace>/seqforge/<parts...>``. Does not create anything — callers that write, mkdir."""
     return Path(workspace).joinpath(STATE_DIRNAME, *parts)
+
+
+def records_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/records/`` — the archive's own declarations, one JSON per accession."""
+    return state_dir(workspace, RECORDS_DIRNAME)
+
+
+def documents_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/records/documents/`` — canonical text a span citation greps into.
+
+    Under ``records/`` on purpose: a record-derived document's bytes exist nowhere else because we
+    made them, so they belong with the records they were rendered from, not loose at the top level.
+    """
+    return state_dir(workspace, RECORDS_DIRNAME, DOCUMENTS_DIRNAME)
+
+
+def logs_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/logs/`` — run/debug output (LLM cost ledger, assertions, stage summaries).
+
+    Nothing here is the deliverable; it is what a reader consults when a run surprises them.
+    """
+    return state_dir(workspace, LOGS_DIRNAME)
+
+
+def cache_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/cache/`` — content-addressed, resumable, safe to delete and rebuild."""
+    return state_dir(workspace, CACHE_DIRNAME)
 
 
 def readable(name: str, digest: str) -> str:
@@ -71,7 +111,15 @@ __all__ = [
     "STATE_DIRNAME",
     "LEGACY_STATE_DIRNAME",
     "SHORT_HASH",
+    "RECORDS_DIRNAME",
+    "DOCUMENTS_DIRNAME",
+    "LOGS_DIRNAME",
+    "CACHE_DIRNAME",
     "state_dir",
+    "records_dir",
+    "documents_dir",
+    "logs_dir",
+    "cache_dir",
     "readable",
     "legacy_state_dir",
 ]

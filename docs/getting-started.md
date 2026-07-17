@@ -49,7 +49,9 @@ Artifacts land under `seqforge/` in the working directory — visibly, because t
 `manifest fill` writes `seqforge/manifest.yaml` only once it validates clean; if it does not, you get
 `seqforge/manifest.draft.yaml` and exactly one of the two exists.
 
-For the whole thing on a real dataset, with real output, see the [tutorial](tutorial.md).
+The quickest way to drive all of this is to let Claude do it — see
+[Compiling with Claude](tutorials/with-claude.md). For the whole thing on a real dataset, one command
+at a time, with real output, see the [step-by-step tutorial](tutorials/step-by-step.md).
 
 ## Exit codes are the API
 
@@ -66,4 +68,5 @@ For the whole thing on a real dataset, with real output, see the [tutorial](tuto
 
 ---
 
-**Next:** [Adding a technology](kb-authoring.md).
+**Next:** [Compiling with Claude](tutorials/with-claude.md), or
+[Adding a technology](tutorials/adding-a-technology.md).

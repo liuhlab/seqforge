@@ -10,7 +10,7 @@ import typer
 
 from ..io import DEFAULT_REGISTRY, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
-from ..workspace import STATE_DIRNAME
+from ..workspace import records_dir
 from ._common import _today
 from .root import io_app, onlist_app
 
@@ -270,7 +270,7 @@ def io_records(
         typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
         raise typer.Exit(1) from exc
 
-    state = Path(workspace) / STATE_DIRNAME / "records"
+    state = records_dir(workspace)
     state.mkdir(parents=True, exist_ok=True)
     target = state / f"{accession}.json"
     target.write_text(json.dumps(records.model_dump(mode="json"), indent=2))

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from ..models.observation import Observation
 from ..models.resolve import ResolveResult
-from ..workspace import state_dir
+from ..workspace import cache_dir
 
 
 def dataset_id(
@@ -27,10 +27,14 @@ def dataset_id(
 
 
 class Cache:
-    """Reader/writer for the ``.seqforge/`` artifact tree rooted at a workspace."""
+    """Reader/writer for the ``seqforge/cache/`` artifact tree rooted at a workspace.
+
+    These are content-addressed, resumable, and safe to delete — so they live under ``cache/``, not
+    beside the manifest a human reads.
+    """
 
     def __init__(self, workspace: str | Path) -> None:
-        self.root = state_dir(workspace)
+        self.root = cache_dir(workspace)
 
     def _obs_path(self, sha: str) -> Path:
         return self.root / "observations" / f"{sha}.json"

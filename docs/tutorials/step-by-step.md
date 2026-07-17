@@ -1,4 +1,8 @@
-# Tutorial: compiling a real dataset
+# Step-by-step: compiling a real dataset
+
+This is the detailed walkthrough — the pipeline one verb at a time. If you just want to compile a
+dataset, [driving seqforge with Claude](with-claude.md) is the shorter path; come here when you want
+to see, and inspect, each stage.
 
 This is the worked example, start to finish, on the dataset seqforge was built against:
 **[PRJNA1027859](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1027859)** — six single-nucleus RNA-seq
@@ -186,7 +190,7 @@ described everything.
 ```bash
 pixi run -- seqforge harvest extract info/paper.pdf --records seqforge/records/PRJNA1027859.json
 pixi run -- seqforge manifest fill data/*/*.fastq.gz --accession PRJNA1027859 \
-    --assertions seqforge/assertions.json
+    --assertions seqforge/logs/assertions.json
 ```
 
 This is the **only** stage that touches a language model. It has exactly two jobs: turn prose into
@@ -296,15 +300,15 @@ with the split decided from the bytes rather than by you. Two project-level file
 `sample_metadata.tsv` (every sample across every assay, one row each) and `project.yaml` (the assay
 index), and you submit each assay's Snakefile. The uniform case here is just the single-assay
 degenerate one — same artifacts, no subdirectory. See
-[the two artifacts](concepts/artifacts.md#one-project-one-or-more-datasets) for why a project splits
+[the two artifacts](../concepts/artifacts.md#one-project-one-or-more-datasets) for why a project splits
 this way.
 
 ---
 
 ## What to read next
 
-- [The two artifacts](concepts/artifacts.md) — why `manifest.yaml` and `processing.yaml` are separate
+- [The two artifacts](../concepts/artifacts.md) — why `manifest.yaml` and `processing.yaml` are separate
   files with separate lifetimes.
-- [When it refuses](concepts/refusal.md) — the exit-code contract, and why a refusal is cheap and a
+- [When it refuses](../concepts/refusal.md) — the exit-code contract, and why a refusal is cheap and a
   confidently wrong manifest is not.
-- [How a dataset is identified](concepts/identifying.md) — content addressing, and what moves a hash.
+- [How a dataset is identified](../concepts/identifying.md) — content addressing, and what moves a hash.

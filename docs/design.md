@@ -610,7 +610,7 @@ seqforge
   io peek URI | resolve ACC | records ACC | attributes | efo CURIE | h5ad SOLO_DIR
                                det†  the network + packaging surface; pooch + sha256-verified
   io onlist {list|show|write|pack}   det   the shipped barcode whitelists; `pack` adds a new one
-  harvest normalize DOC…       det   PDF/text → seqforge/documents/*.txt canonical span space
+  harvest normalize DOC…       det   PDF/text → seqforge/records/documents/*.txt canonical span space
   harvest extract              LLM   normalized text (+KB aliases) → AssertionDraft[] → verified Assertion[]
                                      ← the ONE batch LLM touchpoint; verify runs INSIDE it
   harvest verify DRAFTS --doc  det   re-check quotes back into canonical text + value-entailment (standalone)
@@ -743,15 +743,18 @@ a turn while `resolve/*/questions.md` is non-empty. Because `run` leaves adjudic
 hook and exit 4 are the only ways ambiguity clears — both route to a human — which keeps the batch to
 one LLM touchpoint.
 
-**`seqforge/` (no leading dot; resumable, content-addressed):** per-file `Observation` by file sha256;
-canonical documents by `doc_sha256` (+ `normalizer_version`); dataset `candidates`/`conflicts`/
-`questions` by `dataset_id = sha256(sorted(file_shas) ⊕ kb_version)` with `probe_version`/
-`resolve_version` folded in; fetched `records/<accession>.json`; the harvest cost ledger `usage.json`;
-`manifest.yaml` written **only** after a clean `validate` (and exactly one of
-`manifest.yaml`/`manifest.draft.yaml` ever exists). Compiled output lives under
-`pipeline/<recipe>-<run_id[:12]>/` — `run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, keyed by the
-**run** so one dataset compiled two ways does not overwrite itself — each carrying `config.yaml`,
-`units.tsv`, the `Snakefile`, and `processing.lock.yaml` (the dataset-bound recipe that produced it).
+**`seqforge/` (no leading dot; resumable, content-addressed):** the top level holds only what a human
+reaches for; state sorts into `cache/`, `records/`, and `logs/`. Under `cache/`: per-file
+`Observation` by file sha256 (`cache/observations/`); dataset `candidates`/`conflicts`/`questions` by
+`dataset_id = sha256(sorted(file_shas) ⊕ kb_version)` with `probe_version`/`resolve_version` folded in
+(`cache/candidates/`); `cache/taxonomy.json`. Under `records/`: fetched `records/<accession>.json`, and
+the canonical documents by `doc_sha256` (+ `normalizer_version`) in `records/documents/`. Under
+`logs/`: the harvest cost ledger `logs/usage.json` and `logs/assertions.json`. `manifest.yaml` written
+**only** after a clean `validate` (and exactly one of `manifest.yaml`/`manifest.draft.yaml` ever
+exists). Compiled output lives under `pipeline/<recipe>-<run_id[:12]>/` — `run_id = H(dataset ⊕
+processing ⊕ kb ⊕ workflow)`, keyed by the **run** so one dataset compiled two ways does not overwrite
+itself — each carrying `config.yaml`, `units.tsv`, the `Snakefile`, a **copy of the hand-written
+module** it imports locally, and `processing.lock.yaml` (the dataset-bound recipe that produced it).
 
 ---
 

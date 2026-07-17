@@ -40,7 +40,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..workspace import state_dir
+from ..workspace import cache_dir
 
 _EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
@@ -165,4 +165,4 @@ def seed_names() -> dict[str, int]:
 
 #: Where a resolved lookup is cached under a workspace, so a second run is offline and instant.
 def cache_path(workspace: str | Path) -> Path:
-    return state_dir(workspace, "taxonomy.json")
+    return cache_dir(workspace) / "taxonomy.json"

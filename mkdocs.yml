@@ -40,8 +40,10 @@ plugins:
 nav:
   - Home: index.md
   - Getting started: getting-started.md
-  - "Tutorial: a real dataset": tutorial.md
-  - Adding a technology: kb-authoring.md
+  - Tutorials:
+      - Compiling with Claude: tutorials/with-claude.md
+      - Step-by-step (a real dataset): tutorials/step-by-step.md
+      - Adding a technology: tutorials/adding-a-technology.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
       - How a dataset is identified: concepts/identifying.md

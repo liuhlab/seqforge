@@ -26,7 +26,7 @@ from ..manifest import (
     fill_processing,
     validate_processing,
 )
-from ..workspace import readable, state_dir
+from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
 from .harvest import _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
@@ -64,7 +64,7 @@ def _run_records_stage(
             f"Fetch once with `seqforge io records {accession[0]}` and pass --records, or drop "
             f"--accession to compile with no sample facts."
         )
-    outdir = state_dir(workspace, "records")
+    outdir = records_dir(workspace)
     outdir.mkdir(parents=True, exist_ok=True)
     merged: list[Any] = []
     per_accession: list[Path] = []
@@ -329,7 +329,7 @@ def run_cmd(
                 "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
                 "was built from the accepted claims and the bytes"
             )
-        assertions_path = state_dir(workspace) / "assertions.json"
+        assertions_path = logs_dir(workspace) / "assertions.json"
 
     # 3) The IR: what the data IS. Probe + resolve + metadata, both resolvers, both able to refuse.
     fill = _fill_manifest_pipeline(

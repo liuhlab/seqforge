@@ -13,7 +13,7 @@ import typer
 from pydantic import ValidationError
 
 from ..manifest import instructions_from_assertions
-from ..workspace import readable, state_dir
+from ..workspace import documents_dir, logs_dir, readable
 from ._common import _emit, _StageOut
 from .root import harvest_app
 
@@ -38,7 +38,7 @@ def harvest_normalize(
     """
     from ..harvest import normalize_document
 
-    outdir = state_dir(workspace, "documents")
+    outdir = documents_dir(workspace)
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
     for doc, role in _roled(docs, instruction):
@@ -173,8 +173,8 @@ def _harvest_extract_pipeline(
     from ..models.records import ArchiveRecordSet
 
     specs = load_all_specs()
-    state = state_dir(workspace)
-    state.mkdir(parents=True, exist_ok=True)
+    logs = logs_dir(workspace)
+    logs.mkdir(parents=True, exist_ok=True)
     try:
         llm = resolve_provider(provider)
     except ProviderUnavailable as exc:
@@ -242,7 +242,7 @@ def _harvest_extract_pipeline(
     # The cost ledger (disk is state). Written whether or not we go on to verify, because the call
     # happened and cost tokens regardless. `n_calls` is per-document; `cache_read_tokens > 0` means the
     # stable KB prefix was served from cache, so a second run over the same documents is much cheaper.
-    (state / "usage.json").write_text(
+    (logs / "usage.json").write_text(
         json.dumps(
             {
                 "provider": llm.name,
@@ -261,7 +261,7 @@ def _harvest_extract_pipeline(
         "n_drafts": len(all_drafts),
         "usage": {**usage_total, "n_calls": len(normalized)},
         "usage_by_document": usage_records,
-        "usage_path": str(state / "usage.json"),
+        "usage_path": str(logs / "usage.json"),
         "drafts": [d.model_dump(mode="json") for d in all_drafts],
     }
     if not verify:
@@ -279,7 +279,7 @@ def _harvest_extract_pipeline(
     # from. It is what lets `manifest fill` tell a sample's own alias (a declaration about that
     # sample) from a paper about six samples (an inference about each), and it too lived only in this
     # process's memory. Code owns both mappings because code chose both documents.
-    (state / "assertions.json").write_text(
+    (logs / "assertions.json").write_text(
         json.dumps(
             {
                 "instruction_docs": sorted(instruction_docs),
@@ -295,7 +295,7 @@ def _harvest_extract_pipeline(
     # The rendered documents, on disk, under readable names. A span citation is only checkable if the
     # exact text it was greppedded against still exists -- and for a record-derived document these
     # bytes exist nowhere else, because we made them.
-    docdir = state / "documents"
+    docdir = documents_dir(workspace)
     docdir.mkdir(parents=True, exist_ok=True)
     for nd in normalized:
         (docdir / _document_filename(nd)).write_text(nd.text)

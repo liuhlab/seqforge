@@ -335,9 +335,12 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     row = json.loads(norm.stdout)["normalized"][0]
     assert row["source"] == "methods.txt" and row["n_chars"] > 0
     # A readable name, not a bare 64-hex one. The hash stays -- it is the identity, and two documents
-    # can share a name -- but `seqforge/documents/` used to be a directory in which nothing said
-    # which file was the paper.
-    written = tmp_path / "seqforge" / "documents" / f"methods-{row['doc_sha256'][:12]}.txt"
+    # can share a name -- but `seqforge/records/documents/` used to be a directory in which nothing
+    # said which file was the paper. It lives under records/ because that is what a document is
+    # rendered from.
+    written = (
+        tmp_path / "seqforge" / "records" / "documents" / f"methods-{row['doc_sha256'][:12]}.txt"
+    )
     assert written.is_file()
     assert row["path"] == str(written.relative_to(tmp_path))
     # ...and a human-supplied document is about the whole dataset. It is the only honest reading of

@@ -108,7 +108,7 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
     assert set(assigned) == {"R1", "R2"}
     assert assigned["R1"] != assigned["R2"]
     # a resumable artifact was written
-    assert (tmp_path / "seqforge" / "candidates" / f"{result.dataset_id}.json").is_file()
+    assert (tmp_path / "seqforge" / "cache" / "candidates" / f"{result.dataset_id}.json").is_file()
 
 
 def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:

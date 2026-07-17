@@ -60,7 +60,7 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
 
 **`seqforge run` (alias `compile`) chains the whole diagram in one headless pass** — FASTQ + metadata
 in, `manifest.yaml` + Snakefile out — stopping at the first refusal and writing a token/mode cost
-ledger to `seqforge/usage.json`. It adds no authority (same deterministic verbs), is the entry point a
+ledger to `seqforge/logs/usage.json`. It adds no authority (same deterministic verbs), is the entry point a
 `claude -p` turn drives via the `orchestrate` skill, and has **no `--resume` flag** — re-running
 resumes through each stage's content-addressed cache.
 
@@ -174,14 +174,21 @@ tests/
 
 ## On-disk state (`seqforge/`, resumable + content-addressed)
 
-One owner for the name: [`workspace.py`](src/seqforge/workspace.py). Per-file `Observation` by file
-`sha256`; dataset `candidates` by `sha256(sorted(file_shas) ⊕ kb_version)` (probe/resolve versions
-folded in); `records/<accession>.json`; `documents/<stem>-<hash12>.txt` (canonical text a span greps
-into, including docs rendered from records); `usage.json` (the harvest cost ledger). `manifest.yaml` is
-written only after a clean `manifest validate`, and exactly one of `manifest.yaml`/`manifest.draft.yaml`
-exists (`fill` unlinks the other). Compiled output lives under `pipeline/<recipe>-<run_id[:12]>/`
-(config.yaml, units.tsv, Snakefile, processing.lock.yaml) — keyed by the **run**, since one dataset
-compiled two ways is two runs. **Onlists are not stored**: `rule onlist` materializes a whitelist, STAR
+One owner for the name: [`workspace.py`](src/seqforge/workspace.py). The top level of `seqforge/`
+carries only what a human reaches for — the manifest, the project views, `pipeline/` — and everything
+else sorts into one of three subtrees, spelled once in `workspace.py`:
+**`cache/`** (content-addressed, resumable, safe to delete): per-file `Observation` by file `sha256`
+under `cache/observations/`; dataset `candidates` by `sha256(sorted(file_shas) ⊕ kb_version)`
+(probe/resolve versions folded in) under `cache/candidates/`; `cache/taxonomy.json`.
+**`records/`**: `records/<accession>.json` (what the archive declared) and `records/documents/<stem>-<hash12>.txt`
+(canonical text a span greps into, including docs rendered from records — they live with the records
+they came from). **`logs/`** (run/debug, never the deliverable): `logs/usage.json` (the harvest cost
+ledger) and `logs/assertions.json`. `manifest.yaml` is written only after a clean `manifest validate`,
+and exactly one of `manifest.yaml`/`manifest.draft.yaml` exists (`fill` unlinks the other). Compiled
+output lives under `pipeline/<recipe>-<run_id[:12]>/` (config.yaml, units.tsv, Snakefile, a **copy of
+the hand-written module** the wrapper imports locally, and processing.lock.yaml) — keyed by the
+**run**, since one dataset compiled two ways is two runs. The module is copied in, not referenced by
+package path, so a run directory reads and reproduces after it is moved off the composing machine. **Onlists are not stored**: `rule onlist` materializes a whitelist, STAR
 reads it, `temp()` deletes it (expanding 6 794 880 barcodes per run dir cost 111 MB of duplicate bytes).
 
 Hooks turn policy into mechanism: `PreToolUse` blocks unbounded FASTQ streams (size-blind) and
