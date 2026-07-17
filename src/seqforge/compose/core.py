@@ -37,7 +37,7 @@ from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
-from ..models.dataset import DatasetManifest
+from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import (
     DatasetPin,
     ProcessingManifest,
@@ -442,7 +442,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
     samples = manifest.experiment.samples
     if not samples:
         for f in manifest.library.files:
-            if f.read_id is not None:
+            if f.read_id is not None and f.read_id != INDEX_ROLE:
                 rows.append(
                     {
                         "sample_id": "sample1",
@@ -454,8 +454,8 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
     for sample in samples:
         for uri in sample.file_uris:
             item = by_uri.get(uri)
-            if item is None or item.read_id is None:
-                continue  # unassigned (index/ignored) files never become units
+            if item is None or item.read_id is None or item.read_id == INDEX_ROLE:
+                continue  # unassigned files, and set-aside technical index reads, never become units
             rows.append(
                 {
                     "sample_id": sample.sample_id,

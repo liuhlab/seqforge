@@ -114,9 +114,18 @@ class FileInventoryItem(BaseModel):
     basename: str
     sha256: Sha256
     size_bytes: int = Field(gt=0)
-    #: The read role the joint optimization assigned, e.g. ``R1``. ``None`` = unassigned, which
+    #: The read role the joint optimization assigned, e.g. ``R1``, or :data:`INDEX_ROLE` for a
+    #: technical sample-index read set aside from the pipeline. ``None`` = unassigned, which
     #: ``validate`` surfaces: an unassigned file is one ``compose`` will silently skip.
     read_id: str | None = None
+
+
+#: The ``read_id`` marking a technical sample-index read (10x I1/I2). STARsolo consumes only the
+#: CB+UMI and cDNA reads, so an 8/10 bp index file is a leftover of an *already-decided* run — set
+#: aside under this role rather than left unassigned (which blocks) or forced into a layout (which
+#: would demand an index file of every clean sample). It is not a layout read and never becomes a
+#: unit; the length gate that assigns it lives in ``resolve/engine.py`` (:func:`index_tagged_roles`).
+INDEX_ROLE = "index"
 
 
 class AssayLabel(BaseModel):

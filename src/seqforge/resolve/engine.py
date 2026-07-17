@@ -8,7 +8,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,8 +16,9 @@ from ..io import DEFAULT_REGISTRY, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
+from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
-from ..models.resolve import ResolveResult
+from ..models.resolve import Candidate, ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
 from .cache import Cache, dataset_id
@@ -162,6 +163,32 @@ def resolve_dataset(
     return ResolveOutput(result=result, matrices=matrices, observations=observations)
 
 
+#: A read at or below this many bases is a technical sample index (10x I1/I2 are 8-10 bp), well under
+#: any CB+UMI read (>= 26 bp). The gate is a SAFETY, not decoration: a longer leftover — a stray
+#: cDNA-length file — stays unassigned so ``validate`` still blocks it loudly.
+INDEX_MAX_LEN = 20
+
+
+def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -> dict[str, str]:
+    """Invert a winner's role assignment to ``sha -> role``, tagging short leftovers as index reads.
+
+    The base map is ``assignment`` (role -> sha) inverted. Then, **only for a run the bytes actually
+    decided** (a ``scored`` winner), each unassigned leftover whose observed read length is
+    index-sized is tagged :data:`~seqforge.models.dataset.INDEX_ROLE` — a 10x sample-index file
+    STARsolo never consumes, set aside rather than left to block. A ``forbidden`` winner decided
+    nothing, so its leftovers are not reinterpreted; a cDNA-length leftover stays unassigned and
+    ``validate`` blocks it. A clean run has no leftovers and comes back byte-identical to before.
+    """
+    roles = {sha: role for role, sha in winner.role_assignment.assignment.items()}
+    if winner.score.status == "scored":
+        mode_of = {o.file.sha256: o.read_length.mode for o in observations}
+        for sha in winner.role_assignment.unassigned:
+            mode = mode_of.get(sha)
+            if mode is not None and mode <= INDEX_MAX_LEN:
+                roles[sha] = INDEX_ROLE
+    return roles
+
+
 @dataclass(frozen=True)
 class RunResolution:
     """One run: the files that came from it, and what the bytes said they are."""
@@ -192,13 +219,13 @@ class MultiRunOutput:
 
         A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of
         one library have six R1s, so the dataset-level fact is the inverse map, and it only exists
-        once each run has been assigned on its own bytes.
+        once each run has been assigned on its own bytes. A run's short leftovers (10x I1/I2 index
+        files) are tagged ``index`` here — set aside, not dropped — gated on read length per run.
         """
         merged: dict[str, str] = {}
         for run in self.runs:
             for cand in run.output.result.candidates[:1]:
-                for role, sha in cand.role_assignment.assignment.items():
-                    merged[sha] = role
+                merged.update(index_tagged_roles(cand, run.output.observations))
         return merged
 
     def exit_code(self) -> int:

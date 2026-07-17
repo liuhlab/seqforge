@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.conflict import Conflict
-from ..models.dataset import DatasetManifest
+from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import ProcessingManifest
 from ..models.resolve import ValidationReport
 
@@ -102,9 +102,11 @@ def validate_manifest(
         )
 
     # --- role/layout coherence: an assigned read_id must name a read in the layout ---
+    # INDEX_ROLE is exempt: a technical sample-index read is deliberately not in the layout (STARsolo
+    # never consumes it), so it is set aside rather than matched to a declared read.
     layout_roles = {r.read_id for r in manifest.library.read_layout.reads}
     for f in manifest.library.files:
-        if f.read_id is not None and f.read_id not in layout_roles:
+        if f.read_id is not None and f.read_id != INDEX_ROLE and f.read_id not in layout_roles:
             blockers.append(
                 Blocker(
                     id=f"blk-role-{f.sha256[:8]}",
@@ -142,10 +144,10 @@ def validate_manifest(
     # The inverse check above ("is every declared role filled?") passed the whole time, because it
     # only ever needed ONE file per role. Both directions are needed and only one existed.
     #
-    # No KB spec declares an unusable read (grep `type: index` -> nothing), so today an unassigned
-    # file is always a dropped file, never a legitimately-ignored index read. If a chemistry ever
-    # ships one, it declares the role and gets assigned — and if it truly cannot be, that is a KB
-    # decision to make explicitly, not a default to inherit from silence.
+    # `read_id is None` still means *dropped*, and still blocks: a legitimately-ignored technical
+    # index read is tagged INDEX_ROLE (not None) by the resolver's length gate, so it never reaches
+    # here. The gate is why that stays honest — it only sets a leftover aside when the bytes say it is
+    # index-sized (<= 20 bp); a cDNA-length leftover keeps read_id=None and blocks loudly below.
     for f in manifest.library.files:
         if f.read_id is None:
             blockers.append(
