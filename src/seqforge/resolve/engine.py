@@ -318,14 +318,14 @@ def resolve_runs(
     which `_units` skips and `validate` blesses. Five sixths of the data, gone, exit 0.
 
     Nothing here re-decides roles or reads a byte differently. It splits the input by filename (a
-    rung-1 prior about *identity*, never about role — see `group.py`), resolves each group, and then
-    checks that the runs agree with each other.
+    rung-1 prior about *identity*, never about role — see `group.py`) and resolves each group.
 
-    **Disagreement is a Blocker, not a vote.** Two runs of one library resolve to the same chemistry;
-    if they do not, either the grouping is wrong or these files are not one dataset, and both are
-    things a human must look at. Picking the majority would be exactly the silent guess this project
-    refuses — and it is also the check that makes filename-grouping safe, because a mis-grouped pair
-    fails it loudly.
+    **Runs may resolve to different chemistries, and that is a partition, not an error.** A large
+    project contains several assays; :meth:`MultiRunOutput.by_chemistry` groups the runs into them.
+    The safety the old dataset-wide "all runs must agree" block provided is now per-SAMPLE
+    (:meth:`MultiRunOutput.sample_disagreements`): runs of ONE sample must resolve to one chemistry,
+    but that check needs the sample->files map only the metadata resolver builds, so it is applied by
+    the caller (never a majority vote — a sample split across chemistries blocks loudly).
     """
     from .group import group_runs
 
@@ -353,37 +353,4 @@ def resolve_runs(
         )
         runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
 
-    return MultiRunOutput(runs=runs, blockers=_disagreements(runs))
-
-
-def _disagreements(runs: list[RunResolution]) -> list[Blocker]:
-    """Every run must decide the same chemistry. Surface it; never pick a winner."""
-    decided = {r.run_id: r.winner for r in runs if r.winner is not None}
-    distinct = sorted({t for t in decided.values() if t is not None})
-    if len(distinct) < 2:
-        return []
-    by_tech: dict[str, list[str]] = {}
-    for run_id, tech in decided.items():
-        if tech is not None:
-            by_tech.setdefault(tech, []).append(run_id)
-    detail = "; ".join(
-        f"{tech} <- {', '.join(sorted(ids))}" for tech, ids in sorted(by_tech.items())
-    )
-    return [
-        Blocker(
-            id="blk-chemistry-disagreement",
-            code=BlockerCode.UNRESOLVED_CONFLICT,
-            message=(
-                f"the runs in this dataset do not agree on a chemistry: {detail}. Runs of one "
-                f"library resolve to one chemistry, so either these files are not one dataset or "
-                f"they were grouped into runs incorrectly."
-            ),
-            remedy=(
-                "Check the grouping (`seqforge resolve score` one run at a time to see each "
-                "verdict), or compose the runs as separate datasets. Do not merge them: a manifest "
-                "that averages two chemistries describes neither."
-            ),
-            subject=BlockerSubject(kind="dataset", ref="library.chemistry"),
-            evidence=sorted(decided),
-        )
-    ]
+    return MultiRunOutput(runs=runs)

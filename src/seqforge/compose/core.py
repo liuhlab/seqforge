@@ -277,8 +277,14 @@ def compose(
     fastq_dir: str | Path | None = None,
     sif_dir: str | Path | None = None,
     run_wiring_gate: bool = True,
+    subdir: str | None = None,
 ) -> ComposeResult:
-    """Compile a (dataset, processing) pair into a runnable configuration + run the compose gates."""
+    """Compile a (dataset, processing) pair into a runnable configuration + run the compose gates.
+
+    ``subdir`` roots the output one level deeper — ``seqforge/<subdir>/pipeline/…`` instead of
+    ``seqforge/pipeline/…`` — so a heterogeneous project can compile one assay per subdirectory. It
+    defaults to ``None`` (the flat, single-assay layout), which is byte-identical to before.
+    """
     p = plan(
         manifest, processing, registry=registry, outdir=outdir, fastq_dir=fastq_dir, sif_dir=sif_dir
     )
@@ -296,7 +302,10 @@ def compose(
     # -- it is what keeps two recipes over one dataset apart -- but the recipe already has a name and
     # printing it costs nothing. The pilot's workspace was a directory of 64-hex names in which
     # nothing said which pipeline was which.
-    pipeline_dir = state_dir(workspace, "pipeline", readable(processing.processing_id, rid))
+    root_parts = (subdir,) if subdir else ()
+    pipeline_dir = state_dir(
+        workspace, *root_parts, "pipeline", readable(processing.processing_id, rid)
+    )
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     config_path = pipeline_dir / _CONFIG_NAME
     units_path = pipeline_dir / _UNITS_TSV_NAME

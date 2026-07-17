@@ -1419,6 +1419,57 @@ def manifest_fill(
     )
 
 
+def _assay_dirname(chemistry: str) -> str:
+    """The subdir name for an assay: its chemistry id, made filesystem-safe. Deterministic, no hash."""
+    return chemistry.replace("/", "-")
+
+
+def _fill_one_assay(
+    *,
+    state: Path,
+    result: Any,
+    spec: Any,
+    observations: list[Any],
+    experiment: Any,
+    role_of_sha: dict[str, str],
+    conflicts: list[Any],
+    warnings: list[Any],
+    note_workspace: Path | None,
+) -> _StageOut:
+    """Assemble + validate ONE assay's :class:`DatasetManifest` and write it under ``state``.
+
+    ``state`` is the top-level ``seqforge/`` for a single-assay project (byte-identical to before) or
+    ``seqforge/<assay>/`` for one of several. Each manifest is a normal single-chemistry manifest, so
+    it flows through today's exact fill/validate/hash code.
+    """
+    try:
+        manifest = fill_manifest(
+            result=result,
+            spec=spec,
+            observations=observations,
+            registry=DEFAULT_REGISTRY,
+            experiment=experiment,
+            seqforge_version=__version__,
+            role_of_sha=role_of_sha,
+        )
+    except FillError as exc:
+        return _StageOut(str(exc), 3, err=True)
+
+    report = validate_manifest(manifest, conflicts=conflicts, warnings=warnings)
+    state.mkdir(parents=True, exist_ok=True)
+    payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)
+    # manifest.yaml exists only if it validated clean; otherwise it stays a draft (see _write_manifest).
+    target = _write_manifest(state, payload, ok=report.ok)
+    out: dict[str, object] = {"manifest": str(target), "report": report.model_dump(mode="json")}
+    if note_workspace is not None and (old := legacy_state_dir(note_workspace)) is not None:
+        out["note"] = (
+            f"{old} is from an older seqforge, which hid its state behind a dot. State now lives in "
+            f"{state}/ because it is the output, not plumbing. Nothing reads the old directory; "
+            f"delete it when you have what you need."
+        )
+    return _StageOut(out, exit_code_for_report(report))
+
+
 def _fill_manifest_pipeline(
     *,
     files: list[Path],
@@ -1429,21 +1480,26 @@ def _fill_manifest_pipeline(
     workspace: Path,
     cpus: int = 1,
 ) -> _StageOut:
-    """Probe -> resolve -> metadata -> assemble + validate the DATASET manifest, returned as a value.
+    """Probe -> resolve -> metadata -> PARTITION into assays -> assemble + validate each manifest.
 
     This is the body of ``manifest fill`` with the network I/O lifted to the caller: ``manifest fill``
     and ``seqforge run`` fetch the archive records differently (one refuses on a miss, one caches to
     disk first), so they hand the already-fetched set in. Every exit is a ``_StageOut`` rather than a
     ``typer.Exit`` — the standalone verb prints it and stops, ``run`` folds it into one summary and
     decides whether to continue. Two resolvers, neither shown the other's input; both can refuse.
+
+    A project splits into **assays** — groups of samples that share one chemistry. One assay yields the
+    flat top-level layout, byte-identical to before; several yield one ``seqforge/<assay>/manifest.yaml``
+    each and an ``{"assays": [...]}`` summary. The "runs must agree" invariant is now per-SAMPLE (a
+    sample split across chemistries blocks); across samples, differing chemistries partition.
     """
+    from .resolve import role_of_sha_for
     from .resolve.records import resolve_metadata
 
     organism_taxid: int | None = None
     if organism is not None:
         # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
-        # verified span -- the model already does its job -- so the join it needed was a lookup
-        # table, not more model. See io/taxonomy.py for why the round trip is what makes that safe.
+        # verified span -- the model already does its job -- so the join it needed was a lookup table.
         try:
             organism_taxid = _resolve_organism(organism, offline=offline)
         except TaxonomyUnavailable as exc:
@@ -1452,15 +1508,15 @@ def _fill_manifest_pipeline(
     parsed, subjects = _assertions_and_subjects(assertions)
     multi = resolve_runs(
         [str(f) for f in files],
-        # The protocol paragraph, entering `score` as a SELECTOR and a tie-break -- never as
-        # evidence. This door has always been built and tested and no production caller ever used
-        # it, so a paper saying "Single Cell 3' v3.1 Reagent Kits" steered nothing.
+        # The protocol paragraph, entering `score` as a SELECTOR and a tie-break -- never as evidence.
         hypothesis=_chemistry_hypothesis(parsed),
         workspace=workspace,
         use_cache=False,
         cpus=cpus,
     )
-    if multi.exit_code() != 0:
+    if (
+        multi.exit_code() != 0
+    ):  # a run that itself failed to resolve (no dataset-wide block any more)
         return _StageOut(
             {
                 "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
@@ -1479,48 +1535,65 @@ def _fill_manifest_pipeline(
     if metadata.blockers:
         return _StageOut({"blockers": [b.model_dump(mode="json") for b in metadata.blockers]}, 3)
 
-    # Every run agreed (else the Blocker above fired), so any run's verdict is the dataset's.
-    first = multi.runs[0].output.result
-    winner = first.candidates[0]
-    spec = load_spec(winner.technology)
-    # Only the BYTE resolver's conflicts block: an observed-vs-asserted disagreement decides what the
-    # data IS, and code may not auto-pick it. A metadata disagreement (two prose/record sources on one
-    # sample attribute) the resolver already decided — kept-by-precedence or left-null — so it rides
-    # in as a non-blocking warning. Null-over-wrong is a value, not a reason to refuse a compile.
-    conflicts = [c for run in multi.runs for c in run.output.result.conflicts]
-    try:
-        experiment = experiment_from_metadata(
-            metadata, multi.observations, organism_taxid=organism_taxid
-        )
-        manifest = fill_manifest(
-            result=first,
-            spec=spec,
-            observations=multi.observations,
-            registry=DEFAULT_REGISTRY,
-            experiment=experiment,
-            seqforge_version=__version__,
-            # The dataset-level file->role map. A single run's RoleAssignment maps role -> ONE sha,
-            # so it cannot describe six R1s; this is the merged inverse, built per run from bytes.
-            role_of_sha=multi.role_of_sha(),
-        )
-    except FillError as exc:
-        return _StageOut(str(exc), 3, err=True)
+    # The relocated invariant: a single sample whose files span more than one chemistry is a
+    # mis-grouping and blocks. Different chemistries across DIFFERENT samples are a legal partition.
+    sample_shas = {s.sample_id: list(s.file_shas) for s in metadata.samples}
+    if sample_blockers := multi.sample_disagreements(sample_shas):
+        return _StageOut({"blockers": [b.model_dump(mode="json") for b in sample_blockers]}, 3)
 
-    report = validate_manifest(manifest, conflicts=conflicts, warnings=metadata.warnings)
-    state = state_dir(workspace)
-    state.mkdir(parents=True, exist_ok=True)
-    payload = yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=True)
-    # manifest.yaml exists only if it validated clean; otherwise it stays a draft. Exactly ONE of
-    # the two exists afterwards -- see `_write_manifest` for the stale-draft bug this closes.
-    target = _write_manifest(state, payload, ok=report.ok)
-    out: dict[str, object] = {"manifest": str(target), "report": report.model_dump(mode="json")}
-    if (old := legacy_state_dir(workspace)) is not None:
-        out["note"] = (
-            f"{old} is from an older seqforge, which hid its state behind a dot. State now lives in "
-            f"{state}/ because it is the output, not plumbing. Nothing reads the old directory; "
-            f"delete it when you have what you need."
+    groups = multi.by_chemistry()
+    if not groups:  # every run carried its own blocker (caught above); nothing to build
+        return _StageOut({"error": "no run resolved to a chemistry"}, 3)
+    chem_of = multi.chemistry_of_sha()
+    multi_assay = len(groups) > 1
+
+    def _build(tech: str, runs: list[Any], state: Path, note_ws: Path | None) -> _StageOut:
+        if multi_assay:
+            obs = [o for o in multi.observations if chem_of.get(o.file.sha256) == tech]
+            samples = [
+                s for s in metadata.samples if s.file_shas and chem_of.get(s.file_shas[0]) == tech
+            ]
+            resolution = metadata.model_copy(update={"samples": samples})
+        else:
+            obs, resolution = multi.observations, metadata
+        # Only the BYTE resolver's conflicts block; a metadata disagreement rides in as a warning.
+        conflicts = [c for run in runs for c in run.output.result.conflicts]
+        try:
+            experiment = experiment_from_metadata(resolution, obs, organism_taxid=organism_taxid)
+        except FillError as exc:
+            return _StageOut(str(exc), 3, err=True)
+        return _fill_one_assay(
+            state=state,
+            result=runs[0].output.result,  # every run of the assay agreed; any one is the assay's
+            spec=load_spec(tech),
+            observations=obs,
+            experiment=experiment,
+            role_of_sha=role_of_sha_for(runs),
+            conflicts=conflicts,
+            warnings=metadata.warnings,
+            note_workspace=note_ws,
         )
-    return _StageOut(out, exit_code_for_report(report))
+
+    if not multi_assay:
+        tech, runs = next(iter(groups.items()))
+        return _build(tech, runs, state_dir(workspace), workspace)
+
+    assays: list[dict[str, object]] = []
+    worst = 0
+    for tech, runs in groups.items():
+        n_samples = sum(
+            1 for s in metadata.samples if s.file_shas and chem_of.get(s.file_shas[0]) == tech
+        )
+        out = _build(tech, runs, state_dir(workspace, _assay_dirname(tech)), None)
+        worst = max(worst, out.code)
+        entry: dict[str, object] = {
+            "chemistry": tech,
+            "assay_dir": _assay_dirname(tech),
+            "n_samples": n_samples,
+        }
+        entry.update(out.payload if isinstance(out.payload, dict) else {"error": out.payload})
+        assays.append(entry)
+    return _StageOut({"assays": assays, "n_assays": len(assays)}, worst)
 
 
 def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
@@ -1968,9 +2041,20 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
         # is on disk (seqforge/usage.json) and in the harvest stage; this is the total a reader wants.
         summary["llm_usage"] = harvest["usage"]
     if code == 0:
-        summary["manifest"] = cast(dict, stages.get("manifest", {})).get("manifest")
-        summary["processing"] = cast(dict, stages.get("processing", {})).get("processing")
-        summary["snakefile"] = cast(dict, stages.get("compose", {})).get("snakefile_path")
+        assays = stages.get("assays")
+        if isinstance(assays, list):  # multi-assay: one manifest + Snakefile per assay
+            summary["assays"] = [
+                {
+                    "chemistry": a.get("chemistry"),
+                    "manifest": a.get("manifest"),
+                    "snakefile": cast(dict, a.get("compose", {})).get("snakefile_path"),
+                }
+                for a in assays
+            ]
+        else:
+            summary["manifest"] = cast(dict, stages.get("manifest", {})).get("manifest")
+            summary["processing"] = cast(dict, stages.get("processing", {})).get("processing")
+            summary["snakefile"] = cast(dict, stages.get("compose", {})).get("snakefile_path")
     typer.echo(json.dumps(summary, indent=2))
     raise typer.Exit(code)
 
@@ -1991,6 +2075,76 @@ def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
     if code == 4 and isinstance(payload, dict) and not (payload.get("conflicts") or []):
         return False
     return True
+
+
+def _process_and_compose(
+    *,
+    manifest: Any,
+    state: Path,
+    subdir: str | None,
+    workspace: Path,
+    assembly: str | None,
+    annotation: str | None,
+    assertions_path: Path | None,
+    processing_id: str,
+    offline: bool,
+    onlist_dir: Path | None,
+    outdir: str,
+    fastq_dir: Path | None,
+    sif_dir: Path | None,
+) -> tuple[dict[str, object], int]:
+    """Stages 4-5 for ONE assay: the flags (``processing.yaml``) + the deliverable (the Snakefile).
+
+    Writes ``processing.yaml`` under ``state`` and the pipeline under ``seqforge/<subdir>/pipeline/``
+    (the flat ``seqforge/pipeline/`` when ``subdir`` is None). Returns ``(summary, exit_code)``; the
+    caller folds it into the run summary. Same code the single-assay path always ran, per assay.
+    """
+    summary: dict[str, object] = {}
+    try:
+        instructions = _instructions_from(assertions_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"processing": {"error": str(exc)}}, 2
+    try:
+        processing, warnings = fill_processing(
+            spec=load_spec(manifest.library.chemistry.value[0]),
+            dataset=manifest,
+            processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
+            instructions=instructions,
+            processing_id=processing_id,
+            pin=True,
+            seqforge_version=__version__,
+        )
+    except (PolicyError, ValidationError) as exc:
+        # The one real decision with no safe default; fill_processing's message already names the
+        # organism and how to supply a genome, so pass it through.
+        return {"processing": {"error": str(exc)}}, 2
+    p_report = validate_processing(processing, dataset=manifest)
+    proc_path = state / "processing.yaml"
+    proc_path.write_text(yaml.safe_dump(processing.model_dump(mode="json"), sort_keys=True))
+    summary["processing"] = {
+        "processing": str(proc_path),
+        "report": p_report.model_dump(mode="json"),
+        "warnings": [w.model_dump(mode="json") for w in warnings],
+    }
+    if not p_report.ok:
+        return summary, exit_code_for_report(p_report)
+
+    try:
+        result = compose(
+            manifest,
+            processing,
+            registry=default_registry(offline=offline, local_dir=onlist_dir),
+            workspace=workspace,
+            outdir=outdir,
+            fastq_dir=fastq_dir,
+            sif_dir=sif_dir,
+            subdir=subdir,
+        )
+    except ComposeError as exc:
+        summary["compose"] = {"error": str(exc)}
+        return summary, 3
+    summary["compose"] = result.model_dump(mode="json")
+    return summary, (3 if any(v == "fail" for v in result.gate.values()) else 0)
 
 
 @app.command("run")
@@ -2133,57 +2287,54 @@ def run_cmd(
     stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
     if fill.code != 0:
         _run_finish(stages, fill.code)
-    manifest_path = Path(cast(str, cast(dict, stages["manifest"])["manifest"]))
-    manifest = _load_manifest(manifest_path)
 
-    # 4) The flags: what to DO with it. The genome enters here (a flag, or a verified instruction).
-    try:
-        instructions = _instructions_from(assertions_path)
-    except (OSError, ValueError, ValidationError) as exc:
-        stages["processing"] = {"error": str(exc)}
-        _run_finish(stages, 2)
-    try:
-        processing, warnings = fill_processing(
-            spec=load_spec(manifest.library.chemistry.value[0]),
-            dataset=manifest,
-            processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
-            instructions=instructions,
-            processing_id=processing_id,
-            pin=True,
-            seqforge_version=__version__,
-        )
-    except (PolicyError, ValidationError) as exc:
-        # The one real decision with no safe default. `fill_processing`'s own message already names the
-        # organism and says how to supply a genome, so pass it through rather than restating it.
-        stages["processing"] = {"error": str(exc)}
-        _run_finish(stages, 2)
-    p_report = validate_processing(processing, dataset=manifest)
-    proc_path = state_dir(workspace) / "processing.yaml"
-    proc_path.write_text(yaml.safe_dump(processing.model_dump(mode="json"), sort_keys=True))
-    stages["processing"] = {
-        "processing": str(proc_path),
-        "report": p_report.model_dump(mode="json"),
-        "warnings": [w.model_dump(mode="json") for w in warnings],
-    }
-    if not p_report.ok:
-        _run_finish(stages, exit_code_for_report(p_report))
+    # A project is one assay (the flat, byte-identical layout) or several (one seqforge/<assay>/ each).
+    manifest_payload = cast(dict, stages["manifest"])
+    if "assays" in manifest_payload:
+        targets = [
+            (cast(str, a["chemistry"]), cast(str, a["assay_dir"]), Path(cast(str, a["manifest"])))
+            for a in cast(list, manifest_payload["assays"])
+        ]
+    else:
+        targets = [(None, None, Path(cast(str, manifest_payload["manifest"])))]
 
-    # 5) The deliverable: the Snakefile.
-    try:
-        result = compose(
-            manifest,
-            processing,
-            registry=default_registry(offline=offline, local_dir=onlist_dir),
+    # 4-5) The flags + the deliverable, per assay. Each is a normal single-chemistry compile.
+    compiled: list[tuple[str | None, str, dict[str, object], int]] = []
+    worst = 0
+    for chemistry, subdir, manifest_path in targets:
+        manifest = _load_manifest(manifest_path)
+        state = state_dir(workspace, subdir) if subdir else state_dir(workspace)
+        summary, code = _process_and_compose(
+            manifest=manifest,
+            state=state,
+            subdir=subdir,
             workspace=workspace,
+            assembly=assembly,
+            annotation=annotation,
+            assertions_path=assertions_path,
+            processing_id=processing_id,
+            offline=offline,
+            onlist_dir=onlist_dir,
             outdir=outdir,
             fastq_dir=fastq_dir,
             sif_dir=sif_dir,
         )
-    except ComposeError as exc:
-        stages["compose"] = {"error": str(exc)}
-        _run_finish(stages, 3)
-    stages["compose"] = result.model_dump(mode="json")
-    _run_finish(stages, 3 if any(v == "fail" for v in result.gate.values()) else 0)
+        worst = max(worst, code)
+        compiled.append((chemistry, str(manifest_path), summary, code))
+
+    if targets[0][0] is None:  # single assay: flat stages, byte-identical to before
+        _, _, summary, code = compiled[0]
+        if "processing" in summary:
+            stages["processing"] = summary["processing"]
+        if "compose" in summary:
+            stages["compose"] = summary["compose"]
+        _run_finish(stages, code)
+    else:  # multi-assay: one complete record per assay
+        stages["assays"] = [
+            {"chemistry": chem, "manifest": mpath, **summary}
+            for chem, mpath, summary, _ in compiled
+        ]
+        _run_finish(stages, worst)
 
 
 app.command(

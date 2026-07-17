@@ -444,12 +444,12 @@ def test_resolve_runs_assigns_every_file_in_a_six_run_dataset(tmp_path: Path) ->
         assert not run.output.result.candidates[0].role_assignment.unassigned
 
 
-def test_resolve_runs_blocks_when_runs_disagree_on_chemistry(tmp_path: Path) -> None:
-    """Disagreement is surfaced, never voted on. It is also what makes filename-grouping safe.
+def test_runs_of_different_chemistries_partition_rather_than_block(tmp_path: Path) -> None:
+    """Two runs, two chemistries is a legal multi-assay PROJECT now, not a dataset-wide refusal.
 
-    Two runs of one library resolve to one chemistry. If they do not, either these files are not one
-    dataset or the grouping was wrong -- and a majority vote would silently pick, which is the guess
-    this project refuses.
+    The old "all runs must agree" block moved to per-sample (:meth:`sample_disagreements`): different
+    chemistries across different samples partition into assays; only a single sample split across
+    chemistries blocks. So resolve_runs itself no longer blocks -- it just resolves each run.
     """
     from seqforge.resolve import resolve_runs
 
@@ -466,11 +466,10 @@ def test_resolve_runs_blocks_when_runs_disagree_on_chemistry(tmp_path: Path) -> 
 
     multi = resolve_runs(paths, registry=reg, use_cache=False)
     techs = {r.winner for r in multi.runs}
-    if len(techs) < 2:  # pragma: no cover - the fixtures happened to agree; nothing to assert
-        pytest.skip(f"both runs resolved to {techs}; this fixture cannot exercise disagreement")
-    assert multi.blockers, "runs disagreed and nothing said so"
-    assert multi.exit_code() == 3
-    assert multi.blockers[0].remedy, "a Blocker with no way forward is a wall"
+    if len(techs) < 2:  # pragma: no cover - the fixtures happened to agree; nothing to partition
+        pytest.skip(f"both runs resolved to {techs}; this fixture cannot exercise a partition")
+    assert not multi.blockers, "a 2-assay project is not a refusal"
+    assert set(multi.by_chemistry()) == techs  # it partitions into one group per chemistry
 
 
 def _two_chemistry_multi(tmp_path: Path):
