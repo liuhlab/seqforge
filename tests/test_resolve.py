@@ -15,7 +15,7 @@ from seqforge import kb
 from seqforge.io import OnlistRegistry
 from seqforge.kb.schema import Spec
 from seqforge.models.resolve import TechScore
-from seqforge.resolve import resolve_dataset
+from seqforge.resolve import resolve_dataset, role_of_sha_for
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.scoring import Cell, TechEvaluation
@@ -471,3 +471,68 @@ def test_resolve_runs_blocks_when_runs_disagree_on_chemistry(tmp_path: Path) -> 
     assert multi.blockers, "runs disagreed and nothing said so"
     assert multi.exit_code() == 3
     assert multi.blockers[0].remedy, "a Blocker with no way forward is a wall"
+
+
+def _two_chemistry_multi(tmp_path: Path):
+    """Two runs, two chemistries: SRR1 -> v3, SRR2 -> bulk. A real 2-assay project (skips if they
+    happen to agree)."""
+    from seqforge.resolve import resolve_runs
+
+    v3 = kb.load_spec("10x-3p-gex-v3")
+    bulk = kb.load_spec("bulk-rnaseq-pe")
+    reg = _registry_for(v3)
+    paths: list[Path] = []
+    for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
+        reads = kb.generate_reads(spec, n=400, seed=0)
+        for mate, role in zip(("1", "2"), keys, strict=True):
+            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(p)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    if len({r.winner for r in multi.runs}) < 2:  # pragma: no cover
+        pytest.skip("fixtures agreed; cannot exercise a 2-assay partition")
+    return multi
+
+
+def test_by_chemistry_partitions_the_runs_into_assays(tmp_path: Path) -> None:
+    multi = _two_chemistry_multi(tmp_path)
+    groups = multi.by_chemistry()
+    assert set(groups) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert [r.run_id for r in groups["10x-3p-gex-v3"]] == ["SRR1"]
+    assert [r.run_id for r in groups["bulk-rnaseq-pe"]] == ["SRR2"]
+    # Every run lands in exactly one assay, and no run is lost.
+    assert sum(len(v) for v in groups.values()) == len(multi.runs)
+
+
+def test_role_of_sha_for_scopes_to_one_assays_runs(tmp_path: Path) -> None:
+    multi = _two_chemistry_multi(tmp_path)
+    groups = multi.by_chemistry()
+    v3_map = role_of_sha_for(groups["10x-3p-gex-v3"])
+    # The v3 assay's role map covers only SRR1's files, none of SRR2's.
+    srr1_shas = {o.file.sha256 for o in groups["10x-3p-gex-v3"][0].output.observations}
+    assert set(v3_map) <= srr1_shas
+    assert set(v3_map) == srr1_shas  # both reads assigned, nothing dropped
+
+
+def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(tmp_path: Path) -> None:
+    multi = _two_chemistry_multi(tmp_path)
+    chem = multi.chemistry_of_sha()
+    for run in multi.runs:
+        for obs in run.output.observations:
+            assert chem[obs.file.sha256] == run.winner
+
+
+def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(tmp_path: Path) -> None:
+    multi = _two_chemistry_multi(tmp_path)
+    by_run = {r.run_id: [o.file.sha256 for o in r.output.observations] for r in multi.runs}
+
+    # One sample owning BOTH runs' files spans two chemistries -> a mis-grouping, blocks.
+    one_sample = {"mixed": by_run["SRR1"] + by_run["SRR2"]}
+    blockers = multi.sample_disagreements(one_sample)
+    assert len(blockers) == 1
+    assert "mixed" in blockers[0].message
+    assert blockers[0].remedy
+
+    # Two samples, one chemistry each -> a legal 2-assay project, no block.
+    two_samples = {"s1": by_run["SRR1"], "s2": by_run["SRR2"]}
+    assert multi.sample_disagreements(two_samples) == []

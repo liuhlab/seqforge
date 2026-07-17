@@ -203,6 +203,21 @@ class RunResolution:
         return cands[0].technology if cands else None
 
 
+def role_of_sha_for(runs: Iterable[RunResolution]) -> dict[str, str]:
+    """Merged file-sha -> role across ``runs`` (all of a dataset, or just one assay's slice).
+
+    A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of one
+    library have six R1s, so the dataset-level fact is the inverse map, and it only exists once each
+    run has been assigned on its own bytes. A run's short leftovers (10x I1/I2 index files) are tagged
+    ``index`` — set aside, not dropped — gated on read length per run.
+    """
+    merged: dict[str, str] = {}
+    for run in runs:
+        for cand in run.output.result.candidates[:1]:
+            merged.update(index_tagged_roles(cand, run.output.observations))
+    return merged
+
+
 @dataclass(frozen=True)
 class MultiRunOutput:
     """Every run in a dataset, resolved independently, plus the cross-run agreement check."""
@@ -215,18 +230,67 @@ class MultiRunOutput:
         return [o for r in self.runs for o in r.output.observations]
 
     def role_of_sha(self) -> dict[str, str]:
-        """Merged file-sha -> role across every run. The manifest's inventory is built from this.
+        """The dataset-wide file-sha -> role map. The manifest's inventory is built from this."""
+        return role_of_sha_for(self.runs)
 
-        A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of
-        one library have six R1s, so the dataset-level fact is the inverse map, and it only exists
-        once each run has been assigned on its own bytes. A run's short leftovers (10x I1/I2 index
-        files) are tagged ``index`` here — set aside, not dropped — gated on read length per run.
+    def by_chemistry(self) -> dict[str, list[RunResolution]]:
+        """Partition the runs by the chemistry each resolved to — one group per **assay**.
+
+        A large project (study) naturally contains several assays: groups of samples that share one
+        processing recipe (chemistry). Runs whose bytes decided nothing (``winner is None``) are
+        omitted — they carry their own blocker and cannot name an assay. Keyed order is sorted so the
+        partition is deterministic.
         """
-        merged: dict[str, str] = {}
+        groups: dict[str, list[RunResolution]] = {}
         for run in self.runs:
-            for cand in run.output.result.candidates[:1]:
-                merged.update(index_tagged_roles(cand, run.output.observations))
-        return merged
+            if run.winner is not None:
+                groups.setdefault(run.winner, []).append(run)
+        return {tech: groups[tech] for tech in sorted(groups)}
+
+    def chemistry_of_sha(self) -> dict[str, str]:
+        """file-sha -> the chemistry its run resolved to. The join for the per-sample agreement check."""
+        out: dict[str, str] = {}
+        for run in self.runs:
+            if run.winner is None:
+                continue
+            for obs in run.output.observations:
+                out[obs.file.sha256] = run.winner
+        return out
+
+    def sample_disagreements(self, sample_shas: dict[str, list[str]]) -> list[Blocker]:
+        """A sample whose files span more than one chemistry blocks — that IS a mis-grouping.
+
+        Runs of ONE sample resolve to one chemistry, always. Runs of *different* samples may resolve
+        to different chemistries — that is a legal partition into assays (:meth:`by_chemistry`), not a
+        disagreement. So the invariant is per-sample, checked against the sample->files map the
+        metadata resolver builds; the byte resolver alone cannot see it (filenames group into runs,
+        records join runs into samples).
+        """
+        chem_of = self.chemistry_of_sha()
+        blockers: list[Blocker] = []
+        for sample_id, shas in sorted(sample_shas.items()):
+            techs = sorted({chem_of[s] for s in shas if s in chem_of})
+            if len(techs) > 1:
+                blockers.append(
+                    Blocker(
+                        id=f"blk-sample-chemistry-{sample_id}",
+                        code=BlockerCode.UNRESOLVED_CONFLICT,
+                        message=(
+                            f"sample {sample_id!r} has files resolving to more than one chemistry "
+                            f"({', '.join(techs)}). Runs of one sample are one library and must "
+                            f"resolve to one chemistry, so either these files are not all this "
+                            f"sample's or they were grouped into runs incorrectly."
+                        ),
+                        remedy=(
+                            "Check the file->sample join (the archive records, or the filenames) and "
+                            "the run grouping. Different chemistries across DIFFERENT samples are a "
+                            "legal multi-assay project; within one sample they are not."
+                        ),
+                        subject=BlockerSubject(kind="dataset", ref=sample_id),
+                        evidence=sorted(shas),
+                    )
+                )
+        return blockers
 
     def exit_code(self) -> int:
         if self.blockers:
