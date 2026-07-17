@@ -525,6 +525,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#one-project-one-or-more-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One project, one or more datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -667,6 +678,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#one-project-one-or-more-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One project, one or more datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -773,6 +795,23 @@ bytes" — there is no way to write the conflicting instruction down. You have n
 to say "the barcode is 10 bases long".</p>
 <p>That is why seqforge can read your instructions without ever trusting them: it lets you talk only
 about things you are entitled to decide.</p>
+<h2 id="one-project-one-or-more-datasets">One project, one or more datasets<a class="headerlink" href="#one-project-one-or-more-datasets" title="Permanent link">&para;</a></h2>
+<p>The table above says "exactly one dataset manifest per dataset", and a dataset is <strong>one chemistry</strong>. A
+real study is often not that: a single archive series can mix 10x v2 and v3 libraries, and a manifest
+that averaged the two would describe neither.</p>
+<p>So a heterogeneous project <strong>splits into assays</strong> — one per chemistry, decided from the bytes, never
+by you. Each assay is an ordinary dataset: its own immutable <code>manifest.yaml</code>, its own hash, its own
+Snakefile, under its own <code>seqforge/&lt;assay&gt;/</code> directory. Nothing about the single-dataset story
+changes; there are simply several of them.</p>
+<p>Two files tie the project back together at the top level:</p>
+<ul>
+<li><strong><code>sample_metadata.tsv</code></strong> — one row per sample across every assay, one column per field (strain,
+  age, tissue, diet, chemistry, files…): the flat "one study" view.</li>
+<li><strong><code>project.yaml</code></strong> — the index of which assays exist, their chemistry and sample counts, and where
+  each one's manifest and pipeline live.</li>
+</ul>
+<p>A uniform project — most of them — is the degenerate case: one assay, the flat layout of the rest of
+this guide, plus that top-level <code>sample_metadata.tsv</code>.</p>
 
 
 

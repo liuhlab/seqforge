@@ -501,6 +501,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-the-project-isnt-uniform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the project isn't uniform
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-to-read-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -843,6 +854,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#when-the-project-isnt-uniform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the project isn't uniform
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-to-read-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1086,6 +1108,16 @@ comes from your <code>PATH</code>: the run still works, and it is no longer pinn
 <code>&lt;sample&gt;.velocyto.h5ad</code> — not a folder that might be empty.</p>
 <p>The 111 MB barcode whitelist is not in that directory, and should not be. A rule builds it, STAR
 reads it once, and snakemake deletes it.</p>
+<h2 id="when-the-project-isnt-uniform">When the project isn't uniform<a class="headerlink" href="#when-the-project-isnt-uniform" title="Permanent link">&para;</a></h2>
+<p>Every run of this dataset is the same 10x chemistry, so it compiled to <strong>one</strong> manifest and <strong>one</strong>
+Snakefile. A study that mixes chemistries — 10x v2 <em>and</em> v3 libraries in one series, say — compiles to
+one of each <strong>per assay</strong>: <code>seqforge/&lt;assay&gt;/manifest.yaml</code> and its own Snakefile, one per chemistry,
+with the split decided from the bytes rather than by you. Two project-level files then sit at the top,
+<code>sample_metadata.tsv</code> (every sample across every assay, one row each) and <code>project.yaml</code> (the assay
+index), and you submit each assay's Snakefile. The uniform case here is just the single-assay
+degenerate one — same artifacts, no subdirectory. See
+<a href="../concepts/artifacts/#one-project-one-or-more-datasets">the two artifacts</a> for why a project splits
+this way.</p>
 <hr />
 <h2 id="what-to-read-next">What to read next<a class="headerlink" href="#what-to-read-next" title="Permanent link">&para;</a></h2>
 <ul>
