@@ -10,11 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://liuhlab.github.io/seqforge/concepts/refusal/">
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/tutorials/with-claude/">
       
       
-        <link rel="prev" href="../identifying/">
+        <link rel="prev" href="../../getting-started/">
       
+      
+        <link rel="next" href="../step-by-step/">
       
       
         
@@ -25,7 +27,7 @@
     
     
       
-        <title>When it refuses - seqforge</title>
+        <title>Compiling with Claude - seqforge</title>
       
     
     
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#when-it-refuses" class="md-skip">
+        <a href="#compiling-a-dataset-with-claude" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              When it refuses
+              Compiling with Claude
             
           </span>
         </div>
@@ -309,8 +311,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -321,11 +325,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -346,7 +350,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -361,10 +365,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../tutorials/with-claude/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiling with Claude
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -380,6 +411,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-time-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-time setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compile-a-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compile a dataset
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-one-thing-you-have-to-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The one thing you have to decide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-claude-stops-and-asks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When Claude stops and asks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-it-in-a-script-headless" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it in a script (headless)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get-a-look-inside-seqforge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get: a look inside seqforge/
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-read-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to read next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -392,7 +520,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/step-by-step/" class="md-nav__link">
+      <a href="../step-by-step/" class="md-nav__link">
         
   
   
@@ -420,7 +548,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/adding-a-technology/" class="md-nav__link">
+      <a href="../adding-a-technology/" class="md-nav__link">
         
   
   
@@ -452,8 +580,6 @@
       
   
   
-    
-  
   
   
     
@@ -466,11 +592,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
@@ -491,7 +617,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -509,7 +635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../artifacts/" class="md-nav__link">
+      <a href="../../concepts/artifacts/" class="md-nav__link">
         
   
   
@@ -537,7 +663,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../identifying/" class="md-nav__link">
+      <a href="../../concepts/identifying/" class="md-nav__link">
         
   
   
@@ -562,37 +688,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    When it refuses
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../concepts/refusal/" class="md-nav__link">
         
   
   
@@ -608,59 +707,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#three-ways-it-can-end" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Three ways it can end
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-failures-worth-catching-are-the-quiet-ones" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The failures worth catching are the quiet ones
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#never-ask-a-question-you-dont-need-answered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Never ask a question you don't need answered
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -700,10 +746,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#three-ways-it-can-end" class="md-nav__link">
+  <a href="#one-time-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Three ways it can end
+        One-time setup
       
     </span>
   </a>
@@ -711,10 +757,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-failures-worth-catching-are-the-quiet-ones" class="md-nav__link">
+  <a href="#compile-a-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The failures worth catching are the quiet ones
+        Compile a dataset
       
     </span>
   </a>
@@ -722,10 +768,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#never-ask-a-question-you-dont-need-answered" class="md-nav__link">
+  <a href="#the-one-thing-you-have-to-decide" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Never ask a question you don't need answered
+        The one thing you have to decide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-claude-stops-and-asks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When Claude stops and asks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-it-in-a-script-headless" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it in a script (headless)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get-a-look-inside-seqforge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get: a look inside seqforge/
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-read-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to read next
       
     </span>
   </a>
@@ -749,7 +839,7 @@
 
 
   
-    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/concepts/refusal.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/tutorials/with-claude.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -757,65 +847,106 @@
   
 
 
-<h1 id="when-it-refuses">When it refuses<a class="headerlink" href="#when-it-refuses" title="Permanent link">&para;</a></h1>
-<p>The most useful thing seqforge does is stop. A tool that always produces an answer is only
-trustworthy if you check the answer, and at ten thousand datasets nobody checks. So it is built to
-fail loudly where a normal pipeline fails silently.</p>
-<h2 id="three-ways-it-can-end">Three ways it can end<a class="headerlink" href="#three-ways-it-can-end" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart TD
-    START["a dataset"] --&gt; Q{"can code decide it?"}
-    Q --&gt;|yes| OK["&lt;span style='color:#fff'&gt;&lt;b&gt;manifest&lt;/b&gt;&lt;br/&gt;exit 0&lt;/span&gt;"]
-    Q --&gt;|"something is structurally wrong"| BLK["&lt;span style='color:#fff'&gt;&lt;b&gt;blocker&lt;/b&gt;&lt;br/&gt;exit 3&lt;br/&gt;&lt;i&gt;this cannot be processed&lt;/i&gt;&lt;/span&gt;"]
-    Q --&gt;|"a real question only&lt;br/&gt;a human can settle"| ASK["&lt;span style='color:#fff'&gt;&lt;b&gt;question&lt;/b&gt;&lt;br/&gt;exit 4&lt;br/&gt;&lt;i&gt;tell me, and I'll continue&lt;/i&gt;&lt;/span&gt;"]
-
-    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
-    classDef artifact fill:#00695c,stroke:#004d40
-    classDef blocked fill:#b71c1c,stroke:#7f0000
-    classDef ask fill:#bf360c,stroke:#7f2400
-    class OK artifact
-    class BLK blocked
-    class ASK ask</code></pre>
-<p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed;
-the language model never gets a vote, and at most helps phrase the question.</p>
-<p>Every blocker carries a reason and an actionable remedy. "Could not process" is not a remedy. "The
-barcode read is missing — re-fetch including technical reads, or pull the submitter's original files"
-is.</p>
-<h2 id="the-failures-worth-catching-are-the-quiet-ones">The failures worth catching are the quiet ones<a class="headerlink" href="#the-failures-worth-catching-are-the-quiet-ones" title="Permanent link">&para;</a></h2>
-<p>Loud failures take care of themselves: a corrupt file explodes and you notice. These do not.</p>
-<p><strong>The wrong strand.</strong> About half the reads land unassigned, and the matrix just looks like a thin
-dataset. Public metadata essentially never states the strand.</p>
-<p><strong>A trimmed barcode file.</strong> A trimming tool ran before upload. Most reads are still the right length,
-so the geometry checks pass — but some shifted, so the barcode is read from the wrong position and
-those cells are dropped.</p>
-<p><strong>The wrong genome.</strong> A worm dataset against the human genome barely maps: loud, therefore fine. The
-same mistake between two <em>similar</em> genomes is silent, and yields a plausible matrix in the wrong
-coordinate space.</p>
-<p><strong>Counting only exons on a nuclear sample.</strong> Nuclei are full of unspliced RNA sitting in introns;
-count only exons and you throw it away. We measured <strong>40.7%</strong> of a nuclear library, gone. The
-chemistry is byte-identical to the whole-cell version, so the reads cannot tell you which you have.</p>
-<p>Every one of them exits 0.</p>
-<h2 id="never-ask-a-question-you-dont-need-answered">Never ask a question you don't need answered<a class="headerlink" href="#never-ask-a-question-you-dont-need-answered" title="Permanent link">&para;</a></h2>
-<p>Refusing is expensive too: a system that interrogates you constantly is one you route around, and
-then it protects nobody.</p>
-<p><strong>Don't ask if the answer can't change anything.</strong> Two versions of the 10x chemistry may be
-indistinguishable from the reads. If they produce <em>identical</em> settings, record both names and move
-on. This is computed, not assumed: a check over every pair asserts that "indistinguishable" and
-"identical settings" agree.</p>
-<p><strong>Don't ask if you can afford every answer.</strong> Nuclear-versus-whole-cell is unanswerable from the
-reads — so count <strong>all five ways at once</strong>. One alignment, five counting rules, one pass. Download
-and alignment dominate the cost so completely that the extra counting is close to free.</p>
-<pre class="mermaid"><code>flowchart LR
-    Q["'is this cells or nuclei?'&lt;br/&gt;— unanswerable from the reads"]
-    Q --&gt; BAD["&lt;span style='color:#fff'&gt;ask the human&lt;br/&gt;&lt;i&gt;exit 4&lt;/i&gt;&lt;/span&gt;"]
-    Q --&gt; GOOD["&lt;span style='color:#fff'&gt;count all five ways&lt;br/&gt;&lt;i&gt;exit 0&lt;/i&gt;&lt;/span&gt;"]
-
-    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
-    classDef ask fill:#bf360c,stroke:#7f2400
-    classDef artifact fill:#00695c,stroke:#004d40
-    class BAD ask
-    class GOOD artifact</code></pre>
-<p>Save the interruptions for things that are genuinely exclusive — a genome, an aligner — where you
-really do have to choose one.</p>
+<h1 id="compiling-a-dataset-with-claude">Compiling a dataset with Claude<a class="headerlink" href="#compiling-a-dataset-with-claude" title="Permanent link">&para;</a></h1>
+<p>The easiest way to use seqforge is to not run it yourself. You describe your data to
+<a href="https://claude.com/claude-code">Claude Code</a> in plain English, and Claude drives seqforge for you —
+figuring out the technology, which file is which read, and how to compile it into a pipeline you can
+run.</p>
+<p>You don't need to know what chemistry your data is, which file holds the barcodes, or what any of the
+flags mean. That is exactly the knowledge seqforge exists to recover from the files themselves. Your
+job is to point at the data and say what you want.</p>
+<p>This page is the short, friendly path. When you want to see every step and inspect it, the
+<a href="../step-by-step/">step-by-step tutorial</a> walks the same pipeline one command at a time.</p>
+<h2 id="one-time-setup">One-time setup<a class="headerlink" href="#one-time-setup" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Install seqforge</strong> — see <a href="../../getting-started/">Getting started</a>. One <code>pixi install</code>.</li>
+<li>
+<p><strong>Install the Claude skills.</strong> seqforge ships a set of skills that teach Claude how to drive it
+   safely. Install them once:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>skills/install.py<span class="w"> </span>--user
+</code></pre></div>
+</li>
+<li>
+<p><strong>Set an API key for reading prose.</strong> One stage — reading a paper or a sample sheet — uses a
+   language model. Put an <code>ANTHROPIC_API_KEY</code> (or <code>DEEPSEEK_API_KEY</code>) in your environment. If you have
+   no paper to read, you can skip this and stay fully offline.</p>
+</li>
+</ol>
+<p>That's it. From here on you just talk to Claude.</p>
+<h2 id="compile-a-dataset">Compile a dataset<a class="headerlink" href="#compile-a-dataset" title="Permanent link">&para;</a></h2>
+<p>Open Claude Code in the folder with your data and describe what you have. A good request names three
+things: <strong>where the files are</strong>, <strong>any extra context</strong> (an accession, a paper, a sample sheet), and
+<strong>the genome to align against</strong>.</p>
+<blockquote>
+<p>Compile the single-cell RNA-seq data in <code>./data</code> with seqforge. It's accession PRJNA1027859, and
+the paper is <code>./info/paper.pdf</code>. Align against the ce11 genome, annotation WS298.</p>
+</blockquote>
+<p>Claude takes it from there. Behind the scenes it runs the seqforge compiler — reading the bytes,
+pulling what the archive declares, mining the paper for anything useful — and hands you back two
+things: a <strong>manifest</strong> (what your data actually is) and a <strong>Snakefile</strong> (the pipeline that processes
+it). A minute or two, paper included.</p>
+<p>You don't have to give it all three inputs. The files alone are enough:</p>
+<blockquote>
+<p>Compile the FASTQ files in <code>./reads</code> with seqforge, against the hg38 genome with the GENCODE
+annotation.</p>
+</blockquote>
+<p>The accession and the paper each make the answer richer — per-sample strain, tissue, sex, developmental
+stage — but plenty of data never had either, and that's a normal, fully supported case.</p>
+<h2 id="the-one-thing-you-have-to-decide">The one thing you have to decide<a class="headerlink" href="#the-one-thing-you-have-to-decide" title="Permanent link">&para;</a></h2>
+<p>There is exactly one choice seqforge will not make for you: <strong>the genome.</strong> A wrong genome still aligns
+cleanly and still produces a count matrix — it's just quietly wrong, and nothing downstream ever
+notices. So seqforge refuses to guess, and Claude will ask you for it if you didn't say. Everything
+else — the technology, which read is the barcode, how long the barcodes are, which strand — is read
+from the files and never guessed.</p>
+<h2 id="when-claude-stops-and-asks">When Claude stops and asks<a class="headerlink" href="#when-claude-stops-and-asks" title="Permanent link">&para;</a></h2>
+<p>seqforge is built to <strong>refuse rather than guess.</strong> If something is genuinely ambiguous, or the files
+don't match the accession you gave, Claude will stop and tell you exactly what's wrong — it won't
+paper over it with a plausible-looking answer. That pause is the tool working. A refusal is cheap; a
+confidently wrong count matrix is not, because you may not find out for months.</p>
+<p>So if Claude comes back with a question instead of a Snakefile, read it — it's naming a real decision
+only you can make.</p>
+<h2 id="run-it-in-a-script-headless">Run it in a script (headless)<a class="headerlink" href="#run-it-in-a-script-headless" title="Permanent link">&para;</a></h2>
+<p>The same thing works without opening an interactive session, which is how you'd batch many datasets:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>claude<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;Compile the data in </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/data with seqforge. Accession PRJNA1027859, paper in</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="s2">info/paper.pdf, align against ce11 / WS298. Use this directory as the workspace.&quot;</span>
+</code></pre></div>
+<p>Point it at each dataset in a loop and you have a headless pipeline that turns a folder of FASTQ files
+into a runnable Snakefile, one dataset at a time.</p>
+<h2 id="what-you-get-a-look-inside-seqforge">What you get: a look inside <code>seqforge/</code><a class="headerlink" href="#what-you-get-a-look-inside-seqforge" title="Permanent link">&para;</a></h2>
+<p>Everything Claude produces lands in a <code>seqforge/</code> folder next to your data. The top level holds the
+things you actually reach for; the rest is tidied into named subfolders:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge/
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  manifest.yaml         what your data IS — the technology, the samples, their metadata
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  processing.yaml       what to DO with it — the genome and the flags
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  project.yaml          a one-glance index of the whole project
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  sample_metadata.tsv   every sample, one row each
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  pipeline/             the Snakefile you submit, and its config
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  records/              what the archive declared, and any papers you handed in
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  logs/                 what the paper-reading cost, and the claims it found
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  cache/                working files, safe to delete
+</code></pre></div>
+<p>Two files are the heart of it. <strong><code>manifest.yaml</code></strong> is what your data <em>is</em> — settled once, never
+rewritten. <strong><code>processing.yaml</code></strong> is what to <em>do</em> with it — the genome, the recipe — and you can have
+several. Want to align the same data to a different genome? That's a new <code>processing.yaml</code>, never an
+edit to the manifest. (Why they're split, and why it matters, is in
+<a href="../../concepts/artifacts/">the two artifacts</a>.)</p>
+<p>The thing you submit lives under <strong><code>pipeline/</code></strong>: a <code>Snakefile</code>, ready to run. seqforge stops there on
+purpose — it does not submit jobs, has no opinion about your scheduler, and won't grow one. The last
+artifact is a file you run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>seqforge/pipeline/&lt;the-directory-Claude-made&gt;
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>snakemake<span class="w"> </span>--profile<span class="w"> </span>&lt;your-cluster-profile&gt;<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
+</code></pre></div>
+<p>That produces one <code>.h5ad</code> count matrix per sample. The
+<a href="../step-by-step/#7-submit-it">step-by-step tutorial</a> explains that command, including why the
+<code>--software-deployment-method apptainer</code> flag matters.</p>
+<h2 id="what-to-read-next">What to read next<a class="headerlink" href="#what-to-read-next" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../step-by-step/">Step-by-step tutorial</a> — the same pipeline, one command at a time, when you want
+  to inspect each stage.</li>
+<li><a href="../../concepts/artifacts/">The two artifacts</a> — why the manifest and the recipe are separate files.</li>
+<li><a href="../../concepts/refusal/">When it refuses</a> — what the refusals mean, and why they're a feature.</li>
+</ul>
 
 
 
