@@ -475,9 +475,20 @@ def test_writing_a_decidable_by_into_a_spec_is_now_an_error() -> None:
 
 
 def test_a_spec_with_no_divergent_confusable_is_decidable_by_nothing() -> None:
-    """Not a bug: nothing to decide. §12's equivalent twins are recorded together, never chosen between."""
-    v2 = kb.load_spec("10x-3p-gex-v2")
-    assert v2.decidable_by == []
-    assert all(c.relationship == "processing_equivalent" for c in v2.confusable_with) or not (
-        v2.confusable_with
+    """Not a bug: nothing to decide. §12's equivalent twins are recorded together, never chosen between.
+
+    Every shipped spec now carries at least one *divergent* confusable (v2 gained its over-length
+    v2<->v3 edge, and the rest always had one), so the property is tested on a spec stripped to its
+    equivalent-only confusables — which is exactly the shape it is asserting about, derived not typed.
+    """
+    v31 = kb.load_spec("10x-3p-gex-v3.1")
+    equiv_only = v31.model_copy(
+        update={
+            "confusable_with": [
+                c for c in v31.confusable_with if c.relationship == "processing_equivalent"
+            ]
+        }
     )
+    assert equiv_only.confusable_with  # non-vacuous: it keeps the v3 twin
+    assert all(c.relationship == "processing_equivalent" for c in equiv_only.confusable_with)
+    assert equiv_only.decidable_by == []

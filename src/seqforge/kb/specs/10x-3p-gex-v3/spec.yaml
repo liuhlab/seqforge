@@ -9,13 +9,15 @@ identity:
   modality: rna
 
 reads:
-  # R1 = the technical/barcode read. 28 bp = 16 CB + 12 UMI.
+  # R1 = the technical/barcode read. 28 bp = 16 CB + 12 UMI. max_len is null, not 28: an
+  # over-sequenced R1 (e.g. 150 bp, CB+UMI in bp0-28, the rest junk) is a real 10x layout, and the
+  # segment_length over_length_min below is what still keeps 28 separable from v2's 26.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
     strand: pos
     min_len: 28
-    max_len: 28
+    max_len: null
     elements:
       - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
       - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
@@ -42,7 +44,11 @@ onlists:
 signature:
   requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
     - {test: read_count, roles: 2}
-    - {test: segment_length, read: R1, length: 28, tolerance: 0}
+    # length 28 stays exact for canonical reads; over_length_min 100 admits a full-length
+    # over-sequenced R1 (>=100 bp: the run read length) without loosening 26-vs-28. A shorter
+    # non-canonical read (a 60-94 bp cDNA or split-pool barcode) is below it, so it is still
+    # exact-checked and rejected -> v3 stays un-confusable with cDNA-only chemistries at rungs 0-2.
+    - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}
     - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
     - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
   supports:                     # additive evidence (rung 3+)
@@ -69,6 +75,10 @@ backend:
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
     soloStrand: Forward
+    # 0 disables STARsolo's barcode-read-length check, which by default (1) FATALs when the barcode
+    # read is longer than CB+UMI. An over-sequenced R1 (150 bp) needs this; CB/UMI are still read from
+    # the fixed offsets above. Kept identical in v3/v3.1 so `backend_identical` holds.
+    soloBarcodeReadLength: 0
     # soloFeatures is NOT here, and that is the point. It says what to COUNT, and 10x 3' v3.1
     # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
@@ -81,6 +91,14 @@ confusable_with:
     note: >
       Identical 16+12=28 bp geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo
       params -> §12 benign: the resolver records both ids and asks 0 questions.
+  - id: 10x-3p-gex-v2
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Length separates them for CANONICAL reads (28 vs 26 bp), so this is not forced by the
+      under-declaration guard. It matters only for an OVER-LENGTH barcode read (e.g. 150 bp): both
+      accept it on geometry, so rungs 0-2 tie. The whitelist decides at rung 3 (v2 = 737K-august-2016,
+      v3 = 3M-february-2018); declaring it makes the sub-rung-3 Question decidable_by onlist, not user.
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]
