@@ -8,7 +8,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,8 +16,9 @@ from ..io import DEFAULT_REGISTRY, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
+from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
-from ..models.resolve import ResolveResult
+from ..models.resolve import Candidate, ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
 from .cache import Cache, dataset_id
@@ -162,6 +163,32 @@ def resolve_dataset(
     return ResolveOutput(result=result, matrices=matrices, observations=observations)
 
 
+#: A read at or below this many bases is a technical sample index (10x I1/I2 are 8-10 bp), well under
+#: any CB+UMI read (>= 26 bp). The gate is a SAFETY, not decoration: a longer leftover — a stray
+#: cDNA-length file — stays unassigned so ``validate`` still blocks it loudly.
+INDEX_MAX_LEN = 20
+
+
+def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -> dict[str, str]:
+    """Invert a winner's role assignment to ``sha -> role``, tagging short leftovers as index reads.
+
+    The base map is ``assignment`` (role -> sha) inverted. Then, **only for a run the bytes actually
+    decided** (a ``scored`` winner), each unassigned leftover whose observed read length is
+    index-sized is tagged :data:`~seqforge.models.dataset.INDEX_ROLE` — a 10x sample-index file
+    STARsolo never consumes, set aside rather than left to block. A ``forbidden`` winner decided
+    nothing, so its leftovers are not reinterpreted; a cDNA-length leftover stays unassigned and
+    ``validate`` blocks it. A clean run has no leftovers and comes back byte-identical to before.
+    """
+    roles = {sha: role for role, sha in winner.role_assignment.assignment.items()}
+    if winner.score.status == "scored":
+        mode_of = {o.file.sha256: o.read_length.mode for o in observations}
+        for sha in winner.role_assignment.unassigned:
+            mode = mode_of.get(sha)
+            if mode is not None and mode <= INDEX_MAX_LEN:
+                roles[sha] = INDEX_ROLE
+    return roles
+
+
 @dataclass(frozen=True)
 class RunResolution:
     """One run: the files that came from it, and what the bytes said they are."""
@@ -176,6 +203,21 @@ class RunResolution:
         return cands[0].technology if cands else None
 
 
+def role_of_sha_for(runs: Iterable[RunResolution]) -> dict[str, str]:
+    """Merged file-sha -> role across ``runs`` (all of a dataset, or just one assay's slice).
+
+    A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of one
+    library have six R1s, so the dataset-level fact is the inverse map, and it only exists once each
+    run has been assigned on its own bytes. A run's short leftovers (10x I1/I2 index files) are tagged
+    ``index`` — set aside, not dropped — gated on read length per run.
+    """
+    merged: dict[str, str] = {}
+    for run in runs:
+        for cand in run.output.result.candidates[:1]:
+            merged.update(index_tagged_roles(cand, run.output.observations))
+    return merged
+
+
 @dataclass(frozen=True)
 class MultiRunOutput:
     """Every run in a dataset, resolved independently, plus the cross-run agreement check."""
@@ -188,18 +230,67 @@ class MultiRunOutput:
         return [o for r in self.runs for o in r.output.observations]
 
     def role_of_sha(self) -> dict[str, str]:
-        """Merged file-sha -> role across every run. The manifest's inventory is built from this.
+        """The dataset-wide file-sha -> role map. The manifest's inventory is built from this."""
+        return role_of_sha_for(self.runs)
 
-        A `RoleAssignment` maps role -> ONE sha, because it describes one library's reads. Six runs of
-        one library have six R1s, so the dataset-level fact is the inverse map, and it only exists
-        once each run has been assigned on its own bytes.
+    def by_chemistry(self) -> dict[str, list[RunResolution]]:
+        """Partition the runs by the chemistry each resolved to — one group per **assay**.
+
+        A large project (study) naturally contains several assays: groups of samples that share one
+        processing recipe (chemistry). Runs whose bytes decided nothing (``winner is None``) are
+        omitted — they carry their own blocker and cannot name an assay. Keyed order is sorted so the
+        partition is deterministic.
         """
-        merged: dict[str, str] = {}
+        groups: dict[str, list[RunResolution]] = {}
         for run in self.runs:
-            for cand in run.output.result.candidates[:1]:
-                for role, sha in cand.role_assignment.assignment.items():
-                    merged[sha] = role
-        return merged
+            if run.winner is not None:
+                groups.setdefault(run.winner, []).append(run)
+        return {tech: groups[tech] for tech in sorted(groups)}
+
+    def chemistry_of_sha(self) -> dict[str, str]:
+        """file-sha -> the chemistry its run resolved to. The join for the per-sample agreement check."""
+        out: dict[str, str] = {}
+        for run in self.runs:
+            if run.winner is None:
+                continue
+            for obs in run.output.observations:
+                out[obs.file.sha256] = run.winner
+        return out
+
+    def sample_disagreements(self, sample_shas: dict[str, list[str]]) -> list[Blocker]:
+        """A sample whose files span more than one chemistry blocks — that IS a mis-grouping.
+
+        Runs of ONE sample resolve to one chemistry, always. Runs of *different* samples may resolve
+        to different chemistries — that is a legal partition into assays (:meth:`by_chemistry`), not a
+        disagreement. So the invariant is per-sample, checked against the sample->files map the
+        metadata resolver builds; the byte resolver alone cannot see it (filenames group into runs,
+        records join runs into samples).
+        """
+        chem_of = self.chemistry_of_sha()
+        blockers: list[Blocker] = []
+        for sample_id, shas in sorted(sample_shas.items()):
+            techs = sorted({chem_of[s] for s in shas if s in chem_of})
+            if len(techs) > 1:
+                blockers.append(
+                    Blocker(
+                        id=f"blk-sample-chemistry-{sample_id}",
+                        code=BlockerCode.UNRESOLVED_CONFLICT,
+                        message=(
+                            f"sample {sample_id!r} has files resolving to more than one chemistry "
+                            f"({', '.join(techs)}). Runs of one sample are one library and must "
+                            f"resolve to one chemistry, so either these files are not all this "
+                            f"sample's or they were grouped into runs incorrectly."
+                        ),
+                        remedy=(
+                            "Check the file->sample join (the archive records, or the filenames) and "
+                            "the run grouping. Different chemistries across DIFFERENT samples are a "
+                            "legal multi-assay project; within one sample they are not."
+                        ),
+                        subject=BlockerSubject(kind="dataset", ref=sample_id),
+                        evidence=sorted(shas),
+                    )
+                )
+        return blockers
 
     def exit_code(self) -> int:
         if self.blockers:
@@ -227,14 +318,14 @@ def resolve_runs(
     which `_units` skips and `validate` blesses. Five sixths of the data, gone, exit 0.
 
     Nothing here re-decides roles or reads a byte differently. It splits the input by filename (a
-    rung-1 prior about *identity*, never about role — see `group.py`), resolves each group, and then
-    checks that the runs agree with each other.
+    rung-1 prior about *identity*, never about role — see `group.py`) and resolves each group.
 
-    **Disagreement is a Blocker, not a vote.** Two runs of one library resolve to the same chemistry;
-    if they do not, either the grouping is wrong or these files are not one dataset, and both are
-    things a human must look at. Picking the majority would be exactly the silent guess this project
-    refuses — and it is also the check that makes filename-grouping safe, because a mis-grouped pair
-    fails it loudly.
+    **Runs may resolve to different chemistries, and that is a partition, not an error.** A large
+    project contains several assays; :meth:`MultiRunOutput.by_chemistry` groups the runs into them.
+    The safety the old dataset-wide "all runs must agree" block provided is now per-SAMPLE
+    (:meth:`MultiRunOutput.sample_disagreements`): runs of ONE sample must resolve to one chemistry,
+    but that check needs the sample->files map only the metadata resolver builds, so it is applied by
+    the caller (never a majority vote — a sample split across chemistries blocks loudly).
     """
     from .group import group_runs
 
@@ -262,37 +353,4 @@ def resolve_runs(
         )
         runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
 
-    return MultiRunOutput(runs=runs, blockers=_disagreements(runs))
-
-
-def _disagreements(runs: list[RunResolution]) -> list[Blocker]:
-    """Every run must decide the same chemistry. Surface it; never pick a winner."""
-    decided = {r.run_id: r.winner for r in runs if r.winner is not None}
-    distinct = sorted({t for t in decided.values() if t is not None})
-    if len(distinct) < 2:
-        return []
-    by_tech: dict[str, list[str]] = {}
-    for run_id, tech in decided.items():
-        if tech is not None:
-            by_tech.setdefault(tech, []).append(run_id)
-    detail = "; ".join(
-        f"{tech} <- {', '.join(sorted(ids))}" for tech, ids in sorted(by_tech.items())
-    )
-    return [
-        Blocker(
-            id="blk-chemistry-disagreement",
-            code=BlockerCode.UNRESOLVED_CONFLICT,
-            message=(
-                f"the runs in this dataset do not agree on a chemistry: {detail}. Runs of one "
-                f"library resolve to one chemistry, so either these files are not one dataset or "
-                f"they were grouped into runs incorrectly."
-            ),
-            remedy=(
-                "Check the grouping (`seqforge resolve score` one run at a time to see each "
-                "verdict), or compose the runs as separate datasets. Do not merge them: a manifest "
-                "that averages two chemistries describes neither."
-            ),
-            subject=BlockerSubject(kind="dataset", ref="library.chemistry"),
-            evidence=sorted(decided),
-        )
-    ]
+    return MultiRunOutput(runs=runs)

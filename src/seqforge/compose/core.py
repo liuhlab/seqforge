@@ -37,7 +37,7 @@ from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
-from ..models.dataset import DatasetManifest
+from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import (
     DatasetPin,
     ProcessingManifest,
@@ -277,8 +277,14 @@ def compose(
     fastq_dir: str | Path | None = None,
     sif_dir: str | Path | None = None,
     run_wiring_gate: bool = True,
+    subdir: str | None = None,
 ) -> ComposeResult:
-    """Compile a (dataset, processing) pair into a runnable configuration + run the compose gates."""
+    """Compile a (dataset, processing) pair into a runnable configuration + run the compose gates.
+
+    ``subdir`` roots the output one level deeper — ``seqforge/<subdir>/pipeline/…`` instead of
+    ``seqforge/pipeline/…`` — so a heterogeneous project can compile one assay per subdirectory. It
+    defaults to ``None`` (the flat, single-assay layout), which is byte-identical to before.
+    """
     p = plan(
         manifest, processing, registry=registry, outdir=outdir, fastq_dir=fastq_dir, sif_dir=sif_dir
     )
@@ -296,7 +302,10 @@ def compose(
     # -- it is what keeps two recipes over one dataset apart -- but the recipe already has a name and
     # printing it costs nothing. The pilot's workspace was a directory of 64-hex names in which
     # nothing said which pipeline was which.
-    pipeline_dir = state_dir(workspace, "pipeline", readable(processing.processing_id, rid))
+    root_parts = (subdir,) if subdir else ()
+    pipeline_dir = state_dir(
+        workspace, *root_parts, "pipeline", readable(processing.processing_id, rid)
+    )
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     config_path = pipeline_dir / _CONFIG_NAME
     units_path = pipeline_dir / _UNITS_TSV_NAME
@@ -442,7 +451,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
     samples = manifest.experiment.samples
     if not samples:
         for f in manifest.library.files:
-            if f.read_id is not None:
+            if f.read_id is not None and f.read_id != INDEX_ROLE:
                 rows.append(
                     {
                         "sample_id": "sample1",
@@ -454,8 +463,8 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
     for sample in samples:
         for uri in sample.file_uris:
             item = by_uri.get(uri)
-            if item is None or item.read_id is None:
-                continue  # unassigned (index/ignored) files never become units
+            if item is None or item.read_id is None or item.read_id == INDEX_ROLE:
+                continue  # unassigned files, and set-aside technical index reads, never become units
             rows.append(
                 {
                     "sample_id": sample.sample_id,

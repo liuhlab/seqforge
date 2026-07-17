@@ -19,6 +19,11 @@ from typing import Literal
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.6 — `starsolo_count` passes `--soloBarcodeReadLength` when the chemistry declares it. 10x
+#: v2/v3/v3.1 set it to 0, which disables STARsolo's default check that the barcode read is exactly
+#: CB+UMI long — their R1 is routinely sequenced longer (a 150 nt R1) and the default FATALs on the
+#: excess. Read with `SOLO.get(...)` so it stays OPTIONAL: a chemistry that omits it (SPLiT-seq) keeps
+#: STAR's default and the flag is not a `required_config` key it would then have to emit.
 #: 2026.7.5 — `starsolo_count` declares `container:`, so the recorded env name is load-bearing at
 #: last instead of emitted and ignored. `config["env"]` is REPLACED by `config["container"]`: the
 #: manifest carries the env name, and the config carries this machine's rendering of it (the
@@ -34,7 +39,7 @@ from ..models.processing import RuntimeEnv
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.5"
+WORKFLOW_VERSION = "2026.7.6"
 
 _MODULE_DIR = Path(__file__).parent
 

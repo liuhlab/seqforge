@@ -25,6 +25,7 @@ from .engine import (  # noqa: E402
     exit_code_for,
     resolve_dataset,
     resolve_runs,
+    role_of_sha_for,
 )
 from .group import group_runs, run_key  # noqa: E402
 from .scoring import Cell, TechEvaluation, build_tech_evaluation  # noqa: E402
@@ -37,6 +38,7 @@ __all__ = [
     "ResolveOutput",
     "MultiRunOutput",
     "RunResolution",
+    "role_of_sha_for",
     "group_runs",
     "run_key",
     "Hypothesis",

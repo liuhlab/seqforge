@@ -930,6 +930,54 @@ def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(tmp_path: Path) -
     assert len(str(solo["soloCBwhitelist"]).split()) == 3  # one whitelist per split-pool round
 
 
+def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared() -> None:
+    """The "make it actually run" flag: 10x sets it, SPLiT-seq must not be forced to.
+
+    STARsolo FATALs by default unless the barcode read is exactly CB+UMI long, so 10x v2/v3/v3.1 --
+    whose R1 is routinely sequenced to 150 nt -- declare `soloBarcodeReadLength: 0` to disable the
+    check, and `starsolo.smk` now passes it through. But the module reads it with `SOLO.get(...)`, not
+    a subscript, on purpose: a subscript would make `keys_read_by` mark `solo.soloBarcodeReadLength` a
+    REQUIRED config key, and the composer would then owe it for EVERY starsolo chemistry -- including
+    SPLiT-seq, which does not declare it and whose params gate forbids emitting a key it does not own.
+    This test pins that optionality, so a refactor to `SOLO["soloBarcodeReadLength"]` goes red here
+    rather than on a compute node running SPLiT-seq.
+    """
+    assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
+
+
+def test_soloBarcodeReadLength_reaches_STAR_for_10x_and_not_for_splitseq(tmp_path: Path) -> None:
+    """Config-level for both chemistries, then the rendered STAR command when snakemake is present."""
+    (tmp_path / "v3").mkdir()
+    (tmp_path / "ss").mkdir()
+    v3, v3_proc, v3_reg = _pair(tmp_path / "v3", "10x-3p-gex-v3", ("R1", "R2"))
+    v3_config = plan(v3, v3_proc, registry=v3_reg).config["solo"]
+    assert isinstance(v3_config, dict)
+    assert v3_config["soloBarcodeReadLength"] == "0"  # 10x declares it, so compose emits it
+
+    ss, ss_reg = _build(tmp_path / "ss", "splitseq")
+    ss_config = plan(ss, _processing(ss), registry=ss_reg).config["solo"]
+    assert isinstance(ss_config, dict)
+    assert "soloBarcodeReadLength" not in ss_config  # SPLiT-seq does not, so it is not emitted
+
+    import shutil as _shutil
+
+    if not _shutil.which("snakemake"):
+        pytest.skip("snakemake not installed")
+    # ...and it reaches the actual STAR argv for 10x, and is absent (not a KeyError) for SPLiT-seq.
+    v3_result = compose(v3, v3_proc, registry=v3_reg, workspace=tmp_path / "v3")
+    v3_plan = _dry_run(
+        (tmp_path / "v3" / v3_result.config_path).parent, core.plan(v3, v3_proc, registry=v3_reg)
+    )
+    assert "--soloBarcodeReadLength 0" in v3_plan
+
+    ss_proc = _processing(ss)
+    ss_result = compose(ss, ss_proc, registry=ss_reg, workspace=tmp_path / "ss")
+    ss_plan = _dry_run(
+        (tmp_path / "ss" / ss_result.config_path).parent, core.plan(ss, ss_proc, registry=ss_reg)
+    )
+    assert "--soloBarcodeReadLength" not in ss_plan
+
+
 # ---------- consumer, not parallel universe ----------
 #: Names owned upstream by `liulab-genome`. seqforge may CALL them; defining one here means we have
 #: started reimplementing the package whose whole job this is.

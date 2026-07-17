@@ -117,6 +117,13 @@ def _eval_segment_length(test: SegmentLength, wp: WindowProbe) -> Evaluation:
     mode = wp.mode_length
     if mode == 0:
         return Evaluation(Outcome.FAIL, 0.0, "no reads")
+    if test.over_length_min is not None and mode >= test.over_length_min:
+        # An over-sequenced / insert-bearing barcode read: CB+UMI live at the declared offsets and the
+        # trailing bases are junk STARsolo ignores. Canonical exactness is preserved because
+        # over_length_min sits strictly above `length` (a 28 bp read is never "over-length").
+        return Evaluation(
+            Outcome.PASS, 1.0, f"mode={mode} >= over_length_min={test.over_length_min}"
+        )
     diff = abs(mode - test.length)
     outcome = Outcome.PASS if diff <= test.tolerance else Outcome.FAIL
     score = _clip(1.0 - diff / max(1.0, test.length * 0.1))

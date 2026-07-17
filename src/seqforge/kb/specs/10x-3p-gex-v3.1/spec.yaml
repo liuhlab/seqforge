@@ -19,14 +19,15 @@ identity:
   modality: rna
 
 reads:
-  # Identical to v3: 28 bp = 16 CB + 12 UMI. This identity is the whole point — the probe cannot
-  # separate v3 from v3.1, and §12 says it does not need to.
+  # Identical to v3: 28 bp = 16 CB + 12 UMI (max_len null: an over-sequenced R1 is still v3.1). This
+  # identity is the whole point — the probe cannot separate v3 from v3.1, and §12 says it does not
+  # need to; the over_length_min below keeps 28 separable from v2's 26 either way.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
     strand: pos
     min_len: 28
-    max_len: 28
+    max_len: null
     elements:
       - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
       - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
@@ -52,7 +53,9 @@ onlists:
 signature:
   requires:
     - {test: read_count, roles: 2}
-    - {test: segment_length, read: R1, length: 28, tolerance: 0}
+    # length 28 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced
+    # R1 (>=100 bp) while a 60-94 bp cDNA/split-pool read stays exact-checked and rejected (see v3).
+    - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}
     - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
     - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
   supports:
@@ -79,6 +82,9 @@ backend:
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
     soloStrand: Forward
+    # 0 disables STARsolo's barcode-read-length check (default 1 FATALs on an over-length barcode
+    # read); byte-identical to v3's, which is what keeps `backend_identical` true.
+    soloBarcodeReadLength: 0
     # soloFeatures is NOT here, and that is the point. It says what to COUNT, and 10x 3' v3.1
     # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
@@ -93,6 +99,13 @@ confusable_with:
       whitelist, byte-identical STARsolo params -> §12 benign: the resolver records both ids and asks
       0 questions. Declared on both sides so the relation reads as symmetric in the file, which is
       what a human checks; the CI biconditional takes the union of both directions regardless.
+  - id: 10x-3p-gex-v2
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Same as v3's v2 edge: length separates canonical reads (28 vs 26), so this is not forced; it
+      matters only for an over-length barcode read both accept on geometry. The whitelist decides at
+      rung 3 (v2 = 737K-august-2016, v3.1 = 3M-february-2018).
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]

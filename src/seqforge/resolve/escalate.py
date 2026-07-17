@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..kb.schema import SegmentLength, Spec
+from ..kb.schema import Read, SegmentLength, Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition
 from ..models.observation import Observation
@@ -123,6 +123,21 @@ def escalate(
     )
 
 
+def _declared_fixed_length(spec: Spec, read: Read) -> tuple[int, int | None] | None:
+    """A read's declared fixed length and its over-length escape, or ``None`` if it is not fixed-cycle.
+
+    Fixed either by ``min_len == max_len`` (a bare geometry) OR by a ``segment_length`` requires —
+    which is how an over-length-capable read (a 10x R1) declares its canonical length while ``max_len``
+    stays null. Returning the ``over_length_min`` lets the caller exempt a genuinely over-length read.
+    """
+    if read.min_len is not None and read.min_len == read.max_len:
+        return read.min_len, None
+    for t in spec.signature.requires:
+        if isinstance(t, SegmentLength) and t.read == read.id:
+            return t.length, t.over_length_min
+    return None
+
+
 def _pretrimmed_blockers(
     top: TechEvaluation, spec: Spec, observations: list[Observation]
 ) -> list[Blocker]:
@@ -137,20 +152,27 @@ def _pretrimmed_blockers(
 
     A fixed-cycle Illumina run does not produce variable-length reads. If the technical read is
     variable, a trimmer ran — and cutadapt/trimmomatic do not know a barcode from an adapter.
+
+    An OVER-LENGTH read (a barcode read sequenced past CB+UMI) is exempt: its length varies only in
+    the junk tail, while CB/UMI stay at their fixed offsets, so that variation is not a trimmed
+    barcode. The canonical length is still enforced — a read at its declared length that is *also*
+    variable is trimmed and blocks, exactly as before.
     """
     by_sha = {o.file.sha256: o for o in observations}
-    fixed_roles = {
-        r.id: r.min_len
-        for r in spec.reads
-        if r.min_len is not None and r.min_len == r.max_len  # a declared fixed-cycle read
-    }
     assigned = top.role_assignment_shas()
     blockers: list[Blocker] = []
-    for role_id, declared in fixed_roles.items():
-        sha = assigned.get(role_id)
+    for read in spec.reads:
+        fixed = _declared_fixed_length(spec, read)
+        if fixed is None:
+            continue
+        declared, over_min = fixed
+        sha = assigned.get(read.id)
         obs = by_sha.get(sha) if sha else None
         if obs is None or obs.read_length.n_distinct == 1:
             continue
+        if over_min is not None and obs.read_length.mode >= over_min:
+            continue  # over-length: variation is in the junk tail, not the barcode
+        role_id = read.id
         ref = obs.file.basename
         blockers.append(
             Blocker(
@@ -254,6 +276,11 @@ def _detect_conflicts(
     observed_len = _observed_barcode_length(top, top_spec, observations)
     if asserted_len is None or observed_len is None or asserted_len == observed_len:
         return []
+    over_min = _spec_over_length_min(top_spec)
+    if over_min is not None and observed_len >= over_min:
+        # An over-length barcode read is EXPECTED for this chemistry (CB/UMI at fixed offsets, the rest
+        # junk), not a geometry contradiction — so 28-vs-150 is agreement, not a conflict to surface.
+        return []
     return [
         Conflict(
             id="conflict-barcode-length",
@@ -352,6 +379,17 @@ def _spec_barcode_length(spec: Spec) -> int | None:
     for read in spec.reads:
         if read.id == bc and read.min_len is not None and read.min_len == read.max_len:
             return read.min_len
+    return None
+
+
+def _spec_over_length_min(spec: Spec) -> int | None:
+    """The barcode read's over-length escape, if it declares one (a mode >= this is expected)."""
+    bc = _barcode_read_id(spec)
+    if bc is None:
+        return None
+    for t in spec.signature.requires:
+        if isinstance(t, SegmentLength) and t.read == bc:
+            return t.over_length_min
     return None
 
 

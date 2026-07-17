@@ -73,3 +73,24 @@ to say "the barcode is 10 bases long".
 
 That is why seqforge can read your instructions without ever trusting them: it lets you talk only
 about things you are entitled to decide.
+
+## One project, one or more datasets
+
+The table above says "exactly one dataset manifest per dataset", and a dataset is **one chemistry**. A
+real study is often not that: a single archive series can mix 10x v2 and v3 libraries, and a manifest
+that averaged the two would describe neither.
+
+So a heterogeneous project **splits into assays** — one per chemistry, decided from the bytes, never
+by you. Each assay is an ordinary dataset: its own immutable `manifest.yaml`, its own hash, its own
+Snakefile, under its own `seqforge/<assay>/` directory. Nothing about the single-dataset story
+changes; there are simply several of them.
+
+Two files tie the project back together at the top level:
+
+- **`sample_metadata.tsv`** — one row per sample across every assay, one column per field (strain,
+  age, tissue, diet, chemistry, files…): the flat "one study" view.
+- **`project.yaml`** — the index of which assays exist, their chemistry and sample counts, and where
+  each one's manifest and pipeline live.
+
+A uniform project — most of them — is the degenerate case: one assay, the flat layout of the rest of
+this guide, plus that top-level `sample_metadata.tsv`.

@@ -64,6 +64,26 @@ def cb_umi_geometry():
     )
 
 
+def barcode_read_length():
+    """--soloBarcodeReadLength, and ONLY when the chemistry declares it.
+
+    STARsolo's default (1) FATALs unless the barcode read is exactly CB+UMI long. 10x v2/v3/v3.1 R1 is
+    routinely sequenced longer than the 26/28 nt the barcode occupies (a 150 nt R1 is common), so their
+    specs set `soloBarcodeReadLength: 0` to disable that check and read CB/UMI from the fixed offsets.
+    A chemistry that does not set the key (SPLiT-seq, ...) keeps STAR's default, so the flag is emitted
+    iff it is present -- the same "render whatever the chemistry put in the block" contract as the
+    geometry above.
+
+    `SOLO.get(...)`, deliberately NOT `SOLO["..."]`: a subscript would make `keys_read_by` (see
+    `workflows/__init__.py`) mark `solo.soloBarcodeReadLength` a REQUIRED config key, and the composer
+    would then be obliged to emit it for every starsolo chemistry -- including SPLiT-seq, whose params
+    gate forbids emitting a key it does not own. `.get` is the honest "optional read" the scanner
+    correctly leaves out of `required_config`.
+    """
+    value = SOLO.get("soloBarcodeReadLength")
+    return f"--soloBarcodeReadLength {value}" if value is not None else ""
+
+
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
 # file-by-file, and that is the point. `starsolo_count` used to declare
 # `directory(f"{OUTDIR}/{{sample}}/Solo.out")`, under which STAR writing three of five features and
@@ -161,14 +181,18 @@ rule starsolo_count:
     params:
         solo=SOLO,
         geometry=cb_umi_geometry(),
+        barcode_read_length=barcode_read_length(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
     shell:
         # --readFilesIn takes the cDNA read FIRST, then the barcode read (asserted by the params gate).
+        # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
+        # for a chemistry that does not declare it -- an empty token is a valid line continuation.
         r"""
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
              --readFilesIn {input.cdna} {input.barcode} --readFilesCommand zcat \
              --soloType {params.solo[soloType]} \
              {params.geometry} \
+             {params.barcode_read_length} \
              --soloCBwhitelist {input.whitelist} \
              --soloStrand {params.solo[soloStrand]} \
              --soloFeatures {params.solo[soloFeatures]} \

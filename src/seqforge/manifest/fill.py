@@ -478,7 +478,11 @@ def _build_files(
     """
     uris = dataset_uris(observations)
     if role_of_sha is None:
-        role_of_sha = {sha: role for role, sha in winner.role_assignment.assignment.items()}
+        # Single-run fill: build the map here, tagging index-sized leftovers the same way the
+        # dataset-level path does, so a stray 10x I1/I2 is set aside rather than left to block.
+        from ..resolve.engine import index_tagged_roles
+
+        role_of_sha = index_tagged_roles(winner, observations)
     return [
         FileInventoryItem(
             # relative to the dataset root; never Observation.file.local_uri, which is absolute

@@ -9,14 +9,16 @@ identity:
   modality: rna
 
 reads:
-  # R1 = the technical/barcode read. 26 bp = 16 CB + 10 UMI (the 2 bp shorter UMI is what separates
-  # v2 from v3's 28 bp: the segment_length gate below is the discriminator, NOT the whitelist).
+  # R1 = the technical/barcode read. 26 bp = 16 CB + 10 UMI (the 2 bp shorter UMI vs v3's 28 bp).
+  # For a CANONICAL read the segment_length gate below separates v2 from v3 by that 26-vs-28. But
+  # max_len is null (an over-sequenced R1 is still v2), and when both accept an over-length read on
+  # geometry, the WHITELIST decides instead (v2 = 737K-august-2016) — see confusable_with.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
     strand: pos
     min_len: 26
-    max_len: 26
+    max_len: null
     elements:
       - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
       - {type: umi,     name: UMI, start: 16, end: 26,                       seqspec_region_type: umi}
@@ -36,9 +38,12 @@ onlists:
     expected_orientation: forward
 
 signature:
-  requires:                              # length is the gate that separates v2 (26 bp) from v3 (28 bp)
+  requires:                              # length separates v2 (26) from v3 (28) for canonical reads
     - {test: read_count, roles: 2}
-    - {test: segment_length, read: R1, length: 26, tolerance: 0}
+    # length 26 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced R1
+    # without loosening 26-vs-28 (a 28 bp read is < 100 -> not over-length -> still FAILs v2's exact
+    # 26), and a 60-94 bp cDNA/split-pool read stays exact-checked and rejected.
+    - {test: segment_length, read: R1, length: 26, tolerance: 0, over_length_min: 100}
     - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
     - {test: has_segment, read: R1, start: 16, end: 26, kind: random}
   supports:
@@ -62,10 +67,28 @@ backend:
     soloUMIlen: 10                        # 10 bp UMI (vs v3's 12) -> 26 bp R1
     soloCBwhitelist: "{onlist:cb_whitelist}"
     soloStrand: Forward
+    # 0 disables STARsolo's barcode-read-length check (default 1 FATALs on an over-length barcode
+    # read); CB/UMI still read from the fixed offsets above.
+    soloBarcodeReadLength: 0
     # soloFeatures is NOT here, and that is the point. It says what to COUNT, and 10x 3' v3.1
     # chemistry is byte-identical for cells and nuclei — what differs is the RNA population, a
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
     # It lives in the processing manifest now, where a user may instruct it.
 
-# v2 vs v3 are length-separable (26 vs 28 bp) at rungs 0-2, so neither is confusable with the other.
-confusable_with: []
+# v2 vs v3 are length-separable (26 vs 28 bp) for CANONICAL reads, so the under-declaration guard does
+# NOT force these edges. They exist for the OVER-LENGTH case: when R1 is over-sequenced (e.g. 150 bp),
+# both v2 and v3/v3.1 accept it on geometry at rungs 0-2, and only the whitelist (rung 3) separates
+# them. Declaring it makes that sub-rung-3 Question decidable_by onlist rather than falling back to user.
+confusable_with:
+  - id: 10x-3p-gex-v3
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Over-length R1 only: v2 = 737K-august-2016, v3 = 3M-february-2018. Not backend_identical
+      (10 vs 12 bp UMI), so not a benign twin — a real divergence the whitelist decides.
+  - id: 10x-3p-gex-v3.1
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Same as the v3 edge: v3.1 is v3's byte-identical twin, so v2 is confusable with it on exactly
+      the same over-length-R1 grounds, decided by the same 737K-vs-3M whitelist split.

@@ -131,6 +131,11 @@ class SegmentLength(_Forbid):
     read: str
     length: int
     tolerance: int = 0
+    #: Over-length escape. A read whose mode is ``>= over_length_min`` PASSES regardless of ``length``
+    #: — an insert-bearing / over-sequenced barcode read (e.g. a 10x R1 sequenced to 150 bp: CB+UMI in
+    #: bp0-28, the rest junk). Keep it strictly above ``length`` so a canonical read is never
+    #: "over-length" and the exact-length gate still separates near-neighbours (v2's 26 vs v3's 28).
+    over_length_min: int | None = None
 
 
 class HasSegment(_Seg):
