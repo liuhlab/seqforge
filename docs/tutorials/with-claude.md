@@ -1,7 +1,7 @@
 # Compiling a dataset with Claude
 
 The easiest way to use seqforge is to not run it yourself. You describe your data to
-[Claude Code](https://claude.com/claude-code) in plain English, and Claude drives seqforge for you —
+[Claude Code](https://claude.com/claude-code) in plain words, and Claude drives seqforge for you —
 figuring out the technology, which file is which read, and how to compile it into a pipeline you can
 run.
 
@@ -19,7 +19,7 @@ This page is the short, friendly path. When you want to see every step and inspe
    safely. Install them once:
 
     ```bash
-    python skills/install.py --user
+    pixi run install-skills
     ```
 
 3. **Set an API key for reading prose.** One stage — reading a paper or a sample sheet — uses a

@@ -184,6 +184,7 @@ test      = "pytest"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
 build     = "python -m build"
+install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
 
