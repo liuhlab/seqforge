@@ -42,7 +42,7 @@ nav:
   - Getting started: getting-started.md
   - Tutorials:
       - Compiling with Claude: tutorials/with-claude.md
-      - Step-by-step (a real dataset): tutorials/step-by-step.md
+      - Compiling Step-by-step: tutorials/step-by-step.md
       - Adding a technology: tutorials/adding-a-technology.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
