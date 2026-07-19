@@ -43,7 +43,7 @@ from ..models.processing import RuntimeEnv
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.7"
+WORKFLOW_VERSION = "2026.7.8"
 
 _MODULE_DIR = Path(__file__).parent
 

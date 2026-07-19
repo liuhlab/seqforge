@@ -38,6 +38,18 @@ def fastqs(sample, role):
     return [u["path"] for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
 
 
+def readfilesin(sample, *roles):
+    """Render STAR ``--readFilesIn`` for one sample: each role (a mate) is its FASTQs **comma-joined**,
+    and the mates are space-separated -- ``cdna1,cdna2 barcode1,barcode2``.
+
+    A sample pooled across N sequencing runs passes every run's file for a mate as one comma-list, in
+    matching run order for every mate (``fastqs`` preserves units.tsv order, which lists a sample's
+    runs in one order). This is STAR's own multi-file syntax; joining with spaces instead -- the old
+    bug -- makes STAR read the extra files as extra mates and crash. A single-run sample renders one
+    file per mate, exactly as before, so this generalises to any run count with no special case."""
+    return " ".join(",".join(fastqs(sample, role)) for role in roles)
+
+
 def whitelists():
     """One path for 10x; three for a split-pool chemistry. The config value is the argv rendering."""
     return SOLO["soloCBwhitelist"].split()
@@ -179,13 +191,18 @@ rule starsolo_count:
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
+        # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
+        # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
+        reads=lambda wc: readfilesin(
+            wc.sample, config["read_files_in"]["cdna"], config["read_files_in"]["barcode"]
+        ),
     shell:
         # --readFilesIn takes the cDNA read FIRST, then the barcode read (asserted by the params gate).
         # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
         # for a chemistry that does not declare it -- an empty token is a valid line continuation.
         r"""
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
-             --readFilesIn {input.cdna} {input.barcode} --readFilesCommand zcat \
+             --readFilesIn {params.reads} --readFilesCommand zcat \
              --soloType {params.solo[soloType]} \
              {params.geometry} \
              {params.barcode_read_length} \

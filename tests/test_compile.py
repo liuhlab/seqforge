@@ -474,6 +474,50 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert len(units) == 3  # header + 2 reads
 
 
+def test_a_sample_pooled_across_runs_renders_comma_joined_readfilesin(tmp_path: Path) -> None:
+    """A sample sequenced over >1 run must reach STAR as ``run1,run2`` per mate, not run1 run2.
+
+    STAR's ``--readFilesIn`` takes each mate as one comma-separated list of files; spaces separate
+    mates. Rendering a pooled sample's files space-separated (``{input.cdna} {input.barcode}`` over a
+    multi-file input) makes STAR read them as extra MATES and segfault -- which is exactly what a real
+    28-sample project did on its 10 multi-run samples. This builds the multi-run case (absent from the
+    single-run fixtures) and asserts the planned STAR command comma-joins within each mate. Generalises
+    the fix: nothing here is 2-run specific beyond the fixture.
+    """
+    import subprocess
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    units_path = pipeline_dir / "units.tsv"
+    rows = [ln.split("\t") for ln in units_path.read_text().splitlines() if ln]
+    header, data = rows[0], rows[1:]
+    # _build makes a single-run sample; add a SECOND run of the same reads to pool it.
+    run2 = [[sid, read_id, f"run2_{path}"] for sid, read_id, path in data]
+    units_path.write_text("\n".join("\t".join(r) for r in [header, *data, *run2]) + "\n")
+    for _sid, _rid, path in [*data, *run2]:  # `snakemake -n` needs its source inputs to exist
+        (pipeline_dir / path).touch()
+
+    proc = subprocess.run(
+        ["snakemake", "-d", str(pipeline_dir), "-s", str(pipeline_dir / "Snakefile"), "-n", "-p"],
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert proc.returncode == 0, proc.stderr
+    out = proc.stdout + proc.stderr
+
+    # cdna=R2 first, then barcode=R1; each mate is its runs comma-joined, in units.tsv order.
+    cdna = [p for _s, rid, p in [*data, *run2] if rid == "R2"]
+    barcode = [p for _s, rid, p in [*data, *run2] if rid == "R1"]
+    assert f"--readFilesIn {','.join(cdna)} {','.join(barcode)}" in out, (
+        f"mates must be comma-joined; got: {[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
+    )
+    # the old bug -- four space-separated files -- must not appear
+    assert f"--readFilesIn {cdna[0]} {cdna[1]} {barcode[0]} {barcode[1]}" not in out
+
+
 def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> None:
     """The Snakefile is the DELIVERABLE, so nothing optional may be its reason for existing.
 
