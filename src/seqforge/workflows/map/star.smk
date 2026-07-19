@@ -19,7 +19,21 @@ ASSEMBLY = config["genome"]["assembly"]
 
 
 def fastqs(sample, role):
-    return [u["path"] for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
+    # Ordered by the units.tsv `run` column so a pooled sample's two mates pair correctly (STAR
+    # desyncs otherwise). `run` is seqforge's own run grouping -- no filename parsing here.
+    us = [u for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
+    return [u["path"] for u in sorted(us, key=lambda u: (u["run"], u["path"]))]
+
+
+def readfilesin(sample, *roles):
+    """Render STAR ``--readFilesIn`` for one sample: each role (a mate) is its FASTQs **comma-joined**,
+    and the mates are space-separated -- ``mate1_run1,mate1_run2 mate2_run1,mate2_run2``.
+
+    A sample pooled across N sequencing runs passes every run's file for a mate as one comma-list, in
+    matching run order for every mate (``fastqs`` preserves units.tsv order). This is STAR's own
+    multi-file syntax; joining with spaces instead makes STAR read the extra files as extra mates and
+    crash. A single-run sample renders one file per mate, so this generalises to any run count."""
+    return " ".join(",".join(fastqs(sample, role)) for role in roles)
 
 
 rule all:
@@ -73,10 +87,14 @@ rule star_count:
     params:
         bulk=config["bulk"],
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
+        # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass.
+        reads=lambda wc: readfilesin(
+            wc.sample, config["read_files_in"]["mate1"], config["read_files_in"]["mate2"]
+        ),
     shell:
         r"""
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
-             --readFilesIn {input.mate1} {input.mate2} --readFilesCommand zcat \
+             --readFilesIn {params.reads} --readFilesCommand zcat \
              --quantMode {params.bulk[quantMode]} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate

@@ -470,8 +470,85 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert not (pipeline_dir / config["solo"]["soloCBwhitelist"]).exists()
 
     units = (tmp_path / result.units_path).read_text().splitlines()
-    assert units[0].split("\t") == ["sample_id", "read_id", "path"]
+    assert units[0].split("\t") == ["sample_id", "run", "read_id", "path"]
     assert len(units) == 3  # header + 2 reads
+
+
+def test_the_composer_records_the_run_each_unit_came_from(tmp_path: Path) -> None:
+    """units.tsv carries a ``run`` column, from the same `run_key` that grouped the dataset.
+
+    Recording the run is what lets the mapping module pair a pooled sample's mates without re-parsing
+    filenames. The value must be `resolve.group.run_key`, not a second notion of "run" -- one function
+    owns it.
+    """
+    from seqforge.compose.core import _units
+    from seqforge.resolve.group import run_key
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    rows = _units(manifest)
+    assert rows and all(set(r) >= {"sample_id", "run", "read_id", "path"} for r in rows)
+    for r in rows:
+        assert r["run"] == run_key(r["path"])
+
+
+def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(tmp_path: Path) -> None:
+    """A pooled (multi-run) sample must reach STAR comma-joined per mate AND with mates paired by run.
+
+    Two real bugs hid here, both only on multi-run samples -- single-run fixtures never exercised the
+    path:
+      1. space-joining a mate's files (``{input.cdna} {input.barcode}`` over a multi-file input) made
+         STAR read them as extra MATES and segfault;
+      2. mates listed in different run order desync STAR ("quality string length is not equal to
+         sequence length") -- it pairs cDNA of run K with barcodes of run J.
+
+    Pairing is driven by the units.tsv ``run`` column (seqforge's own grouping), NOT the filename. To
+    prove that, the fixture gives run ``r1`` alphabetically-late filenames and run ``r2`` early ones,
+    lists the rows scrambled, and asserts the planned command orders both mates by RUN (r1 then r2) --
+    the opposite of what sorting by filename would produce. Generalises the fix; nothing is 2-run
+    specific.
+    """
+    import subprocess
+
+    manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    units_path = pipeline_dir / "units.tsv"
+    header = units_path.read_text().splitlines()[0].split("\t")
+    assert header == ["sample_id", "run", "read_id", "path"]
+    sid = units_path.read_text().splitlines()[1].split("\t")[0]
+    # run -> {role -> filename}; filename order is the REVERSE of run order, so a filename sort would
+    # mispair. read_files_in is cdna=R2, barcode=R1.
+    f = {
+        "r1": {"R1": "z_bc.fastq.gz", "R2": "z_cdna.fastq.gz"},
+        "r2": {"R1": "a_bc.fastq.gz", "R2": "a_cdna.fastq.gz"},
+    }
+    # rows deliberately SCRAMBLED across mates
+    rows = [
+        [sid, "r2", "R2", f["r2"]["R2"]],
+        [sid, "r1", "R1", f["r1"]["R1"]],
+        [sid, "r2", "R1", f["r2"]["R1"]],
+        [sid, "r1", "R2", f["r1"]["R2"]],
+    ]
+    units_path.write_text("\n".join("\t".join(r) for r in [header, *rows]) + "\n")
+    for _sid, _run, _rid, path in rows:  # `snakemake -n` needs its source inputs to exist
+        (pipeline_dir / path).touch()
+
+    proc = subprocess.run(
+        ["snakemake", "-d", str(pipeline_dir), "-s", str(pipeline_dir / "Snakefile"), "-n", "-p"],
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert proc.returncode == 0, proc.stderr
+    out = proc.stdout + proc.stderr
+
+    # cdna=R2 first, then barcode=R1; each mate comma-joined AND both ordered by run (r1, then r2).
+    expected = f"--readFilesIn {f['r1']['R2']},{f['r2']['R2']} {f['r1']['R1']},{f['r2']['R1']}"
+    assert expected in out, (
+        f"mates must comma-join and pair by the run column; got: "
+        f"{[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
+    )
 
 
 def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> None:
