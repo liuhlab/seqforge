@@ -5,6 +5,8 @@
 # genome index resolves at RUN TIME from a `liulab-genome` assembly id.
 
 import csv
+import os
+import re
 
 
 def _load_units(path):
@@ -18,8 +20,23 @@ OUTDIR = config["outdir"]
 ASSEMBLY = config["genome"]["assembly"]
 
 
+def _run_key(path):
+    """The sequencing run a FASTQ belongs to, for pairing mates: the filename with its trailing
+    mate/read tag stripped (``SRR12345_1.fastq.gz`` and ``SRR12345_2.fastq.gz`` both key to
+    ``SRR12345``). Sorting each mate by this lines run N of one mate up with run N of the other."""
+    name = os.path.basename(path)
+    for ext in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
+        if name.endswith(ext):
+            name = name[: -len(ext)]
+            break
+    return re.sub(r"_[A-Za-z0-9]+$", "", name)
+
+
 def fastqs(sample, role):
-    return [u["path"] for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
+    # Sorted by run so a pooled sample's two mates pair correctly (STAR desyncs otherwise). units.tsv
+    # does not guarantee a consistent per-role run order.
+    fs = [u["path"] for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
+    return sorted(fs, key=_run_key)
 
 
 def readfilesin(sample, *roles):

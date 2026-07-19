@@ -474,15 +474,20 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert len(units) == 3  # header + 2 reads
 
 
-def test_a_sample_pooled_across_runs_renders_comma_joined_readfilesin(tmp_path: Path) -> None:
-    """A sample sequenced over >1 run must reach STAR as ``run1,run2`` per mate, not run1 run2.
+def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(tmp_path: Path) -> None:
+    """A pooled (multi-run) sample must reach STAR comma-joined per mate AND with mates paired by run.
 
-    STAR's ``--readFilesIn`` takes each mate as one comma-separated list of files; spaces separate
-    mates. Rendering a pooled sample's files space-separated (``{input.cdna} {input.barcode}`` over a
-    multi-file input) makes STAR read them as extra MATES and segfault -- which is exactly what a real
-    28-sample project did on its 10 multi-run samples. This builds the multi-run case (absent from the
-    single-run fixtures) and asserts the planned STAR command comma-joins within each mate. Generalises
-    the fix: nothing here is 2-run specific beyond the fixture.
+    Two real bugs hid here, both only on multi-run samples -- single-run fixtures never exercised the
+    path:
+      1. space-joining a mate's files (``{input.cdna} {input.barcode}`` over a multi-file input) made
+         STAR read them as extra MATES and segfault;
+      2. units.tsv does not guarantee a consistent per-role run order, so comma-joining in tsv order
+         could pair cDNA of run K with barcode of run J -- STAR then desyncs ("quality string length
+         is not equal to sequence length").
+
+    So this builds the worst case: two runs whose rows are listed in OPPOSITE order for the two mates,
+    and asserts the planned command (a) comma-joins within each mate and (b) lists both mates in the
+    SAME run order (fastqs sorts by run). Generalises the fix -- nothing here is 2-run specific.
     """
     import subprocess
 
@@ -491,12 +496,22 @@ def test_a_sample_pooled_across_runs_renders_comma_joined_readfilesin(tmp_path: 
     pipeline_dir = (tmp_path / result.snakefile_path).parent
 
     units_path = pipeline_dir / "units.tsv"
-    rows = [ln.split("\t") for ln in units_path.read_text().splitlines() if ln]
-    header, data = rows[0], rows[1:]
-    # _build makes a single-run sample; add a SECOND run of the same reads to pool it.
-    run2 = [[sid, read_id, f"run2_{path}"] for sid, read_id, path in data]
-    units_path.write_text("\n".join("\t".join(r) for r in [header, *data, *run2]) + "\n")
-    for _sid, _rid, path in [*data, *run2]:  # `snakemake -n` needs its source inputs to exist
+    lines = units_path.read_text().splitlines()
+    header = lines[0].split("\t")
+    sid = lines[1].split("\t")[0]
+    f = {  # run key is the name minus the trailing _<mate> tag: runA_R1 and runA_R2 -> runA
+        "runA": {"R1": "runA_R1.fastq.gz", "R2": "runA_R2.fastq.gz"},
+        "runB": {"R1": "runB_R1.fastq.gz", "R2": "runB_R2.fastq.gz"},
+    }
+    # rows deliberately SCRAMBLED: R1 lists runA then runB, R2 lists runB then runA.
+    rows = [
+        [sid, "R1", f["runA"]["R1"]],
+        [sid, "R2", f["runB"]["R2"]],
+        [sid, "R1", f["runB"]["R1"]],
+        [sid, "R2", f["runA"]["R2"]],
+    ]
+    units_path.write_text("\n".join("\t".join(r) for r in [header, *rows]) + "\n")
+    for _sid, _rid, path in rows:  # `snakemake -n` needs its source inputs to exist
         (pipeline_dir / path).touch()
 
     proc = subprocess.run(
@@ -508,14 +523,14 @@ def test_a_sample_pooled_across_runs_renders_comma_joined_readfilesin(tmp_path: 
     assert proc.returncode == 0, proc.stderr
     out = proc.stdout + proc.stderr
 
-    # cdna=R2 first, then barcode=R1; each mate is its runs comma-joined, in units.tsv order.
-    cdna = [p for _s, rid, p in [*data, *run2] if rid == "R2"]
-    barcode = [p for _s, rid, p in [*data, *run2] if rid == "R1"]
-    assert f"--readFilesIn {','.join(cdna)} {','.join(barcode)}" in out, (
-        f"mates must be comma-joined; got: {[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
+    # cdna=R2 first, then barcode=R1; each mate comma-joined AND both in run order runA,runB.
+    expected = (
+        f"--readFilesIn {f['runA']['R2']},{f['runB']['R2']} {f['runA']['R1']},{f['runB']['R1']}"
     )
-    # the old bug -- four space-separated files -- must not appear
-    assert f"--readFilesIn {cdna[0]} {cdna[1]} {barcode[0]} {barcode[1]}" not in out
+    assert expected in out, (
+        f"mates must comma-join and pair by run; got: "
+        f"{[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
+    )
 
 
 def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> None:
