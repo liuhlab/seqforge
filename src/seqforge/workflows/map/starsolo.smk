@@ -10,8 +10,6 @@
 # is ever baked into a config or a manifest, and we do not reimplement liulab-genome's job here.
 
 import csv
-import os
-import re
 
 # seqforge's own helpers, imported rather than restated. `h5ad_suffixes` decides both what the
 # packaging rule DECLARES below and what `seqforge io h5ad` WRITES, so the two cannot drift; a rule
@@ -36,25 +34,13 @@ FEATURES = SOLO["soloFeatures"].split()
 PRIMARY = config["primary_feature"]
 
 
-def _run_key(path):
-    """The sequencing run a FASTQ belongs to, for pairing mates. It is the filename with its trailing
-    mate/read tag stripped -- ``SRR12345_3.fastq.gz`` and ``SRR12345_4.fastq.gz`` (barcode and cDNA of
-    one run) both key to ``SRR12345``. Sorting each mate by this makes run N of one mate line up with
-    run N of the other, whatever order units.tsv happens to list them in."""
-    name = os.path.basename(path)
-    for ext in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
-        if name.endswith(ext):
-            name = name[: -len(ext)]
-            break
-    return re.sub(r"_[A-Za-z0-9]+$", "", name)  # drop the trailing mate tag (_1/_2/_R1/...)
-
-
 def fastqs(sample, role):
-    # Sorted by run so a pooled sample's mates pair correctly: STAR reads --readFilesIn mate-by-mate
-    # and desyncs (FATAL: "quality string length is not equal to sequence length") if cDNA run K is
-    # paired with barcode run J. units.tsv does not guarantee a consistent per-role run order.
-    fs = [u["path"] for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
-    return sorted(fs, key=_run_key)
+    # Ordered by the units.tsv `run` column so a pooled sample's mates pair correctly: STAR reads
+    # --readFilesIn mate-by-mate and desyncs (FATAL: "quality string length is not equal to sequence
+    # length") if cDNA run K is joined with barcode run J. `run` is seqforge's own run grouping, so
+    # run N of one mate lines up with run N of the other -- no filename parsing here.
+    us = [u for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
+    return [u["path"] for u in sorted(us, key=lambda u: (u["run"], u["path"]))]
 
 
 def readfilesin(sample, *roles):

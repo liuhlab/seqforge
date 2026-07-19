@@ -47,6 +47,7 @@ from ..models.processing import (
     SoloQuant,
 )
 from ..models.resolve import ComposeResult, ModuleSelection
+from ..resolve.group import run_key
 from ..workflows import WorkflowModule, container_uri, get_module
 from ..workspace import readable, state_dir
 from .params import (
@@ -464,7 +465,14 @@ def _resolve_uri(uri: str, fastq_dir: str | Path | None) -> str:
 
 
 def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> list[dict[str, str]]:
-    """One row per (sample, read role, file). Falls back to a single implicit sample."""
+    """One row per (sample, run, read role, file). Falls back to a single implicit sample.
+
+    ``run`` is which sequencing run a file came from, from the SAME `resolve.group.run_key` that
+    grouped the dataset into runs during resolution. Recording it here is what lets the mapping module
+    pair a pooled sample's mates by run: STAR reads `--readFilesIn` mate-by-mate and desyncs if cDNA of
+    run K is joined with barcodes of run J, and `sample.file_uris` gives no order guarantee. Deriving
+    the run once, in the one function that owns the notion, keeps the workflow from re-parsing names.
+    """
     by_uri = {f.uri: f for f in manifest.library.files}
     rows: list[dict[str, str]] = []
     samples = manifest.experiment.samples
@@ -474,6 +482,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
                 rows.append(
                     {
                         "sample_id": "sample1",
+                        "run": run_key(f.uri),
                         "read_id": f.read_id,
                         "path": _resolve_uri(f.uri, fastq_dir),
                     }
@@ -487,6 +496,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
             rows.append(
                 {
                     "sample_id": sample.sample_id,
+                    "run": run_key(item.uri),
                     "read_id": item.read_id,
                     "path": _resolve_uri(item.uri, fastq_dir),
                 }
@@ -495,7 +505,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
 
 
 def _units_tsv(rows: list[dict[str, str]]) -> str:
-    header = ["sample_id", "read_id", "path"]
+    header = ["sample_id", "run", "read_id", "path"]
     lines = ["\t".join(header)]
     lines += ["\t".join(r[h] for h in header) for r in rows]
     return "\n".join(lines) + "\n"
