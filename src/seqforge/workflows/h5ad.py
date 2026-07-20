@@ -132,6 +132,59 @@ def _stackable(features: list[SoloFeature]) -> list[SoloFeature]:
     ]
 
 
+def _gene_axis(features: list[SoloFeature]) -> list[SoloFeature]:
+    """The gene-axis features — every one that gets a ``filtered/`` cell-called copy on disk.
+
+    That is ``Gene``/``GeneFull*`` **and** ``Velocyto`` (all ``axis == "gene"``); the junction-axis
+    ``SJ`` is excluded because we have not confirmed its ``filtered/`` layout on real output, and a
+    declared output that STAR did not write is a hard rule failure. Under-declaring only leaves a
+    file uncleaned; over-declaring breaks the run — so this stays to what the tree in hand shows.
+    """
+    return [f for f in features if SOLO_FEATURE_OUTPUT[f].axis == "gene"]
+
+
+#: STAR's per-run log/table files, written beside ``Solo.out`` at ``{OUTDIR}/{sample}/`` (not per
+#: feature). ``Aligned.out.bam`` is deliberately **not** here: it is the CRAM rule's input, declared
+#: on its own, while these four are the stats bundle's. All are written by every ``alignReads`` run.
+STAR_LOG_FILES: tuple[str, ...] = ("Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab")
+
+#: The unsorted alignment STAR writes under ``{OUTDIR}/{sample}/``. Its own constant because exactly
+#: one rule (``solo_to_cram``) consumes it, and the file naming has to come from somewhere.
+STAR_BAM = "Aligned.out.bam"
+
+
+def solo_stats_files(features: list[SoloFeature]) -> list[str]:
+    """Every small STAR stats file a ``--soloFeatures`` run writes, relative to ``Solo.out``.
+
+    Declared as ``temp()`` outputs of ``starsolo_count`` so the ``qc_bundle`` rule consumes them into
+    ``<sample>.qc.json.gz`` and Snakemake then deletes them — no manual ``rm``. Three shapes:
+
+    - ``Barcodes.stats`` — once, at the top level (barcode-demux QC, not per feature).
+    - ``Summary.csv`` / ``Features.stats`` — one per feature, for every feature.
+    - ``UMIperCellSorted.txt`` — the knee-plot vector, written **only** for the cell-filtered gene
+      features (the ``_stackable`` set). STAR writes none for ``Velocyto`` or ``SJ``, so declaring it
+      there would fail the rule. This is the one per-feature distinction, confirmed against real
+      output (Gene/GeneFull* have it; Velocyto does not).
+    """
+    out = ["Barcodes.stats"]
+    for feat in features:
+        out += [f"{feat}/Summary.csv", f"{feat}/Features.stats"]
+    out += [f"{feat}/UMIperCellSorted.txt" for feat in _stackable(features)]
+    return out
+
+
+def solo_filtered_files(features: list[SoloFeature]) -> list[str]:
+    """Every ``filtered/`` file a ``--soloFeatures`` run writes, relative to ``Solo.out``.
+
+    STAR's default cell filter (``--soloCellFilter`` default ``CellRanger2.2 3000 0.99 10``) writes a
+    ``filtered/`` copy of each gene-axis feature — same matrices + axis files as ``raw/``. Nothing
+    downstream reads it (the h5ad is built from ``raw/``), so it is declared ``temp()`` and the
+    ``qc_bundle`` rule lists it as input purely to (a) record ``filtered/barcodes.tsv`` — what STAR
+    *called* — as provenance and (b) trigger its deletion.
+    """
+    return [f"{feat}/filtered/{name}" for feat in _gene_axis(features) for name in raw_files(feat)]
+
+
 def h5ad_suffixes(features: list[SoloFeature]) -> list[str]:
     """The ``.h5ad`` files a run of ``--soloFeatures <features>`` yields, as filename suffixes.
 
@@ -304,8 +357,12 @@ __all__ = [
     "SoloAxis",
     "SoloFeatureOutput",
     "SOLO_FEATURE_OUTPUT",
+    "STAR_BAM",
+    "STAR_LOG_FILES",
     "h5ad_suffixes",
     "raw_files",
+    "solo_filtered_files",
     "solo_raw_files",
+    "solo_stats_files",
     "write_h5ad",
 ]

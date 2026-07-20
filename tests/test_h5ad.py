@@ -15,10 +15,14 @@ import pytest
 from seqforge.models.processing import SoloFeature
 from seqforge.workflows.h5ad import (
     SOLO_FEATURE_OUTPUT,
+    STAR_BAM,
+    STAR_LOG_FILES,
     H5adError,
     h5ad_suffixes,
     raw_files,
+    solo_filtered_files,
     solo_raw_files,
+    solo_stats_files,
     write_h5ad,
 )
 
@@ -107,6 +111,49 @@ def test_the_default_five_features_yield_exactly_two_files() -> None:
     from seqforge.manifest.policy import DEFAULT_SOLO_FEATURES
 
     assert h5ad_suffixes(list(DEFAULT_SOLO_FEATURES)) == [".h5ad", ".velocyto.h5ad"]
+
+
+def test_stats_files_are_per_feature_but_umi_per_cell_only_for_the_stackable_ones() -> None:
+    """The finalize temp() declaration must match what STAR writes exactly, or the rule fails.
+
+    Every feature gets a Summary.csv + Features.stats; Barcodes.stats is once at the top; but only the
+    cell-filtered gene features (Gene/GeneFull*) get a UMIperCellSorted knee vector — Velocyto and SJ
+    do not (confirmed against real output). Over-declaring a file STAR never wrote breaks the run.
+    """
+    features = ["Gene", "GeneFull", "Velocyto"]
+    stats = solo_stats_files(features)  # type: ignore[arg-type]
+    assert "Barcodes.stats" in stats
+    for feat in features:
+        assert f"{feat}/Summary.csv" in stats
+        assert f"{feat}/Features.stats" in stats
+    assert "Gene/UMIperCellSorted.txt" in stats
+    assert "GeneFull/UMIperCellSorted.txt" in stats
+    assert "Velocyto/UMIperCellSorted.txt" not in stats
+    # SJ (junction axis) is not cell-filtered, so it gets no knee vector either.
+    assert "SJ/UMIperCellSorted.txt" not in solo_stats_files(["Gene", "SJ"])  # type: ignore[arg-type]
+
+
+def test_filtered_files_cover_every_gene_axis_feature_but_not_sj() -> None:
+    """STAR writes a filtered/ copy for each gene-axis feature (incl. Velocyto's three matrices).
+
+    We declare only what real output confirms; SJ's filtered layout is unconfirmed, so it is left out
+    — under-declaring merely leaves a file uncleaned, while over-declaring is a hard rule failure.
+    """
+    filtered = solo_filtered_files(["Gene", "Velocyto", "SJ"])  # type: ignore[arg-type]
+    assert "Gene/filtered/matrix.mtx" in filtered
+    assert "Gene/filtered/barcodes.tsv" in filtered
+    # Velocyto's filtered dir carries the same three matrices as raw, plus the axis files.
+    assert "Velocyto/filtered/spliced.mtx" in filtered
+    assert "Velocyto/filtered/ambiguous.mtx" in filtered
+    assert "Velocyto/filtered/barcodes.tsv" in filtered
+    assert not any(f.startswith("SJ/") for f in filtered)
+
+
+def test_star_run_files_are_the_logs_the_bundle_reads_and_the_bam_is_separate() -> None:
+    """The log/table set feeds qc_bundle; the BAM is its own constant (solo_to_cram consumes it)."""
+    assert set(STAR_LOG_FILES) == {"Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab"}
+    assert STAR_BAM == "Aligned.out.bam"
+    assert STAR_BAM not in STAR_LOG_FILES
 
 
 def test_write_h5ad_writes_exactly_what_h5ad_suffixes_promised(tmp_path: Path) -> None:

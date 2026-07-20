@@ -209,6 +209,10 @@ def plan(
         # exactly like a fastq path.
         "container": container_uri(intent.environment.value, sif_dir),
         "threads": intent.resources.threads,
+        # The advisory memory hint, in MB, so the finalize CRAM sort can be given a real `-m` budget
+        # rather than single-threading samtools' default. An intent knob (like threads), never a
+        # machine fact — the scheduler honours it when the user submits.
+        "mem_mb": intent.resources.mem_gb * 1024,
         "outdir": outdir,
         "read_files_in": _read_files_in(manifest, module),
         "samples": [s.sample_id for s in manifest.experiment.samples],

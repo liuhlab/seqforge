@@ -758,6 +758,28 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert "container" in get_module("map/starsolo").required_config
 
 
+def test_the_cram_rule_runs_in_a_pinned_container() -> None:
+    """`seqforge io cram` shells out to samtools — a runtime tool, exactly like STAR — so its rule
+    must name the image, not run against whatever samtools the submitting shell happened to have.
+
+    The samtools call is behind the verb, so the detectable signal at the module level is the verb
+    invocation itself; the container is what pins the tool the verb reaches. This is the same guard as
+    `test_the_aligner_rule_runs_in_a_pinned_container`, generalised: the line for a `container:` is
+    "the rule ends up invoking an external runtime binary", not "is the aligner". The pure-seqforge
+    steps (h5ad, onlist, the qc bundle) reach no such binary and correctly carry no container.
+    """
+    seen = False
+    for name in list_modules():
+        for rule, body in _rule_blocks(get_module(name).snakefile).items():
+            if "seqforge io cram" in body:
+                seen = True
+                assert 'container: config["container"]' in body, (
+                    f"{name}:{rule} runs `seqforge io cram` (which shells out to samtools) with no "
+                    f"container, so the tool is whatever the submitting shell happened to have"
+                )
+    assert seen, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
+
+
 def test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here() -> None:
     """We NAME liulab-runtime's artifact. Naming is the opposite of defining."""
     from seqforge.models.processing import RuntimeEnv
