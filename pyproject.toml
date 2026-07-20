@@ -34,6 +34,19 @@ dependencies = [
     # with a "pip install pypdf" remedy, which meant no supported install of seqforge could read the
     # one document type the pilot dataset ships.
     "pypdf>=4",
+    # PyMuPDF is the DEFAULT PDF text extractor for `harvest`, and it is here for ROBUSTNESS, not
+    # cleverness: an end-to-end harvest eval over ten real C. elegans manuscripts found pypdf raising
+    # PdfReadError on two of them (a duplicate /FontFile), while PyMuPDF read every one. It is AGPL-3.0
+    # — the one non-permissive dependency — accepted because seqforge is an internal tool that emits
+    # offline Snakefiles (not a network service), so the copyleft's reach is minimal; `--pdf-backend
+    # pypdf` (BSD) stays available for anyone who needs to avoid it. We call `get_text` WITHOUT sort,
+    # because geometric sorting interleaves two-column pages (see harvest/normalize.py).
+    "PyMuPDF>=1.24",
+    # pdfplumber (MIT) detects in-text tables and renders them to markdown that is spliced into the
+    # canonical text, so a sample-metadata table cell is quotable and greps back. Same argument as
+    # openpyxl below — papers ship sample metadata as tables — so it is a hard dependency, used by
+    # whichever text backend is chosen.
+    "pdfplumber>=0.11",
     # Excel text extraction for `harvest`, same weight as pypdf: papers ship sample metadata as
     # supplementary `.xlsx` tables, and `read_document` advertises `.xlsx`. A workbook is a zip of
     # XML — read as plain text it is garbage — so this is a hard dependency, not an extra.
@@ -129,6 +142,8 @@ pandas = ">=2.1,<3"     # liulab-genome needs pandas <3
 gffutils = "*"          # liulab-genome (genome.io.gtf)
 ucsc-fatotwobit = "*"   # faToTwoBit, shelled out to by liulab-genome
 ucsc-twobitinfo = "*"   # twoBitInfo, shelled out to by liulab-genome
+pymupdf = ">=1.28.0,<2"      # DEFAULT PDF text backend (robust; AGPL-3.0); see [project].dependencies
+pdfplumber = ">=0.11.10,<0.12"  # in-text table -> markdown, spliced into canonical text; see [project]
 
 # `wf` — the workflow toolchain, present so compose's wiring gate ACTUALLY RUNS.
 #
@@ -236,6 +251,16 @@ follow_imports = "silent"
 [[tool.mypy.overrides]]
 module = ["scipy.*"]
 ignore_missing_imports = true
+
+# PyMuPDF ships a `py.typed` marker but leaves `open` (and more) unannotated, and pdfplumber ships no
+# stubs at all. Both are third-party PDF engines we call through one thin, guarded function each in
+# `harvest/normalize.py` (`_pymupdf_pages`, `_pdf_tables`). Skip following their imports so `--strict`
+# does not trip on their incomplete typing; the honest state is untyped, and the surface we touch is
+# tiny and covered by `test_harvest.py`.
+[[tool.mypy.overrides]]
+module = ["pymupdf", "pymupdf.*", "pdfplumber", "pdfplumber.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

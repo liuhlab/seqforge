@@ -10,7 +10,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from seqforge.harvest import (
+    DEFAULT_PDF_BACKEND,
+    UnreadableDocument,
+    clean_invalid_unicode,
     entails,
     find_span,
     normalize_document,
@@ -20,6 +25,59 @@ from seqforge.harvest import (
 from seqforge.models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
 
 EXTRACTOR = ExtractorProvenance(model_id="test-model", prompt_version="v1")
+
+
+def _esc(s: str) -> str:
+    return s.replace("\\", r"\\").replace("(", r"\(").replace(")", r"\)")
+
+
+def _make_pdf(pages: list[str]) -> bytes:
+    """A minimal, valid multi-page PDF built from raw operators — no dependency, no binary fixture.
+
+    Each entry in ``pages`` is one page's text (newline-separated lines). Enough to exercise the real
+    pypdf/pymupdf extractors, page tagging, and the empty-document tripwire without shipping a blob.
+    """
+    objs: dict[int, bytes] = {3: b"<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>"}
+    kids: list[int] = []
+    num = 4
+    for page in pages:
+        lines = ["BT", "/F1 11 Tf"]
+        y = 720
+        for ln in page.split("\n"):
+            lines.append(f"1 0 0 1 72 {y} Tm ({_esc(ln)}) Tj")
+            y -= 16
+        lines.append("ET")
+        content = "\n".join(lines).encode()
+        cnum, pnum = num, num + 1
+        num += 2
+        objs[cnum] = b"<</Length %d>>\nstream\n%s\nendstream" % (len(content), content)
+        objs[pnum] = (
+            b"<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]"
+            b"/Resources<</Font<</F1 3 0 R>>>>/Contents %d 0 R>>" % cnum
+        )
+        kids.append(pnum)
+    objs[1] = b"<</Type/Catalog/Pages 2 0 R>>"
+    objs[2] = b"<</Type/Pages/Kids[%s]/Count %d>>" % (
+        b" ".join(b"%d 0 R" % k for k in kids),
+        len(kids),
+    )
+    out = bytearray(b"%PDF-1.4\n")
+    offsets: dict[int, int] = {}
+    for i in range(1, num):
+        offsets[i] = len(out)
+        out += b"%d 0 obj\n%s\nendobj\n" % (i, objs[i])
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % num
+    for i in range(1, num):
+        out += b"%010d 00000 n \n" % offsets[i]
+    out += b"trailer\n<</Size %d/Root 1 0 R>>\nstartxref\n%d\n%%%%EOF\n" % (num, xref)
+    return bytes(out)
+
+
+def _pdf(tmp_path: Path, pages: list[str], name: str = "paper.pdf") -> Path:
+    p = tmp_path / name
+    p.write_bytes(_make_pdf(pages))
+    return p
 
 
 # ---------- normalize: the span space ----------
@@ -417,3 +475,141 @@ def test_surface_forms_dispatch_is_exact_match_not_a_substring_test() -> None:
     # quantification has NO alias source, on purpose: STARsolo's own spelling is the only form, so an
     # alias table could only loosen the one check that is not vacuous.
     assert surface_forms("processing.quantification", "GeneFull") == ["GeneFull"]
+
+
+# ---------- PDF: pluggable extraction, unicode hardening, page tags, tables ----------
+def test_the_default_pdf_backend_is_pymupdf() -> None:
+    """The default was chosen by an end-to-end harvest eval (pymupdf read PDFs pypdf could not), not
+    by license or speed. If this flips, the choice and its rationale must flip with it."""
+    assert DEFAULT_PDF_BACKEND == "pymupdf"
+
+
+@pytest.mark.parametrize("backend", ["pypdf", "pymupdf"])
+def test_a_pdf_extracts_normalizes_and_verifies_end_to_end(tmp_path: Path, backend: str) -> None:
+    """Both backends turn a PDF into canonical text a truthful quote greps back into, and the chosen
+    backend is recorded on the document. The span space is the same contract as for a .txt."""
+    pdf = _pdf(
+        tmp_path,
+        ["Methods. Libraries were prepared with the Chromium Single Cell 3' v3 kit."],
+    )
+    nd = normalize_document(pdf, pdf_backend=backend)  # type: ignore[arg-type]
+    assert nd.extractor == backend
+    assert nd.pages and nd.pages[0].number == 1
+    draft = AssertionDraft(
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Chromium Single Cell 3' v3"),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 1, report.rejected
+
+
+def test_a_span_carries_the_physical_page_it_was_found_on(tmp_path: Path) -> None:
+    """A PDF span is tagged with its 1-indexed page, computed by code from the offset — never by the
+    model — so a citation can say "p.2" only where that is a real, checkable location."""
+    pdf = _pdf(
+        tmp_path,
+        [
+            "Methods. The data were deposited as PRJNA1027859 on submission.",
+            "Results. The organism profiled was Caenorhabditis elegans throughout.",
+        ],
+    )
+    nd = normalize_document(pdf, pdf_backend="pypdf")
+    assert len(nd.pages) == 2
+    drafts = [
+        AssertionDraft(
+            field="experiment.accessions",
+            value="PRJNA1027859",
+            span=SourceSpan(doc_sha256=nd.doc_sha256, quote="deposited as PRJNA1027859"),
+            llm_confidence=0.9,
+        ),
+        AssertionDraft(
+            field="experiment.organism",
+            value="Caenorhabditis elegans",
+            span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Caenorhabditis elegans"),
+            llm_confidence=0.9,
+        ),
+    ]
+    report = verify_drafts(drafts, [nd], extractor=EXTRACTOR)
+    by_field = {a.field: a for a in report.assertions}
+    assert by_field["experiment.accessions"].span.page == 1  # page 1's accession
+    assert by_field["experiment.organism"].span.page == 2  # page 2's organism
+
+
+def test_a_non_pdf_span_has_no_page(tmp_path: Path) -> None:
+    """ "p.4" is meaningless for a .txt or a record, so an unpaged source tags the span ``None`` rather
+    than inventing a page."""
+    nd = _doc(tmp_path, "The organism was Caenorhabditis elegans.")
+    draft = AssertionDraft(
+        field="experiment.organism",
+        value="Caenorhabditis elegans",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Caenorhabditis elegans"),
+        llm_confidence=0.9,
+    )
+    a = verify_drafts([draft], [nd], extractor=EXTRACTOR).assertions[0]
+    assert a.span.page is None and nd.pages == ()
+
+
+def test_normalize_scrubs_invalid_unicode_that_would_crash_the_hash() -> None:
+    """A PDF extractor emits NUL and orphaned UTF-16 surrogates on a bad font; a lone surrogate makes
+    the very next step — ``text.encode()`` for the content hash — raise. The scrub runs first."""
+    dirty = "Chromium Single\x00 Cell 3'\udc3c v3"  # NUL + lone low surrogate
+    assert clean_invalid_unicode(dirty) == "Chromium Single Cell 3' v3"
+    out = normalize_text(dirty)
+    assert "Chromium Single Cell 3' v3" in out
+    out.encode()  # would raise UnicodeEncodeError on a surviving surrogate; it does not
+
+
+def test_normalize_document_survives_a_nul_byte_in_a_source_file(tmp_path: Path) -> None:
+    """The end-to-end version: a file whose bytes contain a NUL still normalizes and hashes."""
+    p = tmp_path / "methods.txt"
+    p.write_bytes(b"We used the Chromium Single Cell 3' v3 kit.\x00\n")
+    nd = normalize_document(p)
+    assert "Chromium Single Cell 3' v3" in nd.text
+    assert len(nd.normalized_sha256) == 64
+
+
+def test_an_empty_pdf_is_refused_not_silently_empty(tmp_path: Path) -> None:
+    """A scanned or image-only PDF yields no text. Refusing at the boundary is the difference between
+    a clear cause and a mysterious span-verification miss that gets blamed on the model."""
+    pdf = _pdf(tmp_path, [""])
+    with pytest.raises(UnreadableDocument):
+        normalize_document(pdf)
+
+
+def test_garble_is_refused_but_a_short_instruction_is_not(tmp_path: Path) -> None:
+    """The entropy gate catches a garbled read only past a length floor, so a terse legitimate
+    instruction is never mistaken for noise."""
+    garbled = tmp_path / "garbled.txt"
+    garbled.write_text("x" * 600)  # long + near-zero entropy = a failed decode
+    with pytest.raises(UnreadableDocument):
+        normalize_document(garbled)
+
+    terse = tmp_path / "note.txt"
+    terse.write_text("use GeneFull")  # short + low-variety, but a real instruction
+    assert normalize_document(terse, role="instruction").text == "use GeneFull"
+
+
+def test_a_pdf_table_is_spliced_into_the_canonical_text_and_a_cell_verifies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A detected table is rendered to ` | `-joined markdown and spliced INTO the canonical text (not a
+    side channel), so a quoted sample-table cell greps back like any other span. The detection is
+    pdfplumber's (exercised on real papers by the eval); here we pin OUR splice+render+verify path by
+    supplying the table, so the test does not depend on pdfplumber's heuristics on a synthetic PDF."""
+    monkeypatch.setattr(
+        "seqforge.harvest.normalize._pdf_tables",
+        lambda _p: {1: ["Sample | Genotype\n\nSRR1 | daf-2(e1370)"]},
+    )
+    pdf = _pdf(tmp_path, ["Methods. Per-sample genotypes are given in Table 1."])
+    nd = normalize_document(pdf, pdf_backend="pypdf")
+    assert "Table (page 1):" in nd.text
+    assert "SRR1 | daf-2(e1370)" in nd.text  # the row survived normalize_text intact
+    draft = AssertionDraft(
+        field="experiment.samples.genotype",
+        value="daf-2(e1370)",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="SRR1 | daf-2(e1370)"),
+        llm_confidence=0.9,
+    )
+    assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
