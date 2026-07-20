@@ -351,17 +351,31 @@ def test_an_unfilterable_gtf_is_refused_rather_than_silently_widened(tmp_path: P
         _parse_exons(gtf)
 
 
+#: The measured child must outlive several of the parent's VmHWM poll intervals (`_POLL_S = 0.05s`
+#: in e2e.py), or the peak is never sampled. A child that allocates and exits inside one interval is
+#: caught at an arbitrary pre-peak instant instead — the origin of the `400 MB run -> 12 KiB` flake:
+#: both a `bytearray` alloc and its page-touch finish in milliseconds, faster than a single poll. Ten
+#: intervals of headroom keeps the peak resident long enough that sampling it is a certainty, not a
+#: race, on the loadiest CI runner.
+_HOLD_PEAK_RESIDENT_S = 0.5
+
+
 def _measure_mb(tmp_path: Path, mb: int, name: str) -> int:
+    """Spawn a child that makes ``mb`` MB genuinely resident, and return its measured peak RSS (KiB).
+
+    The child touches every page (an untouched ``bytearray`` is not necessarily resident, and this is
+    about RESIDENT memory) and then holds that peak for :data:`_HOLD_PEAK_RESIDENT_S` so the parent's
+    ``VmHWM`` poller is guaranteed to sample it — see the note there.
+    """
     from seqforge.e2e import _run_measured
 
     code, _wall, kib, _err = _run_measured(
-        # touch every page: an untouched bytearray is not necessarily resident, and this test is
-        # about RESIDENT memory
         [
             sys.executable,
             "-c",
             f"x = bytearray({mb} * 1024 * 1024)\n"
             f"for i in range(0, len(x), 4096): x[i] = 1\n"
+            f"import time; time.sleep({_HOLD_PEAK_RESIDENT_S})\n"
             f"print(len(x))",
         ],
         outdir=tmp_path / name,

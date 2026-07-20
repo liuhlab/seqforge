@@ -164,8 +164,6 @@ pdfplumber = ">=0.11.10,<0.12"  # in-text table -> markdown, spliced into canoni
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 
-[tool.pixi.feature.py312.dependencies]
-python = "3.12.*"
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
 
@@ -188,10 +186,9 @@ types-openpyxl = "*"
 mkdocs-material = "*"
 
 [tool.pixi.environments]
-default    = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
-test-py312 = { features = ["py312", "test", "wf"], solve-group = "py312" }
-test-py313 = { features = ["py313", "test", "wf"], solve-group = "default" }
-docs       = { features = ["py313", "docs"], solve-group = "default" }
+default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
+test    = { features = ["py313", "test", "wf"], solve-group = "default" }
+docs    = { features = ["py313", "docs"], solve-group = "default" }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
