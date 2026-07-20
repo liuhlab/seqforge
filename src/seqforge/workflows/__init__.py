@@ -19,6 +19,12 @@ from typing import Literal
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.11 — starsolo.smk gains an always-on finalize: `starsolo_count` now declares its stats,
+#: logs, filtered/ tree and BAM as `temp()` outputs; new `solo_to_cram` (BAM -> sorted CRAM via
+#: `seqforge io cram`) and `qc_bundle` (stats+logs -> one gzipped JSON via `seqforge io qc-bundle`)
+#: consume them, so the raw matrices, filtered copies, scattered stats and BAM are all deleted once
+#: the retained deliverables (h5ad, cram, qc.json.gz) land. No new config key (reads only the
+#: already-required `genome.assembly` + `threads`).
 #: 2026.7.7 — `genome_index` (starsolo.smk + star.smk) now *resolves* the STAR index via
 #: liulab-genome's `get_star_index` (a lookup that raises if none is built) instead of
 #: `build_star_index` (build-if-missing). Building is liulab-genome's concern, done ahead of the run;
@@ -43,7 +49,7 @@ from ..models.processing import RuntimeEnv
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.10"
+WORKFLOW_VERSION = "2026.7.11"
 
 _MODULE_DIR = Path(__file__).parent
 

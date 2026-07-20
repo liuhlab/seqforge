@@ -136,9 +136,11 @@ ucsc-twobitinfo = "*"   # twoBitInfo, shelled out to by liulab-genome
 # that could not occur. A skip is green. Everything the gate exists to catch -- a misspelled flag, a
 # broken wildcard, a rule wiring mistake -- was uncaught for the life of the repo.
 #
-# **STAR is deliberately absent from every table in this file.** An aligner environment is
-# liulab-runtime's to define, and `star = "*"` here is precisely the "parallel universe" this repo
-# forbids. It comes from `ghcr.io/liuhlab/liulab-runtime:align-rna`, named by the module.
+# **STAR and samtools are deliberately absent from every table in this file.** Both are runtime
+# tools liulab-runtime provides -- STAR in its `align-rna` feature, samtools in its base layer (so
+# every env has it) -- and pinning either here is the "parallel universe" this repo forbids. The
+# `starsolo_count` and `solo_to_cram` rules name `ghcr.io/liuhlab/liulab-runtime:align-rna` for them;
+# `seqforge io cram` shells out to the samtools that image carries, never one this package installs.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 

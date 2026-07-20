@@ -16,7 +16,14 @@ import csv
 # that declared its outputs separately from the code producing them would be two sources of truth for
 # one fact, which is the bug this repo keeps finding. The import is the same assumption
 # `rule genome_index` already makes of `genome`: the env running snakemake is the env that has them.
-from seqforge.workflows.h5ad import h5ad_suffixes, solo_raw_files
+from seqforge.workflows.h5ad import (
+    STAR_BAM,
+    STAR_LOG_FILES,
+    h5ad_suffixes,
+    solo_filtered_files,
+    solo_raw_files,
+    solo_stats_files,
+)
 
 
 def _load_units(path):
@@ -109,6 +116,14 @@ def barcode_read_length():
 # The `{{{{sample}}}}` is snakemake's usual escape -- expand() fills `f` and leaves `sample` a wildcard.
 SOLO_MATRICES = expand(f"{OUTDIR}/{{{{sample}}}}/Solo.out/{{f}}", f=solo_raw_files(FEATURES))
 
+# The rest of what STAR writes, declared so the finalize rules can consume it and `temp()` can then
+# delete it -- automatic, DAG-ordered cleanup, never a manual `rm`. Same file-by-file discipline as
+# SOLO_MATRICES: a declared output STAR did not write fails the rule loudly. The stats + logs + the
+# filtered/ tree feed `qc_bundle`; the BAM feeds `solo_to_cram`.
+SOLO_STATS = expand(f"{OUTDIR}/{{{{sample}}}}/Solo.out/{{f}}", f=solo_stats_files(FEATURES))
+SOLO_FILTERED = expand(f"{OUTDIR}/{{{{sample}}}}/Solo.out/{{f}}", f=solo_filtered_files(FEATURES))
+STAR_LOGS = expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_LOG_FILES))
+
 
 rule all:
     input:
@@ -117,6 +132,11 @@ rule all:
             sample=SAMPLES,
             suffix=h5ad_suffixes(FEATURES),
         ),
+        # The retained finalize deliverables: a compact CRAM of the alignment and one gzipped-JSON
+        # stats bundle per sample. The raw matrices, filtered tree, stats, logs, and BAM they are
+        # built from are all `temp()` and gone by the time these land.
+        expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
+        expand(f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz", sample=SAMPLES),
 
 
 rule onlist:
@@ -181,7 +201,15 @@ rule starsolo_count:
         index=rules.genome_index.output,
         whitelist=whitelists(),
     output:
-        matrices=SOLO_MATRICES,
+        # `temp()` on everything: the raw matrices are consumed by `solo_to_h5ad`, the stats +
+        # filtered tree + logs by `qc_bundle`, and the BAM by `solo_to_cram`. Snakemake deletes each
+        # group once its one consumer finishes -- so nothing here survives that is not a `rule all`
+        # target. The files stay declared (not just `rm`'d) so a missing one is still a rule failure.
+        matrices=temp(SOLO_MATRICES),
+        stats=temp(SOLO_STATS),
+        filtered=temp(SOLO_FILTERED),
+        logs=temp(STAR_LOGS),
+        bam=temp(f"{OUTDIR}/{{sample}}/{STAR_BAM}"),
     # The pinned aligner: liulab-runtime's `align-rna`, resolved by compose to a ghcr tag or to a
     # prebuilt .sif on this machine. Naming it here is CONSUMING liulab-runtime's artifact, not
     # defining an environment -- no conda YAML, no Dockerfile, no STAR in any dependency table.
@@ -242,4 +270,65 @@ rule solo_to_h5ad:
         r"""
         seqforge io h5ad --solo-dir {params.solo} --features "{params.features}" \
              --primary {params.primary} --out-prefix {params.prefix}
+        """
+
+
+rule solo_to_cram:
+    """Convert STAR's Aligned.out.bam to a coordinate-sorted CRAM, then let `temp()` drop the BAM.
+
+    A sibling of `solo_to_h5ad`: both consume `starsolo_count` and nothing else, so snakemake runs
+    them in parallel. The reference is resolved at run time from the assembly id via liulab-genome
+    (never a baked path); no `embed_ref`, so the CRAM carries the reference MD5 in its header and the
+    assembly id is recorded in the QC bundle.
+
+    `container:`, unlike `solo_to_h5ad`. This rule shells out to **samtools**, a runtime binary -- so,
+    exactly like `starsolo_count`'s STAR, the tool must come from the pinned `align-rna` image and not
+    from "whatever the submitting shell happened to have". `align-rna` carries samtools (its base
+    layer), seqforge and liulab-genome (its `lab` feature), so `seqforge io cram` runs fully inside it.
+    The h5ad/onlist/bundle steps stay container-less because they invoke no external binary; this one
+    does, which is the whole distinction.
+    """
+    input:
+        bam=rules.starsolo_count.output.bam,
+    output:
+        cram=f"{OUTDIR}/{{sample}}/{{sample}}.cram",
+        crai=f"{OUTDIR}/{{sample}}/{{sample}}.cram.crai",
+    container: config["container"]
+    threads: config["threads"]
+    # Declared so the scheduler gates on it AND so the sort gets a real `-m` budget instead of
+    # samtools' single-thread default -- more cores and more memory both make the sort finish sooner.
+    resources:
+        mem_mb=config["mem_mb"],
+    params:
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io cram --bam {input.bam} --assembly {params.assembly} \
+             --out {output.cram} --threads {threads} --sort-mem-mb {resources.mem_mb}
+        """
+
+
+rule qc_bundle:
+    """Bundle STAR's stats + run logs into one gzipped JSON, then let `temp()` drop the originals.
+
+    Consumes the per-feature stats, the filtered/ tree (only its barcodes.tsv is read -- kept as
+    provenance of STAR's default cell call -- but listing the whole tree here is what triggers its
+    deletion), and the top-level logs. A `shell:` verb, not a `run:`, so compose's wiring gate sees it.
+    """
+    input:
+        stats=rules.starsolo_count.output.stats,
+        filtered=rules.starsolo_count.output.filtered,
+        logs=rules.starsolo_count.output.logs,
+    output:
+        f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz",
+    params:
+        solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
+        run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",
+        features=" ".join(FEATURES),
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io qc-bundle --solo-dir {params.solo} --run-dir {params.run_dir} \
+             --features "{params.features}" --sample {wildcards.sample} \
+             --assembly {params.assembly} --out {output}
         """
