@@ -22,8 +22,8 @@ jobs:
     name: lint + typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.14
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
         with:
           environments: default
           locked: true
@@ -35,29 +35,23 @@ jobs:
         run: pixi run -e default typecheck
 
   test:
-    name: test (${{ matrix.environment }})
+    name: test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment:
-          - test-py312
-          - test-py313
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.14
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
         with:
-          environments: ${{ matrix.environment }}
+          environments: test
           locked: true
       - name: pytest
-        run: pixi run -e ${{ matrix.environment }} test
+        run: pixi run -e test test
 
   build:
     name: build wheel + sdist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.14
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
         with:
           environments: default
           locked: true
