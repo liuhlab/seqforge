@@ -34,6 +34,10 @@ dependencies = [
     # with a "pip install pypdf" remedy, which meant no supported install of seqforge could read the
     # one document type the pilot dataset ships.
     "pypdf>=4",
+    # Excel text extraction for `harvest`, same weight as pypdf: papers ship sample metadata as
+    # supplementary `.xlsx` tables, and `read_document` advertises `.xlsx`. A workbook is a zip of
+    # XML — read as plain text it is garbage — so this is a hard dependency, not an extra.
+    "openpyxl>=3.1",
     # The pilot's deliverable format. A normal dependency, not an environment: writing an .h5ad is
     # seqforge's own output-format job, the same shape of thing as reading a PDF — it is not an
     # aligner, so no liulab-runtime env or container is needed for it. Only
@@ -113,6 +117,7 @@ typer = ">=0.12"
 requests = ">=2.31"
 tqdm = ">=4"
 pypdf = ">=4"          # harvest reads the paper; see the comment in [project].dependencies
+openpyxl = ">=3.1"     # harvest reads supplementary .xlsx tables; see [project].dependencies
 anndata = ">=0.10"     # the pilot's deliverable format; see [project].dependencies
 anthropic = ">=0.40"   # harvest extract only — one of two swappable LLM clients
 openai = ">=1.40"      # OpenAI-compatible endpoints (DeepSeek preset, vLLM, Ollama, ...)
@@ -162,6 +167,7 @@ pre-commit = "*"
 python-build = "*"
 types-pyyaml = "*"
 types-requests = "*"
+types-openpyxl = "*"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"

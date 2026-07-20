@@ -214,7 +214,9 @@ def run_cmd(
         None, "--records", help="An already-fetched record set, instead of fetching now."
     ),
     doc: list[Path] = typer.Option(
-        [], "--doc", help="Reference document(s) — a paper .pdf/.txt/.md — to read for claims."
+        [],
+        "--doc",
+        help="Reference document(s) — a paper .pdf/.txt/.md or a supplementary .xlsx — to read for claims.",
     ),
     instruction: list[Path] = typer.Option(
         [],

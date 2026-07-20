@@ -60,6 +60,104 @@ def test_normalize_document_records_both_identities(tmp_path: Path) -> None:
     assert "first Chromium Single Cell 3' v3" in nd.text
 
 
+def test_a_multi_sheet_xlsx_renders_every_sheet_not_just_the_first(tmp_path: Path) -> None:
+    """A supplementary `.xlsx` is plural, and the sample sheet is rarely sheet 0.
+
+    The failure this guards against is silent: `pandas.read_excel` defaults to one sheet, so a naive
+    reader would drop "Sample metadata" and harvest would find nothing to quote — no error, just an
+    empty extraction. So the load-bearing assertion is that a value living ONLY on the second sheet
+    survives into the canonical text, and that a quote of it verifies end to end.
+    """
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    design = wb.active
+    design.title = "Experimental design"
+    design.append(["note", "single-cell RNA-seq, two conditions"])
+    samples = wb.create_sheet("Sample metadata")
+    samples.append(["sample_id", "strain", "genotype"])
+    samples.append(["GSM001", "N2", "wild-type"])
+    samples.append(["GSM002", "CB1370", "daf-2 mutant"])
+    xlsx = tmp_path / "supplementary_tables.xlsx"
+    wb.save(xlsx)
+
+    nd = normalize_document(xlsx)
+    # both sheets are present and labelled, so the model can see the book's shape...
+    assert "Sheet: Experimental design" in nd.text
+    assert "Sheet: Sample metadata" in nd.text
+    # ...and a value that exists ONLY on the second sheet made it through (the whole point).
+    assert "CB1370" in nd.text and "daf-2 mutant" in nd.text
+
+    # a quote of a second-sheet cell greps back and entails its value — the round-trip works.
+    draft = AssertionDraft(
+        field="experiment.samples.genotype",
+        value="wild-type",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="N2 | wild-type"),
+        llm_confidence=0.9,
+    )
+    assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
+
+
+def test_a_dirty_xlsx_transcribes_faithfully_without_cleaning(tmp_path: Path) -> None:
+    """A real supplementary workbook is messy: a title row, notes, blank spacer rows, a multi-line
+    cell, and a sheet that has nothing to do with samples. We do NOT clean or drop any of it — we
+    transcribe, and the model reads what it needs. The mechanical guarantees are that a value survives
+    intact (an embedded newline does not shatter its row) and that an irrelevant sheet is harmless.
+    """
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    legend = wb.active
+    legend.title = "Legend"  # an irrelevant sheet — rendered, not dropped, and it breaks nothing
+    legend.append(["colour code", "red = failed QC"])
+    samples = wb.create_sheet("Table S3")
+    samples.append(
+        ["Supplementary Table S3. Sample metadata"]
+    )  # a title/preamble row, not a header
+    samples.append([])  # a blank spacer row
+    samples.append(["sample_id", "strain", "treatment"])
+    samples.append(["GSM001", "N2", "heat shock\n34C for 2h"])  # a multi-line cell
+
+    xlsx = tmp_path / "dirty.xlsx"
+    wb.save(xlsx)
+    nd = normalize_document(xlsx)
+
+    assert "Sheet: Legend" in nd.text and "Sheet: Table S3" in nd.text
+    # the multi-line cell collapsed to one contiguous run, so the row stayed one line and greps back
+    assert "heat shock 34C for 2h" in nd.text
+    draft = AssertionDraft(
+        field="experiment.samples.treatment",
+        value="heat shock",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="N2 | heat shock 34C for 2h"),
+        llm_confidence=0.8,
+    )
+    assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
+
+
+def test_a_dumped_sheet_is_bounded_and_the_truncation_is_marked(tmp_path: Path) -> None:
+    """A workbook may carry a raw-data sheet of thousands of rows beside the metadata. That text
+    becomes an LLM prompt, so it is bounded per sheet — and, per "no silent caps", the cut is MARKED so
+    a dropped tail can never be mistaken for the whole table.
+    """
+    from openpyxl import Workbook
+
+    from seqforge.harvest.normalize import _MAX_ROWS_PER_SHEET
+
+    wb = Workbook()
+    dump = wb.active
+    dump.title = "counts"
+    for i in range(_MAX_ROWS_PER_SHEET + 50):
+        dump.append([f"gene_{i}", i])
+    dump.append(["LAST_ROW_SENTINEL", -1])
+    xlsx = tmp_path / "big.xlsx"
+    wb.save(xlsx)
+    nd = normalize_document(xlsx)
+
+    assert "gene_0" in nd.text  # the head is kept
+    assert "LAST_ROW_SENTINEL" not in nd.text  # the tail past the cap is dropped...
+    assert "omitted after" in nd.text  # ...and the drop is announced, not silent
+
+
 # ---------- find_span ----------
 def test_find_span_tolerates_whitespace_differences() -> None:
     text = "Libraries were prepared with the Chromium Single Cell 3' v3 kit."

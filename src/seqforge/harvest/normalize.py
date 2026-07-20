@@ -102,23 +102,102 @@ def normalize_text(raw: str) -> str:
     return "\n".join(line.strip() for line in text.split("\n")).strip()
 
 
+#: Rows rendered per sheet before we stop and say so. A real sample table is tens to low hundreds of
+#: rows; anything past this is a data dump (raw counts, a barcode list) beside the metadata, and this
+#: text becomes an LLM prompt. The cap is PER SHEET, not per workbook, on purpose: a global budget
+#: would let a giant junk sheet 0 starve the sample sheet 3 of room, which is exactly the dirty case.
+_MAX_ROWS_PER_SHEET = 500
+
+
+def _clean_cell(value: object) -> str:
+    """One cell -> one contiguous token run.
+
+    A cell is dirty in ways a row layout cannot survive: it may be ``None`` (blank, or a merged cell's
+    hidden child), or it may hold its own newlines (``"treated with\\nDMSO"``). Collapsing every
+    internal whitespace run to a single space keeps one cell to one token run, so an embedded newline
+    can neither shatter the ` | ` columns nor fake a paragraph break in the canonical text.
+    """
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def _read_xlsx(path: Path) -> str:
+    """Render EVERY sheet of a workbook to text — because the useful sheet is rarely the first one,
+    and the workbook is rarely clean.
+
+    A supplementary `.xlsx` is the common shape of a paper's sample metadata, and it is *plural* and
+    *dirty*: the sheet that names the samples ("Sample metadata", "Experimental design") is usually not
+    sheet 0, and it sits beside legends, notes, and dumped data. So the one thing this must not do is
+    read a single sheet — which is exactly what `pandas.read_excel` does by default (`sheet_name=0`),
+    and it would silently drop the sheet we came for. Every sheet is emitted, headed by its name so the
+    model can see the book's shape.
+
+    We deliberately do NOT try to find "the" metadata sheet or drop the irrelevant ones: that is
+    interpretation, and a wrong guess loses data with no trace. Rendering all of it is cheap, the model
+    reads the sheet that matters, and span verification means a dirty cell cannot reach the manifest
+    without a quote that greps back to it. Code's only jobs here are mechanical — TRANSCRIBE faithfully
+    (no header inference, no dtype coercion — `archive.py`'s discipline), keep each row its own
+    paragraph so it survives `normalize_text` (a lone newline is a wrap artifact it flattens; a blank
+    line is a boundary it keeps), and bound the size of a dumped sheet **visibly** (`_MAX_ROWS_PER_SHEET`).
+    The rendering is deterministic — sheet order, then row/column order — because these bytes are what a
+    quote is span-verified against, exactly as for `render_record`.
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(str(path), read_only=True, data_only=True)
+    try:
+        blocks: list[str] = []
+        for ws in wb.worksheets:
+            rows = [f"Sheet: {ws.title}"]
+            emitted = 0
+            truncated = False
+            for row in ws.iter_rows(values_only=True):
+                cells = [_clean_cell(v) for v in row]
+                while cells and not cells[-1]:
+                    cells.pop()  # trailing empty cells carry nothing to quote
+                if not any(cells):
+                    continue  # a blank / spacer row is not a paragraph
+                if emitted >= _MAX_ROWS_PER_SHEET:
+                    truncated = True
+                    break
+                rows.append(" | ".join(cells))
+                emitted += 1
+            if truncated:
+                # A marked truncation, never a silent one — visible to the model and to a human reading
+                # the stored document, so "the table looked short" can never be mistaken for the data.
+                rows.append(
+                    f"[... more rows in sheet {ws.title!r} omitted after {_MAX_ROWS_PER_SHEET} ...]"
+                )
+            blocks.append("\n\n".join(rows))
+    finally:
+        wb.close()
+    return "\n\n".join(blocks)
+
+
 def read_document(path: Path) -> str:
     """Read a source document to raw text.
 
-    PDF is one *extractor* behind the canonical-text contract, not a special kind of input: anything
-    else falls through to plain text, so a hand-written `.md` or a `.txt` works with no extra code.
-    The contract is the load-bearing part — `normalize_text` produces the one canonical string that
-    span verification greps against, whatever the source format was.
+    PDF and XLSX are *extractors* behind the canonical-text contract, not special kinds of input:
+    anything else falls through to plain text, so a hand-written `.md` or a `.txt` works with no extra
+    code. The contract is the load-bearing part — `normalize_text` produces the one canonical string
+    that span verification greps against, whatever the source format was. An `.xlsx` is a zip of XML,
+    so it MUST take the extractor branch: read as plain text it would be replacement-char garbage, and
+    a truthful quote could never grep back.
 
-    `pypdf` is imported lazily because a PDF is the uncommon case, but it is a **declared dependency**
-    now, so this import does not fail. It used to be undeclared, with a remedy telling the user to
-    install it by hand — which meant no supported install of seqforge could read a paper, the one
-    document type the pilot dataset actually ships.
+    `pypdf`/`openpyxl` are imported lazily because these are the uncommon cases, but both are **declared
+    dependencies** now, so the import does not fail. pypdf was once undeclared, with a remedy telling
+    the user to install it by hand — which meant no supported install of seqforge could read a paper,
+    the one document type the pilot dataset actually ships; openpyxl carries the same weight for the
+    supplementary tables papers ship their sample metadata in.
     """
-    if path.suffix.lower() == ".pdf":
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
         from pypdf import PdfReader
 
         return "\n\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
+    if suffix in {".xlsx", ".xlsm"}:
+        return _read_xlsx(path)
     return path.read_text(encoding="utf-8", errors="replace")
 
 
