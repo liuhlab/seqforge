@@ -20,7 +20,9 @@ from .root import harvest_app
 
 @harvest_app.command("normalize")
 def harvest_normalize(
-    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(
+        None, help="Reference documents to cite (.txt/.md/.pdf/.xlsx)."
+    ),
     instruction: list[Path] = typer.Option(
         [],
         "--instruction",
@@ -89,7 +91,9 @@ def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tupl
 
 @harvest_app.command("extract")
 def harvest_extract(
-    docs: list[Path] = typer.Argument(None, help="Reference documents to cite (.txt/.md/.pdf)."),
+    docs: list[Path] = typer.Argument(
+        None, help="Reference documents to cite (.txt/.md/.pdf/.xlsx)."
+    ),
     instruction: list[Path] = typer.Option(
         [],
         "--instruction",
