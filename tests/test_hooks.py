@@ -238,3 +238,60 @@ def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
 
 def test_questions_outstanding_is_empty_without_state(tmp_path: Path) -> None:
     assert questions_outstanding(tmp_path) == []
+
+
+def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: Path) -> None:
+    """The `questions.md` writer feeds the Stop hook: an OPEN conflict blocks turn-end, resolving clears.
+
+    This is the human-in-the-loop half of the family-level change — a genuine cross-family disagreement
+    lands a visible, editable artifact, and a re-run that settles it removes the file so the hook stops
+    wedging. A within-family difference is recorded `resolved`, so it is never `open` and never writes.
+    """
+    from types import SimpleNamespace
+
+    from seqforge.cli.manifest import _sync_questions
+    from seqforge.models.conflict import Conflict, ConflictPosition
+    from seqforge.workspace import state_dir
+
+    def _run(conflicts: list[Conflict]) -> SimpleNamespace:
+        result = SimpleNamespace(conflicts=conflicts, questions=[])
+        return SimpleNamespace(run_id="run-1", output=SimpleNamespace(result=result))
+
+    open_c = Conflict(
+        id="conflict-single-cell-collapsed-to-bulk",
+        field="library.chemistry",
+        kind="observed_vs_asserted",
+        positions=[
+            ConflictPosition(value="10x-3p-gex-v2", basis="asserted", confidence=0.9),
+            ConflictPosition(value="bulk-rnaseq-pe", basis="observed", confidence=0.99),
+        ],
+        decidable_by=["reads", "user"],
+        status="open",
+    )
+    state = state_dir(tmp_path)
+    _sync_questions(state, [_run([open_c])])
+    qmd = state / "questions.md"
+    assert questions_outstanding(tmp_path) == [qmd]
+    body = qmd.read_text()
+    assert "10x-3p-gex-v2" in body and "bulk-rnaseq-pe" in body
+
+    # a resolved (non-open) conflict is not surfaced -> file cleared, the hook stops blocking
+    _sync_questions(state, [_run([open_c.model_copy(update={"status": "resolved"})])])
+    assert not qmd.exists()
+    assert questions_outstanding(tmp_path) == []
+
+
+def test_sync_questions_unlinks_a_stale_file_on_a_clean_run(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from seqforge.cli.manifest import _sync_questions
+    from seqforge.workspace import state_dir
+
+    state = state_dir(tmp_path)
+    state.mkdir(parents=True)
+    (state / "questions.md").write_text("- a stale question from a prior run\n")
+    clean = SimpleNamespace(
+        run_id="r", output=SimpleNamespace(result=SimpleNamespace(conflicts=[], questions=[]))
+    )
+    _sync_questions(state, [clean])
+    assert not (state / "questions.md").exists()

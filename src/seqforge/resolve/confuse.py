@@ -172,3 +172,34 @@ def sibling_decided_by(specs: dict[str, Spec], a: str, b: str) -> list[str]:
     if parent is None or parent not in specs:
         return []
     return [m for m in specs[parent].children_decided_by if m != "none"]
+
+
+def _root_of(specs: dict[str, Spec], tech: str) -> str:
+    """The family-root ancestor of ``tech`` — walk ``parent`` links to the top of its tree."""
+    cur = tech
+    seen: set[str] = set()
+    while cur in specs and cur not in seen:
+        parent = specs[cur].parent
+        if parent is None:
+            break
+        seen.add(cur)
+        cur = parent
+    return cur
+
+
+def same_family(specs: dict[str, Spec], a: str, b: str) -> bool:
+    """True iff ``a`` and ``b`` share a family root — the assay family a paper reliably names.
+
+    The policy this encodes: harvest is trusted at the FAMILY level (10x 3' gene-expression), the bytes
+    at the LEAF level (v2 vs v3). A within-family disagreement (asserted v2, observed v3) is therefore
+    not a blocking conflict — the bytes decide the leaf. It is broader than ``is_tree_kin`` (which is
+    parent-child OR siblings only): two cousins under a deeper tree are the same family yet not kin.
+
+    Every assay family is its own root today (``10x-3p-gex``, ``bulk-rnaseq-pe``, ``splitseq``,
+    ``bd-rhapsody-wta`` are distinct roots), so a shared root IS the same family. A future super-root
+    over two genuinely different families would need a KB-lint guard against over-suppression; none
+    exists now, and none is needed while roots and families coincide.
+    """
+    if a not in specs or b not in specs:
+        return False
+    return _root_of(specs, a) == _root_of(specs, b)

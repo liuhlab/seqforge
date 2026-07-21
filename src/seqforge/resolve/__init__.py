@@ -41,7 +41,12 @@ from __future__ import annotations
 #: receives the full KB. Provably winner-invariant — a length-infeasible spec would have scored
 #: forbidden — so the winner equals a flat full scan; this only narrows which specs are scored as the KB
 #: grows, and reads sibling confusability off the tree instead of hand-declared cliques.
-RESOLVE_VERSION = "2026.7.7"
+#: 2026.7.8 — family-level chemistry authority: a WITHIN-family asserted-vs-observed geometry difference
+#: (asserted v2, observed v3 — both 10x-3p-gex leaves) is no longer a blocking conflict. A paper names
+#: the assay family reliably and the leaf vaguely; the bytes decide the leaf, so the disagreement is
+#: recorded as a `resolved` conflict (auditable, non-blocking) instead of exit 4. A CROSS-family
+#: difference still blocks. Auto-resolves GSE229022 ("10x 3' v2/v3" in prose, byte-provably v3).
+RESOLVE_VERSION = "2026.7.8"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

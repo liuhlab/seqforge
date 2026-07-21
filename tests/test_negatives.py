@@ -126,7 +126,13 @@ def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> No
     assert codes == {BlockerCode.UNSUPPORTED_TECHNOLOGY}
 
 
-def test_metadata_v2_vs_reads_v3_surfaces_conflict(tmp_path: Path) -> None:
+def test_metadata_v2_vs_reads_v3_resolves_to_v3_at_the_leaf(tmp_path: Path) -> None:
+    """Family-level authority (2026.7.8): asserted v2 vs observed v3 is a WITHIN-family leaf difference.
+
+    A paper names the assay family (10x 3' GEX) reliably and the exact leaf (v2 vs v3) vaguely, and the
+    bytes decide the leaf. So this is agreement at the family level, not a block: resolve to v3 at exit
+    0, but keep the discarded v2 claim as a RESOLVED conflict (auditable, non-blocking) — "three truths,
+    never merged". This is GSE229022 in miniature ("10x 3' v2/v3" in prose, byte-provably v3)."""
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=1500, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"  # observed 28 bp
@@ -140,15 +146,58 @@ def test_metadata_v2_vs_reads_v3_surfaces_conflict(tmp_path: Path) -> None:
         hypothesis=Hypothesis(value="10x-3p-gex-v2", id="meta-1", confidence=0.9),
         use_cache=False,
     )
-    # the library takes the observed chemistry (v3), but the disagreement is SURFACED, not silent
+    # the library takes the observed leaf (v3), and — same family — this does NOT block
     assert out.result.candidates[0].technology == "10x-3p-gex-v3"
-    assert out.exit_code() == 4
+    assert out.exit_code() == 0
+    # the disagreement is recorded, not silently dropped: one RESOLVED conflict decided by code
     assert len(out.result.conflicts) == 1
     conflict = out.result.conflicts[0]
     assert conflict.kind == "observed_vs_asserted"
-    assert conflict.status == "open"
+    assert conflict.status == "resolved"
+    assert conflict.resolution is not None
+    assert conflict.resolution.decided_by == "code"
+    assert conflict.resolution.chosen_value == "28"
+    assert conflict.resolution.basis == "observed"
     values = {p.value: p.basis for p in conflict.positions}
     assert values == {"26": "asserted", "28": "observed"}
+
+
+def test_metadata_v3_vs_reads_v2_also_resolves_at_the_leaf(tmp_path: Path) -> None:
+    """The within-family suppression is symmetric — asserted v3 over observed v2 resolves to v2, exit 0.
+
+    (The other direction of the GSE229022 case: whichever leaf the bytes show wins, and the prose's
+    family claim is satisfied either way.)"""
+    spec = kb.load_spec("10x-3p-gex-v2")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    f1 = tmp_path / "sample_R1.fastq.gz"  # observed 26 bp
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    out = resolve_dataset(
+        [f1, f2],
+        registry=_registry_for(spec),
+        hypothesis=Hypothesis(value="10x-3p-gex-v3", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert out.result.candidates[0].technology == "10x-3p-gex-v2"
+    assert out.exit_code() == 0
+    assert [c.status for c in out.result.conflicts] == ["resolved"]
+
+
+def test_same_family_groups_leaves_under_their_root() -> None:
+    """The predicate the within-family suppression turns on: leaves of one family share a root."""
+    from seqforge.resolve.confuse import same_family
+
+    specs = kb.load_all_specs()
+    assert same_family(specs, "10x-3p-gex-v2", "10x-3p-gex-v3")  # siblings
+    assert same_family(specs, "10x-3p-gex-v2", "10x-3p-gex")  # a leaf and its family node
+    assert same_family(specs, "10x-3p-gex-v3", "10x-3p-gex-v3.1")
+    assert same_family(specs, "10x-3p-gex-v2", "10x-3p-gex-v2")  # reflexive
+    # cross-family: a paper-vs-bytes disagreement here IS a real conflict, must NOT be suppressed
+    assert not same_family(specs, "10x-3p-gex-v2", "bulk-rnaseq-pe")
+    assert not same_family(specs, "splitseq", "bd-rhapsody-wta")
+    assert not same_family(specs, "10x-3p-gex-v2", "no-such-tech")  # unknown id
 
 
 def test_single_cell_collapse_guard_is_structural_not_length() -> None:

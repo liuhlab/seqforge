@@ -1,0 +1,12 @@
+# A barcodeless bulk paired-end library, but the metadata asserts single-cell 10x 3' v2. v2 and bulk
+# are DIFFERENT families, so the family-level suppression (RESOLVE 2026.7.8) does NOT apply here: the
+# asserted single-cell barcode read never validates, the generic bulk fallback wins, and that collapse
+# must SURFACE (exit 4) rather than silently compile a bulk manifest for a dataset the paper calls
+# single-cell. The hypothesis is declared here (not harvested) so the case runs with no API key.
+generate:
+  kind: spec
+  spec: bulk-rnaseq-pe
+  n: 3000
+  seed: 0
+  onlists: none
+hypothesis: 10x-3p-gex-v2

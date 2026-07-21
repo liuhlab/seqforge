@@ -1,22 +1,17 @@
-outcome: ask
+outcome: decide
 description: >-
-  Day-one negative 3, and the R6 case: observed bytes (28 bp -> v3) contradict asserted metadata (v2).
+  Family-level authority (RESOLVE 2026.7.8, the GSE229022 lesson): observed bytes (28 bp -> v3)
+  differ from asserted metadata (v2), but v2 and v3 are two leaves of the SAME family (10x-3p-gex).
 
-  Note what is NOT expected. Not refuse — the disagreement is answerable, so blocking would strand a
-  human with no question (false_refuse). Not decide — even though the bytes are right and the library
-  does take v3, silently discarding the metadata claim would be a false_accept with a correct value:
-  the manifest would read as though nothing ever disagreed. Three truths, never merged.
+  A paper names the assay family reliably and the exact leaf (v2 vs v3) vaguely — often it describes a
+  study that included v2 while only the higher-quality v3 was deposited. So a within-family difference
+  is NOT a block: the bytes decide the leaf (v3), and the case decides at exit 0. This case originally
+  expected `ask` under the old "any v2-vs-v3 disagreement is a conflict" policy; the policy changed.
 
-  The conflict is asserted on GEOMETRY, not on the chemistry name, per design §3.5: the surfaced pair
-  is "26 bp asserted vs 28 bp observed". That is the deliberate choice — the concrete, reads-decidable
-  quantity rather than the label inferred from it. (This case originally asserted library.chemistry;
-  the harness caught it, and the design was right.) positions is the real assertion here: a field-name
-  check alone would still pass if both sides collapsed to the same value.
-conflict:
-  kind: observed_vs_asserted
-  field: library.read_layout.R1.length
-  positions:
-    asserted: "26"
-    observed: "28"
+  What is NOT lost: the discarded v2 claim is not silently dropped. It is recorded as a RESOLVED
+  conflict (status=resolved, decided_by=code, chosen_value 28) inside the ResolveResult — auditable,
+  "three truths, never merged" — but not open, so it neither blocks nor grades (the grader inspects
+  only open conflicts). A CROSS-family disagreement (say, single-cell asserted but bulk bytes) still
+  surfaces an open conflict and asks; that honesty is unchanged.
 fields:
   library.chemistry: 10x-3p-gex-v3

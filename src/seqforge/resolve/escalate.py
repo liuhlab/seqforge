@@ -6,8 +6,11 @@ terminal shapes:
 
 - **Decision** — a clear winner (``margin > θ``, no divergent tie). Declared ``processing_equivalent``
   twins are recorded together into the chemistry equivalence class with **0** questions (§12 benign).
-- **Conflict** — an observed value contradicts an asserted one (e.g. asserted 26 bp vs observed
-  28 bp). Detected unconditionally, in parallel: surfaced, library takes the observed value, exit 4.
+- **Conflict** — an observed value contradicts an asserted one. Detected unconditionally, in parallel;
+  the library always takes the observed value. A CROSS-family contradiction (single-cell asserted, bulk
+  observed) is surfaced ``open`` — exit 4, a human decides. A WITHIN-family geometry difference
+  (asserted v2 26 bp, observed v3 28 bp) is recorded ``resolved`` — the bytes decide the leaf and the
+  paper's family-level claim still holds — so it is auditable but does not block (exit 0).
 - **Question / Blocker** — a processing-*divergent* tie that metadata/onlist can't settle routes to a
   human (exit 4); a structural dead end (missing technical read, truncated gzip, unsupported tech)
   is a ``Blocker`` (exit 3).
@@ -19,10 +22,10 @@ from dataclasses import dataclass, field
 
 from ..kb.schema import Read, SegmentLength, Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
-from ..models.conflict import Conflict, ConflictPosition
+from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
-from .confuse import is_processing_equivalent, sibling_decided_by
+from .confuse import is_processing_equivalent, same_family, sibling_decided_by
 from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
@@ -100,7 +103,14 @@ def escalate(
     divergent_ties = [e for e in contenders if e not in equivalent_ties]
 
     conflicts = _detect_conflicts(
-        hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
+        hypothesis_value,
+        hypothesis_id,
+        hypothesis_confidence,
+        top,
+        top_spec,
+        observations,
+        specs,
+        rung,
     )
     collapse = _single_cell_collapse_conflict(
         hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
@@ -290,8 +300,17 @@ def _detect_conflicts(
     top_spec: Spec,
     observations: list[Observation],
     specs: dict[str, Spec],
+    rung: int,
 ) -> list[Conflict]:
-    """Surface an observed-vs-asserted geometry contradiction (e.g. asserted v2 26 bp, observed 28 bp)."""
+    """Surface an observed-vs-asserted geometry contradiction (e.g. asserted v2 26 bp, observed 28 bp).
+
+    A WITHIN-FAMILY difference (asserted v2, observed v3 — both ``10x-3p-gex`` leaves) is NOT a blocking
+    conflict: a paper names the assay *family* reliably and the exact *leaf* vaguely, and the bytes
+    decide the leaf (whitelist + UMI length). So it is recorded as a ``resolved`` conflict — the
+    discarded claim survives for audit ("three truths, never merged"), but it does not block. A
+    CROSS-FAMILY length difference stays an ``open`` conflict (exit 4, a human decides). This is the
+    GSE229022 lesson: "10x 3' v2/v3" in prose, byte-provably v3, is agreement at the family level.
+    """
     if not hypothesis_value:
         return []
     asserted_len = _asserted_barcode_length(hypothesis_value, specs)
@@ -303,25 +322,51 @@ def _detect_conflicts(
         # An over-length barcode read is EXPECTED for this chemistry (CB/UMI at fixed offsets, the rest
         # junk), not a geometry contradiction — so 28-vs-150 is agreement, not a conflict to surface.
         return []
+    positions = [
+        ConflictPosition(
+            value=str(asserted_len),
+            basis="asserted",
+            evidence=[hypothesis_id] if hypothesis_id else [],
+            confidence=hypothesis_confidence,
+        ),
+        ConflictPosition(
+            value=str(observed_len),
+            basis="observed",
+            evidence=[o.file.sha256 for o in observations],
+            confidence=0.99,
+        ),
+    ]
+    asserted_tech = _match_tech(hypothesis_value, specs)
+    if asserted_tech is not None and same_family(specs, asserted_tech, top.tech):
+        # Within-family leaf difference: harvest named the family (reliable), the bytes decide the leaf
+        # (v2 vs v3). Resolve to the observed leaf; keep the asserted claim as a RESOLVED conflict so the
+        # disagreement is auditable but does not block (exit 0).
+        return [
+            Conflict(
+                id="conflict-barcode-length",
+                field="library.read_layout.R1.length",
+                kind="observed_vs_asserted",
+                positions=positions,
+                decidable_by=["reads"],
+                status="resolved",
+                resolution=Resolution(
+                    chosen_value=str(observed_len),
+                    basis="observed",
+                    rung=rung,
+                    decided_by="code",
+                    note=(
+                        f"within-family leaf difference; the bytes decide the leaf ({top.tech}) — "
+                        "the paper's family-level claim is satisfied"
+                    ),
+                ),
+            )
+        ]
     return [
         Conflict(
             id="conflict-barcode-length",
             field="library.read_layout.R1.length",
             kind="observed_vs_asserted",
-            positions=[
-                ConflictPosition(
-                    value=str(asserted_len),
-                    basis="asserted",
-                    evidence=[hypothesis_id] if hypothesis_id else [],
-                    confidence=hypothesis_confidence,
-                ),
-                ConflictPosition(
-                    value=str(observed_len),
-                    basis="observed",
-                    evidence=[o.file.sha256 for o in observations],
-                    confidence=0.99,
-                ),
-            ],
+            positions=positions,
             decidable_by=["reads"],
             status="open",
         )

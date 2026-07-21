@@ -252,6 +252,10 @@ def _fill_manifest_pipeline(
         use_cache=False,
         cpus=cpus,
     )
+    # Surface any OPEN conflict / question as a human-editable questions.md (and clear a stale one on a
+    # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly
+    # what the Stop hook rglobs, so a genuine cross-family disagreement is made visible and enforced.
+    _sync_questions(state_dir(workspace), multi.runs)
     if (
         multi.exit_code() != 0
     ):  # a run that itself failed to resolve (no dataset-wide block any more)
@@ -361,6 +365,63 @@ def _write_manifest(state: Path, payload: str, *, ok: bool) -> Path:
     target.write_text(payload)
     other.unlink(missing_ok=True)
     return target
+
+
+def _render_questions(conflicts: list[tuple[str, Any]], questions: list[tuple[str, Any]]) -> str:
+    """A human-editable Markdown surfacing of the open conflicts / questions blocking this dataset."""
+    lines = [
+        "# Open questions for this dataset",
+        "",
+        "seqforge stopped because the metadata and the FASTQ bytes disagree in a way code will not",
+        "settle on its own — this can mean a methods-writing slip or a wrong data-vs-paper pairing, and",
+        "either way a human should look. Resolve each item below, then re-run: this file clears itself",
+        "once nothing is open.",
+        "",
+    ]
+    for run_id, c in conflicts:
+        by = {p.basis: p.value for p in c.positions}
+        lines += [
+            f"## Conflict `{c.id}` — {c.field}  (run {run_id})",
+            f"- **asserted** (from the paper / metadata): `{by.get('asserted', '?')}`",
+            f"- **observed** (from the reads): `{by.get('observed', '?')}`",
+            f"- decidable by: {', '.join(c.decidable_by)}",
+            "",
+            "If the paper is right and you have confirmed it, re-run with "
+            "`--assert-chemistry=<observed id>` after judging. If the FASTQs do not match this "
+            "accession, the data-vs-paper pairing may be wrong — investigate before compiling.",
+            "",
+        ]
+    for run_id, q in questions:
+        opts = ", ".join(f"`{o}`" for o in q.options)
+        lines += [
+            f"## Question `{q.id}` — {q.field}  (run {run_id})",
+            f"{q.prompt}",
+            f"- options: {opts}",
+            f"- decidable by: {', '.join(q.decidable_by)}",
+            "",
+        ]
+    return "\n".join(lines)
+
+
+def _sync_questions(state: Path, runs: list[Any]) -> None:
+    """Write ``state/questions.md`` for open conflicts / questions across runs; clear it when none.
+
+    The Stop hook refuses to end a turn while any non-empty ``questions.md`` exists under ``seqforge/``,
+    so a genuine (cross-family) conflict becomes a visible, enforced artifact. Writing AND clearing here
+    — before the pipeline's exit-code branch — keeps the two symmetric: a re-run that resolves the
+    disagreement removes the file, so the hook cannot wedge on a stale question. A within-family
+    difference is recorded as a ``resolved`` conflict, so it is not ``open`` and never writes here.
+    """
+    open_conflicts = [
+        (r.run_id, c) for r in runs for c in r.output.result.conflicts if c.status == "open"
+    ]
+    open_questions = [(r.run_id, q) for r in runs for q in r.output.result.questions]
+    path = state / "questions.md"
+    if not open_conflicts and not open_questions:
+        path.unlink(missing_ok=True)
+        return
+    state.mkdir(parents=True, exist_ok=True)
+    path.write_text(_render_questions(open_conflicts, open_questions))
 
 
 def _chemistry_hypothesis(assertions: list[Assertion]) -> Hypothesis | None:
