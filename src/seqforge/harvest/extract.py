@@ -234,10 +234,17 @@ def extract_drafts(
         raise ExtractUnavailable(
             f"{llm.name} returned output that is not valid JSON: {exc}"
         ) from exc
-    if not isinstance(raw, dict) or not isinstance(raw.get("drafts"), list):
+    if not isinstance(raw, dict):
         raise ExtractUnavailable(
-            f"{llm.name} returned no `drafts` array (top-level shape is not "
-            f"{{'drafts': [...]}}; got {type(raw).__name__})"
+            f"{llm.name} returned a top-level {type(raw).__name__}, not a JSON object with a "
+            f"`drafts` array"
+        )
+    if not isinstance(raw.get("drafts"), list):
+        # Name what is actually wrong with `drafts` — missing, or the wrong type ({'drafts': null}
+        # reports "null", not the useless "got dict" of the top-level object.
+        detail = "missing" if "drafts" not in raw else f"a {type(raw['drafts']).__name__}"
+        raise ExtractUnavailable(
+            f"{llm.name} returned no `drafts` array: the `drafts` key is {detail}, not a list"
         )
 
     drafts: list[AssertionDraft] = []

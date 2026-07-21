@@ -205,7 +205,14 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
     """The salvage stops at the batch boundary: a response with no `drafts` array at all has nothing
     to keep, so it still dies wholesale rather than pretending it extracted an empty batch."""
     provider = _FakeProvider(json.dumps({"not_drafts": 1}))
-    with pytest.raises(ExtractUnavailable, match="no `drafts` array"):
+    with pytest.raises(ExtractUnavailable, match="`drafts` key is missing"):
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+
+
+def test_extract_names_the_drafts_type_when_it_is_present_but_not_a_list(tmp_path: Path) -> None:
+    """`{"drafts": null}` must blame `drafts`, not report the useless top-level `got dict`."""
+    provider = _FakeProvider(json.dumps({"drafts": None}))
+    with pytest.raises(ExtractUnavailable, match="`drafts` key is a NoneType"):
         extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
 
 
