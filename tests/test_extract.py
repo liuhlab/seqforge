@@ -394,6 +394,9 @@ def test_deepseek_retries_past_empty_content_then_succeeds(tmp_path: Path) -> No
     outcome = extract_drafts(nd, kb.load_all_specs(), provider=provider)
     assert client.n_calls == 3, "it retried through the two empty bodies and stopped at the good one"
     assert outcome.drafts == []
+    # usage is summed over ALL three attempts — the two empty ones still cost tokens (1024 cache-read
+    # tokens each in the fake), so the ledger must not undercount them
+    assert outcome.usage["cache_read_tokens"] == 3 * 1024
 
 
 def test_deepseek_gives_up_after_the_retry_budget_of_empty_bodies(tmp_path: Path) -> None:

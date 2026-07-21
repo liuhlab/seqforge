@@ -173,6 +173,9 @@ class OpenAICompatibleProvider:
         # Re-issue on EMPTY content, bounded (#4). DeepSeek's json_object mode intermittently returns
         # an empty body; that is a provider hiccup, not the document saying nothing (which is a
         # well-formed `{"drafts": []}`), so a few retries recover it instead of aborting the harvest.
+        # Usage is ACCUMULATED across attempts: an empty response still cost tokens, and the harvest
+        # ledger is meant to reflect what the calls actually cost, not just the final one.
+        usage_total: dict[str, int] = {}
         for _ in range(_EMPTY_CONTENT_RETRIES + 1):
             try:
                 response = client.chat.completions.create(
@@ -188,6 +191,8 @@ class OpenAICompatibleProvider:
             except Exception as exc:
                 # A real API error is not a content hiccup — fail on the first attempt, do not retry.
                 raise ProviderUnavailable(f"{self.name} call failed: {exc}") from exc
+            for key, val in _openai_usage(response).items():
+                usage_total[key] = usage_total.get(key, 0) + val
             choice = response.choices[0] if response.choices else None
             text = (getattr(choice.message, "content", None) or "") if choice else ""
             if text.strip():
@@ -197,17 +202,19 @@ class OpenAICompatibleProvider:
                 # provider — enforces the shape.
                 return LLMResponse(
                     text=text,
-                    usage=_openai_usage(response),
+                    usage=usage_total,  # summed over every attempt, including the empty ones
                     mode={
                         "thinking": "model-default",
                         "max_tokens": max_tokens,
                         "response_format": "json_object",
                     },
                 )
-        # Every attempt came back empty: refuse loudly rather than let it read as "says nothing".
+        # Every attempt came back empty: refuse loudly rather than let it read as "says nothing". The
+        # hint is provider-agnostic (this class also serves vLLM/Ollama/Together) and names no
+        # soon-deprecated model.
         raise ProviderUnavailable(
             f"{self.name} returned empty content in JSON mode on {_EMPTY_CONTENT_RETRIES + 1} "
-            f"attempts (a known json_object-mode failure; try --model deepseek-chat or another provider)"
+            f"attempts (a known json_object-mode failure; try a different model or provider)"
         )
 
 
