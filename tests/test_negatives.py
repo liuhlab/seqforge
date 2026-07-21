@@ -149,3 +149,79 @@ def test_metadata_v2_vs_reads_v3_surfaces_conflict(tmp_path: Path) -> None:
     assert conflict.status == "open"
     values = {p.value: p.basis for p in conflict.positions}
     assert values == {"26": "asserted", "28": "observed"}
+
+
+def test_single_cell_collapse_guard_is_structural_not_length() -> None:
+    """#7/#11 unit: an asserted single-cell chemistry + a barcodeless bulk winner is a collapse.
+
+    The length-only `_detect_conflicts` cannot see this — a bulk winner has no barcode read, so its
+    observed barcode length is None and the guard returns early. This one keys on structure
+    (asserted-barcoded vs observed-barcodeless), which is why it needs to exist separately.
+    """
+    from seqforge.resolve.escalate import _single_cell_collapse_conflict
+
+    specs = kb.load_all_specs()
+
+    class _Top:  # the guard reads only `.tech`
+        tech = "bulk-rnaseq-pe"
+
+    class _TopSingleCell:
+        tech = "10x-3p-gex-v3"
+
+    conflict = _single_cell_collapse_conflict(
+        "10x-3p-gex-v2", "harvest", 0.9, _Top(), specs["bulk-rnaseq-pe"], [], specs
+    )
+    assert conflict is not None
+    assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
+    assert {p.value: p.basis for p in conflict.positions} == {
+        "10x-3p-gex-v2": "asserted",
+        "bulk-rnaseq-pe": "observed",
+    }
+    # negatives — no collapse to surface:
+    # a bulk chemistry was asserted and bulk won (agreement)
+    assert (
+        _single_cell_collapse_conflict(
+            "bulk-rnaseq-pe", "harvest", 0.9, _Top(), specs["bulk-rnaseq-pe"], [], specs
+        )
+        is None
+    )
+    # the winner is itself barcoded (single-cell won or tied)
+    assert (
+        _single_cell_collapse_conflict(
+            "10x-3p-gex-v2", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+        )
+        is None
+    )
+    # no hypothesis at all
+    assert (
+        _single_cell_collapse_conflict(None, None, 0.8, _Top(), specs["bulk-rnaseq-pe"], [], specs)
+        is None
+    )
+
+
+def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_path: Path) -> None:
+    """End-to-end #7/#11: reads only a bulk library matches, but metadata asserts 10x v2. The barcode
+    read never validated, so the generic bulk fallback won by default — that must surface as an
+    observed-vs-asserted conflict (exit 4), not compile a bulk manifest at exit 0 for a dataset the
+    paper calls single-cell. This is the GSE126954 over-length-sample / GSE274290 pre-BD-spec path."""
+    rng = random.Random(0)
+    r1 = [
+        "".join(rng.choice("ACGT") for _ in range(75)) for _ in range(1500)
+    ]  # no barcode geometry
+    r2 = ["".join(rng.choice("ACGT") for _ in range(90)) for _ in range(1500)]
+    f1 = tmp_path / "sample_R1.fastq.gz"
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    _write_fastq_gz(f1, r1)
+    _write_fastq_gz(f2, r2)
+
+    out = resolve_dataset(
+        [f1, f2],
+        hypothesis=Hypothesis(value="10x-3p-gex-v2", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert out.result.candidates
+    assert out.result.candidates[0].technology == "bulk-rnaseq-pe"
+    assert out.exit_code() == 4
+    assert any(c.id == "conflict-single-cell-collapsed-to-bulk" for c in out.result.conflicts), [
+        c.id for c in out.result.conflicts
+    ]

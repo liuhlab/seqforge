@@ -14,7 +14,7 @@ import yaml
 from .. import __version__
 from ..io import DEFAULT_REGISTRY
 from ..io.taxonomy import TaxonomyUnavailable
-from ..kb import load_spec
+from ..kb import list_spec_ids, load_spec
 from ..manifest import (
     FillError,
     dataset_content_hash,
@@ -58,6 +58,12 @@ def manifest_fill(
         "--assertions",
         help="Span-verified assertions from `harvest extract` (seqforge/assertions.json). Without "
         "this, prose contributes nothing and the model might as well not have run.",
+    ),
+    assert_chemistry: str | None = typer.Option(
+        None,
+        "--assert-chemistry",
+        help="Force a chemistry KB id (e.g. 10x-3p-gex-v3) as the score hypothesis, outranking any "
+        "harvested claim. Breaks a genuine byte tie (v2/v3); still only a selector, never evidence.",
     ),
     offline: bool = typer.Option(
         False, "--offline", help="Never reach the network. --accession then REFUSES, never quietly."
@@ -112,6 +118,7 @@ def manifest_fill(
             offline=offline,
             workspace=workspace,
             cpus=_auto_cpus(cpus),
+            chemistry_override=assert_chemistry,
         )
     )
 
@@ -176,6 +183,7 @@ def _fill_manifest_pipeline(
     offline: bool,
     workspace: Path,
     cpus: int = 1,
+    chemistry_override: str | None = None,
 ) -> _StageOut:
     """Probe -> resolve -> metadata -> PARTITION into assays -> assemble + validate each manifest.
 
@@ -193,6 +201,26 @@ def _fill_manifest_pipeline(
     from ..resolve import role_of_sha_for
     from ..resolve.records import resolve_metadata
 
+    if chemistry_override is not None:
+        # Canonicalize to a real KB id, CASE-INSENSITIVELY — `resolve score` matches ids
+        # case-insensitively, so `manifest fill` must accept the same spellings or it would reject a
+        # value scoring would have taken. A value that resolves to nothing would otherwise silently
+        # no-op (the hypothesis just wouldn't match a candidate) and the operator would only find out
+        # after a full compile still escalated; fail fast. (list computed once — Copilot review.)
+        spec_ids = list_spec_ids()
+        canonical = {s.lower(): s for s in spec_ids}.get(chemistry_override.strip().lower())
+        if canonical is None:
+            return _StageOut(
+                {
+                    "error": "unknown_chemistry",
+                    "detail": f"--assert-chemistry {chemistry_override!r} is not a known KB chemistry "
+                    f"id; one of: {', '.join(sorted(spec_ids))}",
+                },
+                2,
+                err=True,
+            )
+        chemistry_override = canonical
+
     organism_taxid: int | None = None
     if organism is not None:
         # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
@@ -203,10 +231,20 @@ def _fill_manifest_pipeline(
             return _StageOut(str(exc), 2, err=True)
 
     parsed, subjects = _assertions_and_subjects(assertions)
+    # An operator's --assert-chemistry outranks the harvested prose: it is a deliberate, span-checked
+    # override for the one thing prose alone cannot settle — a genuine byte tie (10x v2 vs v3). It is
+    # still only a SELECTOR / tie-break into `score`, never a ninth evidence test, so it can order the
+    # candidates and break a tie the bytes cannot, but it can never overrule what the bytes decide.
+    hypothesis = (
+        Hypothesis(value=chemistry_override, id="operator", confidence=1.0)
+        if chemistry_override is not None
+        else _chemistry_hypothesis(parsed)
+    )
     multi = resolve_runs(
         [str(f) for f in files],
-        # The protocol paragraph, entering `score` as a SELECTOR and a tie-break -- never as evidence.
-        hypothesis=_chemistry_hypothesis(parsed),
+        # The protocol paragraph (or the operator override), entering `score` as a SELECTOR and a
+        # tie-break -- never as evidence.
+        hypothesis=hypothesis,
         workspace=workspace,
         use_cache=False,
         cpus=cpus,

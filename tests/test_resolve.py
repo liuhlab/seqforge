@@ -399,11 +399,32 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
     # single-end: no mate token, so the file is its own run
     assert run_key("reads.fastq.gz") == "reads"
 
+    # #6 (GSE310667): an original-format download keeps the submitter's lane naming AFTER the
+    # accession, so the mate token (`_R1_`/`_R2_`) is buried mid-name where the end-anchored strip
+    # cannot reach it. The leading accession must still win, or the two mates split into singleton
+    # runs and the record join misses every file.
+    assert run_key("SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz") == "SRR36109512"
+    assert run_key("SRR36109512_11314-RM-1_S1_L005_R2_001.fastq.gz") == "SRR36109512"
+    # DDBJ/ENA accessions share the shape; a bare accession with no suffix is still its own run
+    assert run_key("ERR123_S2_L001_I1_001.fastq.gz") == "ERR123"
+    assert run_key("SRR9999999.fastq.gz") == "SRR9999999"
+
     groups = group_runs(["a_1.fastq.gz", "b_1.fastq.gz", "a_2.fastq.gz"])
     assert groups == {
         "a": [Path("a_1.fastq.gz"), Path("a_2.fastq.gz")],
         "b": [Path("b_1.fastq.gz")],
     }
+    # the GSE310667 shape: two mates per accession collapse to one run each, not four singletons
+    joined = group_runs(
+        [
+            "SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz",
+            "SRR36109512_11314-RM-1_S1_L005_R2_001.fastq.gz",
+            "SRR36109513_11314-RM-2_S2_L005_R1_001.fastq.gz",
+            "SRR36109513_11314-RM-2_S2_L005_R2_001.fastq.gz",
+        ]
+    )
+    assert set(joined) == {"SRR36109512", "SRR36109513"}
+    assert all(len(v) == 2 for v in joined.values())
 
 
 def test_resolving_six_runs_as_one_library_drops_ten_of_twelve_files(tmp_path: Path) -> None:
