@@ -106,19 +106,17 @@ def _get(url: str, *, timeout: float) -> str:
     # Mirror `remote._get`: a transient status (429 rate-limit, a 5xx blip) backs off and retries
     # rather than aborting the lookup. taxonomy uses urllib, so a non-2xx arrives as an HTTPError.
     full = _with_api_key(url)
-    last: urllib.error.HTTPError | None = None
-    for attempt in range(_MAX_RETRIES + 1):
+    attempt = 0
+    while True:  # exits only by return (2xx) or raise (terminal status / exhausted budget)
         try:
             with urllib.request.urlopen(full, timeout=timeout) as fh:  # noqa: S310 - pinned NCBI host
                 return str(fh.read().decode())
         except urllib.error.HTTPError as exc:
-            last = exc
             if exc.code in _RETRY_STATUS and attempt < _MAX_RETRIES:
                 time.sleep(retry_delay(exc.headers.get("Retry-After"), attempt))
+                attempt += 1
                 continue
             raise
-    assert last is not None  # pragma: no cover - the loop only exits via return or raise
-    raise last
 
 
 def fetch_taxon(taxid: int, *, timeout: float = 20.0) -> Taxon:

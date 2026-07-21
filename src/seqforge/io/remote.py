@@ -125,7 +125,8 @@ def _get(url: str, params: dict[str, str] | None = None, timeout: int = _DEFAULT
     belongs only where the request is built, never in this shared error path (`url` here is the base,
     so a key in `params` never reaches a log line).
     """
-    for attempt in range(_MAX_RETRIES + 1):
+    attempt = 0
+    while True:  # exits only by return (200) or raise (terminal status / exhausted budget)
         try:
             response = requests.get(url, params=params, timeout=timeout)
         except requests.RequestException as exc:
@@ -134,9 +135,9 @@ def _get(url: str, params: dict[str, str] | None = None, timeout: int = _DEFAULT
             return response.text
         if response.status_code in _RETRY_STATUS and attempt < _MAX_RETRIES:
             time.sleep(retry_delay(response.headers.get("Retry-After"), attempt))
+            attempt += 1
             continue
         raise RemoteError(f"GET {url} -> HTTP {response.status_code}: {response.text[:200]}")
-    raise RemoteError(f"GET {url}: exhausted {_MAX_RETRIES} retries")  # pragma: no cover
 
 
 def parse_soft_srp(soft: str) -> list[str]:
