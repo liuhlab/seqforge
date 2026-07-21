@@ -86,6 +86,48 @@ def test_experiments_for_refuses_loudly_when_the_accession_resolves_to_nothing(
         archive._experiments_for("GSE229022")
 
 
+def test_experiments_for_retries_a_transient_labdata_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A momentary NCBI 5xx at the accession hop must not abort `records` (#9): GSE274290 hit a bare
+    HTTP 500 live. A transient labdata error backs off and retries, exactly as `_get` does."""
+    from labdata.exceptions import LabdataError
+
+    calls = {"n": 0}
+
+    def resolver(accession: str) -> list[_FakeExperiment]:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise LabdataError(
+                "NCBI E-utilities request failed: HTTP Error 500: Internal Server Error"
+            )
+        return [_FakeExperiment("SRX1")]
+
+    _patch_labdata(monkeypatch, resolver)
+    monkeypatch.setattr(archive.time, "sleep", lambda _s: None)
+    assert archive._experiments_for("GSE274290") == ["SRX1"]
+    assert calls["n"] == 2  # retried through the 500
+
+
+def test_experiments_for_does_not_retry_a_terminal_labdata_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A malformed accession is terminal — no backoff, one attempt, a loud RemoteError."""
+    from labdata.exceptions import LabdataError
+
+    calls = {"n": 0}
+
+    def resolver(accession: str) -> list[_FakeExperiment]:
+        calls["n"] += 1
+        raise LabdataError("banana is not a resolvable accession")
+
+    _patch_labdata(monkeypatch, resolver)
+    monkeypatch.setattr(archive.time, "sleep", lambda _s: None)
+    with pytest.raises(RemoteError, match="could not resolve experiments"):
+        archive._experiments_for("banana")
+    assert calls["n"] == 1
+
+
 # ------------------------------------------------------------ the whole fetch, composed
 
 
@@ -122,3 +164,25 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
         attr.value for sample in samples for attr in sample.attributes if attr.name == "strain"
     }
     assert {"CQ757", "CQ758"} <= strains
+
+
+def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """eutils raises its 3->10 req/sec cap for a keyed caller (#9). The key is read from the
+    environment and added to the request params, and it never appears when unset."""
+    captured: dict[str, object] = {}
+
+    def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
+        captured["params"] = params
+        return "<EXPERIMENT_PACKAGE_SET/>"
+
+    monkeypatch.setattr(archive, "_get", fake_get)
+
+    monkeypatch.setenv("NCBI_API_KEY", "SECRET-KEY-123")
+    archive._efetch("sra", ["SRX1"])
+    assert captured["params"]["api_key"] == "SECRET-KEY-123"  # type: ignore[index]
+
+    monkeypatch.delenv("NCBI_API_KEY", raising=False)
+    archive._efetch("sra", ["SRX1"])
+    assert "api_key" not in captured["params"]  # type: ignore[operator]

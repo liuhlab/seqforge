@@ -39,11 +39,22 @@ fallback — a great deal of sequencing data has never seen an accession and nev
 
 from __future__ import annotations
 
+import os
+import re
+import time
 from xml.etree import ElementTree
 
 from ..models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
 from .attributes import harmonize
-from .remote import RemoteError, _get
+from .remote import _MAX_RETRIES, RemoteError, _get, retry_delay
+
+#: A ``LabdataError`` message that names a TRANSIENT NCBI failure (a 5xx, a 429/rate-limit, a timeout)
+#: — worth a backoff-and-retry. Everything else (a malformed accession, a record with no SRA data) is
+#: terminal and raised at once. eutils returns intermittent HTTP 500s under load, and the accession
+#: hop runs through ``labdata``'s own Entrez client, which `_get`'s retry does not wrap (#9).
+_TRANSIENT_LABDATA = re.compile(
+    r"\b(?:429|50[0234]|rate.?limit|timed?.?out|temporarily|connection)\b", re.I
+)
 
 #: NCBI E-utilities. ``efetch db=sra`` takes experiment accessions; ``db=biosample`` takes SAMN ids.
 EUTILS_EFETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -55,7 +66,14 @@ SOURCE = "ncbi-sra+biosample"
 
 
 def _efetch(db: str, ids: list[str], **params: str) -> str:
-    return _get(EUTILS_EFETCH, {"db": db, "id": ",".join(ids), "retmode": "xml", **params})
+    query = {"db": db, "id": ",".join(ids), "retmode": "xml", **params}
+    # NCBI raises the eutils rate limit from 3 to 10 req/sec for a keyed caller. Consume NCBI_API_KEY
+    # if the operator's environment sets one (it commonly does); without it we simply stay keyless and
+    # lean on `_get`'s 429 backoff (#9). The key stays in the request params only — never logged.
+    key = os.environ.get("NCBI_API_KEY")
+    if key:
+        query["api_key"] = key
+    return _get(EUTILS_EFETCH, query)
 
 
 def _text(node: ElementTree.Element | None, path: str) -> str:
@@ -354,10 +372,21 @@ def _experiments_for(accession: str) -> list[str]:
     import labdata
     from labdata.exceptions import LabdataError
 
-    try:
-        experiments = labdata.experiments_for(accession)
-    except LabdataError as exc:
-        raise RemoteError(f"{accession}: could not resolve experiments: {exc}") from exc
+    # Retry a TRANSIENT labdata failure (intermittent eutils 5xx/429) with backoff, exactly as
+    # `_get` does for seqforge's own eutils calls — otherwise a momentary NCBI blip aborts the whole
+    # `records` stage and the dataset cannot compile (seen live: GSE274290 hit a bare HTTP 500). A
+    # terminal error (malformed accession) still raises on the first attempt.
+    attempt = 0
+    while True:
+        try:
+            experiments = labdata.experiments_for(accession)
+            break
+        except LabdataError as exc:
+            if _TRANSIENT_LABDATA.search(str(exc)) and attempt < _MAX_RETRIES:
+                time.sleep(retry_delay(None, attempt))
+                attempt += 1
+                continue
+            raise RemoteError(f"{accession}: could not resolve experiments: {exc}") from exc
     accessions = sorted({e.accession for e in experiments})
     if not accessions:
         raise RemoteError(
