@@ -34,6 +34,13 @@ ANTHROPIC_DEFAULT_MODEL = "claude-opus-4-8"
 DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-pro"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
+#: How many extra times to re-issue a json_object request that came back with EMPTY content. DeepSeek
+#: documents that json_object mode intermittently returns an empty body, and v4-pro does it often
+#: enough to abort a whole harvest (#4). An empty body is a provider hiccup, not "the document says
+#: nothing" (that is a well-formed `{"drafts": []}`), so a bounded retry recovers it instead of failing
+#: the dataset. A real API error is not retried here — it raises on the first attempt.
+_EMPTY_CONTENT_RETRIES = 3
+
 
 class ProviderUnavailable(RuntimeError):
     """No usable provider: SDK missing, credential absent, or the endpoint failed."""
@@ -163,36 +170,51 @@ class OpenAICompatibleProvider:
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
     ) -> LLMResponse:
         client = self._resolve()
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                max_tokens=max_tokens,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                # json_object guarantees valid JSON, NOT the right shape — Pydantic checks the shape.
-                response_format={"type": "json_object"},
-            )
-        except Exception as exc:
-            raise ProviderUnavailable(f"{self.name} call failed: {exc}") from exc
-        choice = response.choices[0] if response.choices else None
-        text = (getattr(choice.message, "content", None) or "") if choice else ""
-        if not text.strip():
-            # DeepSeek documents that json_object mode can occasionally return empty content.
-            # Refuse loudly rather than let an empty batch read as "the document says nothing".
-            raise ProviderUnavailable(f"{self.name} returned empty content in JSON mode")
-        # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no toggle,
-        # so it is reported as the model name's business, not a flag we set. `response_format` is the
-        # weaker json_object contract, which is why Pydantic — not the provider — enforces the shape.
-        return LLMResponse(
-            text=text,
-            usage=_openai_usage(response),
-            mode={
-                "thinking": "model-default",
-                "max_tokens": max_tokens,
-                "response_format": "json_object",
-            },
+        # Re-issue on EMPTY content, bounded (#4). DeepSeek's json_object mode intermittently returns
+        # an empty body; that is a provider hiccup, not the document saying nothing (which is a
+        # well-formed `{"drafts": []}`), so a few retries recover it instead of aborting the harvest.
+        # Usage is ACCUMULATED across attempts: an empty response still cost tokens, and the harvest
+        # ledger is meant to reflect what the calls actually cost, not just the final one.
+        usage_total: dict[str, int] = {}
+        for _ in range(_EMPTY_CONTENT_RETRIES + 1):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    # json_object guarantees valid JSON, NOT the right shape — Pydantic checks shape.
+                    response_format={"type": "json_object"},
+                )
+            except Exception as exc:
+                # A real API error is not a content hiccup — fail on the first attempt, do not retry.
+                raise ProviderUnavailable(f"{self.name} call failed: {exc}") from exc
+            for key, val in _openai_usage(response).items():
+                usage_total[key] = usage_total.get(key, 0) + val
+            choice = response.choices[0] if response.choices else None
+            text = (getattr(choice.message, "content", None) or "") if choice else ""
+            if text.strip():
+                # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no
+                # toggle, so it is reported as the model name's business, not a flag we set.
+                # `response_format` is the weaker json_object contract, which is why Pydantic — not the
+                # provider — enforces the shape.
+                return LLMResponse(
+                    text=text,
+                    usage=usage_total,  # summed over every attempt, including the empty ones
+                    mode={
+                        "thinking": "model-default",
+                        "max_tokens": max_tokens,
+                        "response_format": "json_object",
+                    },
+                )
+        # Every attempt came back empty: refuse loudly rather than let it read as "says nothing". The
+        # hint is provider-agnostic (this class also serves vLLM/Ollama/Together) and names no
+        # soon-deprecated model.
+        raise ProviderUnavailable(
+            f"{self.name} returned empty content in JSON mode on {_EMPTY_CONTENT_RETRIES + 1} "
+            f"attempts (a known json_object-mode failure; try a different model or provider)"
         )
 
 

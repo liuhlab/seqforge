@@ -381,6 +381,76 @@ class _FakeOpenAIClient:
         self.captured: dict[str, Any] = {}
 
 
+class _SequencedOpenAIClient:
+    """An OpenAI-shaped client that returns a SEQUENCE of contents, one per create() call — so a test
+    can present empty bodies followed by a good one and watch the provider retry (#4)."""
+
+    def __init__(self, contents: list[str]) -> None:
+        self._contents = list(contents)
+        self.n_calls = 0
+        outer = self
+
+        class _Message:
+            def __init__(self, content: str) -> None:
+                self.content = content
+
+        class _Choice:
+            def __init__(self, content: str) -> None:
+                self.message = _Message(content)
+
+        class _Usage:
+            prompt_tokens = 1500
+            completion_tokens = 60
+            prompt_cache_hit_tokens = 1024
+
+        class _Response:
+            def __init__(self, content: str) -> None:
+                self.choices = [_Choice(content)]
+                self.usage = _Usage()
+
+        class _Completions:
+            def create(self, **kwargs: Any) -> _Response:
+                i = outer.n_calls
+                outer.n_calls += 1
+                content = outer._contents[i] if i < len(outer._contents) else ""
+                return _Response(content)
+
+        class _Chat:
+            completions = _Completions()
+
+        self.chat = _Chat()
+
+
+def test_deepseek_retries_past_empty_content_then_succeeds(tmp_path: Path) -> None:
+    """#4: json_object mode intermittently returns an empty body. That is a provider hiccup, not the
+    document saying nothing, so the provider re-issues the request rather than aborting the harvest."""
+    nd = _doc(tmp_path)
+    client = _SequencedOpenAIClient(
+        ["", "   ", json.dumps({"drafts": []})]
+    )  # two empties, then good
+    provider = deepseek_provider(api_key="k", client=client)
+
+    outcome = extract_drafts(nd, kb.load_all_specs(), provider=provider)
+    assert client.n_calls == 3, (
+        "it retried through the two empty bodies and stopped at the good one"
+    )
+    assert outcome.drafts == []
+    # usage is summed over ALL three attempts — the two empty ones still cost tokens (1024 cache-read
+    # tokens each in the fake), so the ledger must not undercount them
+    assert outcome.usage["cache_read_tokens"] == 3 * 1024
+
+
+def test_deepseek_gives_up_after_the_retry_budget_of_empty_bodies(tmp_path: Path) -> None:
+    """Bounded: a model that ALWAYS returns empty content still fails loudly, it does not spin."""
+    nd = _doc(tmp_path)
+    client = _SequencedOpenAIClient([""] * 12)  # never a body
+    provider = deepseek_provider(api_key="k", client=client)
+
+    with pytest.raises(ExtractUnavailable, match="empty content"):
+        extract_drafts(nd, kb.load_all_specs(), provider=provider)
+    assert client.n_calls == 4  # _EMPTY_CONTENT_RETRIES (3) + 1, then it stops
+
+
 def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_path: Path) -> None:
     nd = _doc(tmp_path)
     good = json.loads(_batch())
