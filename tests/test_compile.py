@@ -1587,6 +1587,124 @@ def test_a_flag_beats_an_instruction_silently() -> None:
     assert basis == "user_confirmed"
 
 
+def test_a_single_nucleus_prep_promotes_genefull_to_primary() -> None:
+    """#12: a verified nuclei prep makes GeneFull the PRIMARY matrix — a nuclear library is ~1/3
+    intronic and a Gene-first primary silently under-counts it. All five features stay; only the order
+    (which becomes adata.X) changes, and Gene still follows so Velocyto's requirement holds."""
+    from seqforge.manifest import DEFAULT_SOLO_FEATURES, resolve_features
+
+    features, basis, evidence, warnings = resolve_features(prep_type="single-nucleus")
+    assert features[0] == "GeneFull", "nuclei -> GeneFull primary"
+    assert features[1] == "Gene", "Gene still present (Velocyto requires it) and right behind"
+    assert set(features) == set(DEFAULT_SOLO_FEATURES), (
+        "nothing dropped — one alignment, five counts"
+    )
+    assert basis == "inferred"  # code inferred the ordering from biology; no one asserted the list
+    assert evidence == ["policy:genefull-primary-for-single-nucleus"]
+    assert not warnings
+
+
+def test_a_single_cell_prep_stays_gene_primary() -> None:
+    from seqforge.manifest import resolve_features
+
+    features, _, evidence, _ = resolve_features(prep_type="single-cell")
+    assert features[0] == "Gene"
+    assert evidence == ["policy:default-solo-features"]
+
+
+def test_a_flag_or_instruction_beats_a_nuclei_prep() -> None:
+    """The prep reorder is only the DEFAULT path: an explicit --quantify or a processing instruction
+    is the user talking, and outranks a biology inference."""
+    from seqforge.manifest import resolve_features
+
+    flagged, _, _, _ = resolve_features(override=("Gene",), prep_type="single-nucleus")
+    assert flagged == ["Gene"], "the flag wins outright, nuclei prep does not resurrect GeneFull"
+    instructed, _, _, _ = resolve_features(
+        instructions=[_ins("processing.quantification", "Velocyto")], prep_type="single-nucleus"
+    )
+    assert instructed[0] == "Velocyto", "an explicit instruction still sets the primary"
+
+
+def _prep_assertion(value: str, *, verified: bool = True) -> object:
+    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
+
+    return Assertion(
+        id="assert-prep-0",
+        field="library.prep_type",
+        value=value,
+        span=SourceSpan(doc_sha256="0" * 64, quote=value),
+        span_verified=verified,
+        entailment_ok=verified,
+        llm_confidence=0.9,
+        extractor=ExtractorProvenance(model_id="test", prompt_version="test"),
+    )
+
+
+def test_prep_type_from_assertions_normalizes_the_biology_words() -> None:
+    from seqforge.manifest import prep_type_from_assertions
+
+    for phrase in ("single nuclei", "single-nucleus RNA-seq", "isolated nuclei", "snRNA-seq"):
+        assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-nucleus", phrase
+    for phrase in ("single-cell", "scRNA-seq", "whole cells"):
+        assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-cell", phrase
+
+
+def test_prep_type_matches_whole_words_not_bare_substrings() -> None:
+    """The value steers which matrix is primary, so a bare "nucle"/"cell" substring must not classify:
+    "nucleic acid" is not a nuclei prep and "Cell Ranger" is not single-cell. A phrase naming BOTH, or
+    neither, resolves to None rather than a guess."""
+    from seqforge.manifest.policy import _normalize_prep_type
+
+    assert _normalize_prep_type("total nucleic acid extraction") is None  # not "nuclei"
+    assert _normalize_prep_type("aligned with Cell Ranger") is None  # not "single-cell"
+    assert _normalize_prep_type("nucleotide") is None
+    assert _normalize_prep_type("single-nucleus and single-cell were compared") is None  # both -> None
+    assert _normalize_prep_type("nuclei were isolated") == "single-nucleus"
+    assert _normalize_prep_type("single cell suspension") == "single-cell"
+
+
+def test_prep_type_from_assertions_ignores_unverified_and_refuses_a_disagreement() -> None:
+    from seqforge.manifest import prep_type_from_assertions
+
+    # an unverified claim never counts
+    assert prep_type_from_assertions([_prep_assertion("single nuclei", verified=False)]) is None
+    # two verified claims that disagree -> None, never a guess between them
+    disagree = [_prep_assertion("single nuclei"), _prep_assertion("single-cell")]
+    assert prep_type_from_assertions(disagree) is None
+    # nothing to say
+    assert prep_type_from_assertions([]) is None
+
+
+def test_the_processing_cli_reads_prep_type_from_the_assertions_file(tmp_path: Path) -> None:
+    """The CLI seam: `processing new` / `run` read the same assertions.json harvest wrote and pull the
+    prep fact from it, so a single-nucleus paper reaches `resolve_features` without a new flag."""
+    import json as _json
+
+    from seqforge.cli.processing import _prep_type_from
+
+    p = tmp_path / "assertions.json"
+    p.write_text(
+        _json.dumps(
+            {
+                "assertions": [
+                    {
+                        "id": "assert-prep-0",
+                        "field": "library.prep_type",
+                        "value": "single nuclei",
+                        "span": {"doc_sha256": "0" * 64, "quote": "single nuclei"},
+                        "span_verified": True,
+                        "entailment_ok": True,
+                        "llm_confidence": 0.9,
+                        "extractor": {"model_id": "t", "prompt_version": "t"},
+                    }
+                ]
+            }
+        )
+    )
+    assert _prep_type_from(p) == "single-nucleus"
+    assert _prep_type_from(None) is None
+
+
 def test_two_instructions_disagreeing_is_a_conflict() -> None:
     """Same precedence, no tiebreak: a disagreement is surfaced for intent exactly as for truth."""
     from seqforge.manifest import instructions_from_assertions

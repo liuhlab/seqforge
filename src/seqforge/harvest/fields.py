@@ -84,6 +84,12 @@ ASKED_SAMPLE_ATTRIBUTES: tuple[str, ...] = (
 #: bytes genuinely cannot see.
 DEFAULT_FIELDS: tuple[str, ...] = (
     "library.chemistry",
+    # A biology fact, NOT byte-decidable and NOT a hypothesis: whether the input was whole cells or
+    # isolated nuclei. No byte in a FASTQ says which, and the model names only the biology ("single
+    # nuclei") — never a feature. Code maps it to the primary soloFeature (GeneFull for nuclei), which
+    # is why it is safe to source from prose: the blast radius is which matrix is primary, and all five
+    # are computed regardless. See `manifest.policy.resolve_features`.
+    "library.prep_type",
     "experiment.organism",
     "experiment.accessions",
     *(f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES),
