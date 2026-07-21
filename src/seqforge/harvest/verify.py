@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from ..kb import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import PERMITTED_FIELDS, permitted_for
-from .normalize import NormalizedDoc
+from .normalize import NormalizedDoc, page_for_offset
 
 _WS = re.compile(r"\s+")
 _TOKEN = re.compile(r"[a-z0-9']+")
@@ -215,6 +215,10 @@ def verify_drafts(
                     context=draft.span.context,
                     char_start=start,  # computed by code, never by the model
                     char_end=end,
+                    # ...and the page the offset falls on, same discipline: code reads it off the
+                    # document's page index, the model's value (if any) is discarded. None unless it
+                    # is a PDF, where "p.4" is a real, checkable location.
+                    page=page_for_offset(doc.pages, start),
                 ),
                 span_verified=True,
                 entailment_ok=True,

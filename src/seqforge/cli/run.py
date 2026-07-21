@@ -28,12 +28,13 @@ from ..manifest import (
 )
 from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
-from .harvest import _harvest_extract_pipeline
+from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
 from .processing import _instructions_from
 from .root import app
 
 if TYPE_CHECKING:
+    from ..harvest.normalize import PdfBackend
     from ..models.records import ArchiveRecordSet
 
 
@@ -223,6 +224,11 @@ def run_cmd(
         "--instruction",
         help="Document(s) authored FOR seqforge; only these may set processing.*.",
     ),
+    pdf_backend: PdfBackendChoice = typer.Option(
+        PdfBackendChoice.pymupdf,
+        "--pdf-backend",
+        help="PDF text extractor: pymupdf (default, AGPL, reads more PDFs) | pypdf (BSD fallback).",
+    ),
     organism: str | None = typer.Option(
         None, "--organism", help="NCBI taxid or name. Optional when --accession declares it."
     ),
@@ -315,6 +321,7 @@ def run_cmd(
             model=model,
             verify=True,
             workspace=workspace,
+            pdf_backend=cast("PdfBackend", pdf_backend.value),
         )
         stages["harvest"] = (
             harvested.payload

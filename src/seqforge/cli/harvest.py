@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 import json
+from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import typer
 from pydantic import ValidationError
@@ -16,6 +17,19 @@ from ..manifest import instructions_from_assertions
 from ..workspace import documents_dir, logs_dir, readable
 from ._common import _emit, _StageOut
 from .root import harvest_app
+
+if TYPE_CHECKING:
+    from ..harvest.normalize import PdfBackend
+
+
+class PdfBackendChoice(StrEnum):
+    """Which engine opens a PDF, exposed as ``--pdf-backend``. ``pymupdf`` (AGPL-3.0) is the default
+    because it read every real manuscript in the eval, including ones ``pypdf`` (BSD) cannot parse;
+    ``pypdf`` stays as the permissive fallback. Neither reorders geometrically — tables come from
+    pdfplumber either way, so the choice is really which reader survives more files."""
+
+    pypdf = "pypdf"
+    pymupdf = "pymupdf"
 
 
 @harvest_app.command("normalize")
@@ -27,6 +41,11 @@ def harvest_normalize(
         [],
         "--instruction",
         help="Document(s) authored FOR seqforge (e.g. alignment_instruction.md).",
+    ),
+    pdf_backend: PdfBackendChoice = typer.Option(
+        PdfBackendChoice.pymupdf,
+        "--pdf-backend",
+        help="PDF text extractor: pymupdf (default, AGPL, reads more PDFs) | pypdf (BSD fallback).",
     ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
@@ -40,12 +59,13 @@ def harvest_normalize(
     """
     from ..harvest import normalize_document
 
+    backend = cast("PdfBackend", pdf_backend.value)
     outdir = documents_dir(workspace)
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
     for doc, role in _roled(docs, instruction):
         try:
-            nd = normalize_document(doc, role=role)
+            nd = normalize_document(doc, role=role, pdf_backend=backend)
         except (OSError, RuntimeError) as exc:
             typer.echo(f"{doc}: {exc}", err=True)
             raise typer.Exit(1) from exc
@@ -114,6 +134,11 @@ def harvest_extract(
     verify: bool = typer.Option(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately."
     ),
+    pdf_backend: PdfBackendChoice = typer.Option(
+        PdfBackendChoice.pymupdf,
+        "--pdf-backend",
+        help="PDF text extractor: pymupdf (default, AGPL, reads more PDFs) | pypdf (BSD fallback).",
+    ),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
@@ -139,6 +164,7 @@ def harvest_extract(
             model=model,
             verify=verify,
             workspace=workspace,
+            pdf_backend=cast("PdfBackend", pdf_backend.value),
         )
     )
 
@@ -152,6 +178,7 @@ def _harvest_extract_pipeline(
     model: str | None,
     verify: bool,
     workspace: Path,
+    pdf_backend: PdfBackend = "pymupdf",
 ) -> _StageOut:
     """The body of ``harvest extract``, returned as a value so ``seqforge run`` can chain it.
 
@@ -166,6 +193,7 @@ def _harvest_extract_pipeline(
         ExtractUnavailable,
         NormalizedDoc,
         ProviderUnavailable,
+        UnreadableDocument,
         extract_drafts,
         has_prose,
         normalize_document,
@@ -191,7 +219,17 @@ def _harvest_extract_pipeline(
     extractor = None
     sources: list[tuple[object, str]] = [(d, r) for d, r in _roled(docs, instruction)]
     for doc, role in sources:
-        nd = normalize_document(doc, role=role)  # type: ignore[arg-type]
+        try:
+            nd = normalize_document(doc, role=role, pdf_backend=pdf_backend)  # type: ignore[arg-type]
+        except UnreadableDocument as exc:
+            # A document that yields no quotable text is a refusal, not a silent empty extraction:
+            # surface it with a nonzero exit exactly like a missing provider, so `run` halts here
+            # rather than emitting a manifest that is silent about a paper it could not read.
+            return _StageOut(
+                {"error": "unreadable_document", "detail": str(exc), "document": str(doc)},
+                1,
+                err=True,
+            )
         normalized.append(nd)
 
     if records_path is not None:
@@ -328,6 +366,11 @@ def harvest_verify(
     docs: list[Path] = typer.Option(..., "--doc", help="Source document(s) the drafts cite."),
     model_id: str = typer.Option("unknown", help="Model that produced the drafts (provenance)."),
     prompt_version: str = typer.Option("unknown", help="Prompt version (provenance)."),
+    pdf_backend: PdfBackendChoice = typer.Option(
+        PdfBackendChoice.pymupdf,
+        "--pdf-backend",
+        help="PDF extractor — must match the one `extract` used, or the canonical text differs.",
+    ),
 ) -> None:
     """Grep each quote back into the canonical text + check it entails the value. Exit 4 if any fail.
 
@@ -343,7 +386,9 @@ def harvest_verify(
         typer.echo(f"cannot read drafts {drafts_json}: {exc}", err=True)
         raise typer.Exit(2) from exc
 
-    normalized = [normalize_document(d) for d in docs]
+    normalized = [
+        normalize_document(d, pdf_backend=cast("PdfBackend", pdf_backend.value)) for d in docs
+    ]
     report = verify_drafts(
         drafts,
         normalized,

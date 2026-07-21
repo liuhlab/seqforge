@@ -14,13 +14,21 @@ from .base import Confidence
 
 
 class SourceSpan(BaseModel):
-    """Exact, greppable provenance for one claim. Offsets are COMPUTED by code, not the LLM."""
+    """Exact, greppable provenance for one claim. Offsets are COMPUTED by code, not the LLM.
+
+    ``page`` is the same kind of field as ``char_start``/``char_end``: code-owned, computed by
+    ``verify`` from the offset against the document's page index, and the LLM's value (if any) is
+    discarded. It is the 1-indexed physical page of a PDF, and ``None`` for an unpaged source (a
+    ``.txt``/``.xlsx`` or an archive record) — so a citation can say "p.4" only when that is a real,
+    checkable location.
+    """
 
     doc_sha256: str
     quote: str
     context: str | None = None
     char_start: int | None = None
     char_end: int | None = None
+    page: int | None = None
 
 
 class AssertionDraft(BaseModel):

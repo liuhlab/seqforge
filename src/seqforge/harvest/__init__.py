@@ -17,7 +17,9 @@ enforced there, not in the prompt. A prompt asks; only code refuses.
 from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys.
-HARVEST_VERSION = "2026.7.0"
+#: 2026.7.1: PDF extraction changed materially — pymupdf is the default engine, in-text tables are
+#: spliced into the canonical text, and invalid unicode is scrubbed — so a cached harvest must re-run.
+HARVEST_VERSION = "2026.7.1"
 
 from .extract import (  # noqa: E402
     EXTRACT_PROMPT_VERSION,
@@ -37,12 +39,18 @@ from .fields import (  # noqa: E402
     is_permitted,
 )
 from .normalize import (  # noqa: E402
+    DEFAULT_PDF_BACKEND,
     NORMALIZER_VERSION,
     NormalizedDoc,
+    PageSpan,
+    PdfBackend,
+    UnreadableDocument,
+    clean_invalid_unicode,
     has_prose,
     normalize_document,
     normalize_record,
     normalize_text,
+    page_for_offset,
     read_document,
     render_record,
 )
@@ -68,12 +76,18 @@ from .verify import (  # noqa: E402
 __all__ = [
     "HARVEST_VERSION",
     "NORMALIZER_VERSION",
+    "DEFAULT_PDF_BACKEND",
+    "PdfBackend",
     "NormalizedDoc",
+    "PageSpan",
+    "UnreadableDocument",
     "normalize_document",
     "normalize_record",
     "render_record",
     "has_prose",
     "normalize_text",
+    "clean_invalid_unicode",
+    "page_for_offset",
     "read_document",
     "VerifyReport",
     "verify_drafts",
