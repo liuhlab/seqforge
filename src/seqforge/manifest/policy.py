@@ -8,6 +8,7 @@ there is no profile-indirection layer to invent here.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -208,16 +209,25 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     )
 
 
+#: Word-boundary patterns for the two preps. Anchored on WHOLE words (not a bare "nucle"/"cell"
+#: substring, which would misread "nucleic acid" as nuclei or "Cell Ranger" as single-cell), and kept
+#: to the specific terms a methods section actually uses for the input material.
+_NUCLEUS_RE = re.compile(
+    r"\b(?:single[-\s]?nucle(?:us|i)|nuclei|nuclear|nucleus|sn-?rna|sn-?seq)\b", re.I
+)
+_CELL_RE = re.compile(r"\b(?:single[-\s]?cells?|sc-?rna|sc-?seq|whole[-\s]?cells?)\b", re.I)
+
+
 def _normalize_prep_type(raw: str) -> str | None:
     """A free-text prep phrase -> ``single-cell`` | ``single-nucleus`` | ``None``. Code's job, not the
     model's: the model reports the biology in the paper's words, this maps those words to one of two
-    values. ``None`` when the phrase names neither clearly (so nothing is guessed)."""
-    v = raw.strip().lower()
-    if "nucle" in v or "snrna" in v or "sn-rna" in v or "single nuc" in v:
-        return "single-nucleus"
-    if "cell" in v or "scrna" in v or "sc-rna" in v:
-        return "single-cell"
-    return None
+    values. ``None`` when the phrase names neither clearly, OR names BOTH (so nothing is guessed) — the
+    value steers which matrix is primary, so an ambiguous phrase must not silently pick one."""
+    nucleus = bool(_NUCLEUS_RE.search(raw))
+    cell = bool(_CELL_RE.search(raw))
+    if nucleus == cell:  # neither term, or both -> refuse to guess
+        return None
+    return "single-nucleus" if nucleus else "single-cell"
 
 
 def prep_type_from_assertions(assertions: Sequence[Assertion]) -> str | None:

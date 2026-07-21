@@ -1649,6 +1649,20 @@ def test_prep_type_from_assertions_normalizes_the_biology_words() -> None:
         assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-cell", phrase
 
 
+def test_prep_type_matches_whole_words_not_bare_substrings() -> None:
+    """The value steers which matrix is primary, so a bare "nucle"/"cell" substring must not classify:
+    "nucleic acid" is not a nuclei prep and "Cell Ranger" is not single-cell. A phrase naming BOTH, or
+    neither, resolves to None rather than a guess."""
+    from seqforge.manifest.policy import _normalize_prep_type
+
+    assert _normalize_prep_type("total nucleic acid extraction") is None  # not "nuclei"
+    assert _normalize_prep_type("aligned with Cell Ranger") is None  # not "single-cell"
+    assert _normalize_prep_type("nucleotide") is None
+    assert _normalize_prep_type("single-nucleus and single-cell were compared") is None  # both -> None
+    assert _normalize_prep_type("nuclei were isolated") == "single-nucleus"
+    assert _normalize_prep_type("single cell suspension") == "single-cell"
+
+
 def test_prep_type_from_assertions_ignores_unverified_and_refuses_a_disagreement() -> None:
     from seqforge.manifest import prep_type_from_assertions
 
