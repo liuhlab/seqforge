@@ -32,8 +32,9 @@ processing-divergent confusables. It used to be a hand-typed field on every spec
 two of them carrying the comment "CI-computed union over the divergent confusables" — no CI computed
 it. Declare the confusables honestly and the summary follows.
 
-**A whitelist you declare must be one we ship.** `test_a_spec_that_calls_onlists_decisive_can_actually
-_reach_one` checks it: a spec whose decisive mechanism cannot fire looks exactly like one that works,
+**A whitelist you declare must be one we ship.**
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` checks it: a spec whose decisive
+mechanism cannot fire looks exactly like one that works,
 right up until a real dataset arrives. SPLiT-seq is the standing example — it names three barcode
 lists, we ship none of them, so its three most important tests silently ABSTAIN.
 
@@ -103,8 +104,8 @@ not `CB_UMI_Simple`. The recipe:
 - Your `signature.requires` are the fixed linkers (`has_segment ... kind: constant`); each barcode
   block's `onlist_hit_rate` is a `supports`.
 
-Worked example: `kb/specs/splitseq/spec.yaml` (three 8 bp rounds, two 30 bp linkers) and
-`kb/specs/bd-rhapsody-wta/spec.yaml` (three 9 bp CLS blocks, two linkers, 8 bp UMI).
+Worked example: `src/seqforge/kb/specs/splitseq/spec.yaml` (three 8 bp rounds, two 30 bp linkers) and
+`src/seqforge/kb/specs/bd-rhapsody-wta/spec.yaml` (three 9 bp CLS blocks, two linkers, 8 bp UMI).
 
 ## Shipping a whitelist (and clearing the debt)
 
@@ -112,16 +113,18 @@ A `CB_UMI_Complex` chemistry almost always needs its barcode lists to **ship**, 
 the generic bulk fallback: the two tie `processing_divergent`, decidable only by `onlist`, so with no
 whitelist to hit the resolver escalates to a question (exit 4) instead of deciding. `kb roundtrip`
 still passes without the list (the generator synthesizes barcodes from `spec.reads`), which is exactly
-why the gap is invisible until a real dataset arrives — `test_a_spec_that_calls_onlists_decisive_can_
-actually_reach_one` is the tripwire.
+why the gap is invisible until a real dataset arrives —
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` is the tripwire.
 
 ```bash
 seqforge io onlist pack cls1.txt --name bd-rhapsody-cls1 --uri <authoritative-source> --orientation forward
-# repeat per list, then commit onlists/<name>.codes.gz + the regenerated onlists/index.json
+# repeat per list, then commit the blob + the regenerated index it writes, both under
+# src/seqforge/io/onlists/  (bd-rhapsody-cls1.codes.gz and index.json)
 ```
 
-`io onlist pack` is the ONLY writer of `onlists/index.json`, so it cannot drift from the blobs. Once a
-list ships, delete its entry from `UNSHIPPED_ONLIST_DEBT` in `tests/test_kb.py`. Get the sequences from
+`io onlist pack` is the ONLY writer of `src/seqforge/io/onlists/index.json`, so it cannot drift from the
+blobs beside it. Once a list ships, delete its entry from `UNSHIPPED_ONLIST_DEBT` in
+`tests/test_kb.py`. Get the sequences from
 an authoritative source and verify against a real dataset — never guess barcodes (a wrong whitelist
 exits 0 and emits a matrix that merely looks thin, the same failure shape as a wrong strand).
 
