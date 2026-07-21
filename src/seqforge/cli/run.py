@@ -30,7 +30,7 @@ from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
 from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
-from .processing import _instructions_from
+from .processing import _instructions_from, _prep_type_from
 from .root import app
 
 if TYPE_CHECKING:
@@ -160,6 +160,7 @@ def _process_and_compose(
     summary: dict[str, object] = {}
     try:
         instructions = _instructions_from(assertions_path)
+        prep_type = _prep_type_from(assertions_path)
     except (OSError, ValueError, ValidationError) as exc:
         return {"processing": {"error": str(exc)}}, 2
     try:
@@ -168,6 +169,7 @@ def _process_and_compose(
             dataset=manifest,
             processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
             instructions=instructions,
+            prep_type=prep_type,
             processing_id=processing_id,
             pin=True,
             seqforge_version=__version__,

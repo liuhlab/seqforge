@@ -18,6 +18,7 @@ from ..manifest import (
     exit_code_for_report,
     fill_processing,
     instructions_from_assertions,
+    prep_type_from_assertions,
     processing_content_hash,
     validate_processing,
 )
@@ -59,6 +60,22 @@ def _instructions_from(path: Path | None) -> list[Instruction]:
     return instructions
 
 
+def _prep_type_from(path: Path | None) -> str | None:
+    """The cells-vs-nuclei prep from `harvest extract`'s artifact, normalized. `None` if absent.
+
+    A span-verified biology fact (``library.prep_type``) that code — not the model — maps to the
+    primary soloFeature: a single-nucleus prep promotes GeneFull. The model named the biology and
+    verified its quote; this reads that record. See :func:`resolve_features`.
+    """
+    if path is None:
+        return None
+    payload = json.loads(path.read_text())
+    if isinstance(payload, list):  # a pre-2026.7 bare list; `_instructions_from` already refuses it
+        return None
+    parsed = [Assertion.model_validate(a) for a in payload.get("assertions", ())]
+    return prep_type_from_assertions(parsed)
+
+
 @processing_app.command("new")
 def processing_new(
     dataset_path: Path = typer.Argument(..., help="Path to the dataset manifest.yaml."),
@@ -98,6 +115,7 @@ def processing_new(
     spec = load_spec(dataset.library.chemistry.value[0])
     try:
         instructions = _instructions_from(assertions)
+        prep_type = _prep_type_from(assertions)
     except (OSError, ValueError, ValidationError) as exc:
         typer.echo(f"{assertions}: {exc}", err=True)
         raise typer.Exit(2) from exc
@@ -112,6 +130,7 @@ def processing_new(
                 threads=threads,
             ),
             instructions=instructions,
+            prep_type=prep_type,
             processing_id=processing_id,
             pin=pin,
             seqforge_version=__version__,
