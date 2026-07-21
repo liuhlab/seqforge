@@ -40,9 +40,11 @@ def _registry_for(spec: kb.Spec) -> OnlistRegistry:
 
 
 def _over_length(
-    tmp_path: Path, tech: str, umi_len: int
+    tmp_path: Path, tech: str, umi_len: int, total_len: int = OVER_LEN
 ) -> tuple[list[Path], dict[str, list[str]]]:
-    """A 150 bp barcode read (16 bp CB from the tech's whitelist + UMI + junk) and a 150 bp cDNA read.
+    """A barcode read (16 bp CB from the tech's whitelist + UMI + junk) and a cDNA read, both
+    ``total_len`` bp. Default 150 bp (>= over_length_min, admitted on geometry); pass a dead-zone
+    length (e.g. 75 bp) to exercise the onlist admission (#7).
 
     The CB is drawn from the tech's own pool so it hits that chemistry's whitelist and no other.
     """
@@ -55,9 +57,9 @@ def _over_length(
 
     seqs = {
         "R1": [
-            rng.choice(cb_pool) + rand(umi_len) + rand(OVER_LEN - 16 - umi_len) for _ in range(600)
+            rng.choice(cb_pool) + rand(umi_len) + rand(total_len - 16 - umi_len) for _ in range(600)
         ],
-        "R2": [rand(OVER_LEN) for _ in range(600)],
+        "R2": [rand(total_len) for _ in range(600)],
     }
     paths = []
     for rid in ("R1", "R2"):
@@ -97,6 +99,58 @@ def test_an_over_length_v2_barcode_read_resolves_to_v2_not_v3(tmp_path: Path) ->
     winner = out.result.candidates[0]
     assert winner.technology == "10x-3p-gex-v2"
     assert winner.score.status == "scored"
+
+
+DEAD_LEN = 75  # in the over-length DEAD ZONE: > canonical 26/28 bp, < over_length_min (100)
+
+
+def test_a_dead_zone_barcode_read_is_admitted_by_its_whitelist(tmp_path: Path) -> None:
+    """#7: an R1 over-sequenced to 75 bp sits in the DEAD ZONE — too long to be the canonical 26 bp v2
+    read, too short for the over_length_min (100) that admits a full-length over-sequenced read. Length
+    alone forbids it, and that is deliberate (a 60-94 bp cDNA must not pass as a barcode). The WHITELIST
+    admits it: the first 16 bp hit 737K-august-2016, so this IS a real v2 barcode read. GSE126954's
+    over-sequenced SRX5411291 is exactly this, and before the fix it collapsed to bulk-rnaseq-pe.
+    """
+    spec = kb.load_spec("10x-3p-gex-v2")
+    paths, _ = _over_length(tmp_path, "10x-3p-gex-v2", umi_len=10, total_len=DEAD_LEN)
+    reg = _registry_for(spec)  # registers ONLY the 737K-august-2016 (v2) whitelist
+
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    assert not out.result.blockers, [b.message for b in out.result.blockers]
+    winner = out.result.candidates[0]
+    assert winner.technology == "10x-3p-gex-v2", [c.technology for c in out.result.candidates[:3]]
+    # admitted BY the onlist, so the chemistry is decided at rung 3 (the over-length length gate FAILed)
+    assert winner.rung_resolved.get("chemistry", 0) >= 3
+    assert set(winner.role_assignment.assignment) == {"R1", "R2"}
+    assert not winner.role_assignment.unassigned
+
+
+def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: Path) -> None:
+    """The safety half, and why the admission is keyed on the whitelist and not on length: a 75 bp read
+    whose first 16 bp hit NO whitelist is a cDNA/junk read, not a barcode. The admission must NOT fire —
+    the read stays forbidden for v2 and the data resolves to the generic bulk fallback. If this ever
+    regressed, any 60-94 bp cDNA would be admitted as a barcode read and rungs 0-2 would stop being
+    separable."""
+    rng = random.Random(1)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    r1 = tmp_path / "x_R1.fastq.gz"
+    r2 = tmp_path / "x_R2.fastq.gz"
+    _write_fastq_gz(r1, [rand(DEAD_LEN) for _ in range(600)])  # random 75 bp -> hits no whitelist
+    _write_fastq_gz(r2, [rand(DEAD_LEN) for _ in range(600)])
+    reg = _registry_for(
+        kb.load_spec("10x-3p-gex-v2")
+    )  # v2 whitelist IS registered; the reads miss it
+
+    out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
+    winner = out.result.candidates[0] if out.result.candidates else None
+    assert winner is not None
+    assert winner.technology != "10x-3p-gex-v2", (
+        "a whitelist-missing 75 bp read must not be admitted"
+    )
+    assert winner.technology == "bulk-rnaseq-pe"
 
 
 def test_both_v2_and_v3_accept_the_over_length_read_on_geometry_alone(tmp_path: Path) -> None:
