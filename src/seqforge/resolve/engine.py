@@ -479,20 +479,25 @@ def resolve_runs(
     # workers for the rest: each inherits the warm registry, so the packed whitelist (millions of
     # barcodes) is not re-parsed per worker, and its pages are shared copy-on-write where refcounting
     # allows. Peak memory stays bounded by `--cpus`. Scoring is deterministic per run, so the parallel
-    # result is identical to the serial one; runs are reassembled in input order. Core count folds into
-    # no hash — parallelism is not a budget (see `_probe_paths`).
+    # result is identical to the serial one; runs are reassembled in the order `group_runs` yields
+    # (sorted by run key) — the same order the serial path uses. Core count folds into no hash —
+    # parallelism is not a budget (see `_probe_paths`).
     from concurrent.futures import ProcessPoolExecutor
 
     first = _resolve_one_run(run_items[0], **common)  # type: ignore[arg-type]
-    _RUN_CTX.clear()
-    _RUN_CTX.update(common)
     rest_items = run_items[1:]
     results: dict[int, RunResolution] = {}
-    with ProcessPoolExecutor(
-        max_workers=min(cpus, len(rest_items)), mp_context=mp.get_context("fork")
-    ) as pool:
-        futures = {pool.submit(_resolve_run_shared, it): i for i, it in enumerate(rest_items)}
-        for fut in futures:
-            results[futures[fut]] = fut.result()
+    # Publish the warm context for the fork workers to inherit, and clear it in `finally` so the parent
+    # never pins the warm registry (millions of barcodes) past the pool — even if a worker raises.
+    _RUN_CTX.update(common)
+    try:
+        with ProcessPoolExecutor(
+            max_workers=min(cpus, len(rest_items)), mp_context=mp.get_context("fork")
+        ) as pool:
+            futures = {pool.submit(_resolve_run_shared, it): i for i, it in enumerate(rest_items)}
+            for fut in futures:
+                results[futures[fut]] = fut.result()
+    finally:
+        _RUN_CTX.clear()
     runs = [first, *(results[i] for i in range(len(rest_items)))]
     return MultiRunOutput(runs=runs)

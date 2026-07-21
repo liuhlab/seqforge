@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 import random
 from math import inf
@@ -13,6 +12,7 @@ import pytest
 
 from seqforge import kb
 from seqforge.io import OnlistRegistry
+from seqforge.kb.generate import write_fastq_gz
 from seqforge.kb.schema import Spec
 from seqforge.models.resolve import TechScore
 from seqforge.resolve import resolve_dataset, resolve_runs, role_of_sha_for
@@ -23,9 +23,9 @@ from seqforge.resolve.scoring import Cell, TechEvaluation
 
 # ---------- fixtures ----------
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+    # Delegate to the reproducible writer (mtime=0, filename="") so synthetic reads are byte-stable and
+    # content-addressed ids don't drift across runs. Same `@SIM:i` record format as before.
+    write_fastq_gz(path, seqs)
 
 
 def _registry_for(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> OnlistRegistry:
