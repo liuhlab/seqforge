@@ -18,6 +18,7 @@ from ..kb import list_spec_ids, load_spec
 from ..manifest import (
     FillError,
     dataset_content_hash,
+    dataset_uris,
     exit_code_for_report,
     experiment_from_metadata,
     fill_manifest,
@@ -139,6 +140,7 @@ def _fill_one_assay(
     conflicts: list[Any],
     warnings: list[Any],
     note_workspace: Path | None,
+    uris: dict[str, str] | None = None,
 ) -> _StageOut:
     """Assemble + validate ONE assay's :class:`DatasetManifest` and write it under ``state``.
 
@@ -155,6 +157,7 @@ def _fill_one_assay(
             experiment=experiment,
             seqforge_version=__version__,
             role_of_sha=role_of_sha,
+            uris=uris,
         )
     except FillError as exc:
         return _StageOut(str(exc), 3, err=True)
@@ -281,6 +284,13 @@ def _fill_manifest_pipeline(
         return _StageOut({"error": "no run resolved to a chemistry"}, 3)
     chem_of = multi.chemistry_of_sha()
     multi_assay = len(groups) > 1
+    # ONE dataset-wide URI map, computed over EVERY file's common root, shared by every assay. A
+    # per-assay fill otherwise re-derives the root from only its own (deeper) subset, so a sample in
+    # an `SRX.../` subdir gets a URI missing that segment while `--fastq-dir` is the dataset root --
+    # the units path then does not exist and the wiring gate fails. Single-assay is unaffected: its
+    # obs already IS `multi.observations`, so this is the identical map and the manifest hash is
+    # byte-for-byte unchanged.
+    file_uris = dataset_uris(multi.observations)
 
     def _build(tech: str, runs: list[Any], state: Path, note_ws: Path | None) -> _StageOut:
         if multi_assay:
@@ -294,7 +304,9 @@ def _fill_manifest_pipeline(
         # Only the BYTE resolver's conflicts block; a metadata disagreement rides in as a warning.
         conflicts = [c for run in runs for c in run.output.result.conflicts]
         try:
-            experiment = experiment_from_metadata(resolution, obs, organism_taxid=organism_taxid)
+            experiment = experiment_from_metadata(
+                resolution, obs, organism_taxid=organism_taxid, uris=file_uris
+            )
         except FillError as exc:
             return _StageOut(str(exc), 3, err=True)
         return _fill_one_assay(
@@ -307,6 +319,7 @@ def _fill_manifest_pipeline(
             conflicts=conflicts,
             warnings=metadata.warnings,
             note_workspace=note_ws,
+            uris=file_uris,
         )
 
     if not multi_assay:

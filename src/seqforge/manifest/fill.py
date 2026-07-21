@@ -110,6 +110,7 @@ def experiment_from_metadata(
     observations: list[Observation],
     *,
     organism_taxid: int | None = None,
+    uris: dict[str, str] | None = None,
 ) -> ExperimentInputs:
     """A :class:`MetadataResolution` -> the manifest's experiment inputs. The only conversion.
 
@@ -124,7 +125,12 @@ def experiment_from_metadata(
     the processing manifest uses and for the same reason: a human typing a taxid is asserting it now,
     about this data, having looked.
     """
-    uris = dataset_uris(observations)
+    # ``uris`` is optional and, when given, dataset-wide: a multi-assay fill computes ONE map over
+    # every assay's files (the dataset root) and threads it in, so a sample in a deeper per-assay
+    # subdir still gets a URI relative to the same root ``--fastq-dir`` will use. Omitted (the
+    # single-assay / single-run callers), it degenerates to the local set, byte-identical to before.
+    if uris is None:
+        uris = dataset_uris(observations)
     samples = [
         SampleGroup(
             sample_id=s.sample_id,
@@ -183,6 +189,7 @@ def fill_manifest(
     seqforge_version: str,
     role_of_sha: dict[str, str] | None = None,
     specs: dict[str, Spec] | None = None,
+    uris: dict[str, str] | None = None,
 ) -> DatasetManifest:
     """Assemble a :class:`DatasetManifest` from a clean resolve Decision + metadata inputs.
 
@@ -231,7 +238,7 @@ def fill_manifest(
         assay=_assay_labels(chemistry, specs),
         read_layout=_build_read_layout(spec, winner, obs_by_sha),
         onlists=_build_onlists(spec, registry),
-        files=_build_files(winner, observations, role_of_sha),
+        files=_build_files(winner, observations, role_of_sha, uris=uris),
     )
 
     experiment_section = ExperimentSection(
@@ -471,6 +478,7 @@ def _build_files(
     winner: Candidate,
     observations: list[Observation],
     role_of_sha: dict[str, str] | None = None,
+    uris: dict[str, str] | None = None,
 ) -> list[FileInventoryItem]:
     """File identity is raw observed truth; the role is the other half of the chemistry decision.
 
@@ -478,7 +486,10 @@ def _build_files(
     ``library.chemistry`` carries its score. Twelve files each restating it is one number thirteen
     times, which is exactly what the pilot's manifest looked like.
     """
-    uris = dataset_uris(observations)
+    # A dataset-wide ``uris`` (multi-assay fill) overrides the local computation so every assay's
+    # files are anchored on the same root; omitted, we compute it here as before.
+    if uris is None:
+        uris = dataset_uris(observations)
     if role_of_sha is None:
         # Single-run fill: build the map here, tagging index-sized leftovers the same way the
         # dataset-level path does, so a stray 10x I1/I2 is set aside rather than left to block.
