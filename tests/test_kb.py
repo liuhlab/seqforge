@@ -272,14 +272,80 @@ def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> No
 
 
 def test_the_only_list_valued_parse_param_left_is_positional() -> None:
-    """Pins the reasoning above: if a non-positional list param ever returns, revisit _resolve_value."""
+    """Pins the reasoning above: if a non-positional list param ever returns, revisit _resolve_value.
+
+    Every list-valued parse param is a `soloCBwhitelist` — the ORDERED whitelist list of a
+    CB_UMI_Complex chemistry (SPLiT-seq's three rounds, BD Rhapsody's three CLS blocks), whose order is
+    positional (i-th whitelist <-> i-th CB segment). A list param that is NOT a whitelist would be a
+    new kind of thing and should force a look at how `_resolve_value` flattens it.
+    """
     list_params = {
         (tech, key)
         for tech in kb.list_spec_ids()
         for key, value in kb.load_spec(tech).backend.params.items()
         if isinstance(value, list)
     }
-    assert list_params == {("splitseq", "soloCBwhitelist")}
+    assert list_params == {
+        ("splitseq", "soloCBwhitelist"),
+        ("bd-rhapsody-wta", "soloCBwhitelist"),
+    }
+    assert all(key == "soloCBwhitelist" for _, key in list_params)
+
+
+def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> None:
+    """The whole point of shipping the CLS whitelists (#11): a BD Rhapsody library whose reads carry
+    REAL cell-label barcodes must WIN over the generic bulk fallback at rung 3 — not tie into a
+    question, and not silently collapse to a bulk matrix.
+
+    Synthetic random barcodes miss the whitelist (that is true of every spec's roundtrip, which is why
+    `resolve score` decides 10x on geometry there), so this builds reads from the ACTUAL shipped CLS
+    lists — exactly what a real GSE274290 run carries. If this ever regresses to `bulk-rnaseq-pe`, the
+    onlist is not reaching the scorer and BD Rhapsody datasets would compile as bulk.
+    """
+    import gzip
+    import random
+
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import unpack_barcodes
+    from seqforge.resolve import resolve_dataset
+
+    cls = [unpack_barcodes(DEFAULT_REGISTRY.packed(f"bd-rhapsody-cls{i}")) for i in (1, 2, 3)]
+    assert all(len(c) == 97 for c in cls)  # the shipped lists really are 97 x 9 bp
+    link1, link2 = "ACTGGCCTGCGA", "GGTAGCGGTGACA"
+    rng = random.Random(0)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    r1 = [  # CLS1 + linker1 + CLS2 + linker2 + CLS3 + UMI(8) + poly-T tail (over-sequenced R1)
+        rng.choice(cls[0])
+        + link1
+        + rng.choice(cls[1])
+        + link2
+        + rng.choice(cls[2])
+        + rand(8)
+        + "T" * 15
+        for _ in range(800)
+    ]
+    r2 = [rand(90) for _ in range(800)]
+    f1, f2 = tmp_path / "bd_R1.fastq.gz", tmp_path / "bd_R2.fastq.gz"
+
+    def _write(path: Path, seqs: list[str]) -> None:
+        with gzip.open(path, "wt") as fh:
+            for i, s in enumerate(seqs):
+                fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")
+
+    _write(f1, r1)
+    _write(f2, r2)
+
+    out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
+    assert out.result.candidates, "BD reads must resolve to a candidate"
+    assert out.result.candidates[0].technology == "bd-rhapsody-wta", [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # decided by the onlist
+    assert out.exit_code() == 0  # a clean win — not a divergent-tie question, not a collapse
+    assert not out.result.questions
 
 
 # ---------- The rung-0-2 separability guard (design §2.4, fact 1) ----------

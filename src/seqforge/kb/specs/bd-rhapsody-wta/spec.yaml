@@ -1,0 +1,130 @@
+schema_version: 1
+
+# ============================================================================================
+# BD RHAPSODY WTA (Whole Transcriptome Analysis) — the ORIGINAL fixed-offset cell-label bead.
+#
+# Read structure, linkers, whitelists and strand pinned from primary sources (never memory):
+#   - scg_lib_structs (CC-BY): https://teichlab.github.io/scg_lib_structs/methods_html/BD_Rhapsody.html
+#   - seqspec assay example:   docs/examples/assays/bd_rhapsody_v1.spec.yaml (pachterlab/seqspec)
+#   - STARsolo maintainer-endorsed position string: github.com/alexdobin/STAR/issues/1111, #1607
+#   - EFO term verified live on EBI OLS4.
+#
+# Read 1 (the BEAD read), 5'->3'  [structural length 60 bp; R1 is sequenced longer, into poly(T)/cDNA]:
+#   [CLS1 9bp][linker1 12bp][CLS2 9bp][linker2 13bp][CLS3 9bp][UMI 8bp]
+#     offsets: CLS1 [0,9)  linker1 [9,21)  CLS2 [21,30)  linker2 [30,43)  CLS3 [43,52)  UMI [52,60)
+# Read 2 = the cDNA read (top strand as template — sense to the mRNA, see soloStrand).
+# The three cell-label sets (CLS1/CLS2/CLS3) are 97 x 9 bp EACH (BD publishes 97 per pool, not 96 —
+# verified by downloading the shipped lists; see README). soloCBwhitelist order == CB-position order.
+#
+# THE VARIANT DISCRIMINATOR (the thing most likely to be silently mismatched): this entry is the
+# ORIGINAL cell-label bead, whose CLS/UMI sit at FIXED offsets. The 2022 "Enhanced" bead prepends a
+# VARIABLE-length diversity insert (0-3 bp) before CLS1 and shortens both linkers to 4 bp
+# (GTGA / GACA) — that shifts every downstream offset and is NOT a fixed CB_UMI_Complex. seqforge
+# models fixed-offset elements only, so the Enhanced bead needs anchored-element support first and is
+# deliberately OUT OF SCOPE here — a separate future entry, never conflated with this one.
+# ============================================================================================
+
+identity:
+  id: bd-rhapsody-wta
+  version: v1-cell-label                 # the original fixed-offset bead (NOT the Enhanced variable bead)
+  name: "BD Rhapsody WTA (3' whole-transcriptome, original cell-label bead)"
+  aliases: ["BD Rhapsody", "Rhapsody", "BD Rhapsody WTA", "BD Rhapsody Whole Transcriptome Analysis",
+            "Rhapsody WTA", "BD Rhapsody Single-Cell"]
+  assay_ontology: ["EFO:0700003"]        # "BD Rhapsody Whole Transcriptome Analysis" — verified via
+                                         # EBI OLS4 (obo_id=EFO:0700003). NB EFO:0700004 is the
+                                         # Targeted-mRNA panel, a different assay — never this one.
+  modality: rna
+
+reads:
+  # Read 2 (cDNA). BD/STARsolo pass cDNA first (--readFilesIn R2 R1); the role is decided by the
+  # elements here, not by the read id, so declaring cdna on R2 is all that is needed.
+  - id: cdna
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+  # Read 1 (the bead read): three fixed 9 bp cell-label blocks split by two fixed linkers, then an
+  # 8 bp UMI. `max_len: null` because R1 is over-sequenced past byte 60 into poly(T)/cDNA — CB/UMI are
+  # read from their fixed offsets and the tail is ignored (the two constant linkers are the signature,
+  # so no segment_length gate is needed to stay separable).
+  - id: bc
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 60
+    max_len: null
+    elements:
+      - {type: barcode, name: cls1, start: 0,  end: 9,  onlist: cls1, seqspec_region_type: barcode}
+      # linker1 = the CLS1->CLS2 spacer (verbatim from scg_lib_structs / seqspec bd_rhapsody_v1)
+      - {type: linker,  name: linker1, start: 9, end: 21, seqspec_region_type: linker,
+         sequence: "ACTGGCCTGCGA"}
+      - {type: barcode, name: cls2, start: 21, end: 30, onlist: cls2, seqspec_region_type: barcode}
+      # linker2 = the CLS2->CLS3 spacer (verbatim from scg_lib_structs / seqspec bd_rhapsody_v1)
+      - {type: linker,  name: linker2, start: 30, end: 43, seqspec_region_type: linker,
+         sequence: "GGTAGCGGTGACA"}
+      - {type: barcode, name: cls3, start: 43, end: 52, onlist: cls3, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 52, end: 60, seqspec_region_type: umi}
+
+onlists:
+  cls1: {registry: bd-rhapsody-cls1, role: cell_barcode, expected_orientation: forward}  # 97 x 9 bp
+  cls2: {registry: bd-rhapsody-cls2, role: cell_barcode, expected_orientation: forward}
+  cls3: {registry: bd-rhapsody-cls3, role: cell_barcode, expected_orientation: forward}
+  tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}  # exclude only
+
+signature:
+  requires:                              # the two FIXED linkers are the structural signature
+    - {test: read_count, roles: 2}
+    - {test: has_segment, read: bc, start: 9,  end: 21, kind: constant}   # linker1 (12 bp)
+    - {test: has_segment, read: bc, start: 30, end: 43, kind: constant}   # linker2 (13 bp)
+  supports:                              # each CLS block hits its own 97 x 9 bp whitelist
+    - when: {test: onlist_hit_rate, read: bc, element: cls1, onlist: cls1, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: onlist_hit_rate, read: bc, element: cls2, onlist: cls2, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: onlist_hit_rate, read: bc, element: cls3, onlist: cls3, orientation: forward, min: 0.5}
+      weight: 3.0
+    - when: {test: distinct_ratio, read: bc, start: 52, end: 60, expect: high}   # UMI ~unique
+      weight: 1.0
+    - when: {test: distinct_ratio, read: cdna, start: 0, end: 20, expect: high}  # cDNA role is scored too
+      weight: 1.0
+  excludes:                              # a 16 bp 10x CB at read start => not BD Rhapsody
+    - {test: onlist_hit_rate, read: bc, start: 0, end: 16, onlist: tenx_probe, orientation: forward, min: 0.6}
+
+backend:
+  module: map/starsolo
+  params:
+    soloType: CB_UMI_Complex
+    soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]   # order == CB-position order
+    # soloStrand: DERIVED, not pattern-matched (a wrong strand leaves most reads unassigned while
+    # STARsolo exits 0 and emits a matrix that merely looks thin — neither gate can catch it).
+    # DERIVATION: the bead oligo terminates in (dT)18 at its 3' end; that poly(dT) primes reverse
+    # transcription off the mRNA poly(A) tail, so R2 sequences the cDNA in the SAME orientation as the
+    # original mRNA — a standard 3' poly-dT capture library, exactly like 10x Chromium 3'. STARsolo
+    # defines Forward as "read strand same as the original RNA molecule" -> Forward (also its default).
+    # CORROBORATION: a full working BD Rhapsody STARsolo command sets --soloStrand Forward
+    # (github.com/alexdobin/STAR/issues/1607), and scg_lib_structs runs BD with STARsolo's Forward
+    # default. No source claims Reverse.
+    soloStrand: Forward
+    # soloCBposition / soloUMIposition are DERIVED from the element coordinates at compose time
+    # (compose/params.py::derived_params) -> "0_0_0_8 0_21_0_29 0_43_0_51" and UMI "0_52_0_59", with
+    # soloUMIlen 8. That quadruple set is byte-identical to the maintainer-endorsed STARsolo string
+    # on issue #1111, which is an independent cross-check on the geometry above. Never hand-enter it.
+    # soloFeatures is NOT here: it says what to COUNT (cells vs nuclei is sample prep, not chemistry),
+    # and lives in the processing manifest where a user may instruct it.
+
+# The combinatorial CLS geometry + the two fixed linkers separate this from 10x / SPLiT-seq (different
+# linker sequences and positions). What it does NOT separate itself from is the generic paired-end
+# fallback, which forbids so little it accepts these two files at rungs 0-2 — the confusion runs in
+# that direction, the relation is symmetric, so it is declared on both sides (see bulk-rnaseq-pe).
+confusable_with:
+  - id: bulk-rnaseq-pe
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The generic paired-end fallback accepts cdna+bc on geometry alone. Rung 3 decides it: the three
+      CLS whitelists hit, and bulk has no whitelist to hit. Maximally divergent downstream
+      (map/starsolo with three cell-label rounds vs map/star with none), so a silent preference would
+      emit a bulk gene-count matrix for a single-cell library and exit 0.
