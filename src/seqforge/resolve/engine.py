@@ -381,6 +381,46 @@ class MultiRunOutput:
         return max((r.output.exit_code() for r in self.runs), default=0)
 
 
+def _resolve_one_run(
+    item: tuple[str, list[Path]],
+    *,
+    registry: OnlistRegistry,
+    specs: dict[str, Spec],
+    hypothesis: Hypothesis | None,
+    workspace: str | Path,
+    max_reads: int,
+    max_bytes: int,
+    use_cache: bool,
+    probed: dict[str, tuple[Observation, list[str]]],
+) -> RunResolution:
+    """Resolve ONE run's files on their own bytes, reusing the dataset-wide probe map."""
+    run_id, run_paths = item
+    output = resolve_dataset(
+        run_paths,
+        registry=registry,
+        specs=specs,
+        hypothesis=hypothesis,
+        workspace=workspace,
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+        use_cache=use_cache,
+        _probed=probed,
+    )
+    return RunResolution(run_id=run_id, paths=list(run_paths), output=output)
+
+
+#: Context a forked scoring worker inherits from its parent (see ``resolve_runs``). Set in the parent
+#: right before the fork pool; carried by fork inheritance, never pickled, so the warm registry is not
+#: rebuilt per worker (and its pages are shared copy-on-write where CPython's refcounting allows).
+_RUN_CTX: dict[str, object] = {}
+
+
+def _resolve_run_shared(item: tuple[str, Sequence[str | Path]]) -> RunResolution:
+    """Fork worker: resolve one run from the parent's COW-inherited ``_RUN_CTX`` (a warm registry whose
+    packed whitelist is shared read-only). Only the run's own paths cross the process boundary."""
+    return _resolve_one_run(item, **_RUN_CTX)  # type: ignore[arg-type]
+
+
 def resolve_runs(
     paths: Sequence[str | Path],
     *,
@@ -421,19 +461,52 @@ def resolve_runs(
         max_bytes=max_bytes,
         cpus=cpus,
     )
-    runs: list[RunResolution] = []
-    for run_id, run_paths in grouped.items():
-        output = resolve_dataset(
-            run_paths,
-            registry=registry,
-            specs=specs,
-            hypothesis=hypothesis,
-            workspace=workspace,
-            max_reads=max_reads,
-            max_bytes=max_bytes,
-            use_cache=use_cache,
-            _probed=probed,
-        )
-        runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
+    registry = registry if registry is not None else DEFAULT_REGISTRY
+    kb_specs = specs if specs is not None else load_all_specs()
+    common: dict[str, object] = dict(
+        registry=registry,
+        specs=kb_specs,
+        hypothesis=hypothesis,
+        workspace=workspace,
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+        use_cache=use_cache,
+        probed=probed,
+    )
+    run_items = list(grouped.items())
 
+    import multiprocessing as mp
+
+    # Serial unless asked for cpus AND there is more than one run AND the OS can fork. Fork is required,
+    # not just preferred: the worker reads the warm registry from `_RUN_CTX`, which a forked child
+    # inherits copy-on-write but a `spawn` child would re-import empty.
+    if cpus <= 1 or len(run_items) <= 1 or "fork" not in mp.get_all_start_methods():
+        runs = [_resolve_one_run(it, **common) for it in run_items]  # type: ignore[arg-type]
+        return MultiRunOutput(runs=runs)
+
+    # Warm the shared registry in-process on the FIRST run (this parses the onlists once), then fork
+    # workers for the rest: each inherits the warm registry, so the packed whitelist (millions of
+    # barcodes) is not re-parsed per worker, and its pages are shared copy-on-write where refcounting
+    # allows. Peak memory stays bounded by `--cpus`. Scoring is deterministic per run, so the parallel
+    # result is identical to the serial one; runs are reassembled in the order `group_runs` yields
+    # (sorted by run key) — the same order the serial path uses. Core count folds into no hash —
+    # parallelism is not a budget (see `_probe_paths`).
+    from concurrent.futures import ProcessPoolExecutor
+
+    first = _resolve_one_run(run_items[0], **common)  # type: ignore[arg-type]
+    rest_items = run_items[1:]
+    results: dict[int, RunResolution] = {}
+    # Publish the warm context for the fork workers to inherit, and clear it in `finally` so the parent
+    # never pins the warm registry (millions of barcodes) past the pool — even if a worker raises.
+    _RUN_CTX.update(common)
+    try:
+        with ProcessPoolExecutor(
+            max_workers=min(cpus, len(rest_items)), mp_context=mp.get_context("fork")
+        ) as pool:
+            futures = {pool.submit(_resolve_run_shared, it): i for i, it in enumerate(rest_items)}
+            for fut in futures:
+                results[futures[fut]] = fut.result()
+    finally:
+        _RUN_CTX.clear()
+    runs = [first, *(results[i] for i in range(len(rest_items)))]
     return MultiRunOutput(runs=runs)

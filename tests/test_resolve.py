@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 import random
 from math import inf
@@ -13,9 +12,10 @@ import pytest
 
 from seqforge import kb
 from seqforge.io import OnlistRegistry
+from seqforge.kb.generate import write_fastq_gz
 from seqforge.kb.schema import Spec
 from seqforge.models.resolve import TechScore
-from seqforge.resolve import resolve_dataset, role_of_sha_for
+from seqforge.resolve import resolve_dataset, resolve_runs, role_of_sha_for
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.scoring import Cell, TechEvaluation
@@ -23,9 +23,9 @@ from seqforge.resolve.scoring import Cell, TechEvaluation
 
 # ---------- fixtures ----------
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+    # Delegate to the reproducible writer (mtime=0, filename="") so synthetic reads are byte-stable and
+    # content-addressed ids don't drift across runs. Same `@SIM:i` record format as before.
+    write_fastq_gz(path, seqs)
 
 
 def _registry_for(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> OnlistRegistry:
@@ -36,6 +36,38 @@ def _registry_for(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> OnlistRe
         if alias in pools:
             reg.register_synthetic(ref.registry, pools[alias])
     return reg
+
+
+# ---------- parallel per-run scoring (winner-invariance vs serial) ----------
+def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
+    """``resolve_runs(cpus>1)`` forks per-run scoring with a copy-on-write-shared warm registry; the
+    result must be byte-identical to the serial (``cpus=1``) resolution -- the same runs in the same
+    order, each with the same winner and role assignment. Cores fold into no decision. Three distinct
+    accessions -> three runs, which forces the fork path (it needs more than one run)."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=800, seed=1)
+    paths: list[Path] = []
+    for acc in ("SRR7000001", "SRR7000002", "SRR7000003"):
+        for suffix, k in (("_1", "R1"), ("_2", "R2")):
+            p = tmp_path / f"{acc}{suffix}.fastq.gz"
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    def digest(multi: object) -> list[object]:
+        return [
+            (
+                r.run_id,
+                r.output.result.candidates[0].technology,
+                tuple(sorted(r.output.result.candidates[0].role_assignment.assignment.items())),
+            )
+            for r in multi.runs  # type: ignore[attr-defined]
+        ]
+
+    serial = resolve_runs(paths, registry=reg, use_cache=False, cpus=1)
+    parallel = resolve_runs(paths, registry=reg, use_cache=False, cpus=3)
+    assert len(serial.runs) == 3
+    assert digest(serial) == digest(parallel)  # same decision, run for run
 
 
 # ---------- assignment ----------
