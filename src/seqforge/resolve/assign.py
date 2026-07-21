@@ -1,10 +1,12 @@
 """Joint role->file assignment: the injective, cardinality-normalized optimization (§3.3).
 
 An assignment ``A: R_t -> F`` is **injective** (each role a distinct file). ``valid(A)`` selects no
-forbidden cell and fills every role. We maximize ``Σ (cell + β·prior)`` over valid ``A``. The common
-single-cell case (``|F| <= 4``) is solved by brute force over all injective maps; larger ``|F|`` uses
-an O(n^3) Hungarian on ``-(cell + β·prior)`` (forbidden as a large finite cost) with a post-check
-that no selected edge is a forbidden edge (an all-forbidden role => unfillable => not a padded win).
+forbidden cell and fills every role. Over valid ``A`` we optimize ``(coverage, Σ(cell + β·prior))``
+lexicographically — coverage first (see below), then score. The common single-cell case (``|F| <= 4``)
+is solved by brute force over all injective maps; larger ``|F|`` uses an O(n^3) Hungarian on
+``-(bonus + cell + β·prior)`` (forbidden as a large finite cost; the coverage bonus is dropped from the
+reported score) with a post-check that no selected edge is a forbidden edge (an all-forbidden role =>
+unfillable => not a padded win).
 
 **Coverage precedes score.** A file eligible for exactly one role (forbidden for every other) can be
 placed nowhere else, so an assignment that leaves it orphaned while a multi-role file takes its role
@@ -62,10 +64,11 @@ def best_assignment(
     forbidden: list[list[bool]],
     prior: list[list[float]],
 ) -> AssignmentResult:
-    """Return the maximum-weight valid injective role->file assignment (or an invalid verdict).
+    """Return the best valid injective role->file assignment — coverage first, then score (or invalid).
 
     ``score``/``forbidden``/``prior`` are ``n_roles x n_files``. ``score`` is the finite support
-    value in ``[0, 1]``; ``prior`` is the sub-threshold filename nudge already scaled by ``β``.
+    value in ``[0, 1]``; ``prior`` is the sub-threshold filename nudge already scaled by ``β``. Among
+    valid maps, one with more single-role-eligible files in their sole role wins; ties break on score.
     """
     unfillable = [
         r for r in range(n_roles) if n_files == 0 or all(forbidden[r][f] for f in range(n_files))
