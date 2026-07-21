@@ -329,6 +329,74 @@ def test_multiflowcell_units_emit_every_file_and_validate_clean(tmp_path: Path) 
     assert len({r["run"] for r in rows}) == 1  # all one accession -> one run, comma-joined
 
 
+# ------------------------------------------------------------ coverage over score (the real pathology)
+
+
+#: A constant 25 bp head killing 5′ diversity in the cDNA role's ``distinct_ratio R2[0:20]`` window.
+_FLAT_CDNA_HEAD = "ACGTACGTACGTACGTACGTACGTA"
+
+
+def _barcode_role(spec: kb.Spec) -> str:
+    return next(r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements))
+
+
+def _low_diversity_cdna_multilane(
+    tmp_path: Path, lanes: int = 3
+) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    """One 10x v3 accession across ``lanes`` lanes, but every cDNA (R2) read shares a constant 5′ head
+    -- the real GSE208154 shape the earlier synthetic missed. The cDNA role's only discriminator is
+    ``distinct_ratio R2[0:20] high``; with a flat cDNA 5′ end, a whitelist-diverse 28 bp *barcode* read
+    scores that discriminator ABOVE the 90 bp cDNA read. Score-max then seats a barcode read in the cDNA
+    role and orphans every cDNA-length file (absorption cannot recover -- the cDNA rep is a barcode
+    read), so the run blocks. The 90 bp reads are forbidden for the barcode role (dead zone), so the cDNA
+    role is their only home; the coverage rule seats them there and the run resolves."""
+    spec = kb.load_spec(TECH)
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    flat_cdna = [
+        _FLAT_CDNA_HEAD + r[len(_FLAT_CDNA_HEAD) :] for r in reads["R2"]
+    ]  # length preserved
+    rng = random.Random(0)
+    paths: list[Path] = []
+    for lane in range(1, lanes + 1):
+        for mate, seqs in (("R1", reads["R1"]), ("R2", flat_cdna), ("I1", None)):
+            p = tmp_path / f"SRR9000002_S1_L{lane:03d}_{mate}_001.fastq.gz"
+            if seqs is None:
+                _write_fastq_gz(
+                    p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
+                )
+            else:
+                _write_fastq_gz(p, list(seqs))
+            paths.append(p)
+    return spec, reg, paths
+
+
+def test_a_low_diversity_cdna_multifile_run_resolves_by_coverage(tmp_path: Path) -> None:
+    """The real GSE208154 pathology: low-diversity cDNA 5′ ends let a 28 bp barcode read out-score the
+    90 bp cDNA read for the cDNA role. Score alone seats a barcode read in the cDNA role and orphans every
+    cDNA-length file -> NO_VALID_ROLE_ASSIGNMENT. The coverage rule (the 90 bp reads are single-role
+    eligible -- forbidden for barcode, so cDNA is their sole home) seats them and the run resolves.
+    FAILS before the eligibility fix (cDNA-length files unassigned -> a blocker), passes after."""
+    spec, reg, paths = _low_diversity_cdna_multilane(tmp_path, lanes=3)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    assert not multi.blockers
+    assert len(multi.runs) == 1
+    assert multi.runs[0].winner in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+
+    role_of_sha = multi.role_of_sha()
+    assert len(role_of_sha) == len(paths)  # every file placed -- nothing orphaned
+    counts = Counter(role_of_sha.values())
+    assert counts[INDEX_ROLE] == 3  # the 3 I1 lanes set aside
+    non_index = sorted(c for r, c in counts.items() if r != INDEX_ROLE)
+    assert non_index == [3, 3]  # barcode and cDNA each carry all 3 lanes
+
+    # The cDNA role is filled by the long cDNA reads, not the 28 bp barcode reads (the whole bug).
+    obs = {o.file.sha256: o for o in multi.observations}
+    cdna_role = next(r for r in counts if r != INDEX_ROLE and r != _barcode_role(spec))
+    cdna_modes = {obs[s].read_length.mode for s, r in role_of_sha.items() if r == cdna_role}
+    assert all(m > 28 for m in cdna_modes)  # long reads only -- no 28 bp barcode read slipped in
+
+
 def test_read_designation_reads_the_mate_across_lanes_and_flowcells() -> None:
     """Absorption fuses a surplus file into a role by the read designation the sequencer wrote, so that
     token must be read precisely -- and identically across the lanes and flowcells of one accession,

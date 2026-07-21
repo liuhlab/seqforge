@@ -1,10 +1,22 @@
 """Joint role->file assignment: the injective, cardinality-normalized optimization (§3.3).
 
 An assignment ``A: R_t -> F`` is **injective** (each role a distinct file). ``valid(A)`` selects no
-forbidden cell and fills every role. We maximize ``Σ (cell + β·prior)`` over valid ``A``. The common
-single-cell case (``|F| <= 4``) is solved by brute force over all injective maps; larger ``|F|`` uses
-an O(n^3) Hungarian on ``-(cell + β·prior)`` (forbidden as a large finite cost) with a post-check
-that no selected edge is a forbidden edge (an all-forbidden role => unfillable => not a padded win).
+forbidden cell and fills every role. Over valid ``A`` we optimize ``(coverage, Σ(cell + β·prior))``
+lexicographically — coverage first (see below), then score. The common single-cell case (``|F| <= 4``)
+is solved by brute force over all injective maps; larger ``|F|`` uses an O(n^3) Hungarian on
+``-(bonus + cell + β·prior)`` (forbidden as a large finite cost; the coverage bonus is dropped from the
+reported score) with a post-check that no selected edge is a forbidden edge (an all-forbidden role =>
+unfillable => not a padded win).
+
+**Coverage precedes score.** A file eligible for exactly one role (forbidden for every other) can be
+placed nowhere else, so an assignment that leaves it orphaned while a multi-role file takes its role
+is coverage-wrong even when it scores higher. We therefore optimize ``(coverage, Σ(cell + β·prior))``
+lexicographically: first the count of single-role-eligible files that claim their sole role, then the
+score. This is a no-op wherever injectivity already forces the map — the common one-file-per-role case
+— and only bites a multi-file-per-role run (many lanes/flowcells under one accession), where a short
+barcode read may out-score the real long cDNA read for the cDNA role yet the cDNA-length reads are the
+only files that role can take. The coverage term orders the search; it is excluded from the reported
+score, which stays the honest ``Σ(cell + β·prior)`` of the chosen map.
 
 The filename prior is a *sub-threshold* nudge (``β << min(weight)``): it can only break an exact
 byte-tie, never override a gate or flip validity.
@@ -19,6 +31,10 @@ from math import factorial, inf
 #: Brute-force whenever the number of injective maps P(F, R) is at most this; else Hungarian.
 _BRUTE_CAP = 40_320  # 8!
 _BIG = 1e9  # a finite forbidden-edge cost for the Hungarian path (never selected if avoidable)
+#: Per-cell selection bonus for a single-role-eligible file claiming its sole role. Large enough that
+#: one more such placement outranks any score/prior configuration, small enough to sit under ``_BIG``;
+#: excluded from the reported score, so it orders coverage above score and nothing more.
+_COVERAGE_BONUS = 1e3
 
 
 @dataclass(frozen=True)
@@ -48,10 +64,11 @@ def best_assignment(
     forbidden: list[list[bool]],
     prior: list[list[float]],
 ) -> AssignmentResult:
-    """Return the maximum-weight valid injective role->file assignment (or an invalid verdict).
+    """Return the best valid injective role->file assignment — coverage first, then score (or invalid).
 
     ``score``/``forbidden``/``prior`` are ``n_roles x n_files``. ``score`` is the finite support
-    value in ``[0, 1]``; ``prior`` is the sub-threshold filename nudge already scaled by ``β``.
+    value in ``[0, 1]``; ``prior`` is the sub-threshold filename nudge already scaled by ``β``. Among
+    valid maps, one with more single-role-eligible files in their sole role wins; ties break on score.
     """
     unfillable = [
         r for r in range(n_roles) if n_files == 0 or all(forbidden[r][f] for f in range(n_files))
@@ -63,10 +80,18 @@ def best_assignment(
             unfillable_roles=unfillable,
         )
 
+    # ``exclusive[r][f]``: file f is eligible for role r and for no other role — it can be placed
+    # nowhere else, so coverage demands r be represented by one of its exclusive files when it has any.
+    n_eligible = [sum(not forbidden[r][f] for r in range(n_roles)) for f in range(n_files)]
+    exclusive = [
+        [(not forbidden[r][f]) and n_eligible[f] == 1 for f in range(n_files)]
+        for r in range(n_roles)
+    ]
+
     if _n_injective(n_files, n_roles) <= _BRUTE_CAP:
-        chosen = _brute(n_roles, n_files, score, forbidden, prior)
+        chosen = _brute(n_roles, n_files, score, forbidden, prior, exclusive)
     else:
-        chosen = _hungarian_assign(n_roles, n_files, score, forbidden, prior)
+        chosen = _hungarian_assign(n_roles, n_files, score, forbidden, prior, exclusive)
 
     if chosen is None:  # a forbidden pattern blocks every full injective map
         return AssignmentResult(valid=False, unassigned_files=list(range(n_files)))
@@ -83,19 +108,22 @@ def _brute(
     score: list[list[float]],
     forbidden: list[list[bool]],
     prior: list[list[float]],
+    exclusive: list[list[bool]],
 ) -> tuple[dict[int, int], float] | None:
-    best_raw = -inf
+    best_key: tuple[int, float] | None = None  # (coverage, raw), lexicographic
     best: tuple[int, ...] | None = None
     for perm in permutations(range(n_files), n_roles):
         if any(forbidden[r][perm[r]] for r in range(n_roles)):
             continue
+        coverage = sum(exclusive[r][perm[r]] for r in range(n_roles))
         raw = sum(score[r][perm[r]] + prior[r][perm[r]] for r in range(n_roles))
-        if raw > best_raw:
-            best_raw = raw
+        key = (coverage, raw)
+        if best_key is None or key > best_key:
+            best_key = key
             best = perm
-    if best is None:
+    if best is None or best_key is None:
         return None
-    return {r: best[r] for r in range(n_roles)}, best_raw
+    return {r: best[r] for r in range(n_roles)}, best_key[1]
 
 
 def _hungarian_assign(
@@ -104,13 +132,20 @@ def _hungarian_assign(
     score: list[list[float]],
     forbidden: list[list[bool]],
     prior: list[list[float]],
+    exclusive: list[list[bool]],
 ) -> tuple[dict[int, int], float] | None:
     n = max(n_roles, n_files)
-    # square cost: minimize -(score+prior); forbidden -> _BIG; dummy rows/cols -> 0 (an unassigned).
+    # square cost: minimize -(coverage_bonus + score + prior); forbidden -> _BIG; dummy cols -> 0. The
+    # coverage bonus (>> any score sum) makes a single-role-eligible file claim its sole role first; it
+    # is dropped from the reported ``raw``, which stays the honest Σ(score + prior) of the chosen map.
     cost = [[0.0] * n for _ in range(n)]
     for r in range(n_roles):
         for f in range(n_files):
-            cost[r][f] = _BIG if forbidden[r][f] else -(score[r][f] + prior[r][f])
+            if forbidden[r][f]:
+                cost[r][f] = _BIG
+            else:
+                bonus = _COVERAGE_BONUS if exclusive[r][f] else 0.0
+                cost[r][f] = -(bonus + score[r][f] + prior[r][f])
     col_for_row = _hungarian(cost)
     mapping: dict[int, int] = {}
     raw = 0.0
