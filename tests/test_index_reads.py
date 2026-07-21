@@ -255,6 +255,21 @@ def test_multilane_units_emit_every_lane_and_exclude_index(tmp_path: Path) -> No
     assert len({r["run"] for r in rows}) == 1
 
 
+def test_delane_strips_only_a_real_bcl2fastq_lane_token() -> None:
+    """The absorption fuses two files' identities only when they are true lane siblings, so the lane
+    token must be matched precisely. A real ``_L001_`` collapses lanes of one read together; a
+    lane-lookalike (an extra letter, or the wrong digit width) is left intact so two unrelated files are
+    never treated as lanes and wrongly absorbed."""
+    from seqforge.resolve.engine import _delane
+
+    # Real lane tokens: L001..L008 of the same read collapse to one identity.
+    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == "SRR1_S1_R1_001.fastq.gz"
+    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == _delane("SRR1_S1_L008_R1_001.fastq.gz")
+    # Lane-lookalikes are NOT stripped (Copilot review): trailing letter, or not a 3-digit token.
+    assert _delane("SRR1_L001A_R1.fastq.gz") == "SRR1_L001A_R1.fastq.gz"
+    assert _delane("sampleL5_R1.fastq.gz") == "sampleL5_R1.fastq.gz"
+
+
 def test_a_clean_single_lane_run_is_unaffected_by_absorption(tmp_path: Path) -> None:
     """Regression: the absorption only fires on surplus lane siblings. A normal single-lane run (one
     R1 + one R2, no leftovers) is byte-identical to before -- no role is duplicated, nothing tagged."""

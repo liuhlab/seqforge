@@ -170,8 +170,10 @@ def resolve_dataset(
 INDEX_MAX_LEN = 20
 
 #: The lane token in an Illumina/bcl2fastq name (``..._S1_L001_R1_001.fastq.gz``). Lanes of ONE read
-#: differ only here, so stripping it collapses ``L001/L002/...`` of the same read to one identity.
-_LANE_TOKEN = re.compile(r"_L\d+", re.IGNORECASE)
+#: differ only here, so stripping it collapses ``L001/L002/...`` of the same read to one identity. The
+#: shape is pinned to bcl2fastq's — ``_L`` + exactly three digits + a boundary (``_``/``.``/end) — so it
+#: cannot bite into an unrelated token like ``_L001A`` and wrongly fuse two non-lane files' identities.
+_LANE_TOKEN = re.compile(r"_L\d{3}(?=[_.]|$)", re.IGNORECASE)
 #: A surplus lane must also match its role representative's read length (a sanity guard beside the
 #: filename identity). Small on purpose: 10x roles sit far apart (index <= 20, barcode ~26-28, cDNA >=50).
 _LANE_LEN_TOL = 3
