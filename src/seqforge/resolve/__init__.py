@@ -46,7 +46,10 @@ from __future__ import annotations
 #: the assay family reliably and the leaf vaguely; the bytes decide the leaf, so the disagreement is
 #: recorded as a `resolved` conflict (auditable, non-blocking) instead of exit 4. A CROSS-family
 #: difference still blocks. Auto-resolves GSE229022 ("10x 3' v2/v3" in prose, byte-provably v3).
-RESOLVE_VERSION = "2026.7.8"
+#: 2026.7.9 — cross-family honesty made symmetric: a BULK chemistry asserted but a barcoded single-cell
+#: library observed now surfaces a conflict (exit 4), the mirror of single-cell-asserted-but-bulk-observed
+#: (which already did). Both directions of a wrong data-vs-paper pairing are now caught, not just one.
+RESOLVE_VERSION = "2026.7.9"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

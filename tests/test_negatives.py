@@ -274,3 +274,74 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
     assert any(c.id == "conflict-single-cell-collapsed-to-bulk" for c in out.result.conflicts), [
         c.id for c in out.result.conflicts
     ]
+
+
+def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
+    """The MIRROR of the collapse guard: an asserted bulk chemistry + a barcoded single-cell winner is a
+    cross-family contradiction that must surface. Same error class, the other direction."""
+    from seqforge.resolve.escalate import _bulk_asserted_single_cell_observed
+
+    specs = kb.load_all_specs()
+
+    class _TopSingleCell:  # the guard reads only `.tech`
+        tech = "10x-3p-gex-v3"
+
+    class _TopBulk:
+        tech = "bulk-rnaseq-pe"
+
+    conflict = _bulk_asserted_single_cell_observed(
+        "bulk-rnaseq-pe", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+    )
+    assert conflict is not None
+    assert conflict.id == "conflict-bulk-asserted-single-cell-observed"
+    assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
+    assert {p.value: p.basis for p in conflict.positions} == {
+        "bulk-rnaseq-pe": "asserted",
+        "10x-3p-gex-v3": "observed",
+    }
+    # negatives — no reverse conflict to surface:
+    # a single-cell chemistry was asserted -> that is the FORWARD collapse guard's job, not this one
+    assert (
+        _bulk_asserted_single_cell_observed(
+            "10x-3p-gex-v2", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+        )
+        is None
+    )
+    # the winner is itself bulk (agreement)
+    assert (
+        _bulk_asserted_single_cell_observed(
+            "bulk-rnaseq-pe", "harvest", 0.9, _TopBulk(), specs["bulk-rnaseq-pe"], [], specs
+        )
+        is None
+    )
+    # no hypothesis at all
+    assert (
+        _bulk_asserted_single_cell_observed(
+            None, None, 0.8, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+        )
+        is None
+    )
+
+
+def test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict(tmp_path: Path) -> None:
+    """End-to-end mirror: the reads are single-cell 10x v3 but the metadata asserts bulk RNA-seq. That
+    cross-family contradiction must surface (exit 4) rather than silently compile a single-cell manifest
+    for a dataset the paper calls bulk. The library still takes the observed value (v3)."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    f1 = tmp_path / "sample_R1.fastq.gz"
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    out = resolve_dataset(
+        [f1, f2],
+        registry=_registry_for(spec),
+        hypothesis=Hypothesis(value="bulk-rnaseq-pe", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
+    assert out.exit_code() == 4
+    assert any(
+        c.id == "conflict-bulk-asserted-single-cell-observed" for c in out.result.conflicts
+    ), [c.id for c in out.result.conflicts]

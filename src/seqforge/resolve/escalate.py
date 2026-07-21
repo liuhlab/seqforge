@@ -117,6 +117,11 @@ def escalate(
     )
     if collapse is not None:
         conflicts.append(collapse)
+    reverse = _bulk_asserted_single_cell_observed(
+        hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
+    )
+    if reverse is not None:
+        conflicts.append(reverse)
     # Pre-trimming can only be judged once a role is known — it is variable length *on a read the
     # chemistry says is fixed*, so it needs the winner's assignment, not raw bytes. Hence here and
     # not in `_integrity_blockers`.
@@ -408,6 +413,58 @@ def _single_cell_collapse_conflict(
         return None  # the winner is itself barcoded (single-cell won or tied) — nothing collapsed
     return Conflict(
         id="conflict-single-cell-collapsed-to-bulk",
+        field="library.chemistry",
+        kind="observed_vs_asserted",
+        positions=[
+            ConflictPosition(
+                value=hyp_tech,
+                basis="asserted",
+                evidence=[hypothesis_id] if hypothesis_id else [],
+                confidence=hypothesis_confidence,
+            ),
+            ConflictPosition(
+                value=top.tech,
+                basis="observed",
+                evidence=[o.file.sha256 for o in observations],
+                confidence=0.99,
+            ),
+        ],
+        decidable_by=["reads"],
+        status="open",
+    )
+
+
+def _bulk_asserted_single_cell_observed(
+    hypothesis_value: str | None,
+    hypothesis_id: str | None,
+    hypothesis_confidence: float,
+    top: TechEvaluation,
+    top_spec: Spec,
+    observations: list[Observation],
+    specs: dict[str, Spec],
+) -> Conflict | None:
+    """The mirror image of ``_single_cell_collapse_conflict``: a **bulk** chemistry was asserted, but the
+    winning byte candidate is a **barcoded single-cell** library. Surface it (exit 4) rather than emit a
+    single-cell manifest for a dataset the paper calls bulk.
+
+    Same error class as the collapse, the other direction — a wrong data-vs-paper pairing or a mis-written
+    methods section, and equally not something to let go. It is cross-family (bulk vs a single-cell
+    family), so ``same_family`` never suppresses it. And ``_detect_conflicts`` cannot see it: an asserted
+    *bulk* chemistry has no barcode read, so ``_asserted_barcode_length`` is ``None`` and that guard
+    returns early — which is why this is a separate structural check. Like the collapse it only surfaces;
+    it never arbitrates.
+    """
+    if not hypothesis_value:
+        return None
+    hyp_tech = _match_tech(hypothesis_value, specs)
+    if hyp_tech is None:
+        return None  # the asserted chemistry names no KB tech, so "bulk" is not established
+    if _barcode_read_id(specs[hyp_tech]) is not None:
+        return None  # a single-cell chemistry was asserted — the forward collapse guard's job, not this
+    if _barcode_read_id(top_spec) is None:
+        return None  # the winner is itself bulk (agreement) — nothing to surface
+    return Conflict(
+        id="conflict-bulk-asserted-single-cell-observed",
         field="library.chemistry",
         kind="observed_vs_asserted",
         positions=[
