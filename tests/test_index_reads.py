@@ -255,19 +255,103 @@ def test_multilane_units_emit_every_lane_and_exclude_index(tmp_path: Path) -> No
     assert len({r["run"] for r in rows}) == 1
 
 
-def test_delane_strips_only_a_real_bcl2fastq_lane_token() -> None:
-    """The absorption fuses two files' identities only when they are true lane siblings, so the lane
-    token must be matched precisely. A real ``_L001_`` collapses lanes of one read together; a
-    lane-lookalike (an extra letter, or the wrong digit width) is left intact so two unrelated files are
-    never treated as lanes and wrongly absorbed."""
-    from seqforge.resolve.engine import _delane
+# ------------------------------------------------------------ multi-flowcell surplus absorption
 
-    # Real lane tokens: L001..L008 of the same read collapse to one identity.
-    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == "SRR1_S1_R1_001.fastq.gz"
-    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == _delane("SRR1_S1_L008_R1_001.fastq.gz")
-    # Lane-lookalikes are NOT stripped (Copilot review): trailing letter, or not a 3-digit token.
-    assert _delane("SRR1_L001A_R1.fastq.gz") == "SRR1_L001A_R1.fastq.gz"
-    assert _delane("sampleL5_R1.fastq.gz") == "sampleL5_R1.fastq.gz"
+
+def _multiflowcell_reads(
+    tmp_path: Path,
+    flowcells: tuple[str, ...] = ("HCL2YBBXY", "HCL2KBBXY"),
+    lanes: int = 2,
+) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    """One 10x v3 accession sequenced across several FLOWCELLS, each with ``lanes`` lanes of
+    R1(28)+R2(90)+I1(8), named the bcl2fastq way with the flowcell id in the stem
+    (``SRR..._<FC>_S1_L001_R1_001.fastq.gz``). The shared SRA accession groups every file into ONE run
+    -- the GSE208154 shape (11 SRR runs x 2 flowcells x 8 lanes x {R1,R2,I1}). Because the flowcell id
+    differs between files, de-laning left the cross-flowcell surplus with a different identity than its
+    role representative, so it stayed unassigned and the run blocked; designation matching fuses them."""
+    spec = kb.load_spec(TECH)
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    rng = random.Random(0)
+    paths: list[Path] = []
+    for fc in flowcells:
+        for lane in range(1, lanes + 1):
+            for mate, k in (("R1", "R1"), ("R2", "R2"), ("I1", None)):
+                p = tmp_path / f"SRR9000001_{fc}_S1_L{lane:03d}_{mate}_001.fastq.gz"
+                if k is None:
+                    _write_fastq_gz(
+                        p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
+                    )
+                else:
+                    _write_fastq_gz(p, list(reads[k]))
+                paths.append(p)
+    return spec, reg, paths
+
+
+def test_a_multiflowcell_run_absorbs_every_flowcell_into_its_role(tmp_path: Path) -> None:
+    """GSE208154: one accession sequenced across 2 flowcells x 2 lanes -> one run of 4*(R1+R2+I1). The
+    files differ by flowcell id, so 2026.7.4's de-lane equality could not fuse the cross-flowcell surplus
+    (its de-laned name still carried the differing flowcell id) and the run blocked. Matching by read
+    designation (R1/R2) + length fuses them, so every file is placed and the run resolves. FAILS before
+    the fix (some files unassigned -> a blocker), passes after."""
+    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=("HCL2YBBXY", "HCL2KBBXY"), lanes=2)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    assert not multi.blockers
+    assert len(multi.runs) == 1  # one accession -> one run holding all 12 files
+    assert multi.runs[0].winner in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+
+    role_of_sha = multi.role_of_sha()
+    assert len(role_of_sha) == len(paths)  # every file placed across BOTH flowcells
+    counts = Counter(role_of_sha.values())
+    assert counts[INDEX_ROLE] == 4  # 2 flowcells x 2 lanes of I1 set aside
+    non_index = sorted(c for r, c in counts.items() if r != INDEX_ROLE)
+    assert non_index == [4, 4]  # barcode and cDNA each carry all 4 (flowcell x lane) files
+
+
+def test_multiflowcell_units_emit_every_file_and_validate_clean(tmp_path: Path) -> None:
+    """End to end for the flowcell shape: every file placed -> the manifest validates clean and
+    units.tsv carries one row per (flowcell x lane) per counted role (STARsolo comma-joins them),
+    with the index files excluded."""
+    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=("HCL2YBBXY", "HCL2KBBXY"), lanes=2)
+    manifest = _manifest(tmp_path, spec, reg, paths)
+
+    assert all(f.read_id is not None for f in manifest.library.files)  # nothing unassigned
+    assert sum(1 for f in manifest.library.files if f.read_id == INDEX_ROLE) == 4
+    report = validate_manifest(manifest)
+    assert report.ok, [b.message for b in report.blockers]
+    assert exit_code_for_report(report) == 0
+
+    rows = core._units(manifest)
+    assert all(row["read_id"] != INDEX_ROLE for row in rows)
+    # 4 (flowcell x lane) x 2 counted roles = 8 rows; each counted role appears once per file.
+    assert len(rows) == 8
+    assert set(Counter(r["read_id"] for r in rows).values()) == {4}
+    assert len({r["run"] for r in rows}) == 1  # all one accession -> one run, comma-joined
+
+
+def test_read_designation_reads_the_mate_across_lanes_and_flowcells() -> None:
+    """Absorption fuses a surplus file into a role by the read designation the sequencer wrote, so that
+    token must be read precisely -- and identically across the lanes and flowcells of one accession,
+    whose files differ only by a lane token and the flowcell id the designation ignores."""
+    from seqforge.resolve.engine import _read_designation
+
+    # The Illumina R/I token, read regardless of lane or flowcell id.
+    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == "R1"
+    assert _read_designation("SRR1_HCL2YBBXY_S1_L002_R2_001.fastq.gz") == "R2"
+    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_I1_001.fastq.gz") == "I1"
+    # The whole point: two flowcells / two lanes of one read share ONE designation (de-laning could not
+    # -- the flowcell id differs, so their de-laned names differed and the surplus stayed unassigned).
+    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == _read_designation(
+        "SRR1_HCL2KBBXY_S1_L005_R1_001.fastq.gz"
+    )
+    # fasterq-dump's numeric mate suffix (SRR..._1 / _2 / _3).
+    assert _read_designation("SRXidx_1.fastq.gz") == "1"
+    assert _read_designation("SRXidx_2.fastq.gz") == "2"
+    assert _read_designation("SRXidx_3.fastq.gz") == "3"
+    # R1 and R2 are DIFFERENT designations, so a barcode surplus never rejoins the cDNA role.
+    assert _read_designation("x_R1.fastq.gz") != _read_designation("x_R2.fastq.gz")
+    # A name that declares no mate designation -> None, so it is never absorbed (stays a blocker).
+    assert _read_designation("sample_barcodes.fastq.gz") is None
 
 
 def test_a_clean_single_lane_run_is_unaffected_by_absorption(tmp_path: Path) -> None:
