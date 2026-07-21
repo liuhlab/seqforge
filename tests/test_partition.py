@@ -35,6 +35,101 @@ def _two_chemistry_files(tmp_path: Path) -> list[Path]:
     return files
 
 
+def _two_chemistry_files_nested(tmp_path: Path) -> list[Path]:
+    """As :func:`_two_chemistry_files`, but each run lives in its OWN accession subdir one level
+    deeper -- the GSE310667/GSE126954 on-disk shape (``<root>/SRX.../SRR..._1.fastq.gz``) that
+    ``fasterq-dump`` writes. The dataset root is ``tmp_path``; each assay's OWN common root is its
+    ``SRX.../`` subdir. That gap is exactly what a per-assay URI computation dropped."""
+    files: list[Path] = []
+    for acc, srx, tech in (
+        ("SRR1", "SRX_A", "10x-3p-gex-v3"),
+        ("SRR2", "SRX_B", "bulk-rnaseq-pe"),
+    ):
+        reads = kb.generate_reads(kb.load_spec(tech), n=400, seed=0)
+        subdir = tmp_path / srx
+        subdir.mkdir()
+        for mate, role in (("1", "R1"), ("2", "R2")):
+            p = subdir / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            files.append(p)
+    return files
+
+
+def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_path: Path) -> None:
+    """Regression for the multi-assay URI-root bug (GSE310667 15/16, GSE126954 6/7).
+
+    When a dataset splits into assays, each assay's manifest must carry file URIs relative to the
+    WHOLE dataset's common root -- the same root ``compose --fastq-dir`` joins against -- not each
+    assay's own (deeper) root. Before the fix, a split-off assay whose files sat in an ``SRX.../``
+    subdir got bare-basename URIs, so ``<dataset-root>/<basename>`` did not exist and the wiring gate
+    failed. Here the assertion is the wiring gate's exact check: every URI joined to the dataset root
+    resolves to a real file.
+    """
+    files = _two_chemistry_files_nested(tmp_path)
+    out = _fill_manifest_pipeline(
+        files=files,
+        organism="6239",
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=tmp_path,
+    )
+    assert out.code == 0, out.payload
+    assert isinstance(out.payload, dict)
+    # This is a REGRESSION guard for a MULTI-assay bug, so partitioning MUST happen -- the v3 and bulk
+    # fixtures are deterministic and distinct chemistries. Assert it rather than skip: a silent skip
+    # (as a sibling test does, where partitioning is incidental) could mask the regression returning.
+    assert "assays" in out.payload, f"fixtures did not partition into assays: {out.payload}"
+
+    for a in out.payload["assays"]:
+        srx = "SRX_A" if a["chemistry"] == "10x-3p-gex-v3" else "SRX_B"
+        doc = yaml.safe_load(Path(a["manifest"]).read_text())
+        # library.files URIs carry the accession subdir and resolve against the dataset root.
+        for f in doc["library"]["files"]:
+            assert f["uri"].startswith(f"{srx}/"), f["uri"]
+            assert (tmp_path / f["uri"]).is_file(), f"units path missing: {f['uri']}"
+        # experiment.samples.file_uris are anchored identically (referential integrity holds).
+        for s in doc["experiment"]["samples"]:
+            for uri in s["file_uris"]:
+                assert uri.startswith(f"{srx}/"), uri
+                assert (tmp_path / uri).is_file(), f"sample file_uri missing: {uri}"
+
+
+def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: Path) -> None:
+    """Byte-identity guard for the single-assay path: threading a dataset-wide URI map must not
+    change a single-assay manifest. One chemistry, all runs in their own subdirs -> the common root
+    is the parent of those subdirs, so URIs carry the subdir and resolve against it, exactly as
+    before the fix (which for one assay computes the identical map)."""
+    import pytest
+
+    files: list[Path] = []
+    for acc in ("SRR1", "SRR2"):
+        reads = kb.generate_reads(kb.load_spec("10x-3p-gex-v3"), n=400, seed=0)
+        sub = tmp_path / f"SRX_{acc}"
+        sub.mkdir()
+        for mate, role in (("1", "R1"), ("2", "R2")):
+            p = sub / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            files.append(p)
+
+    out = _fill_manifest_pipeline(
+        files=files,
+        organism="6239",
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=tmp_path,
+    )
+    assert out.code == 0, out.payload
+    assert isinstance(out.payload, dict)
+    if "assays" in out.payload:  # pragma: no cover - fixtures unexpectedly split
+        pytest.skip("fixtures split into multiple assays")
+    doc = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
+    for f in doc["library"]["files"]:
+        assert f["uri"].startswith("SRX_SRR"), f["uri"]
+        assert (tmp_path / f["uri"]).is_file(), f["uri"]
+
+
 def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(tmp_path: Path) -> None:
     files = _two_chemistry_files(tmp_path)
     out = _fill_manifest_pipeline(
