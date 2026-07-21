@@ -39,6 +39,15 @@ def _registry_for(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> OnlistRe
 
 
 # ---------- assignment ----------
+def _exclusive_of(forbidden: list[list[bool]]) -> list[list[bool]]:
+    """``exclusive[r][f]``, as ``best_assignment`` derives it: f eligible for r and no other role."""
+    n_roles, n_files = len(forbidden), len(forbidden[0]) if forbidden else 0
+    n_elig = [sum(not forbidden[r][f] for r in range(n_roles)) for f in range(n_files)]
+    return [
+        [(not forbidden[r][f]) and n_elig[f] == 1 for f in range(n_files)] for r in range(n_roles)
+    ]
+
+
 def test_hungarian_matches_brute_force() -> None:
     rng = random.Random(0)
     for _ in range(40):
@@ -46,13 +55,30 @@ def test_hungarian_matches_brute_force() -> None:
         score = [[rng.random() for _ in range(n)] for _ in range(n)]
         forbidden = [[rng.random() < 0.2 for _ in range(n)] for _ in range(n)]
         prior = [[0.0] * n for _ in range(n)]
-        brute = _brute(n, n, score, forbidden, prior)
-        hung = _hungarian_assign(n, n, score, forbidden, prior)
+        exclusive = _exclusive_of(forbidden)
+        brute = _brute(n, n, score, forbidden, prior, exclusive)
+        hung = _hungarian_assign(n, n, score, forbidden, prior, exclusive)
         if brute is None:
             assert hung is None
         else:
             assert hung is not None
             assert hung[1] == pytest.approx(brute[1])  # same optimal raw value
+
+
+def test_a_single_role_eligible_file_claims_its_role_over_a_higher_scoring_rival() -> None:
+    # Two roles, three files modelling GSE208154's per-role surplus: file0 (a barcode read) is eligible
+    # for BOTH roles and out-scores everything for the cDNA role; file1 (a cDNA-length read) is eligible
+    # ONLY for the cDNA role (forbidden for barcode); file2 is a second barcode read. Score alone would
+    # take cDNA<-file0 and orphan file1 — coverage forces cDNA<-file1 (its sole possible home).
+    score = [[0.90, 0.00, 0.88], [0.76, 0.26, 0.75]]  # role0=barcode, role1=cDNA
+    forbidden = [[False, True, False], [False, False, False]]
+    prior = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+    res = best_assignment(2, 3, score, forbidden, prior)
+    assert res.valid
+    assert res.mapping[1] == 1  # cDNA claims the only cDNA-eligible file, not the barcode read
+    assert res.mapping[0] in (0, 2)  # barcode takes a barcode read
+    # The reported score is the honest Σ(score) of the chosen map — the coverage bonus is not folded in.
+    assert res.raw == pytest.approx(score[0][res.mapping[0]] + 0.26)
 
 
 def test_assignment_forbidden_diagonal_forces_swap() -> None:
