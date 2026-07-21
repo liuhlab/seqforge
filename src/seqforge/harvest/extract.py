@@ -52,7 +52,12 @@ from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schem
 #: now supplies per attribute and conflated tissue with `cell_type` (its own attribute since 7.2).
 #: `test_prompt_names_only_permitted_fields` derives the ⊆ PERMITTED_FIELDS invariant so the prompt
 #: cannot drift from `fields.py` again — the hand-maintained-mirror rot this whole module warns about.
-EXTRACT_PROMPT_VERSION = "2026.7.3"
+#: 2026.7.4 — added `library.prep_type` (single-cell vs single-nucleus). It is the biology twin of the
+#: `processing.quantification` caution above: the model reports the INPUT MATERIAL in the document's
+#: own words and still names no feature — "single nuclei" is a prep, not GeneFull. Code owns the
+#: nuclei->GeneFull-primary mapping (`manifest.policy`), so span verification stays a check on the
+#: quote, never a licence to infer a processing decision from biology.
+EXTRACT_PROMPT_VERSION = "2026.7.4"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -80,6 +85,11 @@ Values:
 - `library.chemistry`: use the knowledge-base `id` when the document names that technology by any of
   its aliases. If the document names a technology not in the knowledge base, use the document's own
   wording.
+- `library.prep_type`: whether the sequenced input was whole CELLS or isolated NUCLEI, copied in the
+  document's own words ("single-nucleus", "single nuclei", "snRNA-seq", "isolated nuclei", or
+  "single-cell", "scRNA-seq", "whole cells"). Report only the PREP the document states; do NOT name a
+  STARsolo feature or an analysis mode — "single nuclei" is an input material, not `GeneFull`. Omit if
+  the document does not say.
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
 - `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
   "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.

@@ -273,6 +273,7 @@ def fill_processing(
     dataset: DatasetManifest,
     processing: ProcessingInputs,
     instructions: Sequence[Instruction] = (),
+    prep_type: str | None = None,
     processing_id: str = "default",
     pin: bool = True,
     seqforge_version: str,
@@ -290,6 +291,7 @@ def fill_processing(
         spec=spec,
         dataset=dataset,
         instructions=instructions,
+        prep_type=prep_type,
         overrides=ProcessingOverrides(
             assembly=processing.assembly,
             annotation_name=processing.annotation_name,

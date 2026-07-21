@@ -8,10 +8,12 @@ there is no profile-indirection layer to invent here.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..kb.schema import Spec
+from ..models.assertion import Assertion
 from ..models.base import Basis
 from ..models.blocker import BlockerSubject, ValidationWarning
 from ..models.dataset import DatasetManifest
@@ -207,10 +209,50 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     )
 
 
+#: Word-boundary patterns for the two preps. Anchored on WHOLE words (not a bare "nucle"/"cell"
+#: substring, which would misread "nucleic acid" as nuclei or "Cell Ranger" as single-cell), and kept
+#: to the specific terms a methods section actually uses for the input material.
+_NUCLEUS_RE = re.compile(
+    r"\b(?:single[-\s]?nucle(?:us|i)|nuclei|nuclear|nucleus|sn-?rna|sn-?seq)\b", re.I
+)
+_CELL_RE = re.compile(r"\b(?:single[-\s]?cells?|sc-?rna|sc-?seq|whole[-\s]?cells?)\b", re.I)
+
+
+def _normalize_prep_type(raw: str) -> str | None:
+    """A free-text prep phrase -> ``single-cell`` | ``single-nucleus`` | ``None``. Code's job, not the
+    model's: the model reports the biology in the paper's words, this maps those words to one of two
+    values. ``None`` when the phrase names neither clearly, OR names BOTH (so nothing is guessed) — the
+    value steers which matrix is primary, so an ambiguous phrase must not silently pick one."""
+    nucleus = bool(_NUCLEUS_RE.search(raw))
+    cell = bool(_CELL_RE.search(raw))
+    if nucleus == cell:  # neither term, or both -> refuse to guess
+        return None
+    return "single-nucleus" if nucleus else "single-cell"
+
+
+def prep_type_from_assertions(assertions: Sequence[Assertion]) -> str | None:
+    """The cells-vs-nuclei prep, normalized from a span-verified ``library.prep_type`` claim.
+
+    ``None`` if the paper does not say, or if two verified claims disagree — never a guess between
+    them. The model FOUND the biology ("single nuclei") with a quote that greps back; this reads that
+    record and normalizes its wording. It names no feature: the biology -> feature mapping is
+    :func:`resolve_features`'s and code's alone, which is why sourcing this field from prose is safe.
+    """
+    values: set[str] = set()
+    for a in assertions:
+        if a.field != "library.prep_type" or not (a.span_verified and a.entailment_ok):
+            continue
+        norm = _normalize_prep_type(a.value)
+        if norm is not None:
+            values.add(norm)
+    return next(iter(values)) if len(values) == 1 else None
+
+
 def resolve_features(
     *,
     instructions: Sequence[Instruction] = (),
     override: tuple[SoloFeature, ...] | None = None,
+    prep_type: str | None = None,
 ) -> tuple[list[SoloFeature], Basis, list[str], list[ValidationWarning]]:
     """Fold policy + instructions + a flag into ONE ordered feature list, with its provenance.
 
@@ -227,6 +269,12 @@ def resolve_features(
 
     **A flag replaces exactly.** The user typed the whole list; they mean it. Narrowing is the only
     irreversible act available here, so it warns rather than passing silently.
+
+    **A single-nucleus prep only REORDERS.** With no flag and no instruction, a span-verified
+    ``prep_type`` of ``single-nucleus`` promotes ``GeneFull`` to primary — a nuclear library is
+    ~1/3 intronic, so a Gene-first primary silently under-counts it (ce11: Gene=1186 vs GeneFull=1940,
+    a 40.7% loss). Still all five features, one alignment, one pass; only ``adata.X`` changes. This is
+    the model finding biology and code deciding processing — the split the whole compiler is built on.
     """
     warnings: list[ValidationWarning] = []
     default = list(DEFAULT_SOLO_FEATURES)
@@ -258,6 +306,13 @@ def resolve_features(
         evidence = [e for i in named for e in i.evidence]
         return features, "user_confirmed", evidence, warnings
 
+    if prep_type == "single-nucleus":
+        # No flag, no instruction — but a verified nuclei prep. Promote GeneFull to primary the same
+        # way an instruction would, using the same union idiom so nothing is dropped and Gene still
+        # follows (Velocyto's "requires Gene" holds by construction).
+        features = list(dict.fromkeys(["GeneFull", *default]))
+        return features, "inferred", ["policy:genefull-primary-for-single-nucleus"], warnings
+
     return default, "inferred", ["policy:default-solo-features"], warnings
 
 
@@ -267,6 +322,7 @@ def resolve_processing(
     dataset: DatasetManifest,
     instructions: Sequence[Instruction] = (),
     overrides: ProcessingOverrides | None = None,
+    prep_type: str | None = None,
 ) -> tuple[ProcessingSection, list[ValidationWarning]]:
     """THE single place precedence lives: policy default -> instruction -> CLI flag.
 
@@ -287,7 +343,7 @@ def resolve_processing(
     warnings: list[ValidationWarning] = []
     if isinstance(defaults.quantification, SoloQuant):
         features, basis, evidence, warnings = resolve_features(
-            instructions=instructions, override=ov.features
+            instructions=instructions, override=ov.features, prep_type=prep_type
         )
         quant = SoloQuant(features=features)
     else:
