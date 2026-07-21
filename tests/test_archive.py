@@ -122,3 +122,25 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
         attr.value for sample in samples for attr in sample.attributes if attr.name == "strain"
     }
     assert {"CQ757", "CQ758"} <= strains
+
+
+def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """eutils raises its 3->10 req/sec cap for a keyed caller (#9). The key is read from the
+    environment and added to the request params, and it never appears when unset."""
+    captured: dict[str, object] = {}
+
+    def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
+        captured["params"] = params
+        return "<EXPERIMENT_PACKAGE_SET/>"
+
+    monkeypatch.setattr(archive, "_get", fake_get)
+
+    monkeypatch.setenv("NCBI_API_KEY", "SECRET-KEY-123")
+    archive._efetch("sra", ["SRX1"])
+    assert captured["params"]["api_key"] == "SECRET-KEY-123"  # type: ignore[index]
+
+    monkeypatch.delenv("NCBI_API_KEY", raising=False)
+    archive._efetch("sra", ["SRX1"])
+    assert "api_key" not in captured["params"]  # type: ignore[operator]

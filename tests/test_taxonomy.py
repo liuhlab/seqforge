@@ -7,8 +7,12 @@ worm maps at a rate that merely looks mediocre. So every test here is about what
 
 from __future__ import annotations
 
+import io
+import urllib.error
+
 import pytest
 
+from seqforge.io import taxonomy
 from seqforge.io.taxonomy import Taxon, TaxonomyUnavailable, resolve, seed_names
 
 
@@ -26,6 +30,43 @@ def test_the_seed_resolves_offline() -> None:
     """The common path costs no network: the pilot's organism is in the table."""
     assert resolve("Caenorhabditis elegans", offline=True) == 6239
     assert resolve("  caenorhabditis   ELEGANS ", offline=True) == 6239, "case/space are key noise"
+
+
+def test_api_key_is_appended_only_for_eutils_and_only_when_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    eutils_url = f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239"
+    monkeypatch.setenv("NCBI_API_KEY", "K")
+    assert "api_key=K" in taxonomy._with_api_key(eutils_url)
+    assert taxonomy._with_api_key("https://example.com/x") == "https://example.com/x"  # not eutils
+    monkeypatch.delenv("NCBI_API_KEY", raising=False)
+    assert "api_key" not in taxonomy._with_api_key(eutils_url)
+
+
+def test_taxonomy_get_retries_a_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Same #9 backoff as `remote._get`, but over urllib (a non-2xx arrives as an HTTPError)."""
+    calls = {"n": 0}
+
+    def fake_urlopen(url: str, timeout: object = None) -> object:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise urllib.error.HTTPError(url, 429, "rate limited", {}, None)  # type: ignore[arg-type]
+        return io.BytesIO(b"OK")  # BytesIO is its own context manager
+
+    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    assert taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0) == "OK"
+    assert calls["n"] == 2
+
+
+def test_taxonomy_get_does_not_retry_a_terminal_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_urlopen(url: str, timeout: object = None) -> object:
+        raise urllib.error.HTTPError(url, 400, "bad request", {}, None)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    with pytest.raises(urllib.error.HTTPError):
+        taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0)
 
 
 def test_an_unseeded_name_refuses_offline_rather_than_guessing() -> None:

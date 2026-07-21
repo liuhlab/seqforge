@@ -34,13 +34,17 @@ Two things this module refuses to do:
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
 from ..workspace import cache_dir
+from .remote import _MAX_RETRIES, _RETRY_STATUS, retry_delay
 
 _EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
@@ -88,9 +92,33 @@ def _normalize(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip().lower()
 
 
+def _with_api_key(url: str) -> str:
+    """Append ``api_key`` to a eutils URL when the environment sets ``NCBI_API_KEY`` (lifts the keyless
+    3 req/sec cap to 10). Only eutils URLs — the key is NCBI's and belongs on no other host (#9)."""
+    key = os.environ.get("NCBI_API_KEY")
+    if not key or not url.startswith(_EUTILS):
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}api_key={urllib.parse.quote(key)}"
+
+
 def _get(url: str, *, timeout: float) -> str:
-    with urllib.request.urlopen(url, timeout=timeout) as fh:  # noqa: S310 - a pinned NCBI host
-        return str(fh.read().decode())
+    # Mirror `remote._get`: a transient status (429 rate-limit, a 5xx blip) backs off and retries
+    # rather than aborting the lookup. taxonomy uses urllib, so a non-2xx arrives as an HTTPError.
+    full = _with_api_key(url)
+    last: urllib.error.HTTPError | None = None
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(full, timeout=timeout) as fh:  # noqa: S310 - pinned NCBI host
+                return str(fh.read().decode())
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code in _RETRY_STATUS and attempt < _MAX_RETRIES:
+                time.sleep(retry_delay(exc.headers.get("Retry-After"), attempt))
+                continue
+            raise
+    assert last is not None  # pragma: no cover - the loop only exits via return or raise
+    raise last
 
 
 def fetch_taxon(taxid: int, *, timeout: float = 20.0) -> Taxon:
