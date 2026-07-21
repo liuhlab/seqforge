@@ -16,7 +16,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from ..io import OnlistRegistry
-from ..kb.schema import Read, Spec
+from ..kb.schema import OnlistHitRate, Read, SegmentLength, Spec
 from ..models.resolve import TechScore
 from .assign import AssignmentResult, best_assignment
 from .evaluators import Outcome, evaluate, read_length_compatible
@@ -105,6 +105,17 @@ def _score_cell(
         ev = evaluate(t, read, wp, spec, registry)
         used_onlist = used_onlist or ev.used_onlist
         if ev.outcome == Outcome.FAIL:
+            # A `segment_length` FAIL in the over-length DEAD ZONE (canonical < mode < over_length_min)
+            # is not necessarily a wrong read: an R1 over-sequenced to e.g. 75 bp is a real barcode
+            # read whose CB/UMI still sit at the fixed offsets — over_length_min is deliberately high
+            # (100) so a 60-94 bp cDNA is not admitted on length alone. The WHITELIST is the
+            # disambiguator: a genuine cDNA of the same length misses it, a real barcode hits it. So if
+            # the barcode onlist hits, admit as over-length (rung 3); else keep the FAIL. This is the
+            # one place a rung-3 result overrides a rung-0-2 length gate, and it only ever ADMITS
+            # (#7 — GSE126954's over-sequenced SRX5411291, which the v2 length gate otherwise forbids).
+            if _over_length_admitted_by_onlist(t, read, wp, spec, registry, supports):
+                used_onlist = True
+                continue
             return Cell(
                 forbidden=True, value=0.0, reason=f"requires FAIL: {ev.detail}"
             ), used_onlist
@@ -125,6 +136,33 @@ def _score_cell(
             acc += weight * ev.score
         value = acc / total_w
     return Cell(forbidden=False, value=value, reason="scored"), used_onlist
+
+
+def _over_length_admitted_by_onlist(
+    test: object,
+    read: Read,
+    wp: WindowProbe,
+    spec: Spec,
+    registry: OnlistRegistry,
+    supports: list[tuple[object, float]],
+) -> bool:
+    """Admit a barcode read over-sequenced into the length dead zone IFF its barcode prefix hits the
+    whitelist. Deliberately narrow and additive: it fires ONLY on a ``segment_length`` FAIL whose mode
+    is strictly between the canonical ``length`` and ``over_length_min`` (a read at/below the canonical
+    length, or already ``>= over_length_min``, does not reach here), and ONLY when an ``onlist_hit_rate``
+    support on this read PASSes. A cDNA read of the same length misses the whitelist and stays
+    forbidden, so rung-0-2 separability between single-cell and cDNA-only chemistries is preserved.
+    """
+    if not isinstance(test, SegmentLength) or test.over_length_min is None:
+        return False
+    if not (test.length < wp.mode_length < test.over_length_min):
+        return False  # not the dead zone: canonical is exact-checked, >= over_length_min already PASSes
+    for when, _weight in supports:
+        if isinstance(when, OnlistHitRate) and evaluate(when, read, wp, spec, registry).outcome == (
+            Outcome.PASS
+        ):
+            return True
+    return False
 
 
 def _global_support(
