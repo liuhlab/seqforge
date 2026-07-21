@@ -167,15 +167,52 @@ def test_extract_keeps_the_document_out_of_the_cached_prefix(tmp_path: Path) -> 
 
 
 # ---------- code owns the gate, provenance, offsets ----------
-def test_extract_rejects_a_wrong_shape_wholesale(tmp_path: Path) -> None:
-    """json-object providers do not enforce shape. Pydantic is the gate — and it fails CLOSED.
+def test_extract_drops_one_malformed_draft_and_keeps_the_rest(tmp_path: Path) -> None:
+    """A single malformed draft must NOT sink the batch (#5). Pydantic is still the gate, but per
+    draft: the bad one is dropped into `rejected`, the good ones survive.
 
-    A half-parsed batch must never yield a partially-valid assertion; the whole batch is refused.
+    This is the same discipline `verify` already applies — a claim whose quote will not grep back is
+    dropped, not fatal — extended to the model returning `value: null` for one draft. Before the fix a
+    single such draft failed validation of the whole `ExtractionResult` and blocked the dataset from
+    compiling.
     """
-    provider = _FakeProvider(
-        json.dumps({"drafts": [{"field": "library.chemistry"}]})
-    )  # missing span
-    with pytest.raises(ExtractUnavailable, match="does not match"):
+    good = {
+        "field": "library.chemistry",
+        "value": "10x-3p-gex-v3",
+        "span": {"doc_sha256": "0" * 64, "quote": _QUOTE, "context": None},
+        "llm_confidence": 0.9,
+    }
+    bad = {**good, "value": None}  # the flaky token: a null value where a string is required
+    provider = _FakeProvider(json.dumps({"drafts": [good, bad]}))
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+
+    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3"]  # good one kept
+    assert len(outcome.rejected) == 1
+    assert outcome.rejected[0]["reason"] == "malformed_draft"
+    assert outcome.rejected[0]["field"] == "library.chemistry"
+
+
+def test_extract_drops_a_draft_missing_a_required_field(tmp_path: Path) -> None:
+    """A draft missing its span is malformed the same way — dropped, not fatal."""
+    provider = _FakeProvider(json.dumps({"drafts": [{"field": "library.chemistry"}]}))  # no span
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    assert outcome.drafts == []
+    assert len(outcome.rejected) == 1
+    assert outcome.rejected[0]["reason"] == "malformed_draft"
+
+
+def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> None:
+    """The salvage stops at the batch boundary: a response with no `drafts` array at all has nothing
+    to keep, so it still dies wholesale rather than pretending it extracted an empty batch."""
+    provider = _FakeProvider(json.dumps({"not_drafts": 1}))
+    with pytest.raises(ExtractUnavailable, match="`drafts` key is missing"):
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+
+
+def test_extract_names_the_drafts_type_when_it_is_present_but_not_a_list(tmp_path: Path) -> None:
+    """`{"drafts": null}` must blame `drafts`, not report the useless top-level `got dict`."""
+    provider = _FakeProvider(json.dumps({"drafts": None}))
+    with pytest.raises(ExtractUnavailable, match="`drafts` key is a NoneType"):
         extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
 
 

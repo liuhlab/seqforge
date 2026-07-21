@@ -265,9 +265,11 @@ def _harvest_extract_pipeline(
         return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
 
     usage_records: list[dict[str, object]] = []
+    extract_rejected: list[dict[str, object]] = []
     for nd in normalized:
         outcome = outcomes[nd.doc_sha256]
         all_drafts.extend(outcome.drafts)
+        extract_rejected.extend(outcome.rejected)
         extractor = outcome.extractor
         for k, v in outcome.usage.items():
             usage_total[k] = usage_total.get(k, 0) + v
@@ -301,6 +303,11 @@ def _harvest_extract_pipeline(
         "provider": llm.name,
         "model": chosen,
         "n_drafts": len(all_drafts),
+        # Drafts the model returned malformed (e.g. `value: null`) — dropped, not fatal (#5). Surfaced
+        # so a run is not silent about a batch that was partly lost, but never an exit code: a flaky
+        # token is a provider hiccup we tolerate, not a claim a human must weigh in on.
+        "n_extract_rejected": len(extract_rejected),
+        "extract_rejected": extract_rejected,
         "usage": {**usage_total, "n_calls": len(normalized)},
         "usage_by_document": usage_records,
         "usage_path": str(logs / "usage.json"),
