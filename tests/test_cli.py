@@ -230,6 +230,49 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     assert runner.invoke(app, ["manifest", "validate", str(manifest_path)]).exit_code == 0
 
 
+def test_common_fastq_root_mirrors_dataset_uris(tmp_path: Path) -> None:
+    from seqforge.cli.run import _common_fastq_root
+
+    sub = tmp_path / "SRX1"
+    sub.mkdir()
+    (sub / "a_1.fastq.gz").write_bytes(b"")
+    (sub / "a_2.fastq.gz").write_bytes(b"")
+    # all reads in one accession subdir -> that subdir IS the common root (URIs become basenames)
+    assert _common_fastq_root([sub / "a_1.fastq.gz", sub / "a_2.fastq.gz"]) == sub.resolve()
+    # reads split across two subdirs -> the parent is the root (URIs keep the SRX prefix)
+    sub2 = tmp_path / "SRX2"
+    sub2.mkdir()
+    (sub2 / "b_1.fastq.gz").write_bytes(b"")
+    assert _common_fastq_root([sub / "a_1.fastq.gz", sub2 / "b_1.fastq.gz"]) == tmp_path.resolve()
+
+
+def test_run_defaults_fastq_dir_to_the_common_root_for_a_subdir_layout(tmp_path: Path) -> None:
+    """A dataset whose reads sit in one accession subdir must compile without the caller knowing the
+    `--fastq-dir`-is-the-common-root contract: `run` defaults it to the computed root, so units.tsv
+    points at the real files instead of the dataset dir (the GSE274290 wiring-gate failure)."""
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    sub = tmp_path / "SRX9"
+    sub.mkdir()
+    f1, f2 = sub / "s_R1.fastq.gz", sub / "s_R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app,
+        ["run", str(f1), str(f2), "--organism", "559292", "--assembly", "sacCer3",
+         "--annotation", "ensembl", "--no-llm", "-C", str(tmp_path)],
+    )  # fmt: skip
+    assert result.exit_code == 0, result.stdout
+    units = next(iter(tmp_path.rglob("units.tsv")))
+    rows = [ln for ln in units.read_text().splitlines()[1:] if ln.strip()]
+    assert rows, "units.tsv has a row per read"
+    for ln in rows:
+        path = Path(ln.split("\t")[-1])
+        assert path.parent == sub.resolve(), f"units path lost the subdir: {path}"
+        assert path.is_file(), f"units path does not exist: {path}"
+
+
 def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     """The one real decision has no safe default: no --assembly, no instruction -> exit 2, not a guess.
 
