@@ -1,0 +1,62 @@
+schema_version: 1
+
+# An ABSTRACT FAMILY NODE, not a runnable chemistry. It has no `backend`: v2 and v3 parse reads
+# differently (10 vs 12 bp UMI, different whitelists), so there is no single recipe to compile — descent
+# always resolves to a leaf child. Its job is threefold: (1) group v2/v3/v3.1 so their pairwise
+# `processing_divergent` confusable edges collapse to one `parent` link; (2) carry `children_decided_by`
+# so the divergent-tie question knows the whitelist separates them; (3) be the family a prose/metadata
+# prior names ("10x 3' gene expression") when it orders the descent. It is NEVER scored as a candidate
+# (the scorer skips backend-less nodes) and is validated by the recognition self-test, not `kb roundtrip`.
+
+identity:
+  id: 10x-3p-gex
+  version: family
+  name: "10x Chromium Single Cell 3' Gene Expression (family)"
+  aliases: ["10x 3'", "10x 3-prime", "Chromium 3' GEX", "10x Chromium 3' GEX", "SC3P", "single cell 3-prime gene expression"]
+  assay_ontology: ["EFO:0009922"]        # 10x 3' GEX (the assay the whole family instantiates)
+  modality: rna
+
+node_kind: family
+# The children (v2 / v3 / v3.1) share 16 bp CB geometry and are told apart ONLY by their whitelist —
+# so a divergent tie among them is decidable_by onlist, sourced here instead of a per-sibling edge.
+children_decided_by: [onlist]
+
+reads:
+  # The loose 10x 3' barcode read: 16 bp CB + a 10-12 bp UMI (26-28 bp total), covering v2 (26) and
+  # v3/v3.1 (28). min/max_len 26..28 is what keeps the family SEPARABLE from bulk: a long cDNA read
+  # (>= 40 bp) fails this gate, so the family never claims bulk/SPLiT-seq data.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 26
+    max_len: 28
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 28, seqspec_region_type: umi}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists: {}
+
+signature:
+  # Coarse recognition only — enough to admit any 10x 3' child at rungs 0-2 and to reject bulk (whose
+  # R1 is a long cDNA, not a 16 bp CB in a 26-28 bp read). NO exact segment_length: 26 and 28 both pass.
+  requires:
+    - {test: read_count, roles: 2}
+    - {test: has_segment, read: R1, start: 0, end: 16, kind: random}
+  supports:
+    - when: {test: distinct_ratio, read: R1, start: 0, end: 16, expect: low}
+      weight: 2.0                # the CB recurs across reads
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0                # cDNA is diverse
+  excludes: []
+
+# no backend: abstract classifier. no parent: a root family.
+confusable_with: []

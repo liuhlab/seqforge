@@ -200,7 +200,7 @@ def test_a_declared_twin_that_diverges_would_be_caught() -> None:
 
 
 # ---------- The parse/count line, as a property of the DSL ----------
-@pytest.mark.parametrize("tech", kb.list_spec_ids())
+@pytest.mark.parametrize("tech", kb.runnable_spec_ids())
 def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     """The four-line test that would have caught the original misfiling on day one.
 
@@ -211,7 +211,7 @@ def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     from seqforge.compose import RECIPE_PARAM_KEYS
     from seqforge.kb.schema import KB_PARSE_KEYS
 
-    params = kb.load_spec(tech).backend.params
+    params = kb.load_spec(tech).require_backend().params
     assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params"
     assert not set(params) & RECIPE_PARAM_KEYS, f"{tech}: a count key is misfiled as chemistry"
 
@@ -281,8 +281,8 @@ def test_the_only_list_valued_parse_param_left_is_positional() -> None:
     """
     list_params = {
         (tech, key)
-        for tech in kb.list_spec_ids()
-        for key, value in kb.load_spec(tech).backend.params.items()
+        for tech in kb.runnable_spec_ids()
+        for key, value in kb.load_spec(tech).require_backend().params.items()
         if isinstance(value, list)
     }
     assert list_params == {
@@ -379,22 +379,30 @@ def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None
     comment called bulk "the generic bulk fallback that merely fails to be forbidden (rung 2)". The
     KB is where that has to be written down, because the KB is what the resolver reads.
     """
-    from seqforge.resolve.confuse import accepts_at_rungs_0_2
+    from seqforge.resolve.confuse import accepts_at_rungs_0_2, is_tree_kin
+    from seqforge.resolve.geometry import geometry_could_accept
 
-    ids = kb.list_spec_ids()
-    specs = {i: kb.load_spec(i) for i in ids}
-    probes = {i: _probes_for(specs[i], tmp_path) for i in ids}
+    specs = kb.load_all_specs()
+    tree = kb.build_tree(specs)
+    # Only LEAF chemistries are scored at runtime, so only they can be confused at runtime. A family
+    # node is validated by the recognition self-test, not here.
+    leaves = tree.leaves()
+    probes = {i: _probes_for(specs[i], tmp_path) for i in leaves}
 
     undeclared: list[str] = []
-    for a in ids:
+    for a in leaves:
         declared = {c.id for c in specs[a].confusable_with}
-        for b in ids:
+        for b in leaves:
             if a == b or b in declared:
                 continue
+            if is_tree_kin(specs, a, b):
+                continue  # siblings / parent-child: the tree DECLARES this confusability
+            if not geometry_could_accept(specs[a], probes[b]):
+                continue  # proven necessary condition — a length-infeasible pair cannot be confusable
             if accepts_at_rungs_0_2(specs[a], probes[b]):
                 undeclared.append(
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but does not list it in "
-                    f"confusable_with — the resolver would pick one and never ask"
+                    f"confusable_with (nor share a parent) — the resolver would pick one and never ask"
                 )
     assert not undeclared, "under-declaration:\n" + "\n".join(undeclared)
 
@@ -433,6 +441,35 @@ def test_the_separability_guard_can_actually_catch_a_collision(tmp_path: Path) -
     # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
     splitseq = kb.load_spec("splitseq")
     assert not accepts_at_rungs_0_2(spec, _probes_for(splitseq, tmp_path))
+
+
+def test_a_family_node_recognizes_its_children_and_no_one_else(tmp_path: Path) -> None:
+    """R8 for an ABSTRACT family: it self-tests by RECOGNITION, not by round-trip.
+
+    A family node has no runnable backend, so `spec -> synth -> probe -> recover params` is meaningless.
+    Its contract instead: (1) accept EVERY child's reads at rungs 0-2, so a prior that names the family
+    can descend into it and reach whichever leaf the bytes pick; (2) reject every non-descendant leaf, so
+    the loose classifier never claims data from another assay (the `bulk`-accepts-everything trap, at the
+    family level). Both hold here purely by the 26-28 bp R1 length gate — no cross-family edge needed.
+    """
+    from seqforge.resolve.confuse import accepts_at_rungs_0_2
+
+    tree = kb.load_tree()
+    families = [i for i in tree.specs if tree.is_family(i)]
+    assert families, "expected at least one family node (10x-3p-gex)"
+    for fam in families:
+        fam_spec = tree.specs[fam]
+        for child in tree.children_of(fam):
+            assert accepts_at_rungs_0_2(fam_spec, _probes_for(tree.specs[child], tmp_path)), (
+                f"family {fam!r} must recognize its child {child!r} at rungs 0-2"
+            )
+        descendants = set(tree.runnable_descendants_of(fam))
+        for other in tree.leaves():
+            if other in descendants:
+                continue
+            assert not accepts_at_rungs_0_2(fam_spec, _probes_for(tree.specs[other], tmp_path)), (
+                f"family {fam!r} must NOT recognize non-child {other!r} — it would claim foreign data"
+            )
 
 
 # ---------------------------------------------------------------- the mechanism must be able to fire

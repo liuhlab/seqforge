@@ -137,3 +137,38 @@ def declared_divergent(spec: Spec) -> set[str]:
 def is_processing_equivalent(a: Spec, b_id: str) -> bool:
     """Does ``a`` declare ``b_id`` as a processing-equivalent twin?"""
     return b_id in declared_equivalents(a)
+
+
+# ---- tree-sourced confusability: siblings replace hand-declared divergent cliques ----
+def share_parent(specs: dict[str, Spec], a: str, b: str) -> bool:
+    """True iff ``a`` and ``b`` are siblings — the same non-null parent in the KB tree."""
+    pa = specs[a].parent if a in specs else None
+    pb = specs[b].parent if b in specs else None
+    return pa is not None and pa == pb
+
+
+def is_tree_kin(specs: dict[str, Spec], a: str, b: str) -> bool:
+    """True iff ``a`` and ``b`` are parent-child or siblings — a confusability the tree DECLARES.
+
+    A divergent sibling clique (v2/v3/v3.1) collapses to one ``parent`` link, so the under-declaration
+    guard treats tree kin the way it treats an explicit ``confusable_with`` edge: already declared.
+    """
+    if a not in specs or b not in specs:
+        return False
+    if specs[a].parent == b or specs[b].parent == a:
+        return True
+    return share_parent(specs, a, b)
+
+
+def sibling_decided_by(specs: dict[str, Spec], a: str, b: str) -> list[str]:
+    """If ``a`` and ``b`` are siblings, the mechanisms their parent declares separate its children.
+
+    This is where the divergent-tie question now reads ``decidable_by`` from — the parent's
+    ``children_decided_by`` — instead of the per-sibling ``distinguishable_by`` edge that was deleted.
+    """
+    if not share_parent(specs, a, b):
+        return []
+    parent = specs[a].parent
+    if parent is None or parent not in specs:
+        return []
+    return [m for m in specs[parent].children_decided_by if m != "none"]

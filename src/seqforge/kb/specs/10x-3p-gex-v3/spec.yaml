@@ -84,21 +84,19 @@ backend:
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
     # It lives in the processing manifest now, where a user may instruct it.
 
+# A child of the 10x-3p-gex family. The v2 sibling edge (over-length whitelist split) now lives in the
+# parent's `children_decided_by: [onlist]`, so it is deleted here — the tree declares it once.
+parent: 10x-3p-gex
+
 confusable_with:
   - id: 10x-3p-gex-v3.1
     relationship: processing_equivalent
     distinguishable_by: [none]
     note: >
       Identical 16+12=28 bp geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo
-      params -> §12 benign: the resolver records both ids and asks 0 questions.
-  - id: 10x-3p-gex-v2
-    relationship: processing_divergent
-    distinguishable_by: [onlist]
-    note: >
-      Length separates them for CANONICAL reads (28 vs 26 bp), so this is not forced by the
-      under-declaration guard. It matters only for an OVER-LENGTH barcode read (e.g. 150 bp): both
-      accept it on geometry, so rungs 0-2 tie. The whitelist decides at rung 3 (v2 = 737K-august-2016,
-      v3 = 3M-february-2018); declaring it makes the sub-rung-3 Question decidable_by onlist, not user.
+      params -> §12 benign: the resolver records both ids and asks 0 questions. KEPT as an explicit
+      edge (not collapsed into the parent): backend-identity is a byte fact the §2.4 biconditional
+      verifies pairwise, distinct from the divergent sibling relationship the tree carries.
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]

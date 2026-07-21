@@ -24,6 +24,7 @@ from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_s
 from . import RESOLVE_VERSION
 from .cache import Cache, dataset_id
 from .escalate import escalate
+from .geometry import length_feasible
 from .scoring import TechEvaluation, build_tech_evaluation
 from .window import WindowProbe
 
@@ -140,8 +141,16 @@ def resolve_dataset(
         [o.file.sha256 for o in observations], KB_VERSION, PROBE_VERSION, RESOLVE_VERSION
     )
 
+    # Descent narrows the scored pool WITHOUT changing the winner: (1) an ABSTRACT family node
+    # classifies but has no runnable backend, so it is never a candidate and is excluded; (2)
+    # `length_feasible` is the scorer's own length gate, so any spec it drops would have scored
+    # `forbidden` anyway (a proven necessary condition). The trailing `or runnable` is the mandatory
+    # fallback — narrowing may never leave the pool empty. `escalate` still receives the FULL `kb_specs`
+    # so id/confusable lookups resolve for unscored nodes.
+    runnable = [spec for spec in kb_specs.values() if spec.backend is not None]
+    pool = [spec for spec in runnable if length_feasible(spec, wps)] or runnable
     evaluations: list[TechEvaluation] = [
-        build_tech_evaluation(spec, wps, registry) for spec in kb_specs.values()
+        build_tech_evaluation(spec, wps, registry) for spec in pool
     ]
     hv = hypothesis.value if hypothesis else None
     hid = hypothesis.id if hypothesis else None

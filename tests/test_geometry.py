@@ -12,6 +12,7 @@ import gzip
 from pathlib import Path
 
 from seqforge import kb
+from seqforge.io import DEFAULT_REGISTRY
 from seqforge.kb.schema import Spec
 from seqforge.probe import probe_file
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
@@ -20,6 +21,7 @@ from seqforge.resolve.geometry import (
     geometry_fingerprint,
     length_feasible,
 )
+from seqforge.resolve.scoring import build_tech_evaluation
 from seqforge.resolve.window import WindowProbe
 
 
@@ -71,3 +73,23 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(tmp_path: Path
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but geometry_could_accept says no — "
                     "the necessary-condition guarantee is broken and the guard/shortlist would be unsound"
                 )
+
+
+def test_descent_narrowing_never_drops_a_valid_spec(tmp_path: Path) -> None:
+    """WINNER-INVARIANCE: the descent pool (length-feasible specs) never excludes a spec that would
+    score VALID with the full registry (rung 3 included) — so scoring the pool yields the identical
+    winner as scoring the whole runnable KB. This is the property the whole "narrow, don't change the
+    answer" design rests on, checked over every real leaf dataset against every runnable spec.
+    """
+    specs = kb.load_all_specs()
+    runnable = [s for s in specs.values() if s.backend is not None]
+    for tech in kb.runnable_spec_ids():
+        wps = [p for p in _probes_for(specs[tech], tmp_path) if isinstance(p, WindowProbe)]
+        for spec in runnable:
+            if length_feasible(spec, wps):
+                continue
+            ev = build_tech_evaluation(spec, wps, DEFAULT_REGISTRY)
+            assert not ev.valid, (
+                f"length_feasible dropped {spec.identity.id!r} on {tech!r}'s reads, yet it scores "
+                "VALID — narrowing would change the winner, breaking winner-invariance"
+            )

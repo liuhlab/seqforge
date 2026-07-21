@@ -33,6 +33,16 @@ def load_all_specs() -> dict[str, Spec]:
     return {tech_id: load_spec(tech_id) for tech_id in list_spec_ids()}
 
 
+def runnable_spec_ids() -> list[str]:
+    """Ids of specs that compile to a recipe — leaves and runnable families, not abstract nodes.
+
+    An abstract family node declares no ``backend``: it classifies during descent but is never scored,
+    composed, or params-gated. Tests and tools over "every chemistry" collect from here (derived from
+    the KB, not hand-maintained) so a family node never masquerades as a runnable one.
+    """
+    return [tech_id for tech_id in list_spec_ids() if load_spec(tech_id).backend is not None]
+
+
 @dataclass(frozen=True)
 class KbTree:
     """The KB as a parent/child forest.
@@ -131,7 +141,9 @@ def build_tree(specs: dict[str, Spec]) -> KbTree:
             raise ValueError(f"{tech_id!r} is declared a family but has no children")
         if spec.node_kind == "family" and spec.backend is None:
             if not tree.runnable_descendants_of(tech_id):
-                raise ValueError(f"abstract family {tech_id!r} has no runnable descendant to compile")
+                raise ValueError(
+                    f"abstract family {tech_id!r} has no runnable descendant to compile"
+                )
     return tree
 
 

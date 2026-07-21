@@ -90,6 +90,9 @@ backend:
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
     # It lives in the processing manifest now, where a user may instruct it.
 
+# A child of the 10x-3p-gex family; the v2 sibling edge now lives in the parent's children_decided_by.
+parent: 10x-3p-gex
+
 confusable_with:
   - id: 10x-3p-gex-v3
     relationship: processing_equivalent
@@ -99,13 +102,6 @@ confusable_with:
       whitelist, byte-identical STARsolo params -> §12 benign: the resolver records both ids and asks
       0 questions. Declared on both sides so the relation reads as symmetric in the file, which is
       what a human checks; the CI biconditional takes the union of both directions regardless.
-  - id: 10x-3p-gex-v2
-    relationship: processing_divergent
-    distinguishable_by: [onlist]
-    note: >
-      Same as v3's v2 edge: length separates canonical reads (28 vs 26), so this is not forced; it
-      matters only for an over-length barcode read both accept on geometry. The whitelist decides at
-      rung 3 (v2 = 737K-august-2016, v3.1 = 3M-february-2018).
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]
