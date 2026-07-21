@@ -29,7 +29,14 @@ from __future__ import annotations
 #: lanes of one read de-laned to different names and the cross-flowcell surplus stayed unassigned;
 #: matching on the designation the sequencer wrote fuses them (GSE208154 is 2 flowcells x 8 lanes x
 #: {R1,R2,I1} per run, which 2026.7.4's de-lane equality could not absorb across the flowcell boundary).
-RESOLVE_VERSION = "2026.7.5"
+#: 2026.7.6 — role assignment optimizes (coverage, score) lexicographically, not score alone: a file
+#: eligible for exactly one role claims it before a multi-role file can. GSE208154's real cDNA reads
+#: have low-diversity 5′ ends, so a 28 bp barcode read out-scored the 91 bp cDNA read for the cDNA role;
+#: score-max then took a barcode file for cDNA and orphaned every cDNA-length file (absorption could not
+#: recover — the cDNA rep was itself a barcode read). The 91 bp reads are forbidden for the barcode role
+#: (dead zone), so cDNA is their only home; coverage now seats them there. No-op for one-file-per-role
+#: runs (injectivity already forces the map), so the other 12 worm datasets are unaffected.
+RESOLVE_VERSION = "2026.7.6"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
