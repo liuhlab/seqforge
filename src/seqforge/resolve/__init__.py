@@ -29,7 +29,12 @@ from __future__ import annotations
 #: lanes of one read de-laned to different names and the cross-flowcell surplus stayed unassigned;
 #: matching on the designation the sequencer wrote fuses them (GSE208154 is 2 flowcells x 8 lanes x
 #: {R1,R2,I1} per run, which 2026.7.4's de-lane equality could not absorb across the flowcell boundary).
-RESOLVE_VERSION = "2026.7.5"
+#: 2026.7.6 — hierarchical descent: resolve_dataset scores a length-FEASIBLE pool (drawn from runnable
+#: specs via the scorer's own read-length gate) instead of a flat loop over the whole KB; escalate still
+#: receives the full KB. Provably winner-invariant — a length-infeasible spec would have scored
+#: forbidden — so the winner equals a flat full scan; this only narrows which specs are scored as the KB
+#: grows, and reads sibling confusability off the tree instead of hand-declared cliques.
+RESOLVE_VERSION = "2026.7.6"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

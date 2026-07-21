@@ -35,7 +35,12 @@ from .schema import Spec
 #: CB_UMI_Complex, three 97 x 9 bp CLS whitelists SHIPPED, two fixed linkers). bulk-rnaseq-pe <->
 #: bd-rhapsody-wta declared processing_divergent, distinguishable_by onlist (same rung-0-2 collision
 #: SPLiT-seq has with the generic paired-end fallback).
-KB_VERSION = "2026.7.4"
+#: 2026.7.5 — the KB became a TREE: added the abstract family node 10x-3p-gex (node_kind: family, no
+#: backend, children_decided_by: [onlist]) that recognizes v2/v3/v3.1 and rejects bulk; the three 10x
+#: leaves gained parent: 10x-3p-gex and dropped their divergent-sibling confusable_with cliques (the
+#: shared parent now implies them); v3<->v3.1 processing_equivalent edges kept. Descent narrows to a
+#: length-feasible pool before scoring, so adding the Nth 10x chemistry is one parent link, not a clique.
+KB_VERSION = "2026.7.5"
 
 __all__ = [
     "KB_VERSION",
