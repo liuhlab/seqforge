@@ -65,8 +65,6 @@ def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_pa
     failed. Here the assertion is the wiring gate's exact check: every URI joined to the dataset root
     resolves to a real file.
     """
-    import pytest
-
     files = _two_chemistry_files_nested(tmp_path)
     out = _fill_manifest_pipeline(
         files=files,
@@ -78,8 +76,10 @@ def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_pa
     )
     assert out.code == 0, out.payload
     assert isinstance(out.payload, dict)
-    if "assays" not in out.payload:  # pragma: no cover - fixtures happened to agree
-        pytest.skip(f"both runs resolved to one chemistry: {out.payload}")
+    # This is a REGRESSION guard for a MULTI-assay bug, so partitioning MUST happen -- the v3 and bulk
+    # fixtures are deterministic and distinct chemistries. Assert it rather than skip: a silent skip
+    # (as a sibling test does, where partitioning is incidental) could mask the regression returning.
+    assert "assays" in out.payload, f"fixtures did not partition into assays: {out.payload}"
 
     for a in out.payload["assays"]:
         srx = "SRX_A" if a["chemistry"] == "10x-3p-gex-v3" else "SRX_B"
