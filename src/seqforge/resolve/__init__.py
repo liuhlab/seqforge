@@ -17,7 +17,11 @@ from __future__ import annotations
 #: 2026.7.2 — over-length onlist admission: a barcode read over-sequenced into the length dead zone
 #: (canonical < mode < over_length_min) is admitted when its barcode prefix hits the whitelist, so a
 #: previously-forbidden over-sequenced read now resolves to its chemistry (#7).
-RESOLVE_VERSION = "2026.7.2"
+#: 2026.7.3 — over-length admission uses a FLOOR-ANCHORED bar, not the support `min`: admission asks
+#: "barcode vs cDNA" (chance ≈ whitelist floor), not "confident barcode" (0.6). A real over-sequenced
+#: barcode read with ordinary sequencing error hit below 0.6 on exact match and fell to bulk (#7,
+#: GSE126954 SRX5411291); the floor-anchored bar admits it while still rejecting a same-length cDNA.
+RESOLVE_VERSION = "2026.7.3"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

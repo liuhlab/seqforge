@@ -180,6 +180,43 @@ def _eval_onlist(
     return Evaluation(outcome, hit.score(test.min), detail, used_onlist=True)
 
 
+#: The over-length admission (scoring._over_length_admitted_by_onlist) asks a NARROWER question than
+#: the onlist support gate. The support ``min`` (e.g. v2's 0.6) means "does this read carry confident,
+#: 1MM-correctable barcodes?" — the bar STARsolo's own CB correction is measured against. Admission
+#: asks only "is this over-sequenced dead-zone read barcode-bearing rather than cDNA?" A cDNA (or any
+#: non-barcode) read hits a barcode whitelist at its CHANCE FLOOR — ``n_entries / 4**width`` ≈ 1e-4 to
+#: ~2e-3 for the 10x whitelists — with negligible variance over a 200k-read sample, so a rate a few
+#: hundredfold above the floor is decisive. Seqforge matches barcodes EXACTLY (no 1MM correction), so a
+#: real over-sequenced barcode read with ordinary sequencing error sits well under 0.6 yet vastly above
+#: the floor (GSE126954's SRX5411291 — the perfect-whitelist fixtures hit ~1.0 and never exposed this).
+#: The floor-anchored bar admits it without ever admitting a same-length cDNA read.
+_OVERLENGTH_ADMISSION_MIN = 0.05  # absolute floor: a meaningful barcode signal, not chance
+_OVERLENGTH_ADMISSION_FLOOR_MULT = 50.0  # and always well clear of THIS whitelist's chance floor
+
+
+def onlist_admits_over_length(
+    test: OnlistHitRate, read: Read, wp: WindowProbe, spec: Spec, registry: OnlistRegistry
+) -> bool:
+    """True iff an onlist test's window hits the whitelist far enough above chance to call the read
+    barcode-bearing (not cDNA) — the floor-anchored admission bar, NOT the support ``min``.
+
+    Mirrors :func:`_eval_onlist`'s window/whitelist resolution exactly, but decides on a lower,
+    floor-derived threshold. Any unresolved / unmaterialized onlist yields ``False`` (no admission
+    without a whitelist to check against), matching the gate's ABSTAIN.
+    """
+    ref = spec.onlists.get(test.onlist)
+    if ref is None or not registry.has(ref.registry):
+        return False
+    try:
+        packed = registry.packed(ref.registry)
+    except OnlistNotAvailable:
+        return False
+    start, _ = _window_for(test, read)
+    hit = wp.onlist_hit(start, packed, orientation=test.orientation)
+    bar = max(_OVERLENGTH_ADMISSION_MIN, hit.floor * _OVERLENGTH_ADMISSION_FLOOR_MULT)
+    return hit.hit_rate >= bar
+
+
 def _eval_motif(test: MotifPresent, wp: WindowProbe) -> Evaluation:
     rate = wp.motif_rate(
         test.motif,

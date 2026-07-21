@@ -125,6 +125,60 @@ def test_a_dead_zone_barcode_read_is_admitted_by_its_whitelist(tmp_path: Path) -
     assert not winner.role_assignment.unassigned
 
 
+def test_a_dead_zone_barcode_read_below_the_support_gate_is_still_admitted(tmp_path: Path) -> None:
+    """The REAL SRX5411291 case the perfect-whitelist fixtures never exposed. Those draw every CB from
+    the pool, so the exact hit rate is ~1.0 — above BOTH the 0.6 support gate and the admission bar, so
+    they pass whichever bar admission uses. Real over-sequenced barcode reads carry ordinary sequencing
+    error; seqforge matches CBs EXACTLY (no 1MM correction, which STARsolo does), so the exact hit rate
+    sits well below 0.6. Here ~60% of CBs carry a 1 bp error -> exact hit ~0.4: below the support gate,
+    far above the whitelist floor. The support-`min` gate rejected it and the sample collapsed to bulk;
+    the floor-anchored admission bar (barcode-vs-cDNA) admits it. This test FAILS under the old gate.
+    """
+    spec = kb.load_spec("10x-3p-gex-v2")
+    cb_pool = kb.build_pools(spec, seed=0)["cb_whitelist"]
+    rng = random.Random(0)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    def one_error(cb: str) -> str:
+        """Flip one base -> misses the EXACT-match whitelist (a 1 bp mismatch STARsolo would correct).
+        The chance the flip lands on another whitelist entry is ~n_entries/4^16 ≈ 2e-4, negligible."""
+        i = rng.randrange(16)
+        return cb[:i] + rng.choice([b for b in "ACGT" if b != cb[i]]) + cb[i + 1 :]
+
+    barcode = []
+    for i in range(600):
+        cb = rng.choice(cb_pool)
+        if i % 5 >= 2:  # ~60% carry a 1 bp error -> exact hit rate ~0.4 (0.05 < 0.4 < 0.6)
+            cb = one_error(cb)
+        barcode.append(cb + rand(10) + rand(DEAD_LEN - 26))
+    cdna = [rand(DEAD_LEN) for _ in range(600)]
+    r1 = tmp_path / "v2_R1.fastq.gz"
+    r2 = tmp_path / "v2_R2.fastq.gz"
+    _write_fastq_gz(r1, barcode)
+    _write_fastq_gz(r2, cdna)
+    reg = _registry_for(spec)  # ONLY the 737K-august-2016 (v2) whitelist
+
+    # Half one (the admission calibration): the v2 barcode role is admitted (not forbidden) at a
+    # sub-0.6 hit rate. Fails under the old support-`min` gate.
+    probes = [
+        WindowProbe(observation=probe_file(p), seqs=s) for p, s in ((r1, barcode), (r2, cdna))
+    ]
+    ev = build_tech_evaluation(spec, probes, reg)
+    assert ev.valid, (
+        "a dead-zone barcode read hitting the whitelist below 0.6 must still be admitted"
+    )
+
+    # Half two (the dominance rule): end to end it resolves to v2 (rung 3), not bulk. At this hit rate
+    # bulk has the higher RAW score (a 75 bp read is a fine cDNA), so admission alone is not enough --
+    # the barcoded rung-3 candidate must not be shadowed by the barcodeless fallback (escalate anchor).
+    out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
+    winner = out.result.candidates[0]
+    assert winner.technology == "10x-3p-gex-v2", [c.technology for c in out.result.candidates[:3]]
+    assert winner.rung_resolved.get("chemistry", 0) >= 3
+
+
 def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: Path) -> None:
     """The safety half, and why the admission is keyed on the whitelist and not on length: a 75 bp read
     whose first 16 bp hit NO whitelist is a cDNA/junk read, not a barcode. The admission must NOT fire —
@@ -151,6 +205,34 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
         "a whitelist-missing 75 bp read must not be admitted"
     )
     assert winner.technology == "bulk-rnaseq-pe"
+
+
+def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
+    tmp_path: Path,
+) -> None:
+    """Safety guard for the dominance anchor (a barcoded candidate that positively matched a whitelist
+    is not shadowed by the barcodeless fallback): it must NEVER hijack genuine bulk. Canonical ~100 bp
+    paired cDNA reads with NO barcode content, resolved with the v2 whitelist registered, must still
+    resolve to bulk-rnaseq-pe. v2 IS consulted here (it reaches rung 3, and its barcode read even passes
+    the over-length geometry gate at 100 bp = over_length_min) — but its onlist FAILS, so
+    ``barcode_onlist_hit`` stays False, the anchor never promotes it, and bulk wins. That False is the
+    invariant keeping every real bulk dataset (and any dataset whose barcodes are genuinely absent)
+    unaffected: the anchor keys on the whitelist ACTUALLY matching, not on rung 3."""
+    rng = random.Random(7)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    r1 = tmp_path / "bulk_R1.fastq.gz"
+    r2 = tmp_path / "bulk_R2.fastq.gz"
+    _write_fastq_gz(r1, [rand(100) for _ in range(600)])  # canonical cDNA length, no barcode
+    _write_fastq_gz(r2, [rand(100) for _ in range(600)])
+    reg = _registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
+
+    out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
+    assert out.result.candidates[0].technology == "bulk-rnaseq-pe", [
+        c.technology for c in out.result.candidates[:3]
+    ]
 
 
 def test_both_v2_and_v3_accept_the_over_length_read_on_geometry_alone(tmp_path: Path) -> None:

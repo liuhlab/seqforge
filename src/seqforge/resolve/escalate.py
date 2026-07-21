@@ -63,11 +63,28 @@ def escalate(
         blocker = _no_candidate_blocker(evaluations, hypothesis_value, specs)
         return Escalation(candidates=[], blockers=[blocker], rung_reached=2)
 
-    # Within the score tie (candidates within θ of the best), the STRONGEST evidence wins: a rung-3
-    # onlist PASS beats rung-2 geometry. So the top of a near-tie is its highest-rung member, and a
-    # lower-rung look-alike is DOMINATED (not a divergent-tie question) — this is how onlist evidence
-    # separates a specific chemistry from the generic bulk fallback that merely failed to be forbidden.
-    best_value = valid[0].value
+    # Within the score tie (candidates within θ of the best), the STRONGER evidence TIER wins: rung 3
+    # (an onlist was consulted) outranks rung-2 geometry, so a lower-rung look-alike is DOMINATED, not a
+    # divergent-tie question. That is how onlist evidence separates a specific chemistry from the generic
+    # bulk fallback that merely failed to be forbidden — but only WITHIN θ. On OVER-LENGTH reads a 75 bp
+    # barcode read is also a fine cDNA, so bulk edges the real chemistry out by more than θ and, without
+    # help, a single-cell library whose whitelist *hit* (#7) collapses to bulk at exit 0. So anchor the
+    # tie on the barcoded candidate whose onlist positively matched, letting its decisive rung-3
+    # evidence win. The gate is ``barcode_onlist_hit`` (the whitelist ACTUALLY matched), NOT rung 3 (an
+    # onlist was merely consulted): a random ~100 bp bulk read passes a barcode read's over-length
+    # geometry gate and reaches rung 3 with a FAILING onlist, and must stay bulk. Canonical single-cell
+    # already out-scores bulk (a short barcode read is a poor cDNA), so there the anchor is a no-op.
+    anchor = valid[0]
+    if _barcode_read_id(specs[anchor.tech]) is None:
+        anchor = next(
+            (
+                e
+                for e in valid
+                if e.barcode_onlist_hit and _barcode_read_id(specs[e.tech]) is not None
+            ),
+            anchor,
+        )
+    best_value = anchor.value
     tie = [e for e in valid if best_value - e.value <= _THETA]
     top = sorted(tie, key=lambda e: (-e.rung, -e.value, e.tech))[0]
     top_spec = specs[top.tech]
