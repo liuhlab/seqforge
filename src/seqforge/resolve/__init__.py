@@ -14,7 +14,10 @@ from __future__ import annotations
 #: dataset cache key so a resolver change invalidates stale candidates.
 #: 2026.7.1 — `resolve_runs`: files are grouped into runs and each run is assigned on its own
 #: bytes. A dataset resolved as one library dropped every file but one pair per role.
-RESOLVE_VERSION = "2026.7.1"
+#: 2026.7.2 — over-length onlist admission: a barcode read over-sequenced into the length dead zone
+#: (canonical < mode < over_length_min) is admitted when its barcode prefix hits the whitelist, so a
+#: previously-forbidden over-sequenced read now resolves to its chemistry (#7).
+RESOLVE_VERSION = "2026.7.2"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
