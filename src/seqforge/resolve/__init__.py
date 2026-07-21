@@ -36,7 +36,12 @@ from __future__ import annotations
 #: recover — the cDNA rep was itself a barcode read). The 91 bp reads are forbidden for the barcode role
 #: (dead zone), so cDNA is their only home; coverage now seats them there. No-op for one-file-per-role
 #: runs (injectivity already forces the map), so the other 12 worm datasets are unaffected.
-RESOLVE_VERSION = "2026.7.6"
+#: 2026.7.7 — hierarchical descent: resolve_dataset scores a length-FEASIBLE pool (drawn from runnable
+#: specs via the scorer's own read-length gate) instead of a flat loop over the whole KB; escalate still
+#: receives the full KB. Provably winner-invariant — a length-infeasible spec would have scored
+#: forbidden — so the winner equals a flat full scan; this only narrows which specs are scored as the KB
+#: grows, and reads sibling confusability off the tree instead of hand-declared cliques.
+RESOLVE_VERSION = "2026.7.7"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

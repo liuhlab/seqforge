@@ -75,20 +75,9 @@ backend:
     # property of SAMPLE PREP. Filing it as chemistry cost a measured 40.7% of a nuclear library.
     # It lives in the processing manifest now, where a user may instruct it.
 
-# v2 vs v3 are length-separable (26 vs 28 bp) for CANONICAL reads, so the under-declaration guard does
-# NOT force these edges. They exist for the OVER-LENGTH case: when R1 is over-sequenced (e.g. 150 bp),
-# both v2 and v3/v3.1 accept it on geometry at rungs 0-2, and only the whitelist (rung 3) separates
-# them. Declaring it makes that sub-rung-3 Question decidable_by onlist rather than falling back to user.
-confusable_with:
-  - id: 10x-3p-gex-v3
-    relationship: processing_divergent
-    distinguishable_by: [onlist]
-    note: >
-      Over-length R1 only: v2 = 737K-august-2016, v3 = 3M-february-2018. Not backend_identical
-      (10 vs 12 bp UMI), so not a benign twin — a real divergence the whitelist decides.
-  - id: 10x-3p-gex-v3.1
-    relationship: processing_divergent
-    distinguishable_by: [onlist]
-    note: >
-      Same as the v3 edge: v3.1 is v3's byte-identical twin, so v2 is confusable with it on exactly
-      the same over-length-R1 grounds, decided by the same 737K-vs-3M whitelist split.
+# A child of the 10x-3p-gex family. Both former edges (to v3 and its byte-identical twin v3.1) were the
+# OVER-LENGTH-R1 whitelist split among siblings — now declared once, in the parent's
+# `children_decided_by: [onlist]`. So v2 declares no confusable_with of its own.
+parent: 10x-3p-gex
+
+confusable_with: []

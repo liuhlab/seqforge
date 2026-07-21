@@ -178,7 +178,7 @@ def plan(
     # member compiles for all of them — that is exactly what makes the ambiguity benign.
     spec = load_spec(chemistry[0])
     try:
-        module = get_module(spec.backend.module)
+        module = get_module(spec.require_backend().module)
     except KeyError as exc:
         raise ComposeError(str(exc)) from exc
 
@@ -400,7 +400,7 @@ def _resolve_params(
 ) -> dict[str, object]:
     """Render the KB backend params for a CLI, resolving every ``{onlist:alias}`` to a real path."""
     out: dict[str, object] = {}
-    for key, value in spec.backend.params.items():
+    for key, value in spec.require_backend().params.items():
         if isinstance(value, list):
             rendered = [_resolve_token(v, spec, registry, onlist_files) for v in value]
             out[key] = " ".join(str(r) for r in rendered)

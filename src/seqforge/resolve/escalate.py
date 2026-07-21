@@ -22,7 +22,7 @@ from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
-from .confuse import is_processing_equivalent
+from .confuse import is_processing_equivalent, sibling_decided_by
 from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
@@ -410,6 +410,11 @@ def _divergent_question(
     for c in specs[top.tech].confusable_with:
         if c.id in options and c.relationship == "processing_divergent":
             decidable.update(c.distinguishable_by)
+    # Siblings no longer carry a per-pair edge: their separating mechanism lives in the shared parent's
+    # `children_decided_by`, sourced here so a v2-vs-v3 over-length tie is still `decidable_by: onlist`.
+    for opt in options:
+        if opt != top.tech:
+            decidable.update(sibling_decided_by(specs, top.tech, opt))
     decidable.discard("none")
     return Question(
         id="q-chemistry",

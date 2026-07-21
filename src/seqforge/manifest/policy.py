@@ -177,7 +177,7 @@ class ProcessingDefaults:
 
 def processing_defaults(spec: Spec) -> ProcessingDefaults:
     """Derive the processing section's policy defaults from the identified chemistry's backend."""
-    module = spec.backend.module
+    module = spec.require_backend().module
     aligner = _ALIGNER_FOR_MODULE.get(module, module.rsplit("/", 1)[-1])
     # Asked of the MODULE, which is the only thing that knows what software it needs. This was a
     # hardcoded `"align-rna"` sitting beside a module that also declared `align-rna` — two owners of

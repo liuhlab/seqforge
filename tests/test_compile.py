@@ -819,11 +819,13 @@ def test_compose_refuses_a_recipe_whose_env_cannot_supply_the_aligner(tmp_path: 
 
 def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
     """One owner. It was hardcoded `"align-rna"` beside a module that also declared `align-rna`."""
-    for tech in kb.list_spec_ids():
+    for tech in kb.runnable_spec_ids():
         spec = kb.load_spec(tech)
         from seqforge.manifest.policy import processing_defaults
 
-        assert processing_defaults(spec).environment == get_module(spec.backend.module).env
+        assert (
+            processing_defaults(spec).environment == get_module(spec.require_backend().module).env
+        )
 
 
 def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
@@ -941,7 +943,7 @@ def _one_spec_per_distinct_backend() -> list[str]:
     its own case automatically, which is the property the old `{module: tech}` dict destroyed.
     """
     seen: dict[str, str] = {}
-    for tech in kb.list_spec_ids():
+    for tech in kb.runnable_spec_ids():  # abstract family nodes have no backend to compose
         seen.setdefault(canonical_backend(kb.load_spec(tech)), tech)
     return sorted(seen.values())
 

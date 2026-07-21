@@ -300,15 +300,40 @@ class Identity(_Forbid):
 
 
 class Spec(_Forbid):
-    """A complete, self-validating technology specification."""
+    """A complete, self-validating technology specification (one node in the KB tree)."""
 
     schema_version: int
     identity: Identity
     reads: list[Read]
     onlists: dict[str, OnlistRef]
     signature: Signature
-    backend: Backend
+    #: The runnable STARsolo/STAR template. ``None`` on an ABSTRACT family node — a classifier that
+    #: narrows to its children but has no single recipe (``10x-3p-gex`` parses v2 and v3 differently).
+    #: A leaf, and a runnable family like ``bulk``, always declare one.
+    backend: Backend | None = None
+    #: The family id this node descends from; ``None`` at a root. Siblings (same parent) are
+    #: confusable-by-construction, decided by the parent's ``children_decided_by`` — which is why a
+    #: sibling clique of ``processing_divergent`` ``confusable_with`` edges collapses to one ``parent``.
+    parent: str | None = None
+    node_kind: Literal["family", "leaf"] = "leaf"
+    #: How a FAMILY node's children are told apart (``onlist`` / ``metadata`` / ``alignment``). Empty on
+    #: a leaf. Replaces the per-sibling ``distinguishable_by`` for the divergent-tie question.
+    children_decided_by: list[Mechanism] = Field(default_factory=list)
     confusable_with: list[Confusable] = Field(default_factory=list)
+
+    def require_backend(self) -> Backend:
+        """The runnable backend, or a clear error if this is an abstract family node.
+
+        Only leaves and runnable families compile; descent always resolves to one of those, so every
+        compose/params/policy site is entitled to a backend. This turns the ``Backend | None`` into a
+        checked ``Backend`` at exactly those call sites.
+        """
+        if self.backend is None:
+            raise ValueError(
+                f"{self.identity.id!r} is an abstract family node with no runnable backend; "
+                "only leaves and runnable families compile"
+            )
+        return self.backend
 
     @property
     def decidable_by(self) -> list[Decidable]:
@@ -333,6 +358,20 @@ class Spec(_Forbid):
             if c.relationship == "processing_divergent":
                 out.update(m for m in c.distinguishable_by if m != "none")
         return sorted(out)  # type: ignore[arg-type]
+
+    @model_validator(mode="after")
+    def _node_shape(self) -> Spec:
+        """A leaf must be runnable; ``children_decided_by`` is a family-only knob."""
+        if self.node_kind == "leaf":
+            if self.backend is None:
+                raise ValueError(
+                    f"{self.identity.id!r}: a leaf node must declare a runnable backend"
+                )
+            if self.children_decided_by:
+                raise ValueError(
+                    f"{self.identity.id!r}: children_decided_by is only meaningful on a family node"
+                )
+        return self
 
     @model_validator(mode="after")
     def _cross_refs(self) -> Spec:
@@ -372,5 +411,6 @@ class Spec(_Forbid):
             if onlist is not None and onlist not in aliases:
                 raise ValueError(f"signature test references unknown onlist {onlist!r}")
 
-        self.backend.check_tokens(aliases)
+        if self.backend is not None:
+            self.backend.check_tokens(aliases)
         return self
