@@ -1,0 +1,20 @@
+outcome: ask
+description: >-
+  The REVERSE cross-family conflict (RESOLVE 2026.7.9), mirror of single-cell-metadata-vs-bulk-reads:
+  the reads are single-cell 10x 3' v3, but the metadata asserts bulk RNA-seq.
+
+  bulk and 10x belong to different families, so the family-level policy does not suppress the
+  disagreement. A single-cell dataset described as bulk -- a wrong data-vs-paper pairing, or a
+  mis-written methods section -- is surfaced (conflict-bulk-asserted-single-cell-observed, exit 4) so a
+  human can judge, rather than silently compiling a single-cell manifest under a bulk claim. Before
+  2026.7.9 only the other direction (single-cell asserted, bulk observed) was caught; now both are.
+
+  The library still takes the observed value (v3); the conflict rides alongside, open.
+conflict:
+  kind: observed_vs_asserted
+  field: library.chemistry
+  positions:
+    asserted: "bulk-rnaseq-pe"
+    observed: "10x-3p-gex-v3"
+fields:
+  library.chemistry: 10x-3p-gex-v3

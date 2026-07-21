@@ -1,0 +1,22 @@
+outcome: ask
+description: >-
+  The honest CROSS-family conflict — the counterpart to the within-family auto-resolve, and the corpus's
+  `ask` exemplar after the v2-vs-v3 case became `decide` (RESOLVE 2026.7.8).
+
+  Metadata asserts 10x 3' v2 (single-cell), but the bytes are a barcodeless bulk PE library. v2 and
+  bulk belong to DIFFERENT families, so the family-level policy does not suppress the disagreement:
+  the single-cell claim collapsing to the generic bulk fallback is surfaced as an observed-vs-asserted
+  conflict (exit 4) so a human can judge whether the data-vs-paper pairing is wrong or the methods were
+  mis-written. This is exactly the error class that must NOT be let go — the reason within-family
+  vagueness is forgiven but cross-family contradiction is not.
+
+  The library still takes the observed value (bulk); the conflict rides alongside, open, per "three
+  truths, never merged".
+conflict:
+  kind: observed_vs_asserted
+  field: library.chemistry
+  positions:
+    asserted: "10x-3p-gex-v2"
+    observed: "bulk-rnaseq-pe"
+fields:
+  library.chemistry: bulk-rnaseq-pe

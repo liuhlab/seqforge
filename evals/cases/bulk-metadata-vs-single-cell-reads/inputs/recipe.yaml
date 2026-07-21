@@ -1,0 +1,11 @@
+# The reads are single-cell 10x 3' v3 (28 bp, whitelist hits), but the metadata asserts bulk RNA-seq.
+# bulk and 10x are DIFFERENT families, so the family-level suppression (RESOLVE 2026.7.8) does NOT apply
+# here: a single-cell library described as bulk is a cross-family contradiction that must surface (exit
+# 4). The mirror of single-cell-metadata-vs-bulk-reads. Hypothesis declared here so it runs with no key.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic
+hypothesis: bulk-rnaseq-pe
