@@ -19,7 +19,7 @@ from ..io import OnlistRegistry
 from ..kb.schema import OnlistHitRate, Read, SegmentLength, Spec
 from ..models.resolve import TechScore
 from .assign import AssignmentResult, best_assignment
-from .evaluators import Outcome, evaluate, read_length_compatible
+from .evaluators import Outcome, evaluate, onlist_admits_over_length, read_length_compatible
 from .window import WindowProbe
 
 _LAMBDA = 0.25  # penalty per unassigned (leftover) file, cardinality-normalized
@@ -57,6 +57,12 @@ class TechEvaluation:
     barcode_role_ids: list[str]
     unfillable_role_ids: list[str]
     cdna_role_fillable: bool
+    #: A barcode role's onlist POSITIVELY hit — the whitelist actually identified barcodes in the data
+    #: (best hit clears the floor-anchored admission bar), not merely that an onlist was consulted. This
+    #: is the honest "this data IS barcoded" signal escalate uses so the barcodeless bulk fallback never
+    #: shadows a real single-cell library, WITHOUT hijacking genuine bulk (whose barcode window sits at
+    #: the whitelist floor, so this stays False even when a barcode read passes on over-length geometry).
+    barcode_onlist_hit: bool = False
 
     @property
     def valid(self) -> bool:
@@ -158,8 +164,12 @@ def _over_length_admitted_by_onlist(
     if not (test.length < wp.mode_length < test.over_length_min):
         return False  # not the dead zone: canonical is exact-checked, >= over_length_min already PASSes
     for when, _weight in supports:
-        if isinstance(when, OnlistHitRate) and evaluate(when, read, wp, spec, registry).outcome == (
-            Outcome.PASS
+        # A FLOOR-ANCHORED bar, not the support `min`: admission asks "barcode or cDNA?", not
+        # "confident barcode?". Seqforge matches exactly (no 1MM correction), so a real over-sequenced
+        # barcode read with ordinary error hits below the 0.6 support gate yet far above chance -- the
+        # gate rejected SRX5411291 and it fell to bulk. See `onlist_admits_over_length`.
+        if isinstance(when, OnlistHitRate) and onlist_admits_over_length(
+            when, read, wp, spec, registry
         ):
             return True
     return False
@@ -240,6 +250,17 @@ def build_tech_evaluation(
     global_bonus = _global_support(global_sup, list(reads_by_id.values()), wps, spec, registry)
 
     barcode_role_ids = [r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements)]
+    # Did a barcode role's onlist actually hit (not just get consulted)? True iff some file clears the
+    # floor-anchored admission bar on a barcode-role onlist support — the "this data is barcoded" signal
+    # escalate uses to keep the barcodeless fallback from shadowing a real single-cell library. Genuine
+    # bulk sits at the whitelist floor and stays False even when its read passes over-length geometry.
+    barcode_onlist_hit = any(
+        isinstance(when, OnlistHitRate)
+        and onlist_admits_over_length(when, reads_by_id[rid], wp, spec, registry)
+        for rid in barcode_role_ids
+        for when, _w in sup_by[rid]
+        for wp in wps
+    )
     unfillable_role_ids = [roles[i] for i in assignment.unfillable_roles]
     cdna_role_fillable = any(
         any(el.type in ("cdna", "gdna") for el in reads_by_id[rid].elements)
@@ -274,4 +295,5 @@ def build_tech_evaluation(
         barcode_role_ids=barcode_role_ids,
         unfillable_role_ids=unfillable_role_ids,
         cdna_role_fillable=cdna_role_fillable,
+        barcode_onlist_hit=barcode_onlist_hit,
     )
