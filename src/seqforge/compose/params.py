@@ -76,7 +76,7 @@ def derived_params(spec: Spec) -> dict[str, str]:
     ``soloCBposition``, so the quadruples are emitted in the whitelist's declared order, never the
     elements' positional order.
     """
-    if spec.backend.params.get("soloType") != "CB_UMI_Complex":
+    if spec.require_backend().params.get("soloType") != "CB_UMI_Complex":
         return {}
 
     by_onlist: dict[str, Element] = {}
@@ -88,7 +88,7 @@ def derived_params(spec: Spec) -> dict[str, str]:
             elif el.type == "umi":
                 umi = el
 
-    whitelist = spec.backend.params.get("soloCBwhitelist")
+    whitelist = spec.require_backend().params.get("soloCBwhitelist")
     aliases = [
         v[len("{onlist:") : -1]
         for v in (whitelist if isinstance(whitelist, list) else [whitelist])
@@ -140,7 +140,7 @@ def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamO
     re-reads. A key with two owners, or with none, is a bug this function surfaces and the gate fails
     on.
     """
-    owners: dict[str, ParamOwner] = dict.fromkeys(spec.backend.params, "kb")
+    owners: dict[str, ParamOwner] = dict.fromkeys(spec.require_backend().params, "kb")
     for key in derived_params(spec):
         owners[key] = "derived"
     for key in processing_params(processing.processing.quantification.value):
@@ -162,7 +162,7 @@ def param_block_key(spec: Spec) -> str:
     a module name in the tree, and the same shape as the `_read_files_in` bug that preceded it: every
     module that is not starsolo silently means bulk. See :attr:`WorkflowModule.param_block`.
     """
-    return str(get_module(spec.backend.module).param_block)
+    return str(get_module(spec.require_backend().module).param_block)
 
 
 def render_param(value: object) -> str:
@@ -203,7 +203,8 @@ def params_gate(
 ) -> tuple[GateStatus, list[str]]:
     """Assert every emitted param is owned, arrives verbatim, and agrees with the observed layout."""
     problems: list[str] = []
-    params = spec.backend.params
+    backend = spec.require_backend()
+    params = backend.params
     from_processing = processing_params(processing.processing.quantification.value)
     from_derived = derived_params(spec)
 
@@ -231,7 +232,7 @@ def params_gate(
         # ONE root cause, not N derivative ones. Enumerating every key as "dropped" on top of this
         # buries the actual fault under a list that points at the KB, which is the one file that is
         # fine. A gate is read by someone who does not yet know what is wrong.
-        problems.append(f"config has no {block!r} param block (module is {spec.backend.module!r})")
+        problems.append(f"config has no {block!r} param block (module is {backend.module!r})")
     else:
         emitted: dict[str, object] = found
         # ---- 2. coverage: the emitted key set is EXACTLY the union of the three owners ----

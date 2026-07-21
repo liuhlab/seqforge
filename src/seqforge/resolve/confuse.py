@@ -39,7 +39,14 @@ def _role_placement(spec: Spec) -> list[str]:
 
 
 def canonical_backend(spec: Spec) -> str:
-    """A canonical, onlist-resolved, role-aware serialization of a spec's ``backend``."""
+    """A canonical, onlist-resolved, role-aware serialization of a spec's ``backend``.
+
+    An ABSTRACT family node has no backend, so it canonicalizes to a per-id sentinel: no two nodes
+    share it, so a classifier is never ``backend_identical`` to — and thus never a false
+    processing-equivalent twin of — a leaf.
+    """
+    if spec.backend is None:
+        return json.dumps({"abstract_node": spec.identity.id}, sort_keys=True)
     resolved: dict[str, object] = {}
     for key, value in spec.backend.params.items():
         resolved[key] = _resolve_value(value, spec)
