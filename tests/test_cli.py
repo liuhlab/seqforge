@@ -407,6 +407,89 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     assert doc["rung_reached"] == 3
 
 
+def test_assert_chemistry_threads_an_operator_hypothesis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--assert-chemistry` must reach `resolve_runs` as an OPERATOR hypothesis that outranks prose.
+
+    The tie-selection itself is proven elsewhere (a `Hypothesis` picks v3 over v2 on ambiguous
+    barcodes); the new code is the wiring, so capture the hypothesis the fill pipeline hands the
+    scorer and check its identity — id `operator`, confidence 1.0 — is what breaks the tie.
+    """
+    from seqforge.cli import manifest as m
+
+    captured: dict[str, object] = {}
+
+    def _capture(paths: object, *, hypothesis: object = None, **_: object) -> object:
+        captured["hypothesis"] = hypothesis
+        raise RuntimeError("stop after capturing the hypothesis")
+
+    monkeypatch.setattr(m, "resolve_runs", _capture)
+    with pytest.raises(RuntimeError, match="stop after capturing"):
+        m._fill_manifest_pipeline(
+            files=[tmp_path / "x_1.fastq.gz"],
+            organism=None,
+            records=None,
+            assertions=None,
+            offline=True,
+            workspace=tmp_path,
+            chemistry_override="10x-3p-gex-v3",
+        )
+    hypo = captured["hypothesis"]
+    assert hypo is not None
+    assert hypo.value == "10x-3p-gex-v3"  # type: ignore[attr-defined]
+    assert hypo.id == "operator"  # type: ignore[attr-defined]
+    assert hypo.confidence == 1.0  # type: ignore[attr-defined]
+
+
+def test_assert_chemistry_is_case_insensitive_and_canonicalizes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`resolve score` matches chemistry ids case-insensitively, so `fill` must too — and it passes the
+    CANONICAL id downstream, not the operator's casing."""
+    from seqforge.cli import manifest as m
+
+    captured: dict[str, object] = {}
+
+    def _capture(paths: object, *, hypothesis: object = None, **_: object) -> object:
+        captured["hypothesis"] = hypothesis
+        raise RuntimeError("stop after capturing the hypothesis")
+
+    monkeypatch.setattr(m, "resolve_runs", _capture)
+    with pytest.raises(RuntimeError, match="stop after capturing"):
+        m._fill_manifest_pipeline(
+            files=[tmp_path / "x_1.fastq.gz"],
+            organism=None,
+            records=None,
+            assertions=None,
+            offline=True,
+            workspace=tmp_path,
+            chemistry_override="10X-3P-GEX-V3",  # operator typed upper-case
+        )
+    assert (
+        captured["hypothesis"].value == "10x-3p-gex-v3"
+    )  # canonicalized  # type: ignore[attr-defined]
+
+
+def test_assert_chemistry_rejects_an_unknown_id(tmp_path: Path) -> None:
+    """A typo'd chemistry would silently no-op (the hypothesis never matches a candidate) and the
+    operator would only learn after a full compile still escalated. Fail fast with exit 2."""
+    from seqforge.cli import manifest as m
+
+    out = m._fill_manifest_pipeline(
+        files=[tmp_path / "x_1.fastq.gz"],
+        organism=None,
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=tmp_path,
+        chemistry_override="10x-v3-typo",
+    )
+    assert out.code == 2
+    assert isinstance(out.payload, dict)
+    assert out.payload["error"] == "unknown_chemistry"
+
+
 # --------------------------------------------------------------------------------------------
 # `kb e2e-fit` -- the collector for a job-array cost sweep. The depths are independent, so they
 # run as separate array tasks; this merges them. Its refusals are the interesting part, because

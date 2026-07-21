@@ -144,11 +144,24 @@ def resolve_metadata(
     subject_to_sample = _subject_to_sample(records)
 
     verified = [a for a in assertions if a.span_verified and a.entailment_ok]
+    per_sample = {
+        s.sample_id: _positions_for(s, verified, by_doc, subject_to_sample) for s in samples
+    }
+    # Which attributes the archive/prose declares PER SAMPLE for anyone — proof the attribute varies by
+    # sample. A dataset-level (paper) claim may only fill an attribute nobody declares per-sample; the
+    # moment one sample owns a value for it, a blanket study-wide value is an unsafe guess for the
+    # samples left blank (#10). "sample-scoped" == any basis stronger than dataset-level `inferred`.
+    sample_scoped_attrs = frozenset(
+        name
+        for positions in per_sample.values()
+        for name, found in positions.items()
+        if any(p.basis != "inferred" for p in found)
+    )
     resolved: list[ResolvedSample] = []
     warnings: list[ValidationWarning] = []
     for sample in samples:
-        positions = _positions_for(sample, verified, by_doc, subject_to_sample)
-        attrs, sample_warnings = _decide(sample.sample_id, positions)
+        positions = per_sample[sample.sample_id]
+        attrs, sample_warnings = _decide(sample.sample_id, positions, sample_scoped_attrs)
         resolved.append(
             ResolvedSample(
                 sample_id=sample.sample_id,
@@ -359,7 +372,9 @@ def _basis_for(
 
 
 def _decide(
-    sample_id: str, positions: dict[str, list[_Position]]
+    sample_id: str,
+    positions: dict[str, list[_Position]],
+    sample_scoped_attrs: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, EvidencedStr], list[ValidationWarning]]:
     """Turn each attribute's positions into at most one value, plus non-blocking notes. Never a vote.
 
@@ -370,6 +385,9 @@ def _decide(
       source that disagreed;
     - equal authorities that disagree leave the attribute **null**, because a wrong value is permanent
       and a missing one is not. Null is a value here, not a question for a human.
+    - a sample covered ONLY by a dataset-level ``inferred`` claim, for an attribute some *other* sample
+      owns per-sample (``sample_scoped_attrs``), is also left **null**: the paper's blanket value
+      varies by sample and is an unsafe guess for a sample the archive left blank (#10).
 
     A null-or-precedence sample attribute must not stop a dataset compiling: the strain already tells
     the pilot's two conditions apart, and most datasets have no such prose at all. Only the byte
@@ -379,6 +397,25 @@ def _decide(
     warnings: list[ValidationWarning] = []
 
     for name, found in sorted(positions.items()):
+        if name in sample_scoped_attrs and all(p.basis == "inferred" for p in found):
+            # This sample has only a dataset-level (paper) claim for an attribute the archive declares
+            # per-sample elsewhere — so the attribute is sample-specific and the study-wide value is a
+            # guess here. Null beats a wrong value that a permanent, content-addressed manifest bakes
+            # in. PRJNA1027859: the paper's blanket `daf-2` must not stamp the wild-type samples.
+            seen = ", ".join(sorted(f"{p.value!r} ({p.basis})" for p in found))
+            warnings.append(
+                ValidationWarning(
+                    code="sample_attribute_inferred_only",
+                    message=(
+                        f"{sample_id} {SAMPLE_FIELD_PREFIX}{name}: only a dataset-level inferred claim "
+                        f"({seen}) covers this sample, but the attribute is declared per-sample "
+                        f"elsewhere in the dataset; left null rather than stamp a study-wide value on "
+                        f"one sample"
+                    ),
+                    subject=BlockerSubject(kind="field", ref=f"{SAMPLE_FIELD_PREFIX}{name}"),
+                )
+            )
+            continue
         distinct = {p.value for p in found}
         if len(distinct) == 1:
             best = max(found, key=lambda p: _BASIS_RANK[p.basis])

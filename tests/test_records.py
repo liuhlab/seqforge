@@ -291,10 +291,16 @@ def test_a_run_alias_asserts_its_samples_genotype_over_the_papers_inference(
     # the WT run's sample takes genotype from its OWN run alias, asserted, not the paper's inference
     assert by_sample[wt_sample].attributes["genotype"].value == "WT"
     assert by_sample[wt_sample].attributes["genotype"].basis == "asserted"
-    # a sample with no run-scoped claim still takes the paper's inference — inferred, and clearly so
+    # a sample with NO per-sample claim is now left NULL, not stamped with the paper's blanket daf-2:
+    # genotype is declared per-sample here (the WT run owns "WT"), so it varies by sample and a
+    # study-wide value is an unsafe guess for a sample the archive left blank. Null beats a wrong,
+    # permanent value — this is the second half of the PRJNA1027859 fix (#10). A warning surfaces it.
     other = next(s for acc, s in by_sample.items() if acc != wt_sample)
-    assert other.attributes["genotype"].value == "daf-2(e1370)"
-    assert other.attributes["genotype"].basis == "inferred"
+    assert "genotype" not in other.attributes
+    assert any(
+        w.code == "sample_attribute_inferred_only" and (w.subject.ref or "").endswith("genotype")
+        for w in out.warnings
+    )
 
 
 def test_an_experiment_title_asserts_its_samples_diet(records: ArchiveRecordSet) -> None:

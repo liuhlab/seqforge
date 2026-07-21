@@ -232,6 +232,12 @@ def run_cmd(
     organism: str | None = typer.Option(
         None, "--organism", help="NCBI taxid or name. Optional when --accession declares it."
     ),
+    assert_chemistry: str | None = typer.Option(
+        None,
+        "--assert-chemistry",
+        help="Force a chemistry KB id (e.g. 10x-3p-gex-v3) as the score hypothesis, outranking any "
+        "harvested claim. Breaks a genuine byte tie (v2/v3); still only a selector, never evidence.",
+    ),
     assembly: str | None = typer.Option(
         None,
         "--assembly",
@@ -349,6 +355,7 @@ def run_cmd(
         offline=offline,
         workspace=workspace,
         cpus=_auto_cpus(cpus),
+        chemistry_override=assert_chemistry,
     )
     stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
     if fill.code != 0:
