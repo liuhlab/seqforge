@@ -27,6 +27,7 @@ they are pinned behind small parsers with offline tests.
 from __future__ import annotations
 
 import re
+import time
 import zlib
 from dataclasses import dataclass, field
 from typing import Any
@@ -79,6 +80,23 @@ _SUPERSERIES_OF = re.compile(r"^!Series_relation = SuperSeries of: (GSE\d+)", re
 
 _DEFAULT_TIMEOUT = 30
 
+#: Transient HTTP statuses worth a retry rather than a hard abort. 429 is NCBI eutils' rate-limit reply
+#: (3 req/sec keyless, by IP), which used to abort the whole `records` stage on a busy accession (#9);
+#: the 5xx family covers a momentary gateway/service blip. Everything else is a real, terminal error.
+_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+_MAX_RETRIES = 4
+_BACKOFF_BASE = 1.0  # seconds; grows 1, 2, 4, 8 …
+_MAX_BACKOFF = 16.0
+
+
+def retry_delay(retry_after: str | None, attempt: int) -> float:
+    """Seconds to wait before retry ``attempt`` (0-indexed): an integer ``Retry-After`` if the server
+    sent one, else capped exponential backoff. Shape-agnostic (a header string) so both the ``requests``
+    client here and taxonomy's ``urllib`` client can share one policy."""
+    if retry_after and retry_after.strip().isdigit():
+        return min(float(retry_after.strip()), _MAX_BACKOFF)
+    return min(_BACKOFF_BASE * (2.0**attempt), _MAX_BACKOFF)
+
 
 class NotYetImplemented(RuntimeError):
     """A declared verb whose stage has not landed yet (distinct from a domain refusal)."""
@@ -98,13 +116,28 @@ def classify_accession(accession: str) -> str:
 
 
 def _get(url: str, params: dict[str, str] | None = None, timeout: int = _DEFAULT_TIMEOUT) -> str:
-    try:
-        response = requests.get(url, params=params, timeout=timeout)
-    except requests.RequestException as exc:
-        raise RemoteError(f"GET {url} failed: {exc}") from exc
-    if response.status_code != 200:
+    """A bounded HTTP GET that RETRIES a transient status rather than aborting the stage.
+
+    A single 429 from eutils used to fail the whole `records` fetch, so an accession with many
+    experiments could not compile (#9). A transient status now backs off (honoring `Retry-After`) and
+    retries a few times; a non-transient status, or an exhausted budget, still raises `RemoteError`.
+    The api_key that lifts eutils' cap is added by the caller (`archive._efetch`) — it is a secret and
+    belongs only where the request is built, never in this shared error path (`url` here is the base,
+    so a key in `params` never reaches a log line).
+    """
+    attempt = 0
+    while True:  # exits only by return (200) or raise (terminal status / exhausted budget)
+        try:
+            response = requests.get(url, params=params, timeout=timeout)
+        except requests.RequestException as exc:
+            raise RemoteError(f"GET {url} failed: {exc}") from exc
+        if response.status_code == 200:
+            return response.text
+        if response.status_code in _RETRY_STATUS and attempt < _MAX_RETRIES:
+            time.sleep(retry_delay(response.headers.get("Retry-After"), attempt))
+            attempt += 1
+            continue
         raise RemoteError(f"GET {url} -> HTTP {response.status_code}: {response.text[:200]}")
-    return response.text
 
 
 def parse_soft_srp(soft: str) -> list[str]:

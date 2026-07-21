@@ -12,10 +12,12 @@ case: SRA says 3 reads / 110 bases per spot, ENA published 50).
 from __future__ import annotations
 
 import gzip
+import types
 import zlib
 
 import pytest
 
+from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
     RunStatistics,
@@ -28,8 +30,67 @@ from seqforge.io.remote import (
     parse_run_new,
     parse_soft_srp,
     parse_soft_superseries,
+    retry_delay,
     technical_read_remedy,
 )
+
+
+def _resp(status: int, text: str = "", retry_after: str | None = None) -> types.SimpleNamespace:
+    headers = {"Retry-After": retry_after} if retry_after is not None else {}
+    return types.SimpleNamespace(status_code=status, text=text, headers=headers)
+
+
+def test_get_retries_a_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A single 429 used to abort the whole `records` stage (#9). It now backs off and retries."""
+    seq = [_resp(429, "rate limited", retry_after="0"), _resp(200, "OK")]
+    calls = {"n": 0}
+
+    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
+        i = calls["n"]
+        calls["n"] += 1
+        return seq[i]
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)  # no real wait in the test
+    assert remote._get("https://eutils.example/efetch") == "OK"
+    assert calls["n"] == 2  # first 429, then the 200
+
+
+def test_get_gives_up_after_the_retry_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = {"n": 0}
+
+    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
+        calls["n"] += 1
+        return _resp(503, "service unavailable")
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
+    with pytest.raises(RemoteError, match="HTTP 503"):
+        remote._get("https://eutils.example/efetch")
+    assert calls["n"] == remote._MAX_RETRIES + 1  # tried, then exhausted
+
+
+def test_get_does_not_retry_a_terminal_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = {"n": 0}
+
+    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
+        calls["n"] += 1
+        return _resp(404, "not found")
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
+    with pytest.raises(RemoteError, match="HTTP 404"):
+        remote._get("https://eutils.example/efetch")
+    assert calls["n"] == 1  # a 404 is terminal, not retried
+
+
+def test_retry_delay_honors_an_integer_retry_after_else_backs_off() -> None:
+    assert retry_delay("2", 0) == 2.0  # server-specified wait wins
+    assert retry_delay(None, 0) == 1.0  # base
+    assert retry_delay(None, 2) == 4.0  # exponential: 1 * 2**2
+    assert retry_delay(None, 99) == 16.0  # capped
+    assert retry_delay("not-a-number", 0) == 1.0  # a date-form Retry-After falls back to backoff
+
 
 # ---------------------------------------------------------------------------------------------
 # accession classification

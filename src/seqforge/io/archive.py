@@ -39,6 +39,7 @@ fallback — a great deal of sequencing data has never seen an accession and nev
 
 from __future__ import annotations
 
+import os
 from xml.etree import ElementTree
 
 from ..models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
@@ -55,7 +56,14 @@ SOURCE = "ncbi-sra+biosample"
 
 
 def _efetch(db: str, ids: list[str], **params: str) -> str:
-    return _get(EUTILS_EFETCH, {"db": db, "id": ",".join(ids), "retmode": "xml", **params})
+    query = {"db": db, "id": ",".join(ids), "retmode": "xml", **params}
+    # NCBI raises the eutils rate limit from 3 to 10 req/sec for a keyed caller. Consume NCBI_API_KEY
+    # if the operator's environment sets one (it commonly does); without it we simply stay keyless and
+    # lean on `_get`'s 429 backoff (#9). The key stays in the request params only — never logged.
+    key = os.environ.get("NCBI_API_KEY")
+    if key:
+        query["api_key"] = key
+    return _get(EUTILS_EFETCH, query)
 
 
 def _text(node: ElementTree.Element | None, path: str) -> str:
