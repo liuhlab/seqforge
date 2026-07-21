@@ -11,6 +11,8 @@ validate -> compose path on synthetic reads, so the whole chain is exercised, no
 from __future__ import annotations
 
 import gzip
+import random
+from collections import Counter
 from pathlib import Path
 
 from seqforge import __version__, kb
@@ -186,3 +188,93 @@ def test_a_clean_two_file_run_carries_no_index_role(tmp_path: Path) -> None:
     assert not any(f.read_id == INDEX_ROLE for f in manifest.library.files)
     report = validate_manifest(manifest)
     assert report.ok, [b.message for b in report.blockers]
+
+
+# ------------------------------------------------------------ multi-lane surplus absorption
+
+
+def _multilane_reads(tmp_path: Path, lanes: int = 3) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    """One 10x v3 accession sequenced across ``lanes`` lanes: each lane an R1(28)+R2(90)+I1(8), named
+    the bcl2fastq way (``SRR..._S1_L001_R1_001.fastq.gz``). The shared SRA accession groups every lane
+    into ONE run -- the GSE208154 shape."""
+    spec = kb.load_spec(TECH)
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    rng = random.Random(0)
+    paths: list[Path] = []
+    for lane in range(1, lanes + 1):
+        for mate, k in (("R1", "R1"), ("R2", "R2"), ("I1", None)):
+            p = tmp_path / f"SRR9000001_S1_L{lane:03d}_{mate}_001.fastq.gz"
+            if k is None:
+                _write_fastq_gz(
+                    p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
+                )
+            else:
+                _write_fastq_gz(p, list(reads[k]))
+            paths.append(p)
+    return spec, reg, paths
+
+
+def test_a_multilane_run_absorbs_every_lane_into_its_role(tmp_path: Path) -> None:
+    """GSE208154: one accession across N lanes -> one run of N*(R1+R2+I1). The injective assignment
+    fills each role ONCE, so the surplus lanes were left unassigned and the run blocked with
+    NO_VALID_ROLE_ASSIGNMENT. Now each surplus lane rejoins its role (barcode/cDNA) or is set aside
+    (index), so the run resolves and every file is placed."""
+    spec, reg, paths = _multilane_reads(tmp_path, lanes=3)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    assert not multi.blockers
+    assert len(multi.runs) == 1  # one accession -> one run holding all 9 files
+    assert multi.runs[0].winner in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+
+    role_of_sha = multi.role_of_sha()
+    assert len(role_of_sha) == len(paths)  # every file placed -- nothing left to block
+    counts = Counter(role_of_sha.values())
+    assert counts[INDEX_ROLE] == 3  # the 3 I1 lanes set aside
+    non_index = sorted(c for r, c in counts.items() if r != INDEX_ROLE)
+    assert non_index == [3, 3]  # barcode and cDNA each carry all 3 lanes
+
+
+def test_multilane_units_emit_every_lane_and_exclude_index(tmp_path: Path) -> None:
+    """The point of absorption: units.tsv carries one row per lane per counted role (so STARsolo
+    comma-joins them), the index lanes are excluded, and the manifest validates clean."""
+    spec, reg, paths = _multilane_reads(tmp_path, lanes=3)
+    manifest = _manifest(tmp_path, spec, reg, paths)
+
+    assert all(f.read_id is not None for f in manifest.library.files)  # nothing unassigned
+    assert sum(1 for f in manifest.library.files if f.read_id == INDEX_ROLE) == 3
+    report = validate_manifest(manifest)
+    assert report.ok, [b.message for b in report.blockers]
+    assert exit_code_for_report(report) == 0
+
+    rows = core._units(manifest)
+    assert all(row["read_id"] != INDEX_ROLE for row in rows)
+    # 3 lanes x 2 counted roles = 6 rows; each counted role appears once per lane.
+    assert len(rows) == 6
+    assert set(Counter(r["read_id"] for r in rows).values()) == {3}
+    # Every lane is the SAME run, so `fastqs(sample, role)` collects and comma-joins them by path.
+    assert len({r["run"] for r in rows}) == 1
+
+
+def test_delane_strips_only_a_real_bcl2fastq_lane_token() -> None:
+    """The absorption fuses two files' identities only when they are true lane siblings, so the lane
+    token must be matched precisely. A real ``_L001_`` collapses lanes of one read together; a
+    lane-lookalike (an extra letter, or the wrong digit width) is left intact so two unrelated files are
+    never treated as lanes and wrongly absorbed."""
+    from seqforge.resolve.engine import _delane
+
+    # Real lane tokens: L001..L008 of the same read collapse to one identity.
+    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == "SRR1_S1_R1_001.fastq.gz"
+    assert _delane("SRR1_S1_L001_R1_001.fastq.gz") == _delane("SRR1_S1_L008_R1_001.fastq.gz")
+    # Lane-lookalikes are NOT stripped (Copilot review): trailing letter, or not a 3-digit token.
+    assert _delane("SRR1_L001A_R1.fastq.gz") == "SRR1_L001A_R1.fastq.gz"
+    assert _delane("sampleL5_R1.fastq.gz") == "sampleL5_R1.fastq.gz"
+
+
+def test_a_clean_single_lane_run_is_unaffected_by_absorption(tmp_path: Path) -> None:
+    """Regression: the absorption only fires on surplus lane siblings. A normal single-lane run (one
+    R1 + one R2, no leftovers) is byte-identical to before -- no role is duplicated, nothing tagged."""
+    spec, reg, paths = _reads(tmp_path, extra=None)
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    roles = index_tagged_roles(out.result.candidates[0], out.observations)
+    assert len(roles) == 2  # exactly the two assigned roles, nothing absorbed or tagged
+    assert INDEX_ROLE not in roles.values()
