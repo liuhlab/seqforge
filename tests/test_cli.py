@@ -466,7 +466,9 @@ def test_assert_chemistry_is_case_insensitive_and_canonicalizes(
             workspace=tmp_path,
             chemistry_override="10X-3P-GEX-V3",  # operator typed upper-case
         )
-    assert captured["hypothesis"].value == "10x-3p-gex-v3"  # canonicalized  # type: ignore[attr-defined]
+    assert (
+        captured["hypothesis"].value == "10x-3p-gex-v3"
+    )  # canonicalized  # type: ignore[attr-defined]
 
 
 def test_assert_chemistry_rejects_an_unknown_id(tmp_path: Path) -> None:

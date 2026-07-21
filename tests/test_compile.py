@@ -1658,7 +1658,9 @@ def test_prep_type_matches_whole_words_not_bare_substrings() -> None:
     assert _normalize_prep_type("total nucleic acid extraction") is None  # not "nuclei"
     assert _normalize_prep_type("aligned with Cell Ranger") is None  # not "single-cell"
     assert _normalize_prep_type("nucleotide") is None
-    assert _normalize_prep_type("single-nucleus and single-cell were compared") is None  # both -> None
+    assert (
+        _normalize_prep_type("single-nucleus and single-cell were compared") is None
+    )  # both -> None
     assert _normalize_prep_type("nuclei were isolated") == "single-nucleus"
     assert _normalize_prep_type("single cell suspension") == "single-cell"
 

@@ -425,11 +425,15 @@ def test_deepseek_retries_past_empty_content_then_succeeds(tmp_path: Path) -> No
     """#4: json_object mode intermittently returns an empty body. That is a provider hiccup, not the
     document saying nothing, so the provider re-issues the request rather than aborting the harvest."""
     nd = _doc(tmp_path)
-    client = _SequencedOpenAIClient(["", "   ", json.dumps({"drafts": []})])  # two empties, then good
+    client = _SequencedOpenAIClient(
+        ["", "   ", json.dumps({"drafts": []})]
+    )  # two empties, then good
     provider = deepseek_provider(api_key="k", client=client)
 
     outcome = extract_drafts(nd, kb.load_all_specs(), provider=provider)
-    assert client.n_calls == 3, "it retried through the two empty bodies and stopped at the good one"
+    assert client.n_calls == 3, (
+        "it retried through the two empty bodies and stopped at the good one"
+    )
     assert outcome.drafts == []
     # usage is summed over ALL three attempts — the two empty ones still cost tokens (1024 cache-read
     # tokens each in the fake), so the ledger must not undercount them
