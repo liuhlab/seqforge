@@ -169,46 +169,76 @@ def resolve_dataset(
 #: cDNA-length file — stays unassigned so ``validate`` still blocks it loudly.
 INDEX_MAX_LEN = 20
 
-#: The lane token in an Illumina/bcl2fastq name (``..._S1_L001_R1_001.fastq.gz``). Lanes of ONE read
-#: differ only here, so stripping it collapses ``L001/L002/...`` of the same read to one identity. The
-#: shape is pinned to bcl2fastq's — ``_L`` + exactly three digits + a boundary (``_``/``.``/end) — so it
-#: cannot bite into an unrelated token like ``_L001A`` and wrongly fuse two non-lane files' identities.
-_LANE_TOKEN = re.compile(r"_L\d{3}(?=[_.]|$)", re.IGNORECASE)
-#: A surplus lane must also match its role representative's read length (a sanity guard beside the
-#: filename identity). Small on purpose: 10x roles sit far apart (index <= 20, barcode ~26-28, cDNA >=50).
+#: The read designation a demultiplexed FASTQ carries — the mate the sequencer assigned it. Illumina/
+#: bcl2fastq writes it as an ``R1``/``R2``/``I1``/``I2`` token between separators, before the trailing
+#: ``_001`` set number (``..._S1_L001_R1_001.fastq.gz`` -> ``R1``). This is the identity a surplus lane
+#: or flowcell file shares with its role representative: unlike a de-laned basename it carries NO
+#: flowcell id, so it fuses the reads of one accession across every flowcell it was sequenced on — the
+#: flowcell id legitimately differs between them (GSE208154), which a lane-token strip could not bridge.
+_ILLUMINA_DESIGNATION = re.compile(r"[._]([RI][1-4])(?:[._]\d{3})?$", re.IGNORECASE)
+#: fasterq-dump's numeric mate suffix (``SRR..._1`` / ``_2`` / ``_3``) — the SRA equivalent of the
+#: Illumina token, mirroring ``group.py``'s ``_MATE`` shape. Tried only when no Illumina token is found.
+_NUMERIC_DESIGNATION = re.compile(r"[._](?:read[-_]?)?([1-4])(?:[._]\d{3})?$", re.IGNORECASE)
+#: A surplus lane/flowcell file must also match its role representative's read length (a sanity guard
+#: beside the designation). Small on purpose: 10x roles sit far apart (index <= 20, barcode ~26-28,
+#: cDNA >= 50), so the tolerance admits a lane's minor length jitter without ever bridging two roles.
 _LANE_LEN_TOL = 3
 
+#: Extensions stripped before reading the trailing designation token — longest first.
+_FASTQ_EXTS = (".fastq.gz", ".fq.gz", ".fastq.bz2", ".fastq.xz", ".fastq", ".fq", ".gz")
 
-def _delane(basename: str) -> str:
-    """A filename with its lane token removed — the identity shared by every lane of one read."""
-    return _LANE_TOKEN.sub("", basename)
+
+def _read_designation(basename: str) -> str | None:
+    """The mate/read designation a filename declares — ``R1``/``R2``/``I1`` (Illumina) or ``1``/``2``/
+    ``3`` (fasterq-dump), or ``None`` when it declares none.
+
+    This — not a de-laned basename — is what a surplus lane or flowcell file shares with its role
+    representative. It carries no flowcell id, so it groups the reads of one accession sequenced across
+    several flowcells (GSE208154), which stripping the ``_L\\d{3}`` lane token alone could not: the
+    flowcell id differs between them, so their de-laned names differed and the surplus stayed unassigned.
+    """
+    name = basename
+    lowered = name.lower()
+    for ext in _FASTQ_EXTS:
+        if lowered.endswith(ext):
+            name = name[: -len(ext)]
+            break
+    illumina = _ILLUMINA_DESIGNATION.search(name)
+    if illumina is not None:
+        return illumina.group(1).upper()
+    numeric = _NUMERIC_DESIGNATION.search(name)
+    if numeric is not None:
+        return numeric.group(1)
+    return None
 
 
 def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -> dict[str, str]:
-    """Invert a winner's role assignment to ``sha -> role``, absorbing surplus lane files.
+    """Invert a winner's role assignment to ``sha -> role``, absorbing surplus lane/flowcell files.
 
     The base map is ``assignment`` (role -> sha) inverted. Then, **only for a run the bytes actually
     decided** (a ``scored`` winner), each unassigned leftover is placed:
 
     - read length index-sized (<= :data:`INDEX_MAX_LEN`) -> :data:`~seqforge.models.dataset.INDEX_ROLE`,
       a 10x sample-index file STARsolo never consumes, set aside rather than left to block;
-    - otherwise, if it is a **lane** of an assigned role -> that role. An accession sequenced across 8
-      lanes groups into one run holding 8 R1 + 8 R2 + 8 I1, but the injective assignment fills each role
-      with ONE file, leaving the other 7 R1 + 7 R2 surplus. Lanes of one read are the SAME filename
-      differing only by the lane token (``_L001_`` vs ``_L002_``), so a surplus file rejoins a role iff
-      its de-laned basename equals that role representative's (and its length matches — a sanity guard).
+    - otherwise, if it carries the same **read designation** (R1/R2/…) as an assigned role's
+      representative and matches its read length -> that role. An accession sequenced across 8 lanes of
+      2 flowcells groups into one run holding 16 R1 + 16 R2 + 16 I1, but the injective assignment fills
+      each role with ONE file, leaving the rest surplus. Every lane/flowcell of one read shares its
+      designation — the flowcell id, which a de-laned name still carries, legitimately differs across the
+      flowcells one accession spans — so a surplus file rejoins its role by designation + length.
       ``units.tsv`` then emits every lane and STARsolo comma-joins them (``--readFilesIn R2a,R2b ...``).
 
-    Keying on the filename, not length alone, is deliberate: a stray cDNA-length leftover that is NOT a
-    lane sibling (a dropped/mis-uploaded read) matches no representative and stays unassigned, so
-    ``validate`` still blocks it loudly. A ``forbidden`` winner decided nothing, so its leftovers are
+    Keying on the designation, not length alone, is deliberate: a stray leftover whose designation
+    matches no role's representative (a dropped/mis-uploaded read, or an undesignated file) stays
+    unassigned, so ``validate`` still blocks it loudly; and the ``len(matches) == 1`` gate refuses an
+    ambiguous file that could fit two roles. A ``forbidden`` winner decided nothing, so its leftovers are
     not reinterpreted. A clean single-lane run has no leftovers and is byte-identical to before.
     """
     roles = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     if winner.score.status == "scored":
         by_sha = {o.file.sha256: o for o in observations}
         rep = {
-            role: (by_sha[sha].read_length.mode, _delane(by_sha[sha].file.basename))
+            role: (by_sha[sha].read_length.mode, _read_designation(by_sha[sha].file.basename))
             for role, sha in winner.role_assignment.assignment.items()
             if sha in by_sha
         }
@@ -220,11 +250,13 @@ def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -
             if mode <= INDEX_MAX_LEN:
                 roles[sha] = INDEX_ROLE
                 continue
-            delaned = _delane(obs.file.basename)
+            designation = _read_designation(obs.file.basename)
+            if designation is None:
+                continue
             matches = [
                 role
-                for role, (rmode, rname) in rep.items()
-                if rname == delaned and abs(rmode - mode) <= _LANE_LEN_TOL
+                for role, (rmode, rdesig) in rep.items()
+                if rdesig == designation and abs(rmode - mode) <= _LANE_LEN_TOL
             ]
             if len(matches) == 1:
                 roles[sha] = matches[0]
