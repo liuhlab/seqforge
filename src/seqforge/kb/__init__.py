@@ -23,7 +23,11 @@ from .schema import Spec
 #: accepts SPLiT-seq's cdna+bc pair on geometry alone and had declared nothing.
 #: 2026.7.1 — the parse/count line: soloFeatures / quantMode / outSAMtype left backend.params,
 #: which now declares ONLY byte-decided parse keys. Also adds the 10x-3p-gex-v3.1 benign twin.
-KB_VERSION = "2026.7.3"
+#: 2026.7.4 — added the bd-rhapsody-wta spec (BD Rhapsody WTA, original fixed-offset cell-label bead:
+#: CB_UMI_Complex, three 97 x 9 bp CLS whitelists SHIPPED, two fixed linkers). bulk-rnaseq-pe <->
+#: bd-rhapsody-wta declared processing_divergent, distinguishable_by onlist (same rung-0-2 collision
+#: SPLiT-seq has with the generic paired-end fallback).
+KB_VERSION = "2026.7.4"
 
 __all__ = [
     "KB_VERSION",

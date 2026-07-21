@@ -22,5 +22,29 @@
     "source_sha256": "b0dda4b114d8fc7ea8def94fb472e6205c1831a72e3ac245ed13cc332d9f20d1",
     "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/737K-august-2016.txt.gz",
     "width": 16
+  },
+  "bd-rhapsody-cls1": {
+    "n_entries": 97,
+    "orientation": "forward",
+    "sha256": "018f991cf6ed0685ad9274b5ab3aeea645cb0c869962c6405eea6a3f49f1db8f",
+    "source_sha256": "c77867fc7a0a4bf2157699713a5927558e979c09af56a8e581cf0de30273f2c1",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS1.txt",
+    "width": 9
+  },
+  "bd-rhapsody-cls2": {
+    "n_entries": 97,
+    "orientation": "forward",
+    "sha256": "ecbc8ce2fd4a10a97355661ffa2d12eda5e237fe3e3943980cb2ee0be769b753",
+    "source_sha256": "c381b7ae00c41da7c8c60a8aa90be5e914fb823e0babe59afdac0500fd31c5b1",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS2.txt",
+    "width": 9
+  },
+  "bd-rhapsody-cls3": {
+    "n_entries": 97,
+    "orientation": "forward",
+    "sha256": "c54e5fdafdda7ad8ce73e08405eea5024c73a37d4283e4d67dc5dc7bd6281fa4",
+    "source_sha256": "a117052f7c704657915a3b32fd93cc6e9c47842c45018837bbec874ff0126c1d",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS3.txt",
+    "width": 9
   }
 }

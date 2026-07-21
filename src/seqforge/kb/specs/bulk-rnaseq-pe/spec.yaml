@@ -73,3 +73,11 @@ confusable_with:
       bulk gene-count matrix for a single-cell library and exit 0. Only the onlist separates them:
       SPLiT-seq's round1/2/3 barcodes hit their whitelists at rung 3 and bulk has no whitelist to
       hit, which is why the resolver reaches rung 3 here rather than deciding at rung 2.
+  - id: bd-rhapsody-wta
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Same story as SPLiT-seq: the generic paired-end fallback accepts BD Rhapsody's cdna+bc pair on
+      geometry alone (`rung02_separable(bulk, bd-rhapsody-wta)` is False), so silently preferring bulk
+      would emit a gene-count matrix for a single-cell library and exit 0. Only the onlist separates
+      them — BD's three CLS whitelists hit at rung 3, and bulk has none.
