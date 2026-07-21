@@ -38,6 +38,20 @@ if TYPE_CHECKING:
     from ..models.records import ArchiveRecordSet
 
 
+def _common_fastq_root(files: list[Path]) -> Path | None:
+    """The directory the FASTQs' machine-independent URIs are relative to: ``os.path.commonpath`` of
+    their resolved parent dirs, mirroring :func:`seqforge.manifest.fill.dataset_uris` exactly so that
+    ``fastq_dir / uri`` reconstructs each real path. ``None`` when they share no common root (different
+    filesystems) — ``dataset_uris``'s basename fallback — and the caller then leaves ``--fastq-dir`` unset.
+    """
+    import os
+
+    try:
+        return Path(os.path.commonpath([str(f.parent.resolve()) for f in files]))
+    except ValueError:  # no common root (e.g. different drives)
+        return None
+
+
 def _run_records_stage(
     accession: list[str], records_path: Path | None, *, workspace: Path, offline: bool
 ) -> tuple[ArchiveRecordSet | None, Path | None]:
@@ -294,6 +308,16 @@ def run_cmd(
     calls its own provider (DEEPSEEK_API_KEY / ANTHROPIC_API_KEY), which is why --no-llm exists.
     """
     from ..io.remote import RemoteError
+
+    # `compose` joins each machine-independent URI (a path relative to the FASTQs' COMMON ROOT, per
+    # `dataset_uris`) onto `--fastq-dir` to build units.tsv. So `--fastq-dir` must BE that common root,
+    # not just any ancestor: a dataset whose reads all sit in one accession subdir (`SRX…/…_1.fastq.gz`)
+    # makes the common root that subdir, and pointing `--fastq-dir` one level up would drop it and
+    # yield units.tsv paths that do not exist (a wiring-gate failure, seen live on GSE274290). `run`
+    # already holds every input path, so default `--fastq-dir` to the computed common root rather than
+    # make a headless caller know this contract. An explicit flag still wins.
+    if fastq_dir is None and files:
+        fastq_dir = _common_fastq_root(files)
 
     stages: dict[str, object] = {}
 
