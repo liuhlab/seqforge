@@ -20,6 +20,7 @@ contract cannot drift from ``models/``.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -122,6 +123,9 @@ class ExtractionOutcome:
     #: How the call was made — thinking/effort, max_tokens, response_format (see ``LLMResponse.mode``).
     mode: dict[str, object] = field(default_factory=dict)
     usage: dict[str, int] = field(default_factory=dict)
+    #: Individual drafts the model returned malformed (e.g. ``value: null``) — dropped, not fatal. Same
+    #: shape as ``VerifyReport.rejected`` so a run can report both surfaces the same way.
+    rejected: list[dict[str, object]] = field(default_factory=list)
 
     @property
     def cache_hit(self) -> bool:
@@ -217,14 +221,32 @@ def extract_drafts(
     except ProviderUnavailable as exc:
         raise ExtractUnavailable(str(exc)) from exc
 
-    # THE gate. json-object providers do not enforce shape, so this is where a malformed batch dies —
-    # loudly and wholesale, rather than as a half-parsed assertion leaking into the manifest.
+    # THE gate. json-object providers do not enforce shape, so this is where a malformed batch is
+    # caught. The split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array)
+    # is a provider failure with nothing to salvage and dies wholesale (that is #4's empty-content
+    # case). But a single malformed DRAFT — a `value: null`, a missing span — is just one bad proposal
+    # from a proposer we already distrust: drop it into `rejected` and keep the rest, exactly as
+    # `verify` drops a claim whose quote will not grep back. One flaky token from the model must not
+    # sink a whole document's worth of valid extraction (#5).
     try:
-        parsed = ExtractionResult.model_validate_json(response.text)
-    except ValidationError as exc:
+        raw = json.loads(response.text)
+    except (json.JSONDecodeError, ValueError) as exc:
         raise ExtractUnavailable(
-            f"{llm.name} returned output that does not match the AssertionDraft schema: {exc}"
+            f"{llm.name} returned output that is not valid JSON: {exc}"
         ) from exc
+    if not isinstance(raw, dict) or not isinstance(raw.get("drafts"), list):
+        raise ExtractUnavailable(
+            f"{llm.name} returned no `drafts` array (top-level shape is not "
+            f"{{'drafts': [...]}}; got {type(raw).__name__})"
+        )
+
+    drafts: list[AssertionDraft] = []
+    rejected: list[dict[str, object]] = []
+    for item in raw["drafts"]:
+        try:
+            drafts.append(AssertionDraft.model_validate(item))
+        except ValidationError as exc:
+            rejected.append(_malformed_draft(item, exc))
 
     extractor = ExtractorProvenance(
         # provenance records the provider too: the same prompt on a different model is a different
@@ -233,13 +255,31 @@ def extract_drafts(
         prompt_version=EXTRACT_PROMPT_VERSION,
     )
     return ExtractionOutcome(
-        drafts=[_anchor(d, doc) for d in parsed.drafts],
+        drafts=[_anchor(d, doc) for d in drafts],
         extractor=extractor,
         provider=llm.name,
         model=chosen,
         mode=response.mode,
         usage=response.usage,
+        rejected=rejected,
     )
+
+
+def _malformed_draft(item: object, exc: ValidationError) -> dict[str, object]:
+    """One draft the model returned malformed. Recorded in the ``rejected`` channel and dropped — a
+    non-fatal echo of ``verify._reject``, so both surfaces read the same way. Kept defensive because
+    ``item`` failed validation: any field may be missing or the wrong type."""
+    span = item.get("span") if isinstance(item, dict) else None
+    quote = span.get("quote") if isinstance(span, dict) else None
+    errors = exc.errors()
+    detail = errors[0]["msg"] if errors else str(exc)
+    return {
+        "field": item.get("field") if isinstance(item, dict) else None,
+        "value": item.get("value") if isinstance(item, dict) else None,
+        "quote": quote[:120] if isinstance(quote, str) else None,
+        "reason": "malformed_draft",
+        "detail": f"draft failed AssertionDraft validation: {detail}",
+    }
 
 
 def _anchor(draft: AssertionDraft, doc: NormalizedDoc) -> AssertionDraft:
