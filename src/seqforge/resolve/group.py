@@ -38,6 +38,16 @@ _MATE = re.compile(r"^(?P<stem>.+?)[._](?:R|read[-_]?)?(?P<mate>[1-4])(?:[._]\d{
 #: Extensions to strip before looking for a mate token. Longest first — `.fastq.gz` before `.gz`.
 _EXTS = (".fastq.gz", ".fq.gz", ".fastq.bz2", ".fastq.xz", ".fastq", ".fq", ".gz")
 
+#: A LEADING SRA/ENA/DDBJ run accession the dump tool printed on the file. Unlike the mate token, an
+#: accession is a real identity the archive assigned (see the module docstring), so it OUTRANKS the
+#: mate heuristic below. It has to: an original-format download can carry the submitter's own lane
+#: naming *after* the accession — `SRR36109512_11314-RM-1_S1_L005_R1_001` — so the two mate files
+#: differ only in `_R1_`/`_R2_` buried mid-name, where the end-anchored mate strip cannot see it. The
+#: strip then keys each file to the whole `..._S1_L005` stem, every file becomes its own singleton
+#: "run", and the record join (`records.py`, `by_accession.get(run_key(...))`) misses every file
+#: (#6, GSE310667). Keying on the accession rejoins the mates and lands the join.
+_SRA_RUN = re.compile(r"^([SED]RR\d+)(?=[._])")
+
 
 def _strip_ext(name: str) -> str:
     lowered = name.lower()
@@ -50,10 +60,15 @@ def _strip_ext(name: str) -> str:
 def run_key(path: str | Path) -> str:
     """The run a file belongs to, derived from its name. Never a claim about the file's ROLE.
 
-    `SRR28716558_1.fastq.gz` -> `SRR28716558`; `x_S1_L001_R1_001.fastq.gz` -> `x_S1_L001`; a name with
-    no mate token is its own run, which is the right answer for a single-end library.
+    `SRR28716558_1.fastq.gz` -> `SRR28716558`; `SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz` ->
+    `SRR36109512` (a leading accession wins over any submitter suffix); `x_S1_L001_R1_001.fastq.gz` ->
+    `x_S1_L001`; a name with no accession and no mate token is its own run, which is the right answer
+    for a single-end library.
     """
     stem = _strip_ext(Path(path).name)
+    sra = _SRA_RUN.match(stem)
+    if sra is not None:
+        return sra.group(1)
     match = _MATE.match(stem)
     return match.group("stem") if match else stem
 

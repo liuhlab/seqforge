@@ -85,6 +85,11 @@ def escalate(
     conflicts = _detect_conflicts(
         hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
     )
+    collapse = _single_cell_collapse_conflict(
+        hypothesis_value, hypothesis_id, hypothesis_confidence, top, top_spec, observations, specs
+    )
+    if collapse is not None:
+        conflicts.append(collapse)
     # Pre-trimming can only be judged once a role is known — it is variable length *on a read the
     # chemistry says is fixed*, so it needs the winner's assignment, not raw bytes. Hence here and
     # not in `_integrity_blockers`.
@@ -304,6 +309,62 @@ def _detect_conflicts(
             status="open",
         )
     ]
+
+
+def _single_cell_collapse_conflict(
+    hypothesis_value: str | None,
+    hypothesis_id: str | None,
+    hypothesis_confidence: float,
+    top: TechEvaluation,
+    top_spec: Spec,
+    observations: list[Observation],
+    specs: dict[str, Spec],
+) -> Conflict | None:
+    """A single-cell chemistry was asserted, but the winning byte candidate is a **barcodeless bulk**
+    library. Surface it (#7/#11) rather than let it collapse silently.
+
+    The failure this catches: the asserted single-cell tech's barcode read was *forbidden* — trimmed,
+    or over-sequenced past its length gate — so that tech dropped out of ``valid`` and the generic bulk
+    fallback won by default. The result is a bulk manifest for a single-cell dataset, at exit 0. That
+    is the quiet corpus-poisoning §5 exists to prevent (GSE126954's over-length SRX5411291; GSE274290
+    before a BD Rhapsody spec exists).
+
+    ``_detect_conflicts`` provably cannot see this: it compares barcode *lengths*, and a bulk winner
+    has no barcode read, so ``_observed_barcode_length`` is ``None`` and that guard returns early. This
+    one keys on structure — asserted-barcoded vs observed-barcodeless — not on a length delta. Like the
+    length conflict it only surfaces (open Conflict, exit 4); it never arbitrates, because whether the
+    data *is* single-cell or bulk is exactly the call code may not auto-pick.
+    """
+    if not hypothesis_value:
+        return None
+    hyp_tech = _match_tech(hypothesis_value, specs)
+    if hyp_tech is None:
+        return None  # the asserted chemistry names no KB tech, so "single-cell" is not established
+    if _barcode_read_id(specs[hyp_tech]) is None:
+        return None  # a bulk chemistry was asserted and bulk won — no collapse, agreement
+    if _barcode_read_id(top_spec) is not None:
+        return None  # the winner is itself barcoded (single-cell won or tied) — nothing collapsed
+    return Conflict(
+        id="conflict-single-cell-collapsed-to-bulk",
+        field="library.chemistry",
+        kind="observed_vs_asserted",
+        positions=[
+            ConflictPosition(
+                value=hyp_tech,
+                basis="asserted",
+                evidence=[hypothesis_id] if hypothesis_id else [],
+                confidence=hypothesis_confidence,
+            ),
+            ConflictPosition(
+                value=top.tech,
+                basis="observed",
+                evidence=[o.file.sha256 for o in observations],
+                confidence=0.99,
+            ),
+        ],
+        decidable_by=["reads"],
+        status="open",
+    )
 
 
 def _metadata_disambiguation(
