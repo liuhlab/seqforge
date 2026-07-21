@@ -126,9 +126,19 @@ def _get(url: str, params: dict[str, str] | None = None, timeout: int = _DEFAULT
     so a key in `params` never reaches a log line).
     """
     attempt = 0
-    while True:  # exits only by return (200) or raise (terminal status / exhausted budget)
+    while True:  # exits only by return (200) or raise (terminal status/error / exhausted budget)
         try:
             response = requests.get(url, params=params, timeout=timeout)
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            # A dropped connection or a timeout is the transport-level twin of a 5xx: NCBI resets
+            # connections under load ("Connection reset by peer" aborted GSE310667's records fetch
+            # live). Back off and retry rather than abort the stage; a genuinely dead endpoint still
+            # fails once the budget is spent.
+            if attempt < _MAX_RETRIES:
+                time.sleep(retry_delay(None, attempt))
+                attempt += 1
+                continue
+            raise RemoteError(f"GET {url} failed: {exc}") from exc
         except requests.RequestException as exc:
             raise RemoteError(f"GET {url} failed: {exc}") from exc
         if response.status_code == 200:

@@ -84,6 +84,39 @@ def test_get_does_not_retry_a_terminal_status(monkeypatch: pytest.MonkeyPatch) -
     assert calls["n"] == 1  # a 404 is terminal, not retried
 
 
+def test_get_retries_a_dropped_connection_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A reset connection is the transport-level twin of a 5xx — NCBI resets under load (aborted
+    GSE310667's records fetch live). It backs off and retries rather than aborting the stage."""
+    calls = {"n": 0}
+
+    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise remote.requests.ConnectionError(
+                "('Connection aborted.', ConnectionResetError(104))"
+            )
+        return _resp(200, "OK")
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
+    assert remote._get("https://eutils.example/efetch") == "OK"
+    assert calls["n"] == 2
+
+
+def test_get_gives_up_on_a_persistent_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = {"n": 0}
+
+    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
+        calls["n"] += 1
+        raise remote.requests.Timeout("read timed out")
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
+    with pytest.raises(RemoteError, match="failed"):
+        remote._get("https://eutils.example/efetch")
+    assert calls["n"] == remote._MAX_RETRIES + 1  # retried to the budget, then raised
+
+
 def test_retry_delay_honors_an_integer_retry_after_else_backs_off() -> None:
     assert retry_delay("2", 0) == 2.0  # server-specified wait wins
     assert retry_delay(None, 0) == 1.0  # base
