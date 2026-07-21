@@ -8,6 +8,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -168,24 +169,63 @@ def resolve_dataset(
 #: cDNA-length file — stays unassigned so ``validate`` still blocks it loudly.
 INDEX_MAX_LEN = 20
 
+#: The lane token in an Illumina/bcl2fastq name (``..._S1_L001_R1_001.fastq.gz``). Lanes of ONE read
+#: differ only here, so stripping it collapses ``L001/L002/...`` of the same read to one identity.
+_LANE_TOKEN = re.compile(r"_L\d+", re.IGNORECASE)
+#: A surplus lane must also match its role representative's read length (a sanity guard beside the
+#: filename identity). Small on purpose: 10x roles sit far apart (index <= 20, barcode ~26-28, cDNA >=50).
+_LANE_LEN_TOL = 3
+
+
+def _delane(basename: str) -> str:
+    """A filename with its lane token removed — the identity shared by every lane of one read."""
+    return _LANE_TOKEN.sub("", basename)
+
 
 def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -> dict[str, str]:
-    """Invert a winner's role assignment to ``sha -> role``, tagging short leftovers as index reads.
+    """Invert a winner's role assignment to ``sha -> role``, absorbing surplus lane files.
 
     The base map is ``assignment`` (role -> sha) inverted. Then, **only for a run the bytes actually
-    decided** (a ``scored`` winner), each unassigned leftover whose observed read length is
-    index-sized is tagged :data:`~seqforge.models.dataset.INDEX_ROLE` — a 10x sample-index file
-    STARsolo never consumes, set aside rather than left to block. A ``forbidden`` winner decided
-    nothing, so its leftovers are not reinterpreted; a cDNA-length leftover stays unassigned and
-    ``validate`` blocks it. A clean run has no leftovers and comes back byte-identical to before.
+    decided** (a ``scored`` winner), each unassigned leftover is placed:
+
+    - read length index-sized (<= :data:`INDEX_MAX_LEN`) -> :data:`~seqforge.models.dataset.INDEX_ROLE`,
+      a 10x sample-index file STARsolo never consumes, set aside rather than left to block;
+    - otherwise, if it is a **lane** of an assigned role -> that role. An accession sequenced across 8
+      lanes groups into one run holding 8 R1 + 8 R2 + 8 I1, but the injective assignment fills each role
+      with ONE file, leaving the other 7 R1 + 7 R2 surplus. Lanes of one read are the SAME filename
+      differing only by the lane token (``_L001_`` vs ``_L002_``), so a surplus file rejoins a role iff
+      its de-laned basename equals that role representative's (and its length matches — a sanity guard).
+      ``units.tsv`` then emits every lane and STARsolo comma-joins them (``--readFilesIn R2a,R2b ...``).
+
+    Keying on the filename, not length alone, is deliberate: a stray cDNA-length leftover that is NOT a
+    lane sibling (a dropped/mis-uploaded read) matches no representative and stays unassigned, so
+    ``validate`` still blocks it loudly. A ``forbidden`` winner decided nothing, so its leftovers are
+    not reinterpreted. A clean single-lane run has no leftovers and is byte-identical to before.
     """
     roles = {sha: role for role, sha in winner.role_assignment.assignment.items()}
     if winner.score.status == "scored":
-        mode_of = {o.file.sha256: o.read_length.mode for o in observations}
+        by_sha = {o.file.sha256: o for o in observations}
+        rep = {
+            role: (by_sha[sha].read_length.mode, _delane(by_sha[sha].file.basename))
+            for role, sha in winner.role_assignment.assignment.items()
+            if sha in by_sha
+        }
         for sha in winner.role_assignment.unassigned:
-            mode = mode_of.get(sha)
-            if mode is not None and mode <= INDEX_MAX_LEN:
+            obs = by_sha.get(sha)
+            if obs is None:
+                continue
+            mode = obs.read_length.mode
+            if mode <= INDEX_MAX_LEN:
                 roles[sha] = INDEX_ROLE
+                continue
+            delaned = _delane(obs.file.basename)
+            matches = [
+                role
+                for role, (rmode, rname) in rep.items()
+                if rname == delaned and abs(rmode - mode) <= _LANE_LEN_TOL
+            ]
+            if len(matches) == 1:
+                roles[sha] = matches[0]
     return roles
 
 

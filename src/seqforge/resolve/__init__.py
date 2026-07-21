@@ -21,7 +21,10 @@ from __future__ import annotations
 #: "barcode vs cDNA" (chance ≈ whitelist floor), not "confident barcode" (0.6). A real over-sequenced
 #: barcode read with ordinary sequencing error hit below 0.6 on exact match and fell to bulk (#7,
 #: GSE126954 SRX5411291); the floor-anchored bar admits it while still rejecting a same-length cDNA.
-RESOLVE_VERSION = "2026.7.3"
+#: 2026.7.4 — multi-lane surplus absorption: a run sequenced across N lanes holds N files per role, but
+#: the injective assignment fills each role once; the surplus same-length lane files are now absorbed
+#: into their role (was NO_VALID_ROLE_ASSIGNMENT), so a multi-lane 10x dataset resolves (GSE208154).
+RESOLVE_VERSION = "2026.7.4"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
