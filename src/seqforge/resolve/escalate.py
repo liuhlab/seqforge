@@ -63,10 +63,10 @@ def escalate(
         blocker = _no_candidate_blocker(evaluations, hypothesis_value, specs)
         return Escalation(candidates=[], blockers=[blocker], rung_reached=2)
 
-    # Within the score tie (candidates within θ of the best), the STRONGEST evidence wins: a rung-3
-    # onlist PASS beats rung-2 geometry, so a lower-rung look-alike is DOMINATED, not a divergent-tie
-    # question. That is how onlist evidence separates a specific chemistry from the generic bulk
-    # fallback that merely failed to be forbidden — but only WITHIN θ. On OVER-LENGTH reads a 75 bp
+    # Within the score tie (candidates within θ of the best), the STRONGER evidence TIER wins: rung 3
+    # (an onlist was consulted) outranks rung-2 geometry, so a lower-rung look-alike is DOMINATED, not a
+    # divergent-tie question. That is how onlist evidence separates a specific chemistry from the generic
+    # bulk fallback that merely failed to be forbidden — but only WITHIN θ. On OVER-LENGTH reads a 75 bp
     # barcode read is also a fine cDNA, so bulk edges the real chemistry out by more than θ and, without
     # help, a single-cell library whose whitelist *hit* (#7) collapses to bulk at exit 0. So anchor the
     # tie on the barcoded candidate whose onlist positively matched, letting its decisive rung-3

@@ -156,8 +156,11 @@ def _over_length_admitted_by_onlist(
     whitelist. Deliberately narrow and additive: it fires ONLY on a ``segment_length`` FAIL whose mode
     is strictly between the canonical ``length`` and ``over_length_min`` (a read at/below the canonical
     length, or already ``>= over_length_min``, does not reach here), and ONLY when an ``onlist_hit_rate``
-    support on this read PASSes. A cDNA read of the same length misses the whitelist and stays
-    forbidden, so rung-0-2 separability between single-cell and cDNA-only chemistries is preserved.
+    support clears the FLOOR-ANCHORED admission bar (:func:`onlist_admits_over_length`) — a LOWER bar
+    than the support's own ``min`` PASS threshold, because admission asks "barcode or cDNA?" not
+    "confident barcode?", so it can admit a read whose exact hit rate sits below ``min`` yet far above
+    chance. A cDNA read of the same length hits the whitelist at its floor and stays forbidden, so
+    rung-0-2 separability between single-cell and cDNA-only chemistries is preserved.
     """
     if not isinstance(test, SegmentLength) or test.over_length_min is None:
         return False

@@ -210,12 +210,14 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
 def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
     tmp_path: Path,
 ) -> None:
-    """Safety guard for the dominance anchor (a barcoded rung-3 candidate is not shadowed by the
-    barcodeless fallback): it must NEVER hijack genuine bulk. Canonical ~100 bp paired cDNA reads with
-    NO barcode content, resolved with the v2 whitelist registered, must still resolve to bulk-rnaseq-pe
-    — no barcoded chemistry reaches rung 3 (the reads miss the whitelist), so there is nothing to
-    promote and the anchor stays on bulk. This is the invariant that keeps every real bulk dataset
-    (and any single-cell dataset whose barcode read is genuinely absent) unaffected."""
+    """Safety guard for the dominance anchor (a barcoded candidate that positively matched a whitelist
+    is not shadowed by the barcodeless fallback): it must NEVER hijack genuine bulk. Canonical ~100 bp
+    paired cDNA reads with NO barcode content, resolved with the v2 whitelist registered, must still
+    resolve to bulk-rnaseq-pe. v2 IS consulted here (it reaches rung 3, and its barcode read even passes
+    the over-length geometry gate at 100 bp = over_length_min) — but its onlist FAILS, so
+    ``barcode_onlist_hit`` stays False, the anchor never promotes it, and bulk wins. That False is the
+    invariant keeping every real bulk dataset (and any dataset whose barcodes are genuinely absent)
+    unaffected: the anchor keys on the whitelist ACTUALLY matching, not on rung 3."""
     rng = random.Random(7)
 
     def rand(n: int) -> str:
