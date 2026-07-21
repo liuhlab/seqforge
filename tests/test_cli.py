@@ -442,6 +442,33 @@ def test_assert_chemistry_threads_an_operator_hypothesis(
     assert hypo.confidence == 1.0  # type: ignore[attr-defined]
 
 
+def test_assert_chemistry_is_case_insensitive_and_canonicalizes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`resolve score` matches chemistry ids case-insensitively, so `fill` must too — and it passes the
+    CANONICAL id downstream, not the operator's casing."""
+    from seqforge.cli import manifest as m
+
+    captured: dict[str, object] = {}
+
+    def _capture(paths: object, *, hypothesis: object = None, **_: object) -> object:
+        captured["hypothesis"] = hypothesis
+        raise RuntimeError("stop after capturing the hypothesis")
+
+    monkeypatch.setattr(m, "resolve_runs", _capture)
+    with pytest.raises(RuntimeError, match="stop after capturing"):
+        m._fill_manifest_pipeline(
+            files=[tmp_path / "x_1.fastq.gz"],
+            organism=None,
+            records=None,
+            assertions=None,
+            offline=True,
+            workspace=tmp_path,
+            chemistry_override="10X-3P-GEX-V3",  # operator typed upper-case
+        )
+    assert captured["hypothesis"].value == "10x-3p-gex-v3"  # canonicalized  # type: ignore[attr-defined]
+
+
 def test_assert_chemistry_rejects_an_unknown_id(tmp_path: Path) -> None:
     """A typo'd chemistry would silently no-op (the hypothesis never matches a candidate) and the
     operator would only learn after a full compile still escalated. Fail fast with exit 2."""

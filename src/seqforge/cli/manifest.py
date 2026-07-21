@@ -201,18 +201,25 @@ def _fill_manifest_pipeline(
     from ..resolve import role_of_sha_for
     from ..resolve.records import resolve_metadata
 
-    if chemistry_override is not None and chemistry_override not in list_spec_ids():
-        # A typo here would silently do nothing — the hypothesis just wouldn't match a candidate — and
-        # the operator would only find out after a full compile still escalated the tie. Fail fast.
-        return _StageOut(
-            {
-                "error": "unknown_chemistry",
-                "detail": f"--assert-chemistry {chemistry_override!r} is not a known KB chemistry id; "
-                f"one of: {', '.join(sorted(list_spec_ids()))}",
-            },
-            2,
-            err=True,
-        )
+    if chemistry_override is not None:
+        # Canonicalize to a real KB id, CASE-INSENSITIVELY — `resolve score` matches ids
+        # case-insensitively, so `manifest fill` must accept the same spellings or it would reject a
+        # value scoring would have taken. A value that resolves to nothing would otherwise silently
+        # no-op (the hypothesis just wouldn't match a candidate) and the operator would only find out
+        # after a full compile still escalated; fail fast. (list computed once — Copilot review.)
+        spec_ids = list_spec_ids()
+        canonical = {s.lower(): s for s in spec_ids}.get(chemistry_override.strip().lower())
+        if canonical is None:
+            return _StageOut(
+                {
+                    "error": "unknown_chemistry",
+                    "detail": f"--assert-chemistry {chemistry_override!r} is not a known KB chemistry "
+                    f"id; one of: {', '.join(sorted(spec_ids))}",
+                },
+                2,
+                err=True,
+            )
+        chemistry_override = canonical
 
     organism_taxid: int | None = None
     if organism is not None:
