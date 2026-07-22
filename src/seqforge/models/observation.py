@@ -66,9 +66,11 @@ Segment = Annotated[
 class FileIdentity(BaseModel):
     """Content identity of one FASTQ. Observation is internal, so a LOCAL path is allowed here only.
 
-    ``sha256`` is a **content-address**, not a whole-file hash: a provider md5 when known, else a
-    bounded local key over the basename + head sample + size + gzip ISIZE (see
-    ``probe.core._content_key``). Fingerprinting never reads a whole FASTQ (issue #37).
+    ``sha256`` is a **content-address**, not a whole-file hash. Locally it is a bounded key over the
+    basename + head sample + size + gzip ISIZE (``probe.core._content_key``, issue #37). For hosted
+    bytes it is derived from the provider md5 (``probe.core.content_key_from_md5``, issue #39) — a
+    64-hex name that is a pure function of the md5, so two hosted files with the same md5 dedup. Either
+    way fingerprinting never reads a whole FASTQ; a remote probe range-reads only a bounded head.
     """
 
     sha256: Sha256

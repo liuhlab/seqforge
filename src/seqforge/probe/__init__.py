@@ -26,12 +26,21 @@ DEFAULT_MAX_READS = 200_000
 DEFAULT_MAX_BYTES = 256 * 1024 * 1024
 
 # Imported last: core depends on the budget constants above (keeps the package import acyclic).
-from .core import probe_file, probe_sample  # noqa: E402
+from .core import (  # noqa: E402
+    build_observation,
+    content_key_from_md5,
+    probe_file,
+    probe_sample,
+    remote_content_key,
+)
 
 __all__ = [
     "PROBE_VERSION",
     "DEFAULT_MAX_READS",
     "DEFAULT_MAX_BYTES",
+    "build_observation",
+    "content_key_from_md5",
+    "remote_content_key",
     "probe_file",
     "probe_sample",
 ]

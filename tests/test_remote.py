@@ -12,7 +12,11 @@ case: SRA says 3 reads / 110 bases per spot, ENA published 50).
 from __future__ import annotations
 
 import gzip
+import hashlib
+import os
+import re
 import types
+import warnings
 import zlib
 
 import pytest
@@ -21,18 +25,23 @@ from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
     RunStatistics,
+    _content_range_total,
+    _uri_basename,
     classify_accession,
     decompress_prefix,
     dropped_reads,
+    fastq_targets,
     fastq_urls,
     parse_fastq_prefix,
     parse_filereport,
     parse_run_new,
     parse_soft_srp,
     parse_soft_superseries,
+    probe_remote,
     retry_delay,
     technical_read_remedy,
 )
+from seqforge.probe import content_key_from_md5
 
 
 def _resp(status: int, text: str = "", retry_after: str | None = None) -> types.SimpleNamespace:
@@ -413,3 +422,192 @@ def test_zlib_wbits_31_is_the_gzip_incantation() -> None:
     assert zlib.decompressobj(31).decompress(blob).startswith(b"@READ:0")
     with pytest.raises(zlib.error):
         zlib.decompressobj(15).decompress(blob)
+
+
+# ---------------------------------------------------------------------------------------------
+# #39 — provider-md5 content key + fingerprint a library from a URL (probe_remote)
+# ---------------------------------------------------------------------------------------------
+
+
+def _range_server(blobs: dict[str, bytes], *, status: int = 206) -> object:
+    """A fake ``requests.get`` that serves a 206 Range slice of ``blobs[url]`` with a Content-Range.
+
+    Honors ``Range: bytes=0-N`` exactly as ENA does, so a bounded read returns a bounded prefix and the
+    206's ``Content-Range: .../TOTAL`` carries the true file size. ``status=200`` simulates a host that
+    ignores Range and hands back the whole file — the case ``_range_get`` must refuse.
+    """
+
+    def fake_get(
+        url: str,
+        headers: dict[str, str] | None = None,
+        timeout: object = None,
+        stream: object = None,
+    ) -> object:
+        data = blobs[url]
+        match = re.search(r"bytes=0-(\d+)", (headers or {}).get("Range", ""))
+        chunk = data[: int(match.group(1)) + 1] if match else data
+        return types.SimpleNamespace(
+            status_code=status,
+            content=chunk,
+            headers={"Content-Range": f"bytes 0-{max(0, len(chunk) - 1)}/{len(data)}"},
+            close=lambda: None,
+        )
+
+    return fake_get
+
+
+def test_fastq_targets_pairs_each_url_with_its_md5() -> None:
+    """ENA's fastq_ftp and fastq_md5 are index-aligned; the join is positional. This is the one place a
+    URL and its content hash arrive together, which is what lets the remote probe key on the md5."""
+    run = {
+        "fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz",
+        "fastq_md5": "a" * 32 + ";" + "b" * 32,
+    }
+    assert fastq_targets(run) == [
+        ("https://ftp.x/a_1.fastq.gz", "a" * 32),
+        ("https://ftp.x/a_2.fastq.gz", "b" * 32),
+    ]
+
+
+def test_fastq_targets_pairs_before_sorting_so_url_and_md5_stay_aligned() -> None:
+    """Sorting is by URL, but the pairing happens first — a reversed ftp order keeps each md5 with its
+    own URL rather than re-aligning to the sorted position."""
+    run = {
+        "fastq_ftp": "ftp.x/a_2.fastq.gz;ftp.x/a_1.fastq.gz",
+        "fastq_md5": "2" * 32 + ";" + "1" * 32,
+    }
+    assert fastq_targets(run) == [
+        ("https://ftp.x/a_1.fastq.gz", "1" * 32),
+        ("https://ftp.x/a_2.fastq.gz", "2" * 32),
+    ]
+
+
+def test_fastq_targets_refuses_to_mispair_on_a_length_mismatch() -> None:
+    """A missing or short md5 list yields NO pairs rather than a silent mis-alignment: guessing which
+    md5 goes with which URL would poison the content-address."""
+    assert (
+        fastq_targets({"fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz", "fastq_md5": "a" * 32})
+        == []
+    )
+    assert fastq_targets({"fastq_ftp": "ftp.x/a.fastq.gz", "fastq_md5": ""}) == []
+    assert fastq_targets({}) == []
+
+
+def test_content_key_from_md5_is_64_hex_and_injective() -> None:
+    """The 32-hex provider md5 maps into the 64-hex content-address space injectively: identical md5 ->
+    identical address (dedup is correct), distinct md5 -> distinct address, and it is case/space-stable."""
+    a = content_key_from_md5("d41d8cd98f00b204e9800998ecf8427e")
+    assert re.fullmatch(r"[0-9a-f]{64}", a)
+    assert content_key_from_md5("  D41D8CD98F00B204E9800998ECF8427E ") == a  # normalized
+    assert content_key_from_md5("0" * 32) != a  # a different md5 is a different address
+
+
+def test_content_key_from_md5_rejects_a_non_md5() -> None:
+    for bad in ("", "abc", "z" * 32, "a" * 31, "a" * 64):
+        with pytest.raises(ValueError, match="md5"):
+            content_key_from_md5(bad)
+
+
+def test_content_range_total_parses_the_size_and_abstains_when_unknown() -> None:
+    assert _content_range_total({"Content-Range": "bytes 0-65535/517000000"}) == 517000000
+    assert _content_range_total({"Content-Range": "bytes 0-100/*"}) is None  # server doesn't know
+    assert _content_range_total({}) is None
+
+
+def test_uri_basename_strips_query_fragment_and_slash() -> None:
+    assert _uri_basename("https://ftp.x/vol1/SRR1_1.fastq.gz?foo=1#bar") == "SRR1_1.fastq.gz"
+    assert _uri_basename("https://ftp.x/SRR1_2.fastq.gz/") == "SRR1_2.fastq.gz"
+
+
+def test_probe_remote_fingerprints_from_a_url_using_the_provider_md5(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The heart of #39: a bounded Range read becomes an Observation with NO local file. The provider
+    md5 is the content-address (matching the hosted bytes), local_uri is None, size_bytes is the total
+    the 206 declared, and the read geometry survives the round-trip through inflate + the signal pipeline."""
+    data = _fastq_gz(400, read_len=90)
+    md5 = hashlib.md5(data).hexdigest()
+    url = "https://ftp.x/vol1/SRR1_2.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+
+    obs, seqs = probe_remote(url, md5=md5)
+
+    assert obs.file.sha256 == content_key_from_md5(md5)  # the provider md5 IS the address
+    assert obs.file.local_uri is None  # nothing was staged
+    assert obs.file.basename == "SRR1_2.fastq.gz"
+    assert obs.file.size_bytes == len(data)  # from Content-Range, not a local stat
+    assert obs.read_length.mode == 90
+    assert len(seqs) == 400  # the whole small member fit in the default range
+
+
+def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`probe_remote` must never read a whole FASTQ. With a compressed budget smaller than the file it
+    reads a strict prefix, drops the trailing partial record, and still yields a valid Observation whose
+    size_bytes is the true total (from Content-Range) rather than the bytes read."""
+    data = _fastq_gz(5000, read_len=90)
+    url = "https://ftp.x/big.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+
+    obs, seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
+
+    assert obs.probe.compressed_bytes_read <= 512  # bounded by the range, not the file
+    assert obs.probe.compressed_bytes_read < len(data)  # a strict prefix
+    assert obs.gzip.truncated  # the tail past the range boundary was dropped
+    assert len(seqs) > 0 and obs.read_length.mode == 90  # still a usable fingerprint
+    assert obs.file.size_bytes == len(data)  # the whole-file size, from Content-Range
+
+
+def test_probe_remote_without_md5_derives_a_bounded_remote_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No provider md5 (a submitted BAM, or a bare URL) -> a bounded remote content key over
+    basename + size + head, a valid 64-hex address that reads no whole file."""
+    data = _fastq_gz(100, read_len=50)
+    url = "https://ftp.x/nomd5.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+
+    obs, _seqs = probe_remote(url)
+
+    assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)
+    assert obs.file.sha256 != content_key_from_md5("a" * 32)  # not an md5 address
+    assert obs.file.local_uri is None
+
+
+def test_probe_remote_refuses_a_host_that_ignores_range(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 200 means the server ignored Range and is handing us the whole file — refuse, exactly as peek
+    does. 'Bounded' means bounded by the server, not by our intentions."""
+    data = _fastq_gz(10)
+    url = "https://ftp.x/whole.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}, status=200))
+
+    with pytest.raises(RemoteError, match="answered 200"):
+        probe_remote(url, md5="a" * 32)
+
+
+@pytest.mark.skipif(
+    not os.environ.get("SEQFORGE_LIVE_NET"),
+    reason="live-network smoke; set SEQFORGE_LIVE_NET=1 to fingerprint a real ENA URL",
+)
+def test_probe_remote_live_fingerprints_a_real_ena_url() -> None:
+    """The genuine remote-peek E2E, opt-in (``SEQFORGE_LIVE_NET=1``): resolve a real run, range-read a
+    bounded head of its hosted FASTQ, and confirm the provider md5 is the content-address that matches
+    the hosted bytes — all without staging the file. Off by default so CI and a normal ``pixi run
+    check`` stay fully offline; the offline tests above already exercise our whole code path."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ResourceWarning)  # a live socket must never fail the suite
+        try:
+            runs = remote.ena_filereport("SRR9170959")  # a real, long-published run
+            targets = [t for run in runs for t in fastq_targets(run)]
+            if not targets:
+                pytest.skip("ENA returned no fastq_ftp/fastq_md5 for the probe run")
+            url, md5 = targets[0]
+            obs, _seqs = probe_remote(url, md5=md5, max_compressed_bytes=1 << 18)  # 256 KB prefix
+        except RemoteError as exc:  # pragma: no cover - host dependent
+            pytest.skip(f"ENA unreachable: {exc}")
+
+    assert obs.file.sha256 == content_key_from_md5(md5)  # the hosted md5 IS the address
+    assert obs.file.local_uri is None  # nothing staged
+    assert obs.probe.compressed_bytes_read <= (1 << 18)  # a bounded prefix, not the whole file
+    assert obs.probe.n_reads_sampled > 0 and obs.read_length.mode > 0  # a usable fingerprint
