@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..io import OnlistRegistry
+from ..io import OnlistNotAvailable, OnlistRegistry
 from ..kb.schema import OnlistHitRate, Read, SegmentLength, Spec
 from ..models.resolve import TechScore
 from .assign import AssignmentResult, best_assignment
@@ -63,6 +63,9 @@ class TechEvaluation:
     #: shadows a real single-cell library, WITHOUT hijacking genuine bulk (whose barcode window sits at
     #: the whitelist floor, so this stays False even when a barcode read passes on over-length geometry).
     barcode_onlist_hit: bool = False
+    #: A barcode role's onlist whitelist was REGISTERED and materializable — we had a list to check
+    #: against. Lets F1b (escalate) tell "checked, missed" (refuse) from "never checked" (abstain).
+    barcode_onlist_available: bool = False
 
     @property
     def valid(self) -> bool:
@@ -178,6 +181,48 @@ def _over_length_admitted_by_onlist(
     return False
 
 
+def _clears_onlist_bar(
+    read: Read,
+    wp: WindowProbe,
+    supports: list[tuple[object, float]],
+    spec: Spec,
+    registry: OnlistRegistry,
+) -> bool:
+    """True iff some onlist support for this barcode ``read`` clears the floor-anchored admission bar on
+    ``wp`` — the file's barcode prefix hits the whitelist far above the ~1e-4..1e-3 random floor, i.e.
+    this read LOOKS barcoded. The predicate both the F1a seating constraint and ``barcode_onlist_hit``
+    are built from."""
+    return any(
+        isinstance(when, OnlistHitRate)
+        and onlist_admits_over_length(when, read, wp, spec, registry)
+        for when, _w in supports
+    )
+
+
+def _barcode_onlist_available(
+    spec: Spec,
+    registry: OnlistRegistry,
+    barcode_role_ids: list[str],
+    sup_by: dict[str, list[tuple[object, float]]],
+) -> bool:
+    """True iff at least one barcode role's onlist whitelist is REGISTERED and materializable — we had a
+    list to check against. When False the whitelist was never consulted, so a ``barcode_onlist_hit`` of
+    False means 'could not check', not 'barcode absent': F1b must abstain, not refuse."""
+    for rid in barcode_role_ids:
+        for when, _w in sup_by[rid]:
+            if not isinstance(when, OnlistHitRate):
+                continue
+            ref = spec.onlists.get(when.onlist)
+            if ref is None or not registry.has(ref.registry):
+                continue
+            try:
+                registry.packed(ref.registry)
+            except OnlistNotAvailable:
+                continue
+            return True
+    return False
+
+
 def _global_support(
     global_supports: list[tuple[object, float]],
     reads: list[Read],
@@ -206,6 +251,7 @@ def build_tech_evaluation(
     roles = [r.id for r in spec.reads]
     n_files = len(wps)
     file_shas = [wp.observation.file.sha256 for wp in wps]
+    barcode_role_ids = [r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements)]
 
     req_by: dict[str, list[object]] = defaultdict(list)
     exc_by: dict[str, list[object]] = defaultdict(list)
@@ -249,21 +295,45 @@ def build_tech_evaluation(
         forbidden_m.append(row_forbid)
         prior_m.append(row_prior)
 
+    # F1a — a barcode role must be seated on a read that LOOKS barcoded. Per barcode role, which files
+    # clear the floor-anchored onlist bar (prefix hits the whitelist far above chance)? Computed once and
+    # reused for the seating constraint here and for the `barcode_onlist_hit` signal below.
+    barcode_clears: dict[str, list[bool]] = {
+        rid: [_clears_onlist_bar(reads_by_id[rid], wp, sup_by[rid], spec, registry) for wp in wps]
+        for rid in barcode_role_ids
+    }
+    # When some file clears, forbid seating the role on any file that does NOT — so sum-maximization
+    # cannot park the barcode role on a cDNA-length mate that merely out-scored the real barcode read on
+    # other supports. The swap it prevents: a real barcode read carrying ordinary sequencing error can
+    # score higher as cDNA than as its own barcode, and the true cDNA read of a low-diversity library
+    # scores low on both roles, so `(barcode->cDNA)+(cDNA->barcode)` beats the honest seat (PRJNA658829
+    # SRR12575567). A file that clears the bar is always a barcode — a real cDNA hits the whitelist at the
+    # ~1e-4..1e-3 random floor, far below the bar — so forcing a clearing read into barcode is never
+    # wrong. No file clearing => a no-op here; escalate's F1b then refuses rather than compose a barcode
+    # read that matches no whitelist.
+    for rid, clears in barcode_clears.items():
+        if not any(clears):
+            continue
+        ri = roles.index(rid)
+        for f in range(n_files):
+            if not clears[f] and not forbidden_m[ri][f]:
+                forbidden_m[ri][f] = True
+                matrix[rid][f] = Cell(
+                    forbidden=True,
+                    value=0.0,
+                    reason="barcode role: another read hits the onlist and this one does not",
+                )
+
     assignment = best_assignment(len(roles), n_files, score_m, forbidden_m, prior_m)
     global_bonus = _global_support(global_sup, list(reads_by_id.values()), wps, spec, registry)
 
-    barcode_role_ids = [r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements)]
-    # Did a barcode role's onlist actually hit (not just get consulted)? True iff some file clears the
-    # floor-anchored admission bar on a barcode-role onlist support — the "this data is barcoded" signal
-    # escalate uses to keep the barcodeless fallback from shadowing a real single-cell library. Genuine
-    # bulk sits at the whitelist floor and stays False even when its read passes over-length geometry.
-    barcode_onlist_hit = any(
-        isinstance(when, OnlistHitRate)
-        and onlist_admits_over_length(when, reads_by_id[rid], wp, spec, registry)
-        for rid in barcode_role_ids
-        for when, _w in sup_by[rid]
-        for wp in wps
-    )
+    # Did a barcode role's onlist actually hit (not just get consulted)? True iff some file cleared the
+    # floor-anchored admission bar above (reusing F1a's `barcode_clears`) — the "this data is barcoded"
+    # signal escalate uses to keep the barcodeless fallback from shadowing a real single-cell library,
+    # and to refuse (F1b) when a barcoded winner has no whitelist-hitting read. Genuine bulk sits at the
+    # whitelist floor and stays False even when its read passes over-length geometry.
+    barcode_onlist_hit = any(any(clears) for clears in barcode_clears.values())
+    barcode_onlist_available = _barcode_onlist_available(spec, registry, barcode_role_ids, sup_by)
     unfillable_role_ids = [roles[i] for i in assignment.unfillable_roles]
     cdna_role_fillable = any(
         any(el.type in ("cdna", "gdna") for el in reads_by_id[rid].elements)
@@ -299,4 +369,5 @@ def build_tech_evaluation(
         unfillable_role_ids=unfillable_role_ids,
         cdna_role_fillable=cdna_role_fillable,
         barcode_onlist_hit=barcode_onlist_hit,
+        barcode_onlist_available=barcode_onlist_available,
     )

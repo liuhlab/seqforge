@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import random
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,18 @@ def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
     with gzip.open(path, "wt") as fh:
         for i, s in enumerate(seqs):
             fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+
+
+def _real_cbs(n: int) -> list[str]:
+    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
+    diverse. The CLI drives the REAL registry, so synthetic random CBs would miss the shipped whitelist
+    and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
+
+    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
+    step = max(1, packed.codes.shape[0] // n)
+    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
 
 
 def test_version() -> None:
@@ -431,6 +444,11 @@ def test_compose_refuses_invalid_manifest(tmp_path: Path) -> None:
 def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=800, seed=0)
+    # Give R1 REAL 3M-february-2018 barcodes: the CLI drives the shipped whitelist, and F1b now refuses
+    # a barcoded winner whose read hits no whitelist -- random synthetic CBs would (correctly) trip it.
+    real = _real_cbs(128)
+    rng = random.Random(0)
+    reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     f1 = tmp_path / "R1.fastq.gz"
     f2 = tmp_path / "R2.fastq.gz"
     _write_fastq_gz(f1, reads["R1"])
@@ -441,12 +459,8 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
     assert doc["candidates"][0]["technology"] == "10x-3p-gex-v3"
-    # Rung 3, because the real `3M-february-2018` now SHIPS and the onlist check actually runs. This
-    # asserted `== 2` and was right at the time: every registry entry carried `uri=""`/`sha256=""`,
-    # so nothing could be materialized and the ladder stopped at geometry. These reads are synthetic,
-    # so their random barcodes miss the real whitelist and rung 3 contributes no support -- v3 still
-    # wins on geometry. What changed is that the rung is REACHED, which is the difference between a
-    # 10x dataset composing and `compose` exiting 3.
+    # Rung 3: the real `3M-february-2018` SHIPS, the onlist check runs, and (with real barcodes) it
+    # POSITIVELY matches -- so v3 composes at exit 0 rather than tripping F1b's barcode-absent refusal.
     assert doc["rung_reached"] == 3
 
 

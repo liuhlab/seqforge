@@ -15,6 +15,7 @@ from pathlib import Path
 
 from seqforge import kb
 from seqforge.io import OnlistRegistry
+from seqforge.models.blocker import BlockerCode
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.engine import Hypothesis
@@ -289,4 +290,88 @@ def test_no_spurious_barcode_length_conflict_for_an_over_length_read(tmp_path: P
     )
     assert not any(c.id == "conflict-barcode-length" for c in out.result.conflicts), [
         c.id for c in out.result.conflicts
+    ]
+
+
+def test_the_barcode_role_seats_on_the_whitelist_hitting_read_not_the_higher_scoring_mate(
+    tmp_path: Path,
+) -> None:
+    """Two equal-length (over-length) reads where raw sum-maximization would SWAP the roles. The real
+    barcode read carries ordinary sequencing error, so its exact-match onlist (~0.4) makes it score
+    HIGHER as cDNA (its UMI keeps 20-mers distinct) than as its own barcode; the real cDNA read is a
+    low-diversity library (a few dominant transcripts) and scores low on both roles. So the swap
+    `(barcode->cDNA)+(cDNA->barcode)` out-sums the honest seat -- exactly PRJNA658829 SRR12575567. The
+    barcode role must seat on the read that HITS the whitelist regardless: whitelist membership, not the
+    score race, decides the barcode read. Without the constraint this seats R1 on the cDNA read."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    cb_pool = kb.build_pools(spec, seed=0)["cb_whitelist"]
+    rng = random.Random(0)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    def one_error(cb: str) -> str:
+        i = rng.randrange(16)
+        return cb[:i] + rng.choice([b for b in "ACGT" if b != cb[i]]) + cb[i + 1 :]
+
+    barcode = []
+    for i in range(600):
+        cb = rng.choice(cb_pool)
+        if i % 5 >= 2:  # ~60% carry a 1 bp error -> exact-match onlist ~0.4 (below the 0.6 gate)
+            cb = one_error(cb)
+        barcode.append(cb + rand(12) + rand(OVER_LEN - 28))
+    transcripts = [rand(OVER_LEN) for _ in range(150)]  # few dominant genes -> low distinct_ratio
+    cdna = [rng.choice(transcripts) for _ in range(600)]
+
+    r_bc = tmp_path / "sample_bc.fastq.gz"
+    r_cd = tmp_path / "sample_cd.fastq.gz"
+    _write_fastq_gz(r_bc, barcode)
+    _write_fastq_gz(r_cd, cdna)
+    reg = _registry_for(spec)
+
+    probes = [
+        WindowProbe(observation=probe_file(r_bc), seqs=barcode),
+        WindowProbe(observation=probe_file(r_cd), seqs=cdna),
+    ]
+    bc_sha = probes[0].observation.file.sha256
+    ev = build_tech_evaluation(spec, probes, reg)
+    # the barcode role (R1) seats on the whitelist-hitting read, not the higher-scoring cDNA mate
+    assert ev.role_assignment_shas()["R1"] == bc_sha, ev.matrix_json()
+    assert ev.barcode_onlist_hit
+
+    # end to end: v3 wins and seats R1 on the barcode read -- no silent swap, and it composes clean
+    out = resolve_dataset([r_bc, r_cd], registry=reg, use_cache=False)
+    winner = out.result.candidates[0]
+    assert winner.technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+    assert winner.role_assignment.assignment["R1"] == bc_sha
+    assert not out.result.blockers, [b.message for b in out.result.blockers]
+
+
+def test_a_barcoded_winner_whose_read_hits_no_whitelist_is_refused(tmp_path: Path) -> None:
+    """When a barcoded chemistry WINS but no read hits its (registered) whitelist, refuse rather than
+    compose a pipeline STARsolo would run to ~0 valid barcodes at exit 0. Canonical 10x geometry -- a
+    28 bp barcode read (so bulk, which needs both mates >=40 bp, is length-invalid and v3 wins) + a
+    90 bp cDNA read -- but the barcodes are random and miss the registered whitelist. The whitelist WAS
+    consulted (registered + materialized), so the miss is a real absence, not an un-checkable one:
+    BARCODE_READ_ABSENT, exit 3. (Contrast the barcodeless bulk fallback, which is never refused.)"""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    rng = random.Random(1)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    r1 = tmp_path / "bc_R1.fastq.gz"
+    r2 = tmp_path / "cd_R2.fastq.gz"
+    _write_fastq_gz(
+        r1, [rand(28) for _ in range(600)]
+    )  # 28 bp barcode geometry, random -> miss list
+    _write_fastq_gz(r2, [rand(90) for _ in range(600)])  # cDNA
+    reg = _registry_for(
+        spec
+    )  # v3 whitelist REGISTERED (available), but the random barcodes miss it
+
+    out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
+    assert out.exit_code() == 3, [c.technology for c in out.result.candidates[:3]]
+    assert any(b.code == BlockerCode.BARCODE_READ_ABSENT for b in out.result.blockers), [
+        b.code for b in out.result.blockers
     ]
