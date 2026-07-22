@@ -4,7 +4,25 @@ Versioning is **CalVer `YYYY.M.PATCH`** — year, month without zero-padding, th
 increments per release within the month and resets when the month changes. The version tracks
 `[project].version` in `pyproject.toml`.
 
-## Unreleased
+## 2026.7.1 — 2026-07-22
+
+**seqforge is now publishable to PyPI (`pip install seqforge`).** The compiler was previously
+installable only from git, because two hard dependencies — `liulab-genome` and `liulab-data` — are
+lab-internal git packages, and PyPI rejects any distribution whose metadata carries a `git+https`
+direct reference. Those two are now declared only in the pixi tables, which pixi reads and which never
+fold into the wheel's metadata — so the published wheel is PyPI-legal, while `pixi install` and cluster
+checkouts are unchanged. The two lab-only stages that need them — real-genome `compose` and `kb e2e` —
+are documented in the README with a one-line `pip install "… @ git+…"` follow-up; both packages are
+lazily imported, so the compiler's metadata/harvest path runs without them.
+
+- **A `Release` workflow publishes on a GitHub Release via PyPI Trusted Publishing (OIDC).** Publishing
+  a `v<version>` GitHub Release builds the wheel + sdist once and uploads them with a short-lived OIDC
+  token — no API token is stored in the repo. `workflow_dispatch` offers a TestPyPI dry-run. The build
+  refuses to run if the release tag disagrees with `pyproject`'s version, and `twine check` guards the
+  rendered metadata.
+- **The `allow-direct-references` build escape hatch is gone.** With no direct reference left in
+  `[project].dependencies` it is unnecessary, and its absence is a tripwire: re-adding a `git+`
+  dependency now fails the hatchling build loudly, before a PyPI upload could reject it.
 
 **BD Rhapsody Enhanced beads: the first anchored / variable-position chemistry (#43, 2026-07-22).**
 The 2022 Enhanced Cell Capture Bead prepends a variable **0–3 bp diversity insert** to Read 1, so every

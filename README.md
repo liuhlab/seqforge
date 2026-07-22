@@ -46,6 +46,23 @@ Docs: **<https://liuhlab.github.io/seqforge/>** · design + rationale + scope de
 [`docs/design.md`](docs/design.md) (its §9 is the running list of what is *not* yet built) · rules:
 [`CLAUDE.md`](CLAUDE.md)
 
+## Install
+
+```bash
+pip install seqforge
+```
+
+This gives you the compiler and the `seqforge` CLI. The two lab-only stages — `compose` against a real
+genome and `kb e2e` — additionally need the lab's `liulab-genome` and `liulab-data` packages, which are
+not on PyPI. Install them from git when you need those features:
+
+```bash
+pip install "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git" \
+            "liulab-data   @ git+https://github.com/liuhlab/liulab-data.git"
+```
+
+(Inside the lab, `pixi install` already pulls both — see below.)
+
 ## Develop
 
 Everything runs through [pixi](https://pixi.sh) (not `pip`/`conda`/`venv`):

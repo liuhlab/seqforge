@@ -1,0 +1,123 @@
+name: Release
+
+# Publish seqforge to PyPI. The wheel + sdist are built ONCE, then the same artifacts are uploaded via
+# PyPI Trusted Publishing (OIDC) — no long-lived API token is stored in the repo.
+#
+# How a release happens:
+#   1. Bump `version` in pyproject.toml and add the matching CHANGELOG.md entry (CalVer YYYY.M.PATCH).
+#   2. Tag it `v<version>` (e.g. v2026.7.0) and create a GitHub Release from that tag.
+#   3. Publishing the Release fires this workflow -> build -> publish to PyPI.
+# `workflow_dispatch` is the manual door: pick `testpypi` to dry-run the upload to TestPyPI, or `pypi`
+# to publish without cutting a GitHub Release.
+#
+# ONE-TIME SETUP by a maintainer (Trusted Publishing needs no secrets, but does need registration):
+#   - PyPI:      https://pypi.org/manage/account/publishing/  -> add a "pending publisher":
+#                  project `seqforge`, owner `liuhlab`, repo `seqforge`,
+#                  workflow `release.yml`, environment `pypi`.
+#   - TestPyPI:  https://test.pypi.org/manage/account/publishing/  -> same, environment `testpypi`.
+#   - Settings -> Environments: create `pypi` and `testpypi` (optionally add required reviewers on
+#     `pypi` so a human approves every real publish).
+# The `environment:` on each publish job must match the name registered above, or PyPI rejects the
+# OIDC token.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Index to publish to"
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+
+# Least privilege by default; the publish jobs opt into `id-token: write` for OIDC themselves.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build wheel + sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # A plain Python is enough: `python -m build` runs hatchling in an isolated build env and does
+      # NOT install seqforge's runtime dependencies — so this job never has to reach the lab git
+      # packages, and the build stays fast and self-contained.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build twine
+
+      # On a Release, the git tag is the source of truth for the version a human intended to ship.
+      # Refuse to build if it disagrees with pyproject's `version` — that mismatch is how you publish
+      # 2026.7.0 under a `v2026.7.1` tag and never notice. `v` prefix optional. Skipped on manual runs.
+      - name: Check tag matches pyproject version
+        if: github.event_name == 'release'
+        run: |
+          pkg_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          tag="${GITHUB_REF_NAME#v}"
+          echo "pyproject version: $pkg_version"
+          echo "release tag:       $GITHUB_REF_NAME (normalized: $tag)"
+          if [ "$pkg_version" != "$tag" ]; then
+            echo "::error::Release tag '$GITHUB_REF_NAME' does not match pyproject version '$pkg_version'. Bump pyproject.toml or retag."
+            exit 1
+          fi
+
+      - name: Build
+        run: python -m build
+
+      # `twine check` validates the rendered metadata (long-description, classifiers) the way PyPI
+      # will, and — because we stripped the git deps from [project].dependencies — this is also where a
+      # regressed `git+https` direct reference would surface before the upload step.
+      - name: Check distributions
+        run: twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: publish to TestPyPI
+    # Manual dry-run only. Real releases go straight to PyPI via publish-pypi.
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write   # OIDC token for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: publish to PyPI
+    # A published GitHub Release, or a manual run that explicitly targets pypi.
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # OIDC token for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
