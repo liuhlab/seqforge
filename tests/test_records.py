@@ -398,6 +398,31 @@ def test_two_equal_authorities_disagreeing_leave_null_as_a_warning(
             assert sample.attributes["tissue"].value == "Neurons"
 
 
+def test_two_equal_authorities_agreeing_only_in_case_resolve_rather_than_null(
+    records: ArchiveRecordSet,
+) -> None:
+    """'Male' and 'male' are the same value; a permanent manifest must not null an equal-authority
+    attribute over capitalization alone (PRJNA1195922 lost `sex` exactly this way). Here the record
+    says tissue "Neurons" and a sample-scoped assertion says "neurons" — equal authority, agreeing
+    case-insensitively — so the attribute RESOLVES, with no disagreement warning.
+    """
+    doc = "7" * 64
+    out = resolve_metadata(
+        files=_pilot_files(),
+        records=records,
+        assertions=[_assertion("experiment.samples.tissue", "neurons", doc)],
+        subjects=[DocumentSubject(doc_sha256=doc, scope="sample", subject="SAMN40935621")],
+    )
+    target = next(s for s in out.samples if s.accession == "SAMN40935621")
+    assert "tissue" in target.attributes  # NOT null — the two agree case-insensitively
+    assert target.attributes["tissue"].value.casefold() == "neurons"
+    # and no ambiguity warning was raised for this sample's tissue
+    assert not any(
+        "SAMN40935621" in w.message and w.subject.ref == "experiment.samples.tissue"
+        for w in out.warnings
+    )
+
+
 def test_a_sample_document_writes_only_its_own_sample(records: ArchiveRecordSet) -> None:
     doc = "8" * 64
     out = resolve_metadata(
