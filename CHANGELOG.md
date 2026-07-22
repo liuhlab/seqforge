@@ -23,6 +23,13 @@ staggered barcodes recover against the shipped cell-label lists.
   `--soloAdapterSequence NNNNNNNNNGTGANNNNNNNNNGACA` and adapter-anchored positions
   (`2_0_2_8 2_13_2_21 3_1_3_9` / `3_10_3_17`) from the element model — byte-identical to the settings
   STAR's author endorsed on issue #1607, and never hand-entered.
+- **A real STARsolo run caught a latent Complex-chemistry FATAL.** Smoking the composed command on a
+  real Enhanced run (2 M reads, hg38) exposed that STAR's default `--soloCBmatchWLtype` (`1MM_multi`)
+  is *rejected* for `--soloType CB_UMI_Complex` — so the composed command would have died on the node
+  for **every** complex chemistry (Enhanced, and latently the original BD bead and SPLiT-seq), which
+  never emitted a match type. The `map/starsolo` module now pins `--soloCBmatchWLtype 1MM` (the
+  tolerant Complex-legal mode) whenever the chemistry is complex. With the fix the run extracts
+  barcodes cleanly: 8 052 cells, 88 % of unique reads in cells.
 - **Two new chemistries under a family, told apart from the bytes.** `bd-rhapsody-wta-enhanced` is an
   abstract family (like `10x-3p-gex`) that recognizes the Enhanced frame and descends by whitelist to
   `-enhanced-96` (reuses the original bead's 97×3 cell-label lists) and `-enhanced-v2` (ships the new,
