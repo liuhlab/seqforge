@@ -297,6 +297,41 @@ def io_peek(
         raise typer.Exit(1) from exc
 
 
+@io_app.command("probe-remote")
+def io_probe_remote(
+    uri: str = typer.Argument(..., help="Remote gzipped FASTQ URL to fingerprint."),
+    md5: str | None = typer.Option(
+        None, "--md5", help="Provider md5 (ENA fastq_md5) — becomes the content-address."
+    ),
+    max_reads: int = typer.Option(200_000, help="Bounded head read budget."),
+    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
+    max_compressed_bytes: int = typer.Option(
+        8 << 20, help="Compressed bytes to range-read in one GET (the network budget)."
+    ),
+) -> None:
+    """Fingerprint a remote FASTQ into an Observation WITHOUT downloading it (issue #39).
+
+    The remote twin of `probe`: one bounded HTTP Range read is fed through the same Tier-A pipeline, so
+    a URL resolves to a library exactly as a local file does — no staging, no local copy. With `--md5`
+    the provider's hash is the content-address, matching the hosted bytes with zero body read. Exit 1 if
+    the host ignores Range and answers 200 with the whole file (bounded means bounded by the server).
+    """
+    from ..io.remote import RemoteError, probe_remote
+
+    try:
+        obs, _seqs = probe_remote(
+            uri,
+            md5=md5,
+            max_reads=max_reads,
+            max_bytes=max_bytes,
+            max_compressed_bytes=max_compressed_bytes,
+        )
+    except (NotYetImplemented, RemoteError, ValueError) as exc:
+        typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(json.dumps(obs.model_dump(mode="json"), indent=2))
+
+
 @io_app.command("resolve")
 def io_resolve(
     accession: str = typer.Argument(..., help="GSE/GSM, PRJNA/PRJEB, SRP/SRX/SRR, SAMN..."),

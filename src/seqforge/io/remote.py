@@ -1,10 +1,13 @@
-"""``io peek`` / ``io resolve`` — the ONLY network surface (design §4).
+"""``io peek`` / ``io resolve`` / ``io probe-remote`` — the ONLY network surface (design §4).
 
-Two verbs, both bounded:
+Three verbs, all bounded:
 
 - ``resolve ACC`` — any GEO/SRA/ENA/BioProject accession -> a run inventory + declared metadata.
 - ``peek URI``    — the first records of a remote gzipped FASTQ via an HTTP Range request. Never the
   whole file: a 517 MB run yields its leading records from a **64 KB** read (0.013 % of it).
+- ``probe_remote URI`` — the same bounded Range read turned into a full role-free
+  :class:`~seqforge.models.observation.Observation`, so ``resolve`` fingerprints a library straight
+  from a URL with no local file; the provider md5 (ENA ``fastq_md5``) is the content-address (#39).
 
 **The most useful thing here is not fetching — it is detecting what the archive threw away.**
 
@@ -30,10 +33,22 @@ import re
 import time
 import zlib
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree
 
 import requests
+
+from ..probe import (
+    DEFAULT_MAX_BYTES,
+    DEFAULT_MAX_READS,
+    build_observation,
+    content_key_from_md5,
+    remote_content_key,
+)
+from ..probe.streaming import sample_fastq_stream
+
+if TYPE_CHECKING:
+    from ..models.observation import Observation
 
 #: ENA Portal API. Documented. GEO accessions are REJECTED (HTTP 400) — resolve GSE->SRP first.
 ENA_FILEREPORT = "https://www.ebi.ac.uk/ena/portal/api/filereport"
@@ -227,6 +242,23 @@ def fastq_urls(run: dict[str, str]) -> list[str]:
     if not raw:
         return []
     return sorted(f"https://{p}" for p in raw.split(";") if p.strip())
+
+
+def fastq_targets(run: dict[str, str]) -> list[tuple[str, str]]:
+    """ENA's ``fastq_ftp`` paired with its ``fastq_md5`` -> ``[(https_url, md5), ...]`` (issue #39).
+
+    ENA publishes both fields semicolon-joined and **index-aligned** (the md5 of ``fastq_ftp[i]`` is
+    ``fastq_md5[i]``), so the join is positional and done *before* any sort — this is the one place a
+    URL and its content hash arrive together, which is what lets the remote probe use the provider md5
+    as the content-address without any local-file bridge. A run whose md5 list is missing or a different
+    length yields no pairs rather than a mis-aligned guess: an empty list is a legitimate answer (ENA
+    generates no FASTQ for the 10x-BAM case), never a silent mispairing. Sorted by URL for determinism.
+    """
+    urls = [p.strip() for p in (run.get("fastq_ftp") or "").split(";") if p.strip()]
+    md5s = [m.strip() for m in (run.get("fastq_md5") or "").split(";") if m.strip()]
+    if not urls or len(urls) != len(md5s):
+        return []
+    return sorted((f"https://{u}", m) for u, m in zip(urls, md5s, strict=True))
 
 
 @dataclass(frozen=True)
@@ -491,16 +523,31 @@ def parse_fastq_prefix(text: str, *, max_reads: int) -> tuple[list[str], list[in
     return headers, lengths
 
 
-def peek(
-    uri: str, *, max_reads: int = 4, max_bytes: int = 1 << 16, decompressed_cap: int = 1 << 22
-) -> dict[str, Any]:
-    """Range-read the head of a remote gzipped FASTQ. Never downloads the file.
+#: How many COMPRESSED bytes a remote fingerprint range-reads by default. Large enough to decompress to
+#: a strong head sample (the read/byte budgets still stop decompression early), small enough to never
+#: approach a whole file: 8 MB is ~1.5 % of a 517 MB run. The network cost of a probe is this one GET.
+DEFAULT_REMOTE_COMPRESSED_BYTES = 8 << 20
 
-    The defaults fetch 64 KB — 0.013 % of a 517 MB run, and several thousand reads' worth.
+_CONTENT_RANGE = re.compile(r"bytes\s+\d+-\d+/(\d+)", re.IGNORECASE)
 
-    We assert **HTTP 206**, not the presence of ``Accept-Ranges``. A server may advertise ranges,
-    ignore the header, and answer 200 with the entire file; trusting the advertisement is exactly how
-    a "bounded" read becomes a 40 GB download. The status code is the contract, so a 200 is a refusal.
+
+def _content_range_total(headers: Any) -> int | None:
+    """The total file size a 206 declares in ``Content-Range: bytes 0-N/TOTAL`` (``None`` if absent).
+
+    A server may answer ``.../*`` when it does not know the length; then the size is unknown and the
+    caller falls back to the bytes actually read.
+    """
+    match = _CONTENT_RANGE.search(headers.get("Content-Range", "") or "")
+    return int(match.group(1)) if match else None
+
+
+def _range_get(uri: str, *, max_bytes: int) -> tuple[bytes, int | None]:
+    """Range-read the first ``max_bytes`` of a remote file. Returns ``(blob, total_size_or_None)``.
+
+    The one bounded-fetch primitive behind both :func:`peek` and :func:`probe_remote`. We assert
+    **HTTP 206**, not the presence of ``Accept-Ranges``: a server may advertise ranges, ignore the
+    header, and answer 200 with the entire file, and trusting the advertisement is exactly how a
+    "bounded" read becomes a multi-GB download. The status code is the contract, so a 200 is a refusal.
     """
     try:
         response = requests.get(
@@ -524,9 +571,22 @@ def peek(
                 f"GET {uri} -> HTTP {response.status_code} (expected 206 Partial Content)"
             )
         blob = response.content[:max_bytes]
+        total = _content_range_total(response.headers)
     finally:
         response.close()
+    return blob, total
 
+
+def peek(
+    uri: str, *, max_reads: int = 4, max_bytes: int = 1 << 16, decompressed_cap: int = 1 << 22
+) -> dict[str, Any]:
+    """Range-read the head of a remote gzipped FASTQ. Never downloads the file.
+
+    The defaults fetch 64 KB — 0.013 % of a 517 MB run, and several thousand reads' worth. This is the
+    diagnostic (headers + read lengths); :func:`probe_remote` is the same bounded read turned into a
+    full :class:`~seqforge.models.observation.Observation` that ``resolve`` can score.
+    """
+    blob, _total = _range_get(uri, max_bytes=max_bytes)
     text = decompress_prefix(blob, max_bytes=decompressed_cap).decode("utf-8", errors="replace")
     headers, lengths = parse_fastq_prefix(text, max_reads=max_reads)
     return PeekResult(
@@ -537,3 +597,63 @@ def peek(
         read_lengths=lengths,
         example_header=headers[0] if headers else None,
     ).to_json()
+
+
+def _uri_basename(uri: str) -> str:
+    """The filename a URL ends in — the remote analog of a local ``Path.name``.
+
+    Strips a query/fragment and a trailing slash. Feeds a no-md5 remote content key exactly as
+    ``Path.name`` feeds the local one; when a provider md5 is known it is irrelevant (the md5 carries
+    no name, by design — for hosted bytes an identical md5 means identical content).
+    """
+    tail = uri.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    return tail.rsplit("/", 1)[-1] or uri
+
+
+def probe_remote(
+    uri: str,
+    *,
+    md5: str | None = None,
+    max_reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    max_compressed_bytes: int = DEFAULT_REMOTE_COMPRESSED_BYTES,
+) -> tuple[Observation, list[str]]:
+    """Fingerprint a remote gzipped FASTQ into ``(Observation, seqs)`` WITHOUT staging it (issue #39).
+
+    The remote twin of ``probe.probe_sample``: one bounded HTTP Range read (``max_compressed_bytes``)
+    is decompressed under the same head budget (``max_reads`` / ``max_bytes``) and fed through the
+    identical Tier-A pipeline (``probe.build_observation``), so a URL resolves to a library exactly as a
+    local file does — the returned pair drops straight into ``resolve.resolve_dataset`` via its
+    ``_probed`` map, no local file anywhere.
+
+    When the provider ``md5`` (ENA ``fastq_md5``, paired with the URL by :func:`fastq_targets`) is
+    known it IS the content-address (``content_key_from_md5``), matching the hosted bytes with zero read
+    of the body beyond the head; otherwise a bounded remote key over (basename + total size + head) is
+    derived. ``size_bytes`` is the total the 206 declares in Content-Range, else the bytes read.
+    """
+    from io import BytesIO
+
+    blob, total = _range_get(uri, max_bytes=max_compressed_bytes)
+    if not blob:
+        raise RemoteError(f"{uri}: range read returned no bytes")
+    sample = sample_fastq_stream(BytesIO(blob), max_reads, max_bytes)
+    if not sample.seqs:
+        raise RemoteError(
+            f"{uri}: no FASTQ records in the {len(blob)}-byte head — not a gzipped FASTQ, or the "
+            "range was too small to hold one record."
+        )
+    size_bytes = total if total and total > 0 else len(blob)
+    basename = _uri_basename(uri)
+    sha256 = (
+        content_key_from_md5(md5) if md5 else remote_content_key(basename, size_bytes, sample.seqs)
+    )
+    return build_observation(
+        sample,
+        size_bytes=size_bytes,
+        sha256=sha256,
+        basename=basename,
+        local_uri=None,
+        isize=None,
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+    )

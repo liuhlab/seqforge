@@ -10,6 +10,7 @@ from __future__ import annotations
 import gzip
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import IO
 
 
 @dataclass
@@ -28,13 +29,19 @@ class StreamSample:
     budget_exhausted: bool = False
 
 
-def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamSample:
-    """Read at most ``max_reads`` records / ``max_bytes`` decompressed bytes from a gzip FASTQ.
+def sample_fastq_stream(fileobj: IO[bytes], max_reads: int, max_bytes: int) -> StreamSample:
+    """Read at most ``max_reads`` records / ``max_bytes`` decompressed bytes from a gzip FASTQ stream.
+
+    Source-agnostic: ``fileobj`` is any binary reader positioned at the gzip magic — a local file
+    (:func:`sample_fastq_gz`) or an in-memory range-read *prefix* (``io.remote.probe_remote``). A prefix
+    that ends mid-member is the normal remote case, and it is handled by the same path as a truncated
+    upload: the cut is caught and the trailing partial record dropped. ``compressed_bytes`` is the
+    reader's final position; the caller owns opening and closing ``fileobj``.
 
     Parameters
     ----------
-    path
-        Local path to a gzip-compressed FASTQ.
+    fileobj
+        A binary stream of gzip-compressed FASTQ bytes (a whole file, or a bounded head prefix).
     max_reads
         Hard cap on records read.
     max_bytes
@@ -48,9 +55,8 @@ def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamS
         gzip/format error.
     """
     sample = StreamSample()
-    raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
     try:
-        with gzip.GzipFile(fileobj=raw) as gz:
+        with gzip.GzipFile(fileobj=fileobj) as gz:
             line_iter = iter(gz)
             while sample.n_reads < max_reads and sample.decompressed_bytes < max_bytes:
                 try:
@@ -61,11 +67,11 @@ def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamS
                     plus = next(line_iter, None)
                     qual = next(line_iter, None)
                 except (EOFError, gzip.BadGzipFile, OSError):
-                    # gzip stream cut mid-member (truncated upload); or a bad member.
+                    # gzip stream cut mid-member (truncated upload, or a bounded range-read prefix).
                     sample.truncated = True
                     break
                 if seq is None or plus is None or qual is None:
-                    # a partial final record => the file was cut mid-record.
+                    # a partial final record => the stream was cut mid-record.
                     sample.truncated = True
                     break
 
@@ -82,11 +88,24 @@ def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamS
     except (gzip.BadGzipFile, OSError):
         sample.ok = False
     finally:
-        sample.compressed_bytes = raw.tell()
-        raw.close()
+        sample.compressed_bytes = fileobj.tell()
 
     sample.budget_exhausted = sample.n_reads >= max_reads or sample.decompressed_bytes >= max_bytes
     return sample
+
+
+def sample_fastq_gz(path: str | Path, max_reads: int, max_bytes: int) -> StreamSample:
+    """Read a bounded head of a LOCAL gzip FASTQ. Thin wrapper over :func:`sample_fastq_stream`.
+
+    Opens the file, hands the reader to the source-agnostic sampler, and closes it. ``gzip.GzipFile``
+    does not close a ``fileobj`` it was handed, so the ``tell()`` inside the sampler runs before this
+    ``close()``.
+    """
+    raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
+    try:
+        return sample_fastq_stream(raw, max_reads, max_bytes)
+    finally:
+        raw.close()
 
 
 def _update_qual_ords(sample: StreamSample, qual: str) -> None:

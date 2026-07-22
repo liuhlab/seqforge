@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -14,7 +15,7 @@ from ..models.observation import (
 )
 from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION
 from . import signals as sig
-from .streaming import sample_fastq_gz
+from .streaming import StreamSample, sample_fastq_gz
 
 
 def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[str]) -> str:
@@ -39,6 +40,34 @@ def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[s
         h.update(s.encode("ascii", "replace"))
         h.update(b"\n")
     return h.hexdigest()
+
+
+def content_key_from_md5(md5: str) -> str:
+    """Derive the 64-hex content-address of a file whose PROVIDER md5 is known (issue #39).
+
+    ENA/SRA publish a per-file md5 over the *hosted* bytes. It is 32 hex, but a
+    :class:`~seqforge.models.observation.FileIdentity` ``sha256`` is a 64-hex content-address — a
+    *name*, not a recomputed file hash (see :func:`_content_key`). This maps the provider md5 into that
+    space injectively: identical md5 -> identical address, so two hosted files with the same md5 dedup
+    correctly, and **no byte of the file is read**. Unlike the local key it carries no basename — for
+    hosted bytes an identical md5 legitimately means identical content. This is the durable, machine-
+    independent identity a remote probe (``io.remote.probe_remote``) stamps via ``sha256=``.
+    """
+    m = md5.strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{32}", m):
+        raise ValueError(f"not a 32-hex md5: {md5!r}")
+    return hashlib.sha256(f"seqforge-provider-md5\x00{m}".encode()).hexdigest()
+
+
+def remote_content_key(basename: str, size_bytes: int, seqs: list[str]) -> str:
+    """A bounded content key for a REMOTE file with no provider md5 — the local key minus the ISIZE.
+
+    The gzip ISIZE trailer is unreachable without the file's tail, so a remote fingerprint passes
+    ``isize=None``; otherwise this is exactly :func:`_content_key` (basename + size + head sample).
+    Prefer :func:`content_key_from_md5` whenever the provider md5 is known — that is the durable
+    identity that matches the hosted bytes.
+    """
+    return _content_key(basename, size_bytes, None, seqs)
 
 
 def _params_hash(max_reads: int, max_bytes: int) -> str:
@@ -81,24 +110,28 @@ def _estimate_reads(
     return n_reads, "compressed_ratio"
 
 
-def probe_sample(
-    path: str | Path,
+def build_observation(
+    sample: StreamSample,
     *,
+    size_bytes: int,
+    sha256: str,
+    basename: str,
+    local_uri: str | None,
+    isize: int | None,
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    sha256: str | None = None,
 ) -> tuple[Observation, list[str]]:
-    """Fingerprint one FASTQ gzip and ALSO return its bounded sampled sequences.
+    """Assemble the Tier-A :class:`Observation` from an already-sampled ``StreamSample``.
 
-    :class:`Observation` is structural + role-free and cached to disk; the raw sampled ``seqs`` are
-    the same bounded, in-memory sample used to build it. ``resolve`` needs those seqs to answer
-    role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
-    which the structural Observation deliberately does not carry. The sample stays within the
-    budget — this returns it, it does not re-read the file.
+    The pure, source-agnostic core of a probe: it runs the signal pipeline over ``sample.seqs`` and
+    stamps identity/provenance, reading no bytes itself. Both a local probe (:func:`probe_sample`,
+    ``sample`` from a file) and a remote probe (``io.remote.probe_remote``, ``sample`` from a bounded
+    range-read prefix) call it, so a URL resolves to a library exactly as a local file does. ``sha256``
+    is the fully-formed 64-hex content-address the caller chose (a provider md5 via
+    :func:`content_key_from_md5`, or a bounded local/remote key via :func:`_content_key`); ``isize`` is
+    the gzip ISIZE trailer when reachable (local) and ``None`` when it is not (a remote prefix has no
+    tail), which simply falls the read estimate back to the compressed-size ratio.
     """
-    p = Path(path)
-    sample = sample_fastq_gz(p, max_reads=max_reads, max_bytes=max_bytes)
-
     comps = sig.per_cycle_composition(sample.seqs)
     segments = sig.segment(comps)
     read_length = sig.read_length_profile(sample.seqs)
@@ -107,10 +140,8 @@ def probe_sample(
     quality = sig.quality_encoding(sample.qual_min_ord, sample.qual_max_ord)
     nrate = sig.n_rate(sample.seqs)
 
-    file_size = p.stat().st_size
-    isize = _gzip_isize(p)
     estimated_total, est_method = _estimate_reads(
-        file_size,
+        size_bytes,
         sample.n_reads,
         sample.decompressed_bytes,
         sample.compressed_bytes,
@@ -120,10 +151,10 @@ def probe_sample(
 
     observation = Observation(
         file=FileIdentity(
-            sha256=sha256 or _content_key(p.name, file_size, isize, sample.seqs),
-            size_bytes=file_size,
-            basename=p.name,
-            local_uri=str(p),
+            sha256=sha256,
+            size_bytes=size_bytes,
+            basename=basename,
+            local_uri=local_uri,
         ),
         probe=ProbeProvenance(
             n_reads_sampled=sample.n_reads,
@@ -144,6 +175,37 @@ def probe_sample(
         gzip=GzipIntegrity(ok=sample.ok, truncated=sample.truncated),
     )
     return observation, sample.seqs
+
+
+def probe_sample(
+    path: str | Path,
+    *,
+    max_reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    sha256: str | None = None,
+) -> tuple[Observation, list[str]]:
+    """Fingerprint one LOCAL FASTQ gzip and ALSO return its bounded sampled sequences.
+
+    :class:`Observation` is structural + role-free and cached to disk; the raw sampled ``seqs`` are
+    the same bounded, in-memory sample used to build it. ``resolve`` needs those seqs to answer
+    role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
+    which the structural Observation deliberately does not carry. The sample stays within the
+    budget — this returns it, it does not re-read the file.
+    """
+    p = Path(path)
+    sample = sample_fastq_gz(p, max_reads=max_reads, max_bytes=max_bytes)
+    file_size = p.stat().st_size
+    isize = _gzip_isize(p)
+    return build_observation(
+        sample,
+        size_bytes=file_size,
+        sha256=sha256 or _content_key(p.name, file_size, isize, sample.seqs),
+        basename=p.name,
+        local_uri=str(p),
+        isize=isize,
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+    )
 
 
 def probe_file(

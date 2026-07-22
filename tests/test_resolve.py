@@ -137,6 +137,67 @@ def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
     assert threaded.result.candidates[0].technology == "10x-3p-gex-v3"  # threading changed nothing
 
 
+def test_resolve_fingerprints_a_library_straight_from_a_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#39 end to end: fingerprint a library from a URL with NO local file, and resolve it to the same
+    chemistry a local probe would. ``probe_remote`` range-reads a bounded head, the provider md5 is the
+    content-address, and the ``(Observation, seqs)`` pair drops into ``resolve_dataset`` via ``_probed``.
+    Proven over the real range->inflate->signals->resolve chain, offline: ``requests.get`` is faked to
+    serve a 206 slice of genuine gzipped bytes (byte-stable, written by the generator)."""
+    import hashlib
+    import re
+    import types
+
+    from seqforge.io import remote
+    from seqforge.probe import content_key_from_md5
+
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(
+        spec, n=800, seed=3
+    )  # same reads as the serial test above -> same winner
+
+    blobs: dict[str, bytes] = {}
+    md5s: dict[str, str] = {}
+    urls: dict[str, str] = {}
+    for suffix, role in (("_1", "R1"), ("_2", "R2")):
+        p = tmp_path / f"SRR9100001{suffix}.fastq.gz"
+        write_fastq_gz(p, reads[role])
+        data = p.read_bytes()
+        url = f"https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR910/001/SRR9100001/SRR9100001{suffix}.fastq.gz"
+        blobs[url], md5s[url], urls[role] = data, hashlib.md5(data).hexdigest(), url
+
+    def fake_get(
+        url: str,
+        headers: dict[str, str] | None = None,
+        timeout: object = None,
+        stream: object = None,
+    ) -> object:
+        data = blobs[url]
+        match = re.search(r"bytes=0-(\d+)", (headers or {}).get("Range", ""))
+        chunk = data[: int(match.group(1)) + 1] if match else data
+        return types.SimpleNamespace(
+            status_code=206,
+            content=chunk,
+            headers={"Content-Range": f"bytes 0-{len(chunk) - 1}/{len(data)}"},
+            close=lambda: None,
+        )
+
+    monkeypatch.setattr(remote.requests, "get", fake_get)
+
+    probed: dict[str, object] = {}
+    for url in urls.values():
+        obs, seqs = remote.probe_remote(url, md5=md5s[url])
+        assert obs.file.sha256 == content_key_from_md5(md5s[url])  # provider md5 IS the address
+        assert obs.file.local_uri is None  # nothing staged
+        assert obs.probe.compressed_bytes_read <= len(blobs[url])  # bounded
+        probed[url] = (obs, seqs)
+
+    out = resolve_dataset([urls["R1"], urls["R2"]], registry=reg, use_cache=False, _probed=probed)
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"  # a URL resolved to a library
+
+
 # ---------- assignment ----------
 def _exclusive_of(forbidden: list[list[bool]]) -> list[list[bool]]:
     """``exclusive[r][f]``, as ``best_assignment`` derives it: f eligible for r and no other role."""

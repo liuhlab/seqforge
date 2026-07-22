@@ -607,8 +607,10 @@ reads the observation.
 ```
 seqforge
   probe FILES…                 det   bytes→Observation (--max-reads 200k, --max-bytes 256MB; never whole FASTQ)
-  io peek URI | resolve ACC | records ACC | attributes | efo CURIE | h5ad SOLO_DIR
-                               det†  the network + packaging surface; pooch + sha256-verified
+  io peek URI | probe-remote URI | resolve ACC | records ACC | attributes | efo CURIE | h5ad SOLO_DIR
+                               det†  the network + packaging surface; pooch + sha256-verified.
+                                     probe-remote range-reads a bounded head → Observation, so a library is
+                                     fingerprinted from a URL with no local file; provider md5 = content-address (#39)
   io onlist {list|show|write|pack}   det   the shipped barcode whitelists; `pack` adds a new one
   harvest normalize DOC…       det   PDF/text → seqforge/records/documents/*.txt canonical span space
   harvest extract              LLM   normalized text (+KB aliases) → AssertionDraft[] → verified Assertion[]
@@ -745,8 +747,9 @@ one LLM touchpoint.
 
 **`seqforge/` (no leading dot; resumable, content-addressed):** the top level holds only what a human
 reaches for; state sorts into `cache/`, `records/`, and `logs/`. Under `cache/`: per-file
-`Observation` by its **content-address** — a provider md5 when known, else a bounded local key
-(basename + head sample + size + gzip ISIZE), never a whole-file scan (`cache/observations/`); dataset
+`Observation` by its **content-address** — derived from the provider md5 when known (issue #39; a
+remote probe fingerprints straight from a URL), else a bounded local key (basename + head sample +
+size + gzip ISIZE), never a whole-file scan (`cache/observations/`); dataset
 `candidates`/`conflicts`/`questions` by `dataset_id = sha256(sorted(file_shas) ⊕ kb_version)` with
 `probe_version`/`resolve_version` folded in (`cache/candidates/`); a stat-keyed resume pointer
 (`realpath+size+mtime` → `dataset_id`) that lets an unchanged re-run rebuild the answer reading
