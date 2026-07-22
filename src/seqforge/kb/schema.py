@@ -15,8 +15,14 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ElementType = Literal[
-    "barcode", "umi", "cdna", "gdna", "linker", "poly_a", "poly_t", "fixed", "index"
+    "barcode", "umi", "cdna", "gdna", "linker", "poly_a", "poly_t", "fixed", "index", "diversity"
 ]
+# ``diversity`` = a variable-length insert of random bases at a read's 5' end (BD Rhapsody Enhanced's
+# 0-3 bp diversity/phasing insert). It carries no barcode/UMI value — its ONLY effect is to STAGGER
+# every downstream element by its per-read length, which is why it is modelled as a first-class element
+# (``min_len``/``max_len``): the generator draws a per-read length for it and the anchored resolver
+# recovers the frame the stagger created (see ``kb/anchor.py``). It is not a linker/fixed (no literal
+# sequence) and not a counted feature, so ``compose`` skips it and it maps to a ``linker`` manifest role.
 Mechanism = Literal["none", "onlist", "metadata", "alignment", "user"]
 Decidable = Literal["reads", "onlist", "metadata", "alignment", "user"]
 Orientation = Literal["forward", "revcomp", "either"]
