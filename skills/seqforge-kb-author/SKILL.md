@@ -17,6 +17,16 @@ seqforge kb e2e --workdir DIR     # the real count matrix, vs injected truth
 seqforge kb e2e-introns --workdir DIR --assembly ce11   # the GeneFull path
 ```
 
+## The README is the assay's docs page
+
+`README.md` is rendered into the published site under *Knowledge base → Supported assays* (pulled in
+by a snippet include), so write it **for a human reader**: what the assay is, how it's read, how
+seqforge tells it apart from its siblings, the common gotchas, and a link to
+[scg_lib_structs](https://teichlab.github.io/scg_lib_structs/) where the assay has a page there. The
+deep derivations and rationale (strand proofs, benign-twin arguments, offset discriminators) belong
+in the heavily-commented `spec.yaml`, which the README points to — not in the README itself. No code
+reads the README; it is documentation, and `spec.yaml` is the machine truth.
+
 ## Every entry is executable and self-testing
 
 A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the

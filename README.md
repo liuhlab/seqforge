@@ -8,7 +8,7 @@ reprocessing of large collections of public sequencing datasets into a genomic-A
 exactly two jobs: parse prose into span-verified assertions, and arbitrate ambiguity the
 deterministic layer has *already flagged*. Everything else is a verifier.
 
-```
+```text
 probe(files)                           -> Observation   deterministic, no LLM, no network, bytes only
 harvest(prose, instructions)           -> Assertion     LLM, each claim span-verified
 resolve(Observations, KB, hypothesis?) -> candidates, Conflicts, Questions, Blockers
@@ -23,6 +23,9 @@ compose(manifest, processing)          -> config.yaml + units.tsv + module selec
 ```
 
 Same dataset + a different recipe = a different pipeline, and the dataset's hash **does not move**.
+
+The files can be local or remote: `seqforge io probe-remote <url>` fingerprints a library straight
+from a URL via one bounded HTTP Range read — same identification, no download.
 
 **Status: the pilot compiles end to end.** The deterministic spine is implemented and green
 (`pixi run check`), and `seqforge run` takes the worm pilot PRJNA1027859 from its raw FASTQs and paper

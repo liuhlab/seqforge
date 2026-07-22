@@ -34,7 +34,9 @@ compiles end to end. The authoritative design **and rationale** is [`docs/design
 The pipeline is a compiler over two artifacts, and **`resolve` has two resolvers**:
 
 ```
-probe(files)                    -> Observation   deterministic, no LLM, no network, bytes only
+probe(files)                    -> Observation   deterministic, no LLM, no network, bytes only; the
+                                                 remote twin (io probe-remote) fingerprints a URL via
+                                                 one bounded HTTP Range read — no download, provider md5
 records(accession?)             -> ArchiveRecord project/sample/experiment/run. OPTIONAL: most
                                                  sequencing data never had an accession.
 harvest(documents)              -> Assertion     LLM, each claim span-verified. A document is a
@@ -138,16 +140,19 @@ the last three.
 ```
 models/     pydantic v2 schemas; `schema export` is the single source of truth
 probe/      deterministic FASTQ fingerprinting (no LLM, no network)
-kb/         knowledge base: one dir per technology (spec.yaml + README.md), under kb/specs/
+kb/         knowledge base, one dir per technology (spec.yaml + README.md) under kb/specs/;
+            hierarchical — an abstract family node (10x-3p-gex, no backend) DESCENDS to leaf chemistries
 resolve/    TWO resolvers. scoring/assign/escalate decide the library from BYTES; records.py decides
             which sample each file is from RECORDS + PROSE (handed FileIdentity, never Observation).
             group.py splits a dataset into RUNS by filename (bytes assign roles); with no record that
-            grouping IS the sample identity — the normal case
+            grouping IS the sample identity — the normal case. Per-run and per-spec scoring runs in
+            parallel across a pool
 manifest/   fill/validate/hash both artifacts; policy.py owns precedence (R11)
 compose/    (dataset, processing) -> Snakefile + config + units.tsv  (the Snakefile is THE product)
-io/         remote peek, ENA/SRA/GEO/SDL resolution, pooch-cached onlists. archive.py TRANSCRIBES the
-            four record levels (decides nothing). attributes.py = NCBI's 960 BioSample names; efo.py =
-            EFO labels. Both ship as GENERATED data with a refresh verb
+io/         remote peek + probe-remote (fingerprint a URL, no download), ENA/SRA/GEO/SDL resolution,
+            pooch-cached onlists. archive.py TRANSCRIBES the four record levels (decides nothing).
+            attributes.py = NCBI's 960 BioSample names; efo.py = EFO labels. Both ship as GENERATED
+            data with a refresh verb
 workspace.py the one place `seqforge/` is spelled, and the one place a readable-name-plus-hash lives
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
             h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout)
@@ -177,7 +182,8 @@ tests/
 One owner for the name: [`workspace.py`](src/seqforge/workspace.py). The top level of `seqforge/`
 carries only what a human reaches for — the manifest, the project views, `pipeline/` — and everything
 else sorts into one of three subtrees, spelled once in `workspace.py`:
-**`cache/`** (content-addressed, resumable, safe to delete): per-file `Observation` by file `sha256`
+**`cache/`** (content-addressed, resumable, safe to delete): per-file `Observation` by its
+content-address — a bounded local key, or a provider md5 for hosted bytes, never a whole-file sha256 —
 under `cache/observations/`; dataset `candidates` by `sha256(sorted(file_shas) ⊕ kb_version)`
 (probe/resolve versions folded in) under `cache/candidates/`; `cache/taxonomy.json`.
 **`records/`**: `records/<accession>.json` (what the archive declared) and `records/documents/<stem>-<hash12>.txt`

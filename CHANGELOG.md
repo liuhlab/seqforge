@@ -323,6 +323,23 @@ One correction to the rule's own wording: `mem_gb` is not a workflow-module prop
 `ResourceHints.mem_gb` on the **processing manifest** (default 32), i.e. it lives in the recipe —
 which is where a resource request belongs under R13.
 
+**The docs are beginner-first, and there is a Knowledge base.** Getting-started now leads with the
+one-line "ask Claude" path and keeps the raw CLI as the deeper route; a new *Knowledge base* section
+documents every supported assay (10x 3' v2, v3 & v3.1, BD Rhapsody WTA, SPLiT-seq, bulk paired-end),
+reusing each spec's `README.md` — now rewritten for a human reader, linked to scg_lib_structs where
+the assay has a page there, with the derivations left in the commented `spec.yaml`. The assay pages
+fold behind one collapsible nav group, and byte-identical twins share a page (and a README) rather
+than duplicating. CLAUDE.md and the top-level README caught up with what shipped since: remote probe
+from a URL (`io probe-remote`, provider md5 as the content-address), content-addressing from a
+bounded local key rather than a whole-file sha256, and the hierarchical KB (an abstract family node
+that descends to leaf chemistries).
+
+**markdownlint runs in CI.** The full default rule set lints the human-facing docs (the site pages,
+the KB READMEs that render into them, and the top-level README) via `.markdownlint-cli2.yaml` — a new
+`markdown` job in `ci.yml` and a pinned pre-commit hook. Line length is the one rule left off, matching
+the codebase's own policy (ruff sets 100 but ignores E501); everything else — fenced-code language,
+table style, heading and list structure, inline HTML — is enforced.
+
 ## 2026.7.0 — 2026-07-14
 
 > **~~OPEN DESIGN QUESTION (needs the maintainer)~~ — RESOLVED in Unreleased (R13/R14/R15).**

@@ -36,6 +36,15 @@ repos:
     hooks:
       - id: shellcheck
 
+  # markdownlint over the human-facing docs. A fast hook, so it belongs here. pass_filenames: false
+  # makes it lint the scope declared in `.markdownlint-cli2.yaml` (globs + ignores) rather than only
+  # the changed files, so local and CI (the `markdown` job) check exactly the same set.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.23.1
+    hooks:
+      - id: markdownlint-cli2
+        pass_filenames: false
+
   - repo: local
     hooks:
       - id: mypy

@@ -1,0 +1,1 @@
+--8<-- "src/seqforge/kb/specs/10x-3p-gex-v2/README.md"

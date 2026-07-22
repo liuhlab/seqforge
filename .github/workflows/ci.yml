@@ -34,6 +34,21 @@ jobs:
       - name: mypy --strict
         run: pixi run -e default typecheck
 
+  # markdownlint is a Node tool, so it runs on its own runner rather than through pixi. It lints the
+  # human-facing docs (the site pages, the KB assay READMEs that render into them, and the top-level
+  # README) per `.markdownlint-cli2.yaml`; running with no file args makes cli2 read the globs/ignores
+  # from that config. Pinned so a new rule cannot turn CI red without a deliberate bump.
+  markdown:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: markdownlint (docs + README)
+        run: npx --yes markdownlint-cli2@0.23.1
+
   test:
     name: test
     runs-on: ubuntu-latest

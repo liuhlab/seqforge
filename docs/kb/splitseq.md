@@ -1,0 +1,1 @@
+--8<-- "src/seqforge/kb/specs/splitseq/README.md"

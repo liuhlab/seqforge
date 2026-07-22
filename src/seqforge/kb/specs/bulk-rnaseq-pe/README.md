@@ -1,24 +1,35 @@
-# Bulk Illumina paired-end RNA-seq (no cell barcode)
+# Bulk paired-end RNA-seq
 
-Prose context for the harvester (the machine-checkable truth is `spec.yaml`).
+Standard bulk RNA-seq on an Illumina sequencer: two paired-end cDNA reads, **no cell barcode and no
+UMI**. Every base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns
+these with plain STAR and counts genes, rather than STARsolo.
 
-## How the assay works
-Standard bulk RNA-seq: two paired-end cDNA reads (R1 forward, R2 reverse mate), **no cell barcode and
-no UMI**. This is the no-barcode branch — the resolver recognizes it by the *absence* of a
-barcode-shaped technical read plus two diverse (high-distinct-ratio) cDNA mates. Reads are mapped with
-plain STAR (`quantMode GeneCounts`), not STARsolo.
+## How it's read
 
-## How to tell it apart from single-cell
-- A single-cell barcode read is short (26 bp v2 / 28 bp v3) with a low-diversity 16 bp prefix (the
-  cell barcode recurs). Bulk mates are longer (>= 40 bp here; typically 75–150 bp) and near-unique
-  from the first base. The `min_len >= 40` gate alone keeps a 26/28 bp barcode read out of a bulk role.
-- Bulk carries no onlist, so no rung-3 whitelist check applies.
+- **R1** and **R2** are the two ends of the same cDNA fragment (a mate pair). Both are transcript
+  sequence, typically 75–150 bp.
+- No barcode, no UMI, no whitelist.
 
-## Grouping
-Run/lane come from the Illumina read-name grammar (`instrument:run:flowcell:lane:tile:...`), which the
-probe parses into `ReadNameGrammar`; a dataset's files group into units by (run, lane). SRA-normalized
-headers strip this, so `header_index` abstains — grouping then falls back to accession/sample metadata.
+## How seqforge tells it apart from single-cell
 
-## Coverage caveat
-Single-end bulk and stranded-protocol inference are **not** modeled here yet; this entry is the
-paired-end, strand-at-compose slice.
+It's the **absence** of a barcode that identifies bulk. seqforge looks for a short, low-diversity
+technical read — the tell-tale of a cell barcode — and finds none, just two long, near-unique cDNA
+mates. A single-cell barcode read is short (26–28 bp) and repeats the same 16 bp prefix across reads;
+a bulk mate is long and near-unique from the first base, so a barcode read can never be mistaken for
+bulk cDNA.
+
+Because this entry demands so little, it also serves as the **fallback** for any paired-end data.
+That's deliberate: when a real single-cell library (BD Rhapsody, SPLiT-seq) happens to share this
+loose shape, seqforge falls back to the barcode-list check to make sure it never quietly treats a
+single-cell library as bulk.
+
+## Coverage note
+
+This is the paired-end, poly-A branch. Single-end bulk and explicit strand-protocol handling aren't
+modeled yet.
+
+## References
+
+The exact, machine-readable definition seqforge uses lives in this entry's `spec.yaml`.
+(scg_lib_structs documents single-cell library structures; plain bulk RNA-seq isn't one of them, so
+there's no page to link.)

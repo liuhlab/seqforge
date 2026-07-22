@@ -21,7 +21,7 @@ that is said.
 
 Two things, and one of them is optional:
 
-```
+```text
 data/
   SRX24283130/SRR28716558_1.fastq.gz    # 12 files, one directory per experiment,
   SRX24283130/SRR28716558_2.fastq.gz    # which is how `fasterq-dump` wrote them
@@ -88,7 +88,7 @@ pixi run -- seqforge io records PRJNA1027859
 
 Four levels, joined by the archive's own accessions:
 
-```
+```text
 BioProject PRJNA1027859      title, abstract, centre, data type
   └─ BioSample SAMN40935621     strain=CQ758, tissue=Neurons, sex=hermaphrodite, dev_stage=Adult Day 1
        └─ Experiment SRX24283135   instrument, library strategy, and the protocol paragraph
@@ -177,7 +177,7 @@ sample, and the samples carry no facts. Exit 0. A quieter manifest, and just as 
 
 That is a refusal, not a shrug:
 
-```
+```text
 RECORD_JOIN_INCOMPLETE: PRJNA1027859 declares 6 run(s) (SRR28716553, ...), and 1 file(s) on disk
 match none of them by run accession or by the original filenames the record declares: mystery_1.fastq.gz
 ```

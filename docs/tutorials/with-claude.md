@@ -85,7 +85,7 @@ into a runnable Snakefile, one dataset at a time.
 Everything Claude produces lands in a `seqforge/` folder next to your data. The top level holds the
 things you actually reach for; the rest is tidied into named subfolders:
 
-```
+```text
 seqforge/
   manifest.yaml         what your data IS — the technology, the samples, their metadata
   processing.yaml       what to DO with it — the genome and the flags

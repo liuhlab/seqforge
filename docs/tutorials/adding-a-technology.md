@@ -4,7 +4,7 @@ The knowledge base has one directory per sequencing technology. Adding one is ho
 recognise something new. The rule that makes it trustworthy: **every entry is executable and
 self-testing.** You describe the technology, and the tests come from the description.
 
-```
+```text
 kb/specs/<technology>/
     spec.yaml     what the machine needs: read layout, barcode positions, how to detect it
     README.md     what a human needs: how the assay works, what it gets confused with, gotchas

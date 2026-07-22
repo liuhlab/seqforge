@@ -13,7 +13,7 @@ aligner.
 Facts and choices have different lifetimes, so they get different files:
 
 | | **dataset manifest** | **processing manifest** |
-|---|---|---|
+| --- | --- | --- |
 | answers | what the data **is** | what to **do** with it |
 | authority | the bytes, and the people who ran the experiment | you |
 | how many | exactly one per dataset | as many as you like |

@@ -1,0 +1,1 @@
+--8<-- "src/seqforge/kb/specs/bd-rhapsody-wta/README.md"

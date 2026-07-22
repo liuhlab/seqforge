@@ -2,7 +2,9 @@
 
 seqforge works out **what a sequencing dataset actually is** — which technology, which file holds
 what — and compiles that into a pipeline that processes it correctly. Your own sequencer, a core
-facility, a collaborator, a public archive: it does not matter where the files came from.
+facility, a collaborator, a public archive: it does not matter where the files came from, or whether
+they sit on your disk or behind a URL (it can read what it needs from a remote FASTQ without
+downloading it).
 
 ## The problem
 
@@ -66,4 +68,5 @@ the best-scoring guess. A guess is how the quiet failures happen.
 
 ---
 
-**Next:** [Getting started](getting-started.md).
+**Next:** [Getting started](getting-started.md) — or browse the
+[technologies seqforge recognises](kb/index.md).

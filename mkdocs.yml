@@ -44,6 +44,17 @@ nav:
       - Compiling with Claude: tutorials/with-claude.md
       - Compiling Step-by-step: tutorials/step-by-step.md
       - Adding a technology: tutorials/adding-a-technology.md
+  # "Supported assays" is nested one level under the section on purpose: with `navigation.sections`
+  # only the TOP level renders expanded, so the assay list stays folded behind a collapsible toggle
+  # and the sidebar does not grow a long flat list.
+  - Knowledge base:
+      - Overview: kb/index.md
+      - Supported assays:
+          - 10x Chromium 3' v3 & v3.1: kb/10x-3p-gex-v3.md
+          - 10x Chromium 3' v2: kb/10x-3p-gex-v2.md
+          - BD Rhapsody WTA: kb/bd-rhapsody-wta.md
+          - SPLiT-seq: kb/splitseq.md
+          - Bulk paired-end RNA-seq: kb/bulk-rnaseq-pe.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
       - How a dataset is identified: concepts/identifying.md
@@ -66,7 +77,12 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  # base_path "." is the repo root (mkdocs runs there), so a KB page can pull in the canonical
+  # README that lives beside its spec.yaml — one source, rendered in two places. check_paths turns a
+  # broken include into a hard `--strict` failure instead of a silently empty page.
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   # mermaid ships inside mkdocs-material — no extra dependency, just the fence wiring. This is the
   # one place seqforge extends the sibling repos' shared extension block rather than copying it.
   - pymdownx.superfences:

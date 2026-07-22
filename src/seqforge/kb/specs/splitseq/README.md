@@ -1,63 +1,51 @@
-# SPLiT-seq (combinatorial split-pool barcoding)
+# SPLiT-seq (split-pool combinatorial barcoding)
 
-Prose context for the harvester (the machine-checkable truth is `spec.yaml`).
+A single-cell RNA-seq method that needs no special instrument. Instead of one droplet per cell, cells
+are barcoded by **splitting and pooling** them through several rounds of labeling; after three rounds
+each cell carries a unique combination of three barcodes.
 
-**Scope: the original published SPLiT-seq only** (Rosenberg et al., *Science* 2018,
-[doi:10.1126/science.aam8999](https://doi.org/10.1126/science.aam8999)). Parse Biosciences **Evercode**
-is a separate, actively-versioned commercial descendant with different linkers and whitelists — it is
-**out of scope for this pilot** and needs its own KB entry when we get to it; do not conflate the two.
+This entry covers the **original published SPLiT-seq** (Rosenberg et al., *Science* 2018). Parse
+Biosciences' **Evercode** is a separate commercial descendant with different linkers and barcodes — a
+different chemistry, not covered here.
 
-Structure pinned from **scg_lib_structs** (CC-BY):
-[methods page](https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html) and
-[issue #13](https://github.com/Teichlab/scg_lib_structs/issues/13) (the "Published Manuscript" read-2
-variant, as distinct from the preprint and the Parse commercial variants).
+## How it's read
 
-## How the assay works
-Combinatorial split-pool indexing: a cell's barcode is the concatenation of **three** round-specific
-8 bp barcodes, each from a ~96-entry whitelist, joined by **two fixed linkers**. Sequencing:
+- **Read 1 = the cDNA** (the transcript).
+- **Read 2 = the barcode read**: a 10 bp UMI, then three 8 bp round-barcodes separated by two fixed
+  30 bp linkers.
 
-- **Read 1 (66 cycles) = cDNA.**
-- **Read 2 (94 cycles) = the barcode read**, 5'→3':
+```text
+[10 bp UMI] [8 bp round-3] --linker1-- [8 bp round-2] --linker2-- [8 bp round-1]
+```
 
-  ```
-  [10 bp UMI][8 bp Round3] GTGGCCGATGTTTCGCATCGGCGTACGACT [8 bp Round2] ATCCACGTGCTTGAGAGGCCAGAGCATTCG [8 bp Round1]
-      0..10     10..18            linker1 (18..48)             48..56            linker2 (56..86)             86..94
-  ```
+A cell's identity is the combination of its round-1, round-2, and round-3 barcodes; each round draws
+from a list of ~96 barcodes.
 
-Round1 is the RT/first-round barcode (oligo-dT / randN primer); Round3 is nearest the sequencing
-primer. The two 30 bp linker sequences above are the **verbatim Science-2018 sequences**.
+## How seqforge tells it apart
 
-## Why it is the pilot's generalization test
-It stresses machinery the two 10x-family entries don't:
-- **Width-generic onlist matching** — 8 bp round barcodes, not 16; the `onlist_hit_rate` evaluator
-  reads the width from the registry (still a `uint32` pack), never a hardcoded 16 bp.
-- **Fixed internal linkers** as the structural signature (`has_segment … constant`) rather than a
-  single leading barcode block.
-- **Combinatorial `CB_UMI_Complex`** backend: `soloCBposition` / `soloUMIposition` are **derived from
-  the element coordinates at compose time** (FLAG-3), never hand-entered from memory.
+Like BD Rhapsody, the **two fixed linker sequences at known positions** are the signature, and each
+round-barcode matches its own list. The exact linker lengths matter: the original 2018 chemistry puts
+round-1 at a different position than the later Parse chemistry, so a position copied from the wrong
+source silently mismatches. seqforge pins the original layout from the paper's own oligos.
 
-## Still to pin before a real run
-- **Whitelists.** `spec.yaml` declares registry names `splitseq-round{1,2,3}` (96 × 8 bp each). Register
-  the actual barcode files from scg_lib_structs with URL + sha256; the KB never vendors them.
-- **`soloStrand` — the most dangerous unverified value here.** A wrong strand leaves ~half the reads
-  unassigned while STARsolo **exits 0**, emitting a matrix that merely looks like a thin dataset.
-  Note what *cannot* settle it: the params gate only proves the value survives compose intact, and a
-  *simulated* `kb e2e` would test our own assumed orientation against itself — circular, and a green
-  result there would be false confidence. Two non-circular routes, in order:
-  1. derive it from [Rosenberg et al., *Science* 2018](https://doi.org/10.1126/science.aam8999) oligo
-     orientations / the scg_lib_structs diagram, and cite the derivation;
-  2. **decisive** — run the paper's own raw data ([GEO GSE110823](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE110823))
-     both ways; the correct strand assigns ~2× the reads. This is the design's rung-6 `alignment`
-     check, and the same trick scRecounter uses by grid search.
+## Status: not yet ready for real data
 
-  Until then this entry must not process real data. (It cannot yet anyway: its whitelists are not
-  registered and compose does not derive `soloCBposition` for `CB_UMI_Complex` — so the risk is
-  latent, not active.)
+SPLiT-seq is the pilot's generalization test — it exercises machinery the 10x entries don't (8 bp
+barcodes instead of 16, a barcode split combinatorially across a read). Two things must land before
+it can process real data:
 
-`assay_ontology` is pinned to **`EFO:0009919`** ("SPLiT-seq"), verified against the EBI Ontology
-Lookup Service (not memory). Parse Evercode's distinct EFO terms (`EFO:0022600/1/2`) confirm it is a
-separate assay and stays out of this entry.
+- **The barcode lists must ship.** The entry names three round-barcode lists that aren't bundled yet.
+- **The strand must be confirmed on real data.** It's derived from the paper's oligos and the authors'
+  own pipeline (both point the same way), but the honest state is that most pipelines never explicitly
+  chose the strand — they inherited a default. The decisive check is to run the paper's own data both
+  ways; the correct strand assigns far more reads.
 
-## Coverage caveat
-Variable-length / anchored elements (inDrop-class floating linkers) are **not** exercised here — add
-an inDrop entry before claiming the element model fully generalizes.
+Until then this entry is intentionally inert.
+
+## References
+
+Read structure and linker sequences pinned from
+**[scg_lib_structs — SPLiT-seq](https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html)**
+(Teichmann Lab, CC-BY) and independently reconstructed from the paper's oligo tables
+([Rosenberg et al., *Science* 2018](https://doi.org/10.1126/science.aam8999)). The exact,
+machine-readable definition seqforge uses lives in this entry's `spec.yaml`.

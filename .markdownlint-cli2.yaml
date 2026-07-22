@@ -1,0 +1,39 @@
+# markdownlint for the human-facing docs (and the published README).
+#
+# The whole default rule set runs (`default: true`) — this is markdownlint applied in general, not a
+# hand-picked subset. The one tuning is line length: prose here is hand-wrapped at 100 (the same width
+# ruff enforces for Python), so MD013 is set to 100 rather than its default 80, and exempted inside
+# code blocks and tables where wrapping would break meaning. Long bare URLs are exempt automatically.
+#
+# Scope is deliberate: the docs site, the KB assay READMEs that render into it, and the top-level
+# README — the prose a person reads. It does NOT lint the agent-facing files (CLAUDE.md, AGENTS.md,
+# docs/design.md), whose format serves a different reader.
+#
+# Runs in CI (.github/workflows/ci.yml, the `markdown` job) and locally as a pre-commit hook.
+
+config:
+  default: true
+  # Line length is NOT gated, matching the codebase's own policy: ruff sets line-length 100 but
+  # ignores E501 (see CLAUDE.md), so Python lines may run over and prose follows the same rule —
+  # hand-wrapped near 100, never failed for a trailing word or an unbreakable URL. Every other
+  # markdownlint rule (headings, lists, fenced-code language, table style, inline-HTML, …) stays on.
+  MD013: false
+
+globs:
+  - "docs/**/*.md"
+  - "src/seqforge/kb/specs/**/README.md"
+  - "README.md"
+
+ignores:
+  # Agent-facing internal design doc — excluded from the site, and not written to docs-page rules.
+  - "docs/design.md"
+  # The KB assay pages are one-line snippet-include wrappers (they pull in the canonical README next
+  # to each spec.yaml); there is no prose of their own to lint. The README they include IS linted,
+  # directly, via the specs glob above.
+  - "docs/kb/10x-3p-gex-v2.md"
+  - "docs/kb/10x-3p-gex-v3.md"
+  - "docs/kb/bd-rhapsody-wta.md"
+  - "docs/kb/splitseq.md"
+  - "docs/kb/bulk-rnaseq-pe.md"
+  # The v3.1 README is a symlink to the v3 README — linting the target once is enough.
+  - "src/seqforge/kb/specs/10x-3p-gex-v3.1/README.md"
