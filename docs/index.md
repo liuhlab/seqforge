@@ -2,7 +2,7 @@
      this block; every other rule stays on for the page. -->
 <!-- markdownlint-disable MD033 MD041 -->
 <p class="seqforge-hero" align="center">
-  <img src="assets/logo-color.png" alt="seqforge" width="210">
+  <img src="assets/logo-color.png" alt="seqforge" width="175">
 </p>
 <!-- markdownlint-enable MD033 MD041 -->
 
