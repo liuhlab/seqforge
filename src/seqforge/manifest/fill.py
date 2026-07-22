@@ -505,5 +505,8 @@ def _build_files(
             size_bytes=obs.file.size_bytes,
             read_id=role_of_sha.get(obs.file.sha256),
         )
-        for obs in observations
+        # Sorted by content hash so `library.files` — and the dataset content hash computed over it —
+        # is byte-identical however the observations were ordered (a forked probe pool need not return
+        # them in submission order). GSE208154 hashed differently at --cpus 1 vs 4 before this.
+        for obs in sorted(observations, key=lambda o: o.file.sha256)
     ]
