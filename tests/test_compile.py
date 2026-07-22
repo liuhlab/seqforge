@@ -274,6 +274,26 @@ def test_manifest_hash_is_stable_and_matches_provenance(tmp_path: Path) -> None:
     assert manifest.provenance.kb_version == kb.KB_VERSION
 
 
+def test_manifest_file_order_is_deterministic_regardless_of_probe_order(tmp_path: Path) -> None:
+    """`library.files` — and the immutable dataset content hash over it — must not depend on the order
+    probe returned observations. A forked probe pool assembles them in completion order, not submission
+    order, so `_build_files` sorts by content hash. GSE208154 hashed differently at --cpus 1 vs 4
+    before this; the fix is what makes the manifest genuinely content-addressed.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    paths = []
+    for k in ("R1", "R2"):
+        p = tmp_path / f"s_{k}.fastq.gz"
+        _write_fastq_gz(p, reads[k])
+        paths.append(p)
+    forward = _manifest_from(paths, "10x-3p-gex-v3", reg)
+    reverse = _manifest_from(list(reversed(paths)), "10x-3p-gex-v3", reg)
+    assert [f.sha256 for f in forward.library.files] == [f.sha256 for f in reverse.library.files]
+    assert dataset_content_hash(forward) == dataset_content_hash(reverse)
+
+
 # ---------- the dataset is immutable; the processing manifest is plural ----------
 def test_dataset_hash_is_invariant_across_a_processing_sweep(tmp_path: Path) -> None:
     """THE test for the whole split: change the intent, and what the data IS must not move.
