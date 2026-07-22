@@ -7,6 +7,10 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  # White silhouette of the mark — its internal gaps (flames, DNA rungs, anvil) read as negative
+  # space against the teal header. The favicon stays full-colour: browser tabs are not teal.
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   features:
     - navigation.sections
     - content.code.copy
@@ -31,6 +35,9 @@ theme:
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search

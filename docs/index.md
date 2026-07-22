@@ -1,3 +1,11 @@
+<!-- Centered hero logo needs inline HTML and precedes the H1 (MD033, MD041). Scope the exception to
+     this block; every other rule stays on for the page. -->
+<!-- markdownlint-disable MD033 MD041 -->
+<p class="seqforge-hero" align="center">
+  <img src="assets/logo-color.png" alt="seqforge" width="210">
+</p>
+<!-- markdownlint-enable MD033 MD041 -->
+
 # seqforge
 
 seqforge works out **what a sequencing dataset actually is** — which technology, which file holds
