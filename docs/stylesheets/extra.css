@@ -1,0 +1,26 @@
+/* seqforge — a thin visual layer over Material for MkDocs. */
+
+/* Header logo. The mark is a tall, narrow emblem, so Material's default 1.2rem height renders it
+   small beside the wordmark. Grow it to nearly fill the header bar and tighten the padding so it
+   reads as a proper masthead rather than a stray icon. */
+.md-header__button.md-logo {
+  padding: 0.3rem 0.4rem;
+}
+.md-header__button.md-logo img {
+  height: 1.9rem;
+}
+
+/* Home masthead: center the hero logo and the H1 that immediately follows it, with room to breathe.
+   The scope is deliberately narrow — only an H1 that directly follows the hero is centered, so every
+   other page keeps Material's default left-aligned headings. */
+.seqforge-hero {
+  margin: 0.6rem 0 0.2rem;
+}
+.seqforge-hero img {
+  width: 210px;
+  max-width: 55%;
+}
+.seqforge-hero + h1 {
+  margin-top: 0;
+  text-align: center;
+}

@@ -1,4 +1,13 @@
-# seqforge
+<!-- A centered, sized logo and title need inline HTML and precede the first heading, which the
+     default ruleset forbids (MD033, MD041). Scope the exception to this masthead; every other rule
+     stays on for the README. -->
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <img src="docs/assets/logo-readme.png" alt="seqforge" width="200">
+</p>
+
+<h1 align="center">seqforge</h1>
+<!-- markdownlint-enable MD033 MD041 -->
 
 Compile `(arbitrary FASTQ files) + (unstructured human/DB metadata)` into a validated,
 machine-independent **dataset manifest**, then into a runnable Snakemake config — for headless
