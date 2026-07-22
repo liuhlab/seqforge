@@ -56,7 +56,11 @@ from __future__ import annotations
 #: read that clears the onlist bar when some read does (no equal-length swap onto a cDNA mate), and a
 #: barcoded winner with NO whitelist-hitting read now refuses (BARCODE_READ_ABSENT) instead of composing
 #: a pipeline STARsolo would run to an empty matrix.
-RESOLVE_VERSION = "2026.7.11"
+#: 2026.7.12 — barcode-absent refusal keys on ALL valid candidates, not just the top: an over-length
+#: v2/v3 tie where v2 edges v3 on score (top=v2, 737K misses) while v3's 3M list hits must NOT refuse —
+#: the data is barcoded and resolves to v3. Only a dataset where no barcoded leaf hits is barcode-absent
+#: (PRJNA658829 SRR12575567 was false-blocked before this).
+RESOLVE_VERSION = "2026.7.12"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
