@@ -13,7 +13,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..io import DEFAULT_REGISTRY, OnlistRegistry
+from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
@@ -99,6 +99,34 @@ def _probe_paths(
     return out
 
 
+def _score_pool(
+    pool: list[Spec], wps: list[WindowProbe], registry: OnlistRegistry, score_threads: int
+) -> list[TechEvaluation]:
+    """Score every candidate spec — optionally across a thread pool sharing the read-only registry.
+
+    The dominant cost is the onlist scan (``np.searchsorted`` over the packed whitelist), which
+    releases the GIL, so threads parallelize it while sharing the one ~27 MB array with zero copies.
+    The registry's lazy per-name materialization is NOT thread-safe, so every available onlist is
+    pre-warmed single-threaded first; afterwards ``packed()`` is a read-only dict lookup (an
+    unavailable onlist stays uncached and simply ABSTAINs, exactly as the serial path does).
+    ``ThreadPoolExecutor.map`` preserves order, so the result is byte-identical to the serial list
+    whatever the thread count — core count folds into no decision.
+    """
+    if score_threads <= 1 or len(pool) <= 1:
+        return [build_tech_evaluation(spec, wps, registry) for spec in pool]
+    for spec in pool:
+        for ref in spec.onlists.values():
+            if registry.has(ref.registry):
+                try:
+                    registry.packed(ref.registry)
+                except OnlistNotAvailable:
+                    pass  # scoring ABSTAINs on this onlist; nothing cached, so no thread races on it
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(score_threads, len(pool))) as ex:
+        return list(ex.map(lambda spec: build_tech_evaluation(spec, wps, registry), pool))
+
+
 def resolve_dataset(
     # Sequence, not list: the engine only iterates. `list` is invariant, so a caller holding a
     # perfectly good list[Path] could not pass it without a copy — an API defect, not a caller bug.
@@ -112,12 +140,16 @@ def resolve_dataset(
     max_bytes: int = DEFAULT_MAX_BYTES,
     use_cache: bool = True,
     cpus: int = 1,
+    score_threads: int = 1,
     _probed: dict[str, tuple[Observation, list[str]]] | None = None,
 ) -> ResolveOutput:
     """Score a dataset's FASTQ files against the KB and return the ranked, escalated verdict.
 
     ``cpus`` bounds a per-file probe pool; ``_probed`` lets a caller (``resolve_runs``) hand in a probe
     map it already computed across the whole dataset, so the files are not probed twice.
+    ``score_threads`` bounds a per-spec scoring thread pool (the onlist scan releases the GIL): a
+    standalone call reuses ``cpus`` for it, while ``resolve_runs`` hands an explicit value to
+    coordinate with its per-run fork and stay within the core budget.
     """
     registry = registry if registry is not None else DEFAULT_REGISTRY
     kb_specs = specs if specs is not None else load_all_specs()
@@ -149,9 +181,11 @@ def resolve_dataset(
     # so id/confusable lookups resolve for unscored nodes.
     runnable = [spec for spec in kb_specs.values() if spec.backend is not None]
     pool = [spec for spec in runnable if length_feasible(spec, wps)] or runnable
-    evaluations: list[TechEvaluation] = [
-        build_tech_evaluation(spec, wps, registry) for spec in pool
-    ]
+    # A standalone call runs probe then score sequentially, so the per-spec pool may reuse the full
+    # `cpus` budget; resolve_runs hands `_probed` + an explicit `score_threads` to stay bounded.
+    if _probed is None:
+        score_threads = max(score_threads, cpus)
+    evaluations = _score_pool(pool, wps, registry, score_threads)
     hv = hypothesis.value if hypothesis else None
     hid = hypothesis.id if hypothesis else None
     hconf = hypothesis.confidence if hypothesis else 0.0
@@ -391,6 +425,7 @@ def _resolve_one_run(
     max_reads: int,
     max_bytes: int,
     use_cache: bool,
+    score_threads: int,
     probed: dict[str, tuple[Observation, list[str]]],
 ) -> RunResolution:
     """Resolve ONE run's files on their own bytes, reusing the dataset-wide probe map."""
@@ -404,6 +439,7 @@ def _resolve_one_run(
         max_reads=max_reads,
         max_bytes=max_bytes,
         use_cache=use_cache,
+        score_threads=score_threads,
         _probed=probed,
     )
     return RunResolution(run_id=run_id, paths=list(run_paths), output=output)
@@ -544,6 +580,21 @@ def resolve_runs(
     )
     registry = registry if registry is not None else DEFAULT_REGISTRY
     kb_specs = specs if specs is not None else load_all_specs()
+    run_items = list(grouped.items())
+
+    import multiprocessing as mp
+
+    # Parallelism has two axes sharing ONE core budget: per-run forking (one worker per run) and
+    # per-spec scoring threads inside each run. Fork is required for per-run, not just preferred: the
+    # worker reads the warm registry from `_RUN_CTX`, which a forked child inherits copy-on-write but a
+    # `spawn` child would re-import empty. Split the budget so the two axes never oversubscribe: when W
+    # runs fork concurrently each gets cpus//W scoring threads; a serial or single run gets them all.
+    parallel_runs = cpus > 1 and len(run_items) > 1 and "fork" in mp.get_all_start_methods()
+    if parallel_runs:
+        n_run_workers = min(cpus, len(run_items) - 1)  # first run warms in-process; the rest fork
+        score_threads = max(1, cpus // n_run_workers)
+    else:
+        score_threads = max(1, cpus)
     common: dict[str, object] = dict(
         registry=registry,
         specs=kb_specs,
@@ -552,16 +603,11 @@ def resolve_runs(
         max_reads=max_reads,
         max_bytes=max_bytes,
         use_cache=use_cache,
+        score_threads=score_threads,
         probed=probed,
     )
-    run_items = list(grouped.items())
 
-    import multiprocessing as mp
-
-    # Serial unless asked for cpus AND there is more than one run AND the OS can fork. Fork is required,
-    # not just preferred: the worker reads the warm registry from `_RUN_CTX`, which a forked child
-    # inherits copy-on-write but a `spawn` child would re-import empty.
-    if cpus <= 1 or len(run_items) <= 1 or "fork" not in mp.get_all_start_methods():
+    if not parallel_runs:
         runs = [_resolve_one_run(it, **common) for it in run_items]  # type: ignore[arg-type]
     else:
         # Warm the shared registry in-process on the FIRST run (this parses the onlists once), then

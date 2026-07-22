@@ -113,6 +113,30 @@ def test_resolve_runs_resumes_from_cache_without_reprobing(
     ]
 
 
+def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
+    """Per-spec scoring across a thread pool (sharing the read-only registry) is winner-invariant:
+    same inputs, ``score_threads`` 1 vs N -> byte-identical ResolveResult AND evidence matrices.
+    Threads fold into no decision, exactly as cores do for the per-run fork (#33). Each call gets a
+    fresh (cold) registry, so the threaded run exercises the single-threaded pre-warm too."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=800, seed=3)
+    f1 = tmp_path / "R1.fastq.gz"
+    f2 = tmp_path / "R2.fastq.gz"
+    _write_fastq_gz(f1, reads["R1"])
+    _write_fastq_gz(f2, reads["R2"])
+
+    serial = resolve_dataset(
+        [f1, f2], registry=_registry_for(spec), use_cache=False, score_threads=1
+    )
+    threaded = resolve_dataset(
+        [f1, f2], registry=_registry_for(spec), use_cache=False, score_threads=6
+    )
+
+    assert serial.result.model_dump_json() == threaded.result.model_dump_json()
+    assert serial.matrices == threaded.matrices
+    assert threaded.result.candidates[0].technology == "10x-3p-gex-v3"  # threading changed nothing
+
+
 # ---------- assignment ----------
 def _exclusive_of(forbidden: list[list[bool]]) -> list[list[bool]]:
     """``exclusive[r][f]``, as ``best_assignment`` derives it: f eligible for r and no other role."""
