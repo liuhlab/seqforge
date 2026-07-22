@@ -1,23 +1,25 @@
 schema_version: 1
 
 # ============================================================================================
-# BD RHAPSODY WTA — ENHANCED bead, 96(/97) x 3 cell-label lists (rhapsodist class `enhanced`).
+# BD RHAPSODY WTA — ENHANCED bead v1, 96(/97) x 3 cell-label lists (rhapsodist class `enhanced`).
 #
-# A leaf of `bd-rhapsody-wta-enhanced`. Byte-identical Enhanced geometry (0-3 bp diversity insert +
-# GTGA/GACA linkers); what makes it THIS leaf is that its three CLS blocks hit the ORIGINAL 97 x 9 bp
-# cell-label pools — the very same `bd-rhapsody-cls1/2/3` whitelists the original fixed-offset bead uses
-# (verified: the shipped v1 lists are byte-identical to rhapsodist's whitelist_96x3, 97 entries each).
-# Its sibling `-v2` uses the disjoint 384 x 3 pools; the two share 0 barcodes, so the onlist decides.
+# A leaf of `bd-rhapsody-wta-enhanced`. "v1" is the FIRST Enhanced generation (96-plex), as against the
+# `-v2` sibling (384-plex) — not the original fixed-offset bead, which is `bd-rhapsody-wta`. Byte-
+# identical Enhanced geometry (0-3 bp diversity insert + GTGA/GACA linkers); what makes it THIS leaf is
+# that its three CLS blocks hit the ORIGINAL 97 x 9 bp cell-label pools — the very same
+# `bd-rhapsody-cls1/2/3` whitelists the original fixed-offset bead uses (verified: the shipped lists are
+# byte-identical to rhapsodist's whitelist_96x3, 97 entries each). The `-v2` sibling uses the disjoint
+# 384 x 3 pools; the two share 0 barcodes, so the onlist decides.
 #
 # The layout (reads/elements) is inherited verbatim from the family and is what the round-trip and the
 # adapter-anchored `compose` derivation read; see the family node for the annotated read structure.
 # ============================================================================================
 
 identity:
-  id: bd-rhapsody-wta-enhanced-96
-  version: enhanced-96
-  name: "BD Rhapsody WTA — Enhanced bead (96-plex cell labels)"
-  aliases: ["BD Rhapsody Enhanced 96", "Rhapsody Enhanced 96x3"]
+  id: bd-rhapsody-wta-enhanced-v1
+  version: enhanced-v1
+  name: "BD Rhapsody WTA — Enhanced bead v1 (96-plex cell labels)"
+  aliases: ["BD Rhapsody Enhanced 96", "Rhapsody Enhanced 96x3", "BD Rhapsody Enhanced v1"]
   assay_ontology: ["EFO:0700003"]
   modality: rna
 

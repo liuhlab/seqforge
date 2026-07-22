@@ -32,7 +32,7 @@ staggered barcodes recover against the shipped cell-label lists.
   barcodes cleanly: 8 052 cells, 88 % of unique reads in cells.
 - **Two new chemistries under a family, told apart from the bytes.** `bd-rhapsody-wta-enhanced` is an
   abstract family (like `10x-3p-gex`) that recognizes the Enhanced frame and descends by whitelist to
-  `-enhanced-96` (reuses the original bead's 97×3 cell-label lists) and `-enhanced-v2` (ships the new,
+  `-enhanced-v1` (reuses the original bead's 97×3 cell-label lists) and `-enhanced-v2` (ships the new,
   disjoint 384×3 lists). The original fixed-offset `bd-rhapsody-wta` is unchanged and stays
   byte-separable by its longer linkers. Distinguishing the original bead from Enhanced-96 also forced
   `backend_identical` to compare the *derived* geometry, not just declared params: two beads with the

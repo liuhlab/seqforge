@@ -388,7 +388,7 @@ def _enhanced_r1(pools: list[list[str]], n: int, rng: object) -> list[str]:
 
 @pytest.mark.parametrize(
     ("suffix", "expected"),
-    [("", "bd-rhapsody-wta-enhanced-96"), ("-384", "bd-rhapsody-wta-enhanced-v2")],
+    [("", "bd-rhapsody-wta-enhanced-v1"), ("-384", "bd-rhapsody-wta-enhanced-v2")],
 )
 def test_bd_enhanced_resolves_to_the_right_leaf_from_bytes(
     suffix: str, expected: str, tmp_path: Path
@@ -473,7 +473,7 @@ def test_bd_v1_and_enhanced_are_told_apart_from_the_bytes(tmp_path: Path) -> Non
 
     assert _resolve(v1_r1) == "bd-rhapsody-wta"  # the fixed linkers -> original bead
     assert _resolve(enh_r1) in {
-        "bd-rhapsody-wta-enhanced-96",
+        "bd-rhapsody-wta-enhanced-v1",
         "bd-rhapsody-wta-enhanced-v2",
     }  # the GTGA/GACA frame -> Enhanced, never the original bead
 
@@ -489,7 +489,7 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
 
     from seqforge.kb.anchor import has_anchored_elements, resolve_windows
 
-    spec = kb.load_spec("bd-rhapsody-wta-enhanced-96")
+    spec = kb.load_spec("bd-rhapsody-wta-enhanced-v1")
     bc = next(r for r in spec.reads if r.id == "bc")
     assert has_anchored_elements(bc)
     rng = random.Random(0)

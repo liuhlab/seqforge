@@ -483,7 +483,7 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(tmp_pa
     ones — an independent cross-check on the element geometry — and the params gate must still PASS with
     `soloAdapterSequence` now an owned (derived) key.
     """
-    manifest, reg = _build(tmp_path, "bd-rhapsody-wta-enhanced-96")
+    manifest, reg = _build(tmp_path, "bd-rhapsody-wta-enhanced-v1")
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"

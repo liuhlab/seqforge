@@ -15,7 +15,7 @@ schema_version: 1
 # This node is a FAMILY, not a runnable chemistry: the two Enhanced sub-versions differ ONLY in
 # whitelist size (96 vs 384 sequences per block) — an ONLIST-decided split, exactly like 10x v2/v3 — so
 # there is no single recipe here. Descent resolves to a leaf:
-#     bd-rhapsody-wta-enhanced-96   (97 x 3 cell-label lists, == the original bead's lists)
+#     bd-rhapsody-wta-enhanced-v1   (97 x 3 cell-label lists, == the original bead's lists)
 #     bd-rhapsody-wta-enhanced-v2   (384 x 3 cell-label lists)
 # It is NEVER scored as a candidate (the scorer skips backend-less nodes) and self-tests by RECOGNITION
 # (test_a_family_node_recognizes_its_children_and_no_one_else), not `kb roundtrip`.
