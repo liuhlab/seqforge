@@ -882,10 +882,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scope-the-enhanced-bead-is-separate" class="md-nav__link">
+  <a href="#enhanced-beads-2022" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scope: the Enhanced bead is separate
+        Enhanced beads (2022)
       
     </span>
   </a>
@@ -1043,10 +1043,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scope-the-enhanced-bead-is-separate" class="md-nav__link">
+  <a href="#enhanced-beads-2022" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scope: the Enhanced bead is separate
+        Enhanced beads (2022)
       
     </span>
   </a>
@@ -1093,9 +1093,11 @@
 <p>BD Biosciences' droplet-free single-cell 3' RNA-seq. Cells are captured in a microwell plate and
 tagged with a <strong>cell label</strong> built from three barcode blocks on the capture bead, plus a <strong>UMI</strong> on
 each molecule.</p>
-<p>This entry covers the <strong>original fixed-position cell-label bead</strong>. (The 2022 "Enhanced" bead adds a
-variable-length insert that shifts every barcode position — a different chemistry, not yet supported;
-see <a href="#scope-the-enhanced-bead-is-separate">Scope</a>.)</p>
+<p>BD ships this chemistry in two bead generations, and this page covers both. The <strong>original
+fixed-position bead</strong> (described first) is what seqforge recognizes and compiles automatically today.
+The 2022 <strong><a href="#enhanced-beads-2022">Enhanced bead</a></strong> is a newer variant with a variable-length diversity
+insert; its structure and how to run it are documented below, and automated support is in progress
+(<a href="https://github.com/liuhlab/seqforge/issues/43">#43</a>).</p>
 <h2 id="how-its-read">How it's read<a class="headerlink" href="#how-its-read" title="Permanent link">&para;</a></h2>
 <p>Two reads:</p>
 <ul>
@@ -1157,11 +1159,37 @@ match).</p>
 cDNA <strong>sense</strong> to the transcript — a standard 3' poly-dT library, like 10x 3'. Getting this backwards
 would leave most reads uncounted while the aligner still exits cleanly, so seqforge derives it from
 the bead chemistry rather than guessing.</p>
-<h2 id="scope-the-enhanced-bead-is-separate">Scope: the Enhanced bead is separate<a class="headerlink" href="#scope-the-enhanced-bead-is-separate" title="Permanent link">&para;</a></h2>
-<p>The 2022 Enhanced bead prepends a variable-length (0–3 bp) diversity insert before the first cell
-label and shortens the linkers, which moves every downstream position. seqforge models fixed-position
-barcodes only, so the Enhanced bead needs its own entry and is out of scope here — never conflate the
-two.</p>
+<h2 id="enhanced-beads-2022">Enhanced beads (2022)<a class="headerlink" href="#enhanced-beads-2022" title="Permanent link">&para;</a></h2>
+<p>In 2022 BD introduced <strong>Enhanced Cell Capture Beads</strong>, the current chemistry. The cell labels work the
+same way — three 9 bp blocks read off the bead — but two things change:</p>
+<ul>
+<li>A short <strong>diversity insert</strong> of 0–3 bp (one of <em>nothing</em>, <code>A</code>, <code>GT</code>, or <code>TCA</code>) is added at the very
+  start of Read 1, to stagger the reads and cut the amount of PhiX needed.</li>
+<li>The two linkers shrink to <strong><code>GTGA</code></strong> and <strong><code>GACA</code></strong> (4 bp each), from v1's 12 and 13 bp.</li>
+</ul>
+<p>So Enhanced Read 1 reads:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[0–3 bp insert] [CLS1 · 9] GTGA [CLS2 · 9] GACA [CLS3 · 9] [UMI · 8]
+</code></pre></div>
+<p>There are two sub-versions, differing only in the cell-label lists: <strong>96</strong> or <strong>384</strong> sequences per
+block (the 384-list "Enhanced v2" allows more cell labels). The read layout is otherwise identical.</p>
+<p><strong>Why it needs dedicated support.</strong> The diversity insert shifts every barcode by a different amount
+from one read to the next, so the positions are no longer fixed. seqforge's byte model reads fixed
+positions today, so it does not yet recognize the Enhanced bead on its own — that work is tracked in
+<strong><a href="https://github.com/liuhlab/seqforge/issues/43">#43</a></strong>, and this page will be updated when it lands.</p>
+<p><strong>Running Enhanced data now.</strong> STARsolo can map Enhanced reads directly by anchoring to the linkers,
+so you can process it today with a hand-written command (endorsed by STAR's author in
+<a href="https://github.com/alexdobin/STAR/issues/1607">issue #1607</a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>STAR<span class="w"> </span>--soloType<span class="w"> </span>CB_UMI_Complex<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">     </span>--soloAdapterSequence<span class="w"> </span>NNNNNNNNNGTGANNNNNNNNNGACA<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">     </span>--soloCBmatchWLtype<span class="w"> </span>1MM<span class="w"> </span>multi<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">     </span>--soloCBposition<span class="w"> </span>2_0_2_8<span class="w"> </span>2_13_2_21<span class="w"> </span>3_1_3_9<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">     </span>--soloUMIposition<span class="w"> </span>3_10_3_17<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">     </span>--soloCBwhitelist<span class="w"> </span>BD_CLS1.txt<span class="w"> </span>BD_CLS2.txt<span class="w"> </span>BD_CLS3.txt
+</code></pre></div>
+<p>The adapter <code>NNNNNNNNNGTGANNNNNNNNNGACA</code> is <code>CLS1(9) + GTGA + CLS2(9) + GACA</code>; STARsolo finds it in each
+read and reads the barcodes relative to it, so the variable insert at the front takes care of itself.
+For a reproducible workflow spanning every bead generation, see
+<strong><a href="https://github.com/imallona/rhapsodist">rhapsodist</a></strong>.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>Read structure, linker sequences, and barcode lists pinned from
 <strong><a href="https://teichlab.github.io/scg_lib_structs/methods_html/BD_Rhapsody.html">scg_lib_structs — BD Rhapsody</a></strong>
