@@ -15,7 +15,9 @@ from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH, bumped whenever probe output semantics change; folded into the Observation
 #: cache key. Component/tool-stamp versions use CalVer just like the package version.
-PROBE_VERSION = "2026.7.0"
+#: 2026.7.1 — content-address from a bounded local key (head + size + gzip ISIZE), not a whole-file
+#: sha256 (issue #37); the file identity string changes, so cached observations recompute once.
+PROBE_VERSION = "2026.7.1"
 
 #: Default bounded-read budget. Overridable per call by the CLI.
 DEFAULT_MAX_READS = 200_000
@@ -24,13 +26,12 @@ DEFAULT_MAX_READS = 200_000
 DEFAULT_MAX_BYTES = 256 * 1024 * 1024
 
 # Imported last: core depends on the budget constants above (keeps the package import acyclic).
-from .core import hash_file, probe_file, probe_sample  # noqa: E402
+from .core import probe_file, probe_sample  # noqa: E402
 
 __all__ = [
     "PROBE_VERSION",
     "DEFAULT_MAX_READS",
     "DEFAULT_MAX_BYTES",
-    "hash_file",
     "probe_file",
     "probe_sample",
 ]

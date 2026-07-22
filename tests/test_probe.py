@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import builtins
 import gzip
 import random
+import re
 from pathlib import Path
 
+import pytest
+
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
-from seqforge.probe import hash_file, probe_file
+from seqforge.probe import probe_file
 
 BASES = "ACGT"
 W1_LINKER = (
@@ -42,7 +46,7 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     assert obs.probe.n_reads_sampled == 2000
     assert obs.gzip.ok and not obs.gzip.truncated
     assert any(isinstance(s, RandomSegment) for s in obs.segments)
-    assert obs.file.sha256 == hash_file(path)
+    assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)  # a well-formed content-address
 
 
 def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:
@@ -162,12 +166,79 @@ def test_the_byte_budget_binds_when_the_reads_are_long(tmp_path: Path) -> None:
     assert obs.probe.n_reads_sampled < 10_000_000  # ...and stopped it well short of the read budget
 
 
-def test_hash_file_is_content_stable(tmp_path: Path) -> None:
+def test_the_content_address_is_stable_and_distinguishes_content(tmp_path: Path) -> None:
+    """The content key is a NAME: same bytes -> same key, different content -> different key.
+
+    Replaces the old whole-file-sha test. The key is now derived from the bounded head + size + gzip
+    ISIZE (issue #37), never a whole-file read.
+    """
     rng = random.Random(6)
     a = tmp_path / "a.fastq.gz"
     b = tmp_path / "b.fastq.gz"
     seqs = [_rand_seq(rng, 28) for _ in range(50)]
     _write_fastq_gz(a, _recs(seqs))
-    _write_fastq_gz(b, _recs(seqs[:-1]))
-    assert hash_file(a) == hash_file(a)
-    assert hash_file(a) != hash_file(b)
+    _write_fastq_gz(b, _recs(seqs[:-1]))  # one fewer read => different content
+    key_a = probe_file(a).file.sha256
+    assert key_a == probe_file(a).file.sha256  # stable across probes of the same file
+    assert key_a != probe_file(b).file.sha256  # distinct content => distinct key
+
+
+class _CountingReader:
+    """Wrap a binary file object and tally every byte handed out by ``read``/``readinto``."""
+
+    def __init__(self, fh, counter: list[int]) -> None:
+        self._fh = fh
+        self._counter = counter
+
+    def read(self, *args):
+        data = self._fh.read(*args)
+        self._counter[0] += len(data)
+        return data
+
+    def readinto(self, b):
+        n = self._fh.readinto(b)
+        self._counter[0] += n
+        return n
+
+    def __getattr__(self, name):
+        return getattr(self._fh, name)
+
+    def __enter__(self):
+        self._fh.__enter__()
+        return self
+
+    def __exit__(self, *exc):
+        return self._fh.__exit__(*exc)
+
+
+def test_the_content_address_never_scans_the_whole_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#37 tripwire: fingerprinting must never read a whole FASTQ, however large.
+
+    The old content-address hashed the entire *compressed* file — a whole-file read that
+    ``obs.probe.bytes_read`` (decompressed sample only) never saw, so no existing test caught it. This
+    counts EVERY byte read from the file at the OS boundary and pins it under the bounded head; a
+    regression that scans the whole file reads >= its on-disk size and fails both assertions.
+    """
+    path = tmp_path / "enormous.fastq.gz"
+    _write_enormous_fastq_gz(path)  # >100 MB decompressed, small on disk
+    on_disk = path.stat().st_size
+
+    counter = [0]
+    real_open = builtins.open
+
+    def counting_open(file, *args, **kwargs):
+        fh = real_open(file, *args, **kwargs)
+        return _CountingReader(fh, counter) if str(file) == str(path) else fh
+
+    monkeypatch.setattr(builtins, "open", counting_open)
+    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+    monkeypatch.undo()
+
+    # Precondition: the file really is much larger than the bounded head we sampled.
+    assert on_disk > obs.probe.compressed_bytes_read * 3
+    assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)  # it still produced a key...
+    assert counter[0] < on_disk  # ...without scanning the whole compressed file
+    # Tighter: only the bounded head sample (+ the 4-byte ISIZE trailer + decoder read-ahead).
+    assert counter[0] <= obs.probe.compressed_bytes_read + 65_536

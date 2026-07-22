@@ -38,7 +38,7 @@ def _reject_absolute_or_local(value: str) -> str:
 
 # ---- scalars & controlled vocabulary ----
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
-"""Lowercase hex sha256 of a file's bytes."""
+"""Lowercase 64-hex sha256 digest (of file bytes, canonical text, or a bounded content key)."""
 
 Uri = Annotated[str, StringConstraints(min_length=1), AfterValidator(_reject_absolute_or_local)]
 """A manifest URI: relative path / non-file scheme / bare accession. Never an absolute local path."""
