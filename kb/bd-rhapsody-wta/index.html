@@ -890,6 +890,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Enhanced beads (2022)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-seqforge-handles-the-enhanced-bead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How seqforge handles the Enhanced bead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1051,6 +1068,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Enhanced beads (2022)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-seqforge-handles-the-enhanced-bead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How seqforge handles the Enhanced bead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1093,11 +1127,11 @@
 <p>BD Biosciences' droplet-free single-cell 3' RNA-seq. Cells are captured in a microwell plate and
 tagged with a <strong>cell label</strong> built from three barcode blocks on the capture bead, plus a <strong>UMI</strong> on
 each molecule.</p>
-<p>BD ships this chemistry in two bead generations, and this page covers both. The <strong>original
-fixed-position bead</strong> (described first) is what seqforge recognizes and compiles automatically today.
-The 2022 <strong><a href="#enhanced-beads-2022">Enhanced bead</a></strong> is a newer variant with a variable-length diversity
-insert; its structure and how to run it are documented below, and automated support is in progress
-(<a href="https://github.com/liuhlab/seqforge/issues/43">#43</a>).</p>
+<p>BD ships this chemistry in two bead generations, and seqforge recognizes and compiles <strong>both</strong>
+automatically, from the reads. The <strong>original fixed-position bead</strong> is described first; the 2022
+<strong><a href="#enhanced-beads-2022">Enhanced bead</a></strong> — with its variable-length diversity insert — is described
+below. seqforge tells the two apart from the bytes (their linker structure differs), so you never have
+to declare which bead a dataset used.</p>
 <h2 id="how-its-read">How it's read<a class="headerlink" href="#how-its-read" title="Permanent link">&para;</a></h2>
 <p>Two reads:</p>
 <ul>
@@ -1172,24 +1206,33 @@ same way — three 9 bp blocks read off the bead — but two things change:</p>
 </code></pre></div>
 <p>There are two sub-versions, differing only in the cell-label lists: <strong>96</strong> or <strong>384</strong> sequences per
 block (the 384-list "Enhanced v2" allows more cell labels). The read layout is otherwise identical.</p>
-<p><strong>Why it needs dedicated support.</strong> The diversity insert shifts every barcode by a different amount
-from one read to the next, so the positions are no longer fixed. seqforge's byte model reads fixed
-positions today, so it does not yet recognize the Enhanced bead on its own — that work is tracked in
-<strong><a href="https://github.com/liuhlab/seqforge/issues/43">#43</a></strong>, and this page will be updated when it lands.</p>
-<p><strong>Running Enhanced data now.</strong> STARsolo can map Enhanced reads directly by anchoring to the linkers,
-so you can process it today with a hand-written command (endorsed by STAR's author in
-<a href="https://github.com/alexdobin/STAR/issues/1607">issue #1607</a>):</p>
+<h3 id="how-seqforge-handles-the-enhanced-bead">How seqforge handles the Enhanced bead<a class="headerlink" href="#how-seqforge-handles-the-enhanced-bead" title="Permanent link">&para;</a></h3>
+<p>seqforge recognizes and compiles the Enhanced bead <strong>automatically</strong> — you do not tell it the bead
+generation, and you do not pre-trim the diversity insert.</p>
+<ul>
+<li><strong>Recognition.</strong> The diversity insert shifts every barcode by a different amount from one read to the
+  next, so the positions are not fixed. seqforge finds the <code>GTGA…GACA</code> linker frame in each read
+  (tolerating the 0–3 bp stagger and sequencing error), then reads the cell-label and UMI blocks
+  relative to it. The presence of that frame is what separates Enhanced from the original bead, whose
+  longer <code>ACTGGCCTGCGA</code>/<code>GGTAGCGGTGACA</code> linkers sit at fixed positions instead.</li>
+<li><strong>96 vs 384.</strong> The two Enhanced sub-versions have identical read layout and differ only in which
+  cell-label list their blocks match, so seqforge picks the one the barcodes actually hit — exactly how
+  it tells 10x v2 from v3. The 96-plex bead reuses the original bead's cell-label lists; the 384-plex
+  lists ship with seqforge too.</li>
+<li><strong>Compilation.</strong> seqforge maps Enhanced reads with STARsolo's adapter anchor — no pre-trimming — and
+  derives the exact settings STAR's author endorsed in
+  <a href="https://github.com/alexdobin/STAR/issues/1607">issue #1607</a> straight from the read layout:</li>
+</ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>STAR<span class="w"> </span>--soloType<span class="w"> </span>CB_UMI_Complex<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">     </span>--soloAdapterSequence<span class="w"> </span>NNNNNNNNNGTGANNNNNNNNNGACA<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">     </span>--soloCBmatchWLtype<span class="w"> </span>1MM<span class="w"> </span>multi<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">     </span>--soloCBposition<span class="w"> </span>2_0_2_8<span class="w"> </span>2_13_2_21<span class="w"> </span>3_1_3_9<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">     </span>--soloUMIposition<span class="w"> </span>3_10_3_17<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">     </span>--soloCBwhitelist<span class="w"> </span>BD_CLS1.txt<span class="w"> </span>BD_CLS2.txt<span class="w"> </span>BD_CLS3.txt
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">     </span>--soloCBposition<span class="w"> </span>2_0_2_8<span class="w"> </span>2_13_2_21<span class="w"> </span>3_1_3_9<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">     </span>--soloUMIposition<span class="w"> </span>3_10_3_17<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">     </span>--soloCBwhitelist<span class="w"> </span>BD_CLS1.txt<span class="w"> </span>BD_CLS2.txt<span class="w"> </span>BD_CLS3.txt
 </code></pre></div>
-<p>The adapter <code>NNNNNNNNNGTGANNNNNNNNNGACA</code> is <code>CLS1(9) + GTGA + CLS2(9) + GACA</code>; STARsolo finds it in each
-read and reads the barcodes relative to it, so the variable insert at the front takes care of itself.
-For a reproducible workflow spanning every bead generation, see
-<strong><a href="https://github.com/imallona/rhapsodist">rhapsodist</a></strong>.</p>
+<p>The adapter <code>NNNNNNNNNGTGANNNNNNNNNGACA</code> is <code>CLS1(9) + GTGA + CLS2(9) + GACA</code>; STARsolo finds it in
+  each read and reads the barcodes relative to it, so the variable insert at the front takes care of
+  itself. For a reproducible reference workflow spanning every bead generation, see
+  <strong><a href="https://github.com/imallona/rhapsodist">rhapsodist</a></strong>.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>Read structure, linker sequences, and barcode lists pinned from
 <strong><a href="https://teichlab.github.io/scg_lib_structs/methods_html/BD_Rhapsody.html">scg_lib_structs — BD Rhapsody</a></strong>
