@@ -223,7 +223,16 @@ def _process_and_compose(
 
 @app.command("run")
 def run_cmd(
-    files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
+    files: list[Path] = typer.Argument(
+        None, help="The dataset's FASTQ .gz files. Omit when --fingerprint supplies them."
+    ),
+    fingerprint: Path | None = typer.Option(
+        None,
+        "--fingerprint",
+        help="A .fingerprint.tar.gz (or unpacked dir) from `seqforge preflight`: compile from the "
+        "head-slices instead of raw FASTQs. Reproduces the same manifest — hash included — with the "
+        "originals gone. Carried prose is read automatically unless --doc is given.",
+    ),
     accession: list[str] = typer.Option(
         [], "--accession", help="Accession(s): the archive's per-sample records. Optional."
     ),
@@ -309,6 +318,26 @@ def run_cmd(
     """
     from ..io.remote import RemoteError
 
+    # A fingerprint package stands in for the raw FASTQs: unpack it, take its slices as `files`, and
+    # carry a pinned probe map so resolve reproduces the full-file verdict (and hash) from the slices.
+    # Its carried prose feeds harvest unless the caller passed its own --doc.
+    probed: dict[str, tuple[Any, list[str]]] | None = None
+    if fingerprint is not None:
+        from .preflight import fingerprint_run_inputs
+
+        _loaded, files, probed, carried_docs = fingerprint_run_inputs(fingerprint)
+        if not doc and not no_llm:
+            doc = carried_docs
+    if not files:
+        typer.echo(
+            json.dumps(
+                {"error": "no_input", "detail": "pass FASTQ files, or --fingerprint <package>."},
+                indent=2,
+            ),
+            err=True,
+        )
+        raise typer.Exit(2)
+
     # `compose` joins each machine-independent URI (a path relative to the FASTQs' COMMON ROOT, per
     # `dataset_uris`) onto `--fastq-dir` to build units.tsv. So `--fastq-dir` must BE that common root,
     # not just any ancestor: a dataset whose reads all sit in one accession subdir (`SRX…/…_1.fastq.gz`)
@@ -382,6 +411,7 @@ def run_cmd(
         workspace=workspace,
         cpus=_auto_cpus(cpus),
         chemistry_override=assert_chemistry,
+        probed=probed,
     )
     stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
     if fill.code != 0:

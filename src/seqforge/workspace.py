@@ -47,6 +47,11 @@ DOCUMENTS_DIRNAME = "documents"  #: under records/ — the bytes a span citation
 LOGS_DIRNAME = "logs"
 CACHE_DIRNAME = "cache"
 
+#: A *deliverable*, top-level beside `pipeline/`, NOT under `cache/`. A fingerprint package is a
+#: portable slice of a dataset — head-sampled FASTQs + a pin that reproduces the full dataset's
+#: identity — that a user carries off this machine; it is output, not a rebuildable cache entry.
+FINGERPRINT_DIRNAME = "fingerprint"
+
 
 def state_dir(workspace: str | Path = ".", *parts: str) -> Path:
     """``<workspace>/seqforge/<parts...>``. Does not create anything — callers that write, mkdir."""
@@ -78,6 +83,16 @@ def logs_dir(workspace: str | Path = ".") -> Path:
 def cache_dir(workspace: str | Path = ".") -> Path:
     """``seqforge/cache/`` — content-addressed, resumable, safe to delete and rebuild."""
     return state_dir(workspace, CACHE_DIRNAME)
+
+
+def fingerprint_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/fingerprint/`` — portable dataset slices (a deliverable, not cache).
+
+    Top-level beside ``pipeline/`` on purpose: a ``.fingerprint.tar.gz`` is something a user carries
+    off this machine, not a rebuildable cache entry. Deleting it loses work; deleting ``cache/`` loses
+    nothing.
+    """
+    return state_dir(workspace, FINGERPRINT_DIRNAME)
 
 
 def readable(name: str, digest: str) -> str:

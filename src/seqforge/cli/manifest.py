@@ -31,6 +31,7 @@ from ._common import _auto_cpus, _emit, _load_manifest, _resolve_organism, _Stag
 from .root import manifest_app
 
 if TYPE_CHECKING:
+    from ..models.observation import Observation
     from ..models.records import ArchiveRecordSet
 
 
@@ -187,6 +188,7 @@ def _fill_manifest_pipeline(
     workspace: Path,
     cpus: int = 1,
     chemistry_override: str | None = None,
+    probed: dict[str, tuple[Observation, list[str]]] | None = None,
 ) -> _StageOut:
     """Probe -> resolve -> metadata -> PARTITION into assays -> assemble + validate each manifest.
 
@@ -251,6 +253,9 @@ def _fill_manifest_pipeline(
         workspace=workspace,
         use_cache=False,
         cpus=cpus,
+        # A fingerprint run hands in pinned stand-in observations for the head-slices, so the resolve
+        # verdict (and the manifest hash) reproduces the full FASTQs' without their bytes present.
+        _probed=probed,
     )
     # Surface any OPEN conflict / question as a human-editable questions.md (and clear a stale one on a
     # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly
