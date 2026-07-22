@@ -108,6 +108,20 @@ def barcode_read_length():
     return f"--soloBarcodeReadLength {value}" if value is not None else ""
 
 
+def adapter_sequence():
+    """--soloAdapterSequence, and ONLY when the chemistry declares it (an ANCHORED bead).
+
+    BD Rhapsody Enhanced prepends a variable 0-3 bp diversity insert to the barcode read, so the CB/UMI
+    offsets float. STARsolo absorbs the stagger by anchoring to this adapter (`NNN...GTGANNN...GACA`):
+    it finds the adapter in each read and reads the barcodes at the anchor-2/anchor-3 positions
+    `cb_umi_geometry()` emits. Derived from the linker elements at compose time (compose/params.py) and
+    present in `config["solo"]` only for such a chemistry -- `.get`, so a fixed-offset chemistry (10x,
+    the original BD bead) neither declares it nor has the scanner mark it a required key.
+    """
+    value = SOLO.get("soloAdapterSequence")
+    return f"--soloAdapterSequence {value}" if value is not None else ""
+
+
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
 # file-by-file, and that is the point. `starsolo_count` used to declare
 # `directory(f"{OUTDIR}/{{sample}}/Solo.out")`, under which STAR writing three of five features and
@@ -223,6 +237,7 @@ rule starsolo_count:
         solo=SOLO,
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
+        adapter=adapter_sequence(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
         # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
@@ -238,6 +253,7 @@ rule starsolo_count:
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --soloType {params.solo[soloType]} \
              {params.geometry} \
+             {params.adapter} \
              {params.barcode_read_length} \
              --soloCBwhitelist {input.whitelist} \
              --soloStrand {params.solo[soloStrand]} \

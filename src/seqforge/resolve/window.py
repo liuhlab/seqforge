@@ -9,9 +9,11 @@ those window queries. It never re-reads the file: the sample is already within t
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
+from ..io.onlist import pack_barcode, revcomp
+from ..kb.schema import Read
 from ..models.observation import CycleComposition, Observation
 
 _IUPAC = {
@@ -23,14 +25,100 @@ _IUPAC = {
 
 @dataclass(frozen=True)
 class WindowProbe:
-    """An Observation plus its bounded sampled sequences, queryable over arbitrary windows."""
+    """An Observation plus its bounded sampled sequences, queryable over arbitrary windows.
+
+    Most windows are a fixed ``[start, end)`` column. **Anchored** (floating) elements are not — their
+    per-read position is recovered by :func:`seqforge.kb.anchor.resolve_windows`, and the
+    ``anchored_*`` methods answer distinct-ratio / onlist-hit over those per-read frames instead. The
+    full per-read frame is resolved once and memoized (``_frame_cache``, keyed by the ``Read`` object)
+    so scoring three cell-label blocks on one read does not realign it three times.
+    """
 
     observation: Observation
     seqs: list[str]
+    #: read object identity -> per-sampled-read resolved element windows (``None`` where the frame was
+    #: not found). Mutated in place; the frozen dataclass forbids rebinding the attribute, not filling
+    #: the dict. ``compare=False`` so two probes with equal seqs stay equal regardless of what was cached.
+    _frame_cache: dict[int, list[dict[str, tuple[int, int]] | None]] = field(
+        default_factory=dict, compare=False, repr=False
+    )
 
     @property
     def n_sampled(self) -> int:
         return len(self.seqs)
+
+    def _frames(self, read: Read) -> list[dict[str, tuple[int, int]] | None]:
+        """Per-read resolved element windows for an anchored layout, memoized per ``Read``."""
+        key = id(read)
+        cached = self._frame_cache.get(key)
+        if cached is None:
+            from ..kb.anchor import resolve_windows
+
+            cached = [resolve_windows(s, read) for s in self.seqs]
+            self._frame_cache[key] = cached
+        return cached
+
+    def anchored_windows(self, read: Read, element_name: str) -> list[tuple[int, int] | None]:
+        """The per-read ``[start, end)`` of one floating element (``None`` where the frame was lost)."""
+        return [f.get(element_name) if f is not None else None for f in self._frames(read)]
+
+    def anchored_distinct_ratio(self, read: Read, element_name: str) -> float | None:
+        """``distinct/total`` of a floating element's per-read slices; ``None`` if no frame resolved."""
+        windows = self.anchored_windows(read, element_name)
+        slices = [
+            self.seqs[i][s:e] for i, w in enumerate(windows) if w is not None for s, e in (w,)
+        ]
+        slices = [s for s in slices if s]
+        if not slices:
+            return None
+        return len(set(slices)) / len(slices)
+
+    def anchored_onlist_hit(
+        self,
+        read: Read,
+        element_name: str,
+        onlist: PackedOnlist,
+        orientation: Orientation = "either",
+    ) -> HitResult:
+        """Whitelist hit-rate of a floating element, sliced per read at its resolved frame.
+
+        The anchored twin of :func:`~seqforge.io.onlist.onlist_hit_rate`: no offset scan (the frame IS
+        the offset), forward and/or reverse-complement per ``orientation``. ``n_tested`` counts reads
+        whose frame resolved to a window of the onlist's width; a lost frame simply does not contribute.
+        """
+        windows = self.anchored_windows(read, element_name)
+        strands = (
+            ["forward"]
+            if orientation == "forward"
+            else ["revcomp"]
+            if orientation == "revcomp"
+            else ["forward", "revcomp"]
+        )
+        best = HitResult(
+            hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor
+        )
+        for strand in strands:
+            tested = 0
+            hits = 0
+            for i, w in enumerate(windows):
+                if w is None:
+                    continue
+                sub = self.seqs[i][w[0] : w[1]]
+                if len(sub) != onlist.width:
+                    continue
+                tested += 1
+                code = pack_barcode(revcomp(sub) if strand == "revcomp" else sub)
+                if code is not None and onlist.contains(code):
+                    hits += 1
+            if tested and hits / tested > best.hit_rate:
+                best = HitResult(
+                    hit_rate=hits / tested,
+                    orientation=strand,  # type: ignore[arg-type]
+                    offset=0,
+                    n_tested=tested,
+                    floor=onlist.floor,
+                )
+        return best
 
     @property
     def mode_length(self) -> int:

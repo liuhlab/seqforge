@@ -1,0 +1,91 @@
+schema_version: 1
+
+# ============================================================================================
+# BD RHAPSODY WTA — ENHANCED bead, 96(/97) x 3 cell-label lists (rhapsodist class `enhanced`).
+#
+# A leaf of `bd-rhapsody-wta-enhanced`. Byte-identical Enhanced geometry (0-3 bp diversity insert +
+# GTGA/GACA linkers); what makes it THIS leaf is that its three CLS blocks hit the ORIGINAL 97 x 9 bp
+# cell-label pools — the very same `bd-rhapsody-cls1/2/3` whitelists the original fixed-offset bead uses
+# (verified: the shipped v1 lists are byte-identical to rhapsodist's whitelist_96x3, 97 entries each).
+# Its sibling `-v2` uses the disjoint 384 x 3 pools; the two share 0 barcodes, so the onlist decides.
+#
+# The layout (reads/elements) is inherited verbatim from the family and is what the round-trip and the
+# adapter-anchored `compose` derivation read; see the family node for the annotated read structure.
+# ============================================================================================
+
+identity:
+  id: bd-rhapsody-wta-enhanced-96
+  version: enhanced-96
+  name: "BD Rhapsody WTA — Enhanced bead (96-plex cell labels)"
+  aliases: ["BD Rhapsody Enhanced 96", "Rhapsody Enhanced 96x3"]
+  assay_ontology: ["EFO:0700003"]
+  modality: rna
+
+parent: bd-rhapsody-wta-enhanced
+
+reads:
+  - id: cdna
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+  - id: bc
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 43
+    max_len: null
+    elements:
+      - {type: diversity, name: vb, min_len: 0, max_len: 3, seqspec_region_type: linker}
+      - {type: barcode, name: cls1, min_len: 9, max_len: 9, onlist: cls1, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: vb, ref_side: end, offset: 0}}
+      - {type: linker, name: linker1, sequence: "GTGA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls1, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls2, min_len: 9, max_len: 9, onlist: cls2, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker1, ref_side: end, offset: 0}}
+      - {type: linker, name: linker2, sequence: "GACA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls2, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls3, min_len: 9, max_len: 9, onlist: cls3, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker2, ref_side: end, offset: 0}}
+      - {type: umi, name: UMI, min_len: 8, max_len: 8, seqspec_region_type: umi,
+         anchor: {relative_to: element, ref_element: cls3, ref_side: end, offset: 0}}
+
+onlists:
+  cls1: {registry: bd-rhapsody-cls1, role: cell_barcode, expected_orientation: forward}  # 97 x 9 bp
+  cls2: {registry: bd-rhapsody-cls2, role: cell_barcode, expected_orientation: forward}
+  cls3: {registry: bd-rhapsody-cls3, role: cell_barcode, expected_orientation: forward}
+
+signature:
+  requires:                              # the GTGA...GACA frame is the byte signature (stagger-tolerant)
+    - {test: read_count, roles: 2}
+    - {test: motif_present, read: bc, motif: "GTGANNNNNNNNNGACA", where: window,
+       search_start: 8, search_end: 13, max_mismatch: 2, min_rate: 0.5}
+  supports:                              # each CLS block hits its own 97 x 9 bp pool, resolved per-read
+    - {when: {test: onlist_hit_rate, read: bc, element: cls1, onlist: cls1, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: onlist_hit_rate, read: bc, element: cls2, onlist: cls2, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: onlist_hit_rate, read: bc, element: cls3, onlist: cls3, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: distinct_ratio, read: bc, element: UMI, expect: high}, weight: 1.0}
+    - {when: {test: distinct_ratio, read: cdna, start: 0, end: 20, expect: high}, weight: 1.0}
+  excludes: []
+
+backend:
+  module: map/starsolo
+  params:
+    soloType: CB_UMI_Complex
+    soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]   # order == CB-position order
+    # soloStrand Forward: the bead oligo ends in poly(dT) priming off the mRNA poly(A), so R2 is sense to
+    # the transcript — a 3' poly-dT capture library like the original bead (STAR #1607 sets Forward).
+    soloStrand: Forward
+    # soloAdapterSequence, soloCBposition, soloUMIposition are DERIVED from the anchored element model at
+    # compose time (compose/params.py) -> "NNNNNNNNNGTGANNNNNNNNNGACA" + "2_0_2_8 2_13_2_21 3_1_3_9" +
+    # "3_10_3_17", byte-identical to the maintainer-endorsed STARsolo string on issue #1607. Never
+    # hand-entered: the adapter anchor is where STARsolo absorbs the variable diversity insert.
+
+# Siblings under the family are decided by onlist (parent.children_decided_by), so no per-sibling edge.
+# Nothing else is confusable: the GTGA...GACA `requires` motif rejects the original bead, 10x and bulk
+# outright, and the >43 bp bc read is length-infeasible for 10x. (The generic bulk fallback accepts THIS
+# on read-count alone, so the edge is declared on `bulk-rnaseq-pe`, mirroring the original bead.)
+confusable_with: []

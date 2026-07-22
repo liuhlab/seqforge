@@ -285,11 +285,16 @@ def test_the_only_list_valued_parse_param_left_is_positional() -> None:
         for key, value in kb.load_spec(tech).require_backend().params.items()
         if isinstance(value, list)
     }
-    assert list_params == {
-        ("splitseq", "soloCBwhitelist"),
-        ("bd-rhapsody-wta", "soloCBwhitelist"),
-    }
-    assert all(key == "soloCBwhitelist" for _, key in list_params)
+    # Derived, not enumerated: the invariant is "every list-valued parse param is a positional
+    # whitelist", so assert THAT rather than a hand-kept roster of which specs have one (which rots the
+    # moment a BD/split-pool-shaped chemistry is added — as the Enhanced leaves just did). A non-
+    # whitelist list param is the thing that must force a look at `_resolve_value`.
+    assert list_params, "expected at least one list-valued whitelist param (splitseq / BD Rhapsody)"
+    assert all(key == "soloCBwhitelist" for _, key in list_params), (
+        f"a non-whitelist list-valued parse param appeared: "
+        f"{sorted(list_params)} — revisit _resolve_value, which flattens list params assuming "
+        f"positional soloCBwhitelist semantics"
+    )
 
 
 def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> None:
@@ -346,6 +351,169 @@ def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> 
     assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # decided by the onlist
     assert out.exit_code() == 0  # a clean win — not a divergent-tie question, not a collapse
     assert not out.result.questions
+
+
+# ---------- BD Rhapsody Enhanced bead: the anchored/variable-position chemistry (#43) ----------
+_VB = ("", "A", "GT", "TCA")  # the 0-3 bp diversity insert -> a per-read stagger
+
+
+def _enhanced_r1(pools: list[list[str]], n: int, rng: object) -> list[str]:
+    """Synthetic Enhanced Read 1: [VB][CLS1]GTGA[CLS2]GACA[CLS3][UMI(8)] + over-sequenced poly-T tail.
+
+    The leading VB length cycles 0..3 so every read is staggered differently — exactly what the fixed-
+    offset model cannot express and the anchored resolver must recover. CLS blocks are drawn from
+    ``pools`` (the real shipped whitelists), so a resolve run hits them at rung 3.
+    """
+    import random
+
+    assert isinstance(rng, random.Random)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    out = []
+    for i in range(n):
+        out.append(
+            _VB[i % 4]
+            + rng.choice(pools[0])
+            + "GTGA"
+            + rng.choice(pools[1])
+            + "GACA"
+            + rng.choice(pools[2])
+            + rand(8)
+            + "T" * 15
+        )
+    return out
+
+
+@pytest.mark.parametrize(
+    ("suffix", "expected"),
+    [("", "bd-rhapsody-wta-enhanced-96"), ("-384", "bd-rhapsody-wta-enhanced-v2")],
+)
+def test_bd_enhanced_resolves_to_the_right_leaf_from_bytes(
+    suffix: str, expected: str, tmp_path: Path
+) -> None:
+    """The headline acceptance (#43): an Enhanced-bead library resolves to the correct leaf FROM BYTES.
+
+    The two Enhanced sub-versions differ ONLY in whitelist (97 vs 384 sequences per CLS block, disjoint
+    pools), so telling ``-96`` from ``-v2`` is onlist-decided at rung 3 — exactly the 10x v2/v3 split.
+    Reads are built from the REAL shipped CLS lists and staggered by the 0-3 bp diversity insert; a
+    clean win here proves the family recognised the GTGA...GACA frame, descended, and the anchored
+    onlist hit resolved the per-read barcode windows the stagger created.
+    """
+    import random
+
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import unpack_barcodes
+    from seqforge.resolve import resolve_dataset
+
+    pools = [
+        unpack_barcodes(DEFAULT_REGISTRY.packed(f"bd-rhapsody-cls{i}{suffix}")) for i in (1, 2, 3)
+    ]
+    rng = random.Random(0)
+    r1 = _enhanced_r1(pools, 800, rng)
+    r2 = ["".join(rng.choice("ACGT") for _ in range(90)) for _ in range(800)]
+    f1, f2 = tmp_path / "enh_R1.fastq.gz", tmp_path / "enh_R2.fastq.gz"
+    _write_fastq_gz(f1, r1)
+    _write_fastq_gz(f2, r2)
+
+    out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
+    assert out.result.candidates, "Enhanced reads must resolve to a candidate"
+    assert out.result.candidates[0].technology == expected, [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # onlist-decided leaf
+    assert (
+        out.exit_code() == 0
+    )  # a clean win over bulk and the sibling — not a divergent-tie question
+    assert not out.result.questions
+
+
+def test_bd_v1_and_enhanced_are_told_apart_from_the_bytes(tmp_path: Path) -> None:
+    """v1 (original bead) vs Enhanced is BYTE-decided, even though they share the 97 x 3 cell labels.
+
+    Both draw their CLS blocks from the same `bd-rhapsody-cls*` pools, so the onlist cannot separate
+    them — only the linker STRUCTURE can: v1 has the fixed 12/13 bp `ACTGGCCTGCGA`/`GGTAGCGGTGACA`
+    linkers, Enhanced the staggered 4 bp `GTGA`/`GACA`. Each library must resolve to its own chemistry
+    and NOT the other, which is the auto-distinction #43 promises.
+    """
+    import random
+
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import unpack_barcodes
+    from seqforge.resolve import resolve_dataset
+
+    pools = [unpack_barcodes(DEFAULT_REGISTRY.packed(f"bd-rhapsody-cls{i}")) for i in (1, 2, 3)]
+    rng = random.Random(1)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    # v1: FIXED offsets, the long 12/13 bp linkers, no diversity insert.
+    v1_r1 = [
+        rng.choice(pools[0])
+        + "ACTGGCCTGCGA"
+        + rng.choice(pools[1])
+        + "GGTAGCGGTGACA"
+        + rng.choice(pools[2])
+        + rand(8)
+        + "T" * 8
+        for _ in range(800)
+    ]
+    enh_r1 = _enhanced_r1(pools, 800, rng)
+    r2 = [rand(90) for _ in range(800)]
+
+    def _resolve(r1: list[str]) -> str:
+        f1, f2 = tmp_path / "a_R1.fastq.gz", tmp_path / "a_R2.fastq.gz"
+        _write_fastq_gz(f1, r1)
+        _write_fastq_gz(f2, r2)
+        out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
+        assert out.result.candidates
+        return out.result.candidates[0].technology
+
+    assert _resolve(v1_r1) == "bd-rhapsody-wta"  # the fixed linkers -> original bead
+    assert _resolve(enh_r1) in {
+        "bd-rhapsody-wta-enhanced-96",
+        "bd-rhapsody-wta-enhanced-v2",
+    }  # the GTGA/GACA frame -> Enhanced, never the original bead
+
+
+def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
+    """`kb.anchor.resolve_windows` recovers each CLS/UMI window across the 0-3 bp insert, and only then.
+
+    The unit-level guarantee under the resolution above: given the declared Enhanced layout, every
+    staggered read's barcode windows are recovered exactly, and a read WITHOUT the GTGA...GACA frame
+    (a cDNA read) yields no frame at all rather than a wrong slice.
+    """
+    import random
+
+    from seqforge.kb.anchor import has_anchored_elements, resolve_windows
+
+    spec = kb.load_spec("bd-rhapsody-wta-enhanced-96")
+    bc = next(r for r in spec.reads if r.id == "bc")
+    assert has_anchored_elements(bc)
+    rng = random.Random(0)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    recovered = 0
+    for i in range(400):
+        c1, c2, c3, umi = rand(9), rand(9), rand(9), rand(8)
+        seq = _VB[i % 4] + c1 + "GTGA" + c2 + "GACA" + c3 + umi + "T" * 20
+        w = resolve_windows(seq, bc)
+        assert w is not None
+        if (
+            seq[slice(*w["cls1"])] == c1
+            and seq[slice(*w["cls2"])] == c2
+            and seq[slice(*w["cls3"])] == c3
+            and seq[slice(*w["UMI"])] == umi
+        ):
+            recovered += 1
+    assert recovered == 400  # every staggered read, exactly
+    # a plain cDNA read has no GTGA...GACA frame -> unresolved, never mis-sliced
+    misfires = sum(1 for _ in range(400) if resolve_windows(rand(90), bc) is not None)
+    assert misfires <= 8  # chance frame matches are rare and would fail the onlist anyway
 
 
 # ---------- The rung-0-2 separability guard (design §2.4, fact 1) ----------

@@ -36,10 +36,10 @@ inverted ``--soloStrand``. This gate asserts the value survives compose intact; 
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Literal
 
-from ..kb.schema import KB_PARSE_KEYS, Element, Spec
+from ..kb.schema import KB_PARSE_KEYS, Element, Read, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import ProcessingManifest, Quantification, SoloQuant
 from ..workflows import get_module
@@ -50,7 +50,9 @@ ParamOwner = Literal["kb", "processing", "derived"]
 RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
 """Every backend param sourced from the processing manifest. Each says what to **COUNT**."""
 
-DERIVED_PARAM_KEYS: frozenset[str] = frozenset({"soloCBposition", "soloUMIposition"})
+DERIVED_PARAM_KEYS: frozenset[str] = frozenset(
+    {"soloCBposition", "soloUMIposition", "soloAdapterSequence"}
+)
 """Params computed from the element model rather than declared by anyone.
 
 Still parse keys — byte-decided, never instructable — but the bytes already answered them in
@@ -58,6 +60,13 @@ the spec's element coordinates, so a KB that *also* declared the quadruple would
 twice and let the two drift. A third owner, because "one fact, one owner" is the whole point of
 :func:`param_owners`; folding these into ``kb`` would make the gate certify a value the KB never
 stated.
+
+``soloAdapterSequence`` joined this set for BD Rhapsody Enhanced (#43): an anchored chemistry's
+diversity insert is absorbed by STARsolo's adapter anchor, and the adapter (``NNN…GTGANNN…GACA``) is
+just the barcode widths and linker literals read off the elements — one more fact the coordinates
+already state. It was in ``KB_PARSE_KEYS`` (declarable) but nothing emitted it; now it is derived, and
+the ``soloCBposition``/``soloUMIposition`` quadruples become adapter-anchored (anchor 2/3) rather than
+read-start-anchored (anchor 0) for such a chemistry.
 """
 
 
@@ -65,59 +74,154 @@ def derived_params(spec: Spec) -> dict[str, str]:
     """Locate a ``CB_UMI_Complex`` chemistry's barcodes/UMI from its elements, as STAR wants them.
 
     STARsolo's complex chemistries take position quadruples
-    (``startAnchor_startPos_endAnchor_endPos``; anchor 0 = read start, positions 0-based INCLUSIVE)
-    rather than the start/length pair a simple chemistry uses. The splitseq spec says outright why
-    this is computed and not written down: *"never hand-enter a position quadruple from memory —
-    generate it from the element model"*. A published quadruple is also chemistry-specific in a way
-    that invites exactly that error — v1's Round1 sits at 86-93 and Parse/v2's at 78-85, so a
-    remembered value is a coin flip between two real chemistries.
+    (``startAnchor_startPos_endAnchor_endPos``; positions 0-based INCLUSIVE) rather than the
+    start/length pair a simple chemistry uses. The splitseq spec says outright why this is computed
+    and not written down: *"never hand-enter a position quadruple from memory — generate it from the
+    element model"*. A published quadruple is also chemistry-specific in a way that invites exactly
+    that error — v1's Round1 sits at 86-93 and Parse/v2's at 78-85, so a remembered value is a coin
+    flip between two real chemistries.
+
+    Two geometries, one function. A **fixed-offset** chemistry anchors every element to the read start
+    (anchor 0): ``0_<start>_0_<end>``. An **anchored** chemistry (BD Rhapsody Enhanced's floating
+    diversity insert) cannot — no offset is constant — so it anchors to the ``GTGA…GACA`` adapter
+    instead (anchor 2 = adapter start, anchor 3 = adapter end), and also derives the
+    ``soloAdapterSequence`` STARsolo locates that adapter by. Both are read off the same element model;
+    which one applies is decided by whether the barcode read carries an ``anchor``.
 
     Order is load-bearing: STARsolo pairs the Nth ``soloCBwhitelist`` with the Nth
     ``soloCBposition``, so the quadruples are emitted in the whitelist's declared order, never the
     elements' positional order.
     """
-    if spec.require_backend().params.get("soloType") != "CB_UMI_Complex":
+    backend = spec.require_backend()
+    if backend.params.get("soloType") != "CB_UMI_Complex":
         return {}
 
     by_onlist: dict[str, Element] = {}
     umi: Element | None = None
+    bc_read = None
     for read in spec.reads:
         for el in read.elements:
             if el.type == "barcode" and el.onlist:
                 by_onlist[el.onlist] = el
+                bc_read = read
             elif el.type == "umi":
                 umi = el
 
-    whitelist = spec.require_backend().params.get("soloCBwhitelist")
-    aliases = [
-        v[len("{onlist:") : -1]
-        for v in (whitelist if isinstance(whitelist, list) else [whitelist])
-        if isinstance(v, str) and v.startswith("{onlist:")
-    ]
+    aliases = _whitelist_aliases(backend.params.get("soloCBwhitelist"))
     out: dict[str, str] = {}
-    positions = [q for a in aliases if (q := _quadruple(by_onlist.get(a))) is not None]
+
+    anchored = bc_read is not None and any(el.anchor is not None for el in bc_read.elements)
+    if anchored:
+        frame = _adapter_frame(bc_read)  # type: ignore[arg-type]
+        if frame is None:
+            return {}  # no linker anchor to hang the adapter on — nothing safe to derive
+        adapter_seq, quad = frame
+        out["soloAdapterSequence"] = adapter_seq
+    else:
+        quad = _quadruple
+
+    positions = [q for a in aliases if (q := quad(by_onlist.get(a))) is not None]
     if positions:
         out["soloCBposition"] = " ".join(positions)
-    umi_pos = _quadruple(umi)
+    umi_pos = quad(umi)
     if umi_pos is not None:
         out["soloUMIposition"] = umi_pos
     return out
 
 
+def _whitelist_aliases(whitelist: object) -> list[str]:
+    """The ``{onlist:alias}`` tokens of ``soloCBwhitelist``, in declared (CB-position) order."""
+    values = whitelist if isinstance(whitelist, list) else [whitelist]
+    return [
+        v[len("{onlist:") : -1] for v in values if isinstance(v, str) and v.startswith("{onlist:")
+    ]
+
+
 def _quadruple(el: Element | None) -> str | None:
-    """One element -> ``0_<start>_0_<end>``: anchored at the read start, both ends inclusive.
+    """One FIXED-offset element -> ``0_<start>_0_<end>``: anchored at the read start, ends inclusive.
 
     The element model is half-open ``[start, end)`` (Python's convention); STAR's quadruple is
     closed. That off-by-one is the whole reason this is a function with a name.
 
     ``None`` when the element is absent or open-ended: a quadruple needs both coordinates, and an
-    element without them (cDNA runs to the end of the read) has no position to state. Returning
-    ``None`` keeps the key out of the config entirely rather than emitting ``0_0_0_-1``, which STAR
-    would accept as a real and wrong instruction.
+    element without them (cDNA runs to the end of the read, OR an anchored element that floats) has no
+    fixed position to state. Returning ``None`` keeps the key out of the config entirely rather than
+    emitting ``0_0_0_-1``, which STAR would accept as a real and wrong instruction.
     """
     if el is None or el.start is None or el.end is None:
         return None
     return f"0_{el.start}_0_{el.end - 1}"
+
+
+def _nominal_width(el: Element) -> int | None:
+    """An element's constant width (diversity insert at its MINIMUM), or ``None`` if open-ended.
+
+    The adapter-anchored quadruples are invariant to the diversity insert's per-read length (every
+    element shifts together), so they are computed in NOMINAL coordinates — the layout with the insert
+    at its minimum. That is what makes ``2_0_2_8`` a single derivable fact rather than a per-read one.
+    """
+    if el.start is not None and el.end is not None:
+        return el.end - el.start
+    if el.sequence is not None:
+        return len(el.sequence)
+    if el.min_len is not None:
+        return el.min_len
+    return None
+
+
+def _adapter_frame(read: Read) -> tuple[str, Callable[[Element | None], str | None]] | None:
+    """Build STARsolo's adapter sequence + an adapter-anchored quadruple maker for a floating chemistry.
+
+    The adapter spans from the first barcode/UMI/linker element through the LAST linker (BD Enhanced:
+    ``CLS1 GTGA CLS2 GACA``), rendered as ``N``×width for a barcode/UMI and the literal for a linker ->
+    ``NNNNNNNNNGTGANNNNNNNNNGACA``. STARsolo finds that in each read, absorbing the leading diversity
+    insert. Elements up to the last linker are then anchored to the adapter START (anchor 2); elements
+    after it (CLS3, UMI) to the adapter END (anchor 3, where position 0 is the adapter's last base).
+    ``None`` when there is no linker to anchor on. All coordinates are NOMINAL (:func:`_nominal_width`).
+    """
+    order = list(read.elements)
+    nominal: dict[str, tuple[int, int]] = {}
+    pos = 0
+    for el in order:
+        w = _nominal_width(el)
+        if w is None:
+            return None  # an open-ended element in the barcode read: not an adapter chemistry
+        nominal[el.name] = (pos, pos + w)
+        pos += w
+
+    linker_idxs = [
+        i for i, el in enumerate(order) if el.type in ("linker", "fixed") and el.sequence
+    ]
+    adapter_idxs = [
+        i for i, el in enumerate(order) if el.type in ("barcode", "umi", "linker", "fixed")
+    ]
+    if not linker_idxs or not adapter_idxs:
+        return None
+    start_idx, last_linker_idx = adapter_idxs[0], linker_idxs[-1]
+
+    adapter_seq = "".join(
+        el.sequence
+        if (el.type in ("linker", "fixed") and el.sequence)
+        else "N" * (nominal[el.name][1] - nominal[el.name][0])
+        for el in order[start_idx : last_linker_idx + 1]
+    )
+    adapter_start = nominal[order[start_idx].name][0]
+    adapter_end = nominal[order[last_linker_idx].name][1]  # one-past the adapter's last base
+
+    def quad(el: Element | None) -> str | None:
+        if el is None or el.name not in nominal:
+            return None
+        s, e = nominal[el.name]
+        width = e - s
+        if width <= 0:
+            return None
+        if s >= adapter_end:  # after the adapter -> anchor 3 (position 0 == adapter's last base)
+            rel = s - (adapter_end - 1)
+            return f"3_{rel}_3_{rel + width - 1}"
+        rel = s - adapter_start  # within the adapter -> anchor 2 (relative to adapter start)
+        return f"2_{rel}_2_{rel + width - 1}"
+
+    return adapter_seq, quad
 
 
 def processing_params(quant: Quantification) -> dict[str, object]:

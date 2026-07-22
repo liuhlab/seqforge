@@ -1,0 +1,99 @@
+schema_version: 1
+
+# ============================================================================================
+# BD RHAPSODY WTA — ENHANCED CELL CAPTURE BEAD (2022, "v2.0"): the ABSTRACT FAMILY NODE.
+#
+# The Enhanced bead prepends a VARIABLE-LENGTH 0-3 bp diversity insert to Read 1, so every cell-label
+# block downstream STAGGERS per read — the fixed-offset original bead (`bd-rhapsody-wta`) cannot express
+# this. Read 1 (5'->3'):
+#     [VB 0-3bp][CLS1 9][GTGA][CLS2 9][GACA][CLS3 9][UMI 8](dT)...   (R1 over-sequenced into poly(T))
+# The two 4 bp linkers GTGA / GACA (vs the original bead's 12/13 bp linkers) at their staggered
+# positions are the byte signature. It recognises the bead by phase-locking that GTGA...GACA frame
+# (`motif_present`, tolerant of the 0-3 bp stagger + 2 substitutions), exactly as rhapsodist does by
+# Hamming-matching the linkers across a range(4) offset scan (workflow/src/workflow_functions.py).
+#
+# This node is a FAMILY, not a runnable chemistry: the two Enhanced sub-versions differ ONLY in
+# whitelist size (96 vs 384 sequences per block) — an ONLIST-decided split, exactly like 10x v2/v3 — so
+# there is no single recipe here. Descent resolves to a leaf:
+#     bd-rhapsody-wta-enhanced-96   (97 x 3 cell-label lists, == the original bead's lists)
+#     bd-rhapsody-wta-enhanced-v2   (384 x 3 cell-label lists)
+# It is NEVER scored as a candidate (the scorer skips backend-less nodes) and self-tests by RECOGNITION
+# (test_a_family_node_recognizes_its_children_and_no_one_else), not `kb roundtrip`.
+#
+# Sources (never memory): read structure + linkers from the BD Rhapsody Enhanced v2.0 protocol and
+# rhapsodist (imallona/rhapsodist, Moro & Mallona 2025); STARsolo adapter-anchor recipe endorsed by
+# @alexdobin on github.com/alexdobin/STAR/issues/1607.
+# ============================================================================================
+
+identity:
+  id: bd-rhapsody-wta-enhanced
+  version: enhanced-family
+  name: "BD Rhapsody WTA — Enhanced Cell Capture Bead (family)"
+  aliases: ["BD Rhapsody Enhanced", "Rhapsody Enhanced", "BD Rhapsody Enhanced Beads",
+            "BD Enhanced Cell Capture Beads", "BD Rhapsody WTA Enhanced"]
+  assay_ontology: ["EFO:0700003"]        # BD Rhapsody WTA — the assay the whole family instantiates
+  modality: rna
+
+node_kind: family
+# The children (96 / 384) share the byte-identical Enhanced geometry and are told apart ONLY by which
+# cell-label whitelist their CLS blocks hit — the two pools are DISJOINT (0 shared 9-mers), so the
+# onlist separates them cleanly at rung 3, exactly the v2/v3 pattern.
+children_decided_by: [onlist]
+
+reads:
+  # Read 2 = the cDNA (open-ended, sense to the mRNA — 3' poly-dT capture, like the original bead).
+  - id: cdna
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+  # Read 1 = the bead read. The leading `vb` diversity insert is variable-length (0-3 bp); every element
+  # after it is ANCHORED to the previous one (a sequential chain), so the whole cell label FLOATS by the
+  # per-read insert length. The resolver phase-locks the frame on the GTGA/GACA linkers. `max_len: null`
+  # because R1 is over-sequenced past the ~43 bp structure into poly(T)/cDNA. The family's CLS blocks
+  # carry NO onlist — which whitelist they hit is exactly what descent decides.
+  - id: bc
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 43
+    max_len: null
+    elements:
+      - {type: diversity, name: vb, min_len: 0, max_len: 3, seqspec_region_type: linker}
+      - {type: barcode, name: cls1, min_len: 9, max_len: 9, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: vb, ref_side: end, offset: 0}}
+      - {type: linker, name: linker1, sequence: "GTGA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls1, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls2, min_len: 9, max_len: 9, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker1, ref_side: end, offset: 0}}
+      - {type: linker, name: linker2, sequence: "GACA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls2, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls3, min_len: 9, max_len: 9, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker2, ref_side: end, offset: 0}}
+      - {type: umi, name: UMI, min_len: 8, max_len: 8, seqspec_region_type: umi,
+         anchor: {relative_to: element, ref_element: cls3, ref_side: end, offset: 0}}
+
+onlists: {}
+
+signature:
+  # Coarse recognition only — enough to admit either Enhanced child at rungs 0-2 and reject everything
+  # else (the original fixed bead, 10x, bulk). The GTGA...GACA composite is the structural signature:
+  # `GTGANNNNNNNNNGACA` = GTGA + CLS2(9N) + GACA, searched across the 0-3 bp insert stagger (start
+  # positions 8-13), tolerating 2 substitutions. NO onlist here (that is the children's job).
+  requires:
+    - {test: read_count, roles: 2}
+    - {test: motif_present, read: bc, motif: "GTGANNNNNNNNNGACA", where: window,
+       search_start: 8, search_end: 13, max_mismatch: 2, min_rate: 0.5}
+  supports:
+    # the cell label recurs (low distinct-ratio, resolved at the anchored frame); UMI ~unique; cDNA diverse
+    - {when: {test: distinct_ratio, read: bc, element: cls1, expect: low}, weight: 2.0}
+    - {when: {test: distinct_ratio, read: bc, element: UMI, expect: high}, weight: 1.0}
+    - {when: {test: distinct_ratio, read: cdna, start: 0, end: 20, expect: high}, weight: 1.0}
+  excludes: []
+
+# no backend: abstract classifier. no parent: a root family (distinct from the original-bead root
+# `bd-rhapsody-wta` — the two beads are byte-separable by their linker structure, so they are not kin).
+confusable_with: []

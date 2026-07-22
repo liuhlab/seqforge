@@ -31,6 +31,14 @@
     "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS1.txt",
     "width": 9
   },
+  "bd-rhapsody-cls1-384": {
+    "n_entries": 384,
+    "orientation": "forward",
+    "sha256": "c0b2867b0f3f85e420e7979a654a127f45b8ebb5ca295fb72730cb7d915d28c8",
+    "source_sha256": "466de1e9b22274474f11fe46b77278e058b8a846bf8e824eb713e92edcc6fefd",
+    "uri": "https://raw.githubusercontent.com/imallona/rhapsodist/main/workflow/data/whitelist_384x3/BD_CLS1.txt",
+    "width": 9
+  },
   "bd-rhapsody-cls2": {
     "n_entries": 97,
     "orientation": "forward",
@@ -39,12 +47,28 @@
     "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS2.txt",
     "width": 9
   },
+  "bd-rhapsody-cls2-384": {
+    "n_entries": 384,
+    "orientation": "forward",
+    "sha256": "defac4ad6352b83a5e9e55101fbc3fc032e83e9d033ba191cb238aff86def968",
+    "source_sha256": "7be8dee2607020a2489c11b3bfeaf5f46cbdb5a80d5b384827da50edefdb6f40",
+    "uri": "https://raw.githubusercontent.com/imallona/rhapsodist/main/workflow/data/whitelist_384x3/BD_CLS2.txt",
+    "width": 9
+  },
   "bd-rhapsody-cls3": {
     "n_entries": 97,
     "orientation": "forward",
     "sha256": "c54e5fdafdda7ad8ce73e08405eea5024c73a37d4283e4d67dc5dc7bd6281fa4",
     "source_sha256": "a117052f7c704657915a3b32fd93cc6e9c47842c45018837bbec874ff0126c1d",
     "uri": "https://teichlab.github.io/scg_lib_structs/data/BD/BD_CLS3.txt",
+    "width": 9
+  },
+  "bd-rhapsody-cls3-384": {
+    "n_entries": 384,
+    "orientation": "forward",
+    "sha256": "b380ec4f9b71bc0f256a4dbd7d7acdddae967c006750cd8cbd2b6a44e835bdde",
+    "source_sha256": "7effc6c4ddfe9ca255d74fec2f5a8b6a98e853e2b20038978f0887c86d40b722",
+    "uri": "https://raw.githubusercontent.com/imallona/rhapsodist/main/workflow/data/whitelist_384x3/BD_CLS3.txt",
     "width": 9
   }
 }

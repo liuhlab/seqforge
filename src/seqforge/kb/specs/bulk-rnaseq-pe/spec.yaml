@@ -81,3 +81,17 @@ confusable_with:
       geometry alone (`rung02_separable(bulk, bd-rhapsody-wta)` is False), so silently preferring bulk
       would emit a gene-count matrix for a single-cell library and exit 0. Only the onlist separates
       them — BD's three CLS whitelists hit at rung 3, and bulk has none.
+  - id: bd-rhapsody-wta-enhanced-96
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The BD Rhapsody Enhanced bead (96-plex). Identical story to the original bead: this fallback
+      requires only two reads, so it accepts the Enhanced cdna+bc pair on read-count alone. Enhanced
+      REJECTS bulk (its GTGA...GACA `requires` motif is absent from bulk cDNA), but the acceptance is
+      one-directional, so the edge is declared here. The three CLS whitelists hit at rung 3; bulk has none.
+  - id: bd-rhapsody-wta-enhanced-v2
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The BD Rhapsody Enhanced bead (384-plex) — same reasoning as `-enhanced-96`. Separated at rung 3
+      by the 384 x 3 CLS whitelists (disjoint from both the 96 pools and from anything bulk could hit).

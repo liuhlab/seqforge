@@ -50,6 +50,16 @@ def canonical_backend(spec: Spec) -> str:
     resolved: dict[str, object] = {}
     for key, value in spec.backend.params.items():
         resolved[key] = _resolve_value(value, spec)
+    # Fold in the DERIVED geometry (soloCB/UMIposition, soloAdapterSequence). Those are byte-decided
+    # parse facts read off the element coordinates, not declared here — and they are exactly where two
+    # chemistries with identical DECLARED params can still parse reads differently. The original BD bead
+    # and the Enhanced-96 bead share soloType, whitelists and strand; only their geometry differs (fixed
+    # offsets vs an adapter-anchored, diversity-insert-staggered frame). Comparing declared params alone
+    # called them byte-identical -> §12-benign -> one config for both. Local import: `compose` reads the
+    # KB, so importing it at module load would knot resolve<->compose. (#43)
+    from ..compose.params import derived_params
+
+    resolved.update(derived_params(spec))
     payload = {
         "module": spec.backend.module,
         "params": resolved,

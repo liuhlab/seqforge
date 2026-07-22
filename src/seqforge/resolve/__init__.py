@@ -49,7 +49,7 @@ from __future__ import annotations
 #: 2026.7.9 — cross-family honesty made symmetric: a BULK chemistry asserted but a barcoded single-cell
 #: library observed now surfaces a conflict (exit 4), the mirror of single-cell-asserted-but-bulk-observed
 #: (which already did). Both directions of a wrong data-vs-paper pairing are now caught, not just one.
-RESOLVE_VERSION = "2026.7.9"
+RESOLVE_VERSION = "2026.7.10"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

@@ -13,12 +13,34 @@ from typing import Any
 
 from ..probe import probe_file
 from ..probe.signals import window_distinct_ratio
+from .anchor import resolve_windows
 from .generate import generate_reads, write_fastq_gz
 from .loader import load_spec
+from .schema import Read
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
     write_fastq_gz(path, seqs)
+
+
+def _anchored_distinct_ratio(seqs: list[str], read: Read, element_name: str) -> float | None:
+    """``distinct/total`` of a FLOATING element, sliced at each read's phase-detected frame.
+
+    A fixed element has a constant window :func:`window_distinct_ratio` can slice; an anchored one does
+    not (the diversity insert staggers it per read), so recover its frame first. This is what makes the
+    round-trip actually verify anchoring: if the resolver could not recover the staggered cell-label
+    blocks, their slices would not recur and ``barcode_recurs`` would go red.
+    """
+    slices = [
+        s[a:b]
+        for s in seqs
+        if (w := resolve_windows(s, read)) is not None and element_name in w
+        for a, b in (w[element_name],)
+        if s[a:b]
+    ]
+    if not slices:
+        return None
+    return len(set(slices)) / len(slices)
 
 
 def run_roundtrip(tech_id: str, *, n: int = 2000, seed: int = 0) -> dict[str, Any]:
@@ -59,9 +81,15 @@ def run_roundtrip(tech_id: str, *, n: int = 2000, seed: int = 0) -> dict[str, An
                     }
                 )
             for el in read.elements:
-                if el.start is None or el.end is None:
-                    continue
-                ratio = window_distinct_ratio(seqs, el.start, el.end)
+                if el.start is not None and el.end is not None:
+                    ratio = window_distinct_ratio(seqs, el.start, el.end)
+                elif el.anchor is not None:
+                    # a floating element: recover its per-read frame rather than skipping it (pre-#43
+                    # every anchored element was skipped, so the round-trip proved nothing about them).
+                    ratio = _anchored_distinct_ratio(seqs, read, el.name)
+                else:
+                    continue  # a variable-length insert with no anchor (the VB itself): no window to
+                    # check — its recovery is proven by the downstream anchored elements resolving.
                 if el.type == "barcode" and el.onlist:
                     checks.append(
                         {

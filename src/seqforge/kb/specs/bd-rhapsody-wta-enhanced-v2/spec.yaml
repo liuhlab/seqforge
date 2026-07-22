@@ -1,0 +1,81 @@
+schema_version: 1
+
+# ============================================================================================
+# BD RHAPSODY WTA — ENHANCED bead, 384 x 3 cell-label lists (rhapsodist class `enhanced_v2`).
+#
+# A leaf of `bd-rhapsody-wta-enhanced`, identical to `-96` in every byte-decided way (0-3 bp diversity
+# insert, GTGA/GACA linkers, 9/9/9 CLS + 8 bp UMI). The ONLY difference is the whitelist: 384 x 9 bp per
+# CLS block instead of 97 — the higher-plexity "Enhanced v2" bead. The 384 and 97 pools are DISJOINT
+# (0 shared 9-mers), so a real dataset hits exactly one set at rung 3 and the sibling tie resolves.
+#
+# The 384 x 3 lists ship pre-packed as `bd-rhapsody-cls{1,2,3}-384` (source: imallona/rhapsodist
+# workflow/data/whitelist_384x3, Moro & Mallona 2025).
+# ============================================================================================
+
+identity:
+  id: bd-rhapsody-wta-enhanced-v2
+  version: enhanced-384
+  name: "BD Rhapsody WTA — Enhanced bead v2 (384-plex cell labels)"
+  aliases: ["BD Rhapsody Enhanced v2", "Rhapsody Enhanced 384x3", "BD Rhapsody Enhanced 384"]
+  assay_ontology: ["EFO:0700003"]
+  modality: rna
+
+parent: bd-rhapsody-wta-enhanced
+
+reads:
+  - id: cdna
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+  - id: bc
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 43
+    max_len: null
+    elements:
+      - {type: diversity, name: vb, min_len: 0, max_len: 3, seqspec_region_type: linker}
+      - {type: barcode, name: cls1, min_len: 9, max_len: 9, onlist: cls1, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: vb, ref_side: end, offset: 0}}
+      - {type: linker, name: linker1, sequence: "GTGA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls1, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls2, min_len: 9, max_len: 9, onlist: cls2, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker1, ref_side: end, offset: 0}}
+      - {type: linker, name: linker2, sequence: "GACA", seqspec_region_type: linker,
+         anchor: {relative_to: element, ref_element: cls2, ref_side: end, offset: 0, max_mismatch: 1}}
+      - {type: barcode, name: cls3, min_len: 9, max_len: 9, onlist: cls3, seqspec_region_type: barcode,
+         anchor: {relative_to: element, ref_element: linker2, ref_side: end, offset: 0}}
+      - {type: umi, name: UMI, min_len: 8, max_len: 8, seqspec_region_type: umi,
+         anchor: {relative_to: element, ref_element: cls3, ref_side: end, offset: 0}}
+
+onlists:
+  cls1: {registry: bd-rhapsody-cls1-384, role: cell_barcode, expected_orientation: forward}  # 384 x 9 bp
+  cls2: {registry: bd-rhapsody-cls2-384, role: cell_barcode, expected_orientation: forward}
+  cls3: {registry: bd-rhapsody-cls3-384, role: cell_barcode, expected_orientation: forward}
+
+signature:
+  requires:
+    - {test: read_count, roles: 2}
+    - {test: motif_present, read: bc, motif: "GTGANNNNNNNNNGACA", where: window,
+       search_start: 8, search_end: 13, max_mismatch: 2, min_rate: 0.5}
+  supports:
+    - {when: {test: onlist_hit_rate, read: bc, element: cls1, onlist: cls1, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: onlist_hit_rate, read: bc, element: cls2, onlist: cls2, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: onlist_hit_rate, read: bc, element: cls3, onlist: cls3, orientation: forward, min: 0.5}, weight: 3.0}
+    - {when: {test: distinct_ratio, read: bc, element: UMI, expect: high}, weight: 1.0}
+    - {when: {test: distinct_ratio, read: cdna, start: 0, end: 20, expect: high}, weight: 1.0}
+  excludes: []
+
+backend:
+  module: map/starsolo
+  params:
+    soloType: CB_UMI_Complex
+    soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]
+    soloStrand: Forward
+    # soloAdapterSequence / soloCBposition / soloUMIposition DERIVED from the anchored elements (see -96).
+
+confusable_with: []
