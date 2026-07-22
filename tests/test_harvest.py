@@ -464,6 +464,39 @@ def test_r5_is_non_vacuous_for_a_closed_vocabulary_field(tmp_path: Path) -> None
     assert not entails("this is a pre-mRNA rich sample", "processing.quantification", "GeneFull")
 
 
+def test_entailment_of_prep_type_is_by_normalized_prep_not_verbatim_tokens() -> None:
+    """`library.prep_type` is biology the model reports, not a STARsolo flag: a terse quote must support
+    a verbose value, and a cell quote must never support a nucleus value. GSE229022 lost GeneFull-primary
+    because the verbose value "single nucleus RNA sequencing (snRNA-seq)" was not entailed by a short
+    "snRNA-seq" span under the generic token-subset matcher; the normalized-prep check fixes that.
+    """
+    from seqforge.harvest.verify import entails
+
+    # a terse quote entails a verbose nucleus value (the GSE229022 case)
+    assert entails(
+        "libraries were profiled by snRNA-seq",
+        "library.prep_type",
+        "single nucleus RNA sequencing (snRNA-seq)",
+    )
+    assert entails("nuclei were isolated from frozen tissue", "library.prep_type", "single-nucleus")
+    # symmetric: a cell quote entails a cell value
+    assert entails("a single-cell suspension was loaded", "library.prep_type", "single-cell")
+    # the entailment tripwire still bites: a cell quote must NOT support a nucleus value
+    assert not entails("a single-cell suspension was loaded", "library.prep_type", "single-nucleus")
+    # a quote naming neither prep supports nothing
+    assert not entails("total RNA was extracted", "library.prep_type", "single-nucleus")
+
+
+def test_prep_type_normalized_entailment_is_scoped_and_does_not_leak_to_quantification() -> None:
+    """The normalized-prep shortcut is `library.prep_type` ONLY. The same biological prose must still
+    never entail a counting decision — the firewall the parse/count split depends on.
+    """
+    from seqforge.harvest.verify import entails
+
+    assert entails("single nuclei were profiled", "library.prep_type", "single-nucleus")
+    assert not entails("single nuclei were profiled", "processing.quantification", "GeneFull")
+
+
 def test_surface_forms_dispatch_is_exact_match_not_a_substring_test() -> None:
     """The old test was `if "chemistry" in field or "assay" in field` — it would misfire on any field
     that merely CONTAINS the word, e.g. `processing.assay_override`."""

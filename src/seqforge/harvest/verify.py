@@ -28,6 +28,7 @@ from ..kb import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import PERMITTED_FIELDS, permitted_for
 from .normalize import NormalizedDoc, page_for_offset
+from .prep import normalize_prep_type
 
 _WS = re.compile(r"\s+")
 _TOKEN = re.compile(r"[a-z0-9']+")
@@ -136,7 +137,18 @@ def entails(quote: str, field: str, value: str) -> bool:
     exactly that (worm husbandry filed as an experimental `condition`). The defense for free-text
     fields is the prompt's operational definition of the field plus the evals corpus that measures it,
     not this function. Tightening the matcher would not help; there is nothing here left to check.
+
+    **``library.prep_type`` is the one field checked by NORMALIZED match, not surface forms.** It is a
+    controlled biological concept (cells vs nuclei), so a terse quote ("snRNA-seq") must support a
+    verbose value ("single-nucleus RNA sequencing (snRNA-seq)") and a cell quote must never support a
+    nucleus value. Both sides are normalized to one of two preps and compared. This lets a nuclei claim
+    through — after which :func:`policy.resolve_features`, not the model, promotes ``GeneFull`` — while
+    never letting prose entail a *counting* decision: ``prep_type`` names no STARsolo feature, which is
+    exactly why ``processing.quantification`` is deliberately NOT handled this way (see ``_ALIAS_SOURCES``).
     """
+    if field == "library.prep_type":
+        qp = normalize_prep_type(quote)
+        return qp is not None and qp == normalize_prep_type(value)
     q = _squash(quote).lower()
     q_tokens = set(_tokens(q))
     for form in surface_forms(field, value):
