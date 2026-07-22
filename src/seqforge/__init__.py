@@ -11,6 +11,6 @@ try:  # pragma: no cover - version is provided by the installed package metadata
 
     __version__ = version("seqforge")
 except Exception:  # pragma: no cover - not installed; mirror the static CalVer in pyproject.toml
-    __version__ = "2026.7.0"
+    __version__ = "2026.7.1"
 
 __all__ = ["__version__"]
