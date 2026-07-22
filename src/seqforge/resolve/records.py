@@ -416,7 +416,7 @@ def _decide(
                 )
             )
             continue
-        distinct = {p.value for p in found}
+        distinct = {_norm_value(p.value) for p in found}
         if len(distinct) == 1:
             best = max(found, key=lambda p: _BASIS_RANK[p.basis])
             attrs[name] = _evidenced(best)
@@ -424,7 +424,7 @@ def _decide(
 
         ranked = sorted(found, key=lambda p: -_BASIS_RANK[p.basis])
         top = _BASIS_RANK[ranked[0].basis]
-        winners = {p.value for p in ranked if _BASIS_RANK[p.basis] == top}
+        winners = {_norm_value(p.value) for p in ranked if _BASIS_RANK[p.basis] == top}
         seen = ", ".join(sorted(f"{p.value!r} ({p.basis})" for p in found))
         if len(winners) == 1:
             # a stronger authority exists: keep its value; the weaker source is only a note
@@ -445,6 +445,15 @@ def _decide(
         )
 
     return attrs, warnings
+
+
+def _norm_value(value: str) -> str:
+    """Case- and whitespace-folded key for testing whether two attribute VALUES agree. 'Male' and
+    'male' are the same sex, and a permanent, content-addressed manifest must not null an
+    equal-authority attribute over a capitalization difference — only a genuine disagreement should.
+    The STORED value keeps its original case (via `_evidenced`); this folds only for the comparison.
+    """
+    return " ".join(value.split()).casefold()
 
 
 def _evidenced(p: _Position) -> EvidencedStr:
