@@ -128,6 +128,11 @@ def escalate(
     trimmed = _pretrimmed_blockers(top, top_spec, observations)
     if trimmed:
         return Escalation(candidates=[], blockers=trimmed, conflicts=conflicts, rung_reached=rung)
+    barcode_absent = _barcodeless_seated_blocker(top, top_spec)
+    if barcode_absent is not None:
+        return Escalation(
+            candidates=[], blockers=[barcode_absent], conflicts=conflicts, rung_reached=rung
+        )
     equiv_members = sorted(set(top.equivalence_members) | {e.tech for e in equivalent_ties})
 
     if not divergent_ties:
@@ -231,6 +236,40 @@ def _pretrimmed_blockers(
             )
         )
     return blockers
+
+
+def _barcodeless_seated_blocker(top: TechEvaluation, top_spec: Spec) -> Blocker | None:
+    """F1b — the winning chemistry is barcoded and its barcode role is FILLED, but no seated read hits
+    the chemistry's whitelist (``barcode_onlist_hit`` False) though a whitelist WAS available to check
+    (``barcode_onlist_available``). STARsolo would read barcodes from a read matching nothing and report
+    ~0 valid barcodes at exit 0 — a silently empty matrix. Refuse instead.
+
+    Fires only where the whitelist is the arbiter: a bulk winner (no barcode role) is the
+    ``_single_cell_collapse_conflict`` guard's job, and a chemistry whose whitelist was never consulted
+    is not onlist-judgeable (abstain). Distinct from ``MISSING_TECHNICAL_READ``, where the barcode role
+    is structurally UNFILLABLE — here the role is filled, the seated read just is not barcoded.
+    """
+    if _barcode_read_id(top_spec) is None:
+        return None  # a bulk winner has no barcode role — the collapse guard's job, not this
+    if not top.barcode_onlist_available:
+        return None  # no whitelist was consulted: absence is not decidable, defer to the geometry gates
+    if top.barcode_onlist_hit:
+        return None  # a seated read hits the whitelist — the barcode read is present
+    return Blocker(
+        id=f"blk-barcode-absent-{top.tech}",
+        code=BlockerCode.BARCODE_READ_ABSENT,
+        message=(
+            f"{top.tech} is barcoded, but no read carries whitelist-matchable barcodes: the seated "
+            "barcode read matches the chemistry's whitelist only at chance. STARsolo would report "
+            "near-zero valid barcodes and exit 0 with an empty matrix."
+        ),
+        remedy=(
+            "Confirm the barcode/technical read was included — SRA drops it unless dumped with "
+            "`fasterq-dump --include-technical`; re-fetch the original submitted files "
+            "(`sra-pub-src-*` via the SDL API) if it was stripped, then re-probe."
+        ),
+        subject=BlockerSubject(kind="dataset", ref=top.tech),
+    )
 
 
 def _integrity_blockers(observations: list[Observation]) -> list[Blocker]:

@@ -17,6 +17,11 @@ class BlockerCode(StrEnum):
     """The stable contract the CLI/skill branch on."""
 
     MISSING_TECHNICAL_READ = "MISSING_TECHNICAL_READ"
+    #: The winning barcoded chemistry's barcode role IS filled, but no seated read carries
+    #: whitelist-matchable barcodes though the chemistry declares a whitelist — STARsolo would read
+    #: barcodes from a read that matches nothing and report ~0 valid barcodes at exit 0. Distinct from
+    #: MISSING_TECHNICAL_READ, where the role is structurally UNFILLABLE (no read of the right shape).
+    BARCODE_READ_ABSENT = "BARCODE_READ_ABSENT"
     TRUNCATED_GZIP = "TRUNCATED_GZIP"
     CORRUPT_FASTQ = "CORRUPT_FASTQ"
     UNSUPPORTED_TECHNOLOGY = "UNSUPPORTED_TECHNOLOGY"

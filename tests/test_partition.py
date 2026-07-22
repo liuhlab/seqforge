@@ -9,6 +9,7 @@ single-assay path stays flat and byte-identical (covered by the existing `run`/c
 from __future__ import annotations
 
 import gzip
+import random
 from pathlib import Path
 
 import yaml
@@ -23,11 +24,34 @@ def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
             fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
+def _real_cbs(n: int) -> list[str]:
+    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
+    diverse. This path drives the REAL registry, so synthetic random CBs would miss the shipped
+    whitelist and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
+
+    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
+    step = max(1, packed.codes.shape[0] // n)
+    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
+
+
+def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
+    """Generator reads for ``tech``; a 10x v3 chemistry gets REAL whitelist barcodes in R1 (see
+    :func:`_real_cbs`) so it hits the shipped whitelist on the real-registry pipeline path."""
+    reads = kb.generate_reads(kb.load_spec(tech), n=n, seed=seed)
+    if tech == "10x-3p-gex-v3":
+        real = _real_cbs(128)
+        rng = random.Random(seed)
+        reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
+    return reads
+
+
 def _two_chemistry_files(tmp_path: Path) -> list[Path]:
     """SRR1 -> v3 (28 bp barcode), SRR2 -> bulk paired-end. Two runs, two chemistries."""
     files: list[Path] = []
     for acc, tech in (("SRR1", "10x-3p-gex-v3"), ("SRR2", "bulk-rnaseq-pe")):
-        reads = kb.generate_reads(kb.load_spec(tech), n=400, seed=0)
+        reads = _reads(tech)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = tmp_path / f"{acc}_{mate}.fastq.gz"
             _write_fastq_gz(p, reads[role])
@@ -45,7 +69,7 @@ def _two_chemistry_files_nested(tmp_path: Path) -> list[Path]:
         ("SRR1", "SRX_A", "10x-3p-gex-v3"),
         ("SRR2", "SRX_B", "bulk-rnaseq-pe"),
     ):
-        reads = kb.generate_reads(kb.load_spec(tech), n=400, seed=0)
+        reads = _reads(tech)
         subdir = tmp_path / srx
         subdir.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):
@@ -104,7 +128,7 @@ def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: 
 
     files: list[Path] = []
     for acc in ("SRR1", "SRR2"):
-        reads = kb.generate_reads(kb.load_spec("10x-3p-gex-v3"), n=400, seed=0)
+        reads = _reads("10x-3p-gex-v3")
         sub = tmp_path / f"SRX_{acc}"
         sub.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):

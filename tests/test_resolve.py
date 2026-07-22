@@ -45,8 +45,10 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     order, each with the same winner and role assignment. Cores fold into no decision. Three distinct
     accessions -> three runs, which forces the fork path (it needs more than one run)."""
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
     reads = kb.generate_reads(spec, n=800, seed=1)
+    reg = _registry_for(
+        spec, seed=1
+    )  # whitelist matches the reads' seed so the barcodes actually hit
     paths: list[Path] = []
     for acc in ("SRR7000001", "SRR7000002", "SRR7000003"):
         for suffix, k in (("_1", "R1"), ("_2", "R2")):
@@ -88,8 +90,10 @@ def test_resolve_runs_resumes_from_cache_without_reprobing(
     content-addressed cache instead of probing. Proven by making the probe path fatal on the second
     call: if resume works, ``_probe_paths`` is never entered, and the decision is identical."""
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
     reads = kb.generate_reads(spec, n=800, seed=2)
+    reg = _registry_for(
+        spec, seed=2
+    )  # whitelist matches the reads' seed so the barcodes actually hit
     paths: list[Path] = []
     for acc in ("SRR8000001", "SRR8000002"):
         for suffix, k in (("_1", "R1"), ("_2", "R2")):
@@ -126,10 +130,10 @@ def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
     _write_fastq_gz(f2, reads["R2"])
 
     serial = resolve_dataset(
-        [f1, f2], registry=_registry_for(spec), use_cache=False, score_threads=1
+        [f1, f2], registry=_registry_for(spec, seed=3), use_cache=False, score_threads=1
     )
     threaded = resolve_dataset(
-        [f1, f2], registry=_registry_for(spec), use_cache=False, score_threads=6
+        [f1, f2], registry=_registry_for(spec, seed=3), use_cache=False, score_threads=6
     )
 
     assert serial.result.model_dump_json() == threaded.result.model_dump_json()
@@ -153,10 +157,12 @@ def test_resolve_fingerprints_a_library_straight_from_a_url(
     from seqforge.probe import content_key_from_md5
 
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
     reads = kb.generate_reads(
         spec, n=800, seed=3
     )  # same reads as the serial test above -> same winner
+    reg = _registry_for(
+        spec, seed=3
+    )  # whitelist matches the reads' seed so the barcodes actually hit
 
     blobs: dict[str, bytes] = {}
     md5s: dict[str, str] = {}
@@ -559,7 +565,17 @@ def _six_run_dataset(tmp_path: Path) -> tuple[list[Path], OnlistRegistry]:
     assertion below is about roles resolve derived from bytes.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
+    # Each run draws its CBs from build_pools(seed=i), so register the UNION of all six seeds' pools --
+    # a single seed-0 registry matches only run 0, and F1b would then refuse the other five as
+    # barcode-absent (their CBs miss the seed-0 whitelist).
+    reg = OnlistRegistry(offline=True)
+    merged: dict[str, list[str]] = {}
+    for i in range(6):
+        for alias, pool in kb.build_pools(spec, seed=i, pool_size=64).items():
+            merged.setdefault(alias, []).extend(pool)
+    for alias, ref in spec.onlists.items():
+        if alias in merged:
+            reg.register_synthetic(ref.registry, merged[alias])
     paths: list[Path] = []
     for i, acc in enumerate(
         ["SRR28716553", "SRR28716554", "SRR28716555", "SRR28716556", "SRR28716557", "SRR28716558"]
