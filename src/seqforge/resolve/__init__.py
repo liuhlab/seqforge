@@ -49,7 +49,14 @@ from __future__ import annotations
 #: 2026.7.9 — cross-family honesty made symmetric: a BULK chemistry asserted but a barcoded single-cell
 #: library observed now surfaces a conflict (exit 4), the mirror of single-cell-asserted-but-bulk-observed
 #: (which already did). Both directions of a wrong data-vs-paper pairing are now caught, not just one.
-RESOLVE_VERSION = "2026.7.10"
+#: 2026.7.10 — BD Rhapsody Enhanced beads: anchored barcode elements are located by their adjacent
+#: anchor sequence before the onlist window is read, so an Enhanced (diversity-spacer) library scores its
+#: CLS whitelists at the right offset instead of missing them at a fixed one (#53).
+#: 2026.7.11 — barcode-role seating + barcode-absent refusal (F1): the barcode role may only seat on a
+#: read that clears the onlist bar when some read does (no equal-length swap onto a cDNA mate), and a
+#: barcoded winner with NO whitelist-hitting read now refuses (BARCODE_READ_ABSENT) instead of composing
+#: a pipeline STARsolo would run to an empty matrix.
+RESOLVE_VERSION = "2026.7.11"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
