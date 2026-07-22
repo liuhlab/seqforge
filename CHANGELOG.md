@@ -6,6 +6,31 @@ increments per release within the month and resets when the month changes. The v
 
 ## Unreleased
 
+**BD Rhapsody Enhanced beads: the first anchored / variable-position chemistry (#43, 2026-07-22).**
+The 2022 Enhanced Cell Capture Bead prepends a variable **0–3 bp diversity insert** to Read 1, so every
+cell-label block downstream shifts by a different amount from one read to the next. seqforge read
+barcodes at fixed byte offsets, so it could neither recognize nor compile the Enhanced bead — the gap
+deferred in `docs/design.md` §9/§10. It now does both, automatically, from the bytes: on a real
+Enhanced barnyard run the `GTGA…GACA` linker frame is found on 96.9 % of reads and ~95 % of the
+staggered barcodes recover against the shipped cell-label lists.
+
+- **A per-read resolver recovers the staggered frame.** New `kb/anchor.py` phase-locks each read on the
+  `GTGA`/`GACA` linkers (Hamming, substitutions only) across the 0–3 bp insert, then slices the
+  cell-label and UMI windows relative to it — the byte-side twin of STARsolo's adapter anchor. The four
+  layers that previously ignored an element's `anchor` (the scorer's window resolution, the compose
+  derivation, the round-trip generator, and the manifest) now read it.
+- **Compose derives the endorsed STARsolo recipe.** For an anchored chemistry the composer emits
+  `--soloAdapterSequence NNNNNNNNNGTGANNNNNNNNNGACA` and adapter-anchored positions
+  (`2_0_2_8 2_13_2_21 3_1_3_9` / `3_10_3_17`) from the element model — byte-identical to the settings
+  STAR's author endorsed on issue #1607, and never hand-entered.
+- **Two new chemistries under a family, told apart from the bytes.** `bd-rhapsody-wta-enhanced` is an
+  abstract family (like `10x-3p-gex`) that recognizes the Enhanced frame and descends by whitelist to
+  `-enhanced-96` (reuses the original bead's 97×3 cell-label lists) and `-enhanced-v2` (ships the new,
+  disjoint 384×3 lists). The original fixed-offset `bd-rhapsody-wta` is unchanged and stays
+  byte-separable by its longer linkers. Distinguishing the original bead from Enhanced-96 also forced
+  `backend_identical` to compare the *derived* geometry, not just declared params: two beads with the
+  same whitelists and strand but different parse geometry are no longer falsely called equivalent.
+
 **The pilot ran, and its manifest said `tissue: null` on six samples (2026-07-16).** Reading the
 pilot's own output is what produced everything below. The paper says "neurons"; the six BioSample
 records say `tissue=Neurons`; the manifest said null. Three causes, none of them the model's fault:

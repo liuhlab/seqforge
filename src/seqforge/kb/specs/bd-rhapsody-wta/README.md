@@ -4,11 +4,11 @@ BD Biosciences' droplet-free single-cell 3' RNA-seq. Cells are captured in a mic
 tagged with a **cell label** built from three barcode blocks on the capture bead, plus a **UMI** on
 each molecule.
 
-BD ships this chemistry in two bead generations, and this page covers both. The **original
-fixed-position bead** (described first) is what seqforge recognizes and compiles automatically today.
-The 2022 **[Enhanced bead](#enhanced-beads-2022)** is a newer variant with a variable-length diversity
-insert; its structure and how to run it are documented below, and automated support is in progress
-([#43](https://github.com/liuhlab/seqforge/issues/43)).
+BD ships this chemistry in two bead generations, and seqforge recognizes and compiles **both**
+automatically, from the reads. The **original fixed-position bead** is described first; the 2022
+**[Enhanced bead](#enhanced-beads-2022)** — with its variable-length diversity insert — is described
+below. seqforge tells the two apart from the bytes (their linker structure differs), so you never have
+to declare which bead a dataset used.
 
 ## How it's read
 
@@ -63,28 +63,36 @@ So Enhanced Read 1 reads:
 There are two sub-versions, differing only in the cell-label lists: **96** or **384** sequences per
 block (the 384-list "Enhanced v2" allows more cell labels). The read layout is otherwise identical.
 
-**Why it needs dedicated support.** The diversity insert shifts every barcode by a different amount
-from one read to the next, so the positions are no longer fixed. seqforge's byte model reads fixed
-positions today, so it does not yet recognize the Enhanced bead on its own — that work is tracked in
-**[#43](https://github.com/liuhlab/seqforge/issues/43)**, and this page will be updated when it lands.
+### How seqforge handles the Enhanced bead
 
-**Running Enhanced data now.** STARsolo can map Enhanced reads directly by anchoring to the linkers,
-so you can process it today with a hand-written command (endorsed by STAR's author in
-[issue #1607](https://github.com/alexdobin/STAR/issues/1607)):
+seqforge recognizes and compiles the Enhanced bead **automatically** — you do not tell it the bead
+generation, and you do not pre-trim the diversity insert.
 
-```bash
-STAR --soloType CB_UMI_Complex \
-     --soloAdapterSequence NNNNNNNNNGTGANNNNNNNNNGACA \
-     --soloCBmatchWLtype 1MM multi \
-     --soloCBposition 2_0_2_8 2_13_2_21 3_1_3_9 \
-     --soloUMIposition 3_10_3_17 \
-     --soloCBwhitelist BD_CLS1.txt BD_CLS2.txt BD_CLS3.txt
-```
+- **Recognition.** The diversity insert shifts every barcode by a different amount from one read to the
+  next, so the positions are not fixed. seqforge finds the `GTGA…GACA` linker frame in each read
+  (tolerating the 0–3 bp stagger and sequencing error), then reads the cell-label and UMI blocks
+  relative to it. The presence of that frame is what separates Enhanced from the original bead, whose
+  longer `ACTGGCCTGCGA`/`GGTAGCGGTGACA` linkers sit at fixed positions instead.
+- **96 vs 384.** The two Enhanced sub-versions have identical read layout and differ only in which
+  cell-label list their blocks match, so seqforge picks the one the barcodes actually hit — exactly how
+  it tells 10x v2 from v3. The 96-plex bead reuses the original bead's cell-label lists; the 384-plex
+  lists ship with seqforge too.
+- **Compilation.** seqforge maps Enhanced reads with STARsolo's adapter anchor — no pre-trimming — and
+  derives the exact settings STAR's author endorsed in
+  [issue #1607](https://github.com/alexdobin/STAR/issues/1607) straight from the read layout:
 
-The adapter `NNNNNNNNNGTGANNNNNNNNNGACA` is `CLS1(9) + GTGA + CLS2(9) + GACA`; STARsolo finds it in each
-read and reads the barcodes relative to it, so the variable insert at the front takes care of itself.
-For a reproducible workflow spanning every bead generation, see
-**[rhapsodist](https://github.com/imallona/rhapsodist)**.
+  ```bash
+  STAR --soloType CB_UMI_Complex \
+       --soloAdapterSequence NNNNNNNNNGTGANNNNNNNNNGACA \
+       --soloCBposition 2_0_2_8 2_13_2_21 3_1_3_9 \
+       --soloUMIposition 3_10_3_17 \
+       --soloCBwhitelist BD_CLS1.txt BD_CLS2.txt BD_CLS3.txt
+  ```
+
+  The adapter `NNNNNNNNNGTGANNNNNNNNNGACA` is `CLS1(9) + GTGA + CLS2(9) + GACA`; STARsolo finds it in
+  each read and reads the barcodes relative to it, so the variable insert at the front takes care of
+  itself. For a reproducible reference workflow spanning every bead generation, see
+  **[rhapsodist](https://github.com/imallona/rhapsodist)**.
 
 ## References
 
