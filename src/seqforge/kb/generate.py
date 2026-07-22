@@ -41,8 +41,31 @@ def _rand(rng: random.Random, n: int) -> str:
 
 
 def _fixed_length(el: Element) -> int | None:
+    """The element's constant width (pool-barcode width), or ``None`` if it has none.
+
+    A variable-length element (``min_len < max_len``) has no single width — this returns ``min_len`` as
+    the pool width for a barcode that happens to be variable, but the per-read *generated* length comes
+    from :func:`_draw_length`, which is what actually creates the diversity-insert stagger.
+    """
     if el.start is not None and el.end is not None:
         return el.end - el.start
+    if el.min_len is not None:
+        return el.min_len
+    return None
+
+
+def _draw_length(el: Element, rng: random.Random) -> int | None:
+    """The length to GENERATE for one read: fixed when the element is fixed, drawn when it floats.
+
+    A ``[min_len, max_len]`` with ``min < max`` (BD Rhapsody Enhanced's 0-3 bp diversity insert) draws
+    a per-read length so downstream elements shift — the stagger the anchored resolver must recover.
+    Collapsing it to a constant (the pre-#43 behaviour) made the round-trip verify nothing about
+    anchoring: every synthetic read had the same offsets a fixed-window slice would have found anyway.
+    """
+    if el.start is not None and el.end is not None:
+        return el.end - el.start
+    if el.min_len is not None and el.max_len is not None and el.min_len != el.max_len:
+        return rng.randint(el.min_len, el.max_len)
     if el.min_len is not None:
         return el.min_len
     return None
@@ -105,7 +128,10 @@ def _gen_element(
 ) -> str:
     if el.type in ("linker", "fixed"):
         return el.sequence or ""
-    length = _fixed_length(el)
+    if el.type == "diversity":
+        # a variable 5' insert of random bases -> the per-read stagger; length drawn in [min,max]
+        return _rand(rng, _draw_length(el, rng) or 0)
+    length = _draw_length(el, rng)
     if el.type == "barcode":
         return rng.choice(pools[el.onlist]) if el.onlist else _rand(rng, length or 8)
     if el.type == "umi":

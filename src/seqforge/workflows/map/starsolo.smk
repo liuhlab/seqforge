@@ -71,14 +71,24 @@ def cb_umi_geometry():
     """Where the CB and UMI live -- and STARsolo spells this two different ways.
 
     A simple chemistry (10x) has one contiguous barcode, so a start/length pair locates it. A
-    combinatorial one (SPLiT-seq) has barcodes scattered between linkers, so each needs a position
-    quadruple and no start/length exists to give. This is not a preference: passing --soloCBstart to
-    CB_UMI_Complex is an error, and the keys are absent from the config precisely because the
-    chemistry has no such value. Compose emits whichever set the soloType implies (the params gate
-    proves the block is exactly what its owners declared), so the branch here reads what is there.
+    combinatorial one (SPLiT-seq, BD Rhapsody) has barcodes scattered between linkers, so each needs a
+    position quadruple and no start/length exists to give. This is not a preference: passing
+    --soloCBstart to CB_UMI_Complex is an error, and the keys are absent from the config precisely
+    because the chemistry has no such value. Compose emits whichever set the soloType implies (the
+    params gate proves the block is exactly what its owners declared), so the branch here reads what is
+    there.
+
+    The Complex branch also pins --soloCBmatchWLtype: STAR's global default is ``1MM_multi``, which it
+    REJECTS for CB_UMI_Complex ("does not work with --soloType CB_UMI_Complex"; allowed: Exact / 1MM).
+    So a Complex chemistry that named no match type would FATAL at STAR on the default alone -- a run
+    that dies on the node, not a thin matrix. ``1MM`` is the tolerant valid mode (one mismatch per
+    barcode block), the closest Complex-legal analogue of the Simple default. Confirmed against real BD
+    Rhapsody Enhanced reads (#43): the endorsed recipe on STAR #1607 intends this, and its "1MM multi"
+    is 1MM for a complex barcode.
     """
     if SOLO["soloType"] == "CB_UMI_Complex":
         return (
+            f"--soloCBmatchWLtype 1MM "
             f"--soloCBposition {SOLO['soloCBposition']} "
             f"--soloUMIposition {SOLO['soloUMIposition']}"
         )
@@ -106,6 +116,20 @@ def barcode_read_length():
     """
     value = SOLO.get("soloBarcodeReadLength")
     return f"--soloBarcodeReadLength {value}" if value is not None else ""
+
+
+def adapter_sequence():
+    """--soloAdapterSequence, and ONLY when the chemistry declares it (an ANCHORED bead).
+
+    BD Rhapsody Enhanced prepends a variable 0-3 bp diversity insert to the barcode read, so the CB/UMI
+    offsets float. STARsolo absorbs the stagger by anchoring to this adapter (`NNN...GTGANNN...GACA`):
+    it finds the adapter in each read and reads the barcodes at the anchor-2/anchor-3 positions
+    `cb_umi_geometry()` emits. Derived from the linker elements at compose time (compose/params.py) and
+    present in `config["solo"]` only for such a chemistry -- `.get`, so a fixed-offset chemistry (10x,
+    the original BD bead) neither declares it nor has the scanner mark it a required key.
+    """
+    value = SOLO.get("soloAdapterSequence")
+    return f"--soloAdapterSequence {value}" if value is not None else ""
 
 
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
@@ -223,6 +247,7 @@ rule starsolo_count:
         solo=SOLO,
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
+        adapter=adapter_sequence(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
         # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
@@ -238,6 +263,7 @@ rule starsolo_count:
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --soloType {params.solo[soloType]} \
              {params.geometry} \
+             {params.adapter} \
              {params.barcode_read_length} \
              --soloCBwhitelist {input.whitelist} \
              --soloStrand {params.solo[soloStrand]} \

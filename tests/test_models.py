@@ -364,3 +364,23 @@ def test_the_module_graph_enforces_the_split() -> None:
         assert forbidden not in imported, (
             f"models/{module}.py imports {forbidden} — the split has leaked"
         )
+
+
+def test_read_anchor_mirrors_the_kb_anchor() -> None:
+    """The IR's ``ReadAnchor`` is a deliberate duplicate of the KB DSL's ``Anchor``; keep them equal.
+
+    ``ReadAnchor`` is copied rather than imported because ``models`` is the schema-export source of
+    truth and must not pull the ``kb`` -> ``probe`` -> ``models`` import chain back into itself. That
+    duplication is exactly the shape this repo distrusts (a hand-kept mirror that drifts), so derive
+    the check instead of trusting the copy: field names, annotations and defaults must match, so a
+    field added to ``Anchor`` cannot silently stop being carried into the manifest.
+    """
+    from seqforge.kb.schema import Anchor
+    from seqforge.models.dataset import ReadAnchor
+
+    dsl = {k: (f.annotation, f.default) for k, f in Anchor.model_fields.items()}
+    ir = {k: (f.annotation, f.default) for k, f in ReadAnchor.model_fields.items()}
+    assert ir == dsl, (
+        "ReadAnchor has drifted from kb.schema.Anchor — a floating element's addressing would be "
+        f"dropped or misrecorded in the manifest.\n  DSL: {dsl}\n  IR:  {ir}"
+    )

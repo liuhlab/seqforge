@@ -39,6 +39,7 @@ from ..models.dataset import (
     FileInventoryItem,
     LibrarySection,
     Onlist,
+    ReadAnchor,
     ReadDef,
     ReadElement,
     ReadLayout,
@@ -77,6 +78,7 @@ _ROLE_FOR_TYPE: dict[str, str] = {
     "poly_t": "polyT",
     "poly_a": "polyA",
     "index": "index",
+    "diversity": "linker",  # a variable 5' insert; no barcode/UMI value, so it rides as a spacer role
 }
 
 _MODALITY: dict[str, str] = {"rna": "rna", "atac": "atac", "multi": "rna"}
@@ -392,6 +394,22 @@ def _build_read_layout(
 def _read_element(el: Element, spec: Spec) -> ReadElement:
     length = el.end - el.start if (el.start is not None and el.end is not None) else None
     onlist_ref = spec.onlists[el.onlist].registry if el.onlist else None
+    # Carry a floating element's anchor into the IR verbatim (ReadAnchor mirrors kb.schema.Anchor
+    # field-for-field), so the manifest records that the element STAGGERS rather than pinning it to a
+    # constant start it does not have. Dropped here previously — an anchored spec would fill a manifest
+    # that silently looked fixed-offset.
+    anchor = (
+        ReadAnchor(
+            relative_to=el.anchor.relative_to,
+            ref_element=el.anchor.ref_element,
+            ref_side=el.anchor.ref_side,
+            offset=el.anchor.offset,
+            motif=el.anchor.motif,
+            max_mismatch=el.anchor.max_mismatch,
+        )
+        if el.anchor is not None
+        else None
+    )
     return ReadElement(
         role=_ROLE_FOR_TYPE.get(el.type, "linker"),  # type: ignore[arg-type]
         region_type=el.seqspec_region_type,
@@ -401,6 +419,7 @@ def _read_element(el: Element, spec: Spec) -> ReadElement:
         max_len=el.max_len,
         sequence=el.sequence,
         onlist_ref=onlist_ref,
+        anchor=anchor,
     )
 
 

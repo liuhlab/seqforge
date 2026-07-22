@@ -35,11 +35,32 @@ from .evidenced import (
 )
 
 
+class ReadAnchor(BaseModel):
+    """A floating element's addressing, carried into the IR so the manifest records what STAGGERS.
+
+    A fixed element has a ``start``; an anchored one does not — its position floats per read (BD
+    Rhapsody Enhanced's 0-3 bp diversity insert shifts every cell-label block downstream). The manifest
+    is *what the data is*, so it must say an element floats rather than pin it to a wrong constant. This
+    mirrors the KB DSL's ``kb.schema.Anchor`` field-for-field (``test_read_anchor_mirrors_the_kb_anchor``
+    keeps the two from drifting); it is duplicated rather than imported because the IR is the
+    schema-export source of truth and must not pull the ``kb``->``probe``->``models`` import chain back
+    into ``models``. It carries no interpretation, so it is a plain ``BaseModel``, not ``Evidenced``.
+    """
+
+    relative_to: Literal["read_start", "read_end", "element"] = "read_start"
+    ref_element: str | None = None
+    ref_side: Literal["start", "end"] = "end"
+    offset: int = 0
+    motif: str | None = None
+    max_mismatch: int = 0
+
+
 class ReadElement(BaseModel):
     """One ordered sub-region of a read; a superset/adapter over a seqspec Region.
 
     Adds a derived ``start`` and an interpretive ``role`` that seqspec Regions do not carry. seqspec
-    ``sequence_type`` maps: fixed -> ``sequence``; random -> random ACGT; onlist -> ``onlist_ref``.
+    ``sequence_type`` maps: fixed -> ``sequence``; random -> random ACGT; onlist -> ``onlist_ref``. An
+    ``anchor`` (with no fixed ``start``) marks an element whose position floats per read.
     """
 
     role: Literal["CB", "UMI", "cDNA", "gDNA", "index", "linker", "polyT", "polyA"]
@@ -61,6 +82,8 @@ class ReadElement(BaseModel):
     max_len: int | None = None
     sequence: str | None = None
     onlist_ref: str | None = None
+    #: Present iff the element floats (no fixed ``start``); records the KB's declared anchor verbatim.
+    anchor: ReadAnchor | None = None
 
 
 class ReadDef(BaseModel):
@@ -280,6 +303,7 @@ class DatasetManifest(BaseModel):
 
 
 __all__ = [
+    "ReadAnchor",
     "ReadElement",
     "ReadDef",
     "ReadLayout",

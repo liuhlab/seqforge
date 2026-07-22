@@ -337,8 +337,9 @@ flagship fails its own rung-0–2 under-declaration CI, §2.4); 10x 5′ is meta
 
 SPLiT-seq stresses **combinatorial multi-block indexing**: the cell barcode is the concatenation of
 three round-specific 8 bp barcodes drawn from small (~96-entry) whitelists, separated by **fixed**
-linkers. Unlike inDrop the positions are fixed, so no `anchor` is needed — the `anchor` path stays in
-the schema for a future inDrop entry (coverage caveat, §6).
+linkers. Unlike inDrop the positions are fixed, so no `anchor` is needed — the `anchor` path is now
+exercised instead by **BD Rhapsody Enhanced** (#43), whose 0-3 bp diversity insert floats every CB
+block and whose motif-anchored resolver (`kb/anchor.py`) recovers the frame per read (§6).
 
 **Scope decision (implemented):** this entry models the **original published SPLiT-seq only**
 (Rosenberg et al., *Science* 2018, doi:10.1126/science.aam8999). Parse Biosciences **Evercode** is a
@@ -798,10 +799,13 @@ technology (ONT) → `UNSUPPORTED_TECHNOLOGY`, not a guess; a contradiction (met
 surfaced `Conflict`.
 
 **Coverage caveat (recorded so green CI isn't mistaken for full coverage):** SPLiT-seq exercises
-combinatorial barcodes + fixed linkers + small onlists, but **not** variable-length/anchored elements.
-The `anchor`/`motif` element path is in the schema and the scorer, but its dedicated test fixture (an
-inDrop-class chemistry with a floating W1 linker) is **deferred** — add an inDrop entry to exercise it
-before claiming the element model fully generalizes.
+combinatorial barcodes + fixed linkers + small onlists. Variable-position/anchored elements are now
+exercised too, by **BD Rhapsody Enhanced** (#43): a 0-3 bp diversity insert floats every CB block, and
+`kb/anchor.py` phase-locks the `GTGA`/`GACA` linkers per read to recover the frame (round-tripped, and
+validated on real data — the composed adapter-anchored STARsolo command demultiplexes real Enhanced
+reads). The one anchored sub-case still **uncovered** is a variable-*length* barcode (inDrop's
+width-varying, W1-anchored cell barcode) — Enhanced's blocks are fixed-width at a floating position, so
+an inDrop entry is still what would exercise the width-varying case.
 
 ---
 
@@ -871,7 +875,8 @@ The honest scope delta. **When you build one, delete its line here and fix the t
 - **`resolve adjudicate`** (LLM job (b) — modelled, no verb) and **`resolve apply`**.
 - **seqspec export** + **scg_lib_structs ingestion** (the decomposition is adopted; the emitter isn't),
   **GENCODE/RefSeq accessions**, **`syrupy`/`hypothesis` tests**, **dual-index parsing**, and
-  **inDrop's W1 linker** (the variable-length/anchored-motif case SPLiT-seq doesn't cover — §6).
+  **inDrop's W1 linker** (the variable-*length*-barcode case; the anchored-motif machinery it needs
+  now exists — BD Rhapsody Enhanced, #43 — so this is an entry to add, not machinery to build; §6).
 
 **Known correctness gaps:**
 
@@ -917,8 +922,9 @@ owes); metadata disagreeing with the bytes (a `Conflict`) vs with itself across 
 3. **ATAC (chromap)** — a new aligner env (consumed, not defined — R10) and a non-matrix deliverable
    (fragments): the first test that the aligner field is open, not STAR-shaped.
 4. **ChIP-seq** — coverage + peaks; decide from the spec whether it belongs here or is a sibling.
-5. **inDrop v3** — the variable-length barcode + anchored W1 linker SPLiT-seq skips; needs the
-   `splitseq-round*` debt (§9) paid first.
+5. **inDrop v3** — the variable-length barcode + anchored W1 linker SPLiT-seq skips; the anchored-motif
+   machinery now exists (BD Rhapsody Enhanced, #43), so what remains is the variable-length-barcode
+   sub-case, its onlists, and the `splitseq-round*` debt (§9).
 
 The pressure lands on a second/third `workflows/map/` module, a deliverable past `.h5ad`, and the
 `fetch` module — but **no new LLM job**: still bytes → `score`, prose → `Assertion`, code decides. An

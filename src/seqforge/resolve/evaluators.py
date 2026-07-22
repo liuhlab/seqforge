@@ -21,6 +21,7 @@ from ..io import OnlistNotAvailable, OnlistRegistry
 from ..kb.schema import (
     BaseComposition,
     DistinctRatio,
+    Element,
     HasSegment,
     HeaderIndex,
     MotifPresent,
@@ -58,7 +59,12 @@ def _clip(x: float) -> float:
 
 
 def _window_for(test: object, read: Read) -> tuple[int, int | None]:
-    """Resolve a test's target window from ``element`` name XOR explicit ``(start, end)``."""
+    """Resolve a test's FIXED target window from ``element`` name XOR explicit ``(start, end)``.
+
+    Only valid for fixed-offset elements. A **floating** element has no constant window — its per-read
+    frame is resolved by :meth:`WindowProbe.anchored_windows`, and the callers below route to it via
+    :func:`_anchored_element` before ever reaching here.
+    """
     element = getattr(test, "element", None)
     if element is not None:
         for el in read.elements:
@@ -68,6 +74,22 @@ def _window_for(test: object, read: Read) -> tuple[int, int | None]:
     start = getattr(test, "start", None)
     end = getattr(test, "end", None)
     return (start or 0), end
+
+
+def _anchored_element(test: object, read: Read) -> Element | None:
+    """The floating element a test targets by name, or ``None`` if it targets a fixed one / coordinates.
+
+    This is where ``el.anchor`` — dropped by every consuming layer before #43 — is finally read on the
+    scoring path: an ``onlist_hit_rate`` / ``distinct_ratio`` addressed to an anchored element must be
+    answered over the per-read frame, not a constant column.
+    """
+    name = getattr(test, "element", None)
+    if name is None:
+        return None
+    for el in read.elements:
+        if el.name == name and el.anchor is not None:
+            return el
+    return None
 
 
 def _mean_max_fraction(wp: WindowProbe, start: int, end: int | None) -> float | None:
@@ -151,14 +173,22 @@ def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluati
 
 def _eval_distinct_ratio(test: DistinctRatio, read: Read, wp: WindowProbe) -> Evaluation:
     """SUPPORTS-only: the gate outcome is forced to ABSTAIN so it can never gate (depth-dependent)."""
-    start, end = _window_for(test, read)
-    if end is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "open-ended window")
-    ratio = wp.distinct_ratio(start, end)
+    anchored = _anchored_element(test, read)
+    if anchored is not None:
+        ratio = wp.anchored_distinct_ratio(read, anchored.name)
+        detail = "anchored "
+    else:
+        start, end = _window_for(test, read)
+        if end is None:
+            return Evaluation(Outcome.ABSTAIN, 0.0, "open-ended window")
+        ratio = wp.distinct_ratio(start, end)
+        detail = ""
     if ratio is None:
         return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
     score = _clip(1.0 - ratio) if test.expect == "low" else _clip(ratio)
-    return Evaluation(Outcome.ABSTAIN, score, f"distinct_ratio={ratio:.3f} expect={test.expect}")
+    return Evaluation(
+        Outcome.ABSTAIN, score, f"{detail}distinct_ratio={ratio:.3f} expect={test.expect}"
+    )
 
 
 def _eval_onlist(
@@ -173,8 +203,12 @@ def _eval_onlist(
         packed = registry.packed(ref.registry)
     except OnlistNotAvailable:
         return Evaluation(Outcome.ABSTAIN, 0.0, f"onlist {ref.registry!r} not materialized")
-    start, _ = _window_for(test, read)
-    hit = wp.onlist_hit(start, packed, orientation=test.orientation)
+    anchored = _anchored_element(test, read)
+    if anchored is not None:
+        hit = wp.anchored_onlist_hit(read, anchored.name, packed, orientation=test.orientation)
+    else:
+        start, _ = _window_for(test, read)
+        hit = wp.onlist_hit(start, packed, orientation=test.orientation)
     outcome = Outcome.PASS if hit.hit_rate >= test.min else Outcome.FAIL
     detail = f"hit={hit.hit_rate:.2f} min={test.min} {hit.orientation}@Δ{hit.offset} floor={hit.floor:.1e}"
     return Evaluation(outcome, hit.score(test.min), detail, used_onlist=True)
@@ -211,8 +245,12 @@ def onlist_admits_over_length(
         packed = registry.packed(ref.registry)
     except OnlistNotAvailable:
         return False
-    start, _ = _window_for(test, read)
-    hit = wp.onlist_hit(start, packed, orientation=test.orientation)
+    anchored = _anchored_element(test, read)
+    if anchored is not None:
+        hit = wp.anchored_onlist_hit(read, anchored.name, packed, orientation=test.orientation)
+    else:
+        start, _ = _window_for(test, read)
+        hit = wp.onlist_hit(start, packed, orientation=test.orientation)
     bar = max(_OVERLENGTH_ADMISSION_MIN, hit.floor * _OVERLENGTH_ADMISSION_FLOOR_MULT)
     return hit.hit_rate >= bar
 

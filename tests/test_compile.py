@@ -494,6 +494,35 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert len(units) == 3  # header + 2 reads
 
 
+def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(tmp_path: Path) -> None:
+    """BD Rhapsody Enhanced compiles to the adapter-anchored STARsolo recipe endorsed on STAR #1607.
+
+    The diversity insert floats every offset, so the geometry cannot be a read-start quadruple: compose
+    DERIVES `soloAdapterSequence` from the linker elements and anchors the CB/UMI positions to that
+    adapter (anchor 2 = its start, anchor 3 = its end). The exact strings are the maintainer-endorsed
+    ones — an independent cross-check on the element geometry — and the params gate must still PASS with
+    `soloAdapterSequence` now an owned (derived) key.
+    """
+    manifest, reg = _build(tmp_path, "bd-rhapsody-wta-enhanced-v1")
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == "map/starsolo"
+    assert result.gate["params"] == "pass"
+    assert result.gate["wiring"] == "pass"
+
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    solo = config["solo"]
+    assert solo["soloType"] == "CB_UMI_Complex"
+    assert solo["soloAdapterSequence"] == "NNNNNNNNNGTGANNNNNNNNNGACA"
+    assert solo["soloCBposition"] == "2_0_2_8 2_13_2_21 3_1_3_9"
+    assert solo["soloUMIposition"] == "3_10_3_17"
+    assert solo["soloStrand"] == "Forward"
+    # the diversity insert is absorbed by the adapter, so no read-start start/length is emitted
+    assert "soloCBstart" not in solo and "soloUMIstart" not in solo
+    # the module actually passes the adapter to STAR (a hand-written .smk, so grep the shipped source)
+    smk = (tmp_path / result.config_path).parent / "starsolo.smk"
+    assert "--soloAdapterSequence" in smk.read_text()
+
+
 def test_the_composer_records_the_run_each_unit_came_from(tmp_path: Path) -> None:
     """units.tsv carries a ``run`` column, from the same `run_key` that grouped the dataset.
 
