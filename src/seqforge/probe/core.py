@@ -16,24 +16,28 @@ from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION
 from . import signals as sig
 from .streaming import sample_fastq_gz
 
-_HASH_CHUNK = 1 << 20  # 1 MiB
 
+def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[str]) -> str:
+    """Content-address a FASTQ from bounded, already-sampled data — never a whole-file read.
 
-def hash_file(path: str | Path) -> str:
-    """Return the sha256 of a file's bytes (content-addressing).
-
-    Note
-    ----
-    This reads the whole *compressed* file (constant memory, no decompression). The bounded-work
-    invariant governs the *decompressed parse* — :func:`~seqforge.probe.streaming.sample_fastq_gz` —
-    which is the expensive path. At 10^4-dataset scale the content sha256 is expected to come from
-    ``io resolve`` (provider md5/sha) so even this linear scan is avoided; the pilot's synthetic
-    fixtures are tiny, so hashing them here is free.
+    A file's identity here is a *name*: stable for the same file, distinct across files. It combines
+    the basename, the compressed size, the gzip ISIZE trailer (uncompressed size mod 2^32), and a hash
+    of the bounded head sample — all in hand after :func:`~seqforge.probe.streaming.sample_fastq_gz`,
+    so no extra bytes are read. The basename is part of the identity because a dataset's files are
+    distinguished by name (``_1``/``_2``, lane, flowcell): two files with identical reads but different
+    names are different files, and downstream maps (``dataset_uris``, role assignment) require one
+    sha per file. The whole-file sha256 this replaces captured the name incidentally (the gzip filename
+    header) and forced the entire file to be read — which was never the point (issue #37). At
+    10^4-dataset scale the durable identity is the provider md5, injected via
+    ``probe_sample(..., sha256=...)``.
     """
     h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        while chunk := fh.read(_HASH_CHUNK):
-            h.update(chunk)
+    h.update(
+        f"seqforge-content-key\x00{basename}\x00{size_bytes}\x00{isize}\x00{len(seqs)}\n".encode()
+    )
+    for s in seqs:
+        h.update(s.encode("ascii", "replace"))
+        h.update(b"\n")
     return h.hexdigest()
 
 
@@ -52,24 +56,24 @@ def _gzip_isize(path: Path) -> int | None:
 
 
 def _estimate_reads(
-    path: Path,
     file_size: int,
     n_reads: int,
     decompressed_bytes: int,
     compressed_bytes: int,
     budget_exhausted: bool,
+    isize: int | None,
 ) -> tuple[int, Literal["isize", "compressed_ratio"]]:
     """Extrapolate total reads without reading the whole file.
 
     Prefer the gzip ISIZE trailer (uncompressed size / average record size); fall back to the
-    compressed-size ratio. If the whole (small) file was read, the sampled count is exact.
+    compressed-size ratio. If the whole (small) file was read, the sampled count is exact. ``isize``
+    is read once by the caller (an O(1) seek) and shared with the content key.
     """
     if n_reads == 0:
         return 0, "compressed_ratio"
     if not budget_exhausted:
         return n_reads, "isize"  # read to EOF: the count is exact
     avg_record = decompressed_bytes / n_reads
-    isize = _gzip_isize(path)
     if isize is not None and avg_record > 0 and isize > decompressed_bytes:
         return int(isize / avg_record), "isize"
     if compressed_bytes > 0:
@@ -104,18 +108,19 @@ def probe_sample(
     nrate = sig.n_rate(sample.seqs)
 
     file_size = p.stat().st_size
+    isize = _gzip_isize(p)
     estimated_total, est_method = _estimate_reads(
-        p,
         file_size,
         sample.n_reads,
         sample.decompressed_bytes,
         sample.compressed_bytes,
         sample.budget_exhausted,
+        isize,
     )
 
     observation = Observation(
         file=FileIdentity(
-            sha256=sha256 or hash_file(p),
+            sha256=sha256 or _content_key(p.name, file_size, isize, sample.seqs),
             size_bytes=file_size,
             basename=p.name,
             local_uri=str(p),
@@ -157,7 +162,9 @@ def probe_file(
     max_reads, max_bytes
         The read budget and decompressed-byte cap.
     sha256
-        Precomputed content hash; if omitted it is computed from the file bytes (see :func:`hash_file`).
+        Precomputed content identity (e.g. a provider md5); if omitted, a bounded local content key is
+        derived from the head sample + size + gzip ISIZE (see :func:`_content_key`) — never a
+        whole-file read.
     """
     observation, _seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes, sha256=sha256)
     return observation

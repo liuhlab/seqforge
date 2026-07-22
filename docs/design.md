@@ -745,9 +745,12 @@ one LLM touchpoint.
 
 **`seqforge/` (no leading dot; resumable, content-addressed):** the top level holds only what a human
 reaches for; state sorts into `cache/`, `records/`, and `logs/`. Under `cache/`: per-file
-`Observation` by file sha256 (`cache/observations/`); dataset `candidates`/`conflicts`/`questions` by
-`dataset_id = sha256(sorted(file_shas) ⊕ kb_version)` with `probe_version`/`resolve_version` folded in
-(`cache/candidates/`); `cache/taxonomy.json`. Under `records/`: fetched `records/<accession>.json`, and
+`Observation` by its **content-address** — a provider md5 when known, else a bounded local key
+(basename + head sample + size + gzip ISIZE), never a whole-file scan (`cache/observations/`); dataset
+`candidates`/`conflicts`/`questions` by `dataset_id = sha256(sorted(file_shas) ⊕ kb_version)` with
+`probe_version`/`resolve_version` folded in (`cache/candidates/`); a stat-keyed resume pointer
+(`realpath+size+mtime` → `dataset_id`) that lets an unchanged re-run rebuild the answer reading
+**zero** FASTQ bytes (`cache/resume/`); `cache/taxonomy.json`. Under `records/`: fetched `records/<accession>.json`, and
 the canonical documents by `doc_sha256` (+ `normalizer_version`) in `records/documents/`. Under
 `logs/`: the harvest cost ledger `logs/usage.json` and `logs/assertions.json`. `manifest.yaml` written
 **only** after a clean `validate` (and exactly one of `manifest.yaml`/`manifest.draft.yaml` ever

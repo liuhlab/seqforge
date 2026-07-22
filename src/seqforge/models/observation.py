@@ -64,7 +64,12 @@ Segment = Annotated[
 
 
 class FileIdentity(BaseModel):
-    """Content identity of one FASTQ. Observation is internal, so a LOCAL path is allowed here only."""
+    """Content identity of one FASTQ. Observation is internal, so a LOCAL path is allowed here only.
+
+    ``sha256`` is a **content-address**, not a whole-file hash: a provider md5 when known, else a
+    bounded local key over the basename + head sample + size + gzip ISIZE (see
+    ``probe.core._content_key``). Fingerprinting never reads a whole FASTQ (issue #37).
+    """
 
     sha256: Sha256
     size_bytes: int = Field(gt=0)

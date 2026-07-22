@@ -22,7 +22,7 @@ from ..models.observation import Observation
 from ..models.resolve import Candidate, ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
-from .cache import Cache, dataset_id
+from .cache import Cache, dataset_id, resume_key
 from .escalate import escalate
 from .geometry import length_feasible
 from .scoring import TechEvaluation, build_tech_evaluation
@@ -421,6 +421,80 @@ def _resolve_run_shared(item: tuple[str, Sequence[str | Path]]) -> RunResolution
     return _resolve_one_run(item, **_RUN_CTX)  # type: ignore[arg-type]
 
 
+def _resume_payload(runs: list[RunResolution]) -> dict[str, object]:
+    """The stat-keyed resume pointer: per run, its id, its dataset_id, and its file content-keys."""
+    return {
+        "runs": [
+            {
+                "run_id": r.run_id,
+                "dataset_id": r.output.result.dataset_id,
+                "file_keys": [o.file.sha256 for o in r.output.observations],
+            }
+            for r in runs
+        ]
+    }
+
+
+def _try_resume_runs(
+    grouped: dict[str, list[Path]], paths: Sequence[str | Path], cache: Cache
+) -> MultiRunOutput | None:
+    """Rebuild a :class:`MultiRunOutput` entirely from cache — reading ZERO FASTQ bytes — or ``None``.
+
+    The stat key (:func:`resume_key`) says the input files are byte-for-byte the last run's; the run
+    grouping is recomputed deterministically from filenames; each run's ``ResolveResult`` and its
+    files' ``Observation``s are then loaded from the content-addressed cache. Any missing/stale piece
+    aborts the resume (return ``None``) and the caller probes + scores afresh. ``matrices`` is scoring
+    debug output the ``run``/``fill`` path does not consume, so it is left empty on resume.
+    """
+    rk = resume_key(paths, KB_VERSION, PROBE_VERSION, RESOLVE_VERSION)
+    if rk is None:
+        return None
+    payload = cache.read_resume(rk)
+    if payload is None:
+        return None
+    runs_meta = payload.get("runs")
+    if not isinstance(runs_meta, list) or len(runs_meta) != len(grouped):
+        return None
+    runs: list[RunResolution] = []
+    for meta in runs_meta:
+        if not isinstance(meta, dict):
+            return None
+        run_id = meta.get("run_id")
+        ds = meta.get("dataset_id")
+        file_keys = meta.get("file_keys")
+        if (
+            not isinstance(run_id, str)
+            or not isinstance(ds, str)
+            or not isinstance(file_keys, list)
+        ):
+            return None
+        run_paths = grouped.get(run_id)
+        if run_paths is None or len(file_keys) != len(run_paths):
+            return None
+        obs_list = [cache.read_observation(k) if isinstance(k, str) else None for k in file_keys]
+        if any(o is None for o in obs_list):
+            return None
+        result = cache.read_resolve(ds)
+        if result is None:
+            return None
+        # Restore each file's own path: the observation cache is keyed by content-address, which
+        # same-named identical-content files in different runs can share, so a resumed run must take
+        # `local_uri` from its input path — not the (possibly another file's) cached value — to stay
+        # byte-identical to a fresh run.
+        observations = [
+            o.model_copy(update={"file": o.file.model_copy(update={"local_uri": str(path)})})
+            for path, o in zip(run_paths, obs_list, strict=True)
+            if o is not None
+        ]
+        output = ResolveOutput(result=result, matrices={}, observations=observations)
+        runs.append(RunResolution(run_id=run_id, paths=list(run_paths), output=output))
+    if {r.run_id for r in runs} != set(grouped):
+        return None  # duplicate/mismatched run ids -> the cached shape is stale
+    order = list(grouped)
+    runs.sort(key=lambda r: order.index(r.run_id))
+    return MultiRunOutput(runs=runs)
+
+
 def resolve_runs(
     paths: Sequence[str | Path],
     *,
@@ -453,6 +527,13 @@ def resolve_runs(
     from .group import group_runs
 
     grouped = group_runs(paths)
+    cache = Cache(workspace)
+    # Disk is state: if the input files are byte-for-byte the last run's, rebuild the whole answer from
+    # the content-addressed cache and read ZERO FASTQ bytes (the "resumable" the design promises).
+    if use_cache:
+        resumed = _try_resume_runs(grouped, paths, cache)
+        if resumed is not None:
+            return resumed
     # Probe every file of every run ONCE, in one pool across the whole dataset (12 files, not 2 a
     # run), then hand each run its slice. Probing per-run would cap parallelism at a run's file count.
     probed = _probe_paths(
@@ -482,31 +563,38 @@ def resolve_runs(
     # inherits copy-on-write but a `spawn` child would re-import empty.
     if cpus <= 1 or len(run_items) <= 1 or "fork" not in mp.get_all_start_methods():
         runs = [_resolve_one_run(it, **common) for it in run_items]  # type: ignore[arg-type]
-        return MultiRunOutput(runs=runs)
+    else:
+        # Warm the shared registry in-process on the FIRST run (this parses the onlists once), then
+        # fork workers for the rest: each inherits the warm registry, so the packed whitelist (millions
+        # of barcodes) is not re-parsed per worker, and its pages are shared copy-on-write where
+        # refcounting allows. Peak memory stays bounded by `--cpus`. Scoring is deterministic per run,
+        # so the parallel result is identical to the serial one; runs are reassembled in the order
+        # `group_runs` yields (sorted by run key) — the same order the serial path uses. Core count
+        # folds into no hash — parallelism is not a budget (see `_probe_paths`).
+        from concurrent.futures import ProcessPoolExecutor
 
-    # Warm the shared registry in-process on the FIRST run (this parses the onlists once), then fork
-    # workers for the rest: each inherits the warm registry, so the packed whitelist (millions of
-    # barcodes) is not re-parsed per worker, and its pages are shared copy-on-write where refcounting
-    # allows. Peak memory stays bounded by `--cpus`. Scoring is deterministic per run, so the parallel
-    # result is identical to the serial one; runs are reassembled in the order `group_runs` yields
-    # (sorted by run key) — the same order the serial path uses. Core count folds into no hash —
-    # parallelism is not a budget (see `_probe_paths`).
-    from concurrent.futures import ProcessPoolExecutor
+        first = _resolve_one_run(run_items[0], **common)  # type: ignore[arg-type]
+        rest_items = run_items[1:]
+        results: dict[int, RunResolution] = {}
+        # Publish the warm context for the fork workers to inherit, and clear it in `finally` so the
+        # parent never pins the warm registry (millions of barcodes) past the pool — even on a raise.
+        _RUN_CTX.update(common)
+        try:
+            with ProcessPoolExecutor(
+                max_workers=min(cpus, len(rest_items)), mp_context=mp.get_context("fork")
+            ) as pool:
+                futures = {
+                    pool.submit(_resolve_run_shared, it): i for i, it in enumerate(rest_items)
+                }
+                for fut in futures:
+                    results[futures[fut]] = fut.result()
+        finally:
+            _RUN_CTX.clear()
+        runs = [first, *(results[i] for i in range(len(rest_items)))]
 
-    first = _resolve_one_run(run_items[0], **common)  # type: ignore[arg-type]
-    rest_items = run_items[1:]
-    results: dict[int, RunResolution] = {}
-    # Publish the warm context for the fork workers to inherit, and clear it in `finally` so the parent
-    # never pins the warm registry (millions of barcodes) past the pool — even if a worker raises.
-    _RUN_CTX.update(common)
-    try:
-        with ProcessPoolExecutor(
-            max_workers=min(cpus, len(rest_items)), mp_context=mp.get_context("fork")
-        ) as pool:
-            futures = {pool.submit(_resolve_run_shared, it): i for i, it in enumerate(rest_items)}
-            for fut in futures:
-                results[futures[fut]] = fut.result()
-    finally:
-        _RUN_CTX.clear()
-    runs = [first, *(results[i] for i in range(len(rest_items)))]
+    # Record the stat-keyed resume pointer so an unchanged re-run skips probe+score entirely.
+    if use_cache:
+        rk = resume_key(paths, KB_VERSION, PROBE_VERSION, RESOLVE_VERSION)
+        if rk is not None:
+            cache.write_resume(rk, _resume_payload(runs))
     return MultiRunOutput(runs=runs)

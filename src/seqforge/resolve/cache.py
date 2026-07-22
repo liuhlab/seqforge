@@ -1,8 +1,11 @@
-"""Content-addressed, resumable ``.seqforge/`` artifacts: disk is state, context is cache.
+"""Content-addressed, resumable ``seqforge/`` artifacts: disk is state, context is cache.
 
-Per-file :class:`Observation` keyed by file sha256; the dataset :class:`ResolveResult` keyed by
-``dataset_id = sha256(sorted(file_shas) ⊕ kb_version)`` with ``probe_version`` / ``resolve_version``
-folded in — so a probe or scorer change invalidates the cache without a manual bump. Every write is
+Per-file :class:`Observation` keyed by its content-address (a bounded local key or a provider md5 —
+never a whole-file scan; see :func:`~seqforge.probe.core._content_key`); the dataset
+:class:`ResolveResult` keyed by ``dataset_id = sha256(sorted(file_shas) ⊕ kb_version)`` with
+``probe_version`` / ``resolve_version`` folded in — so a probe or scorer change invalidates the cache
+without a manual bump. :func:`resume_key` adds a stat-only pointer (``realpath+size+mtime`` →
+``dataset_id``) so an unchanged re-run rebuilds the answer without reading a FASTQ byte. Every write is
 atomic-ish (write-then-rename); a corrupt/absent artifact reads back as ``None`` (recompute), never a
 crash.
 """
@@ -10,6 +13,9 @@ crash.
 from __future__ import annotations
 
 import hashlib
+import json
+import os
+from collections.abc import Iterable
 from pathlib import Path
 
 from ..models.observation import Observation
@@ -22,6 +28,28 @@ def dataset_id(
 ) -> str:
     """The content-addressed dataset id — stable under file order, sensitive to tool versions."""
     key = "\n".join(sorted(file_shas))
+    key += f"|kb={kb_version}|probe={probe_version}|resolve={resolve_version}"
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def resume_key(
+    paths: Iterable[str | Path], kb_version: str, probe_version: str, resolve_version: str
+) -> str | None:
+    """A stat-only key over the input files: same (realpath, size, mtime) set -> same key.
+
+    This is the LOCAL "did anything change since the last run?" check that lets a re-run skip probing
+    and read ZERO FASTQ bytes. It is deliberately NOT the content-addressed :func:`dataset_id` (which
+    needs the bytes): mtime is the standard cheap heuristic, and ``--no-cache`` is the escape hatch.
+    Returns ``None`` if any file is missing — nothing to resume against, so probe afresh.
+    """
+    parts: list[str] = []
+    for p in paths:
+        try:
+            st = os.stat(p)
+        except OSError:
+            return None
+        parts.append(f"{os.path.realpath(p)}|{st.st_size}|{st.st_mtime_ns}")
+    key = "\n".join(sorted(parts))
     key += f"|kb={kb_version}|probe={probe_version}|resolve={resolve_version}"
     return hashlib.sha256(key.encode()).hexdigest()
 
@@ -65,6 +93,23 @@ class Cache:
 
     def write_resolve(self, ds_id: str, result: ResolveResult) -> None:
         self._write(self._resolve_path(ds_id), result.model_dump_json(indent=2))
+
+    def _resume_path(self, key: str) -> Path:
+        return self.root / "resume" / f"{key}.json"
+
+    def read_resume(self, key: str) -> dict[str, object] | None:
+        """Read a stat-keyed resume pointer (see :func:`resume_key`); ``None`` if absent/corrupt."""
+        path = self._resume_path(key)
+        if not path.is_file():
+            return None
+        try:
+            data = json.loads(path.read_text())
+        except (ValueError, OSError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def write_resume(self, key: str, payload: dict[str, object]) -> None:
+        self._write(self._resume_path(key), json.dumps(payload, indent=2))
 
     @staticmethod
     def _write(path: Path, text: str) -> None:

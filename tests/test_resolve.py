@@ -70,6 +70,49 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     assert digest(serial) == digest(parallel)  # same decision, run for run
 
 
+def _run_digest(multi: object) -> list[object]:
+    return [
+        (
+            r.run_id,
+            r.output.result.candidates[0].technology,
+            tuple(sorted(r.output.result.candidates[0].role_assignment.assignment.items())),
+        )
+        for r in multi.runs  # type: ignore[attr-defined]
+    ]
+
+
+def test_resolve_runs_resumes_from_cache_without_reprobing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#37: an unchanged re-run reads ZERO FASTQ bytes -- it rebuilds the answer from the
+    content-addressed cache instead of probing. Proven by making the probe path fatal on the second
+    call: if resume works, ``_probe_paths`` is never entered, and the decision is identical."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reg = _registry_for(spec)
+    reads = kb.generate_reads(spec, n=800, seed=2)
+    paths: list[Path] = []
+    for acc in ("SRR8000001", "SRR8000002"):
+        for suffix, k in (("_1", "R1"), ("_2", "R2")):
+            p = tmp_path / f"{acc}{suffix}.fastq.gz"
+            _write_fastq_gz(p, reads[k])
+            paths.append(p)
+
+    first = resolve_runs(paths, registry=reg, workspace=tmp_path, use_cache=True)
+
+    import seqforge.resolve.engine as engine
+
+    def _boom(*_a: object, **_k: object) -> dict[str, object]:
+        raise AssertionError("resume failed: the probe path was entered on an unchanged re-run")
+
+    monkeypatch.setattr(engine, "_probe_paths", _boom)
+    second = resolve_runs(paths, registry=reg, workspace=tmp_path, use_cache=True)
+
+    assert _run_digest(first) == _run_digest(second)  # identical decision, rebuilt from cache
+    assert [o.file.sha256 for o in first.observations] == [
+        o.file.sha256 for o in second.observations
+    ]
+
+
 # ---------- assignment ----------
 def _exclusive_of(forbidden: list[list[bool]]) -> list[list[bool]]:
     """``exclusive[r][f]``, as ``best_assignment`` derives it: f eligible for r and no other role."""
