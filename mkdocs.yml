@@ -44,6 +44,10 @@ nav:
       - Compiling with Claude: tutorials/with-claude.md
       - Compiling Step-by-step: tutorials/step-by-step.md
       - Adding a technology: tutorials/adding-a-technology.md
+  - Concepts:
+      - The two artifacts: concepts/artifacts.md
+      - How a dataset is identified: concepts/identifying.md
+      - When it refuses: concepts/refusal.md
   # "Supported assays" is nested one level under the section on purpose: with `navigation.sections`
   # only the TOP level renders expanded, so the assay list stays folded behind a collapsible toggle
   # and the sidebar does not grow a long flat list.
@@ -55,10 +59,6 @@ nav:
           - BD Rhapsody WTA: kb/bd-rhapsody-wta.md
           - SPLiT-seq: kb/splitseq.md
           - Bulk paired-end RNA-seq: kb/bulk-rnaseq-pe.md
-  - Concepts:
-      - The two artifacts: concepts/artifacts.md
-      - How a dataset is identified: concepts/identifying.md
-      - When it refuses: concepts/refusal.md
 
 # `design.md` stays in the repo and OUT of the site, deliberately. It is the agent-facing technical
 # source of truth (schemas, scoring function, CLI surface) and this site is the human layer on top of
