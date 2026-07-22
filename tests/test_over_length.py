@@ -375,3 +375,44 @@ def test_a_barcoded_winner_whose_read_hits_no_whitelist_is_refused(tmp_path: Pat
     assert any(b.code == BlockerCode.BARCODE_READ_ABSENT for b in out.result.blockers), [
         b.code for b in out.result.blockers
     ]
+
+
+def test_barcode_absent_refusal_abstains_when_a_sibling_barcoded_leaf_hits() -> None:
+    """F1b must key on ALL valid candidates, not just ``top``. When a look-alike barcoded chemistry tops
+    the score tie but its whitelist misses (v2 on a v3 library, both whitelists registered), while a
+    sibling leaf's whitelist HITS (v3), the data IS barcoded and must not be refused — the tie/hypothesis
+    resolves to the hitting leaf. Only when NO barcoded candidate hits any available whitelist is the
+    data barcode-absent. This is the PRJNA658829 SRR12575567 regression: top=v2 (737K misses), v3 (3M)
+    hits. The single-whitelist over-length fixtures can't see it — there v2's onlist is unavailable, so
+    F1b abstains for the wrong reason (``barcode_onlist_available`` False, not because a sibling hit)."""
+    from seqforge.models.resolve import TechScore
+    from seqforge.resolve.assign import AssignmentResult
+    from seqforge.resolve.escalate import _barcodeless_seated_blocker
+    from seqforge.resolve.scoring import TechEvaluation
+
+    def ev(tech: str, hit: bool, avail: bool = True) -> TechEvaluation:
+        return TechEvaluation(
+            tech=tech,
+            roles=["R1", "R2"],
+            file_shas=["a", "b"],
+            matrix={},
+            assignment=AssignmentResult(valid=True, mapping={0: 0, 1: 1}, raw=1.0),
+            score=TechScore(technology=tech, status="scored", value=0.4),
+            rung=3,
+            used_onlist=True,
+            equivalence_members=[],
+            barcode_role_ids=["R1"],
+            unfillable_role_ids=[],
+            cdna_role_fillable=True,
+            barcode_onlist_hit=hit,
+            barcode_onlist_available=avail,
+        )
+
+    v2_spec = kb.load_spec("10x-3p-gex-v2")
+    top = ev("10x-3p-gex-v2", hit=False)  # tops the tie, but its 737K list misses
+    v3 = ev("10x-3p-gex-v3", hit=True)  # a sibling leaf whose 3M list hits
+    # a barcoded leaf hit -> the data is barcoded -> abstain (do NOT refuse)
+    assert _barcodeless_seated_blocker(top, v2_spec, [top, v3]) is None
+    # nothing hit anywhere -> genuinely barcode-absent -> refuse
+    blk = _barcodeless_seated_blocker(top, v2_spec, [top])
+    assert blk is not None and blk.code == BlockerCode.BARCODE_READ_ABSENT

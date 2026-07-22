@@ -128,7 +128,7 @@ def escalate(
     trimmed = _pretrimmed_blockers(top, top_spec, observations)
     if trimmed:
         return Escalation(candidates=[], blockers=trimmed, conflicts=conflicts, rung_reached=rung)
-    barcode_absent = _barcodeless_seated_blocker(top, top_spec)
+    barcode_absent = _barcodeless_seated_blocker(top, top_spec, valid)
     if barcode_absent is not None:
         return Escalation(
             candidates=[], blockers=[barcode_absent], conflicts=conflicts, rung_reached=rung
@@ -238,11 +238,20 @@ def _pretrimmed_blockers(
     return blockers
 
 
-def _barcodeless_seated_blocker(top: TechEvaluation, top_spec: Spec) -> Blocker | None:
-    """F1b — the winning chemistry is barcoded and its barcode role is FILLED, but no seated read hits
-    the chemistry's whitelist (``barcode_onlist_hit`` False) though a whitelist WAS available to check
-    (``barcode_onlist_available``). STARsolo would read barcodes from a read matching nothing and report
-    ~0 valid barcodes at exit 0 — a silently empty matrix. Refuse instead.
+def _barcodeless_seated_blocker(
+    top: TechEvaluation, top_spec: Spec, valid: list[TechEvaluation]
+) -> Blocker | None:
+    """F1b — the winning chemistry is barcoded, its barcode role is FILLED, and NO byte-consistent
+    barcoded candidate hits a whitelist though one WAS available to check (``barcode_onlist_available``).
+    STARsolo would read barcodes from a read matching nothing and report ~0 valid barcodes at exit 0 — a
+    silently empty matrix. Refuse instead.
+
+    The gate is over ALL valid candidates, not just ``top``: if any barcoded leaf's whitelist positively
+    matched, the data IS barcoded and the winner resolves to that leaf, so this must abstain. The case
+    that forces it is the over-length v2/v3 tie — a 150 bp 10x v3 library where v2 edges v3 on raw score
+    (so ``top`` is v2, whose 737K list misses) while v3's 3M list hits; blocking on ``top`` alone would
+    refuse a perfectly good v3 dataset before the tie/hypothesis picks v3. Only a dataset where no
+    barcoded chemistry matched at all is genuinely barcode-absent.
 
     Fires only where the whitelist is the arbiter: a bulk winner (no barcode role) is the
     ``_single_cell_collapse_conflict`` guard's job, and a chemistry whose whitelist was never consulted
@@ -251,10 +260,10 @@ def _barcodeless_seated_blocker(top: TechEvaluation, top_spec: Spec) -> Blocker 
     """
     if _barcode_read_id(top_spec) is None:
         return None  # a bulk winner has no barcode role — the collapse guard's job, not this
+    if any(e.barcode_onlist_hit for e in valid):
+        return None  # some byte-consistent barcoded leaf DID hit — the data is barcoded, not absent
     if not top.barcode_onlist_available:
         return None  # no whitelist was consulted: absence is not decidable, defer to the geometry gates
-    if top.barcode_onlist_hit:
-        return None  # a seated read hits the whitelist — the barcode read is present
     return Blocker(
         id=f"blk-barcode-absent-{top.tech}",
         code=BlockerCode.BARCODE_READ_ABSENT,
