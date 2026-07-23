@@ -242,3 +242,40 @@ def test_flow_renders_as_html_cards_not_a_scaled_diagram(workspace: Path) -> Non
     asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
     assert "mermaid.min.js" not in asset_names
     assert {"report.css", "report.js"} <= asset_names
+
+
+# -- modality-aware rendering (ATAC / fragments) --------------------------------------------------
+
+
+def test_pipeline_stages_render_fragments_not_gene_counts_for_atac() -> None:
+    """An ATAC recipe's stage diagram must show chromap + fragments, never the RNA "count genes"
+    language — the report reads the quantification family off the recipe, so an `atac:` quant flips it."""
+    from seqforge.report.collect import _pipeline_stages
+    from seqforge.report.model import DecisionField, PlanView
+
+    atac_plan = PlanView(
+        fields=[
+            DecisionField(
+                label="quantification",
+                value="atac: fragments (fragments.tsv.gz)",
+                basis="inferred",
+                rung=3,
+            )
+        ]
+    )
+    stages = _pipeline_stages(atac_plan)
+    blob = " ".join(f"{s.title} {s.detail}" for s in stages).lower()
+    assert "fragment" in blob
+    assert "chromap" in blob
+    assert "count genes" not in blob  # the RNA phrasing must not leak into an ATAC run
+
+    # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
+    solo_plan = PlanView(
+        fields=[
+            DecisionField(
+                label="quantification", value="solo: Gene, GeneFull", basis="inferred", rung=3
+            )
+        ]
+    )
+    solo_blob = " ".join(f"{s.title} {s.detail}" for s in _pipeline_stages(solo_plan)).lower()
+    assert "count" in solo_blob and "starsolo" in solo_blob
