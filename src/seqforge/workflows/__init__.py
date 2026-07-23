@@ -22,6 +22,12 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.7.14 — a SECOND aligner: `map/chromap` (chromap.smk) maps barcoded scATAC to a tabix-indexed
+#: `fragments.tsv.gz` (not a count matrix). It resolves its index via liulab-genome's `get_chromap_index`
+#: (no GTF — one index per assembly), reads two GENOMIC mates + a barcode read (`read_layout_kind`
+#: gains `atac_barcoded`), declares its own one-key parse namespace (`barcode_whitelist`), and serves
+#: modalities {atac, multi}. STARsolo/star behaviour is byte-identical — this is purely additive, so a
+#: version bump for the new module, not a change to the old ones.
 #: 2026.7.13 — both mapping rules (`starsolo_count` in starsolo.smk, `star_count` in star.smk) clear
 #: STAR's `_STARtmp` (`rm -rf {params.prefix}_STARtmp`) before invoking STAR, so a (re)run is
 #: preemption-safe: a preempted STAR leaves `_STARtmp` behind, STAR aborts a rerun if it exists, and
@@ -56,7 +62,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.13"
+WORKFLOW_VERSION = "2026.7.14"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -156,6 +162,16 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
     }
 )
 
+#: chromap's parse namespace — the byte-decided knobs a ``map/chromap`` backend may declare. Just the
+#: barcode whitelist: chromap corrects the cell barcode against it (like STARsolo's ``soloCBwhitelist``),
+#: and it resolves through the same ``{onlist:<alias>}`` mechanism to a materialized path. Everything
+#: else chromap needs is either a fixed module detail (the ``--preset atac`` mode, hardcoded in
+#: chromap.smk the way star.smk hardcodes ``--outSAMtype``) or read geometry the manifest already states
+#: (which file is the barcode read arrives via ``read_files_in``, not a parse param). The namespace is
+#: DISJOINT from STARsolo's, which is what keeps "a user instruction contradicts the bytes" inexpressible
+#: per pipeline: a chromap backend is policed against exactly this set, a starsolo backend against ``solo*``.
+_CHROMAP_PARSE_KEYS: frozenset[str] = frozenset({"barcode_whitelist"})
+
 
 @dataclass(frozen=True)
 class WorkflowModule:
@@ -174,13 +190,15 @@ class WorkflowModule:
     snakefile: Path
     #: How this module wants its reads handed to the aligner:
     #:
-    #: - ``barcoded`` — ``{cdna, barcode}``, chosen by ROLE (a barcoded single-cell chemistry).
-    #: - ``paired``   — ``{mate1, mate2}``, chosen by ORDER (a bulk paired-end library).
+    #: - ``barcoded``      — ``{cdna, barcode}``, chosen by ROLE (a barcoded single-cell RNA chemistry).
+    #: - ``paired``        — ``{mate1, mate2}``, chosen by ORDER (a bulk paired-end library).
+    #: - ``atac_barcoded`` — ``{gdna1, gdna2, barcode}``, chosen by ROLE (scATAC: two genomic mates and a
+    #:   separate barcode read — chromap's ``-1``/``-2``/``-b`` shape).
     #:
     #: A typed, visible choice rather than the old ``spec.backend.module == "map/starsolo"`` string
     #: compare, in which every module that was not starsolo silently fell into the bulk mate1/mate2
     #: branch and emitted a wrong command line. A third module must pick a kind, or add one.
-    read_layout_kind: Literal["barcoded", "paired"]
+    read_layout_kind: Literal["barcoded", "paired", "atac_barcoded"]
     #: The parse-param namespace this pipeline's KB backends may declare (byte-decided knobs). Empty for
     #: a bulk pipeline that takes no parse params. Per pipeline, so a chromap backend declares chromap's
     #: parse knobs and a starsolo backend declares ``solo*`` — each gated against its own namespace.
@@ -234,11 +252,13 @@ class WorkflowModule:
         A module that reads neither block, or both, raises. That is a module whose config contract we
         do not understand, and guessing would be how the wrong params reach an aligner.
         """
-        blocks = sorted({k.split(".")[0] for k in self.required_config} & {"solo", "bulk"})
+        blocks = sorted(
+            {k.split(".")[0] for k in self.required_config} & {"solo", "bulk", "chromap"}
+        )
         if len(blocks) != 1:
             raise ValueError(
                 f"{self.name} reads {blocks or 'no'} aligner-param block(s) in its config; expected "
-                f"exactly one of solo/bulk. A module whose contract is unreadable must not be "
+                f"exactly one of solo/bulk/chromap. A module whose contract is unreadable must not be "
                 f"guessed at — add the block it reads, or teach `param_block` the new shape."
             )
         return blocks[0]
@@ -259,6 +279,15 @@ MODULES: dict[str, WorkflowModule] = {
         env="align-rna",
         snakefile=_MODULE_DIR / "map" / "star.smk",
         read_layout_kind="paired",
+    ),
+    "map/chromap": WorkflowModule(
+        name="map/chromap",
+        version=WORKFLOW_VERSION,
+        env="align-dna",
+        snakefile=_MODULE_DIR / "map" / "chromap.smk",
+        read_layout_kind="atac_barcoded",
+        parse_keys=_CHROMAP_PARSE_KEYS,
+        serves_modalities=frozenset({"atac", "multi"}),
     ),
 }
 

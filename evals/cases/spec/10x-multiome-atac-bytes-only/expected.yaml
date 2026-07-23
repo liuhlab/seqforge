@@ -1,0 +1,12 @@
+outcome: decide
+description: >-
+  10x Multiome (ARC) scATAC arm from bytes alone. A 3-read layout — two genomic mates (Tn5 fragment
+  ends) plus a 16 bp cell-barcode read with NO UMI — is structurally distinct from every 2-read scRNA
+  chemistry (read count 3 vs 2, barcode read 16 bp vs 28 bp), and this case proves it resolves to a
+  positive target rather than abstaining. Before this spec existed the ATAC arm hit
+  UNSUPPORTED_TECHNOLOGY; it now classifies to `10x-multiome-atac` and, through it, to the SECOND
+  aligner (`map/chromap`) — the first non-STARsolo pipeline reached from bytes. The role assertions pin
+  the barcode read the resolver settled on, from structure, with no filename semantics.
+fields:
+  library.chemistry: 10x-multiome-atac
+  library.roles.R2: R2

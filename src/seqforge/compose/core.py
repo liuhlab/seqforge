@@ -38,7 +38,7 @@ from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
-from ..models.dataset import INDEX_ROLE, DatasetManifest
+from ..models.dataset import INDEX_ROLE, DatasetManifest, ReadDef
 from ..models.processing import (
     DatasetPin,
     ProcessingManifest,
@@ -450,10 +450,28 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
         if cdna is None or barcode is None:
             raise ComposeError("a barcoded chemistry needs both a cDNA read and a CB-bearing read")
         return {"cdna": cdna.read_id, "barcode": barcode.read_id}
+    if module.read_layout_kind == "atac_barcoded":
+        # scATAC: two GENOMIC mates + a separate barcode read (chromap's -1/-2/-b). The two gDNA reads
+        # keep layout order (R1 before R3), which is arbitrary between symmetric mates but stable — the
+        # units.tsv `run` column, not this order, is what pairs a pooled sample's files.
+        gdna = _reads_with_role(manifest, "gDNA")
+        barcode = find_read_with_role(manifest, "CB")
+        if len(gdna) < 2 or barcode is None:
+            raise ComposeError("scATAC needs two genomic (gDNA) reads and a barcode read")
+        return {"gdna1": gdna[0].read_id, "gdna2": gdna[1].read_id, "barcode": barcode.read_id}
     reads = manifest.library.read_layout.reads
     if len(reads) < 2:
         raise ComposeError(f"bulk paired-end needs 2 reads, found {len(reads)}")
     return {"mate1": reads[0].read_id, "mate2": reads[1].read_id}
+
+
+def _reads_with_role(manifest: DatasetManifest, role: str) -> list[ReadDef]:
+    """Every layout read carrying an element of ``role``, in layout order (scATAC has two gDNA reads)."""
+    return [
+        read
+        for read in manifest.library.read_layout.reads
+        if any(el.role == role for el in read.elements)
+    ]
 
 
 def _resolve_uri(uri: str, fastq_dir: str | Path | None) -> str:

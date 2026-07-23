@@ -19,6 +19,7 @@ from ..models.blocker import BlockerSubject, ValidationWarning
 from ..models.dataset import DatasetManifest
 from ..models.evidenced import EvidencedBool, EvidencedStr
 from ..models.processing import (
+    AtacQuant,
     BulkQuant,
     EvidencedGenome,
     EvidencedQuantification,
@@ -195,13 +196,17 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     # Keyed on the block the module READS, not on its name. `if module == "map/starsolo"` was the
     # same silent fall-through as `param_block_key`'s and `_read_files_in`'s before it: any third
     # module quietly gets `quantMode=GeneCounts`, which is a real and wrong instruction to an aligner
-    # that may not take it. `param_block` refuses a module whose contract is neither solo nor bulk,
-    # so the `else` here can only be bulk — by construction rather than by hope.
-    quantification: Quantification = (
-        SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
-        if pipeline.param_block == "solo"
-        else BulkQuant(mode="GeneCounts")
-    )
+    # that may not take it. `param_block` returns exactly one of solo/bulk/chromap (it refuses a module
+    # whose contract is none of them), so this maps each block to the counting shape its aligner writes:
+    # solo -> a count matrix, chromap -> a fragments file (nothing to count), bulk -> gene counts.
+    block = pipeline.param_block
+    quantification: Quantification
+    if block == "solo":
+        quantification = SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
+    elif block == "chromap":
+        quantification = AtacQuant()
+    else:
+        quantification = BulkQuant(mode="GeneCounts")
     return ProcessingDefaults(
         module=module,
         aligner=aligner,
@@ -331,6 +336,11 @@ def resolve_processing(
             instructions=instructions, override=ov.features, prep_type=prep_type
         )
         quant = SoloQuant(features=features)
+    elif isinstance(defaults.quantification, AtacQuant):
+        # ATAC: the deliverable is a fragments file — there is no count to instruct, so nothing here a
+        # user overrides (the parse/count split is trivial when there is no count).
+        quant = defaults.quantification
+        basis, evidence = "inferred", ["policy:default-atac-fragments"]
     else:
         # bulk: counting is module-scoped, and there is nothing here a user needs to instruct —
         # --quantMode GeneCounts already emits all three strand columns.

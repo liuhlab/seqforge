@@ -115,7 +115,21 @@ class BulkQuant(BaseModel):
     mode: Literal["GeneCounts", "TranscriptomeSAM", "None"] = "GeneCounts"
 
 
-Quantification = Annotated[SoloQuant | BulkQuant, Field(discriminator="kind")]
+class AtacQuant(BaseModel):
+    """chromap scATAC quantification — the deliverable is a fragments file, so nothing is COUNTED.
+
+    A count matrix needs a feature axis (genes); ATAC has none, so unlike :class:`SoloQuant` /
+    :class:`BulkQuant` this carries no counting knob — ``fragments.tsv.gz`` is the whole output. It
+    exists so a chromap-pipeline processing manifest stays well-typed: ``quantification`` is still one
+    ``Evidenced`` envelope, its value just says "fragments, not a matrix". The parse/count split holds
+    trivially — there is no count to instruct — which is why an ATAC recipe never asks a counting
+    question the way a nuclear RNA one does (Gene vs GeneFull).
+    """
+
+    kind: Literal["atac"] = "atac"
+
+
+Quantification = Annotated[SoloQuant | BulkQuant | AtacQuant, Field(discriminator="kind")]
 """What to COUNT, discriminated by aligner family (the house style: cf. ``Segment``, ``Test``)."""
 
 
@@ -221,6 +235,7 @@ __all__ = [
     "SoloFeature",
     "SoloQuant",
     "BulkQuant",
+    "AtacQuant",
     "Quantification",
     "EvidencedQuantification",
     "ResourceHints",

@@ -34,7 +34,7 @@ from seqforge.manifest import (
 )
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
-from seqforge.models.processing import ProcessingManifest
+from seqforge.models.processing import ProcessingManifest, RuntimeEnv
 from seqforge.models.resolve import ResolveResult
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
@@ -447,12 +447,17 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
 
 # ---------- workflows ----------
 def test_workflow_modules_are_registered_and_present_on_disk() -> None:
-    assert set(list_modules()) == {"map/starsolo", "map/star"}
+    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap"}
+    valid_envs = set(get_args(RuntimeEnv))
     for name in list_modules():
         module = get_module(name)
         assert module.snakefile.is_file(), f"{name} snakefile missing"
         assert module.version == WORKFLOW_VERSION
-        assert module.env == "align-rna"
+        # Each module names the runtime env its aligner needs -- align-rna for the STAR modules,
+        # align-dna for chromap. Assert it is a real `RuntimeEnv`, not a hardcoded `align-rna`: the
+        # env is the module's own declaration (policy reads it off the pipeline), so a second aligner
+        # in a different env is correct, not a test failure.
+        assert module.env in valid_envs
 
 
 # ---------- compose ----------
@@ -791,20 +796,23 @@ def test_no_run_directive_rule_declares_a_container() -> None:
 
 
 def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
-    """The env name was recorded and read by nothing, so every run used whatever STAR was on PATH."""
+    """The env name was recorded and read by nothing, so every run used whatever aligner was on PATH.
+
+    Generalized over aligners: every module must run its external aligner (and any other runtime binary,
+    e.g. samtools/htslib) inside the pinned `config["container"]`, never from the submitting shell's
+    PATH. Rather than name STAR — which only the RNA modules invoke — assert each module carries at least
+    one `container: config["container"]` rule and emits the `container` key those rules read. A second
+    aligner (chromap, in `align-dna`) is then covered by construction rather than needing its own case.
+    """
     for name in list_modules():
         blocks = _rule_blocks(get_module(name).snakefile)
-        aligner = [r for r, b in blocks.items() if "STAR --runMode alignReads" in b]
-        assert aligner, (
-            f"{name} has no rule that invokes STAR; this test is looking at the wrong one"
+        containered = [r for r, b in blocks.items() if 'container: config["container"]' in b]
+        assert containered, (
+            f"{name} pins no rule in a container, so its aligner runs from whatever the submitting "
+            f"shell happened to have"
         )
-        for rule in aligner:
-            assert 'container: config["container"]' in blocks[rule], (
-                f"{name}:{rule} invokes STAR with no container, so the aligner is whatever the "
-                f"submitting shell happened to have"
-            )
-    # ...and the composer must actually emit the key those rules read.
-    assert "container" in get_module("map/starsolo").required_config
+        # ...and the composer must actually emit the key those rules read.
+        assert "container" in get_module(name).required_config
 
 
 def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe() -> None:
@@ -1205,8 +1213,9 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
 #: moves. Nothing here can drift silently.
 _GENOME_API = {
     "get_star_index",  # starsolo.smk / star.smk rule genome_index + e2e: resolve the prebuilt index
+    "get_chromap_index",  # chromap.smk rule genome_index: resolve the prebuilt scATAC index (no GTF)
     "register_gtf",  # staging an annotation (see the consumer note in CLAUDE.md)
-    "fasta_path",  # e2e: simulate reads from real sequence
+    "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered
 }

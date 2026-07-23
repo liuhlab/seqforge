@@ -1,0 +1,74 @@
+schema_version: 1
+
+identity:
+  id: 10x-multiome-atac
+  version: "1"
+  name: "10x Chromium Single Cell Multiome ATAC + Gene Expression (ATAC arm)"
+  aliases: ["10x Multiome ATAC", "10x ARC ATAC", "Chromium Multiome ATAC", "Multiome scATAC"]
+  assay_ontology: ["EFO:0030059"]        # 10x multiome (ARC) kit — this is its scATAC arm
+  modality: atac
+
+reads:
+  # THREE reads, which is the structural break from every 2-read scRNA chemistry: two GENOMIC mates
+  # (Tn5-inserted fragment ends) and a separate cell-barcode read. R1 = genomic, open-ended.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 30
+    max_len: null
+    elements:
+      - {type: gdna, name: gdna1, start: 0, end: null, seqspec_region_type: gdna}
+  # R2 = the 16 bp cell barcode read (10x ARC bead barcode). NO UMI — ATAC has none, so the barcode
+  # read is 16 bp, not the 28 bp (16 CB + 12 UMI) of the 10x scRNA family. That length is the second
+  # structural discriminator after the read count.
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 16
+    max_len: 16
+    elements:
+      - {type: barcode, name: CB, start: 0, end: 16, onlist: atac_whitelist, seqspec_region_type: barcode}
+  # R3 = the second genomic mate, open-ended.
+  - id: R3
+    seqspec_read_id: R3
+    file_hint: "_R3_"
+    strand: pos
+    min_len: 30
+    max_len: null
+    elements:
+      - {type: gdna, name: gdna2, start: 0, end: null, seqspec_region_type: gdna}
+
+onlists:
+  atac_whitelist:                 # used by the chromap backend + the positive supports test
+    registry: 737K-arc-v1         # the Multiome (ARC) barcode list — shared with the GEX arm
+    role: atac_barcode
+    expected_orientation: forward
+
+signature:
+  requires:                       # hard structural gates, rungs 0-2 friendly
+    - {test: read_count, roles: 3}                          # two genomic + one barcode read
+    - {test: segment_length, read: R2, length: 16, tolerance: 0}   # 16 bp barcode read, no UMI
+    - {test: has_segment, read: R2, start: 0, end: 16, kind: random}
+  supports:                       # additive evidence (rung 3+)
+    - when: {test: onlist_hit_rate, read: R2, start: 0, end: 16, onlist: atac_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0                 # the ARC whitelist hitting the barcode read is the positive signal
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 16, expect: low}
+      weight: 2.0                 # cell barcode recurs -> low distinct ratio
+    - when: {test: distinct_ratio, read: R1, start: 0, end: 20, expect: high}
+      weight: 1.0                 # genomic read is diverse -> the biological role is scored, not left at 0
+    - when: {test: distinct_ratio, read: R3, start: 0, end: 20, expect: high}
+      weight: 1.0
+    - when: {test: header_index, present: true}
+      weight: 0.2
+  excludes: []                    # a 3-read, 16 bp-barcode layout is not confusable with any current spec
+
+backend:
+  module: map/chromap             # the SECOND aligner — validates against chromap's parse namespace
+  params:
+    # The one byte-decided parse knob: the barcode whitelist chromap corrects the cell barcode against
+    # (its `--barcode-whitelist`), resolved through the same {onlist:<alias>} mechanism as STARsolo's
+    # soloCBwhitelist. Everything else chromap needs is a fixed module detail (--preset atac, hardcoded
+    # in chromap.smk) or read geometry the manifest already states (read_files_in), so it is NOT here.
+    barcode_whitelist: "{onlist:atac_whitelist}"
