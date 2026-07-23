@@ -280,6 +280,40 @@ def test_preflight_redistributable_flag_omits_raw_docs(tmp_path: Path) -> None:
     assert not any(r.startswith("info/docs/") for r in info)
 
 
+def test_strip_to_redistributable_drops_raw_docs_and_preserves_the_hash(tmp_path: Path) -> None:
+    """Retroactive copyright fix: strip a full package to text-only WITHOUT changing the dataset hash.
+
+    A package built with the raw paper (the pre-flag default, and what the worm deliverables shipped)
+    must be repackable into a redistributable copy — no info/docs/, no info/images/, only info/text/ —
+    and because the reads and pins are untouched, the manifest hash a run reproduces must be identical.
+    """
+    from seqforge.fingerprint.build import strip_to_redistributable
+
+    paths, reg = _synth_dataset(tmp_path, n=800)
+    doc = tmp_path / "paper.md"
+    doc.write_text("# Methods\n\nChromium Single Cell 3' v3 of C. elegans.\n")
+    full = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds", info_docs=[doc])
+    assert any(r.startswith("info/docs/") for r in full.manifest.info)
+
+    stripped = strip_to_redistributable(full.package, tmp_path / "redist.fingerprint.tar.gz")
+    assert not any(r.startswith("info/docs/") for r in stripped.manifest.info)
+    assert not any(r.startswith("info/images/") for r in stripped.manifest.info)
+    assert any(r.startswith("info/text/") for r in stripped.manifest.info), "text must survive"
+
+    # The pins are byte-identical, so the manifest hash reproduces from either package.
+    full_loaded = load_fingerprint(full.package, unpack_to=tmp_path / "u-full")
+    redist_loaded = load_fingerprint(stripped.package, unpack_to=tmp_path / "u-redist")
+    fp_full, probed_full = probed_from_fingerprint(full_loaded)
+    fp_redist, probed_redist = probed_from_fingerprint(redist_loaded)
+    assert _manifest_hash(fp_full, reg, probed=probed_full) == _manifest_hash(
+        fp_redist, reg, probed=probed_redist
+    )
+    # And the raw doc is truly gone from the redistributable tree.
+    assert redist_loaded.info_paths() and all(
+        "info/text/" in str(p) for p in redist_loaded.info_paths()
+    )
+
+
 def test_run_from_fingerprint_cli_reproduces_the_hash(tmp_path: Path) -> None:
     """End to end through the CLI: ``preflight`` then ``run --fingerprint`` yields the same manifest.
 

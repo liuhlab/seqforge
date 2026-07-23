@@ -13,7 +13,7 @@ from pathlib import Path
 
 import typer
 
-from ..fingerprint.build import build_fingerprint
+from ..fingerprint.build import build_fingerprint, strip_to_redistributable
 from ..fingerprint.load import LoadedFingerprint, load_fingerprint, probed_from_fingerprint
 from ..models.observation import Observation
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
@@ -103,6 +103,38 @@ def preflight_cmd(
         ],
     }
     typer.echo(json.dumps(payload, indent=2))
+
+
+@app.command("strip-fingerprint")
+def strip_fingerprint_cmd(
+    package: Path = typer.Argument(..., help="An existing .fingerprint.tar.gz (or unpacked dir)."),
+    out: Path = typer.Option(
+        ..., "--out", "-o", help="Destination path for the redistributable (text-only) .tar.gz."
+    ),
+) -> None:
+    """Repack a fingerprint package as a **redistributable** copy: text only, no raw doc, no figures.
+
+    The retroactive twin of ``preflight --redistributable`` — for packages built before that flag (or
+    once the original FASTQs are gone). Drops ``info/docs/`` (the raw paper, a copyright liability) and
+    ``info/images/`` (its figures), keeps ``info/text/`` and every FASTQ slice + pin untouched, so the
+    dataset hash reproduces byte-for-byte. Emits a JSON summary on stdout.
+    """
+    try:
+        result = strip_to_redistributable(package, out)
+    except (OSError, ValueError) as exc:
+        typer.echo(json.dumps({"error": "strip_failed", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        json.dumps(
+            {
+                "package": str(result.package),
+                "package_bytes": result.package_bytes,
+                "n_files": len(result.manifest.files),
+                "info": result.manifest.info,
+            },
+            indent=2,
+        )
+    )
 
 
 def fingerprint_run_inputs(

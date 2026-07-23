@@ -1,0 +1,51 @@
+# AUTO-SEEDED benchmark expectation — PENDING MAINTAINER REVIEW. NOT a pristine pre-registration.
+#
+# Unlike evals/cases/PRJNA1027859 (written from metadata BEFORE any run), this file was SEEDED FROM a
+# seqforge run on the dataset's fingerprint package, for the maintainer to audit against ground truth.
+# Two kinds of claim live here:
+#   - experiment.* (organism, study, per-sample strain/tissue/sex/...) are TRANSCRIBED from the
+#     archive's own BioSample/SRA records (records.json beside this file, public metadata). Verify them
+#     against the paper; they do not depend on our compiler.
+#   - library.chemistry / equivalence_members are what seqforge RESOLVED from the fingerprint's bytes
+#     at the versions in `predicts`. This is the regression baseline; a future code change that moves
+#     it turns this case red, which is the point.
+# Review action: confirm each value, prune fragile ones (e.g. a rough study.center), and delete this
+# header once verified so the file reads as a real, dated pre-registration.
+outcome: decide
+description: 'Benchmark: GSE126954 resolved from its fingerprint package; sample facts from records. AUTO-SEEDED,
+  pending maintainer review (see header).'
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.6
+  workflow: 2026.7.13
+fields:
+  library.chemistry: 10x-3p-gex-v2
+  experiment.organism: 6239
+  experiment.study.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell
+    resolution
+  experiment.study.center: GEO
+  experiment.samples.*.strain:
+  - N2
+  - N2
+  - N2
+  - VC2010, derived from N2
+  - VC2010, derived from N2
+  - VC2010, derived from N2
+  - VC2010, derived from N2
+  experiment.samples.*.dev_stage:
+  - embryo
+  - embryo
+  - embryo
+  - embryo
+  - embryo
+  - embryo
+  - embryo
+  experiment.samples.*.source_name:
+  - C. elegans embryos
+  - C. elegans embryos
+  - C. elegans embryos
+  - C. elegans embryos
+  - C. elegans embryos
+  - C. elegans embryos
+  - C. elegans embryos
+  experiment.samples.SAMN10988833.strain: VC2010, derived from N2

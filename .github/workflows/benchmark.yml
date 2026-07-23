@@ -2,22 +2,23 @@ name: benchmark
 
 # The NETWORKED validation benchmark — deliberately NOT part of `ci.yml`.
 #
-# Per-commit CI is hermetic: `test_corpus_is_green` runs the committed ci-benchmark (synthetic per-spec
-# recipes + tiny committed fingerprints) with no network and no key, so a free HF account's rate limits
-# or availability can never turn a normal PR red. This job is the other tier: it pulls the growing real
-# benchmark from the public HF dataset repo `liuhlab/seqforge-benchmark` (anonymous read, pooch-cached,
-# no token) and runs the whole eval corpus through the real compiler.
+# Per-commit CI is hermetic: `test_corpus_is_green` runs the committed ci-benchmark (`evals/cases`:
+# synthetic per-spec recipes covering every leaf spec) with no network and no key, so a free HF
+# account's rate limits or availability can never turn a normal PR red. This job is the other tier: it
+# runs `evals/benchmark` — real worm datasets whose byte-light fingerprint packages live on the public
+# HF dataset repo `liuhlab/seqforge-benchmark` — pulling each package anonymously (pooch-cached, no
+# token) and grading the real compiler's output against each case's committed `expected.yaml`.
 #
-# It is opt-in (manual `workflow_dispatch`) and scheduled (weekly), never on push/PR. `seqforge eval
-# run` exits 3 on ANY false-accept — a confident wrong manifest is the one failure the corpus never
-# recovers from. A benchmark package that is unreachable (offline, or not yet uploaded) SKIPS, so this
-# stays green before the HF repo is populated; a skip is never a pass and never a fail.
+# Triggered on a published RELEASE and on manual `workflow_dispatch` — NOT on push/PR, and NOT on a
+# schedule: the benchmark gates a release, not a commit. `seqforge eval run` exits 3 on ANY
+# false-accept (a confident wrong manifest is the one failure the corpus never recovers from). A
+# package that is unreachable (offline, or withdrawn) SKIPS, never fails; sample facts come from the
+# committed `records.json`, so no NCBI credential is needed either.
 
 on:
   workflow_dispatch:
-  schedule:
-    # 07:00 UTC every Monday — a cadence, not a gate. Nothing blocks on it.
-    - cron: "0 7 * * 1"
+  release:
+    types: [published]
 
 concurrency:
   group: benchmark-${{ github.ref }}
@@ -36,7 +37,8 @@ jobs:
         with:
           environments: test
           locked: true
-      # `--no-llm`: this tier grades chemistry-from-bytes and sample-attributes-from-records, both
-      # deterministic and key-free. Prose-only cases skip. Exit 3 on any false-accept or accuracy drop.
-      - name: seqforge eval run (pulls HF benchmark, hermetic ci cases included)
-        run: pixi run -e test eval -- --no-llm
+      # `--no-llm`: this tier grades chemistry-from-bytes and sample-attributes-from-committed-records,
+      # both deterministic and key-free. `--cases evals/benchmark` selects the HF tier; each case pulls
+      # its package from HF. Exit 3 on any false-accept or accuracy drop.
+      - name: seqforge eval run (pulls HF benchmark packages)
+        run: pixi run -e test eval -- --no-llm --cases evals/benchmark

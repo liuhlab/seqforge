@@ -1,0 +1,5 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+generate:
+  kind: fingerprint
+  hf: packages/GSE126954.fingerprint.tar.gz

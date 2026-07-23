@@ -1,0 +1,194 @@
+{
+  "query": "GSE274290",
+  "records": [
+    {
+      "accession": "PRJNA1145880",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "westlake university"
+        },
+        {
+          "harmonized": false,
+          "name": "data_type",
+          "raw_name": null,
+          "value": "Transcriptome or Gene expression"
+        },
+        {
+          "harmonized": false,
+          "name": "submission_date",
+          "raw_name": null,
+          "value": "2024-08-08"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Spatiotemporal single-cell architecture of gene expression in the Caenorhabditis elegans germ cells [scRNA-seq]"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Spermatogenesis is an intricate and tightly controlled process, encompassing various layers of gene expression regulation. Despite our current understanding, the developmental trajectory and its regulatory mechanisms dictating spermatogenesis remain elusive. In this study, we have generated single-cell gene expression profiles for C. elegans sperm cells and constructed gene-regulated networks alongside the developmental trajectories of these cells. Our findings indicate that each pre- and post-developmental stage is closely linked by co-expressed genes, while simultaneously being uniquely identified by the combined expression of specific gene families. To illustrate the applicability of this exhaustive gene expression catalog, we used gene-regulated networks to uncover potential transcription factors for (1) the expression of genes in the phosphorylation pathway, identifying NHR-23-to-phosphatase regulation for the meiotic cell division process, and (2) the expression of constituent components of small RNA pathways, identifying ELT-1-to-Argonaute protein regulation for siRNA maintenance and sperm activation. We expect that this sperm cell-specific gene expression directory will prompt investigations into the underlying mechanisms determining anatomy, differentiation, and function across the reproductive system. Finally, our expression data can be explored using the web application CelegansGermAtlas (https://scgerm-atlas.sjtu.edu.cn/website/#/home). Overall design: Germ cells of L4 C. elegans (gfp::tev::flag::prg-1) were isolated using Fluorescence-activated cell sorting (FACS) based on the presence or absence of GFP signal. Subsequently, the isolated cells were analyzed using single-cell RNA sequencing (scRNA-seq)."
+        }
+      ],
+      "level": "project",
+      "parent": null
+    },
+    {
+      "accession": "SAMN43079677",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_type",
+          "raw_name": "cell type",
+          "value": "germ cell"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "westlake university"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "germline"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "gfp::tev::flag::prg-1"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "germline"
+        },
+        {
+          "harmonized": true,
+          "name": "treatment",
+          "raw_name": null,
+          "value": "L4 worm after synchronization"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8446960"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1145880"
+    },
+    {
+      "accession": "SRX25638884",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8446960: L4 C.elegans germ cells, scRNAseq; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8446960_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8446960"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN43079677"
+    },
+    {
+      "accession": "SRR30172517",
+      "attributes": [],
+      "filenames": [
+        "l4_germcell_1.fq.gz",
+        "l4_germcell_2.fq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8446960_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX25638884"
+    },
+    {
+      "accession": "SRR30172518",
+      "attributes": [],
+      "filenames": [
+        "l4_germcell_add_seq_1.fastq.gz",
+        "l4_germcell_add_seq_2.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8446960_r2"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX25638884"
+    }
+  ],
+  "source": "ncbi-sra+biosample"
+}
