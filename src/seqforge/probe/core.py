@@ -70,6 +70,26 @@ def remote_content_key(basename: str, size_bytes: int, seqs: list[str]) -> str:
     return _content_key(basename, size_bytes, None, seqs)
 
 
+def content_key_from_sra(
+    run_accession: str, read_index: int, *, spot_count: int, read_length: int
+) -> str:
+    """A synthetic, N-invariant content-address for an SRA mate with no usable provider md5.
+
+    When a run is streamed straight from the ``.sra`` (``io.sra.probe_sra``) and ENA has not mirrored
+    it — or mirrored it *unfaithfully*, having dropped a technical read — there is no per-mate
+    ``fastq_md5`` to adopt as the address (:func:`content_key_from_md5`). This derives one from stable
+    *whole-run* metadata instead: the run accession, the within-spot read index, the run's total spot
+    count, and that mate's read length. None of those depend on **how many** spots the preview streamed,
+    so a fingerprint cut at N=2 000 and one cut at N=200 000 name the same file — the same N-invariance
+    the byte content key has by construction. It is deliberately *not* built from the sampled sequences:
+    an SRA-derived address is portable across probe budgets, but it is **not** the hosted-byte identity a
+    URL/ENA download would get, so a note records that the address is SRA-derived (see ``probe_sra``).
+    """
+    acc = run_accession.strip().upper()
+    key = f"seqforge-sra-run\x00{acc}\x00{read_index}\x00{spot_count}\x00{read_length}"
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
 def _params_hash(max_reads: int, max_bytes: int) -> str:
     return hashlib.sha256(f"{max_reads}:{max_bytes}".encode()).hexdigest()[:16]
 

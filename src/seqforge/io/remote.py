@@ -261,6 +261,30 @@ def fastq_targets(run: dict[str, str]) -> list[tuple[str, str]]:
     return sorted((f"https://{u}", m) for u, m in zip(urls, md5s, strict=True))
 
 
+def fastq_targets_meta(run: dict[str, str]) -> list[tuple[str, str, int]]:
+    """``fastq_targets`` plus each file's ``fastq_bytes`` -> ``[(https_url, md5, size_bytes), ...]``.
+
+    ENA index-aligns ``fastq_ftp``, ``fastq_md5`` **and** ``fastq_bytes`` by ``;``, so the three join
+    positionally. The extra field is the hosted file's exact compressed size, which an SRA fingerprint
+    adopts (with the md5-derived address) so a library streamed from the ``.sra`` gets the *same*
+    ``FileIdentity`` — sha, size, and basename — a URL/ENA download of that file would, and therefore a
+    portable ``dataset_hash``. A run whose ``fastq_bytes`` is missing or a different length still yields
+    pairs, with size ``0`` — the md5 is the identity that matters; the size is a bonus. Sorted by URL to
+    match :func:`fastq_targets`. Empty (never a mispairing) when the URL/md5 lists disagree.
+    """
+    targets = fastq_targets(run)  # (url, md5) sorted by url, or [] on a url/md5 mismatch
+    if not targets:
+        return []
+    sizes_raw = [b.strip() for b in (run.get("fastq_bytes") or "").split(";") if b.strip()]
+    # fastq_bytes is aligned to the UNSORTED fastq_ftp, so pair size to url pre-sort, then look up.
+    urls_unsorted = [p.strip() for p in (run.get("fastq_ftp") or "").split(";") if p.strip()]
+    size_by_url: dict[str, int] = {}
+    if len(sizes_raw) == len(urls_unsorted):
+        for url, size in zip(urls_unsorted, sizes_raw, strict=True):
+            size_by_url[f"https://{url}"] = int(size) if size.isdigit() else 0
+    return [(url, md5, size_by_url.get(url, 0)) for url, md5 in targets]
+
+
 @dataclass(frozen=True)
 class ReadStat:
     """One read within a spot, as SRA itself describes it."""

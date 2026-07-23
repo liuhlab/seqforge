@@ -37,6 +37,7 @@ DEFAULT_MAX_BYTES = 256 * 1024 * 1024
 from .core import (  # noqa: E402
     build_observation,
     content_key_from_md5,
+    content_key_from_sra,
     gzip_isize,
     probe_file,
     probe_sample,
@@ -49,6 +50,7 @@ __all__ = [
     "DEFAULT_MAX_BYTES",
     "build_observation",
     "content_key_from_md5",
+    "content_key_from_sra",
     "gzip_isize",
     "remote_content_key",
     "probe_file",

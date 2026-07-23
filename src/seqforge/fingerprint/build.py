@@ -143,6 +143,39 @@ def build_fingerprint(
         )
         staged_fastq.append((pkg_rel, sl.records))
 
+    return assemble_package(
+        slug,
+        pins,
+        staged_fastq,
+        workspace=workspace,
+        reads=reads,
+        max_bytes=max_bytes,
+        info_docs=info_docs,
+        include_raw=include_raw,
+    )
+
+
+def assemble_package(
+    slug: str,
+    pins: list[FilePin],
+    staged_fastq: list[tuple[str, list[Record]]],
+    *,
+    workspace: str | Path = ".",
+    reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    info_docs: list[str | Path] | None = None,
+    include_raw: bool = True,
+) -> FingerprintResult:
+    """Stage pinned slices + carried prose into a content-addressed ``.fingerprint.tar.gz``.
+
+    The source-agnostic tail of a fingerprint build: given the per-file pins (identity) and their
+    staged records (the slices), it names the package by :func:`_package_digest`, writes each slice with
+    the reproducible gzip writer, carries the info docs, writes ``fingerprint.json``, and packs a
+    deterministic tar. Both :func:`build_fingerprint` (local files) and ``io.sra.build_fingerprint_sra``
+    (an SRA stream) build pins + staged records their own way and hand them here, so the two producers
+    emit byte-identical packages for identical content — a fingerprint from an accession loads and
+    reproduces exactly as one from local FASTQs.
+    """
     digest = _package_digest(pins, reads)
     stem = readable(slug, digest)
     staging = fingerprint_dir(workspace) / stem
@@ -213,4 +246,9 @@ def strip_to_redistributable(package: str | Path, dest: str | Path) -> Fingerpri
     return FingerprintResult(package=dest, staging=Path(dest), manifest=manifest)
 
 
-__all__ = ["FingerprintResult", "build_fingerprint", "strip_to_redistributable"]
+__all__ = [
+    "FingerprintResult",
+    "assemble_package",
+    "build_fingerprint",
+    "strip_to_redistributable",
+]
