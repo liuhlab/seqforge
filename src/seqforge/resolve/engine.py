@@ -200,10 +200,14 @@ def resolve_dataset(
         questions=esc.questions,
         blockers=esc.blockers,
     )
+    matrices = {e.tech: e.matrix_json() for e in evaluations}
     if use_cache:
         cache.write_resolve(ds_id, result)
-
-    matrices = {e.tech: e.matrix_json() for e in evaluations}
+        # The evidence matrix as a cache sidecar keyed by the same per-run ds_id: it is what the
+        # human glance layer (`seqforge report`) reads to explain WHY this chemistry won. run/fill
+        # never consume it, so it is written here and nowhere required — the resume fast-path leaves
+        # matrices empty and the report degrades to per-candidate scores.
+        cache.write_matrices(ds_id, matrices)
     return ResolveOutput(result=result, matrices=matrices, observations=observations)
 
 

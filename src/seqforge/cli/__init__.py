@@ -26,6 +26,7 @@ from . import (  # noqa: F401
     probe,
     processing,
     project,
+    report,
     resolve,
     run,
     schema,

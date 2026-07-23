@@ -483,6 +483,21 @@ def run_cmd(
         "n_assays": len(assay_infos),
     }
 
+    # Best-effort: drop a single-file HTML glance report beside the artifacts, so a headless run leaves
+    # a human-readable summary on disk. The report is a VIEW, never a gate — a render failure must not
+    # fail a compile that otherwise succeeded, so every error is swallowed into the stage summary.
+    try:
+        from ..report import collect_report, render_html
+        from ..workspace import report_html_path
+
+        report_model = collect_report(workspace)
+        html_path = report_html_path(workspace)
+        html_path.parent.mkdir(parents=True, exist_ok=True)
+        html_path.write_text(render_html(report_model), encoding="utf-8")
+        stages["report"] = {"report": str(html_path), "assays": len(report_model.assays)}
+    except Exception as exc:  # a glance layer must never fail a compile
+        stages["report"] = {"skipped": "render_failed", "detail": str(exc)}
+
     if targets[0][0] is None:  # single assay: flat stages, byte-identical to before
         _, _, summary, code = compiled[0]
         if "processing" in summary:

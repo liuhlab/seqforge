@@ -60,7 +60,12 @@ from __future__ import annotations
 #: v2/v3 tie where v2 edges v3 on score (top=v2, 737K misses) while v3's 3M list hits must NOT refuse —
 #: the data is barcoded and resolves to v3. Only a dataset where no barcoded leaf hits is barcode-absent
 #: (PRJNA658829 SRR12575567 was false-blocked before this).
-RESOLVE_VERSION = "2026.7.12"
+#: 2026.7.13 — persist the evidence matrix as a cache sidecar (`cache/matrices/<ds_id>.json`) beside the
+#: candidates, for the `seqforge report` glance layer. Pure cache-write addition: no scoring/escalation
+#: semantics change, so candidate VALUES are byte-identical — but the write is a resolver behaviour, so
+#: the version bump re-keys `ds_id` and datasets re-resolve once (cheap: N=2000, no LLM) to populate it.
+#: `dataset_hash` (the manifest's identity) does not fold RESOLVE_VERSION and is unaffected.
+RESOLVE_VERSION = "2026.7.13"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
