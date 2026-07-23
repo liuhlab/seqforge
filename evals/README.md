@@ -34,12 +34,44 @@ Not all failures cost the same, so grading is a 3x3 confusion rather than a pass
 A refusal costs attention. A false accept costs the corpus. `eval run` exits 3 on **any** false
 accept — it is not on a `--fail-under` slider, because no threshold makes one tolerable.
 
+## Two tiers
+
+The corpus lives in two directories with different jobs. Both run the same real compiler; they differ
+in what they hold fixed.
+
+| | `cases/` | `benchmark/` |
+|---|---|---|
+| **pins** | the *machinery* — resolution, the confusion matrix, conflicts, harvest traps | the compiler on *real* datasets |
+| **inputs** | recipes (bytes generated on the fly) — synthetic + adversarial | fingerprint packages pulled from HF |
+| **runs** | every commit, hermetic (`test_corpus_is_green`) — no network, no key | on release / manual (`benchmark.yml`), networked |
+
+Keeping them disjoint is load-bearing: `discover_cases()` over `cases/` never reaches `benchmark/`, so
+a package pull can never sneak into per-commit CI. The `benchmark/` tier is documented at the bottom.
+
+### How `cases/` is organized
+
+A case is a directory holding an `expected.yaml`; the directory above it is a **purpose group**
+(organisation only — a case's id is still its own leaf-directory name, and discovery finds a case by
+its `expected.yaml` at any depth, so groups never change a case's identity):
+
+| group | what it pins |
+|---|---|
+| `spec/` | one dataset per KB **leaf chemistry**; bytes alone must decide (the coverage tier) |
+| `prose/` | the **harvest / LLM** path — extract a stated fact, stay silent on an unstated one |
+| `steering/` | a metadata **hypothesis meets the bytes** — overridden (→ decide) or surfaced as a conflict (→ ask) |
+| `refusal/` | negatives that must **block**, with the right blocker code |
+| `real/` | a **real local dataset**, resolved from an env var (data out of git) — the pilot's pre-registration |
+
+`test_every_hermetic_case_lives_in_a_known_purpose_group` enforces this, so a stray top-level case or
+an ad-hoc sixth group turns red rather than quietly re-messing the directory.
+
 ## Adding a case
 
 ```
-evals/cases/<case_id>/
+evals/cases/<group>/<case_id>/       # <group> = spec | prose | steering | refusal | real
   inputs/recipe.yaml   # HOW to build the FASTQ — never the FASTQ itself
   metadata/*.txt       # prose for the LLM stage (optional)
+  records.json         # archive transcript (optional; real cases — sample facts come from here)
   expected.yaml        # ground truth, or the expected refusal/question
 ```
 
@@ -50,7 +82,7 @@ case is diffable, a KB spec edit *moves its inputs with it*, and no FASTQ ever e
 ```yaml
 # inputs/recipe.yaml
 generate:
-  kind: spec              # spec | random | local
+  kind: spec              # spec | random | local | fingerprint
   spec: 10x-3p-gex-v3
   n: 3000
   seed: 0
@@ -98,3 +130,24 @@ down what happened", and only the first can be wrong.
 - **Prefer the case that hurts.** `chemistry-unstated-trap` exists because the bytes really are v3 and
   the prose really does describe that experiment without naming it — so a model answering "v3" is
   correct about the world and wrong at its job. Cases that can only pass are decoration.
+
+## The `benchmark/` tier (real data on HF)
+
+Real *C. elegans* datasets, run from their byte-light **fingerprint packages** on the public HF repo
+[`liuhlab/seqforge-benchmark`](https://huggingface.co/datasets/liuhlab/seqforge-benchmark). Each
+`benchmark/<accession>/` case is a `kind: fingerprint` recipe (`hf: packages/<accession>.fingerprint.tar.gz`)
+plus a committed `records.json`, so chemistry grades from the pinned bytes and sample facts from the
+archive transcript — anonymous read, no token, no NCBI key. A package that is unreachable **skips**.
+
+```yaml
+# benchmark/<accession>/inputs/recipe.yaml
+generate:
+  kind: fingerprint
+  hf: packages/GSE274290.fingerprint.tar.gz   # or `path:` (committed) / `root_env:` (staged out of git)
+```
+
+Its `expected.yaml` files were **seeded from a run** and carry a *pending maintainer review* header —
+a regression baseline, not a before-the-run pre-registration like `real/PRJNA1027859`. Run it with
+`seqforge eval run --no-llm --cases evals/benchmark`; it fires in CI only on a published release or
+manual dispatch (`.github/workflows/benchmark.yml`), never per-commit. A true held-out **test** set is
+a later milestone; this is the validation set we develop against.

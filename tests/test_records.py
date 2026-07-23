@@ -108,7 +108,7 @@ def test_the_bioproject_record_declares_the_data_type() -> None:
 def test_every_pilot_sample_gets_the_tissue_the_record_declares(records: ArchiveRecordSet) -> None:
     """THE test. Six samples, `tissue: Neurons` on every one — which the pilot's manifest said null.
 
-    Pre-registered in `evals/cases/PRJNA1027859/expected.yaml` ("tissue=Neurons") before any run.
+    Pre-registered in `evals/cases/real/PRJNA1027859/expected.yaml` ("tissue=Neurons") before any run.
     """
     out = resolve_metadata(files=_pilot_files(), records=records)
     assert not out.blockers

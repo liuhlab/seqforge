@@ -339,11 +339,20 @@ def _docs_beside_the_data(recipe: Recipe) -> list[Path]:
 
 
 def discover_cases(cases_dir: Path | None = None) -> list[Case]:
-    """Every case directory, sorted by id."""
+    """Every case under ``cases_dir``, at any nesting depth, sorted by path.
+
+    A case *is* a directory that holds an ``expected.yaml``; the directories above it are purpose
+    groups (``spec/``, ``prose/``, ``steering/``, ``refusal/``, ``real/``) that organise the corpus for
+    a reader without changing a case's identity — a case's id stays its own leaf-directory name, so a
+    group is a filing decision, not part of the case. Finding cases by their ``expected.yaml`` rather
+    than by ``iterdir`` is what lets the layout be grouped or flat (the benchmark tier is flat) and the
+    same discovery serve both.
+    """
     base = Path(cases_dir) if cases_dir is not None else default_cases_dir()
     if not base.is_dir():
         return []
-    return [load_case(d) for d in sorted(base.iterdir()) if d.is_dir()]
+    roots = sorted({p.parent for p in base.rglob("expected.yaml")})
+    return [load_case(d) for d in roots]
 
 
 def materialize(case: Case, dest: Path) -> Materialized:

@@ -851,7 +851,7 @@ reserving it was a misunderstanding of what it is for. The `PreToolUse` guard an
 `SEQFORGE_CASE_*` root registry that enforced it are deleted, not suspended. The project has no
 held-out case.
 
-Its pre-registration (`evals/cases/PRJNA1027859/expected.yaml`) stands and stays honoured — written
+Its pre-registration (`evals/cases/real/PRJNA1027859/expected.yaml`) stands and stays honoured — written
 from declared metadata and provider-independent prior knowledge only, committed before any run, never
 from a value read out of the data. That discipline never depended on the data being reserved: it is
 what makes the file a prediction rather than a transcript, and only a prediction can be wrong.
