@@ -26,11 +26,7 @@ _HTSLIB = shutil.which("bgzip") is not None and shutil.which("tabix") is not Non
 
 # chrom  start  end  barcode  count -- three fragments across two cells, deliberately out of coordinate
 # order so the finalize sort is exercised.
-_RAW = (
-    "chr2\t50\t60\tCCC\t3\n"
-    "chr1\t300\t400\tAAA\t1\n"
-    "chr1\t100\t200\tAAA\t2\n"
-)
+_RAW = "chr2\t50\t60\tCCC\t3\nchr1\t300\t400\tAAA\t1\nchr1\t100\t200\tAAA\t2\n"
 
 
 def test_fragments_suffixes_are_the_three_deliverables_in_build_order() -> None:
