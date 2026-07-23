@@ -19,6 +19,17 @@ from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import ProcessingManifest
 from ..models.resolve import ValidationReport
 
+# Confidence below which a decided chemistry is flagged (non-blocking) as a close call. Rung-aware: a
+# rung-3 winner had an onlist positively participate (the barcode read matched a whitelist), so it is
+# trusted at a lower score than a rung-2 geometry-only winner, whose seat rests on read geometry
+# alone. Calibrated conservatively — a clean chemistry scores ~1.0 (design §3.6), well clear of these
+# floors, while the compile audit's two broken winners scored 0.44 / 0.59; those are now caught
+# upstream by the BARCODE_READ_ABSENT blocker, so this warning covers the *residual* lonely-low winner
+# that composes silently. A warning, never a gate: many legitimately-moderate datasets score in this
+# band and refusing them would be worse than composing them (see the emit site in `validate_manifest`).
+_CHEM_CONF_FLOOR_ONLIST = 0.55
+_CHEM_CONF_FLOOR_GEOMETRY = 0.65
+
 
 def _looks_absolute(uri: str) -> bool:
     return (
@@ -186,6 +197,32 @@ def validate_manifest(
                         ),
                     )
                 )
+
+    # --- a lonely low-confidence chemistry composes exactly like a certain one; flag the close call ---
+    #
+    # Scoring's only magnitude comparison is the *relative* tie band (`_THETA` in escalate); nothing
+    # anywhere gates on an *absolute* floor, so a byte-marginal winner reaches compose at exit 0 with
+    # no signal the call was close. This surfaces that as a non-blocking note. It stays a WARNING, not
+    # a Blocker/Question, on purpose: the danger cases (a barcode read that hits nothing, a
+    # single-cell library collapsed to bulk) are already refused upstream by their own Blockers, so
+    # what is left in this band is mostly *legitimately* moderate — refusing it would trade a rare
+    # silent-wrong for a common wrong-refusal. The manifest stays compilable; the note rides along.
+    chem = manifest.library.chemistry
+    if chem.confidence is not None:
+        floor = _CHEM_CONF_FLOOR_ONLIST if chem.rung >= 3 else _CHEM_CONF_FLOOR_GEOMETRY
+        if chem.confidence < floor:
+            warnings.append(
+                ValidationWarning(
+                    code="LOW_CONFIDENCE_CHEMISTRY",
+                    message=(
+                        f"chemistry {chem.value} was decided at confidence {chem.confidence:.2f} "
+                        f"(rung {chem.rung}, floor {floor:.2f}) — a close call for the byte evidence. "
+                        "It composes normally, but is weaker than a typical decision; review the read "
+                        "geometry / whitelist match before submitting."
+                    ),
+                    subject=BlockerSubject(kind="field", ref="library.chemistry"),
+                )
+            )
 
     return ValidationReport(
         ok=not blockers and not open_conflicts,
