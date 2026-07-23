@@ -37,6 +37,11 @@ class BlockerCode(StrEnum):
     GENOME_ORGANISM_MISMATCH = "GENOME_ORGANISM_MISMATCH"
     #: A processing manifest bound to a different dataset than the one being compiled.
     DATASET_PIN_MISMATCH = "DATASET_PIN_MISMATCH"
+    #: A staged *document* (a paper/README a human supplied) plainly describes a DIFFERENT study than
+    #: the data: no identity signal (named study accession, organism, strain) matches the records, and
+    #: the chemistry family it describes contradicts the observed reads. A wrong document silently
+    #: steers harvest, so the strongest case refuses rather than bakes a foreign study's facts in.
+    PROVENANCE_MISMATCH = "PROVENANCE_MISMATCH"
     #: An archive record was supplied and does not account for the files on disk. Only ever raised
     #: when a record EXISTS: a dataset with no accession has nothing to join and is not a refusal.
     #: Half-joining is the failure this exists to prevent — the files it could not place would get no
