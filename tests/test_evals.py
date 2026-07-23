@@ -952,6 +952,37 @@ def test_a_fingerprint_case_skips_when_its_root_is_unset(tmp_path: Path, monkeyp
     assert build_report([run]).n_cases == 0
 
 
+def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_corpus() -> None:
+    """`evals/benchmark` (the networked HF tier) loads offline and never leaks into hermetic CI.
+
+    Loading a case does NOT fetch (materialize does), so this validates the whole tier — every case is
+    an `hf:`-sourced fingerprint case with a committed records.json — with no network. And it pins the
+    separation: `default_cases_dir()` (what `test_corpus_is_green` runs) must not contain the benchmark
+    tier, or a package pull would sneak into per-commit CI.
+    """
+    from seqforge.evals.case import FingerprintRecipe, load_case
+
+    bench = default_cases_dir().parent / "benchmark"
+    if not bench.is_dir():
+        pytest.skip("no HF benchmark tier committed")
+    cases = [load_case(d) for d in sorted(bench.iterdir()) if d.is_dir()]
+    assert cases, "the benchmark tier is present but empty"
+    for c in cases:
+        gen = c.recipe.generate
+        assert isinstance(gen, FingerprintRecipe) and gen.hf, (
+            f"{c.id}: benchmark cases pull from hf"
+        )
+        assert c.records is not None, f"{c.id}: a benchmark case commits its records.json"
+        assert c.expected.fields.get("library.chemistry"), f"{c.id}: pins a resolved chemistry"
+    # The two tiers are disjoint directories — the hermetic corpus never sees the networked one. The
+    # check is by PATH, not id: a dataset may legitimately appear in both tiers (PRJNA1027859 is the
+    # pilot's full-pipeline local case AND a fingerprint benchmark case), but no benchmark case
+    # directory is ever one `discover_cases()` walks, so none can be pulled in per-commit CI.
+    assert bench.resolve() != default_cases_dir().resolve()
+    hermetic_roots = {c.root.resolve() for c in discover_cases()}
+    assert all(c.root.resolve() not in hermetic_roots for c in cases)
+
+
 def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
     """`path` XOR `root_env`: naming both (or neither) is a case error, not a silent default."""
     for gen in ({}, {"path": "p.tar.gz", "root_env": "X"}):

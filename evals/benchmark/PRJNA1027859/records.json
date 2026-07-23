@@ -1,0 +1,846 @@
+{
+  "query": "PRJNA1027859",
+  "records": [
+    {
+      "accession": "PRJNA1027859",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": false,
+          "name": "data_type",
+          "raw_name": null,
+          "value": "raw sequence reads"
+        },
+        {
+          "harmonized": false,
+          "name": "submission_date",
+          "raw_name": null,
+          "value": "2023-10-13"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles"
+        },
+        {
+          "label": "study_abstract",
+          "text": "The invariant lineage of each of C. elegans 302 neurons is known, and most adult neurons have specific functions. Previously, we determined the transcriptome of C. elegans major tissues, including neurons. However, the transcripts that allow specific functions for each individual adult neuron, including each neurons complement of chemoreceptors, are unknown. The insulin-insulin-like growth factor signaling (IIS) pathway regulates many aspects of an organisms biological functions, including lifespan and memory ability. While whole-worm and tissue-specific transcriptomic analyses have identified IIS targets, a higher resolution single-cell approach is required to answer questions about individual neuronal changes that confer neuron-specific improvements. We used the deep neuronal resolution of single-nucleus RNA-sequencing to identify and characterize GPCRs that have specific functions in wild-type and daf-2 mutants in specific neurons."
+        }
+      ],
+      "level": "project",
+      "parent": null
+    },
+    {
+      "accession": "SAMN40935616",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2022-10-22"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ757"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing WT replicate 1"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SAMN40935617",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2023-03-23"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ757"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing WT replicate 2"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SAMN40935618",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2023-04-27"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ757"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing WT replicate 3"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SAMN40935619",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2022-10-22"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ758"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing daf2 replicate 1"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SAMN40935620",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2023-03-23"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ758"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing daf2 replicate 2"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SAMN40935621",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Princeton University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "2023-04-27"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "Adult Day 1"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "not applicable"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "hermaphrodite"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CQ758"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "single nucleus sequencing daf2 replicate 3"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1027859"
+    },
+    {
+      "accession": "SRX24283130",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep1 WT reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep1 WT reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935616"
+    },
+    {
+      "accession": "SRX24283131",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep2 WT reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep2 WT reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935617"
+    },
+    {
+      "accession": "SRX24283132",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep3 WT reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep3 WT reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935618"
+    },
+    {
+      "accession": "SRX24283133",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep1 daf2 reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep1 daf2 reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935619"
+    },
+    {
+      "accession": "SRX24283134",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep2 daf2 reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep2 daf2 reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935620"
+    },
+    {
+      "accession": "SRX24283135",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single nucleus RNA-seq of Adult C. elegans neurons"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Rep3 daf2 reads"
+        },
+        {
+          "label": "library_name",
+          "text": "Rep3 daf2 reads"
+        },
+        {
+          "label": "design_description",
+          "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40935621"
+    },
+    {
+      "accession": "SRR28716553",
+      "attributes": [],
+      "filenames": [
+        "2562__daf-2_R3_library-read-1.fastq.gz",
+        "2562__daf-2_R3_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2562__daf-2_R3_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283135"
+    },
+    {
+      "accession": "SRR28716554",
+      "attributes": [],
+      "filenames": [
+        "2495__daf-2_R2_library-read-1.fastq.gz",
+        "2495__daf-2_R2_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2495__daf-2_R2_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283134"
+    },
+    {
+      "accession": "SRR28716555",
+      "attributes": [],
+      "filenames": [
+        "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz",
+        "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283133"
+    },
+    {
+      "accession": "SRR28716556",
+      "attributes": [],
+      "filenames": [
+        "2562__Wild-type_R3_library-read-1.fastq.gz",
+        "2562__Wild-type_R3_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2562__Wild-type_R3_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283132"
+    },
+    {
+      "accession": "SRR28716557",
+      "attributes": [],
+      "filenames": [
+        "2495__wild-type_R2_library-read-1.fastq.gz",
+        "2495__wild-type_R2_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2495__wild-type_R2_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283131"
+    },
+    {
+      "accession": "SRR28716558",
+      "attributes": [],
+      "filenames": [
+        "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz",
+        "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX24283130"
+    }
+  ],
+  "source": "ncbi-sra+biosample"
+}

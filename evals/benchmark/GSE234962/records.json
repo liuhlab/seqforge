@@ -1,0 +1,610 @@
+{
+  "query": "GSE234962",
+  "records": [
+    {
+      "accession": "PRJNA983807",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Cell and Developmental Biology, Vanderbilt University"
+        },
+        {
+          "harmonized": false,
+          "name": "data_type",
+          "raw_name": null,
+          "value": "Transcriptome or Gene expression"
+        },
+        {
+          "harmonized": false,
+          "name": "submission_date",
+          "raw_name": null,
+          "value": "2023-06-14"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "A molecular atlas of adult C. elegans motor neurons reveals ancient diversity delineated by conserved transcription factor codes"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Motor neurons (MNs) are the cellular targets of multiple adult-onset diseases. Because distinct MN populations differ in disease susceptibility, it is important to define in animal models the degree of diversity within adult MNs. Here, we generated a comprehensive molecular resource of adult MNs in C. elegans. Single-cell RNA-sequencing of 12,603 cells revealed that all eight morphologically defined MN classes of the ventral nerve cord and its flanking ganglia subdivide into 29 distinct subclasses, almost quadrupling the degree of their previously described diversity. We find that four of the six C. elegans Hox genes delineate most, but not all MN subclasses. Strikingly, all 29 subclasses are delineated by unique expression codes of neuropeptide genes and receptors, critical for extra-synaptic (wireless) signaling. Leveraging the C. elegans connectome, we found a strong correlation between molecularly and connectivity defined MN subclasses. Beyond providing a valuable resource and searchable database (spinalcordatlas.com), our study identifies Hox and neuropeptide codes as key molecular descriptors of adult MN diversity, codes likely conserved in MNs across species. Overall design: Ventral nerve cord MNs were isolated from two strains of worms. Two samples were collected from both CZ631 juIs14 [acr-2::GFP] and KRA257 kasIs2 [lin-39p::RFP] worms. MNs were isolated by FACS and analyzed by 10X Genomics 3' single-cell RNA sequencing."
+        }
+      ],
+      "level": "project",
+      "parent": null
+    },
+    {
+      "accession": "SAMN35739865",
+      "attributes": [
+        {
+          "harmonized": true,
+          "name": "age",
+          "raw_name": null,
+          "value": "young adult"
+        },
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Cell and Developmental Biology, Vanderbilt University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "wt"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "Motor neurons"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]"
+        },
+        {
+          "harmonized": false,
+          "name": "synchronization protocol",
+          "raw_name": null,
+          "value": "L1 arrest + mesh synchronization"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Motor neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM7486860"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA983807"
+    },
+    {
+      "accession": "SAMN35739866",
+      "attributes": [
+        {
+          "harmonized": true,
+          "name": "age",
+          "raw_name": null,
+          "value": "young adult"
+        },
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Cell and Developmental Biology, Vanderbilt University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "wt"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "Motor neurons"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]"
+        },
+        {
+          "harmonized": false,
+          "name": "synchronization protocol",
+          "raw_name": null,
+          "value": "L1 arrest + mesh synchronization"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Motor neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM7486859"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA983807"
+    },
+    {
+      "accession": "SAMN35739867",
+      "attributes": [
+        {
+          "harmonized": true,
+          "name": "age",
+          "raw_name": null,
+          "value": "young adult"
+        },
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Cell and Developmental Biology, Vanderbilt University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "wt"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "Motor neurons"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]"
+        },
+        {
+          "harmonized": false,
+          "name": "synchronization protocol",
+          "raw_name": null,
+          "value": "L1 arrest"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Motor neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM7486858"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA983807"
+    },
+    {
+      "accession": "SAMN35739868",
+      "attributes": [
+        {
+          "harmonized": true,
+          "name": "age",
+          "raw_name": null,
+          "value": "young adult"
+        },
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Cell and Developmental Biology, Vanderbilt University"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "wt"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "Motor neurons"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]"
+        },
+        {
+          "harmonized": false,
+          "name": "synchronization protocol",
+          "raw_name": null,
+          "value": "L1 arrest"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "Motor neurons"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM7486857"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA983807"
+    },
+    {
+      "accession": "SRX20684353",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM7486857: acr-2::GFP wt MNs rep 1; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM7486857_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM7486857"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN35739868"
+    },
+    {
+      "accession": "SRX20684354",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM7486858: acr-2::GFP wt MNs rep 2; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM7486858_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM7486858"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN35739867"
+    },
+    {
+      "accession": "SRX20684355",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM7486859: lin-39p::RFP wt MNs rep 1; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM7486859_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM7486859"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN35739866"
+    },
+    {
+      "accession": "SRX20684356",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM7486860: lin-39p::RFP wt MNs rep 2; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM7486860_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM7486860"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN35739865"
+    },
+    {
+      "accession": "SRR24923838",
+      "attributes": [],
+      "filenames": [
+        "7309-ST-1_S1_L005_R1_001.fastq.gz",
+        "7309-ST-1_S1_L005_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM7486860_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX20684356"
+    },
+    {
+      "accession": "SRR24923839",
+      "attributes": [],
+      "filenames": [
+        "6973-ST-1_S1_L005_R1_001.fastq.gz",
+        "6973-ST-1_S1_L005_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM7486859_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX20684355"
+    },
+    {
+      "accession": "SRR24923840",
+      "attributes": [],
+      "filenames": [
+        "3853-ST-2_S331_L001_R1_001.fastq.gz",
+        "3853-ST-2_S331_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM7486858_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX20684354"
+    },
+    {
+      "accession": "SRR24923841",
+      "attributes": [],
+      "filenames": [
+        "3853-ST-1_S330_L001_R1_001.fastq.gz",
+        "3853-ST-1_S330_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM7486857_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX20684353"
+    }
+  ],
+  "source": "ncbi-sra+biosample"
+}

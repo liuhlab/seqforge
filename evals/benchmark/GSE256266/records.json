@@ -1,0 +1,690 @@
+{
+  "query": "GSE256266",
+  "records": [
+    {
+      "accession": "PRJNA1078821",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Basic Sciences Division, Fred Hutchinson Cancer Center"
+        },
+        {
+          "harmonized": false,
+          "name": "data_type",
+          "raw_name": null,
+          "value": "Transcriptome or Gene expression"
+        },
+        {
+          "harmonized": false,
+          "name": "submission_date",
+          "raw_name": null,
+          "value": "2024-02-21"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "The complete molecular atlas of adult C. elegans glia across sexes"
+        },
+        {
+          "label": "study_abstract",
+          "text": "A comprehensive understanding of nervous system function requires molecular insight into the diversity and sex dimorphism of both its component cell types, glia and neurons. Here, we present a single-nuclear RNA sequencing (RNA-seq) census of all neuroectoderm-derived glia in the adult C. elegans nervous system, across sexes. By iteratively coupling computational modeling and custom analytics with in vivo validations, we uncovered molecular markers for all glia, as well as class-specific and pan-glial molecular signatures. These identified that each glia is functionally heterogeneous across the nervous system and variably sex dimorphic between sexes. Thus, this glial transcriptome (wormglia.org) offers deep mechanistic insights into glial biology brain wide. Complementing the existing C. elegans neuronal transcriptome and mapped connectome, it also enables single-cell and molecular resolution insight into the entire nervous system of an adult metazoan. Overall design: Single-nuclear RNA-seq of C. elegans glia from hermaphrodite and male animals with the pan-glial promoter PmiR-228 . Worms were grown on 10 cm, standard 1% NGM agar plates seeded with E.coli strain OP50. To obtain synchronized day 1 adult worms, we first obtained embryos by performing hypochlorite treatment (1M NaOH + 4% NaOCl freshly made) on adult hermaphrodites. The embryos hatched overnight (16-20 hours) on unseeded NGM agar plates and starved L1 arrested worms were recovered. All male data was acquired in him-5 mutant background. Single nuclei suspensions were obtained after lysing worms. The nuclei were sorted with a Sony SH800S cell sorter fitted with the 100\u00c2\u00b5m nozzle running at a speed of 10-12k events per second using the PE filter set. For the hermaphrodite samples, age matched N2 worms were used as negative control to set FACS gates. For male samples, him-5 males were used as negative controls. The negative controls were taken through identical dissociation protocols. The nuclei were then loaded into a hemocytometer and counted to determine the final concentration. We targeted 10,000 cells per sample and used the 10X Chromium platform using 10X NextGem v3.1 chemistry. cDNA was amplified for 12 cycles and the index PCR was cycled 12 times. Final libraries were brought to 10 nM concentration and processed on an Illumina HiSeq2500 sequencer. Male and hermaphrodite samples were prepared and sequenced on different days, for a total of 2 biological replicates for hermaphrodites and 2 for males. Please note that both raw and processed data for GSM8092237, GSM8092238 samples have been updated on Jun 25, 2025."
+        }
+      ],
+      "level": "project",
+      "parent": null
+    },
+    {
+      "accession": "SAMN40022214",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_line",
+          "raw_name": "cell line",
+          "value": "n/a"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_type",
+          "raw_name": "cell type",
+          "value": "glia"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Basic Sciences Division, Fred Hutchinson Cancer Center"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "miR228-GFP, Him5"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "1 day old whole male worm"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "1 day old whole male worm"
+        },
+        {
+          "harmonized": true,
+          "name": "treatment",
+          "raw_name": null,
+          "value": "none"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8092240"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1078821"
+    },
+    {
+      "accession": "SAMN40022215",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_line",
+          "raw_name": "cell line",
+          "value": "n/a"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_type",
+          "raw_name": "cell type",
+          "value": "glia"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Basic Sciences Division, Fred Hutchinson Cancer Center"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "miR228-GFP, Him5"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "1 day old whole male worm"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "1 day old whole male worm"
+        },
+        {
+          "harmonized": true,
+          "name": "treatment",
+          "raw_name": null,
+          "value": "none"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8092239"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1078821"
+    },
+    {
+      "accession": "SAMN40022216",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_line",
+          "raw_name": "cell line",
+          "value": "n/a"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_type",
+          "raw_name": "cell type",
+          "value": "glia"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Basic Sciences Division, Fred Hutchinson Cancer Center"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "miR228-GFP"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "1 day old whole hermaphrodite worm"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "1 day old whole hermaphrodite worm"
+        },
+        {
+          "harmonized": true,
+          "name": "treatment",
+          "raw_name": null,
+          "value": "none"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8092238"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1078821"
+    },
+    {
+      "accession": "SAMN40022217",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Generic.1.0"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_line",
+          "raw_name": "cell line",
+          "value": "n/a"
+        },
+        {
+          "harmonized": true,
+          "name": "cell_type",
+          "raw_name": "cell type",
+          "value": "glia"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "Basic Sciences Division, Fred Hutchinson Cancer Center"
+        },
+        {
+          "harmonized": true,
+          "name": "collection_date",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "genotype",
+          "raw_name": null,
+          "value": "miR228-GFP"
+        },
+        {
+          "harmonized": true,
+          "name": "geo_loc_name",
+          "raw_name": null,
+          "value": "missing"
+        },
+        {
+          "harmonized": true,
+          "name": "source_name",
+          "raw_name": null,
+          "value": "1 day old whole hermaphrodite worm"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "1 day old whole hermaphrodite worm"
+        },
+        {
+          "harmonized": true,
+          "name": "treatment",
+          "raw_name": null,
+          "value": "none"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8092237"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA1078821"
+    },
+    {
+      "accession": "SRX23686319",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina HiSeq 2500"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8092237: C elegans, Glia, Herm, Rep1; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8092237_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8092237"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40022217"
+    },
+    {
+      "accession": "SRX23686320",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina HiSeq 2500"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8092238: C elegans, Glia, Herm, Rep2; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8092238_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8092238"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40022216"
+    },
+    {
+      "accession": "SRX23686321",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina HiSeq 2500"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8092239: C elegans, Glia, Male, Rep1; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8092239_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8092239"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40022215"
+    },
+    {
+      "accession": "SRX23686322",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "RNA-Seq"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "cDNA"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina HiSeq 2500"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8092240: C elegans, Glia, Male, Rep2; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8092240_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8092240"
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN40022214"
+    },
+    {
+      "accession": "SRR28034797",
+      "attributes": [],
+      "filenames": [
+        "Him5_Male1_S1_L001_I1_001.fastq.gz",
+        "Him5_Male1_S1_L001_I2_001.fastq.gz",
+        "Him5_Male1_S1_L001_R1_001.fastq.gz",
+        "Him5_Male1_S1_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092239_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686321"
+    },
+    {
+      "accession": "SRR28034798",
+      "attributes": [],
+      "filenames": [
+        "Him5_Male1_S1_L002_I1_001.fastq.gz",
+        "Him5_Male1_S1_L002_I2_001.fastq.gz",
+        "Him5_Male1_S1_L002_R1_001.fastq.gz",
+        "Him5_Male1_S1_L002_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092239_r2"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686321"
+    },
+    {
+      "accession": "SRR28034799",
+      "attributes": [],
+      "filenames": [
+        "Him5_Male2_S2_L001_I1_001.fastq.gz",
+        "Him5_Male2_S2_L001_I2_001.fastq.gz",
+        "Him5_Male2_S2_L001_R1_001.fastq.gz",
+        "Him5_Male2_S2_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092240_r1"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686322"
+    },
+    {
+      "accession": "SRR28034800",
+      "attributes": [],
+      "filenames": [
+        "Him5_Male2_S2_L002_I1_001.fastq.gz",
+        "Him5_Male2_S2_L002_I2_001.fastq.gz",
+        "Him5_Male2_S2_L002_R1_001.fastq.gz",
+        "Him5_Male2_S2_L002_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092240_r2"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686322"
+    },
+    {
+      "accession": "SRR34171858",
+      "attributes": [],
+      "filenames": [
+        "D1Herm_3_S3_L001_I1_001.fastq.gz",
+        "D1Herm_3_S3_L001_I2_001.fastq.gz",
+        "D1Herm_3_S3_L001_R1_001.fastq.gz",
+        "D1Herm_3_S3_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092237_r3"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686319"
+    },
+    {
+      "accession": "SRR34171859",
+      "attributes": [],
+      "filenames": [
+        "D1Herm_3_S3_L002_I1_001.fastq.gz",
+        "D1Herm_3_S3_L002_I2_001.fastq.gz",
+        "D1Herm_3_S3_L002_R1_001.fastq.gz",
+        "D1Herm_3_S3_L002_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092237_r4"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686319"
+    },
+    {
+      "accession": "SRR34171860",
+      "attributes": [],
+      "filenames": [
+        "D1Herm_4_S4_L001_I1_001.fastq.gz",
+        "D1Herm_4_S4_L001_I2_001.fastq.gz",
+        "D1Herm_4_S4_L001_R1_001.fastq.gz",
+        "D1Herm_4_S4_L001_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092238_r3"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686320"
+    },
+    {
+      "accession": "SRR34171861",
+      "attributes": [],
+      "filenames": [
+        "D1Herm_4_S4_L002_I1_001.fastq.gz",
+        "D1Herm_4_S4_L002_I2_001.fastq.gz",
+        "D1Herm_4_S4_L002_R1_001.fastq.gz",
+        "D1Herm_4_S4_L002_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8092238_r4"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX23686320"
+    }
+  ],
+  "source": "ncbi-sra+biosample"
+}

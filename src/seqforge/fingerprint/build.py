@@ -176,4 +176,41 @@ def build_fingerprint(
     return FingerprintResult(package=package, staging=staging, manifest=manifest)
 
 
-__all__ = ["FingerprintResult", "build_fingerprint"]
+#: The info subtrees a redistributable package may not carry: the raw paper (copyright) and its
+#: extracted figures (the figure pipeline is not good enough yet). ``info/text/`` is what harvest needs.
+_NON_REDISTRIBUTABLE = ("info/docs/", "info/images/")
+
+
+def strip_to_redistributable(package: str | Path, dest: str | Path) -> FingerprintResult:
+    """Repack an existing fingerprint package as a **redistributable** (text-only) copy at ``dest``.
+
+    The retroactive twin of ``build_fingerprint(..., include_raw=False)``: for packages built before
+    the flag existed (or when the original FASTQs are long gone), this reads only the byte-light package
+    and drops ``info/docs/`` (the raw paper) and ``info/images/`` (its figures), keeping ``info/text/``,
+    the FASTQ slices, and the pin. The reads and pins are **untouched**, so the dataset hash reproduces
+    byte-for-byte — only the info manifest and tree shrink. The package's content-address (its stem) is
+    computed from pins + read budget and never included the docs, so the redistributable copy keeps the
+    same identity; a run falls back to ``info/text/`` (:meth:`LoadedFingerprint.info_paths`).
+    """
+    import shutil
+    import tempfile
+
+    from .load import load_fingerprint
+
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="seqforge-strip-") as tmp:
+        loaded = load_fingerprint(package, unpack_to=Path(tmp) / "unpacked")
+        root = loaded.root
+        kept = [rel for rel in loaded.manifest.info if not rel.startswith(_NON_REDISTRIBUTABLE)]
+        for sub in ("docs", "images"):
+            shutil.rmtree(root / "info" / sub, ignore_errors=True)
+        manifest = loaded.manifest.model_copy(update={"info": kept})
+        (root / "fingerprint.json").write_text(
+            json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
+        )
+        write_tar_gz(root, dest)
+    return FingerprintResult(package=dest, staging=Path(dest), manifest=manifest)
+
+
+__all__ = ["FingerprintResult", "build_fingerprint", "strip_to_redistributable"]
