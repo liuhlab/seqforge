@@ -1,0 +1,104 @@
+schema_version: 1
+
+identity:
+  id: 10x-multiome-gex
+  version: "1"
+  name: "10x Chromium Single Cell Multiome ATAC + Gene Expression (GEX arm)"
+  aliases: ["10x Multiome GEX", "10x ARC GEX", "Chromium Multiome GEX", "Multiome gene expression"]
+  assay_ontology: ["EFO:0009922"]        # 3' GEX chemistry — the same assay the 10x-3p family instantiates
+  modality: rna
+
+reads:
+  # R1 = the technical/barcode read. 28 bp = 16 CB + 12 UMI — byte-identical geometry to 3' v3. The
+  # ONLY chemistry difference from v3 is the whitelist: the Multiome (ARC) kit uses 737K-arc-v1, not
+  # 3M-february-2018. max_len is null, not 28: an over-sequenced R1 is a real 10x layout, and the
+  # segment_length over_length_min below keeps 28 separable while admitting a full-length read.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 28
+    max_len: null
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
+  # R2 = cDNA (open-ended). soloStrand Forward: R2 is sense to mRNA for 3' kits.
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists:
+  cb_whitelist:                 # used by backend + the positive supports test
+    registry: 737K-arc-v1       # Multiome (ARC) GEX list — ~736,320 x 16 bp, forward orientation
+    role: cell_barcode
+    expected_orientation: forward
+  std_v3_probe:                 # probe-only, used ONLY by the exclude anti-gate
+    registry: 3M-february-2018  # the standard 3' v3/v3.1 list
+    role: cell_barcode
+    expected_orientation: forward
+
+signature:
+  requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
+    - {test: read_count, roles: 2}
+    # Identical to v3: length 28 stays exact for canonical reads; over_length_min 100 admits a
+    # full-length over-sequenced R1 without loosening 26-vs-28. Multiome GEX and v3 share this gate —
+    # they are told apart only at rung 3 by which whitelist hits, which is exactly the divergent-tie
+    # the resolver escalates and the onlist settles.
+    - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}
+    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
+    - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
+  supports:                     # additive evidence (rung 3+)
+    - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0               # the ARC whitelist hitting is the positive signal that this is Multiome
+    - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
+      weight: 2.0               # CB recurs -> low distinct ratio
+    - when: {test: distinct_ratio, read: R1, start: 16, end: 28, expect: high}
+      weight: 1.0               # UMI ~ unique -> high distinct ratio
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0               # cDNA is diverse -> the biological role is scored, not left at 0
+    - when: {test: header_index, present: true}
+      weight: 0.2
+  excludes:                     # anti-gate: if the STANDARD 3' v3 list hits, it's plain 3' GEX, not Multiome
+    - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: std_v3_probe, orientation: forward, min: 0.6}
+
+backend:
+  module: map/starsolo
+  params:                       # identical to 3' v3 EXCEPT soloCBwhitelist -> the ARC list
+    soloType: CB_UMI_Simple
+    soloCBstart: 1
+    soloCBlen: 16
+    soloUMIstart: 17
+    soloUMIlen: 12
+    soloCBwhitelist: "{onlist:cb_whitelist}"
+    soloStrand: Forward
+    soloBarcodeReadLength: 0
+    # soloFeatures is NOT here. Multiome GEX is snRNA (single-nucleus), so GeneFull is the sensible
+    # primary feature — but that is a SAMPLE-PREP fact (prep_type single-nucleus -> GeneFull, decided
+    # by policy), not a chemistry one: the reads are byte-identical to a single-cell run. Counting
+    # lives in the processing manifest, where a user may instruct it.
+
+# A child of the 10x-3p-gex family: it shares the 16 bp CB / 28 bp barcode-read geometry with v2/v3/v3.1
+# and is told apart from them ONLY by its whitelist, which is exactly what the family's
+# `children_decided_by: [onlist]` carries.
+parent: 10x-3p-gex
+
+confusable_with:
+  - id: 10x-3p-gex-v3
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      Same 28 bp / 16+12 geometry, byte-identical STARsolo params EXCEPT soloCBwhitelist: Multiome GEX
+      uses 737K-arc-v1, plain 3' v3 uses 3M-february-2018. Rung-3 onlist separates them. The mirror of
+      the edge v3 already declares toward this spec — kept explicit so the byte fact is stated on both
+      ends, not only inferred from the shared parent.
+  - id: 10x-3p-gex-v3.1
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      v3.1 is byte-identical to v3 (both 3M-february-2018); Multiome GEX diverges from both by its
+      737K-arc-v1 whitelist. Geometry coincides, so the onlist (rung 3) is what decides.
