@@ -415,8 +415,10 @@ confusables of the minimal sufficient mechanism) and asserted equal to the decla
 The generator is a pure function of `reads[].elements[]` only (never `signature`/`backend`, so the
 round-trip is a real test, not a tautology): walk elements in order, drawing `barcode`+onlist from a
 fixed synthetic cell pool of K barcodes reused across reads (so the recurrence signal is realistic —
-**reconcile K with the probe window** so the distinct-ratio lands in-band, e.g. K≈2–5k over a 200k
-window, not K=100), `umi` fresh-random, `linker`/`fixed` literal, `cdna` from a tiny bundled
+**reconcile K with the probe window** so the distinct-ratio lands in-band: K a fraction of the reads
+probed — the round-trip and the default probe both sample 2 000 reads — not a pool so large every
+read is unique, nor so small the segment reads as constant), `umi` fresh-random, `linker`/`fixed`
+literal, `cdna` from a tiny bundled
 reference, homopolymers as runs. Variable/anchored layout falls out of concatenation.
 
 **Round-trip assertion:** `spec → synth FASTQ → seqforge probe → recovered layout`; `assert recovered
@@ -607,7 +609,7 @@ reads the observation.
 
 ```
 seqforge
-  probe FILES…                 det   bytes→Observation (--max-reads 200k, --max-bytes 256MB; never whole FASTQ)
+  probe FILES…                 det   bytes→Observation (--max-reads 2k default, --max-bytes 256MB; never whole FASTQ)
   io peek URI | probe-remote URI | resolve ACC | records ACC | attributes | efo CURIE | h5ad SOLO_DIR
                                det†  the network + packaging surface; pooch + sha256-verified.
                                      probe-remote range-reads a bounded head → Observation, so a library is

@@ -1,10 +1,13 @@
 """Content-addressed, resumable ``seqforge/`` artifacts: disk is state, context is cache.
 
 Per-file :class:`Observation` keyed by its content-address (a bounded local key or a provider md5 —
-never a whole-file scan; see :func:`~seqforge.probe.core._content_key`); the dataset
-:class:`ResolveResult` keyed by ``dataset_id = sha256(sorted(file_shas) ⊕ kb_version)`` with
-``probe_version`` / ``resolve_version`` folded in — so a probe or scorer change invalidates the cache
-without a manual bump. :func:`resume_key` adds a stat-only pointer (``realpath+size+mtime`` →
+never a whole-file scan; see :func:`~seqforge.probe.core._content_key`) **under a ``PROBE_VERSION``
+namespace**: a provider-md5 address is deliberately N-invariant, so without that namespace a probe
+change (e.g. a smaller default read budget) would silently re-serve stale observation *values* for a
+hosted file whose address did not move; the namespace makes "recompute once on a probe bump" hold for
+every address type. The dataset :class:`ResolveResult` is keyed by
+``dataset_id = sha256(sorted(file_shas) ⊕ kb_version)`` with ``probe_version`` / ``resolve_version``
+folded in — so a probe or scorer change invalidates the cache without a manual bump. :func:`resume_key` adds a stat-only pointer (``realpath+size+mtime`` →
 ``dataset_id``) so an unchanged re-run rebuilds the answer without reading a FASTQ byte. Every write is
 atomic-ish (write-then-rename); a corrupt/absent artifact reads back as ``None`` (recompute), never a
 crash.
@@ -20,6 +23,7 @@ from pathlib import Path
 
 from ..models.observation import Observation
 from ..models.resolve import ResolveResult
+from ..probe import PROBE_VERSION
 from ..workspace import cache_dir
 
 
@@ -65,7 +69,9 @@ class Cache:
         self.root = cache_dir(workspace)
 
     def _obs_path(self, sha: str) -> Path:
-        return self.root / "observations" / f"{sha}.json"
+        # Namespaced by PROBE_VERSION: a probe-semantics bump (e.g. the N=2000 default) must recompute
+        # observations once even for md5-addressed files, whose content-address does not move with N.
+        return self.root / "observations" / PROBE_VERSION / f"{sha}.json"
 
     def _resolve_path(self, ds_id: str) -> Path:
         return self.root / "candidates" / f"{ds_id}.json"

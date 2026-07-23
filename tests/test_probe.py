@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
-from seqforge.probe import probe_file
+from seqforge.probe import DEFAULT_MAX_READS, probe_file
 
 BASES = "ACGT"
 W1_LINKER = (
@@ -141,12 +141,12 @@ def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path
     assert decompressed > 100_000_000  # the fixture really is enormous once decompressed...
     assert on_disk < 2_000_000  # ...while costing the test suite ~450 KB and ~0.2 s
 
-    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+    obs = probe_file(path)  # DEFAULT budgets: DEFAULT_MAX_READS reads / 256 MB
 
-    assert obs.probe.n_reads_sampled == 200_000  # stopped at the budget, not at EOF
+    assert obs.probe.n_reads_sampled == DEFAULT_MAX_READS  # stopped at the budget, not at EOF
     assert obs.probe.bytes_read < decompressed / 5  # touched a small prefix, not the file
-    # The read budget binds first here (200k x ~40 B is well under the 256 MB byte cap), so this is
-    # the number to pin: a whole-file stream would be ~134 MB, two orders of magnitude larger.
+    # The read budget binds first here (N x ~40 B is far under the 256 MB byte cap), so this is the
+    # number to pin: a whole-file stream would be ~134 MB, orders of magnitude larger.
     assert obs.probe.bytes_read < 20_000_000
     assert obs.estimated_total_reads > 1_000_000  # and it still knows the file is huge
 
@@ -233,7 +233,7 @@ def test_the_content_address_never_scans_the_whole_file(
         return _CountingReader(fh, counter) if str(file) == str(path) else fh
 
     monkeypatch.setattr(builtins, "open", counting_open)
-    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+    obs = probe_file(path)  # DEFAULT budgets: DEFAULT_MAX_READS reads / 256 MB
     monkeypatch.undo()
 
     # Precondition: the file really is much larger than the bounded head we sampled.

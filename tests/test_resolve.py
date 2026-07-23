@@ -117,6 +117,37 @@ def test_resolve_runs_resumes_from_cache_without_reprobing(
     ]
 
 
+def test_observation_cache_is_namespaced_by_probe_version(tmp_path: Path) -> None:
+    """A probe-semantics bump (e.g. the N=2000 default) recomputes observations once — even for a
+    provider-md5 address, which is N-invariant. The observation cache path folds in PROBE_VERSION, so a
+    value cached under an older probe version is never re-served. The candidates/resume caches already
+    fold PROBE_VERSION; this closes the same gap on the per-file observation cache.
+    """
+    from seqforge.probe import PROBE_VERSION, probe_file
+    from seqforge.resolve.cache import Cache
+
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=300, seed=5)
+    fq = tmp_path / "R1.fastq.gz"
+    _write_fastq_gz(fq, reads["R1"])
+    obs = probe_file(fq)
+    sha = obs.file.sha256
+
+    cache = Cache(tmp_path)
+    cache.write_observation(obs)
+
+    on_disk = cache.root / "observations" / PROBE_VERSION / f"{sha}.json"
+    assert on_disk.is_file()  # written under the LIVE probe version...
+    assert cache.read_observation(sha) is not None  # ...and read back from there
+
+    # A value cached under a DIFFERENT probe version must be invisible: no cross-version stale serve.
+    stale = cache.root / "observations" / "1999.1.1" / f"{sha}.json"
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text(on_disk.read_text())
+    on_disk.unlink()
+    assert cache.read_observation(sha) is None
+
+
 def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
     """Per-spec scoring across a thread pool (sharing the read-only registry) is winner-invariant:
     same inputs, ``score_threads`` 1 vs N -> byte-identical ResolveResult AND evidence matrices.

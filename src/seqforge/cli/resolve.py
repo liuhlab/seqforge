@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 
+from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..resolve import Hypothesis, resolve_dataset
 from ._common import _auto_cpus
 from .root import resolve_app
@@ -29,8 +30,12 @@ def resolve_score(
     no_cache: bool = typer.Option(
         False, "--no-cache", help="Do not read/write seqforge/ artifacts."
     ),
-    max_reads: int = typer.Option(200_000, help="Bounded read budget."),
-    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
+    max_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded read budget per file (default 2000). Raise it to score more of a full-size "
+        "FASTQ — the explicit opt-in; every touch stays bounded by this AND --max-bytes.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
     ),

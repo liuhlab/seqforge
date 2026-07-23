@@ -68,10 +68,13 @@ score, so a swapped `_1`/`_2` gives an identical answer.
 
 ## Reading a whole file is a bug
 
-Every look at a FASTQ is bounded: at most 200,000 reads and 256 MB decompressed, whichever comes
-first. A code path that *can* stream a whole multi-gigabyte file is a defect even if today's file is
-small — because eventually it won't be, and by then the path is load-bearing. A test hands the probe
-a 128 MB file and asserts it reads about a tenth and stops.
+Every look at a FASTQ is bounded: by default the first 2,000 reads and at most 256 MB decompressed,
+whichever comes first. Two thousand is enough — the chemistry a file resolves to is invariant from a
+thousand reads up past two hundred thousand — and it is a floor, not a ceiling: raise `--max-reads` to
+sample more of a full-size file when you want to. A code path that *can* stream a whole
+multi-gigabyte file is a defect even if today's file is small — because eventually it won't be, and by
+then the path is load-bearing. A test hands the probe a 128 MB file and asserts it reads a bounded
+prefix and stops.
 
 Note the units: **reads and bytes, never seconds.** Wall-clock depends on the disk, the compression
 level, and whether the machine is busy. It is a consequence, not a constraint.

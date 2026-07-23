@@ -26,6 +26,7 @@ from ..manifest import (
     fill_processing,
     validate_processing,
 )
+from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
 from .harvest import PdfBackendChoice, _harvest_extract_pipeline
@@ -299,6 +300,13 @@ def run_cmd(
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
     ),
+    max_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded read budget per full-size FASTQ (default 2000). Raise it to FORCE probing more "
+        "of the raw files — the explicit opt-in. Ignored with --fingerprint (its N was fixed at "
+        "preflight); every touch stays bounded by this AND --max-bytes.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
@@ -411,6 +419,8 @@ def run_cmd(
         workspace=workspace,
         cpus=_auto_cpus(cpus),
         chemistry_override=assert_chemistry,
+        max_reads=max_reads,
+        max_bytes=max_bytes,
         probed=probed,
     )
     stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
