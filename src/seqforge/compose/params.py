@@ -39,10 +39,10 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Literal
 
-from ..kb.schema import KB_PARSE_KEYS, Element, Read, Spec
+from ..kb.schema import Element, Read, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import ProcessingManifest, Quantification, SoloQuant
-from ..workflows import get_module
+from ..workflows import get_module, parse_keys_for
 
 GateStatus = Literal["pass", "fail"]
 ParamOwner = Literal["kb", "processing", "derived"]
@@ -64,7 +64,7 @@ stated.
 ``soloAdapterSequence`` joined this set for BD Rhapsody Enhanced (#43): an anchored chemistry's
 diversity insert is absorbed by STARsolo's adapter anchor, and the adapter (``NNN…GTGANNN…GACA``) is
 just the barcode widths and linker literals read off the elements — one more fact the coordinates
-already state. It was in ``KB_PARSE_KEYS`` (declarable) but nothing emitted it; now it is derived, and
+already state. It was in the pipeline's parse keys (declarable) but nothing emitted it; now it is derived, and
 the ``soloCBposition``/``soloUMIposition`` quadruples become adapter-anchored (anchor 2/3) rather than
 read-start-anchored (anchor 0) for such a chemistry.
 """
@@ -319,7 +319,7 @@ def params_gate(
             f"KB declares count key(s) {both}, which the processing manifest owns: backend.params "
             f"says how to PARSE reads, not what to COUNT"
         )
-    stray = sorted(set(params) - KB_PARSE_KEYS)
+    stray = sorted(set(params) - parse_keys_for(backend.module))
     if stray:
         problems.append(f"KB declares non-parse key(s) {stray}")
     redeclared = sorted(set(params) & DERIVED_PARAM_KEYS)

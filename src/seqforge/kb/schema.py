@@ -207,36 +207,6 @@ class Signature(_Forbid):
     excludes: list[Test]  # anti-gates: any pass => disqualify
 
 
-KB_PARSE_KEYS: frozenset[str] = frozenset(
-    {
-        "soloType",
-        "soloCBstart",
-        "soloCBlen",
-        "soloUMIstart",
-        "soloUMIlen",
-        "soloCBwhitelist",
-        "soloCBposition",
-        "soloUMIposition",
-        "soloStrand",
-        "soloAdapterSequence",
-        "soloBarcodeReadLength",
-    }
-)
-"""Every key the KB may declare. Each says how to **parse** reads, and each is decided by bytes.
-
-The line is parse vs. count. What to COUNT — ``soloFeatures``, ``quantMode`` — is *intent*: it belongs
-to the processing manifest, where a user may instruct it and a gate may check it. ``soloFeatures``
-sat here because this is where the aligner's flags live, and it cost a measured **40.7 % of a nuclear
-library**: 10x 3' v3.1 chemistry is byte-identical for cells and nuclei, so counting was never a
-chemistry property at all.
-
-The disjointness of this set from the instructable surface is what makes "a user instruction
-contradicts the observed bytes" **structurally inexpressible** rather than merely deprioritized — the
-user has no vocabulary in which to say it. That is the strongest form of that guarantee available, and it is why
-moving a key across this line has to be an explicit, gated act.
-"""
-
-
 class Backend(_Forbid):
     """A data template mapping to a workflow module. Only ``{onlist:<alias>}`` interpolation is legal."""
 
@@ -245,18 +215,35 @@ class Backend(_Forbid):
 
     @model_validator(mode="after")
     def _only_parse_keys(self) -> Backend:
-        """A count/reference/runtime knob may not be declared here.
+        """A count/reference/runtime knob may not be declared here — only this pipeline's parse keys.
+
+        The line is parse vs. count. What to COUNT (``soloFeatures``, ``quantMode``) is *intent*: it
+        belongs to the processing manifest, where a user may instruct it and a gate may check it.
+        ``soloFeatures`` once sat in a backend's params and cost a measured **40.7 % of a nuclear
+        library** — 10x 3' v3.1 chemistry is byte-identical for cells and nuclei, so counting was never
+        a chemistry property. The parse namespace is now **per pipeline** (``Pipeline.parse_keys``), so
+        the allowed set is looked up by ``self.module`` rather than shared globally: a chromap backend is
+        policed against chromap's knobs, a starsolo backend against ``solo*``.
 
         ``params`` is a ``dict``, so ``extra="forbid"`` cannot reach inside it — hence an explicit
-        validator. It fires in ``load_spec``, in ``kb lint``, and in every test that loads a spec,
-        which is what makes the parse/count line a property of the DSL rather than a convention.
+        validator. It fires in ``load_spec``, in ``kb lint``, and in every test that loads a spec, which
+        is what makes the parse/count line a property of the DSL rather than a convention.
         """
-        stray = sorted(set(self.params) - KB_PARSE_KEYS)
+        from ..workflows import parse_keys_for
+
+        try:
+            allowed = parse_keys_for(self.module)
+        except KeyError as exc:
+            raise ValueError(
+                f"backend.module {self.module!r} is not a registered pipeline: {exc}"
+            ) from exc
+        stray = sorted(set(self.params) - allowed)
         if stray:
             raise ValueError(
-                f"backend.params declares non-parse key(s) {stray}: backend.params says how to "
-                f"PARSE reads (byte-decided); what to COUNT belongs in the processing manifest, "
-                f"where a user may instruct it. Known parse keys: {sorted(KB_PARSE_KEYS)}"
+                f"backend.params declares key(s) {stray} that pipeline {self.module!r} does not parse: "
+                f"backend.params says how to PARSE reads (byte-decided); what to COUNT belongs in the "
+                f"processing manifest, where a user may instruct it. {self.module!r} parses: "
+                f"{sorted(allowed)}"
             )
         return self
 

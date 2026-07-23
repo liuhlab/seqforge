@@ -31,16 +31,13 @@ from ..models.processing import (
     SoloFeature,
     SoloQuant,
 )
-from ..workflows import get_module
+from ..workflows import resolve_pipeline
 from .instruct import Instruction
 
 
 class PolicyError(RuntimeError):
     """Intent cannot be resolved — a required choice has no safe default (refuse, don't guess)."""
 
-
-#: KB backend module -> the aligner name recorded in `processing.aligner`.
-_ALIGNER_FOR_MODULE = {"map/starsolo": "starsolo", "map/star": "star"}
 
 DEFAULT_SOLO_FEATURES: tuple[SoloFeature, ...] = (
     "Gene",
@@ -178,15 +175,20 @@ class ProcessingDefaults:
 def processing_defaults(spec: Spec) -> ProcessingDefaults:
     """Derive the processing section's policy defaults from the identified chemistry's backend."""
     module = spec.require_backend().module
-    aligner = _ALIGNER_FOR_MODULE.get(module, module.rsplit("/", 1)[-1])
-    # Asked of the MODULE, which is the only thing that knows what software it needs. This was a
+    # The assay↔pipeline adapter: bind the chemistry to its pipeline (and assert the pipeline serves
+    # the chemistry's modality) once, then read every default off the bound pipeline object.
+    pipeline = resolve_pipeline(spec)
+    # Derived off the module id, not a `_ALIGNER_FOR_MODULE` dict that mirrored it — see
+    # `WorkflowModule.aligner`.
+    aligner = pipeline.aligner
+    # Asked of the PIPELINE, which is the only thing that knows what software it needs. This was a
     # hardcoded `"align-rna"` sitting beside a module that also declared `align-rna` — two owners of
     # one fact, harmless only because no rule read the env. The moment `starsolo_count` grew a
-    # `container:`, that pair could disagree into a container with no STAR in it. An ATAC module
+    # `container:`, that pair could disagree into a container with no STAR in it. An ATAC pipeline
     # declaring `align-dna` is now simply right, instead of being overridden here by a comment
     # promising someone would remember.
-    environment: RuntimeEnv = get_module(module).env
-    # Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
+    environment: RuntimeEnv = pipeline.env
+    # Counting is PIPELINE-scoped: soloFeatures is meaningless to plain STAR, and quantMode is
     # meaningless to STARsolo. A processing manifest that carried one shape unconditionally would be
     # a type error the moment it met the other module.
     #
@@ -197,7 +199,7 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
     # so the `else` here can only be bulk — by construction rather than by hope.
     quantification: Quantification = (
         SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
-        if get_module(module).param_block == "solo"
+        if pipeline.param_block == "solo"
         else BulkQuant(mode="GeneCounts")
     )
     return ProcessingDefaults(

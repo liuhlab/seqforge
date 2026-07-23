@@ -48,7 +48,7 @@ from ..models.processing import (
 )
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..resolve.group import run_key
-from ..workflows import WorkflowModule, container_uri, get_module
+from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
 from ..workspace import readable, state_dir
 from .params import (
     derived_params,
@@ -178,7 +178,7 @@ def plan(
     # member compiles for all of them — that is exactly what makes the ambiguity benign.
     spec = load_spec(chemistry[0])
     try:
-        module = get_module(spec.require_backend().module)
+        module = resolve_pipeline(spec)
     except KeyError as exc:
         raise ComposeError(str(exc)) from exc
 

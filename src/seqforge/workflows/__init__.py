@@ -14,9 +14,12 @@ import re
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from ..models.processing import RuntimeEnv
+
+if TYPE_CHECKING:
+    from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
 #: 2026.7.13 — both mapping rules (`starsolo_count` in starsolo.smk, `star_count` in star.smk) clear
@@ -129,9 +132,41 @@ def keys_read_by(snakefile: Path) -> frozenset[str]:
     return frozenset(keys)
 
 
+#: The parse-param namespace a ``map/starsolo`` backend may declare — every key says how to **parse**
+#: reads, and each is decided by bytes. The line is parse vs. count: what to COUNT (``soloFeatures``,
+#: ``quantMode``) is *intent* and belongs to the processing manifest, where a user may instruct it and a
+#: gate may check it. ``soloFeatures`` once sat here and cost a measured **40.7 % of a nuclear library**
+#: — 10x 3' v3.1 chemistry is byte-identical for cells and nuclei, so counting was never a chemistry
+#: property. Keeping this namespace **per pipeline** (a ``Pipeline.parse_keys`` field, not one global
+#: set) is what lets a second aligner declare its own parse knobs without widening STARsolo's, so
+#: "a user instruction contradicts the observed bytes" stays structurally inexpressible per namespace.
+_STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
+    {
+        "soloType",
+        "soloCBstart",
+        "soloCBlen",
+        "soloUMIstart",
+        "soloUMIlen",
+        "soloCBwhitelist",
+        "soloCBposition",
+        "soloUMIposition",
+        "soloStrand",
+        "soloAdapterSequence",
+        "soloBarcodeReadLength",
+    }
+)
+
+
 @dataclass(frozen=True)
 class WorkflowModule:
-    """One selectable workflow module: its id, version, runtime env, Snakefile, and config contract."""
+    """One selectable pipeline: its id, version, runtime env, Snakefile, and per-pipeline contract.
+
+    The pipeline registry's citizen. Beyond identity (``name``/``version``/``snakefile``) it declares
+    the properties that used to be STARsolo-hardwired globals scattered across ``compose``/``policy``:
+    the runtime ``env``, the ``read_layout_kind``, the ``parse_keys`` namespace a KB backend may declare,
+    and the ``serves_modalities`` the assay↔pipeline adapter (:func:`resolve_pipeline`) checks. The
+    aligner name and the config block are *derived*, never declared twice.
+    """
 
     name: str
     version: str
@@ -142,13 +177,27 @@ class WorkflowModule:
     #: - ``barcoded`` — ``{cdna, barcode}``, chosen by ROLE (a barcoded single-cell chemistry).
     #: - ``paired``   — ``{mate1, mate2}``, chosen by ORDER (a bulk paired-end library).
     #:
-    #: This is deliberately a small closed literal and **not** a general plugin interface: there are
-    #: two modules and both are STAR, so any richer abstraction would be generalised from a sample
-    #: size of one. What it does buy is that the composer no longer branches on
-    #: ``spec.backend.module == "map/starsolo"`` — a string compare in which every module that was not
-    #: starsolo silently fell into the bulk mate1/mate2 branch and emitted a wrong command line. A
-    #: third module must now pick a kind, or add one, and either is a typed and visible choice.
+    #: A typed, visible choice rather than the old ``spec.backend.module == "map/starsolo"`` string
+    #: compare, in which every module that was not starsolo silently fell into the bulk mate1/mate2
+    #: branch and emitted a wrong command line. A third module must pick a kind, or add one.
     read_layout_kind: Literal["barcoded", "paired"]
+    #: The parse-param namespace this pipeline's KB backends may declare (byte-decided knobs). Empty for
+    #: a bulk pipeline that takes no parse params. Per pipeline, so a chromap backend declares chromap's
+    #: parse knobs and a starsolo backend declares ``solo*`` — each gated against its own namespace.
+    parse_keys: frozenset[str] = frozenset()
+    #: Which assay modalities this pipeline serves. The adapter refuses to bind a spec whose modality is
+    #: not here, so an RNA chemistry can never be composed against an ATAC-only pipeline (or vice versa).
+    serves_modalities: frozenset[str] = frozenset({"rna"})
+
+    @property
+    def aligner(self) -> str:
+        """The aligner name recorded in ``processing.aligner`` — derived from the module id.
+
+        ``map/starsolo`` → ``starsolo``, ``map/star`` → ``star``, ``map/chromap`` → ``chromap``. This
+        was a ``_ALIGNER_FOR_MODULE`` dict whose every entry equalled this ``rsplit`` fallback — a
+        mirror of the module ids that could only ever drift from them. One rule, read off the id.
+        """
+        return self.name.rsplit("/", 1)[-1]
 
     @property
     def required_config(self) -> tuple[str, ...]:
@@ -202,6 +251,7 @@ MODULES: dict[str, WorkflowModule] = {
         env="align-rna",
         snakefile=_MODULE_DIR / "map" / "starsolo.smk",
         read_layout_kind="barcoded",
+        parse_keys=_STARSOLO_PARSE_KEYS,
     ),
     "map/star": WorkflowModule(
         name="map/star",
@@ -222,6 +272,36 @@ def get_module(name: str) -> WorkflowModule:
         raise KeyError(f"unknown workflow module {name!r}; known: {known}") from exc
 
 
+def parse_keys_for(module: str) -> frozenset[str]:
+    """The parse-param namespace a backend on ``module`` may declare (raises for an unknown module).
+
+    The single source of truth for the parse/count line — consulted by the KB DSL validator
+    (``Backend._only_parse_keys``) and the composer's ``params_gate`` alike, so both police one namespace
+    per pipeline rather than a global set that every pipeline had to share.
+    """
+    return get_module(module).parse_keys
+
+
+def resolve_pipeline(spec: Spec) -> WorkflowModule:
+    """Bind an identified chemistry to the pipeline that runs it — the assay↔pipeline adapter.
+
+    ``get_module`` plus one invariant: the spec's modality must be one the pipeline serves. That check
+    is the whole reason the adapter exists — it makes "an ATAC chemistry composed against STARsolo"
+    a loud refusal at compose time instead of a wrong command line, the same class of silent
+    fall-through that ``read_layout_kind`` and ``param_block`` were built to kill. Raises ``KeyError``
+    (which the composer surfaces as a ``ComposeError``) for an unknown module or an unserved modality.
+    """
+    module = get_module(spec.require_backend().module)
+    modality = spec.identity.modality
+    if modality not in module.serves_modalities:
+        raise KeyError(
+            f"pipeline {module.name!r} serves modalities {sorted(module.serves_modalities)}, not "
+            f"{modality!r} (chemistry {spec.identity.id!r}); a chemistry must be composed against a "
+            f"pipeline that serves its modality"
+        )
+    return module
+
+
 def list_modules() -> list[str]:
     return sorted(MODULES)
 
@@ -235,4 +315,6 @@ __all__ = [
     "get_module",
     "keys_read_by",
     "list_modules",
+    "parse_keys_for",
+    "resolve_pipeline",
 ]

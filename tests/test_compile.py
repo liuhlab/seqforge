@@ -1965,6 +1965,60 @@ def test_a_module_whose_config_contract_is_unreadable_refuses() -> None:
         _ = ghost.param_block
 
 
+def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
+    """Each pipeline owns the parse keys its backends may declare — the single source of truth.
+
+    The KB DSL validator and the composer's params gate both consult `parse_keys_for(module)`, so a
+    second aligner declares its own knobs without widening STARsolo's. A global set forced every
+    pipeline to share one namespace, which is exactly what makes "instruction contradicts the bytes"
+    inexpressible only by accident.
+    """
+    from seqforge.workflows import MODULES, parse_keys_for
+
+    assert MODULES["map/starsolo"].parse_keys == parse_keys_for("map/starsolo")
+    assert "soloType" in parse_keys_for("map/starsolo")
+    assert len(parse_keys_for("map/starsolo")) == 11
+    # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
+    assert parse_keys_for("map/star") == frozenset()
+    with pytest.raises(KeyError, match="unknown workflow module"):
+        parse_keys_for("map/nonesuch")
+
+
+def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
+    """`aligner` is read off the module id, so it can never drift from a hand-kept `_ALIGNER_FOR_MODULE`.
+
+    Every entry of the deleted dict equalled this rsplit, so the dict was a mirror of the ids that
+    could only ever disagree with them.
+    """
+    from seqforge.workflows import MODULES
+
+    assert MODULES["map/starsolo"].aligner == "starsolo"
+    assert MODULES["map/star"].aligner == "star"
+
+
+def test_resolve_pipeline_binds_a_chemistry_and_refuses_an_unserved_modality() -> None:
+    """The assay↔pipeline adapter: bind by module, then assert the pipeline serves the spec's modality.
+
+    An RNA chemistry composed against an ATAC-only pipeline is a loud refusal at compose time, not a
+    wrong command line — the same silent fall-through `read_layout_kind`/`param_block` were built to kill.
+    """
+    from types import SimpleNamespace
+
+    from seqforge import kb
+    from seqforge.workflows import MODULES, resolve_pipeline
+
+    rna = kb.load_spec("10x-3p-gex-v3")
+    assert resolve_pipeline(rna) is MODULES[rna.require_backend().module]
+
+    # A spec whose modality the target pipeline does not serve is refused (duck-typed like a Spec).
+    unserved = SimpleNamespace(
+        require_backend=lambda: SimpleNamespace(module="map/starsolo"),
+        identity=SimpleNamespace(modality="atac", id="fake-atac"),
+    )
+    with pytest.raises(KeyError, match="serves modalities"):
+        resolve_pipeline(unserved)  # type: ignore[arg-type]
+
+
 def tmp_snakefile() -> Path:
     """A module that reads neither aligner-param block. Written to a real path: `required_config`
     scans the source, which is the whole point of it being derived."""
