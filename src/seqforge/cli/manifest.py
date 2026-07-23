@@ -287,6 +287,32 @@ def _fill_manifest_pipeline(
     if not groups:  # every run carried its own blocker (caught above); nothing to build
         return _StageOut({"error": "no run resolved to a chemistry"}, 3)
     chem_of = multi.chemistry_of_sha()
+
+    # --- wrong-PDF guard: does a staged document describe a DIFFERENT study than the bytes? (#51) ---
+    # Sits beside the byte `observed↔asserted` conflicts (which decide chemistry): this decides whole-
+    # document provenance. A Blocker for the strongest case (nothing matches AND the assay contradicts
+    # the reads) refuses; a lesser mismatch surfaces an open Conflict for a human, exactly like a
+    # byte conflict — it never auto-picks.
+    from ..kb.loader import load_all_specs
+    from ..resolve.provenance import check_provenance
+
+    prov_conflicts, prov_blockers = check_provenance(
+        assertions=parsed,
+        subjects=subjects,
+        records=records,
+        winning_techs=set(groups),
+        specs=load_all_specs(),
+        document_texts=_dataset_document_texts(workspace, subjects),
+    )
+    if prov_blockers:
+        return _StageOut({"blockers": [b.model_dump(mode="json") for b in prov_blockers]}, 3)
+    if prov_conflicts:
+        _sync_questions(
+            state_dir(workspace),
+            multi.runs,
+            extra_conflicts=[("document", c) for c in prov_conflicts],
+        )
+
     multi_assay = len(groups) > 1
     # ONE dataset-wide URI map, computed over EVERY file's common root, shared by every assay. A
     # per-assay fill otherwise re-derives the root from only its own (deeper) subset, so a sample in
@@ -306,7 +332,9 @@ def _fill_manifest_pipeline(
         else:
             obs, resolution = multi.observations, metadata
         # Only the BYTE resolver's conflicts block; a metadata disagreement rides in as a warning.
-        conflicts = [c for run in runs for c in run.output.result.conflicts]
+        # A dataset-level provenance conflict (#51) rides in on every assay — it is about the whole
+        # document, not one chemistry — so a wrong PDF blocks the manifest via validate's exit 4.
+        conflicts = [c for run in runs for c in run.output.result.conflicts] + prov_conflicts
         try:
             experiment = experiment_from_metadata(
                 resolution, obs, organism_taxid=organism_taxid, uris=file_uris
@@ -403,7 +431,9 @@ def _render_questions(conflicts: list[tuple[str, Any]], questions: list[tuple[st
     return "\n".join(lines)
 
 
-def _sync_questions(state: Path, runs: list[Any]) -> None:
+def _sync_questions(
+    state: Path, runs: list[Any], *, extra_conflicts: list[tuple[str, Any]] | None = None
+) -> None:
     """Write ``state/questions.md`` for open conflicts / questions across runs; clear it when none.
 
     The Stop hook refuses to end a turn while any non-empty ``questions.md`` exists under ``seqforge/``,
@@ -411,10 +441,14 @@ def _sync_questions(state: Path, runs: list[Any]) -> None:
     — before the pipeline's exit-code branch — keeps the two symmetric: a re-run that resolves the
     disagreement removes the file, so the hook cannot wedge on a stale question. A within-family
     difference is recorded as a ``resolved`` conflict, so it is not ``open`` and never writes here.
+
+    ``extra_conflicts`` carries dataset-level open conflicts that do not belong to any single run — the
+    wrong-PDF provenance gate (#51) is the current source — so they too surface as a visible question.
     """
     open_conflicts = [
         (r.run_id, c) for r in runs for c in r.output.result.conflicts if c.status == "open"
     ]
+    open_conflicts.extend(extra_conflicts or [])
     open_questions = [(r.run_id, q) for r in runs for q in r.output.result.questions]
     path = state / "questions.md"
     if not open_conflicts and not open_questions:
@@ -476,6 +510,30 @@ def _load_records(
     return ArchiveRecordSet(
         source="ncbi-sra+biosample", query=", ".join(accessions), records=merged
     )
+
+
+def _dataset_document_texts(workspace: Path, subjects: list[Any]) -> dict[str, str]:
+    """The canonical text of each dataset-scoped document, keyed by ``doc_sha256``.
+
+    Only dataset-scoped documents (papers/READMEs a human staged) are wrong-PDF risks — a document
+    rendered from an archive record is self-consistent with the records by construction. `harvest
+    extract` persisted each as ``<stem>-<sha12>.txt`` under ``records/documents/``, so the 12-char
+    hash suffix recovers it. A run with no staged prose (records-only) yields an empty map and the
+    provenance gate simply finds nothing to check.
+    """
+    from ..workspace import documents_dir
+
+    docdir = documents_dir(workspace)
+    texts: dict[str, str] = {}
+    if not docdir.is_dir():
+        return texts
+    for s in subjects:
+        if getattr(s, "scope", None) != "dataset":
+            continue
+        for p in docdir.glob(f"*-{s.doc_sha256[:12]}.txt"):
+            texts[s.doc_sha256] = p.read_text()
+            break
+    return texts
 
 
 def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[Any]]:
