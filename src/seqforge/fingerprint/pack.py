@@ -59,23 +59,35 @@ def extract_pdf_images(pdf: Path, outdir: Path) -> list[str]:
     return out
 
 
-def extract_info(docs: list[Path], staging: Path) -> list[str]:
-    """Carry every information document into the package: original + extracted text (+ PDF images).
+def extract_info(docs: list[Path], staging: Path, *, include_raw: bool = True) -> list[str]:
+    """Carry every information document into the package: extracted text, and (locally) the original.
 
-    Returns the sorted package-relative paths written under ``info/``. The original is copied verbatim
-    so a fingerprint run's ``harvest`` reads the identical bytes (and so reproduces the identical
-    span-verified assertions); the extracted text and images are supplementary, for the report and for
-    a human skimming the package. A document that cannot be read for text still gets copied — the
-    original is the authority, the text is a convenience.
+    Returns the sorted package-relative paths written under ``info/``. Two modes, one knob:
+
+    - ``include_raw=True`` (default, a **local** package): the original is copied verbatim into
+      ``info/docs/`` so a fingerprint run's ``harvest`` reads the identical bytes (and so reproduces
+      the identical span-verified assertions), a PDF's embedded images are extracted into
+      ``info/images/``, and ``info/text/`` carries the extracted text as a convenience.
+    - ``include_raw=False`` (a **redistributable** package): only ``info/text/`` is written. The raw
+      paper is NOT redistributed (a copyright constraint) and figures are dropped too (the figure
+      pipeline is not good enough yet — text is what ``harvest`` needs). A fingerprint run falls back
+      to the extracted text (:meth:`LoadedFingerprint.info_paths`), so the package stays usable; the
+      only cost is that a ``.txt`` doc has a different ``doc_sha256`` and no PDF per-page offsets, so
+      the harvested assertions are *equivalent*, not byte-identical, to a raw-PDF run.
+
+    A document that cannot be read for text still gets copied when ``include_raw`` — the original is
+    the authority, the text is a convenience. A redistributable package simply omits an unreadable doc.
     """
     info: list[str] = []
     info_root = staging / "info"
     for doc in docs:
         doc = Path(doc)
-        docs_dir = info_root / "docs"
-        docs_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(doc, docs_dir / doc.name)  # copyfile, not copy2: mtime is the tar's to zero
-        info.append(f"info/docs/{doc.name}")
+        if include_raw:
+            docs_dir = info_root / "docs"
+            docs_dir.mkdir(parents=True, exist_ok=True)
+            # copyfile, not copy2: mtime is the tar's to zero
+            shutil.copyfile(doc, docs_dir / doc.name)
+            info.append(f"info/docs/{doc.name}")
 
         try:
             from ..harvest.normalize import read_document
@@ -87,7 +99,7 @@ def extract_info(docs: list[Path], staging: Path) -> list[str]:
             _write_text(info_root / "text" / f"{doc.stem}.txt", text)
             info.append(f"info/text/{doc.stem}.txt")
 
-        if doc.suffix.lower() == ".pdf":
+        if include_raw and doc.suffix.lower() == ".pdf":
             imgs = extract_pdf_images(doc, info_root / "images" / doc.stem)
             info.extend(f"info/images/{doc.stem}/{Path(rel).name}" for rel in imgs)
 

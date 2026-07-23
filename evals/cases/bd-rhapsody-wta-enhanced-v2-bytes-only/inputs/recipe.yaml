@@ -1,0 +1,9 @@
+# BD Rhapsody WTA "Enhanced" v2: the second enhanced-bead revision. Same three-block-plus-UMI family
+# as enhanced v1, separable from it only by the onlist — hence synthetic pools registered from the
+# reads. Together with enhanced-v1 this pins that the two revisions are told apart, not merged.
+generate:
+  kind: spec
+  spec: bd-rhapsody-wta-enhanced-v2
+  n: 3000
+  seed: 0
+  onlists: synthetic

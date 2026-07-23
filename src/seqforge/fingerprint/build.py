@@ -89,6 +89,7 @@ def build_fingerprint(
     max_bytes: int = DEFAULT_MAX_BYTES,
     info_docs: list[str | Path] | None = None,
     name: str | None = None,
+    include_raw: bool = True,
 ) -> FingerprintResult:
     """Build a fingerprint package under ``seqforge/fingerprint/`` and return where it landed.
 
@@ -106,6 +107,12 @@ def build_fingerprint(
         Optional paper/spreadsheet documents to carry (original + extracted text/images).
     name
         A human slug for the package; defaults to the dataset root's directory name.
+    include_raw
+        ``True`` (default) builds a **local** package — the original documents and any extracted PDF
+        images travel alongside the text. ``False`` builds a **redistributable** package that carries
+        only the extracted text under ``info/text/``: the raw paper is a copyright liability we do not
+        redistribute, and figures are dropped until the figure-extraction pipeline improves. A run
+        falls back to the text (see :meth:`LoadedFingerprint.info_paths`), so it stays usable.
     """
     paths = [Path(f) for f in files]
     rels = _rel_paths(paths)
@@ -150,7 +157,7 @@ def build_fingerprint(
         dest.parent.mkdir(parents=True, exist_ok=True)
         write_records_gz(dest, records)
 
-    info_rels = extract_info([Path(d) for d in (info_docs or [])], staging)
+    info_rels = extract_info([Path(d) for d in (info_docs or [])], staging, include_raw=include_raw)
 
     manifest = FingerprintManifest(
         fingerprint_version=FINGERPRINT_VERSION,

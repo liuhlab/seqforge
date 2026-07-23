@@ -120,19 +120,17 @@ def run_case(
     Deterministic cases ignore ``trials`` (re-running identical bytes measures nothing).
     """
     started = time.monotonic()
-    needs_llm = case.has_prose and case.recipe.hypothesis is None
-    if needs_llm and not llm:
+    if case.needs_llm and not llm:
         # The case's expectation *depends* on a claim only the LLM can supply. Running it byte-only
-        # would grade a different question and count the miss as a failure. Skip, loudly.
+        # would grade a different question and count the miss as a failure. Skip, loudly. Records
+        # alone do not trip this: a fingerprint case resolves its bytes and grades samples from
+        # records with no key, so it runs hermetically.
         return CaseRun(
             case.id,
             _empty_grade(case),
             skipped="needs the LLM stage (prose, no declared hypothesis); pass --llm",
             seconds=time.monotonic() - started,
         )
-
-    use_llm = llm and case.has_prose
-    n = trials if use_llm else 1
 
     grades: list[CaseGrade] = []
     harvests: list[HarvestGrade] = []
@@ -148,6 +146,12 @@ def run_case(
                 case.id, _empty_grade(case), skipped=str(exc), seconds=time.monotonic() - started
             )
 
+        # A synthetic case keeps its prose in the case dir; a fingerprint case ships it inside the
+        # package and materialize surfaces it. Harvest reads whichever is present.
+        docs = built.metadata_docs or case.metadata_docs
+        use_llm = llm and (bool(docs) or case.records is not None)
+        n = trials if use_llm else 1
+
         ws = workspace or tmp_path
         for _ in range(n):
             hypothesis: Hypothesis | None = None
@@ -158,7 +162,7 @@ def run_case(
             if use_llm:
                 try:
                     hg, hyp, u, verified, subjects = _run_harvest(
-                        case, provider=provider, model=model
+                        case, docs, provider=provider, model=model
                     )
                 except ExtractUnavailable as exc:
                     return CaseRun(
@@ -168,7 +172,7 @@ def run_case(
                         seconds=time.monotonic() - started,
                     )
                 harvests.append(hg)
-                calls += len(case.metadata_docs)
+                calls += len(docs)
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
                 if hyp is not None:
@@ -180,6 +184,7 @@ def run_case(
                 hypothesis=hypothesis,
                 workspace=ws,
                 use_cache=False,
+                _probed=built.probed,
             )
             # The SECOND resolver, over the same files. It reads records and prose; it is handed no
             # probe signal (`FileIdentity`, not `Observation`). Running it here is what lets a
@@ -290,18 +295,23 @@ def load_cases(cases_dir: Path | None = None, *, only: list[str] | None = None) 
 
 
 def _run_harvest(
-    case: Case, *, provider: LLMProvider | None, model: str | None
+    case: Case,
+    doc_paths: list[Path],
+    *,
+    provider: LLMProvider | None,
+    model: str | None,
 ) -> tuple[HarvestGrade, Hypothesis | None, dict[str, int], list[Assertion], list[DocumentSubject]]:
     """normalize -> extract -> verify over the case's prose. Only verified claims are graded.
 
-    "The case's prose" now means two things: the documents a human put beside it, and each archive
-    record rendered as its own document. The second is what lets a claim name a sample, so a harness
-    that ran only the first could never grade one.
+    "The case's prose" now means three things: the documents a human put beside the case, the prose a
+    fingerprint package carried inside itself (``doc_paths`` is whichever of the two materialize
+    surfaced), and each archive record rendered as its own document. The record path is what lets a
+    claim name a sample, so a harness that read only the human's documents could never grade one.
     """
     specs = load_all_specs()
     llm = provider if provider is not None else resolve_provider()
 
-    docs: list[NormalizedDoc] = [normalize_document(p) for p in case.metadata_docs]
+    docs: list[NormalizedDoc] = [normalize_document(p) for p in doc_paths]
     if case.records is not None:
         docs += [
             normalize_record(r)

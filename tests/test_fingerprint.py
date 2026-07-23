@@ -196,6 +196,90 @@ def _real_v3_dataset(tmp_path: Path, *, n: int = 1500) -> list[Path]:
     return [r1, r2]
 
 
+def test_redistributable_package_carries_text_but_no_raw_doc_or_images(tmp_path: Path) -> None:
+    """The copyright fix: ``include_raw=False`` drops ``info/docs/`` AND ``info/images/``.
+
+    A public package must not redistribute the raw paper (copyright) nor its extracted figures (the
+    figure pipeline is not good enough yet). Only the extracted text survives — which is what harvest
+    needs — so the package stays usable while carrying nothing we may not redistribute.
+    """
+    paths, _ = _synth_dataset(tmp_path, n=200)
+    doc = tmp_path / "paper.md"
+    doc.write_text("# Methods\n\nWe used the Chromium Single Cell 3' v3 Reagent Kit.\n")
+
+    result = build_fingerprint(
+        paths, workspace=tmp_path, reads=100, name="ds", info_docs=[doc], include_raw=False
+    )
+    info = result.manifest.info
+    assert any(rel.startswith("info/text/") for rel in info), "the extracted text must survive"
+    assert not any(rel.startswith("info/docs/") for rel in info), "no raw doc may be redistributed"
+    assert not any(rel.startswith("info/images/") for rel in info), (
+        "no figures may be redistributed"
+    )
+    # And nothing raw is on disk either — not merely absent from the manifest.
+    assert not (result.staging / "info" / "docs").exists()
+    assert not (result.staging / "info" / "images").exists()
+
+
+def test_local_package_still_carries_the_raw_doc_by_default(tmp_path: Path) -> None:
+    """The default is a LOCAL package: the original travels verbatim under ``info/docs/``."""
+    paths, _ = _synth_dataset(tmp_path, n=200)
+    doc = tmp_path / "paper.md"
+    doc.write_text("# Methods\n\nChromium Single Cell 3' v3.\n")
+    result = build_fingerprint(paths, workspace=tmp_path, reads=100, name="ds", info_docs=[doc])
+    assert "info/docs/paper.md" in result.manifest.info
+    assert (result.staging / "info" / "docs" / "paper.md").read_text() == doc.read_text()
+
+
+def test_info_paths_prefers_the_raw_doc_and_falls_back_to_text(tmp_path: Path) -> None:
+    """A run reads ``info/docs/`` when present, else ``info/text/`` — so a redistributable run works."""
+    paths, _ = _synth_dataset(tmp_path, n=200)
+    doc = tmp_path / "paper.md"
+    doc.write_text("# Methods\n\nSingle-nucleus RNA-seq of C. elegans neurons.\n")
+
+    local = build_fingerprint(
+        paths, workspace=tmp_path / "local", reads=100, name="ds", info_docs=[doc]
+    )
+    got = load_fingerprint(local.staging).info_paths()
+    assert [p.name for p in got] == ["paper.md"] and all("info/docs/" in str(p) for p in got)
+
+    redist = build_fingerprint(
+        paths, workspace=tmp_path / "r", reads=100, name="ds", info_docs=[doc], include_raw=False
+    )
+    got = load_fingerprint(redist.staging).info_paths()
+    assert [p.name for p in got] == ["paper.txt"] and all("info/text/" in str(p) for p in got)
+    # The fallback document is a real, readable file a run's harvest can normalize.
+    assert got[0].read_text().strip()
+
+
+def test_preflight_redistributable_flag_omits_raw_docs(tmp_path: Path) -> None:
+    """End to end through the CLI: ``preflight --redistributable`` writes no ``info/docs/``."""
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    paths = _real_v3_dataset(tmp_path, n=200)
+    doc = tmp_path / "paper.md"
+    doc.write_text("# Methods\n\nChromium Single Cell 3' v3.\n")
+    res = runner.invoke(
+        app,
+        [
+            "preflight",
+            *map(str, paths),
+            "--name",
+            "demo",
+            "--redistributable",
+            "--doc",
+            str(doc),
+            "-C",
+            str(tmp_path / "ws"),
+        ],
+    )
+    assert res.exit_code == 0, res.output
+    info = json.loads(res.stdout)["info"]
+    assert any(r.startswith("info/text/") for r in info)
+    assert not any(r.startswith("info/docs/") for r in info)
+
+
 def test_run_from_fingerprint_cli_reproduces_the_hash(tmp_path: Path) -> None:
     """End to end through the CLI: ``preflight`` then ``run --fingerprint`` yields the same manifest.
 

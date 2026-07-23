@@ -1,0 +1,10 @@
+outcome: decide
+description: >-
+  ci-benchmark coverage for BD Rhapsody WTA (the original BD chemistry, the only one the worm set
+  carries as a real dataset — GSE274290). The cell label is three fixed 9 bp barcode blocks separated
+  by two constant linkers; without the onlist this collapses to bulk (a barcode structure BD shares
+  with nothing else is what the linkers + whitelist prove), so this is the case that guards BD from
+  being swallowed by the no-positive-signature bulk branch. Paired with its enhanced siblings it fixes
+  one dataset per BD leaf spec.
+fields:
+  library.chemistry: bd-rhapsody-wta

@@ -42,6 +42,16 @@ def preflight_cmd(
         "--name",
         help="Human slug for the package (default: the dataset root's directory name).",
     ),
+    include_raw: bool = typer.Option(
+        True,
+        "--include-raw/--redistributable",
+        "--raw-docs/--no-raw-docs",
+        help="Whether to carry the raw documents. Default (--include-raw) builds a LOCAL package "
+        "with the original paper + extracted figures alongside the text. --redistributable "
+        "(alias --no-raw-docs) carries only the extracted text under info/text/ — the raw paper is "
+        "not redistributed (copyright) and figures are dropped until the figure pipeline improves. A "
+        "run falls back to the text, so a redistributable package stays fully usable.",
+    ),
     max_bytes: int = typer.Option(
         DEFAULT_MAX_BYTES,
         "--max-bytes",
@@ -59,7 +69,13 @@ def preflight_cmd(
     """
     try:
         result = build_fingerprint(
-            files, workspace=workspace, reads=reads, max_bytes=max_bytes, info_docs=doc, name=name
+            files,
+            workspace=workspace,
+            reads=reads,
+            max_bytes=max_bytes,
+            info_docs=doc,
+            name=name,
+            include_raw=include_raw,
         )
     except (OSError, ValueError) as exc:
         typer.echo(

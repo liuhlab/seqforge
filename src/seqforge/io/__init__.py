@@ -10,6 +10,12 @@ fingerprinted straight from a URL with no local file, issue #39) — see :mod:`s
 
 from __future__ import annotations
 
+from .benchmark import (
+    HF_BENCHMARK_REPO,
+    BenchmarkPackageUnavailable,
+    fetch_benchmark_package,
+    hf_package_url,
+)
 from .onlist import (
     DEFAULT_REGISTRY,
     HitResult,
@@ -58,4 +64,9 @@ __all__ = [
     "fastq_targets",
     "resolve_accession",
     "NotYetImplemented",
+    # HF benchmark fetch (opt-in / networked eval job only)
+    "HF_BENCHMARK_REPO",
+    "BenchmarkPackageUnavailable",
+    "fetch_benchmark_package",
+    "hf_package_url",
 ]
