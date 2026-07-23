@@ -35,8 +35,19 @@ class LoadedFingerprint:
         return [self.root / pin.rel_path for pin in self.manifest.files]
 
     def info_paths(self) -> list[Path]:
-        """The carried information documents (originals under ``info/docs/``), in pin order."""
-        return [self.root / rel for rel in self.manifest.info if rel.startswith("info/docs/")]
+        """The documents ``harvest`` should read: the raw originals if present, else the extracted text.
+
+        A **local** package carries the originals under ``info/docs/`` and a run reads those verbatim.
+        A **redistributable** package (built with ``include_raw=False``) drops the raw paper for
+        copyright and carries only ``info/text/*.txt``; here the run falls back to that text. ``harvest``
+        handles a ``.txt`` through its plain-text branch and span-verifies against whatever it is
+        handed, so the package stays usable either way — the text-fed assertions are *equivalent* to a
+        raw-PDF run's (a different ``doc_sha256``, no PDF page offsets), not byte-identical.
+        """
+        docs = [self.root / rel for rel in self.manifest.info if rel.startswith("info/docs/")]
+        if docs:
+            return docs
+        return [self.root / rel for rel in self.manifest.info if rel.startswith("info/text/")]
 
 
 def load_fingerprint(

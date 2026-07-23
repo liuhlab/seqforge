@@ -1,0 +1,9 @@
+outcome: decide
+description: >-
+  ci-benchmark coverage for BD Rhapsody WTA Enhanced v1. Enhanced v1 and v2 share the original WTA's
+  three-block cell-label geometry and differ from it — and from each other — only by their barcode
+  sets, so all three BD leaves are confusable at the structural rungs and settle by whitelist. This
+  case (paired with enhanced-v2) is what proves the two enhanced leaves are distinguished rather than
+  collapsed onto one another or onto the original.
+fields:
+  library.chemistry: bd-rhapsody-wta-enhanced-v1

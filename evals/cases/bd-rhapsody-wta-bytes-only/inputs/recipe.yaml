@@ -1,0 +1,9 @@
+# BD Rhapsody WTA (original): a bead-based whole-transcriptome assay whose cell label is three 9 bp
+# blocks (CLS1/2/3) drawn from fixed 96-barcode sets and pinned by two constant linkers, followed by
+# an 8 bp UMI. Structurally unlike 10x, and separable from bulk only by the onlist — hence synthetic.
+generate:
+  kind: spec
+  spec: bd-rhapsody-wta
+  n: 3000
+  seed: 0
+  onlists: synthetic

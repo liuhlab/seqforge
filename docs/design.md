@@ -856,6 +856,23 @@ from declared metadata and provider-independent prior knowledge only, committed 
 from a value read out of the data. That discipline never depended on the data being reserved: it is
 what makes the file a prediction rather than a transcript, and only a prediction can be wrong.
 
+**The benchmark, in two tiers (#56 workstream 2, #73).** A dataset enters the eval corpus through a
+byte-light **fingerprint package** rather than its FASTQs: the `fingerprint` recipe kind
+(`evals/case.py`) unpacks a package, stamps each slice's pinned whole-file identity back on (so resolve
+reaches the same verdict and hash the originals would), grades chemistry from the pinned bytes and
+sample attributes from a committed `records.json` — no full FASTQ, no key. It draws its package from
+one of three sources: a `path` committed in the case dir, an `hf` path in the public HF benchmark repo
+(`liuhlab/seqforge-benchmark`, pulled anonymously and pooch-cached — no token, no `huggingface_hub`),
+or a `root_env` staged out of git; an unreachable package **skips**, never fails. Two tiers ride this:
+the **ci-benchmark** (synthetic per-spec recipes covering all eight leaf specs, plus any committed tiny
+fingerprint) runs hermetically in `test_corpus_is_green` on every commit; the growing **benchmark**
+(real datasets on HF) runs only in the opt-in / scheduled `benchmark.yml` job (`pixi run eval`), so a
+free HF account's limits can never gate a PR. A true held-out **test** set is a later milestone; this
+is the validation set we develop against. Redistributable packages carry extracted **text only** —
+`preflight --redistributable` drops the raw paper (copyright) and its figures (the figure pipeline is
+not good enough yet), and a run falls back to `info/text/` — so nothing we may not redistribute reaches
+HF while the harvest input survives.
+
 ---
 
 ## 9. What is designed here but not yet built
