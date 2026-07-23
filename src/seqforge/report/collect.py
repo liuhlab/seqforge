@@ -455,6 +455,27 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
                 detail="write the results as an .h5ad file, ready to open in Scanpy/Seurat",
             ),
         ]
+    if quant.startswith("atac"):
+        # scATAC via chromap: the deliverable is a fragments file, not a count matrix. A defensive stub
+        # so an ATAC workspace does not render as "STAR / count genes per gene" (the full fragments
+        # wording is PR-E).
+        return [
+            PipelineStage(
+                key="onlist",
+                title="Prepare the barcode whitelist",
+                detail="lay out the list of valid cell barcodes this chemistry uses",
+            ),
+            PipelineStage(
+                key="align",
+                title="Align & call fragments (chromap)",
+                detail="map paired genomic reads and record one fragment per Tn5 insertion, per cell",
+            ),
+            PipelineStage(
+                key="package",
+                title="Index the fragments file",
+                detail="sort, bgzip and tabix-index fragments.tsv.gz for ArchR / SnapATAC2 / Signac",
+            ),
+        ]
     return [
         PipelineStage(
             key="align",
@@ -484,6 +505,12 @@ def _plan(
     quant = p.quantification.value
     if quant.kind == "solo":
         quant_str = "solo: " + ", ".join(quant.features)
+    elif quant.kind == "atac":
+        # ATAC has no count matrix — the deliverable is a fragments file, so there is no `mode` or
+        # feature list to render. Without this branch `quant.mode` AttributeErrors and the whole report
+        # crashes on a chromap workspace. The full fragments-aware rendering is PR-E; this is the
+        # defensive stub that keeps `seqforge report` from dying on an ATAC manifest.
+        quant_str = "atac: fragments (fragments.tsv.gz)"
     else:
         quant_str = f"bulk: {quant.mode}"
 

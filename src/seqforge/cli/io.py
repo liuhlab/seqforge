@@ -244,6 +244,57 @@ def io_qc_bundle(
     typer.echo(json.dumps({"written": str(written)}, indent=2))
 
 
+@io_app.command("fragments")
+def io_fragments(
+    raw: Path = typer.Option(..., "--raw", help="chromap's raw (unsorted) fragments file."),
+    out: Path = typer.Option(
+        ...,
+        "--out",
+        help="Output path for the bgzipped fragments.tsv.gz (its .tbi lands beside it).",
+    ),
+) -> None:
+    """Finalize chromap's fragments into a sorted, bgzipped, tabix-indexed `fragments.tsv.gz`.
+
+    Called by `chromap.smk`'s `fragments_finalize` rule (a `shell:`, so compose's wiring gate sees it) —
+    the ATAC analog of `io h5ad`. Shells to htslib (`bgzip`/`tabix`) from the `align-dna` container. Exit
+    3 if chromap's raw output is missing or htslib is unavailable.
+    """
+    from ..workflows.fragments import FragmentsError, write_fragments
+
+    try:
+        written = write_fragments(raw, out)
+    except FragmentsError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    typer.echo(json.dumps({"written": str(written)}, indent=2))
+
+
+@io_app.command("fragments-qc")
+def io_fragments_qc(
+    fragments: Path = typer.Option(
+        ..., "--fragments", help="A fragments file (plain .tsv or bgzipped .tsv.gz)."
+    ),
+    sample: str = typer.Option(..., "--sample", help="Sample id, recorded in the summary."),
+    assembly: str = typer.Option(
+        ..., "--assembly", help="UCSC assembly id, recorded in the summary."
+    ),
+    out: Path = typer.Option(..., "--out", help="Output path for the gzipped JSON summary."),
+) -> None:
+    """Summarize a fragments file into one gzipped JSON — the ATAC analog of `io qc-bundle`.
+
+    Called by `chromap.smk`'s `fragments_qc` rule. Pure Python over the fragments text (no external
+    binary), so it needs no container. Exit 3 on a malformed fragments file.
+    """
+    from ..workflows.fragments import FragmentsError, write_fragments_qc
+
+    try:
+        written = write_fragments_qc(fragments, out, sample=sample, assembly=assembly)
+    except FragmentsError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    typer.echo(json.dumps({"written": str(written)}, indent=2))
+
+
 @io_app.command("cram")
 def io_cram(
     bam: Path = typer.Option(..., "--bam", help="STAR's Aligned.out.bam."),

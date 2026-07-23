@@ -1,0 +1,10 @@
+# 10x Multiome (ARC) scATAC arm: a 3-read layout (two genomic mates + a 16 bp barcode read, no UMI),
+# separable from every 2-read scRNA chemistry by its read count and barcode-read length, and resolved
+# to the SECOND aligner (map/chromap). Synthetic onlists register the exact ARC pool the barcode read
+# is drawn from, so the rung-3 onlist support fires.
+generate:
+  kind: spec
+  spec: 10x-multiome-atac
+  n: 3000
+  seed: 0
+  onlists: synthetic

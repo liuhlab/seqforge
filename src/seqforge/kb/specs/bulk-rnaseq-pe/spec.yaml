@@ -95,3 +95,14 @@ confusable_with:
     note: >
       The BD Rhapsody Enhanced bead (v2, 384-plex) — same reasoning as `-enhanced-v1`. Separated at rung
       3 by the 384 x 3 CLS whitelists (disjoint from both the 96 pools and from anything bulk could hit).
+  - id: 10x-multiome-atac
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The 10x Multiome scATAC arm. Its two GENOMIC mates look to this generic fallback like a bulk cDNA
+      pair, so at rungs 0-2 bulk accepts them on read-count alone (it ignores the third, barcode read).
+      The acceptance is one-directional — ATAC REJECTS bulk (it requires three reads including a 16 bp
+      barcode read, which bulk's 2-read cDNA pair does not have) — so the edge is declared here. Only the
+      onlist decides: the ARC barcode read hits `737K-arc-v1` at rung 3, and bulk has no whitelist to
+      hit, so silently preferring bulk would emit a gene-count matrix for a chromatin library and exit 0.
+      Maximally divergent downstream: map/star (gene counts, no barcodes) vs map/chromap (fragments).

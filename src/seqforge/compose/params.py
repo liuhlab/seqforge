@@ -41,7 +41,7 @@ from typing import Literal
 
 from ..kb.schema import Element, Read, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
-from ..models.processing import ProcessingManifest, Quantification, SoloQuant
+from ..models.processing import BulkQuant, ProcessingManifest, Quantification, SoloQuant
 from ..workflows import get_module, parse_keys_for
 
 GateStatus = Literal["pass", "fail"]
@@ -234,7 +234,12 @@ def processing_params(quant: Quantification) -> dict[str, object]:
     if isinstance(quant, SoloQuant):
         # space-joined, exactly as the KB's list rendering did — STAR takes repeated argv values
         return {"soloFeatures": " ".join(quant.features)}
-    return {"quantMode": quant.mode}
+    if isinstance(quant, BulkQuant):
+        return {"quantMode": quant.mode}
+    # AtacQuant: the deliverable is a fragments file, so there is nothing to count and no count key to
+    # emit. The empty dict keeps `param_owners`/`params_gate` correct — chromap's config block is
+    # exactly its parse keys, with no processing-owned counting key to reconcile.
+    return {}
 
 
 def param_owners(spec: Spec, processing: ProcessingManifest) -> dict[str, ParamOwner]:
@@ -274,6 +279,19 @@ def render_param(value: object) -> str:
     if isinstance(value, list):
         return " ".join(str(v) for v in value)
     return str(value)
+
+
+def _resolves_to_onlist_path(value: object) -> bool:
+    """A KB param whose value is an ``{onlist:<alias>}`` token, or a list of them.
+
+    Such a value is resolved to a materialized whitelist PATH at compose time (see
+    ``compose.core._resolve_token``), so its config rendering is a path, not the verbatim token — the
+    per-key faithfulness check must skip it or it would compare a path against a token and always fail.
+    Both STARsolo's ``soloCBwhitelist`` and chromap's ``barcode_whitelist`` are such params; keying on
+    the VALUE rather than the key name covers a third one without spelling it out.
+    """
+    values = value if isinstance(value, list) else [value]
+    return any(isinstance(v, str) and v.startswith("{onlist:") for v in values)
 
 
 def _as_int(value: object) -> int | None:
@@ -350,8 +368,11 @@ def params_gate(
 
         # ---- 3. faithfulness, per key, per owner ----
         for key, expected in params.items():
-            if key == "soloCBwhitelist":
-                continue  # an {onlist:...} token is resolved to a path; checked separately below
+            if _resolves_to_onlist_path(expected):
+                continue  # an {onlist:...} token is resolved to a path at compose, so it is not
+                # compared verbatim (the registry proves the whitelist exists in `_resolve_token`).
+                # Value-based, not a key name: covers STARsolo's `soloCBwhitelist` AND chromap's
+                # `barcode_whitelist` without either being spelled out here.
             want = render_param(expected)
             got = emitted.get(key)
             if got is not None and str(got) != want:
@@ -380,8 +401,8 @@ def params_gate(
         else:
             problems += _check_simple_geometry(bc_read, params)
 
-    # ---- 5. readFilesIn order: the cDNA read must precede the barcode read ----
-    problems += _check_read_files_in(manifest, config, params)
+    # ---- 5. readFilesIn: each role maps to the byte-decided read (per this pipeline's layout kind) ----
+    problems += _check_read_files_in(manifest, config, get_module(backend.module).read_layout_kind)
 
     return ("fail" if problems else "pass"), problems
 
@@ -415,14 +436,21 @@ def _check_simple_geometry(bc_read: ReadDef, params: Mapping[str, object]) -> li
 
 
 def _check_read_files_in(
-    manifest: DatasetManifest, config: Mapping[str, object], params: Mapping[str, object]
+    manifest: DatasetManifest, config: Mapping[str, object], layout_kind: str
 ) -> list[str]:
+    """Assert config's read->role map matches the byte-decided layout, per this pipeline's layout kind.
+
+    Dispatch is on the PIPELINE's ``read_layout_kind``, the same axis the composer's ``_read_files_in``
+    dispatches on — so the gate checks exactly the mapping the composer was supposed to emit, rather than
+    inferring the shape from ``soloType`` (which a non-STARsolo pipeline like chromap does not carry, and
+    which would then have silently fallen into the bulk mate1/mate2 branch).
+    """
     problems: list[str] = []
     rfi = config.get("read_files_in")
     if not isinstance(rfi, dict):
         return ["config has no read_files_in mapping"]
-    cdna_read = find_read_with_role(manifest, "cDNA") or find_read_with_role(manifest, "gDNA")
-    if params.get("soloType") in ("CB_UMI_Simple", "CB_UMI_Complex"):
+    if layout_kind == "barcoded":
+        cdna_read = find_read_with_role(manifest, "cDNA") or find_read_with_role(manifest, "gDNA")
         bc_read = find_read_with_role(manifest, "CB")
         if cdna_read is None or bc_read is None:
             problems.append("a barcoded chemistry needs both a cDNA read and a CB-bearing read")
@@ -437,6 +465,24 @@ def _check_read_files_in(
             )
         if rfi.get("cdna") == rfi.get("barcode"):
             problems.append("read_files_in maps the cDNA and barcode roles to the same read")
+    elif layout_kind == "atac_barcoded":
+        gdna = [
+            r
+            for r in manifest.library.read_layout.reads
+            if any(el.role == "gDNA" for el in r.elements)
+        ]
+        bc_read = find_read_with_role(manifest, "CB")
+        if len(gdna) < 2 or bc_read is None:
+            problems.append("scATAC needs two genomic (gDNA) reads and a barcode read")
+            return problems
+        expected = {"gdna1": gdna[0].read_id, "gdna2": gdna[1].read_id, "barcode": bc_read.read_id}
+        for key, want in expected.items():
+            if rfi.get(key) != want:
+                problems.append(
+                    f"read_files_in.{key}={rfi.get(key)!r} is not the {key} read {want!r}"
+                )
+        if len({rfi.get("gdna1"), rfi.get("gdna2"), rfi.get("barcode")}) != 3:
+            problems.append("read_files_in maps two scATAC roles to the same read")
     else:  # bulk: two biological mates, no barcode role
         mates = [rfi.get("mate1"), rfi.get("mate2")]
         roles = [r.read_id for r in manifest.library.read_layout.reads]
