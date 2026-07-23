@@ -19,9 +19,10 @@ from typing import Literal
 from ..models.processing import RuntimeEnv
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
-#: 2026.7.13 — `starsolo_count` clears STAR's `_STARtmp` (`rm -rf {params.prefix}_STARtmp`) before
-#: invoking STAR, so a (re)run is preemption-safe: a preempted STAR leaves `_STARtmp` behind, STAR
-#: aborts a rerun if it exists, and snakemake cannot remove it (undeclared output). No new config key.
+#: 2026.7.13 — both mapping rules (`starsolo_count` in starsolo.smk, `star_count` in star.smk) clear
+#: STAR's `_STARtmp` (`rm -rf {params.prefix}_STARtmp`) before invoking STAR, so a (re)run is
+#: preemption-safe: a preempted STAR leaves `_STARtmp` behind, STAR aborts a rerun if it exists, and
+#: snakemake cannot remove it (undeclared output). No new config key.
 #: 2026.7.11 — starsolo.smk gains an always-on finalize: `starsolo_count` now declares its stats,
 #: logs, filtered/ tree and BAM as `temp()` outputs; new `solo_to_cram` (BAM -> sorted CRAM via
 #: `seqforge io cram`) and `qc_bundle` (stats+logs -> one gzipped JSON via `seqforge io qc-bundle`)

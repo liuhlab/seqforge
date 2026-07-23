@@ -73,7 +73,12 @@ rule genome_index:
 
 
 rule star_count:
-    """Map one bulk sample's two mates to per-gene counts (STAR GeneCounts)."""
+    """Map one bulk sample's two mates to per-gene counts (STAR GeneCounts).
+
+    The shell block clears STAR's `_STARtmp` before invoking STAR, so every (re)run is
+    preemption-safe: a preempted STAR leaves `results/<sample>/_STARtmp` behind, STAR ABORTS a rerun
+    if it already exists, and snakemake cannot remove it (an undeclared output).
+    """
     input:
         mate1=lambda wc: fastqs(wc.sample, config["read_files_in"]["mate1"]),
         mate2=lambda wc: fastqs(wc.sample, config["read_files_in"]["mate2"]),
@@ -93,6 +98,8 @@ rule star_count:
         ),
     shell:
         r"""
+        # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
+        rm -rf {params.prefix}_STARtmp
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --quantMode {params.bulk[quantMode]} \
