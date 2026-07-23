@@ -434,6 +434,23 @@ def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
     assert leaves <= covered, f"leaf spec(s) with no hermetic ci case: {sorted(leaves - covered)}"
 
 
+def test_every_hermetic_case_lives_in_a_known_purpose_group() -> None:
+    """The corpus layout is enforced, not just conventional: every case sits under one named group.
+
+    ``spec`` (one per KB leaf), ``prose`` (needs harvest), ``steering`` (a metadata hypothesis meets
+    the bytes), ``refusal`` (must block), ``real`` (real local data). Grouping is a filing decision —
+    a case's id is still its own leaf name — but pinning it here means a stray case dropped at the top
+    level, or a sixth ad-hoc group, turns red instead of quietly re-messing the directory.
+    """
+    groups = {"spec", "prose", "steering", "refusal", "real"}
+    base = default_cases_dir()
+    for case in discover_cases():
+        group = case.root.resolve().parent
+        assert group.parent == base.resolve() and group.name in groups, (
+            f"{case.id} is at {case.root.relative_to(base)}, not under one of {sorted(groups)}"
+        )
+
+
 def test_every_case_has_a_description() -> None:
     """A case whose intent is not written down cannot be maintained when it fails."""
     for case in discover_cases():
@@ -920,24 +937,6 @@ def test_a_fingerprint_case_resolves_from_the_package_and_grades_samples_from_re
     assert run.llm_calls == 0, "a fingerprint case grades hermetically, with no LLM call"
 
 
-def test_a_committed_path_fingerprint_case_resolves(tmp_path: Path) -> None:
-    """A package committed inside the case dir (the hermetic ci fixture shape) resolves via `path`."""
-    import shutil
-
-    from seqforge.evals.case import load_case
-
-    package, records_json = _bulk_fingerprint(tmp_path)
-    case_dir = _fingerprint_case_dir(
-        tmp_path,
-        "generate:\n  kind: fingerprint\n  path: package.fingerprint.tar.gz\n",
-        records_json,
-    )
-    shutil.copyfile(package, case_dir / "package.fingerprint.tar.gz")
-    run = run_case(load_case(case_dir), llm=False)
-    assert run.skipped is None
-    assert run.grade.grade is Grade.CORRECT, run.grade.notes
-
-
 def test_a_fingerprint_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
     """An out-of-git package that is not on this machine skips — never a pass, never a fail."""
     from seqforge.evals.case import load_case
@@ -960,12 +959,12 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     separation: `default_cases_dir()` (what `test_corpus_is_green` runs) must not contain the benchmark
     tier, or a package pull would sneak into per-commit CI.
     """
-    from seqforge.evals.case import FingerprintRecipe, load_case
+    from seqforge.evals.case import FingerprintRecipe
 
     bench = default_cases_dir().parent / "benchmark"
     if not bench.is_dir():
         pytest.skip("no HF benchmark tier committed")
-    cases = [load_case(d) for d in sorted(bench.iterdir()) if d.is_dir()]
+    cases = discover_cases(bench)
     assert cases, "the benchmark tier is present but empty"
     for c in cases:
         gen = c.recipe.generate
