@@ -186,6 +186,7 @@ python-build = "*"
 types-pyyaml = "*"
 types-requests = "*"
 types-openpyxl = "*"
+pyinstrument = ">=5.1.2,<6"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"

@@ -130,6 +130,10 @@ change behaviour.
 - **Docs:** mkdocs-material → gh-pages, published from `main` by `docs.yml`. The site is the **human**
   layer; `docs/design.md` is **excluded** (`exclude_docs`) — it is the agent-facing source of truth and
   must not read as settled guidance under a docs URL.
+- **Wiki (GitHub `.wiki.git`):** the lab notebook — misc **developmental/technical** notes worth
+  remembering (benchmark results, profiling records, gotchas, lessons). This is **not** `docs/`: the
+  site is the carefully-designed, end-user layer; the wiki is informal, developer-facing, and never
+  needs to read as polished. Record durable findings here rather than lose them.
 - *Planned, not built:* `syrupy` snapshots and `hypothesis` — pinned, not imported.
 
 ## Repository layout
