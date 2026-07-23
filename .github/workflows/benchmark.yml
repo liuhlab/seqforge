@@ -1,0 +1,44 @@
+name: benchmark
+
+# The NETWORKED validation benchmark — deliberately NOT part of `ci.yml`.
+#
+# Per-commit CI is hermetic: `test_corpus_is_green` runs the committed ci-benchmark (`evals/cases`:
+# synthetic per-spec recipes covering every leaf spec) with no network and no key, so a free HF
+# account's rate limits or availability can never turn a normal PR red. This job is the other tier: it
+# runs `evals/benchmark` — real worm datasets whose byte-light fingerprint packages live on the public
+# HF dataset repo `liuhlab/seqforge-benchmark` — pulling each package anonymously (pooch-cached, no
+# token) and grading the real compiler's output against each case's committed `expected.yaml`.
+#
+# Triggered on a published RELEASE and on manual `workflow_dispatch` — NOT on push/PR, and NOT on a
+# schedule: the benchmark gates a release, not a commit. `seqforge eval run` exits 3 on ANY
+# false-accept (a confident wrong manifest is the one failure the corpus never recovers from). A
+# package that is unreachable (offline, or withdrawn) SKIPS, never fails; sample facts come from the
+# committed `records.json`, so no NCBI credential is needed either.
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: HF benchmark (no-LLM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: test
+          locked: true
+      # `--no-llm`: this tier grades chemistry-from-bytes and sample-attributes-from-committed-records,
+      # both deterministic and key-free. `--cases evals/benchmark` selects the HF tier; each case pulls
+      # its package from HF. Exit 3 on any false-accept or accuracy drop.
+      - name: seqforge eval run (pulls HF benchmark packages)
+        run: pixi run -e test eval -- --no-llm --cases evals/benchmark

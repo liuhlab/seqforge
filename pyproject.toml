@@ -208,6 +208,12 @@ fmt-check = "ruff format --check ."
 typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest src/seqforge/fingerprint src/seqforge/report src/seqforge/evals"
 test      = "pytest"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
+# The networked validation benchmark (NOT part of `check`): runs the whole eval corpus, so any
+# `fingerprint` case with an `hf:` source pulls its package from the public HF benchmark repo
+# (anonymous, pooch-cached, no token). Exits 3 on any false-accept. Hermetic ci cases run too; a
+# benchmark package that is unreachable (offline, or not yet uploaded) skips, so this stays green
+# before the HF repo is populated. Invoked by the opt-in `.github/workflows/benchmark.yml`, never by CI.
+eval      = "seqforge eval run"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
 build     = "python -m build"
 install-skills = "python skills/install.py --user"

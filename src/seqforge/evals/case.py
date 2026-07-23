@@ -22,16 +22,17 @@ from __future__ import annotations
 
 import os
 import random
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .. import kb
 from ..io import OnlistRegistry
 from ..kb.generate import write_fastq_gz
+from ..models.observation import Observation
 from ..models.records import ArchiveRecordSet
 
 CASES_DIRNAME = "cases"
@@ -99,12 +100,56 @@ class LocalRecipe(BaseModel):
     docs_glob: str = ""
 
 
+class FingerprintRecipe(BaseModel):
+    """A committed or out-of-git **fingerprint package** — the byte-light benchmark input.
+
+    A fingerprint (``<dataset>.fingerprint.tar.gz``) is a head-slice of every FASTQ plus a pin that
+    carries the whole-file identity, so it reproduces the same resolve verdict — and the same manifest
+    hash — with the originals gone. Feeding one through this recipe is how the benchmark runs a *real*
+    dataset in CI without shipping (or even reaching) the full FASTQ.
+
+    Three sources, exactly one set (mirroring :class:`LocalRecipe`'s skip-when-unset discipline):
+
+    - ``path`` — a package committed inside the case directory (``package.fingerprint.tar.gz``), for a
+      small hermetic ci fixture that runs offline on every commit.
+    - ``hf`` — a package path within the public HF benchmark repo, pulled (pooch-cached, anonymous, no
+      token) by the opt-in / scheduled networked eval job. Unreachable — offline, or not yet uploaded —
+      ⇒ **skip**, so the job stays green before the HF repo is populated and CI never depends on it.
+    - ``root_env`` — an env var naming a package path (a ``.tar.gz`` or an unpacked directory), for a
+      package staged out of git by the maintainer. Unset/absent ⇒ **skip**, like a missing local root.
+
+    The package carries its own ``info/text/`` prose, surfaced as ``metadata_docs`` so a ``--llm`` run
+    harvests it; a hermetic ``--no-llm`` run resolves the chemistry from the pinned bytes and grades
+    sample attributes from the committed ``records.json`` — no network, no key.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["fingerprint"] = "fingerprint"
+    #: A package committed under the case dir, relative to it (e.g. ``package.fingerprint.tar.gz``).
+    path: str = ""
+    #: OR a package path within the public HF benchmark repo (``packages/GSE274290.fingerprint.tar.gz``).
+    hf: str = ""
+    #: OR the name of an env var holding the package path. The value lives in out-of-git config.
+    root_env: str = ""
+
+    @model_validator(mode="after")
+    def _exactly_one_source(self) -> FingerprintRecipe:
+        if sum(bool(s) for s in (self.path, self.hf, self.root_env)) != 1:
+            raise ValueError(
+                "a fingerprint recipe needs exactly one of `path`, `hf`, or `root_env`"
+            )
+        return self
+
+
 class Recipe(BaseModel):
     """``inputs/recipe.yaml``."""
 
     model_config = ConfigDict(extra="forbid")
 
-    generate: SpecRecipe | RandomRecipe | LocalRecipe = Field(discriminator="kind")
+    generate: SpecRecipe | RandomRecipe | LocalRecipe | FingerprintRecipe = Field(
+        discriminator="kind"
+    )
     #: A metadata claim entering resolve as a hypothesis WITHOUT an LLM, so conflict/steering cases
     #: are testable in a no-API-key CI. When a case has prose and `--llm` is on, harvest overrides it.
     hypothesis: str | None = None
@@ -196,6 +241,18 @@ class Case:
     def has_prose(self) -> bool:
         return bool(self.metadata_docs) or bool(self.records)
 
+    @property
+    def needs_llm(self) -> bool:
+        """Whether the expectation depends on a claim only *harvest* (the LLM) can supply.
+
+        True iff there is a document to read and no declared hypothesis to stand in for it. Records
+        alone do **not** need the LLM: a record's harmonized sample attributes resolve deterministically
+        through the metadata resolver, so a records-only case (a hermetic fingerprint case is the
+        motivating example) runs with no key. A case whose package carries prose surfaces that prose at
+        ``materialize`` time, not here, so this stays load-time cheap and never unpacks a package.
+        """
+        return bool(self.metadata_docs) and self.recipe.hypothesis is None
+
 
 @dataclass(frozen=True)
 class Materialized:
@@ -208,6 +265,13 @@ class Materialized:
     #: The case's archive records, carried through so the metadata resolver gets the same input the
     #: CLI would give it. ``None`` for a case with no accession, which is most of them.
     records: ArchiveRecordSet | None = None
+    #: A pre-built probe map (``str(path) -> (Observation, seqs)``) for a fingerprint case: the sliced
+    #: reads probed with the whole-file identity stamped back from the pin, so resolve reproduces the
+    #: full dataset's verdict and hash. ``None`` for a case whose bytes are probed live.
+    probed: dict[str, tuple[Observation, list[str]]] | None = None
+    #: Prose the package carried (``info/text/`` of a fingerprint), fed to harvest under ``--llm``.
+    #: A synthetic case keeps its prose in ``metadata/``; a fingerprint case ships it inside the tarball.
+    metadata_docs: list[Path] = field(default_factory=list)
 
 
 class CaseError(RuntimeError):
@@ -288,11 +352,67 @@ def materialize(case: Case, dest: Path) -> Materialized:
     dest.mkdir(parents=True, exist_ok=True)
     if isinstance(gen, LocalRecipe):
         built = _materialize_local(gen)
+    elif isinstance(gen, FingerprintRecipe):
+        built = _materialize_fingerprint(gen, case.root, dest)
     elif isinstance(gen, RandomRecipe):
         built = _materialize_random(gen, dest)
     else:
         built = _materialize_spec(gen, dest)
     return replace(built, records=case.records)
+
+
+def _materialize_fingerprint(gen: FingerprintRecipe, case_root: Path, dest: Path) -> Materialized:
+    """Unpack a fingerprint package and rebuild its pinned probe map — the benchmark's real-data seam.
+
+    The slices are probed exactly as a normal local file is, then the whole-file identity is stamped
+    back from the pin, so resolve reaches the same verdict (and the manifest the same hash) the full
+    FASTQs would. The package's ``info/text/`` prose rides along as ``metadata_docs``.
+    """
+    from ..fingerprint.load import load_fingerprint, probed_from_fingerprint
+
+    pkg = _fingerprint_package(gen, case_root)
+    loaded = load_fingerprint(pkg, unpack_to=dest / "package")
+    paths, probed = probed_from_fingerprint(loaded)
+    return Materialized(
+        paths=paths,
+        registry=None,
+        labels={p.name: _label(p.name) for p in paths},
+        probed=probed,
+        metadata_docs=loaded.info_paths(),
+    )
+
+
+def _fingerprint_package(gen: FingerprintRecipe, case_root: Path) -> Path:
+    """Resolve a fingerprint recipe to a package on disk, or :class:`CaseSkipped` if it is not here.
+
+    Three sources, one skip contract. A ``root_env`` package lives outside the repo; unset or absent it
+    **skips**, like a local case. An ``hf`` package is pulled from the public HF benchmark (pooch-cached,
+    no token); unreachable — offline, or not yet uploaded — it **skips**, so the networked job stays
+    green before the repo is populated. A committed ``path`` package is a hermetic fixture and should
+    always be present, so a missing one also skips (never a silent pass — the ci fixture's own test
+    fails loudly if it vanishes).
+    """
+    if gen.root_env:
+        root = os.environ.get(gen.root_env)
+        if not root:
+            raise CaseSkipped(
+                f"${gen.root_env} is not set (a fingerprint package lives outside the repo)"
+            )
+        pkg = Path(root)
+        if not pkg.exists():
+            raise CaseSkipped(f"${gen.root_env}={root} does not exist on this machine")
+        return pkg
+    if gen.hf:
+        from ..io import BenchmarkPackageUnavailable, fetch_benchmark_package
+
+        try:
+            return fetch_benchmark_package(gen.hf)
+        except BenchmarkPackageUnavailable as exc:
+            raise CaseSkipped(str(exc)) from exc
+    pkg = (case_root / gen.path).resolve()
+    if not pkg.exists():
+        raise CaseSkipped(f"fingerprint package not found: {gen.path!r} under {case_root}")
+    return pkg
 
 
 def _materialize_local(gen: LocalRecipe) -> Materialized:

@@ -1,0 +1,8 @@
+outcome: decide
+description: >-
+  ci-benchmark coverage for BD Rhapsody WTA Enhanced v2, the newest BD bead revision. Structurally
+  identical to enhanced v1 and separable only by whitelist, so this is the fourth and last BD leaf and
+  the partner that keeps enhanced-v1 honest: loosen either whitelist gate and the two enhanced leaves
+  start scoring on each other's reads, which surfaces here as a false_accept rather than a green suite.
+fields:
+  library.chemistry: bd-rhapsody-wta-enhanced-v2

@@ -447,3 +447,38 @@ def test_the_wheel_ships_the_data_the_package_cannot_work_without() -> None:
     assert any(n.endswith("report/assets/mermaid.min.js") for n in names), (
         "the vendored mermaid engine is missing -> `seqforge report` renders a page that never draws"
     )
+
+
+# --------------------------------------------------------------------------------------------
+# the HF benchmark fetch — URL construction offline, and failure -> a typed skip signal
+#
+# The actual pull is a networked-job concern (a public HF dataset, anonymous read, pooch-cached).
+# What must hold with no network is that the URL we build is the public `resolve` endpoint and that
+# a fetch failure is the typed exception the eval harness turns into a skip, never a raw crash.
+# --------------------------------------------------------------------------------------------
+
+
+def test_hf_package_url_is_the_public_resolve_endpoint() -> None:
+    from seqforge.io import HF_BENCHMARK_REPO, hf_package_url
+
+    url = hf_package_url("packages/GSE274290.fingerprint.tar.gz")
+    assert url == (
+        f"https://huggingface.co/datasets/{HF_BENCHMARK_REPO}/resolve/main/"
+        "packages/GSE274290.fingerprint.tar.gz"
+    )
+    # A revision pins reproducibility; a leading slash on the path must not double up.
+    assert hf_package_url("/p.tar.gz", revision="v1").endswith("/resolve/v1/p.tar.gz")
+
+
+def test_a_fetch_failure_is_a_typed_unavailable_not_a_crash(monkeypatch, tmp_path: Path) -> None:
+    """pooch raising (offline, 404, DNS) must surface as BenchmarkPackageUnavailable — i.e. a skip."""
+    import pooch
+
+    from seqforge.io import BenchmarkPackageUnavailable, fetch_benchmark_package
+
+    def _boom(**kwargs):
+        raise OSError("no network in CI")
+
+    monkeypatch.setattr(pooch, "retrieve", _boom)
+    with pytest.raises(BenchmarkPackageUnavailable, match="GSE274290"):
+        fetch_benchmark_package("packages/GSE274290.fingerprint.tar.gz", cache_dir=tmp_path)

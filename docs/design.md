@@ -856,6 +856,30 @@ from declared metadata and provider-independent prior knowledge only, committed 
 from a value read out of the data. That discipline never depended on the data being reserved: it is
 what makes the file a prediction rather than a transcript, and only a prediction can be wrong.
 
+**The benchmark, in two tiers (#56 workstream 2, #73).** A dataset enters the eval corpus through a
+byte-light **fingerprint package** rather than its FASTQs: the `fingerprint` recipe kind
+(`evals/case.py`) unpacks a package, stamps each slice's pinned whole-file identity back on (so resolve
+reaches the same verdict and hash the originals would), grades chemistry from the pinned bytes and
+sample attributes from a committed `records.json` — no full FASTQ, no key. It draws its package from
+one of three sources: a `path` committed in the case dir, an `hf` path in the public HF benchmark repo
+(`liuhlab/seqforge-benchmark`, pulled anonymously and pooch-cached — no token, no `huggingface_hub`),
+or a `root_env` staged out of git; an unreachable package **skips**, never fails. Two tiers ride this,
+in two directories: the **ci-benchmark** (`evals/cases`: synthetic per-spec recipes covering all eight
+leaf specs, plus any committed tiny fingerprint) runs hermetically in `test_corpus_is_green` on every
+commit; the growing **benchmark** (`evals/benchmark`: seven real *C. elegans* datasets whose text-only
+fingerprint packages live on `liuhlab/seqforge-benchmark` on HF) runs only in `benchmark.yml`, on a
+published release or manual dispatch — never per-commit — so a free HF account's limits can never gate
+a PR. The two dirs are disjoint, so a package pull can never sneak into hermetic CI. Each benchmark
+case commits its `records.json` (the archive's own BioSample/SRA transcript), so sample facts grade
+deterministically with no NCBI key; `library.chemistry` is graded from the pinned bytes. Those
+expectations were **seeded from a run** and are marked pending maintainer review — a regression
+baseline, distinct from the pilot's before-the-run pre-registration. A true held-out **test** set is a
+later milestone; this is the validation set we develop against. Redistributable packages carry
+extracted **text only** — `preflight --redistributable` builds one from FASTQs, `strip-fingerprint`
+repacks an existing package (dropping the raw paper for copyright and its figures until the figure
+pipeline improves; the reads/pins are untouched, so the dataset hash is preserved) — and a run falls
+back to `info/text/`, so nothing we may not redistribute reaches HF while the harvest input survives.
+
 ---
 
 ## 9. What is designed here but not yet built

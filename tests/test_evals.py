@@ -408,6 +408,32 @@ def test_corpus_loads_and_covers_all_three_outcomes() -> None:
     assert outcomes == {"decide", "refuse", "ask"}, "the corpus must exercise every outcome class"
 
 
+def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
+    """One dataset per KB spec: every runnable leaf resolves in a hermetic (no-LLM, no-network) case.
+
+    This is the ci-benchmark's contract — a code path that no case exercises can rot green. Only
+    hermetic ``kind: spec`` cases count (a local/fingerprint case backed by out-of-git data skips in
+    CI, so crediting it would let coverage lapse silently). Processing-equivalent twins (v3 <-> v3.1:
+    identical ``backend.params``, so a real dataset only ever lands the pair) are credited to whichever
+    twin has a case — exercising both would re-test the KB's §12 biconditional, not the resolver.
+    """
+    from seqforge import kb
+    from seqforge.evals.case import SpecRecipe
+    from seqforge.resolve.confuse import declared_equivalents
+
+    leaves = {sid for sid in kb.list_spec_ids() if kb.load_spec(sid).backend is not None}
+    covered: set[str] = set()
+    for c in discover_cases():
+        if not isinstance(c.recipe.generate, SpecRecipe) or c.needs_llm:
+            continue
+        chem = c.expected.fields.get("library.chemistry")
+        if not isinstance(chem, str):
+            continue
+        covered.add(chem)
+        covered |= declared_equivalents(kb.load_spec(chem))
+    assert leaves <= covered, f"leaf spec(s) with no hermetic ci case: {sorted(leaves - covered)}"
+
+
 def test_every_case_has_a_description() -> None:
     """A case whose intent is not written down cannot be maintained when it fails."""
     for case in discover_cases():
@@ -536,7 +562,7 @@ def test_extra_keys_in_expected_are_rejected() -> None:
 
 def test_corpus_is_green() -> None:
     """The deterministic corpus, through the real compiler. No LLM, no network, no API key."""
-    cases = [c for c in discover_cases() if not (c.has_prose and c.recipe.hypothesis is None)]
+    cases = [c for c in discover_cases() if not c.needs_llm]
     report, runs = run_cases_no_llm(cases)
     failures = [r.to_json() for r in runs if r.skipped is None and not r.grade.ok]
     assert not failures, f"eval corpus regressed: {failures}"
@@ -801,3 +827,164 @@ def test_usage_is_accumulated_into_the_report() -> None:
     report = build_report([run])
     assert report.cost["input_tokens"] == 100.0
     assert report.cost["llm_calls"] == 1.0
+
+
+# --------------------------------------------------------------------------------------------
+# the `fingerprint` eval kind: a real dataset run from its byte-light package, hermetically
+#
+# The benchmark's whole premise. A fingerprint package (head-sliced FASTQs + a pin that carries the
+# whole-file identity) resolves the chemistry from the slice, reproduces the full dataset's identity
+# from the pin, and grades sample attributes from a committed records.json — no full FASTQ, no
+# network, no API key. These pin that the kind materializes, resolves, grades, and skips correctly.
+# bulk-rnaseq-pe is used because it is decided by STRUCTURE alone (no onlist lookup), so the fixture
+# is hermetic regardless of which whitelists happen to be cached.
+# --------------------------------------------------------------------------------------------
+
+
+def _bulk_fingerprint(tmp_path: Path):
+    """A tiny real fingerprint package of synthetic bulk PE reads, plus a matching records.json."""
+    import gzip
+    import json
+
+    from seqforge import kb
+    from seqforge.fingerprint.build import build_fingerprint
+
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    src = tmp_path / "SRR12345678"
+    src.mkdir(parents=True)
+    paths = []
+    for rid, seqs in reads.items():
+        p = src / f"{rid}.fastq.gz"
+        with gzip.open(p, "wt") as fh:
+            for i, s in enumerate(seqs):
+                fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")
+        paths.append(p)
+    result = build_fingerprint(paths, workspace=tmp_path / "build", reads=2000, name="bulkfp")
+    records = {
+        "source": "test",
+        "query": "TEST",
+        "records": [
+            {
+                "level": "run",
+                "accession": "SRR12345678",
+                "parent": "SRX12345678",
+                "filenames": [p.name for p in paths],
+            },
+            {"level": "experiment", "accession": "SRX12345678", "parent": "SAMN12345678"},
+            {
+                "level": "sample",
+                "accession": "SAMN12345678",
+                "attributes": [{"name": "strain", "value": "CB4856", "harmonized": True}],
+            },
+        ],
+    }
+    return result.package, json.dumps(records)
+
+
+def _fingerprint_case_dir(tmp_path: Path, recipe_yaml: str, records_json: str | None) -> Path:
+    case_dir = tmp_path / "case"
+    (case_dir / "inputs").mkdir(parents=True)
+    (case_dir / "inputs" / "recipe.yaml").write_text(recipe_yaml)
+    (case_dir / "expected.yaml").write_text(
+        "outcome: decide\n"
+        "description: a real bulk dataset resolved from its fingerprint package, samples from records\n"
+        "fields:\n"
+        "  library.chemistry: bulk-rnaseq-pe\n"
+        "  experiment.samples.*.strain: [CB4856]\n"
+        "  experiment.samples.SAMN12345678.strain: CB4856\n"
+    )
+    if records_json is not None:
+        (case_dir / "records.json").write_text(records_json)
+    return case_dir
+
+
+def test_a_fingerprint_case_resolves_from_the_package_and_grades_samples_from_records(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The kind end to end: pinned bytes decide the chemistry, records decide the sample attributes.
+
+    No full FASTQ is present (only the slice), no onlist is fetched, no LLM runs. That this grades
+    CORRECT is the benchmark's core promise — a real dataset checked in CI from a byte-light artifact.
+    """
+    from seqforge.evals.case import load_case
+
+    package, records_json = _bulk_fingerprint(tmp_path)
+    case_dir = _fingerprint_case_dir(
+        tmp_path, "generate:\n  kind: fingerprint\n  root_env: SEQFORGE_TEST_FP\n", records_json
+    )
+    monkeypatch.setenv("SEQFORGE_TEST_FP", str(package))
+    run = run_case(load_case(case_dir), llm=False)
+    assert run.skipped is None
+    assert run.grade.grade is Grade.CORRECT, run.grade.notes
+    assert run.llm_calls == 0, "a fingerprint case grades hermetically, with no LLM call"
+
+
+def test_a_committed_path_fingerprint_case_resolves(tmp_path: Path) -> None:
+    """A package committed inside the case dir (the hermetic ci fixture shape) resolves via `path`."""
+    import shutil
+
+    from seqforge.evals.case import load_case
+
+    package, records_json = _bulk_fingerprint(tmp_path)
+    case_dir = _fingerprint_case_dir(
+        tmp_path,
+        "generate:\n  kind: fingerprint\n  path: package.fingerprint.tar.gz\n",
+        records_json,
+    )
+    shutil.copyfile(package, case_dir / "package.fingerprint.tar.gz")
+    run = run_case(load_case(case_dir), llm=False)
+    assert run.skipped is None
+    assert run.grade.grade is Grade.CORRECT, run.grade.notes
+
+
+def test_a_fingerprint_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
+    """An out-of-git package that is not on this machine skips — never a pass, never a fail."""
+    from seqforge.evals.case import load_case
+
+    monkeypatch.delenv("SEQFORGE_TEST_FP", raising=False)
+    case_dir = _fingerprint_case_dir(
+        tmp_path, "generate:\n  kind: fingerprint\n  root_env: SEQFORGE_TEST_FP\n", None
+    )
+    run = run_case(load_case(case_dir), llm=False)
+    assert run.skipped is not None
+    assert "SEQFORGE_TEST_FP" in run.skipped
+    assert build_report([run]).n_cases == 0
+
+
+def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_corpus() -> None:
+    """`evals/benchmark` (the networked HF tier) loads offline and never leaks into hermetic CI.
+
+    Loading a case does NOT fetch (materialize does), so this validates the whole tier — every case is
+    an `hf:`-sourced fingerprint case with a committed records.json — with no network. And it pins the
+    separation: `default_cases_dir()` (what `test_corpus_is_green` runs) must not contain the benchmark
+    tier, or a package pull would sneak into per-commit CI.
+    """
+    from seqforge.evals.case import FingerprintRecipe, load_case
+
+    bench = default_cases_dir().parent / "benchmark"
+    if not bench.is_dir():
+        pytest.skip("no HF benchmark tier committed")
+    cases = [load_case(d) for d in sorted(bench.iterdir()) if d.is_dir()]
+    assert cases, "the benchmark tier is present but empty"
+    for c in cases:
+        gen = c.recipe.generate
+        assert isinstance(gen, FingerprintRecipe) and gen.hf, (
+            f"{c.id}: benchmark cases pull from hf"
+        )
+        assert c.records is not None, f"{c.id}: a benchmark case commits its records.json"
+        assert c.expected.fields.get("library.chemistry"), f"{c.id}: pins a resolved chemistry"
+    # The two tiers are disjoint directories — the hermetic corpus never sees the networked one. The
+    # check is by PATH, not id: a dataset may legitimately appear in both tiers (PRJNA1027859 is the
+    # pilot's full-pipeline local case AND a fingerprint benchmark case), but no benchmark case
+    # directory is ever one `discover_cases()` walks, so none can be pulled in per-commit CI.
+    assert bench.resolve() != default_cases_dir().resolve()
+    hermetic_roots = {c.root.resolve() for c in discover_cases()}
+    assert all(c.root.resolve() not in hermetic_roots for c in cases)
+
+
+def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
+    """`path` XOR `root_env`: naming both (or neither) is a case error, not a silent default."""
+    for gen in ({}, {"path": "p.tar.gz", "root_env": "X"}):
+        with pytest.raises(ValidationError, match="exactly one"):
+            Recipe.model_validate({"generate": {"kind": "fingerprint", **gen}})

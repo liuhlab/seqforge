@@ -28,7 +28,7 @@ def eval_list(
         {
             "id": c.id,
             "outcome": c.expected.outcome,
-            "needs_llm": c.has_prose and c.recipe.hypothesis is None,
+            "needs_llm": c.needs_llm,
             "description": " ".join(c.expected.description.split())[:100],
         }
         for c in cases

@@ -1,0 +1,9 @@
+# BD Rhapsody WTA "Enhanced" v1: the enhanced-bead cell label. Same three-block-plus-UMI family as
+# the original WTA but with the enhanced barcode sets/offsets, so it is separable from the original
+# only by the onlist — synthetic onlists register the exact pools the reads are drawn from.
+generate:
+  kind: spec
+  spec: bd-rhapsody-wta-enhanced-v1
+  n: 3000
+  seed: 0
+  onlists: synthetic

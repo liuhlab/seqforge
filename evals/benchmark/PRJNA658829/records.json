@@ -1,0 +1,556 @@
+{
+  "query": "PRJNA658829",
+  "records": [
+    {
+      "accession": "PRJNA658829",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "UCLA"
+        },
+        {
+          "harmonized": false,
+          "name": "data_type",
+          "raw_name": null,
+          "value": "raw sequence reads"
+        },
+        {
+          "harmonized": false,
+          "name": "submission_date",
+          "raw_name": null,
+          "value": "2020-08-23"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Whole-organism mapping of the genetics of gene expression at cellular resolution"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Genetic variants affecting gene expression, termed expression quantitative trait loci (eQTLs), underlie phenotypic variation in complex traits and disease risk. Studies in purified blood cell populations and computational analyses in human tissues suggest that many eQTLs are cell-type specific. Single-cell RNA sequencing (scRNA-seq) has shown promise for eQTL mapping in blood cells and cell lines. However, the complexity of mammalian tissues makes studying cell-type eQTLs with scRNA-seq highly challenging. Here, we report a novel approach in the model nematode Caenorhabditis elegans that uses scRNA-seq to map eQTLs at cellular resolution in a single one-pot experiment. We studied an extremely large population of hundreds of thousands of genetically distinct individuals and mapped both cis and trans eQTLs across the different cell types of C. elegans. We find cell-type-specific trans-eQTL hotspots and show that they affect the expression of core pathways in the relevant cell types. Finally, we find single-cell-specific eQTL effects in the nervous system, including an eQTL with opposite effects in two individual neurons. Our results show that eQTL effects can be specific down to the level of single cells."
+        }
+      ],
+      "level": "project",
+      "parent": null
+    },
+    {
+      "accession": "SAMN15970313",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "UCLA"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "L2"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "mixed"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "QX2314xPTM299_F4"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "whole-organism"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "QX2314xPTM299_F4"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA658829"
+    },
+    {
+      "accession": "SAMN15970314",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "biosample_package",
+          "raw_name": null,
+          "value": "Model.organism.animal.1.0"
+        },
+        {
+          "harmonized": false,
+          "name": "center_name",
+          "raw_name": null,
+          "value": "UCLA"
+        },
+        {
+          "harmonized": true,
+          "name": "dev_stage",
+          "raw_name": null,
+          "value": "L2"
+        },
+        {
+          "harmonized": true,
+          "name": "sex",
+          "raw_name": null,
+          "value": "mixed"
+        },
+        {
+          "harmonized": true,
+          "name": "strain",
+          "raw_name": null,
+          "value": "QX2314+PTM299"
+        },
+        {
+          "harmonized": false,
+          "name": "taxonomy_id",
+          "raw_name": null,
+          "value": "6239"
+        },
+        {
+          "harmonized": true,
+          "name": "tissue",
+          "raw_name": null,
+          "value": "whole-organism"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "QX2314+PTM299"
+        }
+      ],
+      "level": "sample",
+      "parent": "PRJNA658829"
+    },
+    {
+      "accession": "SRX9062442",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of eQTL mapping population. Lane 1"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "eQTL_1"
+        },
+        {
+          "label": "library_name",
+          "text": "eQTL_1"
+        },
+        {
+          "label": "design_description",
+          "text": "192,000 F4 were seeded on four 10cm NGM+agarose plates seeded with OP50. L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970313"
+    },
+    {
+      "accession": "SRX9062443",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of eQTL mapping population. Lane 2"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "eQTL_2"
+        },
+        {
+          "label": "library_name",
+          "text": "eQTL_2"
+        },
+        {
+          "label": "design_description",
+          "text": "192,000 F4 were seeded on four 10cm NGM+agarose plates seeded with OP50. L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970313"
+    },
+    {
+      "accession": "SRX9062444",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of eQTL mapping population. Lane 3"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "eQTL_3"
+        },
+        {
+          "label": "library_name",
+          "text": "eQTL_3"
+        },
+        {
+          "label": "design_description",
+          "text": "192,000 F4 were seeded on four 10cm NGM+agarose plates seeded with OP50. L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970313"
+    },
+    {
+      "accession": "SRX9062445",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of eQTL mapping population. Lane 4"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "eQTL_4"
+        },
+        {
+          "label": "library_name",
+          "text": "eQTL_4"
+        },
+        {
+          "label": "design_description",
+          "text": "192,000 F4 were seeded on four 10cm NGM+agarose plates seeded with OP50. L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970313"
+    },
+    {
+      "accession": "SRX9062446",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of eQTL mapping population. Lane 5"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "eQTL_5"
+        },
+        {
+          "label": "library_name",
+          "text": "eQTL_5"
+        },
+        {
+          "label": "design_description",
+          "text": "192,000 F4 were seeded on four 10cm NGM+agarose plates seeded with OP50. L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970313"
+    },
+    {
+      "accession": "SRX9062447",
+      "attributes": [
+        {
+          "harmonized": false,
+          "name": "library_strategy",
+          "raw_name": null,
+          "value": "OTHER"
+        },
+        {
+          "harmonized": false,
+          "name": "library_source",
+          "raw_name": null,
+          "value": "TRANSCRIPTOMIC SINGLE CELL"
+        },
+        {
+          "harmonized": false,
+          "name": "library_selection",
+          "raw_name": null,
+          "value": "Oligo-dT"
+        },
+        {
+          "harmonized": false,
+          "name": "instrument_model",
+          "raw_name": null,
+          "value": "Illumina NovaSeq 6000"
+        }
+      ],
+      "filenames": [],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "single-cell sequencing of parental strains of eQTL populations"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "Parental"
+        },
+        {
+          "label": "library_name",
+          "text": "Parental"
+        },
+        {
+          "label": "design_description",
+          "text": "PTM299 and QX2314 worms were seeded in equal numbers on four 10cm NGM+agarose plates seeded with OP50 (50,000 worms/plate). L2 were recovered after 24 hours, and staging was validated under a stereomicroscope. L2 cell dissociation was carried out as previously described 36, implementing modifications from a later study 37, as well as our own. Worms were recovered off the plates and washed three times in M9. Lysis was then done with an SDS-DTT solution (200 mM DTT, 0.25% SDS, 20 mM HEPES, pH 8.0, 3% sucrose) in a hula mixer set on low speed to prevent worms from settling. The lysate was observed under the stereoscope every two minutes, and lysis was stopped when a blunted head shape appeared in the majority of worms 37, after ~4 minutes. Worms were then washed quickly three times in 1ml of M9, and two additional times in 1ml of egg buffer (118 mM NaCl, 48 mM KCl, 2 mM CaCl2, 2 mM MgCl2, 25 mM HEPES, pH 7.3, osmolarity adjusted to 340 mOsm with sucrose). Worms were then resuspended in 0.5ml of 20mg/ml Pronase E that was freshly prepared in L15 media supplanted with 2% fetal bovine serum (L15-FBS) and adjusted to 340 mOsm with sucrose. Worm dissociation was done by continuous pipetting on the side of the tube, and monitored every 2-3 minutes on a microscope equipped with a 40x phase contrast objective lens. Dissociation was stopped when few intact worms remained and a high density of cells was visible. 0.5ml of L15-FBS was added to stop the reaction, and the lysate was spun for 6 minutes at 500g at 4C. The cell pellet was resuspended in PBS (PBS was adjusted to 340 mOsm with sucrose). Cell suspension was spun for 1 minute in 100g at 4C to remove remaining undigested worms, counted and diluted to 1M cells/ml in osmolarity adjusted PBS, and loaded directly onto 5 lanes of 3 Chromium single-cell RNA-sequencing flow cells (10x Genomics), targeting 10,000 cells on each lane. Library prep was carried out according to manufacturers protocol. Prepared libraries were sequenced together on an S4 lane of Novaseq 6000."
+        }
+      ],
+      "level": "experiment",
+      "parent": "SAMN15970314"
+    },
+    {
+      "accession": "SRR12575567",
+      "attributes": [],
+      "filenames": [
+        "N2_PTM299_2_S1_L004_I1_001.fastq.gz",
+        "N2_PTM299_2_S1_L004_R1_001.fastq.gz",
+        "N2_PTM299_2_S1_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "N2_PTM299_2_S1_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062447"
+    },
+    {
+      "accession": "SRR12575568",
+      "attributes": [],
+      "filenames": [
+        "XQTL_F4_N2PTM299_L2_5_S6_L004_I1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_5_S6_L004_R1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_5_S6_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "XQTL_F4_N2PTM299_L2_5_S6_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062446"
+    },
+    {
+      "accession": "SRR12575569",
+      "attributes": [],
+      "filenames": [
+        "XQTL_F4_N2PTM299_L2_4_S5_L004_I1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_4_S5_L004_R1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_4_S5_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "XQTL_F4_N2PTM299_L2_4_S5_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062445"
+    },
+    {
+      "accession": "SRR12575570",
+      "attributes": [],
+      "filenames": [
+        "XQTL_F4_N2PTM299_L2_3_S4_L004_I1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_3_S4_L004_R1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_3_S4_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "XQTL_F4_N2PTM299_L2_3_S4_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062444"
+    },
+    {
+      "accession": "SRR12575571",
+      "attributes": [],
+      "filenames": [
+        "XQTL_F4_N2PTM299_L2_2_S3_L004_I1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_2_S3_L004_R1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_2_S3_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "XQTL_F4_N2PTM299_L2_2_S3_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062443"
+    },
+    {
+      "accession": "SRR12575572",
+      "attributes": [],
+      "filenames": [
+        "XQTL_F4_N2PTM299_L2_1_S2_L004_I1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz",
+        "XQTL_F4_N2PTM299_L2_1_S2_L004_R2_001.fastq.gz"
+      ],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "XQTL_F4_N2PTM299_L2_1_S2_L004_I1_001.fastq.gz"
+        }
+      ],
+      "level": "run",
+      "parent": "SRX9062442"
+    }
+  ],
+  "source": "ncbi-sra+biosample"
+}
