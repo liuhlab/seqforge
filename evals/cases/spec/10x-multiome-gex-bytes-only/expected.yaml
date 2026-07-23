@@ -1,0 +1,12 @@
+outcome: decide
+description: >-
+  10x Multiome (ARC) GEX arm from bytes alone. Geometry is byte-identical to 3' v3 (16 CB + 12 UMI,
+  cDNA R2), so chemistry cannot be settled structurally — only the whitelist tells Multiome from plain
+  3' GEX, and this case proves the ARC list (737K-arc-v1) is what the resolver settles on rather than
+  mis-calling it v3 or abstaining. Before this spec existed the id was a named-but-absent confusable and
+  a real Multiome GEX library mis-resolved. The role assertions pin WHICH file the resolver called the
+  barcode read, from structure, with no filename semantics.
+fields:
+  library.chemistry: 10x-multiome-gex
+  library.roles.R1: R1
+  library.roles.R2: R2

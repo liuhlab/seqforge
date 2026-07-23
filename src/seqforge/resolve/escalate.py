@@ -89,11 +89,26 @@ def escalate(
         )
     best_value = anchor.value
     tie = [e for e in valid if best_value - e.value <= _THETA]
-    top = sorted(tie, key=lambda e: (-e.rung, -e.value, e.tech))[0]
+    # The whitelist that HIT is the arbiter. Among the tie, a barcoded candidate whose onlist positively
+    # matched (``barcode_onlist_hit``) dominates a same-rung sibling whose onlist did NOT — the failing
+    # sibling reached rung 3 by consulting an onlist that came up empty, exactly the FAILING-onlist case
+    # the anchor above already refuses to hand the win to. Without this, two chemistries that differ ONLY
+    # by whitelist (10x 3' v3 vs Multiome GEX — 3M-february-2018 vs 737K-arc-v1) tie on an over-length
+    # read where the barcode read is also a fine cDNA: the non-hitting sibling takes the swapped-role
+    # seat, out-scores the honest whitelist-hitting one, and turns a settled call into a divergent
+    # ask-human that collapses to bulk. So prefer ``barcode_onlist_hit`` in the ordering, and drop a
+    # non-hitting sibling from the divergent set when the winner's whitelist hit — the bytes decided it.
+    top = sorted(tie, key=lambda e: (-int(e.barcode_onlist_hit), -e.rung, -e.value, e.tech))[0]
     top_spec = specs[top.tech]
     rung = max(e.rung for e in tie)
 
-    contenders = [e for e in tie if e.tech != top.tech and e.rung >= top.rung]
+    contenders = [
+        e
+        for e in tie
+        if e.tech != top.tech
+        and e.rung >= top.rung
+        and not (top.barcode_onlist_hit and not e.barcode_onlist_hit)
+    ]
     equivalent_ties = [
         e
         for e in contenders

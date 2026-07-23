@@ -31,6 +31,47 @@ def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
             fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
+def test_a_whitelist_hitting_chemistry_dominates_a_geometric_sibling_that_missed(
+    tmp_path: Path,
+) -> None:
+    """10x 3' v3 and Multiome GEX differ ONLY by whitelist (3M-february-2018 vs 737K-arc-v1). On an
+    over-length v3 read the barcode read is also a fine cDNA, so a sibling whose whitelist did NOT hit
+    can take the swapped-role seat and out-score the honest v3 — and, being processing-divergent from
+    it, turn a settled call into an ask-human that collapses to bulk.
+
+    The whitelist that HIT is the arbiter: v3's 3M matches, Multiome's ARC does not, so v3 dominates
+    and Multiome is not a divergent contender. Regression guard for the escalate fix; it goes red if a
+    non-hitting geometric sibling is allowed back into the divergent tie.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    cb_pool = kb.build_pools(spec, seed=0)["cb_whitelist"]
+    rng = random.Random(1)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    # A clean-ish over-length v3 library: CB from the 3M pool, then UMI + junk out to 150 bp.
+    barcode = [rng.choice(cb_pool) + rand(OVER_LEN - 16) for _ in range(600)]
+    transcripts = [rand(OVER_LEN) for _ in range(150)]
+    cdna = [rng.choice(transcripts) for _ in range(600)]
+    r_bc = tmp_path / "sample_bc.fastq.gz"
+    r_cd = tmp_path / "sample_cd.fastq.gz"
+    _write_fastq_gz(r_bc, barcode)
+    _write_fastq_gz(r_cd, cdna)
+
+    # The full KB (Multiome GEX included) and a registry carrying BOTH whitelists — 3M hits, ARC misses.
+    reg = _registry_for(spec)
+    out = resolve_dataset([r_bc, r_cd], registry=reg, use_cache=False)
+
+    scored = {c.technology for c in out.result.candidates}
+    assert "10x-multiome-gex" in scored, (
+        "the ARC sibling must be a scored candidate, not filtered out"
+    )
+    assert out.result.candidates[0].technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+    assert "10x-multiome-gex" not in out.result.candidates[0].equivalence_members
+    assert not out.result.blockers, [b.message for b in out.result.blockers]
+
+
 def _registry_for(spec: kb.Spec) -> OnlistRegistry:
     pools = kb.build_pools(spec, seed=0)
     reg = OnlistRegistry(offline=True)

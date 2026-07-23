@@ -1,0 +1,10 @@
+# 10x Multiome (ARC) gene-expression arm: byte-identical geometry to 3' v3, separable ONLY by its
+# 737K-arc-v1 whitelist. Synthetic onlists register the exact pool the reads are drawn from (and the
+# standard 3M-february-2018 exclude probe as a disjoint pool), so the ARC-vs-3'v3 divergence is settled
+# by the whitelist at rung 3 — which is the whole reason this spec exists.
+generate:
+  kind: spec
+  spec: 10x-multiome-gex
+  n: 3000
+  seed: 0
+  onlists: synthetic
