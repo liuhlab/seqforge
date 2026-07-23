@@ -1316,11 +1316,12 @@ needs inspecting, and what <code>run</code> is doing for you when it does not.</
 <h2 id="1-ask-the-bytes-what-this-is">1. Ask the bytes what this is<a class="headerlink" href="#1-ask-the-bytes-what-this-is" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>resolve<span class="w"> </span>score<span class="w"> </span>data/SRX24283130/*.fastq.gz
 </code></pre></div>
-<p>This reads the <strong>first 200 000 reads</strong> of each file and never more (it is bounded by
-<code>--max-reads</code> <em>and</em> by a 256 MB decompressed cap; a code path that could stream a whole multi-GB
-FASTQ is a bug here, not a slow path). It scores every technology in the knowledge base against what
-it saw and prints the ranked candidates, the role assigned to each file, and the rung that settled
-it.</p>
+<p>This reads the <strong>first 2 000 reads</strong> of each file and never more (it is bounded by <code>--max-reads</code>
+<em>and</em> by a 256 MB decompressed cap; a code path that could stream a whole multi-GB FASTQ is a bug
+here, not a slow path). Two thousand reads is plenty — the chemistry is the same whether you look at
+one thousand or two hundred thousand — and you can raise <code>--max-reads</code> to sample more of a full-size
+file. It scores every technology in the knowledge base against what it saw and prints the ranked
+candidates, the role assigned to each file, and the rung that settled it.</p>
 <p>Note what it does <strong>not</strong> do: read the filenames for meaning. <code>_1</code> and <code>_2</code> are <code>fasterq-dump</code>'s dump
 order and say nothing about which read is the barcode. Roles come from bytes.</p>
 <p>Add <code>--explain</code> to see the evidence matrix — one row per read role, one column per file — when you
