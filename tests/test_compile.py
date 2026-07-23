@@ -807,6 +807,30 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert "container" in get_module("map/starsolo").required_config
 
 
+def test_starsolo_count_clears_startmp_before_running_so_reruns_are_preemption_safe() -> None:
+    """A preempted STAR leaves `_STARtmp` behind and ABORTS a rerun if it already exists.
+
+    On a preemptible partition every requeued STARsolo alignment failed: STAR refuses to reuse
+    `_STARtmp`, and snakemake cannot clean it because it is an undeclared output. So `starsolo_count`
+    removes its own `_STARtmp` before invoking STAR, and it must do so *before* the STAR command or
+    the abort still fires. `{params.prefix}` is `results/<sample>/`, so this clears
+    `results/<sample>/_STARtmp`.
+    """
+    body = _rule_blocks(get_module("map/starsolo").snakefile)["starsolo_count"]
+    star = body.find("STAR --runMode alignReads")
+    assert star != -1, (
+        "starsolo_count no longer invokes STAR; this test is looking at the wrong rule"
+    )
+    cleanup = body.find("rm -rf {params.prefix}_STARtmp")
+    assert cleanup != -1, (
+        "starsolo_count invokes STAR but never clears `_STARtmp`, so a preempted rerun aborts"
+    )
+    assert cleanup < star, (
+        "starsolo_count clears `_STARtmp` AFTER invoking STAR, which is too late — STAR aborts on "
+        "the stale dir before the cleanup runs"
+    )
+
+
 def test_the_cram_rule_runs_in_a_pinned_container() -> None:
     """`seqforge io cram` shells out to samtools — a runtime tool, exactly like STAR — so its rule
     must name the image, not run against whatever samtools the submitting shell happened to have.
