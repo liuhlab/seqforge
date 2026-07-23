@@ -8,9 +8,12 @@ Conflict (a human decides); the strongest case — nothing matches AND the assay
 
 from __future__ import annotations
 
+import gzip
+import json
 from pathlib import Path
 
-from seqforge.cli.manifest import _dataset_document_texts
+from seqforge import kb
+from seqforge.cli.manifest import _dataset_document_texts, _fill_manifest_pipeline
 from seqforge.kb.loader import load_all_specs
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
@@ -198,3 +201,74 @@ def test_a_quiet_paper_naming_no_accession_and_no_conflicting_claim_is_fine() ->
     )
     assert conflicts == []
     assert blockers == []
+
+
+def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
+    with gzip.open(path, "wt") as fh:
+        for i, s in enumerate(seqs):
+            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+
+
+def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: Path) -> None:
+    """End-to-end: one dataset's FASTQs + another study's paper -> the fill pipeline stops at exit 4.
+
+    This drives the SHIPPING path (`_fill_manifest_pipeline`: probe -> resolve -> metadata -> the
+    provenance gate -> validate), so it proves the wiring the unit tests above cannot: the persisted
+    document is read from the workspace by its hash, the gate's Conflict rides into `validate`, and
+    `questions.md` is written for the Stop hook. Everything lives under pytest's tmp dir.
+
+    The bytes are a clean bulk-rnaseq-pe library (geometry-only, no onlist, so it resolves against the
+    real registry with no whitelist step). The staged "paper" describes a *different* study — human,
+    HeLa, a foreign accession — with no chemistry claim, so it does not trip the byte cross-family
+    conflict first; the provenance gate is what catches it.
+    """
+    from seqforge.workspace import documents_dir, state_dir
+
+    spec = kb.load_spec("bulk-rnaseq-pe")
+    reads = kb.generate_reads(spec, n=800, seed=0)
+    fastqs = []
+    for rid, seqs in reads.items():
+        p = tmp_path / f"SRRfake_{rid}.fastq.gz"
+        _write_fastq_gz(p, seqs)
+        fastqs.append(p)
+
+    # The dataset's own records: worm, N2, PRJNA111111 — nothing the wrong paper names.
+    records = _records()
+
+    # The wrong PDF, persisted where `harvest extract` would have put it (<stem>-<sha12>.txt).
+    docdir = documents_dir(tmp_path)
+    docdir.mkdir(parents=True, exist_ok=True)
+    (docdir / f"wrong-paper-{_PAPER[:12]}.txt").write_text(
+        "A Homo sapiens HeLa study of bulk expression, archived as GSE999999 / PRJNA999999."
+    )
+
+    # The assertions `harvest extract` would have written from that paper (dataset-scoped).
+    assertions_path = tmp_path / "assertions.json"
+    assertions_path.write_text(
+        json.dumps(
+            {
+                "assertions": [
+                    _assert("experiment.organism", "Homo sapiens").model_dump(mode="json"),
+                    _assert("experiment.samples.strain", "HeLa").model_dump(mode="json"),
+                ],
+                "document_subjects": [{"doc_sha256": _PAPER, "scope": "dataset", "subject": None}],
+            }
+        )
+    )
+
+    out = _fill_manifest_pipeline(
+        files=fastqs,
+        organism=None,
+        records=records,
+        assertions=assertions_path,
+        offline=True,
+        workspace=tmp_path,
+        cpus=1,
+    )
+
+    assert out.code == 4, out.payload  # an open provenance conflict -> NEEDS_HUMAN
+    report = out.payload["report"] if isinstance(out.payload, dict) else {}
+    fields = [c["field"] for c in report.get("conflicts", [])]
+    assert "document.provenance" in fields
+    # the conflict is surfaced for the Stop hook, not just returned
+    assert (state_dir(tmp_path) / "questions.md").exists()
