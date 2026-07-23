@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 
+from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from .root import app
 
 
@@ -16,8 +17,12 @@ def probe_cmd(
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
-    max_reads: int = typer.Option(200_000, help="Bounded read budget."),
-    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
+    max_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded read budget per file (default 2000). Raise it to sample more of a full-size "
+        "FASTQ — the explicit opt-in; every touch stays bounded by this AND --max-bytes.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
     no_cache: bool = typer.Option(False, "--no-cache", help="Do not write seqforge/ artifacts."),
 ) -> None:
     """Fingerprint FASTQ bytes into role-free Observations. No LLM, no network, bounded.

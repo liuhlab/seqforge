@@ -59,11 +59,12 @@ needs inspecting, and what `run` is doing for you when it does not.
 pixi run -- seqforge resolve score data/SRX24283130/*.fastq.gz
 ```
 
-This reads the **first 200 000 reads** of each file and never more (it is bounded by
-`--max-reads` *and* by a 256 MB decompressed cap; a code path that could stream a whole multi-GB
-FASTQ is a bug here, not a slow path). It scores every technology in the knowledge base against what
-it saw and prints the ranked candidates, the role assigned to each file, and the rung that settled
-it.
+This reads the **first 2 000 reads** of each file and never more (it is bounded by `--max-reads`
+*and* by a 256 MB decompressed cap; a code path that could stream a whole multi-GB FASTQ is a bug
+here, not a slow path). Two thousand reads is plenty — the chemistry is the same whether you look at
+one thousand or two hundred thousand — and you can raise `--max-reads` to sample more of a full-size
+file. It scores every technology in the knowledge base against what it saw and prints the ranked
+candidates, the role assigned to each file, and the rung that settled it.
 
 Note what it does **not** do: read the filenames for meaning. `_1` and `_2` are `fasterq-dump`'s dump
 order and say nothing about which read is the barcode. Roles come from bytes.

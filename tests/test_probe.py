@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
-from seqforge.probe import probe_file
+from seqforge.probe import DEFAULT_MAX_READS, probe_file
 
 BASES = "ACGT"
 W1_LINKER = (
@@ -47,6 +47,60 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     assert obs.gzip.ok and not obs.gzip.truncated
     assert any(isinstance(s, RandomSegment) for s in obs.segments)
     assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)  # a well-formed content-address
+
+
+def test_per_cycle_composition_matches_the_reference_loop_byte_for_byte() -> None:
+    """The vectorized per-cycle composition (issue #66) must equal the plain per-base loop EXACTLY.
+
+    It feeds the observation hash, so a one-ULP drift would silently re-address the corpus. Both compute
+    integer counts and the same Python ``int / int`` fractions, so equality is exact (``==`` on floats,
+    not ``approx``). Checked over a spread of shapes and every character class: N, lowercase, punctuation,
+    ragged lengths, empty rows.
+    """
+    from seqforge.probe.signals import per_cycle_composition
+
+    base_idx = {"A": 0, "C": 1, "G": 2, "T": 3}
+
+    def reference(seqs: list[str]) -> list[tuple[int, float, float, float, float, float]]:
+        if not seqs:
+            return []
+        max_len = max(len(s) for s in seqs)
+        counts = [[0, 0, 0, 0, 0] for _ in range(max_len)]
+        denom = [0] * max_len
+        for s in seqs:
+            for i, ch in enumerate(s):
+                counts[i][base_idx.get(ch, 4)] += 1
+                denom[i] += 1
+        return [
+            (i, c[0] / d, c[1] / d, c[2] / d, c[3] / d, c[4] / d)
+            for i, (c, d) in enumerate((counts[i], denom[i] or 1) for i in range(max_len))
+        ]
+
+    def assert_identical(seqs: list[str]) -> None:
+        got = per_cycle_composition(seqs)
+        ref = reference(seqs)
+        assert len(got) == len(ref)
+        for cc, (cycle, a, c, g, t, n) in zip(got, ref, strict=True):
+            assert (cc.cycle, cc.a, cc.c, cc.g, cc.t, cc.n) == (cycle, a, c, g, t, n)
+
+    assert_identical([])  # empty input
+    assert_identical([""])  # a single empty read -> no cycles
+    assert_identical(["ACGT"])  # one read
+    assert_identical(["AAAA", "AAAA"])  # homopolymer
+    assert_identical(["ACGTN", "NNNNN"])  # N bases
+    assert_identical(["acgtn", "ACGTN"])  # lowercase / non-ACGT -> N bucket
+    assert_identical(["ACGT", "AC", "A", ""])  # ragged, including an empty row
+    assert_identical(["A.C-G", "N?xY"])  # punctuation / IUPAC codes -> N bucket
+
+    rng = random.Random(0)
+    alphabets = ["ACGT", "ACGTN", "ACGTNacgtn.-"]
+    for _ in range(200):
+        alpha = rng.choice(alphabets)
+        seqs = [
+            "".join(rng.choice(alpha) for _ in range(rng.randint(0, 30)))
+            for _ in range(rng.randint(1, 40))
+        ]
+        assert_identical(seqs)
 
 
 def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:
@@ -141,12 +195,12 @@ def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path
     assert decompressed > 100_000_000  # the fixture really is enormous once decompressed...
     assert on_disk < 2_000_000  # ...while costing the test suite ~450 KB and ~0.2 s
 
-    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+    obs = probe_file(path)  # DEFAULT budgets: DEFAULT_MAX_READS reads / 256 MB
 
-    assert obs.probe.n_reads_sampled == 200_000  # stopped at the budget, not at EOF
+    assert obs.probe.n_reads_sampled == DEFAULT_MAX_READS  # stopped at the budget, not at EOF
     assert obs.probe.bytes_read < decompressed / 5  # touched a small prefix, not the file
-    # The read budget binds first here (200k x ~40 B is well under the 256 MB byte cap), so this is
-    # the number to pin: a whole-file stream would be ~134 MB, two orders of magnitude larger.
+    # The read budget binds first here (N x ~40 B is far under the 256 MB byte cap), so this is the
+    # number to pin: a whole-file stream would be ~134 MB, orders of magnitude larger.
     assert obs.probe.bytes_read < 20_000_000
     assert obs.estimated_total_reads > 1_000_000  # and it still knows the file is huge
 
@@ -233,7 +287,7 @@ def test_the_content_address_never_scans_the_whole_file(
         return _CountingReader(fh, counter) if str(file) == str(path) else fh
 
     monkeypatch.setattr(builtins, "open", counting_open)
-    obs = probe_file(path)  # DEFAULT budgets: 200k reads / 256 MB
+    obs = probe_file(path)  # DEFAULT budgets: DEFAULT_MAX_READS reads / 256 MB
     monkeypatch.undo()
 
     # Precondition: the file really is much larger than the bounded head we sampled.

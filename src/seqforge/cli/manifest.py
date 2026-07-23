@@ -25,12 +25,14 @@ from ..manifest import (
     validate_manifest,
 )
 from ..models.assertion import Assertion
+from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..resolve import Hypothesis, resolve_runs
 from ..workspace import legacy_state_dir, state_dir
 from ._common import _auto_cpus, _emit, _load_manifest, _resolve_organism, _StageOut
 from .root import manifest_app
 
 if TYPE_CHECKING:
+    from ..models.observation import Observation
     from ..models.records import ArchiveRecordSet
 
 
@@ -72,6 +74,12 @@ def manifest_fill(
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
     ),
+    max_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded read budget per file (default 2000). Raise it to probe more of a full-size "
+        "FASTQ — the explicit opt-in; every touch stays bounded by this AND --max-bytes.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
     workspace: Path = typer.Option(
         Path("."), "-C", "--workspace", help="Root for seqforge/ state."
     ),
@@ -120,6 +128,8 @@ def manifest_fill(
             workspace=workspace,
             cpus=_auto_cpus(cpus),
             chemistry_override=assert_chemistry,
+            max_reads=max_reads,
+            max_bytes=max_bytes,
         )
     )
 
@@ -187,6 +197,9 @@ def _fill_manifest_pipeline(
     workspace: Path,
     cpus: int = 1,
     chemistry_override: str | None = None,
+    max_reads: int = DEFAULT_MAX_READS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    probed: dict[str, tuple[Observation, list[str]]] | None = None,
 ) -> _StageOut:
     """Probe -> resolve -> metadata -> PARTITION into assays -> assemble + validate each manifest.
 
@@ -251,6 +264,14 @@ def _fill_manifest_pipeline(
         workspace=workspace,
         use_cache=False,
         cpus=cpus,
+        # The read budgets travel together (R3): the default is the small N=2000 slice, and a caller
+        # who forces a larger --max-reads to read more of the full-size FASTQs raises both here. A
+        # fingerprint run ignores them — its slices were already fixed at preflight time (see _probed).
+        max_reads=max_reads,
+        max_bytes=max_bytes,
+        # A fingerprint run hands in pinned stand-in observations for the head-slices, so the resolve
+        # verdict (and the manifest hash) reproduces the full FASTQs' without their bytes present.
+        _probed=probed,
     )
     # Surface any OPEN conflict / question as a human-editable questions.md (and clear a stale one on a
     # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly

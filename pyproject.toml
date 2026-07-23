@@ -186,6 +186,7 @@ python-build = "*"
 types-pyyaml = "*"
 types-requests = "*"
 types-openpyxl = "*"
+pyinstrument = ">=5.1.2,<6"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"
@@ -204,7 +205,7 @@ fmt-check = "ruff format --check ."
 # manifest/ + compose/ + workflows/ (a wrong type there poisons every emitted pipeline param) +
 # evals/ (it computes the numbers we trust; a wrong type there silently corrupts a metric, and a
 # broken measuring instrument is worse than none because it still reads green).
-typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest src/seqforge/evals"
+typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest src/seqforge/fingerprint src/seqforge/evals"
 test      = "pytest"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }

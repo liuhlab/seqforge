@@ -74,8 +74,12 @@ def _params_hash(max_reads: int, max_bytes: int) -> str:
     return hashlib.sha256(f"{max_reads}:{max_bytes}".encode()).hexdigest()[:16]
 
 
-def _gzip_isize(path: Path) -> int | None:
-    """The gzip ISIZE trailer: uncompressed size mod 2^32 (O(1); unreliable for >4GB / multi-member)."""
+def gzip_isize(path: Path) -> int | None:
+    """The gzip ISIZE trailer: uncompressed size mod 2^32 (O(1); unreliable for >4GB / multi-member).
+
+    Public because a fingerprint pin captures it: the whole-file ISIZE cannot be recovered from a
+    head-slice, so ``preflight`` reads it here and stamps it back onto the stand-in probe.
+    """
     try:
         with open(path, "rb") as fh:
             fh.seek(-4, 2)
@@ -195,7 +199,7 @@ def probe_sample(
     p = Path(path)
     sample = sample_fastq_gz(p, max_reads=max_reads, max_bytes=max_bytes)
     file_size = p.stat().st_size
-    isize = _gzip_isize(p)
+    isize = gzip_isize(p)
     return build_observation(
         sample,
         size_bytes=file_size,

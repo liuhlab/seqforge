@@ -542,6 +542,7 @@ def resolve_runs(
     max_bytes: int = DEFAULT_MAX_BYTES,
     use_cache: bool = True,
     cpus: int = 1,
+    _probed: dict[str, tuple[Observation, list[str]]] | None = None,
 ) -> MultiRunOutput:
     """Group `paths` into runs and resolve **each run on its own bytes**.
 
@@ -559,24 +560,35 @@ def resolve_runs(
     (:meth:`MultiRunOutput.sample_disagreements`): runs of ONE sample must resolve to one chemistry,
     but that check needs the sample->files map only the metadata resolver builds, so it is applied by
     the caller (never a majority vote — a sample split across chemistries blocks loudly).
+
+    ``_probed`` lets a caller hand in a probe map it already built across the whole dataset — the
+    fingerprint path passes pinned stand-in observations (``fingerprint.load.probed_from_fingerprint``)
+    so a run over head-slices resolves exactly as the full FASTQs would. When it is given, the byte read
+    is already done: the resume shortcut and the probe pool are both skipped.
     """
     from .group import group_runs
 
     grouped = group_runs(paths)
     cache = Cache(workspace)
     # Disk is state: if the input files are byte-for-byte the last run's, rebuild the whole answer from
-    # the content-addressed cache and read ZERO FASTQ bytes (the "resumable" the design promises).
-    if use_cache:
+    # the content-addressed cache and read ZERO FASTQ bytes (the "resumable" the design promises). A
+    # caller-supplied `_probed` is already that answer's front half, so skip the resume probe.
+    if use_cache and _probed is None:
         resumed = _try_resume_runs(grouped, paths, cache)
         if resumed is not None:
             return resumed
     # Probe every file of every run ONCE, in one pool across the whole dataset (12 files, not 2 a
     # run), then hand each run its slice. Probing per-run would cap parallelism at a run's file count.
-    probed = _probe_paths(
-        [p for run_paths in grouped.values() for p in run_paths],
-        max_reads=max_reads,
-        max_bytes=max_bytes,
-        cpus=cpus,
+    # A pre-built map (fingerprint consumption) is used as-is — the bytes were already read.
+    probed = (
+        _probed
+        if _probed is not None
+        else _probe_paths(
+            [p for run_paths in grouped.values() for p in run_paths],
+            max_reads=max_reads,
+            max_bytes=max_bytes,
+            cpus=cpus,
+        )
     )
     registry = registry if registry is not None else DEFAULT_REGISTRY
     kb_specs = specs if specs is not None else load_all_specs()

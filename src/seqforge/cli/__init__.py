@@ -22,6 +22,7 @@ from . import (  # noqa: F401
     io,
     kb,
     manifest,
+    preflight,
     probe,
     processing,
     project,

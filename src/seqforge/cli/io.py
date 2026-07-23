@@ -10,6 +10,7 @@ import typer
 
 from ..io import DEFAULT_REGISTRY, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
+from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import records_dir
 from ._common import _today
 from .root import io_app, onlist_app
@@ -303,8 +304,12 @@ def io_probe_remote(
     md5: str | None = typer.Option(
         None, "--md5", help="Provider md5 (ENA fastq_md5) — becomes the content-address."
     ),
-    max_reads: int = typer.Option(200_000, help="Bounded head read budget."),
-    max_bytes: int = typer.Option(256 * 1024 * 1024, help="Bounded decompressed-byte cap."),
+    max_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded head read budget (default 2000). Raise it to fingerprint more of the remote "
+        "FASTQ — the explicit opt-in; every touch stays bounded by this AND --max-bytes.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
     max_compressed_bytes: int = typer.Option(
         8 << 20, help="Compressed bytes to range-read in one GET (the network budget)."
     ),

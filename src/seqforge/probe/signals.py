@@ -11,6 +11,8 @@ import math
 import re
 from typing import Literal
 
+import numpy as np
+
 from ..models.observation import (
     ConstantSegment,
     CycleComposition,
@@ -32,22 +34,45 @@ _ILLUMINA_INDEX = re.compile(r"[ /]([ACGTN]{6,})(?:\+([ACGTN]{6,}))?\s*$")
 
 
 def per_cycle_composition(seqs: list[str]) -> list[CycleComposition]:
-    """Fraction of A/C/G/T/N at each 0-based cycle, over reads long enough to reach that cycle."""
+    """Fraction of A/C/G/T/N at each 0-based cycle, over reads long enough to reach that cycle.
+
+    Vectorized (numpy) but arithmetically identical to the plain per-base loop it replaces: the counts
+    are exact integer column-reductions and the fractions are the same Python ``int / int`` divisions,
+    so every :class:`CycleComposition` — and therefore the observation hash — is byte-for-byte the same.
+    This was ~79% of a full-size probe (issue #66); it is the dominant per-read cost and the cleanest to
+    lift out of Python, which matters most on the explicit large-``--max-reads`` path.
+    """
     if not seqs:
         return []
     max_len = max(len(s) for s in seqs)
-    counts = [[0, 0, 0, 0, 0] for _ in range(max_len)]
-    denom = [0] * max_len
-    for s in seqs:
-        for i, ch in enumerate(s):
-            counts[i][_BASE_IDX.get(ch, 4)] += 1  # non-ACGT (incl. N) -> the N bucket
-            denom[i] += 1
+    if max_len == 0:  # every read empty -> no cycles, same as the loop's empty range
+        return []
+    # Pack reads into a padded (n_reads x max_len) uint8 matrix of ASCII codes. 0 is the pad sentinel:
+    # never a FASTQ base byte, so a column's non-zero cells are exactly the reads that reach that cycle
+    # (== the loop's per-cycle `denom`). `encode("ascii", "replace")` maps any non-ASCII to '?' (one
+    # byte), which is non-ACGT and lands in the N bucket — exactly as `_BASE_IDX.get(ch, 4)` did.
+    arr = np.zeros((len(seqs), max_len), dtype=np.uint8)
+    for j, s in enumerate(seqs):
+        b = s.encode("ascii", "replace")
+        arr[j, : len(b)] = np.frombuffer(b, dtype=np.uint8)
+    denom = (arr != 0).sum(axis=0)  # reads reaching each cycle
+    a = (arr == 0x41).sum(axis=0)  # 'A'
+    c = (arr == 0x43).sum(axis=0)  # 'C'
+    g = (arr == 0x47).sum(axis=0)  # 'G'
+    t = (arr == 0x54).sum(axis=0)  # 'T'
+    nb = denom - (a + c + g + t)  # covered but non-ACGT (incl. N) -> the N bucket
     out: list[CycleComposition] = []
     for i in range(max_len):
-        d = denom[i] or 1
-        c = counts[i]
+        d = int(denom[i]) or 1  # the loop's `denom[i] or 1` guard, preserved
         out.append(
-            CycleComposition(cycle=i, a=c[0] / d, c=c[1] / d, g=c[2] / d, t=c[3] / d, n=c[4] / d)
+            CycleComposition(
+                cycle=i,
+                a=int(a[i]) / d,
+                c=int(c[i]) / d,
+                g=int(g[i]) / d,
+                t=int(t[i]) / d,
+                n=int(nb[i]) / d,
+            )
         )
     return out
 
