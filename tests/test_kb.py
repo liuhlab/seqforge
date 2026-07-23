@@ -209,10 +209,13 @@ def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     nuclei. Counting was never a chemistry property.
     """
     from seqforge.compose import RECIPE_PARAM_KEYS
-    from seqforge.kb.schema import KB_PARSE_KEYS
+    from seqforge.workflows import parse_keys_for
 
-    params = kb.load_spec(tech).require_backend().params
-    assert set(params) <= KB_PARSE_KEYS, f"{tech}: non-parse key in backend.params"
+    backend = kb.load_spec(tech).require_backend()
+    params = backend.params
+    # The parse namespace is per pipeline now: a spec's params must be a subset of the namespace of
+    # the pipeline it targets, not of a single global set every pipeline shared.
+    assert set(params) <= parse_keys_for(backend.module), f"{tech}: non-parse key in backend.params"
     assert not set(params) & RECIPE_PARAM_KEYS, f"{tech}: a count key is misfiled as chemistry"
 
 
@@ -229,14 +232,21 @@ def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
     """The proof that "a user instruction contradicts the observed bytes" is INEXPRESSIBLE.
 
     Not deprioritized by a runtime comparison — the user has no vocabulary in which to say it. That is
-    the strongest form of that guarantee available, and it holds only while these two sets stay disjoint. If
-    someone later moves soloStrand into the instructable surface, this goes red, because at that point
-    the contradiction becomes sayable.
+    the strongest form of that guarantee available, and it holds only while each pipeline's parse
+    namespace stays disjoint from the count surface. If someone later moves soloStrand into the
+    instructable surface, this goes red, because at that point the contradiction becomes sayable.
+
+    Per pipeline, because the parse namespace is per pipeline now: every registered pipeline's
+    ``parse_keys`` must be disjoint from the count keys, so no aligner can smuggle a count key into a
+    place a user cannot reach.
     """
     from seqforge.compose import RECIPE_PARAM_KEYS
-    from seqforge.kb.schema import KB_PARSE_KEYS
+    from seqforge.workflows import list_modules, parse_keys_for
 
-    assert not (KB_PARSE_KEYS & RECIPE_PARAM_KEYS)
+    for module in list_modules():
+        assert not (parse_keys_for(module) & RECIPE_PARAM_KEYS), (
+            f"{module}: a parse key is also a count key — the contradiction would be sayable"
+        )
 
 
 def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
