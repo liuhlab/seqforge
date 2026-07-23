@@ -49,6 +49,60 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)  # a well-formed content-address
 
 
+def test_per_cycle_composition_matches_the_reference_loop_byte_for_byte() -> None:
+    """The vectorized per-cycle composition (issue #66) must equal the plain per-base loop EXACTLY.
+
+    It feeds the observation hash, so a one-ULP drift would silently re-address the corpus. Both compute
+    integer counts and the same Python ``int / int`` fractions, so equality is exact (``==`` on floats,
+    not ``approx``). Checked over a spread of shapes and every character class: N, lowercase, punctuation,
+    ragged lengths, empty rows.
+    """
+    from seqforge.probe.signals import per_cycle_composition
+
+    base_idx = {"A": 0, "C": 1, "G": 2, "T": 3}
+
+    def reference(seqs: list[str]) -> list[tuple[int, float, float, float, float, float]]:
+        if not seqs:
+            return []
+        max_len = max(len(s) for s in seqs)
+        counts = [[0, 0, 0, 0, 0] for _ in range(max_len)]
+        denom = [0] * max_len
+        for s in seqs:
+            for i, ch in enumerate(s):
+                counts[i][base_idx.get(ch, 4)] += 1
+                denom[i] += 1
+        return [
+            (i, c[0] / d, c[1] / d, c[2] / d, c[3] / d, c[4] / d)
+            for i, (c, d) in enumerate((counts[i], denom[i] or 1) for i in range(max_len))
+        ]
+
+    def assert_identical(seqs: list[str]) -> None:
+        got = per_cycle_composition(seqs)
+        ref = reference(seqs)
+        assert len(got) == len(ref)
+        for cc, (cycle, a, c, g, t, n) in zip(got, ref, strict=True):
+            assert (cc.cycle, cc.a, cc.c, cc.g, cc.t, cc.n) == (cycle, a, c, g, t, n)
+
+    assert_identical([])  # empty input
+    assert_identical([""])  # a single empty read -> no cycles
+    assert_identical(["ACGT"])  # one read
+    assert_identical(["AAAA", "AAAA"])  # homopolymer
+    assert_identical(["ACGTN", "NNNNN"])  # N bases
+    assert_identical(["acgtn", "ACGTN"])  # lowercase / non-ACGT -> N bucket
+    assert_identical(["ACGT", "AC", "A", ""])  # ragged, including an empty row
+    assert_identical(["A.C-G", "N?xY"])  # punctuation / IUPAC codes -> N bucket
+
+    rng = random.Random(0)
+    alphabets = ["ACGT", "ACGTN", "ACGTNacgtn.-"]
+    for _ in range(200):
+        alpha = rng.choice(alphabets)
+        seqs = [
+            "".join(rng.choice(alpha) for _ in range(rng.randint(0, 30)))
+            for _ in range(rng.randint(1, 40))
+        ]
+        assert_identical(seqs)
+
+
 def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:
     rng = random.Random(1)
     seqs = [_rand_seq(rng, 8) + W1_LINKER + "T" * 10 for _ in range(500)]  # 8 random + W1 + polyT
