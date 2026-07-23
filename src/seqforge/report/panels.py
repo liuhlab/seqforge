@@ -43,6 +43,7 @@ _ROLE_NAME: dict[str, str] = {
     "umi": "UMI (molecule tag)",
     "cdna": "cDNA (gene reads)",
     "cdna_read": "cDNA (gene reads)",
+    "gdna": "genomic DNA (open-chromatin reads)",
     "index": "sample index",
 }
 
@@ -568,11 +569,17 @@ def _stages_panel(assay: AssayReport) -> str:
     for st in stages:
         boxes.append(_stage_box(st))
     strip = '<div class="stage-arrow">→</div>'.join(boxes)
+    # The deliverable depends on the modality: scATAC ends in a fragments file, not a count matrix.
+    deliverable = (
+        "a tabix-indexed fragments file (fragments.tsv.gz)"
+        if assay.chemistry.modality.lower() == "atac"
+        else "an .h5ad count matrix"
+    )
     return _panel(
         "What the pipeline will run",
         f'<div class="stage-flow">{strip}</div>',
         sub=f"The same stages run for every sample — shown here for {first_sample}. Running the "
-        "composed Snakefile below ends in an .h5ad count matrix.",
+        f"composed Snakefile below ends in {deliverable}.",
     )
 
 

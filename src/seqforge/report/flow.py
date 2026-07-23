@@ -108,10 +108,16 @@ def flow_steps(assay: AssayReport) -> list[FlowStep]:
             )
         )
         if assay.plan is not None:
+            # scATAC counts open-chromatin fragments, not genes — keep the flow node truthful per modality.
+            count_line = (
+                "call chromatin fragments per cell"
+                if assay.chemistry.modality.lower() == "atac"
+                else "count genes per cell"
+            )
             steps.append(
                 FlowStep(
                     "How to process it",
-                    [f"align to {_genome_short(assay)} and", "count genes per cell"],
+                    [f"align to {_genome_short(assay)} and", count_line],
                     "our processing choices — change these freely",
                     "measured",
                 )

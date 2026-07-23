@@ -16,7 +16,7 @@ from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when the report's layout or projection changes. Not folded into any
 #: content-addressed cache key — the report is a rebuildable view, not an input to anything.
-REPORT_VERSION = "2026.7.1"
+REPORT_VERSION = "2026.7.2"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402
