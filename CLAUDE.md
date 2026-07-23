@@ -130,10 +130,13 @@ change behaviour.
 - **Docs:** mkdocs-material → gh-pages, published from `main` by `docs.yml`. The site is the **human**
   layer; `docs/design.md` is **excluded** (`exclude_docs`) — it is the agent-facing source of truth and
   must not read as settled guidance under a docs URL.
-- **Wiki (GitHub `.wiki.git`):** the lab notebook — misc **developmental/technical** notes worth
-  remembering (benchmark results, profiling records, gotchas, lessons). This is **not** `docs/`: the
-  site is the carefully-designed, end-user layer; the wiki is informal, developer-facing, and never
-  needs to read as polished. Record durable findings here rather than lose them.
+- **Discussions (GitHub):** the lab notebook + dev forum — misc **developmental/technical** notes and
+  discussion worth remembering (benchmark results, profiling records, gotchas, lessons, design debates).
+  This is **not** `docs/`: the site is the carefully-designed, end-user layer; Discussions is informal,
+  developer-facing, threaded, and never needs to read as polished. Post results in *Show and tell*,
+  proposals in *Ideas*, questions in *Q&A*. Driven from the CLI via `gh discussion` (or `gh api
+  graphql`). Record durable findings here rather than lose them. (The `.wiki.git` is unused — chosen
+  over the wiki because Discussions does notes **and** conversation; a wiki is a document store only.)
 - *Planned, not built:* `syrupy` snapshots and `hypothesis` — pinned, not imported.
 
 ## Repository layout
