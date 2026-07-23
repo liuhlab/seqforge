@@ -48,7 +48,6 @@ def _project_verdict(report: ProjectReport) -> tuple[str, str]:
 def render_html(report: ProjectReport) -> str:
     """Render ``report`` to one complete, self-contained HTML document."""
     css = _asset("report.css")
-    mermaid_js = _script_guard(_asset("mermaid.min.js"))
     report_js = _script_guard(_asset("report.js"))
 
     verdict_kind, verdict_label = _project_verdict(report)
@@ -85,7 +84,6 @@ def render_html(report: ProjectReport) -> str:
         f"{header}\n{tab_bar()}\n"
         f"<main>{sections}</main>\n"
         f"{footer}\n"
-        f"<script>{mermaid_js}</script>\n"
         f"<script>{report_js}</script>\n"
         "</body>\n</html>\n"
     )

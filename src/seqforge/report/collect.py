@@ -27,6 +27,7 @@ from ..models.processing import ProcessingManifest
 from ..project import discover_assays
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
+    ArtifactEmbed,
     AssayLabelView,
     AssayReport,
     AttributeView,
@@ -40,9 +41,11 @@ from .model import (
     MatrixRoleRow,
     MatrixView,
     OnlistView,
+    PipelineStage,
     PlanView,
     ProjectReport,
     ReadView,
+    RuledOut,
     SampleView,
     StudyView,
 )
@@ -130,6 +133,15 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
     plan = _plan(ws, proc, pipeline_dir, assertions, doc_index) if proc is not None else None
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline_dir is not None)
 
+    samples = _samples(manifest, assertions, doc_index)
+    matrices, ruled_out = _matrices(ws, manifest)
+    has_prose = any(
+        ref.kind == "assertion" and ref.quote
+        for s in samples
+        for a in s.attributes
+        for ref in a.evidence
+    )
+
     taxid = int(manifest.experiment.organism.value)
     return AssayReport(
         subdir=subdir,
@@ -142,15 +154,20 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         reads=_reads(manifest.library),
         onlists=_onlists(manifest.library),
         files=_files(manifest.library),
-        samples=_samples(manifest, assertions, doc_index),
+        samples=samples,
         plan=plan,
-        matrices=_matrices(ws, manifest),
+        matrices=matrices,
+        ruled_out=ruled_out,
+        artifacts=_artifacts(base, pipeline_dir),
+        pipeline_stages=_pipeline_stages(plan),
         conclusion=conclusion,
         provenance=[
             ("dataset_hash", manifest.provenance.dataset_hash),
             ("kb_version", manifest.provenance.kb_version),
             ("seqforge_version", manifest.provenance.seqforge_version),
         ],
+        has_records=bool(records.get("records")) if isinstance(records, dict) else False,
+        has_prose=has_prose,
     )
 
 
@@ -314,18 +331,32 @@ def _index_documents(ws: Path) -> dict[str, str]:
 
 
 def _load_records(ws: Path, study: Any) -> dict[str, Any]:
-    """The archive record set for the study, if one was fetched (for the study abstract)."""
+    """The archive record set for the study, if one was fetched (for the study abstract + samples).
+
+    The file is preferentially the one named for the manifest's study accession, but that accession may
+    be a different *form* of the same study than the file is keyed by — the manifest often resolves a
+    GEO id (``GSE234962``) to its BioProject (``PRJNA983807``) while the record set was saved under the
+    id the user passed. So when the exact name misses, fall back to any ``records/*.json`` that carries
+    a record set; there is one per dataset, so this is unambiguous for the common single-dataset case.
+    """
+    rdir = records_dir(ws)
+    if not rdir.is_dir():
+        return {}
     accession = getattr(study, "accession", None) if study is not None else None
-    if not accession:
-        return {}
-    path = records_dir(ws) / f"{accession}.json"
-    if not path.is_file():
-        return {}
-    try:
-        data = json.loads(path.read_text())
-    except (ValueError, OSError):
-        return {}
-    return data if isinstance(data, dict) else {}
+    candidates: list[Path] = []
+    if accession:
+        preferred = rdir / f"{accession}.json"
+        if preferred.is_file():
+            candidates.append(preferred)
+    candidates += [p for p in sorted(rdir.glob("*.json")) if p not in candidates]
+    for path in candidates:
+        try:
+            data = json.loads(path.read_text())
+        except (ValueError, OSError):
+            continue
+        if isinstance(data, dict) and data.get("records"):
+            return data
+    return {}
 
 
 def _study(manifest: DatasetManifest, records: dict[str, Any]) -> StudyView | None:
@@ -359,6 +390,83 @@ def _find_pipeline(base: Path) -> Path | None:
     """The composed pipeline dir for this assay (the one holding a ``Snakefile``), or ``None``."""
     snakefiles = sorted((base / "pipeline").glob("*/Snakefile"))
     return snakefiles[0].parent if snakefiles else None
+
+
+#: Don't inline an artifact bigger than this — a runaway units.tsv shouldn't bloat the page. The
+#: composed text artifacts are all a few KB; anything past this is summarized, not embedded.
+_MAX_EMBED_BYTES = 256 * 1024
+
+
+def _artifacts(base: Path, pipeline_dir: Path | None) -> list[ArtifactEmbed]:
+    """The workspace's text artifacts, carried *into* the page so relative links can't break.
+
+    Read verbatim and embedded (the panel offers a ``data:`` URI download + an inline view). Skips a
+    file over :data:`_MAX_EMBED_BYTES` so the page stays small.
+    """
+    specs: list[tuple[str, Path, str]] = [
+        ("manifest.yaml", base / "manifest.yaml", "text/yaml"),
+        ("processing.yaml", base / "processing.yaml", "text/yaml"),
+    ]
+    if pipeline_dir is not None:
+        specs += [
+            ("Snakefile", pipeline_dir / "Snakefile", "text/plain"),
+            ("config.yaml", pipeline_dir / "config.yaml", "text/yaml"),
+            ("units.tsv", pipeline_dir / "units.tsv", "text/tab-separated-values"),
+        ]
+    out: list[ArtifactEmbed] = []
+    for name, path, mime in specs:
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text()
+        except OSError:
+            continue
+        size = len(text.encode())
+        if size > _MAX_EMBED_BYTES:
+            continue
+        out.append(ArtifactEmbed(name=name, mime=mime, text=text, size_bytes=size))
+    return out
+
+
+def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
+    """A small, human-readable "what will run, in order" — derived from the recipe, not the Snakefile.
+
+    Branches on the counting family (single-cell STARsolo vs bulk STAR) so it stays modality-general,
+    and reads as plain English for a biologist rather than a rule graph.
+    """
+    if plan is None:
+        return []
+    quant = next((f.value for f in plan.fields if f.label == "quantification"), "")
+    if quant.startswith("solo"):
+        return [
+            PipelineStage(
+                key="onlist",
+                title="Prepare the barcode whitelist",
+                detail="lay out the list of valid cell barcodes this chemistry uses",
+            ),
+            PipelineStage(
+                key="align",
+                title="Align & count per cell (STARsolo)",
+                detail="map each read to the genome and tally counts per cell and per gene",
+            ),
+            PipelineStage(
+                key="package",
+                title="Package the count matrices",
+                detail="write the results as an .h5ad file, ready to open in Scanpy/Seurat",
+            ),
+        ]
+    return [
+        PipelineStage(
+            key="align",
+            title="Align to the genome (STAR)",
+            detail="map every read to its place in the reference genome",
+        ),
+        PipelineStage(
+            key="count",
+            title="Count reads per gene",
+            detail="tally how many reads land in each gene (all strand orientations)",
+        ),
+    ]
 
 
 def _plan(
@@ -468,16 +576,78 @@ def _flatten(obj: Any, prefix: str = "") -> list[tuple[str, str]]:
 # ---- evidence matrix ----------------------------------------------------------------------------
 
 
-def _matrices(ws: Path, manifest: DatasetManifest) -> list[MatrixView]:
-    """Locate and project the persisted evidence matrix for a representative run (see module docstring).
+#: Pretty family labels for the "also considered, ruled out" summary. Anything not here falls back to
+#: the family id with dashes turned to spaces.
+_FAMILY_PRETTY: dict[str, str] = {
+    "10x-3p-gex": "10x 3′ gene expression",
+    "10x-5p-gex": "10x 5′ gene expression",
+    "bd-rhapsody-wta": "BD Rhapsody WTA",
+    "bd-rhapsody-wta-enhanced": "BD Rhapsody WTA (Enhanced)",
+    "splitseq": "SPLiT-seq",
+    "bulk-rnaseq-pe": "bulk RNA-seq",
+}
 
-    Returns ``[]`` when no sidecar is found — an old cache, or a resumed run that never rebuilt it.
-    The Evidence tab degrades to the chemistry decision, which always lives in the manifest.
+
+def _family_map() -> dict[str, str]:
+    """``tech id -> family id`` (the KB parent, or the id itself at a root).
+
+    Graceful: if the KB will not load (a stripped install), returns ``{}`` and callers fall back to a
+    version-suffix heuristic. Loading the specs is a few-ms YAML read the report can afford.
+    """
+    try:
+        from ..kb import load_all_specs
+
+        return {i: (s.parent or i) for i, s in load_all_specs().items()}
+    except Exception:
+        return {}
+
+
+def _family_of(tech: str, fmap: dict[str, str]) -> str:
+    if tech in fmap:
+        return fmap[tech]
+    return re.sub(r"-v[\d.]+$", "", tech) or tech  # heuristic: strip a trailing -v<version>
+
+
+def _pretty_family(fam: str) -> str:
+    return _FAMILY_PRETTY.get(fam, fam.replace("-", " "))
+
+
+def _humanize_reason(reason: str) -> str:
+    """Turn a scorer's forbidden reason into one plain clause a biologist can read.
+
+    Scorer reasons come in two shapes: named gates ("requires FAIL: onlist …") and bare metric
+    diagnostics ("mean_maxfrac=0.27", "motif_rate=0.03"). Both are meaningless to a wet-lab reader, so
+    each maps to a plain clause; anything unrecognised and code-shaped degrades to a clean generic
+    phrase rather than leaking the raw metric onto the page.
+    """
+    r = re.sub(r"^(requires FAIL:|excludes matched:)\s*", "", reason).strip()
+    low = r.lower()
+    if "onlist" in low or "whitelist" in low or "barcode" in low:
+        return "its barcodes don't match this kit's whitelist"
+    if "read-length" in low or "read length" in low or ("mode" in low and "vs" in low):
+        return "the read lengths don't fit this kit's layout"
+    if "no valid" in low or "unfillable" in low or "no role" in low:
+        return "the reads can't be assigned to this kit's roles"
+    if (
+        "maxfrac" in low
+        or "motif" in low
+        or "rate" in low
+        or re.fullmatch(r"[a-z0-9_]+=[\d.]+", low)
+    ):
+        return "the reads don't show this kit's barcode pattern"
+    return r[:120] if (r and " " in r) else "ruled out by the read patterns"
+
+
+def _matrices(ws: Path, manifest: DatasetManifest) -> tuple[list[MatrixView], list[RuledOut]]:
+    """Locate the persisted evidence matrix for a representative run and split it by chemistry family.
+
+    Returns ``(winner-family grids, ruled-out families)``. ``([], [])`` when no sidecar is found — an
+    old cache or a resumed run — and the Evidence tab degrades to the chemistry decision alone.
     """
     cdir = cache_dir(ws)
     candidates_dir, matrices_dir = cdir / "candidates", cdir / "matrices"
     if not (candidates_dir.is_dir() and matrices_dir.is_dir()):
-        return []
+        return [], []
     manifest_shas = {f.sha256 for f in manifest.library.files}
     chem_values = set(manifest.library.chemistry.value)
     winner = manifest.library.chemistry.value[0] if manifest.library.chemistry.value else None
@@ -507,7 +677,7 @@ def _matrices(ws: Path, manifest: DatasetManifest) -> list[MatrixView]:
         if not isinstance(matrices, dict):
             continue
         return _project_matrices(matrices, candidates, winner, chem_values, sha_to_name)
-    return []
+    return [], []
 
 
 def _project_matrices(
@@ -516,56 +686,86 @@ def _project_matrices(
     winner: str | None,
     chem_values: set[str],
     sha_to_name: dict[str, str],
-) -> list[MatrixView]:
+) -> tuple[list[MatrixView], list[RuledOut]]:
+    fmap = _family_map()
+    winner_fam = _family_of(winner, fmap) if winner else None
     score_of: dict[str, float | None] = {}
-    ranked: list[str] = []
     for c in candidates:
         tech = c.get("technology")
-        if isinstance(tech, str) and tech in matrices:
-            ranked.append(tech)
+        if isinstance(tech, str):
             sc = c.get("score", {})
             v = sc.get("value") if isinstance(sc, dict) else None
             score_of[tech] = float(v) if isinstance(v, (int, float)) else None
 
-    order: list[str] = []
-    if winner in matrices:
-        order.append(winner)
-    for tech in ranked:
-        if tech not in order:
-            order.append(tech)
-    for tech in matrices:  # forbidden-only techs, so a runner-up's red cells still show
-        if tech not in order:
-            order.append(tech)
-    order = order[:_MAX_MATRIX_TECHS]
-
     # Column order: this run's files, sorted by basename, taken from the winner's (or first) tech row.
-    ref_tech = order[0] if order else None
-    shas = _matrix_shas(matrices, ref_tech)
+    ref = winner if winner in matrices else (next(iter(matrices), None))
+    shas = _matrix_shas(matrices, ref)
     columns = sorted(shas, key=lambda s: sha_to_name.get(s, s))
     labels = [sha_to_name.get(s, s[:8]) for s in columns]
 
-    views: list[MatrixView] = []
-    for tech in order:
-        roles_obj = matrices.get(tech, {})
-        rows: list[MatrixRoleRow] = []
-        if isinstance(roles_obj, dict):
-            for role in roles_obj:
-                cells_obj = roles_obj[role]
-                cells = [
-                    _cell(cells_obj.get(s) if isinstance(cells_obj, dict) else None)
-                    for s in columns
-                ]
-                rows.append(MatrixRoleRow(role=role, cells=cells))
-        views.append(
-            MatrixView(
-                tech=tech,
-                is_winner=tech in chem_values,
-                score=score_of.get(tech),
-                file_labels=labels,
-                roles=rows,
-            )
+    # The winner's family stays a full grid (this is where the v2-vs-v3 discrimination lives).
+    family_techs = [t for t in matrices if _family_of(t, fmap) == winner_fam]
+    family_techs.sort(key=lambda t: (t not in chem_values, -(score_of.get(t) or -1e9), t))
+    views = [
+        MatrixView(
+            tech=tech,
+            is_winner=tech in chem_values,
+            score=score_of.get(tech),
+            file_labels=labels,
+            roles=_matrix_rows(matrices.get(tech, {}), columns),
         )
-    return views
+        for tech in family_techs[:_MAX_MATRIX_TECHS]
+    ]
+
+    # Every other family collapses to one "considered, ruled out" line.
+    by_fam: dict[str, list[str]] = {}
+    for tech in matrices:
+        fam = _family_of(tech, fmap)
+        if fam != winner_fam:
+            by_fam.setdefault(fam, []).append(tech)
+    ruled = [
+        RuledOut(
+            tech=_pretty_family(fam),
+            family=fam,
+            reason=_representative_reason(matrices, by_fam[fam]),
+        )
+        for fam in sorted(by_fam)
+    ]
+    return views, ruled
+
+
+def _matrix_rows(roles_obj: Any, columns: list[str]) -> list[MatrixRoleRow]:
+    rows: list[MatrixRoleRow] = []
+    if isinstance(roles_obj, dict):
+        for role in roles_obj:
+            cells_obj = roles_obj[role]
+            cells = [
+                _cell(cells_obj.get(s) if isinstance(cells_obj, dict) else None) for s in columns
+            ]
+            rows.append(MatrixRoleRow(role=role, cells=cells))
+    return rows
+
+
+def _representative_reason(matrices: dict[str, Any], techs: list[str]) -> str:
+    """The most common forbidden reason across a family's techs, humanized."""
+    from collections import Counter
+
+    reasons: list[str] = []
+    for tech in techs:
+        roles_obj = matrices.get(tech, {})
+        if not isinstance(roles_obj, dict):
+            continue
+        for cells in roles_obj.values():
+            if not isinstance(cells, dict):
+                continue
+            for cell in cells.values():
+                if isinstance(cell, dict) and cell.get("status") == "forbidden":
+                    r = str(cell.get("reason", "")).strip()
+                    if r:
+                        reasons.append(r)
+    if not reasons:
+        return "ruled out by read geometry"
+    return _humanize_reason(Counter(reasons).most_common(1)[0][0])
 
 
 def _matrix_shas(matrices: dict[str, Any], tech: str | None) -> set[str]:

@@ -163,6 +163,20 @@ class MatrixView(_View):
     roles: list[MatrixRoleRow] = Field(default_factory=list)
 
 
+class RuledOut(_View):
+    """A chemistry the probe scored and rejected — a one-line summary, not a full grid.
+
+    The probe scores every geometrically-plausible chemistry and rules the wrong ones out by evidence;
+    showing all of them as grids is noise. The winner's own family stays a grid (that is where the real
+    v2-vs-v3 discrimination lives); every other family collapses to one of these rows so the reader sees
+    *that* it was considered and *why* it lost, without the wall of cells.
+    """
+
+    tech: str
+    family: str
+    reason: str
+
+
 class DecisionField(_View):
     """A processing field rendered for a human: its value, who decided, and on what evidence.
 
@@ -195,6 +209,32 @@ class PlanView(_View):
     snakefile_rel: str | None = None
     config_rel: str | None = None
     units_rel: str | None = None
+
+
+class ArtifactEmbed(_View):
+    """A workspace artifact carried *into* the page so it stays self-contained.
+
+    A relative link to ``pipeline/.../Snakefile`` breaks the moment the HTML is moved off the workspace
+    — which is the whole point of a one-file report. So the text is embedded: the panel shows it inline
+    and offers a ``data:`` URI download, and nothing points at a sibling file that may not be there.
+    """
+
+    name: str
+    mime: str
+    text: str
+    size_bytes: int
+
+
+class PipelineStage(_View):
+    """One fixed stage of the composed pipeline, for a small human-readable stage diagram.
+
+    Derived from the recipe (the quantification family), not from parsing the Snakefile: a compact
+    "what will run, in order" that a biologist can follow, without rendering a giant per-sample DAG.
+    """
+
+    key: str
+    title: str
+    detail: str
 
 
 class StudyView(_View):
@@ -243,8 +283,15 @@ class AssayReport(_View):
     samples: list[SampleView] = Field(default_factory=list)
     plan: PlanView | None = None
     matrices: list[MatrixView] = Field(default_factory=list)
+    ruled_out: list[RuledOut] = Field(default_factory=list)
+    artifacts: list[ArtifactEmbed] = Field(default_factory=list)
+    pipeline_stages: list[PipelineStage] = Field(default_factory=list)
     conclusion: ConclusionView
     provenance: list[tuple[str, str]] = Field(default_factory=list)
+    #: True iff archive records were joined (sample facts have a declared source).
+    has_records: bool = False
+    #: True iff a paper/instruction document was read and quoted (harvest ran with real prose).
+    has_prose: bool = False
 
     @property
     def n_samples(self) -> int:
@@ -258,6 +305,20 @@ class AssayReport(_View):
     def label(self) -> str:
         """A human title for this assay's section — its subdir, or its winning chemistry."""
         return self.subdir or (self.chemistry.value[0] if self.chemistry.value else "assay")
+
+    @property
+    def attribute_columns(self) -> list[str]:
+        """The union of sample-attribute keys, common ones first — the columns of the sample table."""
+        preferred = (
+            "strain", "genotype", "age", "dev_stage", "sex", "tissue", "cell_type",
+            "cell_line", "treatment", "source_name", "disease",
+        )  # fmt: skip
+        seen: set[str] = set()
+        for s in self.samples:
+            seen.update(a.key for a in s.attributes)
+        ordered = [k for k in preferred if k in seen]
+        ordered += sorted(seen - set(preferred))
+        return ordered
 
 
 class ProjectReport(_View):
@@ -295,8 +356,11 @@ __all__ = [
     "MatrixCellView",
     "MatrixRoleRow",
     "MatrixView",
+    "RuledOut",
     "DecisionField",
     "PlanView",
+    "ArtifactEmbed",
+    "PipelineStage",
     "StudyView",
     "ConclusionView",
     "AssayReport",

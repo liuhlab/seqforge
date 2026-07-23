@@ -444,8 +444,10 @@ def test_the_wheel_ships_the_data_the_package_cannot_work_without() -> None:
     assert sum(n.endswith(".codes.gz") for n in names) >= 3, "the packed whitelists are missing"
     assert sum(n.endswith(".smk") for n in names) >= 2, "the workflow modules are missing"
     assert sum(n.endswith("spec.yaml") for n in names) >= 5, "the KB specs are missing"
-    assert any(n.endswith("report/assets/mermaid.min.js") for n in names), (
-        "the vendored mermaid engine is missing -> `seqforge report` renders a page that never draws"
+    assert any(n.endswith("report/assets/report.css") for n in names) and any(
+        n.endswith("report/assets/report.js") for n in names
+    ), (
+        "the report's inlined CSS/JS assets are missing -> `seqforge report` renders an unstyled page"
     )
 
 
