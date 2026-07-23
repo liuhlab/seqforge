@@ -26,7 +26,7 @@ from ..manifest import (
 )
 from ..models.assertion import Assertion
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..resolve import Hypothesis, resolve_runs
+from ..resolve import Cache, Hypothesis, resolve_runs
 from ..workspace import legacy_state_dir, state_dir
 from ._common import _auto_cpus, _emit, _load_manifest, _resolve_organism, _StageOut
 from .root import manifest_app
@@ -273,6 +273,23 @@ def _fill_manifest_pipeline(
         # verdict (and the manifest hash) reproduces the full FASTQs' without their bytes present.
         _probed=probed,
     )
+    # Persist each run's candidates + evidence matrix for the `seqforge report` glance layer. Resolve
+    # ran with use_cache=False on purpose — a fingerprint's PINNED stand-in observations must never be
+    # written to the content-addressed observation cache, or a later real probe of the same file would
+    # be served slice-derived window stats. Candidates and the matrix carry no such hazard: both are
+    # keyed by the real dataset_id and hold the true verdict a full-file `resolve score` would write.
+    # So record just those two (never observations), and only for a fresh resolve — a resume serves
+    # cached candidates and an empty matrix, and must not clobber a good sidecar. Best-effort: a write
+    # failure is not a reason to fail a compile.
+    _report_cache = Cache(workspace)
+    for _run in multi.runs:
+        if not _run.output.matrices:
+            continue
+        try:
+            _report_cache.write_resolve(_run.output.result.dataset_id, _run.output.result)
+            _report_cache.write_matrices(_run.output.result.dataset_id, _run.output.matrices)
+        except OSError:
+            pass
     # Surface any OPEN conflict / question as a human-editable questions.md (and clear a stale one on a
     # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly
     # what the Stop hook rglobs, so a genuine cross-family disagreement is made visible and enforced.

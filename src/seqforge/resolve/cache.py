@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from ..models.observation import Observation
@@ -76,6 +76,12 @@ class Cache:
     def _resolve_path(self, ds_id: str) -> Path:
         return self.root / "candidates" / f"{ds_id}.json"
 
+    def _matrices_path(self, ds_id: str) -> Path:
+        # The evidence matrix {tech -> role -> file_sha -> cell}, sidecar to the candidates it explains.
+        # Written for the human glance layer (`seqforge report`), not consumed by run/fill — so its
+        # absence (an old cache, a resume) never blocks a compile; the reader degrades.
+        return self.root / "matrices" / f"{ds_id}.json"
+
     def read_observation(self, sha: str) -> Observation | None:
         path = self._obs_path(sha)
         if not path.is_file():
@@ -99,6 +105,25 @@ class Cache:
 
     def write_resolve(self, ds_id: str, result: ResolveResult) -> None:
         self._write(self._resolve_path(ds_id), result.model_dump_json(indent=2))
+
+    def read_matrices(self, ds_id: str) -> dict[str, object] | None:
+        """The persisted evidence matrix for ``ds_id`` (``{tech -> role -> file_sha -> cell}``), or
+        ``None`` if absent/corrupt. A glance-layer sidecar, so a miss is a normal degraded read."""
+        path = self._matrices_path(ds_id)
+        if not path.is_file():
+            return None
+        try:
+            data = json.loads(path.read_text())
+        except (ValueError, OSError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def write_matrices(self, ds_id: str, matrices: Mapping[str, object]) -> None:
+        """Persist the JSON-safe evidence matrix beside the candidates it explains (``Cell.to_json``
+        already stripped every ``±inf``, so this is a plain ``json.dumps``). ``Mapping`` (not ``dict``)
+        so the deeply-nested ``{tech: {role: {sha: cell}}}`` the engine builds passes without a copy —
+        ``dict`` is invariant in its value type, ``Mapping`` is covariant."""
+        self._write(self._matrices_path(ds_id), json.dumps(matrices, indent=2))
 
     def _resume_path(self, key: str) -> Path:
         return self.root / "resume" / f"{key}.json"

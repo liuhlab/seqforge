@@ -52,6 +52,12 @@ CACHE_DIRNAME = "cache"
 #: identity — that a user carries off this machine; it is output, not a rebuildable cache entry.
 FINGERPRINT_DIRNAME = "fingerprint"
 
+#: The single-file HTML decision report — a deliverable, top-level beside the manifest and `pipeline/`.
+#: One self-contained page (every asset inlined) so it opens offline on a double-click; it is a *view*
+#: of artifacts already on disk, rebuildable by re-running `seqforge report`, but it lands with the
+#: outputs a human reaches for, not under `cache/`.
+REPORT_HTML = "report.html"
+
 
 def state_dir(workspace: str | Path = ".", *parts: str) -> Path:
     """``<workspace>/seqforge/<parts...>``. Does not create anything — callers that write, mkdir."""
@@ -95,6 +101,11 @@ def fingerprint_dir(workspace: str | Path = ".") -> Path:
     return state_dir(workspace, FINGERPRINT_DIRNAME)
 
 
+def report_html_path(workspace: str | Path = ".") -> Path:
+    """``seqforge/report.html`` — the single-file decision report (a deliverable, not cache)."""
+    return state_dir(workspace, REPORT_HTML)
+
+
 def readable(name: str, digest: str) -> str:
     """``("default", "a3f8...")`` -> ``default-a3f8c19d2b04``. A name a human can find, plus identity.
 
@@ -130,11 +141,15 @@ __all__ = [
     "DOCUMENTS_DIRNAME",
     "LOGS_DIRNAME",
     "CACHE_DIRNAME",
+    "FINGERPRINT_DIRNAME",
+    "REPORT_HTML",
     "state_dir",
     "records_dir",
     "documents_dir",
     "logs_dir",
     "cache_dir",
+    "fingerprint_dir",
+    "report_html_path",
     "readable",
     "legacy_state_dir",
 ]
