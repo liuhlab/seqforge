@@ -14,6 +14,7 @@ which is what lets a fingerprint run reproduce the full-file observation when ``
 from __future__ import annotations
 
 import gzip
+import io
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO
@@ -87,17 +88,38 @@ def read_records(path: str | Path, max_reads: int, max_bytes: int) -> RecordSlic
         raw.close()
 
 
+def records_to_gz_bytes(records: list[Record]) -> bytes:
+    """Serialize records to REPRODUCIBLE gzip bytes: same records in, same bytes out.
+
+    The ``mtime=0`` / ``filename=""`` idiom (as in ``kb.generate.write_fastq_gz``) makes the output a
+    pure function of the records, so it is byte-reproducible and content-addressable. Factored out so a
+    single set of records produces *one* gzip byte string that is used both as the probe input and as
+    the package slice — an SRA fingerprint (``io.sra.probe_sra``) probes exactly the bytes it stores,
+    with no second serializer that could drift.
+    """
+    payload = b"".join(h + b"\n" + s + b"\n" + p + b"\n" + q + b"\n" for h, s, p, q in records)
+    buf = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buf, mtime=0) as gz:
+        gz.write(payload)
+    return buf.getvalue()
+
+
 def write_records_gz(path: str | Path, records: list[Record]) -> None:
     """Write records to a REPRODUCIBLE ``.fastq.gz``: same records in, same bytes out.
 
-    Same ``mtime=0`` / ``filename=""`` idiom as ``kb.generate.write_fastq_gz``, but the payload is the
-    real four lines of each record rather than a synthesised sequence — a fingerprint carries the
-    original headers and qualities, it does not fabricate them. Byte-reproducibility is what makes the
-    whole package content-addressable and lets ``preflight`` run twice to an identical tar.
+    A thin file wrapper over :func:`records_to_gz_bytes` — the payload is the real four lines of each
+    record rather than a synthesised sequence, so a fingerprint carries the original headers and
+    qualities. Byte-reproducibility is what makes the whole package content-addressable and lets
+    ``preflight`` run twice to an identical tar.
     """
-    payload = b"".join(h + b"\n" + s + b"\n" + p + b"\n" + q + b"\n" for h, s, p, q in records)
-    with open(path, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
-        gz.write(payload)
+    Path(path).write_bytes(records_to_gz_bytes(records))
 
 
-__all__ = ["Record", "RecordSlice", "read_records", "read_records_stream", "write_records_gz"]
+__all__ = [
+    "Record",
+    "RecordSlice",
+    "read_records",
+    "read_records_stream",
+    "records_to_gz_bytes",
+    "write_records_gz",
+]

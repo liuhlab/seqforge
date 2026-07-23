@@ -337,6 +337,59 @@ def io_probe_remote(
     typer.echo(json.dumps(obs.model_dump(mode="json"), indent=2))
 
 
+@io_app.command("probe-sra")
+def io_probe_sra(
+    accession: str = typer.Argument(
+        ..., help="An SRA run (SRR/ERR/DRR) or experiment (SRX) accession."
+    ),
+    n_reads: int = typer.Option(
+        DEFAULT_MAX_READS,
+        help="Bounded head read budget (default 2000; here spots streamed from the .sra). Raise it to "
+        "fingerprint more of the run — the explicit opt-in; every touch stays bounded by this.",
+    ),
+    max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
+) -> None:
+    """Fingerprint an SRA run into per-mate Observations WITHOUT downloading it.
+
+    The archive twin of `probe-remote`: the first N spots stream straight from the `.sra` into memory
+    (no FASTQ on disk) and feed the same Tier-A pipeline, so a run resolves to a library exactly as a
+    local file does. ENA metadata is resolved best-effort for the content-address (its `fastq_md5`
+    becomes the address when the run was mirrored faithfully); a run ENA never mirrored still fingerprints
+    from the stream, with a synthetic SRA-derived address. Exit 1 on a resolution or stream failure.
+    """
+    from ..io.remote import RemoteError
+    from ..io.sra import probe_sra
+
+    try:
+        try:
+            result = resolve_accession(accession, check_reads=True)
+            runs = [
+                r
+                for r in result["runs"]
+                if (r.get("run_accession") or "").upper() == accession.upper()
+            ] or result["runs"]
+        except RemoteError:
+            # Not ENA-mirrored (ERR/DRR, or an unreleased mirror): stream from SRA anyway, no ENA meta.
+            runs = [{"run_accession": accession}]
+        mates = [
+            {
+                "run": run.get("run_accession"),
+                "read_index": mate.read_index,
+                "basename": mate.basename,
+                "ena_verified": mate.ena_verified,
+                "observation": mate.observation.model_dump(mode="json"),
+            }
+            for run in runs
+            for mate in probe_sra(run, n_reads=n_reads, max_bytes=max_bytes)
+        ]
+    except (NotYetImplemented, RemoteError, ValueError) as exc:
+        typer.echo(json.dumps({"error": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        json.dumps({"accession": accession, "n_mates": len(mates), "mates": mates}, indent=2)
+    )
+
+
 @io_app.command("resolve")
 def io_resolve(
     accession: str = typer.Argument(..., help="GSE/GSM, PRJNA/PRJEB, SRP/SRX/SRR, SAMN..."),
