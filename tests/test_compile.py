@@ -807,6 +807,34 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert "container" in get_module("map/starsolo").required_config
 
 
+def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe() -> None:
+    """A preempted STAR leaves `_STARtmp` behind and ABORTS a rerun if it already exists.
+
+    On a preemptible partition every requeued alignment failed: STAR refuses to reuse `_STARtmp`, and
+    snakemake cannot clean it because it is an undeclared output. So every STAR-invoking rule removes
+    its own `_STARtmp` before invoking STAR, and it must do so *before* the STAR command or the abort
+    still fires. Both mapping modules invoke STAR (`starsolo_count`, `star_count`) and pass
+    `{params.prefix}` (= `results/<sample>/`) as `--outFileNamePrefix`, so each clears
+    `results/<sample>/_STARtmp`. Swept over every module, so a third one cannot forget.
+    """
+    seen = False
+    for name in list_modules():
+        for rule, body in _rule_blocks(get_module(name).snakefile).items():
+            star = body.find("STAR --runMode alignReads")
+            if star == -1:
+                continue
+            seen = True
+            cleanup = body.find("rm -rf {params.prefix}_STARtmp")
+            assert cleanup != -1, (
+                f"{name}:{rule} invokes STAR but never clears `_STARtmp`, so a preempted rerun aborts"
+            )
+            assert cleanup < star, (
+                f"{name}:{rule} clears `_STARtmp` AFTER invoking STAR, which is too late — STAR "
+                f"aborts on the stale dir before the cleanup runs"
+            )
+    assert seen, "no module invokes STAR; this test is looking at the wrong place"
+
+
 def test_the_cram_rule_runs_in_a_pinned_container() -> None:
     """`seqforge io cram` shells out to samtools — a runtime tool, exactly like STAR — so its rule
     must name the image, not run against whatever samtools the submitting shell happened to have.

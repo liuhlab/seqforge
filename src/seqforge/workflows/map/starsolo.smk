@@ -218,7 +218,12 @@ rule genome_index:
 
 
 rule starsolo_count:
-    """Map one sample's cDNA + barcode reads to a per-cell count matrix."""
+    """Map one sample's cDNA + barcode reads to a per-cell count matrix.
+
+    The shell block clears STAR's `_STARtmp` before invoking STAR, so every (re)run is
+    preemption-safe: a preempted STAR leaves `results/<sample>/_STARtmp` behind, STAR ABORTS a rerun
+    if it already exists, and snakemake cannot remove it (an undeclared output).
+    """
     input:
         cdna=lambda wc: fastqs(wc.sample, config["read_files_in"]["cdna"]),
         barcode=lambda wc: fastqs(wc.sample, config["read_files_in"]["barcode"]),
@@ -259,6 +264,8 @@ rule starsolo_count:
         # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
         # for a chemistry that does not declare it -- an empty token is a valid line continuation.
         r"""
+        # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
+        rm -rf {params.prefix}_STARtmp
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --soloType {params.solo[soloType]} \
