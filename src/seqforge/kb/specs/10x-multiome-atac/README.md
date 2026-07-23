@@ -13,7 +13,7 @@ Unlike the GEX arm — which is byte-identical to 3′ v3 and separable only by 
 is told apart **structurally**, at rungs 0–2, from every scRNA chemistry:
 
 | | 10x scRNA (v2/v3/GEX) | 10x Multiome ATAC |
-|---|---|---|
+| --- | --- | --- |
 | Reads | **2** (cDNA + barcode) | **3** (two genomic mates + barcode) |
 | Barcode read | 28 bp (16 CB + 12 UMI) | **16 bp** (16 CB, **no UMI**) |
 | Biological reads | one cDNA (open-ended) | **two** genomic (open-ended) |
