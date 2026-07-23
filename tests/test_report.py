@@ -20,7 +20,7 @@ from typer.testing import CliRunner
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
-from seqforge.report.flow import _san, flow_mermaid
+from seqforge.report.flow import flow_steps
 
 runner = CliRunner()
 
@@ -87,23 +87,22 @@ def test_run_emits_the_report_as_a_best_effort_stage(workspace: Path) -> None:
 
 
 def test_report_makes_no_external_network_reference(workspace: Path) -> None:
-    """The whole point is that it opens offline. No src/href/@import may point off-host; an SVG
-    ``xmlns`` is a namespace, not a fetch, so it is explicitly allowed."""
+    """The whole point is that it opens offline. No src/href/@import may point off-host; a data: URI
+    (an embedded artifact download) is inline bytes, not a fetch, so it is explicitly allowed."""
     html = render_html(collect_report(workspace))
-    # The load-bearing check: nothing FETCHABLE points off-host. A URL sitting inside an inlined
-    # <script> as a string literal (mermaid bundles marked, whose banner names its homepage) is data,
-    # not a request — so we constrain src/href/@import specifically, not every http(s) substring.
+    # The load-bearing check: nothing FETCHABLE points off-host. We constrain src/href/@import
+    # specifically, not every http(s) substring (a URL inside an inlined <script> string is data).
     offsite = re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@importurl(http" not in html.replace(" ", "").replace("'", '"').lower()
     assert "cdn.jsdelivr" not in html and "unpkg" not in html, "a CDN link regressed in"
-    # and the mermaid engine is genuinely inlined, not linked
-    assert "globalThis.mermaid" in html
 
 
 def test_report_stays_under_the_size_budget(workspace: Path) -> None:
+    """No third-party engine is inlined any more (the Flow tab is HTML cards), so a page is a few tens
+    of KB. The old budget was 6 MB to accommodate Mermaid; a page over 500 KB now means real bloat."""
     html = render_html(collect_report(workspace))
-    assert len(html.encode()) < 6_000_000, "report bloated past 6 MB (mermaid embedded twice?)"
+    assert len(html.encode()) < 500_000, "report bloated past 500 KB (a heavy asset regressed in?)"
 
 
 def test_report_render_is_byte_deterministic(workspace: Path) -> None:
@@ -121,6 +120,63 @@ def test_report_locates_the_persisted_evidence_matrix(workspace: Path) -> None:
     assert 'class="matrix"' in render_html(collect_report(workspace))
 
 
+def test_samples_render_as_a_metadata_table(workspace: Path) -> None:
+    """The per-sample card list is gone: samples are one table with an expandable detail row."""
+    html = render_html(collect_report(workspace))
+    assert 'class="samples"' in html  # the metadata table, not a card per sample
+    assert "row-toggle" in html  # the expand control
+    assert 'class="detail-row"' in html  # the files/quotes drawer
+
+
+def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> None:
+    """A metadata cell carries its provenance as ``data-*`` on a keyboard-reachable button, so the
+    script can pin a selectable, copyable popover. It must NOT fall back to a native ``title=`` a
+    reader can neither select nor copy. Tested on the helper directly (the headless bulk fixture has
+    no sample attributes, so it renders no such cells)."""
+    from seqforge.report.model import AttributeView, EvidenceRef
+    from seqforge.report.panels import _attr_cell
+
+    attr = AttributeView(
+        key="tissue",
+        value="Motor neurons",
+        basis="asserted",
+        rung=2,
+        evidence=[
+            EvidenceRef(
+                raw="assert-1", kind="assertion", quote="motor neurons", document="paper", page=3
+            )
+        ],
+    )
+    html = _attr_cell(attr)
+    assert 'role="button"' in html and 'tabindex="0"' in html
+    assert 'data-basis="' in html and 'data-quote="motor neurons"' in html
+    assert 'data-source="paper p.3"' in html
+    assert "title=" not in html  # no transient native tooltip on the value cell
+
+
+def test_pipeline_artifacts_are_embedded_not_linked(workspace: Path) -> None:
+    """Self-containment: the composed artifacts ride in the page (inline view + a ``data:`` download),
+    and no panel points at a sibling file that breaks the moment the HTML is moved."""
+    report = collect_report(workspace)
+    assert report.assays[0].artifacts, "the composed workspace should carry embedded artifacts"
+    html = render_html(report)
+    assert 'download="Snakefile"' in html
+    assert "data:text/plain;base64," in html  # the Snakefile, embedded as bytes
+    assert 'href="pipeline/' not in html  # the old broken relative links are gone
+    assert 'href="manifest.yaml"' not in html
+
+
+def test_evidence_collapses_ruled_out_families_with_human_reasons(workspace: Path) -> None:
+    """Bulk PE reads score against 10x/BD too; those families collapse to one ruled-out line each
+    with a plain-language reason — never a raw scorer diagnostic like ``motif_rate=0.03``."""
+    report = collect_report(workspace)
+    assay = report.assays[0]
+    assert assay.ruled_out, "other families should be scored and ruled out"
+    for r in assay.ruled_out:
+        assert "=" not in r.reason, f"raw scorer diagnostic leaked onto the page: {r.reason!r}"
+    assert 'class="ruled-list"' in render_html(report)
+
+
 def test_report_degrades_when_the_matrix_cache_is_absent(workspace: Path) -> None:
     """Delete the sidecar: no crash, no invented matrix — the chemistry decision (in the manifest)
     still renders, and the page says the matrix was not persisted."""
@@ -128,7 +184,7 @@ def test_report_degrades_when_the_matrix_cache_is_absent(workspace: Path) -> Non
     report = collect_report(workspace)
     assert report.assays[0].matrices == []
     html = render_html(report)
-    assert "Chemistry decision" in html
+    assert "How the chemistry was decided" in html  # the panel still renders
     assert "not persisted" in html
 
 
@@ -160,14 +216,29 @@ def test_collect_raises_only_when_there_is_nothing_to_report(tmp_path: Path) -> 
         collect_report(tmp_path)
 
 
-def test_flow_mermaid_carries_the_real_decision(workspace: Path) -> None:
+def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
+    """The Flow narrative is a list of typed steps carrying this dataset's real values, ending on a
+    ``done`` step for a clean compile — and the winning chemistry id survives into the rendered page."""
     assay = collect_report(workspace).assays[0]
-    src = flow_mermaid(assay)
-    assert src.startswith("flowchart TD")
-    assert "classDef artifact" in src
-    assert assay.chemistry.value[0] in src  # the real chemistry id, not a placeholder
-    assert "Compiled" in src  # compiled -> the deliverable terminal, not blocked/needs-a-human
+    steps = flow_steps(assay)
+    assert (
+        steps and steps[-1].kind == "done"
+    )  # compiled -> the deliverable, not blocked/needs-a-human
+    blob = " ".join(s.title + " " + " ".join(s.desc) + " " + s.note for s in steps)
+    assert assay.chemistry.value[0] in blob  # the real chemistry id, not a placeholder
+    html = render_html(collect_report(workspace))
+    assert 'class="flow-strip"' in html and assay.chemistry.value[0] in html
 
 
-def test_mermaid_label_sanitizer_strips_the_characters_that_break_a_label() -> None:
-    assert _san('a"b#c\nd') == "abc d"
+def test_flow_renders_as_html_cards_not_a_scaled_diagram(workspace: Path) -> None:
+    """No mermaid: the flow is plain HTML cards (readable at any width), so the page ships no diagram
+    engine and no ``text/x-mermaid`` block, and the packaged assets no longer include the bundle."""
+    from importlib.resources import files
+
+    html = render_html(collect_report(workspace))
+    assert 'class="flow-strip"' in html and 'class="flow-step' in html
+    assert "text/x-mermaid" not in html and "globalThis.mermaid" not in html
+
+    asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
+    assert "mermaid.min.js" not in asset_names
+    assert {"report.css", "report.js"} <= asset_names

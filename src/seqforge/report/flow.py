@@ -1,118 +1,146 @@
-"""Turn one :class:`AssayReport` into a Mermaid ``flowchart`` of the *actual* decision path.
+"""The Flow tab's narrative: what actually happened to THIS dataset, as an ordered list of steps.
 
-The centrepiece of the Flow tab. Not a generic diagram of the pipeline — the real chain for THIS
-dataset, with the chemistry it resolved to, the confidence and rung behind it, the role wiring the
-bytes chose, the manifest hash, the recipe, and the terminal driven by how the compile actually ended.
-Nodes appear only for stages that are present, so an IR-ready dataset stops at the manifest and a
-refusal stops at a red terminal.
+Not a diagram of pipeline verbs (``probe``/``resolve``/``harvest``/``compose`` mean nothing to a
+biologist) — a plain-language chain with the real values: the guess we started from, what the files
+turned out to contain, which kit made the reads and how sure we are, which files belong to which
+sample, and how it will be processed. ``panels.py`` renders these as responsive HTML cards (readable
+at any width, wrapping on a narrow screen) — no scaled SVG, so the text never shrinks to nothing.
 
-House style matches the docs (``classDef artifact/output/blocked/ask``); dark-filled nodes carry an
-inline white ``<span>`` so the label is legible whatever the page or mermaid theme.
+Steps appear only for stages that are present, so an IR-ready dataset stops before "compose" and a
+refusal ends at a red "needs a human" step.
 """
 
 from __future__ import annotations
 
+from typing import Literal, NamedTuple
+
 from .model import AssayReport
 
-#: The docs' palette, verbatim — the report and the site read as one system.
-_CLASSDEFS = (
-    "classDef step fill:#eceff1,stroke:#90a4ae,color:#263238;",
-    "classDef artifact fill:#00695c,stroke:#004d40;",
-    "classDef output fill:#37474f,stroke:#263238;",
-    "classDef blocked fill:#b71c1c,stroke:#7f0000;",
-    "classDef ask fill:#bf360c,stroke:#7f2400;",
-)
-#: Classes whose fill is dark, so their label text must be forced white.
-_DARK = {"artifact", "output", "blocked", "ask"}
+#: Which visual family a step belongs to — drives its card colour, mirroring the docs palette.
+StepKind = Literal["guess", "measured", "done", "blocked", "ask"]
 
 
-def _san(text: str) -> str:
-    """Make a value safe inside a quoted mermaid label: drop the two characters that break it."""
-    return str(text).replace('"', "").replace("#", "").replace("\n", " ").strip()
+class FlowStep(NamedTuple):
+    """One step of the narrative: a bold title, plain description lines, an italic cost/meaning note."""
+
+    title: str
+    desc: list[str]
+    note: str
+    kind: StepKind
 
 
-def _node(node_id: str, lines: list[str], cls: str) -> str:
-    body = "<br/>".join(_san(x) for x in lines if x)
-    if cls in _DARK:
-        body = f"<span style='color:#fff'>{body}</span>"
-    return f'    {node_id}["{body}"]:::{cls}'
+def _chem_name(assay: AssayReport) -> str:
+    """The kit's human name (EFO words) when we have it, else its id — never a bare code alone."""
+    labels = assay.chemistry.assay_labels
+    if labels and labels[0].name:
+        return labels[0].name
+    return assay.chemistry.value[0] if assay.chemistry.value else "an unknown kit"
 
 
-def _dataset_hash(assay: AssayReport) -> str | None:
-    for key, val in assay.provenance:
-        if key == "dataset_hash":
-            return val
-    return None
+def _genome_short(assay: AssayReport) -> str:
+    genome = _plan_value(assay, "genome")
+    if not genome:
+        return "the reference genome"
+    return genome.split(" (")[0].split(" / ")[0]
 
 
-def _wiring_summary(assay: AssayReport) -> str:
-    """``R1: CB,UMI · R2: cDNA`` — each read and the ordered, de-duplicated roles packed into it."""
-    parts: list[str] = []
-    for read in assay.reads:
-        roles: list[str] = []
-        for el in read.elements:
-            if el.role not in roles:
-                roles.append(el.role)
-        if roles:
-            parts.append(f"{read.read_id}: {','.join(roles)}")
-    return " · ".join(parts)
-
-
-def flow_mermaid(assay: AssayReport) -> str:
-    """The Mermaid source for one assay's decision chain (a full ``flowchart TD`` document)."""
-    nodes: list[str] = []
-    edges: list[str] = []
-    chain: list[str] = []  # node ids, in order, to wire with arrows
-
-    def add(node_id: str, lines: list[str], cls: str) -> None:
-        nodes.append(_node(node_id, lines, cls))
-        chain.append(node_id)
-
-    n_files = assay.chemistry.n_files or assay.n_files
-    add("probe", ["probe", f"{n_files} files · bytes only" if n_files else "bytes only"], "step")
-
+def flow_steps(assay: AssayReport) -> list[FlowStep]:
+    """The ordered narrative steps for one assay's compile."""
+    steps: list[FlowStep] = []
     chem = assay.chemistry
+    chem_name = _chem_name(assay)
+    chem_id = chem.value[0] if chem.value else ""
+    n_files = chem.n_files or assay.n_files
+    n_samples = assay.n_samples
+    conf = f"{chem.confidence:.2f}" if chem.confidence is not None else "no single number"
+
+    # 1. The starting guess — only when there was prose or records to guess from.
+    if assay.has_prose or assay.has_records:
+        source = "the paper and database records" if assay.has_prose else "the database records"
+        steps.append(
+            FlowStep(
+                "What the humans said",
+                [f"{source} describe {n_samples} sample(s)"],
+                "a starting guess, never the answer",
+                "guess",
+            )
+        )
+
+    # 2. What the bytes actually contain.
+    steps.append(
+        FlowStep(
+            "What the files actually contain",
+            [
+                f"we open {n_files} FASTQ file(s) and measure read"
+                if n_files
+                else "we read the raw sequence and measure",
+                "lengths and which short barcodes repeat",
+            ],
+            "free — we are reading the bytes anyway",
+            "measured",
+        )
+    )
+
+    # 3. Which kit made the reads (the one evidenced decision). chem_id is kept verbatim so the exact
+    # KB id stays greppable in the rendered page (a contract the flow test checks).
     if chem.value:
-        head = chem.value[0] + ("  +more" if len(chem.value) > 1 else "")
-        conf = f"conf {chem.confidence:.2f}" if chem.confidence is not None else "conf n/a"
-        add("resolve", ["resolve", head, f"{conf} · rung {chem.rung}"], "artifact")
+        match_desc = [
+            "the read layout is matched to a known kit, then",
+            f"confirmed against its barcode list → {chem_id}",
+        ]
+        match_note = f"{chem_name} — decided by the bytes, {conf} confidence"
     else:
-        add("resolve", ["resolve", "no confident call"], "artifact")
+        match_desc = ["no kit fit the read layout confidently"]
+        match_note = "the bytes were ambiguous"
+    steps.append(FlowStep("Which kit made these reads", match_desc, match_note, "measured"))
 
     kind = assay.conclusion.kind
-
     if kind in ("compiled", "ir_ready"):
-        wiring = _wiring_summary(assay)
-        if wiring:
-            add("wiring", ["role wiring", wiring], "step")
-        h = _dataset_hash(assay)
-        manifest_lines = ["manifest"]
-        if h:
-            manifest_lines.append(f"hash {h[:8]}")
-        manifest_lines.append(f"{assay.n_samples} samples")
-        add("manifest", manifest_lines, "artifact")
-
+        steps.append(
+            FlowStep(
+                "Which files belong to which sample",
+                [
+                    f"the files are grouped into {n_samples} sample(s)",
+                    "and labelled with strain, tissue, stage, sex…",
+                ],
+                "from records and prose — disagreements left blank, never guessed",
+                "measured",
+            )
+        )
         if assay.plan is not None:
-            genome = _plan_value(assay, "genome")
-            genome_short = genome.split(" (")[0].split(" / ")[0] if genome else "genome"
-            feature = assay.plan.primary_feature or _plan_value(assay, "quantification") or "counts"
-            add("plan", ["plan", genome_short, _san(feature)], "artifact")
-
+            steps.append(
+                FlowStep(
+                    "How to process it",
+                    [f"align to {_genome_short(assay)} and", "count genes per cell"],
+                    "our processing choices — change these freely",
+                    "measured",
+                )
+            )
         if kind == "compiled":
-            add("compose", ["compose"], "step")
-            add("done", ["✓ Compiled", "Snakefile ready"], "output")
+            steps.append(
+                FlowStep(
+                    "✓ " + assay.conclusion.headline,
+                    ["a runnable Snakefile is ready"],
+                    "",
+                    "done",
+                )
+            )
         else:
-            add("done", ["Manifest ready", "not composed yet"], "output")
+            steps.append(FlowStep(assay.conclusion.headline, ["not composed yet"], "", "done"))
     elif kind == "blocker":
-        add("done", ["✗ Blocked", "compiler refused"], "blocked")
+        steps.append(
+            FlowStep("✗ " + assay.conclusion.headline, ["the compiler refused"], "", "blocked")
+        )
     else:  # question
-        add("done", ["? Needs a human", "an open question"], "ask")
-
-    for a, b in zip(chain, chain[1:], strict=False):  # consecutive pairs: last has no successor
-        edges.append(f"    {a} --> {b}")
-
-    lines = ["flowchart TD", *nodes, *edges, "", *(f"    {c}" for c in _CLASSDEFS)]
-    return "\n".join(lines)
+        steps.append(
+            FlowStep(
+                "? " + assay.conclusion.headline,
+                ["a human decision is needed"],
+                "the bytes could not settle it",
+                "ask",
+            )
+        )
+    return steps
 
 
 def _plan_value(assay: AssayReport, label: str) -> str | None:
@@ -124,4 +152,4 @@ def _plan_value(assay: AssayReport, label: str) -> str | None:
     return None
 
 
-__all__ = ["flow_mermaid"]
+__all__ = ["FlowStep", "StepKind", "flow_steps"]
