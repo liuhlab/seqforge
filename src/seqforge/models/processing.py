@@ -31,10 +31,16 @@ from .evidenced import EvidencedBool, EvidencedStr
 
 
 class GenomeRef(BaseModel):
-    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path."""
+    """liulab-genome selection: UCSC assembly id + a REGISTERED GTF name. Never a path.
+
+    ``annotation_name`` is ``None`` for a pipeline whose aligner index carries no gene model — chromap's
+    scATAC index is built from the FASTA alone, and the deliverable is a fragments file, not a count
+    matrix, so there is no GTF to name (and nothing would read it). Every counting pipeline (STAR /
+    STARsolo) requires it, which the processing policy enforces per-pipeline.
+    """
 
     assembly: str
-    annotation_name: str
+    annotation_name: str | None = None
     ncbi_taxid: NcbiTaxid | None = None
 
 
