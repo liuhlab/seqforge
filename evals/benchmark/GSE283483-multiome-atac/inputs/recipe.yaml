@@ -1,0 +1,7 @@
+# GSE283483 10x Multiome ATAC arm (SRR34104041), run from its byte-light fingerprint package on the
+# public HF repo. This is the case the real-data ATAC barcode-geometry finding (#90) came from — a 24bp
+# barcode read, 16bp CB at offset 8, reverse-complement, ARC-ATAC whitelist. Pulled anonymously only by
+# the opt-in benchmark job; unreachable => skip.
+generate:
+  kind: fingerprint
+  hf: packages/GSE283483-multiome-atac.fingerprint.tar.gz

@@ -1,0 +1,5 @@
+# GSE283483 10x Multiome GEX (snRNA) arm (SRR34104052), run from its byte-light fingerprint package on
+# the public HF repo. Pulled anonymously only by the opt-in benchmark job; unreachable => skip.
+generate:
+  kind: fingerprint
+  hf: packages/GSE283483-multiome-gex.fingerprint.tar.gz
