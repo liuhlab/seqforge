@@ -15,6 +15,14 @@
     "uri": "",
     "width": 16
   },
+  "737K-arc-v1-atac": {
+    "n_entries": 736320,
+    "orientation": "forward",
+    "sha256": "b34007ac73a5331a1b917f685216784da66f69a574a06a310122ee58d6e1eb62",
+    "source_sha256": "cbe850792aca4976a4dc22851a23832b9868bb85a15749aa95fef28b721b477a",
+    "uri": "",
+    "width": 16
+  },
   "737K-august-2016": {
     "n_entries": 737280,
     "orientation": "forward",

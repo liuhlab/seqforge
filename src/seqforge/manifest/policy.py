@@ -356,7 +356,12 @@ def resolve_processing(
             "seqforge will not guess: taxid -> preferred assembly (hg38 vs hg19 vs T2T) is a policy "
             "call, and that map belongs to liulab-genome."
         )
-    if ov.annotation_name is None:
+    # A GTF is required only by a pipeline whose index carries a gene model. chromap's scATAC index is
+    # built from the FASTA alone and the deliverable is a fragments file — there is nothing to count and
+    # nothing that reads an annotation — so the ATAC pipeline (its `AtacQuant` counting shape) composes
+    # with no annotation. Every counting pipeline still demands one.
+    needs_annotation = not isinstance(quant, AtacQuant)
+    if needs_annotation and ov.annotation_name is None:
         raise PolicyError(
             "no annotation: --annotation names a GTF REGISTERED with liulab-genome (e.g. WS298). "
             "It is a registry name, not something a paper writes, so there is nothing to infer."

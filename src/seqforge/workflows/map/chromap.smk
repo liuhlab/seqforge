@@ -137,10 +137,16 @@ rule chromap_align:
         reads1=lambda wc: commajoin(wc.sample, config["read_files_in"]["gdna1"]),
         reads2=lambda wc: commajoin(wc.sample, config["read_files_in"]["gdna2"]),
         barcodes=lambda wc: commajoin(wc.sample, config["read_files_in"]["barcode"]),
+        # The byte-decided barcode geometry: where the 16 bp cell barcode sits inside the barcode read
+        # and on which strand (`bc:START:END:STRAND`, 0-based inclusive). Derived by compose from the CB
+        # element coordinates + the ARC ATAC whitelist orientation, so `--preset atac`'s default
+        # `bc:0:15:+` never silently mis-reads the 10x Multiome ATAC lead-in + reverse-complement.
+        read_format=CHROMAP["read_format"],
     shell:
         r"""
         chromap --preset atac -t {threads} \
              -x {input.index} -r {input.fasta} \
+             --read-format {params.read_format} \
              -1 {params.reads1} -2 {params.reads2} -b {params.barcodes} \
              --barcode-whitelist {input.whitelist} \
              -o {output.fragments}

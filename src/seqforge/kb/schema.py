@@ -159,6 +159,14 @@ class OnlistHitRate(_Seg):
     onlist: str
     orientation: Orientation = "either"
     min: float
+    #: How far to slide the barcode window around ``start`` (± this many columns) when hunting the
+    #: whitelist hit. Default 2 absorbs sequencer phasing slack. A chemistry whose cell barcode sits
+    #: behind a constant lead-in of a length the archive does not pin (10x Multiome ATAC: an 8 bp
+    #: lead-in before the 16 bp barcode) widens this so the SAME spec resolves both the clean
+    #: 16 bp-at-0 deposit and the prefixed 24 bp one — the bytes locate the barcode, the spec never
+    #: pins the offset. The winning ``(offset, orientation)`` is recorded so the manifest, not the
+    #: spec, carries the geometry the composer emits.
+    offset_scan: int = Field(default=2, ge=0, le=32)
 
 
 class MotifPresent(_Forbid):

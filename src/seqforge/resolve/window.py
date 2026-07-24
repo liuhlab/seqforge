@@ -138,10 +138,20 @@ class WindowProbe:
         return [c for c in comps[start:stop]]
 
     def onlist_hit(
-        self, start: int, onlist: PackedOnlist, orientation: Orientation = "either"
+        self,
+        start: int,
+        onlist: PackedOnlist,
+        orientation: Orientation = "either",
+        offset_scan: int = 2,
     ) -> HitResult:
-        """Best whitelist hit anchored at ``start`` (width from the onlist), fwd + revcomp + offset scan."""
-        return onlist_hit_rate(self.seqs, start, onlist, orientation=orientation)
+        """Best whitelist hit anchored at ``start`` (width from the onlist), fwd + revcomp + offset scan.
+
+        ``offset_scan`` widens the ± column slide: the default 2 absorbs phasing slack; a barcode behind
+        a fixed lead-in (10x Multiome ATAC) sets it wide enough to reach the barcode from ``start``.
+        """
+        return onlist_hit_rate(
+            self.seqs, start, onlist, orientation=orientation, offset_scan=offset_scan
+        )
 
     def motif_rate(
         self,
