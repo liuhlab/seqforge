@@ -1,0 +1,21 @@
+# PRE-REGISTERED before the run — the fingerprint package (packages/GSE283483-multiome-atac.fingerprint.tar.gz)
+# awaits upload to the HF benchmark repo by an account with write access; until then `eval run` on this
+# case SKIPs (package unreachable), and this file records the prediction the run will be tested against.
+#
+# This is the case the real-data ATAC barcode-geometry finding (#90) came from: real 10x Multiome ATAC
+# is a 24bp barcode read = 8bp lead-in + 16bp CB at offset 8, reverse-complement, matching a DISJOINT
+# ARC-ATAC whitelist (not the GEX one). library.chemistry is what seqforge resolved from those bytes on
+# arc at the `predicts` versions (SRR34104041); experiment.organism is from the BioSample record.
+# A regression that reverts the geometry fix drops this back to `bulk-rnaseq-pe`, turning the case red.
+outcome: decide
+description: >-
+  Benchmark: GSE283483 10x Multiome ATAC arm (SRR34104041) resolved from its fingerprint package — the
+  first non-STARsolo pipeline (map/chromap) reached from bytes, and the real-data guard for the ATAC
+  barcode geometry (24bp read, CB at offset 8, reverse-complement, ARC-ATAC whitelist).
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: 10x-multiome-atac
+  experiment.organism: 10090

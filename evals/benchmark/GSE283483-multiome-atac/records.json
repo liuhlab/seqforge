@@ -1,0 +1,224 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR34104041",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1192296",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Michael E. Greenberg, Neurobiology, Harvard Medical School",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "raw sequence reads",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2024-11-29",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Novel environment exposure drives temporally defined and region-specific chromatin accessibility and gene expression programs in the hippocampus"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Curiosity-driven interactions with novel cues in our environment represent a common behavioral trait across the animal kingdom. Exposure to a novel environment (NE) reshapes the brain via structural and functional changes in multiple brain areas, including the hippocampus. This experience-dependent circuit reorganization is thought to be driven in part by changes in gene expression. While substantial progress has been made in generating atlases of cell-type-specific gene expression and chromatin state, these datasets largely reflect conditions in naive animals, thereby missing transient gene expression programs induced by salient environmental stimuli. NE exposure, for example, has been shown to rapidly induce the expression of Fos and other immediate-early gene transcription factors (IEG TFs). However, the downstream IEG-driven genes (e.g. late response genes, LRGs) that serve to mediate NE-dependent circuit remodeling, as well as the genomic elements that drive the expression of these genes, remain largely unexplored. We employed a combination of single-nucleus multiomics and bulk RNA sequencing of the hippocampal DG, CA3, and CA1 regions to characterize the temporal evolution of cell-type-specific NE-driven gene expression and chromatin accessibility patterns downstream of IEG induction. We observe strong hippocampal regional specificity in excitatory neuron LRG programs, as well as diversity in the inhibitory neuron and non-neuronal transcriptional responses. LRGs were particularly enriched for secreted factors, where we observed cell type-specific expression of their receptors in our snRNA-seq data. These ligands and their cognate receptors represent promising candidates for future study to examine their region- and cell-type-specific effects on learning and memory. In addition, compared to a short exposure, prolonged exposure to NE caused more robust induction of late-response genes, suggesting that sustained environmental stimulation is more effective at triggering the long-lasting molecular changes that support memory formation. In addition, chromatin-level analyses revealed thousands of cell-type-specific changes in chromatin accessibility in response to NE exposure. Coordinated analysis of both chromatin accessibility and gene expression within individual cells revealed the Fos/AP-1 motif as a major predictor of neuronal cell-type-specific LRG expression, suggesting that AP-1 TFs play a regulatory role in NE-driven neuronal gene expression patterns. Together, these data provide a rich resource of hippocampal chromatin accessibility and gene expression profiles in response to novel experience, a physiological stimulus that affects learning and memory."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN49535558",
+      "parent": "PRJNA1192296",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "center_name",
+          "value": "Michael E. Greenberg, Neurobiology, Harvard Medical School",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "hippocampus",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "C56BL/6J",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "hippocampus",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "treatment",
+          "value": "6 h NE",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM9059634"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX29292219",
+      "parent": "SAMN49535558",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "ATAC-seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "GENOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "other",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina NovaSeq X",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM9059634: sn_ATAC_6h_longEE_rep2; Mus musculus; ATAC-seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM9059634_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM9059634"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR34104041",
+      "parent": "SRX29292219",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9059634_r1"
+        }
+      ],
+      "filenames": [
+        "250220_snATAC_EE6h_03_bc1_R1_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc1_R2_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc1_R3_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR34104042",
+      "parent": "SRX29292219",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9059634_r2"
+        }
+      ],
+      "filenames": [
+        "250220_snATAC_EE6h_03_bc2_R1_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc2_R2_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc2_R3_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR34104043",
+      "parent": "SRX29292219",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9059634_r3"
+        }
+      ],
+      "filenames": [
+        "250220_snATAC_EE6h_03_bc3_R1_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc3_R2_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc3_R3_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR34104051",
+      "parent": "SRX29292219",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9059634_r4"
+        }
+      ],
+      "filenames": [
+        "250220_snATAC_EE6h_03_bc4_R1_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc4_R2_001.fastq.gz",
+        "250220_snATAC_EE6h_03_bc4_R3_001.fastq.gz"
+      ]
+    }
+  ]
+}
