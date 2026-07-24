@@ -51,7 +51,7 @@ RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
 """Every backend param sourced from the processing manifest. Each says what to **COUNT**."""
 
 DERIVED_PARAM_KEYS: frozenset[str] = frozenset(
-    {"soloCBposition", "soloUMIposition", "soloAdapterSequence"}
+    {"soloCBposition", "soloUMIposition", "soloAdapterSequence", "read_format"}
 )
 """Params computed from the element model rather than declared by anyone.
 
@@ -60,6 +60,12 @@ the spec's element coordinates, so a KB that *also* declared the quadruple would
 twice and let the two drift. A third owner, because "one fact, one owner" is the whole point of
 :func:`param_owners`; folding these into ``kb`` would make the gate certify a value the KB never
 stated.
+
+``read_format`` is chromap's analog of the STARsolo position quadruple: the cell barcode's
+within-read placement (start, width) and strand, read off the CB element and the barcode onlist's
+orientation. 10x Multiome ATAC carries the 16 bp barcode behind an 8 bp lead-in and reverse-complemented
+vs the whitelist, so ``--read-format bc:8:23:-`` is what chromap needs — and, being a fact the element
+coordinates already state, it is derived here rather than declared in ``backend.params``.
 
 ``soloAdapterSequence`` joined this set for BD Rhapsody Enhanced (#43): an anchored chemistry's
 diversity insert is absorbed by STARsolo's adapter anchor, and the adapter (``NNN…GTGANNN…GACA``) is
@@ -93,6 +99,11 @@ def derived_params(spec: Spec) -> dict[str, str]:
     elements' positional order.
     """
     backend = spec.require_backend()
+    # chromap expresses barcode geometry through `--read-format`, the way STARsolo expresses it through
+    # the position quadruple below — dispatched on the module's declared `param_block`, never its name
+    # (a name compare is the `_read_files_in` bug this file's guard forbids).
+    if get_module(backend.module).param_block == "chromap":
+        return _chromap_read_format(spec)
     if backend.params.get("soloType") != "CB_UMI_Complex":
         return {}
 
@@ -127,6 +138,30 @@ def derived_params(spec: Spec) -> dict[str, str]:
     if umi_pos is not None:
         out["soloUMIposition"] = umi_pos
     return out
+
+
+def _chromap_read_format(spec: Spec) -> dict[str, str]:
+    """chromap's ``--read-format bc:START:END:STRAND`` for a barcoded ATAC chemistry, from the CB element.
+
+    The barcode's within-read placement is byte-decided and already stated in the element coordinates —
+    exactly like STARsolo's ``soloCBposition`` — so it is DERIVED here, never declared in
+    ``backend.params``. ``START``/``END`` are 0-based **inclusive** (chromap's convention; the element
+    model is half-open ``[start, end)``, hence ``end - 1``). ``STRAND`` is ``-`` when the barcode is
+    carried reverse-complemented vs the whitelist (the onlist's ``expected_orientation``) — 10x Multiome
+    ATAC's case, where the 16 bp barcode sits behind an 8 bp lead-in and matches the ARC ATAC list only
+    reverse-complemented — else ``+``. Only ``bc`` is emitted: the two genomic mates are full-length, so
+    chromap's default ``r1``/``r2`` framing already reads them end to end.
+    """
+    cb: Element | None = None
+    for read in spec.reads:
+        for el in read.elements:
+            if el.type == "barcode" and el.start is not None and el.end is not None:
+                cb = el
+    if cb is None or cb.start is None or cb.end is None:
+        return {}
+    ref = spec.onlists.get(cb.onlist) if cb.onlist else None
+    strand = "-" if (ref is not None and ref.expected_orientation == "revcomp") else "+"
+    return {"read_format": f"bc:{cb.start}:{cb.end - 1}:{strand}"}
 
 
 def _whitelist_aliases(whitelist: object) -> list[str]:

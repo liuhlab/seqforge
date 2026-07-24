@@ -2,15 +2,15 @@ schema_version: 1
 
 identity:
   id: 10x-multiome-atac
-  version: "1"
+  version: "2"
   name: "10x Chromium Single Cell Multiome ATAC + Gene Expression (ATAC arm)"
   aliases: ["10x Multiome ATAC", "10x ARC ATAC", "Chromium Multiome ATAC", "Multiome scATAC"]
   assay_ontology: ["EFO:0030059"]        # 10x multiome (ARC) kit — this is its scATAC arm
   modality: atac
 
 reads:
-  # THREE reads, which is the structural break from every 2-read scRNA chemistry: two GENOMIC mates
-  # (Tn5-inserted fragment ends) and a separate cell-barcode read. R1 = genomic, open-ended.
+  # THREE reads, the structural break from every 2-read scRNA chemistry: two GENOMIC mates (Tn5-inserted
+  # fragment ends) and a separate cell-barcode read. R1 = genomic, open-ended.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
@@ -19,17 +19,26 @@ reads:
     max_len: null
     elements:
       - {type: gdna, name: gdna1, start: 0, end: null, seqspec_region_type: gdna}
-  # R2 = the 16 bp cell barcode read (10x ARC bead barcode). NO UMI — ATAC has none, so the barcode
-  # read is 16 bp, not the 28 bp (16 CB + 12 UMI) of the 10x scRNA family. That length is the second
-  # structural discriminator after the read count.
+  # R2 = the cell-barcode read. The 16 bp ARC bead barcode is NOT at column 0: as deposited in SRA the
+  # read is 8 bp of constant lead-in + the 16 bp barcode (24 bp total), and the barcode matches the ARC
+  # ATAC whitelist only in REVERSE COMPLEMENT (the ARC ATAC list is a disjoint set from the GEX list —
+  # not its revcomp — so the arm needs its own `737K-arc-v1-atac` list, oriented for ATAC reads). The
+  # lead-in length is not something the archive pins, so the barcode OFFSET is discovered by the byte
+  # scan (`offset_scan`), never asserted by the spec: a clean 16 bp-at-0 deposit and this prefixed 24 bp
+  # one resolve through the SAME spec, and the manifest — not the spec — records the offset+orientation
+  # the composer emits. `min_len: 16` admits the clean form; `max_len: 24` the prefixed one.
   - id: R2
     seqspec_read_id: R2
     file_hint: "_R2_"
     strand: pos
     min_len: 16
-    max_len: 16
+    max_len: 24
     elements:
-      - {type: barcode, name: CB, start: 0, end: 16, onlist: atac_whitelist, seqspec_region_type: barcode}
+      # The constant lead-in — modelled so the round-trip generates the real 8 bp+16 bp geometry and the
+      # probe sees a constant [0:8] before the diverse barcode. The literal sequence drives synthesis
+      # only; real detection never depends on it (the byte scan locates the barcode by whitelist hit).
+      - {type: linker, name: bc_leadin, start: 0, end: 8, sequence: "CAGACGCG", seqspec_region_type: linker}
+      - {type: barcode, name: CB, start: 8, end: 24, onlist: atac_whitelist, seqspec_region_type: barcode}
   # R3 = the second genomic mate, open-ended.
   - id: R3
     seqspec_read_id: R3
@@ -41,20 +50,18 @@ reads:
       - {type: gdna, name: gdna2, start: 0, end: null, seqspec_region_type: gdna}
 
 onlists:
-  atac_whitelist:                 # used by the chromap backend + the positive supports test
-    registry: 737K-arc-v1         # the Multiome (ARC) barcode list — shared with the GEX arm
+  atac_whitelist:                 # the ATAC-oriented ARC list — DISTINCT from the GEX `737K-arc-v1`
+    registry: 737K-arc-v1-atac    # (disjoint barcode set; the GEX list never hits an ATAC read)
     role: atac_barcode
-    expected_orientation: forward
+    expected_orientation: revcomp # ARC ATAC reads carry the barcode reverse-complemented vs the list
 
 signature:
-  requires:                       # hard structural gates, rungs 0-2 friendly
-    - {test: read_count, roles: 3}                          # two genomic + one barcode read
-    - {test: segment_length, read: R2, length: 16, tolerance: 0}   # 16 bp barcode read, no UMI
-    - {test: has_segment, read: R2, start: 0, end: 16, kind: random}
-  supports:                       # additive evidence (rung 3+)
-    - when: {test: onlist_hit_rate, read: R2, start: 0, end: 16, onlist: atac_whitelist, orientation: forward, min: 0.6}
-      weight: 5.0                 # the ARC whitelist hitting the barcode read is the positive signal
-    - when: {test: distinct_ratio, read: R2, start: 0, end: 16, expect: low}
+  requires:                       # hard structural gate: three reads (two genomic + one barcode)
+    - {test: read_count, roles: 3}
+  supports:                       # additive evidence (rung 3+); the whitelist hit IS the positive ID
+    - when: {test: onlist_hit_rate, read: R2, element: CB, onlist: atac_whitelist, orientation: either, offset_scan: 8, min: 0.6}
+      weight: 5.0                 # the ARC ATAC whitelist hitting the barcode window, at any lead-in offset, either strand
+    - when: {test: distinct_ratio, read: R2, element: CB, expect: low}
       weight: 2.0                 # cell barcode recurs -> low distinct ratio
     - when: {test: distinct_ratio, read: R1, start: 0, end: 20, expect: high}
       weight: 1.0                 # genomic read is diverse -> the biological role is scored, not left at 0
@@ -62,13 +69,13 @@ signature:
       weight: 1.0
     - when: {test: header_index, present: true}
       weight: 0.2
-  excludes: []                    # a 3-read, 16 bp-barcode layout is not confusable with any current spec
+  excludes: []
 
 backend:
   module: map/chromap             # the SECOND aligner — validates against chromap's parse namespace
   params:
-    # The one byte-decided parse knob: the barcode whitelist chromap corrects the cell barcode against
-    # (its `--barcode-whitelist`), resolved through the same {onlist:<alias>} mechanism as STARsolo's
-    # soloCBwhitelist. Everything else chromap needs is a fixed module detail (--preset atac, hardcoded
-    # in chromap.smk) or read geometry the manifest already states (read_files_in), so it is NOT here.
+    # The barcode whitelist chromap corrects the cell barcode against (`--barcode-whitelist`), resolved
+    # through the same {onlist:<alias>} mechanism as STARsolo's soloCBwhitelist. The barcode's OFFSET and
+    # STRAND within the read are NOT here — they are byte-discovered and travel in the manifest read
+    # geometry, which the composer renders into chromap's `--read-format bc:START:END:STRAND`.
     barcode_whitelist: "{onlist:atac_whitelist}"

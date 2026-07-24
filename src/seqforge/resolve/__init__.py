@@ -65,7 +65,7 @@ from __future__ import annotations
 #: semantics change, so candidate VALUES are byte-identical — but the write is a resolver behaviour, so
 #: the version bump re-keys `ds_id` and datasets re-resolve once (cheap: N=2000, no LLM) to populate it.
 #: `dataset_hash` (the manifest's identity) does not fold RESOLVE_VERSION and is unaffected.
-RESOLVE_VERSION = "2026.7.13"
+RESOLVE_VERSION = "2026.7.14"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

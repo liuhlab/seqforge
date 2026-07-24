@@ -44,7 +44,7 @@ from .schema import Spec
 #: BD Rhapsody Enhanced bead (variable 0-3 bp diversity insert). New `diversity` element type + per-
 #: element anchors; the family recognizes the GTGA/GACA frame by motif; leaves split on onlist (97 vs
 #: 384 CLS pools, disjoint). Ships bd-rhapsody-cls{1,2,3}-384; -96 reuses the original bead's lists.
-KB_VERSION = "2026.7.6"
+KB_VERSION = "2026.7.7"
 
 __all__ = [
     "KB_VERSION",

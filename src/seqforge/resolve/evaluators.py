@@ -208,7 +208,9 @@ def _eval_onlist(
         hit = wp.anchored_onlist_hit(read, anchored.name, packed, orientation=test.orientation)
     else:
         start, _ = _window_for(test, read)
-        hit = wp.onlist_hit(start, packed, orientation=test.orientation)
+        hit = wp.onlist_hit(
+            start, packed, orientation=test.orientation, offset_scan=test.offset_scan
+        )
     outcome = Outcome.PASS if hit.hit_rate >= test.min else Outcome.FAIL
     detail = f"hit={hit.hit_rate:.2f} min={test.min} {hit.orientation}@Δ{hit.offset} floor={hit.floor:.1e}"
     return Evaluation(outcome, hit.score(test.min), detail, used_onlist=True)
@@ -250,7 +252,9 @@ def onlist_admits_over_length(
         hit = wp.anchored_onlist_hit(read, anchored.name, packed, orientation=test.orientation)
     else:
         start, _ = _window_for(test, read)
-        hit = wp.onlist_hit(start, packed, orientation=test.orientation)
+        hit = wp.onlist_hit(
+            start, packed, orientation=test.orientation, offset_scan=test.offset_scan
+        )
     bar = max(_OVERLENGTH_ADMISSION_MIN, hit.floor * _OVERLENGTH_ADMISSION_FLOOR_MULT)
     return hit.hit_rate >= bar
 
