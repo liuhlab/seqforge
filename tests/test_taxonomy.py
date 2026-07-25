@@ -69,6 +69,25 @@ def test_taxonomy_get_does_not_retry_a_terminal_status(monkeypatch: pytest.Monke
         taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0)
 
 
+def test_fetch_taxon_wraps_a_terminal_http_error_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transient NCBI efetch failure is unreachability, not a false verdict.
+
+    The round-trip verify calls `fetch_taxon`; a terminal HTTPError there (NCBI answering 400/5xx on
+    an otherwise valid efetch) must surface as `TaxonomyUnavailable("... failed ...")` so `_net`
+    treats it as a skip, not a raw urllib error that reddens CI. Regression guard for CI #148.
+    """
+
+    def fake_urlopen(url: str, timeout: object = None) -> object:
+        raise urllib.error.HTTPError(url, 400, "bad request", {}, None)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    with pytest.raises(TaxonomyUnavailable, match="failed"):
+        taxonomy.fetch_taxon(6239, timeout=1.0)
+
+
 def test_an_unseeded_name_refuses_offline_rather_than_guessing() -> None:
     with pytest.raises(TaxonomyUnavailable, match="--organism <taxid>"):
         resolve("Nematostella vectensis", offline=True)

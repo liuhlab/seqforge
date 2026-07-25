@@ -121,7 +121,13 @@ def _get(url: str, *, timeout: float) -> str:
 
 def fetch_taxon(taxid: int, *, timeout: float = 20.0) -> Taxon:
     """What NCBI says taxid ``taxid`` is. The second half of the round trip."""
-    xml = _get(f"{_EUTILS}/efetch.fcgi?db=taxonomy&id={taxid}&retmode=xml", timeout=timeout)
+    try:
+        xml = _get(f"{_EUTILS}/efetch.fcgi?db=taxonomy&id={taxid}&retmode=xml", timeout=timeout)
+    except Exception as exc:  # network, HTTP status, or shape - all mean "we could not ask NCBI"
+        # Mirror resolve's esearch handling: a terminal HTTPError (e.g. a transient NCBI 400/5xx on the
+        # efetch) must surface as TaxonomyUnavailable("... failed ..."), not a raw urllib error. The
+        # round-trip is a networked best-effort — an unreachable NCBI is a skip, never a false failure.
+        raise TaxonomyUnavailable(f"NCBI taxonomy fetch for taxid {taxid} failed: {exc}") from exc
     sci = re.search(r"<ScientificName>(.*?)</ScientificName>", xml)
     if not sci:
         raise TaxonomyUnavailable(f"NCBI returned no scientific name for taxid {taxid}")
