@@ -12,7 +12,6 @@ import gzip
 import json
 import random
 import resource
-import shutil
 import sys
 from pathlib import Path
 
@@ -114,7 +113,6 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
     assert v["recovery_rate"] == 0.5
 
 
-@pytest.mark.skipif(shutil.which("STAR") is None, reason="STAR not installed (Linux/cluster only)")
 # --------------------------------------------------------------------------------------------
 # the gates must run the SHIPPED module, not a private copy of its command line
 # --------------------------------------------------------------------------------------------
