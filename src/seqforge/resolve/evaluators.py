@@ -62,8 +62,8 @@ def _window_for(test: object, read: Read) -> tuple[int, int | None]:
     """Resolve a test's FIXED target window from ``element`` name XOR explicit ``(start, end)``.
 
     Only valid for fixed-offset elements. A **floating** element has no constant window — its per-read
-    frame is resolved by :meth:`WindowProbe.anchored_windows`, and the callers below route to it via
-    :func:`_anchored_element` before ever reaching here.
+    frame is resolved by :meth:`WindowProbe._frames`, and the callers below route to the ``anchored_*``
+    methods via :func:`_anchored_element` before ever reaching here.
     """
     element = getattr(test, "element", None)
     if element is not None:
