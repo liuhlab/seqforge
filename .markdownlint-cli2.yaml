@@ -7,7 +7,11 @@
 #
 # Scope is deliberate: the docs site, the KB assay READMEs that render into it, and the top-level
 # README — the prose a person reads. It does NOT lint the agent-facing files (CLAUDE.md, AGENTS.md,
-# docs/design.md), whose format serves a different reader.
+# docs/design.md, docs/agents/, docs/adr/), whose format serves a different reader.
+#
+# The `ignores:` list below and `mkdocs.yml`'s `exclude_docs:` are the SAME list — "under docs/, but
+# agent-facing and off the site". Anything added to one belongs in the other; they drifted once
+# already (agents/ and adr/ were excluded from the site but still linted, turning CI red).
 #
 # Runs in CI (.github/workflows/ci.yml, the `markdown` job) and locally as a pre-commit hook.
 
@@ -27,6 +31,12 @@ globs:
 ignores:
   # Agent-facing internal design doc — excluded from the site, and not written to docs-page rules.
   - "docs/design.md"
+  # Engineering-skill configuration (issue tracker, triage labels, domain-doc layout) and the ADRs.
+  # Both are excluded from the site by mkdocs for the same reason design.md is, so both are excluded
+  # here too. `docs/adr/**` is deliberately listed before the directory exists — the first ADR must
+  # not be the commit that turns CI red.
+  - "docs/agents/**"
+  - "docs/adr/**"
   # The KB assay pages are one-line snippet-include wrappers (they pull in the canonical README next
   # to each spec.yaml); there is no prose of their own to lint. The README they include IS linted,
   # directly, via the specs glob above.
