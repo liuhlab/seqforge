@@ -130,7 +130,19 @@ class ReadNameGrammar(BaseModel):
 
 
 class GzipIntegrity(BaseModel):
-    """Gzip stream integrity. ``truncated`` -> TRUNCATED_GZIP Blocker downstream."""
+    """Gzip stream integrity — **two** verdicts, never both true, each with its own Blocker.
+
+    ``truncated`` means the bytes ran out mid-member (a cut upload, or the bounded range-read head a
+    remote probe takes by design) -> ``TRUNCATED_GZIP``, remedied by re-downloading. ``ok=False``
+    means the stream is not readable gzip at all — a header that does not parse, a corrupt member, a
+    CRC that disagrees with what came out -> ``CORRUPT_FASTQ``, remedied by asking whether it was ever
+    a FASTQ. Which applies is decided by what the decompressor raised, not by a record count
+    (``probe.streaming.BoundedReader``); the two collapsed into ``truncated`` until issue #94, leaving
+    ``ok`` unreachable and both remedies spelled as one.
+
+    A well-formed slice cannot recompute this about the file it stands in for, which is why a
+    fingerprint pins it (``models.fingerprint.FilePin.gzip``) rather than re-observing it.
+    """
 
     ok: bool
     truncated: bool

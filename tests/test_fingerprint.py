@@ -253,6 +253,30 @@ def test_a_replay_stopped_by_its_own_budget_does_not_inherit_a_cut_beyond_it(
     assert not probe_file(paths[0], max_reads=100).gzip.truncated
 
 
+def test_a_package_lighter_than_the_probe_budget_cannot_answer_for_the_cut(tmp_path: Path) -> None:
+    """Where agreement stops, pinned — the boundary beside the guarantee, not left to be discovered.
+
+    A package cut at N < the run's read budget never read the records the run would, so it cannot
+    report a cut that lies among them: the replay reaches the slice's end, and the pin says the slice
+    ends because N ran out. This is the same limitation :attr:`FilePin.reads_written` already carries
+    for every other signal — "fewer reads = a different observation" — and it is why the field exists
+    and why ``preflight`` defaults N to the probe budget rather than something smaller.
+
+    It is detectable, which is what keeps it a limitation rather than a trap: ``reads_written`` is in
+    the pin, so a consumer can see the package is lighter than the budget it is being replayed under.
+    """
+    paths, _ = _synth_dataset(tmp_path, n=800)
+    _cut(paths[0])
+    light = build_fingerprint(paths, workspace=tmp_path, reads=100, name="light")
+    loaded = load_fingerprint(light.staging)
+
+    sp, probed = probed_from_fingerprint(loaded, max_reads=2_000)
+    assert probe_file(paths[0], max_reads=2_000).gzip.truncated  # the full path sees the cut...
+    assert not probed[str(sp[0])][0].gzip.truncated  # ...and 100 records cannot.
+    # The one thing that must not be silent: the package says how little it holds.
+    assert all(pin.reads_written < 2_000 for pin in loaded.manifest.files)
+
+
 def test_a_damaged_slice_is_never_masked_by_a_clean_pin(tmp_path: Path) -> None:
     """The pin describes the original; it is not licence to ignore what the package actually holds.
 

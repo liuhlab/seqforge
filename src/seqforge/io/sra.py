@@ -295,8 +295,9 @@ def build_fingerprint_sra(
                     isize=None,
                     reads_written=len(mate.records),
                     estimated_total_reads=obs.estimated_total_reads,
-                    # Why this slice ends: a spot budget or the run itself, never a cut — the records
-                    # arrive already parsed and are re-serialized here, so there is no member to cut.
+                    # Why this slice ends, under the same rule the local producer uses: the verdict of
+                    # the read that cut it. Here that read is over bytes this process serialized from
+                    # already-parsed spots, so it is clean — the rule is shared, not the answer.
                     gzip=obs.gzip,
                 )
             )
