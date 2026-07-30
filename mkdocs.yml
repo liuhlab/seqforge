@@ -73,8 +73,15 @@ nav:
 # documentation: a pushback appendix, a list of genomics values explicitly marked "unverified — do
 # not ship without checking", and the held-out acceptance case. Publishing those under a docs URL
 # would present open questions as settled guidance. Read it in the repo, where its status is obvious.
+#
+# Same argument, two more agent-facing trees: `agents/` is engineering-skill configuration (which
+# tracker, which labels, which doc layout) and `adr/` is internal decision record. Neither is
+# end-user guidance, and both would read as settled advice under a docs URL. They stay in the repo,
+# where their status is obvious.
 exclude_docs: |
   design.md
+  agents/
+  adr/
 
 markdown_extensions:
   - admonition
