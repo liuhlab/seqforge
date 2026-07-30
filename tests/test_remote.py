@@ -21,6 +21,7 @@ import zlib
 
 import pytest
 
+from conftest import range_server
 from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
@@ -429,33 +430,6 @@ def test_zlib_wbits_31_is_the_gzip_incantation() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def _range_server(blobs: dict[str, bytes], *, status: int = 206) -> object:
-    """A fake ``requests.get`` that serves a 206 Range slice of ``blobs[url]`` with a Content-Range.
-
-    Honors ``Range: bytes=0-N`` exactly as ENA does, so a bounded read returns a bounded prefix and the
-    206's ``Content-Range: .../TOTAL`` carries the true file size. ``status=200`` simulates a host that
-    ignores Range and hands back the whole file — the case ``_range_get`` must refuse.
-    """
-
-    def fake_get(
-        url: str,
-        headers: dict[str, str] | None = None,
-        timeout: object = None,
-        stream: object = None,
-    ) -> object:
-        data = blobs[url]
-        match = re.search(r"bytes=0-(\d+)", (headers or {}).get("Range", ""))
-        chunk = data[: int(match.group(1)) + 1] if match else data
-        return types.SimpleNamespace(
-            status_code=status,
-            content=chunk,
-            headers={"Content-Range": f"bytes 0-{max(0, len(chunk) - 1)}/{len(data)}"},
-            close=lambda: None,
-        )
-
-    return fake_get
-
-
 def test_fastq_targets_pairs_each_url_with_its_md5() -> None:
     """ENA's fastq_ftp and fastq_md5 are index-aligned; the join is positional. This is the one place a
     URL and its content hash arrive together, which is what lets the remote probe key on the md5."""
@@ -528,7 +502,7 @@ def test_probe_remote_fingerprints_from_a_url_using_the_provider_md5(
     data = _fastq_gz(400, read_len=90)
     md5 = hashlib.md5(data).hexdigest()
     url = "https://ftp.x/vol1/SRR1_2.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5=md5)
 
@@ -548,7 +522,7 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     size_bytes is the true total (from Content-Range) rather than the bytes read."""
     data = _fastq_gz(5000, read_len=90)
     url = "https://ftp.x/big.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
 
@@ -566,7 +540,7 @@ def test_probe_remote_without_md5_derives_a_bounded_remote_key(
     basename + size + head, a valid 64-hex address that reads no whole file."""
     data = _fastq_gz(100, read_len=50)
     url = "https://ftp.x/nomd5.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, _seqs = probe_remote(url)
 
@@ -580,7 +554,7 @@ def test_probe_remote_refuses_a_host_that_ignores_range(monkeypatch: pytest.Monk
     does. 'Bounded' means bounded by the server, not by our intentions."""
     data = _fastq_gz(10)
     url = "https://ftp.x/whole.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}, status=200))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}, status=200))
 
     with pytest.raises(RemoteError, match="answered 200"):
         probe_remote(url, md5="a" * 32)

@@ -8,10 +8,10 @@ Conflict (a human decides); the strongest case — nothing matches AND the assay
 
 from __future__ import annotations
 
-import gzip
 import json
 from pathlib import Path
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.cli.manifest import _dataset_document_texts, _fill_manifest_pipeline
 from seqforge.kb.loader import load_all_specs
@@ -203,12 +203,6 @@ def test_a_quiet_paper_naming_no_accession_and_no_conflicting_claim_is_fine() ->
     assert blockers == []
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
 def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: Path) -> None:
     """End-to-end: one dataset's FASTQs + another study's paper -> the fill pipeline stops at exit 4.
 
@@ -229,7 +223,7 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
     fastqs = []
     for rid, seqs in reads.items():
         p = tmp_path / f"SRRfake_{rid}.fastq.gz"
-        _write_fastq_gz(p, seqs)
+        write_fastq_gz(p, seqs)
         fastqs.append(p)
 
     # The dataset's own records: worm, N2, PRJNA111111 — nothing the wrong paper names.

@@ -8,17 +8,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.kb.schema import Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
 from seqforge.probe.signals import distinct_ratio, window_bases
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def test_10x_spec_loads_and_validates() -> None:
@@ -68,7 +63,7 @@ def test_roundtrip_10x_geometry(tmp_path: Path) -> None:
     assert all(len(s) == 28 for s in r1)  # declared 16 CB + 12 UMI
 
     obs_path = tmp_path / "R1.fastq.gz"
-    _write_fastq_gz(obs_path, r1)
+    write_fastq_gz(obs_path, r1)
     obs = probe_file(obs_path)
 
     # probe recovers the declared 28 bp geometry; R1 has no internal linker (all-random)
@@ -317,7 +312,6 @@ def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> 
     lists — exactly what a real GSE274290 run carries. If this ever regresses to `bulk-rnaseq-pe`, the
     onlist is not reaching the scorer and BD Rhapsody datasets would compile as bulk.
     """
-    import gzip
     import random
 
     from seqforge.io import DEFAULT_REGISTRY
@@ -424,8 +418,8 @@ def test_bd_enhanced_resolves_to_the_right_leaf_from_bytes(
     r1 = _enhanced_r1(pools, 800, rng)
     r2 = ["".join(rng.choice("ACGT") for _ in range(90)) for _ in range(800)]
     f1, f2 = tmp_path / "enh_R1.fastq.gz", tmp_path / "enh_R2.fastq.gz"
-    _write_fastq_gz(f1, r1)
-    _write_fastq_gz(f2, r2)
+    write_fastq_gz(f1, r1)
+    write_fastq_gz(f2, r2)
 
     out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
     assert out.result.candidates, "Enhanced reads must resolve to a candidate"
@@ -475,8 +469,8 @@ def test_bd_v1_and_enhanced_are_told_apart_from_the_bytes(tmp_path: Path) -> Non
 
     def _resolve(r1: list[str]) -> str:
         f1, f2 = tmp_path / "a_R1.fastq.gz", tmp_path / "a_R2.fastq.gz"
-        _write_fastq_gz(f1, r1)
-        _write_fastq_gz(f2, r2)
+        write_fastq_gz(f1, r1)
+        write_fastq_gz(f2, r2)
         out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
         assert out.result.candidates
         return out.result.candidates[0].technology
@@ -535,7 +529,7 @@ def _probes_for(spec: Spec, workdir: Path) -> list[object]:
     out: list[object] = []
     for read_id, seqs in reads.items():
         path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
-        _write_fastq_gz(path, seqs)
+        write_fastq_gz(path, seqs)
         out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
     return out
 

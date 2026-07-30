@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 import random
 from pathlib import Path
@@ -10,16 +9,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from conftest import write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 
 runner = CliRunner()
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def _real_cbs(n: int) -> list[str]:
@@ -113,8 +107,8 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     filled = runner.invoke(
         app,
@@ -203,8 +197,8 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app,
@@ -269,8 +263,8 @@ def test_run_defaults_fastq_dir_to_the_common_root_for_a_subdir_layout(tmp_path:
     sub = tmp_path / "SRX9"
     sub.mkdir()
     f1, f2 = sub / "s_R1.fastq.gz", sub / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app,
@@ -297,8 +291,8 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app, ["run", str(f1), str(f2), "--organism", "559292", "--no-llm", "-C", str(tmp_path)]
@@ -350,8 +344,8 @@ def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None
     data.mkdir()
     f1 = data / "s_R1.fastq.gz"
     f2 = data / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     def hash_with(cpus: int, ws: Path) -> str:
         ws.mkdir()
@@ -453,8 +447,8 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     f1 = tmp_path / "R1.fastq.gz"
     f2 = tmp_path / "R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
     result = runner.invoke(
         app, ["resolve", "score", str(f1), str(f2), "-C", str(tmp_path), "--no-cache"]
     )
@@ -713,7 +707,7 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
         run_dir.mkdir(parents=True)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = run_dir / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             paths.append(str(p))
 
     filled = runner.invoke(
@@ -779,7 +773,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=400, seed=0)
     for k in ("R1", "R2"):
-        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
     filled = runner.invoke(
         app,
         [
@@ -855,7 +849,7 @@ def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> 
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=400, seed=0)
     for k in ("R1", "R2"):
-        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
     runner.invoke(
         app,
         [

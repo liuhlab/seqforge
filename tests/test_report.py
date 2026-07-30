@@ -8,7 +8,6 @@ the collector degrades honestly when a piece is missing rather than crashing or 
 
 from __future__ import annotations
 
-import gzip
 import json
 import re
 import shutil
@@ -17,18 +16,13 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 
 runner = CliRunner()
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def _build_bulk_workspace(tmp_path: Path) -> Path:
@@ -41,8 +35,8 @@ def _build_bulk_workspace(tmp_path: Path) -> Path:
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
     result = runner.invoke(
         app,
         [

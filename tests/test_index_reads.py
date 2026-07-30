@@ -10,11 +10,11 @@ validate -> compose path on synthetic reads, so the whole chain is exercised, no
 
 from __future__ import annotations
 
-import gzip
 import random
 from collections import Counter
 from pathlib import Path
 
+from conftest import registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.compose import core
 from seqforge.io import OnlistRegistry
@@ -34,21 +34,6 @@ from seqforge.resolve.engine import INDEX_MAX_LEN, index_tagged_roles
 TECH = "10x-3p-gex-v3"
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
-def _registry_for(spec: kb.Spec) -> OnlistRegistry:
-    pools = kb.build_pools(spec, seed=0)
-    reg = OnlistRegistry(offline=True)
-    for alias, ref in spec.onlists.items():
-        if alias in pools:
-            reg.register_synthetic(ref.registry, pools[alias])
-    return reg
-
-
 def _taxid(value: int) -> EvidencedTaxid:
     return EvidencedTaxid(value=value, basis="user_confirmed", rung=0)
 
@@ -62,20 +47,20 @@ def _reads(tmp_path: Path, *, extra: str | None) -> tuple[kb.Spec, OnlistRegistr
     second cDNA-length file (a stray that must NOT be mistaken for an index read).
     """
     spec = kb.load_spec(TECH)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     paths: list[Path] = []
     for suffix, k in (("_1", "R1"), ("_2", "R2")):
         p = tmp_path / f"SRXidx{suffix}.fastq.gz"
-        _write_fastq_gz(p, reads[k])
+        write_fastq_gz(p, reads[k])
         paths.append(p)
     if extra == "index":
         p = tmp_path / "SRXidx_3.fastq.gz"
-        _write_fastq_gz(p, [r[:8] for r in reads["R1"]])  # 8 bp, well under INDEX_MAX_LEN
+        write_fastq_gz(p, [r[:8] for r in reads["R1"]])  # 8 bp, well under INDEX_MAX_LEN
         paths.append(p)
     elif extra == "cdna":
         p = tmp_path / "SRXidx_3.fastq.gz"
-        _write_fastq_gz(p, list(reads["R2"]))  # cDNA-length; a real dropped read, not an index
+        write_fastq_gz(p, list(reads["R2"]))  # cDNA-length; a real dropped read, not an index
         paths.append(p)
     return spec, reg, paths
 
@@ -198,7 +183,7 @@ def _multilane_reads(tmp_path: Path, lanes: int = 3) -> tuple[kb.Spec, OnlistReg
     the bcl2fastq way (``SRR..._S1_L001_R1_001.fastq.gz``). The shared SRA accession groups every lane
     into ONE run -- the GSE208154 shape."""
     spec = kb.load_spec(TECH)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     rng = random.Random(0)
     paths: list[Path] = []
@@ -206,11 +191,11 @@ def _multilane_reads(tmp_path: Path, lanes: int = 3) -> tuple[kb.Spec, OnlistReg
         for mate, k in (("R1", "R1"), ("R2", "R2"), ("I1", None)):
             p = tmp_path / f"SRR9000001_S1_L{lane:03d}_{mate}_001.fastq.gz"
             if k is None:
-                _write_fastq_gz(
+                write_fastq_gz(
                     p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
                 )
             else:
-                _write_fastq_gz(p, list(reads[k]))
+                write_fastq_gz(p, list(reads[k]))
             paths.append(p)
     return spec, reg, paths
 
@@ -270,7 +255,7 @@ def _multiflowcell_reads(
     differs between files, de-laning left the cross-flowcell surplus with a different identity than its
     role representative, so it stayed unassigned and the run blocked; designation matching fuses them."""
     spec = kb.load_spec(TECH)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     rng = random.Random(0)
     paths: list[Path] = []
@@ -279,11 +264,11 @@ def _multiflowcell_reads(
             for mate, k in (("R1", "R1"), ("R2", "R2"), ("I1", None)):
                 p = tmp_path / f"SRR9000001_{fc}_S1_L{lane:03d}_{mate}_001.fastq.gz"
                 if k is None:
-                    _write_fastq_gz(
+                    write_fastq_gz(
                         p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
                     )
                 else:
-                    _write_fastq_gz(p, list(reads[k]))
+                    write_fastq_gz(p, list(reads[k]))
                 paths.append(p)
     return spec, reg, paths
 
@@ -351,7 +336,7 @@ def _low_diversity_cdna_multilane(
     read), so the run blocks. The 90 bp reads are forbidden for the barcode role (dead zone), so the cDNA
     role is their only home; the coverage rule seats them there and the run resolves."""
     spec = kb.load_spec(TECH)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     flat_cdna = [
         _FLAT_CDNA_HEAD + r[len(_FLAT_CDNA_HEAD) :] for r in reads["R2"]
@@ -362,11 +347,11 @@ def _low_diversity_cdna_multilane(
         for mate, seqs in (("R1", reads["R1"]), ("R2", flat_cdna), ("I1", None)):
             p = tmp_path / f"SRR9000002_S1_L{lane:03d}_{mate}_001.fastq.gz"
             if seqs is None:
-                _write_fastq_gz(
+                write_fastq_gz(
                     p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
                 )
             else:
-                _write_fastq_gz(p, list(seqs))
+                write_fastq_gz(p, list(seqs))
             paths.append(p)
     return spec, reg, paths
 

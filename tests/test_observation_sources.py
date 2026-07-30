@@ -42,6 +42,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from conftest import range_server
 from seqforge.cli import app
 from seqforge.fingerprint.build import build_fingerprint
 from seqforge.fingerprint.load import load_fingerprint, probed_from_fingerprint
@@ -49,7 +50,6 @@ from seqforge.io import sra
 from seqforge.io.remote import probe_remote
 from seqforge.models.observation import Observation
 from seqforge.probe import content_key_from_md5, content_key_from_sra, probe_sample
-from test_remote import _range_server  # tests/ is not a package; pytest puts it on sys.path
 
 #: Computed from the records alone -- every source must agree, unconditionally.
 #:
@@ -152,7 +152,7 @@ def _four_observations(
     local_obs, local_seqs = probe_sample(local)
 
     # 2. HTTP range read, serving the very same gzip bytes
-    monkeypatch.setattr("seqforge.io.remote.requests.get", _range_server({URL: blob}))
+    monkeypatch.setattr("seqforge.io.remote.requests.get", range_server({URL: blob}))
     remote_obs, remote_seqs = probe_remote(URL, md5="a" * 32)
 
     # 3. an SRA spot stream, re-serialized through `records_to_gz_bytes`

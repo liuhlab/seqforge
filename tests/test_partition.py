@@ -8,20 +8,14 @@ single-assay path stays flat and byte-identical (covered by the existing `run`/c
 
 from __future__ import annotations
 
-import gzip
 import random
 from pathlib import Path
 
 import yaml
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.cli import _fill_manifest_pipeline
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def _real_cbs(n: int) -> list[str]:
@@ -54,7 +48,7 @@ def _two_chemistry_files(tmp_path: Path) -> list[Path]:
         reads = _reads(tech)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = tmp_path / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
     return files
 
@@ -74,7 +68,7 @@ def _two_chemistry_files_nested(tmp_path: Path) -> list[Path]:
         subdir.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = subdir / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
     return files
 
@@ -133,7 +127,7 @@ def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: 
         sub.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = sub / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
 
     out = _fill_manifest_pipeline(

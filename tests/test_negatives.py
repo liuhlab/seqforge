@@ -11,29 +11,13 @@
 
 from __future__ import annotations
 
-import gzip
 import random
 from pathlib import Path
 
+from conftest import registry_for, write_fastq_gz
 from seqforge import kb
-from seqforge.io import OnlistRegistry
 from seqforge.models.blocker import BlockerCode
 from seqforge.resolve import Hypothesis, resolve_dataset
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
-def _registry_for(spec: kb.Spec) -> OnlistRegistry:
-    pools = kb.build_pools(spec, seed=0)
-    reg = OnlistRegistry(offline=True)
-    for alias, ref in spec.onlists.items():
-        if alias in pools:
-            reg.register_synthetic(ref.registry, pools[alias])
-    return reg
 
 
 def test_truncated_gzip_blocks(tmp_path: Path) -> None:
@@ -41,13 +25,13 @@ def test_truncated_gzip_blocks(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=3000, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
     # cut R1's gzip mid-stream: valid records then an abrupt end -> truncated (not merely corrupt)
     data = f1.read_bytes()
     f1.write_bytes(data[: int(len(data) * 0.6)])
 
-    out = resolve_dataset([f1, f2], registry=_registry_for(spec), use_cache=False)
+    out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
     assert out.exit_code() == 3
     assert not out.result.candidates
     codes = {b.code for b in out.result.blockers}
@@ -79,10 +63,10 @@ def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
 
     f1 = tmp_path / "sample_R1.fastq.gz"
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, trimmed)
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, trimmed)
+    write_fastq_gz(f2, reads["R2"])
 
-    out = resolve_dataset([f1, f2], registry=_registry_for(spec), use_cache=False)
+    out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
 
     assert out.exit_code() == 3
     assert not out.result.candidates  # refused: no manifest may be filled over this
@@ -100,10 +84,10 @@ def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Pat
     reads = kb.generate_reads(spec, n=3000, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])  # open-ended cDNA: genuinely many distinct lengths
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])  # open-ended cDNA: genuinely many distinct lengths
 
-    out = resolve_dataset([f1, f2], registry=_registry_for(spec), use_cache=False)
+    out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
 
     codes = {b.code for b in out.result.blockers}
     assert BlockerCode.PRETRIMMED_VARIABLE_LENGTH not in codes
@@ -117,7 +101,7 @@ def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> No
         "".join(rng.choice("ACGT") for _ in range(rng.randint(500, 3000))) for _ in range(200)
     ]
     f = tmp_path / "ont_run.fastq.gz"
-    _write_fastq_gz(f, long_reads)
+    write_fastq_gz(f, long_reads)
 
     out = resolve_dataset([f], use_cache=False)
     assert out.exit_code() == 3
@@ -137,12 +121,12 @@ def test_metadata_v2_vs_reads_v3_resolves_to_v3_at_the_leaf(tmp_path: Path) -> N
     reads = kb.generate_reads(spec, n=1500, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"  # observed 28 bp
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     out = resolve_dataset(
         [f1, f2],
-        registry=_registry_for(spec),
+        registry=registry_for(spec),
         hypothesis=Hypothesis(value="10x-3p-gex-v2", id="meta-1", confidence=0.9),
         use_cache=False,
     )
@@ -171,12 +155,12 @@ def test_metadata_v3_vs_reads_v2_also_resolves_at_the_leaf(tmp_path: Path) -> No
     reads = kb.generate_reads(spec, n=1500, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"  # observed 26 bp
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     out = resolve_dataset(
         [f1, f2],
-        registry=_registry_for(spec),
+        registry=registry_for(spec),
         hypothesis=Hypothesis(value="10x-3p-gex-v3", id="meta-1", confidence=0.9),
         use_cache=False,
     )
@@ -260,8 +244,8 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
     r2 = ["".join(rng.choice("ACGT") for _ in range(90)) for _ in range(1500)]
     f1 = tmp_path / "sample_R1.fastq.gz"
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, r1)
-    _write_fastq_gz(f2, r2)
+    write_fastq_gz(f1, r1)
+    write_fastq_gz(f2, r2)
 
     out = resolve_dataset(
         [f1, f2],
@@ -331,12 +315,12 @@ def test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict(tmp_pat
     reads = kb.generate_reads(spec, n=1500, seed=0)
     f1 = tmp_path / "sample_R1.fastq.gz"
     f2 = tmp_path / "sample_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     out = resolve_dataset(
         [f1, f2],
-        registry=_registry_for(spec),
+        registry=registry_for(spec),
         hypothesis=Hypothesis(value="bulk-rnaseq-pe", id="meta-1", confidence=0.9),
         use_cache=False,
     )

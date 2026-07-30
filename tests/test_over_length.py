@@ -9,10 +9,10 @@ that chemistry's), and that an over-length read raises neither a blocker nor a s
 
 from __future__ import annotations
 
-import gzip
 import random
 from pathlib import Path
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.io import OnlistRegistry
 from seqforge.models.blocker import BlockerCode
@@ -23,12 +23,6 @@ from seqforge.resolve.scoring import build_tech_evaluation
 from seqforge.resolve.window import WindowProbe
 
 OVER_LEN = 150  # the run read length: an over-sequenced barcode read is this long, not 26/28
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def test_a_whitelist_hitting_chemistry_dominates_a_geometric_sibling_that_missed(
@@ -56,8 +50,8 @@ def test_a_whitelist_hitting_chemistry_dominates_a_geometric_sibling_that_missed
     cdna = [rng.choice(transcripts) for _ in range(600)]
     r_bc = tmp_path / "sample_bc.fastq.gz"
     r_cd = tmp_path / "sample_cd.fastq.gz"
-    _write_fastq_gz(r_bc, barcode)
-    _write_fastq_gz(r_cd, cdna)
+    write_fastq_gz(r_bc, barcode)
+    write_fastq_gz(r_cd, cdna)
 
     # The full KB (Multiome GEX included) and a registry carrying BOTH whitelists — 3M hits, ARC misses.
     reg = _registry_for(spec)
@@ -106,7 +100,7 @@ def _over_length(
     paths = []
     for rid in ("R1", "R2"):
         p = tmp_path / f"{tech}_{rid}.fastq.gz"
-        _write_fastq_gz(p, seqs[rid])
+        write_fastq_gz(p, seqs[rid])
         paths.append(p)
     return paths, seqs
 
@@ -198,8 +192,8 @@ def test_a_dead_zone_barcode_read_below_the_support_gate_is_still_admitted(tmp_p
     cdna = [rand(DEAD_LEN) for _ in range(600)]
     r1 = tmp_path / "v2_R1.fastq.gz"
     r2 = tmp_path / "v2_R2.fastq.gz"
-    _write_fastq_gz(r1, barcode)
-    _write_fastq_gz(r2, cdna)
+    write_fastq_gz(r1, barcode)
+    write_fastq_gz(r2, cdna)
     reg = _registry_for(spec)  # ONLY the 737K-august-2016 (v2) whitelist
 
     # Half one (the admission calibration): the v2 barcode role is admitted (not forbidden) at a
@@ -234,8 +228,8 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
 
     r1 = tmp_path / "x_R1.fastq.gz"
     r2 = tmp_path / "x_R2.fastq.gz"
-    _write_fastq_gz(r1, [rand(DEAD_LEN) for _ in range(600)])  # random 75 bp -> hits no whitelist
-    _write_fastq_gz(r2, [rand(DEAD_LEN) for _ in range(600)])
+    write_fastq_gz(r1, [rand(DEAD_LEN) for _ in range(600)])  # random 75 bp -> hits no whitelist
+    write_fastq_gz(r2, [rand(DEAD_LEN) for _ in range(600)])
     reg = _registry_for(
         kb.load_spec("10x-3p-gex-v2")
     )  # v2 whitelist IS registered; the reads miss it
@@ -267,8 +261,8 @@ def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
 
     r1 = tmp_path / "bulk_R1.fastq.gz"
     r2 = tmp_path / "bulk_R2.fastq.gz"
-    _write_fastq_gz(r1, [rand(100) for _ in range(600)])  # canonical cDNA length, no barcode
-    _write_fastq_gz(r2, [rand(100) for _ in range(600)])
+    write_fastq_gz(r1, [rand(100) for _ in range(600)])  # canonical cDNA length, no barcode
+    write_fastq_gz(r2, [rand(100) for _ in range(600)])
     reg = _registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
 
     out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
@@ -309,8 +303,8 @@ def test_an_over_length_read_with_a_ragged_tail_is_not_flagged_as_pretrimmed(
     cdna = [rand(OVER_LEN) for _ in range(600)]
     r1 = tmp_path / "v3_R1.fastq.gz"
     r2 = tmp_path / "v3_R2.fastq.gz"
-    _write_fastq_gz(r1, barcode)
-    _write_fastq_gz(r2, cdna)
+    write_fastq_gz(r1, barcode)
+    write_fastq_gz(r2, cdna)
 
     out = resolve_dataset([r1, r2], registry=_registry_for(spec), use_cache=False)
     assert not any(b.code.name == "PRETRIMMED_VARIABLE_LENGTH" for b in out.result.blockers), [
@@ -366,8 +360,8 @@ def test_the_barcode_role_seats_on_the_whitelist_hitting_read_not_the_higher_sco
 
     r_bc = tmp_path / "sample_bc.fastq.gz"
     r_cd = tmp_path / "sample_cd.fastq.gz"
-    _write_fastq_gz(r_bc, barcode)
-    _write_fastq_gz(r_cd, cdna)
+    write_fastq_gz(r_bc, barcode)
+    write_fastq_gz(r_cd, cdna)
     reg = _registry_for(spec)
 
     probes = [
@@ -403,10 +397,10 @@ def test_a_barcoded_winner_whose_read_hits_no_whitelist_is_refused(tmp_path: Pat
 
     r1 = tmp_path / "bc_R1.fastq.gz"
     r2 = tmp_path / "cd_R2.fastq.gz"
-    _write_fastq_gz(
+    write_fastq_gz(
         r1, [rand(28) for _ in range(600)]
     )  # 28 bp barcode geometry, random -> miss list
-    _write_fastq_gz(r2, [rand(90) for _ in range(600)])  # cDNA
+    write_fastq_gz(r2, [rand(90) for _ in range(600)])  # cDNA
     reg = _registry_for(
         spec
     )  # v3 whitelist REGISTERED (available), but the random barcodes miss it

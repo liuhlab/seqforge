@@ -8,9 +8,9 @@ would have accepted. We prove that over every shipped spec pair by asserting the
 
 from __future__ import annotations
 
-import gzip
 from pathlib import Path
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.io import DEFAULT_REGISTRY
 from seqforge.kb.schema import Spec
@@ -25,18 +25,12 @@ from seqforge.resolve.scoring import build_tech_evaluation
 from seqforge.resolve.window import WindowProbe
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
 def _probes_for(spec: Spec, workdir: Path) -> list[object]:
     reads = kb.generate_reads(spec, n=400, seed=0)
     out: list[object] = []
     for read_id, seqs in reads.items():
         path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
-        _write_fastq_gz(path, seqs)
+        write_fastq_gz(path, seqs)
         out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
     return out
 

@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from conftest import registry_for
 from seqforge import kb
 from seqforge.io import OnlistRegistry, PackedOnlist
 from seqforge.kb.generate import write_fastq_gz
@@ -30,16 +31,6 @@ def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
     write_fastq_gz(path, seqs)
 
 
-def _registry_for(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> OnlistRegistry:
-    """A synthetic registry whose registry-names are backed by the generator's barcode pools."""
-    pools = kb.build_pools(spec, seed=seed, pool_size=pool_size)
-    reg = OnlistRegistry(offline=True)
-    for alias, ref in spec.onlists.items():
-        if alias in pools:
-            reg.register_synthetic(ref.registry, pools[alias])
-    return reg
-
-
 # ---------- parallel per-run scoring (winner-invariance vs serial) ----------
 def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     """``resolve_runs(cpus>1)`` forks per-run scoring with a copy-on-write-shared warm registry; the
@@ -48,7 +39,7 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     accessions -> three runs, which forces the fork path (it needs more than one run)."""
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=800, seed=1)
-    reg = _registry_for(
+    reg = registry_for(
         spec, seed=1
     )  # whitelist matches the reads' seed so the barcodes actually hit
     paths: list[Path] = []
@@ -93,7 +84,7 @@ def test_resolve_runs_resumes_from_cache_without_reprobing(
     call: if resume works, ``_probe_paths`` is never entered, and the decision is identical."""
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=800, seed=2)
-    reg = _registry_for(
+    reg = registry_for(
         spec, seed=2
     )  # whitelist matches the reads' seed so the barcodes actually hit
     paths: list[Path] = []
@@ -163,10 +154,10 @@ def test_resolve_dataset_scoring_threads_matches_serial(tmp_path: Path) -> None:
     _write_fastq_gz(f2, reads["R2"])
 
     serial = resolve_dataset(
-        [f1, f2], registry=_registry_for(spec, seed=3), use_cache=False, score_threads=1
+        [f1, f2], registry=registry_for(spec, seed=3), use_cache=False, score_threads=1
     )
     threaded = resolve_dataset(
-        [f1, f2], registry=_registry_for(spec, seed=3), use_cache=False, score_threads=6
+        [f1, f2], registry=registry_for(spec, seed=3), use_cache=False, score_threads=6
     )
 
     assert serial.result.model_dump_json() == threaded.result.model_dump_json()
@@ -193,7 +184,7 @@ def test_resolve_fingerprints_a_library_straight_from_a_url(
     reads = kb.generate_reads(
         spec, n=800, seed=3
     )  # same reads as the serial test above -> same winner
-    reg = _registry_for(
+    reg = registry_for(
         spec, seed=3
     )  # whitelist matches the reads' seed so the barcodes actually hit
 
@@ -314,7 +305,7 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
 
     out = resolve_dataset(
         [f1, f2],
-        registry=_registry_for(spec),
+        registry=registry_for(spec),
         workspace=tmp_path,
         use_cache=True,
     )
@@ -358,7 +349,7 @@ def test_resolve_splitseq_beats_generic_bulk_via_onlist(tmp_path: Path) -> None:
     f_bc = tmp_path / "sp_bc.fastq.gz"
     _write_fastq_gz(f_cdna, reads["cdna"])
     _write_fastq_gz(f_bc, reads["bc"])
-    out = resolve_dataset([f_cdna, f_bc], registry=_registry_for(spec), use_cache=False)
+    out = resolve_dataset([f_cdna, f_bc], registry=registry_for(spec), use_cache=False)
     assert out.exit_code() == 0
     assert not out.result.questions
     assert out.result.candidates[0].technology == "splitseq"
@@ -372,7 +363,7 @@ def test_resolve_matrix_is_json_safe(tmp_path: Path) -> None:
     f2 = tmp_path / "R2.fastq.gz"
     _write_fastq_gz(f1, reads["R1"])
     _write_fastq_gz(f2, reads["R2"])
-    out = resolve_dataset([f1, f2], registry=_registry_for(spec, seed=1), use_cache=False)
+    out = resolve_dataset([f1, f2], registry=registry_for(spec, seed=1), use_cache=False)
     blob = json.dumps(out.matrices)  # must serialize: no inf/nan anywhere
     assert "Infinity" not in blob and "NaN" not in blob
     v3 = out.matrices["10x-3p-gex-v3"]
@@ -711,7 +702,7 @@ def test_runs_of_different_chemistries_partition_rather_than_block(tmp_path: Pat
 
     v3 = kb.load_spec("10x-3p-gex-v3")
     bulk = kb.load_spec("bulk-rnaseq-pe")
-    reg = _registry_for(v3)
+    reg = registry_for(v3)
     paths: list[Path] = []
     for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
         reads = kb.generate_reads(spec, n=400, seed=0)
@@ -735,7 +726,7 @@ def _two_chemistry_multi(tmp_path: Path):
 
     v3 = kb.load_spec("10x-3p-gex-v3")
     bulk = kb.load_spec("bulk-rnaseq-pe")
-    reg = _registry_for(v3)
+    reg = registry_for(v3)
     paths: list[Path] = []
     for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
         reads = kb.generate_reads(spec, n=400, seed=0)

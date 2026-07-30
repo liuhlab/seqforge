@@ -7,7 +7,6 @@ chemistry-defining knob, must both FAIL — silently emitting them is how a corp
 
 from __future__ import annotations
 
-import gzip
 import re
 from pathlib import Path
 from typing import get_args
@@ -15,6 +14,7 @@ from typing import get_args
 import pytest
 import yaml
 
+from conftest import registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
@@ -42,21 +42,6 @@ from seqforge.resolve.confuse import canonical_backend
 from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
-def _registry_for(spec: kb.Spec) -> OnlistRegistry:
-    pools = kb.build_pools(spec, seed=0)
-    reg = OnlistRegistry(offline=True)
-    for alias, ref in spec.onlists.items():
-        if alias in pools:
-            reg.register_synthetic(ref.registry, pools[alias])
-    return reg
-
-
 def _build(
     tmp_path: Path, tech: str, keys: tuple[str, ...] | None = None
 ) -> tuple[DatasetManifest, OnlistRegistry]:
@@ -67,12 +52,12 @@ def _build(
     rather than compose. Deriving the default from the spec is what lets a test iterate the KB.
     """
     spec = kb.load_spec(tech)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     paths = []
     for k in keys or tuple(r.id for r in spec.reads):
         p = tmp_path / f"s_{k}.fastq.gz"
-        _write_fastq_gz(p, reads[k])
+        write_fastq_gz(p, reads[k])
         paths.append(p)
     out = resolve_dataset(paths, registry=reg, use_cache=False)
     obs = [probe_file(p) for p in paths]
@@ -129,14 +114,14 @@ def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Pa
     stayed green.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     paths = []
     for run, seed in (("SRX999", 0), ("SRX998", 1)):
         reads = kb.generate_reads(spec, n=600, seed=seed)
         for k in ("R1", "R2"):
             p = tmp_path / run / f"{run}_{k}.fastq.gz"
             p.parent.mkdir(parents=True, exist_ok=True)
-            _write_fastq_gz(p, reads[k])
+            write_fastq_gz(p, reads[k])
             paths.append(p)
 
     manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
@@ -155,12 +140,12 @@ def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Pa
 def test_a_flat_dataset_still_gets_bare_basenames(tmp_path: Path) -> None:
     """One directory IS the root, so its URIs are basenames -- the same rule, not an exception."""
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     paths = []
     for k in ("R1", "R2"):
         p = tmp_path / f"s_{k}.fastq.gz"
-        _write_fastq_gz(p, reads[k])
+        write_fastq_gz(p, reads[k])
         paths.append(p)
     manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
     assert sorted(f.uri for f in manifest.library.files) == ["s_R1.fastq.gz", "s_R2.fastq.gz"]
@@ -175,14 +160,14 @@ def test_two_runs_with_the_same_basename_do_not_collapse_to_one_uri(tmp_path: Pa
     this project exists to prevent. Nothing anywhere would have said so.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     paths = []
     for run, seed in (("runA", 0), ("runB", 1)):
         reads = kb.generate_reads(spec, n=600, seed=seed)
         for k in ("R1", "R2"):
             p = tmp_path / run / f"reads_{k}.fastq.gz"  # IDENTICAL basenames across the two runs
             p.parent.mkdir(parents=True, exist_ok=True)
-            _write_fastq_gz(p, reads[k])
+            write_fastq_gz(p, reads[k])
             paths.append(p)
 
     manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
@@ -281,12 +266,12 @@ def test_manifest_file_order_is_deterministic_regardless_of_probe_order(tmp_path
     before this; the fix is what makes the manifest genuinely content-addressed.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
     paths = []
     for k in ("R1", "R2"):
         p = tmp_path / f"s_{k}.fastq.gz"
-        _write_fastq_gz(p, reads[k])
+        write_fastq_gz(p, reads[k])
         paths.append(p)
     forward = _manifest_from(paths, "10x-3p-gex-v3", reg)
     reverse = _manifest_from(list(reversed(paths)), "10x-3p-gex-v3", reg)

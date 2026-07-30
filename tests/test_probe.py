@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import write_fastq_gz
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
 from seqforge.probe import (
     DEFAULT_MAX_BYTES,
@@ -43,12 +44,6 @@ def _rand_seq(rng: random.Random, n: int) -> str:
     return "".join(rng.choice(BASES) for _ in range(n))
 
 
-def _write_fastq_gz(path: Path, records: list[tuple[str, str, str]]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for name, seq, qual in records:
-            fh.write(f"@{name}\n{seq}\n+\n{qual}\n")
-
-
 def _recs(seqs: list[str], name: str = "SIM") -> list[tuple[str, str, str]]:
     return [(f"{name}:{i}", s, "I" * len(s)) for i, s in enumerate(seqs)]
 
@@ -58,7 +53,7 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     pool = [_rand_seq(rng, 16) for _ in range(50)]  # 50 recurring cell barcodes
     seqs = [rng.choice(pool) + _rand_seq(rng, 12) for _ in range(2000)]  # 16 CB + 12 UMI = 28 bp
     path = tmp_path / "r1.fastq.gz"
-    _write_fastq_gz(path, _recs(seqs))
+    write_fastq_gz(path, _recs(seqs))
 
     obs = probe_file(path)
     assert obs.read_length.mode == 28
@@ -127,7 +122,7 @@ def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:
     rng = random.Random(1)
     seqs = [_rand_seq(rng, 8) + W1_LINKER + "T" * 10 for _ in range(500)]  # 8 random + W1 + polyT
     path = tmp_path / "indrop.fastq.gz"
-    _write_fastq_gz(path, _recs(seqs))
+    write_fastq_gz(path, _recs(seqs))
 
     segs = probe_file(path).segments
     randoms = [s for s in segs if isinstance(s, RandomSegment)]
@@ -144,7 +139,7 @@ def test_distinct_ratio_low_for_recurring_barcode(tmp_path: Path) -> None:
     pool = [_rand_seq(rng, 16) for _ in range(40)]
     seqs = [rng.choice(pool) for _ in range(2000)]  # 16 bp, no UMI: barcodes recur heavily
     path = tmp_path / "cb.fastq.gz"
-    _write_fastq_gz(path, _recs(seqs))
+    write_fastq_gz(path, _recs(seqs))
 
     windows = probe_file(path).distinct_value_windows
     assert windows, "a random 16 bp segment should yield a distinct-ratio window"
@@ -154,7 +149,7 @@ def test_distinct_ratio_low_for_recurring_barcode(tmp_path: Path) -> None:
 def test_truncated_gzip_is_flagged(tmp_path: Path) -> None:
     rng = random.Random(3)
     path = tmp_path / "trunc.fastq.gz"
-    _write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(300)]))
+    write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(300)]))
     raw = path.read_bytes()
     path.write_bytes(raw[: len(raw) - 20])  # cut the gzip stream mid-member
 
@@ -166,7 +161,7 @@ def test_sra_normalized_header_detected(tmp_path: Path) -> None:
     rng = random.Random(4)
     recs = [(f"SRR9999999.{i} {i} length=28", _rand_seq(rng, 28), "I" * 28) for i in range(1, 51)]
     path = tmp_path / "sra.fastq.gz"
-    _write_fastq_gz(path, recs)
+    write_fastq_gz(path, recs)
 
     obs = probe_file(path)
     assert obs.read_name.sra_normalized is True
@@ -176,7 +171,7 @@ def test_sra_normalized_header_detected(tmp_path: Path) -> None:
 def test_bounded_budget_and_read_estimate(tmp_path: Path) -> None:
     rng = random.Random(5)
     path = tmp_path / "big.fastq.gz"
-    _write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(5000)]))
+    write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(5000)]))
 
     obs = probe_file(path, max_reads=100)
     assert obs.probe.n_reads_sampled == 100  # stopped at the budget, did NOT read all 5000
@@ -250,8 +245,8 @@ def test_the_content_address_is_stable_and_distinguishes_content(tmp_path: Path)
     a = tmp_path / "a.fastq.gz"
     b = tmp_path / "b.fastq.gz"
     seqs = [_rand_seq(rng, 28) for _ in range(50)]
-    _write_fastq_gz(a, _recs(seqs))
-    _write_fastq_gz(b, _recs(seqs[:-1]))  # one fewer read => different content
+    write_fastq_gz(a, _recs(seqs))
+    write_fastq_gz(b, _recs(seqs[:-1]))  # one fewer read => different content
     key_a = probe_file(a).file.sha256
     assert key_a == probe_file(a).file.sha256  # stable across probes of the same file
     assert key_a != probe_file(b).file.sha256  # distinct content => distinct key
@@ -261,7 +256,7 @@ def _reader_fixture(tmp_path: Path, n: int = 500, read_len: int = 40) -> bytes:
     """A gzipped FASTQ as raw bytes, for feeding BoundedReader a stream directly."""
     rng = random.Random(11)
     path = tmp_path / "reader.fastq.gz"
-    _write_fastq_gz(path, _recs([_rand_seq(rng, read_len) for _ in range(n)]))
+    write_fastq_gz(path, _recs([_rand_seq(rng, read_len) for _ in range(n)]))
     return path.read_bytes()
 
 
@@ -387,7 +382,9 @@ def _value_stable_fixture(path: Path) -> None:
             seq = seq[:30] + "N" + seq[31:]  # a sprinkle of N so n_rate is non-zero
         qual = "".join(chr(35 + (j % 39)) for j in range(len(seq)))
         records.append((f"INSTR:1:FLOWCELL:1:1101:{1000 + i}:{2000 + i} 1:N:0:ACGTACGT", seq, qual))
-    _write_fastq_gz(path, records)
+    # The fixture that pins bytes owns its compressor. `size_bytes` and `sha256` below are literals,
+    # and the shared writer defaults to level 1 for the fixtures where nothing reads the size.
+    write_fastq_gz(path, records, compresslevel=9)
 
 
 def test_the_signal_fields_are_value_stable(tmp_path: Path) -> None:
