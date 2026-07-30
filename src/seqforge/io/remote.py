@@ -45,7 +45,7 @@ from ..probe import (
     content_key_from_md5,
     remote_content_key,
 )
-from ..probe.streaming import sample_fastq_stream
+from ..probe.streaming import FastqHead
 
 if TYPE_CHECKING:
     from ..models.observation import Observation
@@ -660,8 +660,8 @@ def probe_remote(
     blob, total = _range_get(uri, max_bytes=max_compressed_bytes)
     if not blob:
         raise RemoteError(f"{uri}: range read returned no bytes")
-    sample = sample_fastq_stream(BytesIO(blob), max_reads, max_bytes)
-    if not sample.seqs:
+    head = FastqHead.read(BytesIO(blob), max_reads, max_bytes)
+    if not head.seqs:
         raise RemoteError(
             f"{uri}: no FASTQ records in the {len(blob)}-byte head — not a gzipped FASTQ, or the "
             "range was too small to hold one record."
@@ -669,10 +669,10 @@ def probe_remote(
     size_bytes = total if total and total > 0 else len(blob)
     basename = _uri_basename(uri)
     sha256 = (
-        content_key_from_md5(md5) if md5 else remote_content_key(basename, size_bytes, sample.seqs)
+        content_key_from_md5(md5) if md5 else remote_content_key(basename, size_bytes, head.seqs)
     )
     return build_observation(
-        sample,
+        head,
         size_bytes=size_bytes,
         sha256=sha256,
         basename=basename,

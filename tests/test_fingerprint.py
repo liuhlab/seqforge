@@ -28,7 +28,7 @@ from seqforge.manifest import ExperimentInputs, dataset_content_hash, fill_manif
 from seqforge.models.dataset import DatasetManifest
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.probe import probe_file
-from seqforge.probe.streaming import sample_fastq_gz
+from seqforge.probe.streaming import FastqHead
 from seqforge.resolve import resolve_dataset
 
 TECH = "10x-3p-gex-v3"
@@ -126,15 +126,34 @@ def test_preflight_is_byte_reproducible(tmp_path: Path) -> None:
     assert a.package.read_bytes() == b.package.read_bytes()
 
 
+def test_both_accumulations_consume_the_same_records(tmp_path: Path) -> None:
+    """One budget, one loop: a slice holds exactly the records a probe under the same budget consumes.
+
+    This equality is what lets a fingerprint run reproduce a full-file observation — the whole premise
+    of the package. It used to rest on two hand-synchronised copies of the budget loop agreeing; both
+    now iterate ``BoundedReader``, so it holds by construction. Pinned here anyway: the property is
+    what matters, not the mechanism that currently delivers it, and a future edit could reintroduce a
+    second loop.
+    """
+    paths, _ = _synth_dataset(tmp_path, n=600)
+    src = paths[0]
+    for max_reads, max_bytes in ((37, 1 << 30), (150, 1 << 30), (10_000, 3_000)):
+        head = FastqHead.from_path(src, max_reads, max_bytes)
+        sl = read_records(src, max_reads=max_reads, max_bytes=max_bytes)
+        assert head.n_reads == sl.n_reads, f"diverged at {max_reads=} {max_bytes=}"
+        assert head.decompressed_bytes == sl.decompressed_bytes
+        assert head.seqs == [seq.decode() for _h, seq, _p, _q in sl.records]
+
+
 def test_sliced_records_parse_back_through_the_streamer(tmp_path: Path) -> None:
-    """The slice is a valid FASTQ: the probe's own streamer reads exactly the first N records back."""
+    """The slice is a valid FASTQ: the probe's own reader reads exactly the first N records back."""
     paths, _ = _synth_dataset(tmp_path, n=600)
     result = build_fingerprint(paths, workspace=tmp_path, reads=150, name="ds")
     for pin in result.manifest.files:
         assert pin.reads_written == 150
-        sample = sample_fastq_gz(result.staging / pin.rel_path, max_reads=10_000, max_bytes=1 << 30)
-        assert sample.ok and not sample.truncated
-        assert sample.n_reads == 150
+        head = FastqHead.from_path(result.staging / pin.rel_path, 10_000, 1 << 30)
+        assert head.ok and not head.truncated
+        assert head.n_reads == 150
 
 
 def test_the_slice_preserves_original_headers_and_qualities(tmp_path: Path) -> None:

@@ -20,7 +20,7 @@ from pathlib import Path
 from ..models.fingerprint import FingerprintManifest
 from ..models.observation import Observation
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, build_observation
-from ..probe.streaming import sample_fastq_gz
+from ..probe.streaming import FastqHead
 
 
 @dataclass(frozen=True)
@@ -110,9 +110,9 @@ def probed_from_fingerprint(
     probed: dict[str, tuple[Observation, list[str]]] = {}
     for rel, pin in pins.items():
         slice_path = loaded.root / rel
-        sample = sample_fastq_gz(slice_path, max_reads=max_reads, max_bytes=max_bytes)
+        head = FastqHead.from_path(slice_path, max_reads, max_bytes)
         obs, seqs = build_observation(
-            sample,
+            head,
             size_bytes=pin.size_bytes,  # pinned: the whole-file compressed size
             sha256=pin.sha256,  # pinned: the whole-file content-address
             basename=pin.basename,
