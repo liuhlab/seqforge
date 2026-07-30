@@ -295,6 +295,9 @@ def build_fingerprint_sra(
                     isize=None,
                     reads_written=len(mate.records),
                     estimated_total_reads=obs.estimated_total_reads,
+                    # Why this slice ends: a spot budget or the run itself, never a cut — the records
+                    # arrive already parsed and are re-serialized here, so there is no member to cut.
+                    gzip=obs.gzip,
                 )
             )
             staged.append((pkg_rel, mate.records))

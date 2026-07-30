@@ -52,6 +52,12 @@ from seqforge.probe import content_key_from_md5, content_key_from_sra, probe_sam
 from test_remote import _range_server  # tests/ is not a package; pytest puts it on sys.path
 
 #: Computed from the records alone -- every source must agree, unconditionally.
+#:
+#: `gzip` is the one member with a second authority: a fingerprint slice is re-emitted as well-formed
+#: gzip, so its own records can only ever say "clean", and the verdict is taken from the pin instead
+#: (`fingerprint.load.replayed_integrity`). It stays here because the *value* must still agree -- and
+#: for these clean bytes it does, which is what makes the pinned path a faithful stand-in rather than
+#: a second opinion. `test_fingerprint.py` covers the case where the two authorities differ.
 FROM_THE_HEAD = {
     "per_cycle_composition",
     "segments",

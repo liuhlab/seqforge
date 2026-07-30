@@ -16,6 +16,12 @@ A pin is therefore the on-disk form of a ``probe.WholeFile`` plus where its slic
 ``probe.build_observation(head, file)`` joins that identity to a head cut from the slice. This is
 exactly how ``io.remote.probe_remote`` names a hosted file it never downloads.
 
+The pin carries one thing beyond identity, for the same reason: **why the slice ends**. A slice is
+re-emitted by ``write_records_gz``, which always writes a well-formed gzip, so a replay cannot
+observe that the original was cut or corrupt — it would resolve a truncated dataset to a clean
+manifest the full path refuses to emit (issue #94). That verdict is not recomputable from the slice,
+so it is pinned, exactly like the content address.
+
 Note what a pin does **not** carry: a ``local_uri``. Where the bytes are is a fact about the read, not
 about the file, so it comes from the head (``FastqHead.source_path``, here the slice) rather than
 from here. And the projection to a ``WholeFile`` lives in ``fingerprint.load``, not as a method here:
@@ -31,11 +37,14 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from .base import Sha256
+from .observation import GzipIntegrity
 
 #: CalVer stamp for the fingerprint format. Bumped when the package layout or pin schema changes in a
 #: way that a fingerprint run must notice; folded into no manifest hash (the pin *carries* identity, it
 #: is not part of it), only into the package's own provenance.
-FINGERPRINT_VERSION = "2026.7.1"
+#: 2026.7.2 — the pin carries ``gzip``: a truncated or corrupt original used to replay as clean, and
+#: no slice can recompute the verdict (issue #94).
+FINGERPRINT_VERSION = "2026.7.2"
 
 
 class FilePin(BaseModel):
@@ -70,6 +79,12 @@ class FilePin(BaseModel):
     #: The full file's estimated total reads, as the original probe reported it — carried for the
     #: report/benchmark, not for the hash.
     estimated_total_reads: int | None = None
+    #: Why the slice ends: the verdict the **slicer** reached at the package's own read budget. A
+    #: budget stop leaves it clean; a cut or a corrupt member does not. Deliberately the slicer's and
+    #: not the full probe's, because the replay's rule is "did I read to the slice's end?" — see
+    #: :func:`seqforge.fingerprint.load.replayed_integrity`. Defaults to clean so a package written
+    #: before this field existed still loads, reading exactly as it did then.
+    gzip: GzipIntegrity = Field(default_factory=lambda: GzipIntegrity(ok=True, truncated=False))
 
 
 class FingerprintManifest(BaseModel):

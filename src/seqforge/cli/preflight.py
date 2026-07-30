@@ -13,7 +13,7 @@ from pathlib import Path
 
 import typer
 
-from ..fingerprint.build import build_fingerprint, strip_to_redistributable
+from ..fingerprint.build import FingerprintError, build_fingerprint, strip_to_redistributable
 from ..fingerprint.load import LoadedFingerprint, load_fingerprint, probed_from_fingerprint
 from ..models.observation import Observation
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
@@ -124,7 +124,7 @@ def preflight_cmd(
                 name=name,
                 include_raw=include_raw,
             )
-    except (OSError, ValueError) as exc:
+    except (FingerprintError, OSError, ValueError) as exc:
         typer.echo(
             json.dumps({"error": "preflight_failed", "detail": str(exc)}, indent=2), err=True
         )

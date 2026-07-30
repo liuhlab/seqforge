@@ -20,11 +20,12 @@ import yaml
 
 from seqforge import __version__, kb
 from seqforge.cli import app
-from seqforge.fingerprint.build import build_fingerprint
+from seqforge.fingerprint.build import FingerprintError, build_fingerprint
 from seqforge.fingerprint.load import load_fingerprint, probed_from_fingerprint
 from seqforge.fingerprint.subsample import read_records, write_records_gz
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import ExperimentInputs, dataset_content_hash, fill_manifest
+from seqforge.models.blocker import BlockerCode
 from seqforge.models.dataset import DatasetManifest
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.probe import probe_file
@@ -191,6 +192,98 @@ def test_the_package_round_trips_from_the_tarball(tmp_path: Path, reads: int) ->
     assert len(probed) == len(paths)
     for sp in slice_paths:
         assert sp.exists()
+
+
+def _cut(path: Path, fraction: float = 0.6) -> None:
+    """Cut a gzip member mid-stream — the ``TRUNCATED_GZIP`` negative, as ``evals`` builds it."""
+    raw = path.read_bytes()
+    path.write_bytes(raw[: int(len(raw) * fraction)])
+
+
+def test_a_truncated_source_replays_as_truncated_not_clean(tmp_path: Path) -> None:
+    """A fingerprint must reproduce the full run's REFUSAL, not launder it into a manifest.
+
+    The slice is written by ``write_records_gz``, which always emits a well-formed gzip — so replaying
+    a package cut from a truncated FASTQ observed a clean stream and resolved to a valid manifest,
+    while the same bytes on the full path raised ``TRUNCATED_GZIP`` and refused. The integrity verdict
+    was computed at build time and dropped on the floor (issue #94), and the divergence was worse than
+    a hash mismatch: one path has no hash at all, and the other happily emits one.
+    """
+    paths, reg = _synth_dataset(tmp_path, n=800)
+    _cut(paths[0])
+    full = [probe_file(p) for p in paths]
+    assert full[0].gzip.truncated and not full[1].gzip.truncated  # the precondition
+
+    result = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds")
+    loaded = load_fingerprint(result.staging)
+    slice_paths, probed = probed_from_fingerprint(loaded)
+
+    # Same verdict, file by file — the whole observation, not merely "something blocked".
+    assert [probed[str(p)][0].gzip for p in slice_paths] == [o.gzip for o in full]
+    # ...and therefore the same refusal, rather than a manifest the full path would never emit.
+    full_out = resolve_dataset(paths, registry=reg, use_cache=False)
+    fp_out = resolve_dataset(slice_paths, registry=reg, use_cache=False, _probed=probed)
+    assert {b.code for b in fp_out.result.blockers} == {b.code for b in full_out.result.blockers}
+    assert BlockerCode.TRUNCATED_GZIP in {b.code for b in fp_out.result.blockers}
+
+
+def test_a_replay_stopped_by_its_own_budget_does_not_inherit_a_cut_beyond_it(
+    tmp_path: Path,
+) -> None:
+    """The pin says why the SLICE ends; whether that matters depends on the replay's budget.
+
+    Truncation is not a property of a file alone — it is a property of the file *against a budget*. A
+    full probe that stops at 100 reads of a 456-read cut file never reaches the cut and reports a
+    clean stream; a replay of that file's slice under the same budget must agree. So the pinned
+    verdict is adopted only when the replay actually read to the slice's end, and stamping it
+    unconditionally would refuse datasets the full path accepts.
+    """
+    paths, reg = _synth_dataset(tmp_path, n=800)
+    _cut(paths[0])
+    result = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds")
+    loaded = load_fingerprint(result.staging)
+
+    for max_reads in (100, 200_000):
+        full = [probe_file(p, max_reads=max_reads) for p in paths]
+        sp, probed = probed_from_fingerprint(loaded, max_reads=max_reads)
+        assert [probed[str(p)][0].gzip for p in sp] == [o.gzip for o in full], (
+            f"the two paths disagree at max_reads={max_reads}"
+        )
+    # And the small budget really is the interesting case: it does not see the cut at all.
+    assert not probe_file(paths[0], max_reads=100).gzip.truncated
+
+
+def test_a_damaged_slice_is_never_masked_by_a_clean_pin(tmp_path: Path) -> None:
+    """The pin describes the original; it is not licence to ignore what the package actually holds.
+
+    A package whose slice was damaged after it was written (an unpacked directory edited in place, a
+    bad copy) must report the damage rather than the pin's healthy verdict — the replay is still a
+    real read of real bytes, and a stand-in identity does not make it stop being one.
+    """
+    paths, _ = _synth_dataset(tmp_path, n=300)
+    result = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds")
+    loaded = load_fingerprint(result.staging)
+    assert all(pin.gzip.ok and not pin.gzip.truncated for pin in loaded.manifest.files)
+    _cut(loaded.root / loaded.manifest.files[0].rel_path)
+
+    _paths, probed = probed_from_fingerprint(loaded)
+    damaged = probed[str(loaded.root / loaded.manifest.files[0].rel_path)][0]
+    assert damaged.gzip.truncated
+
+
+def test_preflight_refuses_a_source_it_could_not_read_a_record_from(tmp_path: Path) -> None:
+    """Zero records is not a fingerprint. Refuse where the file still is, not three machines later.
+
+    A slice cut from bytes that are not gzip holds nothing: the package would be an empty box with a
+    valid-looking pin on it. The only place that can be fixed is the machine that still has the
+    original, so the refusal belongs at build time — the same call ``io.remote.probe_remote`` already
+    makes for a head with no records.
+    """
+    paths, _ = _synth_dataset(tmp_path, n=200)
+    paths[0].write_bytes(b"this was never a gzip stream" * 50)
+
+    with pytest.raises(FingerprintError, match="not readable gzip"):
+        build_fingerprint(paths, workspace=tmp_path, reads=100, name="ds")
 
 
 def _real_v3_dataset(tmp_path: Path, *, n: int = 1500) -> list[Path]:

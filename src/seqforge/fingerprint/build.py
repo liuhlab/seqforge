@@ -21,10 +21,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..models.fingerprint import FINGERPRINT_VERSION, FilePin, FingerprintManifest
+from ..models.observation import GzipIntegrity
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, gzip_isize, probe_file
 from ..workspace import fingerprint_dir, readable
 from .pack import extract_info, write_tar_gz
-from .subsample import Record, read_records, write_records_gz
+from .subsample import Record, RecordSlice, read_records, write_records_gz
+
+
+class FingerprintError(RuntimeError):
+    """A source file a package cannot be built from — raised where the original still exists."""
 
 
 @dataclass(frozen=True)
@@ -81,6 +86,28 @@ def _package_digest(pins: list[FilePin], reads: int) -> str:
     return h.hexdigest()
 
 
+def _refuse_an_empty_slice(path: Path, sl: RecordSlice) -> None:
+    """Refuse a source no record could be cut from: a package of zero reads is not a fingerprint.
+
+    The pin would look healthy — a content address, a size, an ISIZE — over a slice holding nothing at
+    all, which is the empty box the whole artifact exists not to be. Every other malformed input is
+    *carried* instead (its verdict rides on the pin and the replay reproduces the same refusal the
+    full path gives), because a slice with records in it is still evidence. This one has none.
+
+    Raised at build time deliberately: the only machine that can act on it is the one that still has
+    the original. ``io.remote.probe_remote`` refuses a head with no records for the same reason.
+    """
+    if sl.n_reads:
+        return
+    if not sl.ok:
+        why = "not readable gzip (bad header, corrupt member, or a failed CRC)"
+    elif sl.truncated:
+        why = "cut before its first complete record"
+    else:
+        why = "no complete FASTQ record within the read budget"
+    raise FingerprintError(f"{path}: {why} — there is nothing to fingerprint.")
+
+
 def build_fingerprint(
     files: list[str | Path],
     *,
@@ -128,6 +155,7 @@ def build_fingerprint(
         isize = gzip_isize(path)
         # The slice: the first N complete records (bounded; never a whole-file read).
         sl = read_records(path, max_reads=reads, max_bytes=max_bytes)
+        _refuse_an_empty_slice(path, sl)
         rel = rels[str(path.resolve())]
         pkg_rel = str(Path("fastq") / rel)
         pins.append(
@@ -139,6 +167,10 @@ def build_fingerprint(
                 isize=isize,
                 reads_written=sl.n_reads,
                 estimated_total_reads=obs.estimated_total_reads,
+                # Why this slice ends — the one thing about the original a well-formed slice can
+                # never say for itself. The SLICER's verdict, at the package's budget, not the
+                # probe's at its own: the replay's question is "did I read to the slice's end?".
+                gzip=GzipIntegrity(ok=sl.ok, truncated=sl.truncated),
             )
         )
         staged_fastq.append((pkg_rel, sl.records))
@@ -247,6 +279,7 @@ def strip_to_redistributable(package: str | Path, dest: str | Path) -> Fingerpri
 
 
 __all__ = [
+    "FingerprintError",
     "FingerprintResult",
     "assemble_package",
     "build_fingerprint",

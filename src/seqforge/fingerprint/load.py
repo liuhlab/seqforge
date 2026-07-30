@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..models.fingerprint import FilePin, FingerprintManifest
-from ..models.observation import Observation
+from ..models.observation import GzipIntegrity, Observation
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, build_observation
 from ..probe.core import WholeFile
 from ..probe.streaming import Budget, FastqHead
@@ -113,6 +113,31 @@ def pinned_whole_file(pin: FilePin) -> WholeFile:
     )
 
 
+def replayed_integrity(pin: FilePin, head: FastqHead) -> GzipIntegrity:
+    """The ORIGINAL's gzip verdict, as far as THIS replay's budget can see it.
+
+    Truncation is not a property of a file; it is a property of a file against a budget. A full probe
+    that stops at 100 reads of a file cut at read 456 never reaches the cut and reports a clean
+    stream, so a replay under the same budget must report one too — stamping the pin unconditionally
+    would refuse datasets the full path accepts. The rule is therefore one question, and the slice
+    itself answers it: *did this read get all the way to the slice's end?*
+
+    - Stopped by its own budget → the cut (if any) is beyond reach, exactly as on the full path.
+    - Reached the slice's end → the pin says why the slice ends, and that is the original's answer.
+    - The slice itself is damaged → say so. The pin describes an absent original; it is not licence
+      to ignore what the package actually holds.
+
+    The one thing this cannot see is a cut *past* the package's own N — a light package knows nothing
+    about the file beyond the records it kept, which is the same limitation :attr:`FilePin.reads_written`
+    already carries for every other signal.
+    """
+    if head.budget_exhausted:
+        return GzipIntegrity(ok=True, truncated=False)
+    if not head.ok or head.truncated:
+        return GzipIntegrity(ok=head.ok, truncated=head.truncated)
+    return pin.gzip
+
+
 def probed_from_fingerprint(
     loaded: LoadedFingerprint,
     *,
@@ -136,9 +161,18 @@ def probed_from_fingerprint(
         # different files is the whole point of a fingerprint, and `local_uri` follows the head.
         head = FastqHead.from_path(slice_path, budget)
         obs, seqs = build_observation(head, pinned_whole_file(pin))
+        # The slice is always well-formed gzip, so the head's own integrity describes the packaging,
+        # not the dataset. Swap in what the original's read actually ended on (:func:`replayed_integrity`).
+        obs = obs.model_copy(update={"gzip": replayed_integrity(pin, head)})
         paths.append(slice_path)
         probed[str(slice_path)] = (obs, seqs)
     return paths, probed
 
 
-__all__ = ["LoadedFingerprint", "load_fingerprint", "pinned_whole_file", "probed_from_fingerprint"]
+__all__ = [
+    "LoadedFingerprint",
+    "load_fingerprint",
+    "pinned_whole_file",
+    "probed_from_fingerprint",
+    "replayed_integrity",
+]
