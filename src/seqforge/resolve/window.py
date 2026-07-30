@@ -38,7 +38,7 @@ class WindowProbe:
     Every method here **cuts, then measures**, and owns neither half: the fixed column is cut by
     :func:`probe.signals.window_bases` and the per-read frame by :func:`kb.anchor.element_bases`, and
     what comes back is measured by :func:`probe.signals.distinct_ratio` or ``io.onlist``. What this
-    class contributes is the pairing of an Observation with the bounded sample that produced it, and
+    class contributes is the pairing of an Observation with the bounded head that produced it, and
     the frame cache — not arithmetic.
     """
 
