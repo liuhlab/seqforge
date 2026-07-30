@@ -11,14 +11,16 @@ from typing import Any
 import pytest
 
 from seqforge import kb
-from seqforge.io import OnlistRegistry
+from seqforge.io import OnlistRegistry, PackedOnlist
 from seqforge.kb.generate import write_fastq_gz
-from seqforge.kb.schema import Spec
+from seqforge.kb.schema import Read, Spec
 from seqforge.models.resolve import TechScore
+from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset, resolve_runs, role_of_sha_for
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.scoring import Cell, TechEvaluation
+from seqforge.resolve.window import WindowProbe
 
 
 # ---------- fixtures ----------
@@ -789,3 +791,87 @@ def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(tmp_pat
     # Two samples, one chemistry each -> a legal 2-assay project, no block.
     two_samples = {"s1": by_run["SRR1"], "s2": by_run["SRR2"]}
     assert multi.sample_disagreements(two_samples) == []
+
+
+# ---------- the anchored measures, pinned by value ----------
+# `VALUE_STABLE_DIGEST` (tests/test_probe.py) pins probe's structural fields, but probe never resolves a
+# per-read frame -- so nothing pinned what `WindowProbe`'s ANCHORED measures return. The scoring tests
+# above assert which spec wins, and a ratio can move materially without flipping a winner.
+#
+# The fixture is shaped like BD Rhapsody's Enhanced bead so both cases that make the anchored cutter's
+# keep-guard observable are live: a read whose frame does not resolve at all, and an element that draws
+# ZERO width (the diversity insert is 0-3 bp). Every expected value below is derivable from the
+# construction -- read the arithmetic, don't re-pin the literal.
+
+_VB_INSERT = ("", "A", "GT", "TCA")  # BD Enhanced's 0-3 bp diversity insert -> a per-read stagger
+_CLS_POOL = 8  # cell labels per CLS block: small enough that recurrence is exact and countable
+_N_STAGGERED = 200
+_N_FRAMELESS = 40
+
+
+def _acgt(rng: random.Random, k: int) -> str:
+    return "".join(rng.choice("ACGT") for _ in range(k))
+
+
+def _enhanced_bc_probe(tmp_path: Path) -> tuple[WindowProbe, Read, list[list[str]]]:
+    """An Enhanced-bead R1 ``WindowProbe``, its declared ``Read``, and the CLS pools its reads drew from.
+
+    240 reads. 200 carry the GTGA/GACA frame, of which **exactly 100 draw a 0 bp insert** -- so ``vb``
+    is empty in half of them. The other 40 are ``ACAC...``, which no candidate phase can match (every
+    4-mer is Hamming distance 3+ from both linkers, over a tolerance of 1), so they resolve to no frame
+    and must contribute nothing rather than a wrong slice.
+    """
+    rng = random.Random(7)
+    pools = [[_acgt(rng, 9) for _ in range(_CLS_POOL)] for _ in range(3)]
+    seqs: list[str] = []
+    for i in range(_N_STAGGERED):
+        insert = "" if i % 2 == 0 else _VB_INSERT[1 + (i // 2) % 3]
+        c1, c2, c3 = (rng.choice(p) for p in pools)
+        seqs.append(insert + c1 + "GTGA" + c2 + "GACA" + c3 + _acgt(rng, 8) + "T" * 20)
+    seqs += ["AC" * 45] * _N_FRAMELESS
+
+    path = tmp_path / "enhanced_bc.fastq.gz"
+    _write_fastq_gz(path, seqs)
+    spec = kb.load_spec("bd-rhapsody-wta-enhanced-v1")
+    bc = next(r for r in spec.reads if r.id == "bc")
+    return WindowProbe(observation=probe_file(path), seqs=seqs), bc, pools
+
+
+def test_the_anchored_distinct_ratio_counts_only_resolved_non_empty_elements(
+    tmp_path: Path,
+) -> None:
+    """A frameless read contributes nothing; a zero-width element contributes nothing.
+
+    Both are "this read tells us nothing here", and they are different causes: the frameless read has no
+    window at all, while ``vb`` HAS a window that happens to be empty. The distinct ratio must drop both,
+    and the two arithmetic below pin exactly that.
+    """
+    wp, bc, pools = _enhanced_bc_probe(tmp_path)
+
+    # Each CLS block: 200 framed reads, each drawing from a pool of 8 -> 8 distinct over 200.
+    for name, pool in zip(("cls1", "cls2", "cls3"), pools, strict=True):
+        assert len({*pool}) == _CLS_POOL
+        assert wp.anchored_distinct_ratio(bc, name) == pytest.approx(_CLS_POOL / _N_STAGGERED)
+
+    # `vb`: 100 of the 200 framed reads draw a 0 bp insert. Dropping the empties leaves 3 distinct
+    # inserts over 100 reads. Counting them would give 4 over 200 -- a different number, so this
+    # assertion is what holds the empty-drop guard in place.
+    assert wp.anchored_distinct_ratio(bc, "vb") == pytest.approx(3 / 100)
+    assert wp.anchored_distinct_ratio(bc, "vb") != pytest.approx(4 / _N_STAGGERED)
+
+
+def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_path: Path) -> None:
+    """The frame IS the offset: every framed read is tested, the 40 frameless ones are not."""
+    wp, bc, pools = _enhanced_bc_probe(tmp_path)
+    onlist = PackedOnlist.from_barcodes(pools[0])
+
+    hit = wp.anchored_onlist_hit(bc, "cls1", onlist, orientation="forward")
+    assert hit.n_tested == _N_STAGGERED  # not 240: a lost frame does not contribute
+    assert hit.hit_rate == 1.0  # every cls1 slice came out of this very pool
+    assert hit.offset == 0
+
+    # A whitelist of the wrong width matches no frame at all -- the width check, not a silent 0-hit scan.
+    wrong_width = PackedOnlist.from_barcodes([b + "A" for b in pools[0]])
+    miss = wp.anchored_onlist_hit(bc, "cls1", wrong_width, orientation="forward")
+    assert miss.n_tested == 0
+    assert miss.hit_rate == 0.0
