@@ -42,11 +42,12 @@ nonzero exit, `resolve` surfaces a `Conflict` it will not arbitrate, the metadat
 disputed attribute null rather than picking. A green run that skipped the relevant tests is the same
 species of wrong as a plausible matrix in the wrong coordinate space — it does not look broken.
 
-**3. The cost it was meant to remove was waste, not work.** The measured suite was 173s, of which ~61s
-was one `snakemake -n -p` spawned ~41 times to re-prove a fact about three hand-written modules, and
-~24s was the KB's twelve YAML files re-parsed ~1,500 times. Both are now paid once. TIA would have
-hidden that cost behind a selector instead of removing it, and the waste would have stayed in CI, where
-the selector's cache is cold anyway.
+**3. The cost it was meant to remove was waste, not work.** The measured suite was **164s** on this
+box, dominated by one `snakemake -n -p` spawned ~41 times to re-prove a fact about three hand-written
+modules (worth 39s once it was paid per module instead), and by the KB's twelve YAML files re-parsed
+~1,500 times (41s). Both are now paid once, and the suite is ~73s. TIA would have hidden that cost
+behind a selector instead of removing it, and the waste would have stayed in CI, where the selector's
+cache is cold anyway.
 
 **4. A rule an agent can follow does not need a tool.** Rung 1 is `pytest <file> -k <expr>` at ~2s.
 What was missing was never a selector; it was a sentence saying the full suite is a pre-PR gate, and a

@@ -9,23 +9,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from conftest import write_fastq_gz
+from conftest import real_cbs, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 
 runner = CliRunner()
-
-
-def _real_cbs(n: int) -> list[str]:
-    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
-    diverse. The CLI drives the REAL registry, so synthetic random CBs would miss the shipped whitelist
-    and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
-    from seqforge.io import DEFAULT_REGISTRY
-    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
-
-    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
-    step = max(1, packed.codes.shape[0] // n)
-    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
 
 
 #: ``(argv, exit_code, substrings that must appear in stdout)``.
@@ -439,7 +427,7 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=800, seed=0)
     # Give R1 REAL 3M-february-2018 barcodes: the CLI drives the shipped whitelist, and F1b now refuses
     # a barcoded winner whose read hits no whitelist -- random synthetic CBs would (correctly) trip it.
-    real = _real_cbs(128)
+    real = real_cbs(128)
     rng = random.Random(0)
     reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     f1 = tmp_path / "R1.fastq.gz"

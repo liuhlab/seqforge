@@ -37,10 +37,14 @@ Test files mirror packages, so rung 1 has an answer:
 | `compose/`, `manifest/`, the workflow registry | `tests/test_compile.py` |
 | `harvest/` | `tests/test_harvest.py`, `tests/test_extract.py` |
 | `io/` | `tests/test_io.py`, `tests/test_remote.py`, `tests/test_sra.py`, `tests/test_archive.py` |
+| `io/taxonomy.py` | `tests/test_taxonomy.py` |
 | `fingerprint/` | `tests/test_fingerprint.py` |
 | `report/` | `tests/test_report.py` |
 | `models/` | `tests/test_models.py` |
-| `cli.py`, `cli/` | `tests/test_cli.py` |
+| `evals/`, `e2e.py` | `tests/test_evals.py`, `tests/test_e2e.py` |
+| `hooks/` | `tests/test_hooks.py` |
+| `cli.py`, `cli/` | `tests/test_cli.py`, `tests/test_partition.py` (the multi-assay `run` path) |
+| `skills/`, `docs/` | `tests/test_skills.py`, `tests/test_docs.py` |
 
 Anything that reads an `Observation` from more than one source also owes
 `tests/test_observation_sources.py` a look — it is the only place the four callers of
@@ -58,7 +62,13 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work. Its value is that it skips what a source edit cannot break.
+mostly real work.
+
+**One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
+`tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
+by introspecting the live Typer app, so **renaming a CLI verb breaks it** — which is exactly what R6
+names it to catch. Rung 2 cannot see that. If you rename or move a verb, run
+`pytest tests/test_skills.py tests/test_docs.py` too, or go straight to rung 3.
 
 There is deliberately **no `slow` marker**. It would be a hand-maintained list keyed on a number that
 changes every time someone optimises, and nothing would go red when it drifted — a marker that lies

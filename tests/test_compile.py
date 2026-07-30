@@ -607,7 +607,9 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
     )
 
 
-def test_compose_emits_a_snakefile_even_when_no_gate_runs(built_v3: Built, tmp_path: Path) -> None:
+def test_compose_emits_a_snakefile_even_when_no_gate_runs(
+    built_v3: Built, tmp_path: Path, real_wiring_gate: None
+) -> None:
     """The Snakefile is the DELIVERABLE, so nothing optional may be its reason for existing.
 
     It used to be written inside `wiring_gate`, after an early `return "skip"` when `snakemake` was
@@ -617,6 +619,11 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(built_v3: Built, tmp_p
 
     `run_wiring_gate=False` is the sharpest way to state the invariant: no gate ran, and the
     deliverable is still on disk and still complete.
+
+    It takes `real_wiring_gate` *because* it is the test that no gate ran: under conftest's stub the
+    gate returns the literal `"skip"` for everyone, so `gate["wiring"] == "skip"` would hold even if
+    `run_wiring_gate` were ignored entirely. The assertion only means something when the thing it
+    asserts was NOT taken is the thing that would otherwise have run.
     """
     manifest, reg = built_v3
     result = compose(

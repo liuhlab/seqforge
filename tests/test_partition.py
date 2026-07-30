@@ -16,21 +16,9 @@ from typing import Any
 import pytest
 import yaml
 
-from conftest import write_fastq_gz
+from conftest import real_cbs, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import _fill_manifest_pipeline
-
-
-def _real_cbs(n: int) -> list[str]:
-    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
-    diverse. This path drives the REAL registry, so synthetic random CBs would miss the shipped
-    whitelist and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
-    from seqforge.io import DEFAULT_REGISTRY
-    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
-
-    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
-    step = max(1, packed.codes.shape[0] // n)
-    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
 
 
 def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
@@ -38,7 +26,7 @@ def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
     :func:`_real_cbs`) so it hits the shipped whitelist on the real-registry pipeline path."""
     reads = kb.generate_reads(kb.load_spec(tech), n=n, seed=seed)
     if tech == "10x-3p-gex-v3":
-        real = _real_cbs(128)
+        real = real_cbs(128)
         rng = random.Random(seed)
         reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     return reads

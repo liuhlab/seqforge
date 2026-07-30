@@ -131,6 +131,22 @@ def registry_for(spec: kb.Spec, *, seed: int = 0, pool_size: int = 64) -> Onlist
     return reg
 
 
+def real_cbs(n: int) -> list[str]:
+    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases
+    stay diverse.
+
+    For the paths that drive the REAL registry rather than a synthetic one: random CBs would miss the
+    shipped whitelist, and F1b would then refuse the v3 run as barcode-absent. Real CBs make it hit,
+    as real data does.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
+
+    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
+    step = max(1, packed.codes.shape[0] // n)
+    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
+
+
 def range_server(blobs: dict[str, bytes], *, status: int = 206) -> Callable[..., object]:
     """A fake ``requests.get`` that serves a 206 Range slice of ``blobs[url]`` with a Content-Range.
 
