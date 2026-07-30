@@ -19,7 +19,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+#: Everything here checks the published pages, not `src/`. `pixi run check` runs it; `test-fast` does not.
+pytestmark = pytest.mark.repo
 
 _REPO = Path(__file__).resolve().parents[1]
 MKDOCS = _REPO / "mkdocs.yml"

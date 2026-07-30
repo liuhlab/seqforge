@@ -1145,6 +1145,7 @@ def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared()
     assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
 
 
+@pytest.mark.external  # shells to `snakemake -n -p` via `_dry_run`
 def test_soloBarcodeReadLength_reaches_STAR_for_10x_and_not_for_splitseq(tmp_path: Path) -> None:
     """Config-level for both chemistries, then the rendered STAR command when snakemake is present."""
     (tmp_path / "v3").mkdir()

@@ -14,6 +14,9 @@ from pathlib import Path
 import pytest
 import yaml
 
+#: Everything here checks the shipped skills and docs, not `src/`. `pixi run check` runs it; `test-fast` does not.
+pytestmark = pytest.mark.repo
+
 _REPO = Path(__file__).resolve().parents[1]
 SKILLS = _REPO / "skills"
 

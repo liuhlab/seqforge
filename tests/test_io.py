@@ -404,6 +404,7 @@ def test_a_packed_onlist_round_trips_through_the_shipped_encoding() -> None:
     assert (decode_codes(encode_codes(codes), 16) == codes).all()
 
 
+@pytest.mark.external  # shells to `python -m build`
 def test_the_wheel_ships_the_data_the_package_cannot_work_without() -> None:
     """Build a wheel and look inside. Package data is not Python, so nobody notices it going missing.
 

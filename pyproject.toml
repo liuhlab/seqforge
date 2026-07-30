@@ -207,6 +207,11 @@ fmt-check = "ruff format --check ."
 # broken measuring instrument is worse than none because it still reads green).
 typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest src/seqforge/fingerprint src/seqforge/report src/seqforge/evals"
 test      = "pytest"
+# The rungs of the testing ladder (docs/agents/testing.md). `test-fast` drops what needs a binary we
+# do not own and what checks the repo rather than `src/`; it is what to run before a commit, and it
+# is NOT the pre-PR gate -- `check` is.
+test-fast   = "pytest -m 'not external and not repo' -q"
+test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark (NOT part of `check`): runs the whole eval corpus, so any
 # `fingerprint` case with an `hf:` source pulls its package from the public HF benchmark repo
@@ -215,6 +220,7 @@ test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # before the HF repo is populated. Invoked by the opt-in `.github/workflows/benchmark.yml`, never by CI.
 eval      = "seqforge eval run"
 check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
+check-fast = { depends-on = ["lint", "typecheck", "test-fast"] }
 build     = "python -m build"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
@@ -281,6 +287,14 @@ testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = ["error"]
+# `--strict-markers` was on with no markers table, so there was nothing to select on and the only
+# testing verb was the whole suite. Both markers are SEMANTIC, not speed: what a test needs, and
+# what it is about. A `slow` marker was rejected -- it is a hand-maintained list keyed on a number
+# that changes every time you optimise, and nothing makes it go red when it drifts.
+markers = [
+  "external: needs a binary seqforge does not own (snakemake/STAR/htslib/build)",
+  "repo: checks repo consistency, not src/ behaviour",
+]
 
 [tool.coverage.run]
 branch = true

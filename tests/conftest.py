@@ -76,6 +76,18 @@ def real_wiring_gate() -> None:
     return None
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Anything that asks for the real wiring gate spawns ``snakemake``, so it IS ``external``.
+
+    Derived from the fixture rather than written down, for the same reason the KB collects its own
+    test ids: a hand-maintained list of external tests is a list that goes stale silently, and the
+    staleness shows up as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+    """
+    for item in items:
+        if "real_wiring_gate" in getattr(item, "fixturenames", ()):
+            item.add_marker(pytest.mark.external)
+
+
 def write_fastq_gz(
     path: Path,
     records: Sequence[str] | Sequence[Record],

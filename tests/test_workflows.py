@@ -584,6 +584,7 @@ def test_write_fragments_raises_when_the_raw_output_is_missing(tmp_path: Path) -
 # -- finalize (requires htslib) ---------------------------------------------
 
 
+@pytest.mark.external
 @pytest.mark.skipif(not _HTSLIB, reason="bgzip/tabix (htslib) not on PATH")
 def test_write_fragments_sorts_bgzips_and_tabix_indexes(tmp_path: Path) -> None:
     raw = tmp_path / "fragments.raw.tsv"

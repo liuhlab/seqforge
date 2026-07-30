@@ -80,7 +80,8 @@ Slurm, no sbatch); its output is artifacts, and the last one runs.
 Each rule names the file that enforces it — a rule enforced by a fictional mechanism is worse than an
 unenforced one, so every cell names a file you can open and run; `PLEDGE:` marks a real debt.
 `.github/workflows/ci.yml` runs `pixi run check` on every push/PR; pre-commit runs only fast hooks, so
-run `pixi run check` yourself when you change behaviour.
+**run the narrowest thing that can go red** — see [`docs/agents/testing.md`](docs/agents/testing.md).
+`pixi run check` is a pre-PR gate, not a per-edit one.
 
 | # | Rule | Enforced by |
 |---|---|---|
@@ -109,15 +110,19 @@ Everything runs through **pixi** (not `pip`/`conda`/`venv`).
 
 ```bash
 pixi install                 # build environments
-pixi run test                # pytest (unit + KB round-trip + composer gates)
-pixi run test -- -k <expr>   # a single test / subset
-pixi run check               # lint + fmt-check + typecheck + test — what CI runs
+pixi run -e test pytest tests/test_probe.py -k budget   # rung 1: the red->green loop, ~2s
+pixi run check-fast          # rung 2: lint + typecheck + test-fast, before a commit
+pixi run check               # rung 3: lint + fmt-check + typecheck + test — what CI runs
+pixi run test                # the whole suite on its own
+pixi run test-failed         # --lf --new-first -x: re-run what broke, worst first
 pixi run -e docs docs-build  # mkdocs build --strict
 ```
 
 **`pixi run check` is the mechanism** — most rules are enforced by tests, so a green suite *is* the
-guarantee; CI runs it on every push/PR, pre-commit runs only fast hooks. Run it yourself when you
-change behaviour.
+guarantee. It is a **pre-PR gate, run once**, not a per-edit one: in the loop run the one file that
+tests the module you edited (test files mirror packages, so that question has an answer), and after
+the PR is open read CI rather than re-running it locally. The four rungs, the two markers (`external`,
+`repo`) and the module→file table are [`docs/agents/testing.md`](docs/agents/testing.md).
 
 - **Lint/format:** ruff `line-length=100`, `target-version=py312`, `select=[E,W,F,I,UP,B]`,
   `ignore=[E501, UP046, UP047]` (PEP-695 off: classic `Generic[T]`/`TypeVar` has better pydantic-v2 +
@@ -214,6 +219,12 @@ entirely (`journal.jsonl`/`distill`/`LESSONS.md`; its design survives in design.
 
 Configuration the engineering skills read. These files describe *where things live*; they add no
 rules — R1–R11 above remain the only rules.
+
+### Testing
+
+Four rungs — targeted `pytest` in the loop, `check-fast` before a commit, `check` **once** before the
+PR, then read CI. Two semantic markers (`external`, `repo`); no `slow` marker and no test-impact
+analysis, both for reasons written down. See [`docs/agents/testing.md`](docs/agents/testing.md).
 
 ### Issue tracker
 
