@@ -15,7 +15,7 @@ from ..models.observation import (
 )
 from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION
 from . import signals as sig
-from .streaming import StreamSample, sample_fastq_gz
+from .streaming import FastqHead
 
 
 def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[str]) -> str:
@@ -23,7 +23,7 @@ def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[s
 
     A file's identity here is a *name*: stable for the same file, distinct across files. It combines
     the basename, the compressed size, the gzip ISIZE trailer (uncompressed size mod 2^32), and a hash
-    of the bounded head sample — all in hand after :func:`~seqforge.probe.streaming.sample_fastq_gz`,
+    of the bounded head — all in hand after :meth:`~seqforge.probe.streaming.FastqHead.from_path`,
     so no extra bytes are read. The basename is part of the identity because a dataset's files are
     distinguished by name (``_1``/``_2``, lane, flowcell): two files with identical reads but different
     names are different files, and downstream maps (``dataset_uris``, role assignment) require one
@@ -135,7 +135,7 @@ def _estimate_reads(
 
 
 def build_observation(
-    sample: StreamSample,
+    head: FastqHead,
     *,
     size_bytes: int,
     sha256: str,
@@ -145,31 +145,31 @@ def build_observation(
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> tuple[Observation, list[str]]:
-    """Assemble the Tier-A :class:`Observation` from an already-sampled ``StreamSample``.
+    """Assemble the Tier-A :class:`Observation` from an already-read :class:`FastqHead`.
 
-    The pure, source-agnostic core of a probe: it runs the signal pipeline over ``sample.seqs`` and
+    The pure, source-agnostic core of a probe: it runs the signal pipeline over ``head.seqs`` and
     stamps identity/provenance, reading no bytes itself. Both a local probe (:func:`probe_sample`,
-    ``sample`` from a file) and a remote probe (``io.remote.probe_remote``, ``sample`` from a bounded
+    a head from a file) and a remote probe (``io.remote.probe_remote``, a head from a bounded
     range-read prefix) call it, so a URL resolves to a library exactly as a local file does. ``sha256``
     is the fully-formed 64-hex content-address the caller chose (a provider md5 via
     :func:`content_key_from_md5`, or a bounded local/remote key via :func:`_content_key`); ``isize`` is
     the gzip ISIZE trailer when reachable (local) and ``None`` when it is not (a remote prefix has no
     tail), which simply falls the read estimate back to the compressed-size ratio.
     """
-    comps = sig.per_cycle_composition(sample.seqs)
+    comps = sig.per_cycle_composition(head.seqs)
     segments = sig.segment(comps)
-    read_length = sig.read_length_profile(sample.seqs)
-    windows = sig.distinct_ratios(sample.seqs, segments)
-    read_name = sig.parse_read_name(sample.first_name)
-    quality = sig.quality_encoding(sample.qual_min_ord, sample.qual_max_ord)
-    nrate = sig.n_rate(sample.seqs)
+    read_length = sig.read_length_profile(head.seqs)
+    windows = sig.distinct_ratios(head.seqs, segments)
+    read_name = sig.parse_read_name(head.first_name)
+    quality = sig.quality_encoding(head.qual_min_ord, head.qual_max_ord)
+    nrate = sig.n_rate(head.seqs)
 
     estimated_total, est_method = _estimate_reads(
         size_bytes,
-        sample.n_reads,
-        sample.decompressed_bytes,
-        sample.compressed_bytes,
-        sample.budget_exhausted,
+        head.n_reads,
+        head.decompressed_bytes,
+        head.compressed_bytes,
+        head.budget_exhausted,
         isize,
     )
 
@@ -181,9 +181,9 @@ def build_observation(
             local_uri=local_uri,
         ),
         probe=ProbeProvenance(
-            n_reads_sampled=sample.n_reads,
-            bytes_read=sample.decompressed_bytes,
-            compressed_bytes_read=sample.compressed_bytes,
+            n_reads_sampled=head.n_reads,
+            bytes_read=head.decompressed_bytes,
+            compressed_bytes_read=head.compressed_bytes,
             tool_version=PROBE_VERSION,
             params_hash=_params_hash(max_reads, max_bytes),
         ),
@@ -196,9 +196,9 @@ def build_observation(
         n_rate=nrate,
         estimated_total_reads=estimated_total,
         est_method=est_method,
-        gzip=GzipIntegrity(ok=sample.ok, truncated=sample.truncated),
+        gzip=GzipIntegrity(ok=head.ok, truncated=head.truncated),
     )
-    return observation, sample.seqs
+    return observation, head.seqs
 
 
 def probe_sample(
@@ -211,19 +211,19 @@ def probe_sample(
     """Fingerprint one LOCAL FASTQ gzip and ALSO return its bounded sampled sequences.
 
     :class:`Observation` is structural + role-free and cached to disk; the raw sampled ``seqs`` are
-    the same bounded, in-memory sample used to build it. ``resolve`` needs those seqs to answer
+    the same bounded, in-memory head used to build it. ``resolve`` needs those seqs to answer
     role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
-    which the structural Observation deliberately does not carry. The sample stays within the
+    which the structural Observation deliberately does not carry. The head stays within the
     budget — this returns it, it does not re-read the file.
     """
     p = Path(path)
-    sample = sample_fastq_gz(p, max_reads=max_reads, max_bytes=max_bytes)
+    head = FastqHead.from_path(p, max_reads, max_bytes)
     file_size = p.stat().st_size
     isize = gzip_isize(p)
     return build_observation(
-        sample,
+        head,
         size_bytes=file_size,
-        sha256=sha256 or _content_key(p.name, file_size, isize, sample.seqs),
+        sha256=sha256 or _content_key(p.name, file_size, isize, head.seqs),
         basename=p.name,
         local_uri=str(p),
         isize=isize,

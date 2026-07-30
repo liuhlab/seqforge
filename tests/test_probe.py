@@ -4,19 +4,30 @@ from __future__ import annotations
 
 import builtins
 import gzip
+import hashlib
+import json
 import random
 import re
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
 from seqforge.probe import DEFAULT_MAX_READS, probe_file
+from seqforge.probe.streaming import BoundedReader
 
 BASES = "ACGT"
 W1_LINKER = (
     "GAGTGATTGCTTGTGACGCCTT"  # a fixed 22 bp adapter (inDrop's W1), used to test constant detection
 )
+
+#: sha256 over the canonically-serialized signal fields of ``_value_stable_fixture``'s observation.
+#: Changing this literal is never a fix — it means a probe change moved an observed value, which
+#: re-hashes every pinned manifest. Re-pin only alongside a deliberate PROBE_VERSION bump.
+VALUE_STABLE_DIGEST = "2518cb673702347e78e00ac2c1265756dfa787dc3bd08a72acec527d52c6c5b5"
+#: 16 bp CB | 22 bp W1 linker | 8 bp UMI | 10 bp polyT, recovered structurally.
+VALUE_STABLE_SEGMENTS = ["RandomSegment", "ConstantSegment", "RandomSegment", "HomopolymerSegment"]
 
 
 def _rand_seq(rng: random.Random, n: int) -> str:
@@ -235,6 +246,130 @@ def test_the_content_address_is_stable_and_distinguishes_content(tmp_path: Path)
     key_a = probe_file(a).file.sha256
     assert key_a == probe_file(a).file.sha256  # stable across probes of the same file
     assert key_a != probe_file(b).file.sha256  # distinct content => distinct key
+
+
+def _reader_fixture(tmp_path: Path, n: int = 500, read_len: int = 40) -> bytes:
+    """A gzipped FASTQ as raw bytes, for feeding BoundedReader a stream directly."""
+    rng = random.Random(11)
+    path = tmp_path / "reader.fastq.gz"
+    _write_fastq_gz(path, _recs([_rand_seq(rng, read_len) for _ in range(n)]))
+    return path.read_bytes()
+
+
+def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
+    """R3's first budget, tested where it is enforced rather than through a probe."""
+    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), 10, 1 << 30)
+    records = list(reader)
+
+    assert len(records) == 10 and reader.n_reads == 10
+    assert reader.budget_exhausted  # a budget stopped it, not EOF
+    assert reader.ok and not reader.truncated
+    header, seq, plus, qual = records[0]
+    assert header == b"@SIM:0" and plus == b"+"  # newlines stripped, bytes preserved
+    assert len(seq) == 40 and len(qual) == 40
+
+
+def test_the_reader_stops_at_the_byte_budget(tmp_path: Path) -> None:
+    """R3's second budget: whichever trips first stops the read, so a huge read cap does not unbound it."""
+    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), 1_000_000, 2_000)
+    records = list(reader)
+
+    assert 0 < len(records) < 500  # stopped well short of the file
+    assert reader.budget_exhausted
+    # It stops on the first record that crosses the cap, so it overshoots by at most one record.
+    assert 2_000 <= reader.decompressed_bytes < 2_000 + 200
+
+
+def test_the_reader_flags_a_stream_cut_mid_member(tmp_path: Path) -> None:
+    """A truncated upload and a bounded range-read prefix are the same case: cut, flagged, prefix kept."""
+    data = _reader_fixture(tmp_path)
+    reader = BoundedReader(BytesIO(data[:-20]), 1_000_000, 1 << 30)
+    records = list(reader)
+
+    assert reader.truncated or not reader.ok
+    assert records  # the intact prefix still parsed
+
+
+def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
+    """Not a gzip at all: no records, flagged, and no exception escaping into the caller.
+
+    The flag is ``truncated``, not ``ok``. ``gzip.GzipFile`` reads its header lazily, so a format
+    error surfaces on the first record read — inside the same branch a mid-member cut takes. This is
+    the behaviour of the loop this replaced, verified against it, not a change; whether ``ok`` is
+    reachable at all is a separate question about `GzipIntegrity`.
+    """
+    reader = BoundedReader(BytesIO(b"this is not a gzip stream" * 100), 100, 1 << 30)
+
+    assert list(reader) == []
+    assert reader.truncated and reader.n_reads == 0
+
+
+def test_the_reader_accounting_is_filled_once_exhausted(tmp_path: Path) -> None:
+    """The counters are outputs of the iteration: read them after the loop, and they describe it."""
+    data = _reader_fixture(tmp_path, n=200)
+    reader = BoundedReader(BytesIO(data), 10_000, 1 << 30)
+    records = list(reader)
+
+    assert len(records) == 200
+    assert not reader.budget_exhausted  # a clean EOF, not a budget stop
+    assert 0 < reader.compressed_bytes <= len(data)
+    assert reader.decompressed_bytes > reader.compressed_bytes  # gzip actually compressed it
+
+
+def _value_stable_fixture(path: Path) -> None:
+    """A deterministic FASTQ exercising every Tier-A signal, small enough to be read to EOF.
+
+    Read-to-EOF is the point: ``budget_exhausted`` is then False and the read estimate is the exact
+    sampled count, so no signal field depends on the compressed size — and ``gzip.open`` writes the
+    *filename* into its header, which would otherwise leak a ``tmp_path`` into the digest.
+
+    Qualities span ords 35..73 rather than the suite's usual all-``'I'``: a constant ``'I'`` (73)
+    resolves to ``quality_encoding == "unknown"``, so every other fixture here leaves the phred33
+    branch unexercised.
+    """
+    rng = random.Random(1234)
+    pool = [_rand_seq(rng, 16) for _ in range(40)]  # recurring barcodes -> a low distinct ratio
+    records: list[tuple[str, str, str]] = []
+    for i in range(200):
+        seq = rng.choice(pool) + W1_LINKER + _rand_seq(rng, 8) + "T" * 10
+        if i % 50 == 0:
+            seq = seq[:30] + "N" + seq[31:]  # a sprinkle of N so n_rate is non-zero
+        qual = "".join(chr(35 + (j % 39)) for j in range(len(seq)))
+        records.append((f"INSTR:1:FLOWCELL:1:1101:{1000 + i}:{2000 + i} 1:N:0:ACGTACGT", seq, qual))
+    _write_fastq_gz(path, records)
+
+
+def test_the_signal_fields_are_value_stable(tmp_path: Path) -> None:
+    """Pin the observation's signal values against a literal digest.
+
+    A refactor of the probe must not move a single observed value: `Observation` values are what
+    `dataset_content_hash` covers, so a shift here re-hashes every pinned manifest. Nothing else in
+    the suite pins absolute values — `test_fingerprint` compares two probe paths *against each
+    other*, so it stays green if both move together.
+
+    `file` and `probe` are excluded: the first carries a tmp path, the second the version stamp
+    (`PROBE_VERSION` is deliberately not part of the manifest hash — `manifest/hash.py` hashes
+    values, not tool versions). The named assertions below are not redundant with the digest: when
+    the digest breaks they say *which* signal moved.
+    """
+    path = tmp_path / "stable.fastq.gz"
+    _value_stable_fixture(path)
+    obs = probe_file(path)
+
+    signals = obs.model_dump(mode="json", exclude={"file", "probe"})
+    canonical = json.dumps(signals, sort_keys=True, separators=(",", ":")).encode()
+    assert hashlib.sha256(canonical).hexdigest() == VALUE_STABLE_DIGEST
+
+    # Legibility on failure: which signal moved?
+    assert obs.read_length.mode == 56  # 16 CB + 22 linker + 8 UMI + 10 polyT
+    assert obs.read_length.n_distinct == 1
+    assert obs.estimated_total_reads == 200  # read to EOF -> exact, never extrapolated
+    assert obs.est_method == "isize"
+    assert obs.quality_encoding == "phred33"
+    assert obs.gzip.ok and not obs.gzip.truncated
+    assert 0 < obs.n_rate < 0.01
+    assert obs.read_name.parsed and obs.read_name.lane == 1
+    assert [type(s).__name__ for s in obs.segments] == VALUE_STABLE_SEGMENTS
 
 
 class _CountingReader:
