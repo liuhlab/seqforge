@@ -209,3 +209,25 @@ Hooks turn policy into mechanism: `PreToolUse` blocks unbounded FASTQ streams (s
 `Stop` refuses to end a turn while `questions.md` is non-empty. Two design-called-for things are
 **unbuilt**: nothing *writes* `questions.md` (the `Stop` hook only reads it), and the journal flywheel
 entirely (`journal.jsonl`/`distill`/`LESSONS.md`; its design survives in design.md §9).
+
+## Agent skills
+
+Configuration the engineering skills read. These files describe *where things live*; they add no
+rules — R1–R11 above remain the only rules.
+
+### Issue tracker
+
+GitHub Issues on `liuhlab/seqforge`, driven by the `gh` CLI — the tracker the PR history already
+references. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix`. See
+[`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` at the root + `docs/adr/`, both **excluded from the site** for the
+same reason `design.md` is. Created lazily — their absence is not a defect. See
+[`docs/agents/domain.md`](docs/agents/domain.md).
