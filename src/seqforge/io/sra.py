@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ..fingerprint.build import FingerprintResult, assemble_package
-from ..fingerprint.subsample import Record, records_to_gz_bytes
+from ..fingerprint.subsample import records_to_gz_bytes
 from ..models.fingerprint import FilePin
 from ..probe import (
     DEFAULT_MAX_BYTES,
@@ -36,7 +36,7 @@ from ..probe import (
     content_key_from_md5,
     content_key_from_sra,
 )
-from ..probe.streaming import sample_fastq_stream
+from ..probe.streaming import FastqHead, Record
 from .remote import (
     _MAX_RETRIES,
     RemoteError,
@@ -117,9 +117,9 @@ def _observe_records(
     from io import BytesIO
 
     gz = records_to_gz_bytes(records)
-    sample = sample_fastq_stream(BytesIO(gz), n_reads, max_bytes)
+    head = FastqHead.read(BytesIO(gz), n_reads, max_bytes)
     return build_observation(
-        sample,
+        head,
         size_bytes=size_bytes,
         sha256=sha256,
         basename=basename,

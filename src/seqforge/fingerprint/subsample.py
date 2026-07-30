@@ -1,14 +1,16 @@
 """Cut a FASTQ down to its first N complete records, and re-emit reproducible gzip.
 
-The probe's read is bounded (:mod:`seqforge.probe.streaming`) but throws the bytes away — its
-``StreamSample`` keeps only sequences, not the headers and qualities a *valid* FASTQ record needs. A
-fingerprint has to write real records back out, so this reads full 4-line records under the same two
-budgets the probe honours (``max_reads`` / decompressed ``max_bytes``) and re-emits them with the
-``mtime=0`` idiom so the slice is byte-reproducible: identical reads in, identical gzip out.
+The probe's read is bounded (:mod:`seqforge.probe.streaming`) but throws most of the bytes away — its
+:class:`~seqforge.probe.streaming.FastqHead` keeps only sequences, not the headers and qualities a
+*valid* FASTQ record needs. A fingerprint has to write real records back out, so this accumulates the
+whole record and re-emits it with the ``mtime=0`` idiom so the slice is byte-reproducible: identical
+reads in, identical gzip out.
 
-Never a whole-file read. The budget loop is the same shape as ``sample_fastq_stream``'s, so a slice
-cut at ``max_reads = N`` contains exactly the records a probe with the same budget would consume —
-which is what lets a fingerprint run reproduce the full-file observation when ``N`` ≥ the probe budget.
+Never a whole-file read: the budget is enforced by
+:class:`~seqforge.probe.streaming.BoundedReader`, the same and only loop the probe iterates. A slice
+cut at ``max_reads = N`` therefore contains exactly the records a probe with the same budget consumes
+— by construction, not by hand — which is what lets a fingerprint run reproduce the full-file
+observation when ``N`` ≥ the probe budget.
 """
 
 from __future__ import annotations
@@ -17,12 +19,8 @@ import gzip
 import io
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import IO
 
-#: One record as four raw lines with trailing newlines stripped: (header, seq, plus, qual). Kept as
-#: bytes, not decoded str, so headers and qualities survive byte-for-byte (the probe's ``first_name``
-#: and quality-ordinal signals must match the original for the resolve verdict to reproduce).
-Record = tuple[bytes, bytes, bytes, bytes]
+from ..probe.streaming import BoundedReader, Record
 
 
 @dataclass
@@ -39,51 +37,20 @@ class RecordSlice:
         return len(self.records)
 
 
-def read_records_stream(fileobj: IO[bytes], max_reads: int, max_bytes: int) -> RecordSlice:
-    """Read at most ``max_reads`` complete records / ``max_bytes`` decompressed bytes from a gzip FASTQ.
-
-    Mirrors :func:`seqforge.probe.streaming.sample_fastq_stream` line for line — same budget check at
-    the top of the loop, same mid-record-cut handling — but keeps the *whole* record, not just the
-    sequence. The byte accounting (``len`` of each raw line including its newline) is identical too, so
-    for a given ``(max_reads, max_bytes)`` this reads exactly the record count the probe would.
-    """
-    sl = RecordSlice()
-    try:
-        with gzip.GzipFile(fileobj=fileobj) as gz:
-            line_iter = iter(gz)
-            while sl.n_reads < max_reads and sl.decompressed_bytes < max_bytes:
-                try:
-                    header = next(line_iter, None)
-                    if header is None:  # clean EOF before the budget
-                        break
-                    seq = next(line_iter, None)
-                    plus = next(line_iter, None)
-                    qual = next(line_iter, None)
-                except (EOFError, gzip.BadGzipFile, OSError):
-                    sl.truncated = True  # stream cut mid-member
-                    break
-                if seq is None or plus is None or qual is None:
-                    sl.truncated = True  # a partial final record
-                    break
-                sl.decompressed_bytes += len(header) + len(seq) + len(plus) + len(qual)
-                sl.records.append(
-                    (
-                        header.rstrip(b"\n"),
-                        seq.rstrip(b"\n"),
-                        plus.rstrip(b"\n"),
-                        qual.rstrip(b"\n"),
-                    )
-                )
-    except (gzip.BadGzipFile, OSError):
-        sl.ok = False
-    return sl
-
-
 def read_records(path: str | Path, max_reads: int, max_bytes: int) -> RecordSlice:
-    """Read a bounded head of a LOCAL gzip FASTQ into full records. Thin wrapper over the stream form."""
+    """Read a bounded head of a LOCAL gzip FASTQ into full records.
+
+    An accumulation over :class:`~seqforge.probe.streaming.BoundedReader` — the budget is the reader's,
+    not this function's, so the record count matches a probe under the same budget by construction.
+    """
     raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
     try:
-        return read_records_stream(raw, max_reads, max_bytes)
+        reader = BoundedReader(raw, max_reads, max_bytes)
+        sl = RecordSlice(records=list(reader))
+        sl.decompressed_bytes = reader.decompressed_bytes
+        sl.truncated = reader.truncated
+        sl.ok = reader.ok
+        return sl
     finally:
         raw.close()
 
@@ -119,7 +86,6 @@ __all__ = [
     "Record",
     "RecordSlice",
     "read_records",
-    "read_records_stream",
     "records_to_gz_bytes",
     "write_records_gz",
 ]
