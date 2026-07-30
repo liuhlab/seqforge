@@ -13,6 +13,12 @@ so enumerate their candidate lengths, walk the element chain for each, and keep 
 the error model rhapsodist uses across its 0-3 bp offset scan). A read whose frame cannot be found
 (a cDNA read, a garbage read) returns ``None`` and simply does not contribute — never a wrong slice.
 
+``element_bases(seqs, frames, name)`` then **cuts** one element out of frames already resolved. It
+takes the frames rather than resolving them so a caller holding a cache (``resolve.window``'s
+``_frame_cache``) does not realign a read per element. Cutting lives here beside resolution because it
+is the same geometry — where an element sits in a read — while the *measure* taken over the result
+(``probe.signals.distinct_ratio``, ``io.onlist``) is somebody else's job entirely.
+
 This lives in ``kb`` (not ``resolve`` or ``probe``) on purpose: it is pure layout logic over a
 ``kb.schema.Read`` and a string, and both ``kb.roundtrip`` (which cannot import ``resolve`` — that is a
 cycle) and ``resolve.window`` need it.
@@ -161,6 +167,36 @@ def resolve_windows(seq: str, read: Read) -> dict[str, tuple[int, int]] | None:
         if best is None or mismatches < best[0]:
             best = (mismatches, windows)
     return best[1] if best is not None else None
+
+
+def element_bases(
+    seqs: list[str], frames: list[dict[str, tuple[int, int]] | None], element_name: str
+) -> list[str]:
+    """The bases one element carries in each read whose frame resolved.
+
+    ``frames`` is :func:`resolve_windows` run over ``seqs``, position for position — passed in rather
+    than recomputed so a caller can memoize it across the elements of one read.
+
+    Two reads contribute nothing, for different reasons. A read whose frame was not found has no
+    window at all (``None``) and is dropped rather than sliced at a guessed offset. A read whose frame
+    WAS found may still yield an empty element, because a variable-length one can legitimately draw
+    zero width — BD Rhapsody's diversity insert is 0-3 bp — and a zero-width draw is not an
+    observation. What never happens is a truncated cut: :func:`_resolve_for_assignment` rejects any
+    phase running off the 3' end, so every window in a resolved frame is wholly inside its read.
+
+    The fixed-column twin is :func:`seqforge.probe.signals.window_bases`, whose guard is the other one
+    (the read is too short to contain the column at all).
+    """
+    bases: list[str] = []
+    for seq, frame in zip(seqs, frames, strict=True):
+        if frame is None:
+            continue
+        window = frame.get(element_name)
+        if window is None:
+            continue
+        if cut := seq[window[0] : window[1]]:
+            bases.append(cut)
+    return bases
 
 
 def _hamming(a: str, b: str) -> int:

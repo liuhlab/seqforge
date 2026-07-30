@@ -13,8 +13,10 @@ from dataclasses import dataclass, field
 
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
 from ..io.onlist import pack_barcode, revcomp
+from ..kb.anchor import element_bases, resolve_windows
 from ..kb.schema import Read
 from ..models.observation import CycleComposition, Observation
+from ..probe import signals as sig  # module-qualified: `distinct_ratio` is also a method below
 
 _IUPAC = {
     "A": "A", "C": "C", "G": "G", "T": "T",
@@ -32,6 +34,12 @@ class WindowProbe:
     ``anchored_*`` methods answer distinct-ratio / onlist-hit over those per-read frames instead. The
     full per-read frame is resolved once and memoized (``_frame_cache``, keyed by the ``Read`` object)
     so scoring three cell-label blocks on one read does not realign it three times.
+
+    Every method here **cuts, then measures**, and owns neither half: the fixed column is cut by
+    :func:`probe.signals.window_bases` and the per-read frame by :func:`kb.anchor.element_bases`, and
+    what comes back is measured by :func:`probe.signals.distinct_ratio` or ``io.onlist``. What this
+    class contributes is the pairing of an Observation with the bounded sample that produced it, and
+    the frame cache — not arithmetic.
     """
 
     observation: Observation
@@ -52,26 +60,13 @@ class WindowProbe:
         key = id(read)
         cached = self._frame_cache.get(key)
         if cached is None:
-            from ..kb.anchor import resolve_windows
-
             cached = [resolve_windows(s, read) for s in self.seqs]
             self._frame_cache[key] = cached
         return cached
 
-    def anchored_windows(self, read: Read, element_name: str) -> list[tuple[int, int] | None]:
-        """The per-read ``[start, end)`` of one floating element (``None`` where the frame was lost)."""
-        return [f.get(element_name) if f is not None else None for f in self._frames(read)]
-
     def anchored_distinct_ratio(self, read: Read, element_name: str) -> float | None:
-        """``distinct/total`` of a floating element's per-read slices; ``None`` if no frame resolved."""
-        windows = self.anchored_windows(read, element_name)
-        slices = [
-            self.seqs[i][s:e] for i, w in enumerate(windows) if w is not None for s, e in (w,)
-        ]
-        slices = [s for s in slices if s]
-        if not slices:
-            return None
-        return len(set(slices)) / len(slices)
+        """``distinct/total`` of a floating element's per-read bases; ``None`` if no frame resolved."""
+        return sig.distinct_ratio(element_bases(self.seqs, self._frames(read), element_name))
 
     def anchored_onlist_hit(
         self,
@@ -86,7 +81,7 @@ class WindowProbe:
         the offset), forward and/or reverse-complement per ``orientation``. ``n_tested`` counts reads
         whose frame resolved to a window of the onlist's width; a lost frame simply does not contribute.
         """
-        windows = self.anchored_windows(read, element_name)
+        bases = element_bases(self.seqs, self._frames(read), element_name)
         strands = (
             ["forward"]
             if orientation == "forward"
@@ -100,10 +95,7 @@ class WindowProbe:
         for strand in strands:
             tested = 0
             hits = 0
-            for i, w in enumerate(windows):
-                if w is None:
-                    continue
-                sub = self.seqs[i][w[0] : w[1]]
+            for sub in bases:
                 if len(sub) != onlist.width:
                     continue
                 tested += 1
@@ -126,10 +118,7 @@ class WindowProbe:
 
     def distinct_ratio(self, start: int, end: int) -> float | None:
         """``distinct/total`` over ``[start, end)`` (role-conditioned; a supports signal, never a gate)."""
-        window = [s[start:end] for s in self.seqs if len(s) >= end]
-        if not window:
-            return None
-        return len(set(window)) / len(window)
+        return sig.distinct_ratio(sig.window_bases(self.seqs, start, end))
 
     def composition_window(self, start: int, end: int | None) -> list[CycleComposition]:
         """Per-cycle composition over cycles ``[start, end)`` (``end=None`` => to the longest read)."""

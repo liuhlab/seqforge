@@ -12,7 +12,7 @@ belongs here.
 **Head**:
 The bounded prefix of a FASTQ that any read under the budget produces. Every FASTQ touch yields a
 head, never a whole file.
-_Avoid_: prefix, chunk, window (a window is a base range within a read)
+_Avoid_: prefix, chunk, window (see **Window** — that is a range within one read, not a run of them)
 
 **Budget**:
 The pair `(max_reads, max_bytes)` that bounds a head. Whichever trips first stops the read.
@@ -31,7 +31,35 @@ _Avoid_: using "read" for the act of reading bytes; say "a head" or "reading a h
 **Slice**:
 A head kept verbatim as records, so it can be written back out as a valid FASTQ. What a fingerprint
 package ships.
-_Avoid_: subsample, excerpt
+_Avoid_: subsample, excerpt; and never for what a window cuts out of a single read — those are
+**bases**
+
+### Layout and measures
+
+**Window**:
+A `[start, end)` base range within one read. Role-conditioned by definition — a window exists because
+something decided that range means something (a KB spec, probe's own segmentation). Calling it a
+window says nothing about what it holds.
+_Avoid_: region, interval, span (a span is a harvest quote), segment (probe's own structural
+segmentation)
+
+**Frame**:
+A window recovered per read, for a piece of a read's declared layout whose position floats.
+`kb.anchor.resolve_windows` finds one read's frame by phase detection; a read whose frame is not found
+contributes nothing rather than a wrong window. A fixed window is constant across reads; a frame is
+not.
+_Avoid_: offset, phase (phase is how a frame is found, not what it is), alignment
+
+**Distinct ratio**:
+distinct/total over the bases a window or frame cuts from each read. The measure, not the phenomenon:
+low means recurrence, high means uniqueness. Spelled `distinct_ratio` on the wire — in KB specs and in
+the Observation — so the name is fixed.
+_Avoid_: uniqueness, diversity, complexity; recurrence (that is what it measures)
+
+**Recurrence**:
+The phenomenon a low distinct ratio reports: values drawn from a small pool repeat across reads, as
+cell barcodes do and UMIs do not. A property of the data, never the number.
+_Avoid_: using it for the distinct ratio itself
 
 ### Identity
 
