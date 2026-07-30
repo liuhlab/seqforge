@@ -19,6 +19,7 @@ budget consumes.
 from __future__ import annotations
 
 import gzip
+import zlib
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -74,9 +75,18 @@ class BoundedReader:
     n_reads, decompressed_bytes, compressed_bytes
         The byte/record accounting that proves the read stayed in budget.
     truncated
-        The gzip stream ended mid-member before either budget or a clean EOF.
+        The gzip stream **ended early**: it stopped mid-member, or its last record is short of four
+        lines, before either budget or a clean EOF. The bytes present were readable.
     ok
-        False on a gzip/format error.
+        False when the stream is **not readable gzip**: a header that does not parse, a corrupt
+        deflate payload, a CRC that disagrees with what came out.
+
+    The two are different verdicts and never both true, because they carry different remedies — a cut
+    upload is re-downloaded, a corrupt file is re-examined for whether it was ever a FASTQ — and
+    ``resolve`` raises a different ``Blocker`` for each. Which one applies is decided by *what the
+    decompressor raised*, not by a heuristic over the record count: ``EOFError`` means the bytes ran
+    out, anything else means they did not say what they claimed. They used to collapse into
+    ``truncated`` for both, leaving ``ok`` unreachable (issue #94).
     """
 
     def __init__(self, fileobj: IO[bytes], budget: Budget) -> None:
@@ -109,9 +119,17 @@ class BoundedReader:
                         seq = next(line_iter, None)
                         plus = next(line_iter, None)
                         qual = next(line_iter, None)
-                    except (EOFError, gzip.BadGzipFile, OSError):
-                        # cut mid-member (truncated upload, or a bounded range-read head).
+                    except EOFError:
+                        # The bytes ran out mid-member: a truncated upload, or — the routine case —
+                        # a bounded range-read head that was never meant to reach the end.
                         self.truncated = True
+                        break
+                    except (zlib.error, OSError):
+                        # Not readable gzip. `BadGzipFile` IS an `OSError` (bad magic, a header that
+                        # does not parse, a failed CRC); `zlib.error` is not one, and a corrupt
+                        # deflate payload raises it — uncaught, it escaped into the caller and killed
+                        # the probe instead of producing the refusal (issue #94).
+                        self.ok = False
                         break
                     if seq is None or plus is None or qual is None:
                         self.truncated = True  # a partial final record => cut mid-record
@@ -126,8 +144,8 @@ class BoundedReader:
                         plus.rstrip(b"\n"),
                         qual.rstrip(b"\n"),
                     )
-        except (gzip.BadGzipFile, OSError):
-            self.ok = False
+        except (zlib.error, OSError):
+            self.ok = False  # the same verdict, for a stream that failed before the first record
         finally:
             self.compressed_bytes = self._fileobj.tell()
 

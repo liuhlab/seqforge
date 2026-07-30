@@ -305,18 +305,54 @@ def test_the_reader_flags_a_stream_cut_mid_member(tmp_path: Path) -> None:
 
 
 def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
-    """Not a gzip at all: no records, flagged, and no exception escaping into the caller.
+    """Not a gzip at all: no records, ``ok=False``, and no exception escaping into the caller.
 
-    The flag is ``truncated``, not ``ok``. ``gzip.GzipFile`` reads its header lazily, so a format
-    error surfaces on the first record read — inside the same branch a mid-member cut takes. This is
-    the behaviour of the loop this replaced, verified against it, not a change; whether ``ok`` is
-    reachable at all is a separate question about `GzipIntegrity`.
+    This is the other half of the verdict, and the two must not collapse into one. ``gzip.GzipFile``
+    reads its header lazily, so a format error surfaces on the first *record* read — the same call
+    that a mid-member cut fails in — and the reader used to flag both as ``truncated``, leaving ``ok``
+    unreachable and a caller unable to tell a partial upload from a file that was never a FASTQ. The
+    two remedies differ ("re-download and verify the checksum" vs "confirm it is gzip FASTQ"), so the
+    two ``Blocker``s must differ, so the two flags must (issue #94).
     """
     reader = BoundedReader(BytesIO(b"this is not a gzip stream" * 100), Budget(100, 1 << 30))
 
     assert list(reader) == []
-    assert reader.truncated and reader.ok  # the whole claim: flagged as a cut, NOT as not-ok
+    assert not reader.ok and not reader.truncated  # a format error, NOT a cut
     assert reader.n_reads == 0
+
+
+def test_the_reader_survives_a_corrupt_deflate_stream(tmp_path: Path) -> None:
+    """A bit-flipped member raises ``zlib.error``, which is not an ``OSError`` — so it used to ESCAPE.
+
+    Every other malformed input the reader meets arrives as ``EOFError`` or ``gzip.BadGzipFile`` (an
+    ``OSError``), both caught. A corrupted deflate stream raises ``zlib.error``, which subclasses
+    neither: it propagated out of the iterator and killed the probe instead of yielding the
+    ``CORRUPT_FASTQ`` refusal the design promises. Rare in a fresh download, routine in bytes that
+    have sat on tape or crossed a flaky mount — exactly the corpus this compiler runs over.
+    """
+    data = bytearray(_reader_fixture(tmp_path))
+    data[len(data) // 2] ^= 0xFF  # inside the deflate payload, past the header
+    reader = BoundedReader(BytesIO(bytes(data)), Budget(1_000_000, 1 << 30))
+
+    list(reader)  # must not raise
+    assert not reader.ok and not reader.truncated
+
+
+def test_the_reader_flags_a_failed_crc_as_corrupt_not_cut(tmp_path: Path) -> None:
+    """The gzip trailer disagreeing with the payload is corruption, not a short read.
+
+    The records all decompressed and the stream reached its end — nothing was cut — but the CRC32 the
+    writer recorded does not match what came out, so the bytes are not what they claim to be. Python
+    raises this as ``BadGzipFile`` at the very end of the member, i.e. *after* a full head has been
+    yielded, which is why it cannot be told apart by record count.
+    """
+    data = bytearray(_reader_fixture(tmp_path))
+    data[-8] ^= 0xFF  # the CRC32 field of the trailer
+    reader = BoundedReader(BytesIO(bytes(data)), Budget(1_000_000, 1 << 30))
+    records = list(reader)
+
+    assert records  # the payload read fine...
+    assert not reader.ok and not reader.truncated  # ...and is still not to be trusted
 
 
 def test_the_reader_accounting_is_filled_once_exhausted(tmp_path: Path) -> None:

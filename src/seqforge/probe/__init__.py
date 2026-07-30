@@ -21,7 +21,12 @@ from __future__ import annotations
 #: from 1k to 200k reads across every benchmarked worm library, so the default samples 100x fewer
 #: reads. This changes observation values (n_reads_sampled, per-cycle composition, the read-count
 #: estimate), hence a probe-version bump: pinned manifests re-hash through their observation values.
-PROBE_VERSION = "2026.7.2"
+#: 2026.7.3 — `gzip.ok` and `gzip.truncated` stop meaning the same thing (issue #94). A stream that is
+#: not readable gzip now reports `ok=False, truncated=False` where it reported the reverse, and a
+#: corrupt deflate payload reports it at all rather than raising. Only malformed inputs move; a clean
+#: FASTQ observes identically, so no clean manifest re-hashes — but a *cached* verdict from the old
+#: probe would replay the old meaning, which is what this stamp evicts.
+PROBE_VERSION = "2026.7.3"
 
 #: Default bounded-read budget: 2_000 reads. The benchmarked N-invariant floor is <=1k across every
 #: chemistry (issue #63); 2k is a deliberate 2x cushion, ~100x cheaper than the old arbitrary
