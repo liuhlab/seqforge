@@ -28,7 +28,7 @@ from seqforge.manifest import ExperimentInputs, dataset_content_hash, fill_manif
 from seqforge.models.dataset import DatasetManifest
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.probe import probe_file
-from seqforge.probe.streaming import FastqHead
+from seqforge.probe.streaming import Budget, FastqHead
 from seqforge.resolve import resolve_dataset
 
 TECH = "10x-3p-gex-v3"
@@ -138,7 +138,7 @@ def test_both_accumulations_consume_the_same_records(tmp_path: Path) -> None:
     paths, _ = _synth_dataset(tmp_path, n=600)
     src = paths[0]
     for max_reads, max_bytes in ((37, 1 << 30), (150, 1 << 30), (10_000, 3_000)):
-        head = FastqHead.from_path(src, max_reads, max_bytes)
+        head = FastqHead.from_path(src, Budget(max_reads, max_bytes))
         sl = read_records(src, max_reads=max_reads, max_bytes=max_bytes)
         assert head.n_reads == sl.n_reads, f"diverged at {max_reads=} {max_bytes=}"
         assert head.decompressed_bytes == sl.decompressed_bytes
@@ -151,7 +151,7 @@ def test_sliced_records_parse_back_through_the_streamer(tmp_path: Path) -> None:
     result = build_fingerprint(paths, workspace=tmp_path, reads=150, name="ds")
     for pin in result.manifest.files:
         assert pin.reads_written == 150
-        head = FastqHead.from_path(result.staging / pin.rel_path, 10_000, 1 << 30)
+        head = FastqHead.from_path(result.staging / pin.rel_path, Budget(10_000, 1 << 30))
         assert head.ok and not head.truncated
         assert head.n_reads == 150
 

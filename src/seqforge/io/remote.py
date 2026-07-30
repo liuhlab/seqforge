@@ -45,7 +45,8 @@ from ..probe import (
     content_key_from_md5,
     remote_content_key,
 )
-from ..probe.streaming import FastqHead
+from ..probe.core import WholeFile
+from ..probe.streaming import Budget, FastqHead
 
 if TYPE_CHECKING:
     from ..models.observation import Observation
@@ -634,6 +635,28 @@ def _uri_basename(uri: str) -> str:
     return tail.rsplit("/", 1)[-1] or uri
 
 
+def hosted_whole_file(uri: str, md5: str | None, size_bytes: int, seqs: list[str]) -> WholeFile:
+    """Name a file that lives at a URL. The provider md5 IS the address when there is one.
+
+    ENA/SRA publish a per-file md5 over the *hosted* bytes, so adopting it makes a remote probe and a
+    URL download of the same file agree on ``dataset_hash`` with zero read of the body beyond the
+    head. Without one, a bounded key over (basename + total size + head) stands in.
+
+    ``isize`` is always ``None``: the gzip trailer lives in the file's tail, and a range-read head by
+    construction never has the tail. This is the sharpest reason identity is built *here* rather than
+    in ``probe`` — the knowledge of what a hosted file can and cannot know is HTTP's, and ``probe``
+    importing an HTTP client would forfeit the stdlib-only foundation status that lets ``io``,
+    ``fingerprint`` and ``resolve`` all depend on it.
+    """
+    basename = _uri_basename(uri)
+    return WholeFile(
+        basename=basename,
+        sha256=content_key_from_md5(md5) if md5 else remote_content_key(basename, size_bytes, seqs),
+        size_bytes=size_bytes,
+        isize=None,
+    )
+
+
 def probe_remote(
     uri: str,
     *,
@@ -660,24 +683,11 @@ def probe_remote(
     blob, total = _range_get(uri, max_bytes=max_compressed_bytes)
     if not blob:
         raise RemoteError(f"{uri}: range read returned no bytes")
-    head = FastqHead.read(BytesIO(blob), max_reads, max_bytes)
+    head = FastqHead.read(BytesIO(blob), Budget(max_reads, max_bytes))
     if not head.seqs:
         raise RemoteError(
             f"{uri}: no FASTQ records in the {len(blob)}-byte head — not a gzipped FASTQ, or the "
             "range was too small to hold one record."
         )
     size_bytes = total if total and total > 0 else len(blob)
-    basename = _uri_basename(uri)
-    sha256 = (
-        content_key_from_md5(md5) if md5 else remote_content_key(basename, size_bytes, head.seqs)
-    )
-    return build_observation(
-        head,
-        size_bytes=size_bytes,
-        sha256=sha256,
-        basename=basename,
-        local_uri=None,
-        isize=None,
-        max_reads=max_reads,
-        max_bytes=max_bytes,
-    )
+    return build_observation(head, hosted_whole_file(uri, md5, size_bytes, head.seqs))

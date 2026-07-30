@@ -14,9 +14,17 @@ from pathlib import Path
 import pytest
 
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
-from seqforge.probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_file
+from seqforge.probe import (
+    DEFAULT_MAX_BYTES,
+    DEFAULT_MAX_READS,
+    PROBE_VERSION,
+    WholeFile,
+    build_observation,
+    local_whole_file,
+    probe_file,
+)
 from seqforge.probe.core import _params_hash, gzip_isize
-from seqforge.probe.streaming import BoundedReader
+from seqforge.probe.streaming import BoundedReader, Budget, FastqHead
 
 BASES = "ACGT"
 W1_LINKER = (
@@ -259,7 +267,7 @@ def _reader_fixture(tmp_path: Path, n: int = 500, read_len: int = 40) -> bytes:
 
 def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
     """R3's first budget, tested where it is enforced rather than through a probe."""
-    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), 10, 1 << 30)
+    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(10, 1 << 30))
     records = list(reader)
 
     assert len(records) == 10 and reader.n_reads == 10
@@ -272,7 +280,7 @@ def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
 
 def test_the_reader_stops_at_the_byte_budget(tmp_path: Path) -> None:
     """R3's second budget: whichever half trips first stops the read, so a huge `max_reads` alone does not unbound it."""
-    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), 1_000_000, 2_000)
+    reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(1_000_000, 2_000))
     records = list(reader)
 
     assert 0 < len(records) < 500  # stopped well short of the file
@@ -289,7 +297,7 @@ def test_the_reader_flags_a_stream_cut_mid_member(tmp_path: Path) -> None:
     non-gzip test below turns on.
     """
     data = _reader_fixture(tmp_path)
-    reader = BoundedReader(BytesIO(data[:-20]), 1_000_000, 1 << 30)
+    reader = BoundedReader(BytesIO(data[:-20]), Budget(1_000_000, 1 << 30))
     records = list(reader)
 
     assert reader.truncated and reader.ok  # cut mid-member, not a format error
@@ -304,7 +312,7 @@ def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
     the behaviour of the loop this replaced, verified against it, not a change; whether ``ok`` is
     reachable at all is a separate question about `GzipIntegrity`.
     """
-    reader = BoundedReader(BytesIO(b"this is not a gzip stream" * 100), 100, 1 << 30)
+    reader = BoundedReader(BytesIO(b"this is not a gzip stream" * 100), Budget(100, 1 << 30))
 
     assert list(reader) == []
     assert reader.truncated and reader.ok  # the whole claim: flagged as a cut, NOT as not-ok
@@ -314,7 +322,7 @@ def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
 def test_the_reader_accounting_is_filled_once_exhausted(tmp_path: Path) -> None:
     """The counters are outputs of the iteration: read them after the loop, and they describe it."""
     data = _reader_fixture(tmp_path, n=200)
-    reader = BoundedReader(BytesIO(data), 10_000, 1 << 30)
+    reader = BoundedReader(BytesIO(data), Budget(10_000, 1 << 30))
     records = list(reader)
 
     assert len(records) == 200
@@ -409,12 +417,61 @@ def test_the_identity_and_provenance_fields_are_value_stable(tmp_path: Path) -> 
 
     # Provenance. `params_hash` is a pure function of the budget — no fixture, no compressor, no
     # environment — so it pins as a bare literal, and any change to what feeds it goes red here.
-    assert obs.probe.params_hash == _params_hash(DEFAULT_MAX_READS, DEFAULT_MAX_BYTES)
+    assert obs.probe.params_hash == _params_hash(Budget(DEFAULT_MAX_READS, DEFAULT_MAX_BYTES))
     assert obs.probe.params_hash == "8ffd5fe97ddea836"
     assert obs.probe.n_reads_sampled == 200  # the whole fixture: read to EOF, not budget-stopped
     assert obs.probe.bytes_read == 33200  # decompressed, so it equals the ISIZE above
     assert obs.probe.compressed_bytes_read == 2850  # and this equals the file size
     assert obs.probe.tool_version == PROBE_VERSION  # stamped, though not hashed into a manifest
+
+
+def test_the_stamped_budget_is_the_one_the_head_was_read_under(tmp_path: Path) -> None:
+    """`params_hash` describes the read, and there is no longer a way to make it describe anything else.
+
+    It used to be recomputed inside `build_observation` from `max_reads`/`max_bytes` the caller passed
+    a *second* time, alongside a head it merely promised had been read under them. Nothing checked the
+    promise and nothing reads `params_hash` downstream, so a caller that passed a different budget
+    stamped a hash that lied, silently and forever. The budget now rides on the head, so the two
+    cannot disagree — this pins that they don't.
+    """
+    path = tmp_path / "stable.fastq.gz"
+    _value_stable_fixture(path)
+    odd = Budget(37, 1 << 20)
+
+    head = FastqHead.from_path(path, odd)
+    obs, _seqs = build_observation(head, local_whole_file(path, head.seqs))
+
+    assert head.budget == odd  # the head remembers what bounded it
+    assert head.n_reads == 37  # and it really was bounded by it
+    assert obs.probe.params_hash == _params_hash(odd)
+    assert obs.probe.params_hash != _params_hash(Budget())  # not the default it never used
+
+
+def test_local_uri_follows_the_head_not_the_file_it_describes(tmp_path: Path) -> None:
+    """`local_uri` answers "where were the bytes", which is a fact about the read, not the file.
+
+    The distinction is invisible for a local probe (the two files are the same one) and load-bearing
+    for a fingerprint replay, where the head is cut from a slice while the identity describes an
+    absent original. Feeding a stream a `WholeFile` that names some other file must therefore leave
+    `local_uri` empty rather than inventing a path from the basename.
+    """
+    path = tmp_path / "stable.fastq.gz"
+    _value_stable_fixture(path)
+    elsewhere = WholeFile(
+        basename="somewhere_else.fastq.gz", sha256="d" * 64, size_bytes=99, isize=1
+    )
+
+    from_disk = FastqHead.from_path(path)
+    from_stream = FastqHead.read(BytesIO(path.read_bytes()))
+
+    disk_obs, _ = build_observation(from_disk, elsewhere)
+    stream_obs, _ = build_observation(from_stream, elsewhere)
+
+    assert disk_obs.file.local_uri == str(path)  # the head knew where it read
+    assert stream_obs.file.local_uri is None  # a stream has nowhere to point
+    # Both were told the same file, and both say so — identity does not follow the bytes.
+    assert disk_obs.file.basename == stream_obs.file.basename == "somewhere_else.fastq.gz"
+    assert disk_obs.file.sha256 == stream_obs.file.sha256 == "d" * 64
 
 
 class _CountingReader:

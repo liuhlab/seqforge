@@ -20,7 +20,7 @@ import io
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..probe.streaming import BoundedReader, Record
+from ..probe.streaming import BoundedReader, Budget, Record
 
 
 @dataclass
@@ -45,7 +45,7 @@ def read_records(path: str | Path, max_reads: int, max_bytes: int) -> RecordSlic
     """
     raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
     try:
-        reader = BoundedReader(raw, max_reads, max_bytes)
+        reader = BoundedReader(raw, Budget(max_reads, max_bytes))
         sl = RecordSlice(records=list(reader))
         sl.decompressed_bytes = reader.decompressed_bytes
         sl.truncated = reader.truncated
