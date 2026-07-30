@@ -445,8 +445,31 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         assert module.env in valid_envs
 
 
+@pytest.mark.parametrize("module", list_modules())
+def test_every_registered_module_wires_into_a_runnable_dag(
+    module: str, tmp_path: Path, real_wiring_gate: None
+) -> None:
+    """The wiring gate, paid once per workflow module — the only place in the suite that pays it.
+
+    The gate's claim varies with the ``.smk`` MODULE, not with the dataset, but ``run_wiring_gate``
+    sat on ``compose``'s dataset-shaped interface, so ~41 tests each spawned ``snakemake -n -p`` to
+    re-prove one of three facts and only ``map/starsolo`` was ever asserted on. This is the same
+    claim on the interface that owns it: every registered module, exhaustively.
+
+    The tech comes from the KB, not a hand-written list (R8) — a fourth module gets a case the moment
+    a spec targets it, and a module no spec reaches fails loudly rather than going untested.
+    """
+    techs = sorted(t for t in kb.runnable_spec_ids() if kb.load_spec(t).backend.module == module)
+    assert techs, f"{module} is registered but no spec reaches it"
+    manifest, reg = _build(tmp_path, techs[0])
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.gate["wiring"] == "pass"
+
+
 # ---------- compose ----------
-def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) -> None:
+def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
+    tmp_path: Path, real_wiring_gate: None
+) -> None:
     manifest, reg = _build(tmp_path, "10x-3p-gex-v3", ("R1", "R2"))
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
@@ -484,7 +507,9 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(tmp_path: Path) 
     assert len(units) == 3  # header + 2 reads
 
 
-def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(tmp_path: Path) -> None:
+def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
+    tmp_path: Path, real_wiring_gate: None
+) -> None:
     """BD Rhapsody Enhanced compiles to the adapter-anchored STARsolo recipe endorsed on STAR #1607.
 
     The diversity insert floats every offset, so the geometry cannot be a read-start quadruple: compose
@@ -611,7 +636,9 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(tmp_path: Path) -> Non
     assert get_module("map/starsolo").snakefile.name in snakefile.read_text()
 
 
-def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(tmp_path: Path) -> None:
+def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(
+    tmp_path: Path, real_wiring_gate: None
+) -> None:
     """The gate stands in zero-byte FASTQs; they must never land where the pipeline will read them.
 
     They were touched straight into the run directory (`pipeline_dir / row["path"]`) and never
@@ -632,7 +659,9 @@ def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(tmp_path
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
-def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(tmp_path: Path) -> None:
+def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
+    tmp_path: Path, real_wiring_gate: None
+) -> None:
     """A dry run that plans zero jobs exits 0. The gate must not read that as success.
 
     This is what the wrapper did for the life of the repo: `configfile:` + `include:` parses clean,
@@ -1887,7 +1916,9 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(tmp_path: Path)
     assert "seqforge io onlist write" in module
 
 
-def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(tmp_path: Path) -> None:
+def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(
+    tmp_path: Path, real_wiring_gate: None
+) -> None:
     """The gate that catches the mistake this change nearly made.
 
     A rule declared above `rule all` becomes the workflow's default target, and a default target with

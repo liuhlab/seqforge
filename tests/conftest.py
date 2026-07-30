@@ -1,8 +1,10 @@
 """Shared test support — the seam ``tests/`` never had.
 
 Without a conftest every file re-implemented its own setup, so the same fact was re-proved dozens of
-times and nothing could be tuned in one place. Three things live here:
+times and nothing could be tuned in one place. What lives here:
 
+* :func:`_no_wiring_gate` — the autouse stub that stops ``compose`` spawning ``snakemake -n -p``
+  in every test that happens to compose. One test opts back in per workflow module.
 * :func:`write_fastq_gz` — the one synthetic-FASTQ writer (it was copied verbatim into 13 files).
   Its ``compresslevel`` default is **1**, not zlib's 9: the suite writes hundreds of throwaway
   fixtures whose compressed *size* nothing reads. A fixture that pins compressed bytes must pass its
@@ -42,6 +44,36 @@ Record = tuple[str, str, str]
 
 #: Cheap by default; see the module docstring. ~5-8s across the suite, and no claim depends on it.
 DEFAULT_COMPRESSLEVEL = 1
+
+
+# --------------------------------------------------------------------------- #
+# the wiring gate: paid once per workflow module, not once per compose
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(autouse=True)
+def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub ``wiring_gate`` unless a test asks for the real one.
+
+    ``run_wiring_gate: bool = True`` makes a 1.49s ``snakemake -n -p`` subprocess the default, so
+    every test that composes anything re-proves a fact about a hand-written ``.smk`` module rather
+    than about its own inputs. It was spawned ~41 times and only four of those spawns had a consumer
+    — all four on ``map/starsolo``, which left ``map/star`` and ``map/chromap`` spawned dozens of
+    times and asserted on never.
+
+    Patching the module ATTRIBUTE rather than flipping the default is what reaches the CLI-driven
+    callers: ``compose.core`` imports ``wiring_gate`` inside the function body, so every path — the
+    ``run`` verb, the report fixture, the fingerprint spine — resolves it here at call time.
+    """
+    if "real_wiring_gate" in request.fixturenames:
+        return
+    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", lambda pipeline_dir, plan: "skip")
+
+
+@pytest.fixture
+def real_wiring_gate() -> None:
+    """Opt back in. Marks a test as one that pays ~1.5s of ``snakemake -n -p`` deliberately."""
+    return None
 
 
 def write_fastq_gz(
