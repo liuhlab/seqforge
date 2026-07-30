@@ -270,24 +270,29 @@ def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
 
 
 def test_the_reader_stops_at_the_byte_budget(tmp_path: Path) -> None:
-    """R3's second budget: whichever trips first stops the read, so a huge read cap does not unbound it."""
+    """R3's second budget: whichever half trips first stops the read, so a huge `max_reads` alone does not unbound it."""
     reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), 1_000_000, 2_000)
     records = list(reader)
 
     assert 0 < len(records) < 500  # stopped well short of the file
     assert reader.budget_exhausted
-    # It stops on the first record that crosses the cap, so it overshoots by at most one record.
+    # It stops on the first record that crosses the budget, so it overshoots by at most one record.
     assert 2_000 <= reader.decompressed_bytes < 2_000 + 200
 
 
 def test_the_reader_flags_a_stream_cut_mid_member(tmp_path: Path) -> None:
-    """A truncated upload and a bounded range-read prefix are the same case: cut, flagged, prefix kept."""
+    """A truncated upload and a bounded range-read head are the same case: cut, flagged, head kept.
+
+    The verdict is pinned exactly rather than as ``truncated or not ok``: that disjunction holds under
+    either outcome, so it would not notice the two swapping — which is precisely the distinction the
+    non-gzip test below turns on.
+    """
     data = _reader_fixture(tmp_path)
     reader = BoundedReader(BytesIO(data[:-20]), 1_000_000, 1 << 30)
     records = list(reader)
 
-    assert reader.truncated or not reader.ok
-    assert records  # the intact prefix still parsed
+    assert reader.truncated and reader.ok  # cut mid-member, not a format error
+    assert records  # the intact head still parsed
 
 
 def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
@@ -301,7 +306,8 @@ def test_the_reader_flags_a_non_gzip_stream(tmp_path: Path) -> None:
     reader = BoundedReader(BytesIO(b"this is not a gzip stream" * 100), 100, 1 << 30)
 
     assert list(reader) == []
-    assert reader.truncated and reader.n_reads == 0
+    assert reader.truncated and reader.ok  # the whole claim: flagged as a cut, NOT as not-ok
+    assert reader.n_reads == 0
 
 
 def test_the_reader_accounting_is_filled_once_exhausted(tmp_path: Path) -> None:
