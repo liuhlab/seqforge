@@ -12,7 +12,7 @@ from seqforge import kb
 from seqforge.kb.schema import Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
-from seqforge.probe.signals import window_distinct_ratio
+from seqforge.probe.signals import distinct_ratio, window_bases
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
@@ -76,8 +76,8 @@ def test_roundtrip_10x_geometry(tmp_path: Path) -> None:
     assert not any(isinstance(s, ConstantSegment) for s in obs.segments)
 
     # role-conditioned distinct-ratio recovers CB recurrence vs UMI uniqueness (the declared layout)
-    cb_ratio = window_distinct_ratio(r1, 0, 16)
-    umi_ratio = window_distinct_ratio(r1, 16, 28)
+    cb_ratio = distinct_ratio(window_bases(r1, 0, 16))
+    umi_ratio = distinct_ratio(window_bases(r1, 16, 28))
     assert cb_ratio is not None and cb_ratio < 0.2  # 64 barcodes over 2000 reads
     assert umi_ratio is not None and umi_ratio > 0.8
 

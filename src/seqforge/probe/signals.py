@@ -194,12 +194,27 @@ def read_length_profile(seqs: list[str]) -> ReadLengthProfile:
     )
 
 
-def window_distinct_ratio(seqs: list[str], start: int, end: int) -> float | None:
-    """distinct/total over an explicit ``[start, end)`` window (role-conditioned; used by resolve)."""
-    window = [s[start:end] for s in seqs if len(s) >= end]
-    if not window:
+def window_bases(seqs: list[str], start: int, end: int) -> list[str]:
+    """The bases each read carries in the fixed column ``[start, end)``.
+
+    A read shorter than ``end`` does not contain the column at all, so it contributes nothing --
+    never a partial slice, which would compare a short string against full-width ones. The anchored
+    twin is :func:`seqforge.kb.anchor.element_bases`, which cuts a per-read frame instead and guards
+    a different failure (a resolved window of zero width).
+    """
+    return [s[start:end] for s in seqs if len(s) >= end]
+
+
+def distinct_ratio(bases: list[str]) -> float | None:
+    """distinct/total over already-cut bases; ``None`` when nothing was cut.
+
+    Deliberately dumb: it counts what it is handed and never decides which reads contribute. That is
+    the cutter's job, because *which* bases to cut is role-conditioned (a KB spec, or probe's own
+    segmentation, decided the range meant something) while this arithmetic never is.
+    """
+    if not bases:
         return None
-    return len(set(window)) / len(window)
+    return len(set(bases)) / len(bases)
 
 
 def distinct_ratios(seqs: list[str], segments: list[Segment]) -> list[WindowDistinctRatio]:
@@ -208,13 +223,13 @@ def distinct_ratios(seqs: list[str], segments: list[Segment]) -> list[WindowDist
     for seg in segments:
         if not isinstance(seg, RandomSegment):
             continue
-        window = [s[seg.start : seg.end] for s in seqs if len(s) >= seg.end]
-        if not window:
+        bases = window_bases(seqs, seg.start, seg.end)
+        ratio = distinct_ratio(bases)
+        if ratio is None:
             continue
-        ratio = len(set(window)) / len(window)
         out.append(
             WindowDistinctRatio(
-                start=seg.start, end=seg.end, distinct_ratio=ratio, n_sampled=len(window)
+                start=seg.start, end=seg.end, distinct_ratio=ratio, n_sampled=len(bases)
             )
         )
     return out
