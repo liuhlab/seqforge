@@ -34,9 +34,9 @@ class BoundedReader:
     """Iterate the records of a gzip FASTQ head, stopping at whichever budget trips first.
 
     Source-agnostic: ``fileobj`` is any binary reader positioned at the gzip magic — a local file, an
-    in-memory range-read *prefix* (``io.remote.probe_remote``), or re-serialized SRA records
-    (``io.sra``). A prefix that ends mid-member is the normal remote case, and it takes the same path
-    as a truncated upload: the cut is caught and the trailing partial record dropped.
+    in-memory range-read head (``io.remote.probe_remote``), or re-serialized SRA records
+    (``io.sra``). A range-read head that ends mid-member is the normal remote case, and it takes the
+    same path as a truncated upload: the cut is caught and the trailing partial record dropped.
 
     **Single-use, and accounting is valid only once exhausted.** The counters below are filled as the
     iteration advances, so read them *after* the loop, not during and not before. ``compressed_bytes``
@@ -46,7 +46,7 @@ class BoundedReader:
     Parameters
     ----------
     fileobj
-        A binary stream of gzip-compressed FASTQ bytes (a whole file, or a bounded head prefix).
+        A binary stream of gzip-compressed FASTQ bytes (a whole file, or a bounded head).
     max_reads
         Hard cap on records read.
     max_bytes
@@ -90,7 +90,7 @@ class BoundedReader:
                         plus = next(line_iter, None)
                         qual = next(line_iter, None)
                     except (EOFError, gzip.BadGzipFile, OSError):
-                        # cut mid-member (truncated upload, or a bounded range-read prefix).
+                        # cut mid-member (truncated upload, or a bounded range-read head).
                         self.truncated = True
                         break
                     if seq is None or plus is None or qual is None:
