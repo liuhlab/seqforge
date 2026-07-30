@@ -12,7 +12,9 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-from conftest import write_fastq_gz
+import pytest
+
+from conftest import registry_for, write_fastq_gz
 from seqforge import kb
 from seqforge.io import OnlistRegistry
 from seqforge.models.blocker import BlockerCode
@@ -54,7 +56,7 @@ def test_a_whitelist_hitting_chemistry_dominates_a_geometric_sibling_that_missed
     write_fastq_gz(r_cd, cdna)
 
     # The full KB (Multiome GEX included) and a registry carrying BOTH whitelists — 3M hits, ARC misses.
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
     out = resolve_dataset([r_bc, r_cd], registry=reg, use_cache=False)
 
     scored = {c.technology for c in out.result.candidates}
@@ -64,15 +66,6 @@ def test_a_whitelist_hitting_chemistry_dominates_a_geometric_sibling_that_missed
     assert out.result.candidates[0].technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
     assert "10x-multiome-gex" not in out.result.candidates[0].equivalence_members
     assert not out.result.blockers, [b.message for b in out.result.blockers]
-
-
-def _registry_for(spec: kb.Spec) -> OnlistRegistry:
-    pools = kb.build_pools(spec, seed=0)
-    reg = OnlistRegistry(offline=True)
-    for alias, ref in spec.onlists.items():
-        if alias in pools:
-            reg.register_synthetic(ref.registry, pools[alias])
-    return reg
 
 
 def _over_length(
@@ -105,60 +98,58 @@ def _over_length(
     return paths, seqs
 
 
-def test_an_over_length_v3_barcode_read_resolves_to_v3_via_its_whitelist(tmp_path: Path) -> None:
-    spec = kb.load_spec("10x-3p-gex-v3")
-    paths, _ = _over_length(tmp_path, "10x-3p-gex-v3", umi_len=12)
-    reg = _registry_for(spec)  # registers ONLY the 3M-february-2018 (v3) whitelist
-
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
-    assert not out.result.blockers, [b.message for b in out.result.blockers]
-    winner = out.result.candidates[0]
-    # v3 and v3.1 are §12 twins recorded together; either is the right answer, v2 is not.
-    assert winner.technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
-    assert winner.score.status == "scored"
-    # Both 150 bp reads were assigned (the barcode read to R1, cDNA to R2) — nothing dropped despite
-    # the over-length: the whole point is that an over-sequenced R1 is not left unassigned.
-    assert set(winner.role_assignment.assignment) == {"R1", "R2"}
-    assert not winner.role_assignment.unassigned
-    # The chemistry was decided by the onlist (rung 3): length could not do it.
-    assert winner.rung_resolved.get("chemistry", 0) >= 3
-
-
-def test_an_over_length_v2_barcode_read_resolves_to_v2_not_v3(tmp_path: Path) -> None:
-    """Same 150 bp geometry, but the CB hits 737K-august-2016 -> v2. The whitelist alone separates."""
-    spec = kb.load_spec("10x-3p-gex-v2")
-    paths, _ = _over_length(tmp_path, "10x-3p-gex-v2", umi_len=10)
-    reg = _registry_for(spec)  # registers ONLY the 737K-august-2016 (v2) whitelist
-
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
-    assert not out.result.blockers, [b.message for b in out.result.blockers]
-    winner = out.result.candidates[0]
-    assert winner.technology == "10x-3p-gex-v2"
-    assert winner.score.status == "scored"
-
-
 DEAD_LEN = 75  # in the over-length DEAD ZONE: > canonical 26/28 bp, < over_length_min (100)
 
+#: ``(tech, umi_len, total_len, winners)`` — one row per shape of over-sequenced barcode read the
+#: whitelist has to rescue. The three were separate functions differing only in these four values.
+WHITELIST_ADMITS = [
+    # v3 and v3.1 are §12 twins recorded together; either is the right answer, v2 is not.
+    pytest.param(
+        "10x-3p-gex-v3", 12, None, {"10x-3p-gex-v3", "10x-3p-gex-v3.1"},
+        id="an-over-length-v3-barcode-read-resolves-to-v3",
+    ),
+    # Same 150 bp geometry, but the CB hits 737K-august-2016 -> v2. The whitelist alone separates.
+    pytest.param(
+        "10x-3p-gex-v2", 10, None, {"10x-3p-gex-v2"},
+        id="an-over-length-v2-barcode-read-resolves-to-v2-not-v3",
+    ),
+    # #7: an R1 over-sequenced to 75 bp sits in the DEAD ZONE — too long to be the canonical 26 bp v2
+    # read, too short for the over_length_min (100) that admits a full-length over-sequenced read.
+    # Length alone forbids it, and that is deliberate (a 60-94 bp cDNA must not pass as a barcode).
+    # GSE126954's over-sequenced SRX5411291 is exactly this; before the fix it collapsed to bulk.
+    pytest.param(
+        "10x-3p-gex-v2", 10, DEAD_LEN, {"10x-3p-gex-v2"},
+        id="a-dead-zone-barcode-read-is-admitted-by-its-whitelist",
+    ),
+]  # fmt: skip
 
-def test_a_dead_zone_barcode_read_is_admitted_by_its_whitelist(tmp_path: Path) -> None:
-    """#7: an R1 over-sequenced to 75 bp sits in the DEAD ZONE — too long to be the canonical 26 bp v2
-    read, too short for the over_length_min (100) that admits a full-length over-sequenced read. Length
-    alone forbids it, and that is deliberate (a 60-94 bp cDNA must not pass as a barcode). The WHITELIST
-    admits it: the first 16 bp hit 737K-august-2016, so this IS a real v2 barcode read. GSE126954's
-    over-sequenced SRX5411291 is exactly this, and before the fix it collapsed to bulk-rnaseq-pe.
+
+@pytest.mark.parametrize("tech, umi_len, total_len, winners", WHITELIST_ADMITS)
+def test_the_whitelist_admits_a_barcode_read_length_alone_would_refuse(
+    tech: str, umi_len: int, total_len: int | None, winners: set[str], tmp_path: Path
+) -> None:
+    """An over-sequenced R1 is still a barcode read, and the onlist is what says so.
+
+    The registry registers ONLY this chemistry's whitelist, so the decision is the whitelist's and
+    nothing else's — which is why every row must resolve at rung 3 or above: length could not do it.
     """
-    spec = kb.load_spec("10x-3p-gex-v2")
-    paths, _ = _over_length(tmp_path, "10x-3p-gex-v2", umi_len=10, total_len=DEAD_LEN)
-    reg = _registry_for(spec)  # registers ONLY the 737K-august-2016 (v2) whitelist
+    spec = kb.load_spec(tech)
+    kwargs = {"total_len": total_len} if total_len is not None else {}
+    paths, _ = _over_length(tmp_path, tech, umi_len=umi_len, **kwargs)
+    reg = registry_for(spec)
 
     out = resolve_dataset(paths, registry=reg, use_cache=False)
+
     assert not out.result.blockers, [b.message for b in out.result.blockers]
     winner = out.result.candidates[0]
-    assert winner.technology == "10x-3p-gex-v2", [c.technology for c in out.result.candidates[:3]]
-    # admitted BY the onlist, so the chemistry is decided at rung 3 (the over-length length gate FAILed)
-    assert winner.rung_resolved.get("chemistry", 0) >= 3
+    assert winner.technology in winners, [c.technology for c in out.result.candidates[:3]]
+    assert winner.score.status == "scored"
+    # Both reads were assigned (the barcode read to R1, cDNA to R2) — nothing dropped despite the
+    # over-length: the whole point is that an over-sequenced R1 is not left unassigned.
     assert set(winner.role_assignment.assignment) == {"R1", "R2"}
     assert not winner.role_assignment.unassigned
+    # Decided BY the onlist, so the chemistry resolves at rung 3 (the length gate FAILed).
+    assert winner.rung_resolved.get("chemistry", 0) >= 3
 
 
 def test_a_dead_zone_barcode_read_below_the_support_gate_is_still_admitted(tmp_path: Path) -> None:
@@ -194,7 +185,7 @@ def test_a_dead_zone_barcode_read_below_the_support_gate_is_still_admitted(tmp_p
     r2 = tmp_path / "v2_R2.fastq.gz"
     write_fastq_gz(r1, barcode)
     write_fastq_gz(r2, cdna)
-    reg = _registry_for(spec)  # ONLY the 737K-august-2016 (v2) whitelist
+    reg = registry_for(spec)  # ONLY the 737K-august-2016 (v2) whitelist
 
     # Half one (the admission calibration): the v2 barcode role is admitted (not forbidden) at a
     # sub-0.6 hit rate. Fails under the old support-`min` gate.
@@ -230,7 +221,7 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
     r2 = tmp_path / "x_R2.fastq.gz"
     write_fastq_gz(r1, [rand(DEAD_LEN) for _ in range(600)])  # random 75 bp -> hits no whitelist
     write_fastq_gz(r2, [rand(DEAD_LEN) for _ in range(600)])
-    reg = _registry_for(
+    reg = registry_for(
         kb.load_spec("10x-3p-gex-v2")
     )  # v2 whitelist IS registered; the reads miss it
 
@@ -263,7 +254,7 @@ def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
     r2 = tmp_path / "bulk_R2.fastq.gz"
     write_fastq_gz(r1, [rand(100) for _ in range(600)])  # canonical cDNA length, no barcode
     write_fastq_gz(r2, [rand(100) for _ in range(600)])
-    reg = _registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
+    reg = registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
 
     out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
     assert out.result.candidates[0].technology == "bulk-rnaseq-pe", [
@@ -306,7 +297,7 @@ def test_an_over_length_read_with_a_ragged_tail_is_not_flagged_as_pretrimmed(
     write_fastq_gz(r1, barcode)
     write_fastq_gz(r2, cdna)
 
-    out = resolve_dataset([r1, r2], registry=_registry_for(spec), use_cache=False)
+    out = resolve_dataset([r1, r2], registry=registry_for(spec), use_cache=False)
     assert not any(b.code.name == "PRETRIMMED_VARIABLE_LENGTH" for b in out.result.blockers), [
         b.message for b in out.result.blockers
     ]
@@ -318,7 +309,7 @@ def test_no_spurious_barcode_length_conflict_for_an_over_length_read(tmp_path: P
     the over-length read is expected geometry, not a contradiction to surface."""
     spec = kb.load_spec("10x-3p-gex-v3")
     paths, _ = _over_length(tmp_path, "10x-3p-gex-v3", umi_len=12)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
 
     out = resolve_dataset(
         paths, registry=reg, hypothesis=Hypothesis(value="10x-3p-gex-v3"), use_cache=False
@@ -362,7 +353,7 @@ def test_the_barcode_role_seats_on_the_whitelist_hitting_read_not_the_higher_sco
     r_cd = tmp_path / "sample_cd.fastq.gz"
     write_fastq_gz(r_bc, barcode)
     write_fastq_gz(r_cd, cdna)
-    reg = _registry_for(spec)
+    reg = registry_for(spec)
 
     probes = [
         WindowProbe(observation=probe_file(r_bc), seqs=barcode),
@@ -401,9 +392,7 @@ def test_a_barcoded_winner_whose_read_hits_no_whitelist_is_refused(tmp_path: Pat
         r1, [rand(28) for _ in range(600)]
     )  # 28 bp barcode geometry, random -> miss list
     write_fastq_gz(r2, [rand(90) for _ in range(600)])  # cDNA
-    reg = _registry_for(
-        spec
-    )  # v3 whitelist REGISTERED (available), but the random barcodes miss it
+    reg = registry_for(spec)  # v3 whitelist REGISTERED (available), but the random barcodes miss it
 
     out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
     assert out.exit_code() == 3, [c.technology for c in out.result.candidates[:3]]

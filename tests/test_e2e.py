@@ -115,10 +115,6 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
 
 
 @pytest.mark.skipif(shutil.which("STAR") is None, reason="STAR not installed (Linux/cluster only)")
-def test_star_is_available_when_claimed() -> None:  # pragma: no cover - host dependent
-    assert shutil.which("STAR")
-
-
 # --------------------------------------------------------------------------------------------
 # the gates must run the SHIPPED module, not a private copy of its command line
 # --------------------------------------------------------------------------------------------

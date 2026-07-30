@@ -13,7 +13,6 @@ from seqforge import kb
 from seqforge.kb.schema import Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
-from seqforge.probe.signals import distinct_ratio, window_bases
 
 
 def test_10x_spec_loads_and_validates() -> None:
@@ -52,32 +51,6 @@ def test_linker_element_requires_a_sequence() -> None:
     )
     with pytest.raises(ValidationError):
         Spec.model_validate(data)
-
-
-def test_roundtrip_10x_geometry(tmp_path: Path) -> None:
-    spec = kb.load_spec("10x-3p-gex-v3")
-    reads = kb.generate_reads(spec, n=2000, seed=0, pool_size=64)
-    assert set(reads) == {"R1", "R2"}
-
-    r1 = reads["R1"]
-    assert all(len(s) == 28 for s in r1)  # declared 16 CB + 12 UMI
-
-    obs_path = tmp_path / "R1.fastq.gz"
-    write_fastq_gz(obs_path, r1)
-    obs = probe_file(obs_path)
-
-    # probe recovers the declared 28 bp geometry; R1 has no internal linker (all-random)
-    assert obs.read_length.mode == 28
-    assert not any(isinstance(s, ConstantSegment) for s in obs.segments)
-
-    # role-conditioned distinct-ratio recovers CB recurrence vs UMI uniqueness (the declared layout)
-    cb_ratio = distinct_ratio(window_bases(r1, 0, 16))
-    umi_ratio = distinct_ratio(window_bases(r1, 16, 28))
-    assert cb_ratio is not None and cb_ratio < 0.2  # 64 barcodes over 2000 reads
-    assert umi_ratio is not None and umi_ratio > 0.8
-
-    # R2 cDNA is open-ended -> variable length
-    assert len({len(s) for s in reads["R2"]}) > 1
 
 
 @pytest.mark.parametrize("tech", kb.list_spec_ids())

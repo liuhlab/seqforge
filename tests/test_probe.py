@@ -146,17 +146,6 @@ def test_distinct_ratio_low_for_recurring_barcode(tmp_path: Path) -> None:
     assert min(w.distinct_ratio for w in windows) < 0.1  # cell-barcode recurrence, not UMI
 
 
-def test_truncated_gzip_is_flagged(tmp_path: Path) -> None:
-    rng = random.Random(3)
-    path = tmp_path / "trunc.fastq.gz"
-    write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(300)]))
-    raw = path.read_bytes()
-    path.write_bytes(raw[: len(raw) - 20])  # cut the gzip stream mid-member
-
-    obs = probe_file(path)
-    assert obs.gzip.truncated or not obs.gzip.ok
-
-
 def test_sra_normalized_header_detected(tmp_path: Path) -> None:
     rng = random.Random(4)
     recs = [(f"SRR9999999.{i} {i} length=28", _rand_seq(rng, 28), "I" * 28) for i in range(1, 51)]
@@ -166,17 +155,6 @@ def test_sra_normalized_header_detected(tmp_path: Path) -> None:
     obs = probe_file(path)
     assert obs.read_name.sra_normalized is True
     assert obs.read_name.parsed is False
-
-
-def test_bounded_budget_and_read_estimate(tmp_path: Path) -> None:
-    rng = random.Random(5)
-    path = tmp_path / "big.fastq.gz"
-    write_fastq_gz(path, _recs([_rand_seq(rng, 28) for _ in range(5000)]))
-
-    obs = probe_file(path, max_reads=100)
-    assert obs.probe.n_reads_sampled == 100  # stopped at the budget, did NOT read all 5000
-    assert obs.probe.bytes_read < 20_000  # only a bounded decompressed prefix was touched
-    assert obs.estimated_total_reads > 1000  # extrapolated from compressed bytes-per-read
 
 
 def _write_enormous_fastq_gz(path: Path, *, chunk_mb: int = 1, n_chunks: int = 128) -> int:

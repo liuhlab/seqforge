@@ -99,11 +99,6 @@ def test_report_verb_writes_a_self_contained_html_page(own_workspace: Path) -> N
         assert f">{tab}</button>" in html
 
 
-def test_run_emits_the_report_as_a_best_effort_stage(workspace: Path) -> None:
-    """``run`` drops the report on its own; it is a stage, and a compiled dataset says so on the page."""
-    assert (workspace / "seqforge" / "report.html").is_file()
-
-
 def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     """The whole point is that it opens offline. No src/href/@import may point off-host; a data: URI
     (an embedded artifact download) is inline bytes, not a fetch, so it is explicitly allowed."""

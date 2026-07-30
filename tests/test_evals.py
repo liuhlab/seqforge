@@ -115,92 +115,86 @@ def _grade(expected: dict, result: ResolveResult, exit_code: int):
 # --------------------------------------------------------------------------------------------
 
 
-def test_correct_decision_is_correct() -> None:
-    g = _grade(
-        {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v3"}}, _result(), 0
+def _collapsed_conflict() -> Conflict:
+    """A "conflict" whose two positions carry the SAME value — i.e. not a conflict at all."""
+    return _conflict().model_copy(
+        update={
+            "positions": [
+                ConflictPosition(value="28", basis="asserted", confidence=0.9),
+                ConflictPosition(value="28", basis="observed", confidence=0.99),
+            ]
+        }
     )
-    assert g.grade is Grade.CORRECT
-    assert g.ok
 
 
-def test_wrong_value_is_false_accept_not_merely_a_failure() -> None:
-    """A decision that disagrees with truth IS the corpus-poisoning failure — the headline metric."""
-    g = _grade(
-        {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v2"}}, _result(), 0
-    )
-    assert g.grade is Grade.FALSE_ACCEPT
-    assert "10x-3p-gex-v2" in g.notes[0]
-
-
-def test_guessing_where_refusal_was_correct_is_false_accept() -> None:
-    """The ONT case's failure mode: something always ranks highest; 'highest' is not 'right'."""
-    g = _grade({"outcome": "refuse", "blockers": ["UNSUPPORTED_TECHNOLOGY"]}, _result(), 0)
-    assert g.grade is Grade.FALSE_ACCEPT
-
-
-def test_silently_picking_instead_of_asking_is_false_accept_and_a_missed_question() -> None:
-    """Brief §9: failing to ask a needed question is a hard fail. Its mechanism is a silent pick."""
-    g = _grade({"outcome": "ask"}, _result(), 0)
-    assert g.grade is Grade.FALSE_ACCEPT
-    assert g.missed_question
-
-
-def test_blocking_a_decidable_case_is_false_refuse() -> None:
-    g = _grade(
+#: One row per cell of the confusion matrix: what the case *expected*, what the resolver actually
+#: produced, the exit code it produced it with, and the grade the harness must return.
+#:
+#: These were 18 near-identical functions. As a table the matrix is legible as a matrix — a missing
+#: cell is a missing row rather than an absent function nobody notices — and the reason each cell
+#: grades the way it does rides beside it as a comment instead of a docstring.
+#:
+#: ``note`` is a substring that must reach the human: it is matched against everything the grade
+#: renders (its notes AND its field checks), because "the reason is visible" is the claim, not which
+#: attribute carries it.
+CONFUSION_MATRIX = [
+    pytest.param(
         {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v3"}},
-        _result(blockers=[BlockerCode.TRUNCATED_GZIP]),
-        3,
-    )
-    assert g.grade is Grade.FALSE_REFUSE
-
-
-def test_asking_what_code_could_settle_is_over_ask_not_false_refuse() -> None:
-    """Nothing wrong entered the manifest. It is a cost regression, tracked separately."""
-    g = _grade(
+        _result(), 0, Grade.CORRECT, None, False,
+        id="a-correct-decision-is-correct",
+    ),
+    # A decision that disagrees with truth IS the corpus-poisoning failure — the headline metric.
+    pytest.param(
+        {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v2"}},
+        _result(), 0, Grade.FALSE_ACCEPT, "10x-3p-gex-v2", False,
+        id="a-wrong-value-is-false-accept-not-merely-a-failure",
+    ),
+    # The ONT case's failure mode: something always ranks highest; "highest" is not "right".
+    pytest.param(
+        {"outcome": "refuse", "blockers": ["UNSUPPORTED_TECHNOLOGY"]},
+        _result(), 0, Grade.FALSE_ACCEPT, None, False,
+        id="guessing-where-refusal-was-correct-is-false-accept",
+    ),
+    # Brief §9: failing to ask a needed question is a hard fail. Its mechanism is a silent pick.
+    pytest.param(
+        {"outcome": "ask"},
+        _result(), 0, Grade.FALSE_ACCEPT, None, True,
+        id="silently-picking-instead-of-asking-is-false-accept-and-a-missed-question",
+    ),
+    pytest.param(
         {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v3"}},
-        _result(conflicts=[_conflict()]),
-        4,
-    )
-    assert g.grade is Grade.OVER_ASK
-
-
-def test_blocking_instead_of_asking_is_false_refuse() -> None:
-    g = _grade({"outcome": "ask"}, _result(blockers=[BlockerCode.UNRESOLVED_CONFLICT]), 3)
-    assert g.grade is Grade.FALSE_REFUSE
-
-
-def test_asking_instead_of_blocking_is_mis_triage() -> None:
-    g = _grade({"outcome": "refuse", "blockers": ["TRUNCATED_GZIP"]}, _result(), 4)
-    assert g.grade is Grade.MIS_TRIAGE
-
-
-def test_right_refusal_wrong_blocker_is_wrong_reason_not_correct() -> None:
-    """Right outcome, wrong reason: the human is sent the wrong way. Counting it green rots meaning."""
-    g = _grade(
+        _result(blockers=[BlockerCode.TRUNCATED_GZIP]), 3, Grade.FALSE_REFUSE, None, False,
+        id="blocking-a-decidable-case-is-false-refuse",
+    ),
+    # Nothing wrong entered the manifest. It is a cost regression, tracked separately.
+    pytest.param(
+        {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v3"}},
+        _result(conflicts=[_conflict()]), 4, Grade.OVER_ASK, None, False,
+        id="asking-what-code-could-settle-is-over-ask-not-false-refuse",
+    ),
+    pytest.param(
+        {"outcome": "ask"},
+        _result(blockers=[BlockerCode.UNRESOLVED_CONFLICT]), 3, Grade.FALSE_REFUSE, None, False,
+        id="blocking-instead-of-asking-is-false-refuse",
+    ),
+    pytest.param(
         {"outcome": "refuse", "blockers": ["TRUNCATED_GZIP"]},
-        _result(blockers=[BlockerCode.CORRUPT_FASTQ]),
-        3,
-    )
-    assert g.grade is Grade.WRONG_REASON
-    assert "TRUNCATED_GZIP" in g.notes[0]
-
-
-def test_correct_refusal_matches_blocker_code() -> None:
-    g = _grade(
+        _result(), 4, Grade.MIS_TRIAGE, None, False,
+        id="asking-instead-of-blocking-is-mis-triage",
+    ),
+    # Right outcome, wrong reason: the human is sent the wrong way. Counting it green rots meaning.
+    pytest.param(
         {"outcome": "refuse", "blockers": ["TRUNCATED_GZIP"]},
-        _result(blockers=[BlockerCode.TRUNCATED_GZIP]),
-        3,
-    )
-    assert g.grade is Grade.CORRECT
-
-
-# --------------------------------------------------------------------------------------------
-# conflicts: positions are the load-bearing assertion, not the field name
-# --------------------------------------------------------------------------------------------
-
-
-def test_expected_conflict_matches_on_field_and_positions() -> None:
-    g = _grade(
+        _result(blockers=[BlockerCode.CORRUPT_FASTQ]), 3, Grade.WRONG_REASON, "TRUNCATED_GZIP", False,
+        id="a-right-refusal-with-the-wrong-blocker-is-wrong-reason-not-correct",
+    ),
+    pytest.param(
+        {"outcome": "refuse", "blockers": ["TRUNCATED_GZIP"]},
+        _result(blockers=[BlockerCode.TRUNCATED_GZIP]), 3, Grade.CORRECT, None, False,
+        id="a-correct-refusal-matches-the-blocker-code",
+    ),
+    # -- conflicts: the POSITIONS are the load-bearing assertion, not the field name --
+    pytest.param(
         {
             "outcome": "ask",
             "conflict": {
@@ -209,32 +203,16 @@ def test_expected_conflict_matches_on_field_and_positions() -> None:
                 "positions": {"asserted": "26", "observed": "28"},
             },
         },
-        _result(conflicts=[_conflict()]),
-        4,
-    )
-    assert g.grade is Grade.CORRECT
-
-
-def test_conflict_on_the_wrong_field_is_wrong_reason() -> None:
-    g = _grade(
+        _result(conflicts=[_conflict()]), 4, Grade.CORRECT, None, False,
+        id="an-expected-conflict-matches-on-field-and-positions",
+    ),
+    pytest.param(
         {"outcome": "ask", "conflict": {"field": "library.chemistry"}},
-        _result(conflicts=[_conflict()]),
-        4,
-    )
-    assert g.grade is Grade.WRONG_REASON
-
-
-def test_conflict_with_collapsed_positions_is_caught() -> None:
-    """The reason positions are asserted: both sides agreeing is not a conflict, however it is labelled."""
-    collapsed = _conflict().model_copy(
-        update={
-            "positions": [
-                ConflictPosition(value="28", basis="asserted", confidence=0.9),
-                ConflictPosition(value="28", basis="observed", confidence=0.99),
-            ]
-        }
-    )
-    g = _grade(
+        _result(conflicts=[_conflict()]), 4, Grade.WRONG_REASON, None, False,
+        id="a-conflict-on-the-wrong-field-is-wrong-reason",
+    ),
+    # Why positions are asserted: both sides agreeing is not a conflict, however it is labelled.
+    pytest.param(
         {
             "outcome": "ask",
             "conflict": {
@@ -242,59 +220,71 @@ def test_conflict_with_collapsed_positions_is_caught() -> None:
                 "positions": {"asserted": "26", "observed": "28"},
             },
         },
-        _result(conflicts=[collapsed]),
-        4,
-    )
-    assert g.grade is Grade.WRONG_REASON
-
-
-def test_exit_4_with_no_conflict_or_question_is_caught() -> None:
-    g = _grade({"outcome": "ask", "conflict": {"field": "library.chemistry"}}, _result(), 4)
-    assert g.grade is Grade.WRONG_REASON
-    assert "no open conflict" in g.notes[0]
-
-
-def test_wrong_library_value_while_asking_is_wrong_reason_not_false_accept() -> None:
-    """It stopped, so nothing was committed — but the human gets the right question, wrong state."""
-    g = _grade(
+        _result(conflicts=[_collapsed_conflict()]), 4, Grade.WRONG_REASON, None, False,
+        id="a-conflict-with-collapsed-positions-is-caught",
+    ),
+    pytest.param(
+        {"outcome": "ask", "conflict": {"field": "library.chemistry"}},
+        _result(), 4, Grade.WRONG_REASON, "no open conflict", False,
+        id="exit-4-with-no-conflict-or-question-is-caught",
+    ),
+    # It stopped, so nothing was committed — but the human gets the right question, wrong state.
+    pytest.param(
         {
             "outcome": "ask",
             "conflict": {"field": "library.read_layout.R1.length"},
             "fields": {"library.chemistry": "10x-3p-gex-v3"},
         },
-        _result(tech="bulk-rnaseq-pe", conflicts=[_conflict()]),
-        4,
-    )
-    assert g.grade is Grade.WRONG_REASON
-
-
-# --------------------------------------------------------------------------------------------
-# role assignment + field extraction
-# --------------------------------------------------------------------------------------------
-
-
-def test_role_assignment_is_checked_by_label_not_hash() -> None:
-    g = _grade({"outcome": "decide", "fields": {"library.roles.R1": "R1"}}, _result(), 0)
-    assert g.grade is Grade.CORRECT
-
-
-def test_swapped_roles_are_a_false_accept_even_with_the_right_chemistry() -> None:
-    """Right chemistry + swapped roles emits a pipeline that reads cDNA as a barcode."""
-    g = _grade(
+        _result(tech="bulk-rnaseq-pe", conflicts=[_conflict()]), 4, Grade.WRONG_REASON, None, False,
+        id="a-wrong-library-value-while-asking-is-wrong-reason-not-false-accept",
+    ),
+    # -- role assignment + field extraction --
+    pytest.param(
+        {"outcome": "decide", "fields": {"library.roles.R1": "R1"}},
+        _result(), 0, Grade.CORRECT, None, False,
+        id="role-assignment-is-checked-by-label-not-hash",
+    ),
+    # Right chemistry + swapped roles emits a pipeline that reads cDNA as a barcode.
+    pytest.param(
         {
             "outcome": "decide",
             "fields": {"library.chemistry": "10x-3p-gex-v3", "library.roles.R1": "R1"},
         },
-        _result(roles={"R1": "sha-r2", "R2": "sha-r1"}),
-        0,
-    )
-    assert g.grade is Grade.FALSE_ACCEPT
+        _result(roles={"R1": "sha-r2", "R2": "sha-r1"}), 0, Grade.FALSE_ACCEPT, None, False,
+        id="swapped-roles-are-a-false-accept-even-with-the-right-chemistry",
+    ),
+    pytest.param(
+        {"outcome": "decide", "fields": {"library.nonsense": "x"}},
+        _result(), 0, Grade.FALSE_ACCEPT, "unsupported", False,
+        id="an-unsupported-field-path-is-visible-not-silently-green",
+    ),
+]  # fmt: skip
 
 
-def test_unsupported_field_path_is_visible_not_silently_green() -> None:
-    g = _grade({"outcome": "decide", "fields": {"library.nonsense": "x"}}, _result(), 0)
-    assert g.grade is Grade.FALSE_ACCEPT
-    assert "unsupported" in str(g.fields[0].actual)
+@pytest.mark.parametrize(
+    "expected, result, exit_code, grade, note, missed_question", CONFUSION_MATRIX
+)
+def test_the_confusion_matrix_grades_every_cell(
+    expected: dict,
+    result: ResolveResult,
+    exit_code: int,
+    grade: Grade,
+    note: str | None,
+    missed_question: bool,
+) -> None:
+    """Every cell of the grading matrix, especially the ones that matter.
+
+    A harness that has only ever read "green" is indistinguishable from a broken one, so each row
+    mutates a known-good case until it is wrong and pins the grade the harness must return.
+    """
+    g = _grade(expected, result, exit_code)
+
+    assert g.grade is grade
+    assert g.ok is (grade is Grade.CORRECT)  # `ok` is the grade, never a second opinion
+    assert g.missed_question is missed_question
+    if note is not None:
+        shown = " ".join(g.notes) + " " + " ".join(str(f.actual) for f in g.fields)
+        assert note in shown, f"the reason never reached the human: {shown!r}"
 
 
 def test_outcome_of_maps_the_uniform_exit_contract() -> None:

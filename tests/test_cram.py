@@ -18,8 +18,9 @@ from seqforge.workflows.cram import CramError, _sort_mem_per_thread_mb, bam_to_c
 
 def test_sort_memory_is_split_across_threads_with_headroom() -> None:
     """More cores and more memory both shrink per-thread ``-m`` sensibly; a floor stops thrashing."""
-    # 32 GB budget, 8 threads -> ~3/4 of 32768 / 8 = 3072 MB/thread.
-    assert _sort_mem_per_thread_mb(32768, 8) == (32768 * 3 // 4) // 8
+    # 32 GB budget, 8 threads -> 3/4 headroom, split 8 ways. The expected value is a LITERAL: it
+    # used to be `(32768 * 3 // 4) // 8`, which is the function's own formula and so could not fail.
+    assert _sort_mem_per_thread_mb(32768, 8) == 3072
     # A tiny budget never drops below the floor.
     assert _sort_mem_per_thread_mb(100, 8) == 256
     # No budget -> None, so samtools keeps its own default rather than us guessing.
