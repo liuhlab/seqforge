@@ -14,7 +14,8 @@ from pathlib import Path
 import pytest
 
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
-from seqforge.probe import DEFAULT_MAX_READS, probe_file
+from seqforge.probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_file
+from seqforge.probe.core import _params_hash, gzip_isize
 from seqforge.probe.streaming import BoundedReader
 
 BASES = "ACGT"
@@ -376,6 +377,44 @@ def test_the_signal_fields_are_value_stable(tmp_path: Path) -> None:
     assert 0 < obs.n_rate < 0.01
     assert obs.read_name.parsed and obs.read_name.lane == 1
     assert [type(s).__name__ for s in obs.segments] == VALUE_STABLE_SEGMENTS
+
+
+def test_the_identity_and_provenance_fields_are_value_stable(tmp_path: Path) -> None:
+    """The other half of the observation — the half the digest above deliberately excludes.
+
+    `test_the_signal_fields_are_value_stable` drops `file` and `probe`, for good reasons (a tmp path,
+    a version stamp). The effect is that *nothing* pins how a file is named or what a probe records
+    about its own read — so a refactor of the identity path could move every content address in the
+    corpus and the suite would stay green. The observation cache is keyed by `file.sha256` and
+    `dataset_uris` maps one sha per file, so a shift there is not cosmetic.
+
+    Each literal is paired with the inputs it is computed from, which is the difference between a
+    guard and a tripwire. `_content_key` folds in the **compressed** size, so a different zlib could
+    move `sha256` through no fault of the probe; when that happens `size_bytes` moves with it and the
+    failure reads as "the fixture compressed differently" instead of "identity broke". `isize` is the
+    uncompressed size and depends on no compressor at all, so it pins the record text itself.
+    """
+    path = tmp_path / "stable.fastq.gz"
+    _value_stable_fixture(path)
+    obs = probe_file(path)
+
+    # The inputs to the address, pinned so a failure above says which one moved.
+    assert obs.file.basename == "stable.fastq.gz"  # part of the identity: files differ by name
+    assert obs.file.size_bytes == 2850  # compressed; zlib-dependent
+    assert gzip_isize(path) == 33200  # uncompressed; depends only on the records
+    assert obs.file.sha256 == "4f72e7da08a0e654eb284ba19b49132c8f1f544d8a85548ac7daeeb656be3196"
+
+    # A local probe stages a path; `local_uri` is the one field that cannot be a literal.
+    assert obs.file.local_uri == str(path)
+
+    # Provenance. `params_hash` is a pure function of the budget — no fixture, no compressor, no
+    # environment — so it pins as a bare literal, and any change to what feeds it goes red here.
+    assert obs.probe.params_hash == _params_hash(DEFAULT_MAX_READS, DEFAULT_MAX_BYTES)
+    assert obs.probe.params_hash == "8ffd5fe97ddea836"
+    assert obs.probe.n_reads_sampled == 200  # the whole fixture: read to EOF, not budget-stopped
+    assert obs.probe.bytes_read == 33200  # decompressed, so it equals the ISIZE above
+    assert obs.probe.compressed_bytes_read == 2850  # and this equals the file size
+    assert obs.probe.tool_version == PROBE_VERSION  # stamped, though not hashed into a manifest
 
 
 class _CountingReader:
