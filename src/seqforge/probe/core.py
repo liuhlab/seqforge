@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -15,7 +16,37 @@ from ..models.observation import (
 )
 from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION
 from . import signals as sig
-from .streaming import FastqHead
+from .streaming import Budget, FastqHead
+
+
+@dataclass(frozen=True)
+class WholeFile:
+    """What is known about a FASTQ **without reading it** — the counterpart to a head.
+
+    A head is the bounded prefix you read; a `WholeFile` is what you read it *about*, and the two are
+    not always the same file: a fingerprint slice yields a head while the `WholeFile` describes the
+    original it stands in for. That is why identity is a value handed to
+    :func:`build_observation` rather than something the probe derives — only the caller knows which
+    file it means.
+
+    The four fields are the whole-file facts, and nothing else. ``local_uri`` is deliberately absent:
+    it says where bytes were read, not what the file is, so it belongs to the head
+    (:attr:`~seqforge.probe.streaming.FastqHead.source_path`). The on-disk format already made this
+    split — :class:`~seqforge.models.fingerprint.FilePin` serializes exactly these four plus the
+    slice's placement in the package, and carries no ``local_uri`` either.
+
+    There is deliberately **no single owner** for constructing one. The knowledge is irreducibly
+    distributed: ``probe`` cannot know about HTTP without forfeiting its stdlib-only foundation
+    status, and an SRA address needs whole-run archive metadata the probe has no business seeing. So
+    each source builds its own (:func:`local_whole_file`, ``io.remote.hosted_whole_file``,
+    ``io.sra.sra_whole_file``, ``FilePin.whole_file``) and probe owns only the *type*. See
+    ``docs/adr/0001-head-and-wholefile.md``.
+    """
+
+    basename: str
+    sha256: str
+    size_bytes: int
+    isize: int | None = None
 
 
 def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[str]) -> str:
@@ -29,8 +60,8 @@ def _content_key(basename: str, size_bytes: int, isize: int | None, seqs: list[s
     names are different files, and downstream maps (``dataset_uris``, role assignment) require one
     sha per file. The whole-file sha256 this replaces captured the name incidentally (the gzip filename
     header) and forced the entire file to be read — which was never the point (issue #37). At
-    10^4-dataset scale the durable identity is the provider md5, injected via
-    ``probe_sample(..., sha256=...)``.
+    10^4-dataset scale the durable identity is the provider md5, which is adopted where the md5 is
+    known: ``io.remote.hosted_whole_file`` and ``io.sra.sra_whole_file``, never here.
     """
     h = hashlib.sha256()
     h.update(
@@ -90,8 +121,9 @@ def content_key_from_sra(
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def _params_hash(max_reads: int, max_bytes: int) -> str:
-    return hashlib.sha256(f"{max_reads}:{max_bytes}".encode()).hexdigest()[:16]
+def _params_hash(budget: Budget) -> str:
+    """Stamp the budget a head was read under. Takes the head's own budget, never a caller's copy."""
+    return hashlib.sha256(f"{budget.max_reads}:{budget.max_bytes}".encode()).hexdigest()[:16]
 
 
 def gzip_isize(path: Path) -> int | None:
@@ -134,27 +166,24 @@ def _estimate_reads(
     return n_reads, "compressed_ratio"
 
 
-def build_observation(
-    head: FastqHead,
-    *,
-    size_bytes: int,
-    sha256: str,
-    basename: str,
-    local_uri: str | None,
-    isize: int | None,
-    max_reads: int = DEFAULT_MAX_READS,
-    max_bytes: int = DEFAULT_MAX_BYTES,
-) -> tuple[Observation, list[str]]:
-    """Assemble the Tier-A :class:`Observation` from an already-read :class:`FastqHead`.
+def build_observation(head: FastqHead, file: WholeFile) -> tuple[Observation, list[str]]:
+    """Join a head to the file it describes. The pure, source-agnostic core of a probe.
 
-    The pure, source-agnostic core of a probe: it runs the signal pipeline over ``head.seqs`` and
-    stamps identity/provenance, reading no bytes itself. Both a local probe (:func:`probe_sample`,
-    a head from a file) and a remote probe (``io.remote.probe_remote``, a head from a bounded
-    range-read prefix) call it, so a URL resolves to a library exactly as a local file does. ``sha256``
-    is the fully-formed 64-hex content-address the caller chose (a provider md5 via
-    :func:`content_key_from_md5`, or a bounded local/remote key via :func:`_content_key`); ``isize`` is
-    the gzip ISIZE trailer when reachable (local) and ``None`` when it is not (a remote prefix has no
-    tail), which simply falls the read estimate back to the compressed-size ratio.
+    It runs the signal pipeline over ``head.seqs`` and stamps identity/provenance, reading no bytes
+    itself. All four callers — a local probe (:func:`probe_sample`), a remote one
+    (``io.remote.probe_remote``), an SRA stream (``io.sra.probe_sra``) and a fingerprint replay
+    (``fingerprint.probed_from_fingerprint``) — reach it here, so a URL resolves to a library exactly
+    as a local file does.
+
+    Two arguments, and the split between them is the whole design: **the head knows what was read and
+    how** (the records, the budget that bounded them, the path they came from); **the `WholeFile`
+    knows what the file is** (its content address, name, size, gzip ISIZE). Nothing is passed twice,
+    so ``params_hash`` and ``local_uri`` cannot contradict the read that produced them — they used to
+    be re-supplied by the caller alongside a budget it merely promised it had used.
+
+    ``file.isize`` is the gzip ISIZE trailer when reachable (a local file) and ``None`` when it is not
+    (a range-read head has no tail, a stream has no file), which simply falls the read estimate back
+    to the compressed-size ratio.
     """
     comps = sig.per_cycle_composition(head.seqs)
     segments = sig.segment(comps)
@@ -165,27 +194,27 @@ def build_observation(
     nrate = sig.n_rate(head.seqs)
 
     estimated_total, est_method = _estimate_reads(
-        size_bytes,
+        file.size_bytes,
         head.n_reads,
         head.decompressed_bytes,
         head.compressed_bytes,
         head.budget_exhausted,
-        isize,
+        file.isize,
     )
 
     observation = Observation(
         file=FileIdentity(
-            sha256=sha256,
-            size_bytes=size_bytes,
-            basename=basename,
-            local_uri=local_uri,
+            sha256=file.sha256,
+            size_bytes=file.size_bytes,
+            basename=file.basename,
+            local_uri=str(head.source_path) if head.source_path is not None else None,
         ),
         probe=ProbeProvenance(
             n_reads_sampled=head.n_reads,
             bytes_read=head.decompressed_bytes,
             compressed_bytes_read=head.compressed_bytes,
             tool_version=PROBE_VERSION,
-            params_hash=_params_hash(max_reads, max_bytes),
+            params_hash=_params_hash(head.budget),
         ),
         per_cycle_composition=comps,
         segments=segments,
@@ -201,12 +230,28 @@ def build_observation(
     return observation, head.seqs
 
 
+def local_whole_file(path: Path, seqs: list[str]) -> WholeFile:
+    """Name a LOCAL file from facts already in hand — no extra read beyond the head.
+
+    The one constructor that can reach the gzip ISIZE trailer (an O(1) seek to the tail), which is
+    both an input to the bounded content key and the preferred basis for the read-count estimate.
+    ``seqs`` come from the head that was just read; nothing here re-opens the file to iterate it.
+    """
+    size_bytes = path.stat().st_size
+    isize = gzip_isize(path)
+    return WholeFile(
+        basename=path.name,
+        sha256=_content_key(path.name, size_bytes, isize, seqs),
+        size_bytes=size_bytes,
+        isize=isize,
+    )
+
+
 def probe_sample(
     path: str | Path,
     *,
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    sha256: str | None = None,
 ) -> tuple[Observation, list[str]]:
     """Fingerprint one LOCAL FASTQ gzip and ALSO return its bounded sampled sequences.
 
@@ -215,21 +260,13 @@ def probe_sample(
     role-conditioned distinct-ratio / onlist-hit-rate over arbitrary windows (a ``WindowProbe``),
     which the structural Observation deliberately does not carry. The head stays within the
     budget — this returns it, it does not re-read the file.
+
+    ``max_reads``/``max_bytes`` stay as keywords here rather than a :class:`Budget`: this is the
+    outward-facing verb the CLI drives, and the budget is an internal value of the probe.
     """
     p = Path(path)
-    head = FastqHead.from_path(p, max_reads, max_bytes)
-    file_size = p.stat().st_size
-    isize = gzip_isize(p)
-    return build_observation(
-        head,
-        size_bytes=file_size,
-        sha256=sha256 or _content_key(p.name, file_size, isize, head.seqs),
-        basename=p.name,
-        local_uri=str(p),
-        isize=isize,
-        max_reads=max_reads,
-        max_bytes=max_bytes,
-    )
+    head = FastqHead.from_path(p, Budget(max_reads, max_bytes))
+    return build_observation(head, local_whole_file(p, head.seqs))
 
 
 def probe_file(
@@ -237,7 +274,6 @@ def probe_file(
     *,
     max_reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    sha256: str | None = None,
 ) -> Observation:
     """Fingerprint one FASTQ gzip into a role-free :class:`Observation` under a bounded budget.
 
@@ -247,10 +283,11 @@ def probe_file(
         Local path to a gzip-compressed FASTQ.
     max_reads, max_bytes
         The read budget and decompressed-byte cap.
-    sha256
-        Precomputed content identity (e.g. a provider md5); if omitted, a bounded local content key is
-        derived from the head sample + size + gzip ISIZE (see :func:`_content_key`) — never a
-        whole-file read.
+
+    A caller that needs a *different* identity for these bytes — a staged ENA download whose provider
+    md5 should be adopted, so the staged run and a remote run share a ``dataset_hash`` — builds the
+    :class:`WholeFile` itself and calls :func:`build_observation`. That is the injection path; there
+    is no ``sha256=`` parameter (there was one, and in its whole lifetime nothing ever passed it).
     """
-    observation, _seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes, sha256=sha256)
+    observation, _seqs = probe_sample(path, max_reads=max_reads, max_bytes=max_bytes)
     return observation

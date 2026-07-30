@@ -17,10 +17,11 @@ import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..models.fingerprint import FingerprintManifest
+from ..models.fingerprint import FilePin, FingerprintManifest
 from ..models.observation import Observation
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, build_observation
-from ..probe.streaming import FastqHead
+from ..probe.core import WholeFile
+from ..probe.streaming import Budget, FastqHead
 
 
 @dataclass(frozen=True)
@@ -92,6 +93,26 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
     tar.extractall(dest, filter="data")
 
 
+def pinned_whole_file(pin: FilePin) -> WholeFile:
+    """Name the ORIGINAL a slice stands in for, from its pin — the identity nothing can recompute.
+
+    A pin *is* a :class:`~seqforge.probe.core.WholeFile` plus the slice's placement in the package
+    (``rel_path``, ``reads_written``), so this is a projection, not a conversion. It lives here rather
+    than as a ``FilePin`` method because ``models`` is the foundation ``probe`` imports; a model
+    method returning a probe type would invert that layering.
+
+    This is the one constructor whose file is **not** the file being read. The other three name bytes
+    somebody is looking at; this one deliberately describes an absent original, which is what lets a
+    package reproduce a ``dataset_hash`` after the FASTQs are gone.
+    """
+    return WholeFile(
+        basename=pin.basename,
+        sha256=pin.sha256,
+        size_bytes=pin.size_bytes,
+        isize=pin.isize,
+    )
+
+
 def probed_from_fingerprint(
     loaded: LoadedFingerprint,
     *,
@@ -105,25 +126,19 @@ def probed_from_fingerprint(
     (bar the local path), so the downstream manifest and hash reproduce; a lighter package resolves on
     fewer reads by design (the size/accuracy study).
     """
+    budget = Budget(max_reads, max_bytes)
     pins = {pin.rel_path: pin for pin in loaded.manifest.files}
     paths: list[Path] = []
     probed: dict[str, tuple[Observation, list[str]]] = {}
     for rel, pin in pins.items():
         slice_path = loaded.root / rel
-        head = FastqHead.from_path(slice_path, max_reads, max_bytes)
-        obs, seqs = build_observation(
-            head,
-            size_bytes=pin.size_bytes,  # pinned: the whole-file compressed size
-            sha256=pin.sha256,  # pinned: the whole-file content-address
-            basename=pin.basename,
-            local_uri=str(slice_path),
-            isize=pin.isize,  # pinned: the whole-file ISIZE trailer
-            max_reads=max_reads,
-            max_bytes=max_bytes,
-        )
+        # The head comes from the SLICE; the identity describes the ORIGINAL. That the two are
+        # different files is the whole point of a fingerprint, and `local_uri` follows the head.
+        head = FastqHead.from_path(slice_path, budget)
+        obs, seqs = build_observation(head, pinned_whole_file(pin))
         paths.append(slice_path)
         probed[str(slice_path)] = (obs, seqs)
     return paths, probed
 
 
-__all__ = ["LoadedFingerprint", "load_fingerprint", "probed_from_fingerprint"]
+__all__ = ["LoadedFingerprint", "load_fingerprint", "pinned_whole_file", "probed_from_fingerprint"]

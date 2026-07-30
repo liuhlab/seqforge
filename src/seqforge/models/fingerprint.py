@@ -9,9 +9,17 @@ run's. That defeats the whole point ("even the FASTQ is gone, the manifest still
 The fix is to separate the two things a probe produces. The *chemistry* evidence — geometry, whitelist
 hit-rate, per-cycle composition — lives in the reads, and the slice carries enough of them (N ≥ the
 probe budget) to reproduce it exactly. The *identity* — content-address and compressed size — lives in
-the whole file, and the slice cannot recompute it, so we **pin** it here and stamp it back onto the
-stand-in probe via ``probe.build_observation(sha256=…, size_bytes=…)``. This is exactly how
-``io.remote.probe_remote`` stamps a hosted file's identity onto a bounded range-read prefix.
+the whole file, and the slice cannot recompute it, so we **pin** it here.
+
+A pin is therefore the on-disk form of a ``probe.WholeFile`` plus where its slice sits in the package
+— the four fields below are exactly what a probe needs to name a file it cannot measure, and
+``probe.build_observation(head, file)`` joins that identity to a head cut from the slice. This is
+exactly how ``io.remote.probe_remote`` names a hosted file it never downloads.
+
+Note what a pin does **not** carry: a ``local_uri``. Where the bytes are is a fact about the read, not
+about the file, so it comes from the head (``FastqHead.source_path``, here the slice) rather than
+from here. And the projection to a ``WholeFile`` lives in ``fingerprint.load``, not as a method here:
+``models`` is the foundation ``probe`` imports, so a method returning a probe type would invert that.
 
 The pin is deliberately not ``Evidenced`` and never enters a manifest: it is provenance *of the
 package*, not a claim about the biology. It records what a full-file probe measured, so a fingerprint

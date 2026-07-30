@@ -35,20 +35,26 @@ DEFAULT_MAX_BYTES = 256 * 1024 * 1024
 
 # Imported last: core depends on the budget constants above (keeps the package import acyclic).
 from .core import (  # noqa: E402
+    WholeFile,
     build_observation,
     content_key_from_md5,
     content_key_from_sra,
     gzip_isize,
+    local_whole_file,
     probe_file,
     probe_sample,
     remote_content_key,
 )
+from .streaming import Budget  # noqa: E402
 
 __all__ = [
     "PROBE_VERSION",
     "DEFAULT_MAX_READS",
     "DEFAULT_MAX_BYTES",
+    "Budget",
+    "WholeFile",
     "build_observation",
+    "local_whole_file",
     "content_key_from_md5",
     "content_key_from_sra",
     "gzip_isize",

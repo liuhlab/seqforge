@@ -36,7 +36,8 @@ from ..probe import (
     content_key_from_md5,
     content_key_from_sra,
 )
-from ..probe.streaming import FastqHead, Record
+from ..probe.core import WholeFile
+from ..probe.streaming import Budget, FastqHead, Record
 from .remote import (
     _MAX_RETRIES,
     RemoteError,
@@ -98,36 +99,58 @@ def _stream_run(run_accession: str, *, n_spots: int) -> Any:
             raise RemoteError(f"{run_accession}: could not stream reads: {exc}") from exc
 
 
-def _observe_records(
-    records: list[Record],
+def sra_whole_file(
+    run_accession: str,
+    read_index: int,
     *,
-    sha256: str,
-    size_bytes: int,
-    basename: str,
-    n_reads: int,
-    max_bytes: int,
+    ena: tuple[str, str, int] | None,
+    spot_count: int,
+    read_length: int,
+) -> WholeFile:
+    """Name one mate of an SRA run. ``ena`` is ``(url, md5, size)`` when the mirror is trustworthy.
+
+    Two branches, one value — the content-address precedence :func:`probe_sra` documents:
+
+    1. **ENA-mirrored and faithful** — adopt the hosted identity outright, so a stream and a
+       URL/ENA download of that file get the same address and a portable ``dataset_hash``.
+    2. **Otherwise** — a synthetic address over stable *whole-run* metadata
+       (:func:`~seqforge.probe.content_key_from_sra`), N-invariant but explicitly not the
+       hosted-byte identity, with the sra-tools split-layout basename.
+
+    ``isize`` is ``None``: a spot stream is re-serialized on the fly and has no original gzip tail.
+    """
+    if ena is not None:
+        url, md5, size = ena
+        return WholeFile(
+            basename=_uri_basename(url),
+            sha256=content_key_from_md5(md5),
+            size_bytes=size if size > 0 else max(1, spot_count * read_length),
+            isize=None,
+        )
+    return WholeFile(
+        basename=f"{run_accession}_{read_index}.fastq.gz",
+        sha256=content_key_from_sra(
+            run_accession, read_index, spot_count=spot_count, read_length=read_length
+        ),
+        size_bytes=max(1, spot_count * read_length),
+        isize=None,
+    )
+
+
+def _observe_records(
+    records: list[Record], file: WholeFile, budget: Budget
 ) -> tuple[Observation, list[str]]:
     """Fingerprint one mate's records through the identical Tier-A pipeline a file would use.
 
     The records are serialized once (:func:`records_to_gz_bytes`) into the byte string that is *both*
     the probe input here and the package slice later — one serializer, no drift — then re-read through
-    the source-agnostic sampler and ``build_observation``, exactly as ``probe_remote`` feeds a range-read
-    prefix. ``isize=None`` (a stream has no gzip tail); the identity comes from ``sha256``/``size_bytes``.
+    the source-agnostic reader and ``build_observation``, exactly as ``probe_remote`` feeds a
+    range-read head.
     """
     from io import BytesIO
 
     gz = records_to_gz_bytes(records)
-    head = FastqHead.read(BytesIO(gz), n_reads, max_bytes)
-    return build_observation(
-        head,
-        size_bytes=size_bytes,
-        sha256=sha256,
-        basename=basename,
-        local_uri=None,
-        isize=None,
-        max_reads=n_reads,
-        max_bytes=max_bytes,
-    )
+    return build_observation(FastqHead.read(BytesIO(gz), budget), file)
 
 
 def probe_sra(
@@ -180,32 +203,21 @@ def probe_sra(
             (rec.header, rec.seq, rec.plus, rec.qual) for rec in preview.reads[index]
         ]
         read_length = preview.read_lengths[index]
-        if verified:
-            url, md5, size = ena_targets[pos]
-            sha256 = content_key_from_md5(md5)
-            size_bytes = size if size > 0 else max(1, spot_count * read_length)
-            basename = _uri_basename(url)
-        else:
-            sha256 = content_key_from_sra(
-                run_accession, index, spot_count=spot_count, read_length=read_length
-            )
-            size_bytes = max(1, spot_count * read_length)
-            basename = f"{run_accession}_{index}.fastq.gz"
-        observation, seqs = _observe_records(
-            records,
-            sha256=sha256,
-            size_bytes=size_bytes,
-            basename=basename,
-            n_reads=n_reads,
-            max_bytes=max_bytes,
+        file = sra_whole_file(
+            run_accession,
+            index,
+            ena=ena_targets[pos] if verified else None,
+            spot_count=spot_count,
+            read_length=read_length,
         )
+        observation, seqs = _observe_records(records, file, Budget(n_reads, max_bytes))
         probes.append(
             SraMateProbe(
                 read_index=index,
                 observation=observation,
                 seqs=seqs,
                 records=records,
-                basename=basename,
+                basename=file.basename,
                 ena_verified=verified,
             )
         )

@@ -16,7 +16,7 @@ _Avoid_: prefix, chunk, window (see **Window** — that is a range within one re
 
 **Budget**:
 The pair `(max_reads, max_bytes)` that bounds a head. Whichever trips first stops the read.
-Wall-clock is never a budget.
+Wall-clock is never a budget. A head carries the budget it was read under — not one it is told it had.
 _Avoid_: limit, cap, quota
 
 **Record**:
@@ -62,6 +62,20 @@ cell barcodes do and UMIs do not. A property of the data, never the number.
 _Avoid_: using it for the distinct ratio itself
 
 ### Identity
+
+**Whole file**:
+What is known about a FASTQ *without reading it*: its content address, basename, compressed size, and
+gzip ISIZE. The counterpart to a **Head** — a head is the bounded prefix you read, a whole file is
+what you read it *about*. They are not always the same file: a fingerprint slice yields a head about
+the original it stands in for.
+_Avoid_: source, origin (a probe has no read-source abstraction — see `docs/adr/0001`); and never for
+where the bytes are, which is a fact about the read
+
+**Content address**:
+A `sha256`-shaped **name** for a file: stable for the same file, distinct across files, and never a
+hash of the file's contents. Derived from a provider md5, a bounded local key, or whole-run SRA
+metadata.
+_Avoid_: checksum, file hash, digest — all three imply the whole file was read, which R3 forbids
 
 **Sample**:
 A **biological specimen** — what NCBI's BioSample describes. Never a read of bytes. The metadata

@@ -24,10 +24,29 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO
 
+from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
+
 #: One FASTQ record as four raw lines with trailing newlines stripped: (header, seq, plus, qual).
 #: Kept as bytes rather than decoded ``str`` so headers and qualities survive byte-for-byte — a
 #: fingerprint slice writes them back out, and the probe's own signals must match the original.
 Record = tuple[bytes, bytes, bytes, bytes]
+
+
+@dataclass(frozen=True)
+class Budget:
+    """The pair that bounds a head: ``max_reads`` records and ``max_bytes`` *decompressed* bytes.
+
+    One value rather than two ints threaded side by side, because they are never meaningful apart —
+    R3 is "whichever trips first", so a function holding one and not the other cannot enforce it.
+    ``CONTEXT.md`` has named this concept **Budget** since the glossary was written; this is the type.
+
+    A head carries the budget it was actually read under (:attr:`FastqHead.budget`), which is what
+    lets ``params_hash`` be *derived from the read* rather than recomputed from parameters a caller
+    supplies a second time. Wall-clock is never a budget.
+    """
+
+    max_reads: int = DEFAULT_MAX_READS
+    max_bytes: int = DEFAULT_MAX_BYTES
 
 
 class BoundedReader:
@@ -47,10 +66,8 @@ class BoundedReader:
     ----------
     fileobj
         A binary stream of gzip-compressed FASTQ bytes (a whole file, or a bounded head).
-    max_reads
-        Hard cap on records read.
-    max_bytes
-        Hard cap on *decompressed* bytes read. Whichever cap trips first stops the stream.
+    budget
+        The :class:`Budget` that bounds the read. Whichever half trips first stops the stream.
 
     Attributes
     ----------
@@ -62,10 +79,9 @@ class BoundedReader:
         False on a gzip/format error.
     """
 
-    def __init__(self, fileobj: IO[bytes], max_reads: int, max_bytes: int) -> None:
+    def __init__(self, fileobj: IO[bytes], budget: Budget) -> None:
         self._fileobj = fileobj
-        self._max_reads = max_reads
-        self._max_bytes = max_bytes
+        self.budget = budget
         self.n_reads = 0
         self.decompressed_bytes = 0
         self.compressed_bytes = 0
@@ -75,13 +91,17 @@ class BoundedReader:
     @property
     def budget_exhausted(self) -> bool:
         """Did a budget stop the read, rather than a clean EOF?"""
-        return self.n_reads >= self._max_reads or self.decompressed_bytes >= self._max_bytes
+        return (
+            self.n_reads >= self.budget.max_reads
+            or self.decompressed_bytes >= self.budget.max_bytes
+        )
 
     def __iter__(self) -> Iterator[Record]:
+        max_reads, max_bytes = self.budget.max_reads, self.budget.max_bytes
         try:
             with gzip.GzipFile(fileobj=self._fileobj) as gz:
                 line_iter = iter(gz)
-                while self.n_reads < self._max_reads and self.decompressed_bytes < self._max_bytes:
+                while self.n_reads < max_reads and self.decompressed_bytes < max_bytes:
                     try:
                         header = next(line_iter, None)
                         if header is None:  # clean EOF, fewer records than the budget
@@ -120,6 +140,13 @@ class FastqHead:
     reduced to ``first_name`` and an ordinal range rather than retained, which is what keeps a probe
     cheap enough to run across a fork pool. A fingerprint needs the records themselves and so
     accumulates a ``RecordSlice`` over the same :class:`BoundedReader` instead.
+
+    Two fields describe **the read rather than the records**: ``budget`` (what bounded it) and
+    ``source_path`` (the local file it came from, ``None`` for a stream). They are here because a head
+    is the only thing that knows them first-hand — ``build_observation`` derives ``params_hash`` and
+    ``local_uri`` from them instead of being told, which is what makes those two unable to disagree
+    with the read that actually happened. Everything a head does *not* know — the whole file's
+    content address, name, and size — is a :class:`~seqforge.probe.core.WholeFile`.
     """
 
     seqs: list[str] = field(default_factory=list)
@@ -132,12 +159,20 @@ class FastqHead:
     truncated: bool = False
     ok: bool = True
     budget_exhausted: bool = False
+    #: The budget this head was read under — not a budget someone would like it to have had.
+    budget: Budget = field(default_factory=Budget)
+    #: The local path read, or ``None`` for an in-memory stream (a range read, an SRA re-serialization).
+    #: Becomes ``FileIdentity.local_uri``: "where the bytes were", never "which file this describes" —
+    #: a fingerprint slice sets this to the slice while its ``WholeFile`` describes the original.
+    source_path: Path | None = None
 
     @classmethod
-    def read(cls, fileobj: IO[bytes], max_reads: int, max_bytes: int) -> FastqHead:
+    def read(
+        cls, fileobj: IO[bytes], budget: Budget | None = None, *, source_path: Path | None = None
+    ) -> FastqHead:
         """Accumulate a head from any binary gzip-FASTQ stream."""
-        reader = BoundedReader(fileobj, max_reads, max_bytes)
-        head = cls()
+        reader = BoundedReader(fileobj, budget or Budget())
+        head = cls(budget=reader.budget, source_path=source_path)
         for header, seq, _plus, qual in reader:
             if head.first_name is None:
                 head.first_name = header.decode("ascii", "replace").lstrip("@")
@@ -152,15 +187,16 @@ class FastqHead:
         return head
 
     @classmethod
-    def from_path(cls, path: str | Path, max_reads: int, max_bytes: int) -> FastqHead:
-        """Accumulate a head from a LOCAL gzip FASTQ.
+    def from_path(cls, path: str | Path, budget: Budget | None = None) -> FastqHead:
+        """Accumulate a head from a LOCAL gzip FASTQ, remembering which file it was.
 
         ``gzip.GzipFile`` does not close a ``fileobj`` it was handed, so the reader's ``tell()`` runs
         before this ``close()``.
         """
-        raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
+        p = Path(path)
+        raw = open(p, "rb")  # noqa: SIM115 - closed explicitly in finally
         try:
-            return cls.read(raw, max_reads, max_bytes)
+            return cls.read(raw, budget, source_path=p)
         finally:
             raw.close()
 
