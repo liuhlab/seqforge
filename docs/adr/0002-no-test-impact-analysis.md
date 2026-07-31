@@ -53,6 +53,19 @@ cache is cold anyway.
 What was missing was never a selector; it was a sentence saying the full suite is a pre-PR gate, and a
 file layout that makes the targeted run obvious.
 
+## So in code
+
+**Choose the test file yourself; do not add a tool that chooses for you.** Rung 1 is
+`pytest <file> -k <expr>`, and `tests/` mirrors the package layout so the file is a lookup rather
+than a search. Adding `pytest-testmon` or any coverage-graph selector is a regression against this
+record. And when a change touches only data — a `spec.yaml`, a `.smk` module, a packed onlist — run
+the suite that reads that data, because no line-coverage selector can see the edit at all.
+
+**Gate.** **None exists.** Nothing stops the dependency being added, nothing asserts that `tests/`
+still mirrors the packages, and nothing measures the suite's runtime. The ladder is a rule in
+[`docs/agents/testing.md`](../agents/testing.md) and the numbers here are dated measurements — this
+record is followed by reading it, which is the honest state and is why it says so.
+
 ## Consequences
 
 - Choosing the file is the agent's job. `docs/agents/testing.md` carries the module→file table, and

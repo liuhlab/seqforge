@@ -38,10 +38,11 @@ processing models.
 processing **policy**, not chemistry. They are applied at `compose` time from the recipe, so
 `backend_identical` stays sensitive to chemistry and blind to policy.
 
-## Consequence: `backend_identical` means "parses reads identically", so list order is significant
+## Why the confusability matrix sorts keys and not list values
 
-The confusability matrix canonicalizes `backend.params` before comparing. That canonicalization used
-to sort **keys and list values**, and its only justification was normalizing `soloFeatures` order.
+`backend_identical` means *"parses reads identically"*, so list order inside it is significant. The
+confusability matrix canonicalizes `backend.params` before comparing, and that canonicalization used
+to sort **keys and list values** — its only justification being to normalize `soloFeatures` order.
 `soloFeatures` has since left `backend.params` — it says what to *count*.
 
 What the sort would normalize now is the only list-valued **parse** param left: splitseq's
@@ -59,8 +60,25 @@ had never fired only by the alphabetical accident that `round1 < round2 < round3
 
 **Sort keys, never list order.** The predicate is now strictly stronger: two specs differing only in
 what they *count* are no longer distinguishable by it, because that is not a chemistry fact at all.
-The §2.4 biconditional — `backend_identical(A,B) ⟺ relationship == processing_equivalent` — is
-asserted over every loaded spec pair in CI.
+The biconditional — `backend_identical(A,B) ⟺ relationship == processing_equivalent` — is asserted
+over every loaded spec pair in CI.
+
+## So in code
+
+**Never make a parse key instructable, and never let a count key be decided by bytes.** A new key
+belongs to `backend.params` only if reads cannot be *parsed* without it; everything about what to
+count, and against which genome, aligner, environment and resources, belongs to the recipe
+(`CONTEXT.md` keeps the two apart as **Backend params** and **Recipe**). Do not add a template token
+beyond `{onlist:<alias>}`, do not put a policy knob in a spec — CellRanger parity is applied at
+`compose` time — and when canonicalizing for comparison, **sort keys, never list values**.
+
+**Gate.** The `Backend` key allowlist (`kb lint` and every `load_spec`), with
+`test_backend_rejects_illegal_template_token` (`tests/test_kb.py`); `extra="forbid"` on the
+processing models, with `test_the_processing_manifest_refuses_an_unknown_key`
+(`tests/test_models.py`); `params_gate`'s disjointness, coverage and three-owner faithfulness checks
+via `test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate`
+(`tests/test_compose.py`); `test_section_12_biconditional_holds_over_every_loaded_spec_pair` and
+`test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) for the sort.
 
 ## Consequences
 

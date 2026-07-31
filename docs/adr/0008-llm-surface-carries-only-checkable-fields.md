@@ -39,6 +39,21 @@ and a wrong one silently mis-files a **permanent** fact (the `experiment` sectio
 `dataset_hash` and the manifest is never rewritten) onto the wrong sample. The rule generalizes: a
 field the verifier cannot re-derive does not belong on the LLM-facing schema.
 
+## So in code
+
+**Never put a field on the LLM-facing schema that the verifier cannot re-derive.** `AssertionDraft`
+is the whole surface (`CONTEXT.md`): no offsets, no `subject`, `value` a plain string. Code searches
+for the quote, computes the offsets, and owns `span_verified` and `entailment_ok` — a model-supplied
+offset is discarded rather than trusted. Set a document's `role` and `scope` from how it arrived,
+never from its contents or its filename, and render only free text into a record document: the
+structured half is already a key and a value.
+
+**Gate.** `test_the_processing_manifest_is_not_llm_facing` (`tests/test_models.py`) pins the
+`LLM_FACING` set; `test_extract_discards_model_supplied_offsets` and
+`test_prompt_names_only_permitted_fields` (`tests/test_extract.py`) for the surface;
+`test_verify_rejects_fabricated_provenance` and `test_verify_rejects_real_quote_wrong_value`
+(`tests/test_harvest.py`) for the two flags.
+
 ## Consequences
 
 - The P4 tripwire is **fail-closed** instead of false-rejecting.

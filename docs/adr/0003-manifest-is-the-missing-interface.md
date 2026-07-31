@@ -44,11 +44,22 @@ Three things neither tool has, none of which a wrapper around both could add:
 And because processing is a separate artifact ([ADR 0004](0004-two-artifacts-not-one.md)), uniform
 reprocessing across ~10⁴ datasets becomes *one recipe among many* rather than a rerun of everything.
 
+## So in code
+
+**Decide, then refuse — never search.** A stage that tries N parameter combinations over real reads
+and keeps the best scorer is a regression against this record, even when the search is cheap: the
+answer to an undecidable dataset is a `Blocker` and a nonzero exit, not an argmax. Reach for the
+cheap eager check (an `onlist_hit_rate` costs ~100 ms) before the expensive experiment, and keep
+alignment where it belongs — escalation rung 6, invoked on an ambiguity code has already flagged.
+
+**Gate.** **None exists.** The refusal path a search would route around is covered
+(`test_the_cli_surface_exits_and_answers_as_documented`, `tests/test_cli.py`), but *how* an answer
+was reached is not a property any test reads, and a grid search that always returned something would
+pass every gate in the suite. This one is enforced at review.
+
 ## Consequences
 
 - The claim is **architectural, not a track record**: seqforge has compiled the worm pilot end to
   end but has not yet executed a pipeline on real reads at scale.
 - Alignment survives only as escalation **rung 6** — a mini-align invoked on an ambiguity code has
   already flagged, never the primary identification mechanism (and it is still unbuilt).
-- Anything that would make the compiler *search* rather than *decide* is a regression against this
-  record, even when the search is cheap.

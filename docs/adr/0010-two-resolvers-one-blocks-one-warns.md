@@ -53,6 +53,22 @@ both quotes are real and both entail. A sample covered *only* by a dataset-level
 for an attribute some other sample owns per-sample, is also left null — the paper's blanket `daf-2`
 must not stamp the wild-type samples.
 
+## So in code
+
+**Block on the bytes; warn on the prose.** Hand `resolve/records.py` a `FileIdentity`, never an
+`Observation` — probe signal must not be able to reach it. When two equal authorities disagree about
+a sample attribute, write null and emit a `Warning` naming both; do not break the tie, do not raise a
+`Conflict`, and do not let a dataset-scoped `inferred` claim stamp a sample some other sample owns
+per-sample. Reserve blocking for the chemistry call, where an `observed`↔`asserted` `Conflict` stands
+until a human confirms. (`Conflict` and `Warning` are `CONTEXT.md` terms; the difference is the
+exit code.)
+
+**Gate.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
+`test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`) on
+the blocking side; `test_the_sample_attribute_precedence_table`, parametrized over every cell of the
+table, and `test_the_metadata_resolver_is_handed_identity_not_signal` (`tests/test_records.py`) on
+the warning side.
+
 ## Consequences
 
 - The metadata resolver is handed **`FileIdentity`, never `Observation`** — no probe signal reaches

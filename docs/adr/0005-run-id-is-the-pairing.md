@@ -33,6 +33,18 @@ Either input storing the other's hash re-creates exactly what ADR 0004 removed: 
 identity moves when intent changes, or a recipe that can no longer be a template. The pairing is a
 fact about a *compile*, so it belongs to the compile's output and nowhere else.
 
+## So in code
+
+**Compute `run_id` from all four components, and store the pairing in neither input.** A manifest
+that records a `processing_hash`, or a recipe that records a `dataset_hash` anywhere but
+`processing.lock.yaml`, re-creates the overwrite this record exists to fix. This formula lives here
+and nowhere else — cite this ADR rather than restating it. Every component that folds into the key is
+CalVer, so a version string that sorts wrong or repeats is a cache-key bug, not a cosmetic one.
+
+**Gate.** `test_run_id_differs_per_processing_manifest` (`tests/test_manifest.py`) and
+`test_two_processing_manifests_do_not_overwrite_each_other` (`tests/test_compose.py`) — the second is
+the original collision, run forward.
+
 ## Consequences
 
 - One dataset compiled two ways yields two directories, both retained; neither can shadow the other.

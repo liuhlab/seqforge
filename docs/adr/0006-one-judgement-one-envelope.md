@@ -52,10 +52,20 @@ without its provenance, and one honest envelope does that for all four.
 - **`resources` carries no basis** — it is a hint, not a decision.
 - Raw identity and provenance fields carry no basis for the same reason.
 
+## So in code
+
+**Put the envelope on the decision, not on every field that follows from it.** `chemistry` is the
+only `Evidenced` field in `LibrarySection` (`CONTEXT.md` defines both terms); do not wrap `assay`,
+`read_layout` or `files[].read_id`, and do not give `Study`, `resources` or any identity field a
+basis. Before adding an `Evidenced`, ask whether the new envelope could ever disagree with an
+existing one — if it cannot, it is the same judgement and needs no envelope. `confidence: null` is
+legal; two confidences for one judgement are not.
+
+**Gate.** `test_one_decision_carries_exactly_one_confidence` (`tests/test_models.py`), which goes red
+if an envelope is re-added to `assay` or `read_layout`;
+`test_the_assay_cannot_disagree_with_the_chemistry_it_names` (same file) for the field that follows.
+
 ## Consequences
 
-- `confidence: null` stays legal; what is illegal is two confidences for one judgement.
-- `test_one_decision_carries_exactly_one_confidence` pins this, so a future reader re-adding an
-  envelope to `assay` or `read_layout` turns the suite red rather than quietly restoring the defect.
 - The same diagnosis — "the grammar of a truth applied where there was only one decision" — produced
   the artifact split in [ADR 0004](0004-two-artifacts-not-one.md).

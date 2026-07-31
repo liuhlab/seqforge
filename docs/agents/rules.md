@@ -16,6 +16,13 @@ narrowest thing that can go red ([`testing.md`](testing.md)).
 because the previous mechanism was a comment in `tests/test_skills.py` asking a human not to rename a
 function without updating a table that no test read.
 
+**And so is the shape.** Every section below owes an `**Enforced by.**` block, and a section that
+links an ADR owes a gloss rather than a précis of it —
+`test_every_section_of_the_enforcement_map_names_what_enforces_it` and
+`test_a_section_that_links_an_adr_glosses_it_rather_than_restating_it` (`tests/test_docs.py`). This
+file stated that policy in its own opening paragraph and then broke it four times, and the compiled
+run's id formula ended up written in two notations at once — so it is a check now, not a sentence.
+
 ## R1 — Emit data, never code
 
 **Why.** The one thing an LLM must never produce is executable text, because there is no validator
@@ -98,14 +105,14 @@ write-rename); one owner for the name, `workspace.py`.
 
 ## R6 — The CLI is the API; the skill is a thin client
 
-**Why.** [ADR-0013](../adr/0013-cli-is-a-machine-interface.md). Every skill action maps to a
-deterministic `seqforge <verb>` with no LLM in it, emitting JSON on stdout **by default** — no
-`--json` flag, because a machine interface does not ask to be machine-readable (`kb list` is the one
-plain-text verb). `harvest extract` is the sole LLM touchpoint in a headless run. A skill that
-documents a verb the app does not have is a confident instruction to fail.
+**Why.** The caller is a machine. Every skill action maps to a deterministic `seqforge <verb>` with
+no LLM in it, and the conventions that follow — JSON by default, refusal as an exit code, no
+`--resume` — are [ADR-0013](../adr/0013-cli-is-a-machine-interface.md). A skill documenting a verb
+the app does not have is a confident instruction to fail.
 
 **Enforced by.** `test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`), which
-introspects the live Typer app — verb, subcommand and long flags — so a rename goes red.
+introspects the live Typer app — verb, subcommand and long flags — so a rename goes red;
+`test_the_cli_surface_exits_and_answers_as_documented` (`tests/test_cli.py`) for the exit contract.
 
 ## R7 — Machine-independent manifest: no absolute paths, ever
 
@@ -158,20 +165,18 @@ and closed-literal checks, the last one against the real `Genome` class.
 
 ## R11 — Two artifacts, and the instructable surface is closed
 
-**Why.** Three ADRs, one rule.
-[ADR-0004](../adr/0004-two-artifacts-not-one.md): what the data *is* and what to *do* with it have
-different lifetimes, so `manifest.yaml` (library + experiment) is write-once and `processing.yaml` is
-plural — a change of intent must **never** perturb `dataset_hash`.
-[ADR-0005](../adr/0005-run-id-is-the-pairing.md): the compiled run is identified by the pairing,
-`run_id = H(dataset ⊕ processing ⊕ kb ⊕ workflow)`.
-[ADR-0011](../adr/0011-closed-instructable-surface.md): the instructable surface is closed and split
-parse-vs-count — `backend.params` says how to **parse** reads (soloType, CB/UMI offsets, whitelist,
-strand) and is byte-decided, never instructable; the recipe says what to **count**, and against which
-genome, aligner, env and resources. The two key sets are **disjoint**, which makes "a user instruction
-contradicts the bytes" *inexpressible* rather than merely refused.
-[ADR-0012](../adr/0012-produce-every-answer-rather-than-ask.md): produce every answer rather than ask
-— `soloFeatures` defaults to all five (one alignment, five counting rules, one pass); escalate only
-where the answers are genuinely exclusive, like a genome or an aligner.
+**Why.** Four decisions, one rule: the dataset is write-once and the recipe is plural, and the keys
+that say how reads are **parsed** are disjoint from the keys that say what to **count** — so "a user
+instruction contradicts the bytes" is *inexpressible* rather than merely refused.
+
+- [ADR-0004](../adr/0004-two-artifacts-not-one.md) — two artifacts, different lifetimes; a change of
+  intent never perturbs `dataset_hash`.
+- [ADR-0005](../adr/0005-run-id-is-the-pairing.md) — the compiled run is identified by the pairing,
+  and the `run_id` formula lives there and nowhere else.
+- [ADR-0011](../adr/0011-closed-instructable-surface.md) — `backend.params` is byte-decided and
+  never instructable; the recipe owns counting.
+- [ADR-0012](../adr/0012-produce-every-answer-rather-than-ask.md) — produce every answer rather than
+  ask, whenever every answer is affordable.
 
 **Enforced by.** `dataset_content_hash` covering exactly two sections, plus the recipe-sweep
 hash-invariance test and the `models/{dataset,processing}.py` import-graph test (`tests/test_models.py`,
@@ -182,24 +187,28 @@ and every `load_spec`); `params_gate`'s disjointness / coverage / three-owner fa
 
 ## The demo dataset, and the two disciplines that outlived the held-out case
 
-`PRJNA1027859` is the demo dataset and **there are no held-out cases** —
-[ADR-0016](../adr/0016-no-held-out-dataset.md) retired the reservation and deleted its guard and
-registry. It is the pilot's worked example: read it, run it, write the tutorial from it. Two
-disciplines survive the retirement:
+`PRJNA1027859` is the pilot's worked example — read it, run it, write the tutorial from it — and
+**there are no held-out cases**: [ADR-0016](../adr/0016-no-held-out-dataset.md) retired the
+reservation and deleted its guard and registry. Two disciplines survive it. Real data, and its path,
+stay out of git. And `expected.yaml` is pre-registered before a run, in claims that are *checkable*,
+because only a prediction can be wrong.
 
-- **Real data, and its path, stays out of git.** A `kind: local` eval case names an environment
-  variable rather than a path — enforced by `test_skill_never_leaks_a_lab_path`
-  (`tests/test_skills.py`).
-- **Pre-register `expected.yaml` before a run.** Only a prediction can be wrong, and its claims must
-  be *checkable*: `experiment.samples.*.<attr>` for every sample, `experiment.samples.<accession>.<attr>`
-  for one.
+**Enforced by.** `test_skill_never_leaks_a_lab_path` (`tests/test_skills.py`) for the path — a
+`kind: local` case names an environment variable, never a path;
+`test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold` (`tests/test_records.py`),
+`test_extra_keys_in_expected_are_rejected` and `test_corpus_is_green` (`tests/test_evals.py`) for
+the prediction.
 
 ## Two resolvers, two refusals
 
 `resolve` holds two resolvers, and they are siblings rather than a stage and a side-input. They part
-on disagreement: the byte resolver surfaces an `observed`↔`asserted` `Conflict` it will not arbitrate
-— that decides what the data *is*, and it **blocks** — while the metadata resolver *decides* a
-sample-attribute disagreement (stronger authority wins; equal authorities leave the field **null**)
-and emits a non-blocking **`Warning`**. Null-over-wrong is a value, not a question. The line is in
-[`resolve/records.py`](../../src/seqforge/resolve/records.py), and the decision is
-[ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md).
+on disagreement: the byte resolver **blocks**, and the metadata resolver *decides* and only
+**warns** — null over wrong, never a question. The asymmetry is
+[ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md); the line is
+[`resolve/records.py`](../../src/seqforge/resolve/records.py).
+
+**Enforced by.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
+`test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`) on
+the blocking side; `test_the_sample_attribute_precedence_table` (`tests/test_records.py`),
+parametrized over every cell of the table, and
+`test_the_metadata_resolver_is_handed_identity_not_signal`, which keeps probe signal out of it.

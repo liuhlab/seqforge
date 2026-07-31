@@ -37,6 +37,23 @@ and `ExtractionResult.model_validate_json` is the gate: a wrong shape fails the 
 loudly rather than leaking a half-parsed assertion into a manifest. Half a batch is the only outcome
 that would have been worse than none.
 
+## So in code
+
+**Write one prompt for every provider, and let no provider's guarantee stand in for a check of
+ours.** Never branch the prompt on the provider — `prompt_version` has to stay comparable across
+vendors, or every eval number becomes provider-local. Never widen a provider adapter to
+post-process, repair or partially accept a response: a malformed batch fails whole at
+`ExtractionResult.model_validate_json`, because half a batch is the only outcome worse than none. And
+when no credential names a provider, refuse — never fall back to one, because extracting under a
+different model than intended is a provenance bug that looks like success.
+
+**Gate.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
+(`tests/test_extract.py`) for the selection;
+`test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify` (same file) for one prompt
+reaching verification through the weakest-shaped provider, and
+`test_system_prompt_satisfies_the_json_mode_contract` for the prompt itself;
+`test_extract_records_provider_in_provenance` for `provider/model`.
+
 ## Consequences
 
 - **One prompt serves every provider**, so `prompt_version` stays comparable across runs and across

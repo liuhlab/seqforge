@@ -35,13 +35,23 @@ An invented key is precisely how `condition` happened: a key that accepts everyt
 Keys we did not coin cannot be bent to fit an extraction, and a key outside the 960 is a
 `MISSING_CONTROLLED_VOCAB` refusal rather than a plausible-looking fact.
 
+## So in code
+
+**Key a sample attribute with one of NCBI's 960 names, or take the refusal.** Never add a typed
+field for one, and never coin a key: a key we invented accepts whatever an extraction wants to put in
+it, which is exactly how `condition` swallowed routine husbandry. If the vocabulary is missing a
+name, refresh the generated data — an NCBI addition is a data update, never a schema migration. The
+same holds for the EFO labels, which ride the same pattern.
+
+**Gate.** `SampleGroup._keys_are_ncbi_attributes` (the validator itself);
+`test_a_sample_attribute_key_must_be_one_ncbi_defines` (`tests/test_models.py`) for the refusal, and
+`test_every_asked_attribute_is_one_ncbi_defines` (`tests/test_fields.py`), which keeps the asked set
+inside the enforced set by construction rather than by convention.
+
 ## Consequences
 
 - `strain` was available the day the constraint landed, and it is what tells the pilot's two
   conditions apart — the very distinction the removed typed fields could not express.
-- Enforced by `SampleGroup._keys_are_ncbi_attributes` and
-  `test_every_asked_attribute_is_one_ncbi_defines`; the asked set is a subset of the enforced set by
-  construction, not by convention.
 - EFO labels ([`io/efo.py`](../../src/seqforge/io/efo.py)) ride the same generated-data-plus-refresh
   pattern, for the same reason.
 - A sample attribute is never worth blocking a compile over — see

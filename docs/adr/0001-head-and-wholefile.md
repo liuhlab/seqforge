@@ -29,8 +29,9 @@ work here.
 
 **No read-source seam.** Instead, `build_observation(head, file)` takes two values:
 
-- `FastqHead` — what was read and how: the records, the `Budget` that bounded them, and the
-  `source_path` they came from (`None` for a stream).
+- `FastqHead` — a **head** in the glossary's sense (`CONTEXT.md`): what was read and how — the
+  records, the `Budget` that bounded them, and the `source_path` they came from (`None` for a
+  stream).
 - `WholeFile` — what the file *is*: `basename`, `sha256`, `size_bytes`, `isize`.
 
 Each source constructs its own `WholeFile`, in the module that holds the knowledge:
@@ -60,6 +61,19 @@ a sharper reason: **there cannot be one owner.** The knowledge is irreducibly di
 needs a gzip trailer only a local file has. A hosted address needs the provider md5 and must know that
 a range read can *never* reach an ISIZE. An SRA address needs whole-run archive metadata `probe` has no
 business seeing. Four naming authorities is correct; what was wrong was that they had no shared type.
+
+## So in code
+
+**Call `build_observation(head, file)`, and construct the `WholeFile` in the module that knows the
+file.** Do not add a `ReadSource` protocol, and do not re-widen the signature: a caller that needs a
+different identity for the bytes builds its own `WholeFile` and passes it — that is the injection
+path, and there is no `sha256=` parameter any more. `isize` never joins `FileIdentity`, so a fifth
+source gets a fifth naming authority rather than a shared one.
+
+**Gate.** `test_every_source_reads_the_same_records`, `test_each_source_names_the_file_its_own_way`
+and `test_the_three_field_sets_cover_every_observation_field` (`tests/test_observation_sources.py`) —
+one fixture through all four callers, and a new `Observation` field must declare which of the three
+sets it belongs to rather than escaping the contract by default.
 
 ## Consequences
 
