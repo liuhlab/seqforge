@@ -11,6 +11,14 @@
 # libraries were generated with 10X Genomics v2 chemistry and standard protocols, and sequenced on
 # Illumina NextSeq instruments", which agrees with the resolved 10x-3p-gex-v2. A code change that
 # moves it turns this case red.
+#
+# THIS CASE IS RED TODAY, on the OUTCOME and not on any field. Graded 2026-07-31 it returns
+# `over_ask`: all seven field claims pass, but resolve ASKS where this file says `decide`. That
+# predates the review — nothing here touched `outcome` or the chemistry — and the likely cause is
+# this series' own SRX5411291, the over-sequenced R1 that `resolve/` names in four places as the
+# reason the v2 length gate is floor-anchored. The expectation is left at `decide` deliberately:
+# grading it against what the code does today would enshrine the ask as the specification. It goes
+# green when the question is settled or the expectation is argued down, and not before.
 outcome: decide
 description: >-
   Benchmark: GSE126954 (Packer et al., Science 2019) resolved from its fingerprint package. It pins

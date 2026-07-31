@@ -54,6 +54,10 @@ predicts:
 blockers:
 - MISSING_TECHNICAL_READ
 fields:
-  # What the library IS (GEO, verbatim), not what one 91 bp file can establish. Unchecked on a
-  # refusal by design; a run that resolves it from these bytes grades false_accept.
+  # What the library IS (GEO, verbatim), not what one 91 bp file can establish. `_check_fields` runs
+  # only when the actual outcome is decide or ask, so on the expected path this value is NEVER
+  # graded — it is here because the tier's well-formedness test requires every benchmark case to pin
+  # a chemistry, and because it documents why refusing is right. It becomes load-bearing exactly
+  # when the case fails: a run that DECIDES from these bytes grades false_accept, and this is the
+  # value it would be measured against.
   library.chemistry: 10x-3p-gex-v3

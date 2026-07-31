@@ -988,6 +988,15 @@ def test_a_fingerprint_case_skips_when_its_root_is_unset(
     assert build_report([run]).n_cases == 0
 
 
+def _benchmark_tier_or_skip() -> Path:
+    """The networked tier's root, or skip. Two tests need it, and a stray copy of the skip is how
+    one of them quietly stops covering anything when the directory moves."""
+    bench = default_cases_dir().parent / "benchmark"
+    if not bench.is_dir():
+        pytest.skip("no HF benchmark tier committed")
+    return bench
+
+
 def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_corpus() -> None:
     """`evals/benchmark` (the networked HF tier) loads offline and never leaks into hermetic CI.
 
@@ -998,9 +1007,7 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     """
     from seqforge.evals.case import FingerprintRecipe
 
-    bench = default_cases_dir().parent / "benchmark"
-    if not bench.is_dir():
-        pytest.skip("no HF benchmark tier committed")
+    bench = _benchmark_tier_or_skip()
     cases = discover_cases(bench)
     assert cases, "the benchmark tier is present but empty"
     for c in cases:
@@ -1029,10 +1036,8 @@ def test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it() -> N
     row set is checked for exact correspondence. Add a case without a row (or vice versa) and this
     turns red, which is the only reason the table is worth keeping.
     """
-    bench = default_cases_dir().parent / "benchmark"
+    bench = _benchmark_tier_or_skip()
     table = bench.parent / "benchmark-datasets.tsv"
-    if not bench.is_dir():
-        pytest.skip("no HF benchmark tier committed")
     assert table.is_file(), f"the benchmark tier is committed but {table.name} is not"
 
     lines = [ln for ln in table.read_text().splitlines() if ln.strip()]
@@ -1057,12 +1062,13 @@ def test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it() -> N
     )
     for case_id, case in cases.items():
         row = rows[case_id]
-        assert row["chemistry"] == case.expected.fields["library.chemistry"], case_id
+        assert row["chemistry"] == case.expected.fields.get("library.chemistry"), case_id
         assert row["outcome"] == case.expected.outcome, case_id
         organism = case.expected.fields.get("experiment.organism")
         assert row["organism"] == (str(organism) if organism is not None else "-"), case_id
-        # Prose columns: nothing can check that they are *right*, so check they were written. A row
-        # whose uniqueness is blank is a dataset nobody could justify keeping.
+        # The rest is prose — including `accession`, which names the SERIES a reader would search
+        # for, while a case may be built from one run of it. Nothing can check prose is *right*, so
+        # check it was written: a row whose uniqueness is blank is a dataset nobody could justify.
         for column in ("accession", "provenance", "uniqueness"):
             assert row[column].strip(), f"{case_id}: {column} is empty"
 

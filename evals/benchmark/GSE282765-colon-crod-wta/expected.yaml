@@ -91,7 +91,8 @@ fields:
   - Colon
   experiment.samples.*.treatment:
   - Citrobacter rodentium infection
-  experiment.samples.*.source_name:
-  - Colon
+  # `source_name` is NOT claimed: the record's value is "Colon", a verbatim duplicate of `tissue`,
+  # and the same-day review pruned exactly that shape from GSE126954, GSE234962, GSE256266 and
+  # GSE274290. One string asserted twice is one claim, not two.
   experiment.samples.SAMN52065473.strain: C57BL/6J Cre
   experiment.samples.SAMN52065473.treatment: Citrobacter rodentium infection

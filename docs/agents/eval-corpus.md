@@ -54,9 +54,9 @@ account's rate limit can never gate a PR.
 Each benchmark case commits its `records.json` — the archive's own BioSample and SRA transcript — so
 sample facts grade deterministically with no NCBI key, while `library.chemistry` grades from the
 pinned bytes. **Provenance is per case, and the file's own header says which.** The first tranche was
-*seeded from a run* on 2026-07-23 and is being reviewed against the publications case by case (issue
-#81) — a file still carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has not been; later cases
-(`GSE283483-*`, 2026-07-24) were **pre-registered before their run**. Seeded, reviewed or
+*seeded from a run* on 2026-07-23 and was **reviewed against the publications on 2026-07-31**, case by
+case (issue #81) — a file carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has not been reviewed,
+and none does today; later cases were **pre-registered before their run**. Seeded, reviewed or
 pre-registered, every one of them is still the **validation** set we develop against: when a case goes
 red we fix the compiler and grade it again. A true held-out *test* set is a later milestone — scoped
 below, and not decided.
@@ -66,11 +66,12 @@ read. `preflight --accession` streams the `.sra` with `--include-technical`, so 
 that `fasterq-dump` skipped on the way to ENA is **recovered** in the package — the tool that builds
 the fixture repairs the very defect the fixture was meant to pin. Barcode-absence is therefore only
 pinnable where the read is absent from the archive's read space itself: a Cell Ranger BAM submission,
-where CB and UMI are tags rather than reads (`GSE208154`, and the corpus's only refusal case). Where
-it is merely ENA-dropped (`GSE229022`), what the package pins is the index-read layout instead.
+where CB and UMI are tags rather than reads (`GSE208154`, the benchmark tier's only refusal — the
+synthetic ones live in `evals/cases/refusal/`). Where it is merely ENA-dropped (`GSE229022`), what the
+package pins is the index-read layout instead.
 
-**The last synthetic-only chemistry family was retired on 2026-07-31.** Until
-`GSE282765-colon-crod-wta` landed (BD Rhapsody WTA on Enhanced beads, mouse colon), the Enhanced
+**BD Rhapsody Enhanced got real reads on 2026-07-31, and the gap it closed is worth naming exactly.**
+Until `GSE282765-colon-crod-wta` landed (BD Rhapsody WTA on Enhanced beads, mouse colon), the Enhanced
 0–3 bp diversity insert, the `GTGA`/`GACA` linkers and the anchored per-read frame recovery had been
 exercised only on reads seqforge generated from its own spec — the same circularity that hid a real
 defect in `splitseq` for the life of that entry. On the real slice the frame phase-locks in **92.6 %**
@@ -80,6 +81,24 @@ apart is now measured rather than assumed. The two BD cases are also a deliberat
 this one name the *same* instrument string ("BD Rhapsody Express Single-Cell Analysis System") in their
 extract protocols and differ only in the declared bead, so anything deciding BD chemistry from the
 instrument rather than the R1 bytes gets exactly one of them wrong.
+
+**Still synthetic-only, as of 2026-07-31:** `bd-rhapsody-wta-enhanced-v1` (the 97×3 sibling — only
+`-v2` got real reads), `10x-5p-gex-v2` / `-v3`, and `10x-gemx-3p-v4`. Each is covered in `evals/cases/spec`
+by reads seqforge generated from its own spec, which proves the generator and the spec agree with each
+other and nothing else. The pre-registerable candidate for `enhanced-v1` is `GSE266161` → `GSM8238055`
+→ `SRR28817193`, pinned to the 96×3 pools by a producer-authored script rather than by a measurement
+of ours (`rock_roi_paper/06_Sankey_plots/wta_unmod_first_mixing_experiment.sh` matches
+`^[ACTG]{0,3}${line}` against `whitelist_96x3/BD_CLS1.txt` on that run's exact filename).
+
+**Considered and not added** — recorded here rather than in a commit message, because the next person
+to grow the corpus needs the reasons, not just the outcome. These are candidates, not reservations;
+nothing about a held-out set is decided.
+
+| dataset | why not (yet) |
+|---|---|
+| `GSE208229` | the single-index variant of the layout `GSE229022` covers in its harder dual-index form; its only unique asset is a non-null `readTypes` string, an `io resolve` metadata property a fingerprint cannot carry |
+| `GSE136049` | 10x v3 at 2×150 — the over-length-R1 case `resolve/` already names `GSE126954`'s `SRX5411291` as the exemplar of. 395 M reads, ~29 GB/file, no new coverage |
+| `GSE310667` | same over-length-R1 coverage. Released Nov 2025 and never compiled here, so it is also the strongest candidate on this list should a held-out test set ever be built — which is a reason to spend it carefully, not a reservation |
 
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for

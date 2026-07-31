@@ -156,10 +156,18 @@ metadata-conditioned branches without an API key — `GSE208154` needs one to re
 sentence in the recipe comment.
 
 **Provenance is per case, and the file's own header says which.** The first tranche was *seeded from a
-run* and is now **reviewed against the publications** (`# REVIEWED <date>`, issue #81): its
+run* and was **reviewed against the publications** on 2026-07-31 (`# REVIEWED <date>`, issue #81): its
 `experiment.*` values were confirmed field by field against the paper and the fragile ones pruned,
 while `library.chemistry` stays a byte-resolved regression baseline. Later cases were **pre-registered
-before their run**. A file still carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has had neither.
+before their run**. A file carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has had neither — none
+does today, and the header is the authority if one appears again.
+
+**What "fragile" means, since the transcript is committed.** A pruned value was never a grading risk:
+`records.json` is frozen beside the case, so no re-submission can move it. It was pruned because it
+asserts nothing *about the experiment* — a verbatim duplicate of another field, a `none` / `n/a` form
+filler, a sentence typed into a `tissue` slot, or a submitting-account label. The test is whether the
+science would have to change for the value to change; if not, the claim is decoration, and a corpus
+of decoration is what makes a green benchmark meaningless.
 
 What each dataset is, and the one thing it covers that nothing else does, is a row in
 [`benchmark-datasets.tsv`](benchmark-datasets.tsv) — read it before adding a dataset, because the
