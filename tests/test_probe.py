@@ -174,7 +174,33 @@ def _write_enormous_fastq_gz(path: Path, *, chunk_mb: int = 1, n_chunks: int = 1
     return len(chunk) * n_chunks
 
 
-def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path) -> None:
+#: ``(path, decompressed_bytes)`` — the enormous fixture and how big it really is.
+Enormous = tuple[Path, int]
+
+
+@pytest.fixture(scope="module")
+def enormous_fastq(tmp_path_factory: pytest.TempPathFactory) -> Enormous:
+    """The 128 MB-decompressed fixture, written ONCE. Read-only: no test may write to this path.
+
+    Three tests rebuilt an identical file. Writing it costs 0.448s; the probe work it enables costs
+    0.011s / 0.072s / 0.011s — so almost all of it was the same 0.45s paid three times.
+
+    **It must be requested as a parameter, never called from a test body**, and that is not style.
+    `test_the_content_address_never_scans_the_whole_file` monkeypatches `builtins.open` and counts
+    every byte read from this exact path; building the file while the counting `open` is installed
+    would score 450 KB of *writing* as *reading* and fail the budget assertion. A fixture is built
+    during setup, before the test body installs anything.
+
+    Module scope, not a cached function: a shape that skipped a rebuild inconsistently would leave
+    `assert on_disk < 2_000_000` and `assert on_disk > compressed_bytes_read * 3` measuring a file
+    nobody wrote this run — R3's strongest scale test, passing against a stale artifact.
+    """
+    path = tmp_path_factory.mktemp("enormous") / "enormous.fastq.gz"
+    return path, _write_enormous_fastq_gz(path)
+
+
+@pytest.mark.xdist_group("enormous-fastq")
+def test_the_read_budget_bounds_bytes_read_however_large_the_file(enormous_fastq: Enormous) -> None:
     """A code path that CAN stream a whole multi-GB FASTQ is a bug — asserted, not asserted-to.
 
     The bounded-read rule cited a "50 GB reads < N bytes" check that was never written; what existed proved the budget
@@ -182,8 +208,7 @@ def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path
     property that actually matters: `bytes_read` is a function of the BUDGET, not of the file. A
     regression that streamed to EOF would pass every small-fixture test in this file and fail here.
     """
-    path = tmp_path / "enormous.fastq.gz"
-    decompressed = _write_enormous_fastq_gz(path)
+    path, decompressed = enormous_fastq
     on_disk = path.stat().st_size
     assert decompressed > 100_000_000  # the fixture really is enormous once decompressed...
     assert on_disk < 2_000_000  # ...while costing the test suite ~450 KB and ~0.2 s
@@ -198,14 +223,14 @@ def test_the_read_budget_bounds_bytes_read_however_large_the_file(tmp_path: Path
     assert obs.estimated_total_reads > 1_000_000  # and it still knows the file is huge
 
 
-def test_the_byte_budget_binds_when_the_reads_are_long(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("enormous-fastq")
+def test_the_byte_budget_binds_when_the_reads_are_long(enormous_fastq: Enormous) -> None:
     """The other half of the bounded-read contract: `--max-reads` AND `--max-bytes`, not either alone.
 
     A read budget alone is not a byte budget — 200 000 long reads is unbounded work. The byte cap is
     what makes the guarantee hold for a chemistry we have not met yet.
     """
-    path = tmp_path / "enormous.fastq.gz"
-    _write_enormous_fastq_gz(path)
+    path, _ = enormous_fastq
 
     obs = probe_file(path, max_reads=10_000_000, max_bytes=1_000_000)
 
@@ -513,8 +538,9 @@ class _CountingReader:
         return self._fh.__exit__(*exc)
 
 
+@pytest.mark.xdist_group("enormous-fastq")
 def test_the_content_address_never_scans_the_whole_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    enormous_fastq: Enormous, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """#37 tripwire: fingerprinting must never read a whole FASTQ, however large.
 
@@ -523,8 +549,9 @@ def test_the_content_address_never_scans_the_whole_file(
     counts EVERY byte read from the file at the OS boundary and pins it under the bounded head; a
     regression that scans the whole file reads >= its on-disk size and fails both assertions.
     """
-    path = tmp_path / "enormous.fastq.gz"
-    _write_enormous_fastq_gz(path)  # >100 MB decompressed, small on disk
+    # from the fixture, so the 0.45s of WRITING happens before `counting_open` is installed — counted
+    # as reading, it would blow the budget assertion at the bottom of this test
+    path, _ = enormous_fastq  # >100 MB decompressed, small on disk
     on_disk = path.stat().st_size
 
     counter = [0]

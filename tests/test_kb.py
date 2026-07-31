@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from conftest import write_fastq_gz
+from conftest import KbProbes, write_fastq_gz
 from seqforge import kb
 from seqforge.kb.schema import Spec
 from seqforge.models.observation import ConstantSegment
@@ -494,20 +494,8 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
 
 
 # ---------- The rung-0-2 separability guard (design §2.4, fact 1) ----------
-def _probes_for(spec: Spec, workdir: Path) -> list[object]:
-    """Synthetic reads for one spec, probed — the input a scorer sees for a dataset of this tech."""
-    from seqforge.resolve.window import WindowProbe
-
-    reads = kb.generate_reads(spec, n=400, seed=0)
-    out: list[object] = []
-    for read_id, seqs in reads.items():
-        path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
-        write_fastq_gz(path, seqs)
-        out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
-    return out
-
-
-def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) -> None:
     """The under-declaration guard design §2.4 specified and nobody built.
 
     `decidable_by` and `confusable_with` were hand-maintained claims: nothing computed whether the
@@ -532,7 +520,6 @@ def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None
     # Only LEAF chemistries are scored at runtime, so only they can be confused at runtime. A family
     # node is validated by the recognition self-test, not here.
     leaves = tree.leaves()
-    probes = {i: _probes_for(specs[i], tmp_path) for i in leaves}
 
     undeclared: list[str] = []
     for a in leaves:
@@ -542,9 +529,9 @@ def test_no_spec_pair_is_confusable_without_declaring_it(tmp_path: Path) -> None
                 continue
             if is_tree_kin(specs, a, b):
                 continue  # siblings / parent-child: the tree DECLARES this confusability
-            if not geometry_could_accept(specs[a], probes[b]):
+            if not geometry_could_accept(specs[a], kb_probes[b]):
                 continue  # proven necessary condition — a length-infeasible pair cannot be confusable
-            if accepts_at_rungs_0_2(specs[a], probes[b]):
+            if accepts_at_rungs_0_2(specs[a], kb_probes[b]):
                 undeclared.append(
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but does not list it in "
                     f"confusable_with (nor share a parent) — the resolver would pick one and never ask"
@@ -570,7 +557,8 @@ def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
                 )
 
 
-def test_the_separability_guard_can_actually_catch_a_collision(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_the_separability_guard_can_actually_catch_a_collision(kb_probes: KbProbes) -> None:
     """Prove the guard fires: a spec IS confusable with itself, by construction.
 
     A tautology, and that is the point — if `accepts_at_rungs_0_2` cannot recognise a spec's own
@@ -579,16 +567,16 @@ def test_the_separability_guard_can_actually_catch_a_collision(tmp_path: Path) -
     from seqforge.resolve.confuse import accepts_at_rungs_0_2, rung02_separable
 
     spec = kb.load_spec("10x-3p-gex-v3")
-    own = _probes_for(spec, tmp_path)
+    own = kb_probes["10x-3p-gex-v3"]
     assert accepts_at_rungs_0_2(spec, own)
     assert not rung02_separable(spec, own, spec, own)  # nothing is separable from itself
 
     # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
-    splitseq = kb.load_spec("splitseq")
-    assert not accepts_at_rungs_0_2(spec, _probes_for(splitseq, tmp_path))
+    assert not accepts_at_rungs_0_2(spec, kb_probes["splitseq"])
 
 
-def test_a_family_node_recognizes_its_children_and_no_one_else(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProbes) -> None:
     """R8 for an ABSTRACT family: it self-tests by RECOGNITION, not by round-trip.
 
     A family node has no runnable backend, so `spec -> synth -> probe -> recover params` is meaningless.
@@ -605,14 +593,14 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(tmp_path: Path) -
     for fam in families:
         fam_spec = tree.specs[fam]
         for child in tree.children_of(fam):
-            assert accepts_at_rungs_0_2(fam_spec, _probes_for(tree.specs[child], tmp_path)), (
+            assert accepts_at_rungs_0_2(fam_spec, kb_probes[child]), (
                 f"family {fam!r} must recognize its child {child!r} at rungs 0-2"
             )
         descendants = set(tree.runnable_descendants_of(fam))
         for other in tree.leaves():
             if other in descendants:
                 continue
-            assert not accepts_at_rungs_0_2(fam_spec, _probes_for(tree.specs[other], tmp_path)), (
+            assert not accepts_at_rungs_0_2(fam_spec, kb_probes[other]), (
                 f"family {fam!r} must NOT recognize non-child {other!r} — it would claim foreign data"
             )
 

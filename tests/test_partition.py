@@ -20,6 +20,12 @@ from conftest import real_cbs, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import _fill_manifest_pipeline
 
+#: `two_chemistry_project` is a 1.18s partition that four of the six tests here read. Spread by
+#: xdist's default `load`, each worker that draws one of them rebuilds it; `xdist_group` pins the
+#: module to one worker under `--dist=loadgroup` so it is built once. The module runs 4.9s serially,
+#: well under the suite wall, so nothing here wants its own core more than it wants the reuse.
+pytestmark = pytest.mark.xdist_group("two-chemistry-project")
+
 
 def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
     """Generator reads for ``tech``; a 10x v3 chemistry gets REAL whitelist barcodes in R1 (see

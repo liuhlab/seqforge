@@ -112,7 +112,7 @@ Everything runs through **pixi** (not `pip`/`conda`/`venv`).
 pixi install                 # build environments
 pixi run -e test pytest tests/test_probe.py -k budget   # rung 1: the red->green loop, ~2s
 pixi run check               # rung 2: lint + fmt-check + typecheck + test, all four in PARALLEL (~17s)
-pixi run test                # the whole suite on its own (~15s; xdist, 12 workers max)
+pixi run test                # the whole suite on its own (~10s; xdist, 12 workers max)
 pixi run test-failed         # --lf --new-first -x: re-run what broke, worst first
 pixi run -e docs docs-build  # mkdocs build --strict
 ```

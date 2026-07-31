@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from conftest import registry_for, write_fastq_gz
+from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge import models as m
 from seqforge.compose import core
@@ -369,7 +369,16 @@ def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
     f2 = tmp_path / "bulk_R2.fastq.gz"
     _write_fastq_gz(f1, reads["R1"])
     _write_fastq_gz(f2, reads["R2"])
-    out = resolve_dataset([f1, f2], use_cache=False)  # no onlist needed for the no-barcode branch
+    # A SYNTHETIC registry, not an absent one. No onlist is needed for the no-barcode branch, but
+    # falling through to `DEFAULT_REGISTRY` ran `numpy.searchsorted` against the shipped 6 794 880
+    # barcodes — 72% of the call in one profile, for a whitelist this test is not about. A synthetic
+    # 10x list keeps it AVAILABLE and UNHIT, which is the same code path (`barcode_onlist_available`
+    # stays True); an empty registry would switch the run to the abstention branch and quietly make
+    # this a test of something else. Verified identical: same winner, same rung, same exit code, no
+    # blocker, no conflict, no question.
+    out = resolve_dataset(
+        [f1, f2], registry=registry_for(kb.load_spec("10x-3p-gex-v3")), use_cache=False
+    )
     assert out.exit_code() == 0
     assert out.result.candidates[0].technology == "bulk-rnaseq-pe"
     assert out.result.rung_reached == 2  # geometry-only: no onlist involved
@@ -915,30 +924,23 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
 # ``accepts_at_rungs_0_2(a, probes[b]) => geometry_could_accept(a, probes[b])``.
 
 
-def _probes_for(spec: Spec, workdir: Path) -> list[object]:
-    reads = kb.generate_reads(spec, n=400, seed=0)
-    out: list[object] = []
-    for read_id, seqs in reads.items():
-        path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
-        write_fastq_gz(path, seqs)
-        out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
-    return out
-
-
 def test_fingerprint_is_deterministic() -> None:
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
         assert geometry_fingerprint(spec) == geometry_fingerprint(spec)
 
 
-def test_a_spec_is_length_feasible_against_its_own_reads(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_a_spec_is_length_feasible_against_its_own_reads(kb_probes: KbProbes) -> None:
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
-        probes = [p for p in _probes_for(spec, tmp_path) if isinstance(p, WindowProbe)]
-        assert length_feasible(spec, probes), f"{tech_id} must accept its own synthetic reads"
+        assert length_feasible(spec, kb_probes[tech_id]), (
+            f"{tech_id} must accept its own synthetic reads"
+        )
 
 
-def test_geometry_could_accept_is_necessary_for_rung02_acceptance(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbProbes) -> None:
     """The guarantee the confusability guard and the runtime shortlist rely on.
 
     If ``a`` accepts ``b``'s reads at rungs 0-2 (a real confusable), then ``a`` must be geometry-feasible
@@ -948,18 +950,18 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(tmp_path: Path
     """
     ids = kb.list_spec_ids()
     specs = {i: kb.load_spec(i) for i in ids}
-    probes = {i: _probes_for(specs[i], tmp_path) for i in ids}
 
     for a in ids:
         for b in ids:
-            if accepts_at_rungs_0_2(specs[a], probes[b]):
-                assert geometry_could_accept(specs[a], probes[b]), (
+            if accepts_at_rungs_0_2(specs[a], kb_probes[b]):
+                assert geometry_could_accept(specs[a], kb_probes[b]), (
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but geometry_could_accept says no — "
                     "the necessary-condition guarantee is broken and the guard/shortlist would be unsound"
                 )
 
 
-def test_descent_narrowing_never_drops_a_valid_spec(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_descent_narrowing_never_drops_a_valid_spec(kb_probes: KbProbes) -> None:
     """WINNER-INVARIANCE: the descent pool (length-feasible specs) never excludes a spec that would
     score VALID with the full registry (rung 3 included) — so scoring the pool yields the identical
     winner as scoring the whole runnable KB. This is the property the whole "narrow, don't change the
@@ -968,7 +970,7 @@ def test_descent_narrowing_never_drops_a_valid_spec(tmp_path: Path) -> None:
     specs = kb.load_all_specs()
     runnable = [s for s in specs.values() if s.backend is not None]
     for tech in kb.runnable_spec_ids():
-        wps = [p for p in _probes_for(specs[tech], tmp_path) if isinstance(p, WindowProbe)]
+        wps = kb_probes[tech]
         for spec in runnable:
             if length_feasible(spec, wps):
                 continue
@@ -1070,14 +1072,19 @@ def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Pat
 
 def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> None:
     # A single long-read ONT file: no KB technology's read set can be satisfied -> refuse, don't guess.
+    #
+    # `offline=True` here, and this is the ONE place in this file where an empty registry is the
+    # honest choice rather than a shortcut: no spec's read set can be satisfied at all, so no onlist
+    # can participate in the answer. A synthetic list would be scenery. 60 reads of 500-1200 bp make
+    # the same point as 200 of up to 3000 -- the refusal is about read-set satisfiability, not depth.
     rng = random.Random(0)
     long_reads = [
-        "".join(rng.choice("ACGT") for _ in range(rng.randint(500, 3000))) for _ in range(200)
+        "".join(rng.choice("ACGT") for _ in range(rng.randint(500, 1200))) for _ in range(60)
     ]
     f = tmp_path / "ont_run.fastq.gz"
     write_fastq_gz(f, long_reads)
 
-    out = resolve_dataset([f], use_cache=False)
+    out = resolve_dataset([f], registry=OnlistRegistry(offline=True), use_cache=False)
     assert out.exit_code() == 3
     assert not out.result.candidates
     codes = {b.code for b in out.result.blockers}
@@ -1210,7 +1217,17 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
     """End-to-end #7/#11: reads only a bulk library matches, but metadata asserts 10x v2. The barcode
     read never validated, so the generic bulk fallback won by default — that must surface as an
     observed-vs-asserted conflict (exit 4), not compile a bulk manifest at exit 0 for a dataset the
-    paper calls single-cell. This is the GSE126954 over-length-sample / GSE274290 pre-BD-spec path."""
+    paper calls single-cell. This is the GSE126954 over-length-sample / GSE274290 pre-BD-spec path.
+
+    The registry is SYNTHETIC rather than the shipped default, and rather than empty. This test's
+    subject is a *silent* failure mode — a single-cell dataset compiling as bulk at exit 0 — so
+    passing for a slightly different reason costs the corpus, not seconds. What was checked before
+    swapping: `_barcode_onlist_available` is size- and content-blind (it asks only whether a list is
+    registered and materializable), `_over_length_admitted_by_onlist` is anchored on a floor that
+    SCALES with `n_entries` rather than keying on it, and a random 75-mer hits a 64-barcode synthetic
+    list less often than it chance-hits a 6.8M one, not more. Then verified end to end: identical
+    exit 4, identical winner `bulk-rnaseq-pe`, identical `conflict-single-cell-collapsed-to-bulk`,
+    identical rung, no blocker and no question either way."""
     rng = random.Random(0)
     r1 = [
         "".join(rng.choice("ACGT") for _ in range(75)) for _ in range(1500)
@@ -1223,6 +1240,7 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
 
     out = resolve_dataset(
         [f1, f2],
+        registry=registry_for(kb.load_spec("10x-3p-gex-v2")),
         hypothesis=Hypothesis(value="10x-3p-gex-v2", id="meta-1", confidence=0.9),
         use_cache=False,
     )

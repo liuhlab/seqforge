@@ -5,14 +5,22 @@ times and nothing could be tuned in one place. What lives here:
 
 * :func:`_no_wiring_gate` — the autouse stub that stops ``compose`` spawning ``snakemake -n -p``
   in every test that happens to compose. One test opts back in per workflow module.
+* :func:`dry_run` — the same subprocess, returning the PLAN TEXT rather than a four-character
+  verdict. It lives here because the ``external`` marker is derived from fixture names, so a
+  module-local spawner is a spawn the marker cannot see.
 * :func:`write_fastq_gz` — the one synthetic-FASTQ writer (it was copied verbatim into 13 files).
   Its ``compresslevel`` default is **1**, not zlib's 9: the suite writes hundreds of throwaway
   fixtures whose compressed *size* nothing reads. A fixture that pins compressed bytes must pass its
   own level explicitly — see ``test_probe.py``'s ``_value_stable_fixture``, which owns its
   compressor because it owns a literal ``size_bytes``.
 * :func:`registry_for` — a synthetic :class:`OnlistRegistry` backed by the generator's own pools.
-* :data:`synth_10x_v3` — a **session-scoped** read-only FASTQ directory and the ``(manifest,
-  registry)`` built from it, for the one shape most of the suite wants.
+* :data:`synth_10x_v3`, :data:`synth_bulk_pe`, :data:`synth_splitseq` — **session-scoped** read-only
+  FASTQ directories and the ``(manifest, registry)`` built from each, for the three shapes the suite
+  keeps rebuilding: barcoded, no-barcode, and complex-geometry.
+* :data:`kb_probes` — every KB spec's own reads, probed once (``spec id -> [WindowProbe]``).
+* :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
+* :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
+  Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 
 **What may be shared is immutable products only.** The manifest, the registry and a directory
 nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit
@@ -22,22 +30,26 @@ for the wrong reason. Every test still composes into its own ``tmp_path``.
 
 from __future__ import annotations
 
+import ast
 import gzip
 import re
 import types
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import pytest
 
 from seqforge import __version__, kb
+from seqforge.compose.core import ComposePlan
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import ExperimentInputs, fill_manifest
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
+from seqforge.resolve.window import WindowProbe
 
 #: ``(header, sequence, quality)`` — what a FASTQ record is, once the ``@`` and ``+`` are stripped.
 Record = tuple[str, str, str]
@@ -45,10 +57,24 @@ Record = tuple[str, str, str]
 #: Cheap by default; see the module docstring. ~5-8s across the suite, and no claim depends on it.
 DEFAULT_COMPRESSLEVEL = 1
 
+#: What :data:`kb_probes` hands back: KB spec id -> the probes a scorer sees for that technology.
+KbProbes = dict[str, list[WindowProbe]]
+
+#: What :data:`src_trees` hands back: every ``.py`` under ``src/seqforge`` -> its parsed AST.
+SrcTrees = dict[Path, ast.Module]
+
 
 # --------------------------------------------------------------------------- #
 # the wiring gate: paid once per workflow module, not once per compose
 # --------------------------------------------------------------------------- #
+
+
+#: Fixture names that mean "do not stub ``wiring_gate`` for this test".
+_UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
+
+#: Fixture names that mean "this test spawns ``snakemake``" — which is what ``external`` is ABOUT.
+#: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
+_SPAWNS_SNAKEMAKE = frozenset({"real_wiring_gate", "dry_run"})
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +91,7 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
     callers: ``compose.core`` imports ``wiring_gate`` inside the function body, so every path — the
     ``run`` verb, the report fixture, the fingerprint spine — resolves it here at call time.
     """
-    if "real_wiring_gate" in request.fixturenames:
+    if _UNSTUBS_THE_GATE & set(request.fixturenames):
         return
     monkeypatch.setattr("seqforge.compose.gates.wiring_gate", lambda pipeline_dir, plan: "skip")
 
@@ -76,15 +102,101 @@ def real_wiring_gate() -> None:
     return None
 
 
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Anything that asks for the real wiring gate spawns ``snakemake``, so it IS ``external``.
+@pytest.fixture
+def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Un-stub ``wiring_gate`` for a test whose whole claim is that the gate never runs.
 
-    Derived from the fixture rather than written down, for the same reason the KB collects its own
-    test ids: a hand-maintained list of external tests is a list that goes stale silently, and the
-    staleness shows up as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+    Needed because ``real_wiring_gate`` used to mean two things at once — "do not stub the gate" and
+    "spawn ``snakemake``" — and ``external`` is only ever about the second. A test that un-stubs the
+    gate and then passes ``run_wiring_gate=False`` spawns nothing and has no business being dropped
+    from ``test-fast``.
+
+    The "and then never runs it" half is a **mechanism, not a promise**: the real gate is installed
+    behind a counter, and reaching it turns the run red at teardown. Without that, this fixture would
+    be a second hand-written claim about what a test does — the exact thing deriving the marker from
+    fixture names exists to avoid.
+
+    Precisely: pytest renders a teardown failure as an ERROR against the test rather than as a FAIL,
+    so the test itself still reads "passed" in the dot line. The run is non-zero either way, which is
+    what matters; do not go looking for a red F.
+    """
+    from seqforge.compose import gates
+
+    real = gates.wiring_gate
+    calls: list[Path] = []
+
+    def counted(pipeline_dir: Path, plan: ComposePlan) -> str:
+        calls.append(pipeline_dir)
+        return real(pipeline_dir, plan)
+
+    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", counted)
+    yield
+    assert not calls, (
+        f"this test takes `gate_that_must_not_run` but reached the real gate ({calls}); it spawns "
+        "`snakemake` and must take `real_wiring_gate` instead, so it is marked `external`"
+    )
+
+
+class DryRun(Protocol):
+    """What :func:`dry_run` hands back. A Protocol, because the ``plan`` argument is OPTIONAL and
+    ``Callable[...]`` cannot say so — spelling it ``Callable[..., str]`` erases both parameters and
+    leaves the three call sites with no signature to check at all."""
+
+    def __call__(self, directory: Path, plan: ComposePlan | None = None) -> str: ...
+
+
+@pytest.fixture
+def dry_run() -> DryRun:
+    """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
+
+    A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
+    four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
+    through a private ``_dry_run`` in ``test_compile.py`` — invisible to
+    :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
+    to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
+
+    Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
+    afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the test
+    left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
+    """
+    import shutil
+    import subprocess
+
+    from seqforge.compose.gates import _replica
+
+    def run(directory: Path, plan: ComposePlan | None = None) -> str:
+        target = _replica(directory, plan) if plan is not None else directory
+        try:
+            proc = subprocess.run(
+                ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            assert proc.returncode == 0, proc.stderr
+            return proc.stdout + proc.stderr
+        finally:
+            if plan is not None:
+                shutil.rmtree(target, ignore_errors=True)
+
+    return run
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """A test is ``external`` iff it SPAWNS a binary — which is a fixture it took, not a claim.
+
+    Derived from fixture names rather than written down, for the same reason the KB collects its own
+    test ids: a hand-maintained list of external tests goes stale silently, and the staleness shows up
+    as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+
+    ``_SPAWNS_SNAKEMAKE`` is deliberately not ``_UNSTUBS_THE_GATE``. Keying on "asked for the real
+    gate" was close enough to be wrong in both directions: ``_dry_run`` spawned ``snakemake`` with no
+    fixture at all (so ``test-fast`` hard-failed on a machine without it, which is the exact thing
+    ``test-fast`` exists to avoid), while a test that un-stubs the gate only to prove it is never
+    called was dropped from ``test-fast`` for a subprocess it does not run.
     """
     for item in items:
-        if "real_wiring_gate" in getattr(item, "fixturenames", ()):
+        if _SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.external)
 
 
@@ -243,3 +355,60 @@ def synth_10x_v3(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     to re-derive the same manifest.
     """
     return build_synth_dataset(tmp_path_factory.mktemp("synth-10x-v3"), "10x-3p-gex-v3")
+
+
+@pytest.fixture(scope="session")
+def synth_bulk_pe(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The no-barcode shape. Companion to :data:`synth_10x_v3`; built 3x before it existed."""
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-bulk-pe"), "bulk-rnaseq-pe")
+
+
+@pytest.fixture(scope="session")
+def synth_splitseq(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The complex-geometry shape (``cdna``/``bc``, three whitelists). Companion to the two above."""
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-splitseq"), "splitseq")
+
+
+@pytest.fixture(scope="session")
+def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
+    """Every KB spec's own synthetic reads, probed — ``spec id -> the probes a scorer would see``.
+
+    Six tests across ``test_kb.py`` and ``test_resolve.py`` rebuilt this sweep from two copies of the
+    same private helper, at ~19.4 ms/spec. The worst rebuilt it per ``(family, leaf)`` PAIR — 20
+    rebuilds writing the same filenames over and over.
+
+    Safe to share because it is an **immutable product**, in the sense ``tests/conftest.py`` means it:
+    ``WindowProbe`` is a frozen dataclass, ``kb.load_spec`` is already cached (so the ``Read``
+    identities its ``_frame_cache`` memoizes on are session-stable either way), and that cache is a
+    pure memo of a deterministic function — a probe answers the same question whoever asked first.
+    No ``seqforge/`` workspace is involved, and nothing writes into the directory once it is built.
+
+    Keyed by id over ``kb.list_spec_ids()``, which is the same 12 ids as ``load_all_specs()`` and
+    ``load_tree().specs``, so one sweep serves callers that iterate any of the three.
+    """
+    workdir = tmp_path_factory.mktemp("kb-probes")
+    out: dict[str, list[WindowProbe]] = {}
+    for tech_id in kb.list_spec_ids():
+        spec = kb.load_spec(tech_id)
+        reads = kb.generate_reads(spec, n=400, seed=0)
+        probes = []
+        for read_id, seqs in reads.items():
+            path = workdir / f"{tech_id.replace('/', '_')}_{read_id}.fastq.gz"
+            write_fastq_gz(path, seqs)
+            probes.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
+        out[tech_id] = probes
+    return out
+
+
+@pytest.fixture(scope="session")
+def src_trees() -> SrcTrees:
+    """Every ``.py`` under ``src/seqforge``, parsed once — ``path -> its AST``.
+
+    Three tests each walked `rglob("*.py")` + `ast.parse` over the whole tree to ask a one-line
+    question of it. The trees are read-only here (every consumer only ``ast.walk``s them), which is
+    what makes one parse serve all three.
+    """
+    import seqforge
+
+    root = Path(seqforge.__file__).parent
+    return {py: ast.parse(py.read_text()) for py in sorted(root.rglob("*.py"))}

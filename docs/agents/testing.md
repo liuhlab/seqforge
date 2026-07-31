@@ -10,20 +10,24 @@ This file is the rule. There are three rungs and you climb them once per change,
 
 | # | When | Command | Cost |
 | - | ---- | ------- | ---- |
-| 1 | in the red→green loop | `pixi run -e test pytest tests/test_<module>.py -k <expr>` | **~2s** |
-| 2 | before a commit, and before opening the PR | `pixi run check` | **~17s** |
+| 1 | in the red→green loop | `pixi run -e test pytest tests/test_<module>.py -k <expr>` | seconds |
+| 2 | before a commit, and before opening the PR | `pixi run check` | ~an order of magnitude more |
 | 3 | after the PR is open | read CI | free |
 
+**This file quotes ratios, not seconds.** Absolute timings and test counts go stale within a PR or
+two, and a stale number in a doc is worse than none because it is still trusted. What survives is the
+*shape* — which thing dominates which, and by roughly how much. Where a number below decides
+something, it is a dated measurement of that decision, not a claim about today.
+
 **There used to be a fourth rung**, `check-fast`, between the targeted run and the full gate. It was
-deleted once both gates ran their steps concurrently over a 12-worker pytest: it measured 17.8s
-against `check`'s 17.1s, so it was *slower than the gate it was a cheap substitute for*, and checked
-less. `test-fast` survives as a standalone verb — `-m 'not external'` is what you want on a machine
+deleted once both gates ran their steps concurrently over a 12-worker pytest: it measured *slower
+than the gate it was a cheap substitute for*, and checked less. `test-fast` survives as a standalone verb — `-m 'not external'` is what you want on a machine
 with no `snakemake` — but it is no longer a rung, because a rung that saves nothing is a rung nobody
 should be told to climb.
 
-**Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
-under ten. Nothing about a one-line change is learned by running 823 tests that a targeted run does
-not tell you in a tenth of the time.
+**Rung 1 is where you live.** A single file with `-k` is a second or two; a whole test file is a few.
+Nothing about a one-line change is learned by running the whole suite that a targeted run does not
+tell you in a fraction of the time.
 
 **Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
 `pixi run check` on every push. Running it again locally re-proves what CI is already proving and
@@ -68,7 +72,8 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work — 727 tests against 822. Both it and `test` run under `pytest-xdist` — see below.
+mostly real work, and it deselects a small fraction of the suite. Both it and `test` run under
+`pytest-xdist` — see below.
 
 **One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
 `tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
@@ -80,10 +85,27 @@ There is deliberately **no `slow` marker**. It would be a hand-maintained list k
 changes every time someone optimises, and nothing would go red when it drifted — a marker that lies
 about cost is worse than no marker, because it is trusted.
 
-`external` is applied by mechanism where it can be: `tests/conftest.py`'s
-`pytest_collection_modifyitems` marks anything requesting the `real_wiring_gate` fixture, because
-asking for the real gate *is* asking to spawn `snakemake`. A hand-written list would go stale
-silently, and the staleness would show up as `test-fast` spawning subprocesses nobody meant it to.
+`external` is applied by mechanism: `tests/conftest.py`'s `pytest_collection_modifyitems` marks
+anything requesting a fixture that **spawns** — `real_wiring_gate` or `dry_run`. A hand-written list
+would go stale silently, and the staleness would show up as `test-fast` spawning subprocesses nobody
+meant it to.
+
+**Keying that on "asked for the real gate" was wrong in both directions**, and both directions were
+live: `test_compile.py` held a module-local `_dry_run` that spawned `snakemake` with no fixture at
+all, so two tests shelling out to a binary we do not own were selected by `test-fast` and hard-failed
+rather than skipped on a machine without it — the exact thing `test-fast` exists to avoid. Meanwhile
+`test_compose_emits_a_snakefile_even_when_no_gate_runs` un-stubs the gate only to pass
+`run_wiring_gate=False` and prove it never runs; it spawns nothing, is instant, and was excluded from
+`test-fast` for a subprocess it does not make.
+
+So there are two fixtures and they mean different things. `real_wiring_gate` means "I spawn"; the
+plan-text spawner is the `dry_run` fixture (in `conftest.py`, so the marker can see it — a module-local
+spawner is a spawn the marker cannot see); and `gate_that_must_not_run` means "un-stub the gate, and I
+will not reach it". That last one is a mechanism rather than a promise: it installs the real gate
+behind a counter and fails at teardown if it is called.
+
+The property is checkable, and worth re-checking if this ever moves: put a refusing `snakemake` decoy
+first on `PATH` and run `pixi run test-fast`. It passes.
 
 ## The verbs
 
@@ -101,25 +123,92 @@ pixi run test-fast                                      # the suite minus what n
 serial: starting twelve workers to run three tests costs more than it saves, and rung 1 is where you
 live.
 
-The worker count was measured, not chosen (2026-07-30, 48-core box, whole suite):
+The worker count was measured, not chosen — swept on a 48-core box over the whole suite, most
+recently after the fixture-sharing work of #102. Relative to the best time:
 
 | workers | wall |
 | ------- | ---- |
-| serial | 80.2s |
-| 8 | 19.9s |
-| **12** | **15.3s** |
-| 16 | 20.2s |
-| `auto` (48) | 26.7s |
+| serial | ~6x |
+| 8 | ~1.2x |
+| **12** | **1.0x** |
+| 16 | 1.0x |
+| `auto` (48) | ~2.2x |
 
-**More workers stop helping at twelve and then actively hurt.** Every worker pays the interpreter
-import and rebuilds each session-scoped fixture — `synth_10x_v3` among them — so past the knee that
-fixed cost grows faster than the remaining work shrinks. `-n auto` on this box means 48 workers and
-is *slower than 12*; a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason.
-`auto` capped at 12 is the one spelling that is right in both places.
+**More workers stop helping around twelve and then actively hurt.** Every worker pays the interpreter
+import and rebuilds each session-scoped fixture, so past the knee that fixed cost grows faster than
+the remaining work shrinks. `-n auto` on a big box means one worker per core and is *slower than 12*;
+a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason. `auto` capped at 12 is
+the one spelling that is right in both places.
 
-`--dist loadfile` was measured and rejected: it sits at ~28s at every worker count, because it hands
-a whole file to one worker and `tests/test_compile.py` is then the floor. The default `--dist load`
-splits at test granularity.
+12 and 16 are now within noise of each other, which is what the fixture sharing bought: the knee got
+flatter because there is less per-worker fixed cost to pay. The cap stays at 12 — it is the smaller
+number on a tie, and the 2-core-runner argument is unchanged. Re-sweep before changing it; the knee
+moves when the per-worker fixed cost does.
+
+`--dist loadfile` was measured and rejected: it sat at the same wall at *every* worker count, because
+it hands a whole file to one worker and `tests/test_compile.py` is then the floor.
+
+### `loadgroup` is not the rejected `loadfile`
+
+`test` and `test-fast` run `--dist=loadgroup`, and **that is not `loadfile` coming back.** `loadgroup`
+behaves exactly like the default `load` for every test that carries no `xdist_group` mark — it splits
+at test granularity, and `test_compile.py` still spreads across workers. It groups **only** what is
+marked. Verified before adopting it: the whole suite under `--dist=loadgroup` with no marks present
+gave an identical result and an identical wall. It is a safe swap; `loadfile` is not, because
+`loadfile` groups *everything* whether or not the grouping pays.
+
+Marking a module is how it opts in:
+
+```python
+pytestmark = pytest.mark.xdist_group("report-workspace")   # tests/test_report.py
+```
+
+**Why a module wants this.** A session- or module-scoped fixture is rebuilt once *per worker*, so
+spreading a module that shares one expensive fixture buys parallelism by paying for the fixture again.
+Measured on `tests/test_report.py` alone, whose 16 tests all read one build: its CPU rose **roughly
+linearly with the worker count** — about **5x** from one worker to eight, for identical proof. That
+is the suite-wide reason utilisation sat at well under half the available cores, and the reason adding
+workers stopped helping.
+
+**Grouping is a trade, so it is decided per module by measurement**, never applied by default. It wins
+where the fixture is expensive *relative to* the tests that read it, and loses where the module holds
+many slow independent tests: a grouped module runs *serially*, so its serial time becomes a floor on
+the suite wall. The question to ask each candidate, in that order:
+
+1. Is the fixture expensive next to the tests reading it? If it is a rounding error, there is nothing
+   to save no matter how many workers rebuild it.
+2. Is the module's *serial* time comfortably under the suite wall? If not, grouping it makes it the
+   new wall.
+
+Applied to this suite (2026-07-30): `test_report.py` and `test_partition.py` **group** — a
+second-plus build read by most of a cheap module, and a serial time well under the wall.
+`test_observation_sources.py` and `test_records.py` are **left alone** — their fixtures are
+sub-100ms, so there is nothing to save.
+
+`test_compile.py` is the instructive one and it is **left alone too**. `synth_10x_v3` is the session
+fixture and the obvious candidate, but it was already made cheap by earlier work, while the file is
+by some margin the suite's longest — so pinning it to one worker would roughly double the suite wall
+for no fixture saving at all. That is the `loadfile` floor, re-created by hand. Measure the fixture
+against the module before reaching for the mark.
+
+**The unit of grouping is the fixture's consumers, not the file.** A module-level `pytestmark` is the
+right shape only when the whole module shares the fixture; where a handful of tests share one and the
+rest of the file does not, mark those tests and leave the file spread. Three groups here span *two*
+files each, which a file-level mark cannot express at all:
+
+| group | fixture | members |
+| ----- | ------- | ------- |
+| `enormous-fastq` | the 128 MB-decompressed FASTQ | 3 tests in `test_probe.py` |
+| `kb-probes` | every KB spec's reads, probed | 3 in `test_kb.py` + 3 in `test_resolve.py` |
+| `src-trees` | `src/seqforge` parsed | 2 in `test_compile.py` + 1 in `test_cli.py` |
+
+In each of these the build dominates its readers outright — the `enormous-fastq` write costs tens of
+times what the three probes it enables do — which is what makes the trade obvious without a sweep.
+
+`--durations=0 | grep setup` is how you check this landed: one setup line per fixture, not one per
+worker that happened to draw a consumer.
+
+`xdist_group` needs no `markers` entry — `pytest-xdist` registers it, so `--strict-markers` is happy.
 
 Parallelism is the **last** thing to reach for, and it landed last on purpose. It hides waste rather
 than removing it: had it come first, the ~41 redundant `snakemake` spawns would still be there, just
@@ -136,25 +225,42 @@ exact failure mode this project refuses everywhere else. See
 
 ## What the suite costs, and why
 
-Measured on one box. The suite was **164s serial**; it is now **~15s on twelve workers** (78s if you
-force it serial), and none of that came from making a test weaker:
+The suite is **more than an order of magnitude faster than it was**, and none of that came from
+making a test weaker. What each change removed, largest first — the point is the *kind* of waste, not
+the seconds:
 
-| change | saved |
-| ------ | ----- |
-| the wiring gate paid once per workflow module instead of ~41 times per compose | ~39s |
-| `kb.load_spec` cached, YAML parsed with `CSafeLoader` | ~41s |
-| the 45 repeated manifest builds session-scoped | ~11s |
-| `-n auto --maxprocesses 12` over what remained | ~63s |
+| change | what it removed |
+| ------ | --------------- |
+| `-n auto --maxprocesses 12` over what remained | serial execution (the single biggest win) |
+| `kb.load_spec` cached, YAML parsed with `CSafeLoader` | the same spec parsed hundreds of times |
+| the wiring gate paid once per workflow module instead of ~41 times per compose | ~37 redundant `snakemake` spawns |
+| the repeated manifest builds session-scoped | ~45 rebuilds of one manifest |
+| `test_compile.py`'s 13 `snakemake` spawns down to 7 | the default plan re-derived seven times |
+| `--dist=loadgroup` + `xdist_group` | shared fixtures rebuilt once per worker |
+| four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | duplicated fixture builds |
+| three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | a whitelist scan nothing asserted on |
+| `test_corpus_is_green` parametrized per case | **no CPU at all** — see below |
 
 Nothing here was a slow *test*. Every one was a fact being re-proved because the seam that owned it
-sat on the wrong interface — which is the shape to look for when the number creeps back up.
+sat on the wrong interface — which is the shape to look for when the number creeps back up. The
+`snakemake` row is the cleanest example: `wiring_gate` returned a four-character verdict while its
+implementation held the whole `snakemake -n -p` plan text, so every test that wanted the plan spawned
+its own. The fix was to expose what was already computed, not to run less.
+
+The last row is a different lever and worth naming separately: it removed **no CPU at all**. It split
+the suite's longest *indivisible* block — one test that ran the whole eval corpus — into one item per
+case, which xdist can spread. When utilisation is the problem, look for the block that cannot be split
+before looking for work to delete: the marginal value of deleting one test is its duration ÷ the
+worker count, which is almost always less than it looks.
 
 ## Adding a test
 
 - It goes in the file that mirrors the module it tests (the table above). Do not start
   `tests/test_<the-issue-i-am-fixing>.py`.
 - Shared setup belongs in `tests/conftest.py`. It owns the one FASTQ writer, the synthetic onlist
-  registry, the fake range server, and the session-scoped `10x-3p-gex-v3` dataset.
+  registry, the fake range server, the `snakemake` dry run, and the session-scoped immutable products:
+  the `10x-3p-gex-v3` / `bulk-rnaseq-pe` / `splitseq` datasets, the per-spec `kb_probes` sweep, and the
+  `src_trees` AST parse.
 - **What may be shared is immutable products only.** A manifest, a registry, a directory nothing
   writes into. Never a workspace a test writes into: `seqforge/cache/` makes resume implicit (R5), so
   a shared workspace lets a later test collect a cached `Observation` and pass for the wrong reason.

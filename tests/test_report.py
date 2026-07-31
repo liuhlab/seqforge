@@ -24,6 +24,13 @@ from seqforge.report.flow import flow_steps
 
 runner = CliRunner()
 
+#: Every test here reads one `seqforge run` (2.2s). xdist's default `load` scheduler spreads them
+#: across workers and each worker rebuilds `_bulk_workspace` — 16 tests cost 4.05s of CPU on one
+#: worker and 20.60s on eight, for identical proof. `xdist_group` pins the module to a single worker
+#: under `--dist=loadgroup`, so the build happens once. Correct here because the run dominates the
+#: tests: nothing below is slow enough to want its own core.
+pytestmark = pytest.mark.xdist_group("report-workspace")
+
 
 def _build_bulk_workspace(tmp_path: Path) -> Path:
     """A fully compiled workspace via the real ``run`` verb: manifest + processing + Snakefile + caches.
