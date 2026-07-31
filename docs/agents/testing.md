@@ -21,7 +21,7 @@ something, it is a dated measurement of that decision, not a claim about today.
 
 **There used to be a fourth rung**, `check-fast`, between the targeted run and the full gate. It was
 deleted once both gates ran their steps concurrently over a 12-worker pytest: it measured *slower
-than the gate it was a cheap substitute for*, and checked less. `test-fast` survives as a standalone verb — `-m 'not external'` is what you want on a machine
+than the gate it was a cheap substitute for*, and checked less. `test-fast` survives as a standalone verb — `-m 'not external and not repo'` is what you want on a machine
 with no `snakemake` — but it is no longer a rung, because a rung that saves nothing is a rung nobody
 should be told to climb.
 
@@ -41,10 +41,13 @@ Test files mirror packages, so rung 1 has an answer:
 | ---------- | --- |
 | `probe/` | `tests/test_probe.py` |
 | `resolve/` (scoring, assign, escalate, geometry, window) | `tests/test_resolve.py` |
-| `resolve/records.py` (the metadata resolver + provenance gate) | `tests/test_records.py` |
+| `resolve/records.py` (the metadata resolver) | `tests/test_records.py` |
+| `resolve/provenance.py` (the wrong-PDF gate) | `tests/test_provenance.py` |
 | `kb/` | `tests/test_kb.py` |
-| `workflows/` (h5ad, qc, cram, fragments) | `tests/test_workflows.py` |
-| `compose/`, `manifest/`, the workflow registry | `tests/test_compile.py` |
+| `manifest/` (fill, hash, validate, policy/precedence) | `tests/test_manifest.py` |
+| `compose/` (plan, config, units, gates, params_gate) | `tests/test_compose.py` |
+| `workflows/` (registry + `.smk` source; h5ad, qc, cram, fragments) | `tests/test_workflows.py` |
+| tree-wide R1/R10 AST guards (read `src/`, never compose) | `tests/test_repo_invariants.py` |
 | `harvest/` | `tests/test_harvest.py`, `tests/test_extract.py` |
 | `io/` | `tests/test_io.py`, `tests/test_remote.py`, `tests/test_sra.py`, `tests/test_archive.py` |
 | `io/taxonomy.py` | `tests/test_taxonomy.py` |
@@ -75,11 +78,13 @@ is the honest state of things: the subprocess cost that used to dominate is gone
 mostly real work, and it deselects a small fraction of the suite. Both it and `test` run under
 `pytest-xdist` — see below.
 
-**One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
-`tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
-by introspecting the live Typer app, so **renaming a CLI verb breaks it** — which is exactly what R6
-names it to catch. Rung 2 cannot see that. If you rename or move a verb, run
-`pytest tests/test_skills.py tests/test_docs.py` too, or go straight to rung 3.
+**The marker is applied per test, not per file.** `repo` is about what a test is *about*, and
+`tests/test_skills.py` is where one file holds both kinds. Five tests check the shipped skills and the
+installer (genuinely `repo`) and carry `@pytest.mark.repo`; four introspect the **live Typer app** and
+go red when a CLI verb is renamed — which is exactly what R6 names its anchor to catch — so they carry
+**no** mark and `test-fast` runs them (#113). A module-level `pytestmark = repo` used to hide that R6
+anchor from `test-fast`; it is gone. `tests/test_docs.py` stays fully `repo` — it reads the site's
+prose, not `src/` — so add `pytest tests/test_docs.py` if you want the doc-consistency check too.
 
 There is deliberately **no `slow` marker**. It would be a hand-maintained list keyed on a number that
 changes every time someone optimises, and nothing would go red when it drifted — a marker that lies
@@ -91,7 +96,7 @@ would go stale silently, and the staleness would show up as `test-fast` spawning
 meant it to.
 
 **Keying that on "asked for the real gate" was wrong in both directions**, and both directions were
-live: `test_compile.py` held a module-local `_dry_run` that spawned `snakemake` with no fixture at
+live: the composer tests held a module-local `_dry_run` that spawned `snakemake` with no fixture at
 all, so two tests shelling out to a binary we do not own were selected by `test-fast` and hard-failed
 rather than skipped on a machine without it — the exact thing `test-fast` exists to avoid. Meanwhile
 `test_compose_emits_a_snakefile_even_when_no_gate_runs` un-stubs the gate only to pass
@@ -145,14 +150,23 @@ flatter because there is less per-worker fixed cost to pay. The cap stays at 12 
 number on a tie, and the 2-core-runner argument is unchanged. Re-sweep before changing it; the knee
 moves when the per-worker fixed cost does.
 
+A second sweep on **8 pinned CPUs** (the #102 audit, 2026-07-30) confirms the cap from the
+small-machine side: `n=4`/`n=8`/`n=12` were flat within ~4% (34.5s / 33.3s / 34.8s) and it degraded
+past 16 (`n=16` 42.3s, `n=24` 42.7s). The two sweeps together — one 48-core box, one 8-core — are what
+justify `--maxprocesses 12` on *both* large and small runners: flat up to the core count, never faster
+past ~12-16, and never oversubscribed on a small one.
+
 `--dist loadfile` was measured and rejected: it sat at the same wall at *every* worker count, because
-it hands a whole file to one worker and `tests/test_compile.py` is then the floor.
+it hands a whole file to one worker, so the longest file becomes the floor. When that was measured the
+floor was `tests/test_compile.py`; #113 split it into `test_manifest.py` / `test_compose.py` /
+`test_workflows.py`, so no single file is that long today — but `loadfile` still cannot split whatever
+the longest file is, so it stays rejected in favour of `loadgroup` below.
 
 ### `loadgroup` is not the rejected `loadfile`
 
 `test` and `test-fast` run `--dist=loadgroup`, and **that is not `loadfile` coming back.** `loadgroup`
 behaves exactly like the default `load` for every test that carries no `xdist_group` mark — it splits
-at test granularity, and `test_compile.py` still spreads across workers. It groups **only** what is
+at test granularity, and every file spreads across workers. It groups **only** what is
 marked. Verified before adopting it: the whole suite under `--dist=loadgroup` with no marks present
 gave an identical result and an identical wall. It is a safe swap; `loadfile` is not, because
 `loadfile` groups *everything* whether or not the grouping pays.
@@ -185,11 +199,13 @@ second-plus build read by most of a cheap module, and a serial time well under t
 `test_observation_sources.py` and `test_records.py` are **left alone** — their fixtures are
 sub-100ms, so there is nothing to save.
 
-`test_compile.py` is the instructive one and it is **left alone too**. `synth_10x_v3` is the session
-fixture and the obvious candidate, but it was already made cheap by earlier work, while the file is
-by some margin the suite's longest — so pinning it to one worker would roughly double the suite wall
-for no fixture saving at all. That is the `loadfile` floor, re-created by hand. Measure the fixture
-against the module before reaching for the mark.
+`synth_10x_v3` is the instructive case and it is **left ungrouped**. It is the session fixture the
+compose/manifest tests share and the obvious candidate, but earlier work already made it cheap — so
+pinning its readers to one worker would roughly double their serial time for no fixture saving at all.
+That is the `loadfile` floor, re-created by hand. (Before #113 those tests were one 2000-line
+`test_compile.py`, the suite's longest file, which made the trap costliest exactly there; the split
+into `test_manifest.py`/`test_compose.py`/`test_workflows.py` removed that file but not the reasoning.)
+Measure the fixture against the module before reaching for the mark.
 
 **The unit of grouping is the fixture's consumers, not the file.** A module-level `pytestmark` is the
 right shape only when the whole module shares the fixture; where a handful of tests share one and the
@@ -200,7 +216,7 @@ files each, which a file-level mark cannot express at all:
 | ----- | ------- | ------- |
 | `enormous-fastq` | the 128 MB-decompressed FASTQ | 3 tests in `test_probe.py` |
 | `kb-probes` | every KB spec's reads, probed | 3 in `test_kb.py` + 3 in `test_resolve.py` |
-| `src-trees` | `src/seqforge` parsed | 2 in `test_compile.py` + 1 in `test_cli.py` |
+| `src-trees` | `src/seqforge` parsed | 1 in `test_repo_invariants.py` + 1 in `test_workflows.py` + 1 in `test_cli.py` |
 
 In each of these the build dominates its readers outright — the `enormous-fastq` write costs tens of
 times what the three probes it enables do — which is what makes the trade obvious without a sweep.
@@ -235,7 +251,7 @@ the seconds:
 | `kb.load_spec` cached, YAML parsed with `CSafeLoader` | the same spec parsed hundreds of times |
 | the wiring gate paid once per workflow module instead of ~41 times per compose | ~37 redundant `snakemake` spawns |
 | the repeated manifest builds session-scoped | ~45 rebuilds of one manifest |
-| `test_compile.py`'s 13 `snakemake` spawns down to 7 | the default plan re-derived seven times |
+| the composer tests' 13 `snakemake` spawns down to 7 | the default plan re-derived seven times |
 | `--dist=loadgroup` + `xdist_group` | shared fixtures rebuilt once per worker |
 | four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | duplicated fixture builds |
 | three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | a whitelist scan nothing asserted on |
@@ -252,6 +268,31 @@ the suite's longest *indivisible* block — one test that ran the whole eval cor
 case, which xdist can spread. When utilisation is the problem, look for the block that cannot be split
 before looking for work to delete: the marginal value of deleting one test is its duration ÷ the
 worker count, which is almost always less than it looks.
+
+## Adding a KB spec: what it costs the suite
+
+The KB sweeps grow with the spec count, and the *shape* of each term matters more than any timing
+(#112). At 12 specs the whole KB partition is a few seconds; the terms that grow are these:
+
+- The **R8 anchors** are the price of "every KB entry is executable and self-testing," and you do not
+  buy them down. `test_every_kb_spec_roundtrips` is O(n) and *is* the rule. The §12 biconditional is
+  O(n²) with a microsecond constant. `test_no_spec_pair_is_confusable_without_declaring_it` is O(n²)
+  **but geometry-pre-gated** — it checks the cheap `geometry_could_accept` (µs) before paying the
+  scorer, which is ~100× and is the pattern to copy. Never narrow their generative axes to hit a clock.
+- The two other O(n²) sweeps — `test_geometry_could_accept_is_necessary_for_rung02_acceptance` and
+  `test_descent_narrowing_never_drops_a_valid_spec` — **cannot take that pre-gate**, and their
+  docstrings say why: the first's *subject* is the pre-gate predicate (gating it is circular), and the
+  second already gates on `length_feasible` (which *is* `geometry_could_accept`) and then scores
+  exactly the pairs the gate excludes, because "an excluded spec never wins" is its whole point. Both
+  measured cheap after #105's shared `kb_probes` fixture (~0.25s / ~0.10s at 12 specs) — the fixture,
+  not a narrower axis, is what keeps them affordable as the KB grows.
+- The single highest-leverage change was **sharing `kb_probes`** (#105): a per-spec probe rebuilt once
+  per worker was the dominant term of the family/descent sweeps, and grouping it under
+  `xdist_group("kb-probes")` cut it ~90%.
+
+Projected pre-#105 on one worker, the partition stayed comfortable to ~25-30 specs and the O(n²) terms
+dominate past ~50. So when a KB sweep's wall creeps up as specs are added, look first for a probe
+rebuilt per pair, then for a missing `geometry_could_accept` pre-gate — not for an axis to narrow.
 
 ## Adding a test
 
