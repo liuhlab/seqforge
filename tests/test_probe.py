@@ -584,3 +584,67 @@ def test_the_content_address_never_scans_the_whole_file(
     assert counter[0] < on_disk  # ...without scanning the whole compressed file
     # Tighter: only the bounded head sample (+ the 4-byte ISIZE trailer + decoder read-ahead).
     assert counter[0] <= obs.probe.compressed_bytes_read + 65_536
+
+
+# ================================================================================================
+# consensus_match_rate — the per-read statistic `has_segment kind: constant` gates on (#149)
+# ================================================================================================
+#: These reach the numpy kernel directly, rather than through `WindowProbe`, because the properties
+#: that make it safe are properties of the counting: junk stays in the denominator, a pad byte never
+#: matches, and a window of pure noise scores ~0. Routed through a probe they would be entangled with
+#: window-cutting, and the one that matters most — that the statistic CANNOT be driven to 1.0 by
+#: selection — is invisible unless you can hand it a population you chose.
+
+
+@pytest.mark.parametrize("carriers, n", [(0, 400), (100, 400), (200, 400), (400, 400)])
+def test_consensus_match_rate_is_the_share_of_carriers(carriers: int, n: int) -> None:
+    """It reports the fraction carrying the consensus — junk COUNTED, never filtered out.
+
+    The whole defect in #149 was a statistic that could not tell a clean population from a
+    contaminated one. This is the property that fixes it, so it is pinned by value: hand it a known
+    mixture and the answer is that mixture.
+    """
+    from seqforge.probe.signals import consensus_match_rate
+
+    rng = random.Random(7)
+    fixed = "ACGTACGTACGTACGTACGTACGTACGTAC"  # 30 bp, the width of a SPLiT-seq linker
+    bases = [fixed] * carriers + [
+        "".join(rng.choice("ACGT") for _ in range(len(fixed))) for _ in range(n - carriers)
+    ]
+    rng.shuffle(bases)
+    assert consensus_match_rate(bases, 3) == pytest.approx(carriers / n, abs=0.02)
+
+
+def test_consensus_match_rate_bottoms_out_on_pure_noise() -> None:
+    """A window with no fixed sequence scores ~0 — the falsifiability the mean could not offer.
+
+    Matching 30 columns to within 3 by chance is ~1e-13, so a modal consensus computed over noise is
+    an artefact no read actually carries. If this ever returned a high number, every 30 bp window of
+    anything would look like a linker and the gate would be decorative.
+    """
+    from seqforge.probe.signals import consensus_match_rate
+
+    rng = random.Random(11)
+    noise = ["".join(rng.choice("ACGT") for _ in range(30)) for _ in range(500)]
+    rate = consensus_match_rate(noise, 3)
+    assert rate is not None and rate < 0.01
+
+
+def test_consensus_match_rate_counts_a_short_read_as_a_non_carrier() -> None:
+    """A read that falls short of the column is a non-carrier, never a partial match.
+
+    The pad sentinel is 0, which is not a base byte, so it can never equal a consensus base. Were it
+    counted as agreement instead, a truncated file would score as though it carried the sequence.
+    """
+    from seqforge.probe.signals import consensus_match_rate
+
+    fixed = "ACGTACGTACGT"
+    assert consensus_match_rate([fixed] * 9 + [fixed[:4]], 0) == pytest.approx(0.9)
+
+
+def test_consensus_match_rate_has_no_answer_for_nothing() -> None:
+    """Empty input is ``None`` — "not measured", which the caller turns into ABSTAIN, not FAIL."""
+    from seqforge.probe.signals import consensus_match_rate
+
+    assert consensus_match_rate([], 1) is None
+    assert consensus_match_rate(["", ""], 1) is None

@@ -218,6 +218,50 @@ def distinct_ratio(bases: list[str]) -> float | None:
     return len(set(bases)) / len(bases)
 
 
+def consensus_match_rate(bases: list[str], max_mismatch: int) -> float | None:
+    """The SHARE of already-cut reads within ``max_mismatch`` of the column-wise modal consensus.
+
+    "Is a fixed sequence here" is a question about a population of reads, and its honest form is a
+    proportion: how many of them carry it. A mean over per-cycle purities answers a different
+    question, and cannot tell *every read carries this linker* from *most do and the rest of the head
+    is junk* -- the two agree only on a head with no junk in it, which is the one kind of head a
+    generated fixture ever has.
+
+    **Counted, never selected.** A read that does not carry the sequence stays in the denominator, so
+    contamination lowers this honestly. Filtering to the reads that agree with the consensus and then
+    measuring their agreement would return ~1.0 for any window in any dataset, pure noise included --
+    a statistic that cannot fail, which is worse than one calibrated too tight. Uniform-random bases
+    put this at ~0 for any window wide enough to have a consensus worth the name: matching 30 columns
+    to within 3 by chance is ~1e-13.
+
+    ``None`` when nothing was cut. Like :func:`distinct_ratio`, deliberately dumb -- it counts what it
+    is handed.
+
+    **Its denominator is the reads that REACH the column**, because :func:`window_bases` drops a read
+    too short to span it before this ever sees it. So on a ragged file this is "of the reads long
+    enough to carry this sequence, how many do", not "of all reads" -- and the share reads higher than
+    a whole-file share would. That is the right split of labour rather than a lost case: whether a
+    file's reads are long enough to fill a role at all is the declared geometry's question, and
+    ``read_length_compatible`` asks it before scoring gets here. Contamination this cannot see is
+    contamination the length gate already refused.
+    """
+    if not bases:
+        return None
+    width = max(len(b) for b in bases)
+    if width == 0:
+        return None
+    # 0 is the pad sentinel -- never a base byte, so it never equals a consensus base and a read that
+    # falls short of the column counts as a non-carrier rather than a partial match.
+    arr = np.zeros((len(bases), width), dtype=np.uint8)
+    for j, b in enumerate(bases):
+        raw = b.encode("ascii", "replace")
+        arr[j, : len(raw)] = np.frombuffer(raw, dtype=np.uint8)
+    counts = np.stack([(arr == ord(base)).sum(axis=0) for base in "ACGT"])
+    consensus = np.frombuffer(b"ACGT", dtype=np.uint8)[counts.argmax(axis=0)]
+    mismatches = (arr != consensus).sum(axis=1)
+    return float((mismatches <= max_mismatch).mean())
+
+
 def distinct_ratios(seqs: list[str], segments: list[Segment]) -> list[WindowDistinctRatio]:
     """distinct/total over each random segment (candidate CB/UMI/cDNA window). Supports-only signal."""
     out: list[WindowDistinctRatio] = []

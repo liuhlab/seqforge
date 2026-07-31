@@ -33,7 +33,24 @@ from ..kb.schema import (
 from ..models.observation import CycleComposition
 from .window import WindowProbe
 
-_CONSTANT_PURITY = 0.9  # mean max-base fraction over a window to call it "constant sequence"
+#: ``has_segment kind: constant`` is a floor on the SHARE OF READS carrying the window's sequence, not
+#: on a per-cycle purity averaged over the whole head. The mean cannot tell "every read carries this
+#: linker" from "most do and the rest of the head is junk", and those two only coincide on a head with
+#: no junk in it — which is the one kind of head a generated fixture ever has. Calibrated there, a 0.9
+#: purity bar forbade real SPLiT-seq's barcode read (linker1 0.905, linker2 0.827, and 0.99+ over the
+#: ~61% of reads that are genuinely SPLiT-seq), so the generic paired-end fallback won on geometry at
+#: exit 0 and three correct whitelists were never consulted.
+#:
+#: A majority is the bar because that is what "the reads carry this sequence" means about a
+#: population. Junk reads are COUNTED, never filtered: they stay in the denominator, so contamination
+#: lowers the statistic instead of being removed from its own measurement. Real SPLiT-seq measures
+#: 0.85 (linker1) and 0.73 (linker2) here, against ~0 for any window that has no fixed sequence in it.
+_CONSTANT_CARRIER_MIN = 0.5
+#: Slack to the modal consensus, per base of window: 3 of 30 for a SPLiT-seq linker, 1 of 12 for a BD
+#: Rhapsody one. It absorbs sequencing error and nothing else — the statistic is nearly flat in it
+#: (real linker2 moves 0.719 -> 0.732 from one mismatch to three), while the chance of a random read
+#: clearing it stays vanishing.
+_CONSTANT_MISMATCH_ALLOWANCE = 0.1
 _RANDOM_MAXFRAC = 0.55  # mean max-base fraction below this is "near-uniform random"
 
 
@@ -154,13 +171,30 @@ def _eval_segment_length(test: SegmentLength, wp: WindowProbe) -> Evaluation:
 
 def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluation:
     start, end = _window_for(test, read)
-    if test.kind in ("constant", "random"):
+    if test.kind == "constant":
+        if end is None:
+            # An open-ended element has no fixed column to be constant over, and a window that runs to
+            # whichever read is longest is not one either. "Cannot see it" is not "it is absent".
+            return Evaluation(Outcome.ABSTAIN, 0.0, "open-ended window")
+        tolerance = int((end - start) * _CONSTANT_MISMATCH_ALLOWANCE)
+        rate = wp.consensus_match_rate(start, end, tolerance)
+        if rate is None:
+            # No read reaches this column, so nothing about it was observed. The mean this replaced
+            # answered anyway, off however many cycles the short reads did cover, and called a
+            # 10-cycle prefix of a 30 bp linker a verdict on the linker. Whether such a file can fill
+            # the role is the declared geometry's question, and `read_length_compatible` asks it.
+            return Evaluation(Outcome.ABSTAIN, 0.0, "no read reaches this column")
+        outcome = Outcome.PASS if rate >= _CONSTANT_CARRIER_MIN else Outcome.FAIL
+        return Evaluation(
+            outcome,
+            _clip(rate / _CONSTANT_CARRIER_MIN),
+            f"consensus_rate={rate:.2f} min={_CONSTANT_CARRIER_MIN} mismatch<={tolerance}",
+        )
+    if test.kind == "random":
+        # Near-uniformity IS a population property, so this one stays a mean over cycles.
         mmf = _mean_max_fraction(wp, start, end)
         if mmf is None:
             return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
-        if test.kind == "constant":
-            outcome = Outcome.PASS if mmf >= _CONSTANT_PURITY else Outcome.FAIL
-            return Evaluation(outcome, _clip((mmf - 0.5) / 0.4), f"mean_maxfrac={mmf:.2f}")
         outcome = Outcome.PASS if mmf <= _RANDOM_MAXFRAC else Outcome.FAIL
         return Evaluation(outcome, _clip((_RANDOM_MAXFRAC - mmf) / 0.3), f"mean_maxfrac={mmf:.2f}")
     base = "T" if test.kind == "polyT" else "A"

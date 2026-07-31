@@ -120,6 +120,16 @@ class WindowProbe:
         """``distinct/total`` over ``[start, end)`` (role-conditioned; a supports signal, never a gate)."""
         return sig.distinct_ratio(sig.window_bases(self.seqs, start, end))
 
+    def consensus_match_rate(self, start: int, end: int, max_mismatch: int) -> float | None:
+        """Share of reads carrying ``[start, end)``'s modal consensus to within ``max_mismatch``.
+
+        The per-READ companion to :meth:`composition_window`, which can only report cycles already
+        aggregated over every sampled read. "How constant is this column on average" and "how many
+        reads carry this sequence" are different facts, and only the second one survives a head that
+        is part junk — see :func:`probe.signals.consensus_match_rate` for why it is a proportion.
+        """
+        return sig.consensus_match_rate(sig.window_bases(self.seqs, start, end), max_mismatch)
+
     def composition_window(self, start: int, end: int | None) -> list[CycleComposition]:
         """Per-cycle composition over cycles ``[start, end)`` (``end=None`` => to the longest read)."""
         comps = self.observation.per_cycle_composition

@@ -26,12 +26,25 @@ Gate semantics: a `requires` FAIL forbids the cell, an `excludes` PASS forbids t
 | evaluator | what it does, and the decision inside it |
 |---|---|
 | `segment_length` | triangular around the declared length for scoring; passes iff the mode is within a gate tolerance. This is the gate that separates a 28 bp v3 read from a 26 bp v2 read. Open-ended cDNA uses a minimum-length variant. |
-| `has_segment` | mean per-cycle evidence over the window — `constant` wants a max-base fraction at or above .9, `random` wants near-uniform, `polyT`/`polyA` want a base fraction above a minimum. |
+| `has_segment` | `constant` is a **proportion**: the share of reads carrying the window's modal consensus to within a per-base slack, gated at a majority. `random` / `polyT` / `polyA` are population properties and stay mean per-cycle evidence — near-uniform, or a base fraction above a minimum. |
 | `distinct_ratio` | distinct over total across the window. **Supports-only, never a gate.** Depth-dependent, so only meaningful normalized: a "high" expectation (UMI, cDNA) needs `4^len` far above the sampled read count or the ratio saturates below the band, and a "low" expectation (CB) is conditioned on the estimated reads per cell. It *proposes* CB-versus-UMI; the onlist confirms. |
 | `onlist_hit_rate` | the rung-3 hypothesis test. **Width-generic** — the barcode length comes from the registry entry, so SPLiT-seq's 8 bp blocks work without a second code path. Tests forward *and* reverse-complement *and* a small positional offset scan, and records the winning orientation and offset. Floor is `onlist_length / 4^len`; score is the clipped rise from floor to the passing minimum; passes at roughly 0.6. At Q30 the discriminative power is about 500:1. |
 | `motif_present` | fraction of reads matching an IUPAC motif within a tolerance, in an **inclusive** window. Used for fixed linkers, and as an `excludes` test to reject 10x when an internal linker turns up in a barcode read. |
 | `base_composition` | element-addressable, so it can target a floating region rather than only the first few cycles. |
 | `header_index` | abstains when the header is SRA-normalized — and that abstention is how probe *detects* the normalization. Otherwise it checks for a per-file, roughly constant 8–10 bp index. |
+
+**Why `constant` counts reads rather than averaging cycles.** A mean per-cycle purity cannot tell
+"every read carries this linker" from "most do and the rest of the head is junk" — the two agree only
+on a head with no junk in it, which is the one kind of head `kb roundtrip` generates. Calibrated
+there, a 0.9 purity bar forbade real SPLiT-seq's barcode read (linker1 0.905, linker2 0.827 over the
+head; 0.99+ over the ~61 % of it that is genuinely SPLiT-seq), so `bulk-rnaseq-pe` won on geometry at
+exit 0 with three correct whitelists never consulted — the plausible-matrix failure, not a refusal.
+The proportion is the shape that survives, and the reason it survives is that junk reads are
+**counted, not filtered**: they stay in the denominator, so contamination lowers the statistic instead
+of being removed from its own measurement. Select the reads that agree with the consensus and then
+measure their agreement and every window in every dataset reads ~1.0, noise included — a gate that
+cannot fail is worse than one calibrated too tight. Real SPLiT-seq measures 0.85 / 0.73 against a
+majority bar; a window with no fixed sequence in it measures ~0.
 
 One trap worth naming: **a reverse-complement onlist hit means the barcode read is on the other
 strand, so supply the reverse-complemented whitelist file.** It does *not* flip the strand parameter,
