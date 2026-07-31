@@ -37,8 +37,38 @@ jobs:
         with:
           environments: test
           locked: true
-      # `--no-llm`: this tier grades chemistry-from-bytes and sample-attributes-from-committed-records,
-      # both deterministic and key-free. `--cases evals/benchmark` selects the HF tier; each case pulls
-      # its package from HF. Exit 3 on any false-accept or accuracy drop.
+      # `--no-llm`, and it stays that way: this tier grades chemistry-from-bytes and
+      # sample-attributes-from-committed-records, both deterministic and key-free, so the job needs no
+      # API key and no provider secret is ever exposed to it. The LLM pass is a LOCAL exercise, run by
+      # a maintainer who has a key (`--llm --provider <p>`); CI must stay runnable by anyone with a
+      # fork. `--cases evals/benchmark` selects the HF tier; each case pulls its package from HF.
+      #
+      # The report is written to a file and uploaded rather than left on stdout, because a job that
+      # exits 0 and keeps its detail tells you a number and not which case carried the risk. `tee`
+      # keeps the log readable while capturing the artifact, and `pipefail` keeps the exit 3 on a
+      # false-accept from being swallowed by the pipe.
       - name: seqforge eval run (pulls HF benchmark packages)
-        run: pixi run -e test eval -- --no-llm --cases evals/benchmark
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p report
+          pixi run -e test eval -- --no-llm --cases evals/benchmark | tee report/benchmark.json
+
+      # Runs on failure too — a red benchmark is exactly when the per-case detail is worth having.
+      - name: render the HTML report
+        if: always()
+        shell: bash
+        run: |
+          test -s report/benchmark.json || exit 0
+          pixi run -e test python scripts/eval_report.py report/benchmark.json \
+            -o report/benchmark.html \
+            --title "seqforge benchmark — ${{ github.sha }}" \
+            --source "seqforge eval run --no-llm --cases evals/benchmark"
+
+      - name: upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: report/
+          if-no-files-found: warn
