@@ -78,5 +78,29 @@
     "source_sha256": "7effc6c4ddfe9ca255d74fec2f5a8b6a98e853e2b20038978f0887c86d40b722",
     "uri": "https://raw.githubusercontent.com/imallona/rhapsodist/main/workflow/data/whitelist_384x3/BD_CLS3.txt",
     "width": 9
+  },
+  "splitseq-round1": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
+  },
+  "splitseq-round2": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
+  },
+  "splitseq-round3": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
   }
 }

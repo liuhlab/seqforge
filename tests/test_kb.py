@@ -579,24 +579,53 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 #: their own spec says they are. An exact pin, not a filter: this is a debt, and a debt you can forget
 #: is a debt you keep.
 #:
-#: **What is actually broken.** `splitseq` declares three barcode whitelists (`splitseq-round1/2/3`)
-#: and says of the one technology it is confusable with: "Rung 3 decides it: the round1/2/3
-#: whitelists hit, and bulk has no whitelist to hit." We ship three whitelists and all three are
-#: 10x's. So `DEFAULT_REGISTRY.has("splitseq-round1")` is False, the three weight-3.0 onlist tests
-#: ABSTAIN, and the one mechanism the spec calls decisive can never fire. A real SPLiT-seq dataset
-#: does not resolve — it asks a human.
+#: **Empty, and it took shipping a whitelist to empty it.** `splitseq` sat here: it declared three
+#: barcode whitelists and said of the one technology it is confusable with "rung 3 decides it: the
+#: round1/2/3 whitelists hit", while the three we shipped were all 10x's. The three weight-3.0 onlist
+#: tests abstained and the mechanism the spec called decisive could never fire. That failure was safe
+#: — it over-asks, it does not answer wrongly — which is exactly why it survived unnoticed: nothing
+#: was red, and every test that appeared to prove SPLiT-seq works built a synthetic registry from the
+#: spec's own aliases, proving the spec agrees with itself.
 #:
-#: That failure is safe (it over-asks; it does not answer wrongly), which is exactly why it survived:
-#: nothing was red. Every test that appears to prove SPLiT-seq works builds a synthetic registry from
-#: the spec's own aliases — proving the spec agrees with itself, which was never in doubt.
+#: The barcodes now ship, derived from the paper's own Supplementary Table S12 rather than guessed;
+#: `test_the_splitseq_rounds_are_one_barcode_set` pins what that derivation found.
 #:
-#: To close it: obtain the real 96 x 8 bp round1/2/3 barcodes from an authoritative source, verify
-#: them against a real SPLiT-seq dataset, `seqforge io onlist pack` them, and delete the entry below.
-#: Do NOT close it by guessing barcodes: a wrong whitelist does not fail loudly — STARsolo exits 0 and
-#: emits a matrix that merely looks like a thin dataset.
-UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {
-    "splitseq": ["splitseq-round1", "splitseq-round2", "splitseq-round3"],
-}
+#: Adding an entry here is legitimate; leaving one unrecorded is not. Do NOT close a future entry by
+#: guessing barcodes — a wrong whitelist does not fail loudly. STARsolo exits 0 and emits a matrix
+#: that merely looks like a thin dataset, and a plausible matrix is unrecoverable in a way a refusal
+#: never is.
+UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {}
+
+
+def test_the_splitseq_rounds_are_one_barcode_set() -> None:
+    """SPLiT-seq reuses ONE 96 x 8 bp set across all three rounds — a KB fact, not a packing accident.
+
+    It falls out of the derivation: the round-1 RT, round-2 and round-3 ligation oligos in the paper's
+    Supplementary Table S12 carry the same 96 barcodes in the same well order, and only their flanking
+    sequences differ. Pinned because it is load-bearing in both directions — a future edit that packs
+    three *different* lists has either found a source we did not, or corrupted one of them, and either
+    way this should stop it and be argued rather than absorbed.
+
+    The three registry names are kept distinct even so: the spec declares three, `CB_UMI_Complex`
+    takes three whitelist paths, and a chemistry that later diverges per round needs somewhere to say
+    so.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+
+    rounds = [DEFAULT_REGISTRY.get(f"splitseq-round{i}") for i in (1, 2, 3)]
+    for i, onlist in enumerate(rounds, 1):
+        assert onlist.n_entries == 96, f"round{i}: SPLiT-seq is 96 barcodes per round"
+        assert onlist.width == 8, f"round{i}: 8 bp per round barcode"
+        assert onlist.orientation == "forward", (
+            f"round{i}: read 2 reads the oligo's own orientation — the round-3 oligo's read-2 primer "
+            "is followed directly by UMI then barcode, so no revcomp is involved"
+        )
+    assert rounds[0].sha256 == rounds[1].sha256 == rounds[2].sha256, (
+        "the three rounds draw on one barcode set; three different lists means the source changed"
+    )
+    assert all(r.uri.endswith("aam8999_tables12.xlsx") for r in rounds), (
+        "each round is pinned to the paper's own Supplementary Table S12, not to a secondary copy"
+    )
 
 
 def _onlists_that_would_decide(spec) -> list[str]:
