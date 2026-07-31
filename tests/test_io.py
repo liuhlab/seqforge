@@ -333,6 +333,7 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
         _INDEX,
         _ONLIST_DATA,
         _PACKED_SUFFIX,
+        ORIENTATIONS,
         codes_sha256,
         decode_codes,
         shipped_entries,
@@ -341,6 +342,14 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
     index = json.loads(_INDEX.read_text())
     blobs = {p.name[: -len(_PACKED_SUFFIX)] for p in _ONLIST_DATA.glob(f"*{_PACKED_SUFFIX}")}
     assert set(index) == blobs, "index.json and the shipped blobs disagree about what exists"
+
+    # Orientation is the one field the blob cannot settle -- packed codes carry no strand -- so it is
+    # checked against the vocabulary instead, and off the raw file rather than off `shipped_entries`,
+    # which now narrows it on the way through and would confirm itself.
+    for name, meta in sorted(index.items()):
+        assert meta.get("orientation", "forward") in ORIENTATIONS, (
+            f"{name}: index.json claims an orientation nothing scans"
+        )
 
     for entry in shipped_entries():
         assert entry.packed_path is not None, f"{entry.name}: a shipped entry with no blob path"
@@ -351,6 +360,66 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
         assert len(entry.source_sha256) == 64, (
             f"{entry.name}: no provenance for what it was packed from"
         )
+
+
+def test_an_unknown_orientation_is_refused_before_it_can_reach_the_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`pack` is the only writer of `index.json`, so a value outside the vocabulary dies here.
+
+    Nothing downstream objects to one: the orientation picks which strand `onlist_hit_rate` scans,
+    and an unrecognised value used to be written verbatim and then read back as "scan both" -- so
+    `reverse` for `revcomp` scored as though the orientation were unknown, at exit 0. Exit 2 rather
+    than 3, because a value outside a closed vocabulary is a malformed invocation, not a Blocker.
+
+    The package data is redirected at `tmp_path` so the refusal is what stops the write, and the
+    test can say so.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.io import onlist as onlist_mod
+
+    data = tmp_path / "onlists"
+    monkeypatch.setattr(onlist_mod, "_ONLIST_DATA", data)
+    monkeypatch.setattr(onlist_mod, "_INDEX", data / "index.json")
+    text = tmp_path / "bc.txt"
+    text.write_text("ACGTACGTACGTACGT\n")
+
+    result = CliRunner().invoke(
+        app,
+        ["io", "onlist", "pack", str(text), "--name", "typo-list", "--orientation", "reverse"],
+    )
+    assert result.exit_code == 2, result.output
+    message = " ".join(result.output.split())
+    assert "'reverse'" in message, "the refusal must name the value it rejected"
+    for legal in ("forward", "revcomp", "either"):
+        assert legal in message, f"the refusal must name {legal} as a way forward"
+    assert not data.exists(), "a refused orientation must reach neither a blob nor the index"
+
+
+def test_an_orientation_outside_the_vocabulary_is_refused_when_the_index_is_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The verb is not the only way in -- `shipped_entries` believes whatever `index.json` says.
+
+    An exception rather than an exit code: this is packaged data being loaded by library code, and
+    the caller that would have to interpret an exit code is `default_registry` at import time. A
+    corrupt vocabulary is not a condition anyone can act on the way `OnlistNotAvailable` is (fetch
+    it, point `--onlist-dir` at it), so it raises `ValueError` like every other "these bytes are not
+    what they claim" in this module.
+    """
+    import json
+
+    from seqforge.io import onlist as onlist_mod
+
+    index = tmp_path / "index.json"
+    index.write_text(
+        json.dumps({"L": {"width": 16, "n_entries": 1, "sha256": "ab", "orientation": "reverse"}})
+    )
+    monkeypatch.setattr(onlist_mod, "_INDEX", index)
+    with pytest.raises(ValueError, match="reverse"):
+        onlist_mod.shipped_entries()
 
 
 def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:

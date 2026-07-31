@@ -8,7 +8,7 @@ from typing import cast
 
 import typer
 
-from ..io import DEFAULT_REGISTRY, default_registry
+from ..io import DEFAULT_REGISTRY, Orientation, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import records_dir
@@ -102,7 +102,12 @@ def io_onlist_pack(
     uri: str = typer.Option(
         "", "--uri", help="Where this list came from, recorded for provenance."
     ),
-    orientation: str = typer.Option("forward", "--orientation", help="forward | revcomp | either."),
+    # Typed as the vocabulary, so typer offers the three values in `--help` and refuses a fourth at
+    # exit 2 before the body runs — the value can no longer reach `index.json`, where nothing else
+    # would have questioned it.
+    orientation: Orientation = typer.Option(
+        "forward", "--orientation", help="Which strand the barcodes are written on."
+    ),
 ) -> None:
     """**Maintenance verb.** Pack a whitelist into the shipped form and record it in the index.
 
@@ -134,9 +139,7 @@ def io_onlist_pack(
         packed.codes,
         width=packed.width,
         uri=uri,
-        # `--orientation` arrives as free text and this maintainer-only verb records it verbatim, so
-        # a typo reaches `index.json` as one. Narrowing it here would be a new refusal path.
-        orientation=orientation,  # type: ignore[arg-type]
+        orientation=orientation,
         source_sha256=source_sha,
     )
     typer.echo(

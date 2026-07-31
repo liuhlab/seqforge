@@ -30,12 +30,17 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
 
 import numpy as np
 
 Orientation = Literal["forward", "revcomp", "either"]
 Strand = Literal["forward", "revcomp"]
+
+#: The vocabulary as data, read off the type rather than re-listed beside it, so adding a value is
+#: one edit. Every orientation arriving from outside Python — a flag, `index.json` — comes through
+#: :func:`as_orientation`.
+ORIENTATIONS: tuple[Orientation, ...] = get_args(Orientation)
 
 _BASE_TO_BITS = {"A": 0, "C": 1, "G": 2, "T": 3}
 _COMPLEMENT = str.maketrans("ACGT", "TGCA")
@@ -46,6 +51,23 @@ _COMPLEMENT = str.maketrans("ACGT", "TGCA")
 _ORD_TO_BITS = np.full(256, 255, dtype=np.uint8)
 for _base, _bits in _BASE_TO_BITS.items():
     _ORD_TO_BITS[ord(_base)] = _bits
+
+
+def as_orientation(value: object, *, where: str = "") -> Orientation:
+    """Narrow an unchecked value to the orientation vocabulary, or refuse it.
+
+    An orientation is a claim about which strand the barcode is carried on, and getting it wrong
+    costs a matrix rather than an error — the same silent shape as a wrong whitelist, which is why
+    that one is verified eagerly too. So a value from JSON or from an untyped caller is checked
+    where it enters. ``where`` names the record it came from when there is a record.
+    """
+    for known in ORIENTATIONS:
+        if value == known:
+            return known
+    prefix = f"{where}: " if where else ""
+    raise ValueError(
+        f"{prefix}{value!r} is not a barcode orientation; expected one of {', '.join(ORIENTATIONS)}"
+    )
 
 
 def revcomp(seq: str) -> str:
@@ -235,6 +257,18 @@ def _pack_window(mat: np.ndarray, s: int, width: int, *, rc: bool) -> tuple[np.n
     return packed, valid
 
 
+#: Which strands each orientation scans — a total mapping over the vocabulary, deliberately not an
+#: if/elif whose fallthrough means "either". Those two are different claims: "either" is a decision
+#: to try both, an unrecognised value is a bug, and folding the second into the first hands the
+#: widest, most permissive answer to the path that knows the least. A `revcomp` typo'd as `reverse`
+#: used to score exactly like a whitelist whose strand nobody had declared.
+_STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
+    "forward": ("forward",),
+    "revcomp": ("revcomp",),
+    "either": ("forward", "revcomp"),
+}
+
+
 def onlist_hit_rate(
     seqs: list[str],
     start: int,
@@ -248,20 +282,16 @@ def onlist_hit_rate(
 
     Tests forward and/or reverse-complement (per ``orientation``) across offsets
     ``[-offset_scan, +offset_scan]`` and returns the winning ``(orientation, offset, hit_rate)``.
-    Bounded by ``max_reads``: the sample is already head-limited, and this caps the work again.
+    Bounded by ``max_reads``: the sample is already head-limited, and this caps the work again. An
+    ``orientation`` outside the vocabulary raises rather than scanning both — see
+    :data:`_STRANDS_SCANNED`.
 
     Vectorized: the sample is encoded once into a base-code matrix, and each window is a slice + a
     ``searchsorted`` against the onlist's sorted codes. ``n_tested`` counts reads long enough to hold
     the window (as before, including non-ACGT reads that cannot hit); ``hit_rate = hits / n_tested``.
     """
     width = onlist.width
-    strands: list[Strand]
-    if orientation == "forward":
-        strands = ["forward"]
-    elif orientation == "revcomp":
-        strands = ["revcomp"]
-    else:
-        strands = ["forward", "revcomp"]
+    strands = _STRANDS_SCANNED[as_orientation(orientation)]
 
     sample = seqs[:max_reads]
     best = HitResult(hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor)
@@ -597,7 +627,11 @@ def shipped_entries() -> list[RegistryEntry]:
                 uri=str(meta.get("uri", "")),
                 sha256=str(meta["sha256"]),
                 width=int(meta["width"]),
-                orientation=meta.get("orientation", "forward"),
+                # The index is generated, but it is still a file beside the data it describes, and
+                # this module checks that shape rather than trusting it. Width, count and hash are
+                # checked against the blob; the orientation cannot be — the codes carry no strand —
+                # so the vocabulary is the only check there is, and it is made here.
+                orientation=as_orientation(meta.get("orientation", "forward"), where=name),
                 n_entries=int(meta["n_entries"]),
                 packed_path=_ONLIST_DATA / f"{name}{_PACKED_SUFFIX}",
                 source_sha256=str(meta.get("source_sha256", "")),
