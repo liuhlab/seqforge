@@ -31,3 +31,10 @@ sbatch/
 # reached main twice in one PR.
 /tests/_*_test.py
 /tests/_test_*.py
+
+# Agent worktrees. Claude Code puts an isolated checkout here, INSIDE the repo, so every root-level
+# tool walks into it: ruff lints another session's half-finished file and fails your gate, and
+# `ruff format .` / `--fix` rewrites their working tree from under them. Ignoring it fixes both
+# directions at once, because ruff respects gitignore. Same reason the scratch harnesses above are
+# ignored: what is not ours must not be sweepable by a broad command.
+/.claude/
