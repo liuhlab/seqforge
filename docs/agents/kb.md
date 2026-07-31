@@ -229,9 +229,10 @@ guess; and metadata contradicting the bytes becomes a surfaced `Conflict`.
 barcode. Rhapsody Enhanced's blocks are fixed-width at a floating position, so the anchored-motif
 machinery already exists; what is missing is an entry that exercises width variation.
 
-Two caveats to carry into a new entry. **SPLiT-seq ships no whitelists**: the spec names three round
-onlists and we ship none, so those tests abstain and rung 3 can never decide it. Registering them is an
-open lookup; guessing them is what the pinning rule above forbids. And the **dual-derivation check
-against seqspec is scoped to fixed-offset chemistries**: whether seqspec's STARsolo emitter produces
-position strings for combinatorial or anchored barcodes is unverified, so confirm before relying on it
-beyond `CB_UMI_Simple`.
+One caveat to carry into a new entry: **there is no dual-derivation check against seqspec**, and a
+new entry must not be written as though one will catch a mistake. Every element declares a
+`seqspec_region_type` and every read a `seqspec_read_id`, so an export is a pure derivation — but the
+emitter is unbuilt, `seqspec` is not a dependency, and nothing here reads its STARsolo output. Whether
+that emitter produces position strings for combinatorial or anchored barcodes is therefore not a
+scoping question about an existing check; it is a question to answer *when the export is built*. What
+does check a new entry is `kb roundtrip`, the params gate, and the confusability sweep.

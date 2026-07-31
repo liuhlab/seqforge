@@ -329,6 +329,66 @@ def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> 
     assert not out.result.questions
 
 
+def test_splitseq_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> None:
+    """The point of shipping the round whitelists (#127): the mechanism the spec calls decisive fires.
+
+    `splitseq` says of the one technology it is confusable with: "rung 3 decides it — the round1/2/3
+    whitelists hit, and bulk has no whitelist to hit." While we shipped no round lists that sentence
+    described nothing: the three weight-3.0 onlist tests abstained, and a real SPLiT-seq dataset
+    resolved by asking a human. It failed safely, so nothing was red.
+
+    Built from the ACTUAL shipped lists, exactly as the BD Rhapsody case is, because synthetic random
+    barcodes miss every whitelist — which is why `kb roundtrip` passing was never evidence that this
+    works. Read 2 is the real geometry: UMI(10) + bc3 + linker1 + bc2 + linker2 + bc1 = 94 cycles.
+    """
+    import random
+
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import unpack_barcodes
+    from seqforge.resolve import resolve_dataset
+
+    rounds = [unpack_barcodes(DEFAULT_REGISTRY.packed(f"splitseq-round{i}")) for i in (1, 2, 3)]
+    assert all(len(r) == 96 for r in rounds)  # the shipped lists really are 96 x 8 bp
+    spec = kb.load_spec("splitseq")
+    els = {e.name: e for e in spec.reads[1].elements}
+    link1, link2 = els["linker1"].sequence, els["linker2"].sequence
+    rng = random.Random(0)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    # UMI(10) + bc3 + linker1 + bc2 + linker2 + bc1 -> 10+8+30+8+30+8 = 94
+    r2 = [
+        rand(10)
+        + rng.choice(rounds[2])
+        + link1
+        + rng.choice(rounds[1])
+        + link2
+        + rng.choice(rounds[0])
+        for _ in range(800)
+    ]
+    assert all(len(s) == 94 for s in r2), "read 2 must be the declared 94 cycles"
+    r1 = [rand(66) for _ in range(800)]  # cDNA
+    f1, f2 = tmp_path / "ss_R1.fastq.gz", tmp_path / "ss_R2.fastq.gz"
+
+    def _write(path: Path, seqs: list[str]) -> None:
+        with gzip.open(path, "wt") as fh:
+            for i, s in enumerate(seqs):
+                fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")
+
+    _write(f1, r1)
+    _write(f2, r2)
+
+    out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
+    assert out.result.candidates, "SPLiT-seq reads must resolve to a candidate"
+    assert out.result.candidates[0].technology == "splitseq", [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # decided by the onlist
+    assert out.exit_code() == 0  # a clean win over the bulk fallback, not a question
+    assert not out.result.questions
+
+
 # ---------- BD Rhapsody Enhanced bead: the anchored/variable-position chemistry (#43) ----------
 _VB = ("", "A", "GT", "TCA")  # the 0-3 bp diversity insert -> a per-read stagger
 
