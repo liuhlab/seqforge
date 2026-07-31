@@ -354,6 +354,11 @@ def test_splitseq_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> Non
     spec = kb.load_spec("splitseq")
     els = {e.name: e for e in spec.reads[1].elements}
     link1, link2 = els["linker1"].sequence, els["linker2"].sequence
+    # A linker element MAY declare no sequence -- `ReadElement.sequence` is optional, because a
+    # linker is sometimes only a length. SPLiT-seq's two are reconstructed from the paper's oligo
+    # table and are the thing this test builds reads out of, so their absence is not a length
+    # mismatch to discover 94 characters later; it is this spec having stopped saying what it says.
+    assert link1 is not None and link2 is not None, "SPLiT-seq's linkers must declare a sequence"
     rng = random.Random(0)
 
     def rand(k: int) -> str:
