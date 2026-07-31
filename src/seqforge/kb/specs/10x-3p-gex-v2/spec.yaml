@@ -77,7 +77,22 @@ backend:
 
 # A child of the 10x-3p-gex family. Both former edges (to v3 and its byte-identical twin v3.1) were the
 # OVER-LENGTH-R1 whitelist split among siblings — now declared once, in the parent's
-# `children_decided_by: [onlist]`. So v2 declares no confusable_with of its own.
+# `children_decided_by: [onlist]`.
 parent: 10x-3p-gex
 
-confusable_with: []
+confusable_with:
+  - id: 10x-5p-gex-v2
+    relationship: processing_divergent
+    distinguishable_by: [metadata, alignment]
+    note: >
+      THE read-undecidable pair, and the only one in this KB — the note used to sit on v3/v3.1's edges,
+      where it was not true. Same 26 bp R1 (16 CB + 10 UMI), same open-ended cDNA R2, and the SAME
+      737K-august-2016 whitelist: rungs 0-2 tie by construction and rung 3 cannot break it, because
+      both entries point at the same file. The backends differ in exactly one param, soloStrand
+      (Forward here, Reverse for 5'), and no probe can observe it. So metadata (rung 0 — papers name
+      the 3'-versus-5' family reliably even when vague about the version) or alignment (rung 6) has to
+      settle it. This is a CROSS-family edge: 5' is its own root, not a sibling under 10x-3p-gex, so
+      the tree does not declare it and it must be written here.
+      Until the 5' entry existed a 5' v1/v2 library resolved silently to THIS spec and compiled with
+      soloStrand Forward — a measured 0.5-0.6 gene-expression correlation against >0.98 for the right
+      orientation, at exit 0. Nothing was red. The tie this edge now forces is the fix.

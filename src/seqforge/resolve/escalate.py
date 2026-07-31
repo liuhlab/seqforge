@@ -170,7 +170,15 @@ def escalate(
         )
 
     question = _divergent_question(top, divergent_ties, specs)
-    candidates = [_candidate(e, e.equivalence_members, rung) for e in valid]
+    # `top` leads, exactly as it does on the two decided paths above. This branch used to hand back
+    # `valid` in raw-score order, which on an over-sequenced read puts BULK first: the anchor and the
+    # `barcode_onlist_hit` preference had already established that the whitelist-hitting barcoded
+    # candidate is the one the library lands on, and then the question path threw that ordering away.
+    # `candidates[0]` is what `fill` composes and what the grader reads as `library.chemistry`, so an
+    # honest question about which of two chemistries applies was reporting a third one nobody was
+    # asking about.
+    candidates = [_candidate(top, top.equivalence_members, rung)]
+    candidates += [_candidate(e, e.equivalence_members, rung) for e in valid if e is not top]
     return Escalation(
         candidates=candidates,
         conflicts=conflicts,
@@ -557,16 +565,34 @@ def _metadata_disambiguation(
     divergent_ties: list[TechEvaluation],
     specs: dict[str, Spec],
 ) -> TechEvaluation | None:
-    """If a span-verified hypothesis names one tie member, pick it (rung 0, surfaced ``asserted``)."""
+    """If a span-verified hypothesis names one tie member, pick it (rung 0, surfaced ``asserted``).
+
+    Failing an exact name, fall back to the **family**, and only when the family picks out exactly one
+    tie member. That is not a second-guess, it is the authority split this module already runs on and
+    ``same_family`` was written for: a paper names the assay family reliably and the exact leaf
+    vaguely, so ``_detect_conflicts`` treats an asserted-v2 / observed-v3 disagreement as agreement at
+    the family level and lets the bytes pick the leaf.
+
+    Without the fallback that policy stopped one step short of the case it was built for. The 26 bp tie
+    — 10x 3' v2 versus 10x 5' v1/v2, identical geometry AND identical whitelist — is `[metadata,
+    alignment]`-decidable by declaration, and prose that says "10x 3' v3" (or just "10x 3'") settles the
+    3'-versus-5' question completely while naming the wrong leaf. Exact-name matching alone would ask a
+    human a question the document already answered.
+
+    Ambiguity still asks: two tie members under the asserted family (a 3' v3 claim against a v3-versus-
+    Multiome tie) is exactly the case metadata cannot settle, so it returns ``None`` and escalates.
+    """
     if not hypothesis_value:
         return None
     hyp_tech = _match_tech(hypothesis_value, specs)
     if hyp_tech is None:
         return None
-    for e in [top, *divergent_ties]:
+    members = [top, *divergent_ties]
+    for e in members:
         if e.tech == hyp_tech:
             return e
-    return None
+    kin = [e for e in members if same_family(specs, hyp_tech, e.tech)]
+    return kin[0] if len(kin) == 1 else None
 
 
 def _divergent_question(

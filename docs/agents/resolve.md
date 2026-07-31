@@ -121,7 +121,11 @@ no divergent ties, tie set is a DECLARED equivalent group
 otherwise (a processing-DIVERGENT tie), walk decidable_by in ladder order:
     onlist    (rung 3)  already tried during scoring
     metadata  (rung 0)  a span-verified assertion that disambiguates AND is byte-consistent
-                        -> Decision(asserted), SURFACED
+                        -> Decision(asserted), SURFACED. Matches a tie member by NAME, else by
+                        FAMILY when the asserted family picks out exactly one of them — the same
+                        authority split conflict detection already runs on (a paper names the assay
+                        family reliably and the leaf vaguely, so the bytes pick the leaf). Two tie
+                        members under the asserted family is ambiguous and still asks.
     alignment (rung 6)  mini-align to a tiny reference (strand, 3'-versus-5') -> Decision if it resolves
     user      (rung 7)  -> Question, and the batch defers to a human via exit 4
 ```

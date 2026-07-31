@@ -76,32 +76,47 @@ distinct assays, and conflating them files a spec under a protocol it does not m
 its own verification note beside `assay_ontology`. **Any future technology's term is looked up the same
 way before use.**
 
-### Pinned ahead of the spec that will need them
+A whitelist may legitimately be **pinned ahead of the spec that will need it** — packing it is a
+separate, verifiable act from authoring the entry, and parking the value in the tracker instead invites
+the next author to look it up again or, worse, to assert it. That is how `3M-3pgex-may-2023` and
+`3M-5pgex-jan-2023` shipped. Both now have their entries (`10x-gemx-3p-v4`, `10x-5p-gex-v3`), and this
+section held their values only until they did; each measured separation lives in the spec that stands
+on it. **A pin is a loan, not a home.** If one is sitting here with no spec, that is a debt, and
+`test_every_confusable_target_is_a_technology_we_support` is what stops the corresponding
+`confusable_with` edge from pretending otherwise.
 
-A value looked up for a technology we do not yet model has no `spec.yaml` to live beside, and putting
-it back in the tracker invites the next author to look it up again or, worse, to assert it. These are
-verified and shipped, so the entry that needs them starts from a pin rather than from memory.
+## The 5′ entries, and what they cost
 
-**`3M-3pgex-may-2023`** — the GEM-X 3′ v4 whitelist, 7 372 800 × 16 bp, packed from
-`scg_lib_structs/data/10X-Genomics/`. The `10x-gemx-3p-v4` spec does not exist; until it does, v3 and
-v3.1 declare it as a forward confusable and rung 3 has nothing to compare against. The separation it
-is declared on is measured, not assumed — against `3M-february-2018` the two share 68 254 barcodes, so
-a v4 library hits the v3 list at most **0.9%**.
+Both are shipped (`10x-5p-gex-v2` covering v1+v2, `10x-5p-gex-v3`, under the `10x-5p-gex` family), and
+two things about them generalize.
 
-**10x 5′ whitelists.** v1/v2 reuse `737K-august-2016`, which is 3′ v2's list — genuinely coincident,
-and the case that makes 5′-vs-3′ read-undecidable. v3 does **not**: it uses `3M-5pgex-jan-2023`
-(3 686 400 × 16 bp), which shares 0.62% with `3M-february-2018` and 6.87% with `3M-3pgex-may-2023`. So
-"5′ is separable only by metadata or alignment" is true of the *version pairing*, not of 5′ as such,
-and an eventual `10x-5p-gex` entry should be version-qualified rather than inherit the blanket claim.
+**`soloStrand: Reverse`, derived from the kit's own oligos rather than from practice.** This entry was
+blocked for exactly one reason — the available evidence was community consensus, and STAR's manual
+takes no position on 5′ — and the block lifted when the derivation was done at the same bar
+`splitseq`'s strand met. It is written out in full in `10x-5p-gex-v2/spec.yaml` and its README, with a
+**known-answer control**: run the identical derivation on the 3′ appendix and it reproduces `Forward`,
+which every 3′ entry already carries. A derivation that cannot reproduce an answer you already trust is
+not a derivation. Two caveats are recorded there so they are not rediscovered as bugs: `Forward` is
+correct for `SC5P-PE` / `SC5P-R1`, which this KB **cannot express** (the starsolo parse namespace
+allows neither `soloBarcodeMate` nor `clip5pNbases`), so `Reverse` holds unconditionally here.
 
-**10x 5′ `soloStrand` is NOT pinned, and must not be shipped from the evidence below.** Recorded so
-the search is not repeated: scg_lib_structs has 5′ read 2 sequencing the top strand as template, which
-is antisense to the mRNA — that reads as `Reverse` — and community practice agrees, with the caveat
-that paired-end mapping that over-sequences the adapter read flips it to `Forward`. STAR's own manual
-defines `Forward`/`Reverse` and takes **no position** on 5′. That is materially weaker than the bar
-`splitseq`'s strand met (a derivation from the kit's own oligos, corroborated by the authors' code),
-and strand is the value where being wrong is quietest. Deriving it from the GEM-X 5′ user guide's oligo
-architecture, or running one real 5′ library both ways, is what closes it.
+**"5′ is decidable only by metadata" is a claim about a version PAIRING.** v1/v2 reuse
+`737K-august-2016`, which is 3′ v2's list, so that pair shares geometry *and* whitelist and is the one
+genuinely read-undecidable pair in the KB — `[metadata, alignment]`, and it is declared on the
+`10x-3p-gex-v2` ↔ `10x-5p-gex-v2` edge where it is true. v3 has its own `3M-5pgex-jan-2023`
+(3 686 400 × 16 bp), sharing 0.62% with `3M-february-2018`, 6.87% with `3M-3pgex-may-2023` and 0.00%
+with `737K-arc-v1` — all far under the 0.6 gate, so all four of its edges into the 28 bp cohort are
+`[onlist]`. v3 and v3.1 previously declared a blanket `[metadata, alignment]` edge against the bare id
+`10x-5p-gex`, wrong on both counts: wrong partner (their 28 bp neighbour is 5′ v3, not 5′ v1/v2) and
+wrong mechanism.
+
+**The cost is a case that now asks, and that is the point.** `10x-v2-bytes-only` graded `decide` before
+these entries existed, and that decision was correct only because the alternative had no spec: a real
+5′ v1/v2 library resolved silently to 3′ v2 and compiled `Forward`, at exit 0, with nothing red. A
+published both-ways run (AlexsLemonade/alsf-scpca #137) measured 0.5–0.6 gene-expression correlation
+under the wrong orientation against >0.98 under the right one. Adding an entry that makes an existing
+answer into a question is a *net gain* whenever the old answer was a coin-flip; the corpus now carries
+both halves — the `ask`, and `10x-5p-gex-v2-metadata-decided` proving the declared mechanism fires.
 
 ## Two worked entries
 
@@ -114,11 +129,15 @@ Multiome whitelist.
 
 Its `confusable_with` block is the load-bearing part. v3.1 is `processing_equivalent` with
 `distinguishable_by: [none]` — identical geometry, whitelist and params, so a tie between them is
-benign and asks zero questions. Multiome and GEM-X v4 share the same 28 bp / 16+12 geometry and are
-`processing_divergent`, separated only by an onlist at rung 3 — which is why a GEM-X entry is
-*required* for the flagship to pass its own under-declaration check. 10x 5′ is a different problem:
-its geometry and whitelist coincide with 3′, so it is read-undecidable and must be settled from
-metadata or an alignment.
+benign and asks zero questions. Multiome, GEM-X 3′ v4 and 5′ v3 all share the same 28 bp / 16+12
+geometry and are `processing_divergent`, separated only by an onlist at rung 3 — which is why a GEM-X
+entry is *required* for the flagship to pass its own under-declaration check. Four chemistries, one
+geometry, told apart pairwise by which of four whitelists hits.
+
+The read-undecidable case is one generation earlier: **3′ v2 versus 5′ v1/v2**, which share the 26 bp
+geometry *and* `737K-august-2016`, and are therefore `[metadata, alignment]`. It is the KB's only such
+pair, and worth knowing where it lives — a mechanism list is a claim about which rung can answer, and
+putting it on the wrong edge makes the resolver ask a human a question rung 3 could have settled.
 
 **`splitseq`** is the combinatorial case: the cell barcode is three round-specific 8 bp barcodes drawn
 from small (~96-entry) whitelists, separated by two fixed 30 bp linkers. The positions are fixed, so
@@ -179,6 +198,16 @@ non-empty `distinguishable_by`, and — if that list names `onlist` — a proven
 An **undeclared** near-tie is never recorded-both. It escalates to a question, so recording both fires
 only for a group CI has proven equivalent.
 
+**Families declare too.** The sweep above runs over leaves, because only leaves are scored at runtime;
+an abstract family is checked by the recognition self-test instead, and its rule is the same one a
+level up — a family may recognise a leaf outside itself only if it *says* so, naming that leaf or one
+of its ancestors in `confusable_with`. That used to be a flat "reject every non-descendant", and its
+own comment recorded why it held: the 26–28 bp R1 gate did all the work, "no cross-family edge needed".
+`10x-5p-gex` is the case that needs one — 5′ reads *are* 3′ reads to every cheap probe, so no gate can
+separate the families that would not also reject the family's own children. Recognition is not the
+thing to forbid; **undeclared** recognition is. `bulk-rnaseq-pe` is declared by nobody, so the original
+accepts-everything trap still turns the test red.
+
 ## The round-trip, and the adversarial fixtures
 
 The synthetic generator ([`kb/generate.py`](../../src/seqforge/kb/generate.py)) is a pure function of
@@ -215,8 +244,10 @@ Recorded so that a green suite is not mistaken for full coverage. The shipped en
 **architectural** coverage rather than popularity — breadth before depth:
 
 - **bulk paired-end Illumina RNA-seq** — the no-barcode branch, header parsing, run and lane grouping;
-- **10x 3′ GEX v2 / v3 / v3.1, Multiome GEX and ATAC** — onlist matching, technical-read
+- **10x 3′ GEX v2 / v3 / v3.1, GEM-X v4, Multiome GEX and ATAC** — onlist matching, technical-read
   identification, SRA mangling, and the benign-twin case;
+- **10x 5′ GEX v1/v2 and v3** — the *read-undecidable* branch: a pair that shares geometry AND
+  whitelist, so the resolver must reach past the bytes for metadata or an alignment rather than pick;
 - **SPLiT-seq** — combinatorial multi-block indexing with fixed linkers and small onlists;
 - **BD Rhapsody WTA and Enhanced** — variable-*position* anchored elements, validated against real
   Enhanced reads.

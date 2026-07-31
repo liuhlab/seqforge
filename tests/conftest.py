@@ -54,6 +54,7 @@ from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
+from seqforge.resolve.engine import Hypothesis
 from seqforge.resolve.window import WindowProbe
 
 #: ``(header, sequence, quality)`` — what a FASTQ record is, once the ``@`` and ``+`` are stripped.
@@ -413,6 +414,13 @@ def build_synth_dataset(
     pins a caller to 10x and bulk naming and makes splitseq (whose reads are ``cdna``/``bc``) raise
     ``KeyError: 'R1'`` rather than compose; deriving the default from the spec is what lets a test
     iterate the KB.
+
+    A chemistry the KB says the BYTES cannot settle gets the mechanism the KB names for it. 10x 3' v2
+    and 10x 5' v1/v2 share the 26 bp geometry AND the ``737K-august-2016`` whitelist, so synthetic
+    reads for either tie and ``resolve`` correctly asks — there is no seed at which bytes alone land on
+    one of them. Supplying the rung-0 claim EXERCISES ``distinguishable_by: [metadata, alignment]``
+    rather than working around it, and it is derived from ``spec.decidable_by``, never a hand list, so
+    a future undecidable-from-bytes entry is covered because it says it is.
     """
     spec = kb.load_spec(tech)
     reg = registry_for(spec)
@@ -422,7 +430,12 @@ def build_synth_dataset(
         p = directory / f"s_{k}.fastq.gz"
         write_fastq_gz(p, reads[k])
         paths.append(p)
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    hypothesis = (
+        Hypothesis(value=tech, id="synth-fixture", confidence=0.99)
+        if "metadata" in spec.decidable_by
+        else None
+    )
+    out = resolve_dataset(paths, registry=reg, use_cache=False, hypothesis=hypothesis)
     manifest = fill_manifest(
         result=out.result,
         spec=spec,

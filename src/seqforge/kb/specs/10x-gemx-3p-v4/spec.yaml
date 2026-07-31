@@ -114,3 +114,12 @@ confusable_with:
       The third occupant of the 28 bp / 16+12 geometry. Multiome GEX carries 737K-arc-v1, v4 carries
       3M-3pgex-may-2023 — three chemistries with one geometry, separated pairwise at rung 3 by which
       of the three whitelists hits.
+  - id: 10x-5p-gex-v3
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The fourth occupant, and the 5' half of this same GEM-X generation: same 28 bp geometry, opposite
+      end of the transcript. A CROSS-family edge — 5' is its own root, so the tree does not declare it
+      the way the shared 10x-3p-gex parent declares the Multiome and v3 relationships. The two lists
+      are the closest pair in the KB, 3M-3pgex-may-2023 and 3M-5pgex-jan-2023 sharing 6.87% of the
+      smaller, and that is still an order of magnitude under the 0.6 gate every hit-rate test uses.

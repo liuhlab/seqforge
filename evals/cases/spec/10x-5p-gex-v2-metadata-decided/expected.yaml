@@ -1,0 +1,21 @@
+outcome: decide
+description: >-
+  The other half of `10x-v2-bytes-only`, and the only way a 26 bp 10x library can be settled at all.
+  10x 5' v1/v2 is byte-identical to 3' v2 — same 16 CB + 10 UMI, same open-ended cDNA mate, same
+  737K-august-2016 whitelist — so the bytes tie and the KB says so: `distinguishable_by: [metadata,
+  alignment]`. This case supplies the metadata half and asserts the resolver reaches the 5' leaf, which
+  is the difference between emitting soloStrand Reverse and emitting Forward for a 5' library. A
+  published both-ways run measured that difference at 0.5-0.6 gene-expression correlation versus >0.98.
+
+  The claim names the FAMILY ("10x 5'"), not the leaf, so what is being tested is the family-level
+  authority the resolver was already built on — prose names the assay reliably and the version vaguely,
+  the bytes pick the leaf. Exactly one tie member sits under the asserted family, which is what makes
+  the pick deterministic rather than a preference; two would (correctly) go back to asking.
+
+  It is also this leaf's ci-benchmark coverage. That coverage CANNOT be a bytes-only case, and that is
+  a fact about the chemistry rather than a gap in the corpus: there is no seed at which bytes alone
+  land on `10x-5p-gex-v2`.
+fields:
+  library.chemistry: 10x-5p-gex-v2
+  library.roles.R1: R1
+  library.roles.R2: R2

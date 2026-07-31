@@ -47,8 +47,12 @@ onlists:
     registry: 3M-february-2018  # ~6,794,880 x 16 bp, forward orientation
     role: cell_barcode
     expected_orientation: forward
-  arc_v1_probe:                 # probe-only, used ONLY by the exclude anti-gate
+  arc_v1_probe:                 # probe-only, used ONLY by an exclude anti-gate
     registry: 737K-arc-v1       # Multiome (ARC) GEX list
+    role: cell_barcode
+    expected_orientation: forward
+  p5_v3_probe:                  # probe-only, used ONLY by an exclude anti-gate
+    registry: 3M-5pgex-jan-2023 # the GEM-X 5' v3 list — the OTHER-END occupant of this geometry
     role: cell_barcode
     expected_orientation: forward
 
@@ -71,8 +75,11 @@ signature:
       weight: 1.0
     - when: {test: header_index, present: true}
       weight: 0.2
-  excludes:
+  excludes:                     # kept identical to v3's, anti-gate for anti-gate
     - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: arc_v1_probe, orientation: forward, min: 0.6}
+    # The mirror of 5' v3's anti-gate on 3M-february-2018. A genuine v3.1 library hits the 5' list at
+    # 0.62%, two orders under this 0.6 gate, so it can only fire on data that really is 5' v3.
+    - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: p5_v3_probe, orientation: forward, min: 0.6}
 
 backend:
   module: map/starsolo
@@ -119,10 +126,12 @@ confusable_with:
       chemistry to the probe, so it is confusable with exactly the same things. The whitelist ships
       as `3M-3pgex-may-2023`; see v3's note for the measured separation and for what is still
       missing (the `10x-gemx-3p-v4` spec itself).
-  - id: 10x-5p-gex
+  - id: 10x-5p-gex-v3
     relationship: processing_divergent
-    distinguishable_by: [metadata, alignment]
+    distinguishable_by: [onlist]
     note: >
-      5' chemistry reads antisense cDNA -> soloStrand Reverse. Read-undecidable when geometry and
-      whitelist coincide; metadata (rung 0) or alignment (rung 6) resolves it.
+      RETARGETED and RELABELLED, identically to v3's edge. The 28 bp partner of a 3' v3.1 library is
+      5' v3, not 5' v1/v2 (26 bp), and 3M-5pgex-jan-2023 shares 0.62% with 3M-february-2018 — so rung
+      3 decides rather than a human. The read-undecidable claim moved to 3' v2 <-> 5' v1/v2, the pair
+      that really does share both geometry and whitelist.
 
