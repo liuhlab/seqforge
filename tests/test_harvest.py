@@ -399,16 +399,8 @@ def test_verify_still_accepts_every_permitted_field(tmp_path: Path) -> None:
     assert report.n_accepted == 1, report.rejected
 
 
-def test_the_allowlist_is_exact_match_not_a_prefix_rule(tmp_path: Path) -> None:
-    """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
-    from seqforge.harvest.fields import is_permitted
-
-    assert is_permitted("experiment.samples.tissue")
-    assert not is_permitted("experiment.samples.tissue.extra")
-    # `condition` was OURS, not NCBI's. It is gone -- see io/attributes.py.
-    assert not is_permitted("experiment.samples.condition")
-    assert not is_permitted("experiment.anything.you.can.name")
-    assert not is_permitted("library.chemistry.value")
+# The allowlist's own truth table -- `is_permitted` as an exact match, not a prefix rule -- lives in
+# `tests/test_fields.py`, beside the vocabulary it reads. What stays here is `verify` consulting it.
 
 
 # ---------- doc role: only a document you hand us may steer the pipeline ----------

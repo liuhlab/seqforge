@@ -567,60 +567,10 @@ def test_only_free_text_is_rendered_never_the_structured_half(records: ArchiveRe
     assert "hermaphrodite" not in text
 
 
-def test_the_ask_is_scoped_so_a_biosample_is_never_asked_for_a_chemistry() -> None:
-    """A sample record has no opinion about the chemistry, so asking invites a guess from an alias.
-
-    "single nucleus sequencing daf2 replicate 3" contains no chemistry, but it does contain words a
-    model could pattern-match on. The cheapest defence is not asking.
-    """
-    from seqforge.harvest.fields import fields_for
-
-    assert "library.chemistry" not in fields_for("sample", "reference")
-    assert "experiment.samples.tissue" in fields_for("sample", "reference")
-    # ...and the experiment's protocol paragraph is asked for the chemistry, plus `treatment` (and only
-    # treatment): the GSM title carries the diet, which lives nowhere in the typed BioSample fields.
-    assert fields_for("experiment", "reference") == (
-        "library.chemistry",
-        "experiment.samples.treatment",
-    )
-    # ...but NOT strain/age/tissue: those are the BioSample's own typed fields, and asking the title
-    # for them would let "Day6" vs "day6" null a value the record already resolved.
-    assert "experiment.samples.strain" not in fields_for("experiment", "reference")
-    assert "experiment.samples.age" not in fields_for("experiment", "reference")
-    # ...and the project level is asked nothing at all: "wild-type and daf-2 mutants" is true of the
-    # study and false of every single sample in it.
-    assert fields_for("project", "reference") == ()
-
-
-def test_a_record_document_may_never_set_processing(records: ArchiveRecordSet) -> None:
-    """An archive field is an untrusted input. Prose reaching --soloStrand is precisely what we forbid."""
-    from seqforge.harvest.fields import fields_for, permitted_for
-
-    for scope in ("project", "sample", "experiment", "run"):
-        assert not any(f.startswith("processing.") for f in fields_for(scope, "reference"))
-        assert not permitted_for("processing.genome.assembly", scope, "reference")
-
-
-def test_every_asked_attribute_is_one_ncbi_defines() -> None:
-    """Derived, not typed twice. A name we invent here would sail past the manifest validator's
-    key check only by being invented in both places -- which is exactly how `condition` survived."""
-    from seqforge.harvest.fields import ASKED_SAMPLE_ATTRIBUTES
-    from seqforge.io.attributes import is_attribute
-
-    for name in ASKED_SAMPLE_ATTRIBUTES:
-        assert is_attribute(name), f"{name!r} is not an NCBI harmonized BioSample attribute"
-    assert "condition" not in ASKED_SAMPLE_ATTRIBUTES
-
-
-def test_the_ask_carries_ncbis_own_definition_not_our_paraphrase() -> None:
-    """The prompt is the worst place to keep a definition: nothing checks it, and it is exactly where
-    the pilot's misfiling happened. So the text comes out of NCBI's list."""
-    from seqforge.harvest.fields import describe_asked
-    from seqforge.io.attributes import get_attribute
-
-    text = describe_asked(("experiment.samples.dev_stage",))
-    assert get_attribute("dev_stage").description in text
-    assert "dev_stage" in text
+# What a record document may be ASKED -- the scope/role vocabulary, `fields_for`, `permitted_for`,
+# `ASKED_SAMPLE_ATTRIBUTES`, `describe_asked` -- is `harvest/fields.py`'s table, and its tests live in
+# `tests/test_fields.py`. The claim they used to carry here, "a record document may never set
+# processing", is a property of that table and goes red there.
 
 
 # ---------------------------------------------------------------- A5: the line, as an import graph
