@@ -14,7 +14,7 @@ behind a resolver that happens to be right.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from pydantic import ValidationError
@@ -1078,3 +1078,74 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
     for gen in ({}, {"path": "p.tar.gz", "root_env": "X"}):
         with pytest.raises(ValidationError, match="exactly one"):
             Recipe.model_validate({"generate": {"kind": "fingerprint", **gen}})
+
+
+def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() -> None:
+    """`scripts/eval_report.py` turns an `eval run` report into one self-contained HTML file.
+
+    The renderer exists because the benchmark job produced a number and threw the detail away — a
+    green exit code told you nothing about *which* case carried the risk. What it must never do is
+    what a dashboard usually does: round a false accept into an accuracy figure. `evals/README.md`
+    is explicit that a false accept is the one failure with no tolerable rate, so this asserts the
+    rendered page names it, names the case, and shows the wrong value beside the expected one.
+
+    It also pins that the page is self-contained. A CI artifact is downloaded and opened from disk,
+    where an external stylesheet or script silently renders nothing.
+    """
+    import re
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    from eval_report import render
+
+    report: dict[str, Any] = {
+        "n_cases": 2,
+        "field_accuracy": 0.5,
+        "false_accept_rate": 0.5,
+        "false_refuse_rate": 0.0,
+        "cost": {"seconds": 3.0, "llm_calls": 4.0},
+        "per_case": [
+            {
+                "case": "green-one",
+                "grade": "correct",
+                "expected": "decide",
+                "actual": "decide",
+                "fields": [
+                    {"path": "library.chemistry", "expected": "a", "actual": "a", "ok": True}
+                ],
+                "notes": [],
+            },
+            {
+                "case": "poisoned-one",
+                "grade": "false_accept",
+                "expected": "refuse",
+                "actual": "decide",
+                "fields": [
+                    {
+                        "path": "library.chemistry",
+                        "expected": "10x-3p-gex-v3",
+                        "actual": "bulk-rnaseq-pe",
+                        "ok": False,
+                    }
+                ],
+                "notes": ["decided where it should have stopped"],
+            },
+            {"case": "absent-one", "skipped": "package unreachable"},
+        ],
+    }
+    page = render(report, title="T", source="seqforge eval run")
+
+    assert "poisoned-one" in page and "false_accept" in page
+    assert "bulk-rnaseq-pe" in page and "10x-3p-gex-v3" in page, "the wrong value must be visible"
+    assert "FALSE ACCEPT PRESENT" in page, "a false accept is stated, not folded into a percentage"
+    assert "absent-one" in page and "package unreachable" in page, "a skip is not a silent omission"
+    # Self-contained: no fetch of any kind survives a download-and-open.
+    assert not re.search(r'(?:src|href)\s*=\s*["\']https?://', page), "external asset in the page"
+    assert "<script" not in page.lower()
+
+    clean = render(
+        {**report, "false_accept_rate": 0.0, "per_case": report["per_case"][:1]},
+        title="T",
+        source=None,
+    )
+    assert "No false accepts." in clean and "FALSE ACCEPT PRESENT" not in clean
