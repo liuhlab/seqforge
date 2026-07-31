@@ -41,8 +41,8 @@ the file a transcript, and a transcript cannot be wrong. Write claims that are *
 shapes: `experiment.samples.*.<attr>` and `experiment.samples.<accession>.<attr>`, because `*` alone
 passes on a shuffled join. Name a lab path through an environment variable; a `kind: local` case
 never carries one literally. Do not add a guard that hides a dataset from development, and do not
-cite the benchmark corpus as a pre-registration — it was seeded from runs and is a regression
-baseline.
+cite the benchmark corpus as a pre-registration — read the case's own header, because a seeded and
+since-reviewed expectation is still a regression baseline, not a prediction made before the run.
 
 **Enforced by.** `test_skill_never_leaks_a_lab_path` (`tests/test_skills.py`);
 `test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold` (`tests/test_records.py`);
@@ -55,8 +55,13 @@ first buys, and it is a review obligation rather than a mechanism.
 Two disciplines survive the retirement — real data and its path stay out of git, and `expected.yaml`
 is pre-registered — and both are above, with what enforces them. A lab path is not a project fact.
 
-The benchmark corpus (`evals/benchmark`, seven real *C. elegans* datasets behind byte-light
-fingerprint packages) is the **validation** set we develop against: its expectations were *seeded
-from a run* and are marked pending maintainer review, which makes them a regression baseline and
-explicitly **not** a pre-registration. A true held-out **test** set is a later milestone, and it
-will have to be a dataset nobody has compiled yet.
+The benchmark corpus (`evals/benchmark`, real datasets behind byte-light fingerprint packages,
+mostly but not only *C. elegans*) is the **validation** set we develop against. Its provenance is
+per case, and each file's header says which: the first tranche was *seeded from a run*, and was
+**reviewed against the publications on 2026-07-31** (issue #81) — `experiment.*` confirmed field by
+field against the paper, the fragile values pruned — while later cases were pre-registered before
+their run. **None of that makes it a test set.** When a case goes red we fix the compiler and grade
+it again, which is precisely what a held-out set forbids; a reviewed expectation is a sounder
+regression baseline, not a held-out measurement. A true held-out **test** set is a later milestone,
+it will have to be a dataset nobody has compiled yet, and it is scoped — deliberately as scope, not
+as a decision — in [`docs/agents/eval-corpus.md`](../agents/eval-corpus.md).
