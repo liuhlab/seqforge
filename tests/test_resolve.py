@@ -947,6 +947,13 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbP
     against ``b``'s reads — so skipping geometry-infeasible pairs can never miss a real confusable. The
     founding cross-geometry collision (``bulk-rnaseq-pe`` accepts ``splitseq``) must therefore still be
     seen by ``geometry_could_accept``.
+
+    #112 asked whether the ``geometry_could_accept`` pre-gate the confusability guard uses could bound
+    this O(n²) sweep too. It cannot, and the reason is CIRCULARITY: this test's subject IS
+    ``geometry_could_accept`` (it proves ``accepts_at_rungs_0_2 => geometry_could_accept``). Pre-gating
+    the ``accepts`` call on ``geometry_could_accept`` would only ever examine geometry-YES pairs, where
+    the implication is vacuously true, and would stop covering the geometry-NO pairs the guarantee is
+    about. So it stays ungated: n²·0.70ms, ~8.9s at 100 specs — survivable, and a circular gate is not.
     """
     ids = kb.list_spec_ids()
     specs = {i: kb.load_spec(i) for i in ids}
@@ -966,13 +973,21 @@ def test_descent_narrowing_never_drops_a_valid_spec(kb_probes: KbProbes) -> None
     score VALID with the full registry (rung 3 included) — so scoring the pool yields the identical
     winner as scoring the whole runnable KB. This is the property the whole "narrow, don't change the
     answer" design rests on, checked over every real leaf dataset against every runnable spec.
+
+    #112 asked for the ``geometry_could_accept`` pre-gate here. It is already present, as the
+    ``if length_feasible(spec, wps): continue`` below — ``geometry_could_accept`` IS ``length_feasible``
+    over WindowProbes (geometry.py). But note the DIRECTION: the confusability guard skips the expensive
+    scorer on geometry-NO pairs; this test scores exactly those pairs, because proving "an excluded spec
+    never scores VALID" is its whole subject. So a ``geometry_could_accept`` SKIP-gate would make it
+    vacuous. The scorer runs only on the length-infeasible minority, which is as narrow as the guarantee
+    allows. Growth is bounded by that, not by n² (0.25s at 12 specs after #105's shared kb_probes).
     """
     specs = kb.load_all_specs()
     runnable = [s for s in specs.values() if s.backend is not None]
     for tech in kb.runnable_spec_ids():
         wps = kb_probes[tech]
         for spec in runnable:
-            if length_feasible(spec, wps):
+            if length_feasible(spec, wps):  # == geometry_could_accept; the pre-gate, already here
                 continue
             ev = build_tech_evaluation(spec, wps, DEFAULT_REGISTRY)
             assert not ev.valid, (
