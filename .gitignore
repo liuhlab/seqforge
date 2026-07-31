@@ -25,3 +25,10 @@ site/
 
 # Slurm job logs (lab convention: `mkdir -p sbatch` in the submit dir)
 sbatch/
+
+# Local scratch harnesses. `_*_test.py` / `_test_*.py` are collected by pytest but are nobody's
+# deliverable -- they exist to answer one question during an investigation and then stop mattering.
+# Ignored so a broad `git add` cannot sweep one into a commit, which is how `_scratch2_test.py`
+# reached main twice in one PR.
+/tests/_*_test.py
+/tests/_test_*.py
