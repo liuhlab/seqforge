@@ -182,9 +182,14 @@ def test_the_slicer_stops_at_the_read_budget(tmp_path: Path) -> None:
     assert sl.n_reads == 1000
 
 
-@pytest.mark.parametrize("reads", [50, 200, 200_000])
+@pytest.mark.parametrize("reads", [50, 200_000])
 def test_the_package_round_trips_from_the_tarball(tmp_path: Path, reads: int) -> None:
-    """Loading from the .tar.gz (not the staging dir) yields the same pins and readable slices."""
+    """Loading from the .tar.gz (not the staging dir) yields the same pins and readable slices.
+
+    The two sides of the slice<file / slice>=file boundary are kept (50 and 200_000); a middle point
+    re-proved "the pin is independent of slice size", which ``test_the_pin_carries_the_whole_file_...``
+    owns outright.
+    """
     paths, _ = _synth_dataset(tmp_path, n=300)
     result = build_fingerprint(paths, workspace=tmp_path, reads=reads, name="ds")
     loaded = load_fingerprint(result.package, unpack_to=tmp_path / "unpacked")
@@ -461,7 +466,7 @@ def test_run_from_fingerprint_cli_reproduces_the_hash(tmp_path: Path) -> None:
     from typer.testing import CliRunner
 
     runner = CliRunner()
-    paths = _real_v3_dataset(tmp_path)
+    paths = _real_v3_dataset(tmp_path, n=600)
     ws_full, ws_fp = tmp_path / "full", tmp_path / "fp"
 
     pf = runner.invoke(app, ["preflight", *map(str, paths), "--name", "demo", "-C", str(ws_fp)])
@@ -469,13 +474,21 @@ def test_run_from_fingerprint_cli_reproduces_the_hash(tmp_path: Path) -> None:
     package = json.loads(pf.stdout)["package"]
 
     base = ["--no-llm", "--organism", "6239", "--offline"]
-    runner.invoke(app, ["run", *map(str, paths), *base, "-C", str(ws_full)])
-    runner.invoke(app, ["run", "--fingerprint", package, *base, "-C", str(ws_fp)])
+    full = runner.invoke(app, ["run", *map(str, paths), *base, "-C", str(ws_full)])
+    fp = runner.invoke(app, ["run", "--fingerprint", package, *base, "-C", str(ws_fp)])
+    # Both stop at the genome-less processing stage — a refusal (exit 2), not a crash.
+    assert full.exit_code == 2, full.output
+    assert fp.exit_code == 2, fp.output
 
-    def _hash(ws: Path) -> str:
-        manifest = DatasetManifest.model_validate(
+    def _manifest(ws: Path) -> DatasetManifest:
+        return DatasetManifest.model_validate(
             yaml.safe_load((ws / "seqforge" / "manifest.yaml").read_text())
         )
-        return dataset_content_hash(manifest)
 
-    assert _hash(ws_full) == _hash(ws_fp)
+    full_manifest, fp_manifest = _manifest(ws_full), _manifest(ws_fp)
+    # The shrink must not silently drop off 10x v3: pin the chemistry both paths resolved, so a smaller
+    # dataset that pushed the resolver elsewhere fails HERE rather than passing on a hash that merely
+    # moved together. (v3 is separable from Multiome/GEM-X by whitelist alone — hence the real list.)
+    assert TECH in full_manifest.library.chemistry.value
+    assert TECH in fp_manifest.library.chemistry.value
+    assert dataset_content_hash(full_manifest) == dataset_content_hash(fp_manifest)

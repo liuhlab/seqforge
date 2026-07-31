@@ -8,6 +8,7 @@ worm maps at a rate that merely looks mediocre. So every test here is about what
 from __future__ import annotations
 
 import io
+import json
 import urllib.error
 
 import pytest
@@ -15,15 +16,23 @@ import pytest
 from seqforge.io import taxonomy
 from seqforge.io.taxonomy import Taxon, TaxonomyUnavailable, resolve, seed_names
 
-
-def _net(fn, *a, **k):
-    """Run a test that needs NCBI, or skip. A skip is green, so nothing here may be ONLY networked."""
-    try:
-        return fn(*a, **k)
-    except TaxonomyUnavailable as exc:  # pragma: no cover - host dependent
-        if "failed" in str(exc):
-            pytest.skip(f"NCBI unreachable: {exc}")
-        raise
+#: A canned NCBI efetch (taxonomy) payload for taxid 6239, in the shape `fetch_taxon` parses: the
+#: scientific name and rank, plus the <Synonym>/<GenbankCommonName>/<CommonName> names the round trip's
+#: `answers_to` relies on. Committed so these facts are checked offline and deterministically — the two
+#: tests below used to make the partition's only two LIVE NCBI calls, and because they were unmarked and
+#: `_net` turned an unreachable NCBI into a green skip, CI never actually guaranteed them (#111).
+_EFETCH_6239_XML = (
+    "<TaxaSet><Taxon>"
+    "<TaxId>6239</TaxId>"
+    "<ScientificName>Caenorhabditis elegans</ScientificName>"
+    "<Rank>species</Rank>"
+    "<OtherNames>"
+    "<GenbankCommonName>roundworm</GenbankCommonName>"
+    "<Synonym>Rhabditis elegans</Synonym>"
+    "<CommonName>nematode</CommonName>"
+    "</OtherNames>"
+    "</Taxon></TaxaSet>"
+)
 
 
 def test_the_seed_resolves_offline() -> None:
@@ -85,8 +94,9 @@ def test_fetch_taxon_wraps_a_terminal_http_error_as_unavailable(
     """A transient NCBI efetch failure is unreachability, not a false verdict.
 
     The round-trip verify calls `fetch_taxon`; a terminal HTTPError there (NCBI answering 400/5xx on
-    an otherwise valid efetch) must surface as `TaxonomyUnavailable("... failed ...")` so `_net`
-    treats it as a skip, not a raw urllib error that reddens CI. Regression guard for CI #148.
+    an otherwise valid efetch) must surface as `TaxonomyUnavailable("... failed ...")` so an
+    unreachable NCBI reads as unavailability, not a raw urllib error that reddens CI. Regression guard
+    for CI #148.
     """
 
     def fake_urlopen(url: str, timeout: object = None) -> object:
@@ -103,19 +113,53 @@ def test_an_unseeded_name_refuses_offline_rather_than_guessing() -> None:
         resolve("Nematostella vectensis", offline=True)
 
 
-def test_a_name_ncbi_does_not_know_is_a_refusal_not_a_default() -> None:
-    """Everyone's default is human. On a worm dataset a silent default maps at near-zero (§12)."""
-    with pytest.raises(TaxonomyUnavailable):
-        _net(resolve, "Homo sapiense flurbus")
+def test_a_name_ncbi_does_not_know_is_a_refusal_not_a_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Everyone's default is human. On a worm dataset a silent default maps at near-zero (§12), so a
+    name NCBI returns no id for is a refusal, never a fallback. Driven offline with a canned empty
+    esearch — formerly a live call `_net` would turn into a green skip, so CI never guaranteed it.
+    """
+
+    def fake_get(url: str, *, timeout: float) -> str:
+        assert "esearch" in url, "no efetch should be issued when esearch returns no id"
+        return json.dumps({"esearchresult": {"idlist": []}})
+
+    monkeypatch.setattr(taxonomy, "_get", fake_get)
+    with pytest.raises(TaxonomyUnavailable, match="no match"):
+        resolve("Homo sapiense flurbus")
 
 
-def test_the_round_trip_accepts_a_synonym() -> None:
+def test_the_round_trip_accepts_a_synonym(monkeypatch: pytest.MonkeyPatch) -> None:
     """`answers_to` compares against NCBI's synonyms, not just the scientific name.
 
     A naive equality check would reject `Rhabditis elegans` -- a real historical name for C. elegans
-    that a paper may well use -- and that false refusal is how a verifier gets switched off.
+    that a paper may well use -- and that false refusal is how a verifier gets switched off. Driven
+    offline with canned esearch + efetch payloads (formerly a live call `_net` would silently skip).
     """
-    assert _net(resolve, "Rhabditis elegans") == 6239
+
+    def fake_get(url: str, *, timeout: float) -> str:
+        if "esearch" in url:
+            return json.dumps({"esearchresult": {"idlist": ["6239"]}})
+        return _EFETCH_6239_XML  # efetch, for the round-trip verify
+
+    monkeypatch.setattr(taxonomy, "_get", fake_get)
+    assert resolve("Rhabditis elegans") == 6239
+
+
+def test_fetch_taxon_parses_scientific_name_synonyms_and_common_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`fetch_taxon` reads the scientific name, its <Synonym>s and <Genbank>/<CommonName>s off the
+    efetch XML — the parse `answers_to` depends on, which nothing exercised offline until now (#111)."""
+    monkeypatch.setattr(taxonomy, "_get", lambda url, *, timeout: _EFETCH_6239_XML)
+    taxon = taxonomy.fetch_taxon(6239, timeout=1.0)
+    assert taxon.taxid == 6239
+    assert taxon.scientific_name == "Caenorhabditis elegans"
+    assert taxon.rank == "species"
+    assert set(taxon.names) == {"roundworm", "Rhabditis elegans", "nematode"}
+    assert taxon.answers_to("Rhabditis elegans")  # a <Synonym> answers
+    assert taxon.answers_to("NEMATODE")  # a <CommonName>, case-insensitively
 
 
 def test_the_round_trip_rejects_a_taxid_that_does_not_answer_to_the_name() -> None:

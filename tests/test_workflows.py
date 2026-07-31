@@ -14,6 +14,7 @@ import gzip
 import json
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from typing import get_args
 
@@ -128,14 +129,12 @@ def test_the_axis_files_are_demanded_for_every_feature() -> None:
 
 def test_sj_yields_no_h5ad_but_the_gene_features_still_do() -> None:
     """SJ's var axis is splice junctions, so it is not a layer of a gene object at any price."""
+    from seqforge.manifest.policy import DEFAULT_SOLO_FEATURES
+
     assert h5ad_suffixes(["SJ"]) == []
     assert h5ad_suffixes(["Gene", "SJ"]) == [".h5ad"]
     assert h5ad_suffixes(["Gene", "Velocyto"]) == [".h5ad", ".velocyto.h5ad"]
-
-
-def test_the_default_five_features_yield_exactly_two_files() -> None:
-    from seqforge.manifest.policy import DEFAULT_SOLO_FEATURES
-
+    # The shipped default (all five features) is one more row of the same table: two files.
     assert h5ad_suffixes(list(DEFAULT_SOLO_FEATURES)) == [".h5ad", ".velocyto.h5ad"]
 
 
@@ -206,11 +205,14 @@ def test_the_primary_feature_is_x_and_the_rest_are_layers(tmp_path: Path) -> Non
     assert adata.layers["GeneFull_Ex50pAS"][0, 0] == 21
 
 
-def test_the_matrix_is_transposed_to_cells_by_genes(tmp_path: Path) -> None:
-    """STARsolo writes genes x barcodes; AnnData is cells x genes.
+def test_the_matrix_is_transposed_to_cells_by_genes_and_keeps_the_gene_name_column(
+    tmp_path: Path,
+) -> None:
+    """STARsolo writes genes x barcodes; AnnData is cells x genes — and the gene-name column survives.
 
-    Getting this backwards yields an object that opens, plots, and is wrong — and with a square
-    matrix it would not even be a shape error. Three genes and two cells on purpose.
+    Getting the transpose backwards yields an object that opens, plots, and is wrong — and with a
+    square matrix it would not even be a shape error. Three genes and two cells on purpose. The same
+    read confirms `var["gene_name"]`/`feature_type` carried through from features.tsv.
     """
     solo = _solo_out(tmp_path, ["Gene"])
     write_h5ad(solo, ["Gene"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
@@ -221,33 +223,29 @@ def test_the_matrix_is_transposed_to_cells_by_genes(tmp_path: Path) -> None:
     assert list(adata.var_names) == GENES
     # entry (2, 2) = gene 2, cell 2 in STAR's file -> obs 1, var 1 here
     assert adata.X[1, 1] == 2
-
-
-def test_the_gene_name_column_survives(tmp_path: Path) -> None:
-    solo = _solo_out(tmp_path, ["Gene"])
-    write_h5ad(solo, ["Gene"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
-    adata = ad.read_h5ad(tmp_path / "s1.h5ad")
+    # The gene-name column and feature type survive from features.tsv.
     assert list(adata.var["gene_name"]) == [f"{g}-name" for g in GENES]
     assert set(adata.var["feature_type"]) == {"Gene Expression"}
 
 
-def test_velocyto_carries_three_layers_and_x_is_spliced(tmp_path: Path) -> None:
+def test_velocyto_carries_three_layers_x_is_spliced_and_is_not_a_gene_layer(tmp_path: Path) -> None:
+    """One `write_h5ad`, both deliverables read: the velocyto object AND the plain gene object.
+
+    The `.velocyto.h5ad` carries spliced/unspliced/ambiguous as three layers with X duplicating
+    spliced (scVelo reads the layer, everything else reads X). Those three matrices only mean anything
+    together, so they are NOT a fourth way to count genes: the plain `.h5ad` has no `Velocyto` layer.
+    """
     solo = _solo_out(tmp_path, ["Gene", "Velocyto"])
     write_h5ad(solo, ["Gene", "Velocyto"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
-    adata = ad.read_h5ad(tmp_path / "s1.velocyto.h5ad")
 
-    assert _layer_names(adata) == {"spliced", "unspliced", "ambiguous"}
-    assert adata.shape == (len(BARCODES), len(GENES))
+    velo = ad.read_h5ad(tmp_path / "s1.velocyto.h5ad")
+    assert _layer_names(velo) == {"spliced", "unspliced", "ambiguous"}
+    assert velo.shape == (len(BARCODES), len(GENES))
     # X duplicates layers["spliced"] on purpose: scVelo reads the layer, everything else reads X.
-    assert (adata.X != adata.layers["spliced"]).nnz == 0
+    assert (velo.X != velo.layers["spliced"]).nnz == 0
 
-
-def test_velocyto_is_not_a_layer_of_the_gene_object(tmp_path: Path) -> None:
-    """Three matrices that only mean anything together are not a fourth way to count genes."""
-    solo = _solo_out(tmp_path, ["Gene", "Velocyto"])
-    write_h5ad(solo, ["Gene", "Velocyto"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
-    adata = ad.read_h5ad(tmp_path / "s1.h5ad")
-    assert "Velocyto" not in adata.layers
+    gene = ad.read_h5ad(tmp_path / "s1.h5ad")
+    assert "Velocyto" not in gene.layers  # not a fourth way to count genes
 
 
 def test_stacking_refuses_features_whose_axes_disagree(tmp_path: Path) -> None:
@@ -522,11 +520,34 @@ def test_fragments_suffixes_are_the_three_deliverables_in_build_order() -> None:
 # -- QC (pure Python) -------------------------------------------------------
 
 
-def test_build_fragments_qc_counts_fragments_barcodes_and_reads(tmp_path: Path) -> None:
-    raw = tmp_path / "fragments.raw.tsv"
+def _plain(path: Path) -> Path:
+    raw = path / "fragments.raw.tsv"
     raw.write_text(_RAW)
+    return raw
 
-    qc = build_fragments_qc(raw, sample="s1", assembly="mm10")
+
+def _gzipped(path: Path) -> Path:
+    gz = path / "fragments.tsv.gz"  # a .gz suffix is opened through gzip
+    with gzip.open(gz, "wt") as fh:
+        fh.write(_RAW)
+    return gz
+
+
+def _with_comments(path: Path) -> Path:
+    raw = path / "fragments.raw.tsv"
+    raw.write_text("# a header comment\n\n" + _RAW)  # a comment and a blank line, not fragments
+    return raw
+
+
+@pytest.mark.parametrize(
+    "writer", [_plain, _gzipped, _with_comments], ids=["plain", "gzipped", "with-comments"]
+)
+def test_build_fragments_qc_counts_the_same_over_plain_gzipped_and_commented_input(
+    tmp_path: Path, writer: Callable[[Path], Path]
+) -> None:
+    """The QC is a function of the FRAGMENTS, not the packaging: a `.gz` suffix is read through gzip,
+    comment/blank lines are skipped, and all three yield the identical counts over the same `_RAW`."""
+    qc = build_fragments_qc(writer(tmp_path), sample="s1", assembly="mm10")
 
     assert qc.sample == "s1"
     assert qc.assembly == "mm10"
@@ -535,23 +556,6 @@ def test_build_fragments_qc_counts_fragments_barcodes_and_reads(tmp_path: Path) 
     assert qc.total_reads == 6  # 3 + 1 + 2
     assert qc.max_fragments_per_barcode == 2  # AAA has two fragments
     assert qc.min_fragments_per_barcode == 1  # CCC has one
-
-
-def test_build_fragments_qc_reads_a_bgzipped_or_plain_file(tmp_path: Path) -> None:
-    # A .gz suffix is opened through gzip; the counts must match the plain-text read.
-    gz = tmp_path / "fragments.tsv.gz"
-    with gzip.open(gz, "wt") as fh:
-        fh.write(_RAW)
-    qc = build_fragments_qc(gz, sample="s1", assembly="mm10")
-    assert qc.n_fragments == 3
-    assert qc.n_barcodes == 2
-
-
-def test_build_fragments_qc_skips_comment_and_blank_lines(tmp_path: Path) -> None:
-    raw = tmp_path / "fragments.raw.tsv"
-    raw.write_text("# a header comment\n\n" + _RAW)
-    qc = build_fragments_qc(raw, sample="s1", assembly="mm10")
-    assert qc.n_fragments == 3  # the comment and blank line are not fragments
 
 
 def test_build_fragments_qc_rejects_a_malformed_line(tmp_path: Path) -> None:

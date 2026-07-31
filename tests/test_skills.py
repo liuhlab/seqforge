@@ -7,6 +7,7 @@ that changed. These tests pin the skill set against the actual CLI surface so dr
 
 from __future__ import annotations
 
+import functools
 import itertools
 import re
 from pathlib import Path
@@ -91,7 +92,8 @@ def _verb_naming_pages() -> list[Path]:
 
 @pytest.mark.parametrize("page", _verb_naming_pages(), ids=lambda p: p.parent.name + "/" + p.name)
 def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
-    """A page naming a verb that does not exist is a confident instruction to fail.
+    """A page naming a verb that does not exist -- or calling a real verb with a flag that does not
+    -- is a confident instruction to fail.
 
     Scans `seqforge <verb>` in CODE contexts only and checks it against the real Typer app, so
     renaming a verb turns this red instead of silently misleading an agent or a reader. It has
@@ -104,14 +106,39 @@ def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
     fiction. An agent following it runs a command that does not exist. The group is the part least
     likely to be wrong; the leaf is the part that gets renamed.
 
+    **The flag is the same fact one level down.** A real verb called with a flag that does not exist
+    fails just as hard: `docs/getting-started.md` told people to run `manifest fill ... -o
+    manifest.yaml` (there is no `-o`) and `processing new --dataset manifest.yaml` (the manifest is a
+    positional argument) — both verbs are real, so the verb check was green and both commands exit 2.
+    That was a second test over the SAME page list, spelled a second time; one page list, one rule.
+    Only long options, and only for verbs we can resolve: a short flag is ambiguous in prose, and a
+    placeholder like `--profile <your-cluster-profile>` belongs to snakemake, not to us.
+
     R6 names this function; do not rename it without updating CLAUDE.md's enforcement table.
     """
-    used = _verbs_used(page.read_text())
     real = _real_verbs()
+    used = _verbs_used(page.read_text())
     unknown = sorted(v for v in used if v not in real and v.split()[0] not in _PLANNED)
     assert not unknown, (
         f"{page.parent.name}/{page.name} documents non-existent verb(s): {unknown}\n"
         f"real: {sorted(v for v in real if v.split()[0] in {u.split()[0] for u in unknown})}"
+    )
+
+    flags = _real_flags()
+    body = _code_spans(page.read_text())
+    bad: list[str] = []
+    for match in _INVOCATION.finditer(body):
+        words = match.group(1).split()
+        verb = next((" ".join(words[:n]) for n in (3, 2, 1) if " ".join(words[:n]) in flags), None)
+        if verb is None:
+            continue
+        # the rest of THIS line only — the next line is the next command
+        line = body[match.end() : body.find("\n", match.end()) % (len(body) + 1)]
+        for flag in re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]*)", line):
+            if flag not in flags[verb] and flag not in {"--help"}:
+                bad.append(f"`seqforge {verb} {flag}` — real: {sorted(flags[verb])}")
+    assert not bad, f"{page.parent.name}/{page.name} documents non-existent flag(s):\n" + "\n".join(
+        bad
     )
 
 
@@ -126,6 +153,7 @@ def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
 _PLANNED: set[str] = set()
 
 
+@functools.cache
 def _real_cli() -> tuple[set[str], set[str]]:
     """The live app's surface: ``(every invocation it answers to, the ones that are GROUPS)``.
 
@@ -216,8 +244,13 @@ def _real_verbs() -> set[str]:
     return _real_cli()[0]
 
 
+@functools.cache
 def _real_flags() -> dict[str, set[str]]:
-    """verb -> the long options it really takes. Introspected from the live app's click commands."""
+    """verb -> the long options it really takes. Introspected from the live app's click commands.
+
+    Memoized: ``get_command(app)`` costs ~25 ms warm, and this is read once per page across ~30
+    parametrized pages. The facts asserted are unchanged; only the introspection is paid once.
+    """
     from typer.main import get_command
 
     from seqforge.cli import app
@@ -239,38 +272,6 @@ def _real_flags() -> dict[str, set[str]]:
 
     _walk(get_command(app), "")
     return out
-
-
-@pytest.mark.parametrize(
-    "page",
-    [*_doc_pages(), *[d / "SKILL.md" for d in _skill_dirs()], _REPO / "README.md"],
-    ids=lambda p: f"{p.parent.name}/{p.name}",
-)
-def test_documented_flags_exist(page: Path) -> None:
-    """A verb that exists, called with a flag that does not, fails just as hard.
-
-    `docs/getting-started.md` told people to run `manifest fill ... -o manifest.yaml` (there is no
-    `-o`; it writes to the workspace) and `processing new --dataset manifest.yaml` (the manifest is a
-    positional argument). Both verbs are real, so the verb check was green, and both commands exit 2.
-
-    Only long options, and only for verbs we can resolve: a short flag is ambiguous in prose, and a
-    placeholder like `--profile <your-cluster-profile>` belongs to snakemake, not to us.
-    """
-    flags = _real_flags()
-    verbs, _ = _real_cli()
-    body = _code_spans(page.read_text())
-    bad: list[str] = []
-    for match in _INVOCATION.finditer(body):
-        words = match.group(1).split()
-        verb = next((" ".join(words[:n]) for n in (3, 2, 1) if " ".join(words[:n]) in flags), None)
-        if verb is None:
-            continue
-        # the rest of THIS line only — the next line is the next command
-        line = body[match.end() : body.find("\n", match.end()) % (len(body) + 1)]
-        for flag in re.findall(r"(?<![\w-])(--[a-z][a-z0-9-]*)", line):
-            if flag not in flags[verb] and flag not in {"--help"}:
-                bad.append(f"`seqforge {verb} {flag}` — real: {sorted(flags[verb])}")
-    assert not bad, f"{page.name} documents non-existent flag(s):\n" + "\n".join(bad)
 
 
 #: A CONCRETE lab path: two real segments under a cluster root. `/scratch/...` in prose is the rule

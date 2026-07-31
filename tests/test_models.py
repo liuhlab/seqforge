@@ -266,21 +266,25 @@ def test_accession_pattern_accepts_ena_and_ddbj() -> None:
         )
 
 
-def test_schema_export_covers_every_registered_model() -> None:
+def test_the_schema_export_surface() -> None:
+    """The one schema-export surface: every registered model exports under its own title,
+    `export_all` carries BOTH manifests with their `$defs`, and an unknown name raises.
+
+    The `LLM_FACING.issubset(...)` line that once lived in the first of these is dropped: it is
+    strictly dominated by `test_the_processing_manifest_is_not_llm_facing`, which pins `LLM_FACING` by
+    exact equality — a subset check cannot fail anywhere the equality check already holds.
+    """
     for name in m.SCHEMA_MODELS:
         schema = m.export_schema(name)
         assert schema["title"] == name
-    assert m.LLM_FACING.issubset(
-        set(m.SCHEMA_MODELS) | {"ArbitrationRequest", "ArbitrationResponse"}
-    )
-
-
-def test_export_all_includes_both_manifests_and_defs() -> None:
-    allschemas = m.export_all()
     # TWO artifacts, two schemas. A split that exported only one would silently lose coverage.
+    allschemas = m.export_all()
     for name in ("DatasetManifest", "ProcessingManifest"):
         assert name in allschemas
         assert "$defs" in allschemas[name]
+    # an unknown model name raises rather than returning an empty schema
+    with pytest.raises(KeyError):
+        m.export_schema("NotAModel")
 
 
 def test_the_processing_manifest_is_not_llm_facing() -> None:
@@ -348,11 +352,6 @@ def test_solo_quant_rejects_a_feature_starsolo_does_not_have() -> None:
     """The closure is what makes span-verification non-vacuous for this field — see verify.entails."""
     with pytest.raises(ValidationError):
         m.SoloQuant(features=["GeneFullish"])
-
-
-def test_export_schema_unknown_model_raises() -> None:
-    with pytest.raises(KeyError):
-        m.export_schema("NotAModel")
 
 
 def test_the_module_graph_enforces_the_split() -> None:

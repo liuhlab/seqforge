@@ -40,25 +40,17 @@ def _patch_labdata(monkeypatch: pytest.MonkeyPatch, resolver) -> None:
 def test_experiments_for_returns_labdatas_experiment_accessions_sorted_and_deduped(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_labdata(
-        monkeypatch,
-        lambda acc: [_FakeExperiment(a) for a in ("SRX2", "SRX1", "SRX2")],
-    )
-    assert archive._experiments_for("GSE229022") == ["SRX1", "SRX2"]
-
-
-def test_experiments_for_passes_the_accession_through_unchanged(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
     seen: list[str] = []
 
     def resolver(accession: str) -> list[_FakeExperiment]:
-        seen.append(accession)
-        return [_FakeExperiment("SRX1")]
+        seen.append(accession)  # record it to prove the accession passes through unchanged
+        return [_FakeExperiment(a) for a in ("SRX2", "SRX1", "SRX2")]
 
     _patch_labdata(monkeypatch, resolver)
-    archive._experiments_for("GSE229022")
-    assert seen == ["GSE229022"]
+    assert archive._experiments_for("GSE229022") == ["SRX1", "SRX2"]
+    assert seen == [
+        "GSE229022"
+    ]  # reaches labdata untransformed (folded from the passthrough sibling)
 
 
 # `test_experiments_for_translates_a_labdata_error_into_a_remote_error` was deleted (#110): it raised

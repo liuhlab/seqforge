@@ -90,7 +90,11 @@ def test_llm_schema_is_derived_from_the_canonical_model() -> None:
 def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
     """Design §1.8: constraints live in the canonical schema (Pydantic enforces them at ingest) and
     are stripped from the LLM-facing one. The SDK performs that transform, so there is no second
-    hand-maintained schema to drift — this is the CI guard on that."""
+    hand-maintained schema to drift — this is the CI guard on that.
+
+    Cost is `import anthropic` (the transform itself is free); it is the only seam that proves our wire
+    schema survives strict-mode transformation, so we pay it knowingly. It reaches a third-party PRIVATE
+    module, so it will break on an SDK upgrade rather than on a seqforge defect."""
     from anthropic.lib._parse._transform import transform_schema
 
     strict = transform_schema(llm_schema())
@@ -183,37 +187,35 @@ def test_extract_drops_one_malformed_draft_and_keeps_the_rest(tmp_path: Path) ->
         "llm_confidence": 0.9,
     }
     bad = {**good, "value": None}  # the flaky token: a null value where a string is required
-    provider = _FakeProvider(json.dumps({"drafts": [good, bad]}))
+    missing = {"field": "library.chemistry"}  # no span at all — malformed the same way, dropped too
+    provider = _FakeProvider(json.dumps({"drafts": [good, bad, missing]}))
     outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
 
-    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3"]  # good one kept
-    assert len(outcome.rejected) == 1
-    assert outcome.rejected[0]["reason"] == "malformed_draft"
-    assert outcome.rejected[0]["field"] == "library.chemistry"
-
-
-def test_extract_drops_a_draft_missing_a_required_field(tmp_path: Path) -> None:
-    """A draft missing its span is malformed the same way — dropped, not fatal."""
-    provider = _FakeProvider(json.dumps({"drafts": [{"field": "library.chemistry"}]}))  # no span
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert outcome.drafts == []
-    assert len(outcome.rejected) == 1
-    assert outcome.rejected[0]["reason"] == "malformed_draft"
+    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3"]  # only the good one survives
+    # both malformed shapes — a null value, and a missing required span — are dropped per-draft, not
+    # fatal, and land in `rejected` with the same reason (folded from the missing-field sibling test)
+    assert len(outcome.rejected) == 2
+    assert {r["reason"] for r in outcome.rejected} == {"malformed_draft"}
+    assert all(r["field"] == "library.chemistry" for r in outcome.rejected)
 
 
 def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> None:
     """The salvage stops at the batch boundary: a response with no `drafts` array at all has nothing
-    to keep, so it still dies wholesale rather than pretending it extracted an empty batch."""
-    provider = _FakeProvider(json.dumps({"not_drafts": 1}))
+    to keep, so it dies wholesale rather than pretending it extracted an empty batch — and the error
+    names what is actually wrong with `drafts` (missing, or present-but-not-a-list)."""
     with pytest.raises(ExtractUnavailable, match="`drafts` key is missing"):
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-
-
-def test_extract_names_the_drafts_type_when_it_is_present_but_not_a_list(tmp_path: Path) -> None:
-    """`{"drafts": null}` must blame `drafts`, not report the useless top-level `got dict`."""
-    provider = _FakeProvider(json.dumps({"drafts": None}))
+        extract_drafts(
+            _doc(tmp_path),
+            kb.load_all_specs(),
+            provider=_FakeProvider(json.dumps({"not_drafts": 1})),
+        )
+    # `{"drafts": null}` must blame `drafts`, not report the useless top-level `got dict`.
     with pytest.raises(ExtractUnavailable, match="`drafts` key is a NoneType"):
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+        extract_drafts(
+            _doc(tmp_path),
+            kb.load_all_specs(),
+            provider=_FakeProvider(json.dumps({"drafts": None})),
+        )
 
 
 def test_extract_rejects_non_json(tmp_path: Path) -> None:
@@ -298,29 +300,50 @@ def test_extract_surfaces_provider_failure(tmp_path: Path) -> None:
 
 
 # ---------- provider selection ----------
-def test_resolve_provider_prefers_explicit_over_environment(
+#: The provider-precedence table: (explicit --provider arg, environment) -> which provider, or a
+#: refusal. Explicit beats implicit; a lone credential auto-detects; no credential (and an unknown
+#: name) refuses rather than guessing — a silent wrong model is a provenance bug. `expected` is a
+#: provider name to select, or (exc, match) for a refusal.
+_PROVIDER_SELECTION = [
+    ("anthropic", {"ANTHROPIC_API_KEY": "x", "DEEPSEEK_API_KEY": "y"}, "anthropic"),
+    ("deepseek", {"ANTHROPIC_API_KEY": "x", "DEEPSEEK_API_KEY": "y"}, "deepseek"),
+    (None, {"DEEPSEEK_API_KEY": "y"}, "deepseek"),  # auto-detect from the one credential present
+    (
+        None,
+        {},
+        (ProviderUnavailable, "no LLM credential"),
+    ),  # neither present -> refuse, don't guess
+    ("gpt-9", {}, (ProviderUnavailable, "unknown provider")),  # a name we do not know -> refuse
+]
+
+
+@pytest.mark.parametrize(
+    "explicit, env, expected",
+    _PROVIDER_SELECTION,
+    ids=[
+        "explicit-anthropic",
+        "explicit-deepseek",
+        "auto-deepseek",
+        "refuse-none",
+        "refuse-unknown",
+    ],
+)
+def test_resolve_provider_walks_the_precedence_table(
+    explicit: str | None,
+    env: dict[str, str],
+    expected: str | tuple[type[Exception], str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "y")
-    assert resolve_provider("anthropic").name == "anthropic"
-    assert resolve_provider("deepseek").name == "deepseek"
-
-
-def test_resolve_provider_auto_detects_from_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("SEQFORGE_LLM_PROVIDER", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "y")
-    assert resolve_provider().name == "deepseek"
-
-
-def test_resolve_provider_refuses_rather_than_guessing(monkeypatch: pytest.MonkeyPatch) -> None:
     for var in ("SEQFORGE_LLM_PROVIDER", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY"):
         monkeypatch.delenv(var, raising=False)
-    with pytest.raises(ProviderUnavailable, match="no LLM credential"):
-        resolve_provider()
-    with pytest.raises(ProviderUnavailable, match="unknown provider"):
-        resolve_provider("gpt-9")
+    for key, val in env.items():
+        monkeypatch.setenv(key, val)
+    if isinstance(expected, str):
+        assert resolve_provider(explicit).name == expected
+    else:
+        exc, match = expected
+        with pytest.raises(exc, match=match):
+            resolve_provider(explicit)
 
 
 def test_provider_defaults() -> None:
@@ -466,9 +489,9 @@ def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_p
     assert outcome.usage["cache_read_tokens"] == 1024  # DeepSeek's automatic prefix caching
     assert outcome.extractor.model_id == f"deepseek/{DEEPSEEK_DEFAULT_MODEL}"
 
-    # the tripwire does not care which model produced the drafts
+    # the tripwire does not care which model produced the drafts: the good draft is accepted, the
+    # fabricated quote is rejected. (The offset re-check that a quote greps back is owned by
+    # test_harvest.py, not re-proved here.)
     report = verify_drafts(outcome.drafts, [nd], extractor=outcome.extractor)
     assert report.n_accepted == 1
     assert report.rejected[0]["reason"] == "span_not_found"
-    a = report.assertions[0]
-    assert nd.text[a.span.char_start : a.span.char_end] == _QUOTE

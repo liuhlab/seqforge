@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from seqforge.hooks import (
     check_absolute_path_write,
     check_unbounded_fastq,
@@ -27,41 +29,46 @@ from seqforge.hooks import (
 # ---------------------------------------------------------------------------------------------
 
 
-def test_denies_an_unbounded_fastq_stream() -> None:
-    d = check_unbounded_fastq("zcat sample_R1.fastq.gz | wc -l")
-    assert d is not None
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        pytest.param("zcat sample_R1.fastq.gz | wc -l", id="zcat-wc"),
+        pytest.param("cat reads.fastq", id="cat"),
+        pytest.param("zcat reads.fq.gz | awk '{print}'", id="zcat-awk"),
+        pytest.param("gunzip -c reads.fastq.gz > out", id="gunzip-c"),
+        pytest.param("bzcat reads.fastq.bz2 | grep AAAA", id="bzcat"),
+    ],
+)
+def test_denies_an_unbounded_fastq_stream(cmd: str) -> None:
+    """Every streaming reader is blocked, and the block names its rule and a way forward.
+
+    A guard proves it engages on the thing it must stop; that it *also* hands back a `remedy` is what
+    keeps the block from being a wall the operator routes around.
+    """
+    d = check_unbounded_fastq(cmd)
+    assert d is not None, cmd
     assert "FASTQ" in d.rule
     assert d.remedy  # a block with no way forward is a wall
 
 
-def test_denies_every_streaming_reader() -> None:
-    for cmd in (
-        "cat reads.fastq",
-        "zcat reads.fq.gz | awk '{print}'",
-        "gunzip -c reads.fastq.gz > out",
-        "bzcat reads.fastq.bz2 | grep AAAA",
-    ):
-        assert check_unbounded_fastq(cmd) is not None, cmd
-
-
-def test_allows_a_bounded_stream() -> None:
-    """`head` caps the read. This is the neighbouring command that must NOT be blocked."""
-    for cmd in (
-        "zcat reads.fastq.gz | head -n 4000",
-        "head -c 1000000 reads.fastq",
-        "zcat reads.fastq.gz | head -4",
-    ):
-        assert check_unbounded_fastq(cmd) is None, cmd
-
-
-def test_allows_the_sanctioned_seqforge_verb() -> None:
-    """`seqforge probe` is bounded by construction (200k reads / 256 MB) — blocking it is nonsense."""
-    for cmd in (
-        "seqforge probe reads.fastq.gz --json",
-        "pixi run -- seqforge probe reads.fastq.gz",
-        "python -m seqforge.cli probe reads.fastq.gz",
-    ):
-        assert check_unbounded_fastq(cmd) is None, cmd
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        # `head` caps the read -- the neighbouring command that must NOT be blocked
+        pytest.param("zcat reads.fastq.gz | head -n 4000", id="head-n"),
+        pytest.param("head -c 1000000 reads.fastq", id="head-c"),
+        pytest.param("zcat reads.fastq.gz | head -4", id="head-4"),
+        # `seqforge probe` is bounded by construction (200k reads / 256 MB) -- blocking it is nonsense
+        pytest.param("seqforge probe reads.fastq.gz --json", id="probe"),
+        pytest.param("pixi run -- seqforge probe reads.fastq.gz", id="pixi-probe"),
+        pytest.param("python -m seqforge.cli probe reads.fastq.gz", id="module-probe"),
+    ],
+)
+def test_allows_a_bounded_or_sanctioned_fastq_read(cmd: str) -> None:
+    """The neighbour that must pass: a `head`-capped stream, or the `seqforge probe` verb that is
+    bounded by construction. A guard that blocks correct work gets switched off, and then it guards
+    nothing."""
+    assert check_unbounded_fastq(cmd) is None, cmd
 
 
 def test_ignores_commands_with_no_fastq() -> None:

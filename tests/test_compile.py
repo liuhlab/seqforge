@@ -7,6 +7,7 @@ chemistry-defining knob, must both FAIL — silently emitting them is how a corp
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 from typing import get_args
@@ -286,6 +287,19 @@ def test_dataset_hash_is_invariant_across_a_processing_sweep(built_v3: Built) ->
     assert len({p.provenance.processing_hash for p in sweep}) == 3, "three recipes, three hashes"
     assert manifest.provenance.dataset_hash == before == dataset_content_hash(manifest)
 
+    # The processing hash matches its provenance AND ignores it (folded from the old
+    # test_processing_hash_matches_provenance_and_ignores_it, whose name promised the second half but
+    # asserted only the first). Mutating ONLY the provenance section must not move the content hash:
+    # provenance STORES the hash, it is never part of what is hashed.
+    p = sweep[0]
+    assert processing_content_hash(p) == p.provenance.processing_hash
+    mutated = p.model_copy(
+        update={"provenance": p.provenance.model_copy(update={"processing_hash": "0" * 64})}
+    )
+    assert processing_content_hash(mutated) == processing_content_hash(p), (
+        "the content hash must exclude provenance -- it is what provenance carries"
+    )
+
 
 def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
     """One dataset x N processing manifests = N runs.
@@ -308,12 +322,6 @@ def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
         for p in (a, b)
     ]
     assert ids[0] != ids[1]
-
-
-def test_processing_hash_matches_provenance_and_ignores_it(built_v3: Built) -> None:
-    manifest, _ = built_v3
-    p = _processing(manifest)
-    assert processing_content_hash(p) == p.provenance.processing_hash
 
 
 def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_path: Path) -> None:
@@ -367,13 +375,6 @@ def test_validate_processing_blocks_a_genome_organism_mismatch(built_v3: Built) 
     assert all(blk.remedy for blk in report.blockers)  # every refusal is actionable
 
 
-def test_validate_clean_manifest(built_v3: Built) -> None:
-    manifest, _ = built_v3
-    report = validate_manifest(manifest)
-    assert report.ok and not report.blockers
-    assert exit_code_for_report(report) == 0
-
-
 def test_validate_catches_referential_integrity_break(built_v3: Built) -> None:
     manifest, _ = built_v3
     broken = manifest.model_copy(
@@ -422,6 +423,10 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
 
 # ---------- workflows ----------
 def test_workflow_modules_are_registered_and_present_on_disk() -> None:
+    from types import SimpleNamespace
+
+    from seqforge.workflows import MODULES, resolve_pipeline
+
     assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap"}
     valid_envs = set(get_args(RuntimeEnv))
     for name in list_modules():
@@ -433,6 +438,19 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         # env is the module's own declaration (policy reads it off the pipeline), so a second aligner
         # in a different env is correct, not a test failure.
         assert module.env in valid_envs
+
+    # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
+    # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
+    # modality the target pipeline does not serve is a loud refusal at compose time, not a wrong
+    # command line -- the same silent fall-through read_layout_kind/param_block were built to kill.
+    rna = kb.load_spec("10x-3p-gex-v3")
+    assert resolve_pipeline(rna) is MODULES[rna.require_backend().module]
+    unserved = SimpleNamespace(
+        require_backend=lambda: SimpleNamespace(module="map/starsolo"),
+        identity=SimpleNamespace(modality="atac", id="fake-atac"),
+    )
+    with pytest.raises(KeyError, match="serves modalities"):
+        resolve_pipeline(unserved)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("module", list_modules())
@@ -830,12 +848,19 @@ def test_no_run_directive_rule_declares_a_container() -> None:
 def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     """The env name was recorded and read by nothing, so every run used whatever aligner was on PATH.
 
-    Generalized over aligners: every module must run its external aligner (and any other runtime binary,
-    e.g. samtools/htslib) inside the pinned `config["container"]`, never from the submitting shell's
-    PATH. Rather than name STAR — which only the RNA modules invoke — assert each module carries at least
-    one `container: config["container"]` rule and emits the `container` key those rules read. A second
+    Generalized over aligners AND over every runtime binary a rule reaches: every module must run its
+    external aligner (and any other runtime tool, e.g. samtools/htslib behind `seqforge io cram`)
+    inside the pinned `config["container"]`, never from the submitting shell's PATH. Rather than name
+    STAR — which only the RNA modules invoke — assert each module carries at least one
+    `container: config["container"]` rule and emits the `container` key those rules read. A second
     aligner (chromap, in `align-dna`) is then covered by construction rather than needing its own case.
+
+    The `seqforge io cram` half is folded in from test_the_cram_rule_runs_in_a_pinned_container: it is
+    the SAME guard, generalised — the line for a `container:` is "the rule ends up invoking an external
+    runtime binary", not "is the aligner". The pure-seqforge steps (h5ad, onlist, the qc bundle) reach
+    no such binary and correctly carry no container.
     """
+    saw_cram = False
     for name in list_modules():
         blocks = _rule_blocks(get_module(name).snakefile)
         containered = [r for r, b in blocks.items() if 'container: config["container"]' in b]
@@ -845,6 +870,16 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
         )
         # ...and the composer must actually emit the key those rules read.
         assert "container" in get_module(name).required_config
+        # a rule shelling out to samtools via `seqforge io cram` is the same guard: the tool it reaches
+        # must be the pinned one, not whatever the submitting shell happened to have.
+        for rule, body in blocks.items():
+            if "seqforge io cram" in body:
+                saw_cram = True
+                assert 'container: config["container"]' in body, (
+                    f"{name}:{rule} runs `seqforge io cram` (which shells out to samtools) with no "
+                    f"container, so the tool is whatever the submitting shell happened to have"
+                )
+    assert saw_cram, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
 
 
 def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe() -> None:
@@ -875,43 +910,18 @@ def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe()
     assert seen, "no module invokes STAR; this test is looking at the wrong place"
 
 
-def test_the_cram_rule_runs_in_a_pinned_container() -> None:
-    """`seqforge io cram` shells out to samtools — a runtime tool, exactly like STAR — so its rule
-    must name the image, not run against whatever samtools the submitting shell happened to have.
-
-    The samtools call is behind the verb, so the detectable signal at the module level is the verb
-    invocation itself; the container is what pins the tool the verb reaches. This is the same guard as
-    `test_the_aligner_rule_runs_in_a_pinned_container`, generalised: the line for a `container:` is
-    "the rule ends up invoking an external runtime binary", not "is the aligner". The pure-seqforge
-    steps (h5ad, onlist, the qc bundle) reach no such binary and correctly carry no container.
-    """
-    seen = False
-    for name in list_modules():
-        for rule, body in _rule_blocks(get_module(name).snakefile).items():
-            if "seqforge io cram" in body:
-                seen = True
-                assert 'container: config["container"]' in body, (
-                    f"{name}:{rule} runs `seqforge io cram` (which shells out to samtools) with no "
-                    f"container, so the tool is whatever the submitting shell happened to have"
-                )
-    assert seen, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
-
-
-def test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here() -> None:
-    """We NAME liulab-runtime's artifact. Naming is the opposite of defining."""
-    from seqforge.models.processing import RuntimeEnv
-    from seqforge.workflows import RUNTIME_IMAGE, container_uri
-
-    for env in get_args(RuntimeEnv):
-        assert container_uri(env) == f"docker://{RUNTIME_IMAGE}:{env}"
-
-
 def test_a_prebuilt_sif_beats_the_ghcr_tag_but_only_if_it_is_really_there(tmp_path: Path) -> None:
     """A compute node that cannot reach ghcr.io cannot pull; the lab prebuilds these images.
 
     The naming (`liulab-runtime_<env>.sif`) is read off liulab-runtime's own `build-sifs.sh`, whose
     header says apptainer is not even installed on the arc login node. A *missing* file falls back to
     the tag rather than emitting a path to nothing: a config naming an absent SIF fails on a node.
+
+    We NAME liulab-runtime's artifact; naming is the opposite of defining. The dropped
+    test_the_container_is_a_liulab_runtime_env_and_nothing_is_defined_here asserted
+    `container_uri(env) == f"docker://{RUNTIME_IMAGE}:{env}"` over four envs — a straight restatement
+    of the function's own return expression with no per-env branch, so it could not fail; the
+    fall-back-to-tag case it stood for is exercised here off a real filesystem.
     """
     from seqforge.workflows import container_uri
 
@@ -1004,43 +1014,93 @@ def test_compose_writes_the_bound_processing_lock(built_v3: Built, tmp_path: Pat
     assert written.dataset.dataset_hash == manifest.provenance.dataset_hash
 
 
-def test_params_gate_fails_when_kb_offsets_contradict_the_observed_layout(built_v3: Built) -> None:
-    """A KB claiming a 10 bp UMI over a 12 bp UMI read must FAIL — this is the quiet corpus killer."""
-    manifest, reg = built_v3
-    spec = kb.load_spec("10x-3p-gex-v3")
-    lying = spec.model_copy(
+# The params gate is the semantic check a dry run cannot make. Each corruption below takes the CLEAN
+# `(spec, config)` off one shared `plan(...)` and returns a poisoned pair the gate must reject; the
+# six were six near-identical functions that each re-paid the same setup.
+def _corrupt_kb_claims_a_10bp_umi(spec: object, config: dict) -> tuple[object, dict]:
+    """A KB claiming a 10 bp UMI over a 12 bp UMI read -- the quiet corpus killer."""
+    lying = spec.model_copy(  # type: ignore[attr-defined]
         update={
-            "backend": spec.backend.model_copy(
-                update={"params": {**spec.backend.params, "soloUMIlen": 10}}
+            "backend": spec.backend.model_copy(  # type: ignore[attr-defined]
+                update={"params": {**spec.backend.params, "soloUMIlen": 10}}  # type: ignore[attr-defined]
             )
         }
     )
-    p = plan(manifest, _processing(manifest), registry=reg)
-    status, problems = params_gate(manifest, _processing(manifest), lying, p.config)
-    assert status == "fail"
-    assert any("soloUMIlen" in problem for problem in problems)
+    return lying, config
 
 
-def test_params_gate_fails_when_config_drops_a_chemistry_knob(built_v3: Built) -> None:
-    manifest, reg = built_v3
-    spec = kb.load_spec("10x-3p-gex-v3")
-    p = plan(manifest, _processing(manifest), registry=reg)
-    mangled = dict(p.config)
-    mangled["solo"] = {k: v for k, v in p.config["solo"].items() if k != "soloStrand"}  # type: ignore[union-attr]
-    status, problems = params_gate(manifest, _processing(manifest), spec, mangled)
-    assert status == "fail"
-    assert any("soloStrand" in problem for problem in problems)
+def _corrupt_config_drops_a_chemistry_knob(spec: object, config: dict) -> tuple[object, dict]:
+    mangled = dict(config)
+    mangled["solo"] = {k: v for k, v in config["solo"].items() if k != "soloStrand"}
+    return spec, mangled
 
 
-def test_params_gate_fails_when_read_files_in_swaps_cdna_and_barcode(built_v3: Built) -> None:
-    manifest, reg = built_v3
-    spec = kb.load_spec("10x-3p-gex-v3")
-    p = plan(manifest, _processing(manifest), registry=reg)
-    swapped = dict(p.config)
+def _corrupt_read_files_in_swaps_cdna_and_barcode(
+    spec: object, config: dict
+) -> tuple[object, dict]:
+    swapped = dict(config)
     swapped["read_files_in"] = {"cdna": "R1", "barcode": "R2"}  # barcode read fed as the cDNA read
-    status, problems = params_gate(manifest, _processing(manifest), spec, swapped)
+    return spec, swapped
+
+
+def _corrupt_config_disagrees_with_the_manifest(spec: object, config: dict) -> tuple[object, dict]:
+    # makes `quantification` load-bearing: a decorative field cannot be caught.
+    return spec, {**config, "solo": {**config["solo"], "soloFeatures": "GeneFull"}}
+
+
+def _corrupt_kb_declares_a_count_key(spec: object, config: dict) -> tuple[object, dict]:
+    # belt to the schema validator's braces -- catches the model_copy'd specs tests build.
+    misowned = spec.model_copy(  # type: ignore[attr-defined]
+        update={
+            "backend": spec.backend.model_copy(  # type: ignore[attr-defined]
+                update={"params": {**spec.backend.params, "soloFeatures": ["Gene"]}}  # type: ignore[attr-defined]
+            )
+        }
+    )
+    return misowned, config
+
+
+def _corrupt_emits_a_key_with_no_owner(spec: object, config: dict) -> tuple[object, dict]:
+    # the emitted key set must be EXACTLY the two owners' union, so an orphan (a key moved out of the
+    # KB, or one never owned) is not invisible -- disjointness alone is the decorative bug in reverse.
+    return spec, {**config, "solo": {**config["solo"], "outFilterMismatchNmax": "10"}}
+
+
+@pytest.mark.parametrize(
+    "corruption, expected_problem",
+    [
+        (_corrupt_kb_claims_a_10bp_umi, "soloUMIlen"),
+        (_corrupt_config_drops_a_chemistry_knob, "soloStrand"),
+        (_corrupt_read_files_in_swaps_cdna_and_barcode, "cdna"),
+        (_corrupt_config_disagrees_with_the_manifest, "does not match the processing manifest"),
+        (_corrupt_kb_declares_a_count_key, "count key"),
+        (_corrupt_emits_a_key_with_no_owner, "no owner declares"),
+    ],
+    ids=[
+        "kb_offsets_contradict_the_observed_layout",
+        "config_drops_a_chemistry_knob",
+        "read_files_in_swaps_cdna_and_barcode",
+        "config_disagrees_with_the_manifest",
+        "kb_declares_a_count_key",
+        "emitted_key_with_no_owner",
+    ],
+)
+def test_the_params_gate_fails_on_a_corrupt_params_dict(
+    built_v3: Built, corruption, expected_problem: str
+) -> None:
+    """Six corruptions, one shared plan; silently emitting any of them is how a corpus gets poisoned.
+
+    Each id localises the failure it is meant to catch, so a single-row regression names itself. The
+    six were six functions that each re-paid the byte-identical `built_v3` + `plan(...)` setup.
+    """
+    manifest, reg = built_v3
+    p = _processing(manifest)
+    spec = kb.load_spec("10x-3p-gex-v3")
+    config = plan(manifest, p, registry=reg).config
+    spec2, config2 = corruption(spec, config)
+    status, problems = params_gate(manifest, p, spec2, config2)
     assert status == "fail"
-    assert any("cdna" in problem for problem in problems)
+    assert any(expected_problem in problem for problem in problems), problems
 
 
 def test_compose_refuses_when_the_whitelist_cannot_be_materialized(
@@ -1072,36 +1132,36 @@ def _one_spec_per_distinct_backend() -> list[str]:
 
 
 @pytest.mark.parametrize("tech", _one_spec_per_distinct_backend())
-def test_every_module_required_config_key_is_actually_emitted(tech: str, tmp_path: Path) -> None:
-    """``WorkflowModule.required_config`` says "checked in CI". Until now, nothing checked it.
+def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
+    tech: str, tmp_path: Path
+) -> None:
+    """One representative per §12 processing-equivalence class, composed against the module its backend
+    selects — so a chemistry cannot hide behind a hardcoded ``{module: tech}`` dict key. The axis is
+    derived from ``canonical_backend``, never a hand list (R8): a genuinely divergent new spec gets its
+    own case automatically. Two facts share one ``_build`` + ``plan`` — they were byte-identical setup
+    paid twice per tech:
 
-    The field's own comment reads "the composer must emit every one (checked in CI)" — a contract
-    with no enforcement. It matters most exactly when a key MOVES between owners: whichever side
-    forgets it, the module still declares it, snakemake resolves `config[...]` at rule-expansion time,
-    and the failure surfaces as a KeyError on a compute node long after compose exited 0.
+    1. **Every key the module dereferences is emitted.** ``WorkflowModule.required_config`` says
+       "checked in CI"; it matters most when a key MOVES between owners — whichever side forgets it,
+       the module still declares it and the failure surfaces as a KeyError on a compute node long after
+       compose exited 0. This once checked ONE hardcoded chemistry per module, which made a second
+       starsolo chemistry structurally unrepresentable, so SPLiT-seq was never composed here at all. A
+       param key applies to THIS chemistry only if some owner declares it (KB, derived, or the
+       processing manifest): STARsolo's CB geometry is start/len for a simple chemistry and a quadruple
+       for a combinatorial one, so ``required_config`` is the union of what the module MAY read and this
+       is where the branch is resolved. Non-param keys are unconditional.
 
-    That prediction came true, and this test was blind to it twice over. It checked ONE hardcoded
-    chemistry per module — `{"map/starsolo": "10x-3p-gex-v3"}` — which made a second starsolo
-    chemistry structurally unrepresentable, so SPLiT-seq was never composed here at all. And it
-    validated against a `required_config` that was itself missing the four keys `starsolo.smk`
-    dereferences. Both halves of the guard were wrong in the same direction.
-
-    Now every KB spec is composed against whichever module its backend selects, so a chemistry
-    cannot hide behind a dict key.
+    2. **The params gate passes.** The three-owner coverage check — every emitted param attributable to
+       exactly one of KB / derived / processing — was only ever exercised against two owners until a
+       combinatorial chemistry (splitseq) reached it here.
     """
-    work = tmp_path / tech.replace(".", "_")
-    work.mkdir(parents=True)
-    manifest, reg = _build(work, tech)  # read ids come from the spec, not from 10x's naming
+    manifest, reg = _build(tmp_path, tech)  # read ids come from the spec, not from 10x's naming
     spec = kb.load_spec(tech)
     module_name = spec.backend.module
     processing = _processing(manifest)
     config = plan(manifest, processing, registry=reg).config
     block = param_block_key(spec)
 
-    # A param key applies to THIS chemistry only if some owner declares it (KB, derived, or the
-    # processing manifest). STARsolo's CB geometry is spelled start/len for a simple chemistry and
-    # as a quadruple for a combinatorial one, so `required_config` is the union of what the module
-    # may read and this is where the branch is resolved. Non-param keys are unconditional.
     # `params_gate` separately proves the block is EXACTLY its owners' union, so nothing gets to be
     # quietly absent by being quietly unowned.
     owned = set(param_owners(spec, processing))
@@ -1114,19 +1174,7 @@ def test_every_module_required_config_key_is_actually_emitted(tech: str, tmp_pat
             f"compute node, long after compose exited 0."
         )
 
-
-@pytest.mark.parametrize("tech", _one_spec_per_distinct_backend())
-def test_the_params_gate_passes_for_every_chemistry(tech: str, tmp_path: Path) -> None:
-    """The gate ran on 10x and bulk and had never once seen a combinatorial chemistry.
-
-    `splitseq` appeared in no compose test at all, so the three-owner coverage check — every emitted
-    param attributable to exactly one of KB / derived / processing — was only ever exercised against
-    two owners. This is where the third one earns its keep.
-    """
-    manifest, reg = _build(tmp_path, tech)
-    processing = _processing(manifest)
-    config = plan(manifest, processing, registry=reg).config
-    status, problems = params_gate(manifest, processing, kb.load_spec(tech), config)
+    status, problems = params_gate(manifest, processing, spec, config)
     assert status == "pass", problems
 
 
@@ -1199,6 +1247,18 @@ def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(
 #: started reimplementing the package whose whole job this is.
 _UPSTREAM_GENOME_NAMES = frozenset({"Genome", "build_star_index", "register_gtf"})
 
+
+def _defines_upstream_genome(node: ast.AST) -> bool:
+    """A node that RE-DEFINES a name liulab-genome owns — the exact predicate
+    ``test_seqforge_defines_no_genome_machinery`` applies to every node in the src tree. Shared so its
+    discriminator exercises the real guard, not a re-implementation of it.
+    """
+    return (
+        isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.name in _UPSTREAM_GENOME_NAMES
+    )
+
+
 #: Filenames that would mean seqforge had begun defining aligner environments — `liulab-runtime`'s
 #: job. seqforge names an env (`align-rna`); it never says what is inside one.
 _ENV_DEFINITION_FILES = ("environment.yml", "environment.yaml", "conda.yml", "Dockerfile")
@@ -1220,17 +1280,31 @@ def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
     here, where it will drift and where the "no absolute path in a manifest" rule stops being anybody's
     invariant.
     """
-    import ast
-
     offenders: list[str] = []
     for py, tree in src_trees.items():
         for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
-                and node.name in _UPSTREAM_GENOME_NAMES
-            ):
-                offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")
+            if _defines_upstream_genome(node):
+                offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")  # type: ignore[attr-defined]
     assert not offenders, "seqforge is redefining liulab-genome's job:\n" + "\n".join(offenders)
+
+    # The guard discriminates (folded from test_the_genome_machinery_check_can_actually_catch_a_reimpl
+    # ementation, which used to re-implement this walk locally and so only proved a COPY fires). These
+    # call the REAL predicate: it must fire on a reimplementation and tolerate the consumer call.
+    assert any(
+        _defines_upstream_genome(n) for n in ast.walk(ast.parse("class Genome:\n    pass\n"))
+    )
+    assert any(
+        _defines_upstream_genome(n)
+        for n in ast.walk(ast.parse("def build_star_index(gtf):\n    return 1\n"))
+    )
+    assert not any(  # the real, correct usage must NOT trip it
+        _defines_upstream_genome(n)
+        for n in ast.walk(
+            ast.parse(
+                "from genome import Genome\nindex = Genome(assembly).build_star_index(gtf=annotation)\n"
+            )
+        )
+    )
 
 
 #: Every liulab-genome attribute seqforge calls. We are a consumer, and a consumer has an
@@ -1275,43 +1349,12 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
         f"Either upstream moved and our calls need updating, or this list has grown a name nobody "
         f"calls. Both are real; neither is silent any more."
     )
-
-
-def test_the_genome_api_check_would_catch_a_method_that_does_not_exist() -> None:
-    """Prove the guard discriminates — the names we call resolve, an invented one does not.
-
-    This once asserted `not hasattr(Genome, "get_star_index")`, pinning the exact bug that broke on
-    2026-07-15: e2e.py called `get_star_index` for the life of the repo and it never existed. On
-    2026-07-17 liulab-genome added it as a resolve-only lookup, and seqforge switched every index
-    reference to it (both the `genome_index` rule and e2e), dropping `build_star_index` entirely —
-    seqforge never builds an index, it only resolves the prebuilt one. So `get_star_index` now
-    resolves. The lesson the guard protects is unchanged — a name our code calls must exist on the
-    real object — so this checks that the name we use resolves, and that an invented one still would
-    not.
-    """
-    from genome import Genome
-
+    # ...and the guard discriminates (folded from test_the_genome_api_check_would_catch_a_method_that
+    # _does_not_exist): the name we resolve the prebuilt index through must exist, and a name
+    # liulab-genome does not define must NOT resolve — else `missing` being empty would prove nothing.
     assert hasattr(Genome, "get_star_index"), "seqforge resolves the prebuilt index through this"
     assert not hasattr(Genome, "resolve_star_index_please"), (
         "a name liulab-genome does not define must not resolve — else the guard proves nothing"
-    )
-
-
-def test_the_genome_machinery_check_can_actually_catch_a_reimplementation(tmp_path: Path) -> None:
-    """Prove the guard fires — and that it tolerates the consumer call it must allow."""
-    import ast
-
-    def defines_upstream(source: str) -> bool:
-        return any(
-            isinstance(n, ast.ClassDef | ast.FunctionDef) and n.name in _UPSTREAM_GENOME_NAMES
-            for n in ast.walk(ast.parse(source))
-        )
-
-    assert defines_upstream("class Genome:\n    pass\n")
-    assert defines_upstream("def build_star_index(gtf):\n    return 1\n")
-    # the real, correct usage must NOT trip it
-    assert not defines_upstream(
-        "from genome import Genome\nindex = Genome(assembly).build_star_index(gtf=annotation)\n"
     )
 
 
@@ -1352,29 +1395,14 @@ def test_the_generated_wrapper_contains_no_rule_source() -> None:
     assert not _RULE_DEF.search(wrapper), f"the composer emits rule source:\n{wrapper}"
     assert "configfile:" in wrapper  # it parameterises by data...
     assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
-
-
-def test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets() -> None:
-    """The deliverable must DO something when a user runs bare `snakemake`. It did not.
-
-    Snakemake's default target is the first rule defined in the *main* Snakefile, and an `include:`d
-    rule is not one. The wrapper was `configfile:` + `include:`, which parses clean, lists all three
-    rules, and then plans **zero jobs**: "Nothing to be done", exit 0. Measured 2026-07-15 — the same
-    module content inlined builds 3 jobs, via `include:` builds 0.
-
-    Nothing caught it because the only thing that would run the wrapper was a gate that could not run
-    (`snakemake` was in no dependency table), and the gate would not have caught it either: it
-    checked the exit code, and planning nothing exits 0.
-
-    `use rule * from m as *` re-declares the rules in this workflow, so `all` becomes a real default
-    target. This test pins the property, not the spelling: a future wrapper may compose however it
-    likes as long as bare `snakemake` still reaches the rules.
-    """
-    wrapper = core._WRAPPER
+    # ...and it must reach the module's rules as DEFAULT targets (folded from
+    # test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets): an `include:`d rule is
+    # not a default target, so `configfile:` + `include:` parses clean, lists every rule, and plans
+    # ZERO jobs -- "Nothing to be done", exit 0. `use rule * from m as *` re-declares them so bare
+    # `snakemake` reaches them.
     assert "include:" not in wrapper, (
         "an `include:`d rule is not a default target -- the wrapper would plan zero jobs and exit 0"
     )
-    assert "use rule * from" in wrapper
 
 
 def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
@@ -1396,29 +1424,20 @@ def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> Non
     step earlier, so the modules must be real files under version control, carrying the header that
     says what they are.
     """
-    snakefile = get_module(module_name).snakefile
+    module = get_module(module_name)
+    snakefile = module.snakefile
     assert snakefile.is_file(), f"{module_name}: {snakefile} is not on disk"
     text = snakefile.read_text()
     assert _RULE_DEF.search(text), f"{module_name} defines no rules — is it really a module?"
     assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
 
-
-@pytest.mark.parametrize("module_name", list_modules())
-def test_required_config_is_exactly_what_the_module_reads(module_name: str) -> None:
-    """The contract is COMPUTED from the module source, so neither direction can drift.
-
-    It used to be a hand-written tuple checked one way against a scanner that lived here in the test
-    file. Both halves were wrong at once: it *under*-declared the four soloCB/UMI keys `starsolo.smk`
-    has always dereferenced (a `KeyError` on a compute node, long after compose exited 0), and it
-    *over*-declared `primary_feature` and `env`, which no rule reads and nothing checked.
-
-    There is now one list and the module source is it, so this test asserts an identity rather than
-    an inclusion. That reads as tautological and is not: it pins that `required_config` never goes
-    back to being typed by hand, and `test_the_required_config_scanner_can_catch_an_undeclared_key`
-    is what proves the derivation itself is not vacuous.
-    """
-    module = get_module(module_name)
-    assert set(module.required_config) == set(keys_read_by(module.snakefile))
+    # `required_config` is COMPUTED from the module source, so neither direction can drift (folded
+    # from test_required_config_is_exactly_what_the_module_reads). It once under-declared the four
+    # soloCB/UMI keys `starsolo.smk` dereferences and over-declared `primary_feature`/`env` that no
+    # rule reads. This identity reads as tautological but is not: it pins that `required_config` never
+    # goes back to a hand-typed literal; test_the_required_config_scanner_can_catch_an_undeclared_key
+    # is what proves the derivation itself is not vacuous.
+    assert set(module.required_config) == set(keys_read_by(snakefile))
     assert module.required_config == tuple(sorted(module.required_config))
 
 
@@ -1543,50 +1562,6 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     # ...and "which matrix is THE matrix" is emitted as a VALUE, not left as a positional convention:
     # STARsolo does not care about order, so the list order has no aligner-side referent.
     assert config["primary_feature"] == "GeneFull"
-
-
-def test_params_gate_fails_when_the_config_disagrees_with_the_manifest(built_v3: Built) -> None:
-    """The check that makes `quantification` load-bearing: a decorative field cannot be caught."""
-    manifest, reg = built_v3
-    p = _processing(manifest)
-    config = plan(manifest, p, registry=reg).config
-    corrupted = {**config, "solo": {**config["solo"], "soloFeatures": "GeneFull"}}  # type: ignore[dict-item]
-    status, problems = params_gate(manifest, p, kb.load_spec("10x-3p-gex-v3"), corrupted)
-    assert status == "fail"
-    assert any("does not match the processing manifest" in problem for problem in problems)
-
-
-def test_params_gate_fails_when_the_kb_declares_a_count_key(built_v3: Built) -> None:
-    """Belt to the schema validator's braces — it catches the model_copy'd specs tests build."""
-    manifest, reg = built_v3
-    p = _processing(manifest)
-    spec = kb.load_spec("10x-3p-gex-v3")
-    misowned = spec.model_copy(
-        update={
-            "backend": spec.backend.model_copy(
-                update={"params": {**spec.backend.params, "soloFeatures": ["Gene"]}}
-            )
-        }
-    )
-    status, problems = params_gate(manifest, p, misowned, plan(manifest, p, registry=reg).config)
-    assert status == "fail"
-    assert any("count key" in problem for problem in problems)
-
-
-def test_params_gate_fails_on_an_emitted_key_with_no_owner(built_v3: Built) -> None:
-    """Coverage: the emitted key set must be EXACTLY the union of the two owners.
-
-    Disjointness alone is the decorative bug in reverse — it proves the two sources cannot disagree,
-    not that either key arrives. Before this, the gate iterated the KB alone, so a key moved out of
-    the KB silently stopped being gated at all, and an orphan was invisible.
-    """
-    manifest, reg = built_v3
-    p = _processing(manifest)
-    config = plan(manifest, p, registry=reg).config
-    orphaned = {**config, "solo": {**config["solo"], "outFilterMismatchNmax": "10"}}  # type: ignore[dict-item]
-    status, problems = params_gate(manifest, p, kb.load_spec("10x-3p-gex-v3"), orphaned)
-    assert status == "fail"
-    assert any("no owner declares" in problem for problem in problems)
 
 
 # ---------- produce every answer rather than ask ----------
@@ -1721,13 +1696,11 @@ def test_a_single_nucleus_prep_promotes_genefull_to_primary() -> None:
     assert evidence == ["policy:genefull-primary-for-single-nucleus"]
     assert not warnings
 
-
-def test_a_single_cell_prep_stays_gene_primary() -> None:
-    from seqforge.manifest import resolve_features
-
-    features, _, evidence, _ = resolve_features(prep_type="single-cell")
-    assert features[0] == "Gene"
-    assert evidence == ["policy:default-solo-features"]
+    # the complement (folded from test_a_single_cell_prep_stays_gene_primary): a single-CELL prep
+    # takes no reorder — it stays Gene-primary on the default policy.
+    sc_features, _, sc_evidence, _ = resolve_features(prep_type="single-cell")
+    assert sc_features[0] == "Gene"
+    assert sc_evidence == ["policy:default-solo-features"]
 
 
 def test_a_flag_or_instruction_beats_a_nuclei_prep() -> None:
@@ -1766,21 +1739,19 @@ def test_prep_type_from_assertions_normalizes_the_biology_words() -> None:
     for phrase in ("single-cell", "scRNA-seq", "whole cells"):
         assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-cell", phrase
 
-
-def test_prep_type_matches_whole_words_not_bare_substrings() -> None:
-    """The value steers which matrix is primary, so a bare "nucle"/"cell" substring must not classify:
-    "nucleic acid" is not a nuclei prep and "Cell Ranger" is not single-cell. A phrase naming BOTH, or
-    neither, resolves to None rather than a guess."""
-    from seqforge.manifest.policy import _normalize_prep_type
-
-    assert _normalize_prep_type("total nucleic acid extraction") is None  # not "nuclei"
-    assert _normalize_prep_type("aligned with Cell Ranger") is None  # not "single-cell"
-    assert _normalize_prep_type("nucleotide") is None
-    assert (
-        _normalize_prep_type("single-nucleus and single-cell were compared") is None
-    )  # both -> None
-    assert _normalize_prep_type("nuclei were isolated") == "single-nucleus"
-    assert _normalize_prep_type("single cell suspension") == "single-cell"
+    # Whole words, not bare substrings (folded from test_prep_type_matches_whole_words_not_bare_substr
+    # ings, re-expressed through the public `prep_type_from_assertions` rather than the private
+    # `_normalize_prep_type` it used to import). The value steers which matrix is primary, so a bare
+    # "nucle"/"cell" substring must not classify, and a phrase naming BOTH or neither -> None.
+    for none_phrase in (
+        "total nucleic acid extraction",  # not "nuclei"
+        "aligned with Cell Ranger",  # not "single-cell"
+        "nucleotide",
+        "single-nucleus and single-cell were compared",  # both -> None, never a guess
+    ):
+        assert prep_type_from_assertions([_prep_assertion(none_phrase)]) is None, none_phrase
+    assert prep_type_from_assertions([_prep_assertion("nuclei were isolated")]) == "single-nucleus"
+    assert prep_type_from_assertions([_prep_assertion("single cell suspension")]) == "single-cell"
 
 
 def test_prep_type_from_assertions_ignores_unverified_and_refuses_a_disagreement() -> None:
@@ -1884,7 +1855,11 @@ def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(built_v3: Buil
     only ever needed ONE file per role. Both directions are needed; only one was there.
     """
     manifest, _ = built_v3
-    assert validate_manifest(manifest).ok, "the fixture must start clean or this proves nothing"
+    clean = validate_manifest(manifest)
+    assert clean.ok, "the fixture must start clean or this proves nothing"
+    assert (
+        exit_code_for_report(clean) == 0
+    )  # clean report -> exit 0 (was test_validate_clean_manifest)
 
     files = list(manifest.library.files)
     files.append(
@@ -1998,9 +1973,11 @@ def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
     pipeline to share one namespace, which is exactly what makes "instruction contradicts the bytes"
     inexpressible only by accident.
     """
-    from seqforge.workflows import MODULES, parse_keys_for
+    from seqforge.workflows import parse_keys_for
 
-    assert MODULES["map/starsolo"].parse_keys == parse_keys_for("map/starsolo")
+    # `MODULES["map/starsolo"].parse_keys == parse_keys_for("map/starsolo")` was dropped here: it is
+    # tautological, since `parse_keys_for` IS `get_module(module).parse_keys`. The behavioural claims
+    # below stay.
     assert "soloType" in parse_keys_for("map/starsolo")
     assert len(parse_keys_for("map/starsolo")) == 11
     # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
@@ -2019,29 +1996,6 @@ def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
 
     assert MODULES["map/starsolo"].aligner == "starsolo"
     assert MODULES["map/star"].aligner == "star"
-
-
-def test_resolve_pipeline_binds_a_chemistry_and_refuses_an_unserved_modality() -> None:
-    """The assay↔pipeline adapter: bind by module, then assert the pipeline serves the spec's modality.
-
-    An RNA chemistry composed against an ATAC-only pipeline is a loud refusal at compose time, not a
-    wrong command line — the same silent fall-through `read_layout_kind`/`param_block` were built to kill.
-    """
-    from types import SimpleNamespace
-
-    from seqforge import kb
-    from seqforge.workflows import MODULES, resolve_pipeline
-
-    rna = kb.load_spec("10x-3p-gex-v3")
-    assert resolve_pipeline(rna) is MODULES[rna.require_backend().module]
-
-    # A spec whose modality the target pipeline does not serve is refused (duck-typed like a Spec).
-    unserved = SimpleNamespace(
-        require_backend=lambda: SimpleNamespace(module="map/starsolo"),
-        identity=SimpleNamespace(modality="atac", id="fake-atac"),
-    )
-    with pytest.raises(KeyError, match="serves modalities"):
-        resolve_pipeline(unserved)  # type: ignore[arg-type]
 
 
 def tmp_snakefile() -> Path:

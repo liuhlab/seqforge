@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from conftest import SrcTrees, real_cbs, write_fastq_gz
+from conftest import SrcTrees, SynthDataset, real_cbs, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 
@@ -53,20 +53,23 @@ def test_the_cli_surface_exits_and_answers_as_documented(
         assert needle in result.stdout
 
 
-@pytest.mark.parametrize("model", ["DatasetManifest", "ProcessingManifest"])
-def test_schema_export_each_manifest_is_valid_json(model: str) -> None:
-    result = runner.invoke(app, ["schema", "export", model])
-    assert result.exit_code == 0
-    doc = json.loads(result.stdout)
-    assert doc["title"] == model
-    assert "$defs" in doc
+def test_schema_export_is_valid_json_per_model_and_over_all() -> None:
+    """`schema export` is valid JSON per model AND under `--all`: one surface, one test.
 
+    Per model, each manifest exports a document titled by its own name and carrying `$defs`; `--all`
+    emits every model in one document (a split that exported only one would silently lose coverage).
+    """
+    for model in ("DatasetManifest", "ProcessingManifest"):
+        result = runner.invoke(app, ["schema", "export", model])
+        assert result.exit_code == 0
+        doc = json.loads(result.stdout)
+        assert doc["title"] == model
+        assert "$defs" in doc
 
-def test_schema_export_all_covers_every_model() -> None:
-    result = runner.invoke(app, ["schema", "export", "--all"])
-    assert result.exit_code == 0
-    doc = json.loads(result.stdout)
-    assert {"DatasetManifest", "ProcessingManifest", "Observation"} <= set(doc)
+    allresult = runner.invoke(app, ["schema", "export", "--all"])
+    assert allresult.exit_code == 0
+    alldoc = json.loads(allresult.stdout)
+    assert {"DatasetManifest", "ProcessingManifest", "Observation"} <= set(alldoc)
 
 
 def test_kb_lint_is_clean() -> None:
@@ -334,21 +337,18 @@ def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None
 
     def hash_with(cpus: int, ws: Path) -> str:
         ws.mkdir()
+        # `manifest fill` is the stage that probes; the recipe stages (processing/compose/project/
+        # report) add no probe and cannot perturb `dataset_hash` -- that invariance is owned by
+        # `test_compile.py`. So `fill` with a matched `--cpus` is the whole of what this asserts.
         result = runner.invoke(
             app,
             [
-                "run",
+                "manifest",
+                "fill",
                 str(f1),
                 str(f2),
                 "--organism",
                 "559292",
-                "--assembly",
-                "sacCer3",
-                "--annotation",
-                "ensembl",
-                "--no-llm",
-                "--fastq-dir",
-                str(data),
                 "--cpus",
                 str(cpus),
                 "-C",
@@ -445,14 +445,24 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     assert doc["rung_reached"] == 3
 
 
+@pytest.mark.parametrize(
+    "typed",
+    [
+        pytest.param("10x-3p-gex-v3", id="canonical"),
+        pytest.param("10X-3P-GEX-V3", id="upper"),  # operator typed upper-case
+    ],
+)
 def test_assert_chemistry_threads_an_operator_hypothesis(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, typed: str
 ) -> None:
     """`--assert-chemistry` must reach `resolve_runs` as an OPERATOR hypothesis that outranks prose.
 
     The tie-selection itself is proven elsewhere (a `Hypothesis` picks v3 over v2 on ambiguous
     barcodes); the new code is the wiring, so capture the hypothesis the fill pipeline hands the
     scorer and check its identity — id `operator`, confidence 1.0 — is what breaks the tie.
+
+    `resolve score` matches chemistry ids case-insensitively, so `fill` must too: whatever casing the
+    operator types, the hypothesis carries the CANONICAL id downstream, not the operator's casing.
     """
     from seqforge.cli import manifest as m
 
@@ -471,42 +481,15 @@ def test_assert_chemistry_threads_an_operator_hypothesis(
             assertions=None,
             offline=True,
             workspace=tmp_path,
-            chemistry_override="10x-3p-gex-v3",
+            chemistry_override=typed,
         )
     hypo = captured["hypothesis"]
     assert hypo is not None
-    assert hypo.value == "10x-3p-gex-v3"  # type: ignore[attr-defined]
+    assert (
+        hypo.value == "10x-3p-gex-v3"
+    )  # canonicalized regardless of casing  # type: ignore[attr-defined]
     assert hypo.id == "operator"  # type: ignore[attr-defined]
     assert hypo.confidence == 1.0  # type: ignore[attr-defined]
-
-
-def test_assert_chemistry_is_case_insensitive_and_canonicalizes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """`resolve score` matches chemistry ids case-insensitively, so `fill` must too — and it passes the
-    CANONICAL id downstream, not the operator's casing."""
-    from seqforge.cli import manifest as m
-
-    captured: dict[str, object] = {}
-
-    def _capture(paths: object, *, hypothesis: object = None, **_: object) -> object:
-        captured["hypothesis"] = hypothesis
-        raise RuntimeError("stop after capturing the hypothesis")
-
-    monkeypatch.setattr(m, "resolve_runs", _capture)
-    with pytest.raises(RuntimeError, match="stop after capturing"):
-        m._fill_manifest_pipeline(
-            files=[tmp_path / "x_1.fastq.gz"],
-            organism=None,
-            records=None,
-            assertions=None,
-            offline=True,
-            workspace=tmp_path,
-            chemistry_override="10X-3P-GEX-V3",  # operator typed upper-case
-        )
-    assert (
-        captured["hypothesis"].value == "10x-3p-gex-v3"
-    )  # canonicalized  # type: ignore[attr-defined]
 
 
 def test_assert_chemistry_rejects_an_unknown_id(tmp_path: Path) -> None:
@@ -566,24 +549,28 @@ def test_e2e_fit_merges_array_tasks_into_one_line(tmp_path: Path) -> None:
     assert 0 < out["fit"]["bytes_per_read"] < 5
 
 
-def test_e2e_fit_refuses_runs_that_are_not_comparable(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "gb, over",
+    [
+        pytest.param(31.10, {"soloFeatures": ["Gene"]}, id="soloFeatures"),
+        pytest.param(36.90, {"threads": 48}, id="threads"),
+    ],
+)
+def test_e2e_fit_refuses_runs_that_are_not_comparable(
+    tmp_path: Path, gb: float, over: dict[str, object]
+) -> None:
     """Peak RSS depends on soloFeatures, assembly, threads and cells -- so a merge across them lies.
 
     This is the same class as the resume guard's features check: the number is only meaningful
     alongside the configuration that produced it, and a line fitted through two configurations is a
-    plausible-looking artefact of nothing.
+    plausible-looking artefact of nothing. The axis of incomparability -- a different soloFeatures set
+    or a different thread count -- is the same refusal with the same exit code and message.
     """
     a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
-    b = _cost_run(tmp_path, "b.json", 40_000_000, 31.10, soloFeatures=["Gene"])
+    b = _cost_run(tmp_path, "b.json", 40_000_000, gb, **over)
     result = runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)])
     assert result.exit_code == 3
     assert "incomparable" in result.output or "incomparable" in str(result.exception)
-
-
-def test_e2e_fit_refuses_a_thread_count_mismatch(tmp_path: Path) -> None:
-    a = _cost_run(tmp_path, "a.json", 10_000_000, 34.57)
-    b = _cost_run(tmp_path, "b.json", 40_000_000, 36.90, threads=48)
-    assert runner.invoke(app, ["kb", "e2e-fit", str(a), str(b)]).exit_code == 3
 
 
 def test_e2e_fit_refuses_duplicate_depths(tmp_path: Path) -> None:
@@ -664,26 +651,29 @@ def test_no_module_under_src_prints_to_stdout(src_trees: SrcTrees) -> None:
     )
 
 
-def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> None:
-    """The pilot's shape, through the real CLI: 12 files, 6 runs, 6 samples, 0 files dropped.
+def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -> None:
+    """A multi-run dataset through the real CLI: 6 files, 3 runs, 3 samples, 0 files dropped.
+
+    This is the pilot's shape in miniature -- three runs exercise every claim the six did; the extra
+    three were narrative fidelity to the pilot, not coverage.
 
     Before this, `manifest fill` handed every file to one `resolve_dataset` call, which does one
-    global role assignment: two files got roles, TEN got `read_id=None`, `compose._units` skipped
-    them in silence, and `validate` said ok. A clean, content-addressed manifest recording a wrong
-    answer, exit 0 -- on a dataset that is 6 runs, which the pilot's is.
+    global role assignment: one run's two files got roles, every other file got `read_id=None`,
+    `compose._units` skipped them in silence, and `validate` said ok. A clean, content-addressed
+    manifest recording a wrong answer, exit 0 -- on a dataset that is many runs, as the pilot's is.
 
     Bulk paired-end so no onlist is needed; the multi-run machinery is chemistry-blind.
 
     **The files are one directory per accession, because that is the pilot's ACTUAL shape** -- it is
-    how `fasterq-dump` wrote them. This test laid them out flat while claiming to be the pilot's
+    how `fasterq-dump` wrote them. An earlier version laid them out flat while claiming the pilot's
     shape, and the gap was not cosmetic: a flat directory is its own dataset root, so every URI is a
     basename and the one code path that has to agree about URIs was never exercised. On the real
-    dataset `manifest fill` refused its own manifest with six referential-integrity Blockers, because
+    dataset `manifest fill` refused its own manifest with referential-integrity Blockers, because
     `cli.py` built `SampleGroup.file_uris` from basenames while `fill_manifest` built relative paths.
     Every fixture in this repo was flat; that is why nothing saw it.
     """
     spec = kb.load_spec("bulk-rnaseq-pe")
-    accessions = [f"SRR2871655{i}" for i in range(3, 9)]
+    accessions = [f"SRR2871655{i}" for i in range(3, 6)]
     paths: list[str] = []
     for i, acc in enumerate(accessions):
         reads = kb.generate_reads(spec, n=400, seed=i)
@@ -704,12 +694,12 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
 
     manifest = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
     files = manifest["library"]["files"]
-    assert len(files) == 12, "every input file is in the inventory"
+    assert len(files) == 6, "every input file is in the inventory"
     assert all(f["read_id"] is not None for f in files), "and every one of them has a role"
 
     samples = manifest["experiment"]["samples"]
     assert [s["sample_id"] for s in samples] == sorted(accessions), "one sample per RUN"
-    assert sum(len(s["file_uris"]) for s in samples) == 12
+    assert sum(len(s["file_uris"]) for s in samples) == 6
 
     # Every sample URI is an inventory URI. `validate`'s referential-integrity check says this too,
     # and said it on arc -- but only once the layout had subdirectories for the two builders to
@@ -737,7 +727,9 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
     assert manifest["experiment"]["study"] is None
 
 
-def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: Path) -> None:
+def test_processing_new_takes_an_assembly_from_a_verified_instruction(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
     """The last mile of a join that already existed and was unreachable.
 
     `resolve_processing` has always implemented flag > instruction > policy, and its PolicyError even
@@ -745,43 +737,33 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
     branch could not be reached: `--assembly` was a REQUIRED option, and no production caller ever
     passed `instructions=`. So the instructable surface was real in the API and absent from the CLI.
 
-    Note where the model is and is not. It FOUND `processing.genome.assembly: ce11` in a document the
-    user handed us with `--instruction`, and code verified the quote greps back and entails the value
-    Applying precedence is code, here. No new LLM authority -- which is the whole reason the
+    Note where the model is and is not. It FOUND `processing.genome.assembly: sacCer3` in a document
+    the user handed us with `--instruction`, and code verified the quote greps back and entails the
+    value. Applying precedence is code, here. No new LLM authority -- which is the whole reason the
     instructable path is allowed to exist.
+
+    `processing new` needs A valid manifest on disk, not a freshly-CLI-filled one -- the manifest is
+    setup this test never inspects -- so dump the shared `synth_10x_v3` fixture instead of paying a
+    probe+resolve+fill to re-derive one. sacCer3 is named in the span because that fixture's organism
+    is S. cerevisiae (taxid 559292), so `validate_processing`'s organism/genome check still passes.
     """
     import yaml as _yaml
 
+    from seqforge.cli._common import _resolve_organism
     from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 
-    spec = kb.load_spec("bulk-rnaseq-pe")
-    reads = kb.generate_reads(spec, n=400, seed=0)
-    for k in ("R1", "R2"):
-        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
-    filled = runner.invoke(
-        app,
-        [
-            "manifest",
-            "fill",
-            str(tmp_path / "s_R1.fastq.gz"),
-            str(tmp_path / "s_R2.fastq.gz"),
-            "--organism",
-            "Caenorhabditis elegans",
-            "--offline",
-            "-C",
-            str(tmp_path),
-        ],
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text(
+        _yaml.safe_dump(synth_10x_v3.manifest.model_dump(mode="json"), sort_keys=True)
     )
-    assert filled.exit_code == 0, filled.stdout
-    manifest_path = tmp_path / "seqforge" / "manifest.yaml"
 
-    # the organism arrived as a NAME and was resolved to a taxid by code, not retyped by a human
-    manifest = _yaml.safe_load(manifest_path.read_text())
-    assert manifest["experiment"]["organism"]["value"] == 6239
+    # the `--organism`->taxid claim, proven directly: a NAME is resolved to a taxid by CODE, not
+    # retyped by a human. This is the join `manifest fill` performs; it needs no filled manifest here.
+    assert _resolve_organism("Caenorhabditis elegans", offline=True) == 6239
 
     doc_sha = "a" * 64
     span = SourceSpan(
-        doc_sha256=doc_sha, quote="align this dataset against ce11", char_start=0, char_end=31
+        doc_sha256=doc_sha, quote="align this dataset against sacCer3", char_start=0, char_end=34
     )
     assertions = {
         "instruction_docs": [doc_sha],
@@ -789,7 +771,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
             Assertion(
                 id="a1",
                 field="processing.genome.assembly",
-                value="ce11",
+                value="sacCer3",
                 span=span,
                 span_verified=True,
                 entailment_ok=True,
@@ -809,7 +791,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
             "new",
             str(manifest_path),
             "--annotation",
-            "WS298",
+            "ensembl",
             "--assertions",
             str(apath),
             "-o",
@@ -819,33 +801,27 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
     assert made.exit_code == 0, made.stdout
     doc = _yaml.safe_load(out.read_text())
     genome = doc["processing"]["genome"]
-    assert genome["value"]["assembly"] == "ce11", "the instruction never reached the manifest"
+    assert genome["value"]["assembly"] == "sacCer3", "the instruction never reached the manifest"
     # basis records WHO DECIDED: a document the user authored for seqforge is the user talking (§7)
     assert genome["basis"] == "user_confirmed"
 
 
-def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> None:
+def test_processing_new_refuses_a_pre_2026_7_assertions_file(
+    tmp_path: Path, synth_10x_v3: SynthDataset
+) -> None:
     """A bare list cannot say which documents were --instruction, and only those may set processing.*.
 
     Silently treating every assertion as instructable would turn a downloaded GEO description into a
     path to --soloStrand: prompt injection from a database field into an aligner. Refuse.
+
+    `processing new` needs A valid manifest on disk, so dump the shared fixture rather than fill one:
+    the refusal is on the assertions FORMAT, reached before any genome check, so no fill is warranted.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
-    reads = kb.generate_reads(spec, n=400, seed=0)
-    for k in ("R1", "R2"):
-        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
-    runner.invoke(
-        app,
-        [
-            "manifest",
-            "fill",
-            str(tmp_path / "s_R1.fastq.gz"),
-            str(tmp_path / "s_R2.fastq.gz"),
-            "--organism",
-            "6239",
-            "-C",
-            str(tmp_path),
-        ],
+    import yaml as _yaml
+
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text(
+        _yaml.safe_dump(synth_10x_v3.manifest.model_dump(mode="json"), sort_keys=True)
     )
     old = tmp_path / "old.json"
     old.write_text(json.dumps([{"field": "processing.genome.assembly", "value": "ce11"}]))
@@ -854,9 +830,9 @@ def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> 
         [
             "processing",
             "new",
-            str(tmp_path / "seqforge" / "manifest.yaml"),
+            str(manifest_path),
             "--annotation",
-            "WS298",
+            "ensembl",
             "--assertions",
             str(old),
         ],
