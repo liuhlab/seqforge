@@ -33,6 +33,23 @@ Either input storing the other's hash re-creates exactly what ADR 0004 removed: 
 identity moves when intent changes, or a recipe that can no longer be a template. The pairing is a
 fact about a *compile*, so it belongs to the compile's output and nowhere else.
 
+## So in code
+
+**Compute `run_id` from all four components, and store the pairing in neither input.** A manifest
+that records a `processing_hash`, or a recipe that records a `dataset_hash` anywhere but
+`processing.lock.yaml`, re-creates the overwrite this record exists to fix. The **precise** component
+names, and their order, are fixed by the Decision above and written nowhere else; everywhere else —
+the implementation's own docstring included — write the gloss
+`H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, which is a reading aid and cannot drift. A *second
+precise* statement is the thing that can: this formula has already been written in two notations at
+once, with nothing to say which one had moved. Every component that folds into the key is CalVer, so
+a version string that sorts wrong or repeats is a cache-key bug, not a cosmetic one.
+
+**Enforced by.** `test_run_id_differs_per_processing_manifest` (`tests/test_manifest.py`) and
+`test_two_processing_manifests_do_not_overwrite_each_other` (`tests/test_compose.py`) — the second is
+the original collision, run forward; `test_the_precise_run_id_formula_is_written_once`
+(`tests/test_docs.py`) for the notation.
+
 ## Consequences
 
 - One dataset compiled two ways yields two directories, both retained; neither can shadow the other.

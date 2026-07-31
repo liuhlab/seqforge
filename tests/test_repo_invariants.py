@@ -175,8 +175,26 @@ _SECTION_SIGN = chr(0xA7)
 #: that cries wolf gets deleted, and this one has to survive.
 _NUMBERED_RULE = re.compile(r"(?<![\"'])\bR(?:[4-9]|1[0-9])\b(?![\"'])|\b(?:rule|per)\s+R[0-9]+\b")
 
+#: The same pointer with the section sign transliterated to a bare capital ``S``. Transliterating a
+#: forbidden character is not a way around the rule — the one pointer that outlived the first sweep
+#: was spelled this way, and it named two documents that had already been deleted.
+#:
+#: A bare ``S`` plus a digit still may not be matched, for the same reason the low rule numbers are
+#: left alone: it is a **supplementary-table citation** in the SPLiT-seq spec (the oligo table that
+#: entry's strand is reconstructed from) and an **Illumina sample id** in a fixture filename. Both are
+#: legitimate and neither may be touched.
+#:
+#: So this arm mirrors the ``rule``/``per`` arm — the digits count only directly behind a word that
+#: names a governing document. The set is what a pointer here has used or could: the two deleted
+#: documents by name (``brief``, ``design``), the generic ``section``, and the two live trees an agent
+#: might reach for the same way (``spec``, ``adr``). ``Table`` is deliberately absent, which is the
+#: whole reason the supplementary citations survive.
+_TRANSLITERATED_SECTION = re.compile(
+    r"\b(?i:brief|design|spec|section|adr)s?\s+S[0-9]+(?:\.[0-9]+)*\b"
+)
+
 #: The surfaces a human writes prose into. Everything the sweep found lived in one of these.
-_PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk"})
+_PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk", ".toml"})
 
 #: The one exemption, and it is the file whose SUBJECT is the numbered rules: it parses their ids out
 #: of the agent-facing documents and asserts the two lists agree. There, a rule number is *data under
@@ -190,10 +208,14 @@ def _points_by_number(text: str) -> bool:
     """Does this line point at a governing document by NUMBER instead of naming the thing?
 
     The exact predicate ``test_no_comment_points_at_a_governing_document_by_number`` applies to every
-    line under ``src/`` and ``tests/``. Shared so its discriminator exercises the real guard rather
-    than a re-implementation of it.
+    line of the surfaces that CONSUME the numbered rules. Shared so its discriminator exercises the
+    real guard rather than a re-implementation of it.
     """
-    return _SECTION_SIGN in text or bool(_NUMBERED_RULE.search(text))
+    return (
+        _SECTION_SIGN in text
+        or bool(_NUMBERED_RULE.search(text))
+        or bool(_TRANSLITERATED_SECTION.search(text))
+    )
 
 
 def _numbered(n: int) -> str:
@@ -201,15 +223,24 @@ def _numbered(n: int) -> str:
     return f"R{n}"
 
 
+def _transliterated(document: str, n: int) -> str:
+    """A governing-document word plus the transliterated section sign, likewise assembled at run time."""
+    return f"{document} S{n}"
+
+
 def _prose_files() -> list[Path]:
-    """Every file under ``src/seqforge`` and ``tests/`` that a human writes prose into."""
-    roots = (_src_root(), Path(__file__).resolve().parent)
-    return sorted(
-        p
-        for root in roots
-        for p in root.rglob("*")
-        if p.suffix in _PROSE_SUFFIXES and p.name not in _EXEMPT
-    )
+    """Every file a human writes prose into, on the surfaces that CONSUME the numbered rules.
+
+    The code, the tests, the skills that wrap the CLI, the eval corpus that pre-registers what the
+    compiler should decide, and the project config. What is deliberately absent is the other
+    direction: the router, the glossary, the agent-facing reference tree and the ADR tree are where
+    the numbering is *defined*, and a rule table that may not name its own rules is not a rule table.
+    """
+    tests = Path(__file__).resolve().parent
+    repo = tests.parent
+    roots = (_src_root(), tests, repo / "skills", repo / "evals")
+    scanned = [p for root in roots for p in root.rglob("*")] + [repo / "pyproject.toml"]
+    return sorted(p for p in scanned if p.suffix in _PROSE_SUFFIXES and p.name not in _EXEMPT)
 
 
 def test_no_comment_points_at_a_governing_document_by_number() -> None:
@@ -253,8 +284,16 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
     assert _points_by_number(
         f"rule {_numbered(1)} — emit data, never code"
     )  # low, in a cited shape
+    assert _points_by_number(
+        f"the evals harness ({_transliterated('design/brief', 9)})"
+    )  # the sign, transliterated
+    assert _points_by_number(
+        f"mypy is scoped to the modules {_transliterated('the brief', 13)} names"
+    )
 
     assert not _points_by_number("R1 = CB + UMI; R2 = cDNA, sense to the mRNA")
+    assert not _points_by_number("assembling the paper's own Table S12 oligos 5'->3'")
+    assert not _points_by_number("SRR28716558_S1_L001_R1_001.fastq.gz")
     assert not _points_by_number("--readFilesIn R2,R1")
     assert not _points_by_number("SRR1234567_S1_L001_R1_001.fastq.gz")
     assert not _points_by_number("library.read_layout.R1.length")

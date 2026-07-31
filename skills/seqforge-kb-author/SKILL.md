@@ -31,7 +31,7 @@ reads the README; it is documentation, and `spec.yaml` is the machine truth.
 
 A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the
 pairwise checks live in the SUITE, not in a verb: `test_no_spec_pair_is_confusable_without_declaring_it`
-and `test_section_12_biconditional_holds_over_every_loaded_spec_pair` both collect from
+and `test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` both collect from
 `kb.list_spec_ids()`, so your new spec is covered because it exists, not because someone remembered.
 
 **There is no `kb confusability` verb.** This skill documented one for a year and it was never built —
@@ -75,7 +75,7 @@ weaker than its claim.
 `confusable_with` must list entries that share your geometry, with `distinguishable_by`. Under-declaring
 fails CI. Two relationships:
 
-- `processing_equivalent` — byte-identical backend params (v3 vs v3.1) → §12 benign: record both,
+- `processing_equivalent` — byte-identical backend params (v3 vs v3.1) → benign: record both,
   ask **zero** questions.
 - `processing_divergent` — the answer changes what runs → must be separable by a declared mechanism
   (usually `onlist`), or it becomes exit 4.
@@ -151,10 +151,10 @@ against real R1 bytes before writing offsets.
 
 `kb e2e` / `kb e2e-introns` run the built-in 10x path on sacCer3/ce11; there is no e2e fixture for a
 new `CB_UMI_Complex` tech. Its guarantees are therefore: `kb roundtrip` (recovers what it declares),
-the params gate (`kb lint` + the `params_gate` disjointness/coverage/faithfulness checks), and the §12
-biconditional + under-declaration tests that collect from `kb.list_spec_ids()`. Lean on those, plus one
-real dataset — not on a simulated count matrix, which would only test your own assumptions against
-themselves.
+the params gate (`kb lint` + the `params_gate` disjointness/coverage/faithfulness checks), and the
+backends-identical-iff-`processing_equivalent` biconditional + under-declaration tests that collect
+from `kb.list_spec_ids()`. Lean on those, plus one real dataset — not on a simulated count matrix,
+which would only test your own assumptions against themselves.
 
 ## No scaffold verb — copy the nearest neighbour
 

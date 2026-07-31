@@ -3,9 +3,9 @@
 A compiler from `(FASTQ files) + (unstructured metadata)` to a validated `manifest.yaml` and a
 runnable Snakemake pipeline. This file is the **glossary** — the words the project uses and the
 synonyms it avoids. Rules live in `AGENTS.md`; the reference behind each area lives in `docs/agents/`,
-and one decision per file in `docs/adr/`. Nothing else belongs here: a term one of those files already
-argues at length appears below as a one-line gloss and a pointer, because two prose definitions of one
-term is the failure this file exists to prevent.
+and one decision per file in `docs/adr/` (indexed by module in `docs/adr/README.md`). Nothing else
+belongs here: a term one of those files already argues at length appears below as a one-line gloss and
+a pointer, because two prose definitions of one term is the failure this file exists to prevent.
 
 ## Language
 
@@ -75,10 +75,9 @@ _Avoid_: using it for the distinct ratio itself
 **Whole file**:
 What is known about a FASTQ *without reading it*: its content address, basename, compressed size, and
 gzip ISIZE. The counterpart to a **Head** — a head is the bounded prefix you read, a whole file is
-what you read it *about*. They are not always the same file: a fingerprint slice yields a head about
-the original it stands in for.
-_Avoid_: source, origin (a probe has no read-source abstraction — see `docs/adr/0001`); and never for
-where the bytes are, which is a fact about the read
+what you read it *about*, and the two are not always the same file (`docs/adr/0001`).
+_Avoid_: source, origin (a probe has no read-source abstraction); and never for where the bytes are,
+which is a fact about the read
 
 **Content address**:
 A `sha256`-shaped **name** for a file: stable for the same file, distinct across files, and never a
@@ -89,7 +88,7 @@ _Avoid_: checksum, file hash, digest — all three imply the whole file was read
 **Library**:
 One sequencing library — the physical construct the reads came out of, and what the byte resolver
 identifies. Its **Chemistry** is the only `Evidenced` field describing it; assay, read layout and
-per-file roles all follow from that single decision.
+per-file roles all follow from that single decision (`docs/adr/0006`).
 _Avoid_: dataset (a dataset is the files you were handed), experiment, prep; `assay` is the same
 answer in EFO's vocabulary, not a second fact
 
@@ -107,7 +106,7 @@ _Avoid_: lane, experiment (both are narrower archive concepts)
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
 transcript, never an interpretation, and optional: most sequencing data never had an accession, and
-that absence is the normal case rather than a degraded one.
+that absence is the normal case rather than a degraded one (`docs/adr/0010`).
 _Avoid_: metadata (too broad), SRA entry, database row; and never **Record**, which is four lines of
 FASTQ
 
@@ -115,8 +114,7 @@ FASTQ
 
 **Evidenced**:
 The envelope every *interpretive* field travels in — `{value, basis, evidence, confidence, rung}`,
-frozen once validated. One judgement gets exactly one envelope; four fields filled from one decision
-are one truth wearing four hats (`docs/adr/0006`).
+frozen once validated. One judgement gets exactly one envelope (`docs/adr/0006`).
 _Avoid_: wrapper, annotated value, provenance record; raw identity and `resources` carry no envelope
 at all
 
@@ -127,8 +125,8 @@ decided*.
 _Avoid_: source, origin, reliability; provenance (that is the whole envelope, not this field)
 
 **Observed**:
-Basis for a value read out of the bytes. It is the authority the library section defers to — nothing
-asserted and no confidence overrides it, and the disagreement surfaces as a **Conflict** instead.
+Basis for a value read out of the bytes, and the authority the library section defers to: nothing
+asserted overrides it, and the disagreement surfaces as a **Conflict** instead (`docs/adr/0010`).
 _Avoid_: measured, detected, empirical, ground truth
 
 **Asserted**:
@@ -145,8 +143,8 @@ still open (`docs/agents/models.md`)
 
 **User-confirmed**:
 Basis for a value a person chose — a CLI flag or an `--instruction` document, distinguished from
-each other only by precedence. Almost exclusively a recipe basis: it is what the processing section
-exists to carry.
+each other only by precedence. Almost exclusively a recipe basis: it is what the **Recipe** exists to
+carry (`docs/adr/0004`).
 _Avoid_: manual, override, approved, human-in-the-loop
 
 **Rung**:
@@ -172,8 +170,8 @@ why a draft carries no subject
 
 **Instruction**:
 A document whose role is `instruction` — the only role permitted to touch `processing.*` fields. It
-is read, never obeyed: "align in GeneFull mode" enters as an **Assertion** with a quote that greps
-back, and code applies precedence.
+is read, never obeyed: a claim enters as an **Assertion** and code applies precedence
+(`docs/adr/0011`).
 _Avoid_: prompt, command, directive, config; a `reference` document (a paper, a README) is the other
 role and can never reach the recipe
 
@@ -203,7 +201,7 @@ _Avoid_: fact, extraction, annotation, LLM output
 **AssertionDraft**:
 The model's only structured-output surface: `{field, value, span:{doc_sha256, quote, context?},
 llm_confidence}`. It carries no offsets and no `subject` by design — both would be authority with
-nothing to check.
+nothing to check (`docs/adr/0008`).
 _Avoid_: proposal, raw assertion, candidate (a candidate is a scored technology)
 
 ### Deciding the library
@@ -232,14 +230,15 @@ spec names, never a filename claim: `_1/_2` is a weak prior that can only break 
 _Avoid_: read type, mate, file kind, R1/R2 as identity
 
 **Role assignment**:
-The injective map from a spec's roles to the dataset's files that scored best. It is half of one
-decision — chemistry *is* the joint optimization over (which technology, which file is which read) —
-which is why only `chemistry` carries an envelope.
+The injective map from a spec's roles to the dataset's files that scored best. Half of one decision,
+the other half being **Chemistry** — which is why only chemistry carries an envelope
+(`docs/adr/0006`).
 _Avoid_: mapping, pairing, demultiplexing, layout (a layout is the KB's declared structure)
 
 **Chemistry**:
 The library construction the bytes are evidence for, named by KB spec ids. Carried as an equivalence
-class, because CI-proven twins (v3 and v3.1) are recorded together rather than chosen between.
+class, because CI-proven twins (v3 and v3.1) are recorded together rather than chosen between, and it
+is the one judgement the library section's envelope belongs to (`docs/adr/0006`).
 _Avoid_: kit, platform, protocol, version; `technology` is the field name in code — prefer chemistry
 in prose
 
@@ -253,12 +252,13 @@ itself
 **Backend params**:
 A spec's parse half — how to *read* reads (`soloType`, CB/UMI offsets, whitelist, strand). Decided
 by bytes and never instructable; what to *count* belongs to the recipe, and the two key sets are
-disjoint (R11b).
+disjoint (`docs/adr/0011`).
 _Avoid_: settings, options, aligner flags; CellRanger-parity knobs are policy and live in the recipe
 
 **Onlist**:
 A barcode whitelist, identified by the *set* of barcodes it holds rather than by the file carrying
-them. Consulting one is what rung 3 costs (~100 ms).
+them. Consulting one is what rung 3 costs (~100 ms); a pipeline builds one by rule and deletes it,
+never storing it expanded (`docs/adr/0015`).
 _Avoid_: allowlist, barcode file, reference list; "whitelist" names the vendor's file, `onlist` is
 the spelling on the wire
 
@@ -269,8 +269,8 @@ _Avoid_: ambiguous, similar, overlapping, competing
 
 **Processing-equivalent**:
 Two specs whose canonical backend params — onlists resolved, role placement included — are
-byte-equal: they parse reads identically. A tie between them is recorded as an equivalence class
-and asks zero questions.
+byte-equal: they parse reads identically (`docs/adr/0011`). A tie between them is recorded as an
+equivalence class and asks zero questions.
 _Avoid_: identical, interchangeable, duplicate; "benign" is the **Conflict** status this produces,
 not the relationship
 
@@ -283,49 +283,52 @@ _Avoid_: incompatible, contradictory, mutually exclusive
 
 **Blocker**:
 A structured refusal carrying a remedy and a subject (a basename, a dotted path, a dataset id —
-never a path). Always fatal, exit 3: no human answer clears it (`docs/agents/models.md`).
+never a path). Always fatal, exit 3: no human answer clears it (`docs/adr/0013`).
 _Avoid_: error, failure, hard warning; severity is the type, never a field to branch on
 
 **Warning**:
 A non-blocking advisory, exit 0 — what the metadata resolver emits once it has *decided* a
-sample-attribute disagreement, including deciding to leave it null.
+sample-attribute disagreement, including deciding to leave it null (`docs/adr/0010`).
 _Avoid_: soft error, minor blocker, notice; spelled `ValidationWarning` in code so it never shadows
 the builtin
 
 **Conflict**:
 A surfaced disagreement between two or more positions on one field, each with its own basis. An
-`observed`↔`asserted` one is never auto-picked: it blocks at exit 4 until a human confirms.
+`observed`↔`asserted` one is never auto-picked: it blocks at exit 4 until a human confirms
+(`docs/adr/0010`).
 _Avoid_: mismatch, discrepancy, error, disagreement (unqualified)
 
 **Question**:
 An ambiguity code has already narrowed to a closed list of options, addressed to a human at exit 4.
 Asked only where the answers are exclusive — an ambiguity whose every answer we can afford to emit
-is dissolved, not asked (R11c).
+is dissolved, not asked (`docs/adr/0012`).
 _Avoid_: prompt, query, clarification, ask
 
 ### Artifacts
 
 **Manifest**:
 `manifest.yaml` — what the data IS: library + experiment, machine-independent, write-once,
-content-hashed. A finished assay is immutable, so it is never rewritten under a change of intent.
+content-hashed. A finished assay is immutable, so it is never rewritten under a change of intent
+(`docs/adr/0004`).
 _Avoid_: config, metadata file, sample sheet, dataset description
 
 **Recipe**:
 `processing.yaml` — what to DO with a manifest: genome, aligner, what to count, environment,
-resource hints. Plural per dataset and sparse; empty is legal, and unpinned it is a template.
+resource hints. Plural per dataset and sparse; empty is legal, and unpinned it is a template
+(`docs/adr/0004`).
 _Avoid_: config, settings, pipeline, params (`backend.params` is the disjoint parse half);
 `ProcessingManifest` is the class, "recipe" is the word
 
 **Dataset hash**:
 The sha256 over exactly the manifest's `library` and `experiment` sections. Invariant under every
-change of intent — that invariance is what lets one manifest compile many ways (R11a).
+change of intent — that invariance is what lets one manifest compile many ways (`docs/adr/0004`).
 _Avoid_: manifest hash (the provenance block carries the hash and sits outside it), checksum,
 dataset id
 
 **`run_id`**:
 `H(dataset ⊕ processing ⊕ kb ⊕ workflow)` — the identity of one *pairing*, computed at compile time
-and stored inside neither input. It names the pipeline directory, so two recipes over one dataset
-cannot overwrite each other.
+and stored inside neither input (`docs/adr/0005`, which holds the formula in full). It names the
+pipeline directory, so two recipes over one dataset cannot overwrite each other.
 _Avoid_: build id, job id, provenance id; and never for `RunResolution.run_id`, which is a
 filename-derived **Run** key
 

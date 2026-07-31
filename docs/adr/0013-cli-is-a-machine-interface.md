@@ -55,6 +55,18 @@ happens downstream, when a validator reads the observation.
 A resume flag is the caller asserting what has already been done. The cache already knows, keyed by
 content — so the flag could only ever *disagree* with it, and the disagreement would be silent.
 
+## So in code
+
+**Machine JSON to stdout, human logs to stderr, refusal as an exit code.** Never add a `--json`
+flag, never add `--resume`, and never branch on a severity field: a `Blocker` is always fatal and a
+`Warning` never is, so the *type* is the decision. Return 3 for a refusal no human answer can clear
+and 4 for one a human can, uniformly across verbs — an orchestrator must tell "stop and report" from
+"ask and retry" without parsing prose. Every `Blocker` you raise carries an actionable `remedy` and a
+`subject` that is a basename, a dotted path or a dataset id, never an absolute path.
+
+**Enforced by.** `test_the_cli_surface_exits_and_answers_as_documented` (`tests/test_cli.py`);
+`test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`).
+
 ## Consequences
 
 - Every `Blocker` carries an actionable `remedy` and a `subject` that is a basename, a dotted path,
@@ -64,5 +76,3 @@ content — so the flag could only ever *disagree* with it, and the disagreement
   has one rule rather than a per-verb table.
 - The `Stop` hook and exit 4 are the only ways ambiguity clears, and both route to a human — which
   is what keeps a headless batch to **one** LLM touchpoint (`harvest extract`).
-- `test_skill_documents_only_real_cli_verbs` introspects the live Typer app, so a renamed verb turns
-  the skills red rather than leaving a thin client pointing at nothing.

@@ -435,7 +435,7 @@ def test_a_reference_doc_may_not_set_processing(tmp_path: Path) -> None:
     assert verify_drafts([draft], [nd_i], extractor=EXTRACTOR).n_accepted == 1
 
 
-def test_r5_is_non_vacuous_for_a_closed_vocabulary_field(tmp_path: Path) -> None:
+def test_entailment_is_non_vacuous_for_a_closed_vocabulary_field(tmp_path: Path) -> None:
     """The one field where entailment actually bites — and it must stay that way.
 
     `entails` is vacuous when value ⊆ quote, so it does real work ONLY for a controlled vocabulary.

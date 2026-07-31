@@ -29,6 +29,21 @@ the v3 list is **522 kB packed** against 12 MB as a `.txt.gz` and 111 MB expande
 expansion trades cheap, deterministic CPU for expensive duplicated bytes that no cache key protects
 and no one ever collects.
 
+## So in code
+
+**Never write an expanded barcode whitelist into a run directory, or anywhere under `seqforge/`.**
+Bind it to `rule onlist`, which materializes it on demand and `temp()`-deletes it once the last job
+that needs it is done; the shipped packed array stays the only stored copy. A `temp()` on an input
+with no producing rule does nothing — snakemake cannot delete a file it did not make. Declare no
+`container:` on that rule: it runs `seqforge`, not an aligner. And when adding an aligner module,
+reuse the same rule rather than writing a variant — a barcode whitelist is a barcode whitelist.
+
+**Enforced by.** `test_the_whitelist_is_a_rule_output_not_a_compile_time_write`
+(`tests/test_compose.py`);
+`test_no_run_directive_rule_declares_a_container` (same file) for the missing `container:`;
+`test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length` (same file),
+which is what fails if the wiring gate stops touching the resolved-onlist cache paths.
+
 ## Consequences
 
 - A run directory stays small and reads as **the deliverable** — a Snakefile, a config, a units

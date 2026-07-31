@@ -50,11 +50,21 @@ plurality this split exists for. Set ⇒ **bound**, and `compose` refuses a mism
 and never auto-repins. `compose` ALWAYS writes the bound form it used to `processing.lock.yaml` —
 disk is state, not input.
 
+## So in code
+
+**A change of intent must never perturb `dataset_hash`.** A field that says what the data IS goes in
+`models/dataset.py` and inside `dataset_content_hash`; a field that says what to DO with it goes in
+`models/processing.py` and outside it. Never import a processing type from the dataset models, never
+widen `dataset_content_hash` past `library` + `experiment`, and never auto-repin a bound recipe —
+`compose` refuses the mismatch and writes the bound form to `processing.lock.yaml`.
+
+**Enforced by.** `test_dataset_hash_is_invariant_across_a_processing_sweep` and
+`test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset` (`tests/test_manifest.py`);
+`test_the_module_graph_enforces_the_split` (`tests/test_models.py`), which is the import-graph check;
+`test_compose_writes_the_bound_processing_lock` (`tests/test_compose.py`).
+
 ## Consequences
 
-- A change of intent must **never** perturb `dataset_hash`. Enforced by `dataset_content_hash`
-  covering exactly two sections, a recipe-sweep hash-invariance test, and an import-graph test over
-  `models/{dataset,processing}.py`.
 - §1.0 needs no distinct `policy_default` basis: once a section carries a *varying* basis,
   `inferred` plus an evidence ref naming the rule is distinguishable by inspection.
 - `DatasetProvenance` omits `workflow_version` on purpose — the assay happened before we had an

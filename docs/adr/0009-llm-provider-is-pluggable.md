@@ -37,6 +37,23 @@ and `ExtractionResult.model_validate_json` is the gate: a wrong shape fails the 
 loudly rather than leaking a half-parsed assertion into a manifest. Half a batch is the only outcome
 that would have been worse than none.
 
+## So in code
+
+**Write one prompt for every provider, and let no provider's guarantee stand in for a check of
+ours.** Never branch the prompt on the provider — `prompt_version` has to stay comparable across
+vendors, or every eval number becomes provider-local. Never widen a provider adapter to
+post-process, repair or partially accept a response: a malformed batch fails whole at
+`ExtractionResult.model_validate_json`, because half a batch is the only outcome worse than none. And
+when no credential names a provider, refuse — never fall back to one, because extracting under a
+different model than intended is a provenance bug that looks like success.
+
+**Enforced by.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
+(`tests/test_extract.py`) for the selection;
+`test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify` (same file) for one prompt
+reaching verification through the weakest-shaped provider, and
+`test_system_prompt_satisfies_the_json_mode_contract` for the prompt itself;
+`test_extract_records_provider_in_provenance` for `provider/model`.
+
 ## Consequences
 
 - **One prompt serves every provider**, so `prompt_version` stays comparable across runs and across
@@ -49,5 +66,10 @@ that would have been worse than none.
   bug, and a cheap one to make.
 - V4-Flash is ≈3× cheaper than V4-Pro, so provider choice is a real cost lever across 10⁴ datasets —
   which is only safe to pull because it cannot move correctness.
-- Known gap: a transient provider error is not retried; DeepSeek's empty-content-in-JSON return
-  correctly refuses the batch, but `run` then exits 1. A bounded retry inside `extract` is the fix.
+- Known gap: **no transient API error is retried, by either adapter.** A 429, a 5xx or a timeout
+  becomes `ProviderUnavailable` on the first attempt, `harvest extract` reports `llm_unavailable`,
+  and the run exits 1. The only retry that exists is narrower and sits in one adapter:
+  `OpenAICompatibleProvider` — and so the DeepSeek preset — re-issues a bounded number of times when
+  json_object mode returns an **empty** body, because that is a provider hiccup rather than the
+  document saying nothing (which is a well-formed `{"drafts": []}`). The Anthropic path has neither
+  retry. A bounded backoff around both calls is the fix.

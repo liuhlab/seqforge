@@ -29,8 +29,9 @@ The first remedy, written into the CHANGELOG: an unknown prep raises a `Question
 features — one alignment, five counting rules, one pass — so `GeneFull` is computed whether or not
 anyone says the prep is nuclear. The exit-4 remedy was **withdrawn, not implemented**.
 
-The general rule (R11c): **never escalate an ambiguity whose every answer you can afford to emit.**
-Escalate only where the answers are genuinely exclusive — a genome, an aligner.
+The general rule — the closing clause of the router's two-artifacts rule, *produce every answer
+rather than ask*: **never escalate an ambiguity whose every answer you can afford to emit.** Escalate
+only where the answers are genuinely exclusive — a genome, an aligner.
 
 ## Why not the question
 
@@ -38,6 +39,22 @@ It traded a silent wrong answer for a question, and the all-five default buys ba
 answer *and* no question. An exit-4 that never needed to fire only trains people to route around
 exit codes, which costs us the exit codes that do need to fire
 ([ADR 0013](0013-cli-is-a-machine-interface.md)).
+
+## So in code
+
+**Never escalate an ambiguity whose every answer you can afford to emit.** Before writing a
+`Question` or an exit code, price the alternative: if one pass can produce all the answers, produce
+them and let the recipe narrow afterwards — that is why `SoloQuant.features` defaults to all five.
+Ask only where the answers are genuinely exclusive, such as a genome or an aligner. An exit code that
+fires when it need not trains callers to route around exit codes, which costs the ones that must
+fire.
+
+**Enforced by.** `test_the_default_counts_the_nuclear_features_without_being_asked` and
+`test_bulk_never_gets_solo_features` (`tests/test_manifest.py`);
+`test_solo_quant_rejects_velocyto_without_gene` and
+`test_solo_quant_rejects_duplicates_and_emptiness` (`tests/test_models.py`); `kb e2e-introns`, run
+with its override deleted against the compiler's own params. **Nothing counts questions asked**
+outside the eval's own metric, so "we dissolved this rather than asking" is a review judgement.
 
 ## Consequences
 

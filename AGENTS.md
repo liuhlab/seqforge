@@ -18,7 +18,8 @@ Deterministic code owns every decision. The LLM has exactly **two** jobs: (a) pa
 span-verified `Assertion`s; (b) arbitrate ambiguity code has *already flagged* (modelled, verb
 unbuilt). Instruction-following is **not** a third job, and sample metadata is no third job either —
 both enter as `Assertion`s carrying a quote that greps back, and code applies precedence. Everything
-else is a verifier; don't blur that line.
+else is a verifier; don't blur that line. An assay that seems to need the model to **act** is the
+signal to re-read this paragraph, not to relax it.
 
 ```text
 probe(files)                    -> Observation   bytes only, no LLM, no network; `io probe-remote`

@@ -129,9 +129,9 @@ in seqforge — is what this artifact exists to carry.
   Blocker, never auto-repins, and always writes the bound form it used to `processing.lock.yaml`.
   Both decisions: [ADR-0004](../adr/0004-two-artifacts-not-one.md).
 
-`run_id = H(dataset_hash ⊕ processing_hash ⊕ kb_version ⊕ workflow_version)` — the pairing is recorded
-at compile time and stored inside neither input, after a single provenance id collided on two recipes
-over one dataset ([ADR-0005](../adr/0005-run-id-is-the-pairing.md)).
+A compiled run is identified by the *pairing*, not by the manifest alone: recorded at compile time and
+stored inside neither input, after a single provenance id collided on two recipes over one dataset.
+The formula is in [ADR-0005](../adr/0005-run-id-is-the-pairing.md), and only there.
 
 Why the recipe's key set is *closed*, and disjoint from `backend.params`, so that "a user instruction
 contradicts the bytes" is inexpressible: [ADR-0011](../adr/0011-closed-instructable-surface.md). Why

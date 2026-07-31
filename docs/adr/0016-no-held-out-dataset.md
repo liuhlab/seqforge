@@ -33,15 +33,27 @@ that prices a defect — and it was pricing one. `gene_signal_lost = 0.407`
 dataset from its **declared** metadata (single-nucleus RNA-seq), before the run, without touching it.
 The reservation would not have caught it; the pre-registration did.
 
+## So in code
+
+**Reserve no dataset; write `expected.yaml` before the run that would confirm it.** Fill it from
+declared metadata and provider-independent prior knowledge only — a value read out of a run makes
+the file a transcript, and a transcript cannot be wrong. Write claims that are *checkable*, and both
+shapes: `experiment.samples.*.<attr>` and `experiment.samples.<accession>.<attr>`, because `*` alone
+passes on a shuffled join. Name a lab path through an environment variable; a `kind: local` case
+never carries one literally. Do not add a guard that hides a dataset from development, and do not
+cite the benchmark corpus as a pre-registration — it was seeded from runs and is a regression
+baseline.
+
+**Enforced by.** `test_skill_never_leaks_a_lab_path` (`tests/test_skills.py`);
+`test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold` (`tests/test_records.py`);
+`test_extra_keys_in_expected_are_rejected` and `test_corpus_is_green` (`tests/test_evals.py`).
+**Nothing can check that a value was not back-filled from a run** — that is what committing the file
+first buys, and it is a review obligation rather than a mechanism.
+
 ## Consequences
 
-Two disciplines survive the retirement, and both are enforced:
-
-- **Real data, and its path, stay out of git.** A `kind: local` eval case names an environment
-  variable, guarded by `test_skill_never_leaks_a_lab_path`. A lab path is not a project fact.
-- **Pre-register `expected.yaml` before a run**, with claims that are *checkable*:
-  `experiment.samples.*.<attr>` for all samples and `experiment.samples.<accession>.<attr>` for one.
-  You want both — `*` alone passes on a shuffled join.
+Two disciplines survive the retirement — real data and its path stay out of git, and `expected.yaml`
+is pre-registered — and both are above, with what enforces them. A lab path is not a project fact.
 
 The benchmark corpus (`evals/benchmark`, seven real *C. elegans* datasets behind byte-light
 fingerprint packages) is the **validation** set we develop against: its expectations were *seeded

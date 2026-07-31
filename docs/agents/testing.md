@@ -282,8 +282,8 @@ The KB sweeps grow with the spec count, and the *shape* of each term matters mor
 (#112). At 12 specs the whole KB partition is a few seconds; the terms that grow are these:
 
 - The **R8 anchors** are the price of "every KB entry is executable and self-testing," and you do not
-  buy them down. `test_every_kb_spec_roundtrips` is O(n) and *is* the rule. The §12 biconditional is
-  O(n²) with a microsecond constant. `test_no_spec_pair_is_confusable_without_declaring_it` is O(n²)
+  buy them down. `test_every_kb_spec_roundtrips` is O(n) and *is* the rule. The benign-twin
+  biconditional is O(n²) with a microsecond constant. `test_no_spec_pair_is_confusable_without_declaring_it` is O(n²)
   **but geometry-pre-gated** — it checks the cheap `geometry_could_accept` (µs) before paying the
   scorer, which is ~100× and is the pattern to copy. Never narrow their generative axes to hit a clock.
 - The two other O(n²) sweeps — `test_geometry_could_accept_is_necessary_for_rung02_acceptance` and
@@ -303,14 +303,24 @@ rebuilt per pair, then for a missing `geometry_could_accept` pre-gate — not fo
 
 ## Comments: name the idea, never the section number
 
-**Under `src/` and `tests/`, a comment may not point at a governing document by number.** Two shapes
-are forbidden, and `tests/test_repo_invariants.py::test_no_comment_points_at_a_governing_document_by_number`
-fails on either:
+**On every surface that CONSUMES the numbered rules, a comment may not point at a governing document
+by number.** That is `src/`, `tests/`, `skills/`, `evals/` and `pyproject.toml` — the code, the thin
+clients that wrap it, the corpus that pre-registers what it should decide, and the project config.
+Three shapes are forbidden, and
+`tests/test_repo_invariants.py::test_no_comment_points_at_a_governing_document_by_number`
+fails on any of them:
 
 - the section sign, in any form — `design §4.1`, `§12`, `brief §9`. It has no domain meaning here,
   so it is forbidden outright.
+- the same pointer with the sign transliterated to a bare capital `S` — `brief S9`, `design S4.1`.
+  Transliterating a forbidden character is not a way around the rule: the one pointer that outlived
+  the first sweep was spelled this way, and it named two documents that had already been deleted.
+  Only behind a governing-document word, so `Table S12` and `..._S1_L001_...` stay untouched.
 - a rule citation — `(R7)`, `rule R5`, `per R10`, `R6:`. The guard matches a bare `R` plus a rule
   number of four or above, and the `rule R<n>` / `per R<n>` phrasings at any number.
+
+**The documents that DEFINE the numbering are not scanned** — the router, the glossary,
+`docs/agents/` and `docs/adr/`. A rule table that may not name its own rules is not a rule table.
 
 A number is a mutable label. Renumber the document and the comment lies, with nothing to notice: four
 such pointers were already dangling when the rule was written, one of them at a file that had been
@@ -327,7 +337,7 @@ the low numbers alone except in a `rule`/`per` phrasing. `tests/test_docs.py` is
 the rule ids are the data it tests, not a pointer.
 
 The numbered rules themselves live in the agent-facing docs and are cited there freely — this rule is
-about code, where the reader cannot see the document you meant.
+about the surfaces that consume them, where the reader cannot see the document you meant.
 
 ## Adding a test
 

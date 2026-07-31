@@ -60,6 +60,22 @@ Positions are the same story one level down: `soloCBposition` and `soloUMIpositi
 the KB and derived from the element coordinates at compose time**, never hand-typed. Two spellings of
 one geometry is one spelling too many.
 
+## Every value is pinned to a live source, or it does not enter the KB
+
+A chemistry fact is looked up against a live source and pinned by URL plus checksum, or it does not go
+in a `spec.yaml`. Never assert one from memory. A wrong whitelist does not fail — it emits a
+thin-looking matrix, which is the worst failure mode available here: a refusal is recoverable and a
+plausible matrix is not. Barcode files, linker sequences, strand, and ontology terms are all the same
+value under this rule. A value that is not yet pinned is an open lookup in the tracker, never a
+placeholder in a spec — an unverified value parked in prose is a value nobody checks.
+
+**Ontology terms checked against the live EBI OLS** (not memory), recorded so nobody re-opens them:
+`EFO:0009922` (10x 3′ v3), `EFO:0009899` (10x 3′ v2), `EFO:0009919` (SPLiT-seq), `EFO:0008896` (bulk
+RNA-Seq). v3.1 carries its own term, `EFO:0022980`, and Parse Evercode's are `EFO:0022600/1/2` —
+distinct assays, and conflating them files a spec under a protocol it does not model. Each spec repeats
+its own verification note beside `assay_ontology`. **Any future technology's term is looked up the same
+way before use.**
+
 ## Two worked entries
 
 **`10x-3p-gex-v3`** is the fixed-offset case: R1 is 28 bp of 16 bp CB plus 12 bp UMI
@@ -187,8 +203,8 @@ barcode. Rhapsody Enhanced's blocks are fixed-width at a floating position, so t
 machinery already exists; what is missing is an entry that exercises width variation.
 
 Two caveats to carry into a new entry. **SPLiT-seq ships no whitelists**: the spec names three round
-onlists and we ship none, so those tests abstain and rung 3 can never decide it. Do not guess barcodes
-— a wrong whitelist emits a thin-looking matrix instead of failing. And the **dual-derivation check
+onlists and we ship none, so those tests abstain and rung 3 can never decide it. Registering them is an
+open lookup; guessing them is what the pinning rule above forbids. And the **dual-derivation check
 against seqspec is scoped to fixed-offset chemistries**: whether seqspec's STARsolo emitter produces
 position strings for combinatorial or anchored barcodes is unverified, so confirm before relying on it
 beyond `CB_UMI_Simple`.
