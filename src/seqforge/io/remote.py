@@ -100,7 +100,7 @@ _DEFAULT_TIMEOUT = 30
 #: (3 req/sec keyless, by IP), which used to abort the whole `records` stage on a busy accession (#9);
 #: the 5xx family covers a momentary gateway/service blip. Everything else is a real, terminal error.
 _RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
-_MAX_RETRIES = 4
+_MAX_RETRIES = 3
 _BACKOFF_BASE = 1.0  # seconds; grows 1, 2, 4, 8 …
 _MAX_BACKOFF = 16.0
 

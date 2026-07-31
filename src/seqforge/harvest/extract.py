@@ -21,16 +21,24 @@ contract cannot drift from ``models/``.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+import time
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from ..io.remote import _MAX_RETRIES, retry_delay
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import describe_asked, fields_for
 from .normalize import NormalizedDoc
-from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
+from .providers import (
+    LLMProvider,
+    LLMResponse,
+    ProviderUnavailable,
+    resolve_provider,
+    schema_prompt,
+)
 
 #: Bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is reproducible and
 #: blamable, and evals treat a prompt edit as a code change.
@@ -196,6 +204,45 @@ def llm_schema() -> dict[str, Any]:
     return ExtractionResult.model_json_schema()
 
 
+def _complete_with_retry(llm: LLMProvider, **call: Any) -> LLMResponse:
+    """One provider call, retried while the provider says the failure was transient.
+
+    `run` stops at the first refusal, so before this a single 429 mid-harvest exited the whole
+    headless run — and discarded every document already extracted, which had been paid for in tokens.
+    That is the same defect a 429 caused in the `records` stage, so this borrows that fix's policy
+    (`retry_delay`, `_MAX_RETRIES`) rather than inventing a second one.
+
+    **The provider classifies; this only obeys.** By the time a `ProviderUnavailable` arrives here the
+    SDK exception is gone and "no credential" is indistinguishable from "rate limited" — so a loop
+    that guessed would back off four times over a missing API key. It retries only what was *marked*
+    transient, and `retry_after` carries the pace: `"0"` for an empty body, which asks for nothing,
+    and the server's own `Retry-After` for a rate limit.
+
+    Usage accrues across attempts. A refused call still burned tokens, and the ledger is meant to say
+    what the calls cost rather than what the last one did.
+    """
+    spent: dict[str, int] = {}
+
+    def _bank(usage: dict[str, int]) -> None:
+        for key, val in usage.items():
+            spent[key] = spent.get(key, 0) + val
+
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            response = llm.complete_json(**call)
+        except ProviderUnavailable as exc:
+            _bank(exc.usage)
+            if not exc.transient or attempt == _MAX_RETRIES:
+                # Terminal, or the budget is spent. Either way it fails loudly as `llm_unavailable`
+                # at exit 1 — bounded, never a spin.
+                raise ExtractUnavailable(str(exc)) from exc
+            time.sleep(retry_delay(exc.retry_after, attempt))
+            continue
+        _bank(response.usage)
+        return replace(response, usage=spent)
+    raise AssertionError("unreachable: the loop either returns or raises")  # pragma: no cover
+
+
 def extract_drafts(
     doc: NormalizedDoc,
     specs: dict[str, Spec],
@@ -220,16 +267,14 @@ def extract_drafts(
 
     chosen = model or llm.default_model()
     schema = llm_schema()
-    try:
-        response = llm.complete_json(
-            system=build_system_prompt(specs, schema),
-            user=_user_content(doc, asked),
-            schema=schema,
-            model=chosen,
-            max_tokens=max_tokens,
-        )
-    except ProviderUnavailable as exc:
-        raise ExtractUnavailable(str(exc)) from exc
+    response = _complete_with_retry(
+        llm,
+        system=build_system_prompt(specs, schema),
+        user=_user_content(doc, asked),
+        schema=schema,
+        model=chosen,
+        max_tokens=max_tokens,
+    )
 
     # THE gate. json-object providers do not enforce shape, so this is where a malformed batch is
     # caught. The split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array)

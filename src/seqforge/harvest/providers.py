@@ -24,6 +24,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from ..io.remote import _RETRY_STATUS
+
 #: Anthropic. Adaptive thinking + strict schema.
 ANTHROPIC_DEFAULT_MODEL = "claude-opus-4-8"
 
@@ -34,16 +36,57 @@ ANTHROPIC_DEFAULT_MODEL = "claude-opus-4-8"
 DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-pro"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
-#: How many extra times to re-issue a json_object request that came back with EMPTY content. DeepSeek
-#: documents that json_object mode intermittently returns an empty body, and v4-pro does it often
-#: enough to abort a whole harvest (#4). An empty body is a provider hiccup, not "the document says
-#: nothing" (that is a well-formed `{"drafts": []}`), so a bounded retry recovers it instead of failing
-#: the dataset. A real API error is not retried here — it raises on the first attempt.
-_EMPTY_CONTENT_RETRIES = 3
+#: Exception *type* names that mean the call never reached a verdict — the transport gave out. Matched
+#: by name rather than by class because both SDKs are optional imports: naming `openai.APITimeoutError`
+#: here would make classification depend on the SDK being installed, which is exactly the terminal
+#: condition we are trying to tell apart from a blip.
+_TRANSIENT_EXC_NAMES = ("timeout", "connection", "remotedisconnected", "protocolerror")
 
 
 class ProviderUnavailable(RuntimeError):
-    """No usable provider: SDK missing, credential absent, or the endpoint failed."""
+    """No usable provider: SDK missing, credential absent, or the endpoint failed.
+
+    Carries the classification the retry needs, because **only the provider can make it**. By the time
+    this reaches the caller the SDK exception is gone, and "no credential" and "429" look identical —
+    a loop that cannot tell them apart backs off four times over a missing API key.
+
+    - ``transient`` — worth another attempt. Set *only* where the provider held the real exception.
+    - ``retry_after`` — seconds to wait, as the header string ``retry_delay`` already parses.
+      ``"0"`` means retry at once: an empty body is a content hiccup with nothing to wait for, while a
+      429 is the endpoint asking for room. One loop, two paces, expressed through the existing knob.
+    - ``usage`` — what the failed attempt cost. A refused call still burns tokens, and the ledger is
+      meant to say what the calls actually cost rather than what the last one did.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        transient: bool = False,
+        retry_after: str | None = None,
+        usage: dict[str, int] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.transient = transient
+        self.retry_after = retry_after
+        self.usage = usage or {}
+
+
+def classify_api_error(exc: Exception) -> tuple[bool, str | None]:
+    """Is this SDK exception worth retrying, and how long should the caller wait?
+
+    Duck-typed on purpose. Both SDKs raise status-carrying errors shaped like httpx's, so reading
+    ``status_code`` and the ``Retry-After`` header covers them without importing either. The status
+    set is the network surface's — a rate limit and the 5xx family are blips; a 400 or a 401 is a
+    verdict, and retrying it four times only makes the failure slower.
+    """
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        headers: Any = getattr(getattr(exc, "response", None), "headers", None) or {}
+        raw = headers.get("retry-after") if hasattr(headers, "get") else None
+        return status in _RETRY_STATUS, str(raw) if raw is not None else None
+    name = type(exc).__name__.lower()
+    return any(token in name for token in _TRANSIENT_EXC_NAMES), None
 
 
 @dataclass(frozen=True)
@@ -109,11 +152,27 @@ class AnthropicProvider:
                 thinking={"type": "adaptive"},
             )
         except Exception as exc:
-            raise ProviderUnavailable(f"anthropic call failed: {exc}") from exc
+            transient, retry_after = classify_api_error(exc)
+            raise ProviderUnavailable(
+                f"anthropic call failed: {exc}", transient=transient, retry_after=retry_after
+            ) from exc
         text = next((b.text for b in response.content if getattr(b, "type", None) == "text"), "")
+        usage = _anthropic_usage(response)
+        if not text.strip():
+            # A thinking-only turn, or a stop before any text block, leaves no JSON to parse. Left as
+            # `text=""` this surfaced one turn later as "returned output that is not valid JSON" — a
+            # shape complaint about a response that had no shape. It is the same empty-body hiccup the
+            # json-object path already recovers from, so it is refused the same way and retried at
+            # once: there is no rate limit to respect, only a turn that produced nothing.
+            raise ProviderUnavailable(
+                "anthropic returned no text block (a thinking-only or empty turn)",
+                transient=True,
+                retry_after="0",
+                usage=usage,
+            )
         return LLMResponse(
             text=text,
-            usage=_anthropic_usage(response),
+            usage=usage,
             mode={
                 "thinking": "adaptive",
                 "max_tokens": max_tokens,
@@ -173,51 +232,50 @@ class OpenAICompatibleProvider:
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
     ) -> LLMResponse:
         client = self._resolve()
-        # Re-issue on EMPTY content, bounded (#4). DeepSeek's json_object mode intermittently returns
-        # an empty body; that is a provider hiccup, not the document saying nothing (which is a
-        # well-formed `{"drafts": []}`), so a few retries recover it instead of aborting the harvest.
-        # Usage is ACCUMULATED across attempts: an empty response still cost tokens, and the harvest
-        # ledger is meant to reflect what the calls actually cost, not just the final one.
-        usage_total: dict[str, int] = {}
-        for _ in range(_EMPTY_CONTENT_RETRIES + 1):
-            try:
-                response = client.chat.completions.create(
-                    model=model,
-                    max_tokens=max_tokens,
-                    messages=[
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                    # json_object guarantees valid JSON, NOT the right shape — Pydantic checks shape.
-                    response_format={"type": "json_object"},
-                )
-            except Exception as exc:
-                # A real API error is not a content hiccup — fail on the first attempt, do not retry.
-                raise ProviderUnavailable(f"{self.name} call failed: {exc}") from exc
-            for key, val in _openai_usage(response).items():
-                usage_total[key] = usage_total.get(key, 0) + val
-            choice = response.choices[0] if response.choices else None
-            text = (getattr(choice.message, "content", None) or "") if choice else ""
-            if text.strip():
-                # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no
-                # toggle, so it is reported as the model name's business, not a flag we set.
-                # `response_format` is the weaker json_object contract, which is why Pydantic — not the
-                # provider — enforces the shape.
-                return LLMResponse(
-                    text=text,
-                    usage=usage_total,  # summed over every attempt, including the empty ones
-                    mode={
-                        "thinking": "model-default",
-                        "max_tokens": max_tokens,
-                        "response_format": "json_object",
-                    },
-                )
-        # Every attempt came back empty: refuse loudly rather than let it read as "says nothing". The
-        # hint is provider-agnostic (this class also serves vLLM/Ollama/Together) and names no
-        # soon-deprecated model.
-        raise ProviderUnavailable(
-            f"{self.name} returned empty content in JSON mode on {_EMPTY_CONTENT_RETRIES + 1} "
-            f"attempts (a known json_object-mode failure; try a different model or provider)"
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                # json_object guarantees valid JSON, NOT the right shape — Pydantic checks shape.
+                response_format={"type": "json_object"},
+            )
+        except Exception as exc:
+            transient, retry_after = classify_api_error(exc)
+            raise ProviderUnavailable(
+                f"{self.name} call failed: {exc}", transient=transient, retry_after=retry_after
+            ) from exc
+        usage = _openai_usage(response)
+        choice = response.choices[0] if response.choices else None
+        text = (getattr(choice.message, "content", None) or "") if choice else ""
+        if not text.strip():
+            # DeepSeek's json_object mode intermittently returns an empty body, often enough to abort a
+            # whole harvest (#4). That is a provider hiccup, not the document saying nothing (which is
+            # a well-formed `{"drafts": []}`). The retry lives one level up now, so this says *what
+            # happened* and *that it is worth another go* rather than looping here — one budget, shared
+            # with the transient-API case, instead of a second one nested inside it. `retry_after="0"`
+            # because an empty body asks for nothing; there is no rate limit to respect.
+            raise ProviderUnavailable(
+                f"{self.name} returned empty content in JSON mode (a known json_object-mode "
+                f"failure; try a different model or provider)",
+                transient=True,
+                retry_after="0",
+                usage=usage,
+            )
+        # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no toggle,
+        # so it is reported as the model name's business, not a flag we set. `response_format` is the
+        # weaker json_object contract, which is why Pydantic — not the provider — enforces the shape.
+        return LLMResponse(
+            text=text,
+            usage=usage,
+            mode={
+                "thinking": "model-default",
+                "max_tokens": max_tokens,
+                "response_format": "json_object",
+            },
         )
 
 
