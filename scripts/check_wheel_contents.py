@@ -34,6 +34,10 @@ DIST = ROOT / "dist"
 
 def _check(names: list[str]) -> list[str]:
     """Return the list of failures (empty == the wheel ships everything it must)."""
+    # The counts are conservative LOWER bounds, not exact totals — the wheel ships more of each
+    # (5 onlists, 3 map modules, 10+ specs). They exist to catch "the whole category fell out of the
+    # packaging" (a broken `packages`/`force-include`), which is the silent failure mode, not the loss
+    # of one file among many. Bump a bound only if a category's floor genuinely rises.
     failures: list[str] = []
     if not any(n.endswith("io/onlists/index.json") for n in names):
         failures.append("io/onlists/index.json is missing")

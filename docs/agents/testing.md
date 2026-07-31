@@ -47,7 +47,7 @@ Test files mirror packages, so rung 1 has an answer:
 | `manifest/` (fill, hash, validate, policy/precedence) | `tests/test_manifest.py` |
 | `compose/` (plan, config, units, gates, params_gate) | `tests/test_compose.py` |
 | `workflows/` (registry + `.smk` source; h5ad, qc, cram, fragments) | `tests/test_workflows.py` |
-| tree-wide R1/R10 AST guards (read `src/`, never compose) | `tests/test_repo_invariants.py` |
+| tree-wide R10 AST guards (read `src/`, never compose) | `tests/test_repo_invariants.py` |
 | `harvest/` | `tests/test_harvest.py`, `tests/test_extract.py` |
 | `io/` | `tests/test_io.py`, `tests/test_remote.py`, `tests/test_sra.py`, `tests/test_archive.py` |
 | `io/taxonomy.py` | `tests/test_taxonomy.py` |
