@@ -1,4 +1,12 @@
 {
+  "3M-3pgex-may-2023": {
+    "n_entries": 7372800,
+    "orientation": "forward",
+    "sha256": "96519e238d7aec40ffa149831a4ba08433208400338eda03fc1bc37ff59c3f49",
+    "source_sha256": "62df04844ed0d1281b302f862ec0d005d3298fc169f507f68dd6e8d4cb5ccccd",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-3pgex-may-2023.txt.gz",
+    "width": 16
+  },
   "3M-february-2018": {
     "n_entries": 6794880,
     "orientation": "forward",

@@ -76,6 +76,33 @@ distinct assays, and conflating them files a spec under a protocol it does not m
 its own verification note beside `assay_ontology`. **Any future technology's term is looked up the same
 way before use.**
 
+### Pinned ahead of the spec that will need them
+
+A value looked up for a technology we do not yet model has no `spec.yaml` to live beside, and putting
+it back in the tracker invites the next author to look it up again or, worse, to assert it. These are
+verified and shipped, so the entry that needs them starts from a pin rather than from memory.
+
+**`3M-3pgex-may-2023`** — the GEM-X 3′ v4 whitelist, 7 372 800 × 16 bp, packed from
+`scg_lib_structs/data/10X-Genomics/`. The `10x-gemx-3p-v4` spec does not exist; until it does, v3 and
+v3.1 declare it as a forward confusable and rung 3 has nothing to compare against. The separation it
+is declared on is measured, not assumed — against `3M-february-2018` the two share 68 254 barcodes, so
+a v4 library hits the v3 list at most **0.9%**.
+
+**10x 5′ whitelists.** v1/v2 reuse `737K-august-2016`, which is 3′ v2's list — genuinely coincident,
+and the case that makes 5′-vs-3′ read-undecidable. v3 does **not**: it uses `3M-5pgex-jan-2023`
+(3 686 400 × 16 bp), which shares 0.62% with `3M-february-2018` and 6.87% with `3M-3pgex-may-2023`. So
+"5′ is separable only by metadata or alignment" is true of the *version pairing*, not of 5′ as such,
+and an eventual `10x-5p-gex` entry should be version-qualified rather than inherit the blanket claim.
+
+**10x 5′ `soloStrand` is NOT pinned, and must not be shipped from the evidence below.** Recorded so
+the search is not repeated: scg_lib_structs has 5′ read 2 sequencing the top strand as template, which
+is antisense to the mRNA — that reads as `Reverse` — and community practice agrees, with the caveat
+that paired-end mapping that over-sequences the adapter read flips it to `Forward`. STAR's own manual
+defines `Forward`/`Reverse` and takes **no position** on 5′. That is materially weaker than the bar
+`splitseq`'s strand met (a derivation from the kit's own oligos, corroborated by the authors' code),
+and strand is the value where being wrong is quietest. Deriving it from the GEM-X 5′ user guide's oligo
+architecture, or running one real 5′ library both ways, is what closes it.
+
 ## Two worked entries
 
 **`10x-3p-gex-v3`** is the fixed-offset case: R1 is 28 bp of 16 bp CB plus 12 bp UMI
