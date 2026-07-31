@@ -1,0 +1,96 @@
+schema_version: 1
+
+# An ABSTRACT FAMILY NODE, the 5' mirror of `10x-3p-gex`. It has no `backend`: v1/v2 and v3 parse reads
+# differently (10 vs 12 bp UMI, different whitelists), so there is no single recipe to compile — descent
+# always resolves to a leaf child. Same three jobs as the 3' family: (1) group the 5' leaves so their
+# pairwise `processing_divergent` edges collapse to one `parent` link; (2) carry `children_decided_by`;
+# (3) be the family a prose/metadata prior names ("10x 5' gene expression") when it orders the descent.
+# It is NEVER scored as a candidate (the scorer skips backend-less nodes) and is validated by the
+# recognition self-test, not `kb roundtrip`.
+#
+# THE ONE THING THIS FAMILY EXISTS FOR that the 3' family does not need: 5' and 3' are the same bytes.
+# Every 5' leaf's read layout is byte-identical to a 3' leaf's, so this node recognises the 3' family's
+# data and the 3' family recognises this one's. That is not a modelling failure to paper over, it is the
+# fact — and it is declared, once, in `confusable_with` below rather than left for the resolver to
+# discover as a silent coin-flip. The mechanism that separates them is version-dependent, so the leaves
+# carry the precise claim and this node carries their union.
+
+identity:
+  id: 10x-5p-gex
+  version: family
+  name: "10x Chromium Single Cell 5' Gene Expression (family)"
+  aliases: ["10x 5'", "10x 5-prime", "Chromium 5' GEX", "10x Chromium 5' GEX", "SC5P", "single cell 5-prime gene expression"]
+  # No umbrella "10x 5' GEX" term exists on OLS the way EFO:0009922 serves the 3' family, so the family
+  # carries the UNION of its children's terms rather than an invented parent. Each was checked against
+  # the live EBI OLS: EFO:0011025 = 5' v1, EFO:0009900 = 5' v2, EFO:0022605 = 5' v3.
+  assay_ontology: ["EFO:0011025", "EFO:0009900", "EFO:0022605"]
+  modality: rna
+
+node_kind: family
+# The children (v1/v2 at 26 bp, v3 at 28 bp) are separated FIRST by geometry — the 2 bp UMI difference
+# is a rung-0-2 fact and never reaches this list, which is only consulted once a tie has already
+# survived the cheap rungs (an over-sequenced R1, where 26-vs-28 collapses). In exactly that case the
+# whitelist decides, and it decides cleanly: `737K-august-2016` and `3M-5pgex-jan-2023` share 0.27% of
+# the smaller list (measured by set intersection over the packed arrays, not assumed).
+#
+# `Mechanism` has no `reads` member, so "geometry decides first" is not expressible here even though it
+# is true; writing the only mechanism this list can carry, and stating the geometry fact in prose, is
+# the honest reading. Same shape as the 3' family's `[onlist]`.
+children_decided_by: [onlist]
+
+reads:
+  # The loose 10x 5' barcode read: 16 bp CB + a 10-12 bp UMI (26-28 bp total), covering v1/v2 (26) and
+  # v3 (28). min/max_len 26..28 is what keeps the family SEPARABLE from bulk: a long cDNA read
+  # (>= 40 bp) fails this gate, so the family never claims bulk/SPLiT-seq data. It does NOT separate it
+  # from the 3' family, and cannot — see confusable_with.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 26
+    max_len: 28
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 28, seqspec_region_type: umi}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists: {}
+
+signature:
+  # Coarse recognition only — enough to admit any 10x 5' child at rungs 0-2 and to reject bulk (whose
+  # R1 is a long cDNA, not a 16 bp CB in a 26-28 bp read). NO exact segment_length: 26 and 28 both pass.
+  # Byte-identical to the 3' family's signature, which is the point: nothing cheap tells them apart.
+  requires:
+    - {test: read_count, roles: 2}
+    - {test: has_segment, read: R1, start: 0, end: 16, kind: random}
+  supports:
+    - when: {test: distinct_ratio, read: R1, start: 0, end: 16, expect: low}
+      weight: 2.0                # the CB recurs across reads
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0                # cDNA is diverse
+  excludes: []
+
+# no backend: abstract classifier. no parent: a root family, a sibling-in-spirit of 10x-3p-gex but not
+# its child — 3' and 5' are different assays, and a shared super-root would make `same_family` suppress
+# a 3'-versus-5' metadata contradiction as a mere within-family leaf vagueness. It is not: it inverts
+# soloStrand, and getting it wrong costs the library (a published both-ways run measured 0.5-0.6
+# gene-expression correlation under the wrong orientation versus >0.98 under the right one).
+confusable_with:
+  - id: 10x-3p-gex
+    relationship: processing_divergent
+    distinguishable_by: [onlist, metadata, alignment]
+    note: >
+      The two families occupy the SAME 26-28 bp / 16 bp-CB geometry, so each recognises the other's
+      reads at rungs 0-2 and no structural gate can be written that would not also reject its own
+      children. Declared here rather than discovered at runtime. The separating mechanism is
+      version-dependent, which is why this is a union and the leaves carry the exact claim:
+      3' v3/v3.1/v4/Multiome versus 5' v3 is `[onlist]` (3M-5pgex-jan-2023 hits 3M-february-2018 at
+      0.62%), while 3' v2 versus 5' v1/v2 is `[metadata, alignment]` — those two share BOTH the 26 bp
+      geometry and the 737K-august-2016 whitelist, so no onlist exists that could separate them.

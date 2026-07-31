@@ -58,5 +58,18 @@ signature:
       weight: 1.0                # cDNA is diverse
   excludes: []
 
-# no backend: abstract classifier. no parent: a root family.
-confusable_with: []
+# no backend: abstract classifier. no parent: a root family — and deliberately NOT sharing a super-root
+# with 10x-5p-gex: `same_family` suppression treats a within-family metadata-vs-bytes disagreement as
+# leaf vagueness the bytes may settle, and 3'-versus-5' is not that. It inverts soloStrand.
+confusable_with:
+  - id: 10x-5p-gex
+    relationship: processing_divergent
+    distinguishable_by: [onlist, metadata, alignment]
+    note: >
+      The 5' family occupies the SAME 26-28 bp / 16 bp-CB geometry, so this classifier recognises its
+      data and it recognises this one's — and no structural gate can be written that would not also
+      reject this family's own children. Declared here rather than left for the resolver to discover
+      as a silent coin-flip. The mechanism is version-dependent, so this is the union and the leaves
+      carry the exact claim: v3/v3.1/v4/Multiome versus 5' v3 is [onlist] (3M-5pgex-jan-2023 hits
+      3M-february-2018 at 0.62%), while v2 versus 5' v1/v2 is [metadata, alignment] — those two share
+      BOTH the 26 bp geometry and the 737K-august-2016 whitelist.

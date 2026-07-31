@@ -1,0 +1,898 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "GSE110823",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA434658",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "GEO",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2018-02-20",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Single cell profiling of the developing mouse brain and spinal cord with split-pool barcoding"
+        },
+        {
+          "label": "study_abstract",
+          "text": "To facilitate scalable profiling of single cells, we developed Split Pool Ligation-based Transcriptome sequencing (SPLiT-seq), a single-cell RNA-seq (scRNA-seq) method that labels the cellular origin of RNA through combinatorial barcoding. SPLiT-seq is compatible with fixed cells or nuclei, allows efficient sample multiplexing and requires no customized equipment. We used SPLiT-seq to analyze 156,049 single-nucleus transcriptomes from postnatal day 2 and 11 mouse brains and spinal cords. Over 100 cell types were identified, with gene expression patterns corresponding to cellular function, regional specificity, and stage of differentiation. Pseudotime analysis revealed transcriptional programs driving four developmental lineages, providing a snapshot of early postnatal development in the murine central nervous system. SPLiT-seq provides a path towards comprehensive single-cell transcriptomic analysis of other similarly complex multicellular systems. Overall design: Single-cell/nucleus RNA-seq was performed using SPLiT-seq This code explains how to read the data from the paper into python: https://gist.github.com/Alex-Rosenberg/5ee8b14ea580144facad9c2b87cebf10"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567259",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "9606",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017264"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567260",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "9606",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017263"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567261",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "9606",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017262"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567262",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "age",
+          "value": "post natal day 2 and 11",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "genotype",
+          "value": "wild type",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Brain and Spinal Cord",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "C57BL/6 x DBA/2",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "brain and spinal cord",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017261"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567263",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "age",
+          "value": "post natal day 2 and 11",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "genotype",
+          "value": "wild type",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Brain and Spinal Cord",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "C57BL/6 x DBA/2",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "brain and spinal cord",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017260"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN08567264",
+      "parent": "PRJNA434658",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "center_name",
+          "value": "Seelig Lab, Electrical Engineering, University of Washington",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "HEK293, HelaS3, and NIH/3T3",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "9606",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM3017265"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722697",
+      "parent": "SAMN08567263",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017260: 100_CNS_nuclei; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017260"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722698",
+      "parent": "SAMN08567262",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017261: 150000_CNS_nuclei; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017261"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722699",
+      "parent": "SAMN08567261",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017262: same_day_cells_nuclei_3000_UBCs; Homo sapiens; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017262"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722700",
+      "parent": "SAMN08567260",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017263: same_day_cells_nuclei_300_UBCs; Homo sapiens; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017263"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722701",
+      "parent": "SAMN08567259",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017264: frozen_preserved_cells_nuclei_1000_UBCs; Homo sapiens; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017264"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX3722702",
+      "parent": "SAMN08567264",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 550",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM3017265: frozen_preserved_cells_nuclei_200_UBCs; Homo sapiens; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM3017265"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750041",
+      "parent": "SRX3722697",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017260_r1"
+        }
+      ],
+      "filenames": [
+        "S1_S1_R1_001.fastq.gz",
+        "S1_S1_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750042",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r1"
+        }
+      ],
+      "filenames": [
+        "S2_S2_R1_001.fastq.gz",
+        "S2_S2_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750043",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r10"
+        }
+      ],
+      "filenames": [
+        "S11_S11_R1_001.fastq.gz",
+        "S11_S11_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750044",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r11"
+        }
+      ],
+      "filenames": [
+        "S12_S12_R1_001.fastq.gz",
+        "S12_S12_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750045",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r12"
+        }
+      ],
+      "filenames": [
+        "S13_S13_R1_001.fastq.gz",
+        "S13_S13_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750046",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r13"
+        }
+      ],
+      "filenames": [
+        "S14_S14_R1_001.fastq.gz",
+        "S14_S14_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750047",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r14"
+        }
+      ],
+      "filenames": [
+        "S15_S15_R1_001.fastq.gz",
+        "S15_S15_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750048",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r2"
+        }
+      ],
+      "filenames": [
+        "S3_S3_R1_001.fastq.gz",
+        "S3_S3_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750049",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r3"
+        }
+      ],
+      "filenames": [
+        "S4_S4_R1_001.fastq.gz",
+        "S4_S4_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750050",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r4"
+        }
+      ],
+      "filenames": [
+        "S5_S5_R1_001.fastq.gz",
+        "S5_S5_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750051",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r5"
+        }
+      ],
+      "filenames": [
+        "S6_S6_R1_001.fastq.gz",
+        "S6_S6_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750052",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r6"
+        }
+      ],
+      "filenames": [
+        "S7_S7_R1_001.fastq.gz",
+        "S7_S7_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750053",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r7"
+        }
+      ],
+      "filenames": [
+        "S8_S8_R1_001.fastq.gz",
+        "S8_S8_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750054",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r8"
+        }
+      ],
+      "filenames": [
+        "S9_S9_R1_001.fastq.gz",
+        "S9_S9_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750055",
+      "parent": "SRX3722698",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017261_r9"
+        }
+      ],
+      "filenames": [
+        "S10_S10_R1_001.fastq.gz",
+        "S10_S10_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750056",
+      "parent": "SRX3722699",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017262_r1"
+        }
+      ],
+      "filenames": [
+        "s2_S2_R1_001.fastq.gz",
+        "s2_S2_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750057",
+      "parent": "SRX3722700",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017263_r1"
+        }
+      ],
+      "filenames": [
+        "s1_S1_R1_001.fastq.gz",
+        "s1_S1_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750058",
+      "parent": "SRX3722701",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017264_r1"
+        }
+      ],
+      "filenames": [
+        "F1_S1_R1_001.fastq.gz",
+        "F1_S1_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR6750059",
+      "parent": "SRX3722702",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM3017265_r1"
+        }
+      ],
+      "filenames": [
+        "F2_S2_R1_001.fastq.gz",
+        "F2_S2_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

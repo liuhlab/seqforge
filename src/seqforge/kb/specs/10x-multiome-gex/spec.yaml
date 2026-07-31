@@ -102,3 +102,11 @@ confusable_with:
     note: >
       v3.1 is byte-identical to v3 (both 3M-february-2018); Multiome GEX diverges from both by its
       737K-arc-v1 whitelist. Geometry coincides, so the onlist (rung 3) is what decides.
+  - id: 10x-5p-gex-v3
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The 5' occupant of the same 28 bp / 16+12 geometry. A CROSS-family edge, so unlike the v3 and
+      v3.1 relationships above it is NOT also carried by a shared parent — 5' is its own root, and
+      without this declaration the under-declaration sweep is right to refuse the pair. The separation
+      is the cleanest in the KB: 737K-arc-v1 and 3M-5pgex-jan-2023 share ZERO barcodes.

@@ -1,0 +1,16 @@
+# 10x 5' v1/v2: byte-identical to 3' v2 — same 26 bp geometry AND the same 737K-august-2016 whitelist,
+# so the synthetic onlist registers the one pool BOTH entries would consult and rung 3 cannot break the
+# tie. `10x-v2-bytes-only` is the same bytes with no claim attached, and it correctly asks.
+#
+# The hypothesis is the point of this case, not a workaround: the KB declares this pair
+# `distinguishable_by: [metadata, alignment]`, and a declared mechanism nothing exercises is a
+# declaration nobody has tested. It names the FAMILY, not the leaf, because that is what prose
+# actually supplies — papers name 3'-versus-5' reliably and the version vaguely — and it enters resolve
+# as a rung-0 claim with no LLM, so the case stays hermetic.
+generate:
+  kind: spec
+  spec: 10x-5p-gex-v2
+  n: 3000
+  seed: 0
+  onlists: synthetic
+hypothesis: "10x 5'"

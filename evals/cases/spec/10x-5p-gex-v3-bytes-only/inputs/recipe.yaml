@@ -1,0 +1,11 @@
+# GEM-X 5' v3: byte-identical geometry to 3' v3, 3' v3.1, GEM-X 3' v4 and Multiome GEX (16 CB + 12 UMI,
+# cDNA mate), separable ONLY by its 3M-5pgex-jan-2023 whitelist. Synthetic onlists register the exact
+# pool the reads are drawn from, so the four-way divergence is settled at rung 3 — which is what
+# `distinguishable_by: [onlist]` claims on all four of this entry's confusable edges, and what makes 5'
+# v3 a different problem from its 26 bp sibling.
+generate:
+  kind: spec
+  spec: 10x-5p-gex-v3
+  n: 3000
+  seed: 0
+  onlists: synthetic

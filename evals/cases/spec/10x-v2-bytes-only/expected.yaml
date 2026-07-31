@@ -1,8 +1,27 @@
-outcome: decide
+outcome: ask
 description: >-
-  The confusability case, run from the other side. v2 and v3 are separated by 2 bp of barcode read
-  (26 vs 28) and nothing else structural. Paired with 10x-v3-bytes-only this is the pair that catches
-  a length gate loosening: widen the v3 tolerance and v2 gets swallowed, which shows up here as a
-  false_accept rather than as a green test suite.
+  26 bp 10x reads, whitelist registered, nothing else — and as of the 5' entries this case ASKS, which
+  is the honest answer and a change worth stating rather than absorbing. 10x 3' v2 and 10x 5' v1/v2
+  share the 26 bp geometry (16 CB + 10 UMI), the open-ended cDNA mate, AND the same 737K-august-2016
+  barcode list. Every structural rung ties by construction and rung 3 cannot break it, because both
+  entries point at the same file. The only param that differs is soloStrand, which no probe observes.
+
+  It used to grade `decide`, and that decision was correct only by the accident that the alternative
+  had no spec: a real 5' v1/v2 library resolved silently to 3' v2 and compiled Forward — a measured
+  0.5-0.6 gene-expression correlation against >0.98 for the right orientation, at exit 0, nothing red.
+  `ask` is what "the bytes do not know" looks like once the KB can say it, and the corpus should carry
+  the case that proves we stopped guessing. It keeps its other job too: v2 and v3 are 2 bp of barcode
+  read apart and nothing else structural, so this is still the case a widened v3 length gate walks
+  into.
+
+  `fields` is checked on `ask` as well (the library takes a value while the question rides alongside),
+  so this pins WHICH of the two the library lands on and that the roles are assigned from structure
+  with no filename semantics. The other half — prose naming the family settles it at rung 0 — is
+  `10x-5p-gex-v2-metadata-decided`, the case that proves `distinguishable_by: [metadata, alignment]`
+  can actually fire.
+conflict:
+  field: library.chemistry
 fields:
   library.chemistry: 10x-3p-gex-v2
+  library.roles.R1: R1
+  library.roles.R2: R2

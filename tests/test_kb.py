@@ -527,6 +527,38 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
     assert misfires <= 8  # chance frame matches are rare and would fail the onlist anyway
 
 
+def test_every_confusable_target_is_a_technology_we_support() -> None:
+    """A `confusable_with` edge must point at a spec that exists, not at one we mean to write.
+
+    This is the same defect `UNSHIPPED_ONLIST_DEBT` was built for, one level up, and it hid in the one
+    place that register does not look: that guard reads the onlists a spec's own ELEMENTS reference, so
+    it never sees a `distinguishable_by: [onlist]` claim about a *pair*. Four edges pointed at ids with
+    no spec directory — `10x-gemx-3p-v4` and `10x-5p-gex`, from both v3 and v3.1.
+
+    A dangling edge fails the way this repo's worst failures fail: quietly and safely. The resolver
+    cannot score a spec that does not exist, so the divergent tie the edge describes never happens; a
+    real GEM-X library instead misses the v3 whitelist, matches no positive target, and abstains or
+    mis-resolves. Nothing is red, and the note in the spec reads as though the case were handled.
+
+    Declaring confusability with a chemistry we cannot resolve to is therefore not a forward
+    declaration, it is a promise with no way to come due. Either write the entry or drop the edge.
+    """
+    ids = set(kb.list_spec_ids())
+    dangling = {
+        spec_id: sorted(c.id for c in kb.load_spec(spec_id).confusable_with if c.id not in ids)
+        for spec_id in sorted(ids)
+    }
+    dangling = {k: v for k, v in dangling.items() if v}
+
+    assert not dangling, (
+        "confusable_with points at technologies that have no spec:\n"
+        + "\n".join(f"  {k} -> {', '.join(v)}" for k, v in dangling.items())
+        + "\nWrite the entry (a spec directory plus a hermetic ci eval case) or delete the edge. An "
+        "edge to a chemistry the resolver cannot score describes a tie that can never be taken, so it "
+        "reads as handled while a real library of that chemistry abstains or mis-resolves."
+    )
+
+
 # ---------- The rung-0-2 separability guard ----------
 @pytest.mark.xdist_group("kb-probes")
 def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) -> None:
@@ -615,9 +647,21 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 
     A family node has no runnable backend, so `spec -> synth -> probe -> recover params` is meaningless.
     Its contract instead: (1) accept EVERY child's reads at rungs 0-2, so a prior that names the family
-    can descend into it and reach whichever leaf the bytes pick; (2) reject every non-descendant leaf, so
-    the loose classifier never claims data from another assay (the `bulk`-accepts-everything trap, at the
-    family level). Both hold here purely by the 26-28 bp R1 length gate — no cross-family edge needed.
+    can descend into it and reach whichever leaf the bytes pick; (2) claim no foreign data — never
+    recognise a leaf outside itself unless it SAYS it does, so the loose classifier never silently takes
+    another assay's reads (the `bulk`-accepts-everything trap, at the family level).
+
+    Half (2) used to be the flat "reject every non-descendant leaf", and this test's own comment recorded
+    why it held: "purely by the 26-28 bp R1 length gate — no cross-family edge needed". `10x-5p-gex` is
+    the case that needs one. 5' reads ARE 3' reads to every cheap probe — same 16 bp CB, same 26/28 bp
+    barcode read, same open-ended cDNA mate — so no length gate can separate the two families, and one
+    tightened enough to try would start rejecting the family's own children.
+
+    Recognition is therefore not the thing to forbid; UNDECLARED recognition is. A family that reaches
+    into another family's data must carry a `confusable_with` edge naming that leaf or one of its
+    ancestors — which is the same rule the leaf-level under-declaration sweep applies one level down,
+    and it keeps the original trap intact: `bulk-rnaseq-pe` is declared by nobody, so a family that
+    started accepting bulk reads still turns this red.
     """
     from seqforge.resolve.confuse import accepts_at_rungs_0_2
 
@@ -631,11 +675,17 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
                 f"family {fam!r} must recognize its child {child!r} at rungs 0-2"
             )
         descendants = set(tree.runnable_descendants_of(fam))
+        declared = {c.id for c in fam_spec.confusable_with}
         for other in tree.leaves():
             if other in descendants:
                 continue
-            assert not accepts_at_rungs_0_2(fam_spec, kb_probes[other]), (
-                f"family {fam!r} must NOT recognize non-child {other!r} — it would claim foreign data"
+            if not accepts_at_rungs_0_2(fam_spec, kb_probes[other]):
+                continue
+            assert declared & {other, *tree.ancestors_of(other)}, (
+                f"family {fam!r} recognizes non-descendant {other!r} at rungs 0-2 and declares "
+                f"nothing about it — it would claim foreign data silently. Either tighten the "
+                f"family's gates or declare a confusable edge to {other!r} (or to its family) "
+                f"naming the mechanism that decides between them."
             )
 
 

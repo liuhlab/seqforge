@@ -1,0 +1,8 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# SRR6750041 (the cheapest run at ~77.6 M reads) plus the SRR6750042 control scg_lib_structs itself
+# uses. Rebuild with: seqforge preflight --accession SRR6750041 -n 20000 -C <dir>  (~60 s, ~10 MB).
+generate:
+  kind: fingerprint
+  hf: packages/GSE110823.fingerprint.tar.gz

@@ -61,9 +61,17 @@ reads:
     elements:
       - {type: umi,     name: UMI, start: 0,  end: 10,                    seqspec_region_type: umi}
       - {type: barcode, name: bc3, start: 10, end: 18, onlist: round3,    seqspec_region_type: barcode}
-      # linker1 = the Round3->Round2 spacer (Science-2018 sequence, verbatim from scg_lib_structs)
+      # linker1 = the Round3->Round2 spacer. Base 8 is C, and EVERY PUBLISHED SOURCE SAYS A: Table S12
+      # (all three of BC_0066, its revcomp BC_0060, and the 3' flank of every Round-3 well oligo),
+      # scg_lib_structs, and the authors' own `split-seq-pipeline/tools.py`. The instrument disagrees
+      # with all of them. Measured over 20 000 real GSE110823 reads at read-2 offset 25: C 18 064
+      # (90.3%), G 938, T 815, A 183 (0.9%) — the published base is an order of magnitude BELOW the
+      # sequencing-error floor, so this is not a base call we are second-guessing.
+      # It stayed invisible because nothing greps this linker: the authors use their `amp_seq` string
+      # only to locate offsets from its `IIIIIIII` runs, and our own gate measures CONSTANCY, not
+      # identity. So scoring is unaffected either way; a seqspec export or an anchored matcher is not.
       - {type: linker,  name: linker1, start: 18, end: 48, seqspec_region_type: linker,
-         sequence: "GTGGCCGATGTTTCGCATCGGCGTACGACT"}
+         sequence: "GTGGCCGCTGTTTCGCATCGGCGTACGACT"}
       - {type: barcode, name: bc2, start: 48, end: 56, onlist: round2,    seqspec_region_type: barcode}
       # linker2 = the Round2->Round1 spacer (Science-2018 sequence, verbatim from scg_lib_structs)
       - {type: linker,  name: linker2, start: 56, end: 86, seqspec_region_type: linker,
@@ -76,19 +84,29 @@ reads:
 #   https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx
 #   sha256 1bf965120d296995ee6793340b5ee0fecf3c06806a55a5318cd5d15cd6bae426
 # Each 8 bp barcode is cut from between the flanks its own oligo carries, so the extraction is checked
-# by the geometry rather than trusted: those flanks reconstruct THIS FILE'S linker1 and linker2
+# by the geometry rather than trusted: those flanks reconstruct the table's own linker1 and linker2
 # base-for-base (round3's oligo ends GTGGCCGATGTTTCG + round2's begins CATCGGCGTACGACT = linker1;
 # round2's ends ATCCACGTGCTTGAG + round1's begins AGGCCAGAGCATTCG = linker2). A mis-cut barcode would
-# break that reconstruction, which is why the two facts are worth stating together.
+# break that reconstruction, which is why the two facts are worth stating together. NB that
+# reconstruction is against the TABLE, which carries the base-8 A the reads contradict (see linker1
+# above) — the barcodes sit between the flanks either way, so the discrepancy does not reach them.
 #
 # ALL THREE ROUNDS USE ONE 96-BARCODE SET, in the same well order — only the flanks differ. Three
 # registry names are kept anyway: STARsolo's CB_UMI_Complex takes three whitelist paths, and a
 # descendant chemistry that diverges per round needs somewhere to say so.
 # Pinned by `test_the_splitseq_rounds_are_one_barcode_set`.
 #
-# STILL OPEN: no real SPLiT-seq dataset has been run against these. The derivation is from primary
-# oligos and self-checked against the linkers, but hit rate on GSE110823 reads is unmeasured — the
-# same bounded rung-6 confirmation `soloStrand` below is waiting on, and the same run settles both.
+# CONFIRMED ON REAL DATA (GSE110823, SRR6750041 + the SRR6750042 control, 20 000-read heads). Hit
+# rates 0.86 / 0.80 / 0.66 for rounds 3/2/1 against a 0.0015 random floor, forward as pinned (revcomp
+# 0.0003-0.015). Unambiguously the v1 Science-2018 variant: Round1 hits 0.659 at this file's [86,94)
+# and 0.0012 at Parse/v2's [78,86), and the v2 22 bp linker2 is absent. Independently, the three
+# derived sets are 100% identical to `split-seq-pipeline/split_seq/barcodes/bc_8nt_v1.csv`, whose own
+# `tools.py` derives bc_starts [10, 48, 86] — the same offsets, from the authors' code rather than
+# from the table.
+#
+# STILL OPEN, and it is NOT these whitelists: real SPLiT-seq does not reach rung 3 at all, so they are
+# correct and unconsulted. `splitseq` fails its own `requires` gate first — see the linker purity note
+# under `signature` below.
 onlists:
   round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
   round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}
@@ -96,6 +114,16 @@ onlists:
   tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}  # exclude only
 
 signature:
+  # KNOWN GAP, measured, and the reason the whitelists above are correct but unreachable: REAL
+  # SPLiT-seq does not pass these `requires`. `has_segment kind: constant` needs mean_maxfrac >= 0.9
+  # (`_CONSTANT_PURITY`); real GSE110823 reads give linker1 0.905 and linker2 0.827, so the `bc` role
+  # is forbidden and `bulk-rnaseq-pe` wins at rung 2, exit 0, no conflict and no question. Restricted
+  # to the ~61% of reads whose three barcodes all hit, both linkers are 0.99+ — the linkers are
+  # essentially perfect and ~39% junk in the head drags the population mean under the bar. It is
+  # depth-independent: 10x the reads moved it by 0.0014.
+  # The threshold was calibrated on the error-free reads `kb roundtrip` generates, which is exactly
+  # why the round-trip stays green while real data fails. Do NOT close this by loosening the number
+  # here — the fix belongs in the evaluator, and it needs a real-data fixture to hold.
   requires:                              # the two FIXED linkers are the structural signature
     - {test: read_count, roles: 2}
     - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}   # linker1

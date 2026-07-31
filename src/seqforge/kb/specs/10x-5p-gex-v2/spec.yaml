@@ -1,0 +1,148 @@
+schema_version: 1
+
+# 10x Chromium Single Cell 5' Gene Expression v1 and v2, in ONE entry — and that is a modelling claim,
+# not a shortcut. v1 and v2 are byte-identical in everything this KB can express: 26 bp R1 (16 CB +
+# 10 UMI), open-ended cDNA R2, the same 737K-august-2016 whitelist, the same STARsolo params. Two
+# entries whose `backend_identical` is true would have to be declared `processing_equivalent` twins
+# recorded together and never chosen between, which is the same answer with an extra file. Both
+# ontology terms ride on this one entry, because the entry genuinely covers both assays.
+#
+# THE PAIR THIS ENTRY EXISTS TO MAKE VISIBLE: 10x 3' v2 and 10x 5' v1/v2 are read-undecidable. Same
+# 26 bp geometry AND the same 737K-august-2016 whitelist — there is no rung-0-3 evidence that
+# separates them, and before this spec existed a 5' library silently resolved to 3' v2 and compiled
+# with soloStrand Forward. That is the quiet corpus killer this repo is built against: a published
+# both-ways run (AlexsLemonade/alsf-scpca PR #137) measured 0.5-0.6 gene-expression correlation under
+# the wrong orientation versus >0.98 under the right one. STARsolo exits 0 either way.
+
+identity:
+  id: 10x-5p-gex-v2
+  version: "2"
+  name: "10x Chromium Single Cell 5' Gene Expression v2 (also covers v1)"
+  aliases: ["10x 5' v2", "10x 5' v1", "Chromium 5' v2", "Chromium 5' v1", "SC5Pv2", "SC5Pv1", "SC5P-R2", "single cell 5-prime v2", "single cell 5-prime v1"]
+  # BOTH terms, verified against the live EFO (EBI OLS), not memory: EFO:0011025 = 10x 5' v1,
+  # EFO:0009900 = 10x 5' v2. Neither is a 3' term — reusing EFO:0009899 (3' v2) here would file a 5'
+  # kit under the assay it inverts, which is exactly what the ontology note in docs/agents/kb.md
+  # exists to prevent.
+  assay_ontology: ["EFO:0011025", "EFO:0009900"]
+  modality: rna
+
+reads:
+  # R1 = the technical/barcode read. 26 bp = 16 CB + 10 UMI, byte-identical to 3' v2's R1. In 5' the
+  # barcode rides on the TSO rather than the RT primer, but the CYCLES are the same, so nothing here
+  # differs — which is the whole confusability story below.
+  # max_len is null (an over-sequenced R1 is still v2) and the segment_length over_length_min keeps
+  # 26-vs-28 separable from the v3 sibling exactly as it does on the 3' side.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 26
+    max_len: null
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 26,                       seqspec_region_type: umi}
+  # R2 = cDNA (open-ended). soloStrand Reverse — see the derivation in `backend` below.
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists:
+  cb_whitelist:
+    # The SAME list 3' v2 uses. Not a copy-paste slip: the 5' v1/v2 gel bead carries 10x's 2016
+    # 737,280 x 16 bp barcode set, and that coincidence is what makes this pair read-undecidable.
+    registry: 737K-august-2016
+    role: cell_barcode
+    expected_orientation: forward
+
+signature:
+  # DELIBERATELY BYTE-IDENTICAL to 10x-3p-gex-v2's signature, test for test and weight for weight.
+  # Any asymmetry here — an extra support, a different weight — would hand one of the two a systematic
+  # edge and turn a genuine tie into a silent guess dressed up as a decision. The tie is the truth; the
+  # resolver is supposed to reach it and ask.
+  requires:
+    - {test: read_count, roles: 2}
+    # length 26 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced R1
+    # (a 28 bp read is < 100 -> not over-length -> still FAILs the exact 26), and a 60-94 bp
+    # cDNA/split-pool read stays exact-checked and rejected.
+    - {test: segment_length, read: R1, length: 26, tolerance: 0, over_length_min: 100}
+    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
+    - {test: has_segment, read: R1, start: 16, end: 26, kind: random}
+  supports:
+    - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0
+    - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
+      weight: 2.0
+    - when: {test: distinct_ratio, read: R1, start: 16, end: 26, expect: high}
+      weight: 1.0
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0               # cDNA is diverse -> the biological role is scored, not left at 0
+  # NO excludes, and that is a finding rather than an omission. An `excludes` anti-gate is an onlist
+  # that proves the data belongs to a geometry-coincident NEIGHBOUR (v3 excludes the Multiome list,
+  # GEM-X v4 excludes the v3 list). At 26 bp this entry has exactly one neighbour — 10x-3p-gex-v2 —
+  # and it carries the SAME whitelist, so no such onlist exists. Writing one would be theatre, and
+  # writing one this entry has that 3' v2 lacks would break the symmetry the signature above is
+  # careful to preserve.
+  excludes: []
+
+backend:
+  module: map/starsolo
+  params:                       # identical to 3' v2's EXCEPT soloStrand — which is the whole difference
+    soloType: CB_UMI_Simple
+    soloCBstart: 1
+    soloCBlen: 16
+    soloUMIstart: 17
+    soloUMIlen: 10              # 10 bp UMI (vs v3's 12) -> 26 bp R1
+    soloCBwhitelist: "{onlist:cb_whitelist}"
+    # soloStrand Reverse. DERIVED FROM THE KIT'S OWN OLIGOS, not recalled and not inferred from
+    # community practice — strand is the value where being wrong is quietest, so it is derived here in
+    # full and the derivation is reproducible from the cited pages:
+    #   1. In 5', the barcode is on the TSO, not the RT primer. The gel-bead primer is
+    #      5'-CTACACGACGCTCTTCCGATCT-[16 nt CB]-[UMI]-TTTCTTATATrGrGrG-3' (10x CG000109 Rev D p.5 for
+    #      v1/v2; CG000733 p.99 for v3) — the rGrGrG tail makes it a template-switch oligo. Contrast
+    #      3', where the same bead primer ends in poly(dT) and IS the RT primer (CG000731 p.80).
+    #   2. RT is primed by a separate, UNBARCODED poly-dT oligo, so first-strand cDNA is antisense and
+    #      carries no barcode. The barcode is appended at the first strand's 3' end by template
+    #      switching at the transcript's 5' end (CG000109 p.1).
+    #   3. So the barcode-bearing (top) strand is SENSE: [R1 handle][CB][UMI][TSO][insert], the insert
+    #      beginning at the transcript's 5' end. Exactly inverted from 3'.
+    #   4. The Read 2 primer anneals to the top strand, so R2 emits its complement -> R2 is ANTISENSE
+    #      to the mRNA. STARsolo defines Forward as "read strand same as the original RNA molecule",
+    #      therefore Reverse.
+    # Known-answer control: the identical derivation run on the 3' appendix reproduces `Forward`,
+    # which every 3' spec in this KB already carries. Corroboration: 10x's own Cell Ranger
+    # `chemistry_defs.json` declares SC5P-R2 / SC5P-R2-v3 / SC5PHT / SC5P-R2-OCM* with
+    # `strandedness: "-"` and `rna_read: R2`; scg_lib_structs runs `--soloStrand Reverse` on real 5'
+    # data (ERR4667456).
+    # CAVEAT, recorded so it is not rediscovered as a bug: `Forward` is correct ONLY for the
+    # SC5P-PE / SC5P-R1 configurations, where R1 is mapped as the RNA read. This KB cannot express
+    # those — `_STARSOLO_PARSE_KEYS` allows neither `soloBarcodeMate` nor `clip5pNbases` — so Reverse
+    # holds unconditionally for anything modelled here.
+    soloStrand: Reverse
+    # 0 disables STARsolo's barcode-read-length check (default 1 FATALs on an over-length barcode
+    # read); CB/UMI are still read from the fixed offsets above.
+    soloBarcodeReadLength: 0
+    # soloFeatures is NOT here, for the same reason it is absent from every other entry: it says what
+    # to COUNT, and counting belongs to the processing manifest where a user may instruct it.
+
+# A child of the 10x-5p-gex family. The v3 sibling edge (over-length whitelist split) lives in the
+# parent's `children_decided_by: [onlist]`, so it is not repeated here — the tree declares it once.
+parent: 10x-5p-gex
+
+confusable_with:
+  - id: 10x-3p-gex-v2
+    relationship: processing_divergent
+    distinguishable_by: [metadata, alignment]
+    note: >
+      THE read-undecidable pair, and the only one in this KB. Same 26 bp R1 (16 CB + 10 UMI), same
+      open-ended cDNA R2, and the SAME 737K-august-2016 whitelist — so rungs 0-2 tie by construction
+      and rung 3 cannot break it, because both whitelists are the same file. The backends differ in
+      exactly one param, soloStrand (Reverse here, Forward there), which no probe can observe. So the
+      honest mechanisms are metadata (rung 0: prose that says "5'" or "3'", which papers state
+      reliably at the family level) and alignment (rung 6: map a handful of reads and read the
+      orientation off the result). This is where the "read-undecidable" note belongs — it used to sit
+      on the 3' v3/v3.1 edges, which point at 28 bp partners that an onlist DOES separate.

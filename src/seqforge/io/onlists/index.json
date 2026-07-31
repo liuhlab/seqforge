@@ -7,6 +7,14 @@
     "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-3pgex-may-2023.txt.gz",
     "width": 16
   },
+  "3M-5pgex-jan-2023": {
+    "n_entries": 3686400,
+    "orientation": "forward",
+    "sha256": "8918089e0f0048ce1405fb267f6dd058bfdef344dbedc605476d40ffda8cce6f",
+    "source_sha256": "b402db8acbcd3a076bf50991538d6c08464ddb137e0b81916a9fa92cf222dd0d",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-5pgex-jan-2023.txt.gz",
+    "width": 16
+  },
   "3M-february-2018": {
     "n_entries": 6794880,
     "orientation": "forward",
