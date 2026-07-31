@@ -57,7 +57,6 @@ from ..models.processing import (
     ProcessingManifest,
     ProcessingProvenance,
     RuntimeEnv,
-    SoloFeature,
 )
 from ..models.resolve import Candidate, MetadataResolution, ResolveResult
 from ..workflows import WORKFLOW_VERSION
@@ -176,7 +175,9 @@ class ProcessingInputs:
 
     assembly: str | None = None
     annotation_name: str | None = None
-    features: tuple[SoloFeature, ...] | None = None  # --quantify: EXACT replacement
+    # `str` for the same reason as its twin `ProcessingOverrides.features`: raw `--quantify` text,
+    # whose membership `SoloQuant` validates at construction and nothing before it does.
+    features: tuple[str, ...] | None = None  # --quantify: EXACT replacement
     threads: int | None = None
     environment: RuntimeEnv | None = None
 

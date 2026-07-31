@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import gzip
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
 from ..models.processing import SoloFeature
@@ -96,7 +97,7 @@ def _read_lines(path: Path) -> list[str]:
 def build_qc_bundle(
     solo_dir: Path,
     run_dir: Path,
-    features: list[SoloFeature],
+    features: Sequence[SoloFeature],
     *,
     sample: str,
     assembly: str | None,
@@ -140,7 +141,7 @@ def build_qc_bundle(
 def write_qc_bundle(
     solo_dir: Path,
     run_dir: Path,
-    features: list[SoloFeature],
+    features: Sequence[SoloFeature],
     out: Path,
     *,
     sample: str,
