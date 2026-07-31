@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
-from ..io.onlist import Strand, pack_barcode, revcomp
+from ..io.onlist import _STRANDS_SCANNED, pack_barcode, revcomp
 from ..kb.anchor import element_bases, resolve_windows
 from ..kb.schema import Read
 from ..models.observation import CycleComposition, Observation
@@ -82,13 +82,14 @@ class WindowProbe:
         whose frame resolved to a window of the onlist's width; a lost frame simply does not contribute.
         """
         bases = element_bases(self.seqs, self._frames(read), element_name)
-        strands: list[Strand] = (
-            ["forward"]
-            if orientation == "forward"
-            else ["revcomp"]
-            if orientation == "revcomp"
-            else ["forward", "revcomp"]
-        )
+        # The same TOTAL mapping the fixed-offset twin uses, rather than a second if/elif/else whose
+        # last arm quietly means "scan both strands" for anything it does not recognise. That
+        # fallthrough was the live defect in `onlist_hit_rate` (#148); here it is latent, because
+        # every caller passes a pydantic-validated `OnlistHitTest.orientation`. Latent is not fixed —
+        # it is one untyped caller away, and a wrong orientation costs a thin matrix rather than an
+        # error. Sharing the mapping is what stops the two sites drifting: a fourth orientation now
+        # fails loudly at both, instead of silently meaning "either" at one of them.
+        strands = _STRANDS_SCANNED[orientation]
         best = HitResult(
             hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor
         )
@@ -119,6 +120,16 @@ class WindowProbe:
     def distinct_ratio(self, start: int, end: int) -> float | None:
         """``distinct/total`` over ``[start, end)`` (role-conditioned; a supports signal, never a gate)."""
         return sig.distinct_ratio(sig.window_bases(self.seqs, start, end))
+
+    def consensus_match_rate(self, start: int, end: int, max_mismatch: int) -> float | None:
+        """Share of reads carrying ``[start, end)``'s modal consensus to within ``max_mismatch``.
+
+        The per-READ companion to :meth:`composition_window`, which can only report cycles already
+        aggregated over every sampled read. "How constant is this column on average" and "how many
+        reads carry this sequence" are different facts, and only the second one survives a head that
+        is part junk — see :func:`probe.signals.consensus_match_rate` for why it is a proportion.
+        """
+        return sig.consensus_match_rate(sig.window_bases(self.seqs, start, end), max_mismatch)
 
     def composition_window(self, start: int, end: int | None) -> list[CycleComposition]:
         """Per-cycle composition over cycles ``[start, end)`` (``end=None`` => to the longest read)."""

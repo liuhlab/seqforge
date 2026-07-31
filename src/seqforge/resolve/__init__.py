@@ -65,7 +65,13 @@ from __future__ import annotations
 #: semantics change, so candidate VALUES are byte-identical — but the write is a resolver behaviour, so
 #: the version bump re-keys `ds_id` and datasets re-resolve once (cheap: N=2000, no LLM) to populate it.
 #: `dataset_hash` (the manifest's identity) does not fold RESOLVE_VERSION and is unaffected.
-RESOLVE_VERSION = "2026.7.14"
+#: 2026.7.15 — `has_segment kind: constant` becomes a floor on the SHARE OF READS carrying the window's
+#: modal consensus, replacing a mean per-cycle purity that could not tell "every read carries this
+#: linker" from "most do and the rest of the head is junk" (#149). This one MUST re-key: the defect it
+#: fixes is a cached verdict. A real SPLiT-seq dataset already resolved to `bulk-rnaseq-pe` at exit 0
+#: would otherwise keep serving that candidate straight out of the cache, and the fix would land
+#: green while changing nothing anyone could observe.
+RESOLVE_VERSION = "2026.7.15"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

@@ -103,10 +103,6 @@ reads:
 # derived sets are 100% identical to `split-seq-pipeline/split_seq/barcodes/bc_8nt_v1.csv`, whose own
 # `tools.py` derives bc_starts [10, 48, 86] — the same offsets, from the authors' code rather than
 # from the table.
-#
-# STILL OPEN, and it is NOT these whitelists: real SPLiT-seq does not reach rung 3 at all, so they are
-# correct and unconsulted. `splitseq` fails its own `requires` gate first — see the linker purity note
-# under `signature` below.
 onlists:
   round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
   round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}
@@ -114,16 +110,13 @@ onlists:
   tenx_probe: {registry: 3M-february-2018, role: cell_barcode, expected_orientation: forward}  # exclude only
 
 signature:
-  # KNOWN GAP, measured, and the reason the whitelists above are correct but unreachable: REAL
-  # SPLiT-seq does not pass these `requires`. `has_segment kind: constant` needs mean_maxfrac >= 0.9
-  # (`_CONSTANT_PURITY`); real GSE110823 reads give linker1 0.905 and linker2 0.827, so the `bc` role
-  # is forbidden and `bulk-rnaseq-pe` wins at rung 2, exit 0, no conflict and no question. Restricted
-  # to the ~61% of reads whose three barcodes all hit, both linkers are 0.99+ — the linkers are
-  # essentially perfect and ~39% junk in the head drags the population mean under the bar. It is
-  # depth-independent: 10x the reads moved it by 0.0014.
-  # The threshold was calibrated on the error-free reads `kb roundtrip` generates, which is exactly
-  # why the round-trip stays green while real data fails. Do NOT close this by loosening the number
-  # here — the fix belongs in the evaluator, and it needs a real-data fixture to hold.
+  # MEASURED ON REAL DATA, and this entry is why `has_segment kind: constant` is a share of reads and
+  # not a per-cycle purity. On 20 000 real GSE110823 reads the two linkers are carried by 0.85 and
+  # 0.73 of the head; averaged per cycle over that same head they read 0.905 and 0.827, because ~39%
+  # of it is off-structure junk (both linkers are 0.99+ pure in the rest). A 0.9 purity bar therefore
+  # forbade the `bc` role and handed a real SPLiT-seq dataset to `bulk-rnaseq-pe` at exit 0, with the
+  # three whitelists above correct and never consulted — while the round trip, whose reads have no
+  # junk in them, stayed green throughout. Do not re-express these as a purity threshold.
   requires:                              # the two FIXED linkers are the structural signature
     - {test: read_count, roles: 2}
     - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}   # linker1

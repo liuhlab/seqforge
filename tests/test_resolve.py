@@ -12,6 +12,7 @@ are siblings, and they part on disagreement (see ``resolve/records.py``); they d
 from __future__ import annotations
 
 import json
+import os
 import random
 from collections import Counter
 from math import inf
@@ -26,7 +27,7 @@ from seqforge import models as m
 from seqforge.compose import core
 from seqforge.io import DEFAULT_REGISTRY, OnlistRegistry, PackedOnlist
 from seqforge.kb.generate import write_fastq_gz as write_reproducible_fastq_gz
-from seqforge.kb.schema import Read, Spec
+from seqforge.kb.schema import HasSegment, Read, Spec
 from seqforge.manifest import (
     ExperimentInputs,
     exit_code_for_report,
@@ -44,6 +45,7 @@ from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign,
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
 from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles
 from seqforge.resolve.escalate import escalate
+from seqforge.resolve.evaluators import Outcome, evaluate
 from seqforge.resolve.geometry import (
     geometry_could_accept,
     length_feasible,
@@ -894,6 +896,230 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
     miss = wp.anchored_onlist_hit(bc, "cls1", wrong_width, orientation="forward")
     assert miss.n_tested == 0
     assert miss.hit_rate == 0.0
+
+
+# ================================================================================================
+# has_segment kind: constant — the SHARE OF READS carrying a fixed sequence
+# ================================================================================================
+#
+# `constant` asks "is a fixed sequence here", and over a population of reads the honest form of that
+# question is a PROPORTION: how many reads carry it. The gate used to average the per-cycle max-base
+# fraction instead, which cannot tell "every read carries this linker" from "most do and the rest of
+# the head is junk" — so a bar calibrated on the error-free reads `kb roundtrip` generates forbade
+# real SPLiT-seq's barcode read and handed the dataset to the generic paired-end fallback, silently,
+# at exit 0.
+#
+# What these tests exist to pin is that the replacement can still FAIL, because that is the whole
+# risk in it: filter to the reads that agree with the consensus and then measure their agreement, and
+# every window in every dataset scores ~1.0, noise included. The sweep below is the falsifiability.
+
+_LINKER1 = (18, 48)  # SPLiT-seq's linker1: the 30 bp window this gate is measured on
+_BC_LEN = 94  # SPLiT-seq read 2
+
+
+def _linker1_seq() -> str:
+    """linker1's sequence, read off the loaded spec — never a hand-built copy.
+
+    A literal here would be a second spelling of a KB value, and the one that matters: base 8 of this
+    linker is the base real reads and every published source disagree about. A copy would keep passing
+    after the spec was corrected, testing the fixture against itself.
+    """
+    bc = next(r for r in kb.load_spec("splitseq").reads if r.id == "bc")
+    seq = next(e.sequence for e in bc.elements if e.name == "linker1")
+    assert seq is not None and len(seq) == _LINKER1[1] - _LINKER1[0]
+    return seq
+
+
+def _linker_reads(fraction: float, n: int = 600, seed: int = 11) -> list[str]:
+    """``n`` 94 bp reads, of which ``fraction`` carry linker1 at its window; the rest are random.
+
+    The carriers are *exact* — no injected error — so the fraction, and nothing else, is what the
+    statistic under test has to recover.
+    """
+    rng = random.Random(seed)
+    start, end = _LINKER1
+    carriers = round(fraction * n)
+    seqs = [
+        _acgt(rng, start) + _linker1_seq() + _acgt(rng, _BC_LEN - end)
+        if i < carriers
+        else _acgt(rng, _BC_LEN)
+        for i in range(n)
+    ]
+    rng.shuffle(seqs)  # so the statistic cannot depend on read order
+    return seqs
+
+
+def _probe_of(tmp_path: Path, seqs: list[str], name: str) -> WindowProbe:
+    path = tmp_path / f"{name}.fastq.gz"
+    _write_fastq_gz(path, seqs)
+    return WindowProbe(observation=probe_file(path), seqs=seqs)
+
+
+def _splitseq_linker1_gate() -> tuple[HasSegment, Read, Spec]:
+    """The shipped `requires` entry for linker1, its read, and its spec — never a hand-built copy."""
+    spec = kb.load_spec("splitseq")
+    bc = next(r for r in spec.reads if r.id == "bc")
+    test = next(
+        t
+        for t in spec.signature.requires
+        if isinstance(t, HasSegment) and (t.start, t.end) == _LINKER1
+    )
+    assert test.kind == "constant"
+    return test, bc, spec
+
+
+@pytest.mark.parametrize("fraction", [0.0, 0.25, 0.5, 0.75, 1.0])
+def test_the_constant_statistic_is_the_share_of_reads_that_carry_the_sequence(
+    tmp_path: Path, fraction: float
+) -> None:
+    """It measures the CONTAMINATED population, never a subset selected for agreeing with it.
+
+    A conditional mean over the reads that already match the consensus would read ~1.0 at every one
+    of these fractions, 0.0 included. That this tracks ``fraction`` — most of all that it is ~0 when
+    no read carries the sequence — is what keeps the gate above it falsifiable.
+    """
+    wp = _probe_of(tmp_path, _linker_reads(fraction), f"carriers-{fraction}")
+    rate = wp.consensus_match_rate(*_LINKER1, max_mismatch=3)
+    assert rate == pytest.approx(fraction, abs=0.02)
+
+
+def test_the_constant_gate_turns_over_at_a_majority_of_reads(tmp_path: Path) -> None:
+    """The gate is a floor on that share: a majority carrying the sequence passes, a minority fails.
+
+    The two ends are the ones that matter. 0% is pure noise and must fail — a gate that accepts noise
+    is not a gate. 10% is the shape of a library where a handful of reads happen to carry a linker,
+    and must also fail. Real SPLiT-seq sits at ~0.85/0.73 for its two linkers, well clear of the bar,
+    which is why the fix is not a hair's-breadth loosening of the old one (it measured 0.905/0.827
+    against 0.9 and turned on the second decimal).
+    """
+    test, bc, spec = _splitseq_linker1_gate()
+    registry = registry_for(spec)
+    passing = [
+        pct
+        for pct in (0, 10, 30, 45, 55, 61, 90, 100)
+        if evaluate(
+            test,
+            bc,
+            _probe_of(tmp_path, _linker_reads(pct / 100), f"turnover-{pct}"),
+            spec,
+            registry,
+        ).outcome
+        is Outcome.PASS
+    ]
+    assert passing == [55, 61, 90, 100]
+
+
+def test_no_shipped_spec_asks_for_a_constant_window_that_never_closes() -> None:
+    """The assumption the open-ended ABSTAIN rests on, made a mechanism instead of a comment.
+
+    `_eval_has_segment` abstains on a `constant` gate with `end: null`, because a window running to
+    whichever read happens to be longest has no fixed column to be constant over. ABSTAIN never
+    gates — so if a spec ever declared such a window as a `requires`, it would silently stop being a
+    requirement, which is the failure mode this whole issue was about. No spec does today; this is
+    what keeps that true, and turns "we checked once" into "it cannot start being false".
+    """
+    from seqforge.kb.schema import HasSegment
+
+    open_ended = [
+        (spec_id, t.read, t.start)
+        for spec_id in kb.list_spec_ids()
+        for t in kb.load_spec(spec_id).signature.requires
+        if isinstance(t, HasSegment) and t.kind == "constant" and t.end is None
+    ]
+    assert not open_ended, (
+        f"a constant gate with no end abstains, so it is not a gate: {open_ended}. Give the element "
+        "an explicit end, or make the claim with a test that can actually fail."
+    )
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_constant_gate_fails_on_every_other_technologys_reads(kb_probes: KbProbes) -> None:
+    """The second failure case the proportion has to survive: a window that is simply not there.
+
+    SPLiT-seq's linker1 gate, run against every OTHER spec's own reads, must find nothing. This is
+    the sweep that would go red if the statistic were computed over a self-selected subset, because
+    then any 30 bp window of anything would look like a perfect linker.
+    """
+    test, bc, spec = _splitseq_linker1_gate()
+    registry = registry_for(spec)
+    verdicts = [
+        (tech, evaluate(test, bc, wp, spec, registry).outcome)
+        for tech, probes in kb_probes.items()
+        if tech != "splitseq"
+        for wp in probes
+    ]
+    assert not [t for t, o in verdicts if o is Outcome.PASS], (
+        f"SPLiT-seq's linker1 was found in: {[t for t, o in verdicts if o is Outcome.PASS]}"
+    )
+    # FAIL, not merely "not PASS". ABSTAIN also satisfies "not PASS", and it means something else
+    # entirely — no read reached the column, so nothing was measured. A sweep that accepted it would
+    # pass just as happily if every probe were too short to see the window, which is the one way this
+    # falsifiability check could quietly stop checking anything.
+    reads_too_short = {t for t, o in verdicts if o is Outcome.ABSTAIN}
+    assert any(o is Outcome.FAIL for _, o in verdicts), (
+        "every spec abstained, so nothing was actually measured against the gate"
+    )
+    assert all(o is Outcome.FAIL for t, o in verdicts if t not in reads_too_short), (
+        "a spec whose reads reach the window must FAIL the gate, not abstain"
+    )
+
+
+def test_resolve_splitseq_survives_a_head_that_is_two_fifths_junk(tmp_path: Path) -> None:
+    """The regression that a synthetic round trip structurally cannot be, made hermetic.
+
+    Real SPLiT-seq heads are ~39% off-structure — unligated product, primer dimer, whatever else got
+    on the flowcell — and the linkers are essentially perfect in the rest. Generating reads from the
+    spec and then replacing that share with junk reproduces the population the old gate could not
+    read: the per-cycle mean drops to ~0.7 and forbids the `bc` role, while the barcodes still hit
+    their whitelists at ~0.6 and rung 3 would have decided it outright.
+
+    `test_resolve_splitseq_beats_generic_bulk_via_onlist` is the clean twin of this, and it stayed
+    green throughout the defect — which is exactly why this one is here.
+    """
+    spec = kb.load_spec("splitseq")
+    reads = kb.generate_reads(spec, n=1200, seed=0)
+    rng = random.Random(3)
+    junk = round(0.39 * len(reads["bc"]))
+    bc = [_acgt(rng, _BC_LEN) for _ in range(junk)] + reads["bc"][junk:]
+    rng.shuffle(bc)
+
+    f_cdna, f_bc = tmp_path / "sp_cdna.fastq.gz", tmp_path / "sp_bc.fastq.gz"
+    _write_fastq_gz(f_cdna, reads["cdna"])
+    _write_fastq_gz(f_bc, bc)
+
+    out = resolve_dataset([f_cdna, f_bc], registry=registry_for(spec), use_cache=False)
+    assert out.result.candidates[0].technology == "splitseq", [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # decided by the onlists
+    assert out.exit_code() == 0
+    assert not out.result.questions
+
+
+#: A directory holding real GSE110823 reads (``SRR6750041_{1,2}.fastq.gz``). Real FASTQs stay out of
+#: git — the committed guard against this defect is the hermetic junk-head test above plus
+#: ``evals/benchmark/GSE110823``, which grades the same claim from a fingerprint package. This one is
+#: the direct check, on the actual bytes the defect was found in, for whoever has them on disk.
+_REAL_SPLITSEQ_DIR = os.environ.get("SEQFORGE_REAL_GSE110823")
+
+
+@pytest.mark.skipif(
+    not _REAL_SPLITSEQ_DIR,
+    reason="set SEQFORGE_REAL_GSE110823=<dir with SRR6750041_{1,2}.fastq.gz> to run",
+)
+def test_real_splitseq_reads_resolve_to_splitseq() -> None:
+    """The acceptance criterion of the fix, on the reads SPLiT-seq was published on."""
+    d = Path(_REAL_SPLITSEQ_DIR or "")
+    files = [d / "SRR6750041_1.fastq.gz", d / "SRR6750041_2.fastq.gz"]
+    if not all(f.is_file() for f in files):
+        pytest.skip(f"SRR6750041 mates not found under {d}")
+    out = resolve_dataset(files, registry=DEFAULT_REGISTRY, use_cache=False)
+    assert out.result.candidates[0].technology == "splitseq", [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}
+    assert out.exit_code() == 0
+    assert not out.result.questions
 
 
 # ================================================================================================
