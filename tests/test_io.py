@@ -333,6 +333,7 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
         _INDEX,
         _ONLIST_DATA,
         _PACKED_SUFFIX,
+        ORIENTATIONS,
         codes_sha256,
         decode_codes,
         shipped_entries,
@@ -341,6 +342,14 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
     index = json.loads(_INDEX.read_text())
     blobs = {p.name[: -len(_PACKED_SUFFIX)] for p in _ONLIST_DATA.glob(f"*{_PACKED_SUFFIX}")}
     assert set(index) == blobs, "index.json and the shipped blobs disagree about what exists"
+
+    # Orientation is the one field the blob cannot settle -- packed codes carry no strand -- so it is
+    # checked against the vocabulary instead, and off the raw file rather than off `shipped_entries`,
+    # which now narrows it on the way through and would confirm itself.
+    for name, meta in sorted(index.items()):
+        assert meta.get("orientation", "forward") in ORIENTATIONS, (
+            f"{name}: index.json claims an orientation nothing scans"
+        )
 
     for entry in shipped_entries():
         assert entry.packed_path is not None, f"{entry.name}: a shipped entry with no blob path"
@@ -351,6 +360,74 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
         assert len(entry.source_sha256) == 64, (
             f"{entry.name}: no provenance for what it was packed from"
         )
+
+
+def test_every_orientation_has_a_scan_plan() -> None:
+    """A new orientation must say which strands it scans, or it `KeyError`s at the scan.
+
+    Collected from `Orientation` itself, so a new member is covered *because it exists* rather than
+    because someone remembered -- the same discipline `test_every_solo_feature_is_classified` uses
+    for the other `Literal`-keyed map in this repo. mypy does not check a dict literal against its
+    key type, so nothing else would say a value had been added to one and not the other.
+    """
+    from typing import get_args
+
+    from seqforge.io.onlist import _STRANDS_SCANNED, Orientation
+
+    assert set(_STRANDS_SCANNED) == set(get_args(Orientation))
+
+
+def test_an_unknown_orientation_is_refused_before_it_can_reach_the_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`pack` is the only writer of `index.json`, so a value outside the vocabulary dies here.
+
+    Exit 2 rather than 3: a value outside a closed vocabulary is a malformed invocation, not a
+    Blocker. The package data is redirected at `tmp_path` so that "nothing was written" is something
+    this test can actually assert, rather than infer from the exit code.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.io import onlist as onlist_mod
+
+    data = tmp_path / "onlists"
+    monkeypatch.setattr(onlist_mod, "_ONLIST_DATA", data)
+    monkeypatch.setattr(onlist_mod, "_INDEX", data / "index.json")
+    text = tmp_path / "bc.txt"
+    text.write_text("ACGTACGTACGTACGT\n")
+
+    result = CliRunner().invoke(
+        app,
+        ["io", "onlist", "pack", str(text), "--name", "typo-list", "--orientation", "reverse"],
+    )
+    assert result.exit_code == 2, result.output
+    message = " ".join(result.output.split())
+    assert "'reverse'" in message, "the refusal must name the value it rejected"
+    for legal in ("forward", "revcomp", "either"):
+        assert legal in message, f"the refusal must name {legal} as a way forward"
+    assert not data.exists(), "a refused orientation must reach neither a blob nor the index"
+
+
+def test_an_orientation_outside_the_vocabulary_is_refused_when_the_index_is_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The verb is not the only way in -- `shipped_entries` believes whatever `index.json` says.
+
+    `ValueError`, not `OnlistNotAvailable`: that one names actions a caller can take (fetch the list,
+    point `--onlist-dir` at it) and none of them fix a corrupt vocabulary.
+    """
+    import json
+
+    from seqforge.io import onlist as onlist_mod
+
+    index = tmp_path / "index.json"
+    index.write_text(
+        json.dumps({"L": {"width": 16, "n_entries": 1, "sha256": "ab", "orientation": "reverse"}})
+    )
+    monkeypatch.setattr(onlist_mod, "_INDEX", index)
+    with pytest.raises(ValueError, match="reverse"):
+        onlist_mod.shipped_entries()
 
 
 def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
