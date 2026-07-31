@@ -122,8 +122,9 @@ at run time. (The compiled run directory copies its module in for the same reaso
 
 **Why.** A knowledge base of prose claims about chemistries rots silently. Each tech therefore ships a
 `spec.yaml` that is *runnable*: `kb roundtrip` (spec → synth → probe → recover) proves the entry
-recovers what it declares, and the biconditional (design §2.4) proves that two entries with identical
-`backend.params` are processing-equivalent. A new tech that silently collides with an existing one at
+recovers what it declares, and the biconditional proves that two entries with identical
+`backend.params` are processing-equivalent (the argument is in
+[`docs/agents/kb.md`](kb.md)). A new tech that silently collides with an existing one at
 rungs 0–2 without declaring it fails.
 
 **Enforced by.** `kb roundtrip` (exit 3); `test_every_kb_spec_roundtrips`,

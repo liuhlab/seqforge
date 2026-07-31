@@ -14,6 +14,12 @@ This file is the rule. There are three rungs and you climb them once per change,
 | 2 | before a commit, and before opening the PR | `pixi run check` | ~an order of magnitude more |
 | 3 | after the PR is open | read CI | free |
 
+**The selector is what makes rung 1 rung 1.** A run that names a file (or `-k`, `-m`, `--lf`) stays
+serial, because spinning up twelve workers to run three tests costs more than it saves. Drop the
+selector and you are running the whole suite — so `tests/conftest.py` fills in the worker flags for
+you, and a bare `pytest` costs roughly a fifth of what a serial one would. There is nothing to
+remember and no flag to type; an explicit `-n` of your own is always honoured.
+
 **This file quotes ratios, not seconds.** Absolute timings and test counts go stale within a PR or
 two, and a stale number in a doc is worse than none because it is still trusted. What survives is the
 *shape* — which thing dominates which, and by roughly how much. Where a number below decides

@@ -4,9 +4,9 @@ Two independent claims, both about files no other test reads.
 
 **The two exclusion lists are the same list.** `mkdocs.yml`'s `exclude_docs` and
 `.markdownlint-cli2.yaml`'s `ignores` answer the same question about `docs/`: which trees under it are
-agent-facing rather than site prose. `design.md`, `agents/` and `adr/` are excluded from the built site
-for the reason `design.md`'s own comment gives -- agent-facing material must not read as settled
-guidance under a docs URL -- and for exactly that reason they are not linted as site pages either.
+agent-facing rather than site prose. `agents/` and `adr/` are excluded from the built site because
+agent-facing material must not read as settled guidance under a docs URL -- and for exactly that
+reason they are not linted as site pages either.
 They drifted once, and the failure was not theoretical: `agents/` was added to `exclude_docs` and not
 to `ignores`, so `docs/agents/domain.md` was linted as a site page, failed MD040 and MD049, and turned
 the `markdownlint` job red on every open PR. A comment saying "keep these in sync" is not a mechanism;
