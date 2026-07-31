@@ -38,9 +38,11 @@ from seqforge.resolve.records import DocumentSubject, resolve_metadata
 # dataset on 2026-07-16, committed unedited, so the parsers are tested against the format that exists
 # rather than the format we remember. That distinction is the whole reason they are here: the SPLiT-seq
 # lesson in this repo is that a test which builds its own input from the same assumptions as the code
-# proves the two agree and nothing else. `test_the_fixtures_are_what_the_archive_still_serves` is the
-# anti-rot half — it re-fetches and diffs, and it is marked `network` so it runs on demand rather than
-# in CI.
+# proves the two agree and nothing else. There is deliberately NO automated freshness guard: nothing
+# re-fetches these XMLs and diffs them against what NCBI serves today — that needs the network, and the
+# repo carries only the `external` and `repo` markers, no `network` one. So the committed fixtures can
+# drift from the live archive silently; that is a known gap, not an oversight. The taxonomy seed table
+# (`io/taxonomy.py`) shares it — pinned against committed literals, never re-resolved live.
 #
 # The pilot's own `expected.yaml` carries the same claims for the eval harness, but that case is
 # `kind: local` and skips wherever the 220 GB of FASTQ is not mounted — which is everywhere except one

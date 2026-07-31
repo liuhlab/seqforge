@@ -210,9 +210,10 @@ reads it, `temp()` deletes it (expanding 6 794 880 barcodes per run dir cost 111
 
 Hooks turn policy into mechanism: `PreToolUse` blocks unbounded FASTQ streams (size-blind) and
 `/scratch`/absolute-path writes; `PostToolUse` auto-runs `manifest validate` after a manifest edit;
-`Stop` refuses to end a turn while `questions.md` is non-empty. Two design-called-for things are
-**unbuilt**: nothing *writes* `questions.md` (the `Stop` hook only reads it), and the journal flywheel
-entirely (`journal.jsonl`/`distill`/`LESSONS.md`; its design survives in design.md §9).
+`Stop` refuses to end a turn while `questions.md` is non-empty, and `fill` *writes* it —
+`_sync_questions` (`cli/manifest.py`) renders open conflicts/questions across runs and clears a stale
+one when none remain. One design-called-for thing is still **unbuilt**: the journal flywheel entirely
+(`journal.jsonl`/`distill`/`LESSONS.md`; its design survives in design.md §9).
 
 ## Agent skills
 
