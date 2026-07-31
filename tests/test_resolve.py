@@ -42,7 +42,7 @@ from seqforge.probe import probe_file
 from seqforge.resolve import Hypothesis, resolve_dataset, resolve_runs, role_of_sha_for
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
-from seqforge.resolve.engine import index_tagged_roles
+from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.geometry import (
     geometry_could_accept,
@@ -84,14 +84,14 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
             _write_fastq_gz(p, reads[k])
             paths.append(p)
 
-    def digest(multi: object) -> list[object]:
+    def digest(multi: MultiRunOutput) -> list[object]:
         return [
             (
                 r.run_id,
                 r.output.result.candidates[0].technology,
                 tuple(sorted(r.output.result.candidates[0].role_assignment.assignment.items())),
             )
-            for r in multi.runs  # type: ignore[attr-defined]
+            for r in multi.runs
         ]
 
     serial = resolve_runs(paths, registry=reg, use_cache=False, cpus=1)
@@ -100,14 +100,14 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     assert digest(serial) == digest(parallel)  # same decision, run for run
 
 
-def _run_digest(multi: object) -> list[object]:
+def _run_digest(multi: MultiRunOutput) -> list[object]:
     return [
         (
             r.run_id,
             r.output.result.candidates[0].technology,
             tuple(sorted(r.output.result.candidates[0].role_assignment.assignment.items())),
         )
-        for r in multi.runs  # type: ignore[attr-defined]
+        for r in multi.runs
     ]
 
 
@@ -212,6 +212,8 @@ def test_resolve_fingerprints_a_library_straight_from_a_url(
     import re
     import types
 
+    import requests
+
     from seqforge.io import remote
     from seqforge.probe import content_key_from_md5
 
@@ -249,9 +251,9 @@ def test_resolve_fingerprints_a_library_straight_from_a_url(
             close=lambda: None,
         )
 
-    monkeypatch.setattr(remote.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)  # the module `remote` calls through
 
-    probed: dict[str, object] = {}
+    probed: dict[str, tuple[m.Observation, list[str]]] = {}
     for url in urls.values():
         obs, seqs = remote.probe_remote(url, md5=md5s[url])
         assert obs.file.sha256 == content_key_from_md5(md5s[url])  # provider md5 IS the address
@@ -1174,14 +1176,12 @@ def test_single_cell_collapse_guard_is_structural_not_length() -> None:
 
     specs = kb.load_all_specs()
 
-    class _Top:  # the guard reads only `.tech`
-        tech = "bulk-rnaseq-pe"
-
-    class _TopSingleCell:
-        tech = "10x-3p-gex-v3"
+    # The guard reads only `.tech` off the winner, so `_te` (the file's evaluation builder) supplies it.
+    top_bulk = _te("bulk-rnaseq-pe", 0.8)
+    top_single_cell = _te("10x-3p-gex-v3", 0.8)
 
     conflict = _single_cell_collapse_conflict(
-        "10x-3p-gex-v2", "harvest", 0.9, _Top(), specs["bulk-rnaseq-pe"], [], specs
+        "10x-3p-gex-v2", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
     )
     assert conflict is not None
     assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
@@ -1193,20 +1193,22 @@ def test_single_cell_collapse_guard_is_structural_not_length() -> None:
     # a bulk chemistry was asserted and bulk won (agreement)
     assert (
         _single_cell_collapse_conflict(
-            "bulk-rnaseq-pe", "harvest", 0.9, _Top(), specs["bulk-rnaseq-pe"], [], specs
+            "bulk-rnaseq-pe", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
         )
         is None
     )
     # the winner is itself barcoded (single-cell won or tied)
     assert (
         _single_cell_collapse_conflict(
-            "10x-3p-gex-v2", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+            "10x-3p-gex-v2", "harvest", 0.9, top_single_cell, specs["10x-3p-gex-v3"], [], specs
         )
         is None
     )
     # no hypothesis at all
     assert (
-        _single_cell_collapse_conflict(None, None, 0.8, _Top(), specs["bulk-rnaseq-pe"], [], specs)
+        _single_cell_collapse_conflict(
+            None, None, 0.8, top_bulk, specs["bulk-rnaseq-pe"], [], specs
+        )
         is None
     )
 
@@ -1257,14 +1259,12 @@ def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
 
     specs = kb.load_all_specs()
 
-    class _TopSingleCell:  # the guard reads only `.tech`
-        tech = "10x-3p-gex-v3"
-
-    class _TopBulk:
-        tech = "bulk-rnaseq-pe"
+    # The guard reads only `.tech` off the winner, so `_te` (the file's evaluation builder) supplies it.
+    top_single_cell = _te("10x-3p-gex-v3", 0.8)
+    top_bulk = _te("bulk-rnaseq-pe", 0.8)
 
     conflict = _bulk_asserted_single_cell_observed(
-        "bulk-rnaseq-pe", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+        "bulk-rnaseq-pe", "harvest", 0.9, top_single_cell, specs["10x-3p-gex-v3"], [], specs
     )
     assert conflict is not None
     assert conflict.id == "conflict-bulk-asserted-single-cell-observed"
@@ -1277,21 +1277,21 @@ def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
     # a single-cell chemistry was asserted -> that is the FORWARD collapse guard's job, not this one
     assert (
         _bulk_asserted_single_cell_observed(
-            "10x-3p-gex-v2", "harvest", 0.9, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+            "10x-3p-gex-v2", "harvest", 0.9, top_single_cell, specs["10x-3p-gex-v3"], [], specs
         )
         is None
     )
     # the winner is itself bulk (agreement)
     assert (
         _bulk_asserted_single_cell_observed(
-            "bulk-rnaseq-pe", "harvest", 0.9, _TopBulk(), specs["bulk-rnaseq-pe"], [], specs
+            "bulk-rnaseq-pe", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
         )
         is None
     )
     # no hypothesis at all
     assert (
         _bulk_asserted_single_cell_observed(
-            None, None, 0.8, _TopSingleCell(), specs["10x-3p-gex-v3"], [], specs
+            None, None, 0.8, top_single_cell, specs["10x-3p-gex-v3"], [], specs
         )
         is None
     )
@@ -1827,7 +1827,7 @@ def reads_with_cdna(
     return _reads(tmp_path_factory.mktemp("reads_cdna"), extra="cdna")
 
 
-def _filled_manifest(spec: kb.Spec, reg: OnlistRegistry, paths: list[Path]):
+def _filled_manifest(spec: kb.Spec, reg: OnlistRegistry, paths: list[Path]) -> m.DatasetManifest:
     out = resolve_dataset(paths, registry=reg, use_cache=False)
     return fill_manifest(
         result=out.result,

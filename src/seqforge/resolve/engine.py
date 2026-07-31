@@ -455,9 +455,11 @@ def _resolve_one_run(
 _RUN_CTX: dict[str, object] = {}
 
 
-def _resolve_run_shared(item: tuple[str, Sequence[str | Path]]) -> RunResolution:
+def _resolve_run_shared(item: tuple[str, list[Path]]) -> RunResolution:
     """Fork worker: resolve one run from the parent's COW-inherited ``_RUN_CTX`` (a warm registry whose
     packed whitelist is shared read-only). Only the run's own paths cross the process boundary."""
+    # `_RUN_CTX` carries `_resolve_one_run`'s keywords across the fork, so it is heterogeneous by
+    # construction; `**` on a `dict[str, object]` loses the per-key types.
     return _resolve_one_run(item, **_RUN_CTX)  # type: ignore[arg-type]
 
 
@@ -624,6 +626,8 @@ def resolve_runs(
     )
 
     if not parallel_runs:
+        # `common` is `_resolve_one_run`'s keyword set bundled once for both paths — heterogeneous,
+        # so `dict[str, object]`, and `**` on that loses the per-key types.
         runs = [_resolve_one_run(it, **common) for it in run_items]  # type: ignore[arg-type]
     else:
         # Warm the shared registry in-process on the FIRST run (this parses the onlists once), then

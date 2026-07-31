@@ -35,6 +35,7 @@ Numbers only; the table below carries the links.
 | `src/seqforge/workflows/` | 0015 |
 | `evals/` and `src/seqforge/evals/` | 0016 |
 | `tests/`, and choosing which of them to run | 0002 |
+| every Python file in the tree — what type-checks it, and what your editor shows | 0017 |
 | the compiler as a whole — what it is *for* | 0003 |
 
 ## By number
@@ -57,3 +58,4 @@ Numbers only; the table below carries the links.
 | [0014](0014-no-inf-across-the-json-seam.md) | No ±inf crosses the JSON seam | A forbidden cell serializes as a tagged status — never the sentinel, never `null` | `resolve/scoring.py`, `resolve/assign.py`, `models/resolve.py` |
 | [0015](0015-onlists-are-built-and-deleted.md) | Barcode whitelists are built by a rule and `temp()`-deleted | `rule onlist` materializes one on demand; the shipped packed array is the only stored copy | `workflows/map/`, `io/onlist.py`, `compose/` |
 | [0016](0016-no-held-out-dataset.md) | No held-out dataset — a pre-registered prediction instead | The reservation is retired; `expected.yaml` is written from declared metadata before the run | `evals/`, `src/seqforge/evals/` |
+| [0017](0017-one-type-checker-and-the-editor-runs-it.md) | One type checker, and the editor runs it | mypy is the only one, its scope is the whole repo, and Pylance's checker is off so the two cannot disagree | `pyproject.toml`, `.vscode/`, and every `.py` file in the tree |

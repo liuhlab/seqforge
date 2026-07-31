@@ -46,11 +46,13 @@ def _skill_dirs() -> list[Path]:
     return sorted(p.parent for p in SKILLS.glob("*/SKILL.md"))
 
 
-def _frontmatter(path: Path) -> dict:
+def _frontmatter(path: Path) -> dict[str, str]:
     text = path.read_text()
     match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
     assert match, f"{path} has no YAML frontmatter"
-    return yaml.safe_load(match.group(1))
+    loaded = yaml.safe_load(match.group(1))
+    assert isinstance(loaded, dict), f"{path} frontmatter is not a mapping"
+    return loaded
 
 
 @pytest.mark.repo

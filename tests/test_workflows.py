@@ -26,6 +26,7 @@ from typing import get_args
 
 import anndata as ad
 import pytest
+from scipy.sparse import csr_matrix
 
 from conftest import SrcTrees, _build, _processing, _src_root
 from seqforge import kb
@@ -69,6 +70,19 @@ def _layer_names(adata: ad.AnnData) -> set[str]:
     return {k for k in adata.layers.keys() if k is not None}
 
 
+def _counts(adata: ad.AnnData, layer: str | None = None) -> csr_matrix:
+    """One count matrix, narrowed to what an ``.mtx`` round-tripped through anndata actually is.
+
+    ``X`` and ``layers[...]`` are declared as a union of array protocols — a dense array, a lazy
+    on-disk dataset, ``None`` — so a bare ``[i, j]`` on either reads through something that may not
+    be a matrix at all. Packaging writes sparse, so a dense or absent one is a regression this says
+    out loud rather than an index error three lines later.
+    """
+    matrix = adata.X if layer is None else adata.layers[layer]
+    assert isinstance(matrix, csr_matrix), f"expected a sparse count matrix, got {type(matrix)}"
+    return matrix
+
+
 GENES = ["ENSG01", "ENSG02", "ENSG03"]
 BARCODES = ["AAAA", "CCCC"]
 
@@ -85,7 +99,12 @@ def _mtx(path: Path, entries: dict[tuple[int, int], int], n_genes: int, n_cells:
 
 
 def _feature_dir(
-    solo: Path, feature: str, *, genes: list[str] = GENES, barcodes: list[str] = BARCODES, base: int
+    solo: Path,
+    feature: SoloFeature,
+    *,
+    genes: list[str] = GENES,
+    barcodes: list[str] = BARCODES,
+    base: int,
 ) -> None:
     """One ``Solo.out/<feature>/raw/``. ``base`` makes each feature's counts distinguishable."""
     raw = solo / feature / "raw"
@@ -95,14 +114,14 @@ def _feature_dir(
     )
     raw.joinpath("barcodes.tsv").write_text("".join(f"{b}\n" for b in barcodes))
     entries = {(1, 1): base + 1, (2, 2): base + 2}
-    for name in SOLO_FEATURE_OUTPUT[feature].matrices:  # type: ignore[index]
+    for name in SOLO_FEATURE_OUTPUT[feature].matrices:
         _mtx(raw / name, entries, len(genes), len(barcodes))
 
 
-def _solo_out(tmp_path: Path, features: list[str], **kwargs: object) -> Path:
+def _solo_out(tmp_path: Path, features: list[SoloFeature], **kwargs: list[str]) -> Path:
     solo = tmp_path / "Solo.out"
     for i, feature in enumerate(features):
-        _feature_dir(solo, feature, base=i * 10, **kwargs)  # type: ignore[arg-type]
+        _feature_dir(solo, feature, base=i * 10, **kwargs)
     return solo
 
 
@@ -133,7 +152,7 @@ def test_velocyto_has_no_matrix_mtx_and_the_others_have_nothing_else() -> None:
 def test_the_axis_files_are_demanded_for_every_feature() -> None:
     """`features.tsv`/`barcodes.tsv` are outputs too: a matrix without its axes is unreadable."""
     for feature in SOLO_FEATURE_OUTPUT:
-        assert set(raw_files(feature)) >= {"features.tsv", "barcodes.tsv"}  # type: ignore[arg-type]
+        assert set(raw_files(feature)) >= {"features.tsv", "barcodes.tsv"}
     assert "Gene/raw/matrix.mtx" in solo_raw_files(["Gene"])
 
 
@@ -155,8 +174,8 @@ def test_stats_files_are_per_feature_but_umi_per_cell_only_for_the_stackable_one
     cell-filtered gene features (Gene/GeneFull*) get a UMIperCellSorted knee vector — Velocyto and SJ
     do not (confirmed against real output). Over-declaring a file STAR never wrote breaks the run.
     """
-    features = ["Gene", "GeneFull", "Velocyto"]
-    stats = solo_stats_files(features)  # type: ignore[arg-type]
+    features: list[SoloFeature] = ["Gene", "GeneFull", "Velocyto"]
+    stats = solo_stats_files(features)
     assert "Barcodes.stats" in stats
     for feat in features:
         assert f"{feat}/Summary.csv" in stats
@@ -165,7 +184,7 @@ def test_stats_files_are_per_feature_but_umi_per_cell_only_for_the_stackable_one
     assert "GeneFull/UMIperCellSorted.txt" in stats
     assert "Velocyto/UMIperCellSorted.txt" not in stats
     # SJ (junction axis) is not cell-filtered, so it gets no knee vector either.
-    assert "SJ/UMIperCellSorted.txt" not in solo_stats_files(["Gene", "SJ"])  # type: ignore[arg-type]
+    assert "SJ/UMIperCellSorted.txt" not in solo_stats_files(["Gene", "SJ"])
 
 
 def test_filtered_files_cover_every_gene_axis_feature_but_not_sj() -> None:
@@ -174,7 +193,7 @@ def test_filtered_files_cover_every_gene_axis_feature_but_not_sj() -> None:
     We declare only what real output confirms; SJ's filtered layout is unconfirmed, so it is left out
     — under-declaring merely leaves a file uncleaned, while over-declaring is a hard rule failure.
     """
-    filtered = solo_filtered_files(["Gene", "Velocyto", "SJ"])  # type: ignore[arg-type]
+    filtered = solo_filtered_files(["Gene", "Velocyto", "SJ"])
     assert "Gene/filtered/matrix.mtx" in filtered
     assert "Gene/filtered/barcodes.tsv" in filtered
     # Velocyto's filtered dir carries the same three matrices as raw, plus the axis files.
@@ -193,26 +212,26 @@ def test_star_run_files_are_the_logs_the_bundle_reads_and_the_bam_is_separate() 
 
 def test_write_h5ad_writes_exactly_what_h5ad_suffixes_promised(tmp_path: Path) -> None:
     """One function decides both what the rule declares and what the verb writes (no drift)."""
-    features = ["Gene", "GeneFull", "Velocyto"]
+    features: list[SoloFeature] = ["Gene", "GeneFull", "Velocyto"]
     solo = _solo_out(tmp_path, features)
-    written = write_h5ad(solo, features, "Gene", tmp_path / "s1")  # type: ignore[arg-type]
-    assert [p.name for p in written] == [f"s1{s}" for s in h5ad_suffixes(features)]  # type: ignore[arg-type]
+    written = write_h5ad(solo, features, "Gene", tmp_path / "s1")
+    assert [p.name for p in written] == [f"s1{s}" for s in h5ad_suffixes(features)]
     assert all(p.exists() for p in written)
 
 
 def test_the_primary_feature_is_x_and_the_rest_are_layers(tmp_path: Path) -> None:
-    features = ["Gene", "GeneFull", "GeneFull_Ex50pAS"]
+    features: list[SoloFeature] = ["Gene", "GeneFull", "GeneFull_Ex50pAS"]
     solo = _solo_out(tmp_path, features)
-    write_h5ad(solo, features, "GeneFull", tmp_path / "s1")  # type: ignore[arg-type]
+    write_h5ad(solo, features, "GeneFull", tmp_path / "s1")
     adata = ad.read_h5ad(tmp_path / "s1.h5ad")
 
     assert adata.uns["primary_feature"] == "GeneFull"
     assert _layer_names(adata) == {"Gene", "GeneFull_Ex50pAS"}
     # `_feature_dir` gives feature i the counts (base+1, base+2) with base=10*i, so which matrix
     # landed in X is checkable rather than merely plausible: GeneFull is features[1] => base 10.
-    assert adata.X[0, 0] == 11
-    assert adata.layers["Gene"][0, 0] == 1
-    assert adata.layers["GeneFull_Ex50pAS"][0, 0] == 21
+    assert _counts(adata)[0, 0] == 11
+    assert _counts(adata, "Gene")[0, 0] == 1
+    assert _counts(adata, "GeneFull_Ex50pAS")[0, 0] == 21
 
 
 def test_the_matrix_is_transposed_to_cells_by_genes_and_keeps_the_gene_name_column(
@@ -225,14 +244,14 @@ def test_the_matrix_is_transposed_to_cells_by_genes_and_keeps_the_gene_name_colu
     read confirms `var["gene_name"]`/`feature_type` carried through from features.tsv.
     """
     solo = _solo_out(tmp_path, ["Gene"])
-    write_h5ad(solo, ["Gene"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
+    write_h5ad(solo, ["Gene"], "Gene", tmp_path / "s1")
     adata = ad.read_h5ad(tmp_path / "s1.h5ad")
 
     assert adata.shape == (len(BARCODES), len(GENES))
     assert list(adata.obs_names) == BARCODES
     assert list(adata.var_names) == GENES
     # entry (2, 2) = gene 2, cell 2 in STAR's file -> obs 1, var 1 here
-    assert adata.X[1, 1] == 2
+    assert _counts(adata)[1, 1] == 2
     # The gene-name column and feature type survive from features.tsv.
     assert list(adata.var["gene_name"]) == [f"{g}-name" for g in GENES]
     assert set(adata.var["feature_type"]) == {"Gene Expression"}
@@ -246,13 +265,13 @@ def test_velocyto_carries_three_layers_x_is_spliced_and_is_not_a_gene_layer(tmp_
     together, so they are NOT a fourth way to count genes: the plain `.h5ad` has no `Velocyto` layer.
     """
     solo = _solo_out(tmp_path, ["Gene", "Velocyto"])
-    write_h5ad(solo, ["Gene", "Velocyto"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
+    write_h5ad(solo, ["Gene", "Velocyto"], "Gene", tmp_path / "s1")
 
     velo = ad.read_h5ad(tmp_path / "s1.velocyto.h5ad")
     assert _layer_names(velo) == {"spliced", "unspliced", "ambiguous"}
     assert velo.shape == (len(BARCODES), len(GENES))
     # X duplicates layers["spliced"] on purpose: scVelo reads the layer, everything else reads X.
-    assert (velo.X != velo.layers["spliced"]).nnz == 0
+    assert (_counts(velo) != _counts(velo, "spliced")).nnz == 0
 
     gene = ad.read_h5ad(tmp_path / "s1.h5ad")
     assert "Velocyto" not in gene.layers  # not a fourth way to count genes
@@ -270,7 +289,7 @@ def test_stacking_refuses_features_whose_axes_disagree(tmp_path: Path) -> None:
     _feature_dir(solo, "GeneFull", genes=[*GENES, "ENSG04"], base=10)  # a fourth gene: shifted axis
 
     with pytest.raises(H5adError, match="GeneFull"):
-        write_h5ad(solo, ["Gene", "GeneFull"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
+        write_h5ad(solo, ["Gene", "GeneFull"], "Gene", tmp_path / "s1")
     assert not (tmp_path / "s1.h5ad").exists(), (
         "a refusal must not leave a half-written deliverable"
     )
@@ -282,14 +301,14 @@ def test_a_missing_matrix_is_a_refusal_not_an_empty_object(tmp_path: Path) -> No
     (solo / "GeneFull" / "raw" / "matrix.mtx").unlink()
 
     with pytest.raises(H5adError, match="missing"):
-        write_h5ad(solo, ["Gene", "GeneFull"], "Gene", tmp_path / "s1")  # type: ignore[arg-type]
+        write_h5ad(solo, ["Gene", "GeneFull"], "Gene", tmp_path / "s1")
 
 
 def test_a_primary_that_is_not_stackable_falls_back_rather_than_crashing(tmp_path: Path) -> None:
     """`soloFeatures[0]` names the primary, and nothing stops it being Velocyto or SJ."""
-    features = ["Velocyto", "Gene"]
+    features: list[SoloFeature] = ["Velocyto", "Gene"]
     solo = _solo_out(tmp_path, features)
-    write_h5ad(solo, features, "Velocyto", tmp_path / "s1")  # type: ignore[arg-type]
+    write_h5ad(solo, features, "Velocyto", tmp_path / "s1")
     assert ad.read_h5ad(tmp_path / "s1.h5ad").uns["primary_feature"] == "Gene"
 
 
@@ -310,7 +329,7 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text)
 
 
-def _fake_run(tmp_path: Path, features: list[str]) -> tuple[Path, Path]:
+def _fake_run(tmp_path: Path, features: list[SoloFeature]) -> tuple[Path, Path]:
     """A minimal STARsolo output tree: Solo.out + the top-level logs. Returns (solo_dir, run_dir)."""
     run_dir = tmp_path / "S1"
     solo = run_dir / "Solo.out"
@@ -335,42 +354,48 @@ def _fake_run(tmp_path: Path, features: list[str]) -> tuple[Path, Path]:
 
 
 def test_the_bundle_carries_every_stat_and_log_keyed_by_feature(tmp_path: Path) -> None:
-    features = ["Gene", "GeneFull", "Velocyto"]
+    features: list[SoloFeature] = ["Gene", "GeneFull", "Velocyto"]
     solo, run_dir = _fake_run(tmp_path, features)
-    bundle = build_qc_bundle(
-        solo,
-        run_dir,
-        features,  # type: ignore[arg-type]
-        sample="S1",
-        assembly="ce11",
-    )
+    bundle = build_qc_bundle(solo, run_dir, features, sample="S1", assembly="ce11")
 
     assert bundle["sample"] == "S1"
     assert bundle["assembly"] == "ce11"
     assert bundle["soloFeatures"] == features
+    # The bundle is JSON on its way to a gzip file, so every entry arrives as an untyped value. Each
+    # block is narrowed once here, which is also the shape claim: a block that stopped being keyed by
+    # feature fails by name rather than as an index error on the line that reads it.
+    summary, features_stats = bundle["summary"], bundle["features_stats"]
+    umi_per_cell, filtered = bundle["umi_per_cell"], bundle["default_filtered_barcodes"]
+    barcodes_stats, log_final = bundle["barcodes_stats"], bundle["log_final"]
+    log_out, splice_junctions = bundle["log_out"], bundle["splice_junctions"]
+    assert isinstance(summary, dict) and isinstance(features_stats, dict)
+    assert isinstance(umi_per_cell, dict) and isinstance(filtered, dict)
+    assert isinstance(barcodes_stats, dict) and isinstance(log_final, dict)
+    assert isinstance(log_out, str) and isinstance(splice_junctions, list)
+
     # Summary.csv coerced to typed values, per feature.
-    assert bundle["summary"]["Gene"]["Number of Reads"] == 1000  # type: ignore[index]
-    assert bundle["summary"]["Gene"]["Sequencing Saturation"] == 0.42  # type: ignore[index]
+    assert summary["Gene"]["Number of Reads"] == 1000
+    assert summary["Gene"]["Sequencing Saturation"] == 0.42
     # Whitespace .stats files.
-    assert bundle["barcodes_stats"]["nMatch"] == 900  # type: ignore[index]
-    assert bundle["features_stats"]["Velocyto"]["yesWLmatch"] == 900  # type: ignore[index]
+    assert barcodes_stats["nMatch"] == 900
+    assert features_stats["Velocyto"]["yesWLmatch"] == 900
     # UMIperCellSorted only for the stackable features.
-    assert bundle["umi_per_cell"]["Gene"] == [50, 30, 10]  # type: ignore[index]
-    assert "Velocyto" not in bundle["umi_per_cell"]  # type: ignore[operator]
+    assert umi_per_cell["Gene"] == [50, 30, 10]
+    assert "Velocyto" not in umi_per_cell
     # filtered/barcodes.tsv kept as provenance of STAR's default cell call, for every gene-axis feat.
-    assert bundle["default_filtered_barcodes"]["Velocyto"] == ["AAAA", "CCCC"]  # type: ignore[index]
+    assert filtered["Velocyto"] == ["AAAA", "CCCC"]
     # Log.final.out parsed on `|`; free-text logs kept whole; SJ rows split on tab.
-    assert bundle["log_final"]["Number of input reads"] == 1000  # type: ignore[index]
-    assert bundle["log_final"]["Uniquely mapped %"] == "95.00%"  # type: ignore[index]
-    assert "STAR version" in bundle["log_out"]  # type: ignore[operator]
-    assert bundle["splice_junctions"][0] == ["chrI", "100", "200", "1", "1", "1", "10", "0", "30"]  # type: ignore[index]
+    assert log_final["Number of input reads"] == 1000
+    assert log_final["Uniquely mapped %"] == "95.00%"
+    assert "STAR version" in log_out
+    assert splice_junctions[0] == ["chrI", "100", "200", "1", "1", "1", "10", "0", "30"]
 
 
 def test_write_qc_bundle_round_trips_through_gzipped_json(tmp_path: Path) -> None:
-    features = ["Gene", "Velocyto"]
+    features: list[SoloFeature] = ["Gene", "Velocyto"]
     solo, run_dir = _fake_run(tmp_path, features)
     out = tmp_path / "S1.qc.json.gz"
-    written = write_qc_bundle(solo, run_dir, features, out, sample="S1", assembly="ce11")  # type: ignore[arg-type]
+    written = write_qc_bundle(solo, run_dir, features, out, sample="S1", assembly="ce11")
 
     assert written == out and out.exists()
     with gzip.open(out, "rt", encoding="utf-8") as fh:
@@ -381,11 +406,11 @@ def test_write_qc_bundle_round_trips_through_gzipped_json(tmp_path: Path) -> Non
 
 
 def test_a_missing_star_file_is_a_refusal_not_a_silent_gap(tmp_path: Path) -> None:
-    features = ["Gene"]
+    features: list[SoloFeature] = ["Gene"]
     solo, run_dir = _fake_run(tmp_path, features)
     (solo / "Gene" / "Summary.csv").unlink()
     with pytest.raises(QcError, match="Summary.csv"):
-        build_qc_bundle(solo, run_dir, features, sample="S1", assembly="ce11")  # type: ignore[arg-type]
+        build_qc_bundle(solo, run_dir, features, sample="S1", assembly="ce11")
 
 
 # ================================================================================================
@@ -645,6 +670,8 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         identity=SimpleNamespace(modality="atac", id="fake-atac"),
     )
     with pytest.raises(KeyError, match="serves modalities"):
+        # The stand-in spec IS the subject: a duck-typed object is what lets an unserved modality
+        # reach `resolve_pipeline` at all, so the suppression stays and the argument stays invalid.
         resolve_pipeline(unserved)  # type: ignore[arg-type]
 
 
@@ -671,7 +698,9 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     commit that made the gate work. Asserted here it holds for all three modules, not for starsolo
     alone.
     """
-    techs = sorted(t for t in kb.runnable_spec_ids() if kb.load_spec(t).backend.module == module)
+    techs = sorted(
+        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+    )
     assert techs, f"{module} is registered but no spec reaches it"
     manifest, reg = _build(tmp_path, techs[0])
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)

@@ -87,8 +87,9 @@ def _external_id(node: ElementTree.Element | None, namespace: str) -> str | None
     if node is None:
         return None
     for ident in node.findall(".//EXTERNAL_ID"):
-        if ident.get("namespace") == namespace and (ident.text or "").strip():
-            return ident.text.strip()
+        text = (ident.text or "").strip()
+        if ident.get("namespace") == namespace and text:
+            return text
     return None
 
 

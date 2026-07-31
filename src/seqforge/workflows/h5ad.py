@@ -32,6 +32,7 @@ because I had assumed otherwise.)
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -114,7 +115,7 @@ def raw_files(feature: SoloFeature) -> tuple[str, ...]:
     return (*SOLO_FEATURE_OUTPUT[feature].matrices, _FEATURES_TSV, _BARCODES_TSV)
 
 
-def solo_raw_files(features: list[SoloFeature]) -> list[str]:
+def solo_raw_files(features: Sequence[SoloFeature]) -> list[str]:
     """Every raw file a run of ``--soloFeatures <features>`` must produce, relative to ``Solo.out``.
 
     These become explicit outputs of ``starsolo_count``, which is what makes "STAR exited 0 having
@@ -123,7 +124,7 @@ def solo_raw_files(features: list[SoloFeature]) -> list[str]:
     return [f"{feat}/raw/{name}" for feat in features for name in raw_files(feat)]
 
 
-def _stackable(features: list[SoloFeature]) -> list[SoloFeature]:
+def _stackable(features: Sequence[SoloFeature]) -> list[SoloFeature]:
     """The gene-axis, one-matrix features — the ones that go in ``<sample>.h5ad`` together."""
     return [
         f
@@ -132,7 +133,7 @@ def _stackable(features: list[SoloFeature]) -> list[SoloFeature]:
     ]
 
 
-def _gene_axis(features: list[SoloFeature]) -> list[SoloFeature]:
+def _gene_axis(features: Sequence[SoloFeature]) -> list[SoloFeature]:
     """The gene-axis features — every one that gets a ``filtered/`` cell-called copy on disk.
 
     That is ``Gene``/``GeneFull*`` **and** ``Velocyto`` (all ``axis == "gene"``); the junction-axis
@@ -153,7 +154,7 @@ STAR_LOG_FILES: tuple[str, ...] = ("Log.final.out", "Log.out", "Log.progress.out
 STAR_BAM = "Aligned.out.bam"
 
 
-def solo_stats_files(features: list[SoloFeature]) -> list[str]:
+def solo_stats_files(features: Sequence[SoloFeature]) -> list[str]:
     """Every small STAR stats file a ``--soloFeatures`` run writes, relative to ``Solo.out``.
 
     Declared as ``temp()`` outputs of ``starsolo_count`` so the ``qc_bundle`` rule consumes them into
@@ -173,7 +174,7 @@ def solo_stats_files(features: list[SoloFeature]) -> list[str]:
     return out
 
 
-def solo_filtered_files(features: list[SoloFeature]) -> list[str]:
+def solo_filtered_files(features: Sequence[SoloFeature]) -> list[str]:
     """Every ``filtered/`` file a ``--soloFeatures`` run writes, relative to ``Solo.out``.
 
     STAR's default cell filter (``--soloCellFilter`` default ``CellRanger2.2 3000 0.99 10``) writes a
@@ -185,7 +186,7 @@ def solo_filtered_files(features: list[SoloFeature]) -> list[str]:
     return [f"{feat}/filtered/{name}" for feat in _gene_axis(features) for name in raw_files(feat)]
 
 
-def h5ad_suffixes(features: list[SoloFeature]) -> list[str]:
+def h5ad_suffixes(features: Sequence[SoloFeature]) -> list[str]:
     """The ``.h5ad`` files a run of ``--soloFeatures <features>`` yields, as filename suffixes.
 
     Called from ``starsolo.smk`` at parse time to declare the rule's outputs **and** by
@@ -266,7 +267,9 @@ def _read_matrix(path: Path, shape: tuple[int, int]) -> csr_matrix:
     return mat.tocsr()
 
 
-def _stack(solo_dir: Path, features: list[SoloFeature], primary: SoloFeature) -> anndata.AnnData:
+def _stack(
+    solo_dir: Path, features: Sequence[SoloFeature], primary: SoloFeature
+) -> anndata.AnnData:
     """The gene-axis features as one object: ``X`` = primary, one layer per other feature."""
     import anndata as ad
 
@@ -331,7 +334,7 @@ def _velocyto(solo_dir: Path) -> anndata.AnnData:
 
 
 def write_h5ad(
-    solo_dir: Path, features: list[SoloFeature], primary: SoloFeature, out_prefix: Path
+    solo_dir: Path, features: Sequence[SoloFeature], primary: SoloFeature, out_prefix: Path
 ) -> list[Path]:
     """``Solo.out`` -> the ``.h5ad`` files :func:`h5ad_suffixes` promised, in that order."""
     stackable = _stackable(features)

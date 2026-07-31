@@ -57,7 +57,6 @@ from ..models.processing import (
     ProcessingManifest,
     ProcessingProvenance,
     RuntimeEnv,
-    SoloFeature,
 )
 from ..models.resolve import Candidate, MetadataResolution, ResolveResult
 from ..workflows import WORKFLOW_VERSION
@@ -176,7 +175,9 @@ class ProcessingInputs:
 
     assembly: str | None = None
     annotation_name: str | None = None
-    features: tuple[SoloFeature, ...] | None = None  # --quantify: EXACT replacement
+    # `str` for the same reason as its twin `ProcessingOverrides.features`: raw `--quantify` text,
+    # whose membership `SoloQuant` validates at construction and nothing before it does.
+    features: tuple[str, ...] | None = None  # --quantify: EXACT replacement
     threads: int | None = None
     environment: RuntimeEnv | None = None
 
@@ -387,6 +388,8 @@ def _build_read_layout(
                 elements=[_read_element(el, spec) for el in read.elements],
             )
         )
+    # every `_MODALITY` value, the fallback included, is a `ReadLayout` modality — it translates the
+    # KB's vocabulary into the IR's, and is `str`->`str` because neither end is a named type.
     modality = _MODALITY.get(spec.identity.modality, "rna")
     return ReadLayout(modality=modality, reads=reads)  # type: ignore[arg-type]
 
@@ -411,6 +414,8 @@ def _read_element(el: Element, spec: Spec) -> ReadElement:
         else None
     )
     return ReadElement(
+        # the same KB->IR translation table as `_MODALITY`: every value, and the `linker` fallback,
+        # is a `ReadElement` role, but the map itself is only `str`->`str`.
         role=_ROLE_FOR_TYPE.get(el.type, "linker"),  # type: ignore[arg-type]
         region_type=el.seqspec_region_type,
         start=el.start,
@@ -440,6 +445,8 @@ def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
         if not entry.uri or not _SHA256.match(entry.sha256):
             continue  # declared but not materialized (e.g. a license-restricted real list)
         hint: Literal["forward", "reverse_complement"] | None
+        # Partial on purpose: a registry entry that is `either` has no hint and falls out as `None`.
+        # Both mapped values ARE hints; a `dict[str, str]` literal is what widens them.
         hint = {"forward": "forward", "revcomp": "reverse_complement"}.get(entry.orientation)  # type: ignore[assignment]
         out.append(
             Onlist(

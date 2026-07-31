@@ -155,7 +155,8 @@ def _split_pure_run(labels: list[tuple[str, str, float]], lo: int, hi: int) -> l
             flush_constant(k)
             out.append(
                 HomopolymerSegment(
-                    base=base,  # type: ignore[arg-type]  # single ACGT char
+                    # `_dominant` picks this out of a literal ACGT 4-tuple; it is typed `str`.
+                    base=base,  # type: ignore[arg-type]
                     start=k,
                     end=r,
                     mean_run=float(r - k),

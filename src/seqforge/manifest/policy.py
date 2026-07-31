@@ -157,7 +157,11 @@ class ProcessingOverrides:
 
     assembly: str | None = None
     annotation_name: str | None = None
-    features: tuple[SoloFeature, ...] | None = None  # --quantify: EXACT replacement, not a union
+    # `str`, not `SoloFeature`: this is what the user TYPED, and `--quantify` splits on commas and
+    # validates nothing. The closed vocabulary is enforced at construction by `SoloQuant`; a Literal
+    # here would promise membership three frames before anything checks it, and a promise made that
+    # early is paid for with a suppression at the seam where it finally has to be cashed.
+    features: tuple[str, ...] | None = None  # --quantify: EXACT replacement, not a union
     threads: int | None = None
     environment: RuntimeEnv | None = None
 
@@ -241,9 +245,9 @@ def prep_type_from_assertions(assertions: Sequence[Assertion]) -> str | None:
 def resolve_features(
     *,
     instructions: Sequence[Instruction] = (),
-    override: tuple[SoloFeature, ...] | None = None,
+    override: tuple[str, ...] | None = None,
     prep_type: str | None = None,
-) -> tuple[list[SoloFeature], Basis, list[str], list[ValidationWarning]]:
+) -> tuple[list[str], Basis, list[str], list[ValidationWarning]]:
     """Fold policy + instructions + a flag into ONE ordered feature list, with its provenance.
 
     **Prose promotes; it never narrows.** "This dataset should be aligned in GeneFull mode" is
@@ -265,9 +269,17 @@ def resolve_features(
     ~1/3 intronic, so a Gene-first primary silently under-counts it (ce11: Gene=1186 vs GeneFull=1940,
     a 40.7% loss). Still all five features, one alignment, one pass; only ``adata.X`` changes. This is
     the model finding biology and code deciding processing — the split the whole compiler is built on.
+
+    **The features are ``str`` in and ``str`` out, and that is the honest type.** Two of the three
+    sources here are unvalidated text — a ``--quantify`` flag and an instruction a model read out of
+    prose — so this fold cannot promise ``SoloFeature`` without checking, and checking here would be a
+    second gate in front of the one that already exists: ``SoloQuant`` refuses an unknown feature at
+    construction, which is the whole reason the vocabulary is a closed Literal on the model.
     """
     warnings: list[ValidationWarning] = []
-    default = list(DEFAULT_SOLO_FEATURES)
+    # Annotated, not inferred: the constant is `SoloFeature`-typed because CODE wrote it, while every
+    # list returned from here may have had a user contribute to it.
+    default: list[str] = list(DEFAULT_SOLO_FEATURES)
 
     if override is not None:
         features = list(dict.fromkeys(override))
@@ -292,7 +304,7 @@ def resolve_features(
         # promote, do not substitute: instructed features move to the front, the rest of the default
         # follows in its own order. `dict.fromkeys` keeps first-seen order and de-duplicates.
         promoted = [i.value for i in named]
-        features = list(dict.fromkeys([*promoted, *default]))  # type: ignore[list-item]
+        features = list(dict.fromkeys([*promoted, *default]))
         evidence = [e for i in named for e in i.evidence]
         return features, "user_confirmed", evidence, warnings
 
@@ -335,7 +347,12 @@ def resolve_processing(
         features, basis, evidence, warnings = resolve_features(
             instructions=instructions, override=ov.features, prep_type=prep_type
         )
-        quant = SoloQuant(features=features)
+        # THE parse step for the feature vocabulary, and the only one: `features` is `str` because a
+        # flag and an instruction are both user text, and the closed `SoloFeature` set is enforced
+        # HERE, by the model — which is exactly what `validate_processing`'s notes promise.
+        # `model_validate` rather than `SoloQuant(features=...)` because it is pydantic's entry point
+        # for data nobody has checked; a cast would instead claim a membership nothing established.
+        quant = SoloQuant.model_validate({"features": features})
     elif isinstance(defaults.quantification, AtacQuant):
         # ATAC: the deliverable is a fragments file — there is no count to instruct, so nothing here a
         # user overrides (the parse/count split is trivial when there is no count).

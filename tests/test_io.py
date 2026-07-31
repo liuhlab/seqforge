@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
+from typing import NoReturn
 
 import numpy as np
 import pytest
@@ -17,7 +18,7 @@ from seqforge.io import (
     pack_barcode,
     revcomp,
 )
-from seqforge.io.onlist import _dtype_for_width
+from seqforge.io.onlist import HitResult, Orientation, Strand, _dtype_for_width
 
 
 def _pool(rng: random.Random, n: int, width: int) -> list[str]:
@@ -46,8 +47,10 @@ def test_packed_onlist_membership_and_floor() -> None:
     codes = PackedOnlist.from_barcodes(["AAAAAAAA", "CCCCCCCC", "AAAAAAAA"])  # dup collapses
     assert codes.n_entries == 2
     assert codes.width == 8
-    assert codes.contains(pack_barcode("AAAAAAAA"))  # type: ignore[arg-type]
-    assert not codes.contains(pack_barcode("GGGGGGGG"))  # type: ignore[arg-type]
+    present, absent = pack_barcode("AAAAAAAA"), pack_barcode("GGGGGGGG")
+    assert present is not None and absent is not None, "an ACGT-only barcode always packs"
+    assert codes.contains(present)
+    assert not codes.contains(absent)
     assert codes.floor == pytest.approx(2 / 4**8)
 
 
@@ -87,12 +90,16 @@ def test_onlist_hit_rate_random_reads_near_floor() -> None:
     assert hit.hit_rate < 0.05  # ~ floor: random barcodes essentially never hit
 
 
-def _naive_hit_rate(seqs, start, onlist, orientation, offset_scan=2):
+def _naive_hit_rate(
+    seqs: list[str],
+    start: int,
+    onlist: PackedOnlist,
+    orientation: Orientation,
+    offset_scan: int = 2,
+) -> HitResult:
     """The pre-vectorization loop, kept as an executable oracle for the numpy rewrite."""
-    from seqforge.io.onlist import HitResult
-
     width = onlist.width
-    strands = (
+    strands: list[Strand] = (
         ["forward"]
         if orientation == "forward"
         else ["revcomp"]
@@ -246,7 +253,9 @@ def test_the_code_set_hash_ignores_order_and_duplicates_but_not_membership() -> 
     duped = a + [a[0]]
     different = ["ACGTACGTACGTACGT", "TTTTAAAACCCCGGGC"]
 
-    h = lambda bcs: codes_sha256(PackedOnlist.from_barcodes(bcs).codes)  # noqa: E731
+    def h(bcs: list[str]) -> str:
+        return codes_sha256(PackedOnlist.from_barcodes(bcs).codes)
+
     assert h(a) == h(shuffled) == h(duped), "order and duplicates are not part of the SET"
     assert h(a) != h(different), "...but one changed barcode is"
 
@@ -334,6 +343,7 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
     assert set(index) == blobs, "index.json and the shipped blobs disagree about what exists"
 
     for entry in shipped_entries():
+        assert entry.packed_path is not None, f"{entry.name}: a shipped entry with no blob path"
         codes = decode_codes(entry.packed_path.read_bytes(), entry.width)
         assert codes.size == entry.n_entries, f"{entry.name}: index count is not the data's count"
         assert codes_sha256(codes) == entry.sha256, f"{entry.name}: index hash is not the data's"
@@ -429,13 +439,15 @@ def test_hf_package_url_is_the_public_resolve_endpoint() -> None:
     assert hf_package_url("/p.tar.gz", revision="v1").endswith("/resolve/v1/p.tar.gz")
 
 
-def test_a_fetch_failure_is_a_typed_unavailable_not_a_crash(monkeypatch, tmp_path: Path) -> None:
+def test_a_fetch_failure_is_a_typed_unavailable_not_a_crash(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """pooch raising (offline, 404, DNS) must surface as BenchmarkPackageUnavailable — i.e. a skip."""
     import pooch
 
     from seqforge.io import BenchmarkPackageUnavailable, fetch_benchmark_package
 
-    def _boom(**kwargs):
+    def _boom(**kwargs: object) -> NoReturn:
         raise OSError("no network in CI")
 
     monkeypatch.setattr(pooch, "retrieve", _boom)

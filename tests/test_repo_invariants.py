@@ -1,12 +1,14 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Two families live here, and neither composes anything:
+Three families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
   ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards.
 - **Prose that stays true.** No comment points at a governing document by number, because a number
   is a mutable label: renumber the document and the comment lies, silently, forever.
+- **Nothing tracked escapes the type checker.** The declared mypy scope covers every committed
+  Python file, and every path the exclusion list hides is already gitignored.
 
 The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
@@ -15,6 +17,8 @@ from __future__ import annotations
 
 import ast
 import re
+import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -51,6 +55,8 @@ def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
     for py, tree in src_trees.items():
         for node in ast.walk(tree):
             if _defines_upstream_genome(node):
+                # The predicate is true only for the three node types that carry `lineno` and `name`;
+                # it returns `bool`, so the checker cannot narrow `node` through it.
                 offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")  # type: ignore[attr-defined]
     assert not offenders, "seqforge is redefining liulab-genome's job:\n" + "\n".join(offenders)
 
@@ -301,3 +307,128 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
     assert not _points_by_number('a run alias ("N2_wild_type", "daf-2 R3")')
     assert not _points_by_number("the canonical geometry is a 16 bp barcode read (R2)")
     assert not _points_by_number(f'{{"file": "{_numbered(9)}"}}')  # quoted -> a fixture's read id
+
+
+_REPO = Path(__file__).resolve().parent.parent
+
+
+def _mypy_scope() -> tuple[list[str], list[str]]:
+    """The declared type-checking scope: the roots it covers, and the patterns it hides."""
+    mypy = tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mypy"]
+    return list(mypy["files"]), list(mypy.get("exclude", []))
+
+
+def _tracked_python_files() -> list[str]:
+    """Every COMMITTED ``.py`` file, repo-relative and slash-separated.
+
+    Tracked, not on-disk: that single choice is why the gitignore patterns need no second copy here.
+    A developer's scratch harness is untracked, so it is never demanded by the coverage assertion,
+    and nothing in this module has to know what such a file is called.
+    """
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--", "*.py"],
+        cwd=_REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sorted(path for path in listed.split("\0") if path)
+
+
+def _escapes_scope(paths: list[str], roots: list[str]) -> list[str]:
+    """Which of ``paths`` no root in ``roots`` covers — the exact predicate the guard applies.
+
+    Shared with the guard's discriminator so that what is proven to fire is the real thing, not a
+    re-implementation of it that happens to agree today.
+    """
+    prefixes = tuple(f"{root.rstrip('/')}/" for root in roots)
+    return sorted(path for path in paths if not path.startswith(prefixes))
+
+
+def _hidden_by(exclude: list[str], paths: list[str]) -> list[str]:
+    """Which of ``paths`` an exclusion pattern hides from the checker.
+
+    mypy matches ``exclude`` as a REGULAR EXPRESSION with ``re.search`` against the slash-separated
+    path, which is why this is a search over compiled patterns and not a prefix test like the roots.
+    """
+    patterns = [re.compile(pattern) for pattern in exclude]
+    return sorted(path for path in paths if any(p.search(path) for p in patterns))
+
+
+def _not_gitignored(paths: list[str]) -> list[str]:
+    """Which of ``paths`` git would NOT ignore — asked of git, not of a copy of its patterns."""
+    if not paths:
+        return []
+    proc = subprocess.run(
+        ["git", "check-ignore", "-z", "--stdin"],
+        cwd=_REPO,
+        input="\0".join(paths),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode in (0, 1), f"git check-ignore failed: {proc.stderr}"
+    ignored = {path for path in proc.stdout.split("\0") if path}
+    return sorted(set(paths) - ignored)
+
+
+@pytest.mark.repo
+def test_nothing_tracked_escapes_the_type_checker() -> None:
+    """One checker over the whole tree, held open from both sides.
+
+    The scope used to be a hand-written package list inside the ``typecheck`` task, which meant a new
+    top-level package was unchecked until somebody remembered to add it and a *narrowed* scope looked
+    exactly like a passing one. Both halves of that are mechanised here:
+
+    - **Coverage.** Every committed ``.py`` file falls inside a declared root. Commit a new top-level
+      package and this goes red naming it, with the fix in the message; remove a root and it goes red
+      the same way, instead of quietly reducing what CI sees. The root still gets typed by hand —
+      what the guard removes is the chance to forget.
+    - **The exclusion list cannot grow to hide real code.** Whatever ``exclude`` hides must already
+      be gitignored — so the way to make a file that will not check stop failing is to fix it or
+      ``git rm`` it, never to add a line here.
+
+    The second assertion is what lets the first be about *tracked* files. A gitignored scratch
+    harness in this directory is not demanded by coverage and is legitimately skipped by an
+    exclusion, and neither fact needs the two glob patterns copied out of the gitignore into the
+    project file. A pair of lists that must agree is the shape this tree has already had to fix
+    three times; asking git instead is what removes the pair.
+    """
+    roots, exclude = _mypy_scope()
+    tracked = _tracked_python_files()
+    assert tracked, "git ls-files found no Python files -- is this a checkout?"
+
+    escaped = _escapes_scope(tracked, roots)
+    assert not escaped, (
+        f"tracked Python files the type checker does not see: {escaped}\n"
+        f"Declared roots are {roots}. Add the tree to `[tool.mypy] files`, or delete the files -- "
+        f"code that ships is code that checks."
+    )
+
+    hidden = _not_gitignored(_hidden_by(exclude, tracked))
+    assert not hidden, (
+        f"`[tool.mypy] exclude` hides tracked, non-gitignored files: {hidden}\n"
+        f"An exclusion may only skip what git already ignores. Fix the file or `git rm` it; hiding "
+        f"it from the checker is how a gate goes green while the code stays broken."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicates: a narrowed scope must be
+    # caught, the declared one must be clean, and an exclusion aimed at a committed file must be
+    # reported. A guard nobody proved fires is a guard that always allows.
+    here = Path(__file__).relative_to(_REPO).as_posix()
+    assert _escapes_scope([here], ["src"]) == [here]  # scope narrowed to omit the test tree
+    assert _escapes_scope([here], roots) == []  # the declared scope really does cover it
+    assert _hidden_by([r"test_repo_invariants\.py"], [here]) == [here]  # an exclusion would hide it
+    assert _not_gitignored([here]) == [here]  # ...and this file is committed, so that is illegal
+    assert _hidden_by([], [here]) == []  # no exclusions, nothing hidden
+
+    # ...and the SHIPPED exclusions really do hide a scratch harness. Both assertions above pass
+    # vacuously if the patterns match nothing, so a typo in one would leave CI green while every
+    # developer's editor started reporting a file that is deliberately nobody's deliverable — the
+    # one failure this guard could otherwise not see. These two names are the gitignore's two globs.
+    for scratch in ("tests/_scratch2_test.py", "tests/_test_scratch.py"):
+        assert _hidden_by(exclude, [scratch]) == [scratch], (
+            f"`[tool.mypy] exclude` no longer hides {scratch} -- a gitignored scratch harness is "
+            f"back in the checker's scope, and only the developer who owns one will notice."
+        )
+    assert _hidden_by(exclude, [here]) == []  # ...while a committed test is untouched by them

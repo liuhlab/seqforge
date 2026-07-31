@@ -1,0 +1,13 @@
+{
+  // `ms-python.mypy-type-checker` is the live checker. Pylance's own checker is off
+  // (`[tool.pyright] typeCheckingMode` in pyproject.toml), so this extension is what puts a red
+  // squiggle under a type error -- and it runs the pixi environment's mypy against the pixi
+  // environment's config, which is the same binary and the same scope CI runs. Decline it and you
+  // lose live feedback and fall back to `pixi run typecheck`; nothing breaks.
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.mypy-type-checker",
+    "charliermarsh.ruff"
+  ]
+}

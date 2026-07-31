@@ -19,7 +19,7 @@ def test_10x_spec_loads_and_validates() -> None:
     spec = kb.load_spec("10x-3p-gex-v3")
     assert spec.identity.id == "10x-3p-gex-v3"
     assert {r.id for r in spec.reads} == {"R1", "R2"}
-    assert spec.backend.params["soloCBlen"] == 16
+    assert spec.require_backend().params["soloCBlen"] == 16
     assert spec.decidable_by  # non-empty: it has processing-divergent confusables
 
 
@@ -153,10 +153,11 @@ def test_a_declared_twin_that_diverges_would_be_caught() -> None:
 
     specs = kb.load_all_specs()
     v3, v31 = specs["10x-3p-gex-v3"], specs["10x-3p-gex-v3.1"]
+    v31_backend = v31.require_backend()
     diverged = v31.model_copy(
         update={
-            "backend": v31.backend.model_copy(
-                update={"params": {**v31.backend.params, "soloStrand": "Reverse"}}
+            "backend": v31_backend.model_copy(
+                update={"params": {**v31_backend.params, "soloStrand": "Reverse"}}
             )
         }
     )
@@ -188,11 +189,11 @@ def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
 
 def test_the_kb_cannot_even_express_a_count_key() -> None:
     """Not a convention — a validator. It fires in load_spec, kb lint, and every test that loads."""
-    spec = kb.load_spec("10x-3p-gex-v3")
-    payload = spec.backend.model_dump()
+    backend = kb.load_spec("10x-3p-gex-v3").require_backend()
+    payload = backend.model_dump()
     payload["params"] = {**payload["params"], "soloFeatures": ["Gene"]}
     with pytest.raises(ValidationError, match="PARSE"):
-        type(spec.backend).model_validate(payload)
+        type(backend).model_validate(payload)
 
 
 def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
@@ -218,7 +219,7 @@ def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
 
 def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
     """Empty, not degenerate: bulk PE has no barcode, no UMI, no whitelist, no offsets to declare."""
-    assert kb.load_spec("bulk-rnaseq-pe").backend.params == {}
+    assert kb.load_spec("bulk-rnaseq-pe").require_backend().params == {}
 
 
 def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> None:
@@ -236,12 +237,13 @@ def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> No
     from seqforge.resolve.confuse import backend_identical
 
     spec = kb.load_spec("splitseq")
-    wl = spec.backend.params["soloCBwhitelist"]
+    backend = spec.require_backend()
+    wl = backend.params["soloCBwhitelist"]
     assert isinstance(wl, list) and len(wl) == 3
     permuted = spec.model_copy(
         update={
-            "backend": spec.backend.model_copy(
-                update={"params": {**spec.backend.params, "soloCBwhitelist": list(reversed(wl))}}
+            "backend": backend.model_copy(
+                update={"params": {**backend.params, "soloCBwhitelist": list(reversed(wl))}}
             )
         }
     )
@@ -352,6 +354,11 @@ def test_splitseq_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> Non
     spec = kb.load_spec("splitseq")
     els = {e.name: e for e in spec.reads[1].elements}
     link1, link2 = els["linker1"].sequence, els["linker2"].sequence
+    # A linker element MAY declare no sequence -- `ReadElement.sequence` is optional, because a
+    # linker is sometimes only a length. SPLiT-seq's two are reconstructed from the paper's oligo
+    # table and are the thing this test builds reads out of, so their absence is not a length
+    # mismatch to discover 94 characters later; it is this spec having stopped saying what it says.
+    assert link1 is not None and link2 is not None, "SPLiT-seq's linkers must declare a sequence"
     rng = random.Random(0)
 
     def rand(k: int) -> str:
@@ -688,7 +695,7 @@ def test_the_splitseq_rounds_are_one_barcode_set() -> None:
     )
 
 
-def _onlists_that_would_decide(spec) -> list[str]:
+def _onlists_that_would_decide(spec: Spec) -> list[str]:
     """The registry names a spec's own rung-3 claim depends on.
 
     An onlist referenced only by an `excludes` anti-gate is a detection probe, not a decider, so it

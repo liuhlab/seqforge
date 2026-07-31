@@ -304,7 +304,7 @@ def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> 
     a KB id) never enters the manifest and the bytes decide chemistry, so it is surfaced, not fatal. A
     conflict (instructions disagreeing) and an unavailable provider still stop the pass.
     """
-    from seqforge.cli import _harvest_halts_run
+    from seqforge.cli.run import _harvest_halts_run
 
     assert _harvest_halts_run({"n_accepted": 9}, 0) is False  # clean
     assert (
@@ -359,7 +359,9 @@ def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None
         import yaml as _yaml
 
         manifest = _yaml.safe_load((ws / "seqforge" / "manifest.yaml").read_text())
-        return manifest["provenance"]["dataset_hash"]
+        dataset_hash = manifest["provenance"]["dataset_hash"]
+        assert isinstance(dataset_hash, str), f"dataset_hash is not a string: {dataset_hash!r}"
+        return dataset_hash
 
     assert hash_with(1, tmp_path / "seq") == hash_with(4, tmp_path / "par")
 
@@ -465,6 +467,7 @@ def test_assert_chemistry_threads_an_operator_hypothesis(
     operator types, the hypothesis carries the CANONICAL id downstream, not the operator's casing.
     """
     from seqforge.cli import manifest as m
+    from seqforge.resolve.engine import Hypothesis
 
     captured: dict[str, object] = {}
 
@@ -484,12 +487,10 @@ def test_assert_chemistry_threads_an_operator_hypothesis(
             chemistry_override=typed,
         )
     hypo = captured["hypothesis"]
-    assert hypo is not None
-    assert (
-        hypo.value == "10x-3p-gex-v3"
-    )  # canonicalized regardless of casing  # type: ignore[attr-defined]
-    assert hypo.id == "operator"  # type: ignore[attr-defined]
-    assert hypo.confidence == 1.0  # type: ignore[attr-defined]
+    assert isinstance(hypo, Hypothesis), f"the fill pipeline handed the scorer {hypo!r}"
+    assert hypo.value == "10x-3p-gex-v3"  # canonicalized regardless of casing
+    assert hypo.id == "operator"
+    assert hypo.confidence == 1.0
 
 
 def test_assert_chemistry_rejects_an_unknown_id(tmp_path: Path) -> None:
@@ -604,7 +605,9 @@ def test_e2e_fit_skips_a_failed_point(tmp_path: Path) -> None:
     assert [p["n_reads"] for p in json.loads(result.output)["points"]] == [10_000_000, 40_000_000]
 
 
-def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(capsys: object) -> None:
+def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """The CLI emits JSON on stdout. Progress narration is not a result and must not go there.
 
     The incident: `kb e2e-cost` runs for tens of minutes, so it narrates -- via `print()`, which put
@@ -622,7 +625,7 @@ def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(capsys: object) 
 
     _progress("hello")
     captured = _sys.stdout, _sys.stderr  # noqa: F841  (capsys owns the streams)
-    out = capsys.readouterr()  # type: ignore[attr-defined]
+    out = capsys.readouterr()
     assert out.out == "", "progress on stdout would corrupt the JSON result"
     assert "[cost] hello" in out.err
 

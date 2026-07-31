@@ -513,7 +513,9 @@ def test_the_line_fit_recovers_a_known_slope_and_intercept() -> None:
     assert fit["bytes_per_read"] == pytest.approx(16.0, abs=0.1)
     assert fit["max_residual_gb"] == pytest.approx(0.0, abs=0.001)
     # and the extrapolation must be labelled as one, since that is the number people will quote
-    assert fit["projected"]["500M_reads"]["extrapolation_factor"] == pytest.approx(15.6, abs=0.1)
+    projected = fit["projected"]
+    assert isinstance(projected, dict), "a fit that reports `ok` must carry its projections"
+    assert projected["500M_reads"]["extrapolation_factor"] == pytest.approx(15.6, abs=0.1)
 
 
 def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
@@ -570,6 +572,10 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
         whitelist_entries=6_794_880,
         out_sam_type=("None",),
     )
+    # `base` is one heterogeneous dict unpacked into a typed signature, and the sweep below rebuilds
+    # it with a DYNAMIC key -- which is the test. A TypedDict types the unpack but cannot express a
+    # key computed at runtime, so the suppressions stay rather than the per-field sweep being given
+    # up for a single blob comparison the docstring already rejects.
     ref = _cost_fingerprint(**base)  # type: ignore[arg-type]
     assert _cost_fingerprint(**base) == ref, "the same inputs must give the same key"  # type: ignore[arg-type]
 
@@ -752,7 +758,9 @@ def test_three_points_is_the_smallest_fit_that_can_be_wrong() -> None:
     ok = _fit_line([(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)])
     assert ok["ok"] and ok["n_points"] == 3
     # a bent curve must surface as a residual, not be reported as a line with a clean conscience
-    assert ok["max_residual_gb"] > 1.0
+    residual = ok["max_residual_gb"]
+    assert isinstance(residual, float), "an accepted fit must report the residual that falsifies it"
+    assert residual > 1.0
 
 
 def test_revcomp_is_applied_to_uppercase_so_a_soft_masked_base_cannot_be_laundered(

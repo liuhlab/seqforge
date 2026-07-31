@@ -29,6 +29,7 @@ from seqforge.manifest import ExperimentInputs, dataset_content_hash, fill_manif
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.dataset import DatasetManifest
 from seqforge.models.evidenced import EvidencedTaxid
+from seqforge.models.observation import Observation
 from seqforge.probe import probe_file
 from seqforge.probe.streaming import Budget, FastqHead
 from seqforge.resolve import resolve_dataset
@@ -69,7 +70,11 @@ def _taxid() -> EvidencedTaxid:
     return EvidencedTaxid(value=6239, basis="user_confirmed", rung=0)
 
 
-def _manifest_hash(paths: list[Path], reg: OnlistRegistry, probed: dict | None = None) -> str:
+def _manifest_hash(
+    paths: list[Path],
+    reg: OnlistRegistry,
+    probed: dict[str, tuple[Observation, list[str]]] | None = None,
+) -> str:
     """Resolve + fill a manifest from ``paths`` (optionally via a pinned probe map) → its dataset hash."""
     out = resolve_dataset(paths, registry=reg, use_cache=False, _probed=probed)
     observations = (

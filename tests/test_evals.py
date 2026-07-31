@@ -14,6 +14,7 @@ behind a resolver that happens to be right.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pydantic import ValidationError
@@ -21,6 +22,7 @@ from pydantic import ValidationError
 from seqforge.evals import (
     Case,
     CaseError,
+    CaseGrade,
     Expected,
     Grade,
     build_report,
@@ -43,6 +45,9 @@ from seqforge.models.resolve import (
     RoleAssignment,
     TechScore,
 )
+
+if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
+    from seqforge.harvest import LLMResponse
 
 # --------------------------------------------------------------------------------------------
 # synthetic resolve results — so grading is tested independently of the resolver being correct
@@ -106,7 +111,7 @@ def _conflict(field: str = "library.read_layout.R1.length") -> Conflict:
 LABELS = {"sha-r1": "R1", "sha-r2": "R2"}
 
 
-def _grade(expected: dict, result: ResolveResult, exit_code: int):
+def _grade(expected: dict[str, object], result: ResolveResult, exit_code: int) -> CaseGrade:
     return grade_case("t", Expected.model_validate(expected), result, exit_code, LABELS)
 
 
@@ -265,7 +270,7 @@ CONFUSION_MATRIX = [
     "expected, result, exit_code, grade, note, missed_question", CONFUSION_MATRIX
 )
 def test_the_confusion_matrix_grades_every_cell(
-    expected: dict,
+    expected: dict[str, object],
     result: ResolveResult,
     exit_code: int,
     grade: Grade,
@@ -529,7 +534,9 @@ def test_unknown_spec_is_a_case_error(tmp_path: Path) -> None:
         materialize(case, tmp_path / "x")
 
 
-def test_a_local_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
+def test_a_local_case_skips_when_its_root_is_unset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A local case's data lives outside the repo. Absent => skip, never pass, never fail."""
     monkeypatch.delenv("SEQFORGE_TEST_LOCAL", raising=False)
     recipe = Recipe.model_validate(
@@ -636,13 +643,13 @@ class _StubProvider:
 
     name = "stub"
 
-    def __init__(self, drafts: list[dict]) -> None:
+    def __init__(self, drafts: list[dict[str, object]]) -> None:
         self._payload = {"drafts": drafts}
 
     def default_model(self) -> str:
         return "stub-model-1"
 
-    def complete_json(self, **kwargs):
+    def complete_json(self, **kwargs: object) -> LLMResponse:
         import json as _json
 
         from seqforge.harvest import LLMResponse
@@ -652,7 +659,7 @@ class _StubProvider:
         )
 
 
-def _draft(fieldname: str, value: str, quote: str) -> dict:
+def _draft(fieldname: str, value: str, quote: str) -> dict[str, object]:
     # doc_sha256 is a placeholder on purpose: extract._anchor overwrites it with the real one.
     return {
         "field": fieldname,
@@ -752,14 +759,14 @@ class _FlakyProvider:
 
     name = "flaky"
 
-    def __init__(self, payloads: list[list[dict]]) -> None:
+    def __init__(self, payloads: list[list[dict[str, object]]]) -> None:
         self._payloads = payloads
         self.calls = 0
 
     def default_model(self) -> str:
         return "flaky-1"
 
-    def complete_json(self, **kwargs):
+    def complete_json(self, **kwargs: object) -> LLMResponse:
         import json as _json
 
         from seqforge.harvest import LLMResponse
@@ -882,7 +889,7 @@ def test_usage_is_accumulated_into_the_report() -> None:
 # --------------------------------------------------------------------------------------------
 
 
-def _bulk_fingerprint(tmp_path: Path):
+def _bulk_fingerprint(tmp_path: Path) -> tuple[Path, str]:
     """A tiny real fingerprint package of synthetic bulk PE reads, plus a matching records.json."""
     import gzip
     import json
@@ -945,7 +952,7 @@ def _fingerprint_case_dir(tmp_path: Path, recipe_yaml: str, records_json: str | 
 
 
 def test_a_fingerprint_case_resolves_from_the_package_and_grades_samples_from_records(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The kind end to end: pinned bytes decide the chemistry, records decide the sample attributes.
 
@@ -965,7 +972,9 @@ def test_a_fingerprint_case_resolves_from_the_package_and_grades_samples_from_re
     assert run.llm_calls == 0, "a fingerprint case grades hermetically, with no LLM call"
 
 
-def test_a_fingerprint_case_skips_when_its_root_is_unset(tmp_path: Path, monkeypatch) -> None:
+def test_a_fingerprint_case_skips_when_its_root_is_unset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """An out-of-git package that is not on this machine skips — never a pass, never a fail."""
     from seqforge.evals.case import load_case
 

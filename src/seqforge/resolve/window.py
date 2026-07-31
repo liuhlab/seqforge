@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
-from ..io.onlist import pack_barcode, revcomp
+from ..io.onlist import Strand, pack_barcode, revcomp
 from ..kb.anchor import element_bases, resolve_windows
 from ..kb.schema import Read
 from ..models.observation import CycleComposition, Observation
@@ -82,7 +82,7 @@ class WindowProbe:
         whose frame resolved to a window of the onlist's width; a lost frame simply does not contribute.
         """
         bases = element_bases(self.seqs, self._frames(read), element_name)
-        strands = (
+        strands: list[Strand] = (
             ["forward"]
             if orientation == "forward"
             else ["revcomp"]
@@ -105,7 +105,7 @@ class WindowProbe:
             if tested and hits / tested > best.hit_rate:
                 best = HitResult(
                     hit_rate=hits / tested,
-                    orientation=strand,  # type: ignore[arg-type]
+                    orientation=strand,
                     offset=0,
                     n_tested=tested,
                     floor=onlist.floor,

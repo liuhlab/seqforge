@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,7 +50,7 @@ class FingerprintResult:
         return self.package.stat().st_size if self.package.exists() else 0
 
 
-def _common_root(files: list[Path]) -> Path | None:
+def _common_root(files: Sequence[Path]) -> Path | None:
     """The directory the FASTQs' relative paths are anchored to — ``os.path.commonpath`` of their
     resolved parents, mirroring :func:`seqforge.manifest.fill.dataset_uris` so the package's tree
     reproduces the manifest's relative URIs. ``None`` when they span filesystems (basename fallback)."""
@@ -59,7 +60,7 @@ def _common_root(files: list[Path]) -> Path | None:
         return None
 
 
-def _rel_paths(files: list[Path]) -> dict[str, str]:
+def _rel_paths(files: Sequence[Path]) -> dict[str, str]:
     """Map each file (by resolved str) to its path relative to the dataset root — the tree to preserve.
 
     Structure-preserving when the files share a root (``SRX123/reads_1.fastq.gz`` stays nested); a flat
@@ -72,7 +73,7 @@ def _rel_paths(files: list[Path]) -> dict[str, str]:
     return {str(f.resolve()): str(f.resolve().relative_to(root)) for f in files}
 
 
-def _package_digest(pins: list[FilePin], reads: int) -> str:
+def _package_digest(pins: Sequence[FilePin], reads: int) -> str:
     """A content-address for the package: sorted file identities + the read budget + the format version.
 
     Two ``preflight`` runs over the same dataset at the same N name the same package, so the deliverable
@@ -109,12 +110,12 @@ def _refuse_an_empty_slice(path: Path, sl: RecordSlice) -> None:
 
 
 def build_fingerprint(
-    files: list[str | Path],
+    files: Sequence[str | Path],
     *,
     workspace: str | Path = ".",
     reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    info_docs: list[str | Path] | None = None,
+    info_docs: Sequence[str | Path] | None = None,
     name: str | None = None,
     include_raw: bool = True,
 ) -> FingerprintResult:
@@ -189,13 +190,15 @@ def build_fingerprint(
 
 def assemble_package(
     slug: str,
+    # `list`, not `Sequence`: handed straight to `FingerprintManifest(files=)`, whose field is a
+    # `list[FilePin]`. Widening it would only buy the constructor a copy.
     pins: list[FilePin],
-    staged_fastq: list[tuple[str, list[Record]]],
+    staged_fastq: Sequence[tuple[str, Sequence[Record]]],
     *,
     workspace: str | Path = ".",
     reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    info_docs: list[str | Path] | None = None,
+    info_docs: Sequence[str | Path] | None = None,
     include_raw: bool = True,
 ) -> FingerprintResult:
     """Stage pinned slices + carried prose into a content-addressed ``.fingerprint.tar.gz``.

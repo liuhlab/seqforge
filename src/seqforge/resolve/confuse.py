@@ -20,6 +20,7 @@ the processing manifest's to make, per dataset.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Mapping
 
 from ..kb.schema import Spec
 
@@ -100,7 +101,7 @@ def backend_identical(a: Spec, b: Spec) -> bool:
     return canonical_backend(a) == canonical_backend(b)
 
 
-def accepts_at_rungs_0_2(spec: Spec, probes: list[object]) -> bool:
+def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
     """Would ``spec`` claim this data using only the CHEAP probes — no onlist, no network?
 
     The onlist is withheld by handing the evaluator an **empty registry**, so every
@@ -119,7 +120,9 @@ def accepts_at_rungs_0_2(spec: Spec, probes: list[object]) -> bool:
     return build_tech_evaluation(spec, wps, OnlistRegistry(offline=True)).valid
 
 
-def rung02_separable(a: Spec, a_probes: list[object], b: Spec, b_probes: list[object]) -> bool:
+def rung02_separable(
+    a: Spec, a_probes: Iterable[object], b: Spec, b_probes: Iterable[object]
+) -> bool:
     """Do the cheap probes tell these two chemistries apart at all?
 
     Separable iff **neither** spec accepts the other's data on geometry alone. If A would happily
@@ -150,14 +153,14 @@ def is_processing_equivalent(a: Spec, b_id: str) -> bool:
 
 
 # ---- tree-sourced confusability: siblings replace hand-declared divergent cliques ----
-def share_parent(specs: dict[str, Spec], a: str, b: str) -> bool:
+def share_parent(specs: Mapping[str, Spec], a: str, b: str) -> bool:
     """True iff ``a`` and ``b`` are siblings — the same non-null parent in the KB tree."""
     pa = specs[a].parent if a in specs else None
     pb = specs[b].parent if b in specs else None
     return pa is not None and pa == pb
 
 
-def is_tree_kin(specs: dict[str, Spec], a: str, b: str) -> bool:
+def is_tree_kin(specs: Mapping[str, Spec], a: str, b: str) -> bool:
     """True iff ``a`` and ``b`` are parent-child or siblings — a confusability the tree DECLARES.
 
     A divergent sibling clique (v2/v3/v3.1) collapses to one ``parent`` link, so the under-declaration
@@ -170,7 +173,7 @@ def is_tree_kin(specs: dict[str, Spec], a: str, b: str) -> bool:
     return share_parent(specs, a, b)
 
 
-def sibling_decided_by(specs: dict[str, Spec], a: str, b: str) -> list[str]:
+def sibling_decided_by(specs: Mapping[str, Spec], a: str, b: str) -> list[str]:
     """If ``a`` and ``b`` are siblings, the mechanisms their parent declares separate its children.
 
     This is where the divergent-tie question now reads ``decidable_by`` from — the parent's
@@ -184,7 +187,7 @@ def sibling_decided_by(specs: dict[str, Spec], a: str, b: str) -> list[str]:
     return [m for m in specs[parent].children_decided_by if m != "none"]
 
 
-def _root_of(specs: dict[str, Spec], tech: str) -> str:
+def _root_of(specs: Mapping[str, Spec], tech: str) -> str:
     """The family-root ancestor of ``tech`` — walk ``parent`` links to the top of its tree."""
     cur = tech
     seen: set[str] = set()
@@ -197,7 +200,7 @@ def _root_of(specs: dict[str, Spec], tech: str) -> str:
     return cur
 
 
-def same_family(specs: dict[str, Spec], a: str, b: str) -> bool:
+def same_family(specs: Mapping[str, Spec], a: str, b: str) -> bool:
     """True iff ``a`` and ``b`` share a family root — the assay family a paper reliably names.
 
     The policy this encodes: harvest is trusted at the FAMILY level (10x 3' gene-expression), the bytes
