@@ -362,18 +362,29 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
         )
 
 
+def test_every_orientation_has_a_scan_plan() -> None:
+    """A new orientation must say which strands it scans, or it `KeyError`s at the scan.
+
+    Collected from `Orientation` itself, so a new member is covered *because it exists* rather than
+    because someone remembered -- the same discipline `test_every_solo_feature_is_classified` uses
+    for the other `Literal`-keyed map in this repo. mypy does not check a dict literal against its
+    key type, so nothing else would say a value had been added to one and not the other.
+    """
+    from typing import get_args
+
+    from seqforge.io.onlist import _STRANDS_SCANNED, Orientation
+
+    assert set(_STRANDS_SCANNED) == set(get_args(Orientation))
+
+
 def test_an_unknown_orientation_is_refused_before_it_can_reach_the_index(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """`pack` is the only writer of `index.json`, so a value outside the vocabulary dies here.
 
-    Nothing downstream objects to one: the orientation picks which strand `onlist_hit_rate` scans,
-    and an unrecognised value used to be written verbatim and then read back as "scan both" -- so
-    `reverse` for `revcomp` scored as though the orientation were unknown, at exit 0. Exit 2 rather
-    than 3, because a value outside a closed vocabulary is a malformed invocation, not a Blocker.
-
-    The package data is redirected at `tmp_path` so the refusal is what stops the write, and the
-    test can say so.
+    Exit 2 rather than 3: a value outside a closed vocabulary is a malformed invocation, not a
+    Blocker. The package data is redirected at `tmp_path` so that "nothing was written" is something
+    this test can actually assert, rather than infer from the exit code.
     """
     from typer.testing import CliRunner
 
@@ -403,11 +414,8 @@ def test_an_orientation_outside_the_vocabulary_is_refused_when_the_index_is_read
 ) -> None:
     """The verb is not the only way in -- `shipped_entries` believes whatever `index.json` says.
 
-    An exception rather than an exit code: this is packaged data being loaded by library code, and
-    the caller that would have to interpret an exit code is `default_registry` at import time. A
-    corrupt vocabulary is not a condition anyone can act on the way `OnlistNotAvailable` is (fetch
-    it, point `--onlist-dir` at it), so it raises `ValueError` like every other "these bytes are not
-    what they claim" in this module.
+    `ValueError`, not `OnlistNotAvailable`: that one names actions a caller can take (fetch the list,
+    point `--onlist-dir` at it) and none of them fix a corrupt vocabulary.
     """
     import json
 

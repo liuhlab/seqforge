@@ -40,8 +40,8 @@ jobs:
       #
       # Folded in here rather than given a fifth runner: `default` already carries the `docs` feature
       # (pyproject's [tool.pixi.environments]), so this reuses the setup-pixi above and its whole
-      # marginal cost is the build -- 0.8s measured, against ~28s for another setup-pixi. Last in the
-      # job because it is the only step that writes (`site/`, gitignored).
+      # marginal cost is the build -- 1.7s measured end to end, against ~28s for another setup-pixi.
+      # Last in the job because it is the only step that writes (`site/`, gitignored).
       #
       # Build, never publish. Deploying stays in docs.yml, the only workflow granted
       # `contents: write` and unreachable from a pull_request; this workflow is read-only throughout.

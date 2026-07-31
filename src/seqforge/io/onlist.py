@@ -37,9 +37,8 @@ import numpy as np
 Orientation = Literal["forward", "revcomp", "either"]
 Strand = Literal["forward", "revcomp"]
 
-#: The vocabulary as data, read off the type rather than re-listed beside it, so adding a value is
-#: one edit. Every orientation arriving from outside Python — a flag, `index.json` — comes through
-#: :func:`as_orientation`.
+#: The vocabulary as data, read off the type rather than re-listed beside it. Every orientation
+#: arriving from outside Python — a flag, `index.json` — comes through :func:`as_orientation`.
 ORIENTATIONS: tuple[Orientation, ...] = get_args(Orientation)
 
 _BASE_TO_BITS = {"A": 0, "C": 1, "G": 2, "T": 3}
@@ -262,6 +261,10 @@ def _pack_window(mat: np.ndarray, s: int, width: int, *, rc: bool) -> tuple[np.n
 #: to try both, an unrecognised value is a bug, and folding the second into the first hands the
 #: widest, most permissive answer to the path that knows the least. A `revcomp` typo'd as `reverse`
 #: used to score exactly like a whitelist whose strand nobody had declared.
+#:
+#: Adding an orientation therefore means editing this too, and mypy will NOT say so — it does not
+#: check a dict literal against its key `Literal` (measured). `test_every_orientation_has_a_scan_plan`
+#: is what does; without it a fourth value would pass `as_orientation` and `KeyError` here instead.
 _STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
     "forward": ("forward",),
     "revcomp": ("revcomp",),
