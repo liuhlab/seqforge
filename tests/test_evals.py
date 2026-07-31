@@ -988,6 +988,15 @@ def test_a_fingerprint_case_skips_when_its_root_is_unset(
     assert build_report([run]).n_cases == 0
 
 
+def _benchmark_tier_or_skip() -> Path:
+    """The networked tier's root, or skip. Two tests need it, and a stray copy of the skip is how
+    one of them quietly stops covering anything when the directory moves."""
+    bench = default_cases_dir().parent / "benchmark"
+    if not bench.is_dir():
+        pytest.skip("no HF benchmark tier committed")
+    return bench
+
+
 def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_corpus() -> None:
     """`evals/benchmark` (the networked HF tier) loads offline and never leaks into hermetic CI.
 
@@ -998,9 +1007,7 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     """
     from seqforge.evals.case import FingerprintRecipe
 
-    bench = default_cases_dir().parent / "benchmark"
-    if not bench.is_dir():
-        pytest.skip("no HF benchmark tier committed")
+    bench = _benchmark_tier_or_skip()
     cases = discover_cases(bench)
     assert cases, "the benchmark tier is present but empty"
     for c in cases:
@@ -1017,6 +1024,53 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert bench.resolve() != default_cases_dir().resolve()
     hermetic_roots = {c.root.resolve() for c in discover_cases()}
     assert all(c.root.resolve() not in hermetic_roots for c in cases)
+
+
+def test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it() -> None:
+    """`evals/benchmark-datasets.tsv` is one row per benchmark case, and it cannot drift.
+
+    The table exists because a directory of accessions does not tell a reader what the corpus
+    *covers* — which is the question you ask before adding a dataset. Its `uniqueness` column is
+    prose and must stay hand-written; but a hand-written index rots the moment a case is added and
+    nothing notices, so the mechanical columns are checked against the case files themselves and the
+    row set is checked for exact correspondence. Add a case without a row (or vice versa) and this
+    turns red, which is the only reason the table is worth keeping.
+    """
+    bench = _benchmark_tier_or_skip()
+    table = bench.parent / "benchmark-datasets.tsv"
+    assert table.is_file(), f"the benchmark tier is committed but {table.name} is not"
+
+    lines = [ln for ln in table.read_text().splitlines() if ln.strip()]
+    header, *body = (ln.split("\t") for ln in lines)
+    expected_columns = [
+        "case_id",
+        "accession",
+        "organism",
+        "chemistry",
+        "outcome",
+        "provenance",
+        "uniqueness",
+    ]
+    assert header == expected_columns, f"unexpected columns: {header}"
+    rows = {r[0]: dict(zip(header, r, strict=True)) for r in body}
+    assert len(rows) == len(body), "a case id appears twice"
+
+    cases = {c.id: c for c in discover_cases(bench)}
+    assert rows.keys() == cases.keys(), (
+        f"table and tier disagree: only in table {rows.keys() - cases.keys()}, "
+        f"only in tier {cases.keys() - rows.keys()}"
+    )
+    for case_id, case in cases.items():
+        row = rows[case_id]
+        assert row["chemistry"] == case.expected.fields.get("library.chemistry"), case_id
+        assert row["outcome"] == case.expected.outcome, case_id
+        organism = case.expected.fields.get("experiment.organism")
+        assert row["organism"] == (str(organism) if organism is not None else "-"), case_id
+        # The rest is prose — including `accession`, which names the SERIES a reader would search
+        # for, while a case may be built from one run of it. Nothing can check prose is *right*, so
+        # check it was written: a row whose uniqueness is blank is a dataset nobody could justify.
+        for column in ("accession", "provenance", "uniqueness"):
+            assert row[column].strip(), f"{case_id}: {column} is empty"
 
 
 def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:

@@ -1,6 +1,5 @@
 # PRE-REGISTERED before the run — the fingerprint package (packages/GSE283483-multiome-atac.fingerprint.tar.gz)
-# awaits upload to the HF benchmark repo by an account with write access; until then `eval run` on this
-# case SKIPs (package unreachable), and this file records the prediction the run will be tested against.
+# was uploaded to the HF benchmark repo after this prediction was committed; the case grades green.
 #
 # This is the case the real-data ATAC barcode-geometry finding (#90) came from: real 10x Multiome ATAC
 # is a 24bp barcode read = 8bp lead-in + 16bp CB at offset 8, reverse-complement, matching a DISJOINT

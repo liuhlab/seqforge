@@ -1,0 +1,20 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# SRR20172077 (GSM6338211, SRX16206967) — day-1 technical replicate 1, one run out of PRJNA858484's
+# 11, and every one of them has the same property: the submission was a Cell Ranger
+# `possorted_genome_bam_*.bam`, so ENA generated no FASTQ and SRA's normalized run declares ONE 91 bp
+# read per spot. The cell barcode and UMI are BAM tags, not reads, so no dump flag brings them back.
+# This run is picked simply as the first sample of the series. Rebuild with:
+#   seqforge preflight --accession SRR20172077 -n 20000 -C <dir>
+#
+# The hypothesis is declared here rather than harvested so the case runs with no API key. It stands in
+# for a claim GEO makes verbatim in the sample's extract protocol — "Cells were processed into
+# libraries using 10x Genomics Chromium Single Cell 3' V3 Chemistry as directed by the manufacturer" —
+# which a real `harvest extract` would span-verify. Without it the refusal degrades to the generic
+# UNSUPPORTED_TECHNOLOGY (already covered synthetically by refusal/ont-unsupported); with it, the
+# asserted-single-cell / unfillable-barcode-role branch fires and names the actual defect.
+generate:
+  kind: fingerprint
+  hf: packages/GSE208154.fingerprint.tar.gz
+hypothesis: 10x-3p-gex-v3

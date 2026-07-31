@@ -1,0 +1,190 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR35669366",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1190381",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Isabelle Arnold, Institute of Experimental Immunology, University of Z\u00c3\u00bcrich",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2024-11-25",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Eosinophils restrict CRC metastasis by inhibiting pro-tumorigenic Spp1+ macrophage differentiation."
+        },
+        {
+          "label": "study_abstract",
+          "text": "Eosinophils, traditionally associated with allergic responses, have emerged as critical immune modulators in colorectal cancer (CRC). Here, we reveal that eosinophils actively shape the tumor microenvironment and influence metastatic progression. Using comprehensive transcriptomics analysis of human CRC and a murine orthotopic tumor model, we identify a conserved tumor-specific eosinophil signature and activation profile. Despite their declining presence in advanced CRC, eosinophils suppress metastatic dissemination by counteracting the pro-tumorigenic functions of SPP1+ macrophages \u00e2\u0080\u0093 a subset linked to immune exclusion and tumor metastasis. Mechanistically, eosinophils respond to tumor-derived signals and inhibit macrophage differentiation into SPP1+ cells. Eosinophil depletion exacerbates peritoneal tumor spread. These findings highlight the pivotal role of eosinophils in restraining late-stage CRC progression and unveil a novel eosinophil\u00e2\u0080\u0093macrophage axis as potential therapeutic targets. Overall design: Immune cells from biopsies of late-stage CRC patients were collected and analysed using the BD Rhapsody pipeline with a specific interest in eosinophils. To validate our findings and to conduct further testing scRNASeq was also performed from mouse models of late stage CRC with and without eosinophil depletion. *************************************************************** Raw files for human/patient samples were not submitted to GEO due to concerns about submitting personally identifiable sequence data for open access. ***************************************************************"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN52065473",
+      "parent": "PRJNA1190381",
+      "attributes": [
+        {
+          "name": "bd rhapsody_capture_bead_version",
+          "value": "enhanced beads",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell line_injected",
+          "value": "NA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cellular enrichment",
+          "value": "CD45 positive",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "center_name",
+          "value": "Isabelle Arnold, Institute of Experimental Immunology, University of Z\u00fcrich",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Colon",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "C57BL/6J Cre",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "Colon",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "treatment",
+          "value": "Citrobacter rodentium infection",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM9270243"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX30721098",
+      "parent": "SAMN52065473",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina NovaSeq X",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM9270243: Mouse colon Citrobacter rodentium CD45 pos, WTA, scRNAseq; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM9270243_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM9270243"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR35669366",
+      "parent": "SRX30721098",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9270243_r1"
+        }
+      ],
+      "filenames": [
+        "Colon_Crod_Mm_WTA_S5_R1_001.fastq.gz",
+        "Colon_Crod_Mm_WTA_S5_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

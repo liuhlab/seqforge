@@ -1,0 +1,171 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR20172077",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA858484",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Calico Life Sciences",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2022-07-13",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "The complete cell atlas of an aging multicellular organism"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Here we describe a single-cell atlas of aging for virtually every cell type of the nematode Caenorhabditis elegans. Our findings suggest that C. elegans aging is not random in nature, but rather characterized by coordinated changes in functionally related metabolic and stress-response genes in a highly cell-type specific fashion. Aging signatures of different cell types are largely different from one another, with downregulation of energy metabolism being the only nearly universal change. Similarly, the rates at which cells aged, measured as genome-wide expression changes, differed significantly between cell types. In some, but not all, cell types, aging was characterized by an increase in cell-to-cell variance. Finally, we identified a signature for longevity transcription factors (TFs) whose activities changed coordinately across many cell types with age. We discovered new candidates, such as GEI-3, among these TFs that likely also regulate the aging rate. Our dataset can be accessed and queried at c.elegans.aging.atlas.research.calicolabs.com/. Overall design: We performed a time series single cell RNA-seq on a C. elegans population over the course of their adult lifespan and for that purpose selected six time points (days 1, 3, 5, 8, 11 and 15 of adulthood). To reduce germ cell number, we used a temperature-sensitive gon-2(q388ts) mutant, grown at 25C, which fail to develop gonads at this non-permissive temperature. The dataset shared here was obtained with the strain CF4596: gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3'UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID] III. This strain is AID-tagged in the daf-2 C-ter locus but is equivalent to a daf-2+/+ according to our test and to Venz et al Elife 2021 (https://doi.org/10.7554/eLife.71335). The same population was used for every timepoints. For each timepoint, around 10 000 cells were loaded in two independent 10x genomics chip channels. They are called technical replicates here after. For a detail protocol please refer to Roux et al Biorxiv 2022 (https://doi.org/10.1101/2022.06.15.496201)."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN29720289",
+      "parent": "PRJNA858484",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "N/A",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "cell_type",
+          "value": "all the cell types",
+          "harmonized": true,
+          "raw_name": "cell type"
+        },
+        {
+          "name": "center_name",
+          "value": "Calico Life Sciences",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "dev_stage",
+          "value": "age day 1",
+          "harmonized": true,
+          "raw_name": "developmental stage"
+        },
+        {
+          "name": "genotype",
+          "value": "gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3'UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID] III",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "all the tissues",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "6239",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "all the tissues",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM6338211"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX16206967",
+      "parent": "SAMN29720289",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina HiSeq 4000",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM6338211: scRNAseq C. elegans whole animals day 1, technical replicate 1; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM6338211_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM6338211"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR20172077",
+      "parent": "SRX16206967",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM6338211_r1"
+        }
+      ],
+      "filenames": [
+        "possorted_genome_bam_TC2_d1_1.bam"
+      ]
+    }
+  ]
+}

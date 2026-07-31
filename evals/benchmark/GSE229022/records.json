@@ -1,0 +1,192 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR27685600",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA952585",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Meng Wang, 4DCP, Janelia Research Campus",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2023-04-05",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Single nuclei gene expression profile for adult C. elegans and several longevity mutants"
+        },
+        {
+          "label": "study_abstract",
+          "text": "We presents a complete single-cell atlas of aging worms, encompassing both somatic and germ cell types. This atlas was built upon 241K nuclei across the worm lifespan at day 1, 6, 12, and 14 (100%, 99%, 61%, and 14% survival rates, respectively). The worms were aged under normal physiological conditions, without interfering with their reproductive processes. Overall design: To perfom snRNAseq for wild-type and longevity worms, we harvested and homogenized ~2,000 worms for each genotype/condition. Nuclei were isolated using fluorescence-activated cell sorting (FACS) based on the DNA content signal and then proceed with 10x Chromium sequcing."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN39550238",
+      "parent": "PRJNA952585",
+      "attributes": [
+        {
+          "name": "age",
+          "value": "day12",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "center_name",
+          "value": "4D Cellular Physiology, Janelia Research Campus",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "whole body",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "Wild-type(N2)",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "6239",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "whole body",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8029690"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX23352753",
+      "parent": "SAMN39550238",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "NextSeq 2000",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8029690: Day12 Wild-type(N2) feed with E. coli OP50 , replicate 2; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8029690_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8029690"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR27685600",
+      "parent": "SRX23352753",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8029690_r1"
+        }
+      ],
+      "filenames": [
+        "Max_10x_MW1_S1_L001_I1_001.fastq.gz",
+        "Max_10x_MW1_S1_L001_I2_001.fastq.gz",
+        "Max_10x_MW1_S1_L001_R1_001.fastq.gz",
+        "Max_10x_MW1_S1_L001_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR27685601",
+      "parent": "SRX23352753",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8029690_r2"
+        }
+      ],
+      "filenames": [
+        "Max_10x_MW1_S1_L002_I1_001.fastq.gz",
+        "Max_10x_MW1_S1_L002_I2_001.fastq.gz",
+        "Max_10x_MW1_S1_L002_R1_001.fastq.gz",
+        "Max_10x_MW1_S1_L002_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

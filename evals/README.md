@@ -135,7 +135,7 @@ down what happened", and only the first can be wrong.
 
 ## The `benchmark/` tier (real data on HF)
 
-Real *C. elegans* datasets, run from their byte-light **fingerprint packages** on the public HF repo
+Real datasets (mostly *C. elegans*), run from their byte-light **fingerprint packages** on the HF repo
 [`liuhlab/seqforge-benchmark`](https://huggingface.co/datasets/liuhlab/seqforge-benchmark). Each
 `benchmark/<accession>/` case is a `kind: fingerprint` recipe (`hf: packages/<accession>.fingerprint.tar.gz`)
 plus a committed `records.json`, so chemistry grades from the pinned bytes and sample facts from the
@@ -148,8 +148,34 @@ generate:
   hf: packages/GSE274290.fingerprint.tar.gz   # or `path:` (committed) / `root_env:` (staged out of git)
 ```
 
-Its `expected.yaml` files were **seeded from a run** and carry a *pending maintainer review* header —
-a regression baseline, not a before-the-run pre-registration like `real/PRJNA1027859`. Run it with
-`seqforge eval run --no-llm --cases evals/benchmark`; it fires in CI only on a published release or
-manual dispatch (`.github/workflows/benchmark.yml`), never per-commit. A true held-out **test** set is
-a later milestone; this is the validation set we develop against.
+A benchmark case may also declare a `hypothesis:` beside `generate:`, exactly as a `steering/` case
+does. It stands in for a chemistry claim the archive states in prose, so the case exercises the
+metadata-conditioned branches without an API key — `GSE208154` needs one to reach
+`MISSING_TECHNICAL_READ` at all, since without it the refusal degrades to the generic
+`UNSUPPORTED_TECHNOLOGY`. Use it only where the record states the chemistry verbatim, and quote that
+sentence in the recipe comment.
+
+**Provenance is per case, and the file's own header says which.** The first tranche was *seeded from a
+run* and was **reviewed against the publications** on 2026-07-31 (`# REVIEWED <date>`, issue #81): its
+`experiment.*` values were confirmed field by field against the paper and the fragile ones pruned,
+while `library.chemistry` stays a byte-resolved regression baseline. Later cases were **pre-registered
+before their run**. A file carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has had neither — none
+does today, and the header is the authority if one appears again.
+
+**What "fragile" means, since the transcript is committed.** A pruned value was never a grading risk:
+`records.json` is frozen beside the case, so no re-submission can move it. It was pruned because it
+asserts nothing *about the experiment* — a verbatim duplicate of another field, a `none` / `n/a` form
+filler, a sentence typed into a `tissue` slot, or a submitting-account label. The test is whether the
+science would have to change for the value to change; if not, the claim is decoration, and a corpus
+of decoration is what makes a green benchmark meaningless.
+
+What each dataset is, and the one thing it covers that nothing else does, is a row in
+[`benchmark-datasets.tsv`](benchmark-datasets.tsv) — read it before adding a dataset, because the
+question is not "is this a nice dataset" but "what does the corpus not yet cover".
+
+None of those provenances makes this a *test* set: when a case goes red we fix the compiler and grade
+it again, which is exactly what a held-out set forbids. Run it with `seqforge eval run --no-llm --cases
+evals/benchmark`; it fires in CI only on a published release or manual dispatch
+(`.github/workflows/benchmark.yml`), never per-commit. A true held-out **test** set is a later
+milestone, scoped — and not decided — in
+[`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md).

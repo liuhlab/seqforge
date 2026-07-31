@@ -1,19 +1,34 @@
-# AUTO-SEEDED benchmark expectation — PENDING MAINTAINER REVIEW. NOT a pristine pre-registration.
+# REVIEWED 2026-07-31 against the publication — no longer an auto-seeded transcript.
 #
-# Unlike evals/cases/PRJNA1027859 (written from metadata BEFORE any run), this file was SEEDED FROM a
-# seqforge run on the dataset's fingerprint package, for the maintainer to audit against ground truth.
-# Two kinds of claim live here:
-#   - experiment.* (organism, study, per-sample strain/tissue/sex/...) are TRANSCRIBED from the
-#     archive's own BioSample/SRA records (records.json beside this file, public metadata). Verify them
-#     against the paper; they do not depend on our compiler.
-#   - library.chemistry / equivalence_members are what seqforge RESOLVED from the fingerprint's bytes
-#     at the versions in `predicts`. This is the regression baseline; a future code change that moves
-#     it turns this case red, which is the point.
-# Review action: confirm each value, prune fragile ones (e.g. a rough study.center), and delete this
-# header once verified so the file reads as a real, dated pre-registration.
+# experiment.* are transcribed from the archive's own BioSample/SRA records (records.json beside
+# this file); every value below was confirmed against Smith, Taylor, Blum, Gitler, Miller &
+# Kratsios, Cell Reports 43(3):113857 (2024), doi:10.1016/j.celrep.2024.113857, PMID 38421866.
+# Pruned in review, because a submitter re-typing them would move them without the science moving:
+#   - study.center: "Cell and Developmental Biology, Vanderbilt University" is the submitting lab's
+#     department, not a sequencing center; nothing in the paper turns on it.
+#   - samples.*.source_name: a verbatim duplicate of samples.*.tissue, so it is a second copy of
+#     one claim rather than a second claim.
+#   - samples.*.genotype ("wt"): contradicts the strain it sits beside — both strains carry an
+#     integrated transgene, and the paper never calls these animals wild type.
+# library.chemistry (+ equivalence_members) is the regression baseline resolved from the
+# fingerprint's pinned bytes at the `predicts` versions; the paper states "single cell 3' RNA
+# sequencing utilizing the 10X Chromium system, v3 chemistry", sequenced on a NovaSeq 6000, which
+# agrees. A code change that moves it turns this case red.
+#
+# Kept, with one discrepancy on the record: the archive writes KRA257's transgene as
+# "kasIs2 [lin-39p::RFP + pha-1(+)]", while the paper's key resources table writes
+# "kasIs2[lin-39_intron1::tagRFP]" (from Feng et al.) — same reporter, submitter shorthand for the
+# regulatory element, and pha-1(+) is the Kratsios lab's usual co-injection marker rather than an
+# extra allele. The value graded here is the archive's, per the corpus contract; strain stays
+# because it is the ONLY attribute that differs between the four samples, so it is what makes the
+# per-accession claim below able to catch a shuffled join at all.
 outcome: decide
-description: 'Benchmark: GSE234962 resolved from its fingerprint package; sample facts from records. AUTO-SEEDED,
-  pending maintainer review (see header).'
+description: >-
+  Benchmark: GSE234962 (Smith et al. 2024, Cell Rep) pins two independent things — that resolve
+  still reads 10x-3p-gex-v3 out of this dataset's pinned bytes, and that the record join still
+  lands each of the four FACS-sorted motor-neuron libraries on its own strain, young-adult stage
+  and tissue. A red here means either the chemistry resolver moved or the sample-to-record join
+  shuffled.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -25,23 +40,12 @@ fields:
   experiment.organism: 6239
   experiment.study.title: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity
     delineated by conserved transcription factor codes
-  experiment.study.center: Cell and Developmental Biology, Vanderbilt University
   experiment.samples.*.strain:
   - CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
   - CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
   - KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
   - KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
   experiment.samples.*.tissue:
-  - Motor neurons
-  - Motor neurons
-  - Motor neurons
-  - Motor neurons
-  experiment.samples.*.genotype:
-  - wt
-  - wt
-  - wt
-  - wt
-  experiment.samples.*.source_name:
   - Motor neurons
   - Motor neurons
   - Motor neurons

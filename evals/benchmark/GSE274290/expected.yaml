@@ -1,19 +1,35 @@
-# AUTO-SEEDED benchmark expectation — PENDING MAINTAINER REVIEW. NOT a pristine pre-registration.
+# REVIEWED 2026-07-31 against the publication — no longer an auto-seeded transcript.
 #
-# Unlike evals/cases/PRJNA1027859 (written from metadata BEFORE any run), this file was SEEDED FROM a
-# seqforge run on the dataset's fingerprint package, for the maintainer to audit against ground truth.
-# Two kinds of claim live here:
-#   - experiment.* (organism, study, per-sample strain/tissue/sex/...) are TRANSCRIBED from the
-#     archive's own BioSample/SRA records (records.json beside this file, public metadata). Verify them
-#     against the paper; they do not depend on our compiler.
-#   - library.chemistry / equivalence_members are what seqforge RESOLVED from the fingerprint's bytes
-#     at the versions in `predicts`. This is the regression baseline; a future code change that moves
-#     it turns this case red, which is the point.
-# Review action: confirm each value, prune fragile ones (e.g. a rough study.center), and delete this
-# header once verified so the file reads as a real, dated pre-registration.
+# experiment.* are transcribed from the archive's own BioSample/SRA records (records.json beside
+# this file); every value below was confirmed against Li L, Tang X, Guo X, Rao D, Zeng L, Xue J,
+# Liu S, Tu S, Shen E-Z, "Spatiotemporal single-cell architecture of gene expression in the
+# Caenorhabditis elegans germ cells", Cell Discovery 11:26 (2025), doi:10.1038/s41421-025-00790-4,
+# PMID 40097379. The paper names the strain verbatim ("knock-in fluorescent strain,
+# gfp::tev::flag::prg-1"), sorts "GFP+ germ cells" out of the germline by FACS, and sequences one
+# library on a NovaSeq 6000.
+# Pruned in review, because a submitter re-typing them would move them without the science moving:
+#   - study.center: "westlake university" is right (Shen lab, Westlake University) but it is
+#     lower-cased submitter free text — the casing and wording are the submitter's, not science.
+#   - samples.*.treatment: "L4 worm after synchronization" is a developmental stage typed into a
+#     treatment field. The paper confirms middle-L4 after continuous synchronization, but there
+#     was no treatment; the same fact could as easily have been filed under dev_stage or omitted.
+#   - samples.*.source_name: "germline" duplicates tissue verbatim, so it asserts nothing new.
+# library.chemistry is the regression baseline resolved from the fingerprint's pinned bytes at the
+# `predicts` versions; the paper states cells were captured "with the BD Rhapsody Express
+# Single-Cell Analysis System" and libraries built with the "BD Rhapsody™ Whole Transcriptome
+# Analysis Amplification Kit", and never uses the word "Enhanced" — which agrees, plainly: Express
+# is the original fixed-offset cell-label bead, i.e. bd-rhapsody-wta, and the bytes concur
+# (Enhanced motif 0.9%). A code change that moves it turns this case red.
 outcome: decide
-description: 'Benchmark: GSE274290 resolved from its fingerprint package; sample facts from records. AUTO-SEEDED,
-  pending maintainer review (see header).'
+description: >-
+  Benchmark: GSE274290 (Li et al., Cell Discovery 2025) — the corpus's only REAL bd-rhapsody-wta
+  library, so it is the sole byte-level guard on the original fixed-offset BD cell-label bead.
+  It is also half of a deliberate pair: GSE282765-colon-crod-wta names the SAME instrument string
+  in its extract protocol ("BD Rhapsody Express Single-Cell Analysis System") and differs only in
+  the declared bead, so a resolver that decides BD chemistry from the instrument rather than the R1
+  bytes gets exactly one of the two wrong. Breaking this one means either an Enhanced entry has
+  started stealing v1 data or the v1 read geometry has drifted. The per-sample facts additionally
+  pin that records.json still joins to the right BioSample.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -21,17 +37,12 @@ predicts:
 fields:
   library.chemistry: bd-rhapsody-wta
   experiment.organism: 6239
-  experiment.study.title: Spatiotemporal single-cell architecture of gene expression in the Caenorhabditis
-    elegans germ cells [scRNA-seq]
-  experiment.study.center: westlake university
+  experiment.study.title: Spatiotemporal single-cell architecture of gene expression in the
+    Caenorhabditis elegans germ cells [scRNA-seq]
   experiment.samples.*.strain:
   - gfp::tev::flag::prg-1
   experiment.samples.*.tissue:
   - germline
-  experiment.samples.*.treatment:
-  - L4 worm after synchronization
   experiment.samples.*.cell_type:
   - germ cell
-  experiment.samples.*.source_name:
-  - germline
   experiment.samples.SAMN43079677.strain: gfp::tev::flag::prg-1
