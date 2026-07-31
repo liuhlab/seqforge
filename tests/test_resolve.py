@@ -369,7 +369,16 @@ def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
     f2 = tmp_path / "bulk_R2.fastq.gz"
     _write_fastq_gz(f1, reads["R1"])
     _write_fastq_gz(f2, reads["R2"])
-    out = resolve_dataset([f1, f2], use_cache=False)  # no onlist needed for the no-barcode branch
+    # A SYNTHETIC registry, not an absent one. No onlist is needed for the no-barcode branch, but
+    # falling through to `DEFAULT_REGISTRY` ran `numpy.searchsorted` against the shipped 6 794 880
+    # barcodes — 72% of the call in one profile, for a whitelist this test is not about. A synthetic
+    # 10x list keeps it AVAILABLE and UNHIT, which is the same code path (`barcode_onlist_available`
+    # stays True); an empty registry would switch the run to the abstention branch and quietly make
+    # this a test of something else. Verified identical: same winner, same rung, same exit code, no
+    # blocker, no conflict, no question.
+    out = resolve_dataset(
+        [f1, f2], registry=registry_for(kb.load_spec("10x-3p-gex-v3")), use_cache=False
+    )
     assert out.exit_code() == 0
     assert out.result.candidates[0].technology == "bulk-rnaseq-pe"
     assert out.result.rung_reached == 2  # geometry-only: no onlist involved
@@ -1063,14 +1072,19 @@ def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Pat
 
 def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> None:
     # A single long-read ONT file: no KB technology's read set can be satisfied -> refuse, don't guess.
+    #
+    # `offline=True` here, and this is the ONE place in this file where an empty registry is the
+    # honest choice rather than a shortcut: no spec's read set can be satisfied at all, so no onlist
+    # can participate in the answer. A synthetic list would be scenery. 60 reads of 500-1200 bp make
+    # the same point as 200 of up to 3000 -- the refusal is about read-set satisfiability, not depth.
     rng = random.Random(0)
     long_reads = [
-        "".join(rng.choice("ACGT") for _ in range(rng.randint(500, 3000))) for _ in range(200)
+        "".join(rng.choice("ACGT") for _ in range(rng.randint(500, 1200))) for _ in range(60)
     ]
     f = tmp_path / "ont_run.fastq.gz"
     write_fastq_gz(f, long_reads)
 
-    out = resolve_dataset([f], use_cache=False)
+    out = resolve_dataset([f], registry=OnlistRegistry(offline=True), use_cache=False)
     assert out.exit_code() == 3
     assert not out.result.candidates
     codes = {b.code for b in out.result.blockers}
@@ -1203,7 +1217,17 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
     """End-to-end #7/#11: reads only a bulk library matches, but metadata asserts 10x v2. The barcode
     read never validated, so the generic bulk fallback won by default — that must surface as an
     observed-vs-asserted conflict (exit 4), not compile a bulk manifest at exit 0 for a dataset the
-    paper calls single-cell. This is the GSE126954 over-length-sample / GSE274290 pre-BD-spec path."""
+    paper calls single-cell. This is the GSE126954 over-length-sample / GSE274290 pre-BD-spec path.
+
+    The registry is SYNTHETIC rather than the shipped default, and rather than empty. This test's
+    subject is a *silent* failure mode — a single-cell dataset compiling as bulk at exit 0 — so
+    passing for a slightly different reason costs the corpus, not seconds. What was checked before
+    swapping: `_barcode_onlist_available` is size- and content-blind (it asks only whether a list is
+    registered and materializable), `_over_length_admitted_by_onlist` is anchored on a floor that
+    SCALES with `n_entries` rather than keying on it, and a random 75-mer hits a 64-barcode synthetic
+    list less often than it chance-hits a 6.8M one, not more. Then verified end to end: identical
+    exit 4, identical winner `bulk-rnaseq-pe`, identical `conflict-single-cell-collapsed-to-bulk`,
+    identical rung, no blocker and no question either way."""
     rng = random.Random(0)
     r1 = [
         "".join(rng.choice("ACGT") for _ in range(75)) for _ in range(1500)
@@ -1216,6 +1240,7 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
 
     out = resolve_dataset(
         [f1, f2],
+        registry=registry_for(kb.load_spec("10x-3p-gex-v2")),
         hypothesis=Hypothesis(value="10x-3p-gex-v2", id="meta-1", confidence=0.9),
         use_cache=False,
     )
