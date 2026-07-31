@@ -62,8 +62,10 @@ its `expected.yaml` at any depth, so groups never change a case's identity):
 | `refusal/` | negatives that must **block**, with the right blocker code |
 | `real/` | a **real local dataset**, resolved from an env var (data out of git) — the pilot's pre-registration |
 
-`test_every_hermetic_case_lives_in_a_known_purpose_group` enforces this, so a stray top-level case or
-an ad-hoc sixth group turns red rather than quietly re-messing the directory.
+`test_the_corpus_is_well_formed` enforces this, so a stray top-level case or an ad-hoc sixth group
+turns red rather than quietly re-messing the directory. The same test asks the corpus's three other
+layout questions off the same walk: every outcome class is covered, every case has a description, and
+no case ships FASTQ bytes.
 
 ## Adding a case
 

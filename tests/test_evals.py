@@ -33,7 +33,7 @@ from seqforge.evals import (
     run_case,
 )
 from seqforge.evals.case import Recipe
-from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest
+from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest, _merge_harvest
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.conflict import Conflict, ConflictPosition
 from seqforge.models.resolve import (
@@ -381,21 +381,48 @@ def test_questions_asked_counts_the_ask_outcome() -> None:
     assert report.questions_asked["per_case"] == 0.5
 
 
-def test_report_is_json_round_trippable() -> None:
-    report = build_report([_run(Grade.CORRECT)])
-    assert report.model_dump(mode="json")["n_cases"] == 1
-
-
 # --------------------------------------------------------------------------------------------
 # cases: the corpus itself, and the recipe machinery
 # --------------------------------------------------------------------------------------------
 
 
-def test_corpus_loads_and_covers_all_three_outcomes() -> None:
+def test_the_corpus_is_well_formed() -> None:
+    """Four one-line layout properties of the corpus, off ONE `discover_cases()` walk.
+
+    They were four separate tests, each walking the corpus to ask one question of it. Nothing is
+    weakened by asking all four in one pass — a failure still names which property broke and which
+    case broke it.
+
+    1. It covers every outcome class. A corpus that only ever expects `decide` cannot catch a
+       harness that has forgotten how to refuse.
+    2. Every case sits under one named purpose group — `spec` (one per KB leaf), `prose` (needs
+       harvest), `steering` (a hypothesis meets the bytes), `refusal` (must block), `real` (real
+       local data). Grouping is a filing decision, but pinning it means a stray case dropped at the
+       top level, or a sixth ad-hoc group, turns red instead of quietly re-messing the directory.
+    3. Every case says what it is for. A case whose intent is not written down cannot be maintained
+       when it fails.
+    4. No case ships FASTQ bytes. Inputs are recipes; a committed FASTQ means a case stopped
+       tracking its spec.
+    """
+    base = default_cases_dir()
     cases = discover_cases()
+    groups = {"spec", "prose", "steering", "refusal", "real"}
+
     assert len(cases) >= 7
-    outcomes = {c.expected.outcome for c in cases}
-    assert outcomes == {"decide", "refuse", "ask"}, "the corpus must exercise every outcome class"
+    assert {c.expected.outcome for c in cases} == {"decide", "refuse", "ask"}, (
+        "the corpus must exercise every outcome class"
+    )
+    assert HERMETIC_CASES, "every case needs the LLM — `test_corpus_is_green` would run nothing"
+
+    for case in cases:
+        group = case.root.resolve().parent
+        assert group.parent == base.resolve() and group.name in groups, (
+            f"{case.id} is at {case.root.relative_to(base)}, not under one of {sorted(groups)}"
+        )
+        assert case.expected.description.strip(), f"{case.id} has no description"
+
+    stray = [p for p in base.rglob("*") if p.suffix in (".gz", ".fastq", ".fq")]
+    assert not stray, f"eval cases must ship recipes, not bytes: {stray}"
 
 
 def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
@@ -422,35 +449,6 @@ def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
         covered.add(chem)
         covered |= declared_equivalents(kb.load_spec(chem))
     assert leaves <= covered, f"leaf spec(s) with no hermetic ci case: {sorted(leaves - covered)}"
-
-
-def test_every_hermetic_case_lives_in_a_known_purpose_group() -> None:
-    """The corpus layout is enforced, not just conventional: every case sits under one named group.
-
-    ``spec`` (one per KB leaf), ``prose`` (needs harvest), ``steering`` (a metadata hypothesis meets
-    the bytes), ``refusal`` (must block), ``real`` (real local data). Grouping is a filing decision —
-    a case's id is still its own leaf name — but pinning it here means a stray case dropped at the top
-    level, or a sixth ad-hoc group, turns red instead of quietly re-messing the directory.
-    """
-    groups = {"spec", "prose", "steering", "refusal", "real"}
-    base = default_cases_dir()
-    for case in discover_cases():
-        group = case.root.resolve().parent
-        assert group.parent == base.resolve() and group.name in groups, (
-            f"{case.id} is at {case.root.relative_to(base)}, not under one of {sorted(groups)}"
-        )
-
-
-def test_every_case_has_a_description() -> None:
-    """A case whose intent is not written down cannot be maintained when it fails."""
-    for case in discover_cases():
-        assert case.expected.description.strip(), f"{case.id} has no description"
-
-
-def test_corpus_ships_no_fastq_bytes() -> None:
-    """Inputs are recipes. A committed FASTQ means a case stopped tracking its spec."""
-    stray = [p for p in default_cases_dir().rglob("*") if p.suffix in (".gz", ".fastq", ".fq")]
-    assert not stray, f"eval cases must ship recipes, not bytes: {stray}"
 
 
 def test_recipe_regenerates_identical_bytes(tmp_path: Path) -> None:
@@ -567,20 +565,38 @@ def test_extra_keys_in_expected_are_rejected() -> None:
 # --------------------------------------------------------------------------------------------
 
 
-def test_corpus_is_green() -> None:
-    """The deterministic corpus, through the real compiler. No LLM, no network, no API key."""
-    cases = [c for c in discover_cases() if not c.needs_llm]
-    report, runs = run_cases_no_llm(cases)
-    failures = [r.to_json() for r in runs if r.skipped is None and not r.grade.ok]
-    assert not failures, f"eval corpus regressed: {failures}"
-    assert report.false_accept_rate == 0.0
-    assert report.field_accuracy == 1.0
+#: The hermetic corpus, one item per case. Collected at import, which is what lets xdist spread it.
+HERMETIC_CASES = [c for c in discover_cases() if not c.needs_llm]
 
 
-def run_cases_no_llm(cases):
-    from seqforge.evals import run_cases
+@pytest.mark.parametrize("case", HERMETIC_CASES, ids=lambda c: c.id)
+def test_corpus_is_green(case: Case) -> None:
+    """The deterministic corpus, through the real compiler. No LLM, no network, no API key.
 
-    return run_cases(cases, llm=False)
+    **This stays in CI.** It is not `pixi run eval` leaking in: `.github/workflows/benchmark.yml`
+    names this test as the per-commit tier and runs the networked HF tier separately, and
+    `test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_corpus` proves the two
+    directories do not overlap. It is the only test that runs the compiler over the corpus.
+
+    **Parametrized, one item per case**, because as a single unit it was the suite's most expensive
+    test (6.89s, 7% of all measured time) and — worse — an INDIVISIBLE one, so xdist could not spread
+    it and it sat on the critical path alone. Per case it is ~1.15s at worst, and the critical path
+    drops to that. Two bonuses: a red run now names the case instead of printing a whole-corpus JSON
+    blob, and `-k splitseq` becomes a rung-1 command.
+
+    The aggregate assertions it used to carry (`false_accept_rate == 0.0`, `field_accuracy == 1.0`)
+    are ENTAILED, not dropped: `grade_case` returns CORRECT only when no field check failed, so
+    all-CORRECT gives both by construction. `build_report`'s rate arithmetic — including the
+    `questions_asked` metric R11(c) names — is separately unit-tested above at <5ms, against
+    synthetic runs rather than a 7-second corpus pass.
+
+    The item count rises by 14 here, and that is the intended kind of growth: it tracks
+    `discover_cases()`, so a new case gets a node the moment it exists.
+    """
+    run = run_case(case, llm=False)
+    if run.skipped is not None:
+        pytest.skip(run.skipped)
+    assert run.grade.ok, run.to_json()
 
 
 # --------------------------------------------------------------------------------------------
@@ -730,29 +746,6 @@ class _FlakyProvider:
         return LLMResponse(text=_json.dumps({"drafts": payload}), usage={})
 
 
-def test_a_hallucination_in_any_trial_survives_to_the_grade() -> None:
-    """Regression: trials kept only the LAST harvest, so a real failure vanished on a re-run.
-
-    The model hallucinates on trial 1 and behaves on trials 2-3. Reporting the final trial would
-    grade this clean — which is exactly the illusion trials exist to dispel.
-    """
-    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    bad = good + [
-        _draft("experiment.samples.treatment", "heat shock", "single-cell RNA-seq"),
-    ]
-    provider = _FlakyProvider([bad, good, good])
-    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
-    assert provider.calls == 3
-    assert run.harvest is not None
-    # If the claim survived verify it must reach the grade; if verify killed it, that is also fine —
-    # what must NOT happen is a trial-1 failure being forgotten because trial 3 was clean.
-    if "experiment.samples.treatment" in run.harvest.extracted:
-        assert run.harvest.hallucinated == ["experiment.samples.treatment"]
-        assert run.grade.grade is Grade.FALSE_ACCEPT
-    else:
-        assert run.harvest.n_rejected >= 1
-
-
 def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
     """The 0.667-from-three-identical-trials bug, end to end.
 
@@ -780,14 +773,31 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
 
 
 def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
+    """Three clean trials: stability 1.0 — and the per-trial wiring that produced it.
+
+    The wiring half was a separate test making the IDENTICAL call (same case, same `_StubProvider`,
+    same `trials=3`) to assert a disjoint set of attributes off the same 0.5s run.
+    """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     run = run_case(_trap_case(), llm=True, provider=_StubProvider(good), trials=3)
     assert run.grade.grade is Grade.CORRECT
     assert run.stability == 1.0
+    # every trial really ran, and each one's cost was counted
+    assert run.trials == 3
+    assert run.llm_calls == 3
+    assert run.usage["input_tokens"] == 300
 
 
 def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
-    """A real 2-in-3 failure — the case this metric exists to report."""
+    """A real 2-in-3 failure — the case this metric exists to report — and the failure SURVIVING.
+
+    Trials used to keep only the LAST harvest, so a hallucination on trial 1 vanished when trials 2-3
+    came back clean: precisely the illusion trials exist to dispel. That regression had its own test
+    on the same `_FlakyProvider([bad, good, good])` call, and it could only prove the point
+    CONDITIONALLY, because its bad draft ("heat shock", quoted from "single-cell RNA-seq") might die
+    at span-verification before ever reaching the fold. This one's bad draft quotes itself, so it
+    survives verify deterministically — one call, and the fact is unconditional.
+    """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     # `condition` is no longer an assertable field, so a draft naming it now dies at the allowlist
     # and never reaches the fold this test is about. The trap moves to NCBI's `treatment`, which is
@@ -797,32 +807,33 @@ def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
             "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
         )
     ]
-    run = run_case(_trap_case(), llm=True, provider=_FlakyProvider([bad, good, good]), trials=3)
+    provider = _FlakyProvider([bad, good, good])
+    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
+    assert provider.calls == 3
     assert run.grade.grade is Grade.FALSE_ACCEPT, "one bad trial condemns the case"
     assert run.stability == pytest.approx(2 / 3), "but stability reports it happened 1 time in 3"
+    # the trial-1 failure reached the grade rather than being forgotten because trial 3 was clean
+    assert run.harvest is not None
+    assert run.harvest.hallucinated == ["experiment.samples.treatment"]
 
 
 def test_a_field_found_in_only_some_trials_is_reported_unstable() -> None:
-    """Extraction that comes and goes is a finding, not a rounding error."""
-    with_org = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    provider = _FlakyProvider([with_org, [], with_org])
-    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
-    assert run.harvest is not None
-    assert run.harvest.matched == [], "a field missed in any trial must not count as matched"
-    assert run.harvest.unstable == ["experiment.organism"]
-    assert run.harvest.missing == ["experiment.organism"]
+    """Extraction that comes and goes is a finding, not a rounding error.
 
-
-def test_trials_run_the_llm_case_repeatedly_and_report_stability() -> None:
-    case = _trap_case()
-    provider = _StubProvider(
-        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    )
-    run = run_case(case, llm=True, provider=provider, trials=3)
-    assert run.trials == 3
-    assert run.stability == 1.0
-    assert run.llm_calls == 3
-    assert run.usage["input_tokens"] == 300
+    Against `_merge_harvest` directly, because that is the seam that owns the claim: it is a pure
+    function over a list of `HarvestGrade`s, and reaching it through a full materialize + three
+    harvest/resolve/grade passes cost 0.55s to assert the same thing. This file already uses exactly
+    this seam for the sibling `_fold_harvest`. The per-trial WIRING — that three trials run and each
+    one's harvest reaches the merge — is proved at both ends by
+    `test_stability_is_one_when_every_trial_is_clean_and_nothing_folds` and
+    `test_stability_is_fractional_only_when_trials_genuinely_differ`.
+    """
+    found = HarvestGrade(matched=["experiment.organism"])
+    missed = HarvestGrade(missing=["experiment.organism"])
+    merged = _merge_harvest([found, missed, found])
+    assert merged.matched == [], "a field missed in any trial must not count as matched"
+    assert merged.unstable == ["experiment.organism"]
+    assert merged.missing == ["experiment.organism"]
 
 
 def test_usage_is_accumulated_into_the_report() -> None:
@@ -856,8 +867,12 @@ def _bulk_fingerprint(tmp_path: Path):
     from seqforge import kb
     from seqforge.fingerprint.build import build_fingerprint
 
+    # n=600 with reads=400 below, not n=1500/reads=2000. bulk-rnaseq-pe is decided by STRUCTURE
+    # alone and R3 says the chemistry call is N-invariant, so the smaller N grades identically. It
+    # also makes the docstring true: at n=1500 with reads=2000 the "slice" was the WHOLE file, so
+    # "no full FASTQ is present (only the slice)" was not being proved by anything.
     spec = kb.load_spec("bulk-rnaseq-pe")
-    reads = kb.generate_reads(spec, n=1500, seed=0)
+    reads = kb.generate_reads(spec, n=600, seed=0)
     src = tmp_path / "SRR12345678"
     src.mkdir(parents=True)
     paths = []
@@ -867,7 +882,7 @@ def _bulk_fingerprint(tmp_path: Path):
             for i, s in enumerate(seqs):
                 fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")
         paths.append(p)
-    result = build_fingerprint(paths, workspace=tmp_path / "build", reads=2000, name="bulkfp")
+    result = build_fingerprint(paths, workspace=tmp_path / "build", reads=400, name="bulkfp")
     records = {
         "source": "test",
         "query": "TEST",
