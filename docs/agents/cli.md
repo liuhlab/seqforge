@@ -22,6 +22,12 @@ The practical consequence for a caller: `seqforge <verb> … > out.json` is alwa
 never contaminates the parse. The practical consequence for an implementer: nothing goes to stdout
 that is not the result object.
 
+**A verb that produces a human artifact writes a file and still answers on stdout.** `report` and
+`eval report` render one self-contained HTML page each — every asset inlined, no network, opens on a
+double-click — and print a JSON summary naming what they wrote. That is the shape to copy, and it is
+*not* an exception to the split: the HTML is a side effect at a path the caller chose, stdout stays
+the result object, and no verb ever gains a `--format html` that would make stdout change shape.
+
 Full rationale, including why this makes the CLI drivable by a headless agent turn:
 [ADR-0013](../adr/0013-cli-is-a-machine-interface.md).
 
