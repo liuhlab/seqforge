@@ -1,6 +1,6 @@
 # Template — the house structure of an ADR
 
-This file is **not a decision.** It is the shape the sixteen records in this tree already have,
+This file is **not a decision.** It is the shape the seventeen records in this tree already have,
 written down so a new one is not assembled by copying a neighbour and guessing which of its headings
 are structural. It carries no number, so the index-completeness check skips it by name; leave it
 that way.
