@@ -639,7 +639,6 @@ def resolve_runs(
         # folds into no hash — parallelism is not a budget (see `_probe_paths`).
         from concurrent.futures import ProcessPoolExecutor
 
-        # the same `**common` unpack as the serial path above
         first = _resolve_one_run(run_items[0], **common)  # type: ignore[arg-type]
         rest_items = run_items[1:]
         results: dict[int, RunResolution] = {}

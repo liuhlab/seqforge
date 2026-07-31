@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from conftest import Built, DryRun, SynthDataset, _build, _processing, _src_root
+from conftest import Built, DryRun, SynthDataset, _build, _processing, _src_root, solo_block
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
@@ -517,15 +517,6 @@ def test_compose_writes_the_bound_processing_lock(built_v3: Built, tmp_path: Pat
 Corruption = Callable[[kb.Spec, dict[str, object]], tuple[kb.Spec, dict[str, object]]]
 
 
-def _solo(config: dict[str, object]) -> dict[str, object]:
-    """The emitted `solo:` block. A config value is an untyped `object`, so its readers narrow it
-    once here rather than reaching through the value at each use. The dict is the config's own, not
-    a copy: a caller that mutates it corrupts the config."""
-    solo = config["solo"]
-    assert isinstance(solo, dict), "a starsolo config must carry a solo block to corrupt"
-    return solo
-
-
 def _corrupt_kb_claims_a_10bp_umi(
     spec: kb.Spec, config: dict[str, object]
 ) -> tuple[kb.Spec, dict[str, object]]:
@@ -543,7 +534,7 @@ def _corrupt_config_drops_a_chemistry_knob(
     spec: kb.Spec, config: dict[str, object]
 ) -> tuple[kb.Spec, dict[str, object]]:
     mangled = dict(config)
-    mangled["solo"] = {k: v for k, v in _solo(config).items() if k != "soloStrand"}
+    mangled["solo"] = {k: v for k, v in solo_block(config).items() if k != "soloStrand"}
     return spec, mangled
 
 
@@ -559,7 +550,7 @@ def _corrupt_config_disagrees_with_the_manifest(
     spec: kb.Spec, config: dict[str, object]
 ) -> tuple[kb.Spec, dict[str, object]]:
     # makes `quantification` load-bearing: a decorative field cannot be caught.
-    return spec, {**config, "solo": {**_solo(config), "soloFeatures": "GeneFull"}}
+    return spec, {**config, "solo": {**solo_block(config), "soloFeatures": "GeneFull"}}
 
 
 def _corrupt_kb_declares_a_count_key(
@@ -582,7 +573,7 @@ def _corrupt_emits_a_key_with_no_owner(
 ) -> tuple[kb.Spec, dict[str, object]]:
     # the emitted key set must be EXACTLY the two owners' union, so an orphan (a key moved out of the
     # KB, or one never owned) is not invisible -- disjointness alone is the decorative bug in reverse.
-    return spec, {**config, "solo": {**_solo(config), "outFilterMismatchNmax": "10"}}
+    return spec, {**config, "solo": {**solo_block(config), "outFilterMismatchNmax": "10"}}
 
 
 @pytest.mark.parametrize(
@@ -796,7 +787,9 @@ def test_the_required_config_check_can_catch_a_missing_key(built_v3: Built) -> N
     """Prove the guard fires — a contract test that has never failed proves nothing."""
     manifest, reg = built_v3
     config = plan(manifest, _processing(manifest), registry=reg).config
-    solo = _solo(config)  # the same dict `config` holds, so deleting from it corrupts the config
+    solo = solo_block(
+        config
+    )  # the same dict `config` holds, so deleting from it corrupts the config
     assert "soloFeatures" in solo
     del solo["soloFeatures"]
     missing = [d for d in get_module("map/starsolo").required_config if not _has_dotted(config, d)]

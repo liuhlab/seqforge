@@ -362,8 +362,6 @@ def test_extract_retries_what_is_transient_and_gives_up_on_what_is_not(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # `time`, not `_extract.time`: the same module object, so the identical patch — and reaching
-    # it by its own name keeps `no_implicit_reexport` on for every module in the tree.
     monkeypatch.setattr(time, "sleep", lambda _s: None)  # no real wait in the test
     provider = _SequencedProvider(outcomes)
 

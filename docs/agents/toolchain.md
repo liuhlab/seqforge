@@ -27,7 +27,8 @@ has better pydantic-v2 and mypy support.
 ## Typing
 
 `mypy --strict` over the whole repository: `src/`, `tests/`, `scripts/`, `skills/`. There is no tier
-system and nothing is exempt — a new top-level package is checked the moment it is committed.
+system and nothing is exempt — commit a new top-level package and the suite goes red until you add
+the tree to `files`. You still type the line; you cannot forget it.
 
 **The scope lives in `[tool.mypy] files`, not in the `typecheck` task.** The task string is reachable
 only by things that *run* the task (`scripts/check.sh`, the pre-commit hook, CI); an editor extension
@@ -37,7 +38,7 @@ open from both sides: every git-tracked `.py` file must fall inside the declared
 path `exclude` hides must already be gitignored — so nobody turns the gate green by hiding code from
 it.
 
-**No tiers.** The only `[[tool.mypy.overrides]]` blocks left declare that three third-party packages
+**No tiers.** The only `[[tool.mypy.overrides]]` blocks left declare that four third-party packages
 ship no type information (scipy, the two PDF engines, pooch); nothing in this repo is checked at a
 lower standard than anything else.
 

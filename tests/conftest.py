@@ -533,6 +533,19 @@ def _processing(
     return p
 
 
+def solo_block(config: dict[str, object]) -> dict[str, object]:
+    """The emitted ``solo:`` block, narrowed once.
+
+    ``plan(...).config`` is a ``dict[str, object]`` because it serializes to YAML, so every reader
+    would otherwise narrow the same value at each use. Returns the config's OWN dict, not a copy: a
+    caller that mutates it corrupts the config, which is exactly what the compose corruption cases
+    rely on.
+    """
+    solo = config["solo"]
+    assert isinstance(solo, dict), "a starsolo config must carry a solo block"
+    return solo
+
+
 def _src_root() -> Path:
     import seqforge
 

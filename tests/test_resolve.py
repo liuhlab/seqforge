@@ -251,7 +251,7 @@ def test_resolve_fingerprints_a_library_straight_from_a_url(
             close=lambda: None,
         )
 
-    monkeypatch.setattr(requests, "get", fake_get)  # the same module object `remote` calls through
+    monkeypatch.setattr(requests, "get", fake_get)  # the module `remote` calls through
 
     probed: dict[str, tuple[m.Observation, list[str]]] = {}
     for url in urls.values():

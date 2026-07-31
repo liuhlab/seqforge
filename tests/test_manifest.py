@@ -23,6 +23,7 @@ from conftest import (
     _processing,
     _taxid,
     registry_for,
+    solo_block,
     write_fastq_gz,
 )
 from seqforge import __version__, kb
@@ -349,14 +350,6 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
         )
 
 
-def _solo(config: dict[str, object]) -> dict[str, object]:
-    """The emitted ``solo:`` block. ``plan(...).config`` values are ``object``, so narrow it once here
-    rather than reaching through the value at each use."""
-    solo = config["solo"]
-    assert isinstance(solo, dict), "a starsolo config must carry a solo block"
-    return solo
-
-
 def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     """It used to be written to the manifest and then IGNORED by compose, which read the KB instead.
 
@@ -369,7 +362,7 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     p = _processing(manifest)
     default = plan(manifest, p, registry=reg).config
     assert (
-        _solo(default)["soloFeatures"]
+        solo_block(default)["soloFeatures"]
         == "Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS Velocyto"
     )
     assert default["primary_feature"] == "Gene"
@@ -387,7 +380,7 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
         }
     )
     config = plan(manifest, genefull, registry=reg).config
-    assert _solo(config)["soloFeatures"] == "GeneFull Gene"
+    assert solo_block(config)["soloFeatures"] == "GeneFull Gene"
     # ...and "which matrix is THE matrix" is emitted as a VALUE, not left as a positional convention:
     # STARsolo does not care about order, so the list order has no aligner-side referent.
     assert config["primary_feature"] == "GeneFull"
@@ -428,7 +421,9 @@ def test_the_default_counts_the_nuclear_features_without_being_asked(built_v3: B
     afford to emit.
     """
     manifest, reg = built_v3
-    features = _solo(plan(manifest, _processing(manifest), registry=reg).config)["soloFeatures"]
+    features = solo_block(plan(manifest, _processing(manifest), registry=reg).config)[
+        "soloFeatures"
+    ]
     assert {"Gene", "GeneFull"} <= set(str(features).split())
 
 

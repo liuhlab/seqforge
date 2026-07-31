@@ -190,8 +190,8 @@ def build_fingerprint(
 
 def assemble_package(
     slug: str,
-    # Alone among these, `pins` stays a `list`: it is handed straight to `FingerprintManifest(files=)`,
-    # whose field is a `list[FilePin]`. Widening it would only buy the constructor a copy.
+    # `list`, not `Sequence`: handed straight to `FingerprintManifest(files=)`, whose field is a
+    # `list[FilePin]`. Widening it would only buy the constructor a copy.
     pins: list[FilePin],
     staged_fastq: Sequence[tuple[str, Sequence[Record]]],
     *,

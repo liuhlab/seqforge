@@ -55,6 +55,8 @@ def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
     for py, tree in src_trees.items():
         for node in ast.walk(tree):
             if _defines_upstream_genome(node):
+                # The predicate is true only for the three node types that carry `lineno` and `name`;
+                # it returns `bool`, so the checker cannot narrow `node` through it.
                 offenders.append(f"{py.name}:{node.lineno} defines {node.name!r}")  # type: ignore[attr-defined]
     assert not offenders, "seqforge is redefining liulab-genome's job:\n" + "\n".join(offenders)
 
@@ -311,12 +313,7 @@ _REPO = Path(__file__).resolve().parent.parent
 
 
 def _mypy_scope() -> tuple[list[str], list[str]]:
-    """The declared type-checking scope: the roots it covers, and the patterns it hides.
-
-    Read from ``[tool.mypy]`` in the project file rather than from the ``typecheck`` task, because
-    the task string is reachable only by things that RUN the task and the editor's language server
-    reads the config. The scope lives where all four look; this is one of the four.
-    """
+    """The declared type-checking scope: the roots it covers, and the patterns it hides."""
     mypy = tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mypy"]
     return list(mypy["files"]), list(mypy.get("exclude", []))
 
@@ -383,9 +380,10 @@ def test_nothing_tracked_escapes_the_type_checker() -> None:
     top-level package was unchecked until somebody remembered to add it and a *narrowed* scope looked
     exactly like a passing one. Both halves of that are mechanised here:
 
-    - **Coverage.** Every committed ``.py`` file falls inside a declared root. Add a package, and it
-      is type-checked because it is committed; remove a root, and this goes red instead of quietly
-      reducing what CI sees.
+    - **Coverage.** Every committed ``.py`` file falls inside a declared root. Commit a new top-level
+      package and this goes red naming it, with the fix in the message; remove a root and it goes red
+      the same way, instead of quietly reducing what CI sees. The root still gets typed by hand —
+      what the guard removes is the chance to forget.
     - **The exclusion list cannot grow to hide real code.** Whatever ``exclude`` hides must already
       be gitignored — so the way to make a file that will not check stop failing is to fix it or
       ``git rm`` it, never to add a line here.
@@ -423,3 +421,14 @@ def test_nothing_tracked_escapes_the_type_checker() -> None:
     assert _hidden_by([r"test_repo_invariants\.py"], [here]) == [here]  # an exclusion would hide it
     assert _not_gitignored([here]) == [here]  # ...and this file is committed, so that is illegal
     assert _hidden_by([], [here]) == []  # no exclusions, nothing hidden
+
+    # ...and the SHIPPED exclusions really do hide a scratch harness. Both assertions above pass
+    # vacuously if the patterns match nothing, so a typo in one would leave CI green while every
+    # developer's editor started reporting a file that is deliberately nobody's deliverable — the
+    # one failure this guard could otherwise not see. These two names are the gitignore's two globs.
+    for scratch in ("tests/_scratch2_test.py", "tests/_test_scratch.py"):
+        assert _hidden_by(exclude, [scratch]) == [scratch], (
+            f"`[tool.mypy] exclude` no longer hides {scratch} -- a gitignored scratch harness is "
+            f"back in the checker's scope, and only the developer who owns one will notice."
+        )
+    assert _hidden_by(exclude, [here]) == []  # ...while a committed test is untouched by them

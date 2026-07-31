@@ -152,9 +152,10 @@ rather than by checking it against a copy of itself.
 
 ## So in code
 
-**Do not narrow the checker's scope, and do not add a second checker.** A new top-level Python
-package is type-checked the moment it is committed — you add nothing to make that happen, and a
-`[tool.mypy] files` entry you remove will fail the suite rather than quietly reduce coverage. If a
+**Do not narrow the checker's scope, and do not add a second checker.** Commit a new top-level Python
+package and the suite goes red naming it, with the one-line fix in the failure message: add the tree
+to `[tool.mypy] files`. You still type that line — what you cannot do is *forget* it, which is the
+whole difference from the package list this record retired. Removing a root fails the same way. If a
 file will not check, fix it or `git rm` it; adding it to `[tool.mypy] exclude` only works when it is
 already gitignored, which means it is not code anybody ships. Deliberate suppressions stay inline,
 carry a comment saying why they are deliberate, and are spelled for mypy alone — a `pyright: ignore`
@@ -175,7 +176,7 @@ for the scope and the exclusion list, and the `typecheck` task for the errors th
   task; nothing breaks, and the "editor shows what CI shows" property is simply unrealised for them.
 - **No module in the tree is held to a lower standard than any other.** The one exception this
   decision was drafted with turned out to be unwritable and unnecessary, which is the section above.
-  What remains in `[[tool.mypy.overrides]]` is only the declaration that three third-party packages
+  What remains in `[[tool.mypy.overrides]]` is only the declaration that four third-party packages
   ship no type information (scipy, the two PDF engines, pooch) — a fact about them, not a tier.
 - **CI gains a few seconds inside an existing job.** Measured on the same box, 66 files to 138:
   **+3.8s** warm (1.4s to 5.2s) and **+2.1s** cold (17.3s to 19.4s). No new job, no new runner, no

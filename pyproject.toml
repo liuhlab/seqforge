@@ -190,10 +190,9 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-# The scope, and it lives HERE rather than in the `typecheck` task: the task string is reachable only
-# by what RUNS the task (`scripts/check.sh`, the pre-commit hook, CI), while an editor's language
-# server reads this file. One declaration, four readers, and the editor's errors are CI's by
-# construction. `test_nothing_tracked_escapes_the_type_checker` holds it open at both ends.
+# The scope, here rather than in the `typecheck` task: only what RUNS the task reaches that string,
+# and an editor's language server does not. `test_nothing_tracked_escapes_the_type_checker` holds it
+# open at both ends.
 files = ["src", "tests", "scripts", "skills"]
 # The gitignored scratch harnesses, and nothing else -- the guard above fails if an exclusion ever
 # hides a file git is tracking, so this list cannot grow to bury code that will not check.
@@ -224,11 +223,9 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
-# Pylance does not type-check; mypy does, and the editor runs mypy. Two checkers meant 125 standing
-# editor errors against a green pipeline, and a developer with no way to tell which one CI believed.
-# Here rather than in `.vscode/` so any pyright-based language server honours it. Everything Pylance
-# is actually good at -- hover, completion, go-to-definition, symbol search, unresolved imports --
-# is unaffected; none of it duplicated mypy.
+# Pylance does not type-check; mypy does, and the editor runs mypy. Here rather than in `.vscode/` so
+# any pyright-based language server honours it, not one editor. Hover, completion, go-to-definition,
+# symbol search and unresolved imports are unaffected.
 [tool.pyright]
 typeCheckingMode = "off"
 
