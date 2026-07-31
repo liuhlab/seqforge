@@ -19,9 +19,11 @@
 # The task table stays the one owner of what each step actually runs — duplicating mypy's module
 # list into this script is exactly the kind of second copy that drifts.
 #
-# Takes the steps to run as arguments, so rung 2 (`check-fast`) and rung 3 (`check`) share one
-# runner. They must: while `check-fast` was still a serial `depends-on` it measured 19.1s against a
-# parallel `check`'s 17.1s, i.e. the cheaper rung of the ladder cost MORE than the expensive one.
+# Takes the steps to run as arguments rather than hard-coding them, so any gate can share this
+# runner. That generality earned itself immediately: `check-fast` was left as a serial `depends-on`
+# when `check` was parallelised, measured 19.1s against a parallel `check`'s 17.1s -- the cheap rung
+# costing MORE than the expensive one -- and running it here too showed it saved nothing at all.
+# It was deleted; the ladder now has three rungs.
 set -uo pipefail
 
 STEPS=("$@")

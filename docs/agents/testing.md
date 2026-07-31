@@ -4,29 +4,28 @@
 change behaviour", which is every edit, and offered no other verb — so the loop was: edit one line,
 run the whole suite, open the PR, and let CI run the identical suite again.
 
-This file is the rule. There are four rungs and you climb them once per change, not once per edit.
+This file is the rule. There are three rungs and you climb them once per change, not once per edit.
 
 ## The ladder
 
 | # | When | Command | Cost |
 | - | ---- | ------- | ---- |
 | 1 | in the red→green loop | `pixi run -e test pytest tests/test_<module>.py -k <expr>` | **~2s** |
-| 2 | before a commit | `pixi run check-fast` | ~18s |
-| 3 | before opening the PR | `pixi run check` | **once** — ~17s |
-| 4 | after the PR is open | read CI | free |
+| 2 | before a commit, and before opening the PR | `pixi run check` | **~17s** |
+| 3 | after the PR is open | read CI | free |
 
-Those two middle numbers are not a typo, and the honest reading is that **rung 2 has stopped earning
-its place**. `test-fast` deselects 95 of 823 tests; once both gates run their steps concurrently and
-pytest itself runs on twelve workers, what remains is dominated by the tests they share. Rung 2 is
-kept for now because `external` still means something real — it is what you want on a machine with no
-`snakemake` — but if it stays inside noise of rung 3, the right move is to delete it and let the
-ladder have three rungs.
+**There used to be a fourth rung**, `check-fast`, between the targeted run and the full gate. It was
+deleted once both gates ran their steps concurrently over a 12-worker pytest: it measured 17.8s
+against `check`'s 17.1s, so it was *slower than the gate it was a cheap substitute for*, and checked
+less. `test-fast` survives as a standalone verb — `-m 'not external'` is what you want on a machine
+with no `snakemake` — but it is no longer a rung, because a rung that saves nothing is a rung nobody
+should be told to climb.
 
 **Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
-under ten. Nothing about a one-line change is learned by running 819 tests that a targeted run does
-not tell you in a fiftieth of the time.
+under ten. Nothing about a one-line change is learned by running 823 tests that a targeted run does
+not tell you in a tenth of the time.
 
-**Rung 4 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
+**Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
 `pixi run check` on every push. Running it again locally re-proves what CI is already proving and
 tells you nothing new. Read the run.
 
@@ -90,10 +89,10 @@ silently, and the staleness would show up as `test-fast` spawning subprocesses n
 
 ```bash
 pixi run -e test pytest tests/test_probe.py -k budget   # rung 1
-pixi run test-fast                                      # rung 2's test half
-pixi run check-fast                                     # lint + typecheck + test-fast
 pixi run test-failed                                    # --lf --new-first -x: re-run what broke, worst first
-pixi run check                                          # rung 3: lint + fmt-check + typecheck + the full suite
+pixi run check                                          # rung 2: lint + fmt-check + typecheck + the full suite
+pixi run test                                           # the suite alone, 12 workers
+pixi run test-fast                                      # the suite minus what needs a binary we do not own
 ```
 
 ## Parallelism: `-n auto --maxprocesses 12`, and why rung 1 is exempt

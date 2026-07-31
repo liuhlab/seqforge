@@ -220,7 +220,9 @@ typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve sr
 test      = "pytest -n auto --maxprocesses 12"
 # The rungs of the testing ladder (docs/agents/testing.md). `test-fast` drops what needs a binary we
 # do not own and what checks the repo rather than `src/`; it is what to run before a commit, and it
-# is NOT the pre-PR gate -- `check` is.
+# is NOT a rung of the ladder: it was one (`check-fast`) until both gates ran their steps
+# concurrently, at which point it measured SLOWER than `check` while checking less. It survives as
+# a standalone verb because `not external` is what you want on a machine with no snakemake.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 -q"
 # Deliberately SERIAL. It re-runs the handful of tests that just failed, and spinning up 12 workers
 # to run three tests costs more than it saves. `-x` is also unreliable under xdist: workers already
@@ -237,7 +239,6 @@ eval      = "seqforge eval run"
 # each other or with pytest. `scripts/check.sh` runs all four concurrently and prints each one's
 # output whole, in a fixed order, once they have all finished. See the header there.
 check     = "bash scripts/check.sh lint fmt-check typecheck test"
-check-fast = "bash scripts/check.sh lint typecheck test-fast"
 build     = "python -m build"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"

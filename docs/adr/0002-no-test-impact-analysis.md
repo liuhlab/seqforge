@@ -22,9 +22,9 @@ record exists so they find the reason it was rejected rather than re-deriving it
 
 ## Decision
 
-**No test-impact analysis.** Instead: two semantic pytest markers (`external`, `repo`), three pixi
-tasks (`test-fast`, `test-failed`, `check-fast`), test files mirrored onto module names so "which file
-tests what I edited" has an answer, and a four-rung ladder written down as a rule in
+**No test-impact analysis.** Instead: two semantic pytest markers (`external`, `repo`), a pair of
+narrowing pixi tasks (`test-fast`, `test-failed`), test files mirrored onto module names so "which
+file tests what I edited" has an answer, and a three-rung ladder written down as a rule in
 [`docs/agents/testing.md`](../agents/testing.md).
 
 ## Why not TIA

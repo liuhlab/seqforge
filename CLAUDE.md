@@ -111,8 +111,7 @@ Everything runs through **pixi** (not `pip`/`conda`/`venv`).
 ```bash
 pixi install                 # build environments
 pixi run -e test pytest tests/test_probe.py -k budget   # rung 1: the red->green loop, ~2s
-pixi run check-fast          # rung 2: lint + typecheck + test-fast, before a commit (~14s)
-pixi run check               # rung 3: lint + fmt-check + typecheck + test — what CI runs (~23s)
+pixi run check               # rung 2: lint + fmt-check + typecheck + test, all four in PARALLEL (~17s)
 pixi run test                # the whole suite on its own (~15s; xdist, 12 workers max)
 pixi run test-failed         # --lf --new-first -x: re-run what broke, worst first
 pixi run -e docs docs-build  # mkdocs build --strict
@@ -121,7 +120,7 @@ pixi run -e docs docs-build  # mkdocs build --strict
 **`pixi run check` is the mechanism** — most rules are enforced by tests, so a green suite *is* the
 guarantee. It is a **pre-PR gate, run once**, not a per-edit one: in the loop run the one file that
 tests the module you edited (test files mirror packages, so that question has an answer), and after
-the PR is open read CI rather than re-running it locally. The four rungs, the two markers (`external`,
+the PR is open read CI rather than re-running it locally. The three rungs, the two markers (`external`,
 `repo`) and the module→file table are [`docs/agents/testing.md`](docs/agents/testing.md).
 
 - **Lint/format:** ruff `line-length=100`, `target-version=py312`, `select=[E,W,F,I,UP,B]`,
@@ -222,8 +221,7 @@ rules — R1–R11 above remain the only rules.
 
 ### Testing
 
-Four rungs — targeted `pytest` in the loop, `check-fast` before a commit, `check` **once** before the
-PR, then read CI. Two semantic markers (`external`, `repo`); no `slow` marker and no test-impact
+Three rungs — targeted `pytest` in the loop, `check` **once** before the PR, then read CI. Two semantic markers (`external`, `repo`); no `slow` marker and no test-impact
 analysis, both for reasons written down. See [`docs/agents/testing.md`](docs/agents/testing.md).
 
 ### Issue tracker
