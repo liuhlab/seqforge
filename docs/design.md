@@ -24,7 +24,8 @@ exactly two jobs — (a) parse prose into span-verified `Assertion`s, (b) arbitr
 *already flagged* (job (b) is modelled but its verb is unbuilt — §9). The compiler runs over **two
 artifacts** — a `manifest.yaml` (what the data IS: immutable, content-hashed) and a `processing.yaml`
 (the recipe: what to DO with it, plural) — and `resolve` has **two** resolvers, siblings that both
-emit evidenced values and both can refuse:
+emit evidenced values and both can refuse (they part on disagreement: the byte resolver blocks, the
+metadata resolver warns — [ADR 0010](adr/0010-two-resolvers-one-blocks-one-warns.md)):
 
 ```
 probe(files)                    -> Observation      deterministic, no LLM, no network, bytes only
@@ -47,23 +48,13 @@ All stages ⇒ R5 (disk is state), R6 (CLI is the API).
 
 ### 0.1 Why this is one package, not two
 
-Two ArcInstitute tools bracket this problem and nothing joins them. **SRAgent** turns an accession +
-its prose into structured metadata (organism, tissue, single-cell, 10x version). **scRecounter**
-fetches, runs STARsolo, and emits a count matrix — but it does **not trust SRA metadata at all**, so
-it *grid-searches* STAR parameters (whitelist version, CB/UMI length, strand, reference) by aligning
-reads under many combinations and picking the winner by fraction of valid barcodes. It re-derives, by
-brute force on real alignments, facts that were sitting in prose SRAgent already read. The gap between
-the two is not a missing feature; it is a missing **interface**.
-
-The manifest is that interface, and once it exists the two tools are one compiler: `harvest` is
-SRAgent's job demoted to *proposing*, `compose` is scRecounter's job driven by a *decided* manifest
-instead of a search. The interface buys three things neither has: **span verification** (extracted
-metadata carries a tripwire, not a confidence score — R2); **cheap eager verification** (one ~100 ms
-onlist check where scRecounter spends a subsample alignment — §3); and **refusal** (an undecidable
-dataset yields a `Blocker`, not a best-scoring guess — R2). And because processing is a separate
-artifact, uniform reprocessing becomes *one recipe among many*. The claim is architectural, not a
-track record: seqforge has compiled the worm pilot end to end, but has not yet executed a pipeline on
-real reads at scale.
+**SRAgent** reads an accession's prose into structured metadata; **scRecounter** runs STARsolo but
+trusts no SRA metadata, so it *grid-searches* STAR parameters against real alignments — re-deriving by
+brute force facts that sat in prose SRAgent had already read. The gap between them is not a missing
+feature; it is a missing **interface**, and the manifest is it: `harvest` is SRAgent's job demoted to
+*proposing*, `compose` is scRecounter's job driven by a *decided* manifest instead of a search. What
+the interface buys that neither tool has, and why the claim is architectural rather than a track
+record: [ADR 0003](adr/0003-manifest-is-the-missing-interface.md).
 
 ---
 
@@ -81,9 +72,8 @@ load-bearing ones: `Uri` runs an `AfterValidator` that rejects any absolute or l
 non-file scheme (`s3://`, `gs://`, `https://`, `sra:`), or a bare accession, never a path to one
 machine. `Basis` is a closed set of **four** — `observed` (from bytes), `asserted` (from humans/DBs),
 `inferred` (derived), `user_confirmed` — and `Rung` is the escalation-ladder step `0..7`. Policy
-defaults are stamped `basis="inferred"` with an `evidence` ref naming the policy rule; whether to add a
-distinct `policy_default` basis is left open (§5), and §1.6b's varying basis makes it unnecessary in
-practice.
+defaults are stamped `basis="inferred"` with an `evidence` ref naming the policy rule; a distinct
+`policy_default` basis is unnecessary because §1.6b's section varies its basis (ADR 0004).
 
 ### 1.1 `Evidenced[T]` — the three-truths carrier (R4)
 
@@ -118,19 +108,13 @@ by the ~3–5× compression ratio; and `FileIdentity.local_uri` is the one place
 
 ### 1.3 `Assertion` — LLM-facing draft split from stored (R1/R2)
 
-The LLM cannot count character offsets, so it emits only `{doc_sha256, quote, context?}`;
-deterministic code searches the normalized document for the quote, computes offsets, and sets the
-two verification flags. This makes the P4 tripwire *fail-closed* instead of *false-rejecting*.
-
 Model: [`models/assertion.py`](../src/seqforge/models/assertion.py). `AssertionDraft` —
-`{field, value, span:{doc_sha256, quote, context?}, llm_confidence}`, no offsets, value a plain string
-— is the LLM's only structured-output surface; code searches the normalized doc for the quote, computes
-the offsets, composes the stored `Assertion`, and **owns** both flags (`span_verified`,
-`entailment_ok`).
-
-`span_verified` catches *fabricated provenance*; `entailment_ok` catches a *real quote mis-attached
-to a wrong value* (the more common LLM failure — a verbatim "single-cell RNA-seq" span pinned to
-"10x 3′ v3.1"). Both must hold before an Assertion flows into `manifest fill`.
+`{field, value, span:{doc_sha256, quote, context?}, llm_confidence}`, no offsets, **no `subject`**,
+value a plain string — is the LLM's only structured-output surface; code searches the normalized doc
+for the quote, computes the offsets, composes the stored `Assertion`, and **owns** both flags
+(`span_verified`, `entailment_ok`), which must both hold before an Assertion flows into `manifest
+fill`. Why the surface carries only fields code can re-check, and why the subject is the *document*:
+[ADR 0008](adr/0008-llm-surface-carries-only-checkable-fields.md).
 
 ### 1.4 `Conflict` — first-class, surfaced (R4)
 
@@ -145,11 +129,11 @@ pair, `kind` is derivable from the position bases, and `resolution` records who 
 
 ### 1.5 `Blocker` / `Warning` — refusal as an exit code (R2)
 
-Model: [`models/blocker.py`](../src/seqforge/models/blocker.py). A `Blocker` is a structured
-refusal emitted alongside a nonzero exit, and is **always fatal** — advisory diagnostics are a separate
-`Warning` type (non-blocking, exits 0), so branching code never inspects a severity field to learn
-whether it blocks. Every Blocker carries an actionable `remedy` and a `subject` that is a basename /
-dotted path / dataset id, never an absolute path. The closed `BlockerCode` set is
+Model: [`models/blocker.py`](../src/seqforge/models/blocker.py). A `Blocker` is a structured refusal
+emitted alongside a nonzero exit and is **always fatal**; advisory diagnostics are a separate
+non-blocking `Warning` ([ADR 0013](adr/0013-cli-is-a-machine-interface.md)). Every Blocker carries an
+actionable `remedy` and a `subject` that is a basename / dotted path / dataset id, never an absolute
+path. The closed `BlockerCode` set is
 `MISSING_TECHNICAL_READ`, `TRUNCATED_GZIP`, `CORRUPT_FASTQ`, `UNSUPPORTED_TECHNOLOGY`,
 `PRETRIMMED_VARIABLE_LENGTH`, `NO_VALID_ROLE_ASSIGNMENT`, `ONLIST_VERIFICATION_FAILED`,
 `UNRESOLVED_CONFLICT`, `MISSING_CONTROLLED_VOCAB`, `ABSOLUTE_PATH`.
@@ -159,13 +143,9 @@ pull the original submitted files `sra-pub-src-*` via the SRA Data Locator / SDL
 
 ### 1.6 `DatasetManifest` — two truths, two authorities (R7/R11)
 
-> **The "three truths / three sections" pun did the damage, and it is gone.** R4's three
-> truths are the three *bases*; nothing in R4 ever depended on there being three *sections*.
-> But both were three, so `processing` inherited the grammar of a truth — `Evidenced` fields,
-> an "authority", a uniform `basis="inferred"` stamped on by construction — and then compose
-> read almost none of them (4 of its 6 fields had no reader at all). A field that is never read
-> cannot produce the `Conflict` R4 promises. §1.0 listing **four** bases against three sections
-> was the tell. Intent now lives in §1.6b, in its own artifact.
+The manifest carries **two** truths, not three sections; intent lives in §1.6b, in its own artifact.
+The "three truths / three sections" pun and the damage it did are
+[ADR 0004](adr/0004-two-artifacts-not-one.md).
 
 Model: [`models/dataset.py`](../src/seqforge/models/dataset.py). The manifest is a finished
 assay — what the bench did — with TWO truths and ONE lifetime, **immutable**. `compose()` is a pure
@@ -173,36 +153,24 @@ function of `(DatasetManifest, ProcessingManifest)`, and `validate()` also enfor
 integrity (every experiment `file_uri` ∈ the library inventory). The decisions the field list can't
 show:
 
-- **`LibrarySection` — physical truth, authority = evidence, one decision → one envelope.** `chemistry`
-  is the *only* `Evidenced` field: it is the joint optimization over (which technology, which file is
-  which read), carried as an equivalence class (`EvidencedChemistrySet`) because benign twins (v3 +
-  v3.1) are recorded together. Everything else *follows* from it — `assay` is the same answer in EFO's
-  vocabulary, `read_layout` is the KB's structure filled with measured lengths, `files[].read_id` is
-  the assignment half of the same optimization (so it is **not** `Evidenced`; the score rides on
-  `chemistry`). They each used to carry their own envelope, and the pilot's manifest showed what that
-  bought: `confidence: 0.750672` printed four times, identical, because it was always one number about
-  one decision. Four envelopes filled from one variable cannot disagree — they were never four truths,
-  and R4 asks only that a value not travel without its provenance, which one honest envelope does.
+- **`LibrarySection` — physical truth, authority = evidence, one decision → one envelope.**
+  `chemistry` is the *only* `Evidenced` field, carried as an equivalence class
+  (`EvidencedChemistrySet`) because benign twins (v3 + v3.1) are recorded together; `assay`,
+  `read_layout` and `files[].read_id` all *follow* from it and carry no envelope of their own —
+  [ADR 0006](adr/0006-one-judgement-one-envelope.md).
 - **`SampleGroup.attributes` is keyed by NCBI's 960 harmonized BioSample names**, with NCBI's own
   definitions ([`io/attributes.py`](../src/seqforge/io/attributes.py)), and the validator refuses
-  anything else. Two typed fields (`tissue`, `condition`) used to sit here and both were wrong:
-  `condition` was *ours* — no archive defines it, and a field named "condition" accepts anything you can
-  call a condition, so a model duly filed worm husbandry into it — and two typed fields cannot hold
-  `strain`, the only structured field separating the pilot's wild-type samples from its daf-2 mutants.
-  An open dict over a controlled vocabulary rather than 960 pydantic fields, because a typed list
-  mirroring somebody else's vocabulary rots the moment they add to it.
-- **`Study` is NOT `Evidenced`** — none of it is an interpretation; the record says the title is X and
-  we copy X exactly as we copy a sha256. The abstract is deliberately absent: it is prose, it belongs
-  in a document a quote can grep into, and pasting a paragraph of English into a content-addressed
-  manifest would make the dataset's identity depend on it.
+  anything else — an open dict over a controlled vocabulary, never typed fields:
+  [ADR 0007](adr/0007-sample-attributes-are-ncbi-keys.md).
+- **`Study` is NOT `Evidenced`**, and its abstract is deliberately absent (ADR 0006) — none of it is
+  an interpretation, and prose belongs in a document a quote can grep into.
 - **`DatasetProvenance` omits `workflow_version`** on purpose — the assay happened before we had an
   opinion about which rules would run over it; that belongs to the processing manifest.
 
 ### 1.6b `ProcessingManifest` — intent, plural (R11)
 
-The flags to §1.6's IR. Many per dataset; that plurality IS the design. `basis` here records **who
-decided**, not how we know — which is why `user_confirmed`, unwritten anywhere else in seqforge since
-the beginning, is the basis this section exists to carry.
+The flags to §1.6's IR. Many per dataset; that plurality IS the design, and `user_confirmed` —
+unwritten anywhere else in seqforge since the beginning — is the basis this section exists to carry.
 
 Model: [`models/processing.py`](../src/seqforge/models/processing.py). The decisions:
 
@@ -213,19 +181,13 @@ Model: [`models/processing.py`](../src/seqforge/models/processing.py). The decis
   strandedness knob — `--quantMode GeneCounts` already emits all three strand columns, so there was
   never a decision to make there.
 - **`basis` records *who decided*:** a CLI flag or an `--instruction` doc → `user_confirmed`, policy →
-  `inferred`. The two `user_confirmed` tiers differ only in *precedence*; the channel lives in
-  `evidence`. That is why §1.0 needs no `policy_default` basis — once a section carries a *varying*
-  basis, `inferred` + a ref naming the rule is distinguishable by inspection.
-- **`dataset is None` ⇒ a template**, portable across 10⁴ datasets (a mandatory pin would destroy
-  uniform reprocessing); set ⇒ **bound**, and `compose` refuses a mismatch with a Blocker and never
-  auto-repins. `compose` ALWAYS writes the bound form it used to `processing.lock.yaml` — disk is
-  state, not input.
+  `inferred`. And **`dataset is None` ⇒ a template**, set ⇒ **bound** — `compose` refuses a mismatch
+  with a Blocker, never auto-repins, and ALWAYS writes the bound form it used to
+  `processing.lock.yaml`. Both decisions: [ADR 0004](adr/0004-two-artifacts-not-one.md).
 
 `run_id = H(dataset_hash ⊕ processing_hash ⊕ kb_version ⊕ workflow_version)` — the pairing is
-recorded here, at compile time, never inside either input. The old `provenance_id(manifest_hash, kb,
-wf)` could not express it: with intent folded into the manifest hash, two recipes over one dataset
-**collided on a single id**, and compose's fixed output path meant the second silently overwrote the
-first. The collision case was exactly the use case the split exists for.
+recorded at compile time, never inside either input, after `provenance_id` collided on two recipes
+over one dataset: [ADR 0005](adr/0005-run-id-is-the-pairing.md).
 
 ### 1.7 Score / compile output models (were missing — Blocker A)
 
@@ -234,34 +196,21 @@ a first-class Pydantic type so `schema export` references only types that exist,
 object round-trips through JSON Schema.
 
 Models: [`models/`](../src/seqforge/models/) (the score / resolve / compose / run / eval result
-types). Two decisions worth stating: `TechScore` is
-**JSON-safe** — no ±inf ever appears in serialized output, `status="forbidden"` means a
-requires/excludes gate failed and `status="scored"` carries the finite normalized value; and
-`ArbitrationRequest` / `ArbitrationResponse` are the opt-in, still-unbuilt LLM job-(b) schemas, where
-the response references a position by *index* and re-derives no values.
+types). Two decisions worth stating: `TechScore` is **JSON-safe**
+([ADR 0014](adr/0014-no-inf-across-the-json-seam.md)); and `ArbitrationRequest` /
+`ArbitrationResponse` are the opt-in, still-unbuilt LLM job-(b) schemas, where the response
+references a position by *index* and re-derives no values.
 
 ### 1.7b The LLM provider is pluggable (implemented)
-
-`harvest extract` is the only LLM touchpoint, and nothing downstream trusts it: code re-greps every
-quote, checks entailment, and validates the batch against `AssertionDraft` before anything reaches a
-manifest. **That is precisely what makes the vendor swappable** — the provider choice is about cost
-and extraction quality, never about correctness guarantees. seqforge is therefore not locked to any
-vendor:
 
 Three providers ship: `anthropic` (strict `json_schema`, shape **guaranteed**; explicit
 `cache_control`; default `claude-opus-4-8`), `deepseek` (`json_object` only, shape **not** enforced;
 automatic prefix caching; `deepseek-v4-pro`, V4-Flash ≈3× cheaper), and `openai-compatible` (any
-`base_url`, caller-supplied model). **The capability gap is contained, not papered over:** for
-json-object providers the schema and a worked example travel in the prompt (DeepSeek *requires* the
-word "json" plus an example), and `ExtractionResult.model_validate_json` is the gate — a wrong shape
-fails the **whole batch** loudly rather than leaking a half-parsed assertion. One prompt serves every
-provider, so `prompt_version` stays comparable; `ExtractorProvenance.model_id` records `provider/model`,
-because the same prompt on a different model is a different extractor and evals must tell those runs
-apart.
-
-Selection is explicit-beats-implicit (`--provider` / `SEQFORGE_LLM_PROVIDER`, else auto-detect from
-`DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`), and **refuses rather than guessing** when no credential is
-present — silently extracting with a different model than intended is a provenance bug.
+`base_url`, caller-supplied model). Selection is explicit-beats-implicit (`--provider` /
+`SEQFORGE_LLM_PROVIDER`, else auto-detect from `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`) and
+**refuses rather than guessing** when no credential is present. Why span verification is what makes
+the vendor swappable, and how the json-object capability gap is contained rather than papered over:
+[ADR 0009](adr/0009-llm-provider-is-pluggable.md).
 
 ### 1.8 JSON Schema export — the single source of truth
 
@@ -316,8 +265,9 @@ Schema model: [`kb/schema.py`](../src/seqforge/kb/schema.py). The decisions the 
 
 **What moved out of the KB backend:** CellRanger-parity knobs (`soloUMIdedup 1MM_CR`,
 `soloUMIfiltering MultiGeneUMI_CR`, `clipAdapterType CellRanger4`, `outFilterScoreMin 30`) are
-processing **policy**, not chemistry — they are applied at `compose` time from `processing`, so
-`backend_identical` (below) stays sensitive to chemistry, not policy.
+processing **policy**, not chemistry. The parse/count key split that puts them there — and makes "an
+instruction contradicts the bytes" inexpressible — is
+[ADR 0011](adr/0011-closed-instructable-surface.md).
 
 ### 2.2 Worked spec — `10x-3p-gex-v3` (fixed offsets)
 
@@ -385,21 +335,10 @@ no hand-maintained truth table:
    forms are byte-equal. *(Including role placement matters: two techs differing only in which read
    is biological would otherwise be falsely labeled benign.)*
 
-   **List order is significant and must not be normalized.** This rule used to say "normalize
-   `soloFeatures` order", which was its only justification for sorting — and soloFeatures has since
-   left `backend.params` (R11: it says what to *count*). What the sort would normalize now is the
-   only list-valued parse param left, splitseq's `soloCBwhitelist: [round1, round2, round3]`, which
-   is **positional**: rounds map to CB positions in order. Verified before deletion —
-   `backend_identical(splitseq, splitseq-with-rounds-reversed)` returned **True**: two chemistries
-   that parse reads differently, declared benign twins, one config emitted for both. It never fired
-   only by the alphabetical accident that `round1 < round2 < round3`.
-
-   Since R11, this predicate means exactly *"these two chemistries parse reads identically"* — which
-   is what `processing_equivalent` should always have meant, and makes the rule **stronger**: two
-   specs differing only in what they count are no longer distinguishable here, because that is not a
-   chemistry fact at all. (This also resolves an inconsistency: §2.1 named soloFeatures in the
-   canonicalization while the CellRanger-parity note argued `backend_identical` must stay insensitive
-   to policy. The second was right.)
+   **List order is significant and must not be normalized** — sort keys, never list values. Since
+   R11 the predicate means exactly *"these two chemistries parse reads identically"*; the deleted
+   sort, and the `backend_identical(splitseq, splitseq-with-rounds-reversed) == True` finding that
+   forced its deletion, are [ADR 0011](adr/0011-closed-instructable-surface.md).
 
 **§2.4 benign rule (the biconditional CI asserts):** `backend_identical(A,B) ⟺ relationship ==
 processing_equivalent`. v3 vs v3.1 → identical module + `soloCB*/UMI*` + whitelist sha + strand +
@@ -483,9 +422,9 @@ M_t[r][f] = FORBIDDEN                          if any requires(r) gate FAILs, or
           = Σ_{s ∈ supports(r)} w_s · local_score(s,r,obs_f)     otherwise   ∈ [0,1]
 ```
 
-`FORBIDDEN` is the internal sentinel `float("-inf")` **for computation only**. Serialized (`--json`)
-it is `{"status":"forbidden"}`; a scored cell is `{"status":"scored","value":x}` — **no `±inf` ever
-crosses the JSON boundary** (JSON can't represent it and Pydantic's inf handling is lossy).
+`FORBIDDEN` is the internal sentinel `float("-inf")` **for computation only**; serialized, a cell is
+`{"status":"forbidden"}` or `{"status":"scored","value":x}` — **no `±inf` ever crosses the JSON
+boundary** ([ADR 0014](adr/0014-no-inf-across-the-json-seam.md)).
 
 ### 3.3 The joint optimization (cardinality-normalized)
 
@@ -599,13 +538,12 @@ surfaced `Conflict` (library keeps observed v3/v3.1) — each land the outcome �
 
 ## 4. CLI verb surface (Typer; JSON on stdout by default)
 
-**Conventions.** Machine JSON to **stdout**, human logs to **stderr**, so stdout is a clean pipe.
-There is **no `--json` flag** — JSON is the default and only machine format (`kb list` is the one
-plain-text verb). Universal flags: `-C/--workspace`, `--kb`/`--kb-version`, `--no-cache`, `--offline`.
+**Conventions** ([ADR 0013](adr/0013-cli-is-a-machine-interface.md)). Machine JSON to **stdout**,
+human logs to **stderr**; there is **no `--json` flag** (`kb list` is the one plain-text verb).
+Universal flags: `-C/--workspace`, `--kb`/`--kb-version`, `--no-cache`, `--offline`.
 **Exit codes (uniform):** `0` OK · `1` ERROR (bug/IO, not a domain refusal) · `2` USAGE ·
 `3` BLOCKED (≥1 `Blocker`) · `4` NEEDS_HUMAN (open `Conflict` / non-empty `questions.md`).
-`probe`/`io peek` never return 3/4 — they only observe; refusal happens downstream when a validator
-reads the observation.
+`probe`/`io peek` never return 3/4 — they only observe.
 
 ```
 seqforge
@@ -687,31 +625,14 @@ reports `pass` / `fail` / **`skip`**, and `params` — which needs no toolchain 
    the exonic truth alone (recovery 0.979) and `GeneFull` = exon + intron (0.97), again 0 spurious /
    0 inflated, resolve deciding the chemistry from ce11 bytes unaided.
 
-   **That run measured a real defect, and the defect is now FIXED: `gene_signal_lost = 0.407`.**
+   **That run measured a real defect, and the defect is now FIXED: `gene_signal_lost = 0.407`** —
    `--soloFeatures Gene` silently discards **40.7 %** of a nuclear library, and `composed_soloFeatures`
-   was `[Gene]` — i.e. the compiler *would* have emitted it. The KB filed `soloFeatures` under
-   `backend.params`, but 10x 3′ v3.1 chemistry is byte-identical for cells and nuclei: what differs is
-   the RNA population, a property of **sample prep**, not chemistry. Surfaced by pre-registering
-   PRJNA1027859 (single-**nucleus** RNA-seq) from declared metadata — before the run, without touching
-   the data.
-
-   **Resolved (R11).** `backend.params` says how to **parse** reads (soloType/CB/UMI/whitelist/strand);
-   the **processing manifest** says what to **count** — and `params_gate` now fails if the emitted
-   config disagrees with it (policy used to hardcode `"gene"` into the manifest and let compose ignore
-   it for the KB: two sources of truth that couldn't disagree only because one was never read). The
-   counting question is then *dissolved, not answered*: `soloFeatures` defaults to all five, so GeneFull
-   is computed whether or not anyone says the prep is nuclear. The CHANGELOG's earlier remedy — an
-   unknown prep raising a `Question` (exit 4) — was **withdrawn, not implemented**: it traded a silent
-   wrong answer for a question, and the all-five default buys back both; an exit-4 that never needed to
-   fire only trains people to route around exit codes. The fixture proves it landed — with its
-   `[Gene, GeneFull]` override deleted it runs on the compiler's own params and asserts
-   `composed_soloFeatures ⊇ {Gene, GeneFull}`, so the fixture that *priced* the defect is now the gate
-   that *prevents* it.
-
-   **Velocyto is unconditional — a maintainer decision (2026-07-15), not a measurement.** The
-   pre-registered rule (">2× wall-clock or over the `mem_gb` hint ⇒ drop to four") is **retired**, and
-   retired rather than tested-and-passed — the two leave the same trace unless someone records which
-   happened, and this one was never tested. `--quantify` still narrows.
+   was `[Gene]`, i.e. the compiler *would* have emitted it. Resolved by R11 (parse vs count) plus an
+   all-five `soloFeatures` default rather than the exit-4 question first proposed, so the fixture that
+   *priced* the defect is now the gate that *prevents* it — with its `[Gene, GeneFull]` override
+   deleted it asserts `composed_soloFeatures ⊇ {Gene, GeneFull}` against the compiler's own params.
+   Velocyto is unconditional, a maintainer decision (2026-07-15) and not a measurement; `--quantify`
+   still narrows. All three: [ADR 0012](adr/0012-produce-every-answer-rather-than-ask.md).
 
    **Peak RSS at 10⁴ × hg38 is measured** (`kb e2e-cost` on hg38, 2026-07-15): **34.7 GB at 100 M
    reads, 44.1 GB at 250 M**, so the flat regime ends between, and `peak_rss ≈ genome-sized intercept +
@@ -744,9 +665,8 @@ with no LLM except `harvest extract`** — so `run --no-llm` drives the whole co
 head/byte bound — **size-blind by design** (it never stats the file: a path that *can* stream a
 multi-GB FASTQ is the bug, R3) — **and** any write of an absolute path / `/scratch/**` into a manifest
 or config; `PostToolUse` auto-runs `manifest validate` after any manifest edit; `Stop` refuses to end
-a turn while `resolve/*/questions.md` is non-empty. Because `run` leaves adjudication off, the Stop
-hook and exit 4 are the only ways ambiguity clears — both route to a human — which keeps the batch to
-one LLM touchpoint.
+a turn while `resolve/*/questions.md` is non-empty (the Stop hook and exit 4 are the only ways
+ambiguity clears — ADR 0013).
 
 **`seqforge/` (no leading dot; resumable, content-addressed):** the top level holds only what a human
 reaches for; state sorts into `cache/`, `records/`, and `logs/`. Under `cache/`: per-file
@@ -764,6 +684,8 @@ exists). Compiled output lives under `pipeline/<recipe>-<run_id[:12]>/` — `run
 processing ⊕ kb ⊕ workflow)`, keyed by the **run** so one dataset compiled two ways does not overwrite
 itself — each carrying `config.yaml`, `units.tsv`, the `Snakefile`, a **copy of the hand-written
 module** it imports locally, and `processing.lock.yaml` (the dataset-bound recipe that produced it).
+Barcode whitelists are **not** stored: `rule onlist` builds one, STAR reads it, `temp()` deletes it
+([ADR 0015](adr/0015-onlists-are-built-and-deleted.md)).
 
 ---
 
@@ -779,7 +701,8 @@ Ranked; ✔ = folded into this design, ✱ = open for the maintainer. Full detai
 5. ✔ **Onlist orientation is per (chemistry, read), not per list** — registry value is a hint only (§1.6).
 6. ✔ **Onlist index must be width-generic** — SPLiT-seq's 8 bp blocks, not a hardcoded 16 (§3.1).
 7. ✔ **The exact-span contract is infeasible as an LLM instruction** — LLM emits `quote`, code
-   computes offsets; verify also checks entailment (§1.3).
+   computes offsets; verify also checks entailment (§1.3,
+   [ADR 0008](adr/0008-llm-surface-carries-only-checkable-fields.md)).
 8. ✔ **The dry-run gate can't catch a strand inversion** — split gate + `kb e2e` count-matrix run (§4.1).
 9. ✱ **Pre-registering PRJNA1027859's organism vs "don't tune against it"** — safe reading:
    `expected.yaml` uses GEO-declared metadata + provider-independent prior only, committed before any
@@ -846,15 +769,10 @@ means. Its on-disk root lives in local, out-of-git config, never in this repo �
 too large for git, and a lab path is not a project fact. `ce11` (C. elegans, taxid 6239, WBcel235) is
 confirmed available in liulab-genome.
 
-**It was a held-out acceptance case until 2026-07-15**, when the maintainer retired the designation:
-reserving it was a misunderstanding of what it is for. The `PreToolUse` guard and the
-`SEQFORGE_CASE_*` root registry that enforced it are deleted, not suspended. The project has no
-held-out case.
-
-Its pre-registration (`evals/cases/real/PRJNA1027859/expected.yaml`) stands and stays honoured — written
-from declared metadata and provider-independent prior knowledge only, committed before any run, never
-from a value read out of the data. That discipline never depended on the data being reserved: it is
-what makes the file a prediction rather than a transcript, and only a prediction can be wrong.
+**It was a held-out acceptance case until 2026-07-15**, when the maintainer retired the designation —
+the `PreToolUse` guard and the `SEQFORGE_CASE_*` root registry that enforced it are deleted, not
+suspended, and its pre-registration (`evals/cases/real/PRJNA1027859/expected.yaml`) stands in its
+place: [ADR 0016](adr/0016-no-held-out-dataset.md).
 
 **The benchmark, in two tiers (#56 workstream 2, #73).** A dataset enters the eval corpus through a
 byte-light **fingerprint package** rather than its FASTQs: the `fingerprint` recipe kind
