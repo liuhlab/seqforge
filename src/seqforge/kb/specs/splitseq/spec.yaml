@@ -13,8 +13,8 @@ schema_version: 1
 # Read 2 (94 cycles) reads, 5'->3':
 #   [10 bp UMI][8 bp Round3][30 bp linker1][8 bp Round2][30 bp linker2][8 bp Round1]
 # Read 1 (66 cycles) reads the cDNA. Round1 is the RT/first-round (oligo-dT/randN) barcode; Round3 is
-# nearest the sequencing primer. Whitelists: 96 x 8 bp per round (register the actual barcode files
-# from scg_lib_structs before a real run — the KB declares the registry name, never vendors the list).
+# nearest the sequencing primer. Whitelists: 96 x 8 bp per round, derived from Table S12 and shipped —
+# see the note above `onlists:` for the derivation and what about it is still unconfirmed.
 #
 # INDEPENDENTLY RECONSTRUCTED from the paper's own Table S12 oligos (PMC7643870): assembling the RT
 # primer + round-2/round-3 ligation oligos 5'->3' reproduces both linkers base-for-base and lands
@@ -70,6 +70,25 @@ reads:
          sequence: "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"}
       - {type: barcode, name: bc1, start: 86, end: 94, onlist: round1,    seqspec_region_type: barcode}
 
+# The three round whitelists are DERIVED from the paper's own Supplementary Table S12, not copied from
+# a secondary list: scg_lib_structs publishes the oligo table but no barcode file, so there was nothing
+# to copy. Source, pinned:
+#   https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx
+#   sha256 1bf965120d296995ee6793340b5ee0fecf3c06806a55a5318cd5d15cd6bae426
+# Each 8 bp barcode is cut from between the flanks its own oligo carries, so the extraction is checked
+# by the geometry rather than trusted: those flanks reconstruct THIS FILE'S linker1 and linker2
+# base-for-base (round3's oligo ends GTGGCCGATGTTTCG + round2's begins CATCGGCGTACGACT = linker1;
+# round2's ends ATCCACGTGCTTGAG + round1's begins AGGCCAGAGCATTCG = linker2). A mis-cut barcode would
+# break that reconstruction, which is why the two facts are worth stating together.
+#
+# ALL THREE ROUNDS USE ONE 96-BARCODE SET, in the same well order — only the flanks differ. Three
+# registry names are kept anyway: STARsolo's CB_UMI_Complex takes three whitelist paths, and a
+# descendant chemistry that diverges per round needs somewhere to say so.
+# Pinned by `test_the_splitseq_rounds_are_one_barcode_set`.
+#
+# STILL OPEN: no real SPLiT-seq dataset has been run against these. The derivation is from primary
+# oligos and self-checked against the linkers, but hit rate on GSE110823 reads is unmeasured — the
+# same bounded rung-6 confirmation `soloStrand` below is waiting on, and the same run settles both.
 onlists:
   round1: {registry: splitseq-round1, role: cell_barcode, expected_orientation: forward}   # 96 x 8 bp
   round2: {registry: splitseq-round2, role: cell_barcode, expected_orientation: forward}

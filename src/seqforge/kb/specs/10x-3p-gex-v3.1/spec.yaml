@@ -116,7 +116,9 @@ confusable_with:
     note: >
       REQUIRED declaration: GEM-X 3' v4 shares the 28 bp / 16+12 geometry and is separable only by
       its newer whitelist. v3.1 inherits every one of v3's divergent confusables — it is the same
-      chemistry to the probe, so it is confusable with exactly the same things.
+      chemistry to the probe, so it is confusable with exactly the same things. The whitelist ships
+      as `3M-3pgex-may-2023`; see v3's note for the measured separation and for what is still
+      missing (the `10x-gemx-3p-v4` spec itself).
   - id: 10x-5p-gex
     relationship: processing_divergent
     distinguishable_by: [metadata, alignment]

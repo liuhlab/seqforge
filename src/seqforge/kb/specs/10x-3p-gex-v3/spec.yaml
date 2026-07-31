@@ -110,10 +110,20 @@ confusable_with:
     note: >
       REQUIRED declaration: GEM-X 3' v4 shares the 28 bp / 16+12 geometry and is separable only by
       its newer whitelist. Without this entry the flagship fails the CI under-declaration check.
+      That whitelist now SHIPS as `3M-3pgex-may-2023`, and the separation is measured rather than
+      assumed: the two lists share 68 254 of ~7 M barcodes, so a v4 library hits this entry's
+      `3M-february-2018` at most 0.9% — an order of magnitude under any hit-rate threshold. What is
+      still missing is the `10x-gemx-3p-v4` spec itself; until one exists this stays a forward
+      declaration and rung 3 has nothing to compare against.
   - id: 10x-5p-gex
     relationship: processing_divergent
     distinguishable_by: [metadata, alignment]
     note: >
-      5' chemistry reads antisense cDNA -> soloStrand Reverse. Read-undecidable when geometry and
-      whitelist coincide; metadata (rung 0) or alignment (rung 6) resolves it.
+      5' chemistry reads antisense cDNA, which reads as soloStrand Reverse — NOT pinned, and not to
+      be shipped as a param from that alone; the evidence and what it is short of are in
+      docs/agents/kb.md. Read-undecidable when geometry and whitelist coincide, which is a statement
+      about a version PAIRING rather than about 5' as such: 5' v1/v2 reuse this list's 3' v2 sibling
+      737K-august-2016 and genuinely coincide, while 5' v3 has its own 3M-5pgex-jan-2023 and shares
+      only 0.62% with 3M-february-2018. Metadata (rung 0) or alignment (rung 6) resolves the
+      coincident case.
 

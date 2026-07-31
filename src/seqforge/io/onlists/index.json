@@ -1,4 +1,12 @@
 {
+  "3M-3pgex-may-2023": {
+    "n_entries": 7372800,
+    "orientation": "forward",
+    "sha256": "96519e238d7aec40ffa149831a4ba08433208400338eda03fc1bc37ff59c3f49",
+    "source_sha256": "62df04844ed0d1281b302f862ec0d005d3298fc169f507f68dd6e8d4cb5ccccd",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/10X-Genomics/3M-3pgex-may-2023.txt.gz",
+    "width": 16
+  },
   "3M-february-2018": {
     "n_entries": 6794880,
     "orientation": "forward",
@@ -78,5 +86,29 @@
     "source_sha256": "7effc6c4ddfe9ca255d74fec2f5a8b6a98e853e2b20038978f0887c86d40b722",
     "uri": "https://raw.githubusercontent.com/imallona/rhapsodist/main/workflow/data/whitelist_384x3/BD_CLS3.txt",
     "width": 9
+  },
+  "splitseq-round1": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
+  },
+  "splitseq-round2": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
+  },
+  "splitseq-round3": {
+    "n_entries": 96,
+    "orientation": "forward",
+    "sha256": "dc30da106722a3926886221ea6955e88b57e3abf8f8558c9db9f58aec0b26351",
+    "source_sha256": "346ecc6bf50e72c91e0ec115ca22918abbfa8d3dae7be0dab9e602a1564de199",
+    "uri": "https://teichlab.github.io/scg_lib_structs/data/SPLiT-seq/aam8999_tables12.xlsx",
+    "width": 8
   }
 }
