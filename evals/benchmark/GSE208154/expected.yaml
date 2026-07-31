@@ -1,0 +1,59 @@
+# PRE-REGISTERED 2026-07-31, BEFORE any probe / resolve / eval touched these bytes. Written from the
+# GEO/SRA/BioSample record (records.json beside this file), SRA's own per-read table, and the paper —
+# never from a value read out of a run. ADR-0016: only a prediction can be wrong.
+#
+# WHY THIS RUN, AND WHAT IT PINS. This is the corpus's BARCODE-ABSENT case, and it is the real thing
+# rather than a re-fetchable accident. GSE208154's 11 runs were submitted to SRA as Cell Ranger
+# `possorted_genome_bam_*.bam` files, so:
+#   * ENA generated NO FASTQ at all (it does not, for BAMs carrying CB/CR/CY/RX/QX tags), and
+#   * SRA's normalized run declares nreads=1 — ONE 91 bp read per spot, the cDNA.
+# The cell barcode and UMI live in the BAM's tags, which are not reads, so `fasterq-dump
+# --include-technical` cannot bring them back: unlike GSE229022, where the 28 bp barcode read is
+# merely skipped on the way out of an intact .sra, here it is not in the archive's read space at all.
+# A single 91 bp cDNA file that is *declared* single-cell is precisely the shape that must NOT be
+# quietly compiled as bulk.
+#
+# THE PREDICTION, AND WHY IT IS THIS.
+#   * `refuse`, not `decide`. No KB spec can fill two roles from one file, so no candidate has a valid
+#     injective assignment. (`bulk-rnaseq-pe` cannot rescue it either: it needs two mates.)
+#   * `MISSING_TECHNICAL_READ`, not `UNSUPPORTED_TECHNOLOGY`. That distinction is the point of the
+#     case. The generic code is what a lone unrecognised read gets; the specific one is only reachable
+#     when a single-cell chemistry has been asserted and its BARCODE role is the unfillable one while
+#     its cDNA role is fillable — which is exactly this dataset, and which no case in either tier
+#     covers today (neither MISSING_TECHNICAL_READ nor BARCODE_READ_ABSENT appears anywhere in
+#     `evals/`). The assertion is declared as a hypothesis in inputs/recipe.yaml rather than harvested,
+#     so the case runs with no API key; the claim it stands in for is a verbatim GEO sentence, quoted
+#     below, that a real `harvest extract` would span-verify.
+#   * `library.chemistry: 10x-3p-gex-v3` records what the library IS, not what these bytes can prove.
+#     GEO's extract protocol states it outright: "Cells were processed into libraries using 10x
+#     Genomics Chromium Single Cell 3' V3 Chemistry as directed by the manufacturer." Field checks do
+#     not run on a refusal, so this value is documentation of the ground truth and the reason the
+#     refusal is correct — a run that DECIDED v3 from a barcode-free file would be the false accept
+#     this case exists to catch, and grades as one.
+#
+# WHAT A RED HERE WOULD MEAN. `decide` = the compiler emitted a manifest for a single-cell dataset
+# whose barcodes it never saw; every cell boundary downstream would be fiction, at exit 0, in a corpus
+# nobody re-reads. `refuse` with a different code = the refusal still stopped the pipeline but sent
+# the human somewhere other than "the technical read is missing, re-fetch the originals", which is the
+# one remedy that actually applies (here: the `sra-pub-src-*` BAM via the SDL API, since
+# `--include-technical` will not help).
+#
+# packages/GSE208154.fingerprint.tar.gz was uploaded 2026-07-31, AFTER every line above was written
+# and committed. Graded against it, the run refused with MISSING_TECHNICAL_READ as predicted.
+outcome: refuse
+description: >-
+  Benchmark: GSE208154 (Roux et al., Cell Rep. 42:112902, 2023) — the corpus's barcode-absent case,
+  and the only exercise of MISSING_TECHNICAL_READ anywhere in `evals/`. SRR20172077 was submitted as a
+  Cell Ranger BAM, so the archived run holds one 91 bp cDNA read and no barcode read at all, while the
+  record declares 10x Chromium 3' v3. Refusing is the whole job: deciding anything from these bytes
+  means a single-cell manifest built on barcodes the compiler never saw.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+blockers:
+- MISSING_TECHNICAL_READ
+fields:
+  # What the library IS (GEO, verbatim), not what one 91 bp file can establish. Unchecked on a
+  # refusal by design; a run that resolves it from these bytes grades false_accept.
+  library.chemistry: 10x-3p-gex-v3

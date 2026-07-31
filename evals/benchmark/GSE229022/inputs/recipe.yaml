@@ -1,0 +1,11 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# SRR27685600 (GSM8029690, SRX23352753) — one run out of PRJNA952585's 40, chosen because its spot
+# carries FOUR reads: I1 10bp + I2 10bp + R1 28bp + R2 90bp, the 10x dual-index layout. It is the only
+# package in either tier with an index read in it, so it is the only test that a file eligible for no
+# role is left unassigned rather than seated. Rebuild with:
+#   seqforge preflight --accession SRR27685600 -n 20000 -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE229022.fingerprint.tar.gz

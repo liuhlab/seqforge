@@ -1,0 +1,80 @@
+# PRE-REGISTERED 2026-07-31, BEFORE any probe / resolve / eval touched these bytes. Written from the
+# SRA + BioSample record (records.json beside this file), SRA's own per-read table, and the paper —
+# never from a value read out of a run. ADR-0016: only a prediction can be wrong.
+#
+# WHY THIS RUN. PRJNA952585 has 40 runs in three layouts; SRR27685600 (GSM8029690, SRX23352753) is
+# picked for its spot structure, which SRA's read table declares as FOUR reads of 10 / 10 / 28 / 90 bp
+# and whose original submitted filenames the run record still lists:
+#   Max_10x_MW1_S1_L001_{I1,I2,R1,R2}_001.fastq.gz
+# That is a 10x DUAL-INDEX library: an i7 and an i5 index read sitting alongside the 28 bp barcode
+# read and the 90 bp cDNA read. Nothing else in either tier has an index read in it — a `spec` recipe
+# generates exactly the roles its spec declares, and every other benchmark package is a two- or
+# three-file mirror — so this is the corpus's only test that a file eligible for NO role is left
+# UNASSIGNED instead of seated in one.
+#
+# THE PREDICTION, AND WHY IT IS THIS.
+#   * chemistry — 28 bp = 16 bp CB + 12 bp UMI is the v3 geometry (v2 is 26), so `10x-3p-gex-v3` with
+#     v3.1 recorded as its processing-equivalent member, exactly as PRJNA1195922 resolves. GEO's
+#     extract protocol says "10X Chromium Single Cell 3' v2/v3 Solution protocol (Single/dual index)"
+#     and then quotes the v2 recommended cycles (26 / 8 / 98); the archive's own read table says the
+#     cycles actually run were 28 and 90 with two 10 bp indices, i.e. the dual-index v3.1 kit. Where
+#     the protocol paragraph and the archive disagree, the archive is the claim being tested.
+#   * roles — pinned by file, because that IS the property under test. The 28 bp mate must take R1 and
+#     the 90 bp mate R2, leaving both 10 bp index mates unassigned at the leftover penalty
+#     (lambda 0.25 per file, normalized by role count => score ~0.75 rather than ~1.00) WITHOUT that
+#     penalty demoting v3 below a rival. `preflight --accession` streams with `--include-technical`
+#     and names each mate `<SRR>_<1-based within-spot read index>`, so the four mates land as
+#     SRR27685600_1..4 = I1, I2, R1, R2 and the labels below are their basenames minus `.fastq.gz`.
+#   * experiment.* — transcribed from the archive's own BioSample/SRA records, so they do not depend
+#     on our compiler at all.
+#
+# WHAT A RED HERE WOULD MEAN. Either an index read got seated in a real role — silently wrong
+# barcode/cDNA geometry, which STARsolo turns into an empty or garbage matrix at exit 0 — or the
+# leftover-file penalty grew until an ordinary 4-file 10x submission stopped resolving.
+#
+# APPENDED 2026-07-31, after the pre-upload verification run against the locally built package. The
+# prediction above stands as written; this is the one number in it that was off. Every graded field
+# held (chemistry, equivalence, both roles, all four experiment.* claims, exit 0, rung 3, zero
+# conflicts), and both index mates were left unassigned as predicted — but the winning score is
+# **0.538**, not the "~0.75" the sketch above reasoned to. The leftover penalty is exactly the
+# predicted 0.25; the gap is on the other side of the subtraction: the raw normalized support sums to
+# ~0.79 rather than ~1.00 on these real reads, so the arithmetic was right and the assumption that a
+# real library maxes its supports was not. Nothing about the ordering changes — v3/v3.1 still clear
+# every rival by a wide margin — and the claim under test was always "the index reads are left
+# unassigned", never the absolute score.
+#
+# NOT PINNED, deliberately: `experiment.study.center` ("4D Cellular Physiology, Janelia Research
+# Campus") is the SRA submitting account's label, which a re-submission moves without the science
+# moving; pruned for the same reason PRJNA1195922's was.
+#
+# packages/GSE229022.fingerprint.tar.gz was uploaded 2026-07-31, AFTER every line above was written
+# and committed. Graded against it, the run agreed on outcome, chemistry and both role assignments.
+outcome: decide
+description: >-
+  Benchmark: GSE229022 / PRJNA952585 (Gao et al., Nat Aging 2024) — the corpus's only INDEX-READ
+  layout. SRR27685600 streams four mates from its .sra (I1 10bp, I2 10bp, R1 28bp, R2 90bp), so
+  resolve must seat 10x 3' v3 on the 28 bp and 90 bp mates and leave both dual-index reads
+  unassigned. Breaking it means a file that fills no role got seated in one, or that the leftover
+  penalty now refuses a routine 10x submission that happens to carry its index reads.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: 10x-3p-gex-v3
+  library.equivalence_members:
+  - 10x-3p-gex-v3.1
+  # The load-bearing claim: the 28 bp mate is the barcode read and the 90 bp mate is cDNA, which is
+  # only true if SRR27685600_1 and _2 (the 10 bp index reads) were left unassigned.
+  library.roles.R1: SRR27685600_3
+  library.roles.R2: SRR27685600_4
+  experiment.organism: 6239
+  experiment.study.title: Single nuclei gene expression profile for adult C. elegans and several
+    longevity mutants
+  experiment.samples.*.strain:
+  - Wild-type(N2)
+  experiment.samples.*.tissue:
+  - whole body
+  # Both shapes, per ADR-0016. One library is fingerprinted here, so `*` cannot be shuffled against
+  # anything — the named-accession claim is what keeps the pair honest if the case ever grows.
+  experiment.samples.SAMN39550238.age: day12
