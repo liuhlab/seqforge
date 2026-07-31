@@ -1,9 +1,25 @@
 {
+  // Where the environment IS, for the extension that picks one. `python-envs` searches
+  // `[".venv", "*/.venv"]` by default and so never looks inside a pixi prefix -- which is why the
+  // interpreter silently fell back to a system python 3.10 and every third-party import went
+  // unresolved while the pixi env sitting in the tree had them all. `defaultInterpreterPath` did not
+  // save it: that key is only a fallback for when nothing has been selected, and something had.
+  "python-envs.workspaceSearchPaths": [".pixi/envs/default"],
   "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/bin/python",
   "python.terminal.activateEnvironment": false,
   "python.analysis.extraPaths": ["${workspaceFolder}/src"],
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": ["tests"],
+  // The editor's checker IS the pipeline's checker: the same binary, reading the same
+  // `[tool.mypy]` scope out of pyproject.toml, so a clean editor means a green typecheck. Pylance's
+  // competing checker is switched off in pyproject.toml (not here) so that any pyright-based
+  // language server honours it, not only this editor.
+  "mypy-type-checker.interpreter": ["${workspaceFolder}/.pixi/envs/default/bin/python"],
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  // No arguments: the scope, the strictness and the overrides all live in pyproject.toml. An
+  // argument here would be a second place to declare them, and a second place is a place to drift.
+  "mypy-type-checker.args": [],
+  "mypy-type-checker.reportingScope": "workspace",
   "search.exclude": {
     "**/.pixi": true
   },
