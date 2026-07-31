@@ -22,7 +22,7 @@ with no `snakemake` — but it is no longer a rung, because a rung that saves no
 should be told to climb.
 
 **Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
-under ten. Nothing about a one-line change is learned by running 823 tests that a targeted run does
+under ten. Nothing about a one-line change is learned by running ~829 tests that a targeted run does
 not tell you in a tenth of the time.
 
 **Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
@@ -68,7 +68,7 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work — 727 tests against 822. Both it and `test` run under `pytest-xdist` — see below.
+mostly real work — ~735 tests against ~829. Both it and `test` run under `pytest-xdist` — see below.
 
 **One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
 `tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
@@ -118,21 +118,26 @@ pixi run test-fast                                      # the suite minus what n
 serial: starting twelve workers to run three tests costs more than it saves, and rung 1 is where you
 live.
 
-The worker count was measured, not chosen (2026-07-30, 48-core box, whole suite):
+The worker count was measured, not chosen (re-measured 2026-07-30 after the fixture-sharing work,
+48-core box, whole suite):
 
 | workers | wall |
 | ------- | ---- |
-| serial | 80.2s |
-| 8 | 19.9s |
-| **12** | **15.3s** |
-| 16 | 20.2s |
-| `auto` (48) | 26.7s |
+| serial | 61.0s |
+| 8 | 11.8s |
+| **12** | **10.2s** |
+| 16 | 10.1s |
+| `auto` (48) | 22.9s |
 
 **More workers stop helping at twelve and then actively hurt.** Every worker pays the interpreter
-import and rebuilds each session-scoped fixture — `synth_10x_v3` among them — so past the knee that
-fixed cost grows faster than the remaining work shrinks. `-n auto` on this box means 48 workers and
-is *slower than 12*; a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason.
-`auto` capped at 12 is the one spelling that is right in both places.
+import and rebuilds each session-scoped fixture, so past the knee that fixed cost grows faster than
+the remaining work shrinks. `-n auto` on this box means 48 workers and is *less than half the speed of
+12*; a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason. `auto` capped at 12
+is the one spelling that is right in both places.
+
+12 and 16 are now within noise of each other, which is what the fixture sharing bought: the knee got
+flatter because there is less per-worker fixed cost to pay. The cap stays at 12 — it is the smaller
+number on a tie, and the 2-core-runner argument is unchanged.
 
 `--dist loadfile` was measured and rejected: it sits at ~28s at every worker count, because it hands
 a whole file to one worker and `tests/test_compile.py` is then the floor.
@@ -205,8 +210,8 @@ exact failure mode this project refuses everywhere else. See
 
 ## What the suite costs, and why
 
-Measured on one box. The suite was **164s serial**; it is now **~15s on twelve workers** (78s if you
-force it serial), and none of that came from making a test weaker:
+Measured on one box. The suite was **164s serial**; it is now **~10s on twelve workers**, and none of
+that came from making a test weaker:
 
 | change | saved |
 | ------ | ----- |
@@ -214,9 +219,22 @@ force it serial), and none of that came from making a test weaker:
 | `kb.load_spec` cached, YAML parsed with `CSafeLoader` | ~41s |
 | the 45 repeated manifest builds session-scoped | ~11s |
 | `-n auto --maxprocesses 12` over what remained | ~63s |
+| `--dist=loadgroup` + `xdist_group`: shared fixtures built once, not once per worker | ~9s CPU |
+| `test_compile.py`'s 13 `snakemake` spawns down to 7 (the plan text was already in hand) | ~34s CPU |
+| four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | ~2.5s CPU |
+| three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | ~1.9s CPU |
+| `test_corpus_is_green` parametrized per case | 5.7s off the **critical path** |
 
 Nothing here was a slow *test*. Every one was a fact being re-proved because the seam that owned it
-sat on the wrong interface — which is the shape to look for when the number creeps back up.
+sat on the wrong interface — which is the shape to look for when the number creeps back up. The
+`snakemake` row is the cleanest example: `wiring_gate` returned a four-character verdict while its
+implementation held the whole `snakemake -n -p` plan text, so every test that wanted the plan spawned
+its own. The fix was to expose what was already computed, not to run less.
+
+The last row is a different lever and worth naming separately: it removed **no CPU at all**. It split
+the suite's longest indivisible block into 15 items xdist can spread. When utilisation is the problem,
+look for the block that cannot be split before looking for work to delete — the marginal value of
+deleting one test is its duration ÷ the worker count.
 
 ## Adding a test
 
