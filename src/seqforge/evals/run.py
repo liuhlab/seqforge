@@ -19,8 +19,10 @@ manifest unchallenged. It grades ``false_accept`` like any other silent wrong an
 
 from __future__ import annotations
 
+import os
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -226,6 +228,33 @@ def run_case(
     )
 
 
+#: Ceiling on the default fan-out. A run wide enough to saturate a shared node is not a faster run:
+#: package pulls start contending, an ``--llm`` pass starts measuring the provider's rate limit
+#: rather than the compiler, and on a login node it is other people's work that pays. 24 is a
+#: maintainer's choice (2026-07-31), not a measurement — raise it per-run with ``--jobs``.
+MAX_DEFAULT_JOBS = 24
+
+
+def default_jobs() -> int:
+    """How many cases to run at once when the caller does not say: usable cores, capped.
+
+    **Usable**, not present. ``os.process_cpu_count()`` honours CPU affinity and cgroup limits;
+    ``os.cpu_count()`` reports the machine. On the cluster node this was written on they read 48 and
+    192 — spending the machine's count there oversubscribes every other job on the box, and makes
+    each case slower rather than the run faster. In CI the same call yields the runner's core count,
+    so "parallel according to the cores available" needs no special case.
+
+    The same rule covers the ``--llm`` pass. It waits on a socket rather than on this machine, so it
+    could in principle run wider — but a fan-out past a couple of dozen measures the provider's rate
+    limit instead of the compiler, and a partly rate-limited run is a worse number than a slower one.
+    An explicit ``jobs`` always wins; this is the default, not a cap.
+    """
+    # `process_cpu_count` is 3.13+; on 3.12 (which mypy targets) fall back to the machine count.
+    usable = getattr(os, "process_cpu_count", None)
+    cpus: int | None = usable() if usable is not None else os.cpu_count()
+    return min(MAX_DEFAULT_JOBS, cpus or 1)
+
+
 def run_cases(
     cases: list[Case],
     *,
@@ -233,14 +262,48 @@ def run_cases(
     provider: LLMProvider | None = None,
     model: str | None = None,
     trials: int = 1,
+    jobs: int | None = None,
 ) -> tuple[EvalReport, list[CaseRun]]:
-    """Run every case and aggregate into the harness's metric set."""
-    runs = [run_case(c, llm=llm, provider=provider, model=model, trials=trials) for c in cases]
-    return build_report(runs), runs
+    """Run every case and aggregate into the harness's metric set.
+
+    Cases are independent by construction — ``run_case`` materializes into its own temporary
+    directory and shares no mutable state — so they run concurrently, ``jobs`` at a time
+    (:func:`default_jobs` when unset, 1 to force the sequential path).
+
+    **Threads, not processes.** Every expensive part of a case already releases the GIL: the socket
+    reads for a package pull and an LLM call, and zlib's decompression of the slices. Processes would
+    buy little and cost the pickling of a ``Case`` plus a fresh import of the KB in each worker.
+
+    **Order is preserved**, and that is load-bearing rather than tidy: ``per_case`` is committed to
+    reports and read in diffs, so it must not depend on which case happened to finish first. The
+    aggregate metrics are order-independent already, but a report that shuffles its own rows every
+    run cannot be compared to the last one.
+    """
+    n = jobs if jobs is not None else default_jobs()
+    started = time.monotonic()
+
+    def one(case: Case) -> CaseRun:
+        return run_case(case, llm=llm, provider=provider, model=model, trials=trials)
+
+    if n <= 1 or len(cases) <= 1:
+        runs = [one(c) for c in cases]
+    else:
+        with ThreadPoolExecutor(max_workers=min(n, len(cases))) as pool:
+            # `map` yields in submission order, so `runs` matches `cases` however they interleave.
+            runs = list(pool.map(one, cases))
+
+    return build_report(runs, wall_seconds=time.monotonic() - started), runs
 
 
-def build_report(runs: list[CaseRun]) -> EvalReport:
-    """Aggregate. Skipped cases are excluded from every rate — a skip is not a pass."""
+def build_report(runs: list[CaseRun], *, wall_seconds: float | None = None) -> EvalReport:
+    """Aggregate. Skipped cases are excluded from every rate — a skip is not a pass.
+
+    ``cost.seconds`` is the sum of the cases' own durations; under ``jobs > 1`` that is work done,
+    not time taken. ``wall_seconds`` is the elapsed time and is reported *beside* it rather than
+    replacing it — the sum is what tells you the corpus got more expensive, and the elapsed time is
+    what tells you the run got faster. Collapsing them into one number loses whichever question you
+    were asking.
+    """
     scored = [r for r in runs if r.skipped is None]
     n = len(scored)
 
@@ -263,6 +326,8 @@ def build_report(runs: list[CaseRun]) -> EvalReport:
         "seconds": round(sum(r.seconds for r in runs), 3),
         "llm_calls": float(sum(r.llm_calls for r in runs)),
     }
+    if wall_seconds is not None:
+        cost["wall_seconds"] = round(wall_seconds, 3)
     for key in ("input_tokens", "output_tokens", "cache_read_tokens"):
         total = sum(r.usage.get(key, 0) for r in runs)
         if total:

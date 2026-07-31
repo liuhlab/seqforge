@@ -13,6 +13,9 @@ behind a resolver that happens to be right.
 
 from __future__ import annotations
 
+import json
+import re
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -32,6 +35,7 @@ from seqforge.evals import (
     load_cases,
     materialize,
     outcome_of,
+    render_html,
     run_case,
 )
 from seqforge.evals.case import Recipe
@@ -1080,33 +1084,38 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
             Recipe.model_validate({"generate": {"kind": "fingerprint", **gen}})
 
 
-def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() -> None:
-    """`scripts/eval_report.py` turns an `eval run` report into one self-contained HTML file.
+# --------------------------------------------------------------------------------------------------
+# `seqforge eval report` — the HTML renderer
+#
+# The renderer exists because the benchmark job produced a number and threw the detail away: a green
+# exit code told you nothing about WHICH case carried the risk. So these tests are less about markup
+# than about the claims the page is allowed to make. Breaking one of them means the report has started
+# lying in the specific way a grading dashboard usually lies.
+# --------------------------------------------------------------------------------------------------
 
-    The renderer exists because the benchmark job produced a number and threw the detail away — a
-    green exit code told you nothing about *which* case carried the risk. What it must never do is
-    what a dashboard usually does: round a false accept into an accuracy figure. `evals/README.md`
-    is explicit that a false accept is the one failure with no tolerable rate, so this asserts the
-    rendered page names it, names the case, and shows the wrong value beside the expected one.
 
-    It also pins that the page is self-contained. A CI artifact is downloaded and opened from disk,
-    where an external stylesheet or script silently renders nothing.
-    """
-    import re
-    import sys
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-    from eval_report import render
-
-    report: dict[str, Any] = {
-        "n_cases": 2,
+#: Every branch the renderer has, in one report: a false accept with a wrong scalar AND a wrong
+#: multiset, each of the other four failure grades, a correct case, a skip, harvest (including a
+#: hallucination), multiple trials, and both clocks. Built fresh per call because tests mutate it.
+def _render_fixture() -> dict[str, Any]:
+    return {
+        "n_cases": 6,
         "field_accuracy": 0.5,
-        "false_accept_rate": 0.5,
-        "false_refuse_rate": 0.0,
-        "cost": {"seconds": 3.0, "llm_calls": 4.0},
+        "false_accept_rate": 1 / 6,
+        "false_refuse_rate": 1 / 6,
+        "questions_asked": {"total": 2.0, "per_case": 0.33, "missed": 1.0},
+        "cost": {
+            "seconds": 412.7,
+            "wall_seconds": 61.3,
+            "llm_calls": 9.0,
+            "input_tokens": 184213.0,
+            "output_tokens": 4210.0,
+        },
         "per_case": [
             {
                 "case": "green-one",
+                "seconds": 7.2,
+                "llm_calls": 0,
                 "grade": "correct",
                 "expected": "decide",
                 "actual": "decide",
@@ -1114,9 +1123,14 @@ def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() 
                     {"path": "library.chemistry", "expected": "a", "actual": "a", "ok": True}
                 ],
                 "notes": [],
+                "missed_question": False,
+                "trials": 1,
+                "stability": 1.0,
             },
             {
                 "case": "poisoned-one",
+                "seconds": 21.9,
+                "llm_calls": 3,
                 "grade": "false_accept",
                 "expected": "refuse",
                 "actual": "decide",
@@ -1126,26 +1140,493 @@ def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() 
                         "expected": "10x-3p-gex-v3",
                         "actual": "bulk-rnaseq-pe",
                         "ok": False,
-                    }
+                    },
+                    {
+                        "path": "experiment.samples.*.strain",
+                        "expected": ["N2", "N2", "VC2010, derived from N2"],
+                        "actual": ["N2", "N2", "N2"],
+                        "ok": False,
+                    },
                 ],
                 "notes": ["decided where it should have stopped"],
+                "missed_question": True,
+                "trials": 3,
+                "stability": 0.333,
+                "usage": {"input_tokens": 61000, "output_tokens": 1400},
+                "harvest": {
+                    "matched": ["experiment.organism"],
+                    "missing": ["experiment.study.title"],
+                    "hallucinated": ["experiment.samples.tissue"],
+                    "unstable": ["experiment.samples.dev_stage"],
+                    "n_rejected": 4,
+                    "extracted": {"experiment.organism": "Caenorhabditis elegans"},
+                },
             },
-            {"case": "absent-one", "skipped": "package unreachable"},
+            {
+                "case": "triaged-wrong",
+                "seconds": 3.0,
+                "llm_calls": 0,
+                "grade": "mis_triage",
+                "expected": "refuse",
+                "actual": "ask",
+                "fields": [],
+                "notes": ["asked instead of blocking"],
+                "missed_question": False,
+                "trials": 1,
+                "stability": 0.0,
+            },
+            {
+                "case": "blocked-wrongly",
+                "seconds": 1.5,
+                "llm_calls": 0,
+                "grade": "false_refuse",
+                "expected": "decide",
+                "actual": "refuse",
+                "fields": [],
+                "notes": ["blocked: ['TRUNCATED_GZIP']"],
+                "missed_question": False,
+                "trials": 1,
+                "stability": 0.0,
+            },
+            {
+                "case": "right-answer-wrong-reason",
+                "seconds": 2.5,
+                "llm_calls": 0,
+                "grade": "wrong_reason",
+                "expected": "refuse",
+                "actual": "refuse",
+                "fields": [],
+                "notes": ["expected blocker(s) ['MISSING_TECHNICAL_READ']"],
+                "missed_question": False,
+                "trials": 1,
+                "stability": 0.0,
+            },
+            {
+                "case": "asked-too-much",
+                "seconds": 57.3,
+                "llm_calls": 0,
+                "grade": "over_ask",
+                "expected": "decide",
+                "actual": "ask",
+                "fields": [],
+                "notes": ["asked a question code should have settled"],
+                "missed_question": False,
+                "trials": 1,
+                "stability": 0.0,
+            },
+            {
+                "case": "absent-one",
+                "seconds": 0.19,
+                "llm_calls": 0,
+                "skipped": "package unreachable",
+            },
         ],
     }
-    page = render(report, title="T", source="seqforge eval run")
 
-    assert "poisoned-one" in page and "false_accept" in page
+
+def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() -> None:
+    """The one thing the page must never do is what a dashboard usually does.
+
+    `evals/README.md` is explicit that a false accept has no tolerable rate — `eval run` exits 3 on
+    any, deliberately not on a `--fail-under` slider. So the page has to STATE it, in words, and name
+    the cases; rounding it into an accuracy figure would make the report agree with the exit code
+    while hiding which case carried the risk. This also pins that the failing value is legible beside
+    the expected one, because "field accuracy 50%" is not a bug report.
+
+    Breaking this means a green-looking page over a poisoned corpus.
+    """
+    page = render_html(_render_fixture(), title="T", source="seqforge eval run")
+
+    assert "FALSE ACCEPT" in page, "a false accept is stated outright, not folded into a percentage"
+    assert "poisoned-one" in page, "and the case is named"
     assert "bulk-rnaseq-pe" in page and "10x-3p-gex-v3" in page, "the wrong value must be visible"
-    assert "FALSE ACCEPT PRESENT" in page, "a false accept is stated, not folded into a percentage"
-    assert "absent-one" in page and "package unreachable" in page, "a skip is not a silent omission"
-    # Self-contained: no fetch of any kind survives a download-and-open.
-    assert not re.search(r'(?:src|href)\s*=\s*["\']https?://', page), "external asset in the page"
-    assert "<script" not in page.lower()
+    assert "library.chemistry" in page, "beside the field path it was wrong about"
 
-    clean = render(
-        {**report, "false_accept_rate": 0.0, "per_case": report["per_case"][:1]},
-        title="T",
-        source=None,
+    clean = dict(_render_fixture())
+    clean["per_case"] = [c for c in clean["per_case"] if c.get("grade") != "false_accept"]
+    ok_page = render_html(clean, title="T", source=None)
+    assert "No false accepts." in ok_page
+    assert "FALSE ACCEPT in" not in ok_page
+
+
+def test_a_skip_keeps_its_reason_and_never_becomes_a_pass() -> None:
+    """An unreachable HF package is a real state of the benchmark tier, not an absence.
+
+    `build_report` excludes skips from every rate; a page that also excluded them from the LIST would
+    let a tier silently shrink — thirteen cases quietly becoming eight while every rate stayed 100%.
+    So a skip renders with its reason on the face of the card, and the page says out loud that skips
+    are outside the rates.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "absent-one" in page, "a skip is not a silent omission"
+    assert "package unreachable" in page, "and it carries WHY"
+    assert "excluded from every rate" in page, "a skip is never a pass"
+    assert "1 skipped" in page, "and the count is on the summary tile"
+
+    # The degenerate benchmark run: HF is down, every package is unreachable, nothing graded. That
+    # must read as "nothing was measured", never as a clean sheet.
+    all_skipped = {
+        "per_case": [{"case": f"c{i}", "skipped": "package unreachable"} for i in range(3)],
+        "cost": {},
+        "questions_asked": {},
+    }
+    page = render_html(all_skipped, title="T", source=None)
+    assert "Nothing was graded — all 3 cases skipped." in page
+    assert "No false accepts." in page, "true, and stated beside the fact that nothing ran"
+
+
+def test_the_report_separates_work_done_from_elapsed_time() -> None:
+    """`cost.seconds` is the SUM of per-case durations; `cost.wall_seconds` is the clock.
+
+    They were the same number until the runner went parallel, and the renderer this replaced printed
+    the sum under the label "wall time" — which now reports a 61-second run as having taken seven
+    minutes. Both are worth having and they answer different questions: the sum says the corpus got
+    more expensive, the elapsed says the run got faster. The page must therefore show both, labelled,
+    and must not call either one the other.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "work done" in page and "sum of the per-case durations" in page
+    assert "elapsed" in page and "wall clock" in page
+    assert "6.9m" in page, "the summed work, in its own tile"
+    assert "61.3s" in page, "and the elapsed time, in another"
+    assert "wall time" not in page, "the bug this replaces: the sum labelled as the clock"
+
+    # An older report (the committed 2026-07-31 benchmark) predates `wall_seconds`. Saying so beats
+    # inventing it, and beats silently printing the sum in its place.
+    older = _render_fixture()
+    del older["cost"]["wall_seconds"]
+    page = render_html(older, title="T", source=None)
+    assert "not recorded by this run" in page
+
+
+def test_cases_are_ordered_worst_first_and_severity_is_carried_in_form() -> None:
+    """What needs attention has to read at a glance, without parsing any text.
+
+    Two mechanisms, both asserted here. ORDER: cases sort by `GRADE_ORDER`, so a false accept is the
+    first thing on the page and a correct case cannot push it below the fold. FORM: the grade is a
+    `lv-*` severity class on the card, the stripe and the pill — not only the grade's name — and
+    `false_accept` gets its own level rather than sharing "bad" with `mis_triage`, because it is not a
+    worse shade of bad, it is the failure with no tolerable rate.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    order = [
+        page.index(f'<code class="case-id">{case}</code>')
+        for case in (
+            "poisoned-one",  # false_accept
+            "triaged-wrong",  # mis_triage
+            "blocked-wrongly",  # false_refuse
+            "right-answer-wrong-reason",  # wrong_reason
+            "asked-too-much",  # over_ask
+            "green-one",  # correct
+            "absent-one",  # skipped — a state, not a grade, so it sorts last
+        )
+    ]
+    assert order == sorted(order), "cases must be laid out worst grade first, then skips"
+
+    assert 'class="pill lv-poison">false_accept<' in page, "the worst grade gets its own level"
+    assert 'class="pill lv-bad">mis_triage<' in page
+    assert 'class="pill lv-warn">over_ask<' in page
+    assert 'class="pill lv-ok">correct<' in page
+    # Failures are open on arrival; a correct case collapses. No script has run at this point.
+    assert 'data-level="poison" open' in page
+    assert 'data-level="ok" open' not in page
+
+
+def test_a_failed_field_shows_expected_beside_actual_and_marks_what_differs() -> None:
+    """A failed `experiment.samples.*` check is a multiset, and the question is WHICH element moved.
+
+    These lists are seven samples with two distinct values between them, so the page collapses
+    identical elements onto a multiplicity and marks the chips whose count differs from the other
+    side. Printing the raw list would show seven chips of which one differs by position — true, and
+    not the question anyone is asking.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "experiment.samples.*.strain" in page
+    assert "×2" in page and "×3" in page, "identical elements collapse onto their multiplicity"
+    assert 'class="chip chip-diff">N2<span class="mult">×3' in page, (
+        "the count that differs is marked"
     )
-    assert "No false accepts." in clean and "FALSE ACCEPT PRESENT" not in clean
+    assert 'class="chip chip-diff">VC2010, derived from N2' in page, (
+        "so is the value only one side has"
+    )
+
+
+def test_the_report_surfaces_trials_harvest_and_the_token_bill() -> None:
+    """Everything `eval run` measures beyond the grade, because it measured it for a reason.
+
+    A case correct 2 times in 3 is a finding, not a rounding error (`_merge_harvest` refuses to
+    average it away, so the page must not either). A `hallucinated` field is corpus poison and is
+    labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as a
+    failure. Tokens and LLM calls are what a `--llm` pass costs.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "1/3</b> trials correct" in page, "stability is reported as a fraction of trials"
+    assert "hallucinated" in page and "experiment.samples.tissue" in page
+    assert "nothing downstream would catch these" in page, "a hallucination is named as poison"
+    assert "unstable" in page and "experiment.samples.dev_stage" in page
+    assert "the safety net working, not a failure" in page, "n_rejected is not a failure count"
+    assert "188,423 tokens" in page, "the token bill"
+    assert "missed a question it had to ask" in page, "questions_asked.missed reaches the case"
+
+
+def test_the_eval_report_makes_no_external_network_reference() -> None:
+    """The whole point is that it opens offline.
+
+    A benchmark page is downloaded as a CI artifact and opened from `file://`, where an external
+    stylesheet or script silently renders NOTHING — the failure looks like a styling bug and is
+    actually a missing asset. This is also what makes Tailwind admissible here only as a vendored,
+    built CSS file: a Play-CDN `<script src=...>` would fail exactly this assertion.
+
+    Note the check is on fetchable references, not on every `http` substring: a skip reason quotes the
+    HF URL that 404'd, and the vendored stylesheet carries Tailwind's MIT banner. Neither is a fetch.
+    """
+    fixture = _render_fixture()
+    fixture["per_case"][-1]["skipped"] = (
+        "could not fetch 'packages/GSE110823.fingerprint.tar.gz' from "
+        "https://huggingface.co/datasets/liuhlab/seqforge-benchmark/resolve/main/x: 404"
+    )
+    page = render_html(fixture, title="T", source=None)
+
+    offsite = re.findall(r'(?:src|href)\s*=\s*["\']?(?:https?:)?//[^"\'\s>]+', page)
+    assert not offsite, f"external references leaked in: {offsite[:3]}"
+    assert "@import url(http" not in page.replace(" ", "").lower()
+    assert "cdn.tailwindcss.com" not in page, "the Play CDN would render nothing from file://"
+    assert "cdn.jsdelivr" not in page and "unpkg" not in page, "a CDN link regressed in"
+    # ...and the 404 reason still made it onto the page, URL and all.
+    assert "404" in page and "GSE110823" in page
+    assert len(page.encode()) < 500_000, "the page bloated (a heavy asset regressed in?)"
+
+
+def test_both_themes_render_and_an_explicit_theme_beats_the_media_query() -> None:
+    """The page is opened from disk AND published to a host that has its own light/dark toggle.
+
+    So it needs both mechanisms, and the explicit one has to win in BOTH directions: a host stamping
+    `data-theme="light"` on a dark OS must actually go light, which a bare `prefers-color-scheme`
+    block cannot do. Semantic colour is asserted to be a separate token family from the accent — if
+    `ok` were the accent hue, a reader could not tell chrome from a verdict.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    # The stylesheet is minified, so attribute-selector quoting is not guaranteed: normalise it away
+    # rather than pin the minifier's taste.
+    flat = page.replace(": ", ":").replace('"', "").replace("'", "")
+    assert "@media (prefers-color-scheme:dark)" in flat
+    assert ":root[data-theme=dark]" in flat
+    assert ":root:not([data-theme=light])" in flat, (
+        "system dark must yield to an explicit light theme, or the toggle only works one way"
+    )
+    assert "--sf-ok:" in page and "--sf-crit:" in page and "--sf-warn:" in page
+    assert "--sf-accent:" in page, "the accent is its own token and never a verdict colour"
+    assert "tabular-nums" in page, "digits that line up get lined up"
+
+
+def test_the_page_inlines_its_script_and_never_fetches_one() -> None:
+    """The JS is inlined and guarded, exactly as `seqforge.report` does it.
+
+    `_script_guard` neutralises any `</script` inside the embedded source so a future edit cannot
+    close the inlining tag early and dump the rest of the script as page text. The page is fully
+    readable with JS disabled — the toggle and the filter are enhancements — which is why the
+    open/closed state of every case is an attribute set at render time.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "<script>" in page and "<script " not in page, "inlined, never sourced"
+    body = page.split("<script>", 1)[1]
+    assert "</script" not in body[: body.rindex("</script>")], (
+        "an unguarded </script would truncate"
+    )
+
+
+def test_the_page_template_and_the_renderer_cannot_drift_apart() -> None:
+    """The shell lives in `assets/eval-report.html`; the fragments live in Python. Both must agree.
+
+    Splitting them is what makes the layout editable without reading string concatenation, and the
+    obvious failure of that split is silent: rename a slot in one file and the page renders with a
+    literal `{{TILES}}` where a panel should be, or drops a section entirely. `_fill` refuses in both
+    directions instead — a slot nobody fills, and a fill nobody asked for.
+
+    It is also one regex pass, not `str.format` and not repeated `.replace`: the page embeds arbitrary
+    archive prose, and a case id that happened to contain `{{CSS}}` must be text, never a second
+    substitution.
+    """
+    from seqforge.evals.report import _fill
+
+    assert _fill("<i>{{A}}</i>", A="x") == "<i>x</i>"
+    with pytest.raises(KeyError, match="does not fill"):
+        _fill("{{NOPE}}", A="x")
+    with pytest.raises(KeyError, match="does not have"):
+        _fill("{{A}}", A="x", B="y")
+    # A slot's own content is never rescanned.
+    assert _fill("{{A}}{{B}}", A="{{B}}", B="!") == "{{B}}!"
+
+    template = (
+        Path(__file__).resolve().parents[1] / "src/seqforge/evals/assets/eval-report.html"
+    ).read_text()
+    page = render_html(_render_fixture(), title="T", source="x")
+    assert "{{" not in page, "every slot was filled"
+    assert re.findall(r"\{\{([A-Z_]+)\}\}", template), "the template really is slotted"
+
+
+def test_every_class_the_page_uses_has_a_rule_in_the_stylesheet() -> None:
+    """The drift guard for the vendored Tailwind build (see `evals/assets/VENDOR.md`).
+
+    Tailwind purges: `eval-report.css` contains only the utilities that were literally present in
+    `report.py` when the build ran. So adding `class="mt-8"` and not rebuilding is a SILENT failure —
+    the page keeps rendering and one rule is quietly absent. This renders a report exercising every
+    branch and fails if any class on the page has no rule, which is the mechanism that makes "rebuild
+    the CSS" something nobody has to remember.
+    """
+    page = render_html(_render_fixture(), title="T", source="x")
+    css = (
+        Path(__file__).resolve().parents[1] / "src/seqforge/evals/assets/eval-report.css"
+    ).read_text()
+    used: set[str] = set()
+    # Both quote styles: a fragment nested inside a double-quoted Python string writes `class='x'`,
+    # and a guard that only saw `class="x"` would quietly stop checking exactly those.
+    for group in re.findall(r"""class=["']([^"']*)["']""", page.split("</style>", 1)[1]):
+        used |= set(group.split())
+    assert used, "the page has classes"
+    # Tailwind escapes `:` `/` `.` etc. in selectors, so `md:grid-cols-2` is `.md\:grid-cols-2`.
+    missing = sorted(
+        c
+        for c in used
+        if not re.search(
+            r"\." + re.escape(re.sub(r"([:/.\[\]()%,])", r"\\\1", c)) + r"(?![\w-])", css
+        )
+    )
+    assert not missing, (
+        f"classes with no rule: {missing} — rebuild eval-report.css (see assets/VENDOR.md)"
+    )
+
+
+def test_the_built_stylesheet_carries_every_component_its_source_declares() -> None:
+    """The other half of the drift guard, from the CSS side.
+
+    The test above catches a new class in `report.py`; this one catches a new component in
+    `eval-report.src.css` that was edited and never compiled. Together they mean the built file cannot
+    silently fall behind either of its two inputs — which matters because the build needs npm and so
+    cannot run in CI.
+    """
+    assets = Path(__file__).resolve().parents[1] / "src/seqforge/evals/assets"
+    source = re.sub(r"/\*.*?\*/", "", (assets / "eval-report.src.css").read_text(), flags=re.S)
+    built = (assets / "eval-report.css").read_text()
+
+    components = source[source.index("@layer components") :]
+    declared = set(re.findall(r"\.([a-zA-Z][\w-]*)", components))
+    assert len(declared) > 20, "the source really does declare components"
+    missing = sorted(c for c in declared if not re.search(rf"\.{re.escape(c)}(?![\w-])", built))
+    assert not missing, (
+        f"declared in eval-report.src.css but absent from the built CSS: {missing} — "
+        "rebuild it (see assets/VENDOR.md)"
+    )
+
+
+def test_eval_report_is_a_verb_that_writes_a_file_and_answers_on_stdout(tmp_path: Path) -> None:
+    """`seqforge eval report` follows `seqforge report`, not a `scripts/` one-off.
+
+    Three things are the contract. It WRITES the HTML and prints machine JSON on stdout, so it is a
+    verb an agent can drive rather than a file only a human knows how to produce — the CLI is the API.
+    It NAMES the false accepts in that summary rather than counting them, for the same reason the page
+    does. And it exits 0 whatever the report said: the verdict belongs to `eval run`, which already
+    refuses on a false accept, and a renderer that failed too would make a red benchmark destroy the
+    artifact that explains it.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    src = tmp_path / "report.json"
+    src.write_text(json.dumps(_render_fixture()))
+    out = tmp_path / "nested" / "report.html"
+
+    result = CliRunner().invoke(app, ["eval", "report", str(src), "-o", str(out), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["false_accepts"] == ["poisoned-one"], "named on stdout, not just counted"
+    assert payload["skipped"] == 1
+    assert out.exists() and payload["bytes"] == len(out.read_text().encode())
+    assert out.read_text().startswith("<!doctype html>")
+
+    # Not JSON, and not an eval report: both are the caller's error, and neither writes a page.
+    (tmp_path / "junk.json").write_text("not json at all")
+    bad = CliRunner().invoke(app, ["eval", "report", str(tmp_path / "junk.json")])
+    assert bad.exit_code == 1
+    assert not (tmp_path / "junk.html").exists()
+
+
+def _stub_case(case_id: str) -> Case:
+    """A Case the parallel tests can make by the dozen — `run_case` is patched out, so only `id`
+    is ever read, but it is a real Case so the signature under test is the real one."""
+    return Case(
+        id=case_id,
+        root=Path("/nonexistent") / case_id,
+        recipe=Recipe.model_validate({"generate": {"kind": "random", "n": 1}}),
+        expected=Expected.model_validate(
+            {"outcome": "decide", "description": "stub", "fields": {"library.chemistry": "x"}}
+        ),
+        metadata_docs=[],
+    )
+
+
+def _empty_grade_for(case_id: str) -> CaseGrade:
+    return CaseGrade(
+        case_id=case_id, grade=Grade.CORRECT, expected_outcome="decide", actual_outcome="decide"
+    )
+
+
+def test_parallel_runs_preserve_order_and_do_not_change_any_result() -> None:
+    """`run_cases(jobs=N)` is a speed change and must be nothing else.
+
+    Two claims, both load-bearing rather than tidy. **Order**: `per_case` is committed to reports and
+    read in diffs, so rows must follow the case list, not the order threads happened to finish — the
+    stub makes the FIRST case the slowest, so an implementation collecting by completion returns them
+    backwards and fails here. **Identity**: the same corpus at `jobs=1` and `jobs=8` must produce the
+    same report, or the number depends on the machine that ran it.
+    """
+    from seqforge.evals import run as run_mod
+
+    order = ["slow-first", "middle", "fast-last"]
+    delays = {"slow-first": 0.30, "middle": 0.15, "fast-last": 0.0}
+
+    def fake_run_case(case: Any, **kwargs: Any) -> CaseRun:
+        time.sleep(delays[case.id])
+        return CaseRun(case.id, _empty_grade_for(case.id), seconds=delays[case.id])
+
+    cases = [_stub_case(cid) for cid in order]
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(run_mod, "run_case", fake_run_case)
+        parallel, par_runs = run_mod.run_cases(cases, jobs=8)
+        sequential, seq_runs = run_mod.run_cases(cases, jobs=1)
+
+    assert [r.case_id for r in par_runs] == order, "rows follow the case list, not finish order"
+    assert [r.case_id for r in seq_runs] == order
+
+    # They really overlapped: elapsed is about the slowest case, not the sum of all three.
+    assert parallel.cost["wall_seconds"] < parallel.cost["seconds"]
+    assert sequential.cost["wall_seconds"] >= sequential.cost["seconds"]
+
+    # ...and nothing else moved.
+    assert parallel.field_accuracy == sequential.field_accuracy
+    assert parallel.false_accept_rate == sequential.false_accept_rate
+    assert parallel.n_cases == sequential.n_cases == len(order)
+    assert parallel.cost["seconds"] == sequential.cost["seconds"]
+
+
+def test_the_job_default_reads_usable_cores_and_stays_capped() -> None:
+    """The default must read *usable* cores, and must not fan out without a ceiling.
+
+    `os.cpu_count()` reports the machine; `os.process_cpu_count()` reports what this process may
+    actually use under CPU affinity or a cgroup. On the shared node this was written on they read 48
+    and 192, and spending the machine's count there oversubscribes every other job on the box. The
+    cap matters for the opposite reason: a run wide enough to saturate a node measures contention —
+    or, under `--llm`, the provider's rate limit — rather than the compiler.
+    """
+    from seqforge.evals.run import MAX_DEFAULT_JOBS, default_jobs
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("os.process_cpu_count", lambda: 4)
+        assert default_jobs() == 4, "below the cap, take the usable cores"
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("os.process_cpu_count", lambda: 192)
+        assert default_jobs() == MAX_DEFAULT_JOBS == 24, "a big node does not mean a big fan-out"
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("os.process_cpu_count", lambda: None)  # unknowable: serial, never 0
+        assert default_jobs() == 1

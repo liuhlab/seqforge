@@ -38,6 +38,7 @@ from .case import (  # noqa: E402
     materialize,
 )
 from .grade import CaseGrade, FieldCheck, Grade, grade_case, outcome_of  # noqa: E402
+from .report import EVAL_REPORT_VERSION, render_html  # noqa: E402
 from .run import (  # noqa: E402
     CaseRun,
     HarvestGrade,
@@ -77,4 +78,7 @@ __all__ = [
     "load_cases",
     "CaseRun",
     "HarvestGrade",
+    # rendering (`seqforge eval report`)
+    "EVAL_REPORT_VERSION",
+    "render_html",
 ]

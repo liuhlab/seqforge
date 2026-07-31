@@ -1,0 +1,403 @@
+/* seqforge eval report — the Tailwind INPUT. The file that ships is the built `eval-report.css`.
+ *
+ *   npm install --no-save tailwindcss@4.3.3 @tailwindcss/cli@4.3.3
+ *   npx @tailwindcss/cli -i eval-report.src.css -o eval-report.css --minify
+ *
+ * Run it from this directory. See VENDOR.md — and `test_every_class_the_page_uses_has_a_rule`
+ * fails the build if this was edited and not rebuilt.
+ *
+ * Two layers, deliberately separate:
+ *
+ *   1. TOKENS + COMPONENTS (below) are first-party. Theming goes through custom properties, never
+ *      through `dark:` utilities, because the page must honour BOTH `prefers-color-scheme` AND a
+ *      `data-theme` attribute a host stamps on <html> — in both directions. One token block per
+ *      theme means every component gets that for free instead of each one re-deciding.
+ *   2. Tailwind's utilities do layout, spacing and type in `report.py`.
+ *
+ * Semantic colour is separate from the accent hue on purpose: the accent (indigo) is chrome and
+ * means nothing, while ok/warn/critical are the verdict. If a reader has to ask whether a coloured
+ * thing is a brand element or a failure, the colour has stopped carrying information.
+ */
+
+@import "tailwindcss" source(none);
+
+/* Explicit, so the purge does not depend on the working directory the build ran from. BOTH files
+ * carry class names: the page shell lives in the template, every fragment in the Python. */
+@source "../report.py";
+@source "./eval-report.html";
+
+/* Tailwind's stock `dark:` keys off `prefers-color-scheme` alone, which would ignore the host's
+ * theme toggle. Nothing below needs it — the tokens do the work — but defining it here means a
+ * maintainer who reaches for `dark:` later gets the right behaviour instead of a subtle bug. */
+@custom-variant dark (&:where(:root[data-theme="dark"], :root[data-theme="dark"] *));
+
+/* The few tokens that are worth having as utilities too (`text-dim`, `bg-surface`, …). They resolve
+ * through the runtime custom properties, so a theme switch moves them with everything else. */
+@theme {
+  --color-ink: var(--sf-ink);
+  --color-dim: var(--sf-dim);
+  --color-faint: var(--sf-faint);
+  --color-line: var(--sf-line);
+  --color-surface: var(--sf-surface);
+  --color-accent: var(--sf-accent);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+
+    --sf-bg: #f6f8fb;
+    --sf-surface: #ffffff;
+    --sf-surface-2: #f1f4f8;
+    --sf-sunk: #f8fafc;
+    --sf-ink: #14181f;
+    --sf-dim: #59626f;
+    --sf-faint: #8a93a0;
+    --sf-line: #e2e6ec;
+    --sf-line-strong: #cbd2db;
+
+    /* accent = chrome. It is never a verdict, and no severity is allowed to borrow it. */
+    --sf-accent: #4338ca;
+    --sf-accent-weak: #eef0fe;
+
+    /* verdict semantics */
+    --sf-ok: #167a4b;
+    --sf-ok-weak: #e7f5ee;
+    --sf-warn: #8a5a00;
+    --sf-warn-weak: #fdf3e2;
+    --sf-crit: #b42318;
+    --sf-crit-weak: #fdecea;
+    --sf-neutral: #5b6472;
+    --sf-neutral-weak: #eef0f4;
+
+    /* `false_accept` is not a worse shade of critical, it is the failure with no tolerable rate.
+     * It gets a FILLED treatment where everything else is an outline, so severity is legible as
+     * form and not only as hue. */
+    --sf-poison-bg: #b42318;
+    --sf-poison-fg: #ffffff;
+
+    --sf-shadow: 0 1px 2px rgb(16 30 45 / 0.05), 0 1px 3px rgb(16 30 45 / 0.06);
+  }
+
+  /* One dark block, referenced twice: the media query for a host with no toggle, and the explicit
+   * attribute for one that has. The attribute selector wins in BOTH directions — `data-theme=light`
+   * on a dark OS must actually go light, which a bare media query cannot do. */
+  :root[data-theme="dark"] {
+    --sf-bg: #0f1319;
+    --sf-surface: #161c24;
+    --sf-surface-2: #1e2630;
+    --sf-sunk: #121821;
+    --sf-ink: #e7edf3;
+    --sf-dim: #98a3b1;
+    --sf-faint: #6b7783;
+    --sf-line: #28323d;
+    --sf-line-strong: #3a4650;
+    --sf-accent: #a5b4fc;
+    --sf-accent-weak: #1c2140;
+    --sf-ok: #3fb950;
+    --sf-ok-weak: #102619;
+    --sf-warn: #d9a441;
+    --sf-warn-weak: #2b2010;
+    --sf-crit: #f85149;
+    --sf-crit-weak: #33191a;
+    --sf-neutral: #98a3b1;
+    --sf-neutral-weak: #1e242c;
+    --sf-poison-bg: #f85149;
+    --sf-poison-fg: #17191c;
+    --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --sf-bg: #0f1319;
+      --sf-surface: #161c24;
+      --sf-surface-2: #1e2630;
+      --sf-sunk: #121821;
+      --sf-ink: #e7edf3;
+      --sf-dim: #98a3b1;
+      --sf-faint: #6b7783;
+      --sf-line: #28323d;
+      --sf-line-strong: #3a4650;
+      --sf-accent: #a5b4fc;
+      --sf-accent-weak: #1c2140;
+      --sf-ok: #3fb950;
+      --sf-ok-weak: #102619;
+      --sf-warn: #d9a441;
+      --sf-warn-weak: #2b2010;
+      --sf-crit: #f85149;
+      --sf-crit-weak: #33191a;
+      --sf-neutral: #98a3b1;
+      --sf-neutral-weak: #1e242c;
+      --sf-poison-bg: #f85149;
+      --sf-poison-fg: #17191c;
+      --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    }
+  }
+
+  html {
+    /* Every horizontal overflow belongs to a .scroll-x, never to the page. */
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--sf-bg);
+    color: var(--sf-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+    overflow-wrap: anywhere;
+  }
+
+  summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* ---- severity levels ------------------------------------------------------------------------
+   * `lv-*` is the ONE place a grade becomes a colour. Components read `currentColor` and the two
+   * `--lv-*` locals, so adding a level means editing this block and nothing else. */
+  .lv-ok    { --lv-fg: var(--sf-ok);      --lv-bg: var(--sf-ok-weak); }
+  .lv-warn  { --lv-fg: var(--sf-warn);    --lv-bg: var(--sf-warn-weak); }
+  .lv-bad   { --lv-fg: var(--sf-crit);    --lv-bg: var(--sf-crit-weak); }
+  .lv-skip  { --lv-fg: var(--sf-neutral); --lv-bg: var(--sf-neutral-weak); }
+  .lv-none  { --lv-fg: var(--sf-dim);     --lv-bg: var(--sf-surface-2); }
+  .lv-poison { --lv-fg: var(--sf-crit);   --lv-bg: var(--sf-crit-weak); }
+
+  /* ---- shell ---------------------------------------------------------------------------------- */
+  .wrap { @apply mx-auto w-full max-w-6xl px-5; }
+
+  .top {
+    @apply sticky top-0 z-20 border-b py-3;
+    border-color: var(--sf-line);
+    background: color-mix(in srgb, var(--sf-surface) 90%, transparent);
+    backdrop-filter: saturate(1.2) blur(8px);
+  }
+  .top-row { @apply flex flex-wrap items-center gap-3; }
+  .brand { @apply text-base font-bold; letter-spacing: -0.02em; }
+  .brand .spark { color: var(--sf-accent); }
+  .page-title { @apply min-w-0 truncate text-base font-semibold; color: var(--sf-dim); }
+
+  .toggle { @apply inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm; color: var(--sf-dim); }
+  .toggle input { accent-color: var(--sf-accent); }
+
+  .icon-btn {
+    @apply grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg border text-sm;
+    border-color: var(--sf-line);
+    background: var(--sf-surface-2);
+    color: var(--sf-ink);
+  }
+  .icon-btn:hover { border-color: var(--sf-line-strong); }
+
+  main.wrap { @apply pt-6 pb-4; }
+
+  .src { @apply mb-5 flex flex-wrap items-baseline gap-2 text-sm; color: var(--sf-dim); }
+  .src-k { @apply text-xs font-semibold uppercase; letter-spacing: 0.06em; color: var(--sf-faint); }
+
+  .foot {
+    @apply mt-6 border-t py-6 text-xs;
+    border-color: var(--sf-line);
+    color: var(--sf-dim);
+  }
+
+  /* ---- verdict banner -------------------------------------------------------------------------- */
+  .banner {
+    @apply mb-6 flex items-start gap-4 rounded-xl border p-5;
+    border-color: var(--lv-fg);
+    background: var(--lv-bg);
+  }
+  .banner-mark {
+    @apply grid size-8 shrink-0 place-items-center rounded-full text-lg font-bold;
+    background: var(--lv-fg);
+    color: var(--sf-surface);
+  }
+  .banner-head { @apply text-lg font-bold; line-height: 1.3; color: var(--lv-fg); }
+  .banner-why { @apply mt-2 text-sm; color: var(--sf-ink); max-width: 78ch; }
+  .banner.lv-poison { border-width: 2px; }
+  .banner.lv-poison .banner-mark { background: var(--sf-poison-bg); color: var(--sf-poison-fg); }
+
+  /* ---- tiles ---------------------------------------------------------------------------------- */
+  .tiles { @apply mb-6 grid gap-3; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .tile {
+    @apply rounded-lg border px-4 py-3;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+    box-shadow: var(--sf-shadow);
+    border-left: 3px solid var(--lv-fg, var(--sf-line));
+  }
+  .tile-k { @apply text-xs font-semibold uppercase; letter-spacing: 0.05em; color: var(--sf-faint); }
+  .tile-v { @apply text-2xl font-bold; line-height: 1.2; letter-spacing: -0.02em; }
+  .tile-s { @apply mt-0.5 text-xs; color: var(--sf-dim); }
+  .tile.lv-poison .tile-v { color: var(--sf-crit); }
+  .tile.lv-bad .tile-v { color: var(--sf-crit); }
+
+  /* ---- panels --------------------------------------------------------------------------------- */
+  .panel {
+    @apply mb-5 rounded-xl border p-5;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+    box-shadow: var(--sf-shadow);
+  }
+  .panel-h { @apply mb-1 text-lg font-bold; letter-spacing: -0.01em; }
+  .panel-sub { @apply mb-4 text-sm; color: var(--sf-dim); max-width: 82ch; }
+
+  /* ---- distribution bar ------------------------------------------------------------------------ */
+  .bar {
+    @apply flex h-3 w-full overflow-hidden rounded-full;
+    background: var(--sf-surface-2);
+  }
+  .seg { display: block; background: var(--lv-fg); }
+  .seg.lv-poison { background: var(--sf-poison-bg); }
+  .keys { @apply mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm; }
+  .key { @apply inline-flex items-center gap-2; }
+  .sw { @apply inline-block size-3 shrink-0 rounded-sm; background: var(--lv-fg); }
+  .sw.lv-poison { background: var(--sf-poison-bg); }
+
+  /* ---- case cards ------------------------------------------------------------------------------ */
+  .case-list { @apply flex flex-col gap-2; }
+  .case {
+    @apply rounded-lg border;
+    border-color: var(--sf-line);
+    background: var(--sf-sunk);
+    border-left: 4px solid var(--lv-fg);
+  }
+  .case.lv-poison { border-left-color: var(--sf-poison-bg); border-left-width: 6px; }
+  .case-head { @apply flex flex-wrap items-center gap-3 px-4 py-3; }
+  .case-id { @apply text-sm font-semibold; }
+  .outcome { @apply text-sm tabular-nums; color: var(--sf-dim); }
+  .outcome .arrow { color: var(--sf-faint); }
+  .case-body { @apply border-t px-4 py-3; border-color: var(--sf-line); }
+  .skip-why { @apply px-4 pb-3 text-sm; color: var(--sf-dim); overflow-wrap: anywhere; }
+
+  .marker { @apply shrink-0 text-xs; color: var(--sf-faint); }
+  .marker::after { content: "▸"; }
+  details[open] > .case-head .marker::after { content: "▾"; }
+
+  .note { @apply mb-1 text-sm; color: var(--sf-ink); overflow-wrap: anywhere; }
+
+  /* ---- pills ------------------------------------------------------------------------------------ */
+  .pill {
+    @apply inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-bold;
+    color: var(--lv-fg);
+    border-color: var(--lv-fg);
+    background: var(--lv-bg);
+    letter-spacing: 0.02em;
+  }
+  /* the one filled pill in the vocabulary — see --sf-poison-bg */
+  .pill.lv-poison {
+    background: var(--sf-poison-bg);
+    color: var(--sf-poison-fg);
+    border-color: var(--sf-poison-bg);
+  }
+
+  /* ---- values ----------------------------------------------------------------------------------- */
+  .val, .path {
+    @apply rounded px-1.5 py-0.5 text-xs;
+    background: var(--sf-surface-2);
+    color: var(--sf-ink);
+  }
+  .path { color: var(--sf-accent); }
+  .nil { @apply text-xs italic; color: var(--sf-faint); }
+
+  .chips { @apply flex flex-wrap items-center gap-1.5; }
+  .chip {
+    @apply rounded border px-1.5 py-0.5 text-xs;
+    border-color: var(--sf-line-strong);
+    background: var(--sf-surface-2);
+    color: var(--sf-ink);
+  }
+  /* the element the other side does not carry — the only reason to read a failed list at all */
+  .chip-diff {
+    border-color: var(--sf-crit);
+    background: var(--sf-crit-weak);
+    color: var(--sf-crit);
+    font-weight: 700;
+  }
+  .chip-count {
+    @apply shrink-0 text-xs font-semibold uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sf-faint);
+  }
+  /* `N2 ×3` — identical elements of a sample multiset collapse onto their multiplicity, so a
+   * seven-sample list reads as two facts instead of seven chips. */
+  .mult { @apply ml-1 text-xs tabular-nums; color: var(--sf-faint); font-weight: 700; }
+  .chip-diff .mult { color: var(--sf-crit); }
+
+  /* ---- tables ------------------------------------------------------------------------------------
+   * Wide content scrolls HERE, in its own box, so the page body never scrolls sideways. */
+  .scroll-x {
+    @apply overflow-x-auto rounded-lg border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+  }
+  .scroll-x table { @apply w-full; border-collapse: collapse; }
+  .scroll-x th {
+    @apply px-3 py-2 text-xs font-semibold uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sf-faint);
+    background: var(--sf-surface-2);
+    border-bottom: 1px solid var(--sf-line);
+    white-space: nowrap;
+  }
+  .scroll-x td { @apply px-3 py-2; border-bottom: 1px solid var(--sf-line); }
+  .scroll-x tr:last-child td { border-bottom: 0; }
+  .scroll-x tr.row-bad td { background: var(--sf-crit-weak); }
+  .scroll-x tr.row-bad td:last-child { color: var(--sf-crit); font-weight: 700; }
+
+  /* ---- per-case meta ------------------------------------------------------------------------------ */
+  .meta-row { @apply mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs; color: var(--sf-dim); }
+  .meta b { color: var(--sf-ink); font-weight: 700; }
+  .meta-bad, .meta-bad b { color: var(--sf-crit); }
+
+  /* ---- harvest ------------------------------------------------------------------------------------ */
+  .sub-h {
+    @apply mt-4 mb-2 text-xs font-bold uppercase;
+    letter-spacing: 0.07em;
+    color: var(--sf-faint);
+  }
+  .hv-list { @apply flex flex-col gap-2; }
+  .hv {
+    @apply flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm;
+    border-color: var(--lv-fg);
+    background: var(--lv-bg);
+  }
+  .hv-k {
+    @apply shrink-0 text-xs font-bold uppercase;
+    letter-spacing: 0.05em;
+    color: var(--lv-fg);
+  }
+  .hv-note { @apply text-xs; color: var(--sf-dim); }
+
+  .drawer { @apply mt-2 text-sm; }
+  .drawer > summary { color: var(--sf-accent); }
+  .drawer > summary:hover { text-decoration: underline; }
+
+  .empty-note {
+    @apply mt-3 text-sm italic;
+    color: var(--sf-dim);
+    display: none;
+  }
+
+  /* ---- the failures-only filter ------------------------------------------------------------------
+   * Hides correct cases only. A skip stays: an unreachable package is a state that needs attention,
+   * not noise, and hiding it behind a filter is how a tier quietly shrinks. */
+  body[data-filter="fail"] .case[data-level="ok"] { display: none; }
+}

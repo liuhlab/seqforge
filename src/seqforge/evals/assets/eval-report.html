@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- Inlined, never linked. These pages are downloaded as CI artifacts and opened from file://,
+     where an external stylesheet or script silently renders nothing. -->
+<style>{{CSS}}</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-row">
+<span class="brand">seqforge<span class="spark"> ⚡ </span>eval</span>
+<h1 class="page-title">{{TITLE}}</h1>
+<label class="toggle ml-auto"><input type="checkbox" id="fail-only"><span>failures only</span></label>
+<button id="theme-toggle" class="icon-btn" title="Toggle light / dark" aria-label="Toggle theme">☽</button>
+</div></header>
+<main class="wrap">
+{{SOURCE}}
+{{VERDICT}}
+{{TILES}}
+<section class="panel">
+<h2 class="panel-h">Grade distribution</h2>
+{{DISTRIBUTION}}
+</section>
+<section class="panel">
+<h2 class="panel-h">Cases</h2>
+<p class="panel-sub">Worst grade first, then by id. Failures are open; correct cases collapse. Skips
+carry their reason and are excluded from every rate — a skip is never a pass.</p>
+<div class="case-list" id="case-list">{{CASES}}</div>
+<p class="empty-note" id="no-failures">Nothing to show: every graded case is correct.</p>
+</section>
+{{LEGEND}}
+</main>
+<footer class="foot wrap">{{FOOTER}}</footer>
+<script>{{JS}}</script>
+</body>
+</html>

@@ -6,7 +6,14 @@ seqforge eval run                        # deterministic cases only — no API k
 seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
 seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
+seqforge eval run --no-llm > report.json && seqforge eval report report.json -o report.html
 ```
+
+`eval run` emits machine JSON on stdout and nothing else ([ADR-0013](../docs/adr/0013-cli-is-a-machine-interface.md)),
+so the human-readable page is a *consumer* of that stream rather than a second output mode:
+`seqforge eval report` writes one self-contained HTML file (every asset inlined, no network) that names
+the false accepts instead of averaging them into a rate. `benchmark.yml` uploads it as the job's
+artifact.
 
 ## Why this exists
 
