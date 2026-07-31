@@ -175,6 +175,7 @@ python = "3.13.*"
 [tool.pixi.feature.test.dependencies]
 pytest = "*"
 pytest-cov = "*"
+pytest-xdist = "*"
 hypothesis = "*"
 syrupy = "*"
 
@@ -206,11 +207,24 @@ fmt-check = "ruff format --check ."
 # evals/ (it computes the numbers we trust; a wrong type there silently corrupts a metric, and a
 # broken measuring instrument is worse than none because it still reads green).
 typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve src/seqforge/manifest src/seqforge/compose src/seqforge/workflows src/seqforge/harvest src/seqforge/fingerprint src/seqforge/report src/seqforge/evals"
-test      = "pytest"
+# `-n auto --maxprocesses 12`, and both halves were measured (2026-07-30, 48-core box):
+#
+#   serial 80.2s | n=8 19.9s | n=12 15.3s | n=16 20.2s | n=auto(48) 26.7s
+#
+# `auto` alone is WRONG on a big box -- 48 workers is slower than 12, because each worker pays the
+# interpreter import and rebuilds every session-scoped fixture, and past the knee that fixed cost
+# grows faster than the work shrinks. A bare `-n 12` is wrong on a 2-core runner for the mirrored
+# reason. `auto` capped at 12 is the one spelling that is right in both places.
+# `--dist loadfile` was measured and rejected: it pins ~28s regardless of worker count, because it
+# cannot split the longest file (test_compile.py) across workers.
+test      = "pytest -n auto --maxprocesses 12"
 # The rungs of the testing ladder (docs/agents/testing.md). `test-fast` drops what needs a binary we
 # do not own and what checks the repo rather than `src/`; it is what to run before a commit, and it
 # is NOT the pre-PR gate -- `check` is.
-test-fast   = "pytest -m 'not external and not repo' -q"
+test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 -q"
+# Deliberately SERIAL. It re-runs the handful of tests that just failed, and spinning up 12 workers
+# to run three tests costs more than it saves. `-x` is also unreliable under xdist: workers already
+# in flight keep going after the first failure.
 test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark (NOT part of `check`): runs the whole eval corpus, so any
@@ -219,7 +233,10 @@ test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # benchmark package that is unreachable (offline, or not yet uploaded) skips, so this stays green
 # before the HF repo is populated. Invoked by the opt-in `.github/workflows/benchmark.yml`, never by CI.
 eval      = "seqforge eval run"
-check     = { depends-on = ["lint", "fmt-check", "typecheck", "test"] }
+# NOT `depends-on`: pixi runs those sequentially, and the three static checks share no inputs with
+# each other or with pytest. `scripts/check.sh` runs all four concurrently and prints each one's
+# output whole, in a fixed order, once they have all finished. See the header there.
+check     = "bash scripts/check.sh"
 check-fast = { depends-on = ["lint", "typecheck", "test-fast"] }
 build     = "python -m build"
 install-skills = "python skills/install.py --user"

@@ -111,9 +111,9 @@ Everything runs through **pixi** (not `pip`/`conda`/`venv`).
 ```bash
 pixi install                 # build environments
 pixi run -e test pytest tests/test_probe.py -k budget   # rung 1: the red->green loop, ~2s
-pixi run check-fast          # rung 2: lint + typecheck + test-fast, before a commit
-pixi run check               # rung 3: lint + fmt-check + typecheck + test — what CI runs
-pixi run test                # the whole suite on its own
+pixi run check-fast          # rung 2: lint + typecheck + test-fast, before a commit (~14s)
+pixi run check               # rung 3: lint + fmt-check + typecheck + test — what CI runs (~23s)
+pixi run test                # the whole suite on its own (~15s; xdist, 12 workers max)
 pixi run test-failed         # --lf --new-first -x: re-run what broke, worst first
 pixi run -e docs docs-build  # mkdocs build --strict
 ```

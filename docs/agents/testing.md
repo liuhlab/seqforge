@@ -11,8 +11,8 @@ This file is the rule. There are four rungs and you climb them once per change, 
 | # | When | Command | Cost |
 | - | ---- | ------- | ---- |
 | 1 | in the red→green loop | `pixi run -e test pytest tests/test_<module>.py -k <expr>` | **~2s** |
-| 2 | before a commit | `pixi run check-fast` | ~60s |
-| 3 | before opening the PR | `pixi run check` | **once** — ~80s |
+| 2 | before a commit | `pixi run check-fast` | ~14s |
+| 3 | before opening the PR | `pixi run check` | **once** — ~23s |
 | 4 | after the PR is open | read CI | free |
 
 **Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
@@ -62,7 +62,7 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work.
+mostly real work. Both it and `test` run under `pytest-xdist` — see below.
 
 **One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
 `tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
@@ -89,6 +89,37 @@ pixi run test-failed                                    # --lf --new-first -x: r
 pixi run check                                          # rung 3: lint + fmt-check + typecheck + the full suite
 ```
 
+## Parallelism: `-n auto --maxprocesses 12`, and why rung 1 is exempt
+
+`test` and `test-fast` run under `pytest-xdist`. **`addopts` deliberately does not**, so rung 1 stays
+serial: starting twelve workers to run three tests costs more than it saves, and rung 1 is where you
+live.
+
+The worker count was measured, not chosen (2026-07-30, 48-core box, whole suite):
+
+| workers | wall |
+| ------- | ---- |
+| serial | 80.2s |
+| 8 | 19.9s |
+| **12** | **15.3s** |
+| 16 | 20.2s |
+| `auto` (48) | 26.7s |
+
+**More workers stop helping at twelve and then actively hurt.** Every worker pays the interpreter
+import and rebuilds each session-scoped fixture — `synth_10x_v3` among them — so past the knee that
+fixed cost grows faster than the remaining work shrinks. `-n auto` on this box means 48 workers and
+is *slower than 12*; a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason.
+`auto` capped at 12 is the one spelling that is right in both places.
+
+`--dist loadfile` was measured and rejected: it sits at ~28s at every worker count, because it hands
+a whole file to one worker and `tests/test_compile.py` is then the floor. The default `--dist load`
+splits at test granularity.
+
+Parallelism is the **last** thing to reach for, and it landed last on purpose. It hides waste rather
+than removing it: had it come first, the ~41 redundant `snakemake` spawns would still be there, just
+spread across workers. If this number creeps back up, find the fact being re-proved — do not add
+workers.
+
 ## Why there is no test-impact analysis
 
 `pytest-testmon` and friends track **Python lines**, and a large share of this suite's behaviour is
@@ -99,14 +130,15 @@ exact failure mode this project refuses everywhere else. See
 
 ## What the suite costs, and why
 
-Measured on one box, serial. The suite was **164s**; it is now **~73s**, and none of that came from
-making a test weaker:
+Measured on one box. The suite was **164s serial**; it is now **~15s on twelve workers** (78s if you
+force it serial), and none of that came from making a test weaker:
 
 | change | saved |
 | ------ | ----- |
 | the wiring gate paid once per workflow module instead of ~41 times per compose | ~39s |
 | `kb.load_spec` cached, YAML parsed with `CSafeLoader` | ~41s |
 | the 45 repeated manifest builds session-scoped | ~11s |
+| `-n auto --maxprocesses 12` over what remained | ~63s |
 
 Nothing here was a slow *test*. Every one was a fact being re-proved because the seam that owned it
 sat on the wrong interface — which is the shape to look for when the number creeps back up.
