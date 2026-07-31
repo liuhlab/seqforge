@@ -43,7 +43,7 @@ it, which is exactly how `condition` swallowed routine husbandry. If the vocabul
 name, refresh the generated data — an NCBI addition is a data update, never a schema migration. The
 same holds for the EFO labels, which ride the same pattern.
 
-**Gate.** `SampleGroup._keys_are_ncbi_attributes` (the validator itself);
+**Enforced by.** `SampleGroup._keys_are_ncbi_attributes` (the validator itself);
 `test_a_sample_attribute_key_must_be_one_ncbi_defines` (`tests/test_models.py`) for the refusal, and
 `test_every_asked_attribute_is_one_ncbi_defines` (`tests/test_fields.py`), which keeps the asked set
 inside the enforced set by construction rather than by convention.

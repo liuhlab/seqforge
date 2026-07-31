@@ -52,7 +52,7 @@ answer to an undecidable dataset is a `Blocker` and a nonzero exit, not an argma
 cheap eager check (an `onlist_hit_rate` costs ~100 ms) before the expensive experiment, and keep
 alignment where it belongs — escalation rung 6, invoked on an ambiguity code has already flagged.
 
-**Gate.** **None exists.** The refusal path a search would route around is covered
+**Enforced by.** **None exists.** The refusal path a search would route around is covered
 (`test_the_cli_surface_exits_and_answers_as_documented`, `tests/test_cli.py`), but *how* an answer
 was reached is not a property any test reads, and a grid search that always returned something would
 pass every gate in the suite. This one is enforced at review.

@@ -4,15 +4,16 @@ One decision per file: what was there, what the obvious alternative was, and why
 [`docs/agents/rules.md`](../agents/rules.md) states what is enforced and points here; this tree holds
 the argument, once.
 
-Every record carries a **`## So in code`** block — the imperative a reader must follow, and the
-**gate** that checks it. Where nothing enforces a decision the gate says so plainly, which is the
-point: an unenforced decision should be visible as one rather than assumed to have a gate somewhere.
-*So in code* is a writing standard, and nothing checks that a line there is useful — only that the
-tests it names are real (`test_the_enforcement_map_names_tests_that_exist`, `tests/test_docs.py`).
+Every record carries a **`## So in code`** section: the imperative a reader must follow, and an
+**`**Enforced by.**`** block naming what checks it — or saying plainly that nothing does, so an
+unenforced decision is visible as one rather than assumed to have a gate somewhere.
+[`_template.md`](_template.md) owns that contract and states what belongs in each block. Both blocks
+being *present* is checked (`test_every_record_names_what_enforces_it`, `tests/test_docs.py`);
+whether the imperative is any use is a writing standard held at review, and nothing mechanises it.
 
 Writing a new one: copy [`_template.md`](_template.md), take the next number, and add a row to both
-tables below — `test_the_adr_index_and_the_adr_tree_hold_the_same_files` fails on a record this file
-does not list. Whether a thing is a decision, a term or a rule is settled in
+tables below — `test_the_adr_index_and_the_adr_tree_hold_the_same_files` reads both tables and fails
+on a record either one omits. Whether a thing is a decision, a term or a rule is settled in
 [`docs/agents/domain.md`](../agents/domain.md).
 
 ## By area — which records govern what you are about to edit

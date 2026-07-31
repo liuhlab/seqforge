@@ -31,7 +31,7 @@ reads the README; it is documentation, and `spec.yaml` is the machine truth.
 
 A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the
 pairwise checks live in the SUITE, not in a verb: `test_no_spec_pair_is_confusable_without_declaring_it`
-and `test_section_12_biconditional_holds_over_every_loaded_spec_pair` both collect from
+and `test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` both collect from
 `kb.list_spec_ids()`, so your new spec is covered because it exists, not because someone remembered.
 
 **There is no `kb confusability` verb.** This skill documented one for a year and it was never built —

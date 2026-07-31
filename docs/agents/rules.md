@@ -135,7 +135,7 @@ recovers what it declares, and the biconditional proves that two entries with id
 rungs 0–2 without declaring it fails.
 
 **Enforced by.** `kb roundtrip` (exit 3); `test_every_kb_spec_roundtrips`,
-`test_section_12_biconditional_holds_over_every_loaded_spec_pair` and
+`test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` and
 `test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) — all three collect from
 `kb.list_spec_ids()`, so adding a spec adds its cases automatically.
 

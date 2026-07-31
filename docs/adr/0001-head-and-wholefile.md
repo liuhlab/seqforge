@@ -70,8 +70,9 @@ different identity for the bytes builds its own `WholeFile` and passes it — th
 path, and there is no `sha256=` parameter any more. `isize` never joins `FileIdentity`, so a fifth
 source gets a fifth naming authority rather than a shared one.
 
-**Gate.** `test_every_source_reads_the_same_records`, `test_each_source_names_the_file_its_own_way`
-and `test_the_three_field_sets_cover_every_observation_field` (`tests/test_observation_sources.py`) —
+**Enforced by.** `test_every_source_reads_the_same_records`,
+`test_each_source_names_the_file_its_own_way` and
+`test_the_three_field_sets_cover_every_observation_field` (`tests/test_observation_sources.py`) —
 one fixture through all four callers, and a new `Observation` field must declare which of the three
 sets it belongs to rather than escaping the contract by default.
 

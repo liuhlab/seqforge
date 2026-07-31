@@ -63,11 +63,10 @@ per-sample. Reserve blocking for the chemistry call, where an `observed`↔`asse
 until a human confirms. (`Conflict` and `Warning` are `CONTEXT.md` terms; the difference is the
 exit code.)
 
-**Gate.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
-`test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`) on
-the blocking side; `test_the_sample_attribute_precedence_table`, parametrized over every cell of the
-table, and `test_the_metadata_resolver_is_handed_identity_not_signal` (`tests/test_records.py`) on
-the warning side.
+**Enforced by.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
+`test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`);
+`test_the_sample_attribute_precedence_table` and
+`test_the_metadata_resolver_is_handed_identity_not_signal` (`tests/test_records.py`).
 
 ## Consequences
 

@@ -44,11 +44,11 @@ never carries one literally. Do not add a guard that hides a dataset from develo
 cite the benchmark corpus as a pre-registration — it was seeded from runs and is a regression
 baseline.
 
-**Gate.** `test_skill_never_leaks_a_lab_path` (`tests/test_skills.py`) for the path;
-`test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold` (`tests/test_records.py`),
-`test_extra_keys_in_expected_are_rejected` and `test_corpus_is_green` (`tests/test_evals.py`) for the
-prediction. **Nothing can check that a value was not back-filled from a run** — that is what
-committing the file first buys, and it is a review obligation rather than a mechanism.
+**Enforced by.** `test_skill_never_leaks_a_lab_path` (`tests/test_skills.py`);
+`test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold` (`tests/test_records.py`);
+`test_extra_keys_in_expected_are_rejected` and `test_corpus_is_green` (`tests/test_evals.py`).
+**Nothing can check that a value was not back-filled from a run** — that is what committing the file
+first buys, and it is a review obligation rather than a mechanism.
 
 ## Consequences
 

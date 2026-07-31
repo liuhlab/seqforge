@@ -52,15 +52,22 @@ Two blocks, and the reason an agent opens this file at all.
   next touch the code, then a few lines of the specifics it turns on. Write it so it would change
   what someone types. *"Key a sample attribute with one of NCBI's 960 names, or take the refusal"* is
   an obligation; *"the vocabulary is controlled"* is a summary of the Decision and buys nothing.
-- **`**Gate.**`** — the test names or the file that enforces it, in backticks, with the test module
-  named beside them. Every `test_<name>` written here is checked to exist
+- **`**Enforced by.**`** — the test names or the file that enforces it, in backticks, with the test
+  module named beside them. Every `test_<name>` written here is checked to exist
   (`test_the_enforcement_map_names_tests_that_exist`, `tests/test_docs.py`), so a rename turns this
   tree red rather than making it fiction. **If nothing enforces it, write `**None exists.**` and say
   what would have to change to notice a violation.** Do not invent a gate; an unenforced decision is
   worth knowing about.
 
-Nothing checks that the imperative is *useful* — that is a review obligation, and it is stated
-rather than assumed.
+  **Name the gate; do not gloss it.** [`docs/agents/rules.md`](../agents/rules.md) legitimately names
+  many of the same tests — it is a map of what enforces each rule — and that overlap is by design.
+  Copied *prose* is not: the enforcement map owns the full statement with its parentheticals, and
+  this block is the shortest honest form, the name plus its module. If a sentence here would read
+  identically in that file, delete it from here.
+
+Both blocks are checked to be *present* (`test_every_record_names_what_enforces_it`, same module).
+Nothing checks that the imperative is *useful* — a sentence can be there and buy nothing — so that
+half is a review obligation, and it is stated rather than assumed.
 
 ## `## Consequences`
 

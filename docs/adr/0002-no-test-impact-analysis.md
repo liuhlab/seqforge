@@ -61,8 +61,8 @@ than a search. Adding `pytest-testmon` or any coverage-graph selector is a regre
 record. And when a change touches only data — a `spec.yaml`, a `.smk` module, a packed onlist — run
 the suite that reads that data, because no line-coverage selector can see the edit at all.
 
-**Gate.** **None exists.** Nothing stops the dependency being added, nothing asserts that `tests/`
-still mirrors the packages, and nothing measures the suite's runtime. The ladder is a rule in
+**Enforced by.** **None exists.** Nothing stops the dependency being added, nothing asserts that
+`tests/` still mirrors the packages, and nothing measures the suite's runtime. The ladder is a rule in
 [`docs/agents/testing.md`](../agents/testing.md) and the numbers here are dated measurements — this
 record is followed by reading it, which is the honest state and is why it says so.
 

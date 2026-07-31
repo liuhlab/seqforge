@@ -282,8 +282,8 @@ The KB sweeps grow with the spec count, and the *shape* of each term matters mor
 (#112). At 12 specs the whole KB partition is a few seconds; the terms that grow are these:
 
 - The **R8 anchors** are the price of "every KB entry is executable and self-testing," and you do not
-  buy them down. `test_every_kb_spec_roundtrips` is O(n) and *is* the rule. The §12 biconditional is
-  O(n²) with a microsecond constant. `test_no_spec_pair_is_confusable_without_declaring_it` is O(n²)
+  buy them down. `test_every_kb_spec_roundtrips` is O(n) and *is* the rule. The benign-twin
+  biconditional is O(n²) with a microsecond constant. `test_no_spec_pair_is_confusable_without_declaring_it` is O(n²)
   **but geometry-pre-gated** — it checks the cheap `geometry_could_accept` (µs) before paying the
   scorer, which is ~100× and is the pattern to copy. Never narrow their generative axes to hit a clock.
 - The two other O(n²) sweeps — `test_geometry_could_accept_is_necessary_for_rung02_acceptance` and

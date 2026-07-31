@@ -58,7 +58,7 @@ disk is state, not input.
 widen `dataset_content_hash` past `library` + `experiment`, and never auto-repin a bound recipe —
 `compose` refuses the mismatch and writes the bound form to `processing.lock.yaml`.
 
-**Gate.** `test_dataset_hash_is_invariant_across_a_processing_sweep` and
+**Enforced by.** `test_dataset_hash_is_invariant_across_a_processing_sweep` and
 `test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset` (`tests/test_manifest.py`);
 `test_the_module_graph_enforces_the_split` (`tests/test_models.py`), which is the import-graph check;
 `test_compose_writes_the_bound_processing_lock` (`tests/test_compose.py`).

@@ -64,9 +64,8 @@ and 4 for one a human can, uniformly across verbs — an orchestrator must tell 
 "ask and retry" without parsing prose. Every `Blocker` you raise carries an actionable `remedy` and a
 `subject` that is a basename, a dotted path or a dataset id, never an absolute path.
 
-**Gate.** `test_the_cli_surface_exits_and_answers_as_documented` (`tests/test_cli.py`) for the exit
-contract and the stream split; `test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`),
-which introspects the live Typer app so a renamed verb turns the thin clients red.
+**Enforced by.** `test_the_cli_surface_exits_and_answers_as_documented` (`tests/test_cli.py`);
+`test_skill_documents_only_real_cli_verbs` (`tests/test_skills.py`).
 
 ## Consequences
 

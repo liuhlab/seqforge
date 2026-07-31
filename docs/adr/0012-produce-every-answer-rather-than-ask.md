@@ -49,13 +49,12 @@ Ask only where the answers are genuinely exclusive, such as a genome or an align
 fires when it need not trains callers to route around exit codes, which costs the ones that must
 fire.
 
-**Gate.** `test_the_default_counts_the_nuclear_features_without_being_asked` (`tests/test_manifest.py`)
-for the default, and `test_bulk_never_gets_solo_features` (same file) for its limit;
-`test_solo_quant_rejects_velocyto_without_gene` and `test_solo_quant_rejects_duplicates_and_emptiness`
-(`tests/test_models.py`) for the ordering validators; `kb e2e-introns`, with its
-`[Gene, GeneFull]` override deleted, asserting `composed_soloFeatures ⊇ {Gene, GeneFull}` on the
-compiler's own params. **Nothing counts questions asked** outside the eval's own metric, so "we
-dissolved this rather than asking" is a review judgement.
+**Enforced by.** `test_the_default_counts_the_nuclear_features_without_being_asked` and
+`test_bulk_never_gets_solo_features` (`tests/test_manifest.py`);
+`test_solo_quant_rejects_velocyto_without_gene` and
+`test_solo_quant_rejects_duplicates_and_emptiness` (`tests/test_models.py`); `kb e2e-introns`, run
+with its override deleted against the compiler's own params. **Nothing counts questions asked**
+outside the eval's own metric, so "we dissolved this rather than asking" is a review judgement.
 
 ## Consequences
 

@@ -47,7 +47,7 @@ optimizer, encode a forbidden cell as a `+BIG` edge and then post-check that no 
 one; a solver will happily return a solution made entirely of them. An unfillable role is
 `score(t) = −∞`, never a padded assignment.
 
-**Gate.** `test_resolve_matrix_is_json_safe` (`tests/test_resolve.py`) for the wire, and
+**Enforced by.** `test_resolve_matrix_is_json_safe` (`tests/test_resolve.py`) for the wire, and
 `test_assignment_forbidden_diagonal_forces_swap` (same file) for the post-check;
 `test_schema_export_is_valid_json_per_model_and_over_all` (`tests/test_cli.py`) keeps the exported
 schema describing what actually crosses.

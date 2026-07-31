@@ -38,7 +38,8 @@ with no producing rule does nothing — snakemake cannot delete a file it did no
 `container:` on that rule: it runs `seqforge`, not an aligner. And when adding an aligner module,
 reuse the same rule rather than writing a variant — a barcode whitelist is a barcode whitelist.
 
-**Gate.** `test_the_whitelist_is_a_rule_output_not_a_compile_time_write` (`tests/test_compose.py`);
+**Enforced by.** `test_the_whitelist_is_a_rule_output_not_a_compile_time_write`
+(`tests/test_compose.py`);
 `test_no_run_directive_rule_declares_a_container` (same file) for the missing `container:`;
 `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length` (same file),
 which is what fails if the wiring gate stops touching the resolved-onlist cache paths.

@@ -47,7 +47,7 @@ post-process, repair or partially accept a response: a malformed batch fails who
 when no credential names a provider, refuse — never fall back to one, because extracting under a
 different model than intended is a provenance bug that looks like success.
 
-**Gate.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
+**Enforced by.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
 (`tests/test_extract.py`) for the selection;
 `test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify` (same file) for one prompt
 reaching verification through the weakest-shaped provider, and
@@ -66,5 +66,10 @@ reaching verification through the weakest-shaped provider, and
   bug, and a cheap one to make.
 - V4-Flash is ≈3× cheaper than V4-Pro, so provider choice is a real cost lever across 10⁴ datasets —
   which is only safe to pull because it cannot move correctness.
-- Known gap: a transient provider error is not retried; DeepSeek's empty-content-in-JSON return
-  correctly refuses the batch, but `run` then exits 1. A bounded retry inside `extract` is the fix.
+- Known gap: **no transient API error is retried, by either adapter.** A 429, a 5xx or a timeout
+  becomes `ProviderUnavailable` on the first attempt, `harvest extract` reports `llm_unavailable`,
+  and the run exits 1. The only retry that exists is narrower and sits in one adapter:
+  `OpenAICompatibleProvider` — and so the DeepSeek preset — re-issues a bounded number of times when
+  json_object mode returns an **empty** body, because that is a provider hiccup rather than the
+  document saying nothing (which is a well-formed `{"drafts": []}`). The Anthropic path has neither
+  retry. A bounded backoff around both calls is the fix.

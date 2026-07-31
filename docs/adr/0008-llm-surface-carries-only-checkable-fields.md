@@ -48,7 +48,7 @@ offset is discarded rather than trusted. Set a document's `role` and `scope` fro
 never from its contents or its filename, and render only free text into a record document: the
 structured half is already a key and a value.
 
-**Gate.** `test_the_processing_manifest_is_not_llm_facing` (`tests/test_models.py`) pins the
+**Enforced by.** `test_the_processing_manifest_is_not_llm_facing` (`tests/test_models.py`) pins the
 `LLM_FACING` set; `test_extract_discards_model_supplied_offsets` and
 `test_prompt_names_only_permitted_fields` (`tests/test_extract.py`) for the surface;
 `test_verify_rejects_fabricated_provenance` and `test_verify_rejects_real_quote_wrong_value`

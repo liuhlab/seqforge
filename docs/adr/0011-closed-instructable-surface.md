@@ -72,12 +72,11 @@ count, and against which genome, aligner, environment and resources, belongs to 
 beyond `{onlist:<alias>}`, do not put a policy knob in a spec — CellRanger parity is applied at
 `compose` time — and when canonicalizing for comparison, **sort keys, never list values**.
 
-**Gate.** The `Backend` key allowlist (`kb lint` and every `load_spec`), with
-`test_backend_rejects_illegal_template_token` (`tests/test_kb.py`); `extra="forbid"` on the
-processing models, with `test_the_processing_manifest_refuses_an_unknown_key`
-(`tests/test_models.py`); `params_gate`'s disjointness, coverage and three-owner faithfulness checks
-via `test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate`
-(`tests/test_compose.py`); `test_section_12_biconditional_holds_over_every_loaded_spec_pair` and
+**Enforced by.** The `Backend` key allowlist, with `test_backend_rejects_illegal_template_token`
+(`tests/test_kb.py`); `extra="forbid"` on the processing models, with
+`test_the_processing_manifest_refuses_an_unknown_key` (`tests/test_models.py`); `params_gate` via
+`test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate` (`tests/test_compose.py`);
+`test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` and
 `test_no_spec_pair_is_confusable_without_declaring_it` (`tests/test_kb.py`) for the sort.
 
 ## Consequences

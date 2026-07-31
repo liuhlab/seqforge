@@ -91,7 +91,7 @@ def test_splitseq_recovers_fixed_linker_structure() -> None:
 
 
 # ---------- the benign-twin rule, as a computed biconditional ----------
-def test_section_12_biconditional_holds_over_every_loaded_spec_pair() -> None:
+def test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair() -> None:
     """``backend_identical(A, B) <=> declared processing_equivalent`` — the rule the resolver is built on.
 
     `confuse.py`'s docstring asserted CI computed this. Nothing did:
