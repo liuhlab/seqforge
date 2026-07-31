@@ -4,14 +4,20 @@ One file per package, so an agent editing ``workflows/`` knows which file to run
 per-submodule files (``test_h5ad``/``test_qc``/``test_cram``/``test_fragments``) for one package,
 named after the PR that added them rather than the module they cover.
 
-``test_compile.py`` still owns the composer's view of ``workflows`` — the registry, the wiring gate
-and the emitted config. What lives here is what the modules DO once snakemake runs them.
+Two views of ``workflows`` live here. What each hand-written module IS — the registry
+(``MODULES``/``list_modules``) and the ``.smk`` SOURCE invariants read off the module text (no
+generated rule source, the modules are hand-written, the derived ``required_config``/``parse_keys``,
+the per-pipeline param block, the aligner name) — moved here from the deleted ``test_compile.py``,
+because reading ``MODULES`` and the module text is the natural neighbour of what the modules DO once
+snakemake runs them (h5ad/qc/cram/fragments). The composer's own view — the emitted config and the
+params gate — is ``test_compose.py``.
 """
 
 from __future__ import annotations
 
 import gzip
 import json
+import re
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -21,7 +27,11 @@ from typing import get_args
 import anndata as ad
 import pytest
 
-from seqforge.models.processing import SoloFeature
+from conftest import SrcTrees, _build, _processing, _src_root
+from seqforge import kb
+from seqforge.compose import compose, core
+from seqforge.models.processing import RuntimeEnv, SoloFeature
+from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 from seqforge.workflows.cram import CramError, _sort_mem_per_thread_mb, bam_to_cram
 from seqforge.workflows.fragments import (
     FragmentsError,
@@ -605,3 +615,273 @@ def test_write_fragments_sorts_bgzips_and_tabix_indexes(tmp_path: Path) -> None:
         lines = [ln for ln in fh.read().splitlines() if ln]
     starts = [(c.split("\t")[0], int(c.split("\t")[1])) for c in lines]
     assert starts == sorted(starts)
+
+
+def test_workflow_modules_are_registered_and_present_on_disk() -> None:
+    from types import SimpleNamespace
+
+    from seqforge.workflows import MODULES, resolve_pipeline
+
+    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap"}
+    valid_envs = set(get_args(RuntimeEnv))
+    for name in list_modules():
+        module = get_module(name)
+        assert module.snakefile.is_file(), f"{name} snakefile missing"
+        assert module.version == WORKFLOW_VERSION
+        # Each module names the runtime env its aligner needs -- align-rna for the STAR modules,
+        # align-dna for chromap. Assert it is a real `RuntimeEnv`, not a hardcoded `align-rna`: the
+        # env is the module's own declaration (policy reads it off the pipeline), so a second aligner
+        # in a different env is correct, not a test failure.
+        assert module.env in valid_envs
+
+    # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
+    # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
+    # modality the target pipeline does not serve is a loud refusal at compose time, not a wrong
+    # command line -- the same silent fall-through read_layout_kind/param_block were built to kill.
+    rna = kb.load_spec("10x-3p-gex-v3")
+    assert resolve_pipeline(rna) is MODULES[rna.require_backend().module]
+    unserved = SimpleNamespace(
+        require_backend=lambda: SimpleNamespace(module="map/starsolo"),
+        identity=SimpleNamespace(modality="atac", id="fake-atac"),
+    )
+    with pytest.raises(KeyError, match="serves modalities"):
+        resolve_pipeline(unserved)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("module", list_modules())
+def test_every_registered_module_wires_into_a_runnable_dag(
+    module: str, tmp_path: Path, real_wiring_gate: None
+) -> None:
+    """The wiring gate, paid once per workflow module — the only place in the suite that pays it.
+
+    The gate's claim varies with the ``.smk`` MODULE, not with the dataset, but ``run_wiring_gate``
+    sat on ``compose``'s dataset-shaped interface, so ~41 tests each spawned ``snakemake -n -p`` to
+    re-prove one of three facts and only ``map/starsolo`` was ever asserted on. This is the same
+    claim on the interface that owns it: every registered module, exhaustively.
+
+    The tech comes from the KB, not a hand-written list (R8) — a fourth module gets a case the moment
+    a spec targets it, and a module no spec reaches fails loudly rather than going untested.
+
+    It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of
+    its own on `map/starsolo`. The gate stands in zero-byte FASTQs; they were touched straight into
+    the run directory (`pipeline_dir / row["path"]`) and never removed, which was invisible only
+    because the gate never ran — `snakemake` was undeclared. The moment it ran, the run directory
+    would hold zero-byte files named exactly like the FASTQs, STAR would read them, and the pipeline
+    would emit an empty matrix and **exit 0**: silent, plausible, wrong, and introduced by the very
+    commit that made the gate work. Asserted here it holds for all three modules, not for starsolo
+    alone.
+    """
+    techs = sorted(t for t in kb.runnable_spec_ids() if kb.load_spec(t).backend.module == module)
+    assert techs, f"{module} is registered but no spec reaches it"
+    manifest, reg = _build(tmp_path, techs[0])
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    # PASS, not skip. This used to read `in {"pass", "skip"}` and so forbade only the one value that
+    # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
+    # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
+    # repo. If it ever goes missing again, that is a broken environment and this says so.
+    assert result.gate["wiring"] == "pass"
+    run_dir = (tmp_path / result.snakefile_path).parent
+    strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
+    assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
+
+
+def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
+    """A module's `shell:` naming a verb we renamed fails hours into a run, on a compute node.
+
+    Derived from the live Typer app on one side and the module source on the other, so neither can be
+    kept true by hand. This is `test_skill_documents_only_real_cli_verbs` pointed at the other place
+    that hardcodes our own CLI — and the shipped modules are the more expensive place to be wrong.
+    """
+    import typer
+
+    from seqforge.cli import app
+
+    def paths(a: typer.Typer, prefix: tuple[str, ...] = ()) -> set[str]:
+        out = {
+            " ".join((*prefix, c.name or (c.callback.__name__ if c.callback else "")))
+            for c in a.registered_commands
+        }
+        for g in a.registered_groups:
+            assert g.typer_instance is not None and g.name is not None
+            out |= paths(g.typer_instance, (*prefix, g.name))
+        return out
+
+    known = paths(app)
+    for name in list_modules():
+        # `shell:` blocks only. Scanning the whole file reads the rule's own docstring — which says
+        # "a `shell:` calling a seqforge verb" — and reports `seqforge verb` as missing. Same lesson
+        # `keys_read_by` learned: a scanner pointed at prose cries wolf, and then gets deleted.
+        for block in re.findall(
+            r"shell:\s*\n\s*r?\"\"\"(.*?)\"\"\"", get_module(name).snakefile.read_text(), re.DOTALL
+        ):
+            # `[a-z0-9-]`, not `[a-z-]`: the first verb this test ever met was `h5ad`, and a
+            # name-shaped regex that stops at a digit matches `io h` and reports *that* as missing.
+            for verb in re.findall(r"\bseqforge ((?:[a-z][a-z0-9-]* ){0,2}[a-z][a-z0-9-]*)", block):
+                # longest match first: `io h5ad` is a command; `io` alone is only its group
+                words = verb.split()
+                assert any(" ".join(words[:n]) in known for n in range(len(words), 0, -1)), (
+                    f"{name} shells out to `seqforge {verb}`, which is not a registered verb"
+                )
+
+
+#: A Snakemake rule definition. `rule x:` / `checkpoint x:` are the only ways to introduce rule
+#: source, so this is the whole vocabulary the composer is forbidden from emitting.
+_RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
+
+
+def test_the_generated_wrapper_contains_no_rule_source() -> None:
+    """Emit data, never code, at the ONE place seqforge writes Snakemake syntax at all.
+
+    `compose` generates a Snakefile — the deliverable — and its own header says "rule source is never
+    generated". Everything the pipeline actually executes must come from the hand-written `.smk`
+    modules; the moment the composer emits a `rule`, that guarantee is gone and nobody finds out from a comment.
+
+    Asserted against the template rather than a rendered instance because the template is the thing
+    a future edit would change.
+    """
+    wrapper = core._WRAPPER
+    assert not _RULE_DEF.search(wrapper), f"the composer emits rule source:\n{wrapper}"
+    assert "configfile:" in wrapper  # it parameterises by data...
+    assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
+    # ...and it must reach the module's rules as DEFAULT targets (folded from
+    # test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets): an `include:`d rule is
+    # not a default target, so `configfile:` + `include:` parses clean, lists every rule, and plans
+    # ZERO jobs -- "Nothing to be done", exit 0. `use rule * from m as *` re-declares them so bare
+    # `snakemake` reaches them.
+    assert "include:" not in wrapper, (
+        "an `include:`d rule is not a default target -- the wrapper would plan zero jobs and exit 0"
+    )
+
+
+def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
+    """Prove the guard fires, and that it does not cry wolf on the words it must tolerate."""
+    assert _RULE_DEF.search("rule starsolo_count:\n    shell: 'STAR'\n")
+    assert _RULE_DEF.search("checkpoint split:\n")
+    assert _RULE_DEF.search('include: "x.smk"\nrule all:\n    input: []\n')
+    # ...but the prose and directives a legitimate wrapper contains are not rule source
+    assert not _RULE_DEF.search("# includes the module whose rules we never generate\n")
+    assert not _RULE_DEF.search('include: "map/starsolo.smk"\nconfigfile: "config.yaml"\n')
+    assert not _RULE_DEF.search('config["ruleset"] = "x"\n')
+
+
+@pytest.mark.parametrize("module_name", list_modules())
+def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> None:
+    """The other half of emit-data-never-code: the rules that DO exist are checked-in source, not build artifacts.
+
+    A module whose rules were generated would defeat the wrapper check by moving the generation one
+    step earlier, so the modules must be real files under version control, carrying the header that
+    says what they are.
+    """
+    module = get_module(module_name)
+    snakefile = module.snakefile
+    assert snakefile.is_file(), f"{module_name}: {snakefile} is not on disk"
+    text = snakefile.read_text()
+    assert _RULE_DEF.search(text), f"{module_name} defines no rules — is it really a module?"
+    assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
+
+    # `required_config` is COMPUTED from the module source, so neither direction can drift (folded
+    # from test_required_config_is_exactly_what_the_module_reads). It once under-declared the four
+    # soloCB/UMI keys `starsolo.smk` dereferences and over-declared `primary_feature`/`env` that no
+    # rule reads. This identity reads as tautological but is not: it pins that `required_config` never
+    # goes back to a hand-typed literal; test_the_required_config_scanner_can_catch_an_undeclared_key
+    # is what proves the derivation itself is not vacuous.
+    assert set(module.required_config) == set(keys_read_by(snakefile))
+    assert module.required_config == tuple(sorted(module.required_config))
+
+
+@pytest.mark.xdist_group("src-trees")
+def test_the_config_block_is_read_off_the_module_not_matched_on_its_name(
+    src_trees: SrcTrees,
+) -> None:
+    """The last `== "map/starsolo"` in the tree, and the last silent "everything else is bulk".
+
+    `param_block_key` was `"solo" if spec.backend.module == "map/starsolo" else "bulk"`, which is the
+    same bug `read_layout_kind` was created to kill one function earlier: a third module gets its
+    params written into a `bulk:` block it never reads, and the params gate agrees with the composer
+    because the gate calls this same function. Two things wrong identically look, from inside a test,
+    exactly like two things right.
+
+    Now it is read off what the module source actually dereferences.
+    """
+    import ast
+
+    from seqforge.workflows import MODULES, list_modules
+
+    assert MODULES["map/starsolo"].param_block == "solo"
+    assert MODULES["map/star"].param_block == "bulk"
+
+    # A COMPARISON against a module name, not a mention of one: the docstrings deliberately keep the
+    # old line so the bug it names stays findable. Grepping the text would forbid the record of the
+    # fix along with the fix, which is how a guard teaches people to delete their own history.
+    names = set(list_modules())
+    offenders: list[str] = []
+    for py, tree in src_trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and any(
+                isinstance(c, ast.Constant) and c.value in names for c in node.comparators
+            ):
+                offenders.append(f"{py.relative_to(_src_root())}:{node.lineno}")
+    assert not offenders, (
+        "a workflow module is being dispatched on by NAME. Every module that is not the one named "
+        "silently takes the other branch, and nothing goes red — that is how `_read_files_in` "
+        "emitted mate1/mate2 for a barcoded chemistry. Declare the fact on the module:\n"
+        + "\n".join(offenders)
+    )
+
+
+def tmp_snakefile() -> Path:
+    """A module that reads neither aligner-param block. Written to a real path: `required_config`
+    scans the source, which is the whole point of it being derived."""
+    import tempfile
+
+    p = Path(tempfile.mkdtemp()) / "ghost.smk"
+    p.write_text('rule x:\n    output: "y"\n    shell: "echo {config[outdir]}"\n')
+    return p
+
+
+def test_a_module_whose_config_contract_is_unreadable_refuses() -> None:
+    """Guessing which block a module reads is how the wrong params reach an aligner."""
+    from seqforge.workflows import WorkflowModule
+
+    ghost = WorkflowModule(
+        name="map/ghost",
+        version="0.0.0",
+        env="align-rna",
+        snakefile=tmp_snakefile(),
+        read_layout_kind="paired",
+    )
+    with pytest.raises(ValueError, match="exactly one of solo/bulk"):
+        _ = ghost.param_block
+
+
+def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
+    """Each pipeline owns the parse keys its backends may declare — the single source of truth.
+
+    The KB DSL validator and the composer's params gate both consult `parse_keys_for(module)`, so a
+    second aligner declares its own knobs without widening STARsolo's. A global set forced every
+    pipeline to share one namespace, which is exactly what makes "instruction contradicts the bytes"
+    inexpressible only by accident.
+    """
+    from seqforge.workflows import parse_keys_for
+
+    # `MODULES["map/starsolo"].parse_keys == parse_keys_for("map/starsolo")` was dropped here: it is
+    # tautological, since `parse_keys_for` IS `get_module(module).parse_keys`. The behavioural claims
+    # below stay.
+    assert "soloType" in parse_keys_for("map/starsolo")
+    assert len(parse_keys_for("map/starsolo")) == 11
+    # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
+    assert parse_keys_for("map/star") == frozenset()
+    with pytest.raises(KeyError, match="unknown workflow module"):
+        parse_keys_for("map/nonesuch")
+
+
+def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
+    """`aligner` is read off the module id, so it can never drift from a hand-kept `_ALIGNER_FOR_MODULE`.
+
+    Every entry of the deleted dict equalled this rsplit, so the dict was a mirror of the ids that
+    could only ever disagree with them.
+    """
+    from seqforge.workflows import MODULES
+
+    assert MODULES["map/starsolo"].aligner == "starsolo"
+    assert MODULES["map/star"].aligner == "star"

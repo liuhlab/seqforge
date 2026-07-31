@@ -149,7 +149,7 @@ def test_manifest_round_trips_through_json() -> None:
 # `test_chemistry_is_an_equivalence_class` was deleted (#110): `_valid_manifest()` hard-codes
 # `value=["10x-3p-gex-v3", "10x-3p-gex-v3.1"]` and the test asserted that literal straight back, with
 # no validator deriving it -- so it could not fail. The real fact (fill DERIVES the class from the
-# bytes) is `test_compile.py::test_fill_records_the_equivalence_class_and_byte_derived_roles`, and the
+# bytes) is `test_manifest.py::test_fill_records_the_equivalence_class_and_byte_derived_roles`, and the
 # literal itself is still pinned by `test_the_assay_cannot_disagree_with_the_chemistry_it_names` below.
 
 

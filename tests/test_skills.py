@@ -15,8 +15,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-#: Everything here checks the shipped skills and docs, not `src/`. `pixi run check` runs it; `test-fast` does not.
-pytestmark = pytest.mark.repo
+#: `repo` is applied PER TEST, not to the whole module (#113). Half this file introspects the live
+#: Typer app and goes red when `src/` changes — that is exactly what R6 names its anchor to catch, so
+#: those tests must run under `test-fast` (a machine with no snakemake still wants R6 checked). Only the
+#: five tests that genuinely check the shipped skills/installer rather than `src/` carry `@pytest.mark.repo`.
 
 _REPO = Path(__file__).resolve().parents[1]
 SKILLS = _REPO / "skills"
@@ -50,6 +52,7 @@ def _frontmatter(path: Path) -> dict:
     return yaml.safe_load(match.group(1))
 
 
+@pytest.mark.repo
 def test_ships_exactly_the_expected_skills() -> None:
     """Both directions: a new skill must be added to EXPECTED, and a removed one (the fictional
     `seqforge-journal`, whose four verbs were never built) must leave it — a skill is a client of
@@ -57,6 +60,7 @@ def test_ships_exactly_the_expected_skills() -> None:
     assert {p.name for p in _skill_dirs()} == EXPECTED
 
 
+@pytest.mark.repo
 @pytest.mark.parametrize("skill", _skill_dirs(), ids=lambda p: p.name)
 def test_frontmatter_is_valid_and_matches_the_directory(skill: Path) -> None:
     """The Agent Skills standard keys, and `name` must match the dir or discovery breaks."""
@@ -280,6 +284,7 @@ def _real_flags() -> dict[str, set[str]]:
 _CONCRETE_SCRATCH = re.compile(r"/scratch/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+")
 
 
+@pytest.mark.repo
 @pytest.mark.parametrize("skill", _skill_dirs(), ids=lambda p: p.name)
 def test_skill_never_leaks_a_lab_path(skill: Path) -> None:
     """This repo is public: it carries rules and accessions, never a path on our cluster.
@@ -293,12 +298,14 @@ def test_skill_never_leaks_a_lab_path(skill: Path) -> None:
     assert not found, f"{skill.name} leaks a concrete lab path: {found}"
 
 
+@pytest.mark.repo
 def test_the_leak_check_can_actually_catch_a_leak() -> None:
     """Prove the guard fires — a leak check that has never caught one proves nothing."""
     assert _CONCRETE_SCRATCH.findall("data at /scratch/somelab/someproject/reads")
     assert not _CONCRETE_SCRATCH.findall("`/scratch/...` in a manifest is a bug")
 
 
+@pytest.mark.repo
 def test_installer_discovers_every_skill() -> None:
     import importlib.util
 
