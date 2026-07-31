@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -404,52 +403,11 @@ def test_a_packed_onlist_round_trips_through_the_shipped_encoding() -> None:
     assert (decode_codes(encode_codes(codes), 16) == codes).all()
 
 
-@pytest.mark.external  # shells to `python -m build`
-def test_the_wheel_ships_the_data_the_package_cannot_work_without() -> None:
-    """Build a wheel and look inside. Package data is not Python, so nobody notices it going missing.
-
-    Each of these absent is a specific, silent-ish failure a unit test would never see, because the
-    source tree always has them:
-
-      - `io/onlists/*.codes.gz`  -> compose exits 3 on every real 10x dataset
-      - `workflows/map/*.smk`    -> the emitted Snakefile includes a module that is not there
-      - `kb/specs/*/spec.yaml`   -> the KB is empty and nothing resolves
-
-    It also pins the packaging arrangement: `packages = ["src/seqforge"]` already carries them, and a
-    `force-include` on top is a hard build error rather than a duplicate. Both directions are covered
-    here -- the wheel builds, AND it has the files.
-    """
-    import subprocess
-    import sys
-    import zipfile
-
-    root = Path(__file__).resolve().parents[1]
-    if not (root / "pyproject.toml").is_file():  # pragma: no cover - installed, not a checkout
-        pytest.skip("not running from a source checkout")
-    with tempfile.TemporaryDirectory() as tmp:
-        proc = subprocess.run(
-            [sys.executable, "-m", "build", "--wheel", "--outdir", tmp],
-            cwd=root,
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:  # pragma: no cover - depends on the host toolchain
-            if "No module named build" in proc.stderr:
-                pytest.skip("python-build is not installed in this environment")
-            pytest.fail(f"the wheel does not build:\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
-        wheels = list(Path(tmp).glob("*.whl"))
-        assert len(wheels) == 1, f"expected one wheel, got {wheels}"
-        names = zipfile.ZipFile(wheels[0]).namelist()
-
-    assert any(n.endswith("io/onlists/index.json") for n in names)
-    assert sum(n.endswith(".codes.gz") for n in names) >= 3, "the packed whitelists are missing"
-    assert sum(n.endswith(".smk") for n in names) >= 2, "the workflow modules are missing"
-    assert sum(n.endswith("spec.yaml") for n in names) >= 5, "the KB specs are missing"
-    assert any(n.endswith("report/assets/report.css") for n in names) and any(
-        n.endswith("report/assets/report.js") for n in names
-    ), (
-        "the report's inlined CSS/JS assets are missing -> `seqforge report` renders an unstyled page"
-    )
+# The wheel-contents guarantee -- that the built wheel actually ships the onlists, the `.smk`
+# modules, the KB specs and the report assets -- moved to the CI `build` job, where the wheel already
+# exists (scripts/check_wheel_contents.py, `pixi run check-wheel`, #108). Building a second wheel
+# under pytest cost ~1.9s in `default` and skipped entirely in the `test` env CI runs, so it billed
+# the developer and protected nothing on the machine that mattered.
 
 
 # --------------------------------------------------------------------------------------------

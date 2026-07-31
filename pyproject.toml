@@ -243,6 +243,11 @@ eval      = "seqforge eval run"
 # output whole, in a fixed order, once they have all finished. See the header there.
 check     = "bash scripts/check.sh lint fmt-check typecheck test"
 build     = "python -m build"
+# Inspect the wheel `build` just produced for the package data it cannot work without (onlists, .smk
+# modules, KB specs, report assets). Lives here, not in pytest: the test built a SECOND wheel, cost
+# ~1.9s in `default` (the env `check` uses), and skipped in the `test` env CI runs (`python-build` is
+# a `dev` dep). Now it runs in the CI `build` job, where the wheel already exists. See #108.
+check-wheel = "python scripts/check_wheel_contents.py"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"

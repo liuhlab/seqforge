@@ -72,3 +72,9 @@ jobs:
           locked: true
       - name: build
         run: pixi run -e default build
+      # The wheel exists now, so inspect it here rather than build a second one under pytest. The
+      # package data is not Python -- if `io/onlists/*.codes.gz`, the `.smk` modules, the KB specs or
+      # the report assets fall out of the wheel, every real dataset breaks while the unit suite (which
+      # reads the source tree) stays green. See scripts/check_wheel_contents.py and #108.
+      - name: wheel ships its package data
+        run: pixi run -e default check-wheel
