@@ -80,10 +80,27 @@ There is deliberately **no `slow` marker**. It would be a hand-maintained list k
 changes every time someone optimises, and nothing would go red when it drifted — a marker that lies
 about cost is worse than no marker, because it is trusted.
 
-`external` is applied by mechanism where it can be: `tests/conftest.py`'s
-`pytest_collection_modifyitems` marks anything requesting the `real_wiring_gate` fixture, because
-asking for the real gate *is* asking to spawn `snakemake`. A hand-written list would go stale
-silently, and the staleness would show up as `test-fast` spawning subprocesses nobody meant it to.
+`external` is applied by mechanism: `tests/conftest.py`'s `pytest_collection_modifyitems` marks
+anything requesting a fixture that **spawns** — `real_wiring_gate` or `dry_run`. A hand-written list
+would go stale silently, and the staleness would show up as `test-fast` spawning subprocesses nobody
+meant it to.
+
+**Keying that on "asked for the real gate" was wrong in both directions**, and both directions were
+live: `test_compile.py` held a module-local `_dry_run` that spawned `snakemake` with no fixture at
+all, so two tests shelling out to a binary we do not own were selected by `test-fast` and hard-failed
+rather than skipped on a machine without it — the exact thing `test-fast` exists to avoid. Meanwhile
+`test_compose_emits_a_snakefile_even_when_no_gate_runs` un-stubs the gate only to pass
+`run_wiring_gate=False` and prove it never runs; it spawns nothing, costs 0.01s, and was excluded from
+`test-fast` for a subprocess it does not make.
+
+So there are two fixtures and they mean different things. `real_wiring_gate` means "I spawn"; the
+plan-text spawner is the `dry_run` fixture (in `conftest.py`, so the marker can see it — a module-local
+spawner is a spawn the marker cannot see); and `gate_that_must_not_run` means "un-stub the gate, and I
+will not reach it". That last one is a mechanism rather than a promise: it installs the real gate
+behind a counter and fails at teardown if it is called.
+
+The property is checkable, and worth re-checking if this ever moves: put a refusing `snakemake` decoy
+first on `PATH` and run `pixi run test-fast`. It passes.
 
 ## The verbs
 

@@ -8,6 +8,7 @@ chemistry-defining knob, must both FAIL — silently emitting them is how a corp
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import get_args
 
@@ -448,29 +449,45 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 
     The tech comes from the KB, not a hand-written list (R8) — a fourth module gets a case the moment
     a spec targets it, and a module no spec reaches fails loudly rather than going untested.
+
+    It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of
+    its own on `map/starsolo`. The gate stands in zero-byte FASTQs; they were touched straight into
+    the run directory (`pipeline_dir / row["path"]`) and never removed, which was invisible only
+    because the gate never ran — `snakemake` was undeclared. The moment it ran, the run directory
+    would hold zero-byte files named exactly like the FASTQs, STAR would read them, and the pipeline
+    would emit an empty matrix and **exit 0**: silent, plausible, wrong, and introduced by the very
+    commit that made the gate work. Asserted here it holds for all three modules, not for starsolo
+    alone.
     """
     techs = sorted(t for t in kb.runnable_spec_ids() if kb.load_spec(t).backend.module == module)
     assert techs, f"{module} is registered but no spec reaches it"
     manifest, reg = _build(tmp_path, techs[0])
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    # PASS, not skip. This used to read `in {"pass", "skip"}` and so forbade only the one value that
+    # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
+    # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
+    # repo. If it ever goes missing again, that is a broken environment and this says so.
     assert result.gate["wiring"] == "pass"
+    run_dir = (tmp_path / result.snakefile_path).parent
+    strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
+    assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
 # ---------- compose ----------
 def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
-    built_v3: Built, tmp_path: Path, real_wiring_gate: None
+    built_v3: Built, tmp_path: Path
 ) -> None:
+    """Everything asserted here is text off disk, so it runs under conftest's stubbed gate.
+
+    It used to take `real_wiring_gate` for exactly one assertion, `gate["wiring"] == "pass"` — the
+    claim `test_every_registered_module_wires_into_a_runnable_dag` now owns for all three modules
+    rather than for this one dataset. A 1.5s `snakemake` spawn to re-prove it here bought nothing, and
+    dropping it puts this test back into `test-fast`.
+    """
     manifest, reg = built_v3
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"
-    # The wiring gate must PASS, not skip. This assertion used to read `in {"pass", "skip"}` and so
-    # forbade only "fail" -- the one value that could not occur, because `snakemake` was in no
-    # dependency table, `have("snakemake")` was False, and the gate returned "skip" every time. A
-    # skip is green, so the gate was decorative for the life of the repo. `snakemake-minimal` is now
-    # declared in every environment that runs this suite; if it ever goes missing, that is a broken
-    # environment and this test says so instead of quietly covering nothing.
-    assert result.gate["wiring"] == "pass"
     # e2e stays skip: it is the real count-matrix run and belongs to `seqforge kb e2e`, never to
     # compose. Its toolchain (STAR, liulab-genome, a cluster) is genuinely absent here.
     assert result.gate["e2e"] == "skip"
@@ -498,7 +515,7 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
 
 
 def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
-    tmp_path: Path, real_wiring_gate: None
+    tmp_path: Path, dry_run: Callable[..., str]
 ) -> None:
     """BD Rhapsody Enhanced compiles to the adapter-anchored STARsolo recipe endorsed on STAR #1607.
 
@@ -507,12 +524,24 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     adapter (anchor 2 = its start, anchor 3 = its end). The exact strings are the maintainer-endorsed
     ones — an independent cross-check on the element geometry — and the params gate must still PASS with
     `soloAdapterSequence` now an owned (derived) key.
+
+    This is the file's ONE complex-chemistry RENDERING check, and it spends its single spawn on the
+    plan text rather than on `wiring_gate`'s four-character verdict. That closes a real gap: the module
+    reads the adapter with `SOLO.get(...)` (`workflows/map/starsolo.smk`), so a regression to
+    `return ""` passes both the config assertion and a grep of the shipped source — only the argv
+    STAR would actually receive can tell.
+
+    It also stands in for the SPLiT-seq dry run that used to exist alongside it, which is safe only
+    while bd's emitted `solo` keys are a SUPERSET of splitseq's — so that is asserted, not assumed.
+    Both take the `CB_UMI_Complex` branch, both carry three whitelists, and neither declares
+    `soloBarcodeReadLength`; the day a spec gives SPLiT-seq a derived key bd lacks, the config-level
+    sweep would stay green and the rendering axis would silently go uncovered.
     """
     manifest, reg = _build(tmp_path, "bd-rhapsody-wta-enhanced-v1")
-    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
     assert result.gate["params"] == "pass"
-    assert result.gate["wiring"] == "pass"
 
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     solo = config["solo"]
@@ -523,9 +552,28 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     assert solo["soloStrand"] == "Forward"
     # the diversity insert is absorbed by the adapter, so no read-start start/length is emitted
     assert "soloCBstart" not in solo and "soloUMIstart" not in solo
-    # the module actually passes the adapter to STAR (a hand-written .smk, so grep the shipped source)
-    smk = (tmp_path / result.config_path).parent / "starsolo.smk"
-    assert "--soloAdapterSequence" in smk.read_text()
+
+    # SPLiT-seq's rendering axis rides on this one. `plan` needs no subprocess (0.06s), so the
+    # condition that makes the substitution legal is an assertion rather than a code-review note.
+    ss_dir = tmp_path / "splitseq"
+    ss_dir.mkdir()
+    ss, ss_reg = _build(ss_dir, "splitseq")
+    ss_solo = plan(ss, _processing(ss), registry=ss_reg).config["solo"]
+    assert isinstance(ss_solo, dict)
+    assert set(solo) >= set(ss_solo), (
+        "SPLiT-seq emits a solo key bd-enhanced does not, so bd's plan text no longer covers it; "
+        f"give SPLiT-seq its own dry run. Missing: {sorted(set(ss_solo) - set(solo))}"
+    )
+
+    # ...and what STAR is actually handed. `-p` renders every shell block while planning.
+    planned = dry_run(
+        (tmp_path / result.config_path).parent, plan(manifest, processing, registry=reg)
+    )
+    assert f"--soloAdapterSequence {solo['soloAdapterSequence']}" in planned
+    assert f"--soloCBposition {solo['soloCBposition']}" in planned
+    # neither chemistry declares it, and the module reads it with `SOLO.get(...)` so its absence must
+    # render as absence, not as a KeyError or an empty flag
+    assert "--soloBarcodeReadLength" not in planned
 
 
 def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> None:
@@ -546,7 +594,7 @@ def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> No
 
 
 def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
-    built_v3: Built, tmp_path: Path
+    built_v3: Built, tmp_path: Path, dry_run: Callable[..., str]
 ) -> None:
     """A pooled (multi-run) sample must reach STAR comma-joined per mate AND with mates paired by run.
 
@@ -563,8 +611,6 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
     the opposite of what sorting by filename would produce. Generalises the fix; nothing is 2-run
     specific.
     """
-    import subprocess
-
     manifest, reg = built_v3
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     pipeline_dir = (tmp_path / result.snakefile_path).parent
@@ -590,14 +636,9 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
     for _sid, _run, _rid, path in rows:  # `snakemake -n` needs its source inputs to exist
         (pipeline_dir / path).touch()
 
-    proc = subprocess.run(
-        ["snakemake", "-d", str(pipeline_dir), "-s", str(pipeline_dir / "Snakefile"), "-n", "-p"],
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
-    assert proc.returncode == 0, proc.stderr
-    out = proc.stdout + proc.stderr
+    # no `plan=`: the whole point is the units.tsv this test just wrote, so it dry-runs the directory
+    # as it stands rather than a replica rebuilt from the plan.
+    out = dry_run(pipeline_dir)
 
     # cdna=R2 first, then barcode=R1; each mate comma-joined AND both ordered by run (r1, then r2).
     expected = f"--readFilesIn {f['r1']['R2']},{f['r2']['R2']} {f['r1']['R1']},{f['r2']['R1']}"
@@ -608,7 +649,7 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
 
 
 def test_compose_emits_a_snakefile_even_when_no_gate_runs(
-    built_v3: Built, tmp_path: Path, real_wiring_gate: None
+    built_v3: Built, tmp_path: Path, gate_that_must_not_run: None
 ) -> None:
     """The Snakefile is the DELIVERABLE, so nothing optional may be its reason for existing.
 
@@ -620,10 +661,15 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(
     `run_wiring_gate=False` is the sharpest way to state the invariant: no gate ran, and the
     deliverable is still on disk and still complete.
 
-    It takes `real_wiring_gate` *because* it is the test that no gate ran: under conftest's stub the
-    gate returns the literal `"skip"` for everyone, so `gate["wiring"] == "skip"` would hold even if
+    It un-stubs the gate *because* it is the test that no gate ran: under conftest's stub the gate
+    returns the literal `"skip"` for everyone, so `gate["wiring"] == "skip"` would hold even if
     `run_wiring_gate` were ignored entirely. The assertion only means something when the thing it
     asserts was NOT taken is the thing that would otherwise have run.
+
+    It takes `gate_that_must_not_run` rather than `real_wiring_gate` because those are two different
+    requests. `real_wiring_gate` means "I spawn `snakemake`", which is what the `external` marker is
+    derived from; this test spawns nothing and costs 0.01s, so it belongs in `test-fast`. The fixture
+    counts calls and fails at teardown if the gate is reached, which is what keeps that a mechanism.
     """
     manifest, reg = built_v3
     result = compose(
@@ -633,29 +679,6 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(
     snakefile = tmp_path / result.snakefile_path
     assert snakefile.is_file(), "compose ran a gate-free path and emitted no Snakefile"
     assert get_module("map/starsolo").snakefile.name in snakefile.read_text()
-
-
-def test_the_wiring_gate_leaves_no_zero_byte_fastq_in_the_run_directory(
-    built_v3: Built, tmp_path: Path, real_wiring_gate: None
-) -> None:
-    """The gate stands in zero-byte FASTQs; they must never land where the pipeline will read them.
-
-    They were touched straight into the run directory (`pipeline_dir / row["path"]`) and never
-    removed. Invisible only because the gate never ran: `snakemake` was undeclared. The moment it
-    ran, the run directory would hold zero-byte files named exactly like the FASTQs, STAR would read
-    them, and the pipeline would emit an empty matrix and **exit 0**.
-
-    That is the failure this whole project exists to prevent — silent, plausible, wrong — and it
-    would have been introduced by the very commit that made the gate work.
-    """
-    manifest, reg = built_v3
-    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
-    assert result.gate["wiring"] == "pass", (
-        "the gate must have actually run for this to mean anything"
-    )
-    run_dir = (tmp_path / result.snakefile_path).parent
-    strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
-    assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
 def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
@@ -693,47 +716,39 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
     )
 
 
-def _dry_run(pipeline_dir: Path, p: core.ComposePlan) -> str:
-    """The wiring gate's dry run, but returning the PLAN instead of a verdict."""
-    import shutil
-    import subprocess
-
-    from seqforge.compose.gates import _replica
-
-    scratch = _replica(pipeline_dir, p)
-    try:
-        proc = subprocess.run(
-            ["snakemake", "-d", str(scratch), "-s", str(scratch / "Snakefile"), "-n", "-p"],
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-        assert proc.returncode == 0, proc.stderr
-        return proc.stdout + proc.stderr
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
-
-
-def test_the_composed_pipeline_plans_the_h5ad_as_its_deliverable(
-    built_v3: Built, tmp_path: Path
+def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length(
+    built_v3: Built, tmp_path: Path, dry_run: Callable[..., str]
 ) -> None:
-    """The pilot's product is a matrix a human can open, so the default target must BE that file.
+    """Everything the DEFAULT 10x plan text has to say, off one `snakemake -n -p`.
 
-    `rule all` used to demand `directory(Solo.out)`, which meant a green pipeline ended in a folder
-    of Matrix Market files — and, worse, that STAR writing three of five features and exiting 0 was
-    indistinguishable from success, since the directory existed either way.
+    Three tests used to read the plan of this same compose — the h5ad deliverable, the temporary
+    whitelist, and `--soloBarcodeReadLength` — and the whitelist one paid twice, once for its own dry
+    run and once for a `real_wiring_gate` whose `gate["wiring"] == "pass"` is owned by
+    `test_every_registered_module_wires_into_a_runnable_dag[map/starsolo]`. One plan, three claims.
 
-    This reads the actual plan rather than the exit code, for the reason the gate does: a dry run
+    1. **The deliverable.** `rule all` used to demand `directory(Solo.out)`, so a green pipeline ended
+       in a folder of Matrix Market files — and STAR writing three of five features and exiting 0 was
+       indistinguishable from success, since the directory existed either way.
+    2. **The whitelist has a producing job and is temporary.** A rule declared above `rule all`
+       becomes the workflow's default target, and a default target with a wildcard is a hard snakemake
+       error — which is exactly what the first attempt at `rule onlist` did. A dry run is the only
+       thing that knows.
+    3. **`--soloBarcodeReadLength 0` reaches STAR.** The module reads it with `SOLO.get(...)`, not a
+       subscript, so that it stays optional for chemistries that do not declare it; nothing but the
+       argv proves the 10x half of that still arrives.
+
+    All three read the actual plan rather than an exit code, for the reason the gate does: a dry run
     that plans NOTHING also exits 0.
     """
     manifest, reg = built_v3
-    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
     pipeline_dir = (tmp_path / result.snakefile_path).parent
-    p = plan(manifest, _processing(manifest), registry=reg)
 
-    planned = _dry_run(pipeline_dir, p)
+    planned = dry_run(pipeline_dir, plan(manifest, processing, registry=reg))
+
     assert "solo_to_h5ad" in planned, "the packaging step is not reachable from the default target"
-    # `-p` renders every shell block while planning, which is the only reason this is visible at all
+    # `-p` renders every shell block while planning, which is the only reason any of this is visible
     # (a `run:` block would be opaque here) — and it is why the packaging step is a `shell:`.
     assert "seqforge io h5ad" in planned
     sample = manifest.experiment.samples[0].sample_id
@@ -741,6 +756,11 @@ def test_the_composed_pipeline_plans_the_h5ad_as_its_deliverable(
         f"the default target is not the deliverable. Planned:\n{planned}"
     )
     assert f"{sample}.velocyto.h5ad" in planned
+
+    assert "rule onlist" in planned, "the whitelist has no producing job in the plan"
+    assert "3M-february-2018" in planned
+
+    assert "--soloBarcodeReadLength 0" in planned
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
@@ -1152,9 +1172,16 @@ def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared()
     assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
 
 
-@pytest.mark.external  # shells to `snakemake -n -p` via `_dry_run`
-def test_soloBarcodeReadLength_reaches_STAR_for_10x_and_not_for_splitseq(tmp_path: Path) -> None:
-    """Config-level for both chemistries, then the rendered STAR command when snakemake is present."""
+def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(tmp_path: Path) -> None:
+    """Whether compose EMITS the key, for a chemistry that declares it and one that does not.
+
+    Whether it then reaches the rendered STAR command is the plan text's business, and that costs a
+    subprocess, so it is asserted where a dry run is already being paid for: the 10x half in
+    `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length`, the
+    absent half in `test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe` (which
+    asserts its own `solo` keys are a superset of SPLiT-seq's, so standing in for it is checked
+    rather than assumed). This half needs no subprocess at all.
+    """
     (tmp_path / "v3").mkdir()
     (tmp_path / "ss").mkdir()
     v3, v3_proc, v3_reg = _pair(tmp_path / "v3", "10x-3p-gex-v3", ("R1", "R2"))
@@ -1166,24 +1193,6 @@ def test_soloBarcodeReadLength_reaches_STAR_for_10x_and_not_for_splitseq(tmp_pat
     ss_config = plan(ss, _processing(ss), registry=ss_reg).config["solo"]
     assert isinstance(ss_config, dict)
     assert "soloBarcodeReadLength" not in ss_config  # SPLiT-seq does not, so it is not emitted
-
-    import shutil as _shutil
-
-    if not _shutil.which("snakemake"):
-        pytest.skip("snakemake not installed")
-    # ...and it reaches the actual STAR argv for 10x, and is absent (not a KeyError) for SPLiT-seq.
-    v3_result = compose(v3, v3_proc, registry=v3_reg, workspace=tmp_path / "v3")
-    v3_plan = _dry_run(
-        (tmp_path / "v3" / v3_result.config_path).parent, core.plan(v3, v3_proc, registry=v3_reg)
-    )
-    assert "--soloBarcodeReadLength 0" in v3_plan
-
-    ss_proc = _processing(ss)
-    ss_result = compose(ss, ss_proc, registry=ss_reg, workspace=tmp_path / "ss")
-    ss_plan = _dry_run(
-        (tmp_path / "ss" / ss_result.config_path).parent, core.plan(ss, ss_proc, registry=ss_reg)
-    )
-    assert "--soloBarcodeReadLength" not in ss_plan
 
 
 # ---------- consumer, not parallel universe ----------
@@ -1925,29 +1934,6 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
     module = (_src_root() / "workflows" / "map" / "starsolo.smk").read_text()
     assert 'temp("onlists/{name}.txt")' in module
     assert "seqforge io onlist write" in module
-
-
-def test_the_dry_run_plans_the_whitelist_and_marks_it_temporary(
-    built_v3: Built, tmp_path: Path, real_wiring_gate: None
-) -> None:
-    """The gate that catches the mistake this change nearly made.
-
-    A rule declared above `rule all` becomes the workflow's default target, and a default target with
-    a wildcard is a hard snakemake error -- which is exactly what happened on the first attempt here.
-    A dry run is the only thing that knows.
-    """
-    import shutil as _shutil
-
-    if not _shutil.which("snakemake"):
-        pytest.skip("snakemake not installed")
-    manifest, reg = built_v3
-    processing = _processing(manifest)
-    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
-    assert result.gate["wiring"] == "pass"
-    p = core.plan(manifest, processing, registry=reg)
-    plan_text = _dry_run((tmp_path / result.config_path).parent, p)
-    assert "rule onlist" in plan_text, "the whitelist has no producing job in the plan"
-    assert "3M-february-2018" in plan_text
 
 
 def test_the_config_block_is_read_off_the_module_not_matched_on_its_name() -> None:

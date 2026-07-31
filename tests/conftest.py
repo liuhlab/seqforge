@@ -5,6 +5,9 @@ times and nothing could be tuned in one place. What lives here:
 
 * :func:`_no_wiring_gate` — the autouse stub that stops ``compose`` spawning ``snakemake -n -p``
   in every test that happens to compose. One test opts back in per workflow module.
+* :func:`dry_run` — the same subprocess, returning the PLAN TEXT rather than a four-character
+  verdict. It lives here because the ``external`` marker is derived from fixture names, so a
+  module-local spawner is a spawn the marker cannot see.
 * :func:`write_fastq_gz` — the one synthetic-FASTQ writer (it was copied verbatim into 13 files).
   Its ``compresslevel`` default is **1**, not zlib's 9: the suite writes hundreds of throwaway
   fixtures whose compressed *size* nothing reads. A fixture that pins compressed bytes must pass its
@@ -25,7 +28,7 @@ from __future__ import annotations
 import gzip
 import re
 import types
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -51,6 +54,14 @@ DEFAULT_COMPRESSLEVEL = 1
 # --------------------------------------------------------------------------- #
 
 
+#: Fixture names that mean "do not stub ``wiring_gate`` for this test".
+_UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
+
+#: Fixture names that mean "this test spawns ``snakemake``" — which is what ``external`` is ABOUT.
+#: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
+_SPAWNS_SNAKEMAKE = frozenset({"real_wiring_gate", "dry_run"})
+
+
 @pytest.fixture(autouse=True)
 def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub ``wiring_gate`` unless a test asks for the real one.
@@ -65,7 +76,7 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
     callers: ``compose.core`` imports ``wiring_gate`` inside the function body, so every path — the
     ``run`` verb, the report fixture, the fingerprint spine — resolves it here at call time.
     """
-    if "real_wiring_gate" in request.fixturenames:
+    if _UNSTUBS_THE_GATE & set(request.fixturenames):
         return
     monkeypatch.setattr("seqforge.compose.gates.wiring_gate", lambda pipeline_dir, plan: "skip")
 
@@ -76,15 +87,89 @@ def real_wiring_gate() -> None:
     return None
 
 
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Anything that asks for the real wiring gate spawns ``snakemake``, so it IS ``external``.
+@pytest.fixture
+def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Un-stub ``wiring_gate`` for a test whose whole claim is that the gate never runs.
 
-    Derived from the fixture rather than written down, for the same reason the KB collects its own
-    test ids: a hand-maintained list of external tests is a list that goes stale silently, and the
-    staleness shows up as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+    Needed because ``real_wiring_gate`` used to mean two things at once — "do not stub the gate" and
+    "spawn ``snakemake``" — and ``external`` is only ever about the second. A test that un-stubs the
+    gate and then passes ``run_wiring_gate=False`` spawns nothing and has no business being dropped
+    from ``test-fast``.
+
+    The "and then never runs it" half is a **mechanism, not a promise**: the real gate is installed
+    behind a counter, and reaching it fails the test at teardown. Without that, this fixture would be
+    a second hand-written claim about what a test does — the exact thing deriving the marker from
+    fixture names exists to avoid.
+    """
+    from seqforge.compose import gates
+
+    real = gates.wiring_gate
+    calls: list[Path] = []
+
+    def counted(pipeline_dir: Path, plan: object) -> str:
+        calls.append(pipeline_dir)
+        return real(pipeline_dir, plan)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", counted)
+    yield
+    assert not calls, (
+        f"this test takes `gate_that_must_not_run` but reached the real gate ({calls}); it spawns "
+        "`snakemake` and must take `real_wiring_gate` instead, so it is marked `external`"
+    )
+
+
+@pytest.fixture
+def dry_run() -> Callable[..., str]:
+    """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
+
+    A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
+    four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
+    through a private ``_dry_run`` in ``test_compile.py`` — invisible to
+    :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
+    to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
+
+    Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
+    afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the test
+    left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
+    """
+    import shutil
+    import subprocess
+
+    from seqforge.compose.gates import _replica
+
+    def run(directory: Path, plan: object | None = None) -> str:
+        target = _replica(directory, plan) if plan is not None else directory  # type: ignore[arg-type]
+        try:
+            proc = subprocess.run(
+                ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            assert proc.returncode == 0, proc.stderr
+            return proc.stdout + proc.stderr
+        finally:
+            if plan is not None:
+                shutil.rmtree(target, ignore_errors=True)
+
+    return run
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """A test is ``external`` iff it SPAWNS a binary — which is a fixture it took, not a claim.
+
+    Derived from fixture names rather than written down, for the same reason the KB collects its own
+    test ids: a hand-maintained list of external tests goes stale silently, and the staleness shows up
+    as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+
+    ``_SPAWNS_SNAKEMAKE`` is deliberately not ``_UNSTUBS_THE_GATE``. Keying on "asked for the real
+    gate" was close enough to be wrong in both directions: ``_dry_run`` spawned ``snakemake`` with no
+    fixture at all (so ``test-fast`` hard-failed on a machine without it, which is the exact thing
+    ``test-fast`` exists to avoid), while a test that un-stubs the gate only to prove it is never
+    called was dropped from ``test-fast`` for a subprocess it does not run.
     """
     for item in items:
-        if "real_wiring_gate" in getattr(item, "fixturenames", ()):
+        if _SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.external)
 
 
