@@ -16,6 +16,7 @@ and the confusability CI guard both stand on this.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Sequence
 
 from ..kb.schema import SegmentLength, Spec
 from .assign import best_assignment
@@ -23,7 +24,7 @@ from .evaluators import Outcome, read_length_compatible
 from .window import WindowProbe
 
 
-def length_feasible(spec: Spec, wps: list[WindowProbe]) -> bool:
+def length_feasible(spec: Spec, wps: Sequence[WindowProbe]) -> bool:
     """True iff every read can be matched one-to-one to a length-compatible file.
 
     Uses only ``read_length_compatible`` — the scorer's first, unconditional gate — so a ``False`` here
@@ -43,7 +44,7 @@ def length_feasible(spec: Spec, wps: list[WindowProbe]) -> bool:
     return best_assignment(n_roles, n_files, score, forbidden, prior).valid
 
 
-def geometry_could_accept(spec: Spec, probes: list[object]) -> bool:
+def geometry_could_accept(spec: Spec, probes: Iterable[object]) -> bool:
     """Pairwise necessary condition for ``accepts_at_rungs_0_2(spec, probes)`` (confuse.py).
 
     Validity requires length-feasibility, so this is a sound skip for the confusability CI guard: a

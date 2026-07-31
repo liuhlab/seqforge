@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -138,7 +139,7 @@ def sra_whole_file(
 
 
 def _observe_records(
-    records: list[Record], file: WholeFile, budget: Budget
+    records: Sequence[Record], file: WholeFile, budget: Budget
 ) -> tuple[Observation, list[str]]:
     """Fingerprint one mate's records through the identical Tier-A pipeline a file would use.
 
@@ -250,7 +251,7 @@ def resolve_single_experiment_runs(accession: str) -> tuple[str, list[dict[str, 
     return next(iter(by_srx)), runs
 
 
-def _slug_for(runs: list[dict[str, Any]], name: str | None) -> str:
+def _slug_for(runs: Sequence[dict[str, Any]], name: str | None) -> str:
     """A human slug for the package: the caller's ``--name``, else the shared SRX, else a run acc."""
     if name:
         return name
@@ -262,12 +263,12 @@ def _slug_for(runs: list[dict[str, Any]], name: str | None) -> str:
 
 
 def build_fingerprint_sra(
-    runs: list[dict[str, Any]],
+    runs: Sequence[dict[str, Any]],
     *,
     workspace: str | Path = ".",
     reads: int = DEFAULT_MAX_READS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-    info_docs: list[str | Path] | None = None,
+    info_docs: Sequence[str | Path] | None = None,
     name: str | None = None,
     include_raw: bool = True,
 ) -> FingerprintResult:

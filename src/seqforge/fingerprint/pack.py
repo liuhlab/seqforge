@@ -15,6 +15,7 @@ from __future__ import annotations
 import gzip
 import shutil
 import tarfile
+from collections.abc import Sequence
 from pathlib import Path
 
 
@@ -59,7 +60,7 @@ def extract_pdf_images(pdf: Path, outdir: Path) -> list[str]:
     return out
 
 
-def extract_info(docs: list[Path], staging: Path, *, include_raw: bool = True) -> list[str]:
+def extract_info(docs: Sequence[Path], staging: Path, *, include_raw: bool = True) -> list[str]:
     """Carry every information document into the package: extracted text, and (locally) the original.
 
     Returns the sorted package-relative paths written under ``info/``. Two modes, one knob:

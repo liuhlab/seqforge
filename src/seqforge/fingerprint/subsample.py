@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import gzip
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -55,7 +56,7 @@ def read_records(path: str | Path, max_reads: int, max_bytes: int) -> RecordSlic
         raw.close()
 
 
-def records_to_gz_bytes(records: list[Record]) -> bytes:
+def records_to_gz_bytes(records: Sequence[Record]) -> bytes:
     """Serialize records to REPRODUCIBLE gzip bytes: same records in, same bytes out.
 
     The ``mtime=0`` / ``filename=""`` idiom (as in ``kb.generate.write_fastq_gz``) makes the output a
@@ -71,7 +72,7 @@ def records_to_gz_bytes(records: list[Record]) -> bytes:
     return buf.getvalue()
 
 
-def write_records_gz(path: str | Path, records: list[Record]) -> None:
+def write_records_gz(path: str | Path, records: Sequence[Record]) -> None:
     """Write records to a REPRODUCIBLE ``.fastq.gz``: same records in, same bytes out.
 
     A thin file wrapper over :func:`records_to_gz_bytes` — the payload is the real four lines of each
