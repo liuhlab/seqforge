@@ -236,8 +236,8 @@ eval      = "seqforge eval run"
 # NOT `depends-on`: pixi runs those sequentially, and the three static checks share no inputs with
 # each other or with pytest. `scripts/check.sh` runs all four concurrently and prints each one's
 # output whole, in a fixed order, once they have all finished. See the header there.
-check     = "bash scripts/check.sh"
-check-fast = { depends-on = ["lint", "typecheck", "test-fast"] }
+check     = "bash scripts/check.sh lint fmt-check typecheck test"
+check-fast = "bash scripts/check.sh lint typecheck test-fast"
 build     = "python -m build"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"

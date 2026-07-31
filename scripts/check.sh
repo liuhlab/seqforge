@@ -18,9 +18,14 @@
 # Steps are invoked as `pixi run <task>` rather than by spelling their command lines again here.
 # The task table stays the one owner of what each step actually runs — duplicating mypy's module
 # list into this script is exactly the kind of second copy that drifts.
+#
+# Takes the steps to run as arguments, so rung 2 (`check-fast`) and rung 3 (`check`) share one
+# runner. They must: while `check-fast` was still a serial `depends-on` it measured 19.1s against a
+# parallel `check`'s 17.1s, i.e. the cheaper rung of the ladder cost MORE than the expensive one.
 set -uo pipefail
 
-STEPS=(lint fmt-check typecheck test)
+STEPS=("$@")
+[ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh <task>..." >&2; exit 2; }
 
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
@@ -53,7 +58,9 @@ for step in "${STEPS[@]}"; do
     fi
 done
 
-printf '\n\033[1m=== check: '
+# Labelled "gate", not "check": the same runner serves rung 2 and rung 3, and the per-step verdicts
+# below already say which rung ran.
+printf '\n\033[1m=== gate: '
 for step in "${STEPS[@]}"; do printf '%s=%s ' "$step" "${status[$step]}"; done
 printf 'in %ss ===\033[0m\n' "$((SECONDS - start))"
 exit "$rc"

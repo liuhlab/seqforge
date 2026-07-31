@@ -11,9 +11,16 @@ This file is the rule. There are four rungs and you climb them once per change, 
 | # | When | Command | Cost |
 | - | ---- | ------- | ---- |
 | 1 | in the red→green loop | `pixi run -e test pytest tests/test_<module>.py -k <expr>` | **~2s** |
-| 2 | before a commit | `pixi run check-fast` | ~14s |
-| 3 | before opening the PR | `pixi run check` | **once** — ~23s |
+| 2 | before a commit | `pixi run check-fast` | ~18s |
+| 3 | before opening the PR | `pixi run check` | **once** — ~17s |
 | 4 | after the PR is open | read CI | free |
+
+Those two middle numbers are not a typo, and the honest reading is that **rung 2 has stopped earning
+its place**. `test-fast` deselects 95 of 823 tests; once both gates run their steps concurrently and
+pytest itself runs on twelve workers, what remains is dominated by the tests they share. Rung 2 is
+kept for now because `external` still means something real — it is what you want on a machine with no
+`snakemake` — but if it stays inside noise of rung 3, the right move is to delete it and let the
+ladder have three rungs.
 
 **Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
 under ten. Nothing about a one-line change is learned by running 819 tests that a targeted run does
@@ -62,7 +69,7 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work. Both it and `test` run under `pytest-xdist` — see below.
+mostly real work — 727 tests against 822. Both it and `test` run under `pytest-xdist` — see below.
 
 **One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
 `tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
