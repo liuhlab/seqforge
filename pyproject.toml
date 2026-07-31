@@ -305,6 +305,13 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Pinned, because pytest's DEFAULT also collects `*_test.py`, and nothing in this repo is named that
+# way -- every real test file is `tests/test_<module>.py`, mirroring a package
+# (docs/agents/testing.md). The default therefore bought nothing and cost a desync: an untracked
+# scratch file called `_scratch2_test.py` was collected locally and absent in CI, so the two runs
+# disagreed on the test count and a scratch file could go red in one and green in the other. A
+# mechanism, not a list -- the next scratch file cannot do this either.
+python_files = ["test_*.py"]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = ["error"]
