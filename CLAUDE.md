@@ -141,7 +141,9 @@ the PR is open read CI rather than re-running it locally. The three rungs, the t
   proposals in *Ideas*, questions in *Q&A*. Driven from the CLI via `gh discussion` (or `gh api
   graphql`). Record durable findings here rather than lose them. (The `.wiki.git` is unused — chosen
   over the wiki because Discussions does notes **and** conversation; a wiki is a document store only.)
-- *Planned, not built:* `syrupy` snapshots and `hypothesis` — pinned, not imported.
+- *Planned, not built:* `syrupy` snapshots and `hypothesis` — pinned, not imported. Both register a
+  `pytest11` plugin that every xdist worker would otherwise import, so `addopts` disables them (with
+  transitive `zarr`/`anyio`); **adopting either means deleting its `-p no:` line** in `pyproject.toml`.
 
 ## Repository layout
 

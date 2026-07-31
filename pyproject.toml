@@ -317,7 +317,28 @@ testpaths = ["tests"]
 # disagreed on the test count and a scratch file could go red in one and green in the other. A
 # mechanism, not a list -- the next scratch file cannot do this either.
 python_files = ["test_*.py"]
-addopts = ["-ra", "--strict-markers", "--strict-config"]
+# `-p no:<plugin>` x4: four installed packages register a `pytest11` entry point and are therefore
+# imported by EVERY worker at startup, though no test in this repo uses any of them. `zarr` and
+# `anyio` arrive transitively (anndata, httpx) and their plugins exist to test those libraries, so
+# we will never want them; `hypothesis` and `syrupy` are pinned-not-imported (see CLAUDE.md), so
+# their plugins are cost with no benefit until the day one is adopted.
+#
+# Measured, best-of-3 on `pytest --co -q`, against a 2.35s baseline: hypothesis 0.11s, zarr 0.05s,
+# anyio 0.05s, syrupy 0.03s -- 2.14s with all four off. That is ~0.21s per worker, so ~2.5s of CPU
+# at twelve workers, and ~9% off a rung-1 targeted run, which is where the agent lives.
+#
+# ADOPTING EITHER LIBRARY MEANS DELETING ITS `-p no:` LINE HERE. The failure is loud if you forget
+# (a missing `snapshot` fixture errors; an unknown `--hypothesis-*` flag errors), which is why this
+# is a comment and not a guard test -- a test to protect 0.21s would be the wrong trade.
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "-p", "no:hypothesispytest",
+  "-p", "no:syrupy",
+  "-p", "no:zarr",
+  "-p", "no:anyio",
+]
 xfail_strict = true
 filterwarnings = ["error"]
 # `--strict-markers` was on with no markers table, so there was nothing to select on and the only
