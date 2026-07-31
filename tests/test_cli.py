@@ -304,7 +304,7 @@ def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> 
     a KB id) never enters the manifest and the bytes decide chemistry, so it is surfaced, not fatal. A
     conflict (instructions disagreeing) and an unavailable provider still stop the pass.
     """
-    from seqforge.cli import _harvest_halts_run
+    from seqforge.cli.run import _harvest_halts_run
 
     assert _harvest_halts_run({"n_accepted": 9}, 0) is False  # clean
     assert (

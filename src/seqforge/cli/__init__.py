@@ -6,8 +6,9 @@ default) that runs with no LLM in the loop -- only ``harvest extract`` and the o
 ``3`` BLOCKED (a Blocker), ``4`` NEEDS_HUMAN (an open Conflict / question).
 
 Importing this package builds ``app``: :mod:`.root` defines the shared Typer instances, and importing
-each command module registers its verbs onto them. A handful of internals are re-exported because the
-test suite and ``seqforge run`` reach for them by name.
+each command module registers its verbs onto them. ``app`` is the only name this package exports --
+``seqforge run`` and the test suite both reach a stage body through the module that defines it, so
+there is nothing else to re-export.
 """
 
 from __future__ import annotations
@@ -31,10 +32,6 @@ from . import (  # noqa: F401
     run,
     schema,
 )
-from ._common import _emit, _StageOut  # noqa: F401
-from .harvest import _harvest_extract_pipeline  # noqa: F401
-from .manifest import _fill_manifest_pipeline  # noqa: F401
 from .root import app
-from .run import _harvest_halts_run  # noqa: F401
 
 __all__ = ["app"]

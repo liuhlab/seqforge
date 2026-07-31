@@ -18,7 +18,7 @@ import yaml
 
 from conftest import real_cbs, write_fastq_gz
 from seqforge import kb
-from seqforge.cli import _fill_manifest_pipeline
+from seqforge.cli.manifest import _fill_manifest_pipeline
 
 #: `two_chemistry_project` is a 1.18s partition that four of the six tests here read. Spread by
 #: xdist's default `load`, each worker that draws one of them rebuilds it; `xdist_group` pins the
