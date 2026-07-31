@@ -36,6 +36,9 @@ from seqforge.harvest import (
     resolve_provider,
     verify_drafts,
 )
+from seqforge.harvest import extract as _extract
+from seqforge.harvest.providers import classify_api_error
+from seqforge.io.remote import _MAX_RETRIES
 
 _QUOTE = "Chromium Single Cell 3' v3"
 _TEXT = "Libraries were prepared with the Chromium Single Cell 3' v3 kit."
@@ -293,10 +296,123 @@ def test_extract_empty_is_a_valid_answer(tmp_path: Path) -> None:
     assert outcome.drafts == []
 
 
-def test_extract_surfaces_provider_failure(tmp_path: Path) -> None:
-    provider = _FakeProvider(ProviderUnavailable("429 rate limited"))
-    with pytest.raises(ExtractUnavailable, match="429"):
+class _SequencedProvider:
+    """A provider that plays a SEQUENCE of outcomes, one per call — an exception is raised, a string
+    is returned as the body. Lets a test watch the retry climb a ladder of failures."""
+
+    name = "fake"
+
+    def __init__(self, outcomes: list[object]) -> None:
+        self._outcomes = list(outcomes)
+        self.n_calls = 0
+
+    def default_model(self) -> str:
+        return "fake-model-1"
+
+    def complete_json(self, **kwargs: Any) -> LLMResponse:
+        outcome = self._outcomes[min(self.n_calls, len(self._outcomes) - 1)]
+        self.n_calls += 1
+        if isinstance(outcome, Exception):
+            raise outcome
+        return LLMResponse(text=str(outcome), usage={"input_tokens": 10})
+
+
+def _transient(msg: str = "429 rate limited", **kw: Any) -> ProviderUnavailable:
+    return ProviderUnavailable(msg, transient=True, **kw)
+
+
+_OK = json.dumps({"drafts": []})
+
+#: The retry policy as a TABLE — transient vs terminal, recover-on-retry vs exhaust-the-budget. Before
+#: this, one 429 mid-harvest exited the whole headless run and discarded every document already
+#: extracted (#138). `expected` is None when the call must succeed, else a regex the raised
+#: `ExtractUnavailable` must match. `n_calls` is what the provider actually saw.
+_PROVIDER_RETRY = [
+    pytest.param(
+        [_transient(), _OK], None, 2,
+        id="a-429-backs-off-then-succeeds",
+    ),
+    pytest.param(
+        [_transient("503 bad gateway"), _transient("503 bad gateway"), _OK], None, 3,
+        id="a-run-of-5xx-keeps-retrying-inside-the-budget",
+    ),
+    # The trap this design exists to avoid: `ProviderUnavailable` also carries terminal conditions, so
+    # a loop that retried every one of them would back off four times over a missing credential.
+    pytest.param(
+        [ProviderUnavailable("no API key for deepseek")], "no API key", 1,
+        id="a-missing-credential-is-terminal-and-is-not-retried",
+    ),
+    pytest.param(
+        [ProviderUnavailable("the `openai` SDK is not installed")], "not installed", 1,
+        id="a-missing-sdk-is-terminal-and-is-not-retried",
+    ),
+    pytest.param(
+        [_transient("503 bad gateway")], "503", _MAX_RETRIES + 1,
+        id="a-persistent-5xx-gives-up-once-the-budget-is-spent",
+    ),
+]  # fmt: skip
+
+
+@pytest.mark.parametrize("outcomes, expected, n_calls", _PROVIDER_RETRY)
+def test_extract_retries_what_is_transient_and_gives_up_on_what_is_not(
+    outcomes: list[object],
+    expected: str | None,
+    n_calls: int,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_extract.time, "sleep", lambda _s: None)  # no real wait in the test
+    provider = _SequencedProvider(outcomes)
+
+    if expected is None:
         extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    else:
+        with pytest.raises(ExtractUnavailable, match=expected):
+            extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    assert provider.n_calls == n_calls
+
+
+def test_a_failed_attempt_still_counts_against_the_ledger(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A refused call burned tokens. The ledger must say what the calls cost, not what the last did."""
+    monkeypatch.setattr(_extract.time, "sleep", lambda _s: None)
+    provider = _SequencedProvider([_transient(usage={"input_tokens": 700}), _OK])
+
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    assert outcome.usage["input_tokens"] == 710, "the 429's 700 plus the successful call's 10"
+
+
+#: Which SDK exceptions are worth another attempt. Duck-typed on `status_code` / the `Retry-After`
+#: header, because both SDKs are OPTIONAL imports — naming their exception classes here would make
+#: classification depend on the SDK being installed, which is the terminal case we must tell apart.
+_CLASSIFY = [
+    pytest.param(429, "3", (True, "3"), id="429-is-transient-and-honours-retry-after"),
+    pytest.param(503, None, (True, None), id="5xx-is-transient-and-backs-off"),
+    pytest.param(400, None, (False, None), id="400-is-a-verdict-not-a-blip"),
+    pytest.param(401, None, (False, None), id="401-is-a-verdict-not-a-blip"),
+    pytest.param(404, None, (False, None), id="404-is-a-verdict-not-a-blip"),
+]
+
+
+@pytest.mark.parametrize("status, retry_after, expected", _CLASSIFY)
+def test_classify_reads_the_status_the_network_surface_already_decided_on(
+    status: int, retry_after: str | None, expected: tuple[bool, str | None]
+) -> None:
+    class _Resp:
+        headers = {"retry-after": retry_after} if retry_after else {}
+
+    exc = type("APIStatusError", (Exception,), {"status_code": status, "response": _Resp()})()
+    assert classify_api_error(exc) == expected
+
+
+@pytest.mark.parametrize(
+    "name, transient",
+    [("APITimeoutError", True), ("APIConnectionError", True), ("BadRequestError", False)],
+)
+def test_classify_treats_a_transport_failure_as_transient(name: str, transient: bool) -> None:
+    """A call that never reached a verdict is the transport twin of a 5xx — the same as `_get`."""
+    assert classify_api_error(type(name, (Exception,), {})()) == (transient, None)
 
 
 # ---------- provider selection ----------
@@ -471,7 +587,69 @@ def test_deepseek_gives_up_after_the_retry_budget_of_empty_bodies(tmp_path: Path
 
     with pytest.raises(ExtractUnavailable, match="empty content"):
         extract_drafts(nd, kb.load_all_specs(), provider=provider)
-    assert client.n_calls == 4  # _EMPTY_CONTENT_RETRIES (3) + 1, then it stops
+    # One budget now, shared with the transient-API case, instead of a second one nested in the
+    # provider. An empty body carries `retry_after="0"`, so these re-issue at once — the backoff is
+    # for an endpoint asking for room, and an empty body asks for nothing.
+    assert client.n_calls == _MAX_RETRIES + 1
+
+
+class _SequencedAnthropicClient:
+    """An Anthropic-shaped client playing a sequence of turns. A turn is the text block it returns;
+    `None` is a thinking-only turn, which carries no text block at all."""
+
+    def __init__(self, turns: list[str | None]) -> None:
+        self._turns = list(turns)
+        self.n_calls = 0
+        outer = self
+
+        class _Block:
+            def __init__(self, text: str) -> None:
+                self.type, self.text = "text", text
+
+        class _Usage:
+            input_tokens, output_tokens = 1500, 60
+            cache_read_input_tokens, cache_creation_input_tokens = 1024, 0
+
+        class _Response:
+            def __init__(self, text: str | None) -> None:
+                # a thinking-only turn has a thinking block and NO text block
+                self.content = [_Block(text)] if text is not None else []
+                self.usage = _Usage()
+
+        class _Messages:
+            def create(self, **kwargs: Any) -> _Response:
+                i = outer.n_calls
+                outer.n_calls += 1
+                return _Response(outer._turns[i] if i < len(outer._turns) else None)
+
+        self.messages = _Messages()
+
+
+def test_anthropic_retries_a_thinking_only_turn_rather_than_calling_it_bad_json(
+    tmp_path: Path,
+) -> None:
+    """The empty-body recovery was written per-provider, so only the json-object path had it (#138).
+
+    A thinking-only turn leaves no text block. Left as `text=""` it surfaced one step later as
+    "returned output that is not valid JSON" — a shape complaint about a response that had no shape.
+    """
+    client = _SequencedAnthropicClient([None, "", json.dumps({"drafts": []})])
+    provider = AnthropicProvider(client=client)
+
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    assert client.n_calls == 3, "it retried through the empty turns and stopped at the good one"
+    assert outcome.drafts == []
+    assert outcome.usage["cache_read_tokens"] == 3 * 1024, "every attempt cost tokens"
+
+
+def test_anthropic_gives_up_on_empty_turns_once_the_budget_is_spent(tmp_path: Path) -> None:
+    """Bounded on this provider too: never a spin, always a loud `llm_unavailable`."""
+    client = _SequencedAnthropicClient([None] * 12)
+    provider = AnthropicProvider(client=client)
+
+    with pytest.raises(ExtractUnavailable, match="no text block"):
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    assert client.n_calls == _MAX_RETRIES + 1
 
 
 def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_path: Path) -> None:
