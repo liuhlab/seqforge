@@ -53,10 +53,3 @@ and never needs to read as polished. Post results in *Show and tell*, proposals 
 in *Q&A*, driven from the CLI via `gh discussion` (or `gh api graphql`). Record durable findings here
 rather than lose them. (The `.wiki.git` is unused — Discussions was chosen over the wiki because it
 does notes **and** conversation; a wiki is a document store only.)
-
-## Planned, not built
-
-`syrupy` snapshots and `hypothesis` are pinned but not imported. Both register a `pytest11` plugin
-that every xdist worker would otherwise import, so `addopts` disables them (along with the transitive
-`zarr` and `anyio` plugins). **Adopting either means deleting its `-p no:` line** in `pyproject.toml`;
-the failure if you forget is loud, which is why that is a comment and not a guard test.

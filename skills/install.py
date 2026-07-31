@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Install the seqforge skills into each agent product's discovery path (brief §10).
+"""Install the seqforge skills into each agent product's discovery path.
+
+Every skill here is a thin client: the CLI is the API, and each skill action maps to a deterministic
+``seqforge`` verb. So there is nothing to install but prose, and nothing to keep in sync but a path.
 
 Skills follow the open Agent Skills standard (``SKILL.md`` + progressive disclosure), so the CONTENT
 ports across Claude Code, Codex CLI, Gemini CLI and friends. Only the **discovery path** differs —

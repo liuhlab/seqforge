@@ -1,4 +1,4 @@
-"""`seqforge eval` -- the evals harness: measure what unit tests cannot (design/brief S9)."""
+"""`seqforge eval` -- the evals harness: measure what unit tests cannot (a rate, not a snapshot)."""
 
 from __future__ import annotations
 

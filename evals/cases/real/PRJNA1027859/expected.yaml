@@ -30,9 +30,10 @@ description: >-
   * library.chemistry: 10x-3p-gex-v3, with 10x-3p-gex-v3.1 in the equivalence class and ZERO
     questions. The record declares "v3.1"; the KB declares v3 <-> v3.1 as `processing_equivalent`
     (identical 16+12 geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo params).
-    That is the §12 benign rule exactly: backend_identical => processing_equivalent => record both,
-    ask nothing. A `Conflict` here would be a false_refuse, not diligence: the two ids name the same
-    pipeline, and the manifest is not entitled to a question a human cannot answer from the bytes.
+    That is the benign-twin biconditional exactly: backend_identical => processing_equivalent =>
+    record both, ask nothing. A `Conflict` here would be a false_refuse, not diligence: the two ids
+    name the same pipeline, and the manifest is not entitled to a question a human cannot answer
+    from the bytes.
 
   PRECONDITION (a real one, stated up front rather than discovered mid-run): reaching this expectation
   needs the 3M-february-2018 whitelist available for the rung-3 onlist check. v3 is separable from
@@ -72,14 +73,16 @@ description: >-
   the defect from metadata, before the run. What changed is our code, not our reading of the record.
 
   Nothing in the sacred half of this file moved. `fields:` is byte-identical to the pre-registration
-  commit — every claim about the DATASET (organism, the declared v3.1 chemistry, the §12 equivalence
-  class, the outcome) is untouched, exactly as the paragraph above predicted it would be: it asserts
-  RESOLVE-level facts, which are correct either way. This amendment edits only prose describing OUR
-  COMPILER, which is a function of code version and is therefore allowed to change when the code does.
-  The audit question is answerable from `git log` alone: every (a) claim byte-identical, and this (b)
-  change cites a code diff rather than a result. It cites no run, because there has been none.
+  commit — every claim about the DATASET (organism, the declared v3.1 chemistry, the
+  processing-equivalent class, the outcome) is untouched, exactly as the paragraph above predicted it
+  would be: it asserts RESOLVE-level facts, which are correct either way. This amendment edits only
+  prose describing OUR COMPILER, which is a function of code version and is therefore allowed to
+  change when the code does. The audit question is answerable from `git log` alone: every (a) claim
+  byte-identical, and this (b) change cites a code diff rather than a result. It cites no run,
+  because there has been none.
 
-  What the code now does (R13/R14/R15, `predicts:` below pins the versions):
+  What the code now does — the dataset write-once and the recipe plural, parse keys and count keys
+  disjoint, every answer produced rather than asked for (`predicts:` below pins the versions):
     - soloFeatures LEFT `backend.params`. The KB can no longer express a count key at all; the
       Backend validator rejects it. The parse/count line is checked, not conventional.
     - soloFeatures defaults to ALL FIVE (Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS

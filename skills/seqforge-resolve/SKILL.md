@@ -54,8 +54,9 @@ authority follows evidence, and the disagreement stays attached because deleting
 manifest read as though nothing ever disagreed. Three truths, never merged.
 
 **Some ties are benign, and code already knows it.** v3 vs v3.1 emit byte-identical params, so both
-ids are recorded and **zero** questions are asked (§12). If you are being asked, the tie is
-*processing-divergent* — the answer changes what runs — so it genuinely needs a human.
+ids are recorded and **zero** questions are asked — CI proves that equivalence pairwise, so the tie
+is not yours to break. If you are being asked, the tie is *processing-divergent* — the answer changes
+what runs — so it genuinely needs a human.
 
 ## The thing not to do
 

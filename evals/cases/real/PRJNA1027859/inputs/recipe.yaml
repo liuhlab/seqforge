@@ -15,9 +15,9 @@ generate:
   # how `fasterq-dump` was pointed at them. `manifest fill` groups them back into runs from the file
   # names, so the directory layout is not load-bearing -- but the glob has to reach them.
   glob: "*/*.fastq.gz"
-  # The paper. THIS is what the case is for: the organism must come from prose, not a default
-  # (§12) -- and without a docs_glob a local case had no way to name a document at all, so the
-  # language model never ran and the one thing this case tests could not happen.
+  # The paper. THIS is what the case is for: the organism must come from prose, not a default -- and
+  # without a docs_glob a local case had no way to name a document at all, so the language model
+  # never ran and the one thing this case tests could not happen.
   docs_glob: "info/*.pdf"
 
 # No `hypothesis:` on purpose. Declaring the chemistry here would hand resolve the answer and turn a
