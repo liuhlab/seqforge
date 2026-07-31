@@ -1,19 +1,29 @@
-# AUTO-SEEDED benchmark expectation — PENDING MAINTAINER REVIEW. NOT a pristine pre-registration.
+# REVIEWED 2026-07-31 against the publication — no longer an auto-seeded transcript.
 #
-# Unlike evals/cases/PRJNA1027859 (written from metadata BEFORE any run), this file was SEEDED FROM a
-# seqforge run on the dataset's fingerprint package, for the maintainer to audit against ground truth.
-# Two kinds of claim live here:
-#   - experiment.* (organism, study, per-sample strain/tissue/sex/...) are TRANSCRIBED from the
-#     archive's own BioSample/SRA records (records.json beside this file, public metadata). Verify them
-#     against the paper; they do not depend on our compiler.
-#   - library.chemistry / equivalence_members are what seqforge RESOLVED from the fingerprint's bytes
-#     at the versions in `predicts`. This is the regression baseline; a future code change that moves
-#     it turns this case red, which is the point.
-# Review action: confirm each value, prune fragile ones (e.g. a rough study.center), and delete this
-# header once verified so the file reads as a real, dated pre-registration.
+# experiment.* are transcribed from the archive's own BioSample/SRA records (records.json beside
+# this file); every value below was confirmed against Packer, Zhu et al., Science 365:eaax1971
+# (2019), doi:10.1126/science.aax1971, PMID 31488706.
+# Pruned in review, because a submitter re-typing them would move them without the science moving:
+#   - study.center: the project record's center_name is the string "GEO" — plumbing, not a lab.
+#   - samples.*.source_name: "C. elegans embryos" re-types organism + dev_stage, both kept.
+# library.chemistry (+ equivalence_members) is the regression baseline resolved from the
+# fingerprint's pinned bytes at the `predicts` versions; the paper states "Single cell RNA-seq
+# libraries were generated with 10X Genomics v2 chemistry and standard protocols, and sequenced on
+# Illumina NextSeq instruments", which agrees with the resolved 10x-3p-gex-v2. A code change that
+# moves it turns this case red.
 outcome: decide
-description: 'Benchmark: GSE126954 resolved from its fingerprint package; sample facts from records. AUTO-SEEDED,
-  pending maintainer review (see header).'
+description: >-
+  Benchmark: GSE126954 (Packer et al., Science 2019) resolved from its fingerprint package. It pins
+  two things at once. First, that resolve still reads 10x-3p-gex-v2 out of the pinned bytes — the
+  chemistry the paper names. Second, that the BioSample join still lands each of the seven 10x
+  embryo samples on its own attributes: the four UW collections are VC2010 (a fully sequenced N2
+  derivative, used because it survives two bleach-synchronisation cycles) and the three UPenn
+  mixed-embryo collections are N2, a real lab-level split stated in both the paper's methods and
+  each sample's growth protocol — so a shuffled join surfaces as a wrong strain instead of passing
+  on the `*` list alone. The series' eighth sample (GSM4318946 / SAMN14126930) is the L2-stage
+  sci-RNA-seq re-analysis of Cao et al. 2017 and is NOT in the package; were it ever added, these
+  lists would grow an eighth entry and a dev_stage of L2. Breaking this case means the chemistry
+  decision or the record join moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -21,9 +31,8 @@ predicts:
 fields:
   library.chemistry: 10x-3p-gex-v2
   experiment.organism: 6239
-  experiment.study.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at single cell
-    resolution
-  experiment.study.center: GEO
+  experiment.study.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at
+    single cell resolution
   experiment.samples.*.strain:
   - N2
   - N2
@@ -40,12 +49,5 @@ fields:
   - embryo
   - embryo
   - embryo
-  experiment.samples.*.source_name:
-  - C. elegans embryos
-  - C. elegans embryos
-  - C. elegans embryos
-  - C. elegans embryos
-  - C. elegans embryos
-  - C. elegans embryos
-  - C. elegans embryos
   experiment.samples.SAMN10988833.strain: VC2010, derived from N2
+  experiment.samples.SAMN10988844.strain: N2

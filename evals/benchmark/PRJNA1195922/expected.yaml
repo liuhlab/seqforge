@@ -1,19 +1,37 @@
-# AUTO-SEEDED benchmark expectation — PENDING MAINTAINER REVIEW. NOT a pristine pre-registration.
+# REVIEWED 2026-07-31 against the publication — no longer an auto-seeded transcript.
 #
-# Unlike evals/cases/PRJNA1027859 (written from metadata BEFORE any run), this file was SEEDED FROM a
-# seqforge run on the dataset's fingerprint package, for the maintainer to audit against ground truth.
-# Two kinds of claim live here:
-#   - experiment.* (organism, study, per-sample strain/tissue/sex/...) are TRANSCRIBED from the
-#     archive's own BioSample/SRA records (records.json beside this file, public metadata). Verify them
-#     against the paper; they do not depend on our compiler.
-#   - library.chemistry / equivalence_members are what seqforge RESOLVED from the fingerprint's bytes
-#     at the versions in `predicts`. This is the regression baseline; a future code change that moves
-#     it turns this case red, which is the point.
-# Review action: confirm each value, prune fragile ones (e.g. a rough study.center), and delete this
-# header once verified so the file reads as a real, dated pre-registration.
+# experiment.* are transcribed from the archive's own BioSample/SRA records (records.json beside
+# this file); every value below was confirmed against Morillo KS, St Ange J, Weng Y, Kaletsky R &
+# Murphy CT, Cell Reports 44(8):116016 (2025), doi:10.1016/j.celrep.2025.116016, PMID 40682776 —
+# whose STAR Methods name the strain, the stage and the kit, and whose data-availability line is
+# this BioProject.
+# Pruned in review, because a submitter re-typing them would move them without the science moving:
+#   - study.center: the SRA submitting account's label ("Princeton University"), not a fact about
+#     the experiment; no result in the paper moves if the core facility is named instead.
+#   - samples.*.strain: one 60-char genotype string repeated 8x. Unlike every other benchmark
+#     case, strain does not vary here, so the list buys nothing the per-accession claim (kept,
+#     below) does not already buy.
+# library.chemistry (+ equivalence_members) is the regression baseline resolved from the
+# fingerprint's pinned bytes at the `predicts` versions; the paper states "10X Genomics Chromium X
+# system using the Single Cell 3' v3.1 Reagent Kits" (key resources table), which agrees — v3.1 is
+# exactly the equivalence member of the v3 class the bytes resolve to. A code change that moves it
+# turns this case red.
+#
+# It is single-nucleus RNA-seq, not single-cell: FACS-sorted GFP+/Hoechst+ neuronal NUCLEI, and the
+# paper says why ("snRNA-seq is preferred over single-cell sequencing for neurons"), so intron
+# counting is not optional for this dataset.
+# The archive's 5 male libraries vs the paper's "3 biological replicates for hermaphrodites and 4
+# biological replicates for males" is NOT a conflict: "for the 4th male biological replicate
+# samples were split into two technical replicates". Male 4 (SAMN49549041) and Male Replicate 5
+# (SAMN49569331) share collection date 2024-05-30 and are that split; sex is graded per library.
 outcome: decide
-description: 'Benchmark: PRJNA1195922 resolved from its fingerprint package; sample facts from records.
-  AUTO-SEEDED, pending maintainer review (see header).'
+description: >-
+  Benchmark: PRJNA1195922 (Morillo et al., Cell Rep. 2025) resolved from its fingerprint package.
+  The only dataset in the corpus where `sex` varies across samples, so it is the one case pinning a
+  per-sample attribute that actually discriminates: 3 hermaphrodite + 5 male libraries off a single
+  him-8(e1489) strain, claimed as a multiset AND again on one named BioSample. Breaking it means
+  resolve_metadata dropped a sample attribute or shuffled the record-to-sample join — either would
+  mislabel the sex of every nucleus downstream, silently, in a corpus nobody re-reads.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -23,27 +41,8 @@ fields:
   library.equivalence_members:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
-  experiment.study.title: Single-Nucleus Neuronal Transcriptional Profiling of Male C. elegans Uncovers
-    Regulators of Sex-Specific and Sex-Shared Behaviors
-  experiment.study.center: Princeton University
-  experiment.samples.*.strain:
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  - 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
-  experiment.samples.*.tissue:
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
+  experiment.study.title: Single-Nucleus Neuronal Transcriptional Profiling of Male C. elegans
+    Uncovers Regulators of Sex-Specific and Sex-Shared Behaviors
   experiment.samples.*.sex:
   - hermaphrodite
   - hermaphrodite
@@ -53,6 +52,15 @@ fields:
   - male
   - male
   - male
+  experiment.samples.*.tissue:
+  - Neurons
+  - Neurons
+  - Neurons
+  - Neurons
+  - Neurons
+  - Neurons
+  - Neurons
+  - Neurons
   experiment.samples.*.dev_stage:
   - Adult Day 1
   - Adult Day 1
@@ -62,4 +70,8 @@ fields:
   - Adult Day 1
   - Adult Day 1
   - Adult Day 1
+  # The anti-shuffle claim (ADR-0016): `*` grades as a sorted multiset, so it passes on a shuffled
+  # join. SAMN49549035 is "Herm 1" — a member of the minority class, so a shuffle is caught 5 times
+  # in 8 rather than 3.
+  experiment.samples.SAMN49549035.sex: hermaphrodite
   experiment.samples.SAMN49549035.strain: 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'
