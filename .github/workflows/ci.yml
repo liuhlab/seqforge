@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   lint:
-    name: lint + typecheck
+    name: lint + typecheck + docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,6 +33,20 @@ jobs:
         run: pixi run -e default fmt-check
       - name: mypy --strict
         run: pixi run -e default typecheck
+      # Does the SITE build: a dead internal link, a nav entry naming a file that moved, a snippet
+      # include whose target was renamed. `markdownlint` sees none of those -- it reads one file's
+      # prose style, never the graph between files. Until this step existed the strict build ran
+      # only on push-to-main, so a PR broke it and the next pusher owned the red.
+      #
+      # Folded in here rather than given a fifth runner: `default` already carries the `docs` feature
+      # (pyproject's [tool.pixi.environments]), so this reuses the setup-pixi above and its whole
+      # marginal cost is the build -- 0.8s measured, against ~28s for another setup-pixi. Last in the
+      # job because it is the only step that writes (`site/`, gitignored).
+      #
+      # Build, never publish. Deploying stays in docs.yml, the only workflow granted
+      # `contents: write` and unreachable from a pull_request; this workflow is read-only throughout.
+      - name: mkdocs build --strict
+        run: pixi run -e default docs-build
 
   # markdownlint is a Node tool, so it runs on its own runner rather than through pixi. It lints the
   # human-facing docs (the site pages, the KB assay READMEs that render into them, and the top-level

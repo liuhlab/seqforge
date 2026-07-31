@@ -1,8 +1,12 @@
 name: Docs
 
-# Builds the MkDocs site and publishes it to the `gh-pages` branch on every push to main.
+# Publishes the MkDocs site to the `gh-pages` branch on every push to main.
 # Mirrors liulab-runtime's mechanism (a gh-pages branch), not liulab-genome's (a Pages artifact):
 # the two siblings differ, and CLAUDE.md's own wording says gh-pages.
+#
+# Publishing only. Whether the site BUILDS is asked on every PR by ci.yml's lint job, which runs the
+# same `--strict` build on the `default` environment. That split is the point: this workflow holds
+# `contents: write` and pushes a branch, so no trigger a pull request can fire may ever appear below.
 #
 # Setup (one-off, by a maintainer):
 #   1. Let this workflow run once so it creates the `gh-pages` branch.
