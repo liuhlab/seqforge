@@ -1,0 +1,116 @@
+schema_version: 1
+
+# GEM-X 3' v4 — the fourth-generation 10x 3' gene-expression kit. Structurally it is v3: the read
+# geometry, every backend param and even the over-length gate are byte-identical, and the ONLY
+# chemistry difference is the whitelist. That is exactly the Multiome GEX relationship one kit
+# generation later, and it is why this entry exists at all — v3 and v3.1 both declared it as a
+# `processing_divergent` confusable with no spec to resolve to, so a real GEM-X library had a
+# whitelist to miss and no positive target to hit.
+#
+# The separation is MEASURED, not assumed: `3M-3pgex-may-2023` (7 372 800 x 16 bp) and
+# `3M-february-2018` (6 794 880 x 16 bp) share 68 254 barcodes, so a v4 library hits the v3 list at
+# most 0.9% and a v3 library hits the v4 list at most 1.0% — an order of magnitude under the 0.6
+# threshold either anti-gate uses. Rung 3 therefore separates them cleanly rather than marginally.
+
+identity:
+  id: 10x-gemx-3p-v4
+  version: "4"
+  name: "10x Chromium GEM-X Single Cell 3' Gene Expression v4"
+  aliases: ["10x 3' v4", "GEM-X 3' v4", "Chromium GEM-X 3'", "SC3Pv4", "GEM-X Single Cell 3'", "single cell 3-prime v4"]
+  assay_ontology: ["EFO:0022604"]        # 10x 3' v4 — verified against live EFO (EBI OLS), not memory
+  modality: rna
+
+reads:
+  # Byte-identical geometry to v3/v3.1: 28 bp = 16 CB + 12 UMI. max_len null and over_length_min 100
+  # for the same reason as v3 — an over-sequenced R1 is a real 10x layout, and the exact-28 gate is
+  # what keeps it separable from v2's 26.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 28
+    max_len: null
+    elements:
+      - {type: barcode, name: CB,  start: 0,  end: 16, onlist: cb_whitelist, seqspec_region_type: barcode}
+      - {type: umi,     name: UMI, start: 16, end: 28,                       seqspec_region_type: umi}
+  # R2 = cDNA (open-ended). soloStrand Forward: R2 is sense to mRNA for 3' kits.
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: pos
+    min_len: 25
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists:
+  cb_whitelist:                  # used by backend + the positive supports test
+    registry: 3M-3pgex-may-2023  # GEM-X v4 list — 7,372,800 x 16 bp, forward orientation
+    role: cell_barcode
+    expected_orientation: forward
+  std_v3_probe:                  # probe-only, used ONLY by the exclude anti-gate
+    registry: 3M-february-2018   # the v3 / v3.1 list
+    role: cell_barcode
+    expected_orientation: forward
+
+signature:
+  requires:                      # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
+    - {test: read_count, roles: 2}
+    # Identical to v3's gate. v4 and v3 share every structural rung by construction — the whitelist at
+    # rung 3 is the entire separation, which is what `distinguishable_by: [onlist]` claims below.
+    - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}
+    - {test: has_segment, read: R1, start: 0,  end: 16, kind: random}
+    - {test: has_segment, read: R1, start: 16, end: 28, kind: random}
+  supports:                      # additive evidence (rung 3+)
+    - when: {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: cb_whitelist, orientation: forward, min: 0.6}
+      weight: 5.0                # the GEM-X whitelist hitting is the positive signal that this is v4
+    - when: {test: distinct_ratio, read: R1, start: 0,  end: 16, expect: low}
+      weight: 2.0                # CB recurs -> low distinct ratio
+    - when: {test: distinct_ratio, read: R1, start: 16, end: 28, expect: high}
+      weight: 1.0                # UMI ~ unique -> high distinct ratio
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 20, expect: high}
+      weight: 1.0                # cDNA is diverse -> the biological role is scored, not left at 0
+    - when: {test: header_index, present: true}
+      weight: 0.2
+  excludes:                      # anti-gate: if the v3 list hits, it is v3/v3.1, not GEM-X v4
+    - {test: onlist_hit_rate, read: R1, start: 0, end: 16, onlist: std_v3_probe, orientation: forward, min: 0.6}
+
+backend:
+  module: map/starsolo
+  params:                        # identical to v3 EXCEPT soloCBwhitelist -> the GEM-X list
+    soloType: CB_UMI_Simple
+    soloCBstart: 1
+    soloCBlen: 16
+    soloUMIstart: 17
+    soloUMIlen: 12
+    soloCBwhitelist: "{onlist:cb_whitelist}"
+    soloStrand: Forward
+    soloBarcodeReadLength: 0
+    # soloFeatures is NOT here, for the same reason it is absent from every other entry: it says what
+    # to COUNT, and counting belongs to the processing manifest where a user may instruct it.
+
+# A child of the 10x-3p-gex family: it shares the 16 bp CB geometry with v2/v3/v3.1 and is told apart
+# from them ONLY by its whitelist — exactly what the family's `children_decided_by: [onlist]` carries.
+parent: 10x-3p-gex
+
+confusable_with:
+  - id: 10x-3p-gex-v3
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The back-edge of v3's declaration. Same 28 bp / 16+12 geometry and byte-identical STARsolo params
+      EXCEPT soloCBwhitelist: v4 uses 3M-3pgex-may-2023, v3 uses 3M-february-2018. The two lists share
+      68 254 of ~7 M barcodes, so rung 3 separates them at ~1% cross-hit — decisively, not marginally.
+  - id: 10x-3p-gex-v3.1
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      v3.1 is byte-identical to v3 (both 3M-february-2018), so v4 diverges from it in exactly the same
+      way and by the same whitelist. Geometry coincides; the onlist decides.
+  - id: 10x-multiome-gex
+    relationship: processing_divergent
+    distinguishable_by: [onlist]
+    note: >
+      The third occupant of the 28 bp / 16+12 geometry. Multiome GEX carries 737K-arc-v1, v4 carries
+      3M-3pgex-may-2023 — three chemistries with one geometry, separated pairwise at rung 3 by which
+      of the three whitelists hits.
