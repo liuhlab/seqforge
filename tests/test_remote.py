@@ -21,6 +21,7 @@ import zlib
 
 import pytest
 
+from conftest import range_server
 from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
@@ -49,81 +50,69 @@ def _resp(status: int, text: str = "", retry_after: str | None = None) -> types.
     return types.SimpleNamespace(status_code=status, text=text, headers=headers)
 
 
-def test_get_retries_a_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A single 429 used to abort the whole `records` stage (#9). It now backs off and retries."""
-    seq = [_resp(429, "rate limited", retry_after="0"), _resp(200, "OK")]
+#: ``(outcomes, expected, n_calls)`` for ``remote._get``. Each outcome is a response to return or an
+#: exception to raise; the last one repeats, so "always 503" is one row rather than a loop.
+#:
+#: These were five functions differing only in the sequence they fed the fake. The retry policy is a
+#: TABLE — transient vs terminal, HTTP vs transport, succeed-on-retry vs exhaust-the-budget — and a
+#: cell nobody wrote is a policy nobody decided. `expected` is the returned body, or a regex the
+#: raised `RemoteError` must match.
+RETRY_POLICY = [
+    # A single 429 used to abort the whole `records` stage (#9). It now backs off and retries.
+    pytest.param(
+        [_resp(429, "rate limited", retry_after="0"), _resp(200, "OK")], "OK", 2,
+        id="a-429-backs-off-then-succeeds",
+    ),
+    pytest.param(
+        [_resp(503, "service unavailable")], re.compile("HTTP 503"), remote._MAX_RETRIES + 1,
+        id="a-persistent-5xx-gives-up-after-the-retry-budget",
+    ),
+    pytest.param(
+        [_resp(404, "not found")], re.compile("HTTP 404"), 1,
+        id="a-404-is-terminal-and-is-not-retried",
+    ),
+    # A reset connection is the transport-level twin of a 5xx — NCBI resets under load (it aborted
+    # GSE310667's records fetch live). It backs off and retries rather than aborting the stage.
+    pytest.param(
+        [
+            remote.requests.ConnectionError("('Connection aborted.', ConnectionResetError(104))"),
+            _resp(200, "OK"),
+        ],
+        "OK", 2,
+        id="a-dropped-connection-retries-then-succeeds",
+    ),
+    pytest.param(
+        [remote.requests.Timeout("read timed out")], re.compile("failed"), remote._MAX_RETRIES + 1,
+        id="a-persistent-connection-error-gives-up",
+    ),
+]  # fmt: skip
+
+
+@pytest.mark.parametrize("outcomes, expected, n_calls", RETRY_POLICY)
+def test_get_retries_what_is_transient_and_gives_up_on_what_is_not(
+    outcomes: list[object],
+    expected: object,
+    n_calls: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls = {"n": 0}
 
     def fake_get(url: str, params: object = None, timeout: object = None) -> object:
-        i = calls["n"]
+        outcome = outcomes[min(calls["n"], len(outcomes) - 1)]
         calls["n"] += 1
-        return seq[i]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
 
     monkeypatch.setattr(remote.requests, "get", fake_get)
     monkeypatch.setattr(remote.time, "sleep", lambda _s: None)  # no real wait in the test
-    assert remote._get("https://eutils.example/efetch") == "OK"
-    assert calls["n"] == 2  # first 429, then the 200
 
-
-def test_get_gives_up_after_the_retry_budget(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = {"n": 0}
-
-    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
-        calls["n"] += 1
-        return _resp(503, "service unavailable")
-
-    monkeypatch.setattr(remote.requests, "get", fake_get)
-    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
-    with pytest.raises(RemoteError, match="HTTP 503"):
-        remote._get("https://eutils.example/efetch")
-    assert calls["n"] == remote._MAX_RETRIES + 1  # tried, then exhausted
-
-
-def test_get_does_not_retry_a_terminal_status(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = {"n": 0}
-
-    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
-        calls["n"] += 1
-        return _resp(404, "not found")
-
-    monkeypatch.setattr(remote.requests, "get", fake_get)
-    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
-    with pytest.raises(RemoteError, match="HTTP 404"):
-        remote._get("https://eutils.example/efetch")
-    assert calls["n"] == 1  # a 404 is terminal, not retried
-
-
-def test_get_retries_a_dropped_connection_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A reset connection is the transport-level twin of a 5xx — NCBI resets under load (aborted
-    GSE310667's records fetch live). It backs off and retries rather than aborting the stage."""
-    calls = {"n": 0}
-
-    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
-        calls["n"] += 1
-        if calls["n"] == 1:
-            raise remote.requests.ConnectionError(
-                "('Connection aborted.', ConnectionResetError(104))"
-            )
-        return _resp(200, "OK")
-
-    monkeypatch.setattr(remote.requests, "get", fake_get)
-    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
-    assert remote._get("https://eutils.example/efetch") == "OK"
-    assert calls["n"] == 2
-
-
-def test_get_gives_up_on_a_persistent_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = {"n": 0}
-
-    def fake_get(url: str, params: object = None, timeout: object = None) -> object:
-        calls["n"] += 1
-        raise remote.requests.Timeout("read timed out")
-
-    monkeypatch.setattr(remote.requests, "get", fake_get)
-    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)
-    with pytest.raises(RemoteError, match="failed"):
-        remote._get("https://eutils.example/efetch")
-    assert calls["n"] == remote._MAX_RETRIES + 1  # retried to the budget, then raised
+    if isinstance(expected, re.Pattern):
+        with pytest.raises(RemoteError, match=expected.pattern):
+            remote._get("https://eutils.example/efetch")
+    else:
+        assert remote._get("https://eutils.example/efetch") == expected
+    assert calls["n"] == n_calls
 
 
 def test_retry_delay_honors_an_integer_retry_after_else_backs_off() -> None:
@@ -429,33 +418,6 @@ def test_zlib_wbits_31_is_the_gzip_incantation() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def _range_server(blobs: dict[str, bytes], *, status: int = 206) -> object:
-    """A fake ``requests.get`` that serves a 206 Range slice of ``blobs[url]`` with a Content-Range.
-
-    Honors ``Range: bytes=0-N`` exactly as ENA does, so a bounded read returns a bounded prefix and the
-    206's ``Content-Range: .../TOTAL`` carries the true file size. ``status=200`` simulates a host that
-    ignores Range and hands back the whole file — the case ``_range_get`` must refuse.
-    """
-
-    def fake_get(
-        url: str,
-        headers: dict[str, str] | None = None,
-        timeout: object = None,
-        stream: object = None,
-    ) -> object:
-        data = blobs[url]
-        match = re.search(r"bytes=0-(\d+)", (headers or {}).get("Range", ""))
-        chunk = data[: int(match.group(1)) + 1] if match else data
-        return types.SimpleNamespace(
-            status_code=status,
-            content=chunk,
-            headers={"Content-Range": f"bytes 0-{max(0, len(chunk) - 1)}/{len(data)}"},
-            close=lambda: None,
-        )
-
-    return fake_get
-
-
 def test_fastq_targets_pairs_each_url_with_its_md5() -> None:
     """ENA's fastq_ftp and fastq_md5 are index-aligned; the join is positional. This is the one place a
     URL and its content hash arrive together, which is what lets the remote probe key on the md5."""
@@ -528,7 +490,7 @@ def test_probe_remote_fingerprints_from_a_url_using_the_provider_md5(
     data = _fastq_gz(400, read_len=90)
     md5 = hashlib.md5(data).hexdigest()
     url = "https://ftp.x/vol1/SRR1_2.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5=md5)
 
@@ -548,7 +510,7 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     size_bytes is the true total (from Content-Range) rather than the bytes read."""
     data = _fastq_gz(5000, read_len=90)
     url = "https://ftp.x/big.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
 
@@ -566,7 +528,7 @@ def test_probe_remote_without_md5_derives_a_bounded_remote_key(
     basename + size + head, a valid 64-hex address that reads no whole file."""
     data = _fastq_gz(100, read_len=50)
     url = "https://ftp.x/nomd5.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
     obs, _seqs = probe_remote(url)
 
@@ -580,7 +542,7 @@ def test_probe_remote_refuses_a_host_that_ignores_range(monkeypatch: pytest.Monk
     does. 'Bounded' means bounded by the server, not by our intentions."""
     data = _fastq_gz(10)
     url = "https://ftp.x/whole.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", _range_server({url: data}, status=200))
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}, status=200))
 
     with pytest.raises(RemoteError, match="answered 200"):
         probe_remote(url, md5="a" * 32)

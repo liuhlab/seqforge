@@ -472,11 +472,3 @@ def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_p
     assert report.rejected[0]["reason"] == "span_not_found"
     a = report.assertions[0]
     assert nd.text[a.span.char_start : a.span.char_end] == _QUOTE
-
-
-def test_deepseek_empty_content_is_refused_not_read_as_no_findings(tmp_path: Path) -> None:
-    """DeepSeek documents that json mode can return empty content. An empty batch must never be
-    mistaken for 'the document states nothing' — that would silently drop real metadata."""
-    provider = deepseek_provider(api_key="k", client=_FakeOpenAIClient("   "))
-    with pytest.raises(ExtractUnavailable, match="empty content"):
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)

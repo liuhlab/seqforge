@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 import random
 from pathlib import Path
@@ -10,34 +9,48 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from conftest import real_cbs, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 
 runner = CliRunner()
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
+#: ``(argv, exit_code, substrings that must appear in stdout)``.
+#:
+#: Seven one-liner functions, each invoking a verb and pinning its exit code. R6 says the CLI is the
+#: API, so what is under test is the SURFACE — and a surface reads as a table. A verb that starts
+#: refusing, or stops naming what it lists, goes red as a named case.
+#:
+#: The verbs whose claim is structural rather than textual (``schema export --all`` covering every
+#: model, ``kb lint``/``kb roundtrip`` returning ``ok``/``passed``) keep their own functions below:
+#: a substring is not that claim.
+CLI_SURFACE = [
+    pytest.param(["version"], 0, (__version__,), id="version-prints-the-version"),
+    pytest.param(["schema", "export", "NopeModel"], 2, (), id="schema-export-unknown-model-exits-2"),
+    pytest.param(
+        ["schema", "list"], 0, ("DatasetManifest", "ProcessingManifest"),
+        id="schema-list-lists-both-manifests",
+    ),
+    pytest.param(["kb", "list"], 0, ("10x-3p-gex-v3",), id="kb-list-shows-10x"),
+    pytest.param(["kb", "show", "nope-tech"], 2, (), id="kb-show-unknown-exits-2"),
+    pytest.param(
+        ["io", "onlist", "list"], 0, ("3M-february-2018",), id="io-onlist-list-shows-known-lists"
+    ),
+    pytest.param(
+        ["io", "peek", "s3://bucket/reads.fastq.gz"], 1, (), id="io-peek-not-implemented-exits-1"
+    ),
+]  # fmt: skip
 
 
-def _real_cbs(n: int) -> list[str]:
-    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
-    diverse. The CLI drives the REAL registry, so synthetic random CBs would miss the shipped whitelist
-    and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
-    from seqforge.io import DEFAULT_REGISTRY
-    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
-
-    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
-    step = max(1, packed.codes.shape[0] // n)
-    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
-
-
-def test_version() -> None:
-    result = runner.invoke(app, ["version"])
-    assert result.exit_code == 0
-    assert __version__ in result.stdout
+@pytest.mark.parametrize("argv, exit_code, contains", CLI_SURFACE)
+def test_the_cli_surface_exits_and_answers_as_documented(
+    argv: list[str], exit_code: int, contains: tuple[str, ...]
+) -> None:
+    result = runner.invoke(app, argv)
+    assert result.exit_code == exit_code, result.stdout
+    for needle in contains:
+        assert needle in result.stdout
 
 
 @pytest.mark.parametrize("model", ["DatasetManifest", "ProcessingManifest"])
@@ -49,33 +62,11 @@ def test_schema_export_each_manifest_is_valid_json(model: str) -> None:
     assert "$defs" in doc
 
 
-def test_schema_export_unknown_model_exits_2() -> None:
-    result = runner.invoke(app, ["schema", "export", "NopeModel"])
-    assert result.exit_code == 2
-
-
 def test_schema_export_all_covers_every_model() -> None:
     result = runner.invoke(app, ["schema", "export", "--all"])
     assert result.exit_code == 0
     doc = json.loads(result.stdout)
     assert {"DatasetManifest", "ProcessingManifest", "Observation"} <= set(doc)
-
-
-def test_schema_list_lists_both_manifests() -> None:
-    result = runner.invoke(app, ["schema", "list"])
-    assert result.exit_code == 0
-    assert "DatasetManifest" in result.stdout and "ProcessingManifest" in result.stdout
-
-
-def test_kb_list_shows_10x() -> None:
-    result = runner.invoke(app, ["kb", "list"])
-    assert result.exit_code == 0
-    assert "10x-3p-gex-v3" in result.stdout
-
-
-def test_kb_show_unknown_exits_2() -> None:
-    result = runner.invoke(app, ["kb", "show", "nope-tech"])
-    assert result.exit_code == 2
 
 
 def test_kb_lint_is_clean() -> None:
@@ -90,18 +81,6 @@ def test_kb_roundtrip_passes() -> None:
     assert json.loads(result.stdout)["passed"] is True
 
 
-def test_io_onlist_list_shows_known_lists() -> None:
-    result = runner.invoke(app, ["io", "onlist", "list"])
-    assert result.exit_code == 0
-    names = {o["name"] for o in json.loads(result.stdout)["onlists"]}
-    assert "3M-february-2018" in names
-
-
-def test_io_peek_not_implemented_exits_1() -> None:
-    result = runner.invoke(app, ["io", "peek", "s3://bucket/reads.fastq.gz"])
-    assert result.exit_code == 1
-
-
 def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     """The whole deterministic spine, driven through the real CLI: probe->resolve->manifest->compose.
 
@@ -113,8 +92,8 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     filled = runner.invoke(
         app,
@@ -203,8 +182,8 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app,
@@ -269,8 +248,8 @@ def test_run_defaults_fastq_dir_to_the_common_root_for_a_subdir_layout(tmp_path:
     sub = tmp_path / "SRX9"
     sub.mkdir()
     f1, f2 = sub / "s_R1.fastq.gz", sub / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app,
@@ -297,8 +276,8 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     result = runner.invoke(
         app, ["run", str(f1), str(f2), "--organism", "559292", "--no-llm", "-C", str(tmp_path)]
@@ -350,8 +329,8 @@ def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None
     data.mkdir()
     f1 = data / "s_R1.fastq.gz"
     f2 = data / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
 
     def hash_with(cpus: int, ws: Path) -> str:
         ws.mkdir()
@@ -448,13 +427,13 @@ def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:
     reads = kb.generate_reads(spec, n=800, seed=0)
     # Give R1 REAL 3M-february-2018 barcodes: the CLI drives the shipped whitelist, and F1b now refuses
     # a barcoded winner whose read hits no whitelist -- random synthetic CBs would (correctly) trip it.
-    real = _real_cbs(128)
+    real = real_cbs(128)
     rng = random.Random(0)
     reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     f1 = tmp_path / "R1.fastq.gz"
     f2 = tmp_path / "R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
     result = runner.invoke(
         app, ["resolve", "score", str(f1), str(f2), "-C", str(tmp_path), "--no-cache"]
     )
@@ -713,7 +692,7 @@ def test_manifest_fill_on_a_six_run_dataset_keeps_every_file(tmp_path: Path) -> 
         run_dir.mkdir(parents=True)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = run_dir / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             paths.append(str(p))
 
     filled = runner.invoke(
@@ -779,7 +758,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(tmp_path: 
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=400, seed=0)
     for k in ("R1", "R2"):
-        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
     filled = runner.invoke(
         app,
         [
@@ -855,7 +834,7 @@ def test_processing_new_refuses_a_pre_2026_7_assertions_file(tmp_path: Path) -> 
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=400, seed=0)
     for k in ("R1", "R2"):
-        _write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
+        write_fastq_gz(tmp_path / f"s_{k}.fastq.gz", reads[k])
     runner.invoke(
         app,
         [

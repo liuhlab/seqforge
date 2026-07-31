@@ -8,32 +8,17 @@ single-assay path stays flat and byte-identical (covered by the existing `run`/c
 
 from __future__ import annotations
 
-import gzip
 import random
+import shutil
 from pathlib import Path
+from typing import Any
 
+import pytest
 import yaml
 
+from conftest import real_cbs, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import _fill_manifest_pipeline
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
-
-
-def _real_cbs(n: int) -> list[str]:
-    """``n`` real ``3M-february-2018`` (v3) barcodes, spread across the sorted list so early bases stay
-    diverse. This path drives the REAL registry, so synthetic random CBs would miss the shipped
-    whitelist and F1b would refuse the v3 run as barcode-absent -- real CBs make it hit, as real data does."""
-    from seqforge.io import DEFAULT_REGISTRY
-    from seqforge.io.onlist import PackedOnlist, unpack_barcodes
-
-    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
-    step = max(1, packed.codes.shape[0] // n)
-    return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
 
 
 def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
@@ -41,7 +26,7 @@ def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
     :func:`_real_cbs`) so it hits the shipped whitelist on the real-registry pipeline path."""
     reads = kb.generate_reads(kb.load_spec(tech), n=n, seed=seed)
     if tech == "10x-3p-gex-v3":
-        real = _real_cbs(128)
+        real = real_cbs(128)
         rng = random.Random(seed)
         reads["R1"] = [rng.choice(real) + r[16:] for r in reads["R1"]]
     return reads
@@ -54,7 +39,7 @@ def _two_chemistry_files(tmp_path: Path) -> list[Path]:
         reads = _reads(tech)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = tmp_path / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
     return files
 
@@ -74,9 +59,44 @@ def _two_chemistry_files_nested(tmp_path: Path) -> list[Path]:
         subdir.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = subdir / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
     return files
+
+
+#: The filled workspace and the payload ``_fill_manifest_pipeline`` returned for it.
+Project = tuple[Path, dict[str, Any]]
+
+
+@pytest.fixture(scope="module")
+def two_chemistry_project(tmp_path_factory: pytest.TempPathFactory) -> Project:
+    """The two-chemistry dataset, partitioned ONCE.
+
+    Three tests below assert different things about the same partition and each re-ran the whole
+    ``_fill_manifest_pipeline`` (~1s) to get there. Built once per module; the two that write into
+    the tree take `own_two_chemistry_project` instead.
+    """
+    root = tmp_path_factory.mktemp("two-chemistry")
+    out = _fill_manifest_pipeline(
+        files=_two_chemistry_files(root),
+        organism="6239",
+        records=None,
+        assertions=None,
+        offline=True,
+        workspace=root,
+    )
+    assert out.code == 0, out.payload
+    assert isinstance(out.payload, dict)
+    return root, out.payload
+
+
+@pytest.fixture
+def own_two_chemistry_project(two_chemistry_project: Project, tmp_path: Path) -> Project:
+    """A private copy, for the tests that write project views back into the workspace."""
+    root, payload = two_chemistry_project
+    dst = tmp_path / "project"
+    shutil.copytree(root, dst)
+    return dst, payload
 
 
 def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_path: Path) -> None:
@@ -133,7 +153,7 @@ def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: 
         sub.mkdir()
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = sub / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
+            write_fastq_gz(p, reads[role])
             files.append(p)
 
     out = _fill_manifest_pipeline(
@@ -154,24 +174,13 @@ def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: 
         assert (tmp_path / f["uri"]).is_file(), f["uri"]
 
 
-def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(tmp_path: Path) -> None:
-    files = _two_chemistry_files(tmp_path)
-    out = _fill_manifest_pipeline(
-        files=files,
-        organism="6239",
-        records=None,
-        assertions=None,
-        offline=True,
-        workspace=tmp_path,
-    )
-    assert out.code == 0, out.payload
-    assert isinstance(out.payload, dict)
-    payload = out.payload
+def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(
+    two_chemistry_project: Project,
+) -> None:
+    workspace, payload = two_chemistry_project
     if (
         "assays" not in payload
     ):  # pragma: no cover - fixtures happened to agree; nothing to partition
-        import pytest
-
         pytest.skip(f"both runs resolved to one chemistry: {payload}")
 
     assays = payload["assays"]
@@ -183,7 +192,7 @@ def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(tmp_path: 
         # Each assay's manifest is a real file under its own seqforge/<assay>/ subdir.
         manifest_path = Path(a["manifest"])
         assert manifest_path.is_file()
-        assert manifest_path.parent == tmp_path / "seqforge" / a["assay_dir"]
+        assert manifest_path.parent == workspace / "seqforge" / a["assay_dir"]
         assert manifest_path.name == "manifest.yaml"  # validated clean, not a draft
         # Its recorded chemistry is exactly this assay's, and only its own files are in it.
         doc = yaml.safe_load(manifest_path.read_text())
@@ -193,28 +202,18 @@ def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(tmp_path: 
         assert all(b.startswith(expected) for b in basenames), basenames
 
     # No project-wide manifest.yaml at the top level -- the assays own the manifests.
-    assert not (tmp_path / "seqforge" / "manifest.yaml").exists()
+    assert not (workspace / "seqforge" / "manifest.yaml").exists()
 
 
-def test_project_views_union_every_assays_samples(tmp_path: Path) -> None:
+def test_project_views_union_every_assays_samples(own_two_chemistry_project: Project) -> None:
     """sample_metadata.tsv unions all samples across assays; project.yaml indexes the assays."""
-    import pytest
-
     from seqforge.project import discover_assays, write_project_views
 
-    files = _two_chemistry_files(tmp_path)
-    out = _fill_manifest_pipeline(
-        files=files,
-        organism="6239",
-        records=None,
-        assertions=None,
-        offline=True,
-        workspace=tmp_path,
-    )
-    if not isinstance(out.payload, dict) or "assays" not in out.payload:  # pragma: no cover
+    workspace, payload = own_two_chemistry_project
+    if "assays" not in payload:  # pragma: no cover - fixtures agreed on one chemistry
         pytest.skip("fixtures agreed on one chemistry")
 
-    assays = discover_assays(tmp_path)
+    assays = discover_assays(workspace)
     assert len(assays) == 2
     infos = [
         {
@@ -230,10 +229,10 @@ def test_project_views_union_every_assays_samples(tmp_path: Path) -> None:
         info["chemistry"] = doc["library"]["chemistry"]["value"][0]
         info["n_samples"] = len(doc["experiment"]["samples"])
 
-    tsv_path, project_path = write_project_views(tmp_path, infos)
+    tsv_path, project_path = write_project_views(workspace, infos)
 
     # The TSV lives at the project top, not inside an assay subdir.
-    assert tsv_path == tmp_path / "seqforge" / "sample_metadata.tsv"
+    assert tsv_path == workspace / "seqforge" / "sample_metadata.tsv"
     lines = tsv_path.read_text().splitlines()
     header = lines[0].split("\t")
     assert header[:4] == ["sample_id", "accession", "assay", "organism"]
@@ -252,29 +251,22 @@ def test_project_views_union_every_assays_samples(tmp_path: Path) -> None:
     assert {a["chemistry"] for a in index["assays"]} == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
 
 
-def test_project_metadata_verb_regenerates_from_manifests(tmp_path: Path) -> None:
+def test_project_metadata_verb_regenerates_from_manifests(
+    own_two_chemistry_project: Project,
+) -> None:
     """The standalone `seqforge project metadata` verb rebuilds the views from whatever is on disk."""
-    import pytest
     from typer.testing import CliRunner
 
     from seqforge.cli import app
 
-    files = _two_chemistry_files(tmp_path)
-    out = _fill_manifest_pipeline(
-        files=files,
-        organism="6239",
-        records=None,
-        assertions=None,
-        offline=True,
-        workspace=tmp_path,
-    )
-    if not isinstance(out.payload, dict) or "assays" not in out.payload:  # pragma: no cover
+    workspace, payload = own_two_chemistry_project
+    if "assays" not in payload:  # pragma: no cover - fixtures agreed on one chemistry
         pytest.skip("fixtures agreed on one chemistry")
 
-    result = CliRunner().invoke(app, ["project", "metadata", "-C", str(tmp_path)])
+    result = CliRunner().invoke(app, ["project", "metadata", "-C", str(workspace)])
     assert result.exit_code == 0, result.output
-    assert (tmp_path / "seqforge" / "sample_metadata.tsv").is_file()
-    assert (tmp_path / "seqforge" / "project.yaml").is_file()
+    assert (workspace / "seqforge" / "sample_metadata.tsv").is_file()
+    assert (workspace / "seqforge" / "project.yaml").is_file()
 
 
 def test_a_sample_split_across_chemistries_blocks(tmp_path: Path) -> None:

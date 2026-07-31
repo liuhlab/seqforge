@@ -42,6 +42,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from conftest import range_server
 from seqforge.cli import app
 from seqforge.fingerprint.build import build_fingerprint
 from seqforge.fingerprint.load import load_fingerprint, probed_from_fingerprint
@@ -49,7 +50,6 @@ from seqforge.io import sra
 from seqforge.io.remote import probe_remote
 from seqforge.models.observation import Observation
 from seqforge.probe import content_key_from_md5, content_key_from_sra, probe_sample
-from test_remote import _range_server  # tests/ is not a package; pytest puts it on sys.path
 
 #: Computed from the records alone -- every source must agree, unconditionally.
 #:
@@ -152,7 +152,7 @@ def _four_observations(
     local_obs, local_seqs = probe_sample(local)
 
     # 2. HTTP range read, serving the very same gzip bytes
-    monkeypatch.setattr("seqforge.io.remote.requests.get", _range_server({URL: blob}))
+    monkeypatch.setattr("seqforge.io.remote.requests.get", range_server({URL: blob}))
     remote_obs, remote_seqs = probe_remote(URL, md5="a" * 32)
 
     # 3. an SRA spot stream, re-serialized through `records_to_gz_bytes`
@@ -188,6 +188,27 @@ def _four_observations(
     }
 
 
+Four = dict[str, tuple[Observation, list[str]]]
+
+
+@pytest.fixture(scope="module")
+def source_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Where the local fixture and the fingerprint staging live. Read-only once built."""
+    return tmp_path_factory.mktemp("observation-sources")
+
+
+@pytest.fixture(scope="module")
+def four(source_dir: Path) -> Four:
+    """The same records through all four callers of `build_observation`, fingerprinted ONCE.
+
+    Six tests each rebuilt this — a probe, a range read, an SRA stream and a fingerprint package per
+    test — to interrogate four objects nothing here mutates. The monkeypatch context is exited before
+    the tests run on purpose: the fakes are needed to BUILD the observations, never to read them.
+    """
+    with pytest.MonkeyPatch.context() as mp:
+        return _four_observations(source_dir, mp)
+
+
 def test_the_three_field_sets_cover_every_observation_field() -> None:
     """A new Observation field must join one of the three sets -- silence is not an answer.
 
@@ -208,22 +229,16 @@ def test_the_three_field_sets_cover_every_observation_field() -> None:
     )
 
 
-def test_every_source_reads_the_same_records(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_every_source_reads_the_same_records(four: Four) -> None:
     """The precondition for everything below: four readers, one set of sequences."""
-    four = _four_observations(tmp_path, monkeypatch)
     expected = [seq for _h, seq, _q in _records()]
 
     for name, (_obs, seqs) in four.items():
         assert seqs == expected, f"{name} did not read the fixture's records"
 
 
-def test_the_head_derived_signals_agree_across_all_four_sources(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_head_derived_signals_agree_across_all_four_sources(four: Four) -> None:
     """Same records, same signals — whether they arrived from disk, a URL, a stream, or a slice."""
-    four = _four_observations(tmp_path, monkeypatch)
     baseline = four["local"][0]
 
     for name, (obs, _seqs) in four.items():
@@ -234,16 +249,13 @@ def test_the_head_derived_signals_agree_across_all_four_sources(
             )
 
 
-def test_the_read_estimate_agrees_only_because_nothing_hit_the_budget(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_read_estimate_agrees_only_because_nothing_hit_the_budget(four: Four) -> None:
     """`estimated_total_reads` agrees here for a stated reason, not as a general property.
 
     Read to EOF, the sampled count IS the total and no size or ISIZE is consulted. Assert that
     precondition explicitly: if a future fixture grows past the budget this test must fail loudly
     rather than quietly compare two extrapolations that were never meant to match.
     """
-    four = _four_observations(tmp_path, monkeypatch)
 
     for name, (obs, _seqs) in four.items():
         assert obs.probe.n_reads_sampled == N_READS, f"{name} did not read the fixture to EOF"
@@ -251,9 +263,7 @@ def test_the_read_estimate_agrees_only_because_nothing_hit_the_budget(
         assert obs.est_method == "isize", f"{name} fell back to the compressed ratio"
 
 
-def test_each_source_names_the_file_its_own_way(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_each_source_names_the_file_its_own_way(four: Four, source_dir: Path) -> None:
     """`file` is what the four callers exist to differ on — pin *how*, so a refactor cannot blur it.
 
     Four addresses over identical records is not a bug: a content address is a NAME, and these are
@@ -261,7 +271,6 @@ def test_each_source_names_the_file_its_own_way(
     the remote adopts the provider md5 outright; SRA has no hosted-byte identity at all and derives a
     synthetic one; the fingerprint copies a pin describing a file it is not reading.
     """
-    four = _four_observations(tmp_path, monkeypatch)
     obs = {name: o for name, (o, _s) in four.items()}
 
     assert obs["remote"].file.sha256 == content_key_from_md5("a" * 32)
@@ -275,7 +284,7 @@ def test_each_source_names_the_file_its_own_way(
     assert obs["fingerprint"].file.local_uri != obs["local"].file.local_uri
 
     # Only a local read can stage a path; the other two never touch the filesystem.
-    assert obs["local"].file.local_uri == str(tmp_path / "reads_1.fastq.gz")
+    assert obs["local"].file.local_uri == str(source_dir / "reads_1.fastq.gz")
     assert obs["remote"].file.local_uri is None
     assert obs["sra"].file.local_uri is None
 
@@ -283,16 +292,13 @@ def test_each_source_names_the_file_its_own_way(
     assert len({o.file.sha256 for o in obs.values()}) == 3
 
 
-def test_the_probe_accounting_reflects_who_compressed_the_bytes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_probe_accounting_reflects_who_compressed_the_bytes(four: Four) -> None:
     """Decompressed accounting is a property of the records; compressed accounting is not.
 
     `bytes_read` counts the record text, so it agrees across sources. `compressed_bytes_read` counts
     what was inflated, and the local upload, the re-serialized SRA stream and the fingerprint slice
     were compressed by different writers — so it legitimately does not.
     """
-    four = _four_observations(tmp_path, monkeypatch)
     obs = {name: o for name, (o, _s) in four.items()}
     baseline = obs["local"].probe
 
@@ -307,9 +313,7 @@ def test_the_probe_accounting_reflects_who_compressed_the_bytes(
     assert obs["sra"].probe.compressed_bytes_read != baseline.compressed_bytes_read
 
 
-def test_the_budget_is_stamped_identically_when_it_is_identical(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_budget_is_stamped_identically_when_it_is_identical(four: Four) -> None:
     """`params_hash` records the budget a probe ran under, and must not vary by source.
 
     It is currently recomputed inside `build_observation` from parameters the caller supplies a second
@@ -317,7 +321,6 @@ def test_the_budget_is_stamped_identically_when_it_is_identical(
     different from the one it read under stamps a hash that lies. Nothing else in the suite would
     notice: `params_hash` is written in one place and read nowhere.
     """
-    four = _four_observations(tmp_path, monkeypatch)
     stamped = {name: o.probe.params_hash for name, (o, _s) in four.items()}
 
     # local, remote and the fingerprint all ran the default budget.

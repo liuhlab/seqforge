@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 import yaml
@@ -12,19 +13,39 @@ from .schema import Spec
 SPECS_DIR = Path(__file__).parent / "specs"
 
 
+@cache
+def _spec_ids() -> tuple[str, ...]:
+    """The directory scan, done once. Immutable so the cached value cannot be edited by a caller."""
+    if not SPECS_DIR.is_dir():
+        return ()
+    return tuple(sorted(p.name for p in SPECS_DIR.iterdir() if (p / "spec.yaml").is_file()))
+
+
 def list_spec_ids() -> list[str]:
     """Return the ids of every technology directory that ships a ``spec.yaml``."""
-    if not SPECS_DIR.is_dir():
-        return []
-    return sorted(p.name for p in SPECS_DIR.iterdir() if (p / "spec.yaml").is_file())
+    return list(_spec_ids())
 
 
+@cache
 def load_spec(tech_id: str) -> Spec:
-    """Load and validate one technology's ``spec.yaml``."""
+    """Load and validate one technology's ``spec.yaml``.
+
+    Cached, and the ``Spec`` it hands back is therefore SHARED. That is safe because nothing mutates
+    a loaded spec: the three places that vary one take a ``model_copy``. It is deliberately not
+    enforced with ``frozen=True`` — that would additionally synthesise ``__hash__`` over field
+    values, and ``Spec`` has list and dict fields, so it buys a ``TypeError`` far from here for a
+    property nothing currently violates.
+
+    The KB is 12 files, 69 kB, shipped in the wheel and immutable at run time, but one
+    ``resolve_dataset`` used to re-read and re-validate all of them 12 times over — ~78% of its
+    runtime was ``yaml.safe_load``. ``CSafeLoader`` (libyaml, already a dependency) is 9.7x faster
+    than the pure-Python parser on the same bytes; the cache then takes every call after the first
+    to nothing.
+    """
     path = SPECS_DIR / tech_id / "spec.yaml"
     if not path.is_file():
         raise FileNotFoundError(f"no KB spec for {tech_id!r} at {path}")
-    data = yaml.safe_load(path.read_text())
+    data = yaml.load(path.read_text(), Loader=yaml.CSafeLoader)
     return Spec.model_validate(data)
 
 

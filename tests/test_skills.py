@@ -14,6 +14,9 @@ from pathlib import Path
 import pytest
 import yaml
 
+#: Everything here checks the shipped skills and docs, not `src/`. `pixi run check` runs it; `test-fast` does not.
+pytestmark = pytest.mark.repo
+
 _REPO = Path(__file__).resolve().parents[1]
 SKILLS = _REPO / "skills"
 
@@ -77,34 +80,37 @@ def _doc_pages() -> list[Path]:
     return sorted(DOCS.rglob("*.md"))
 
 
-@pytest.mark.parametrize("page", [*_doc_pages(), _REPO / "README.md"], ids=lambda p: p.name)
-def test_docs_document_only_real_cli_verbs(page: Path) -> None:
-    """The same check as the skills', over the pages a human reads. See `_verbs_used`."""
-    used = _verbs_used(page.read_text())
-    real = _real_verbs()
-    unknown = sorted(v for v in used if v not in real and v.split()[0] not in _PLANNED)
-    assert not unknown, f"{page.name} documents non-existent verb(s): {unknown}"
+def _verb_naming_pages() -> list[Path]:
+    """Every markdown surface that may name a `seqforge` verb: the skills, the docs, the README.
+
+    One list, because there is one rule. This was two functions with byte-identical bodies — the
+    skills' and the docs' — which is two chances for one of them to drift out of the other's reach.
+    """
+    return [*(s / "SKILL.md" for s in _skill_dirs()), *_doc_pages(), _REPO / "README.md"]
 
 
-@pytest.mark.parametrize("skill", _skill_dirs(), ids=lambda p: p.name)
-def test_skill_documents_only_real_cli_verbs(skill: Path) -> None:
-    """A skill naming a verb that does not exist is a confident instruction to fail.
+@pytest.mark.parametrize("page", _verb_naming_pages(), ids=lambda p: p.parent.name + "/" + p.name)
+def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
+    """A page naming a verb that does not exist is a confident instruction to fail.
 
     Scans `seqforge <verb>` in CODE contexts only and checks it against the real Typer app, so
-    renaming a verb turns this red instead of silently misleading an agent. It has already earned
-    itself once: it caught that `seqforge probe` was documented everywhere and never registered.
+    renaming a verb turns this red instead of silently misleading an agent or a reader. It has
+    already earned itself once: it caught that `seqforge probe` was documented everywhere and never
+    registered.
 
-    **It now checks the SUBcommand too, and that is the gap this closes.** Checking only the group
-    meant `seqforge io onlist fetch` passed because `io` exists — so the io skill documented
+    **It checks the SUBcommand too, and that is the gap it closes.** Checking only the group meant
+    `seqforge io onlist fetch` passed because `io` exists — so the io skill documented
     `onlist list|show|fetch|add` while the app has `list|show|pack|write`, and two of the four were
     fiction. An agent following it runs a command that does not exist. The group is the part least
     likely to be wrong; the leaf is the part that gets renamed.
+
+    R6 names this function; do not rename it without updating CLAUDE.md's enforcement table.
     """
-    used = _verbs_used((skill / "SKILL.md").read_text())
+    used = _verbs_used(page.read_text())
     real = _real_verbs()
     unknown = sorted(v for v in used if v not in real and v.split()[0] not in _PLANNED)
     assert not unknown, (
-        f"{skill.name} documents non-existent verb(s): {unknown}\n"
+        f"{page.parent.name}/{page.name} documents non-existent verb(s): {unknown}\n"
         f"real: {sorted(v for v in real if v.split()[0] in {u.split()[0] for u in unknown})}"
     )
 

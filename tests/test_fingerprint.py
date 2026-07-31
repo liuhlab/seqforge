@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from conftest import write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 from seqforge.fingerprint.build import FingerprintError, build_fingerprint
@@ -36,12 +37,12 @@ TECH = "10x-3p-gex-v3"
 
 
 def _write_fastq_gz(path: Path, seqs: list[str], *, prefix: str = "SIM") -> None:
-    """A plain (non-reproducible) writer — stands in for a real upload the slicer never controls."""
-    import gzip
+    """A plain (non-reproducible) writer — stands in for a real upload the slicer never controls.
 
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@{prefix}:{i} extra/desc\n{s}\n+\n{'I' * len(s)}\n")
+    The header carries a description, which is what a real Illumina header looks like and what a
+    fingerprint slice must preserve verbatim.
+    """
+    write_fastq_gz(path, seqs, prefix=prefix, desc="extra/desc")
 
 
 def _synth_dataset(tmp_path: Path, *, n: int = 800) -> tuple[list[Path], OnlistRegistry]:

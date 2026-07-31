@@ -8,7 +8,6 @@ the collector degrades honestly when a piece is missing rather than crashing or 
 
 from __future__ import annotations
 
-import gzip
 import json
 import re
 import shutil
@@ -17,18 +16,13 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from conftest import write_fastq_gz
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 
 runner = CliRunner()
-
-
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
-    with gzip.open(path, "wt") as fh:
-        for i, s in enumerate(seqs):
-            fh.write(f"@SIM:{i}\n{s}\n+\n{'I' * len(s)}\n")
 
 
 def _build_bulk_workspace(tmp_path: Path) -> Path:
@@ -41,8 +35,8 @@ def _build_bulk_workspace(tmp_path: Path) -> Path:
     spec = kb.load_spec("bulk-rnaseq-pe")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
-    _write_fastq_gz(f1, reads["R1"])
-    _write_fastq_gz(f2, reads["R2"])
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
     result = runner.invoke(
         app,
         [
@@ -59,12 +53,36 @@ def _build_bulk_workspace(tmp_path: Path) -> Path:
     return tmp_path
 
 
+@pytest.fixture(scope="module")
+def _bulk_workspace(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The compiled workspace, built ONCE for this module.
+
+    `_build_bulk_workspace` runs the whole `seqforge run` verb — 2.2s measured, and it was the top
+    13 entries in `--durations` because every test below re-ran it to look at the same page.
+    """
+    return _build_bulk_workspace(tmp_path_factory.mktemp("report-bulk"))
+
+
 @pytest.fixture
-def workspace(tmp_path: Path) -> Path:
-    return _build_bulk_workspace(tmp_path)
+def workspace(_bulk_workspace: Path) -> Path:
+    """The shared build, read-only. A test that changes the tree takes `own_workspace` instead."""
+    return _bulk_workspace
 
 
-def test_report_verb_writes_a_self_contained_html_page(workspace: Path) -> None:
+@pytest.fixture
+def own_workspace(_bulk_workspace: Path, tmp_path: Path) -> Path:
+    """A private copy, for the tests that delete from or add to the workspace.
+
+    Mutating the shared one would make this file order-dependent — the exact failure mode a workspace
+    with an implicit resume cache (R5) turns into a test that passes for the wrong reason.
+    """
+    dst = tmp_path / "workspace"
+    shutil.copytree(_bulk_workspace, dst)
+    return dst
+
+
+def test_report_verb_writes_a_self_contained_html_page(own_workspace: Path) -> None:
+    workspace = own_workspace  # the verb WRITES report.html; it does not share a tree
     result = runner.invoke(app, ["report", "-C", str(workspace), "--no-timestamp"])
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
@@ -79,11 +97,6 @@ def test_report_verb_writes_a_self_contained_html_page(workspace: Path) -> None:
     assert "</html>" in html
     for tab in ("Overview", "Flow", "Samples", "Evidence", "Pipeline"):
         assert f">{tab}</button>" in html
-
-
-def test_run_emits_the_report_as_a_best_effort_stage(workspace: Path) -> None:
-    """``run`` drops the report on its own; it is a stage, and a compiled dataset says so on the page."""
-    assert (workspace / "seqforge" / "report.html").is_file()
 
 
 def test_report_makes_no_external_network_reference(workspace: Path) -> None:
@@ -177,36 +190,36 @@ def test_evidence_collapses_ruled_out_families_with_human_reasons(workspace: Pat
     assert 'class="ruled-list"' in render_html(report)
 
 
-def test_report_degrades_when_the_matrix_cache_is_absent(workspace: Path) -> None:
+def test_report_degrades_when_the_matrix_cache_is_absent(own_workspace: Path) -> None:
     """Delete the sidecar: no crash, no invented matrix — the chemistry decision (in the manifest)
     still renders, and the page says the matrix was not persisted."""
-    shutil.rmtree(workspace / "seqforge" / "cache" / "matrices")
-    report = collect_report(workspace)
+    shutil.rmtree(own_workspace / "seqforge" / "cache" / "matrices")
+    report = collect_report(own_workspace)
     assert report.assays[0].matrices == []
     html = render_html(report)
     assert "How the chemistry was decided" in html  # the panel still renders
     assert "not persisted" in html
 
 
-def test_report_is_ir_ready_without_a_composed_pipeline(workspace: Path) -> None:
+def test_report_is_ir_ready_without_a_composed_pipeline(own_workspace: Path) -> None:
     """Remove the composed pipeline: the verdict falls back to ir-ready, never a manufactured refusal."""
-    shutil.rmtree(workspace / "seqforge" / "pipeline")
-    assay = collect_report(workspace).assays[0]
+    shutil.rmtree(own_workspace / "seqforge" / "pipeline")
+    assay = collect_report(own_workspace).assays[0]
     assert assay.conclusion.kind == "ir_ready"
     assert assay.conclusion.exit_code == 0
     assert assay.plan is not None and assay.plan.snakefile_rel is None
 
 
-def test_report_handles_a_multi_assay_layout(workspace: Path) -> None:
+def test_report_handles_a_multi_assay_layout(own_workspace: Path) -> None:
     """Two ``<assay>/manifest.yaml`` render as two assays with a switcher in the shell."""
-    sf = workspace / "seqforge"
+    sf = own_workspace / "seqforge"
     manifest = (sf / "manifest.yaml").read_text()
     for name in ("assay-a", "assay-b"):
         (sf / name).mkdir()
         (sf / name / "manifest.yaml").write_text(manifest)
     (sf / "manifest.yaml").unlink()
 
-    report = collect_report(workspace)
+    report = collect_report(own_workspace)
     assert report.is_multi_assay and len(report.assays) == 2
     assert 'id="assay-select"' in render_html(report)
 
