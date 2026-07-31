@@ -1019,6 +1019,54 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert all(c.root.resolve() not in hermetic_roots for c in cases)
 
 
+def test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it() -> None:
+    """`evals/benchmark-datasets.tsv` is one row per benchmark case, and it cannot drift.
+
+    The table exists because a directory of accessions does not tell a reader what the corpus
+    *covers* — which is the question you ask before adding a dataset. Its `uniqueness` column is
+    prose and must stay hand-written; but a hand-written index rots the moment a case is added and
+    nothing notices, so the mechanical columns are checked against the case files themselves and the
+    row set is checked for exact correspondence. Add a case without a row (or vice versa) and this
+    turns red, which is the only reason the table is worth keeping.
+    """
+    bench = default_cases_dir().parent / "benchmark"
+    table = bench.parent / "benchmark-datasets.tsv"
+    if not bench.is_dir():
+        pytest.skip("no HF benchmark tier committed")
+    assert table.is_file(), f"the benchmark tier is committed but {table.name} is not"
+
+    lines = [ln for ln in table.read_text().splitlines() if ln.strip()]
+    header, *body = (ln.split("\t") for ln in lines)
+    expected_columns = [
+        "case_id",
+        "accession",
+        "organism",
+        "chemistry",
+        "outcome",
+        "provenance",
+        "uniqueness",
+    ]
+    assert header == expected_columns, f"unexpected columns: {header}"
+    rows = {r[0]: dict(zip(header, r, strict=True)) for r in body}
+    assert len(rows) == len(body), "a case id appears twice"
+
+    cases = {c.id: c for c in discover_cases(bench)}
+    assert rows.keys() == cases.keys(), (
+        f"table and tier disagree: only in table {rows.keys() - cases.keys()}, "
+        f"only in tier {cases.keys() - rows.keys()}"
+    )
+    for case_id, case in cases.items():
+        row = rows[case_id]
+        assert row["chemistry"] == case.expected.fields["library.chemistry"], case_id
+        assert row["outcome"] == case.expected.outcome, case_id
+        organism = case.expected.fields.get("experiment.organism")
+        assert row["organism"] == (str(organism) if organism is not None else "-"), case_id
+        # Prose columns: nothing can check that they are *right*, so check they were written. A row
+        # whose uniqueness is blank is a dataset nobody could justify keeping.
+        for column in ("accession", "provenance", "uniqueness"):
+            assert row[column].strip(), f"{case_id}: {column} is empty"
+
+
 def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
     """`path` XOR `root_env`: naming both (or neither) is a case error, not a silent default."""
     for gen in ({}, {"path": "p.tar.gz", "root_env": "X"}):
