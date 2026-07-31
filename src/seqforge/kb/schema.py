@@ -358,7 +358,7 @@ class Spec(_Forbid):
         for c in self.confusable_with:
             if c.relationship == "processing_divergent":
                 out.update(m for m in c.distinguishable_by if m != "none")
-        return sorted(out)  # type: ignore[arg-type]
+        return sorted(out)
 
     @model_validator(mode="after")
     def _node_shape(self) -> Spec:
@@ -392,21 +392,23 @@ class Spec(_Forbid):
                             f"{el.anchor.ref_element!r} not in read {read.id!r}"
                         )
 
-        # every signature test must reference a declared read (and element/onlist)
+        # every signature test must reference a declared read (and element/onlist). A test's ``read``
+        # is a ROLE id — the ``Read.id`` string — never the ``Read`` object the loop above walked,
+        # which is why the two loops must not share a name.
         tests: list[Test] = [
             *self.signature.requires,
             *self.signature.excludes,
             *(s.when for s in self.signature.supports),
         ]
         for t in tests:
-            read = getattr(t, "read", None)
-            if read is not None and read not in read_ids:
-                raise ValueError(f"signature test references unknown read {read!r}")
+            role = getattr(t, "read", None)
+            if role is not None and role not in read_ids:
+                raise ValueError(f"signature test references unknown read {role!r}")
             element = getattr(t, "element", None)
-            if element is not None and read is not None:
-                if element not in elements_by_read.get(read, set()):
+            if element is not None and role is not None:
+                if element not in elements_by_read.get(role, set()):
                     raise ValueError(
-                        f"signature test references unknown element {element!r} in read {read!r}"
+                        f"signature test references unknown element {element!r} in read {role!r}"
                     )
             onlist = getattr(t, "onlist", None)
             if onlist is not None and onlist not in aliases:
