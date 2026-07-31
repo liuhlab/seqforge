@@ -216,14 +216,17 @@ typecheck = "mypy src/seqforge/models src/seqforge/probe src/seqforge/resolve sr
 # grows faster than the work shrinks. A bare `-n 12` is wrong on a 2-core runner for the mirrored
 # reason. `auto` capped at 12 is the one spelling that is right in both places.
 # `--dist loadfile` was measured and rejected: it pins ~28s regardless of worker count, because it
-# cannot split the longest file (test_compile.py) across workers.
-test      = "pytest -n auto --maxprocesses 12"
+# cannot split the longest file (test_compile.py) across workers. `--dist loadgroup` is NOT that: it
+# behaves exactly like the default `load` for unmarked tests and groups ONLY the tests carrying an
+# `xdist_group` mark, so a module whose session/module fixture is expensive can opt into being built
+# once instead of once per worker. See docs/agents/testing.md.
+test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
 # The rungs of the testing ladder (docs/agents/testing.md). `test-fast` drops what needs a binary we
 # do not own and what checks the repo rather than `src/`; it is what to run before a commit, and it
 # is NOT a rung of the ladder: it was one (`check-fast`) until both gates ran their steps
 # concurrently, at which point it measured SLOWER than `check` while checking less. It survives as
 # a standalone verb because `not external` is what you want on a machine with no snakemake.
-test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 -q"
+test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
 # Deliberately SERIAL. It re-runs the handful of tests that just failed, and spinning up 12 workers
 # to run three tests costs more than it saves. `-x` is also unreliable under xdist: workers already
 # in flight keep going after the first failure.

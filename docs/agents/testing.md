@@ -118,8 +118,46 @@ is *slower than 12*; a bare `-n 12` on a 2-core runner oversubscribes it for the
 `auto` capped at 12 is the one spelling that is right in both places.
 
 `--dist loadfile` was measured and rejected: it sits at ~28s at every worker count, because it hands
-a whole file to one worker and `tests/test_compile.py` is then the floor. The default `--dist load`
-splits at test granularity.
+a whole file to one worker and `tests/test_compile.py` is then the floor.
+
+### `loadgroup` is not the rejected `loadfile`
+
+`test` and `test-fast` run `--dist=loadgroup`, and **that is not `loadfile` coming back.** `loadgroup`
+behaves exactly like the default `load` for every test that carries no `xdist_group` mark — it splits
+at test granularity, and `test_compile.py` still spreads across workers. It groups **only** what is
+marked. Verified before adopting it: the whole suite under `--dist=loadgroup` with no marks present
+gave an identical result and an identical wall. It is a safe swap; `loadfile` is not, because
+`loadfile` groups *everything* whether or not the grouping pays.
+
+Marking a module is how it opts in:
+
+```python
+pytestmark = pytest.mark.xdist_group("report-workspace")   # tests/test_report.py
+```
+
+**Why a module wants this.** A session- or module-scoped fixture is rebuilt once *per worker*, so
+spreading a module that shares one expensive fixture buys parallelism by paying for the fixture again.
+`tests/test_report.py` alone, on 8 pinned CPUs: 4.05s of CPU on one worker, 6.52s on two, 10.53s on
+four, **20.60s on eight** — 5x the CPU for identical proof.
+
+**Grouping is a trade, so it is decided per module by measurement**, never applied by default. It wins
+where the fixture is expensive relative to the tests, and loses where the module holds many slow
+independent tests: a grouped module runs *serially*, so its serial time becomes a floor on the suite
+wall. What was measured (2026-07-30) and what it decided:
+
+| module | fixture setup | serial | verdict |
+| ------ | ------------- | ------ | ------- |
+| `test_report.py` | 1.95s, read by all 16 tests | 4.8s | **group** — 8 setups became 1 |
+| `test_partition.py` | 1.18s, read by 4 of 6 | 4.9s | **group** |
+| `test_observation_sources.py` | 0.04s | 0.3s | leave — nothing to save |
+| `test_records.py` | 0.01s | 1.2s | leave — nothing to save |
+| `test_compile.py` (`synth_10x_v3`) | 0.05s | **22.3s** | **leave** — grouping it *is* the `loadfile` floor |
+
+That last row is the rule in one line: `synth_10x_v3` is session-scoped and looks like the obvious
+candidate, but it already costs 0.05s, and pinning the suite's longest file to one worker would take
+the wall from 13.5s to over 22s. Measure the fixture against the module before reaching for the mark.
+
+`xdist_group` needs no `markers` entry — `pytest-xdist` registers it, so `--strict-markers` is happy.
 
 Parallelism is the **last** thing to reach for, and it landed last on purpose. It hides waste rather
 than removing it: had it come first, the ~41 redundant `snakemake` spawns would still be there, just
