@@ -115,28 +115,39 @@ def _ena_run(**overrides: object) -> dict[str, object]:
 # --------------------------------------------------------------------------- #
 
 
-def test_fastq_targets_meta_joins_url_md5_and_size_sorted_by_url() -> None:
-    # fastq_bytes is aligned to the UNSORTED fastq_ftp; the join must re-associate by url after sort.
-    meta = fastq_targets_meta(
+#: ``(run, expected)`` for ``fastq_targets_meta`` — the positional url/md5/size join. ``fastq_bytes``
+#: is aligned to the UNSORTED ``fastq_ftp``, so the join must re-associate by url after sorting; a
+#: url/md5 length mismatch yields NO pairs (never a silent mis-alignment); a missing size defaults to
+#: 0 rather than dropping the row.
+FASTQ_TARGETS_META = [
+    pytest.param(
         {
             "fastq_ftp": f"host/{SRR}_2.fastq.gz;host/{SRR}_1.fastq.gz",
             "fastq_md5": f"{MD5_2};{MD5_1}",
             "fastq_bytes": "222;111",
-        }
-    )
-    assert meta == [
-        (f"https://host/{SRR}_1.fastq.gz", MD5_1, 111),
-        (f"https://host/{SRR}_2.fastq.gz", MD5_2, 222),
-    ]
+        },
+        [
+            (f"https://host/{SRR}_1.fastq.gz", MD5_1, 111),
+            (f"https://host/{SRR}_2.fastq.gz", MD5_2, 222),
+        ],
+        id="joins-and-re-associates-by-url-after-sort",
+    ),
+    pytest.param(
+        {"fastq_ftp": "host/a;host/b", "fastq_md5": MD5_1}, [], id="url-md5-mismatch-is-empty"
+    ),
+    pytest.param(
+        {"fastq_ftp": f"host/{SRR}_1.fastq.gz", "fastq_md5": MD5_1},
+        [(f"https://host/{SRR}_1.fastq.gz", MD5_1, 0)],
+        id="missing-bytes-defaults-size-to-zero",
+    ),
+]
 
 
-def test_fastq_targets_meta_is_empty_on_a_url_md5_mismatch() -> None:
-    assert fastq_targets_meta({"fastq_ftp": "host/a;host/b", "fastq_md5": MD5_1}) == []
-
-
-def test_fastq_targets_meta_defaults_size_to_zero_when_bytes_missing() -> None:
-    meta = fastq_targets_meta({"fastq_ftp": f"host/{SRR}_1.fastq.gz", "fastq_md5": MD5_1})
-    assert meta == [(f"https://host/{SRR}_1.fastq.gz", MD5_1, 0)]
+@pytest.mark.parametrize("run, expected", FASTQ_TARGETS_META)
+def test_fastq_targets_meta_joins_url_md5_and_size(
+    run: dict[str, object], expected: list[tuple[str, str, int]]
+) -> None:
+    assert fastq_targets_meta(run) == expected
 
 
 # --------------------------------------------------------------------------- #
@@ -144,17 +155,25 @@ def test_fastq_targets_meta_defaults_size_to_zero_when_bytes_missing() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_probe_sra_adopts_the_ena_md5_identity_when_the_mirror_is_faithful(
+def test_probe_sra_adopts_the_ena_identity_and_builds_real_chemistry_observations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """One faithful-mirror stream, observed whole: the ENA md5 identity AND the chemistry signals.
+
+    When the ENA mirror is faithful (two paired files, aligned md5/bytes), each mate adopts its file's
+    provider md5 as the content-address (``ena_verified``), keeps its size and basename, and the stream
+    is asked for ``n_reads`` spots WITH technical reads. The same observation also carries the real
+    chemistry the resolver reads — read-length mode, the sampled count, the sequences — with no local
+    path, because a stream has none.
+    """
     fake = _FakeStream(_preview(SRR, {1: 28, 2: 94}))
     _patch_stream(monkeypatch, fake)
 
     mates = sra.probe_sra(_ena_run(), n_reads=50)
 
+    # Identity: read index 1 -> the _1 file (both sort ascending); its md5 IS the content-address.
     assert [m.read_index for m in mates] == [1, 2]
     assert all(m.ena_verified for m in mates)
-    # read index 1 -> the _1 file (both sort ascending); its md5 IS the content-address.
     assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
     assert mates[0].observation.file.size_bytes == 111
     assert mates[0].basename == f"{SRR}_1.fastq.gz"
@@ -162,6 +181,13 @@ def test_probe_sra_adopts_the_ena_md5_identity_when_the_mirror_is_faithful(
     assert mates[1].observation.file.size_bytes == 222
     # technical reads are kept, and the stream is asked for n_reads spots.
     assert fake.calls == [(SRR, 50, True)]
+
+    # Chemistry: the same mate carries the signals resolve needs, from a stream with no local path.
+    obs = mates[0].observation
+    assert obs.read_length.mode == 28
+    assert obs.probe.n_reads_sampled == 50
+    assert mates[0].seqs  # the sampled sequences resolve needs
+    assert obs.file.local_uri is None  # a stream has no local path
 
 
 def test_probe_sra_falls_back_to_a_synthetic_address_when_a_technical_read_was_dropped(
@@ -212,39 +238,44 @@ def test_probe_sra_synthetic_address_is_invariant_to_the_spot_budget(
     assert sha_small == sha_large  # the address does not depend on how many spots were streamed
 
 
-def test_probe_sra_builds_real_observations_with_chemistry_signals(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
-
-    mates = sra.probe_sra(_ena_run(), n_reads=50)
-
-    obs = mates[0].observation
-    assert obs.read_length.mode == 28
-    assert obs.probe.n_reads_sampled == 50
-    assert mates[0].seqs  # the sampled sequences resolve needs
-    assert obs.file.local_uri is None  # a stream has no local path
-
-
-def test_probe_sra_raises_on_an_empty_stream(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_stream(monkeypatch, _FakeStream(_Preview(reads={}, read_lengths={}, n_spots_returned=0)))
-    with pytest.raises(RemoteError, match="streamed no reads"):
-        sra.probe_sra(_ena_run())
-
-
-def test_probe_sra_translates_a_labdata_error_into_a_remote_error(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def _download_error() -> Exception:
     from labdata.exceptions import DownloadError
 
-    _patch_stream(monkeypatch, _FakeStream(exc=DownloadError("fastq-dump not found")))
-    with pytest.raises(RemoteError, match="could not stream reads"):
-        sra.probe_sra(_ena_run())
+    return DownloadError("fastq-dump not found")
 
 
-def test_probe_sra_requires_a_run_accession() -> None:
-    with pytest.raises(RemoteError, match="no 'run_accession'"):
-        sra.probe_sra({"read_count": "1000"})
+#: ``(stream, run, match)`` — the inputs on which ``probe_sra`` refuses with a ``RemoteError``. A
+#: preview with no records ("streamed no reads"), a ``labdata`` download failure translated at the seam
+#: ("could not stream reads"), and a run row with no ``run_accession`` (rejected before the stream is
+#: ever touched, so no fake is installed).
+PROBE_SRA_REFUSALS = [
+    pytest.param(
+        _FakeStream(_Preview(reads={}, read_lengths={}, n_spots_returned=0)),
+        _ena_run(),
+        "streamed no reads",
+        id="empty-stream",
+    ),
+    pytest.param(
+        _FakeStream(exc=_download_error()),
+        _ena_run(),
+        "could not stream reads",
+        id="labdata-error",
+    ),
+    pytest.param(None, {"read_count": "1000"}, "no 'run_accession'", id="no-run-accession"),
+]
+
+
+@pytest.mark.parametrize("stream, run, match", PROBE_SRA_REFUSALS)
+def test_probe_sra_refuses_with_a_remote_error(
+    monkeypatch: pytest.MonkeyPatch,
+    stream: _FakeStream | None,
+    run: dict[str, object],
+    match: str,
+) -> None:
+    if stream is not None:
+        _patch_stream(monkeypatch, stream)
+    with pytest.raises(RemoteError, match=match):
+        sra.probe_sra(run)
 
 
 # --------------------------------------------------------------------------- #
@@ -369,17 +400,17 @@ def test_preflight_accession_builds_a_streamed_package(
     assert Path(payload["package"]).exists()
 
 
-def test_preflight_refuses_both_files_and_accession(tmp_path: Path) -> None:
+def test_preflight_refuses_both_files_and_accession_and_neither(tmp_path: Path) -> None:
+    """``preflight`` takes files XOR an accession: both is exit 2 ("not both and not neither"), and so
+    is neither."""
     fastq = tmp_path / "reads_1.fastq.gz"
     fastq.write_bytes(b"")
-    result = runner.invoke(app, ["preflight", str(fastq), "--accession", SRR])
-    assert result.exit_code == 2
-    assert "not both and not neither" in result.output
+    both = runner.invoke(app, ["preflight", str(fastq), "--accession", SRR])
+    assert both.exit_code == 2
+    assert "not both and not neither" in both.output
 
-
-def test_preflight_refuses_neither_files_nor_accession() -> None:
-    result = runner.invoke(app, ["preflight"])
-    assert result.exit_code == 2
+    neither = runner.invoke(app, ["preflight"])
+    assert neither.exit_code == 2
 
 
 def test_preflight_accession_refuses_a_multi_experiment_series(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -146,7 +145,9 @@ def test_vectorized_hit_rate_matches_the_naive_loop_including_edges() -> None:
         )
         return prefix + core + "".join(rng.choice("ACGT") for _ in range(rng.choice([0, 3, 20])))
 
-    for _ in range(30):
+    for _ in range(
+        12
+    ):  # every listed edge (N bases, short reads, empty sample, revcomp) is hit early
         seqs = [rand_read() for _ in range(rng.choice([0, 1, 40, 300]))]
         for orientation in ("forward", "revcomp", "either"):
             for start in (0, 1, 2):
@@ -351,9 +352,16 @@ def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
 
     The code-set hashes below were derived by packing three independent copies of each list (the
     scg_lib_structs mirror, the lab's copy, and CellRanger 7.2.0's own) and confirming all three
-    produce the same set.
+    produce the same set. The offline-default and floor checks are folded in from the vendoring test,
+    so the 6.8M list is decoded once here rather than twice across two registry instances.
     """
-    from seqforge.io.onlist import default_registry
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import codes_sha256, default_registry
+
+    # The point of vendoring: a 10x dataset composes out of the box, offline. Every entry once carried
+    # `uri=""`/`sha256=""`, so `compose` exited 3 for ANY real 10x dataset -- the pilot could not
+    # resolve at all. `.offline` is a bare attribute read, so this decodes nothing.
+    assert DEFAULT_REGISTRY.offline, "the default must not reach the network by surprise"
 
     expected = {
         "3M-february-2018": (
@@ -370,28 +378,17 @@ def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
         ),
     }
     reg = default_registry()
+    packed_by_name = {}
     for name, (n, sha) in expected.items():
         packed = reg.packed(name)  # no network, no --onlist-dir: it ships
         assert packed.n_entries == n, f"{name}: wrong barcode count"
         assert packed.width == 16
-        from seqforge.io.onlist import codes_sha256
-
         assert codes_sha256(packed.codes) == sha, f"{name}: these are not the declared barcodes"
+        packed_by_name[name] = packed
 
-
-def test_the_shipped_whitelists_resolve_with_no_network_and_no_setup() -> None:
-    """The point of vendoring: a 10x dataset composes out of the box.
-
-    Every entry used to carry `uri=""`/`sha256=""`, so `compose` exited 3 for ANY real 10x dataset --
-    the pilot could not resolve at all.
-    """
-    from seqforge.io import DEFAULT_REGISTRY
-
-    assert DEFAULT_REGISTRY.offline, "the default must not reach the network by surprise"
-    packed = DEFAULT_REGISTRY.packed("3M-february-2018")
-    assert packed.n_entries == 6_794_880
-    # ~0.16% chance hit rate for a random 16-mer: the 500:1 signal-to-noise §5 relies on
-    assert 0.001 < packed.floor < 0.002
+    # ~0.16% chance hit rate for a random 16-mer: the 500:1 signal-to-noise (§5) relies on it. Read off
+    # the 3M list already decoded above rather than decoding the 6.8M barcodes a second time.
+    assert 0.001 < packed_by_name["3M-february-2018"].floor < 0.002
 
 
 def test_a_packed_onlist_round_trips_through_the_shipped_encoding() -> None:
@@ -404,52 +401,11 @@ def test_a_packed_onlist_round_trips_through_the_shipped_encoding() -> None:
     assert (decode_codes(encode_codes(codes), 16) == codes).all()
 
 
-@pytest.mark.external  # shells to `python -m build`
-def test_the_wheel_ships_the_data_the_package_cannot_work_without() -> None:
-    """Build a wheel and look inside. Package data is not Python, so nobody notices it going missing.
-
-    Each of these absent is a specific, silent-ish failure a unit test would never see, because the
-    source tree always has them:
-
-      - `io/onlists/*.codes.gz`  -> compose exits 3 on every real 10x dataset
-      - `workflows/map/*.smk`    -> the emitted Snakefile includes a module that is not there
-      - `kb/specs/*/spec.yaml`   -> the KB is empty and nothing resolves
-
-    It also pins the packaging arrangement: `packages = ["src/seqforge"]` already carries them, and a
-    `force-include` on top is a hard build error rather than a duplicate. Both directions are covered
-    here -- the wheel builds, AND it has the files.
-    """
-    import subprocess
-    import sys
-    import zipfile
-
-    root = Path(__file__).resolve().parents[1]
-    if not (root / "pyproject.toml").is_file():  # pragma: no cover - installed, not a checkout
-        pytest.skip("not running from a source checkout")
-    with tempfile.TemporaryDirectory() as tmp:
-        proc = subprocess.run(
-            [sys.executable, "-m", "build", "--wheel", "--outdir", tmp],
-            cwd=root,
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:  # pragma: no cover - depends on the host toolchain
-            if "No module named build" in proc.stderr:
-                pytest.skip("python-build is not installed in this environment")
-            pytest.fail(f"the wheel does not build:\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
-        wheels = list(Path(tmp).glob("*.whl"))
-        assert len(wheels) == 1, f"expected one wheel, got {wheels}"
-        names = zipfile.ZipFile(wheels[0]).namelist()
-
-    assert any(n.endswith("io/onlists/index.json") for n in names)
-    assert sum(n.endswith(".codes.gz") for n in names) >= 3, "the packed whitelists are missing"
-    assert sum(n.endswith(".smk") for n in names) >= 2, "the workflow modules are missing"
-    assert sum(n.endswith("spec.yaml") for n in names) >= 5, "the KB specs are missing"
-    assert any(n.endswith("report/assets/report.css") for n in names) and any(
-        n.endswith("report/assets/report.js") for n in names
-    ), (
-        "the report's inlined CSS/JS assets are missing -> `seqforge report` renders an unstyled page"
-    )
+# The wheel-contents guarantee -- that the built wheel actually ships the onlists, the `.smk`
+# modules, the KB specs and the report assets -- moved to the CI `build` job, where the wheel already
+# exists (scripts/check_wheel_contents.py, `pixi run check-wheel`, #108). Building a second wheel
+# under pytest cost ~1.9s in `default` and skipped entirely in the `test` env CI runs, so it billed
+# the developer and protected nothing on the machine that mattered.
 
 
 # --------------------------------------------------------------------------------------------

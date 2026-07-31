@@ -78,13 +78,19 @@ Project = tuple[Path, dict[str, Any]]
 def two_chemistry_project(tmp_path_factory: pytest.TempPathFactory) -> Project:
     """The two-chemistry dataset, partitioned ONCE.
 
-    Three tests below assert different things about the same partition and each re-ran the whole
+    Four tests below assert different things about the same partition and each re-ran the whole
     ``_fill_manifest_pipeline`` (~1s) to get there. Built once per module; the two that write into
     the tree take `own_two_chemistry_project` instead.
+
+    Built on the NESTED layout (each run in its own ``SRX.../`` subdir): the nested shape dominates the
+    flat one -- with a flat layout the multi-assay URI-root bug is invisible, which is the URI-anchoring
+    test's own point -- so building nested lets that regression guard read this one partition rather than
+    run a fourth pipeline. Every flat-fixture consumer's assertions hold unchanged against it (they key
+    on basenames and chemistries, not the subdir).
     """
     root = tmp_path_factory.mktemp("two-chemistry")
     out = _fill_manifest_pipeline(
-        files=_two_chemistry_files(root),
+        files=_two_chemistry_files_nested(root),
         organism="6239",
         records=None,
         assertions=None,
@@ -105,7 +111,9 @@ def own_two_chemistry_project(two_chemistry_project: Project, tmp_path: Path) ->
     return dst, payload
 
 
-def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_path: Path) -> None:
+def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(
+    two_chemistry_project: Project,
+) -> None:
     """Regression for the multi-assay URI-root bug (GSE310667 15/16, GSE126954 6/7).
 
     When a dataset splits into assays, each assay's manifest must carry file URIs relative to the
@@ -113,36 +121,28 @@ def test_multi_assay_uris_anchor_on_the_dataset_root_not_the_assay_subdir(tmp_pa
     assay's own (deeper) root. Before the fix, a split-off assay whose files sat in an ``SRX.../``
     subdir got bare-basename URIs, so ``<dataset-root>/<basename>`` did not exist and the wiring gate
     failed. Here the assertion is the wiring gate's exact check: every URI joined to the dataset root
-    resolves to a real file.
+    resolves to a real file. This reads the shared NESTED partition (the module fixture is built on it
+    precisely so this guard exercises it).
     """
-    files = _two_chemistry_files_nested(tmp_path)
-    out = _fill_manifest_pipeline(
-        files=files,
-        organism="6239",
-        records=None,
-        assertions=None,
-        offline=True,
-        workspace=tmp_path,
-    )
-    assert out.code == 0, out.payload
-    assert isinstance(out.payload, dict)
+    root, payload = two_chemistry_project
+    assert isinstance(payload, dict)
     # This is a REGRESSION guard for a MULTI-assay bug, so partitioning MUST happen -- the v3 and bulk
     # fixtures are deterministic and distinct chemistries. Assert it rather than skip: a silent skip
     # (as a sibling test does, where partitioning is incidental) could mask the regression returning.
-    assert "assays" in out.payload, f"fixtures did not partition into assays: {out.payload}"
+    assert "assays" in payload, f"fixtures did not partition into assays: {payload}"
 
-    for a in out.payload["assays"]:
+    for a in payload["assays"]:
         srx = "SRX_A" if a["chemistry"] == "10x-3p-gex-v3" else "SRX_B"
         doc = yaml.safe_load(Path(a["manifest"]).read_text())
         # library.files URIs carry the accession subdir and resolve against the dataset root.
         for f in doc["library"]["files"]:
             assert f["uri"].startswith(f"{srx}/"), f["uri"]
-            assert (tmp_path / f["uri"]).is_file(), f"units path missing: {f['uri']}"
+            assert (root / f["uri"]).is_file(), f"units path missing: {f['uri']}"
         # experiment.samples.file_uris are anchored identically (referential integrity holds).
         for s in doc["experiment"]["samples"]:
             for uri in s["file_uris"]:
                 assert uri.startswith(f"{srx}/"), uri
-                assert (tmp_path / uri).is_file(), f"sample file_uri missing: {uri}"
+                assert (root / uri).is_file(), f"sample file_uri missing: {uri}"
 
 
 def test_single_assay_nested_dataset_still_anchors_on_the_common_root(tmp_path: Path) -> None:

@@ -23,11 +23,10 @@ def test_10x_spec_loads_and_validates() -> None:
     assert spec.decidable_by  # non-empty: it has processing-divergent confusables
 
 
-def test_all_shipped_specs_validate() -> None:
-    specs = kb.load_all_specs()
-    assert "10x-3p-gex-v3" in specs
-    for spec in specs.values():
-        assert spec.reads
+# `test_all_shipped_specs_validate` was deleted (#110): `test_every_kb_spec_roundtrips[<spec>]` collects
+# from the same `kb.list_spec_ids()` and calls `run_roundtrip`, which loads (and therefore validates)
+# each spec and reddens on an empty-`reads` spec via `assert result["checks"]`. That `10x-3p-gex-v3`
+# loads and validates is pinned directly by `test_10x_spec_loads_and_validates` above.
 
 
 def test_backend_rejects_illegal_template_token() -> None:
@@ -377,6 +376,14 @@ def test_bd_enhanced_resolves_to_the_right_leaf_from_bytes(
     Reads are built from the REAL shipped CLS lists and staggered by the 0-3 bp diversity insert; a
     clean win here proves the family recognised the GTGA...GACA frame, descended, and the anchored
     onlist hit resolved the per-read barcode windows the stagger created.
+
+    Enhanced vs the ORIGINAL v1 bead is byte-decided too, and this test is the Enhanced side of that
+    pair (#110, absorbing `test_bd_v1_and_enhanced_are_told_apart_from_the_bytes`). Both draw CLS blocks
+    from the same `bd-rhapsody-cls*` pools, so the onlist cannot separate them — only the linker
+    STRUCTURE can: v1 has the fixed 12/13 bp `ACTGGCCTGCGA`/`GGTAGCGGTGACA` linkers, Enhanced the
+    staggered 4 bp `GTGA`/`GACA`. Enhanced reads mis-resolving to the original bead reddens the exact-leaf
+    assertion here; the reciprocal (v1 reads mis-resolving to Enhanced) reddens
+    `test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes`, which pins v1 -> `bd-rhapsody-wta`.
     """
     import random
 
@@ -406,53 +413,13 @@ def test_bd_enhanced_resolves_to_the_right_leaf_from_bytes(
     assert not out.result.questions
 
 
-def test_bd_v1_and_enhanced_are_told_apart_from_the_bytes(tmp_path: Path) -> None:
-    """v1 (original bead) vs Enhanced is BYTE-decided, even though they share the 97 x 3 cell labels.
-
-    Both draw their CLS blocks from the same `bd-rhapsody-cls*` pools, so the onlist cannot separate
-    them — only the linker STRUCTURE can: v1 has the fixed 12/13 bp `ACTGGCCTGCGA`/`GGTAGCGGTGACA`
-    linkers, Enhanced the staggered 4 bp `GTGA`/`GACA`. Each library must resolve to its own chemistry
-    and NOT the other, which is the auto-distinction #43 promises.
-    """
-    import random
-
-    from seqforge.io import DEFAULT_REGISTRY
-    from seqforge.io.onlist import unpack_barcodes
-    from seqforge.resolve import resolve_dataset
-
-    pools = [unpack_barcodes(DEFAULT_REGISTRY.packed(f"bd-rhapsody-cls{i}")) for i in (1, 2, 3)]
-    rng = random.Random(1)
-
-    def rand(k: int) -> str:
-        return "".join(rng.choice("ACGT") for _ in range(k))
-
-    # v1: FIXED offsets, the long 12/13 bp linkers, no diversity insert.
-    v1_r1 = [
-        rng.choice(pools[0])
-        + "ACTGGCCTGCGA"
-        + rng.choice(pools[1])
-        + "GGTAGCGGTGACA"
-        + rng.choice(pools[2])
-        + rand(8)
-        + "T" * 8
-        for _ in range(800)
-    ]
-    enh_r1 = _enhanced_r1(pools, 800, rng)
-    r2 = [rand(90) for _ in range(800)]
-
-    def _resolve(r1: list[str]) -> str:
-        f1, f2 = tmp_path / "a_R1.fastq.gz", tmp_path / "a_R2.fastq.gz"
-        write_fastq_gz(f1, r1)
-        write_fastq_gz(f2, r2)
-        out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
-        assert out.result.candidates
-        return out.result.candidates[0].technology
-
-    assert _resolve(v1_r1) == "bd-rhapsody-wta"  # the fixed linkers -> original bead
-    assert _resolve(enh_r1) in {
-        "bd-rhapsody-wta-enhanced-v1",
-        "bd-rhapsody-wta-enhanced-v2",
-    }  # the GTGA/GACA frame -> Enhanced, never the original bead
+# `test_bd_v1_and_enhanced_are_told_apart_from_the_bytes` was deleted (#110): both halves were
+# re-assertions. The v1 -> `bd-rhapsody-wta` half is the same construction as
+# `test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes`, which additionally pins
+# `rung_resolved == {chemistry: 3}`, `exit_code() == 0` and no questions; the Enhanced ->
+# `{enhanced-v1, enhanced-v2}` half is strictly weaker than `test_bd_enhanced_resolves_to_the_right_leaf_from_bytes`,
+# which pins the EXACT leaf from the identical build. Its linker-structure reasoning moved onto that
+# test's docstring.
 
 
 def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:

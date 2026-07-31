@@ -6,27 +6,23 @@ prose it reads describes THIS dataset at all, so it belongs beside the resolver 
 
 from __future__ import annotations
 
-import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
-from conftest import write_fastq_gz
-from seqforge import kb
-from seqforge.cli.manifest import _dataset_document_texts, _fill_manifest_pipeline
 from seqforge.io.archive import (
     merge_biosample_attributes,
     parse_bioproject_set,
     parse_biosample_set,
     parse_sra_package_set,
 )
-from seqforge.kb.loader import load_all_specs
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.observation import FileIdentity
-from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
-from seqforge.resolve.provenance import check_provenance
-from seqforge.resolve.records import DocumentSubject, resolve_metadata
+from seqforge.models.records import ArchiveRecordSet
+from seqforge.models.resolve import MetadataResolution, ResolvedSample
+from seqforge.resolve.records import SAMPLE_FIELD_PREFIX, DocumentSubject, resolve_metadata
 
 # ================================================================================================
 # records — the metadata resolver against the archive's real bytes
@@ -38,9 +34,11 @@ from seqforge.resolve.records import DocumentSubject, resolve_metadata
 # dataset on 2026-07-16, committed unedited, so the parsers are tested against the format that exists
 # rather than the format we remember. That distinction is the whole reason they are here: the SPLiT-seq
 # lesson in this repo is that a test which builds its own input from the same assumptions as the code
-# proves the two agree and nothing else. `test_the_fixtures_are_what_the_archive_still_serves` is the
-# anti-rot half — it re-fetches and diffs, and it is marked `network` so it runs on demand rather than
-# in CI.
+# proves the two agree and nothing else. There is deliberately NO automated freshness guard: nothing
+# re-fetches these XMLs and diffs them against what NCBI serves today — that needs the network, and the
+# repo carries only the `external` and `repo` markers, no `network` one. So the committed fixtures can
+# drift from the live archive silently; that is a known gap, not an oversight. The taxonomy seed table
+# (`io/taxonomy.py`) shares it — pinned against committed literals, never re-resolved live.
 #
 # The pilot's own `expected.yaml` carries the same claims for the eval harness, but that case is
 # `kind: local` and skips wherever the 220 GB of FASTQ is not mounted — which is everywhere except one
@@ -255,215 +253,273 @@ def _assertion(field: str, value: str, doc: str, *, conf: float = 0.9) -> Assert
     )
 
 
-def test_a_dataset_document_fans_to_every_sample_as_an_inference(records: ArchiveRecordSet) -> None:
-    """A paper says it of the study. That it holds of one of six samples is OUR inference, not its.
+# The metadata resolver is a decision table, and these nine cells are it tested one at a time. Every
+# row has the same call shape — `resolve_metadata(files=_pilot_files(), records, assertions, subjects)`
+# — and differs only in the cell: (doc scope, doc subject, does the record already declare this
+# attribute, do the values agree) -> (stored value + basis on the subject's sample, presence/absence on
+# other samples, warning code). Three rows (run/experiment/sample) vary an axis `_basis_for` does NOT
+# branch on: it reads `doc.scope` only for `== "dataset"` (`resolve/records.py`), so a run, an
+# experiment and a sample document all become `asserted` the same way — via which record level
+# `_subject_to_sample` mapped. The `*_asserts*` ids are that trio.
 
-    Recording that as `inferred` rather than `asserted` is what makes the precedence below principled
-    instead of a tiebreak we invented.
-    """
-    doc = "d" * 64
+
+@dataclass(frozen=True)
+class _Claim:
+    """One assertion + (optionally) the document code placed it as. ``subject`` is the record accession
+    the document was rendered from — ``@experiment0`` is resolved to the first experiment's accession at
+    run time, since it is not known until the fixture is built. ``placed=False`` means the assertion
+    exists but code registered no ``DocumentSubject`` for it (an unplaced document names no sample)."""
+
+    field: str
+    value: str
+    scope: str
+    subject: str | None
+    placed: bool = True
+
+
+@dataclass(frozen=True)
+class _Cell:
+    """One row of the precedence table: the inputs, and what must land where."""
+
+    id: str
+    use_records: bool
+    claims: tuple[_Claim, ...]
+    attr: str
+    #: The value expected on the subject's sample, or — when no claim names a sample — on EVERY sample.
+    #: ``None`` means the attribute must be ABSENT there.
+    value: str | None
+    basis: str | None = None
+    casefold: bool = False  # compare `value` case-insensitively (the "Male"/"male" rule)
+    check_confidence: bool = False
+    confidence: float | None = None
+    #: Samples OTHER than the subject: "n/a" (unchecked), "absent" (attr not set), "keep_record" (still
+    #: carries the record's Neurons).
+    others: str = "n/a"
+    #: "skip" | "none" (no warnings at all) | "ambiguous" | "inferred_only" | "none_for_subject".
+    warning: str = "skip"
+    warn_count: int | None = None
+    warn_contains: tuple[str, ...] = ()
+
+
+_PRECEDENCE_TABLE: tuple[_Cell, ...] = (
+    # A dataset document (a paper, a README) claims a study-wide fact with no record to declare it: it
+    # fans to every sample as OUR inference, not the paper's claim about each one.
+    _Cell(
+        id="dataset_document_fans_to_all_as_inferred",
+        use_records=False,
+        claims=(_Claim("experiment.samples.tissue", "neurons", "dataset", None),),
+        attr="tissue",
+        value="neurons",
+        basis="inferred",
+        warning="none",
+    ),
+    # The pilot's fix: the WT-vs-daf-2 contrast lives in a run alias, and a run belongs to exactly one
+    # sample, so the run document's claim is `asserted` of THAT sample and beats the paper's dataset-
+    # level `inferred` daf-2. A sample the run does not cover keeps NO per-sample value — the paper's
+    # blanket value is an unsafe guess there — and that is a non-blocking `inferred_only` warning (#10).
+    _Cell(
+        id="run_alias_asserts_over_the_papers_inference",
+        use_records=True,
+        claims=(
+            _Claim("experiment.samples.genotype", "WT", "run", "SRR28716558"),
+            _Claim("experiment.samples.genotype", "daf-2(e1370)", "dataset", None),
+        ),
+        attr="genotype",
+        value="WT",
+        basis="asserted",
+        others="absent",
+        warning="inferred_only",
+        warn_contains=("genotype",),
+    ),
+    # GSE229022's fix at the resolve layer: the diet lives only in the GSM title, which the archive
+    # renders as the EXPERIMENT title. An experiment belongs to one sample, so its document's claim is
+    # `asserted` of that sample via the same `subject_to_sample` join a run alias uses.
+    _Cell(
+        id="experiment_title_asserts_to_its_sample",
+        use_records=True,
+        claims=(
+            _Claim("experiment.samples.treatment", "E. coli OP50", "experiment", "@experiment0"),
+        ),
+        attr="treatment",
+        value="E. coli OP50",
+        basis="asserted",
+        others="absent",
+    ),
+    # A document code did not place has no subject, so it may name no sample: its claim is dropped and
+    # the record's value stands untouched on every sample.
+    _Cell(
+        id="unplaced_document_names_no_sample",
+        use_records=True,
+        claims=(_Claim("experiment.samples.tissue", "muscle", "dataset", None, placed=False),),
+        attr="tissue",
+        value="Neurons",
+        warning="none",
+    ),
+    # The error span verification provably cannot catch: "neurons and body wall muscle" entails BOTH
+    # tissue=neurons and tissue=muscle, both quotes real. The record separates them — it is `asserted`
+    # of this sample, the paper's reading is `inferred` — so the record wins and the paper rides along
+    # as a non-blocking warning on each sample it fanned onto.
+    _Cell(
+        id="dataset_paper_wrong_reading_loses_to_the_record",
+        use_records=True,
+        claims=(_Claim("experiment.samples.tissue", "muscle", "dataset", None),),
+        attr="tissue",
+        value="Neurons",
+        warning="ambiguous",
+        warn_count=6,
+        warn_contains=("muscle", "Neurons"),
+    ),
+    # Two equal authorities (the record and a sample-scoped assertion) disagree: code does not break the
+    # tie, so the attribute is left null — a value, per "null beats a wrong guess" — and the
+    # disagreement is a warning. Every OTHER sample keeps its record value.
+    _Cell(
+        id="equal_authorities_disagree_leave_null",
+        use_records=True,
+        claims=(_Claim("experiment.samples.tissue", "muscle", "sample", "SAMN40935621"),),
+        attr="tissue",
+        value=None,
+        others="keep_record",
+        warning="ambiguous",
+        warn_contains=("SAMN40935621",),
+    ),
+    # 'Neurons' and 'neurons' are the same value; a permanent manifest must not null an equal-authority
+    # attribute over capitalization alone (PRJNA1195922 lost `sex` exactly this way). Equal authorities
+    # that agree case-insensitively RESOLVE, with no disagreement warning for this sample.
+    _Cell(
+        id="equal_authorities_agree_in_case_resolve",
+        use_records=True,
+        claims=(_Claim("experiment.samples.tissue", "neurons", "sample", "SAMN40935621"),),
+        attr="tissue",
+        value="neurons",
+        casefold=True,
+        warning="none_for_subject",
+    ),
+    # A sample document writes only its own sample, `asserted`, and a model's read IS a judgement — so
+    # it carries a confidence, unlike a record transcription.
+    _Cell(
+        id="sample_document_asserts_only_its_own_sample",
+        use_records=True,
+        claims=(_Claim("experiment.samples.genotype", "daf-2(e1370)", "sample", "SAMN40935621"),),
+        attr="genotype",
+        value="daf-2(e1370)",
+        basis="asserted",
+        check_confidence=True,
+        confidence=0.9,
+        others="absent",
+    ),
+    # `condition` was ours, not one of NCBI's 960 — the slot the model filed worm husbandry into. A
+    # field outside the vocabulary never reaches any sample.
+    _Cell(
+        id="field_outside_ncbi_vocabulary_never_lands",
+        use_records=True,
+        claims=(_Claim("experiment.samples.condition", "grown at 20C", "dataset", None),),
+        attr="condition",
+        value=None,
+    ),
+)
+
+
+def _resolve_marker(marker: str | None, records: ArchiveRecordSet) -> str | None:
+    return records.at("experiment")[0].accession if marker == "@experiment0" else marker
+
+
+def _subject_sample(cell: _Cell, records: ArchiveRecordSet) -> str | None:
+    """The sample a placed run/experiment/sample document is about, or ``None`` (dataset/unplaced)."""
+    for claim in cell.claims:
+        if claim.placed and claim.scope in ("sample", "experiment", "run"):
+            acc = _resolve_marker(claim.subject, records)
+            if claim.scope == "sample":
+                return acc
+            rec = records.by_accession(acc) if acc is not None else None
+            ancestor = records.ancestor(rec, "sample") if rec is not None else None
+            return ancestor.accession if ancestor is not None else None
+    return None
+
+
+@pytest.mark.parametrize("cell", _PRECEDENCE_TABLE, ids=[c.id for c in _PRECEDENCE_TABLE])
+def test_the_sample_attribute_precedence_table(cell: _Cell, records: ArchiveRecordSet) -> None:
+    """Every cell of the metadata resolver's precedence table, one row at a time. See the comment above
+    the table for the axis; each `_Cell` is one combination of (scope, subject, record-declares?,
+    agree?) and its expected (value+basis, others, warning). The line this guards lives in
+    `resolve/records.py`."""
+    recs = records if cell.use_records else None
+    assertions: list[Assertion] = []
+    subjects: list[DocumentSubject] = []
+    for i, claim in enumerate(cell.claims):
+        doc = str(i) * 64
+        assertions.append(_assertion(claim.field, claim.value, doc))
+        if claim.placed:
+            subjects.append(
+                DocumentSubject(
+                    doc_sha256=doc,
+                    scope=claim.scope,
+                    subject=_resolve_marker(claim.subject, records),
+                )
+            )
+
     out = resolve_metadata(
-        files=_pilot_files(),
-        records=None,
-        assertions=[_assertion("experiment.samples.tissue", "neurons", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="dataset")],
+        files=_pilot_files(), records=recs, assertions=assertions, subjects=subjects
     )
-    assert len(out.samples) == 6
-    for sample in out.samples:
-        assert sample.attributes["tissue"].value == "neurons"
-        assert sample.attributes["tissue"].basis == "inferred"
+    assert not out.blockers
+
+    subject_acc = _subject_sample(cell, records)
+    by_acc = {s.accession: s for s in out.samples}
+
+    def _expect(sample: ResolvedSample) -> None:
+        if cell.value is None:
+            assert cell.attr not in sample.attributes
+            return
+        ev = sample.attributes[cell.attr]
+        if cell.casefold:
+            assert ev.value.casefold() == cell.value.casefold()
+        else:
+            assert ev.value == cell.value
+        if cell.basis is not None:
+            assert ev.basis == cell.basis
+        if cell.check_confidence:
+            assert ev.confidence == cell.confidence
+
+    if subject_acc is None:
+        # no claim named a sample: the expectation holds for EVERY sample (fan-out, or absence)
+        for sample in out.samples:
+            _expect(sample)
+    else:
+        _expect(by_acc[subject_acc])
+        for acc, sample in by_acc.items():
+            if acc == subject_acc:
+                continue
+            if cell.others == "absent":
+                assert cell.attr not in sample.attributes
+            elif cell.others == "keep_record":
+                assert sample.attributes[cell.attr].value == "Neurons"
+
+    _expect_warnings(out, cell, subject_acc)
 
 
-def test_a_run_alias_asserts_its_samples_genotype_over_the_papers_inference(
-    records: ArchiveRecordSet,
-) -> None:
-    """The pilot's fix. The WT-vs-daf-2 contrast lives in the run alias ("N2_wild_type"), and a run
-
-    belongs to exactly one sample, so its document's claim is a declaration ABOUT that sample —
-    `asserted`, which beats the paper's dataset-level `inferred` daf-2. Before the run->sample join a
-    run document mapped to no sample and its claim was silently dropped, leaving the paper's inference
-    standing on the wild-type samples (exactly what sf-demo-4 produced: daf-2 on "WT replicate 2/3").
-    """
-    wt_run = next(
-        r for r in records.at("run") if r.accession == "SRR28716558"
-    )  # an N2 wild-type run
-    ancestor = records.ancestor(wt_run, "sample")
-    assert ancestor is not None
-    wt_sample = ancestor.accession
-    run_doc, paper = "r" * 64, "p" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[
-            _assertion("experiment.samples.genotype", "WT", run_doc),
-            _assertion("experiment.samples.genotype", "daf-2(e1370)", paper),
-        ],
-        subjects=[
-            DocumentSubject(doc_sha256=run_doc, scope="run", subject="SRR28716558"),
-            DocumentSubject(doc_sha256=paper, scope="dataset"),
-        ],
-    )
-    by_sample = {s.accession: s for s in out.samples}
-    # the WT run's sample takes genotype from its OWN run alias, asserted, not the paper's inference
-    assert by_sample[wt_sample].attributes["genotype"].value == "WT"
-    assert by_sample[wt_sample].attributes["genotype"].basis == "asserted"
-    # a sample with NO per-sample claim is now left NULL, not stamped with the paper's blanket daf-2:
-    # genotype is declared per-sample here (the WT run owns "WT"), so it varies by sample and a
-    # study-wide value is an unsafe guess for a sample the archive left blank. Null beats a wrong,
-    # permanent value — this is the second half of the PRJNA1027859 fix (#10). A warning surfaces it.
-    other = next(s for acc, s in by_sample.items() if acc != wt_sample)
-    assert "genotype" not in other.attributes
-    assert any(
-        w.code == "sample_attribute_inferred_only" and (w.subject.ref or "").endswith("genotype")
-        for w in out.warnings
-    )
-
-
-def test_an_experiment_title_asserts_its_samples_diet(records: ArchiveRecordSet) -> None:
-    """GSE229022's fix, at the resolve layer. The diet ("feed with E. coli OP50") lives only in the
-
-    GEO GSM title, which the archive renders as the EXPERIMENT title. An experiment belongs to exactly
-    one sample, so a treatment claim from its document is a declaration ABOUT that sample — `asserted`
-    via `subject_to_sample`, the same join a run alias uses. This is why `fields.py` asks the
-    experiment scope for `treatment`: without this mapping the claim would land on no sample and be
-    dropped, which is how every GSE229022 sample said `treatment: null` under a title that named its
-    diet.
-    """
-    exp = records.at("experiment")[0]
-    sample = records.ancestor(exp, "sample")
-    assert sample is not None
-    exp_doc = "x" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.treatment", "E. coli OP50", exp_doc)],
-        subjects=[DocumentSubject(doc_sha256=exp_doc, scope="experiment", subject=exp.accession)],
-    )
-    by_sample = {s.accession: s for s in out.samples}
-    # the experiment's own sample takes the diet from its title, asserted — not null, not inferred
-    assert by_sample[sample.accession].attributes["treatment"].value == "E. coli OP50"
-    assert by_sample[sample.accession].attributes["treatment"].basis == "asserted"
-    # a sample the experiment does not belong to gets no treatment from it at all
-    other = next(s for acc, s in by_sample.items() if acc != sample.accession)
-    assert "treatment" not in other.attributes
-
-
-def test_a_document_code_did_not_place_names_no_sample(records: ArchiveRecordSet) -> None:
-    """The subject is the document, and code chooses the documents. An unplaced doc writes nothing."""
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.tissue", "muscle", "e" * 64)],
-        subjects=[],  # code never placed this document
-    )
-    assert not out.warnings
-    assert all(s.attributes["tissue"].value == "Neurons" for s in out.samples)
-
-
-def test_a_papers_wrong_reading_is_a_warning_the_record_wins_and_it_still_compiles(
-    records: ArchiveRecordSet,
-) -> None:
-    """The error span verification provably cannot catch, caught by having two independent sources — and now resolved.
-
-    "we dissected neurons and body wall muscle" entails tissue=neurons AND tissue=muscle: both quotes
-    are real, both pass span verification and entailment. The record separates them: it is a
-    declaration about THIS sample (asserted), the paper's claim is our inference (inferred), and
-    asserted wins. The disagreement is a non-blocking WARNING — the record's value stands and the
-    dataset still compiles, because a sample annotation is not a reason to refuse a whole manifest.
-    """
-    doc = "f" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.tissue", "muscle", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="dataset")],
-    )
-    assert len(out.warnings) == 6  # one per sample the paper's claim fanned onto
-    warning = out.warnings[0]
-    assert warning.subject.ref == "experiment.samples.tissue"
-    assert "muscle" in warning.message and "Neurons" in warning.message
-    # the record's value stands, and it is not an OPEN conflict — nothing here blocks a compile
-    for sample in out.samples:
-        assert sample.attributes["tissue"].value == "Neurons"
-
-
-def test_two_equal_authorities_disagreeing_leave_null_as_a_warning(
-    records: ArchiveRecordSet,
-) -> None:
-    """A wrong value here is permanent; a missing one is not. Code does not break a tie between equals,
-
-    so the attribute is left null — a value, per the "null beats a wrong guess" rule — and the
-    disagreement rides along as a non-blocking warning rather than a refusal.
-    """
-    doc = "9" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.tissue", "muscle", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="sample", subject="SAMN40935621")],
-    )
-    target = next(s for s in out.samples if s.accession == "SAMN40935621")
-    assert "tissue" not in target.attributes  # left null: two asserted sources disagree
-    assert any(
-        "SAMN40935621" in w.message and w.subject.ref == "experiment.samples.tissue"
-        for w in out.warnings
-    )
-    # every other sample is untouched: the document named one sample and only one
-    for sample in out.samples:
-        if sample.accession != "SAMN40935621":
-            assert sample.attributes["tissue"].value == "Neurons"
-
-
-def test_two_equal_authorities_agreeing_only_in_case_resolve_rather_than_null(
-    records: ArchiveRecordSet,
-) -> None:
-    """'Male' and 'male' are the same value; a permanent manifest must not null an equal-authority
-    attribute over capitalization alone (PRJNA1195922 lost `sex` exactly this way). Here the record
-    says tissue "Neurons" and a sample-scoped assertion says "neurons" — equal authority, agreeing
-    case-insensitively — so the attribute RESOLVES, with no disagreement warning.
-    """
-    doc = "7" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.tissue", "neurons", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="sample", subject="SAMN40935621")],
-    )
-    target = next(s for s in out.samples if s.accession == "SAMN40935621")
-    assert "tissue" in target.attributes  # NOT null — the two agree case-insensitively
-    assert target.attributes["tissue"].value.casefold() == "neurons"
-    # and no ambiguity warning was raised for this sample's tissue
-    assert not any(
-        "SAMN40935621" in w.message and w.subject.ref == "experiment.samples.tissue"
-        for w in out.warnings
-    )
-
-
-def test_a_sample_document_writes_only_its_own_sample(records: ArchiveRecordSet) -> None:
-    doc = "8" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.genotype", "daf-2(e1370)", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="sample", subject="SAMN40935621")],
-    )
-    written = [s for s in out.samples if "genotype" in s.attributes]
-    assert [s.accession for s in written] == ["SAMN40935621"]
-    assert written[0].attributes["genotype"].value == "daf-2(e1370)"
-    assert written[0].attributes["genotype"].basis == "asserted"
-    assert written[0].attributes["genotype"].confidence == 0.9  # a model's read IS a judgement
-
-
-def test_a_field_outside_ncbis_vocabulary_never_reaches_a_sample(records: ArchiveRecordSet) -> None:
-    """`condition` was ours, and it is the slot the model filed worm husbandry into. It is gone."""
-    doc = "7" * 64
-    out = resolve_metadata(
-        files=_pilot_files(),
-        records=records,
-        assertions=[_assertion("experiment.samples.condition", "grown at 20C", doc)],
-        subjects=[DocumentSubject(doc_sha256=doc, scope="dataset")],
-    )
-    assert all("condition" not in s.attributes for s in out.samples)
+def _expect_warnings(out: MetadataResolution, cell: _Cell, subject_acc: str | None) -> None:
+    warnings = out.warnings
+    ref = f"{SAMPLE_FIELD_PREFIX}{cell.attr}"
+    if cell.warning == "none":
+        assert not warnings
+    elif cell.warning == "ambiguous" and cell.warn_count is not None:
+        assert len(warnings) == cell.warn_count
+        first = warnings[0]
+        assert first.subject.ref == ref
+        assert all(tok in first.message for tok in cell.warn_contains)
+    elif cell.warning == "ambiguous":
+        assert any(
+            w.subject.ref == ref and all(tok in w.message for tok in cell.warn_contains)
+            for w in warnings
+        )
+    elif cell.warning == "inferred_only":
+        assert any(
+            w.code == "sample_attribute_inferred_only"
+            and (w.subject.ref or "").endswith(cell.warn_contains[0])
+            for w in warnings
+        )
+    elif cell.warning == "none_for_subject":
+        assert subject_acc is not None
+        assert not any(subject_acc in w.message and w.subject.ref == ref for w in warnings)
 
 
 # ---------------------------------------------------------------- A3: a record IS a document
@@ -663,279 +719,11 @@ def test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold() -> None
 
     claims = {k: v for k, v in case.expected.fields.items() if k.startswith("experiment.")}
     assert claims, "the pre-registration's sample facts are in `fields:`, not in prose"
+    # At least one claim names a specific sample (`experiment.samples.SAMN...`), not just the `*`
+    # multiset: the `*` form asserts what the dataset CONTAINS, the named form asserts the join put a
+    # fact on the RIGHT sample, so a shuffled join would fail this rather than grade clean (folded from
+    # `test_a_named_sample_pins_the_join_not_just_the_multiset`).
+    assert any(k.startswith("experiment.samples.SAMN") for k in claims), "no named-sample claim"
     for path, want in sorted(claims.items()):
         got = _extract_experiment_field(path, out)
         assert _equal(want, got), f"{path}: expected {want!r}, got {got!r}"
-
-
-def test_a_named_sample_pins_the_join_not_just_the_multiset() -> None:
-    """`experiment.samples.*.strain` would pass even if the six facts were on the wrong six samples.
-
-    Which is why the pre-registration names two of them. The `*` form asserts what the dataset
-    contains; the named form asserts that the join put it in the right place.
-    """
-    from seqforge.evals import discover_cases
-
-    case = next(c for c in discover_cases() if c.id == "PRJNA1027859")
-    named = {k for k in case.expected.fields if k.startswith("experiment.samples.SAMN")}
-    assert named, "no named-sample claim: a shuffled join would grade clean"
-
-
-# ================================================================================================
-# provenance — the wrong-PDF guard (#51)
-# ================================================================================================
-#
-# The wrong-PDF guard (#51): does a staged document describe a DIFFERENT study than the bytes?
-#
-# The gate is a pure function over span-verified assertions + the deterministic records + the observed
-# winner, so it is tested here directly, without a workspace. A dataset-level mismatch surfaces an open
-# Conflict (a human decides); the strongest case — nothing matches AND the assay contradicts the reads
-# — refuses with a Blocker.
-
-
-_SPECS = load_all_specs()
-_EXTRACTOR = ExtractorProvenance(model_id="test", prompt_version="1")
-_PAPER = "d" * 64  # the staged dataset-scoped document's sha256
-
-
-def _assert(field: str, value: str, *, doc: str = _PAPER) -> Assertion:
-    return Assertion(
-        id=f"a-{field}-{value}",
-        field=field,
-        value=value,
-        span=SourceSpan(doc_sha256=doc, quote=value),
-        span_verified=True,
-        entailment_ok=True,
-        llm_confidence=0.9,
-        extractor=_EXTRACTOR,
-    )
-
-
-def _records(
-    *, taxid: str = "6239", strain: str = "N2", query: str = "PRJNA111111"
-) -> ArchiveRecordSet:
-    sample = ArchiveRecord(
-        level="sample",
-        accession="SRS1",
-        parent=query,
-        attributes=[
-            RecordAttribute(name="taxonomy_id", value=taxid),
-            RecordAttribute(name="strain", value=strain, harmonized=True),
-        ],
-        free_text=[FreeText(label="sample_alias", text="the-worm-atlas")],
-    )
-    project = ArchiveRecord(level="project", accession=query)
-    return ArchiveRecordSet(source="test", query=query, records=[project, sample])
-
-
-_DATASET_SUBJECT = [DocumentSubject(doc_sha256=_PAPER, scope="dataset", subject=None)]
-
-
-def test_a_matching_paper_raises_nothing() -> None:
-    # Right organism, an overlapping strain, and the paper names our own project accession.
-    conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.strain", "N2"),
-        ],
-        subjects=_DATASET_SUBJECT,
-        records=_records(),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={_PAPER: "We deposited the data under PRJNA111111. Reads are 10x 3' v3."},
-    )
-    assert conflicts == []
-    assert blockers == []
-
-
-def test_the_wrong_pdf_same_organism_same_assay_surfaces_an_open_conflict() -> None:
-    # D2: a daf-2 paper staged over a whole-body (N2) worm dataset. Same organism, same 10x assay, but
-    # the paper names a foreign study accession and a non-overlapping genotype -> a human should look.
-    conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.genotype", "daf-2(e1370)"),
-            _assert("library.chemistry", "10x-3p-gex-v3"),  # agrees with the bytes
-        ],
-        subjects=_DATASET_SUBJECT,
-        records=_records(strain="N2"),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={_PAPER: "This snRNA-seq study of daf-2 mutants is archived as GSE999999."},
-    )
-    assert blockers == []
-    assert len(conflicts) == 1
-    c = conflicts[0]
-    assert c.status == "open"
-    assert c.field == "document.provenance"
-    assert c.kind == "other"
-    assert c.decidable_by == ["user"]
-
-
-def test_the_strongest_case_no_signal_matches_and_assay_contradicts_blocks() -> None:
-    # A wholly different study: wrong organism, foreign accession, non-overlapping strain, AND the
-    # paper describes bulk RNA-seq while the reads are 10x single-cell. That is not a nuance; refuse.
-    conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Homo sapiens"),
-            _assert("experiment.samples.strain", "HeLa"),
-            _assert("library.chemistry", "bulk-rnaseq-pe"),
-        ],
-        subjects=_DATASET_SUBJECT,
-        records=_records(taxid="6239", strain="N2"),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={
-            _PAPER: "A human bulk RNA-seq study, deposited as GSE999999 / PRJNA999999."
-        },
-    )
-    assert conflicts == []
-    assert len(blockers) == 1
-    b = blockers[0]
-    assert b.code.value == "PROVENANCE_MISMATCH"
-    assert b.subject.kind == "dataset"
-
-
-def test_a_paper_that_cites_related_work_is_not_a_mismatch() -> None:
-    # The paper names our accession AND a foreign one it cites; organism + strain match. No mismatch.
-    conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.strain", "N2"),
-        ],
-        subjects=_DATASET_SUBJECT,
-        records=_records(),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={
-            _PAPER: "Our data (PRJNA111111) extends the earlier atlas GSE888888 of Smith et al."
-        },
-    )
-    assert conflicts == []
-    assert blockers == []
-
-
-def test_no_records_means_nothing_to_contradict() -> None:
-    conflicts, blockers = check_provenance(
-        assertions=[_assert("experiment.organism", "Homo sapiens")],
-        subjects=_DATASET_SUBJECT,
-        records=None,
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={_PAPER: "A human study, GSE999999."},
-    )
-    assert conflicts == []
-    assert blockers == []
-
-
-def test_a_sample_scoped_document_is_never_a_wrong_pdf_risk() -> None:
-    # A record-rendered (sample-scoped) document is self-consistent with the records by construction,
-    # so even a "foreign" accession in its text is not checked.
-    conflicts, blockers = check_provenance(
-        assertions=[_assert("experiment.samples.strain", "daf-2", doc="e" * 64)],
-        subjects=[DocumentSubject(doc_sha256="e" * 64, scope="sample", subject="SRS1")],
-        records=_records(),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={"e" * 64: "GSE999999"},
-    )
-    assert conflicts == []
-    assert blockers == []
-
-
-def test_dataset_document_texts_reads_only_dataset_scoped_docs_by_hash_suffix(
-    tmp_path: Path,
-) -> None:
-    from seqforge.workspace import documents_dir
-
-    docdir = documents_dir(tmp_path)
-    docdir.mkdir(parents=True)
-    (docdir / f"ghaddar-paper-{_PAPER[:12]}.txt").write_text("the paper body")
-    other = "f" * 64
-    (docdir / f"sample-SRS1-{other[:12]}.txt").write_text("a record-rendered doc")
-
-    subjects = [
-        DocumentSubject(doc_sha256=_PAPER, scope="dataset", subject=None),
-        DocumentSubject(doc_sha256=other, scope="sample", subject="SRS1"),
-    ]
-    texts = _dataset_document_texts(tmp_path, subjects)
-    assert texts == {_PAPER: "the paper body"}  # the sample-scoped doc is not returned
-
-
-def test_a_quiet_paper_naming_no_accession_and_no_conflicting_claim_is_fine() -> None:
-    # Organism matches, no strain claim, no accession printed -> every signal abstains -> nothing.
-    conflicts, blockers = check_provenance(
-        assertions=[_assert("experiment.organism", "Caenorhabditis elegans")],
-        subjects=_DATASET_SUBJECT,
-        records=_records(),
-        winning_techs={"10x-3p-gex-v3"},
-        specs=_SPECS,
-        document_texts={_PAPER: "A study of the worm nervous system. No accessions here."},
-    )
-    assert conflicts == []
-    assert blockers == []
-
-
-def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: Path) -> None:
-    """End-to-end: one dataset's FASTQs + another study's paper -> the fill pipeline stops at exit 4.
-
-    This drives the SHIPPING path (`_fill_manifest_pipeline`: probe -> resolve -> metadata -> the
-    provenance gate -> validate), so it proves the wiring the unit tests above cannot: the persisted
-    document is read from the workspace by its hash, the gate's Conflict rides into `validate`, and
-    `questions.md` is written for the Stop hook. Everything lives under pytest's tmp dir.
-
-    The bytes are a clean bulk-rnaseq-pe library (geometry-only, no onlist, so it resolves against the
-    real registry with no whitelist step). The staged "paper" describes a *different* study — human,
-    HeLa, a foreign accession — with no chemistry claim, so it does not trip the byte cross-family
-    conflict first; the provenance gate is what catches it.
-    """
-    from seqforge.workspace import documents_dir, state_dir
-
-    spec = kb.load_spec("bulk-rnaseq-pe")
-    reads = kb.generate_reads(spec, n=800, seed=0)
-    fastqs = []
-    for rid, seqs in reads.items():
-        p = tmp_path / f"SRRfake_{rid}.fastq.gz"
-        write_fastq_gz(p, seqs)
-        fastqs.append(p)
-
-    # The dataset's own records: worm, N2, PRJNA111111 — nothing the wrong paper names.
-    records = _records()
-
-    # The wrong PDF, persisted where `harvest extract` would have put it (<stem>-<sha12>.txt).
-    docdir = documents_dir(tmp_path)
-    docdir.mkdir(parents=True, exist_ok=True)
-    (docdir / f"wrong-paper-{_PAPER[:12]}.txt").write_text(
-        "A Homo sapiens HeLa study of bulk expression, archived as GSE999999 / PRJNA999999."
-    )
-
-    # The assertions `harvest extract` would have written from that paper (dataset-scoped).
-    assertions_path = tmp_path / "assertions.json"
-    assertions_path.write_text(
-        json.dumps(
-            {
-                "assertions": [
-                    _assert("experiment.organism", "Homo sapiens").model_dump(mode="json"),
-                    _assert("experiment.samples.strain", "HeLa").model_dump(mode="json"),
-                ],
-                "document_subjects": [{"doc_sha256": _PAPER, "scope": "dataset", "subject": None}],
-            }
-        )
-    )
-
-    out = _fill_manifest_pipeline(
-        files=fastqs,
-        organism=None,
-        records=records,
-        assertions=assertions_path,
-        offline=True,
-        workspace=tmp_path,
-        cpus=1,
-    )
-
-    assert out.code == 4, out.payload  # an open provenance conflict -> NEEDS_HUMAN
-    report = out.payload["report"] if isinstance(out.payload, dict) else {}
-    fields = [c["field"] for c in report.get("conflicts", [])]
-    assert "document.provenance" in fields
-    # the conflict is surfaced for the Stop hook, not just returned
-    assert (state_dir(tmp_path) / "questions.md").exists()

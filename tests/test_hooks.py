@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from seqforge.hooks import (
     check_absolute_path_write,
     check_unbounded_fastq,
@@ -27,41 +29,46 @@ from seqforge.hooks import (
 # ---------------------------------------------------------------------------------------------
 
 
-def test_denies_an_unbounded_fastq_stream() -> None:
-    d = check_unbounded_fastq("zcat sample_R1.fastq.gz | wc -l")
-    assert d is not None
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        pytest.param("zcat sample_R1.fastq.gz | wc -l", id="zcat-wc"),
+        pytest.param("cat reads.fastq", id="cat"),
+        pytest.param("zcat reads.fq.gz | awk '{print}'", id="zcat-awk"),
+        pytest.param("gunzip -c reads.fastq.gz > out", id="gunzip-c"),
+        pytest.param("bzcat reads.fastq.bz2 | grep AAAA", id="bzcat"),
+    ],
+)
+def test_denies_an_unbounded_fastq_stream(cmd: str) -> None:
+    """Every streaming reader is blocked, and the block names its rule and a way forward.
+
+    A guard proves it engages on the thing it must stop; that it *also* hands back a `remedy` is what
+    keeps the block from being a wall the operator routes around.
+    """
+    d = check_unbounded_fastq(cmd)
+    assert d is not None, cmd
     assert "FASTQ" in d.rule
     assert d.remedy  # a block with no way forward is a wall
 
 
-def test_denies_every_streaming_reader() -> None:
-    for cmd in (
-        "cat reads.fastq",
-        "zcat reads.fq.gz | awk '{print}'",
-        "gunzip -c reads.fastq.gz > out",
-        "bzcat reads.fastq.bz2 | grep AAAA",
-    ):
-        assert check_unbounded_fastq(cmd) is not None, cmd
-
-
-def test_allows_a_bounded_stream() -> None:
-    """`head` caps the read. This is the neighbouring command that must NOT be blocked."""
-    for cmd in (
-        "zcat reads.fastq.gz | head -n 4000",
-        "head -c 1000000 reads.fastq",
-        "zcat reads.fastq.gz | head -4",
-    ):
-        assert check_unbounded_fastq(cmd) is None, cmd
-
-
-def test_allows_the_sanctioned_seqforge_verb() -> None:
-    """`seqforge probe` is bounded by construction (200k reads / 256 MB) — blocking it is nonsense."""
-    for cmd in (
-        "seqforge probe reads.fastq.gz --json",
-        "pixi run -- seqforge probe reads.fastq.gz",
-        "python -m seqforge.cli probe reads.fastq.gz",
-    ):
-        assert check_unbounded_fastq(cmd) is None, cmd
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        # `head` caps the read -- the neighbouring command that must NOT be blocked
+        pytest.param("zcat reads.fastq.gz | head -n 4000", id="head-n"),
+        pytest.param("head -c 1000000 reads.fastq", id="head-c"),
+        pytest.param("zcat reads.fastq.gz | head -4", id="head-4"),
+        # `seqforge probe` is bounded by construction (200k reads / 256 MB) -- blocking it is nonsense
+        pytest.param("seqforge probe reads.fastq.gz --json", id="probe"),
+        pytest.param("pixi run -- seqforge probe reads.fastq.gz", id="pixi-probe"),
+        pytest.param("python -m seqforge.cli probe reads.fastq.gz", id="module-probe"),
+    ],
+)
+def test_allows_a_bounded_or_sanctioned_fastq_read(cmd: str) -> None:
+    """The neighbour that must pass: a `head`-capped stream, or the `seqforge probe` verb that is
+    bounded by construction. A guard that blocks correct work gets switched off, and then it guards
+    nothing."""
+    assert check_unbounded_fastq(cmd) is None, cmd
 
 
 def test_ignores_commands_with_no_fastq() -> None:
@@ -236,62 +243,14 @@ def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
     assert len(questions_outstanding(tmp_path)) == 2
 
 
-def test_questions_outstanding_is_empty_without_state(tmp_path: Path) -> None:
-    assert questions_outstanding(tmp_path) == []
+# `test_questions_outstanding_is_empty_without_state` was deleted (#110): it asserted
+# `questions_outstanding(tmp_path) == []` on an empty tree, the identical expression already asserted
+# by `test_stop_ignores_an_empty_questions_file` above -- and `test_stop_allows_when_no_questions_are_open`
+# reddens for the same defect, since `stop_decision` returns None only when `questions_outstanding` is [].
 
 
-def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: Path) -> None:
-    """The `questions.md` writer feeds the Stop hook: an OPEN conflict blocks turn-end, resolving clears.
-
-    This is the human-in-the-loop half of the family-level change — a genuine cross-family disagreement
-    lands a visible, editable artifact, and a re-run that settles it removes the file so the hook stops
-    wedging. A within-family difference is recorded `resolved`, so it is never `open` and never writes.
-    """
-    from types import SimpleNamespace
-
-    from seqforge.cli.manifest import _sync_questions
-    from seqforge.models.conflict import Conflict, ConflictPosition
-    from seqforge.workspace import state_dir
-
-    def _run(conflicts: list[Conflict]) -> SimpleNamespace:
-        result = SimpleNamespace(conflicts=conflicts, questions=[])
-        return SimpleNamespace(run_id="run-1", output=SimpleNamespace(result=result))
-
-    open_c = Conflict(
-        id="conflict-single-cell-collapsed-to-bulk",
-        field="library.chemistry",
-        kind="observed_vs_asserted",
-        positions=[
-            ConflictPosition(value="10x-3p-gex-v2", basis="asserted", confidence=0.9),
-            ConflictPosition(value="bulk-rnaseq-pe", basis="observed", confidence=0.99),
-        ],
-        decidable_by=["reads", "user"],
-        status="open",
-    )
-    state = state_dir(tmp_path)
-    _sync_questions(state, [_run([open_c])])
-    qmd = state / "questions.md"
-    assert questions_outstanding(tmp_path) == [qmd]
-    body = qmd.read_text()
-    assert "10x-3p-gex-v2" in body and "bulk-rnaseq-pe" in body
-
-    # a resolved (non-open) conflict is not surfaced -> file cleared, the hook stops blocking
-    _sync_questions(state, [_run([open_c.model_copy(update={"status": "resolved"})])])
-    assert not qmd.exists()
-    assert questions_outstanding(tmp_path) == []
-
-
-def test_sync_questions_unlinks_a_stale_file_on_a_clean_run(tmp_path: Path) -> None:
-    from types import SimpleNamespace
-
-    from seqforge.cli.manifest import _sync_questions
-    from seqforge.workspace import state_dir
-
-    state = state_dir(tmp_path)
-    state.mkdir(parents=True)
-    (state / "questions.md").write_text("- a stale question from a prior run\n")
-    clean = SimpleNamespace(
-        run_id="r", output=SimpleNamespace(result=SimpleNamespace(conflicts=[], questions=[]))
-    )
-    _sync_questions(state, [clean])
-    assert not (state / "questions.md").exists()
+# `test_sync_questions_writes...` and `test_sync_questions_unlinks...` MOVED to tests/test_cli.py (#113):
+# `_sync_questions` is the `questions.md` writer and lives in `cli/manifest.py`, whose mirror is
+# test_cli.py. An agent editing that writer follows the module->file table to test_cli.py, so the
+# tests that exercise it belong there. They still assert THROUGH the Stop hook's `questions_outstanding`
+# reader (imported from seqforge.hooks), which is the writer<->hook contract they pin.

@@ -40,40 +40,24 @@ def _patch_labdata(monkeypatch: pytest.MonkeyPatch, resolver) -> None:
 def test_experiments_for_returns_labdatas_experiment_accessions_sorted_and_deduped(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_labdata(
-        monkeypatch,
-        lambda acc: [_FakeExperiment(a) for a in ("SRX2", "SRX1", "SRX2")],
-    )
-    assert archive._experiments_for("GSE229022") == ["SRX1", "SRX2"]
-
-
-def test_experiments_for_passes_the_accession_through_unchanged(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
     seen: list[str] = []
 
     def resolver(accession: str) -> list[_FakeExperiment]:
-        seen.append(accession)
-        return [_FakeExperiment("SRX1")]
+        seen.append(accession)  # record it to prove the accession passes through unchanged
+        return [_FakeExperiment(a) for a in ("SRX2", "SRX1", "SRX2")]
 
     _patch_labdata(monkeypatch, resolver)
-    archive._experiments_for("GSE229022")
-    assert seen == ["GSE229022"]
+    assert archive._experiments_for("GSE229022") == ["SRX1", "SRX2"]
+    assert seen == [
+        "GSE229022"
+    ]  # reaches labdata untransformed (folded from the passthrough sibling)
 
 
-def test_experiments_for_translates_a_labdata_error_into_a_remote_error(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from labdata.exceptions import AccessionError
-
-    def resolver(accession: str) -> list[_FakeExperiment]:
-        raise AccessionError("not a resolvable accession")
-
-    _patch_labdata(monkeypatch, resolver)
-    # A malformed accession must surface as the archive layer's own error type, which the CLI catches
-    # for a clean exit — not as a raw labdata exception that escapes to a traceback.
-    with pytest.raises(RemoteError, match="could not resolve experiments"):
-        archive._experiments_for("banana")
+# `test_experiments_for_translates_a_labdata_error_into_a_remote_error` was deleted (#110): it raised
+# `AccessionError`, a subclass of `LabdataError`, which `_experiments_for` catches on one `except
+# LabdataError`. `test_experiments_for_does_not_retry_a_terminal_labdata_error` below raises the base
+# class onto that same except -- same RemoteError message -- and additionally pins `calls["n"] == 1`,
+# so it reddens wherever this one would, and for the narrower catch too (base escapes, subclass would not).
 
 
 def test_experiments_for_refuses_loudly_when_the_accession_resolves_to_nothing(

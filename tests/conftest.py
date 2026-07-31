@@ -44,9 +44,10 @@ import pytest
 from seqforge import __version__, kb
 from seqforge.compose.core import ComposePlan
 from seqforge.io import OnlistRegistry
-from seqforge.manifest import ExperimentInputs, fill_manifest
+from seqforge.manifest import ExperimentInputs, ProcessingInputs, fill_manifest, fill_processing
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
+from seqforge.models.processing import ProcessingManifest
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.window import WindowProbe
@@ -151,7 +152,7 @@ def dry_run() -> DryRun:
 
     A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
     four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
-    through a private ``_dry_run`` in ``test_compile.py`` — invisible to
+    through a private ``_dry_run`` in the compose tests — invisible to
     :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
     to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
 
@@ -367,6 +368,83 @@ def synth_bulk_pe(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
 def synth_splitseq(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     """The complex-geometry shape (``cdna``/``bc``, three whitelists). Companion to the two above."""
     return build_synth_dataset(tmp_path_factory.mktemp("synth-splitseq"), "splitseq")
+
+
+# --------------------------------------------------------------------------- #
+# the compile half: the shared build helpers ``test_manifest.py`` and ``test_compose.py`` both read
+# --------------------------------------------------------------------------- #
+
+#: What every build here produces: the dataset manifest and the registry its onlists came from.
+Built = tuple[DatasetManifest, OnlistRegistry]
+
+
+@pytest.fixture
+def built_v3(synth_10x_v3: SynthDataset) -> Built:
+    """The suite's default shape, built ONCE per session — see ``tests/conftest.py``.
+
+    33 tests in this file each re-derived it (a resolve + two probes, 0.238s apiece) to get a value
+    that is the same every time. It is an immutable product: a test that varies it takes a
+    ``model_copy``, and every test still composes into its own ``tmp_path``.
+    """
+    return synth_10x_v3.manifest, synth_10x_v3.registry
+
+
+def _build(tmp_path: Path, tech: str, keys: tuple[str, ...] | None = None) -> Built:
+    """Build a manifest from synthetic reads under ``tmp_path``, for a tech ``built_v3`` is not.
+
+    The body moved to ``conftest.build_synth_dataset`` when the session fixture needed it; this stays
+    as the name the rest of the file already calls.
+    """
+    dataset = build_synth_dataset(tmp_path, tech, keys=keys)
+    return dataset.manifest, dataset.registry
+
+
+def _taxid(value: int) -> EvidencedTaxid:
+    """An organism as the manifest holds it: a value that knows how we know it.
+
+    `ExperimentInputs` takes an `EvidencedTaxid` rather than a bare int because the manifest field is
+    evidenced and something has to supply the basis. It used to take the int and stamp
+    `basis="asserted"` on it unconditionally -- including for a taxid a human typed on the command
+    line, which is `user_confirmed` and not the same claim at all.
+    """
+    return EvidencedTaxid(value=value, basis="user_confirmed", rung=0)
+
+
+def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> DatasetManifest:
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    return fill_manifest(
+        result=out.result,
+        spec=kb.load_spec(tech),
+        observations=[probe_file(p) for p in paths],
+        registry=reg,
+        experiment=ExperimentInputs(organism=_taxid(6239), accessions=["PRJNA1027859"]),
+        seqforge_version=__version__,
+    )
+
+
+def _processing(
+    manifest: DatasetManifest,
+    *,
+    assembly: str = "sacCer3",
+    annotation: str = "ensembl",
+    processing_id: str = "default",
+    pin: bool = True,
+) -> ProcessingManifest:
+    p, _ = fill_processing(
+        spec=kb.load_spec(manifest.library.chemistry.value[0]),
+        dataset=manifest,
+        processing=ProcessingInputs(assembly=assembly, annotation_name=annotation),
+        processing_id=processing_id,
+        pin=pin,
+        seqforge_version=__version__,
+    )
+    return p
+
+
+def _src_root() -> Path:
+    import seqforge
+
+    return Path(seqforge.__file__).parent
 
 
 @pytest.fixture(scope="session")

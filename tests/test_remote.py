@@ -17,7 +17,6 @@ import os
 import re
 import types
 import warnings
-import zlib
 
 import pytest
 
@@ -38,6 +37,7 @@ from seqforge.io.remote import (
     parse_run_new,
     parse_soft_srp,
     parse_soft_superseries,
+    peek,
     probe_remote,
     retry_delay,
     technical_read_remedy,
@@ -197,32 +197,42 @@ _TSV = (
 )
 
 
-def test_parse_filereport_reads_the_tsv() -> None:
+def test_parse_filereport_reads_rows_and_treats_a_header_only_tsv_as_empty() -> None:
+    """A data row parses into a dict keyed by column; a header-only or empty TSV is [], not an error."""
     rows = parse_filereport(_TSV)
     assert len(rows) == 1
     assert rows[0]["run_accession"] == "SRR9170959"
     assert rows[0]["read_count"] == "79615125"
 
-
-def test_parse_filereport_treats_header_only_as_empty_not_an_error() -> None:
     assert parse_filereport("run_accession\tread_count\n") == []
     assert parse_filereport("") == []
 
 
-def test_fastq_urls_splits_and_adds_the_scheme() -> None:
-    run = {"fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz"}
-    assert fastq_urls(run) == ["https://ftp.x/a_1.fastq.gz", "https://ftp.x/a_2.fastq.gz"]
+#: ``(run, expected)`` for ``fastq_urls``: it splits ``fastq_ftp`` on ``;``, prepends the ``https://``
+#: scheme, and sorts (ENA does not guarantee order). An absent or empty field is a meaningful "no
+#: fastq" — the 10x case, where ENA generates none for a cellranger BAM / a BAM with CB tags — not a
+#: crash.
+FASTQ_URLS = [
+    pytest.param(
+        {"fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz"},
+        ["https://ftp.x/a_1.fastq.gz", "https://ftp.x/a_2.fastq.gz"],
+        id="splits-and-adds-scheme",
+    ),
+    pytest.param(
+        {"fastq_ftp": "ftp.x/a_2.fastq.gz;ftp.x/a_1.fastq.gz"},
+        ["https://ftp.x/a_1.fastq.gz", "https://ftp.x/a_2.fastq.gz"],
+        id="sorted-because-ena-order-is-not-guaranteed",
+    ),
+    pytest.param({"fastq_ftp": ""}, [], id="empty-field-is-no-fastq"),
+    pytest.param({}, [], id="missing-field-is-no-fastq"),
+]
 
 
-def test_fastq_urls_are_sorted_because_ena_does_not_guarantee_order() -> None:
-    run = {"fastq_ftp": "ftp.x/a_2.fastq.gz;ftp.x/a_1.fastq.gz"}
-    assert fastq_urls(run) == ["https://ftp.x/a_1.fastq.gz", "https://ftp.x/a_2.fastq.gz"]
-
-
-def test_fastq_urls_empty_is_meaningful_not_a_crash() -> None:
-    """ENA generates NO fastq for cellranger BAMs / BAMs with CB tags — i.e. exactly the 10x case."""
-    assert fastq_urls({"fastq_ftp": ""}) == []
-    assert fastq_urls({}) == []
+@pytest.mark.parametrize("run, expected", FASTQ_URLS)
+def test_fastq_urls_splits_prefixes_sorts_and_treats_empty_as_no_fastq(
+    run: dict[str, str], expected: list[str]
+) -> None:
+    assert fastq_urls(run) == expected
 
 
 # ---------------------------------------------------------------------------------------------
@@ -269,12 +279,16 @@ def test_parse_run_new_tolerates_a_missing_readtypes() -> None:
     assert stats.read_types is None
 
 
-def test_parse_run_new_rejects_garbage_loudly() -> None:
+def test_parse_run_new_on_malformed_and_empty_inputs() -> None:
+    """Unparsable XML is a loud refusal; a well-formed doc with no Statistics is an empty, not garbage.
+
+    The two degenerate edges of ``parse_run_new``: ``<not xml`` cannot be parsed at all and must raise
+    rather than silently return zero reads, while ``<RUN_LIST><RUN/></RUN_LIST>`` parses fine but
+    declares no per-read table — a legitimate empty (n_reads 0, spot_length 0).
+    """
     with pytest.raises(RemoteError, match="unparsable"):
         parse_run_new("<not xml", "SRR1")
 
-
-def test_parse_run_new_tolerates_missing_statistics() -> None:
     stats = parse_run_new("<RUN_LIST><RUN/></RUN_LIST>", "SRR1")
     assert stats.n_reads == 0 and stats.spot_length == 0
 
@@ -302,31 +316,39 @@ def test_detects_a_dropped_technical_read() -> None:
     assert d.read_types == "TBT"
 
 
-def test_no_false_accusation_when_the_archives_agree() -> None:
-    """SRR8526547: 26+98=124 declared, 124 published. Nothing dropped — must NOT flag."""
-    run = {
-        "read_count": "100",
-        "base_count": "12400",
-        "fastq_ftp": "ftp.x/a_1.fq.gz;ftp.x/a_2.fq.gz",
-    }
-    stats = parse_run_new(_RUN_NEW_CLEAN, "SRR8526547")
-    assert dropped_reads(run, stats) is None
+_CLEAN_STATS = parse_run_new(_RUN_NEW_CLEAN, "SRR8526547")  # 26+98=124 declared
+
+#: ``(run, stats)`` the dropped-read detector must NOT flag — the verdict is always ``None``. A
+#: detector that accuses on absent evidence, or on a sub-1-base gap that is arithmetic rather than a
+#: dropped read, gets switched off, so null-over-wrong is pinned across every not-a-drop shape: the
+#: archives agree (124 declared, 124 published), no run fields at all, zero counts, empty SRA
+#: statistics, and ENA's mean bases/spot rounding a hair under SRA's.
+NO_DROP = [
+    pytest.param(
+        {
+            "read_count": "100",
+            "base_count": "12400",
+            "fastq_ftp": "ftp.x/a_1.fq.gz;ftp.x/a_2.fq.gz",
+        },
+        _CLEAN_STATS,
+        id="archives-agree",
+    ),
+    pytest.param({}, _CLEAN_STATS, id="no-run-fields"),
+    pytest.param({"read_count": "0", "base_count": "0"}, _CLEAN_STATS, id="zero-counts"),
+    pytest.param(
+        {"read_count": "100", "base_count": "12400"}, RunStatistics("SRR1"), id="empty-stats"
+    ),
+    pytest.param(
+        {"read_count": "100", "base_count": "12350"}, _CLEAN_STATS, id="sub-1-base-rounding"
+    ),  # 123.5 vs SRA's 124
+]
 
 
-def test_detector_abstains_rather_than_guessing() -> None:
-    """Missing inputs => ABSTAIN. A detector that accuses on absent evidence gets switched off."""
-    stats = parse_run_new(_RUN_NEW_CLEAN, "SRR1")
-    assert dropped_reads({}, stats) is None
-    assert dropped_reads({"read_count": "0", "base_count": "0"}, stats) is None
-    assert (
-        dropped_reads({"read_count": "100", "base_count": "12400"}, RunStatistics("SRR1")) is None
-    )
-
-
-def test_detector_absorbs_rounding_in_enas_averages() -> None:
-    """ENA reports mean bases/spot; a sub-1-base gap is arithmetic, not a dropped read."""
-    run = {"read_count": "100", "base_count": "12350"}  # 123.5 vs SRA's 124
-    stats = parse_run_new(_RUN_NEW_CLEAN, "SRR8526547")
+@pytest.mark.parametrize("run, stats", NO_DROP)
+def test_the_detector_abstains_rather_than_falsely_accusing(
+    run: dict[str, str], stats: RunStatistics
+) -> None:
+    """Missing, agreeing, or rounding-level inputs => ABSTAIN, never a false accusation."""
     assert dropped_reads(run, stats) is None
 
 
@@ -378,57 +400,48 @@ def test_decompress_prefix_rejects_a_corrupt_member() -> None:
         decompress_prefix(b"this is not gzip at all", max_bytes=1000)
 
 
-def test_parse_fastq_prefix_drops_the_partial_trailing_record() -> None:
-    """The range boundary cuts mid-record; a half-read must never be reported as a read length."""
-    text = "@a\nACGT\n+\nIIII\n@b\nACG"  # 'b' is incomplete
-    headers, lengths = parse_fastq_prefix(text, max_reads=10)
-    assert headers == ["@a"]
-    assert lengths == [4]
+_TWENTY_RECS = "".join(f"@r{i}\nACGT\n+\nIIII\n" for i in range(20))
+
+#: ``(text, max_reads, headers, lengths)`` for ``parse_fastq_prefix``. It reads whole records only — a
+#: partial trailing record (the range boundary cut mid-record) is dropped, never reported as a read
+#: length — stops at ``max_reads``, and returns two empty lists on empty input.
+FASTQ_PREFIX = [
+    pytest.param("@a\nACGT\n+\nIIII\n@b\nACG", 10, ["@a"], [4], id="drops-partial-trailing-record"),
+    pytest.param(_TWENTY_RECS, 3, [f"@r{i}" for i in range(3)], [4, 4, 4], id="respects-max-reads"),
+    pytest.param("", 4, [], [], id="empty-input"),
+]
 
 
-def test_parse_fastq_prefix_respects_max_reads() -> None:
-    text = "".join(f"@r{i}\nACGT\n+\nIIII\n" for i in range(20))
-    headers, _ = parse_fastq_prefix(text, max_reads=3)
-    assert len(headers) == 3
+@pytest.mark.parametrize("text, max_reads, headers, lengths", FASTQ_PREFIX)
+def test_parse_fastq_prefix_reads_whole_records_up_to_the_budget(
+    text: str, max_reads: int, headers: list[str], lengths: list[int]
+) -> None:
+    assert parse_fastq_prefix(text, max_reads=max_reads) == (headers, lengths)
 
 
-def test_parse_fastq_prefix_on_empty_input() -> None:
-    assert parse_fastq_prefix("", max_reads=4) == ([], [])
+def test_peek_range_reads_a_url_and_reports_its_head(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `io peek` verb itself, not a hand-composition of its parts. Its two helpers are covered
+    above; what this pins is the FUNCTION -- the `max_bytes` it hands the range read, the `.decode()`,
+    and the PeekResult keys `seqforge io peek` prints -- none of which a test that inlines
+    `decompress_prefix` + `parse_fastq_prefix` exercises (#110)."""
+    data = _fastq_gz(200, read_len=90)
+    url = "https://ftp.x/head.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
+    result = peek(url, max_reads=4)
 
-def test_peek_round_trips_a_real_gzip_prefix() -> None:
-    """End-to-end over the pure path: bytes -> inflate -> records, exactly as `io peek` does."""
-    blob = _fastq_gz(200, read_len=90)
-    text = decompress_prefix(blob[:2048], max_bytes=1 << 20).decode("utf-8", errors="replace")
-    headers, lengths = parse_fastq_prefix(text, max_reads=4)
-    assert headers[0] == "@READ:0"
-    assert set(lengths) == {90}
-
-
-def test_zlib_wbits_31_is_the_gzip_incantation() -> None:
-    """Pin the magic number: 31 = 16 (gzip wrapper) + 15 (window). 15 alone would fail on gzip."""
-    blob = _fastq_gz(2)
-    assert zlib.decompressobj(31).decompress(blob).startswith(b"@READ:0")
-    with pytest.raises(zlib.error):
-        zlib.decompressobj(15).decompress(blob)
+    assert result["uri"] == url
+    assert result["example_header"] == "@READ:0"
+    assert result["n_records"] == 4  # capped by max_reads, not the 200 in the member
+    assert set(result["read_lengths"]) == {90}
+    assert (
+        0 < result["compressed_bytes_read"] <= (1 << 16)
+    )  # the default range bound, never the file
 
 
 # ---------------------------------------------------------------------------------------------
 # #39 — provider-md5 content key + fingerprint a library from a URL (probe_remote)
 # ---------------------------------------------------------------------------------------------
-
-
-def test_fastq_targets_pairs_each_url_with_its_md5() -> None:
-    """ENA's fastq_ftp and fastq_md5 are index-aligned; the join is positional. This is the one place a
-    URL and its content hash arrive together, which is what lets the remote probe key on the md5."""
-    run = {
-        "fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz",
-        "fastq_md5": "a" * 32 + ";" + "b" * 32,
-    }
-    assert fastq_targets(run) == [
-        ("https://ftp.x/a_1.fastq.gz", "a" * 32),
-        ("https://ftp.x/a_2.fastq.gz", "b" * 32),
-    ]
 
 
 def test_fastq_targets_pairs_before_sorting_so_url_and_md5_stay_aligned() -> None:
@@ -470,13 +483,17 @@ def test_content_key_from_md5_rejects_a_non_md5() -> None:
             content_key_from_md5(bad)
 
 
-def test_content_range_total_parses_the_size_and_abstains_when_unknown() -> None:
+def test_the_private_range_and_basename_helpers_parse_their_headers_and_uris() -> None:
+    """Two private helpers ``probe_remote``/``peek`` lean on, whose edge cases the public tests skip.
+
+    ``_content_range_total`` reads the whole-file size out of a 206's ``Content-Range`` and abstains
+    (``None``) when the server writes ``*`` or sends no such header; ``_uri_basename`` strips the query,
+    fragment and a trailing slash so a hosted FASTQ's basename survives a decorated URL.
+    """
     assert _content_range_total({"Content-Range": "bytes 0-65535/517000000"}) == 517000000
     assert _content_range_total({"Content-Range": "bytes 0-100/*"}) is None  # server doesn't know
     assert _content_range_total({}) is None
 
-
-def test_uri_basename_strips_query_fragment_and_slash() -> None:
     assert _uri_basename("https://ftp.x/vol1/SRR1_1.fastq.gz?foo=1#bar") == "SRR1_1.fastq.gz"
     assert _uri_basename("https://ftp.x/SRR1_2.fastq.gz/") == "SRR1_2.fastq.gz"
 

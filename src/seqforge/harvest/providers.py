@@ -155,6 +155,11 @@ class OpenAICompatibleProvider:
     def _resolve(self) -> Any:
         if self._client is not None:
             return self._client
+        # Check the credential BEFORE importing the SDK. A missing key cannot construct a client, so
+        # importing `openai` first would only pay the (heavy) import cost to raise the same error — and
+        # the key-check path must not depend on the SDK being installed at all.
+        if not self._api_key:
+            raise ProviderUnavailable(f"no API key for {self.name} ({self.base_url})")
         try:
             from openai import OpenAI
         except ImportError as exc:  # pragma: no cover - host dependent
@@ -162,8 +167,6 @@ class OpenAICompatibleProvider:
                 "the `openai` SDK is not installed (it is the client for OpenAI-compatible "
                 "endpoints such as DeepSeek)"
             ) from exc
-        if not self._api_key:
-            raise ProviderUnavailable(f"no API key for {self.name} ({self.base_url})")
         return OpenAI(api_key=self._api_key, base_url=self.base_url)
 
     def complete_json(

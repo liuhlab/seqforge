@@ -42,11 +42,10 @@ from seqforge.probe import probe_file
 from seqforge.resolve import Hypothesis, resolve_dataset, resolve_runs, role_of_sha_for
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
-from seqforge.resolve.engine import INDEX_MAX_LEN, index_tagged_roles
+from seqforge.resolve.engine import index_tagged_roles
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.geometry import (
     geometry_could_accept,
-    geometry_fingerprint,
     length_feasible,
 )
 from seqforge.resolve.scoring import Cell, TechEvaluation, build_tech_evaluation
@@ -70,15 +69,15 @@ def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
 def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
     """``resolve_runs(cpus>1)`` forks per-run scoring with a copy-on-write-shared warm registry; the
     result must be byte-identical to the serial (``cpus=1``) resolution -- the same runs in the same
-    order, each with the same winner and role assignment. Cores fold into no decision. Three distinct
-    accessions -> three runs, which forces the fork path (it needs more than one run)."""
+    order, each with the same winner and role assignment. Cores fold into no decision. Two distinct
+    accessions -> two runs, which forces the fork path (it needs more than one run)."""
     spec = kb.load_spec("10x-3p-gex-v3")
-    reads = kb.generate_reads(spec, n=800, seed=1)
+    reads = kb.generate_reads(spec, n=400, seed=1)
     reg = registry_for(
         spec, seed=1
     )  # whitelist matches the reads' seed so the barcodes actually hit
     paths: list[Path] = []
-    for acc in ("SRR7000001", "SRR7000002", "SRR7000003"):
+    for acc in ("SRR7000001", "SRR7000002"):
         for suffix, k in (("_1", "R1"), ("_2", "R2")):
             p = tmp_path / f"{acc}{suffix}.fastq.gz"
             _write_fastq_gz(p, reads[k])
@@ -95,8 +94,8 @@ def test_resolve_runs_parallel_matches_serial(tmp_path: Path) -> None:
         ]
 
     serial = resolve_runs(paths, registry=reg, use_cache=False, cpus=1)
-    parallel = resolve_runs(paths, registry=reg, use_cache=False, cpus=3)
-    assert len(serial.runs) == 3
+    parallel = resolve_runs(paths, registry=reg, use_cache=False, cpus=2)
+    assert len(serial.runs) == 2
     assert digest(serial) == digest(parallel)  # same decision, run for run
 
 
@@ -735,15 +734,14 @@ def test_resolve_runs_assigns_every_file_in_a_six_run_dataset(tmp_path: Path) ->
         assert not run.output.result.candidates[0].role_assignment.unassigned
 
 
-def test_runs_of_different_chemistries_partition_rather_than_block(tmp_path: Path) -> None:
-    """Two runs, two chemistries is a legal multi-assay PROJECT now, not a dataset-wide refusal.
-
-    The old "all runs must agree" block moved to per-sample (:meth:`sample_disagreements`): different
-    chemistries across different samples partition into assays; only a single sample split across
-    chemistries blocks. So resolve_runs itself no longer blocks -- it just resolves each run.
-    """
+@pytest.fixture(scope="module")
+def two_chemistry_multi(tmp_path_factory: pytest.TempPathFactory) -> Any:
+    """Two runs, two chemistries resolved ONCE: SRR1 -> v3, SRR2 -> bulk. A real 2-assay project (skips
+    all consumers if they happen to agree). The ``MultiRunOutput`` is an immutable resolve result, so
+    the ~4 tests below read one build instead of each re-resolving the same dataset."""
     from seqforge.resolve import resolve_runs
 
+    tmp = tmp_path_factory.mktemp("two_chemistry_multi")
     v3 = kb.load_spec("10x-3p-gex-v3")
     bulk = kb.load_spec("bulk-rnaseq-pe")
     reg = registry_for(v3)
@@ -751,31 +749,7 @@ def test_runs_of_different_chemistries_partition_rather_than_block(tmp_path: Pat
     for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
         reads = kb.generate_reads(spec, n=400, seed=0)
         for mate, role in zip(("1", "2"), keys, strict=True):
-            p = tmp_path / f"{acc}_{mate}.fastq.gz"
-            _write_fastq_gz(p, reads[role])
-            paths.append(p)
-
-    multi = resolve_runs(paths, registry=reg, use_cache=False)
-    techs = {r.winner for r in multi.runs}
-    if len(techs) < 2:  # pragma: no cover - the fixtures happened to agree; nothing to partition
-        pytest.skip(f"both runs resolved to {techs}; this fixture cannot exercise a partition")
-    assert not multi.blockers, "a 2-assay project is not a refusal"
-    assert set(multi.by_chemistry()) == techs  # it partitions into one group per chemistry
-
-
-def _two_chemistry_multi(tmp_path: Path):
-    """Two runs, two chemistries: SRR1 -> v3, SRR2 -> bulk. A real 2-assay project (skips if they
-    happen to agree)."""
-    from seqforge.resolve import resolve_runs
-
-    v3 = kb.load_spec("10x-3p-gex-v3")
-    bulk = kb.load_spec("bulk-rnaseq-pe")
-    reg = registry_for(v3)
-    paths: list[Path] = []
-    for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
-        reads = kb.generate_reads(spec, n=400, seed=0)
-        for mate, role in zip(("1", "2"), keys, strict=True):
-            p = tmp_path / f"{acc}_{mate}.fastq.gz"
+            p = tmp / f"{acc}_{mate}.fastq.gz"
             _write_fastq_gz(p, reads[role])
             paths.append(p)
     multi = resolve_runs(paths, registry=reg, use_cache=False)
@@ -784,8 +758,12 @@ def _two_chemistry_multi(tmp_path: Path):
     return multi
 
 
-def test_by_chemistry_partitions_the_runs_into_assays(tmp_path: Path) -> None:
-    multi = _two_chemistry_multi(tmp_path)
+def test_by_chemistry_partitions_the_runs_into_assays(two_chemistry_multi: Any) -> None:
+    """Two runs of two chemistries is a legal multi-assay PROJECT, not a dataset-wide refusal: it
+    partitions into one group per chemistry and ``resolve_runs`` itself never blocks (the old "all runs
+    must agree" block moved to per-sample :meth:`sample_disagreements`)."""
+    multi = two_chemistry_multi
+    assert not multi.blockers  # a 2-assay project is not a refusal
     groups = multi.by_chemistry()
     assert set(groups) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
     assert [r.run_id for r in groups["10x-3p-gex-v3"]] == ["SRR1"]
@@ -794,8 +772,8 @@ def test_by_chemistry_partitions_the_runs_into_assays(tmp_path: Path) -> None:
     assert sum(len(v) for v in groups.values()) == len(multi.runs)
 
 
-def test_role_of_sha_for_scopes_to_one_assays_runs(tmp_path: Path) -> None:
-    multi = _two_chemistry_multi(tmp_path)
+def test_role_of_sha_for_scopes_to_one_assays_runs(two_chemistry_multi: Any) -> None:
+    multi = two_chemistry_multi
     groups = multi.by_chemistry()
     v3_map = role_of_sha_for(groups["10x-3p-gex-v3"])
     # The v3 assay's role map covers only SRR1's files, none of SRR2's.
@@ -804,16 +782,18 @@ def test_role_of_sha_for_scopes_to_one_assays_runs(tmp_path: Path) -> None:
     assert set(v3_map) == srr1_shas  # both reads assigned, nothing dropped
 
 
-def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(tmp_path: Path) -> None:
-    multi = _two_chemistry_multi(tmp_path)
+def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(two_chemistry_multi: Any) -> None:
+    multi = two_chemistry_multi
     chem = multi.chemistry_of_sha()
     for run in multi.runs:
         for obs in run.output.observations:
             assert chem[obs.file.sha256] == run.winner
 
 
-def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(tmp_path: Path) -> None:
-    multi = _two_chemistry_multi(tmp_path)
+def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(
+    two_chemistry_multi: Any,
+) -> None:
+    multi = two_chemistry_multi
     by_run = {r.run_id: [o.file.sha256 for o in r.output.observations] for r in multi.runs}
 
     # One sample owning BOTH runs' files spans two chemistries -> a mis-grouping, blocks.
@@ -924,10 +904,11 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
 # ``accepts_at_rungs_0_2(a, probes[b]) => geometry_could_accept(a, probes[b])``.
 
 
-def test_fingerprint_is_deterministic() -> None:
-    for tech_id in kb.list_spec_ids():
-        spec = kb.load_spec(tech_id)
-        assert geometry_fingerprint(spec) == geometry_fingerprint(spec)
+# `test_fingerprint_is_deterministic` was deleted (#110): it asserted
+# `geometry_fingerprint(spec) == geometry_fingerprint(spec)` -- a pure function called twice on the
+# same object in the same process, which cannot fail. `geometry_fingerprint` is diagnostics-only and
+# has no callers in `src/` (geometry.py names `length_feasible` as the correctness predicate); the
+# feasibility predicate that DOES gate scoring is covered by the three feasibility tests below.
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -947,6 +928,13 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbP
     against ``b``'s reads — so skipping geometry-infeasible pairs can never miss a real confusable. The
     founding cross-geometry collision (``bulk-rnaseq-pe`` accepts ``splitseq``) must therefore still be
     seen by ``geometry_could_accept``.
+
+    #112 asked whether the ``geometry_could_accept`` pre-gate the confusability guard uses could bound
+    this O(n²) sweep too. It cannot, and the reason is CIRCULARITY: this test's subject IS
+    ``geometry_could_accept`` (it proves ``accepts_at_rungs_0_2 => geometry_could_accept``). Pre-gating
+    the ``accepts`` call on ``geometry_could_accept`` would only ever examine geometry-YES pairs, where
+    the implication is vacuously true, and would stop covering the geometry-NO pairs the guarantee is
+    about. So it stays ungated: n²·0.70ms, ~8.9s at 100 specs — survivable, and a circular gate is not.
     """
     ids = kb.list_spec_ids()
     specs = {i: kb.load_spec(i) for i in ids}
@@ -966,13 +954,21 @@ def test_descent_narrowing_never_drops_a_valid_spec(kb_probes: KbProbes) -> None
     score VALID with the full registry (rung 3 included) — so scoring the pool yields the identical
     winner as scoring the whole runnable KB. This is the property the whole "narrow, don't change the
     answer" design rests on, checked over every real leaf dataset against every runnable spec.
+
+    #112 asked for the ``geometry_could_accept`` pre-gate here. It is already present, as the
+    ``if length_feasible(spec, wps): continue`` below — ``geometry_could_accept`` IS ``length_feasible``
+    over WindowProbes (geometry.py). But note the DIRECTION: the confusability guard skips the expensive
+    scorer on geometry-NO pairs; this test scores exactly those pairs, because proving "an excluded spec
+    never scores VALID" is its whole subject. So a ``geometry_could_accept`` SKIP-gate would make it
+    vacuous. The scorer runs only on the length-infeasible minority, which is as narrow as the guarantee
+    allows. Growth is bounded by that, not by n² (0.25s at 12 specs after #105's shared kb_probes).
     """
     specs = kb.load_all_specs()
     runnable = [s for s in specs.values() if s.backend is not None]
     for tech in kb.runnable_spec_ids():
         wps = kb_probes[tech]
         for spec in runnable:
-            if length_feasible(spec, wps):
+            if length_feasible(spec, wps):  # == geometry_could_accept; the pre-gate, already here
                 continue
             ev = build_tech_evaluation(spec, wps, DEFAULT_REGISTRY)
             assert not ev.valid, (
@@ -1806,7 +1802,30 @@ def _reads(tmp_path: Path, *, extra: str | None) -> tuple[kb.Spec, OnlistRegistr
 _INDEX_BASENAME = "SRXidx_3.fastq.gz"
 
 
-def _filled_manifest(tmp_path: Path, spec: kb.Spec, reg: OnlistRegistry, paths: list[Path]):
+# The three `_reads` variants are immutable products (nobody writes into the FASTQ dirs), so each is
+# built once per module and shared across its consumers rather than rebuilt per test.
+@pytest.fixture(scope="module")
+def reads_plain(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    return _reads(tmp_path_factory.mktemp("reads_plain"), extra=None)
+
+
+@pytest.fixture(scope="module")
+def reads_with_index(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    return _reads(tmp_path_factory.mktemp("reads_index"), extra="index")
+
+
+@pytest.fixture(scope="module")
+def reads_with_cdna(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
+    return _reads(tmp_path_factory.mktemp("reads_cdna"), extra="cdna")
+
+
+def _filled_manifest(spec: kb.Spec, reg: OnlistRegistry, paths: list[Path]):
     out = resolve_dataset(paths, registry=reg, use_cache=False)
     return fill_manifest(
         result=out.result,
@@ -1825,40 +1844,62 @@ def _filled_manifest(tmp_path: Path, spec: kb.Spec, reg: OnlistRegistry, paths: 
 # ------------------------------------------------------------ the length gate itself
 
 
-def test_index_tagged_roles_tags_a_short_leftover_and_keeps_the_real_roles(tmp_path: Path) -> None:
-    spec, reg, paths = _reads(tmp_path, extra="index")
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
-    winner = out.result.candidates[0]
-    roles = index_tagged_roles(winner, out.observations)
+@pytest.mark.parametrize(
+    ("leftover_len", "tagged"),
+    [
+        pytest.param(8, True, id="8bp-leftover-tagged-index"),
+        pytest.param(26, False, id="26bp-above-the-gate-not-tagged"),
+        pytest.param(90, False, id="90bp-cdna-length-not-tagged"),
+    ],
+)
+def test_the_length_gate_tags_only_a_leftover_below_index_max_len(
+    leftover_len: int, tagged: bool, tmp_path: Path
+) -> None:
+    """The index length gate, exercised at BOTH ends -- this folds in the old ``10 < INDEX_MAX_LEN < 26``
+    shape assertion, behaviourally rather than by reading the constant.
 
+    A short technical leftover (8 bp) is tagged ``INDEX_ROLE`` and set aside, and the CB/cDNA files keep
+    the roles the optimizer gave them (the tag is additive). A 26 bp read (a v2 CB length, just above the
+    gate) and a 90 bp cDNA-length read are NOT tagged -- a stray full-length read is a DROPPED read, not
+    a technical index -- so they stay leftovers with no role at all, which ``validate`` then blocks. The
+    26 bp row is what pins INDEX_MAX_LEN below a barcode read.
+    """
+    spec = kb.load_spec(TECH)
+    reg = registry_for(spec)
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    paths: list[Path] = []
+    for suffix, k in (("_1", "R1"), ("_2", "R2")):
+        p = tmp_path / f"SRXidx{suffix}.fastq.gz"
+        write_fastq_gz(p, reads[k])
+        paths.append(p)
+    leftover = tmp_path / _INDEX_BASENAME  # the third-mate file, designation "3" -> never absorbed
+    rng = random.Random(0)
+    write_fastq_gz(
+        leftover, ["".join(rng.choice("ACGT") for _ in range(leftover_len)) for _ in range(600)]
+    )
+    paths.append(leftover)
+
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    roles = index_tagged_roles(out.result.candidates[0], out.observations)
     index_sha = next(o.file.sha256 for o in out.observations if o.file.basename == _INDEX_BASENAME)
-    assert roles[index_sha] == INDEX_ROLE
-    # The CB and cDNA files keep the roles the optimizer gave them — the index tag is additive.
-    assert set(roles.values()) >= {INDEX_ROLE}
-    assert any(role != INDEX_ROLE for role in roles.values())
-
-
-def test_a_cdna_length_leftover_is_never_tagged_index(tmp_path: Path) -> None:
-    """The gate is a safety: a stray full-length read is a DROPPED read, not a technical index."""
-    spec, reg, paths = _reads(tmp_path, extra="cdna")
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
-    winner = out.result.candidates[0]
-    roles = index_tagged_roles(winner, out.observations)
-    assert INDEX_ROLE not in roles.values()
-    # Its length is above the gate, so it stays a leftover with no role at all (validate will block).
-    assert len(roles) < len(paths)
-
-
-def test_the_gate_sits_below_a_barcode_read_and_above_an_index(tmp_path: Path) -> None:
-    # A documentation guard: 8/10 bp index reads pass, a 26 bp v2 / 28 bp v3 CB read never would.
-    assert 10 < INDEX_MAX_LEN < 26
+    if tagged:
+        assert roles[index_sha] == INDEX_ROLE
+        assert set(roles.values()) >= {INDEX_ROLE}
+        assert any(
+            role != INDEX_ROLE for role in roles.values()
+        )  # real roles kept; tag is additive
+    else:
+        assert INDEX_ROLE not in roles.values()
+        assert len(roles) < len(paths)  # the over-gate leftover stays with no role at all
 
 
 # ------------------------------------------------------------ multi-run engine path
 
 
-def test_the_multirun_role_map_tags_the_index_read(tmp_path: Path) -> None:
-    spec, reg, paths = _reads(tmp_path, extra="index")
+def test_the_multirun_role_map_tags_the_index_read(
+    reads_with_index: tuple[kb.Spec, OnlistRegistry, list[Path]],
+) -> None:
+    spec, reg, paths = reads_with_index
     multi = resolve_runs(paths, registry=reg, use_cache=False)
     role_of_sha = multi.role_of_sha()
     index_sha = next(
@@ -1871,9 +1912,11 @@ def test_the_multirun_role_map_tags_the_index_read(tmp_path: Path) -> None:
 # ------------------------------------------------------------ validate + compose
 
 
-def test_the_index_read_validates_clean_and_becomes_no_unit(tmp_path: Path) -> None:
-    spec, reg, paths = _reads(tmp_path, extra="index")
-    manifest = _filled_manifest(tmp_path, spec, reg, paths)
+def test_the_index_read_validates_clean_and_becomes_no_unit(
+    reads_with_index: tuple[kb.Spec, OnlistRegistry, list[Path]],
+) -> None:
+    spec, reg, paths = reads_with_index
+    manifest = _filled_manifest(spec, reg, paths)
 
     # The index file is in the inventory, tagged, and the pipeline reads never include it.
     index_items = [f for f in manifest.library.files if f.read_id == INDEX_ROLE]
@@ -1893,9 +1936,11 @@ def test_the_index_read_validates_clean_and_becomes_no_unit(tmp_path: Path) -> N
     }
 
 
-def test_a_stray_cdna_length_file_still_blocks(tmp_path: Path) -> None:
-    spec, reg, paths = _reads(tmp_path, extra="cdna")
-    manifest = _filled_manifest(tmp_path, spec, reg, paths)
+def test_a_stray_cdna_length_file_still_blocks(
+    reads_with_cdna: tuple[kb.Spec, OnlistRegistry, list[Path]],
+) -> None:
+    spec, reg, paths = reads_with_cdna
+    manifest = _filled_manifest(spec, reg, paths)
 
     assert not any(f.read_id == INDEX_ROLE for f in manifest.library.files)
     report = validate_manifest(manifest)
@@ -1903,81 +1948,28 @@ def test_a_stray_cdna_length_file_still_blocks(tmp_path: Path) -> None:
     assert any(b.code == BlockerCode.NO_VALID_ROLE_ASSIGNMENT for b in report.blockers)
 
 
-def test_a_clean_two_file_run_carries_no_index_role(tmp_path: Path) -> None:
-    """The no-leftover case is byte-identical to before: nothing is ever tagged index."""
-    spec, reg, paths = _reads(tmp_path, extra=None)
-    manifest = _filled_manifest(tmp_path, spec, reg, paths)
+def test_a_clean_two_file_run_carries_no_index_role(
+    reads_plain: tuple[kb.Spec, OnlistRegistry, list[Path]],
+) -> None:
+    """The no-leftover case is byte-identical to before: nothing is absorbed or tagged index.
+
+    Folds in the single-lane-unaffected check — a normal two-file run has no surplus siblings, so the
+    role map is exactly the two assigned roles and nothing is tagged — then carries it through to a
+    clean-validating manifest.
+    """
+    spec, reg, paths = reads_plain
+    out = resolve_dataset(paths, registry=reg, use_cache=False)
+    roles = index_tagged_roles(out.result.candidates[0], out.observations)
+    assert len(roles) == 2  # exactly the two assigned roles, nothing absorbed or tagged
+    assert INDEX_ROLE not in roles.values()
+
+    manifest = _filled_manifest(spec, reg, paths)
     assert not any(f.read_id == INDEX_ROLE for f in manifest.library.files)
     report = validate_manifest(manifest)
     assert report.ok, [b.message for b in report.blockers]
 
 
-# ------------------------------------------------------------ multi-lane surplus absorption
-
-
-def _multilane_reads(tmp_path: Path, lanes: int = 3) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
-    """One 10x v3 accession sequenced across ``lanes`` lanes: each lane an R1(28)+R2(90)+I1(8), named
-    the bcl2fastq way (``SRR..._S1_L001_R1_001.fastq.gz``). The shared SRA accession groups every lane
-    into ONE run -- the GSE208154 shape."""
-    spec = kb.load_spec(TECH)
-    reg = registry_for(spec)
-    reads = kb.generate_reads(spec, n=600, seed=0)
-    rng = random.Random(0)
-    paths: list[Path] = []
-    for lane in range(1, lanes + 1):
-        for mate, k in (("R1", "R1"), ("R2", "R2"), ("I1", None)):
-            p = tmp_path / f"SRR9000001_S1_L{lane:03d}_{mate}_001.fastq.gz"
-            if k is None:
-                write_fastq_gz(
-                    p, ["".join(rng.choice("ACGT") for _ in range(8)) for _ in range(600)]
-                )
-            else:
-                write_fastq_gz(p, list(reads[k]))
-            paths.append(p)
-    return spec, reg, paths
-
-
-def test_a_multilane_run_absorbs_every_lane_into_its_role(tmp_path: Path) -> None:
-    """GSE208154: one accession across N lanes -> one run of N*(R1+R2+I1). The injective assignment
-    fills each role ONCE, so the surplus lanes were left unassigned and the run blocked with
-    NO_VALID_ROLE_ASSIGNMENT. Now each surplus lane rejoins its role (barcode/cDNA) or is set aside
-    (index), so the run resolves and every file is placed."""
-    spec, reg, paths = _multilane_reads(tmp_path, lanes=3)
-    multi = resolve_runs(paths, registry=reg, use_cache=False)
-    assert not multi.blockers
-    assert len(multi.runs) == 1  # one accession -> one run holding all 9 files
-    assert multi.runs[0].winner in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
-
-    role_of_sha = multi.role_of_sha()
-    assert len(role_of_sha) == len(paths)  # every file placed -- nothing left to block
-    counts = Counter(role_of_sha.values())
-    assert counts[INDEX_ROLE] == 3  # the 3 I1 lanes set aside
-    non_index = sorted(c for r, c in counts.items() if r != INDEX_ROLE)
-    assert non_index == [3, 3]  # barcode and cDNA each carry all 3 lanes
-
-
-def test_multilane_units_emit_every_lane_and_exclude_index(tmp_path: Path) -> None:
-    """The point of absorption: units.tsv carries one row per lane per counted role (so STARsolo
-    comma-joins them), the index lanes are excluded, and the manifest validates clean."""
-    spec, reg, paths = _multilane_reads(tmp_path, lanes=3)
-    manifest = _filled_manifest(tmp_path, spec, reg, paths)
-
-    assert all(f.read_id is not None for f in manifest.library.files)  # nothing unassigned
-    assert sum(1 for f in manifest.library.files if f.read_id == INDEX_ROLE) == 3
-    report = validate_manifest(manifest)
-    assert report.ok, [b.message for b in report.blockers]
-    assert exit_code_for_report(report) == 0
-
-    rows = core._units(manifest)
-    assert all(row["read_id"] != INDEX_ROLE for row in rows)
-    # 3 lanes x 2 counted roles = 6 rows; each counted role appears once per lane.
-    assert len(rows) == 6
-    assert set(Counter(r["read_id"] for r in rows).values()) == {3}
-    # Every lane is the SAME run, so `fastqs(sample, role)` collects and comma-joins them by path.
-    assert len({r["run"] for r in rows}) == 1
-
-
-# ------------------------------------------------------------ multi-flowcell surplus absorption
+# ------------------------------------------------------------ multi-lane / multi-flowcell absorption
 
 
 def _multiflowcell_reads(
@@ -1985,12 +1977,12 @@ def _multiflowcell_reads(
     flowcells: tuple[str, ...] = ("HCL2YBBXY", "HCL2KBBXY"),
     lanes: int = 2,
 ) -> tuple[kb.Spec, OnlistRegistry, list[Path]]:
-    """One 10x v3 accession sequenced across several FLOWCELLS, each with ``lanes`` lanes of
+    """One 10x v3 accession sequenced across one or more FLOWCELLS, each with ``lanes`` lanes of
     R1(28)+R2(90)+I1(8), named the bcl2fastq way with the flowcell id in the stem
     (``SRR..._<FC>_S1_L001_R1_001.fastq.gz``). The shared SRA accession groups every file into ONE run
-    -- the GSE208154 shape (11 SRR runs x 2 flowcells x 8 lanes x {R1,R2,I1}). Because the flowcell id
-    differs between files, de-laning left the cross-flowcell surplus with a different identity than its
-    role representative, so it stayed unassigned and the run blocked; designation matching fuses them."""
+    -- the GSE208154 shape. The injective assignment fills each role once, leaving the other lanes and
+    flowcells surplus; absorption rejoins them by read designation (R1/R2, which ignores the differing
+    flowcell id) + length."""
     spec = kb.load_spec(TECH)
     reg = registry_for(spec)
     reads = kb.generate_reads(spec, n=600, seed=0)
@@ -2010,44 +2002,63 @@ def _multiflowcell_reads(
     return spec, reg, paths
 
 
-def test_a_multiflowcell_run_absorbs_every_flowcell_into_its_role(tmp_path: Path) -> None:
-    """GSE208154: one accession sequenced across 2 flowcells x 2 lanes -> one run of 4*(R1+R2+I1). The
-    files differ by flowcell id, so 2026.7.4's de-lane equality could not fuse the cross-flowcell surplus
-    (its de-laned name still carried the differing flowcell id) and the run blocked. Matching by read
-    designation (R1/R2) + length fuses them, so every file is placed and the run resolves. FAILS before
-    the fix (some files unassigned -> a blocker), passes after."""
-    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=("HCL2YBBXY", "HCL2KBBXY"), lanes=2)
+# One fact on two on-disk shapes: a single flowcell's lanes, and several flowcells whose differing
+# flowcell id the read designation ignores. De-laning is gone; `_read_designation` + `_LANE_LEN_TOL` is
+# the sole absorption mechanism, and both fixtures drive it identically.
+_ABSORPTION_SHAPES = [
+    pytest.param(("X",), 3, id="one-flowcell-three-lanes"),
+    pytest.param(("A", "B"), 2, id="two-flowcells-two-lanes"),
+]
+
+
+@pytest.mark.parametrize(("flowcells", "lanes"), _ABSORPTION_SHAPES)
+def test_a_multifile_run_absorbs_every_lane_and_flowcell_into_its_role(
+    flowcells: tuple[str, ...], lanes: int, tmp_path: Path
+) -> None:
+    """GSE208154: one accession across N lanes and/or flowcells -> one run of N*(R1+R2+I1). The
+    injective assignment fills each role ONCE, so the surplus lanes/flowcells were left unassigned and
+    the run blocked with NO_VALID_ROLE_ASSIGNMENT. Now each surplus file rejoins its role (barcode/cDNA)
+    by read designation + length, or is set aside (index), so the run resolves and every file is placed.
+    """
+    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=flowcells, lanes=lanes)
+    per_read = len(flowcells) * lanes  # (flowcell x lane) files carrying one read designation
     multi = resolve_runs(paths, registry=reg, use_cache=False)
     assert not multi.blockers
-    assert len(multi.runs) == 1  # one accession -> one run holding all 12 files
+    assert len(multi.runs) == 1  # one accession -> one run holding every file
     assert multi.runs[0].winner in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
 
     role_of_sha = multi.role_of_sha()
-    assert len(role_of_sha) == len(paths)  # every file placed across BOTH flowcells
+    assert len(role_of_sha) == len(paths)  # every file placed -- nothing left to block
     counts = Counter(role_of_sha.values())
-    assert counts[INDEX_ROLE] == 4  # 2 flowcells x 2 lanes of I1 set aside
+    assert counts[INDEX_ROLE] == per_read  # every (flowcell x lane) I1 set aside
     non_index = sorted(c for r, c in counts.items() if r != INDEX_ROLE)
-    assert non_index == [4, 4]  # barcode and cDNA each carry all 4 (flowcell x lane) files
+    assert non_index == [
+        per_read,
+        per_read,
+    ]  # barcode and cDNA each carry all (flowcell x lane) files
 
 
-def test_multiflowcell_units_emit_every_file_and_validate_clean(tmp_path: Path) -> None:
-    """End to end for the flowcell shape: every file placed -> the manifest validates clean and
-    units.tsv carries one row per (flowcell x lane) per counted role (STARsolo comma-joins them),
-    with the index files excluded."""
-    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=("HCL2YBBXY", "HCL2KBBXY"), lanes=2)
-    manifest = _filled_manifest(tmp_path, spec, reg, paths)
+@pytest.mark.parametrize(("flowcells", "lanes"), _ABSORPTION_SHAPES)
+def test_multifile_units_emit_every_file_and_exclude_index(
+    flowcells: tuple[str, ...], lanes: int, tmp_path: Path
+) -> None:
+    """The point of absorption: units.tsv carries one row per (flowcell x lane) per counted role (so
+    STARsolo comma-joins them), the index files are excluded, and the manifest validates clean."""
+    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=flowcells, lanes=lanes)
+    per_read = len(flowcells) * lanes
+    manifest = _filled_manifest(spec, reg, paths)
 
     assert all(f.read_id is not None for f in manifest.library.files)  # nothing unassigned
-    assert sum(1 for f in manifest.library.files if f.read_id == INDEX_ROLE) == 4
+    assert sum(1 for f in manifest.library.files if f.read_id == INDEX_ROLE) == per_read
     report = validate_manifest(manifest)
     assert report.ok, [b.message for b in report.blockers]
     assert exit_code_for_report(report) == 0
 
     rows = core._units(manifest)
     assert all(row["read_id"] != INDEX_ROLE for row in rows)
-    # 4 (flowcell x lane) x 2 counted roles = 8 rows; each counted role appears once per file.
-    assert len(rows) == 8
-    assert set(Counter(r["read_id"] for r in rows).values()) == {4}
+    # (flowcell x lane) x 2 counted roles rows; each counted role appears once per file.
+    assert len(rows) == per_read * 2
+    assert set(Counter(r["read_id"] for r in rows).values()) == {per_read}
     assert len({r["run"] for r in rows}) == 1  # all one accession -> one run, comma-joined
 
 
@@ -2142,16 +2153,6 @@ def test_read_designation_reads_the_mate_across_lanes_and_flowcells() -> None:
     assert _read_designation("x_R1.fastq.gz") != _read_designation("x_R2.fastq.gz")
     # A name that declares no mate designation -> None, so it is never absorbed (stays a blocker).
     assert _read_designation("sample_barcodes.fastq.gz") is None
-
-
-def test_a_clean_single_lane_run_is_unaffected_by_absorption(tmp_path: Path) -> None:
-    """Regression: the absorption only fires on surplus lane siblings. A normal single-lane run (one
-    R1 + one R2, no leftovers) is byte-identical to before -- no role is duplicated, nothing tagged."""
-    spec, reg, paths = _reads(tmp_path, extra=None)
-    out = resolve_dataset(paths, registry=reg, use_cache=False)
-    roles = index_tagged_roles(out.result.candidates[0], out.observations)
-    assert len(roles) == 2  # exactly the two assigned roles, nothing absorbed or tagged
-    assert INDEX_ROLE not in roles.values()
 
 
 # ================================================================================================
@@ -2264,43 +2265,42 @@ def _low_conf_warnings(report: m.ValidationReport) -> list[m.ValidationWarning]:
     return [w for w in report.warnings if w.code == "LOW_CONFIDENCE_CHEMISTRY"]
 
 
-def test_a_high_confidence_winner_raises_no_low_confidence_note() -> None:
-    report = validate_manifest(_hand_built_manifest(confidence=0.98, rung=3))
-    assert _low_conf_warnings(report) == []
-    assert report.ok is True
-    assert exit_code_for_report(report) == 0
-
-
-def test_a_geometry_only_lonely_low_winner_is_flagged_but_still_compiles() -> None:
-    # 0.44 is the compile audit's PRJNA658829 parental-sample class: geometry-only (rung 2), no onlist
-    # hit. It must warn — and, crucially, must NOT block: the note rides along at exit 0.
-    report = validate_manifest(_hand_built_manifest(confidence=0.44, rung=2))
+@pytest.mark.parametrize(
+    ("confidence", "rung", "warns"),
+    [
+        pytest.param(0.98, 3, False, id="high-confidence-rung3"),
+        pytest.param(0.44, 2, True, id="geometry-only-low-rung2"),
+        pytest.param(0.60, 2, True, id="mid-score-geometry-warns"),
+        pytest.param(0.60, 3, False, id="mid-score-onlist-trusted"),
+        pytest.param(None, 2, False, id="null-confidence-never-warns"),
+        pytest.param(1.0, 2, False, id="certain-rung2"),
+        pytest.param(1.0, 3, False, id="certain-rung3"),
+    ],
+)
+def test_the_low_confidence_chemistry_note_is_rung_aware(
+    confidence: float | None, rung: int, warns: bool
+) -> None:
+    """One note, rung-aware, and never blocking. A winning chemistry composes identically whether its
+    score is 0.95 or 0.44, so the low-confidence note is a non-blocking WARNING (exit 0), and it is
+    trusted at a lower score when an onlist backed it (rung 3) than when only geometry did (rung 2): the
+    same 0.60 warns at rung 2 and not at rung 3. ``confidence=None`` ("no judgement was weighed") has
+    nothing to floor. The single warning row keeps the message/subject checks the old 0.44 test proved.
+    """
+    report = validate_manifest(_hand_built_manifest(confidence=confidence, rung=rung))
     notes = _low_conf_warnings(report)
-    assert len(notes) == 1
-    assert "0.44" in notes[0].message
-    assert notes[0].subject.ref == "library.chemistry"
-    assert report.ok is True  # a warning never makes a manifest non-compilable
+    if warns:
+        assert len(notes) == 1
+        # 0.44 is the compile audit's PRJNA658829 parental-sample class (geometry-only, no onlist hit).
+        assert f"{confidence:.2f}" in notes[0].message
+        assert notes[0].subject.ref == "library.chemistry"
+    else:
+        assert notes == []
+    # A warning never makes a manifest non-compilable: the note rides along at exit 0.
+    assert report.ok is True
     assert exit_code_for_report(report) == 0
 
 
-def test_the_floor_is_rung_aware_an_onlist_winner_is_trusted_lower() -> None:
-    # A score that trips the geometry (rung 2) floor but clears the onlist (rung 3) floor: the same
-    # 0.60 warns without an onlist and does not warn with one, because an onlist positively
-    # participating is stronger evidence than bare geometry at the same number.
+def test_the_onlist_floor_sits_below_the_geometry_floor() -> None:
+    # Why the 0.60 row above flips on rung: an onlist positively participating (rung 3) is stronger
+    # evidence than bare geometry (rung 2) at the same number, so its floor sits lower.
     assert _CHEM_CONF_FLOOR_ONLIST < 0.60 < _CHEM_CONF_FLOOR_GEOMETRY
-    assert _low_conf_warnings(validate_manifest(_hand_built_manifest(confidence=0.60, rung=2)))
-    assert not _low_conf_warnings(validate_manifest(_hand_built_manifest(confidence=0.60, rung=3)))
-
-
-def test_a_null_confidence_never_warns() -> None:
-    # `confidence=None` is a legal "no judgement was weighed" value; there is nothing to floor.
-    report = validate_manifest(_hand_built_manifest(confidence=None, rung=2))
-    assert _low_conf_warnings(report) == []
-    assert report.ok is True
-
-
-@pytest.mark.parametrize("rung", [2, 3])
-def test_a_clean_certain_winner_never_warns_at_either_rung(rung: int) -> None:
-    assert not _low_conf_warnings(
-        validate_manifest(_hand_built_manifest(confidence=1.0, rung=rung))
-    )
