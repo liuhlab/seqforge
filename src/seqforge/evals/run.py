@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
@@ -58,6 +59,9 @@ class HarvestGrade:
     hallucinated: list[str] = field(default_factory=list)
     #: Drafts the span-verification tripwire rejected. Not a failure: this is the safety net doing its job.
     n_rejected: int = 0
+    #: Extraction calls actually made — one per normalized document, and an archive record with prose
+    #: is a document. The caller cannot infer this from the file count it passed in.
+    n_calls: int = 0
     #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
     #: times in three is a field you cannot depend on, and that is a finding in its own right.
     unstable: list[str] = field(default_factory=list)
@@ -69,6 +73,7 @@ class HarvestGrade:
             "missing": self.missing,
             "hallucinated": self.hallucinated,
             "n_rejected": self.n_rejected,
+            "n_calls": self.n_calls,
             "extracted": self.extracted,
         }
         if self.unstable:
@@ -174,7 +179,11 @@ def run_case(
                         seconds=time.monotonic() - started,
                     )
                 harvests.append(hg)
-                calls += len(docs)
+                # `hg.n_calls`, NOT `len(docs)`. Every archive record with prose is extracted as its
+                # own document too, so the carried-file count under-reports the real cost by the
+                # record count — on GSE126954 that is 1 against 983, and a cost metric off by three
+                # orders of magnitude is worse than none.
+                calls += hg.n_calls
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
                 if hyp is not None:
@@ -233,6 +242,11 @@ def run_case(
 #: rather than the compiler, and on a login node it is other people's work that pays. 24 is a
 #: maintainer's choice (2026-07-31), not a measurement — raise it per-run with ``--jobs``.
 MAX_DEFAULT_JOBS = 24
+
+#: Total extraction calls in flight across the WHOLE run, however the pools nest above it. Case-level
+#: and document-level concurrency multiply, and the provider sees the product; this is the one number
+#: it actually sees. Sized once at import so every pool in the process shares the same allowance.
+_EXTRACT_SLOTS = threading.Semaphore(min(MAX_DEFAULT_JOBS, (os.cpu_count() or 1) * 2))
 
 
 def default_jobs() -> int:
@@ -383,11 +397,33 @@ def _run_harvest(
             for r in case.records.records
             if has_prose(r) and fields_for(r.level, "reference")
         ]
+    # One extraction per document, concurrently. This loop, not the case loop, is where a real
+    # dataset's cost lives: every archive record with prose is its own document, so GSE126954's 966
+    # runs make 982 calls inside ONE case. Running cases in parallel cannot touch that — the case is
+    # the unit above this — so a serial loop here left the `--llm` tier hours long and effectively
+    # unrunnable. Bound by the same `default_jobs()` the case level uses; the calls are socket waits.
+    #
+    # `map` preserves order, and that is required rather than tidy: `verify_drafts` and the
+    # last-wins `by_field` below both read this list positionally, so a completion-ordered `drafts`
+    # would make a case's graded assertions depend on which request returned first.
     drafts: list[AssertionDraft] = []
     usage: dict[str, int] = {}
     extractor: ExtractorProvenance | None = None
-    for doc in docs:
-        outcome = extract_drafts(doc, specs, provider=llm, model=model)
+
+    def _extract(doc: NormalizedDoc) -> Any:
+        # The semaphore, not the pool size, is what the provider sees. Two pools nest here — cases
+        # above, documents below — and pool sizes MULTIPLY: 14 cases x 24 documents is 336 requests
+        # in flight from one key, which measures the provider's rate limiter and not the compiler.
+        with _EXTRACT_SLOTS:
+            return extract_drafts(doc, specs, provider=llm, model=model)
+
+    if len(docs) <= 1:
+        outcomes = [_extract(d) for d in docs]
+    else:
+        with ThreadPoolExecutor(max_workers=min(default_jobs(), len(docs))) as pool:
+            outcomes = list(pool.map(_extract, docs))
+
+    for outcome in outcomes:
         drafts.extend(outcome.drafts)
         extractor = outcome.extractor
         for k, v in outcome.usage.items():
@@ -398,7 +434,7 @@ def _run_harvest(
     accepted: list[Assertion] = report.assertions
     by_field = {a.field: a for a in accepted}
 
-    grade = HarvestGrade(n_rejected=len(report.rejected))
+    grade = HarvestGrade(n_rejected=len(report.rejected), n_calls=len(docs))
     grade.extracted = {a.field: str(a.value) for a in accepted}
     for want in case.expected.assertions:
         got = by_field.get(want.field)
@@ -437,6 +473,7 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     merged.missing = sorted({f for g in grades for f in g.missing})
     merged.matched = sorted(set.intersection(*(set(g.matched) for g in grades)))
     merged.n_rejected = sum(g.n_rejected for g in grades)
+    merged.n_calls = sum(g.n_calls for g in grades)  # cost is spent per trial, not merged away
     seen = {f for g in grades for f in g.matched}
     merged.unstable = sorted(seen - set(merged.matched))
     for g in grades:
