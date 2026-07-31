@@ -58,7 +58,7 @@ def eval_run(
         1.0, "--fail-under", help="Exit 3 if field accuracy drops below this."
     ),
 ) -> None:
-    """Run the eval corpus and report brief §9's metrics.
+    """Run the eval corpus and report its metrics.
 
     `--no-llm` (the default) restricts to deterministic cases, so this runs in a CI with no API key;
     prose cases skip rather than fail. Exit 3 if any false-accept occurs or accuracy drops below

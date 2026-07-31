@@ -2,7 +2,7 @@
 
 A pure function of the manifest plus two versioned inputs recorded in provenance (the KB and the
 hand-written workflow modules). It selects a module and emits ``config.yaml`` + ``units.tsv``; it
-never writes rule source. The three-part gate (design §4.1) runs here: the deterministic **params**
+never writes rule source. The three-part gate runs here: the deterministic **params**
 assertions always, **wiring** (`snakemake -n`/`--lint`) and **e2e** (the count-matrix run) only when
 their toolchain exists — otherwise ``skip``, never a silent ``pass``.
 """

@@ -2,7 +2,7 @@
 
 Pydantic generics are structural: ``Evidenced[str]`` has no stable class name, so exporting it inlines
 an anonymous schema and the ``$defs`` churn every time an unrelated field moves. Naming each one keeps
-the exported JSON Schema (design §1.8, the single source of truth) diffable.
+the exported JSON Schema — the single source of truth — diffable.
 
 These are the wrappers whose payload is a **base scalar**, so they can be shared by both halves of the
 manifest without either half importing the other. A wrapper over a *domain* type lives next to that
@@ -37,7 +37,7 @@ class EvidencedAssay(Evidenced[AssayTerm]):
 
 
 class EvidencedChemistrySet(Evidenced[list[ChemistryId]]):
-    """An ``Evidenced`` chemistry equivalence class (benign twins recorded together, §12)."""
+    """An ``Evidenced`` chemistry equivalence class (benign twins recorded together)."""
 
 
 class EvidencedAccessionList(Evidenced[list[Accession]]):

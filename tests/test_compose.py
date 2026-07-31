@@ -611,10 +611,11 @@ def test_compose_refuses_when_the_whitelist_cannot_be_materialized(
 
 
 def _one_spec_per_distinct_backend() -> list[str]:
-    """One representative per processing-equivalence class — the §12 biconditional, used as leverage.
+    """One representative per processing-equivalence class — the biconditional, used as leverage.
 
     Composing "10x-3p-gex-v3.1 specifically" is not a thing the system can do: it is byte-identical
-    to v3, so the resolver picks v3 and `fill` refuses the mismatch. That is §12 working, not a bug.
+    to v3, so the resolver picks v3 and `fill` refuses the mismatch. That is the benign-twin rule
+    working, not a bug.
     And it costs no coverage: backend-identical specs render an identical config **by definition**,
     which is exactly what `processing_equivalent` asserts. So collapse the class and test one.
 
@@ -631,9 +632,9 @@ def _one_spec_per_distinct_backend() -> list[str]:
 def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
     tech: str, tmp_path: Path
 ) -> None:
-    """One representative per §12 processing-equivalence class, composed against the module its backend
+    """One representative per processing-equivalence class, composed against the module its backend
     selects — so a chemistry cannot hide behind a hardcoded ``{module: tech}`` dict key. The axis is
-    derived from ``canonical_backend``, never a hand list (R8): a genuinely divergent new spec gets its
+    derived from ``canonical_backend``, never a hand list: a genuinely divergent new spec gets its
     own case automatically. Two facts share one ``_build`` + ``plan`` — they were byte-identical setup
     paid twice per tech:
 

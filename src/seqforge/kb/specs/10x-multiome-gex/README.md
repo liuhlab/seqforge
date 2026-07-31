@@ -27,7 +27,7 @@ spec closes that: it is a child of the `10x-3p-gex` family, declares a **positiv
 | `soloCBwhitelist` | `{onlist:cb_whitelist}` → 3M | `{onlist:cb_whitelist}` → **ARC** |
 | Everything else in `backend.params` | — | **identical** |
 
-Because the two differ *only* in `soloCBwhitelist`, `backend_identical` (design §2.4) is correctly
+Because the two differ *only* in `soloCBwhitelist`, `backend_identical` is correctly
 **false**, and the `confusable_with` edge is `processing_divergent`, `distinguishable_by: [onlist]`.
 
 ## Counting is not chemistry

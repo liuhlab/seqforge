@@ -337,7 +337,7 @@ def _probe_via_cli(path: Path) -> dict[str, Any]:
 
 
 def test_the_probe_cli_verb_emits_the_same_observation_as_the_library(tmp_path: Path) -> None:
-    """R6: the CLI is the API. A verb no test runs is a verb that can rot silently.
+    """The CLI is the API. A verb no test runs is a verb that can rot silently.
 
     `docs/getting-started.md` once told a reader to run `seqforge probe` after it had been removed
     from the skills, which is the failure this closes: the verb is exercised end to end, and its JSON

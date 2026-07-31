@@ -5,7 +5,7 @@ Deterministic and LLM-free. Signature-test evaluators score a JSON-safe evidence
 files->roles map per technology; escalation turns the ranked candidates into exactly one of
 ``Decision`` / ``Conflict`` / ``Question`` / ``Blocker`` with rung provenance. Every artifact is
 content-addressed under ``.seqforge/``. The only interpretive input is a span-verified
-``hypothesis`` that steers control flow — it never enters the matrix (§3.4).
+``hypothesis`` that steers control flow — it never enters the matrix.
 """
 
 from __future__ import annotations

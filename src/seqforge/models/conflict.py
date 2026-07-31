@@ -1,6 +1,6 @@
 """``Conflict`` — a surfaced disagreement between truths, never auto-picked.
 
-``positions`` generalizes the common observed/asserted pair; ``status="benign"`` is the §12 escape
+``positions`` generalizes the common observed/asserted pair; ``status="benign"`` is the escape
 hatch for two confusable KB entries that emit identical ``backend.params``.
 """
 
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from .base import Basis, Confidence, Rung
 
 Decidable = Literal["reads", "onlist", "metadata", "alignment", "user"]
-"""How a divergent pair could be separated. Includes ``onlist`` — the rung-3 mechanism §12 uses."""
+"""How a divergent pair could be separated. Includes ``onlist`` — what rung 3 reaches for."""
 
 
 class ConflictPosition(BaseModel):

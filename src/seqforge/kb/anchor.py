@@ -1,4 +1,4 @@
-"""Per-read window resolution for **anchored / variable-position** elements (design §2.1, §9/§10).
+"""Per-read window resolution for **anchored / variable-position** elements.
 
 Most chemistries put every element at a fixed ``[start, end)`` and the scorer slices a constant column.
 A few do not: BD Rhapsody's *Enhanced* bead prepends a **variable 0-3 bp diversity insert** to Read 1,

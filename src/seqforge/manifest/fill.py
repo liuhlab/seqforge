@@ -1,6 +1,6 @@
 """``manifest fill`` — assemble the two-section :class:`DatasetManifest` from a resolve Decision.
 
-Each section keeps its own authority (design §1.6):
+Each section keeps its own authority:
 
 - ``library``   = **evidence**. Chemistry, read layout, and the file->role assignment all come from
   the winning candidate, so every field is ``basis="observed"`` with the file shas as evidence.
@@ -230,7 +230,7 @@ def fill_manifest(
 
     library = LibrarySection(
         chemistry=EvidencedChemistrySet(
-            # the §12 equivalence class: benign twins are recorded together, machine-visibly
+            # the chemistry equivalence class: benign twins are recorded together, machine-visibly
             value=chemistry,
             basis="observed",
             evidence=sorted(obs_by_sha),
@@ -341,7 +341,7 @@ def fill_processing(
 
 
 def _assay_labels(chemistry: list[str], specs: dict[str, Spec] | None) -> list[AssayLabel]:
-    """The chemistry set, spelled in EFO. One label per member — including the §12 twin.
+    """The chemistry set, spelled in EFO. One label per member — including a benign twin.
 
     This is where the pilot's ``assay: EFO:0009922`` beside ``chemistry: [v3, v3.1]`` came from: the
     assay field held one CURIE and the chemistry field held two ids, so v3.1's own term

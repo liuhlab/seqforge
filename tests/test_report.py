@@ -81,7 +81,7 @@ def own_workspace(_bulk_workspace: Path, tmp_path: Path) -> Path:
     """A private copy, for the tests that delete from or add to the workspace.
 
     Mutating the shared one would make this file order-dependent — the exact failure mode a workspace
-    with an implicit resume cache (R5) turns into a test that passes for the wrong reason.
+    with an implicit resume cache turns into a test that passes for the wrong reason.
     """
     dst = tmp_path / "workspace"
     shutil.copytree(_bulk_workspace, dst)

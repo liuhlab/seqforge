@@ -1,4 +1,4 @@
-"""The eval runner — drive real cases through the real compiler and score the outcome (brief §9).
+"""The eval runner — drive real cases through the real compiler and score the outcome.
 
 This runs the shipping code path, not a reimplementation of it: ``materialize -> [harvest] -> resolve``
 via the same ``resolve_dataset`` / ``extract_drafts`` / ``verify_drafts`` the CLI calls. An eval that
@@ -234,7 +234,7 @@ def run_cases(
     model: str | None = None,
     trials: int = 1,
 ) -> tuple[EvalReport, list[CaseRun]]:
-    """Run every case and aggregate into the brief §9 metric set."""
+    """Run every case and aggregate into the harness's metric set."""
     runs = [run_case(c, llm=llm, provider=provider, model=model, trials=trials) for c in cases]
     return build_report(runs), runs
 

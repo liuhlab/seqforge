@@ -659,7 +659,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     re-prove one of three facts and only ``map/starsolo`` was ever asserted on. This is the same
     claim on the interface that owns it: every registered module, exhaustively.
 
-    The tech comes from the KB, not a hand-written list (R8) — a fourth module gets a case the moment
+    The tech comes from the KB, not a hand-written list — a fourth module gets a case the moment
     a spec targets it, and a module no spec reaches fails loudly rather than going untested.
 
     It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of

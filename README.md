@@ -42,9 +42,10 @@ to a validated manifest + a runnable Snakefile in one headless pass. The ground-
 (`kb e2e`) are still on synthetic yeast/worm fixtures with injected counts — it has not yet executed a
 pipeline on real reads at scale.
 
-Docs: **<https://liuhlab.github.io/seqforge/>** · design + rationale + scope delta:
-[`docs/design.md`](docs/design.md) (its §9 is the running list of what is *not* yet built) · rules:
-[`CLAUDE.md`](CLAUDE.md)
+Docs: **<https://liuhlab.github.io/seqforge/>** · rules and where to read next:
+[`AGENTS.md`](AGENTS.md) (`CLAUDE.md` is a symlink to it) · the reference behind each area:
+[`docs/agents/`](docs/agents/) · one decision per file: [`docs/adr/`](docs/adr/) · what is *not* yet
+built: the open issues
 
 ## Install
 
@@ -77,7 +78,7 @@ pixi run check                   # lint + fmt-check + typecheck + test
 pixi run -- pre-commit install   # once per clone — ruff, mypy, shellcheck (not the suite)
 ```
 
-Most of the non-negotiable rules in `CLAUDE.md` are enforced by tests, so `pixi run check` is the
+Most of the non-negotiable rules in `AGENTS.md` are enforced by tests, so `pixi run check` is the
 mechanism rather than a formality — and CI runs it on every push and PR. The pre-commit hooks are
 deliberately limited to the fast ones, so run `check` yourself when you change behaviour.
 

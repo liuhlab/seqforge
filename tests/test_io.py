@@ -254,7 +254,7 @@ def test_the_code_set_hash_ignores_order_and_duplicates_but_not_membership() -> 
 def test_the_registry_refuses_a_whitelist_that_is_not_the_declared_one(tmp_path: Path) -> None:
     """A wrong whitelist does not error downstream. It silently produces a thin matrix.
 
-    That is the same failure shape as an inverted strand (§5), so the check must be here, at the
+    That is the same failure shape as an inverted strand, so the check must be here, at the
     point where bytes become a whitelist, and it must refuse rather than warn.
     """
     from seqforge.io.onlist import OnlistNotAvailable, OnlistRegistry, RegistryEntry
@@ -347,7 +347,7 @@ def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
     """Pinned to numbers verified against 10x's OWN CellRanger 7.2.0 on 2026-07-15, not remembered.
 
     v3 is separable from 10x Multiome and GEM-X by whitelist ALONE -- all three share the 28 bp /
-    16+12 geometry (§12) -- so if these barcodes are wrong, the resolver confidently decides the
+    16+12 geometry -- so if these barcodes are wrong, the resolver confidently decides the
     wrong chemistry and nothing downstream disagrees.
 
     The code-set hashes below were derived by packing three independent copies of each list (the
@@ -386,7 +386,7 @@ def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
         assert codes_sha256(packed.codes) == sha, f"{name}: these are not the declared barcodes"
         packed_by_name[name] = packed
 
-    # ~0.16% chance hit rate for a random 16-mer: the 500:1 signal-to-noise (§5) relies on it. Read off
+    # ~0.16% chance hit rate for a random 16-mer: the 500:1 signal-to-noise relies on it. Read off
     # the 3M list already decoded above rather than decoding the 6.8M barcodes a second time.
     assert 0.001 < packed_by_name["3M-february-2018"].floor < 0.002
 

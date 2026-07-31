@@ -350,7 +350,7 @@ class Spec(_Forbid):
         That is the exact shape of `RegistryEntry.fetchable` before it was derived, and of
         `required_config` before that. Deriving it is the only fix that stays fixed.
 
-        ``processing_equivalent`` twins are excluded on purpose: §12 says two entries with identical
+        ``processing_equivalent`` twins are excluded on purpose: two entries with identical
         ``backend.params`` are declared equivalent and recorded together, so there is nothing to
         decide between them and no mechanism that could.
         """

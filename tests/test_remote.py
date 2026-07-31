@@ -355,7 +355,7 @@ def test_the_detector_abstains_rather_than_falsely_accusing(
 def test_remedy_names_fasterq_dump_first_not_sdl() -> None:
     """SDL is a fallback: originals exist for select studies only, so most runs dead-end there.
 
-    The remedy must be operable (design §1.5) — naming the usually-empty path first is not.
+    A Blocker's remedy must be operable — naming the usually-empty path first is not.
     """
     remedy = technical_read_remedy("SRR9170959")
     assert "--include-technical" in remedy

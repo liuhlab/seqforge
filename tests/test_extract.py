@@ -80,7 +80,7 @@ def _batch(
     )
 
 
-# ---------- the wire schema (design §1.8) ----------
+# ---------- the wire schema ----------
 def test_llm_schema_is_derived_from_the_canonical_model() -> None:
     schema = llm_schema()
     assert "AssertionDraft" in schema["$defs"]
@@ -88,7 +88,7 @@ def test_llm_schema_is_derived_from_the_canonical_model() -> None:
 
 
 def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
-    """Design §1.8: constraints live in the canonical schema (Pydantic enforces them at ingest) and
+    """Constraints live in the canonical schema (Pydantic enforces them at ingest) and
     are stripped from the LLM-facing one. The SDK performs that transform, so there is no second
     hand-maintained schema to drift — this is the CI guard on that.
 

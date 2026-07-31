@@ -16,8 +16,9 @@ import pytest
 import yaml
 
 #: `repo` is applied PER TEST, not to the whole module (#113). Half this file introspects the live
-#: Typer app and goes red when `src/` changes — that is exactly what R6 names its anchor to catch, so
-#: those tests must run under `test-fast` (a machine with no snakemake still wants R6 checked). Only the
+#: Typer app and goes red when `src/` changes — a renamed verb leaving the skills behind is exactly
+#: what they exist to catch, so those tests must run under `test-fast` (a machine with no snakemake
+#: still wants the skill-vs-CLI agreement checked). Only the
 #: five tests that genuinely check the shipped skills/installer rather than `src/` carry `@pytest.mark.repo`.
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -79,9 +80,11 @@ def _code_spans(body: str) -> str:
 
 
 def _doc_pages() -> list[Path]:
-    """Every published page. `design.md` is excluded from the SITE and included here: it is the
-    agent-facing source of truth, and an agent following a fictional verb fails exactly as a human
-    does."""
+    """Every markdown page under `docs/`, published or not.
+
+    The agent-facing trees (`agents/`, `adr/`) are excluded from the SITE and included here on
+    purpose: an agent following a fictional verb fails exactly as a human reader does.
+    """
     return sorted(DOCS.rglob("*.md"))
 
 
@@ -118,7 +121,7 @@ def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
     Only long options, and only for verbs we can resolve: a short flag is ambiguous in prose, and a
     placeholder like `--profile <your-cluster-profile>` belongs to snakemake, not to us.
 
-    R6 names this function; do not rename it without updating CLAUDE.md's enforcement table.
+    The agent-facing rule table names this function; do not rename it without updating that table.
     """
     real = _real_verbs()
     used = _verbs_used(page.read_text())
@@ -196,8 +199,8 @@ def _real_cli() -> tuple[set[str], set[str]]:
 #: earned by a false positive this guard actually produced:
 #:
 #: - **line-start, or after `pixi run -- `**. That is how a command appears. Mid-sentence it is
-#:   English: `design.md` contains "liulab-genome does not fetch annotations; seqforge stages the
-#:   GTF", inside a docstring, inside a fence — and `stages` is a verb in the grammatical sense only.
+#:   English: `docs/agents/layout.md` contains "liulab-genome does not fetch annotations — seqforge
+#:   stages the GTF", and `stages` is a verb in the grammatical sense only.
 #: - **`[ \t]`, not `\s`**: a newline ends an invocation. `\s` crossed it, so a fenced block reading
 #:   `git clone .../seqforge` then `cd seqforge` parsed as the verb `seqforge cd`.
 #: - **at most three words**: past that you are reading arguments.

@@ -14,7 +14,7 @@ Everything else in seqforge is a verifier. This module's entire job is to turn p
   strict-schema providers and json-object providers differ in how *likely* a malformed batch is,
   never in whether one could reach the manifest.
 
-The wire schema is derived from ``AssertionDraft`` (design §1.8) — never hand-maintained — so the
+The wire schema is derived from ``AssertionDraft`` — never hand-maintained — so the
 contract cannot drift from ``models/``.
 """
 
@@ -33,7 +33,7 @@ from .normalize import NormalizedDoc
 from .providers import LLMProvider, ProviderUnavailable, resolve_provider, schema_prompt
 
 #: Bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is reproducible and
-#: blamable, and evals treat a prompt edit as a code change (brief §9).
+#: blamable, and evals treat a prompt edit as a code change.
 #: 2026.7.1 — gave `experiment.samples.{tissue,condition}` and `accessions` operational definitions.
 #: `eval run --llm` caught DeepSeek V4-Pro filing standard worm husbandry ("maintained on NGM plates
 #: seeded with E. coli OP50 at 20 C") as an experimental *condition*: a real quote, correctly copied,
@@ -192,7 +192,7 @@ def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
 
 
 def llm_schema() -> dict[str, Any]:
-    """The wire schema, derived from the canonical model (design §1.8)."""
+    """The wire schema, derived from the canonical model."""
     return ExtractionResult.model_json_schema()
 
 

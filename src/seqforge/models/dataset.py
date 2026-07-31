@@ -157,7 +157,8 @@ class AssayLabel(BaseModel):
     This exists because ``assay: EFO:0009922`` beside ``chemistry: [10x-3p-gex-v3,
     10x-3p-gex-v3.1]`` was two puzzles at once. *What is the difference between them?* — none, they
     are the same fact in two vocabularies. *Why is one a list and the other not?* — because the
-    §12 equivalence class has two members and the assay field could only hold one, so it silently
+    chemistry equivalence class has two members and the assay field could only hold one, so it
+    silently
     dropped v3.1's CURIE.
 
     Making it a label per chemistry answers both and removes a third problem nobody had noticed: an

@@ -3,7 +3,7 @@
 Span verification is the hallucination tripwire, and it dies on raw PDF text: a naive grep for a
 quote fails on soft hyphens, ligatures (``ﬁ`` vs ``fi``), non-breaking spaces, smart quotes, and
 mid-sentence line breaks — so a *truthful* quote would be rejected and the tripwire would train us to
-ignore it. The fix (brief §12) is to extract **once** into a normalized canonical text, store offsets
+ignore it. The fix is to extract **once** into a normalized canonical text, store offsets
 into **that**, and verify against **that**.
 
 Deterministic and LLM-free. ``normalizer_version`` is folded into the artifact cache key, because a

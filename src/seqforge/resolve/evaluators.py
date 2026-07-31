@@ -1,4 +1,4 @@
-"""Signature-test evaluators — the CLOSED set that mirrors ``kb.schema`` exactly (§3.1).
+"""Signature-test evaluators — the CLOSED set that mirrors ``kb.schema`` exactly.
 
 ``evaluate(test, read, wp, spec, registry)`` returns an :class:`Evaluation` carrying both a gate
 ``outcome`` (``PASS`` / ``FAIL`` / ``ABSTAIN``) and a supports ``score`` in ``[0, 1]``. The caller

@@ -80,7 +80,7 @@ ASKED_SAMPLE_ATTRIBUTES: tuple[str, ...] = (
 )
 
 #: Manifest paths worth asking of a document about the whole dataset. ``library.*`` is byte-decidable
-#: and only ever a HYPOTHESIS here (resolve owns the decision, §3.4); ``experiment.*`` is the part
+#: and only ever a HYPOTHESIS here (the byte resolver owns the decision); ``experiment.*`` is the part
 #: bytes genuinely cannot see.
 DEFAULT_FIELDS: tuple[str, ...] = (
     "library.chemistry",

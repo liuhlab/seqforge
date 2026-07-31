@@ -1,10 +1,10 @@
-"""Confusability helpers — the ``§12`` benign rule and its ``backend_identical`` biconditional.
+"""Confusability helpers — the benign-twin rule and its ``backend_identical`` biconditional.
 
 Two technologies are **processing-equivalent** iff, after resolving every ``{onlist:alias}`` to its
 registry name and normalizing key order **and** the read->role placement, their ``backend.params``
 canonical forms are byte-equal. Including role placement matters: two techs that differ only in
 *which* read is biological must not be called benign. The CI biconditional is
-``backend_identical(A, B) <=> declared processing_equivalent`` (§2.4); this module provides the
+``backend_identical(A, B) <=> declared processing_equivalent``; this module provides the
 ``backend_identical`` primitive and the declared-relationship lookups the resolver consults at
 runtime to decide a benign record-both vs a divergent tie.
 
@@ -55,7 +55,7 @@ def canonical_backend(spec: Spec) -> str:
     # chemistries with identical DECLARED params can still parse reads differently. The original BD bead
     # and the Enhanced-96 bead share soloType, whitelists and strand; only their geometry differs (fixed
     # offsets vs an adapter-anchored, diversity-insert-staggered frame). Comparing declared params alone
-    # called them byte-identical -> §12-benign -> one config for both. Local import: `compose` reads the
+    # called them byte-identical -> benign -> one config for both. Local import: `compose` reads the
     # KB, so importing it at module load would knot resolve<->compose. (#43)
     from ..compose.params import derived_params
 
@@ -81,7 +81,7 @@ def _resolve_value(value: object, spec: Spec) -> object:
         # `soloCBwhitelist: [round1, round2, round3]` — which is POSITIONAL. The rounds map to CB
         # positions in order. Sorting it made `backend_identical` return True for a spec against
         # itself-with-rounds-permuted: two chemistries that parse reads DIFFERENTLY, declared byte-
-        # equal, hence §12-benign, hence one config emitted for both. It never fired only by the
+        # equal, hence benign, hence one config emitted for both. It never fired only by the
         # alphabetical accident that round1 < round2 < round3.
         return [_resolve_token(v, spec) if isinstance(v, str) else v for v in value]
     return value
@@ -105,7 +105,7 @@ def accepts_at_rungs_0_2(spec: Spec, probes: list[object]) -> bool:
 
     The onlist is withheld by handing the evaluator an **empty registry**, so every
     ``onlist_hit_rate`` test abstains and the verdict rests on geometry, segmentation, distinct-value
-    ratios and header grammar alone. That is precisely rungs 0-2 (§5), expressed by removing the
+    ratios and header grammar alone. That is precisely rungs 0-2, expressed by removing the
     rung-3 evidence rather than by reimplementing the scorer without it.
 
     This is the primitive behind :func:`rung02_separable`, and it is why "ask the human" can be a
@@ -120,7 +120,7 @@ def accepts_at_rungs_0_2(spec: Spec, probes: list[object]) -> bool:
 
 
 def rung02_separable(a: Spec, a_probes: list[object], b: Spec, b_probes: list[object]) -> bool:
-    """Do the cheap probes tell these two chemistries apart at all? (design §2.4, fact 1)
+    """Do the cheap probes tell these two chemistries apart at all?
 
     Separable iff **neither** spec accepts the other's data on geometry alone. If A would happily
     claim B's reads, no amount of scoring rigour separates them below rung 3 — the honest thing is
@@ -135,7 +135,7 @@ def rung02_separable(a: Spec, a_probes: list[object], b: Spec, b_probes: list[ob
 
 
 def declared_equivalents(spec: Spec) -> set[str]:
-    """Ids the spec declares as ``processing_equivalent`` twins (benign, ``§12`` record-both)."""
+    """Ids the spec declares as ``processing_equivalent`` twins (benign: record both)."""
     return {c.id for c in spec.confusable_with if c.relationship == "processing_equivalent"}
 
 

@@ -172,8 +172,8 @@ class ProcessingSection(BaseModel):
     ==================  =================  ==========================
 
     The first two share a basis and differ only in precedence — both are the user talking to seqforge,
-    one just talks later — so the *channel* lives in ``evidence``. That is what design §1.0's open
-    note already prescribed, and it is why no ``policy_default`` basis is needed: once a section can
+    one just talks later — so the *channel* lives in ``evidence``. That is also why no
+    ``policy_default`` basis is needed: once a section can
     carry a **varying** basis, ``inferred`` plus an evidence ref naming the rule is distinguishable by
     inspection.
     """

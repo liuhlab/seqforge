@@ -52,10 +52,11 @@ from seqforge.resolve.scoring import Cell, TechEvaluation, build_tech_evaluation
 from seqforge.resolve.window import WindowProbe
 
 # ================================================================================================
-# resolve — assignment, the matrix, the §12 fixture, escalation
+# resolve — assignment, the matrix, the benign-twin fixture, escalation
 # ================================================================================================
 #
-# Tests for ``resolve``: assignment, matrix JSON-safety, the §12 fixture, and escalation branches.
+# Tests for ``resolve``: assignment, matrix JSON-safety, the benign-twin fixture, and escalation
+# branches.
 
 
 def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
@@ -328,7 +329,7 @@ def test_assignment_leftover_file_is_unassigned() -> None:
     assert set(res.unassigned_files) == {1, 2}
 
 
-# ---------- §12 end-to-end ----------
+# ---------- benign twins, end-to-end ----------
 def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
     spec = kb.load_spec("10x-3p-gex-v3")
     reads = kb.generate_reads(spec, n=1500, seed=0)
@@ -349,7 +350,7 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
     winner = result.candidates[0]
     assert winner.technology == "10x-3p-gex-v3"
     assert winner.score.status == "scored"
-    # benign twin recorded together (§12), 0 questions
+    # benign twin recorded together, 0 questions
     assert "10x-3p-gex-v3.1" in winner.equivalence_members
     # onlist evidence fired -> rung 3
     assert result.rung_reached == 3
@@ -557,7 +558,7 @@ def test_escalate_metadata_disambiguates_divergent_tie() -> None:
     assert not esc.questions
 
 
-# ---------- §12 benign twins tie EXACTLY, so the representative must be deterministic ----------
+# ---------- benign twins tie EXACTLY, so the representative must be deterministic ----------
 def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_order() -> None:
     """Two processing-equivalent specs score identically BY CONSTRUCTION — they are byte-identical.
 
@@ -589,13 +590,14 @@ def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_orde
 
     assert forward.winner == reverse.winner == "techA"  # lexicographically first, both orders
     assert [c.technology for c in forward.candidates] == [c.technology for c in reverse.candidates]
-    # ...and it is still benign: both recorded, zero questions (§12)
+    # ...and it is still benign: both recorded, zero questions
     assert not forward.questions and not reverse.questions
     assert forward.candidates[0].equivalence_members == ["techB"]
 
 
 def test_the_real_kb_benign_twins_tie_and_ask_nothing(tmp_path: Path) -> None:
-    """End-to-end on the SHIPPED specs: v3 and v3.1 are the §12 rule's flagship, and now they exist.
+    """End-to-end on the SHIPPED specs: v3 and v3.1 are the benign rule's flagship, and now they
+    exist.
 
     Before the twin was written this path was unreachable — v3 declared a `processing_equivalent` edge
     to a spec that was not in the KB, so the benign branch of `escalate` never once fired on real
@@ -619,7 +621,7 @@ def test_the_real_kb_benign_twins_tie_and_ask_nothing(tmp_path: Path) -> None:
     assert scores["10x-3p-gex-v3"] == scores["10x-3p-gex-v3.1"], "twins must tie exactly"
     assert out.result.candidates[0].technology == "10x-3p-gex-v3"
     assert out.result.candidates[0].equivalence_members == ["10x-3p-gex-v3.1"]
-    assert not out.result.questions, "§12: a benign ambiguity asks NOTHING"
+    assert not out.result.questions, "a benign ambiguity asks NOTHING"
     assert out.exit_code() == 0
 
 
@@ -1019,7 +1021,7 @@ def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
     28 bp with a trimmed tail passes every geometry check and wins its candidate outright. Downstream
     never looks again: STARsolo reads the barcode from a fixed offset, and on a shifted read that
     offset is an arbitrary 16-mer — it matches no whitelist, the cell is dropped, the matrix is thin,
-    and STAR exits 0. That is the silent-garbage path §5 was written to close, and
+    and STAR exits 0. That is the silent-garbage path this blocker was written to close, and
     `PRETRIMMED_VARIABLE_LENGTH` sat declared-but-never-emitted while it stayed open.
 
     Note only R1 is trimmed here. R2 is cDNA — open-ended and *legitimately* variable — which is
@@ -1411,7 +1413,7 @@ DEAD_LEN = 75  # in the over-length DEAD ZONE: > canonical 26/28 bp, < over_leng
 #: ``(tech, umi_len, total_len, winners)`` — one row per shape of over-sequenced barcode read the
 #: whitelist has to rescue. The three were separate functions differing only in these four values.
 WHITELIST_ADMITS = [
-    # v3 and v3.1 are §12 twins recorded together; either is the right answer, v2 is not.
+    # v3 and v3.1 are benign twins recorded together; either is the right answer, v2 is not.
     pytest.param(
         "10x-3p-gex-v3", 12, None, {"10x-3p-gex-v3", "10x-3p-gex-v3.1"},
         id="an-over-length-v3-barcode-read-resolves-to-v3",

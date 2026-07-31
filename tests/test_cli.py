@@ -18,7 +18,7 @@ runner = CliRunner()
 
 #: ``(argv, exit_code, substrings that must appear in stdout)``.
 #:
-#: Seven one-liner functions, each invoking a verb and pinning its exit code. R6 says the CLI is the
+#: Seven one-liner functions, each invoking a verb and pinning its exit code. The CLI is the
 #: API, so what is under test is the SURFACE — and a surface reads as a table. A verb that starts
 #: refusing, or stops naming what it lists, goes red as a named case.
 #:
@@ -802,7 +802,7 @@ def test_processing_new_takes_an_assembly_from_a_verified_instruction(
     doc = _yaml.safe_load(out.read_text())
     genome = doc["processing"]["genome"]
     assert genome["value"]["assembly"] == "sacCer3", "the instruction never reached the manifest"
-    # basis records WHO DECIDED: a document the user authored for seqforge is the user talking (§7)
+    # basis records WHO DECIDED: a document the user authored for seqforge is the user talking
     assert genome["basis"] == "user_confirmed"
 
 

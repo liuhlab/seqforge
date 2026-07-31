@@ -1,7 +1,8 @@
 """seqforge — compile FASTQ + metadata into a validated library manifest and a Snakemake config.
 
 A compiler, not a chatbot: deterministic code owns every decision; the LLM only parses prose into
-span-verified assertions and arbitrates already-flagged ambiguity. See ``docs/design.md``.
+span-verified assertions and arbitrates already-flagged ambiguity. ``CONTEXT.md`` is the glossary and
+``docs/adr/`` records the decisions behind it.
 """
 
 from __future__ import annotations

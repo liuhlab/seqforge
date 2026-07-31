@@ -21,11 +21,14 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
+* :func:`pytest_cmdline_main` — a bare ``pytest`` runs the whole suite ACROSS CORES, because
+  nobody should have to remember a flag to avoid a minute of waiting. A run that names a path, a
+  keyword or a marker is left exactly as it was typed.
 
 **What may be shared is immutable products only.** The manifest, the registry and a directory
-nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit
-(rule R5), so a shared workspace would let a later test collect a cached ``Observation`` and pass
-for the wrong reason. Every test still composes into its own ``tmp_path``.
+nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit, so
+a shared workspace would let a later test collect a cached ``Observation`` and pass for the wrong
+reason. Every test still composes into its own ``tmp_path``.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ from __future__ import annotations
 import ast
 import gzip
 import re
+import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
@@ -63,6 +67,94 @@ KbProbes = dict[str, list[WindowProbe]]
 
 #: What :data:`src_trees` hands back: every ``.py`` under ``src/seqforge`` -> its parsed AST.
 SrcTrees = dict[Path, ast.Module]
+
+
+# --------------------------------------------------------------------------- #
+# the whole suite never runs on one core
+# --------------------------------------------------------------------------- #
+
+#: The worker cap for a full-suite run, and it is a MEASURED number — see the comment on the ``test``
+#: task in ``pyproject.toml``, which carries the sweep. Uncapped ``auto`` is slower on a big box than
+#: this, because each worker pays the interpreter import and rebuilds every session-scoped fixture.
+FULL_SUITE_WORKERS = 12
+
+#: Distribution mode for an injected run. It behaves like the default for unmarked tests and groups
+#: only the tests carrying an ``xdist_group`` mark, so a module with an expensive session fixture can
+#: opt into building it once instead of once per worker.
+FULL_SUITE_DIST = "loadgroup"
+
+#: Options that mean "this invocation is not the whole suite", by pytest's own ``dest`` names. Any
+#: one of them present and the args are left exactly as typed.
+_SELECTORS = (
+    "keyword",  # -k: a subset by name
+    "markexpr",  # -m: a subset by marker
+    "lf",  # --last-failed: the handful that just broke
+    "failedfirst",  # --failed-first: same handful, reordered
+    "maxfail",  # -x: unreliable across workers -- the ones in flight keep going
+    "usepdb",  # --pdb: an interactive session is a session of one
+)
+
+
+def _is_the_whole_suite(config: pytest.Config) -> bool:
+    """Is this invocation the entire suite — no path argument, or a path that IS the test root?
+
+    ``args_source`` is pytest's own answer to "did a human name a path": it is ``ARGS`` only when one
+    was given, and the configured ``testpaths`` otherwise. Spelling ``pytest tests`` by hand is the
+    same run as spelling nothing, so that shape counts too; a node id (it carries ``::``) never does.
+    """
+    if config.args_source is not pytest.Config.ArgsSource.ARGS:
+        return True
+    roots = {str(p).rstrip("/") for p in config.getini("testpaths")}
+    return bool(roots) and {a.rstrip("/") for a in config.args} == roots
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_cmdline_main(config: pytest.Config) -> None:
+    """Give a full-suite run its workers, so no one has to remember to ask for them.
+
+    The suite takes ~56s on one core and ~13s across twelve, and the whole difference used to hang on
+    an agent typing the parallel verb rather than the bare one. A guard that REFUSED the serial run
+    would still cost a retry, so this does not refuse anything: it fills in the flags the parallel
+    verb passes explicitly, and only when the invocation is the whole suite.
+
+    A targeted run is left alone on purpose — spinning up twelve workers to run three tests costs
+    more than it saves, and the selector is what makes a targeted run targeted.
+
+    ``pytest_load_initial_conftests`` is the hook this would ideally use (it can rewrite ``args``
+    before anything parses them), but pytest does not call it for a ``conftest.py`` at all — only for
+    installed plugins. This one is called, and early enough: xdist turns ``numprocesses`` into
+    ``tx`` in its own ``pytest_cmdline_main``, and ``tryfirst`` in a conftest registered after it runs
+    first. Returning ``None`` lets the rest of the chain run, which is what actually starts the
+    session.
+
+    The worker guard is not optional. An xdist worker re-enters this same hook with ``numprocesses``
+    reset to ``None``, so without it every worker would fork twelve more.
+    """
+    if hasattr(config, "workerinput"):
+        return
+    if not _is_the_whole_suite(config):
+        return
+    if any(getattr(config.option, dest, None) for dest in _SELECTORS):
+        return
+    if config.option.capture == "no":  # -s: output a human is watching, and workers interleave it
+        return
+    if getattr(config.option, "numprocesses", None) is not None:
+        return  # an explicit -n, including -n 0, is a decision -- honour it
+    if config.pluginmanager.is_blocked("xdist"):
+        return  # -p no:xdist is the same decision, spelled the other way
+    if not config.pluginmanager.hasplugin("xdist"):
+        print(
+            "conftest: pytest-xdist is not installed, so this full-suite run is serial and will "
+            "take about a minute instead of about ten seconds. Install it, or name a single test "
+            "file to keep the loop short.",
+            file=sys.stderr,
+        )
+        return
+
+    config.option.numprocesses = "auto"
+    config.option.maxprocesses = FULL_SUITE_WORKERS
+    if config.option.dist == "no":
+        config.option.dist = FULL_SUITE_DIST
 
 
 # --------------------------------------------------------------------------- #

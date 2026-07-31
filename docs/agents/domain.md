@@ -11,8 +11,8 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo — one `pyproject.toml`, one distribution, and `CLAUDE.md` is explicit that it must
-not be split:
+Single-context repo — one `pyproject.toml`, one distribution, and `docs/agents/layout.md` is explicit
+that it must not be split:
 
 ```
 /
@@ -28,23 +28,29 @@ contexts; a per-module glossary would fragment vocabulary that the whole compile
 
 ## `CONTEXT.md` is a glossary, and only that
 
-This repo already carries two agent-facing documents:
+The agent-facing material is layered, and each layer answers one question:
 
-- **`CLAUDE.md`** — the rules (R1–R11), toolchain, repository layout, on-disk state
-- **`docs/design.md`** — the design source of truth (models, KB schema, scoring, CLI surface, §9 unbuilt)
+- **`AGENTS.md`** (`CLAUDE.md` is a symlink to it) — the router: what seqforge is, R1–R11 as
+  imperatives, and one pointer per area
+- **`docs/agents/`** — the reference behind each pointer: `rules.md` (why each rule, and what enforces
+  it), `testing.md`, `toolchain.md`, `layout.md`, `state.md`, `models.md`, `kb.md`, `resolve.md`,
+  `cli.md`, `eval-corpus.md`, and this file
+- **`docs/adr/`** — one decision per file: the alternatives, and why this one
 
-`CONTEXT.md` is neither. It maps a domain term to its definition and names the synonyms to avoid —
+`CONTEXT.md` is none of them. It maps a domain term to its definition and names the synonyms to avoid —
 `manifest` vs `recipe`, `Observation` vs `Assertion`, `asserted` vs `inferred`, `run` vs `sample` vs
 `library`. Nothing else belongs in it.
 
 Before adding an entry, ask which of the three it is:
 
-- a **rule** ("never read a whole FASTQ") → `CLAUDE.md`
-- **rationale** ("why the manifest is hashed and the recipe is not") → `docs/design.md`
+- a **rule** ("never read a whole FASTQ") → `AGENTS.md`, with its rationale in `docs/agents/rules.md`
+- **rationale for a decision** ("why the manifest is hashed and the recipe is not") → a new
+  `docs/adr/` entry; if it is not a decision with alternatives but a standing description of how one
+  area works, it belongs in that area's `docs/agents/` page instead
 - a **term** ("a *run* is one sequencing run; the grouping `resolve/group.py` produces from filenames")
   → `CONTEXT.md`
 
-A term that already has a precise definition in `design.md` is copied to `CONTEXT.md` as a one-line
+A term already argued at length in `docs/agents/` or an ADR is copied to `CONTEXT.md` as a one-line
 gloss with a pointer, never restated at length. Two prose definitions of one term is the failure mode
 this file exists to prevent.
 
@@ -68,7 +74,7 @@ If your output contradicts an existing ADR, surface it explicitly rather than si
 ## Neither tree is published
 
 `docs/` is the mkdocs source for <https://liuhlab.github.io/seqforge/>, so `agents/` and `adr/` are
-listed in `exclude_docs` in `mkdocs.yml` — alongside `design.md`, and for the same reason. The site is
-the carefully-designed end-user layer; ADRs and skill configuration are agent-facing and would read as
-settled guidance under a docs URL. Adding a file here does not publish it, and a new agent-facing tree
+listed in `exclude_docs` in `mkdocs.yml`. The site is the carefully-designed end-user layer; ADRs and
+the agent-facing reference carry open questions and dated measurements, and would read as settled
+guidance under a docs URL. Adding a file here does not publish it, and a new agent-facing tree
 under `docs/` should be added to `exclude_docs` too.

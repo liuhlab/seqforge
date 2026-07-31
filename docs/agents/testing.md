@@ -14,6 +14,12 @@ This file is the rule. There are three rungs and you climb them once per change,
 | 2 | before a commit, and before opening the PR | `pixi run check` | ~an order of magnitude more |
 | 3 | after the PR is open | read CI | free |
 
+**The selector is what makes rung 1 rung 1.** A run that names a file (or `-k`, `-m`, `--lf`) stays
+serial, because spinning up twelve workers to run three tests costs more than it saves. Drop the
+selector and you are running the whole suite — so `tests/conftest.py` fills in the worker flags for
+you, and a bare `pytest` costs roughly a fifth of what a serial one would. There is nothing to
+remember and no flag to type; an explicit `-n` of your own is always honoured.
+
 **This file quotes ratios, not seconds.** Absolute timings and test counts go stale within a PR or
 two, and a stale number in a doc is worse than none because it is still trusted. What survives is the
 *shape* — which thing dominates which, and by roughly how much. Where a number below decides
@@ -294,6 +300,34 @@ The KB sweeps grow with the spec count, and the *shape* of each term matters mor
 Projected pre-#105 on one worker, the partition stayed comfortable to ~25-30 specs and the O(n²) terms
 dominate past ~50. So when a KB sweep's wall creeps up as specs are added, look first for a probe
 rebuilt per pair, then for a missing `geometry_could_accept` pre-gate — not for an axis to narrow.
+
+## Comments: name the idea, never the section number
+
+**Under `src/` and `tests/`, a comment may not point at a governing document by number.** Two shapes
+are forbidden, and `tests/test_repo_invariants.py::test_no_comment_points_at_a_governing_document_by_number`
+fails on either:
+
+- the section sign, in any form — `design §4.1`, `§12`, `brief §9`. It has no domain meaning here,
+  so it is forbidden outright.
+- a rule citation — `(R7)`, `rule R5`, `per R10`, `R6:`. The guard matches a bare `R` plus a rule
+  number of four or above, and the `rule R<n>` / `per R<n>` phrasings at any number.
+
+A number is a mutable label. Renumber the document and the comment lies, with nothing to notice: four
+such pointers were already dangling when the rule was written, one of them at a file that had been
+deleted. So write the idea instead. A comment that only carried a pointer gets deleted; a comment that
+carried an explanation keeps the explanation and loses the number — "the read budget is two-part, so a
+function holding one bound cannot enforce it" says everything the citation did and survives a
+renumbering. `CONTEXT.md` is the glossary: *the read budget*, *a Blocker*, *the byte resolver*, *a
+benign twin* are all defined terms, and one of them is almost always the thing you meant.
+
+**`R1`, `R2`, `R3` and `I1`/`I2` are read designations and must never be swept.** `R1 = CB + UMI`,
+`--readFilesIn R2,R1`, `..._S1_L001_R1_001.fastq.gz`, `library.read_layout.R1.length`, the sacCer3
+genome-build token and a `daf-2 R3` replicate label are all legitimate, which is why the guard leaves
+the low numbers alone except in a `rule`/`per` phrasing. `tests/test_docs.py` is the one exempt file:
+the rule ids are the data it tests, not a pointer.
+
+The numbered rules themselves live in the agent-facing docs and are cited there freely — this rule is
+about code, where the reader cannot see the document you meant.
 
 ## Adding a test
 
