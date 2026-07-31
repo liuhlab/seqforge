@@ -55,12 +55,16 @@ jobs:
           pixi run -e test eval -- --no-llm --cases evals/benchmark | tee report/benchmark.json
 
       # Runs on failure too — a red benchmark is exactly when the per-case detail is worth having.
+      # `seqforge eval report` is a verb like `seqforge report`: it writes the HTML file and prints a
+      # JSON summary on stdout. It renders whatever the run produced and always exits 0 — the verdict
+      # is `eval run`'s (exit 3 above), and a renderer that also failed would make a red benchmark
+      # fail twice while destroying the artifact that explains it.
       - name: render the HTML report
         if: always()
         shell: bash
         run: |
           test -s report/benchmark.json || exit 0
-          pixi run -e test python scripts/eval_report.py report/benchmark.json \
+          pixi run -e test seqforge eval report report/benchmark.json \
             -o report/benchmark.html \
             --title "seqforge benchmark — ${{ github.sha }}" \
             --source "seqforge eval run --no-llm --cases evals/benchmark"

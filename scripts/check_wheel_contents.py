@@ -9,6 +9,7 @@ is a specific and silent-ish failure:
   - `workflows/map/*.smk`    -> the emitted Snakefile includes a module that is not there
   - `kb/specs/*/spec.yaml`   -> the KB is empty and nothing resolves
   - `report/assets/*`        -> `seqforge report` renders an unstyled page
+  - `evals/assets/*`         -> `seqforge eval report` renders an unstyled page
 
 It also pins the packaging arrangement: `packages = ["src/seqforge"]` already carries them, and a
 `force-include` on top would be a hard build error rather than a duplicate. Both directions are
@@ -52,6 +53,16 @@ def _check(names: list[str]) -> list[str]:
         and any(n.endswith("report/assets/report.js") for n in names)
     ):
         failures.append("the report's inlined CSS/JS assets are missing -> report renders unstyled")
+    # The BUILT stylesheet, not its `.src.css` input: the input needs npm to become CSS, so shipping
+    # only that would put an unstyled page in the wheel while every source-tree test stayed green.
+    if not all(
+        any(n.endswith(f"evals/assets/eval-report.{ext}") for n in names)
+        for ext in ("html", "css", "js")
+    ):
+        failures.append(
+            "the eval report's page template or its inlined CSS/JS is missing "
+            "-> `seqforge eval report` renders unstyled, or not at all"
+        )
     return failures
 
 
