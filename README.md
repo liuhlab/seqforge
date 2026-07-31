@@ -42,9 +42,10 @@ to a validated manifest + a runnable Snakefile in one headless pass. The ground-
 (`kb e2e`) are still on synthetic yeast/worm fixtures with injected counts — it has not yet executed a
 pipeline on real reads at scale.
 
-Docs: **<https://liuhlab.github.io/seqforge/>** · design + rationale + scope delta:
-[`docs/design.md`](docs/design.md) (its §9 is the running list of what is *not* yet built) · rules:
-[`AGENTS.md`](AGENTS.md) (`CLAUDE.md` is a symlink to it)
+Docs: **<https://liuhlab.github.io/seqforge/>** · rules and where to read next:
+[`AGENTS.md`](AGENTS.md) (`CLAUDE.md` is a symlink to it) · the reference behind each area:
+[`docs/agents/`](docs/agents/) · one decision per file: [`docs/adr/`](docs/adr/) · what is *not* yet
+built: the open issues
 
 ## Install
 

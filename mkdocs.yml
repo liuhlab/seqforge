@@ -67,20 +67,17 @@ nav:
           - SPLiT-seq: kb/splitseq.md
           - Bulk paired-end RNA-seq: kb/bulk-rnaseq-pe.md
 
-# `design.md` stays in the repo and OUT of the site, deliberately. It is the agent-facing technical
-# source of truth (schemas, scoring function, CLI surface) and this site is the human layer on top of
-# it — but more concretely, three of its sections are internal deliberation rather than
-# documentation: a pushback appendix, a list of genomics values explicitly marked "unverified — do
-# not ship without checking", and the held-out acceptance case. Publishing those under a docs URL
-# would present open questions as settled guidance. Read it in the repo, where its status is obvious.
+# Two trees stay in the repo and OUT of the site, deliberately. `agents/` is the reference layer
+# behind AGENTS.md — the rules and what enforces them, testing, toolchain, layout, on-disk state, the
+# models, the KB schema, scoring, the CLI contract, the eval corpus — and `adr/` is the internal
+# decision record. This site is the human layer on top of both.
 #
-# Same argument, two more agent-facing trees: `agents/` is the reference layer behind AGENTS.md (the
-# rules and what enforces them, testing, toolchain, layout, on-disk state, tracker, labels) and `adr/`
-# is internal decision record. Neither is end-user guidance, and both would read as settled advice
-# under a docs URL. They stay in the repo, where their status is obvious. A new file under either
-# needs no change here — the directory entries below cover it — but a NEW agent-facing tree does.
+# The argument is concrete, not stylistic: agent-facing material carries open questions, measurements
+# that are only true as of a date, and values we have deliberately not verified yet. Published under a
+# docs URL, every one of those reads as settled guidance. They stay in the repo, where their status is
+# obvious. A new file under either tree needs no change here — the directory entries below cover it —
+# but a NEW agent-facing tree does.
 exclude_docs: |
-  design.md
   agents/
   adr/
 

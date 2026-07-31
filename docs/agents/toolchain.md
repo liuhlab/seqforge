@@ -39,9 +39,9 @@ identity rather than a compatibility promise.
 ## Docs
 
 mkdocs-material → gh-pages, published from `main` by `.github/workflows/docs.yml`. The site is the
-**human** layer. Three trees are agent-facing and therefore excluded from it (`exclude_docs` in
-`mkdocs.yml`): `design.md`, `agents/` and `adr/` — they must not read as settled guidance under a docs
-URL. Anything added to `exclude_docs` must also be added to `ignores` in `.markdownlint-cli2.yaml`;
+**human** layer. Two trees are agent-facing and therefore excluded from it (`exclude_docs` in
+`mkdocs.yml`): `agents/` and `adr/` — they must not read as settled guidance under a docs URL.
+Anything added to `exclude_docs` must also be added to `ignores` in `.markdownlint-cli2.yaml`;
 `tests/test_docs.py` fails if the two lists drift, because they are the same list.
 
 ## Discussions (GitHub)

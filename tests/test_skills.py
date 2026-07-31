@@ -80,9 +80,11 @@ def _code_spans(body: str) -> str:
 
 
 def _doc_pages() -> list[Path]:
-    """Every published page. `design.md` is excluded from the SITE and included here: it is the
-    agent-facing source of truth, and an agent following a fictional verb fails exactly as a human
-    does."""
+    """Every markdown page under `docs/`, published or not.
+
+    The agent-facing trees (`agents/`, `adr/`) are excluded from the SITE and included here on
+    purpose: an agent following a fictional verb fails exactly as a human reader does.
+    """
     return sorted(DOCS.rglob("*.md"))
 
 
@@ -197,8 +199,8 @@ def _real_cli() -> tuple[set[str], set[str]]:
 #: earned by a false positive this guard actually produced:
 #:
 #: - **line-start, or after `pixi run -- `**. That is how a command appears. Mid-sentence it is
-#:   English: `design.md` contains "liulab-genome does not fetch annotations; seqforge stages the
-#:   GTF", inside a docstring, inside a fence — and `stages` is a verb in the grammatical sense only.
+#:   English: `docs/agents/layout.md` contains "liulab-genome does not fetch annotations — seqforge
+#:   stages the GTF", and `stages` is a verb in the grammatical sense only.
 #: - **`[ \t]`, not `\s`**: a newline ends an invocation. `\s` crossed it, so a fenced block reading
 #:   `git clone .../seqforge` then `cd seqforge` parsed as the verb `seqforge cd`.
 #: - **at most three words**: past that you are reading arguments.

@@ -1,6 +1,6 @@
 outcome: decide
 description: >-
-  PRE-REGISTRATION — the pilot's single real acceptance case (design §8). Written on the maintainer's
+  PRE-REGISTRATION — the pilot's single real acceptance case. Written on the maintainer's
   go, from PUBLICLY DECLARED METADATA ONLY, and committed BEFORE any run. No byte of this dataset has
   been read, sampled, listed, stat'd, or profiled, and none may be until the maintainer says so. Every
   value below is traceable to a public record, cited inline. If a run later disagrees with this file,
@@ -156,7 +156,7 @@ description: >-
 
   4. The reason it was prose in the first place is a defect, not a choice. The harness graded a
      `ResolveResult`, which has candidates and conflicts and NO SAMPLES, so there was no field on
-     which to write "tissue=Neurons" and have anything read it. design.md §9 already named this
+     which to write "tissue=Neurons" and have anything read it. The scope delta already named this
      gap ("the grader cannot express … SRX→sample mapping"). A pre-registration whose central claims
      live in a `description:` string is a pre-registration that cannot be wrong, and one that cannot
      be wrong is not one.

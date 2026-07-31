@@ -40,4 +40,5 @@ Three hooks turn rules into things that cannot be forgotten, all behind `seqforg
   and clears a stale file when none remain.
 
 One design-called-for piece of state is still **unbuilt**: the journal flywheel entirely —
-`journal.jsonl`, `distill`, `LESSONS.md`. Its design survives in `docs/design.md` §9.
+`journal.jsonl`, `distill`, `LESSONS.md`. It is tracked as an open issue, with the rest of the scope
+delta.

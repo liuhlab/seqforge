@@ -2,9 +2,10 @@
 
 A compiler from `(FASTQ files) + (unstructured metadata)` to a validated `manifest.yaml` and a
 runnable Snakemake pipeline. This file is the **glossary** — the words the project uses and the
-synonyms it avoids. Rules live in `CLAUDE.md`; rationale lives in `docs/design.md`. Nothing else
-belongs here: a term `design.md` already defines precisely appears below as a one-line gloss and a
-pointer, because two prose definitions of one term is the failure this file exists to prevent.
+synonyms it avoids. Rules live in `AGENTS.md`; the reference behind each area lives in `docs/agents/`,
+and one decision per file in `docs/adr/`. Nothing else belongs here: a term one of those files already
+argues at length appears below as a one-line gloss and a pointer, because two prose definitions of one
+term is the failure this file exists to prevent.
 
 ## Language
 
@@ -115,7 +116,7 @@ FASTQ
 **Evidenced**:
 The envelope every *interpretive* field travels in — `{value, basis, evidence, confidence, rung}`,
 frozen once validated. One judgement gets exactly one envelope; four fields filled from one decision
-are one truth wearing four hats (design §1.1).
+are one truth wearing four hats (`docs/adr/0006`).
 _Avoid_: wrapper, annotated value, provenance record; raw identity and `resources` carry no envelope
 at all
 
@@ -140,7 +141,7 @@ checked
 Basis for a value code derived rather than read or was told: every policy default (whose `evidence`
 names the rule that fired), and a sample fact a model read in a dataset-level document.
 _Avoid_: guessed, assumed, defaulted; there is no `policy_default` basis, and whether to add one is
-still open (design §5)
+still open (`docs/agents/models.md`)
 
 **User-confirmed**:
 Basis for a value a person chose — a CLI flag or an `--instruction` document, distinguished from
@@ -179,7 +180,7 @@ role and can never reach the recipe
 **Span**:
 Where in a document a claim came from — `{doc_sha256, quote, char_start, char_end}`. The model
 supplies the quote only; code computes the offsets, so a fabricated span fails closed rather than
-false-rejecting (design §1.3).
+false-rejecting (`docs/adr/0008`).
 _Avoid_: window (a window is a base range inside a read), citation, location, offset
 
 **Quote**:
@@ -210,14 +211,14 @@ _Avoid_: proposal, raw assertion, candidate (a candidate is a scored technology)
 **Observation**:
 Everything probe reports about one file — composition, segmentation, distinct ratios, header
 grammar, integrity — and **no roles**. Deterministic, LLM-free, network-free, cached by content
-address (design §1.2).
+address (`docs/agents/models.md`).
 _Avoid_: probe result, profile, QC report, fingerprint (a fingerprint package ships **Slice**s); and
 an Observation never "identifies" anything, it reports
 
 **Hypothesis**:
 A span-verified assertion handed to `score` as a selector for which onlist to test first and as a
 sub-threshold tie-break. It never enters the evidence matrix, un-gates a forbidden cell, or wins a
-Conflict (design §3.4).
+Conflict (`docs/agents/resolve.md`).
 _Avoid_: hint, expectation, guess, prior (the filename prior is a different thing)
 
 **Candidate**:
@@ -263,7 +264,7 @@ the spelling on the wire
 
 **Confusable**:
 A declared pair of specs the cheap rungs cannot separate, naming the mechanism that can. Declaring
-it is mandatory — CI fails a pair that collides at rungs 0-2 in silence (design §2.4).
+it is mandatory — CI fails a pair that collides at rungs 0-2 in silence (`docs/agents/kb.md`).
 _Avoid_: ambiguous, similar, overlapping, competing
 
 **Processing-equivalent**:
@@ -282,7 +283,7 @@ _Avoid_: incompatible, contradictory, mutually exclusive
 
 **Blocker**:
 A structured refusal carrying a remedy and a subject (a basename, a dotted path, a dataset id —
-never a path). Always fatal, exit 3: no human answer clears it (design §1.5).
+never a path). Always fatal, exit 3: no human answer clears it (`docs/agents/models.md`).
 _Avoid_: error, failure, hard warning; severity is the type, never a field to branch on
 
 **Warning**:

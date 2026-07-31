@@ -7,7 +7,7 @@
 #
 # Scope is deliberate: the docs site, the KB assay READMEs that render into it, and the top-level
 # README — the prose a person reads. It does NOT lint the agent-facing files (AGENTS.md, the CLAUDE.md
-# symlink to it, docs/design.md, docs/agents/, docs/adr/), whose format serves a different reader.
+# symlink to it, docs/agents/, docs/adr/), whose format serves a different reader.
 #
 # The `ignores:` list below and `mkdocs.yml`'s `exclude_docs:` are the SAME list — "under docs/, but
 # agent-facing and off the site". Anything added to one belongs in the other; they drifted once
@@ -29,12 +29,12 @@ globs:
   - "README.md"
 
 ignores:
-  # Agent-facing internal design doc — excluded from the site, and not written to docs-page rules.
-  - "docs/design.md"
-  # Engineering-skill configuration (issue tracker, triage labels, domain-doc layout) and the ADRs.
-  # Both are excluded from the site by mkdocs for the same reason design.md is, so both are excluded
-  # here too. `docs/adr/**` is deliberately listed before the directory exists — the first ADR must
-  # not be the commit that turns CI red.
+  # The agent-facing reference layer (rules, testing, toolchain, layout, state, models, KB schema,
+  # scoring, the CLI contract, the eval corpus, the engineering-skill configuration) and the ADRs.
+  # Both trees are excluded from the site by mkdocs — agent-facing material must not read as settled
+  # guidance under a docs URL — so both are excluded here too, and they are not written to docs-page
+  # rules. `docs/adr/**` was deliberately listed before the directory existed: the first ADR must not
+  # be the commit that turns CI red.
   - "docs/agents/**"
   - "docs/adr/**"
   # The KB assay pages are one-line snippet-include wrappers (they pull in the canonical README next
