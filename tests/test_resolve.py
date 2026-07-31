@@ -46,7 +46,6 @@ from seqforge.resolve.engine import INDEX_MAX_LEN, index_tagged_roles
 from seqforge.resolve.escalate import escalate
 from seqforge.resolve.geometry import (
     geometry_could_accept,
-    geometry_fingerprint,
     length_feasible,
 )
 from seqforge.resolve.scoring import Cell, TechEvaluation, build_tech_evaluation
@@ -924,10 +923,11 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
 # ``accepts_at_rungs_0_2(a, probes[b]) => geometry_could_accept(a, probes[b])``.
 
 
-def test_fingerprint_is_deterministic() -> None:
-    for tech_id in kb.list_spec_ids():
-        spec = kb.load_spec(tech_id)
-        assert geometry_fingerprint(spec) == geometry_fingerprint(spec)
+# `test_fingerprint_is_deterministic` was deleted (#110): it asserted
+# `geometry_fingerprint(spec) == geometry_fingerprint(spec)` -- a pure function called twice on the
+# same object in the same process, which cannot fail. `geometry_fingerprint` is diagnostics-only and
+# has no callers in `src/` (geometry.py names `length_feasible` as the correctness predicate); the
+# feasibility predicate that DOES gate scoring is covered by the three feasibility tests below.
 
 
 @pytest.mark.xdist_group("kb-probes")

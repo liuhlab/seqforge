@@ -17,7 +17,6 @@ import os
 import re
 import types
 import warnings
-import zlib
 
 import pytest
 
@@ -38,6 +37,7 @@ from seqforge.io.remote import (
     parse_run_new,
     parse_soft_srp,
     parse_soft_superseries,
+    peek,
     probe_remote,
     retry_delay,
     technical_read_remedy,
@@ -396,39 +396,27 @@ def test_parse_fastq_prefix_on_empty_input() -> None:
     assert parse_fastq_prefix("", max_reads=4) == ([], [])
 
 
-def test_peek_round_trips_a_real_gzip_prefix() -> None:
-    """End-to-end over the pure path: bytes -> inflate -> records, exactly as `io peek` does."""
-    blob = _fastq_gz(200, read_len=90)
-    text = decompress_prefix(blob[:2048], max_bytes=1 << 20).decode("utf-8", errors="replace")
-    headers, lengths = parse_fastq_prefix(text, max_reads=4)
-    assert headers[0] == "@READ:0"
-    assert set(lengths) == {90}
+def test_peek_range_reads_a_url_and_reports_its_head(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `io peek` verb itself, not a hand-composition of its parts. Its two helpers are covered
+    above; what this pins is the FUNCTION -- the `max_bytes` it hands the range read, the `.decode()`,
+    and the PeekResult keys `seqforge io peek` prints -- none of which a test that inlines
+    `decompress_prefix` + `parse_fastq_prefix` exercises (#110)."""
+    data = _fastq_gz(200, read_len=90)
+    url = "https://ftp.x/head.fastq.gz"
+    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
 
+    result = peek(url, max_reads=4)
 
-def test_zlib_wbits_31_is_the_gzip_incantation() -> None:
-    """Pin the magic number: 31 = 16 (gzip wrapper) + 15 (window). 15 alone would fail on gzip."""
-    blob = _fastq_gz(2)
-    assert zlib.decompressobj(31).decompress(blob).startswith(b"@READ:0")
-    with pytest.raises(zlib.error):
-        zlib.decompressobj(15).decompress(blob)
+    assert result["uri"] == url
+    assert result["example_header"] == "@READ:0"
+    assert result["n_records"] == 4  # capped by max_reads, not the 200 in the member
+    assert set(result["read_lengths"]) == {90}
+    assert 0 < result["compressed_bytes_read"] <= (1 << 16)  # the default range bound, never the file
 
 
 # ---------------------------------------------------------------------------------------------
 # #39 — provider-md5 content key + fingerprint a library from a URL (probe_remote)
 # ---------------------------------------------------------------------------------------------
-
-
-def test_fastq_targets_pairs_each_url_with_its_md5() -> None:
-    """ENA's fastq_ftp and fastq_md5 are index-aligned; the join is positional. This is the one place a
-    URL and its content hash arrive together, which is what lets the remote probe key on the md5."""
-    run = {
-        "fastq_ftp": "ftp.x/a_1.fastq.gz;ftp.x/a_2.fastq.gz",
-        "fastq_md5": "a" * 32 + ";" + "b" * 32,
-    }
-    assert fastq_targets(run) == [
-        ("https://ftp.x/a_1.fastq.gz", "a" * 32),
-        ("https://ftp.x/a_2.fastq.gz", "b" * 32),
-    ]
 
 
 def test_fastq_targets_pairs_before_sorting_so_url_and_md5_stay_aligned() -> None:

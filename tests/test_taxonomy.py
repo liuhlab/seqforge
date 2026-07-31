@@ -60,13 +60,23 @@ def test_taxonomy_get_retries_a_429_then_succeeds(monkeypatch: pytest.MonkeyPatc
 
 
 def test_taxonomy_get_does_not_retry_a_terminal_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 400 is terminal: it surfaces immediately, and -- unlike a 429 -- is NOT retried.
+
+    The call-count assertion is what makes this test earn its keep next to the 429 sibling (#110): the
+    name promised "does not retry" and nothing checked it, so it passed under retries too. `calls == 1`
+    now guards the no-retry-on-terminal behaviour directly; no other test does.
+    """
+    calls = {"n": 0}
+
     def fake_urlopen(url: str, timeout: object = None) -> object:
+        calls["n"] += 1
         raise urllib.error.HTTPError(url, 400, "bad request", {}, None)  # type: ignore[arg-type]
 
     monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
     with pytest.raises(urllib.error.HTTPError):
         taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0)
+    assert calls["n"] == 1
 
 
 def test_fetch_taxon_wraps_a_terminal_http_error_as_unavailable(
@@ -115,16 +125,13 @@ def test_the_round_trip_rejects_a_taxid_that_does_not_answer_to_the_name() -> No
     assert briggsae.answers_to("caenorhabditis  BRIGGSAE")
 
 
-def test_the_seed_table_agrees_with_ncbi() -> None:
-    """The seed is a CACHE of NCBI, so it is checked against NCBI -- never against itself.
-
-    This is the distinction the repo keeps relearning: a hand-written table validated by a test that
-    reads the same table proves nothing. Every entry here is re-resolved live and round-trip verified.
-    """
-    for name, taxid in seed_names().items():
-        assert _net(resolve, name, verify=True) == taxid, (
-            f"seed says {name} -> {taxid}; NCBI disagrees"
-        )
+# `test_the_seed_table_agrees_with_ncbi` was deleted (#110): it claimed "every entry re-resolved live
+# and round-trip verified", but `resolve()` returns `_SEED[key]` before the network and before verify,
+# so with a raiser swapped in for urlopen it still passed -- it asserted `_SEED[k] == _SEED[k]`, the
+# exact self-validating table its own docstring lectured against. The seed values that ARE pinned
+# against literals stay pinned: `test_the_seed_resolves_offline` (6239) and the ranks test below
+# (4932 / 559292). The archive-fixture note near the top of test_records.py records that neither the
+# seed table nor the archive XMLs has a live freshness guard -- a known gap, not an oversight.
 
 
 def test_seed_ranks_are_deliberate_not_accidental() -> None:

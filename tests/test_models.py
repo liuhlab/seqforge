@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from seqforge import models as m
+from seqforge.models.observation import Segment
 
 HEX64 = "a" * 64
 
@@ -145,9 +146,11 @@ def test_manifest_round_trips_through_json() -> None:
     assert again == man
 
 
-def test_chemistry_is_an_equivalence_class() -> None:
-    man = _valid_manifest()
-    assert man.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
+# `test_chemistry_is_an_equivalence_class` was deleted (#110): `_valid_manifest()` hard-codes
+# `value=["10x-3p-gex-v3", "10x-3p-gex-v3.1"]` and the test asserted that literal straight back, with
+# no validator deriving it -- so it could not fail. The real fact (fill DERIVES the class from the
+# bytes) is `test_compile.py::test_fill_records_the_equivalence_class_and_byte_derived_roles`, and the
+# literal itself is still pinned by `test_the_assay_cannot_disagree_with_the_chemistry_it_names` below.
 
 
 def test_the_assay_cannot_disagree_with_the_chemistry_it_names() -> None:
@@ -222,17 +225,28 @@ def test_uri_accepts_relative_and_scheme_uris(ok_uri: str) -> None:
 
 
 def test_segment_discriminated_union_dispatches_on_kind() -> None:
+    """Validate THROUGH the `Segment` union so the discriminator actually runs (#110).
+
+    Calling each concrete class's `model_validate` by name never dispatches -- it only checks each
+    class parses its own dict, which is a different, weaker claim. Driving the `TypeAdapter(Segment)`
+    exercises the `kind` discriminator: each dict routes to its class, and a `kind` that matches no
+    member is a `ValidationError` rather than a silent mis-parse.
+    """
+    adapter = TypeAdapter(Segment)
     obs_segments = [
         {"kind": "constant", "start": 22, "end": 44, "consensus": "GAGT", "purity": 0.98},
         {"kind": "random", "start": 0, "end": 16, "mean_entropy_bits": 1.99},
         {"kind": "homopolymer", "base": "T", "start": 44, "end": 60, "mean_run": 15.0},
     ]
-    parsed = [
-        m.ConstantSegment.model_validate(obs_segments[0]),
-        m.RandomSegment.model_validate(obs_segments[1]),
-        m.HomopolymerSegment.model_validate(obs_segments[2]),
-    ]
+    parsed = [adapter.validate_python(d) for d in obs_segments]
     assert [s.kind for s in parsed] == ["constant", "random", "homopolymer"]
+    assert [type(s).__name__ for s in parsed] == [
+        "ConstantSegment",
+        "RandomSegment",
+        "HomopolymerSegment",
+    ]
+    with pytest.raises(ValidationError):
+        adapter.validate_python({"kind": "not-a-segment", "start": 0, "end": 1})
 
 
 def test_evidenced_is_frozen() -> None:

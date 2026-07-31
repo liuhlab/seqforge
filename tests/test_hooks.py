@@ -236,8 +236,10 @@ def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
     assert len(questions_outstanding(tmp_path)) == 2
 
 
-def test_questions_outstanding_is_empty_without_state(tmp_path: Path) -> None:
-    assert questions_outstanding(tmp_path) == []
+# `test_questions_outstanding_is_empty_without_state` was deleted (#110): it asserted
+# `questions_outstanding(tmp_path) == []` on an empty tree, the identical expression already asserted
+# by `test_stop_ignores_an_empty_questions_file` above -- and `test_stop_allows_when_no_questions_are_open`
+# reddens for the same defect, since `stop_decision` returns None only when `questions_outstanding` is [].
 
 
 def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: Path) -> None:
