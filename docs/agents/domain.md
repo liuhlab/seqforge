@@ -11,8 +11,8 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo — one `pyproject.toml`, one distribution, and `CLAUDE.md` is explicit that it must
-not be split:
+Single-context repo — one `pyproject.toml`, one distribution, and `docs/agents/layout.md` is explicit
+that it must not be split:
 
 ```
 /
@@ -28,19 +28,24 @@ contexts; a per-module glossary would fragment vocabulary that the whole compile
 
 ## `CONTEXT.md` is a glossary, and only that
 
-This repo already carries two agent-facing documents:
+The agent-facing material is layered, and each layer answers one question:
 
-- **`CLAUDE.md`** — the rules (R1–R11), toolchain, repository layout, on-disk state
+- **`AGENTS.md`** (`CLAUDE.md` is a symlink to it) — the router: what seqforge is, R1–R11 as
+  imperatives, and one pointer per area
+- **`docs/agents/`** — the reference behind each pointer: `rules.md` (why each rule, and what enforces
+  it), `testing.md`, `toolchain.md`, `layout.md`, `state.md`, and this file
+- **`docs/adr/`** — one decision per file: the alternatives, and why this one
 - **`docs/design.md`** — the design source of truth (models, KB schema, scoring, CLI surface, §9 unbuilt)
 
-`CONTEXT.md` is neither. It maps a domain term to its definition and names the synonyms to avoid —
+`CONTEXT.md` is none of them. It maps a domain term to its definition and names the synonyms to avoid —
 `manifest` vs `recipe`, `Observation` vs `Assertion`, `asserted` vs `inferred`, `run` vs `sample` vs
 `library`. Nothing else belongs in it.
 
 Before adding an entry, ask which of the three it is:
 
-- a **rule** ("never read a whole FASTQ") → `CLAUDE.md`
-- **rationale** ("why the manifest is hashed and the recipe is not") → `docs/design.md`
+- a **rule** ("never read a whole FASTQ") → `AGENTS.md`, with its rationale in `docs/agents/rules.md`
+- **rationale for a decision** ("why the manifest is hashed and the recipe is not") → a new
+  `docs/adr/` entry, or `docs/design.md` if it is design rather than a decision with alternatives
 - a **term** ("a *run* is one sequencing run; the grouping `resolve/group.py` produces from filenames")
   → `CONTEXT.md`
 
