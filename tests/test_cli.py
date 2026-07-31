@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from conftest import real_cbs, write_fastq_gz
+from conftest import SrcTrees, real_cbs, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.cli import app
 
@@ -640,7 +640,8 @@ def test_a_verbs_stdout_is_json_and_its_progress_goes_to_stderr(capsys: object) 
     assert "[cost] hello" in out.err
 
 
-def test_no_module_under_src_prints_to_stdout() -> None:
+@pytest.mark.xdist_group("src-trees")
+def test_no_module_under_src_prints_to_stdout(src_trees: SrcTrees) -> None:
     """A bare print() in a library module lands in whatever a verb is emitting. Derive, don't declare.
 
     This is the general form of the bug above, and the reason it is a scan rather than a note in a
@@ -648,11 +649,9 @@ def test_no_module_under_src_prints_to_stdout() -> None:
     way. `typer.echo` is how a verb speaks; everything else goes to stderr.
     """
     import ast
-    from pathlib import Path as _P
 
     offenders = []
-    for py in sorted((_P(__file__).parent.parent / "src" / "seqforge").rglob("*.py")):
-        tree = ast.parse(py.read_text())
+    for py, tree in src_trees.items():
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "print"):
                 continue

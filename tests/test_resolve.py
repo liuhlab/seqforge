@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from conftest import registry_for, write_fastq_gz
+from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge import models as m
 from seqforge.compose import core
@@ -915,30 +915,23 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
 # ``accepts_at_rungs_0_2(a, probes[b]) => geometry_could_accept(a, probes[b])``.
 
 
-def _probes_for(spec: Spec, workdir: Path) -> list[object]:
-    reads = kb.generate_reads(spec, n=400, seed=0)
-    out: list[object] = []
-    for read_id, seqs in reads.items():
-        path = workdir / f"{spec.identity.id.replace('/', '_')}_{read_id}.fastq.gz"
-        write_fastq_gz(path, seqs)
-        out.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
-    return out
-
-
 def test_fingerprint_is_deterministic() -> None:
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
         assert geometry_fingerprint(spec) == geometry_fingerprint(spec)
 
 
-def test_a_spec_is_length_feasible_against_its_own_reads(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_a_spec_is_length_feasible_against_its_own_reads(kb_probes: KbProbes) -> None:
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
-        probes = [p for p in _probes_for(spec, tmp_path) if isinstance(p, WindowProbe)]
-        assert length_feasible(spec, probes), f"{tech_id} must accept its own synthetic reads"
+        assert length_feasible(spec, kb_probes[tech_id]), (
+            f"{tech_id} must accept its own synthetic reads"
+        )
 
 
-def test_geometry_could_accept_is_necessary_for_rung02_acceptance(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbProbes) -> None:
     """The guarantee the confusability guard and the runtime shortlist rely on.
 
     If ``a`` accepts ``b``'s reads at rungs 0-2 (a real confusable), then ``a`` must be geometry-feasible
@@ -948,18 +941,18 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(tmp_path: Path
     """
     ids = kb.list_spec_ids()
     specs = {i: kb.load_spec(i) for i in ids}
-    probes = {i: _probes_for(specs[i], tmp_path) for i in ids}
 
     for a in ids:
         for b in ids:
-            if accepts_at_rungs_0_2(specs[a], probes[b]):
-                assert geometry_could_accept(specs[a], probes[b]), (
+            if accepts_at_rungs_0_2(specs[a], kb_probes[b]):
+                assert geometry_could_accept(specs[a], kb_probes[b]), (
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but geometry_could_accept says no — "
                     "the necessary-condition guarantee is broken and the guard/shortlist would be unsound"
                 )
 
 
-def test_descent_narrowing_never_drops_a_valid_spec(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("kb-probes")
+def test_descent_narrowing_never_drops_a_valid_spec(kb_probes: KbProbes) -> None:
     """WINNER-INVARIANCE: the descent pool (length-feasible specs) never excludes a spec that would
     score VALID with the full registry (rung 3 included) — so scoring the pool yields the identical
     winner as scoring the whole runnable KB. This is the property the whole "narrow, don't change the
@@ -968,7 +961,7 @@ def test_descent_narrowing_never_drops_a_valid_spec(tmp_path: Path) -> None:
     specs = kb.load_all_specs()
     runnable = [s for s in specs.values() if s.backend is not None]
     for tech in kb.runnable_spec_ids():
-        wps = [p for p in _probes_for(specs[tech], tmp_path) if isinstance(p, WindowProbe)]
+        wps = kb_probes[tech]
         for spec in runnable:
             if length_feasible(spec, wps):
                 continue

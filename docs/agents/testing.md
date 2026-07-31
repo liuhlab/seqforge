@@ -174,6 +174,20 @@ That last row is the rule in one line: `synth_10x_v3` is session-scoped and look
 candidate, but it already costs 0.05s, and pinning the suite's longest file to one worker would take
 the wall from 13.5s to over 22s. Measure the fixture against the module before reaching for the mark.
 
+**The unit of grouping is the fixture's consumers, not the file.** A module-level `pytestmark` is the
+right shape only when the whole module shares the fixture; where a handful of tests share one and the
+rest of the file does not, mark those tests and leave the file spread. Three groups here span *two*
+files each, which a file-level mark cannot express at all:
+
+| group | fixture | members |
+| ----- | ------- | ------- |
+| `enormous-fastq` | the 128 MB-decompressed FASTQ (0.45s) | 3 tests in `test_probe.py` |
+| `kb-probes` | every KB spec's reads, probed (0.24s) | 3 in `test_kb.py` + 3 in `test_resolve.py` |
+| `src-trees` | `src/seqforge` parsed (0.27s) | 2 in `test_compile.py` + 1 in `test_cli.py` |
+
+`--durations=0 | grep setup` is how you check this landed: one setup line per fixture, not one per
+worker that happened to draw a consumer.
+
 `xdist_group` needs no `markers` entry — `pytest-xdist` registers it, so `--strict-markers` is happy.
 
 Parallelism is the **last** thing to reach for, and it landed last on purpose. It hides waste rather
@@ -209,7 +223,9 @@ sat on the wrong interface — which is the shape to look for when the number cr
 - It goes in the file that mirrors the module it tests (the table above). Do not start
   `tests/test_<the-issue-i-am-fixing>.py`.
 - Shared setup belongs in `tests/conftest.py`. It owns the one FASTQ writer, the synthetic onlist
-  registry, the fake range server, and the session-scoped `10x-3p-gex-v3` dataset.
+  registry, the fake range server, the `snakemake` dry run, and the session-scoped immutable products:
+  the `10x-3p-gex-v3` / `bulk-rnaseq-pe` / `splitseq` datasets, the per-spec `kb_probes` sweep, and the
+  `src_trees` AST parse.
 - **What may be shared is immutable products only.** A manifest, a registry, a directory nothing
   writes into. Never a workspace a test writes into: `seqforge/cache/` makes resume implicit (R5), so
   a shared workspace lets a later test collect a cached `Observation` and pass for the wrong reason.

@@ -15,7 +15,7 @@ from typing import get_args
 import pytest
 import yaml
 
-from conftest import SynthDataset, build_synth_dataset, registry_for, write_fastq_gz
+from conftest import SrcTrees, SynthDataset, build_synth_dataset, registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
@@ -515,7 +515,7 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
 
 
 def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
-    tmp_path: Path, dry_run: Callable[..., str]
+    tmp_path: Path, synth_splitseq: SynthDataset, dry_run: Callable[..., str]
 ) -> None:
     """BD Rhapsody Enhanced compiles to the adapter-anchored STARsolo recipe endorsed on STAR #1607.
 
@@ -555,10 +555,8 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
 
     # SPLiT-seq's rendering axis rides on this one. `plan` needs no subprocess (0.06s), so the
     # condition that makes the substitution legal is an assertion rather than a code-review note.
-    ss_dir = tmp_path / "splitseq"
-    ss_dir.mkdir()
-    ss, ss_reg = _build(ss_dir, "splitseq")
-    ss_solo = plan(ss, _processing(ss), registry=ss_reg).config["solo"]
+    ss = synth_splitseq.manifest
+    ss_solo = plan(ss, _processing(ss), registry=synth_splitseq.registry).config["solo"]
     assert isinstance(ss_solo, dict)
     assert set(solo) >= set(ss_solo), (
         "SPLiT-seq emits a solo key bd-enhanced does not, so bd's plan text no longer covers it; "
@@ -950,8 +948,8 @@ def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
         )
 
 
-def test_compose_bulk_selects_plain_star(tmp_path: Path) -> None:
-    manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
+def test_compose_bulk_selects_plain_star(synth_bulk_pe: SynthDataset, tmp_path: Path) -> None:
+    manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/star"
     assert result.gate["params"] == "pass"
@@ -1133,7 +1131,9 @@ def test_the_params_gate_passes_for_every_chemistry(tech: str, tmp_path: Path) -
     assert status == "pass", problems
 
 
-def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(tmp_path: Path) -> None:
+def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(
+    synth_splitseq: SynthDataset,
+) -> None:
     """SPLiT-seq's barcodes are derived from the element model, in whitelist order.
 
     `starsolo.smk` dereferenced `--soloCBstart` unconditionally, which `CB_UMI_Complex` does not
@@ -1145,7 +1145,7 @@ def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(tmp_path: Path) -
     remembered one is a coin flip between two real chemistries. Order is load-bearing — STARsolo
     pairs the Nth whitelist with the Nth position.
     """
-    manifest, reg = _build(tmp_path, "splitseq")
+    manifest, reg = synth_splitseq.manifest, synth_splitseq.registry
     solo = plan(manifest, _processing(manifest), registry=reg).config["solo"]
     assert isinstance(solo, dict)
 
@@ -1172,7 +1172,9 @@ def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared()
     assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
 
 
-def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(tmp_path: Path) -> None:
+def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(
+    built_v3: Built, synth_splitseq: SynthDataset
+) -> None:
     """Whether compose EMITS the key, for a chemistry that declares it and one that does not.
 
     Whether it then reaches the rendered STAR command is the plan text's business, and that costs a
@@ -1182,14 +1184,12 @@ def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(tmp_path:
     asserts its own `solo` keys are a superset of SPLiT-seq's, so standing in for it is checked
     rather than assumed). This half needs no subprocess at all.
     """
-    (tmp_path / "v3").mkdir()
-    (tmp_path / "ss").mkdir()
-    v3, v3_proc, v3_reg = _pair(tmp_path / "v3", "10x-3p-gex-v3", ("R1", "R2"))
-    v3_config = plan(v3, v3_proc, registry=v3_reg).config["solo"]
+    v3, v3_reg = built_v3
+    v3_config = plan(v3, _processing(v3), registry=v3_reg).config["solo"]
     assert isinstance(v3_config, dict)
     assert v3_config["soloBarcodeReadLength"] == "0"  # 10x declares it, so compose emits it
 
-    ss, ss_reg = _build(tmp_path / "ss", "splitseq")
+    ss, ss_reg = synth_splitseq.manifest, synth_splitseq.registry
     ss_config = plan(ss, _processing(ss), registry=ss_reg).config["solo"]
     assert isinstance(ss_config, dict)
     assert "soloBarcodeReadLength" not in ss_config  # SPLiT-seq does not, so it is not emitted
@@ -1211,7 +1211,8 @@ def _src_root() -> Path:
     return Path(seqforge.__file__).parent
 
 
-def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
+@pytest.mark.xdist_group("src-trees")
+def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
     """Consumer, not parallel universe, as an AST check rather than a code-review habit.
 
     `Genome(assembly).build_star_index(gtf=name)` is a *consumer call* and is exactly right. A
@@ -1223,8 +1224,7 @@ def test_seqforge_defines_no_genome_machinery(tmp_path: Path) -> None:
     import ast
 
     offenders: list[str] = []
-    for py in sorted(_src_root().rglob("*.py")):
-        tree = ast.parse(py.read_text())
+    for py, tree in src_trees.items():
         for node in ast.walk(tree):
             if (
                 isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
@@ -1476,7 +1476,7 @@ def _has_dotted(config: object, dotted: str) -> bool:
     return True
 
 
-def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -> None:
+def test_params_gate_names_the_right_block_for_a_bulk_manifest(synth_bulk_pe: SynthDataset) -> None:
     """A stray ``solo`` block on a bulk config must not be misdiagnosed as "KB param dropped".
 
     The gate used to take "whichever of solo/bulk is a dict", so this config reported
@@ -1484,7 +1484,7 @@ def test_params_gate_names_the_right_block_for_a_bulk_manifest(tmp_path: Path) -
     reader to the KB when the bug is in the composer. The block is a function of the module; it is
     now read from the one definition the composer also writes through.
     """
-    manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
+    manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     spec = kb.load_spec("bulk-rnaseq-pe")
     p = plan(manifest, _processing(manifest), registry=reg)
     assert params_gate(manifest, _processing(manifest), spec, p.config) == ("pass", [])
@@ -1630,13 +1630,13 @@ def test_the_default_counts_the_nuclear_features_without_being_asked(built_v3: B
     assert {"Gene", "GeneFull"} <= set(str(features).split())
 
 
-def test_bulk_never_gets_solo_features(tmp_path: Path) -> None:
+def test_bulk_never_gets_solo_features(synth_bulk_pe: SynthDataset) -> None:
     """Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR.
 
     A processing manifest that carried one shape unconditionally would be a type error the moment it
     met the other module — which is why Quantification is a discriminated union rather than a list.
     """
-    manifest, reg = _build(tmp_path, "bulk-rnaseq-pe", ("R1", "R2"))
+    manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     config = plan(manifest, _processing(manifest), registry=reg).config
     assert config["bulk"] == {"quantMode": "GeneCounts"}
     assert "solo" not in config
@@ -1936,7 +1936,10 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
     assert "seqforge io onlist write" in module
 
 
-def test_the_config_block_is_read_off_the_module_not_matched_on_its_name() -> None:
+@pytest.mark.xdist_group("src-trees")
+def test_the_config_block_is_read_off_the_module_not_matched_on_its_name(
+    src_trees: SrcTrees,
+) -> None:
     """The last `== "map/starsolo"` in the tree, and the last silent "everything else is bulk".
 
     `param_block_key` was `"solo" if spec.backend.module == "map/starsolo" else "bulk"`, which is the
@@ -1959,8 +1962,8 @@ def test_the_config_block_is_read_off_the_module_not_matched_on_its_name() -> No
     # fix along with the fix, which is how a guard teaches people to delete their own history.
     names = set(list_modules())
     offenders: list[str] = []
-    for py in sorted(_src_root().rglob("*.py")):
-        for node in ast.walk(ast.parse(py.read_text())):
+    for py, tree in src_trees.items():
+        for node in ast.walk(tree):
             if isinstance(node, ast.Compare) and any(
                 isinstance(c, ast.Constant) and c.value in names for c in node.comparators
             ):

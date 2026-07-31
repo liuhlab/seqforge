@@ -14,8 +14,11 @@ times and nothing could be tuned in one place. What lives here:
   own level explicitly — see ``test_probe.py``'s ``_value_stable_fixture``, which owns its
   compressor because it owns a literal ``size_bytes``.
 * :func:`registry_for` — a synthetic :class:`OnlistRegistry` backed by the generator's own pools.
-* :data:`synth_10x_v3` — a **session-scoped** read-only FASTQ directory and the ``(manifest,
-  registry)`` built from it, for the one shape most of the suite wants.
+* :data:`synth_10x_v3`, :data:`synth_bulk_pe`, :data:`synth_splitseq` — **session-scoped** read-only
+  FASTQ directories and the ``(manifest, registry)`` built from each, for the three shapes the suite
+  keeps rebuilding: barcoded, no-barcode, and complex-geometry.
+* :data:`kb_probes` — every KB spec's own reads, probed once (``spec id -> [WindowProbe]``).
+* :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
 
 **What may be shared is immutable products only.** The manifest, the registry and a directory
 nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit
@@ -25,6 +28,7 @@ for the wrong reason. Every test still composes into its own ``tmp_path``.
 
 from __future__ import annotations
 
+import ast
 import gzip
 import re
 import types
@@ -41,12 +45,19 @@ from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
+from seqforge.resolve.window import WindowProbe
 
 #: ``(header, sequence, quality)`` — what a FASTQ record is, once the ``@`` and ``+`` are stripped.
 Record = tuple[str, str, str]
 
 #: Cheap by default; see the module docstring. ~5-8s across the suite, and no claim depends on it.
 DEFAULT_COMPRESSLEVEL = 1
+
+#: What :data:`kb_probes` hands back: KB spec id -> the probes a scorer sees for that technology.
+KbProbes = dict[str, list[WindowProbe]]
+
+#: What :data:`src_trees` hands back: every ``.py`` under ``src/seqforge`` -> its parsed AST.
+SrcTrees = dict[Path, ast.Module]
 
 
 # --------------------------------------------------------------------------- #
@@ -328,3 +339,60 @@ def synth_10x_v3(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     to re-derive the same manifest.
     """
     return build_synth_dataset(tmp_path_factory.mktemp("synth-10x-v3"), "10x-3p-gex-v3")
+
+
+@pytest.fixture(scope="session")
+def synth_bulk_pe(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The no-barcode shape. Companion to :data:`synth_10x_v3`; built 3x before it existed."""
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-bulk-pe"), "bulk-rnaseq-pe")
+
+
+@pytest.fixture(scope="session")
+def synth_splitseq(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The complex-geometry shape (``cdna``/``bc``, three whitelists). Companion to the two above."""
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-splitseq"), "splitseq")
+
+
+@pytest.fixture(scope="session")
+def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
+    """Every KB spec's own synthetic reads, probed — ``spec id -> the probes a scorer would see``.
+
+    Six tests across ``test_kb.py`` and ``test_resolve.py`` rebuilt this sweep from two copies of the
+    same private helper, at ~19.4 ms/spec. The worst rebuilt it per ``(family, leaf)`` PAIR — 20
+    rebuilds writing the same filenames over and over.
+
+    Safe to share because it is an **immutable product**, in the sense ``tests/conftest.py`` means it:
+    ``WindowProbe`` is a frozen dataclass, ``kb.load_spec`` is already cached (so the ``Read``
+    identities its ``_frame_cache`` memoizes on are session-stable either way), and that cache is a
+    pure memo of a deterministic function — a probe answers the same question whoever asked first.
+    No ``seqforge/`` workspace is involved, and nothing writes into the directory once it is built.
+
+    Keyed by id over ``kb.list_spec_ids()``, which is the same 12 ids as ``load_all_specs()`` and
+    ``load_tree().specs``, so one sweep serves callers that iterate any of the three.
+    """
+    workdir = tmp_path_factory.mktemp("kb-probes")
+    out: dict[str, list[WindowProbe]] = {}
+    for tech_id in kb.list_spec_ids():
+        spec = kb.load_spec(tech_id)
+        reads = kb.generate_reads(spec, n=400, seed=0)
+        probes = []
+        for read_id, seqs in reads.items():
+            path = workdir / f"{tech_id.replace('/', '_')}_{read_id}.fastq.gz"
+            write_fastq_gz(path, seqs)
+            probes.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
+        out[tech_id] = probes
+    return out
+
+
+@pytest.fixture(scope="session")
+def src_trees() -> SrcTrees:
+    """Every ``.py`` under ``src/seqforge``, parsed once — ``path -> its AST``.
+
+    Three tests each walked `rglob("*.py")` + `ast.parse` over the whole tree to ask a one-line
+    question of it. The trees are read-only here (every consumer only ``ast.walk``s them), which is
+    what makes one parse serve all three.
+    """
+    import seqforge
+
+    root = Path(seqforge.__file__).parent
+    return {py: ast.parse(py.read_text()) for py in sorted(root.rglob("*.py"))}
