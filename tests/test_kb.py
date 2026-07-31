@@ -329,6 +329,66 @@ def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> 
     assert not out.result.questions
 
 
+def test_splitseq_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> None:
+    """The point of shipping the round whitelists (#127): the mechanism the spec calls decisive fires.
+
+    `splitseq` says of the one technology it is confusable with: "rung 3 decides it — the round1/2/3
+    whitelists hit, and bulk has no whitelist to hit." While we shipped no round lists that sentence
+    described nothing: the three weight-3.0 onlist tests abstained, and a real SPLiT-seq dataset
+    resolved by asking a human. It failed safely, so nothing was red.
+
+    Built from the ACTUAL shipped lists, exactly as the BD Rhapsody case is, because synthetic random
+    barcodes miss every whitelist — which is why `kb roundtrip` passing was never evidence that this
+    works. Read 2 is the real geometry: UMI(10) + bc3 + linker1 + bc2 + linker2 + bc1 = 94 cycles.
+    """
+    import random
+
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import unpack_barcodes
+    from seqforge.resolve import resolve_dataset
+
+    rounds = [unpack_barcodes(DEFAULT_REGISTRY.packed(f"splitseq-round{i}")) for i in (1, 2, 3)]
+    assert all(len(r) == 96 for r in rounds)  # the shipped lists really are 96 x 8 bp
+    spec = kb.load_spec("splitseq")
+    els = {e.name: e for e in spec.reads[1].elements}
+    link1, link2 = els["linker1"].sequence, els["linker2"].sequence
+    rng = random.Random(0)
+
+    def rand(k: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(k))
+
+    # UMI(10) + bc3 + linker1 + bc2 + linker2 + bc1 -> 10+8+30+8+30+8 = 94
+    r2 = [
+        rand(10)
+        + rng.choice(rounds[2])
+        + link1
+        + rng.choice(rounds[1])
+        + link2
+        + rng.choice(rounds[0])
+        for _ in range(800)
+    ]
+    assert all(len(s) == 94 for s in r2), "read 2 must be the declared 94 cycles"
+    r1 = [rand(66) for _ in range(800)]  # cDNA
+    f1, f2 = tmp_path / "ss_R1.fastq.gz", tmp_path / "ss_R2.fastq.gz"
+
+    def _write(path: Path, seqs: list[str]) -> None:
+        with gzip.open(path, "wt") as fh:
+            for i, s in enumerate(seqs):
+                fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")
+
+    _write(f1, r1)
+    _write(f2, r2)
+
+    out = resolve_dataset([f1, f2], registry=DEFAULT_REGISTRY, use_cache=False)
+    assert out.result.candidates, "SPLiT-seq reads must resolve to a candidate"
+    assert out.result.candidates[0].technology == "splitseq", [
+        c.technology for c in out.result.candidates[:3]
+    ]
+    assert out.result.candidates[0].rung_resolved == {"chemistry": 3}  # decided by the onlist
+    assert out.exit_code() == 0  # a clean win over the bulk fallback, not a question
+    assert not out.result.questions
+
+
 # ---------- BD Rhapsody Enhanced bead: the anchored/variable-position chemistry (#43) ----------
 _VB = ("", "A", "GT", "TCA")  # the 0-3 bp diversity insert -> a per-read stagger
 
@@ -579,24 +639,53 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 #: their own spec says they are. An exact pin, not a filter: this is a debt, and a debt you can forget
 #: is a debt you keep.
 #:
-#: **What is actually broken.** `splitseq` declares three barcode whitelists (`splitseq-round1/2/3`)
-#: and says of the one technology it is confusable with: "Rung 3 decides it: the round1/2/3
-#: whitelists hit, and bulk has no whitelist to hit." We ship three whitelists and all three are
-#: 10x's. So `DEFAULT_REGISTRY.has("splitseq-round1")` is False, the three weight-3.0 onlist tests
-#: ABSTAIN, and the one mechanism the spec calls decisive can never fire. A real SPLiT-seq dataset
-#: does not resolve — it asks a human.
+#: **Empty, and it took shipping a whitelist to empty it.** `splitseq` sat here: it declared three
+#: barcode whitelists and said of the one technology it is confusable with "rung 3 decides it: the
+#: round1/2/3 whitelists hit", while the three we shipped were all 10x's. The three weight-3.0 onlist
+#: tests abstained and the mechanism the spec called decisive could never fire. That failure was safe
+#: — it over-asks, it does not answer wrongly — which is exactly why it survived unnoticed: nothing
+#: was red, and every test that appeared to prove SPLiT-seq works built a synthetic registry from the
+#: spec's own aliases, proving the spec agrees with itself.
 #:
-#: That failure is safe (it over-asks; it does not answer wrongly), which is exactly why it survived:
-#: nothing was red. Every test that appears to prove SPLiT-seq works builds a synthetic registry from
-#: the spec's own aliases — proving the spec agrees with itself, which was never in doubt.
+#: The barcodes now ship, derived from the paper's own Supplementary Table S12 rather than guessed;
+#: `test_the_splitseq_rounds_are_one_barcode_set` pins what that derivation found.
 #:
-#: To close it: obtain the real 96 x 8 bp round1/2/3 barcodes from an authoritative source, verify
-#: them against a real SPLiT-seq dataset, `seqforge io onlist pack` them, and delete the entry below.
-#: Do NOT close it by guessing barcodes: a wrong whitelist does not fail loudly — STARsolo exits 0 and
-#: emits a matrix that merely looks like a thin dataset.
-UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {
-    "splitseq": ["splitseq-round1", "splitseq-round2", "splitseq-round3"],
-}
+#: Adding an entry here is legitimate; leaving one unrecorded is not. Do NOT close a future entry by
+#: guessing barcodes — a wrong whitelist does not fail loudly. STARsolo exits 0 and emits a matrix
+#: that merely looks like a thin dataset, and a plausible matrix is unrecoverable in a way a refusal
+#: never is.
+UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {}
+
+
+def test_the_splitseq_rounds_are_one_barcode_set() -> None:
+    """SPLiT-seq reuses ONE 96 x 8 bp set across all three rounds — a KB fact, not a packing accident.
+
+    It falls out of the derivation: the round-1 RT, round-2 and round-3 ligation oligos in the paper's
+    Supplementary Table S12 carry the same 96 barcodes in the same well order, and only their flanking
+    sequences differ. Pinned because it is load-bearing in both directions — a future edit that packs
+    three *different* lists has either found a source we did not, or corrupted one of them, and either
+    way this should stop it and be argued rather than absorbed.
+
+    The three registry names are kept distinct even so: the spec declares three, `CB_UMI_Complex`
+    takes three whitelist paths, and a chemistry that later diverges per round needs somewhere to say
+    so.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+
+    rounds = [DEFAULT_REGISTRY.get(f"splitseq-round{i}") for i in (1, 2, 3)]
+    for i, onlist in enumerate(rounds, 1):
+        assert onlist.n_entries == 96, f"round{i}: SPLiT-seq is 96 barcodes per round"
+        assert onlist.width == 8, f"round{i}: 8 bp per round barcode"
+        assert onlist.orientation == "forward", (
+            f"round{i}: read 2 reads the oligo's own orientation — the round-3 oligo's read-2 primer "
+            "is followed directly by UMI then barcode, so no revcomp is involved"
+        )
+    assert rounds[0].sha256 == rounds[1].sha256 == rounds[2].sha256, (
+        "the three rounds draw on one barcode set; three different lists means the source changed"
+    )
+    assert all(r.uri.endswith("aam8999_tables12.xlsx") for r in rounds), (
+        "each round is pinned to the paper's own Supplementary Table S12, not to a secondary copy"
+    )
 
 
 def _onlists_that_would_decide(spec) -> list[str]:
