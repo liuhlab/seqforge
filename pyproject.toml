@@ -199,6 +199,13 @@ follow_imports = "silent"
 module = ["scipy.*"]
 ignore_missing_imports = true
 
+# pooch ships no `py.typed`. It is the download/cache layer under the onlist registry, reached
+# through `retrieve()` in three places, and what protects the deliverable there is the checksum the
+# registry asserts on the fetched file — not the type of the fetcher.
+[[tool.mypy.overrides]]
+module = ["pooch", "pooch.*"]
+ignore_missing_imports = true
+
 # Both PDF engines are incompletely typed, and we call each through one thin guarded function in
 # `harvest/normalize.py`.
 [[tool.mypy.overrides]]

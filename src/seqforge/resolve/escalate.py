@@ -591,6 +591,8 @@ def _divergent_question(
             f"({', '.join(options)}) that onlist/metadata could not separate. Which chemistry applies?"
         ),
         options=options,
+        # `none` is discarded above, and every remaining KB mechanism is also a `Decidable`; the two
+        # vocabularies are declared apart, so what is collected here stays a `set[str]`.
         decidable_by=sorted(decidable) or ["user"],  # type: ignore[arg-type]
         rung=7,
     )

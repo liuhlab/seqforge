@@ -15,10 +15,12 @@ import gzip
 import hashlib
 import os
 import re
+import time
 import types
 import warnings
 
 import pytest
+import requests
 
 from conftest import range_server
 from seqforge.io import remote
@@ -75,14 +77,14 @@ RETRY_POLICY = [
     # GSE310667's records fetch live). It backs off and retries rather than aborting the stage.
     pytest.param(
         [
-            remote.requests.ConnectionError("('Connection aborted.', ConnectionResetError(104))"),
+            requests.ConnectionError("('Connection aborted.', ConnectionResetError(104))"),
             _resp(200, "OK"),
         ],
         "OK", 2,
         id="a-dropped-connection-retries-then-succeeds",
     ),
     pytest.param(
-        [remote.requests.Timeout("read timed out")], re.compile("failed"), remote._MAX_RETRIES + 1,
+        [requests.Timeout("read timed out")], re.compile("failed"), remote._MAX_RETRIES + 1,
         id="a-persistent-connection-error-gives-up",
     ),
 ]  # fmt: skip
@@ -104,8 +106,12 @@ def test_get_retries_what_is_transient_and_gives_up_on_what_is_not(
             raise outcome
         return outcome
 
-    monkeypatch.setattr(remote.requests, "get", fake_get)
-    monkeypatch.setattr(remote.time, "sleep", lambda _s: None)  # no real wait in the test
+    # Patched on the modules themselves, not through `remote.requests` / `remote.time`: those are
+    # the same objects (`remote` did `import requests`, so the attribute IS `sys.modules`' entry), so
+    # this is the identical mutation — and reaching them by their own name is what lets the checker
+    # keep `no_implicit_reexport` on for every module in the tree.
+    monkeypatch.setattr(requests, "get", fake_get)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)  # no real wait in the test
 
     if isinstance(expected, re.Pattern):
         with pytest.raises(RemoteError, match=expected.pattern):
@@ -426,7 +432,7 @@ def test_peek_range_reads_a_url_and_reports_its_head(monkeypatch: pytest.MonkeyP
     `decompress_prefix` + `parse_fastq_prefix` exercises (#110)."""
     data = _fastq_gz(200, read_len=90)
     url = "https://ftp.x/head.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
+    monkeypatch.setattr(requests, "get", range_server({url: data}))
 
     result = peek(url, max_reads=4)
 
@@ -507,7 +513,7 @@ def test_probe_remote_fingerprints_from_a_url_using_the_provider_md5(
     data = _fastq_gz(400, read_len=90)
     md5 = hashlib.md5(data).hexdigest()
     url = "https://ftp.x/vol1/SRR1_2.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
+    monkeypatch.setattr(requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5=md5)
 
@@ -527,7 +533,7 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     size_bytes is the true total (from Content-Range) rather than the bytes read."""
     data = _fastq_gz(5000, read_len=90)
     url = "https://ftp.x/big.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
+    monkeypatch.setattr(requests, "get", range_server({url: data}))
 
     obs, seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
 
@@ -545,7 +551,7 @@ def test_probe_remote_without_md5_derives_a_bounded_remote_key(
     basename + size + head, a valid 64-hex address that reads no whole file."""
     data = _fastq_gz(100, read_len=50)
     url = "https://ftp.x/nomd5.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", range_server({url: data}))
+    monkeypatch.setattr(requests, "get", range_server({url: data}))
 
     obs, _seqs = probe_remote(url)
 
@@ -559,7 +565,7 @@ def test_probe_remote_refuses_a_host_that_ignores_range(monkeypatch: pytest.Monk
     does. 'Bounded' means bounded by the server, not by our intentions."""
     data = _fastq_gz(10)
     url = "https://ftp.x/whole.fastq.gz"
-    monkeypatch.setattr(remote.requests, "get", range_server({url: data}, status=200))
+    monkeypatch.setattr(requests, "get", range_server({url: data}, status=200))
 
     with pytest.raises(RemoteError, match="answered 200"):
         probe_remote(url, md5="a" * 32)

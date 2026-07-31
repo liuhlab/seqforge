@@ -117,7 +117,10 @@ def _ignore_unknown(loader: yaml.SafeLoader, suffix: str, node: yaml.Node) -> No
     return None
 
 
-_IgnoreTags.add_multi_constructor("tag:yaml.org,2002:python/name:", _ignore_unknown)
+# The module-level registrar, not `_IgnoreTags.add_multi_constructor`: same call one frame down
+# (PyYAML forwards to the Loader), and the classmethod is the one place PyYAML's stubs leave
+# unannotated.
+yaml.add_multi_constructor("tag:yaml.org,2002:python/name:", _ignore_unknown, Loader=_IgnoreTags)
 
 
 def _load(path: Path) -> dict[str, Any]:

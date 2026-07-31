@@ -221,7 +221,7 @@ def test_project_views_union_every_assays_samples(own_two_chemistry_project: Pro
 
     assays = discover_assays(workspace)
     assert len(assays) == 2
-    infos = [
+    infos: list[dict[str, object]] = [
         {
             "chemistry": None,  # filled from the manifest by discover flow below
             "subdir": subdir,
@@ -307,4 +307,5 @@ def test_a_sample_split_across_chemistries_blocks(tmp_path: Path) -> None:
     assert out.code in (0, 3)
     if out.code == 3 and isinstance(out.payload, dict):
         blockers = out.payload.get("blockers", [])
+        assert isinstance(blockers, list), f"`blockers` is not a list: {blockers!r}"
         assert any("chemistry" in str(b.get("message", "")).lower() for b in blockers)

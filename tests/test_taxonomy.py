@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import io
 import json
+import time
 import urllib.error
+import urllib.request
+from email.message import Message
 
 import pytest
 
@@ -59,11 +62,13 @@ def test_taxonomy_get_retries_a_429_then_succeeds(monkeypatch: pytest.MonkeyPatc
     def fake_urlopen(url: str, timeout: object = None) -> object:
         calls["n"] += 1
         if calls["n"] == 1:
-            raise urllib.error.HTTPError(url, 429, "rate limited", {}, None)  # type: ignore[arg-type]
+            raise urllib.error.HTTPError(url, 429, "rate limited", Message(), None)
         return io.BytesIO(b"OK")  # BytesIO is its own context manager
 
-    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
-    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    # `taxonomy` resolves `urllib.request.urlopen` and `time.sleep` through the modules themselves,
+    # so patching them here is patching exactly what it calls.
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
     assert taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0) == "OK"
     assert calls["n"] == 2
 
@@ -79,10 +84,10 @@ def test_taxonomy_get_does_not_retry_a_terminal_status(monkeypatch: pytest.Monke
 
     def fake_urlopen(url: str, timeout: object = None) -> object:
         calls["n"] += 1
-        raise urllib.error.HTTPError(url, 400, "bad request", {}, None)  # type: ignore[arg-type]
+        raise urllib.error.HTTPError(url, 400, "bad request", Message(), None)
 
-    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
-    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
     with pytest.raises(urllib.error.HTTPError):
         taxonomy._get(f"{taxonomy._EUTILS}/efetch.fcgi?db=taxonomy&id=6239", timeout=1.0)
     assert calls["n"] == 1
@@ -100,10 +105,10 @@ def test_fetch_taxon_wraps_a_terminal_http_error_as_unavailable(
     """
 
     def fake_urlopen(url: str, timeout: object = None) -> object:
-        raise urllib.error.HTTPError(url, 400, "bad request", {}, None)  # type: ignore[arg-type]
+        raise urllib.error.HTTPError(url, 400, "bad request", Message(), None)
 
-    monkeypatch.setattr(taxonomy.urllib.request, "urlopen", fake_urlopen)
-    monkeypatch.setattr(taxonomy.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
     with pytest.raises(TaxonomyUnavailable, match="failed"):
         taxonomy.fetch_taxon(6239, timeout=1.0)
 

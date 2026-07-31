@@ -12,6 +12,7 @@ guarantees the shape, a json-object provider (DeepSeek) does not. The gate must 
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ from seqforge.harvest import (
     AnthropicProvider,
     ExtractUnavailable,
     LLMResponse,
+    NormalizedDoc,
     OpenAICompatibleProvider,
     ProviderUnavailable,
     build_kb_context,
@@ -36,7 +38,6 @@ from seqforge.harvest import (
     resolve_provider,
     verify_drafts,
 )
-from seqforge.harvest import extract as _extract
 from seqforge.harvest.providers import classify_api_error
 from seqforge.io.remote import _MAX_RETRIES
 
@@ -64,7 +65,7 @@ class _FakeProvider:
         return LLMResponse(text=self._payload, usage={"input_tokens": 10, "cache_read_tokens": 800})
 
 
-def _doc(tmp_path: Path, text: str = _TEXT):
+def _doc(tmp_path: Path, text: str = _TEXT) -> NormalizedDoc:
     p = tmp_path / "methods.txt"
     p.write_text(text)
     return normalize_document(p)
@@ -361,7 +362,9 @@ def test_extract_retries_what_is_transient_and_gives_up_on_what_is_not(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(_extract.time, "sleep", lambda _s: None)  # no real wait in the test
+    # `time`, not `_extract.time`: the same module object, so the identical patch — and reaching
+    # it by its own name keeps `no_implicit_reexport` on for every module in the tree.
+    monkeypatch.setattr(time, "sleep", lambda _s: None)  # no real wait in the test
     provider = _SequencedProvider(outcomes)
 
     if expected is None:
@@ -376,7 +379,7 @@ def test_a_failed_attempt_still_counts_against_the_ledger(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A refused call burned tokens. The ledger must say what the calls cost, not what the last did."""
-    monkeypatch.setattr(_extract.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
     provider = _SequencedProvider([_transient(usage={"input_tokens": 700}), _OK])
 
     outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)

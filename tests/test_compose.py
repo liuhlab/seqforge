@@ -11,6 +11,7 @@ The shared build helpers (``built_v3``, ``_build``, ``_processing`` …) live in
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -513,53 +514,75 @@ def test_compose_writes_the_bound_processing_lock(built_v3: Built, tmp_path: Pat
 # The params gate is the semantic check a dry run cannot make. Each corruption below takes the CLEAN
 # `(spec, config)` off one shared `plan(...)` and returns a poisoned pair the gate must reject; the
 # six were six near-identical functions that each re-paid the same setup.
-def _corrupt_kb_claims_a_10bp_umi(spec: object, config: dict) -> tuple[object, dict]:
+Corruption = Callable[[kb.Spec, dict[str, object]], tuple[kb.Spec, dict[str, object]]]
+
+
+def _solo(config: dict[str, object]) -> dict[str, object]:
+    """The emitted `solo:` block. A config value is an untyped `object`, so its readers narrow it
+    once here rather than reaching through the value at each use. The dict is the config's own, not
+    a copy: a caller that mutates it corrupts the config."""
+    solo = config["solo"]
+    assert isinstance(solo, dict), "a starsolo config must carry a solo block to corrupt"
+    return solo
+
+
+def _corrupt_kb_claims_a_10bp_umi(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     """A KB claiming a 10 bp UMI over a 12 bp UMI read -- the quiet corpus killer."""
-    lying = spec.model_copy(  # type: ignore[attr-defined]
+    backend = spec.require_backend()
+    lying = spec.model_copy(
         update={
-            "backend": spec.backend.model_copy(  # type: ignore[attr-defined]
-                update={"params": {**spec.backend.params, "soloUMIlen": 10}}  # type: ignore[attr-defined]
-            )
+            "backend": backend.model_copy(update={"params": {**backend.params, "soloUMIlen": 10}})
         }
     )
     return lying, config
 
 
-def _corrupt_config_drops_a_chemistry_knob(spec: object, config: dict) -> tuple[object, dict]:
+def _corrupt_config_drops_a_chemistry_knob(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     mangled = dict(config)
-    mangled["solo"] = {k: v for k, v in config["solo"].items() if k != "soloStrand"}
+    mangled["solo"] = {k: v for k, v in _solo(config).items() if k != "soloStrand"}
     return spec, mangled
 
 
 def _corrupt_read_files_in_swaps_cdna_and_barcode(
-    spec: object, config: dict
-) -> tuple[object, dict]:
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     swapped = dict(config)
     swapped["read_files_in"] = {"cdna": "R1", "barcode": "R2"}  # barcode read fed as the cDNA read
     return spec, swapped
 
 
-def _corrupt_config_disagrees_with_the_manifest(spec: object, config: dict) -> tuple[object, dict]:
+def _corrupt_config_disagrees_with_the_manifest(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     # makes `quantification` load-bearing: a decorative field cannot be caught.
-    return spec, {**config, "solo": {**config["solo"], "soloFeatures": "GeneFull"}}
+    return spec, {**config, "solo": {**_solo(config), "soloFeatures": "GeneFull"}}
 
 
-def _corrupt_kb_declares_a_count_key(spec: object, config: dict) -> tuple[object, dict]:
+def _corrupt_kb_declares_a_count_key(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     # belt to the schema validator's braces -- catches the model_copy'd specs tests build.
-    misowned = spec.model_copy(  # type: ignore[attr-defined]
+    backend = spec.require_backend()
+    misowned = spec.model_copy(
         update={
-            "backend": spec.backend.model_copy(  # type: ignore[attr-defined]
-                update={"params": {**spec.backend.params, "soloFeatures": ["Gene"]}}  # type: ignore[attr-defined]
+            "backend": backend.model_copy(
+                update={"params": {**backend.params, "soloFeatures": ["Gene"]}}
             )
         }
     )
     return misowned, config
 
 
-def _corrupt_emits_a_key_with_no_owner(spec: object, config: dict) -> tuple[object, dict]:
+def _corrupt_emits_a_key_with_no_owner(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
     # the emitted key set must be EXACTLY the two owners' union, so an orphan (a key moved out of the
     # KB, or one never owned) is not invisible -- disjointness alone is the decorative bug in reverse.
-    return spec, {**config, "solo": {**config["solo"], "outFilterMismatchNmax": "10"}}
+    return spec, {**config, "solo": {**_solo(config), "outFilterMismatchNmax": "10"}}
 
 
 @pytest.mark.parametrize(
@@ -582,7 +605,7 @@ def _corrupt_emits_a_key_with_no_owner(spec: object, config: dict) -> tuple[obje
     ],
 )
 def test_the_params_gate_fails_on_a_corrupt_params_dict(
-    built_v3: Built, corruption, expected_problem: str
+    built_v3: Built, corruption: Corruption, expected_problem: str
 ) -> None:
     """Six corruptions, one shared plan; silently emitting any of them is how a corpus gets poisoned.
 
@@ -654,7 +677,7 @@ def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
     """
     manifest, reg = _build(tmp_path, tech)  # read ids come from the spec, not from 10x's naming
     spec = kb.load_spec(tech)
-    module_name = spec.backend.module
+    module_name = spec.require_backend().module
     processing = _processing(manifest)
     config = plan(manifest, processing, registry=reg).config
     block = param_block_key(spec)
@@ -773,8 +796,9 @@ def test_the_required_config_check_can_catch_a_missing_key(built_v3: Built) -> N
     """Prove the guard fires — a contract test that has never failed proves nothing."""
     manifest, reg = built_v3
     config = plan(manifest, _processing(manifest), registry=reg).config
-    assert "soloFeatures" in config["solo"]  # type: ignore[operator,index]
-    del config["solo"]["soloFeatures"]  # type: ignore[index]
+    solo = _solo(config)  # the same dict `config` holds, so deleting from it corrupts the config
+    assert "soloFeatures" in solo
+    del solo["soloFeatures"]
     missing = [d for d in get_module("map/starsolo").required_config if not _has_dotted(config, d)]
     assert "solo.soloFeatures" in missing
     # The position quadruples are also absent, and legitimately so: this is a CB_UMI_Simple

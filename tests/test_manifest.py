@@ -31,6 +31,7 @@ from seqforge.io import OnlistRegistry
 from seqforge.manifest import (
     ExperimentInputs,
     FillError,
+    Instruction,
     dataset_content_hash,
     exit_code_for_report,
     fill_manifest,
@@ -39,6 +40,7 @@ from seqforge.manifest import (
     validate_manifest,
     validate_processing,
 )
+from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.dataset import DatasetManifest, SampleGroup
 from seqforge.models.resolve import ResolveResult
 from seqforge.workflows import WORKFLOW_VERSION
@@ -347,6 +349,14 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
         )
 
 
+def _solo(config: dict[str, object]) -> dict[str, object]:
+    """The emitted ``solo:`` block. ``plan(...).config`` values are ``object``, so narrow it once here
+    rather than reaching through the value at each use."""
+    solo = config["solo"]
+    assert isinstance(solo, dict), "a starsolo config must carry a solo block"
+    return solo
+
+
 def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     """It used to be written to the manifest and then IGNORED by compose, which read the KB instead.
 
@@ -359,7 +369,7 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     p = _processing(manifest)
     default = plan(manifest, p, registry=reg).config
     assert (
-        default["solo"]["soloFeatures"]
+        _solo(default)["soloFeatures"]
         == "Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS Velocyto"
     )
     assert default["primary_feature"] == "Gene"
@@ -377,7 +387,7 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
         }
     )
     config = plan(manifest, genefull, registry=reg).config
-    assert config["solo"]["soloFeatures"] == "GeneFull Gene"
+    assert _solo(config)["soloFeatures"] == "GeneFull Gene"
     # ...and "which matrix is THE matrix" is emitted as a VALUE, not left as a positional convention:
     # STARsolo does not care about order, so the list order has no aligner-side referent.
     assert config["primary_feature"] == "GeneFull"
@@ -418,7 +428,7 @@ def test_the_default_counts_the_nuclear_features_without_being_asked(built_v3: B
     afford to emit.
     """
     manifest, reg = built_v3
-    features = plan(manifest, _processing(manifest), registry=reg).config["solo"]["soloFeatures"]
+    features = _solo(plan(manifest, _processing(manifest), registry=reg).config)["soloFeatures"]
     assert {"Gene", "GeneFull"} <= set(str(features).split())
 
 
@@ -435,9 +445,7 @@ def test_bulk_never_gets_solo_features(synth_bulk_pe: SynthDataset) -> None:
     assert "primary_feature" not in config  # bulk has no Solo.out/<Feature>/ split
 
 
-def _ins(field: str, value: str):
-    from seqforge.manifest import Instruction
-
+def _ins(field: str, value: str) -> Instruction:
     return Instruction(field=field, value=value, basis="user_confirmed", evidence=["assert-x-0"])
 
 
@@ -533,9 +541,7 @@ def test_a_flag_or_instruction_beats_a_nuclei_prep() -> None:
     assert instructed[0] == "Velocyto", "an explicit instruction still sets the primary"
 
 
-def _prep_assertion(value: str, *, verified: bool = True) -> object:
-    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
-
+def _prep_assertion(value: str, *, verified: bool = True) -> Assertion:
     return Assertion(
         id="assert-prep-0",
         field="library.prep_type",

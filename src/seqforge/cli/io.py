@@ -134,6 +134,8 @@ def io_onlist_pack(
         packed.codes,
         width=packed.width,
         uri=uri,
+        # `--orientation` arrives as free text and this maintainer-only verb records it verbatim, so
+        # a typo reaches `index.json` as one. Narrowing it here would be a new refusal path.
         orientation=orientation,  # type: ignore[arg-type]
         source_sha256=source_sha,
     )
@@ -506,7 +508,7 @@ def io_records(
                 "query": records.query,
                 "source": records.source,
                 "n": {
-                    level: len(records.at(level))  # type: ignore[arg-type]
+                    level: len(records.at(level))
                     for level in ("project", "sample", "experiment", "run")
                 },
             },

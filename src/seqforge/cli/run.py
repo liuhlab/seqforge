@@ -8,8 +8,9 @@ individual verbs run, per assay.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import typer
 import yaml
@@ -35,7 +36,6 @@ from .processing import _instructions_from, _prep_type_from
 from .root import app
 
 if TYPE_CHECKING:
-    from ..harvest.normalize import PdfBackend
     from ..models.records import ArchiveRecordSet
 
 
@@ -105,6 +105,18 @@ def _run_records_stage(
     return combined, combined_path
 
 
+def _nested_field(block: Mapping[str, object], key: str, field: str) -> object:
+    """``block[key][field]``, or ``None`` when either is absent.
+
+    Every stage summary is ``dict[str, object]`` — a stage may emit a nested report, a list
+    (``assays``) or a bare error string — so reaching one level in is a check, not an index. A stage
+    that never ran reads as ``None``, which is what the old ``.get(key, {}).get(field)`` chain meant
+    and what the JSON summary should say about it.
+    """
+    inner = block.get(key)
+    return inner.get(field) if isinstance(inner, dict) else None
+
+
 def _run_finish(stages: dict[str, object], code: int) -> None:
     """Emit the single `run` summary and exit with the pipeline's code. Always raises."""
     summary: dict[str, object] = {"ok": code == 0, "exit_code": code, "stages": stages}
@@ -120,14 +132,14 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
                 {
                     "chemistry": a.get("chemistry"),
                     "manifest": a.get("manifest"),
-                    "snakefile": cast(dict, a.get("compose", {})).get("snakefile_path"),
+                    "snakefile": _nested_field(a, "compose", "snakefile_path"),
                 }
                 for a in assays
             ]
         else:
-            summary["manifest"] = cast(dict, stages.get("manifest", {})).get("manifest")
-            summary["processing"] = cast(dict, stages.get("processing", {})).get("processing")
-            summary["snakefile"] = cast(dict, stages.get("compose", {})).get("snakefile_path")
+            summary["manifest"] = _nested_field(stages, "manifest", "manifest")
+            summary["processing"] = _nested_field(stages, "processing", "processing")
+            summary["snakefile"] = _nested_field(stages, "compose", "snakefile_path")
     typer.echo(json.dumps(summary, indent=2))
     raise typer.Exit(code)
 
@@ -372,7 +384,7 @@ def run_cmd(
         stages["records"] = {
             "source": records.source,
             "n": {
-                level: len(records.at(level))  # type: ignore[arg-type]
+                level: len(records.at(level))
                 for level in ("project", "sample", "experiment", "run")
             },
         }
@@ -390,20 +402,21 @@ def run_cmd(
             model=model,
             verify=True,
             workspace=workspace,
-            pdf_backend=cast("PdfBackend", pdf_backend.value),
+            pdf_backend=pdf_backend.value,
         )
-        stages["harvest"] = (
+        harvest_stage: dict[str, object] = (
             harvested.payload
             if isinstance(harvested.payload, dict)
             else {"error": harvested.payload}
         )
+        stages["harvest"] = harvest_stage
         if _harvest_halts_run(harvested.payload, harvested.code):
             _run_finish(stages, harvested.code)
         if harvested.code == 4:
             # rejected reference claims survived the halt check: surface them, do not stop (see
             # `_harvest_halts_run`). They were dropped from assertions.json already; this is the "not
             # a silent drop" we ask for, in a field a headless caller still sees.
-            cast(dict, stages["harvest"])["needs_review"] = (
+            harvest_stage["needs_review"] = (
                 "prose claims failed span-verification and were dropped (see 'rejected'); the manifest "
                 "was built from the accepted claims and the bytes"
             )
@@ -423,19 +436,25 @@ def run_cmd(
         max_bytes=max_bytes,
         probed=probed,
     )
-    stages["manifest"] = fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
+    manifest_payload: dict[str, object] = (
+        fill.payload if isinstance(fill.payload, dict) else {"error": fill.payload}
+    )
+    stages["manifest"] = manifest_payload
     if fill.code != 0:
         _run_finish(stages, fill.code)
 
     # A project is one assay (the flat, byte-identical layout) or several (one seqforge/<assay>/ each).
-    manifest_payload = cast(dict, stages["manifest"])
+    # `None` in the first two slots IS the single-assay case, and the branch at the bottom reads it —
+    # so the annotation has to admit it, or the flat path type-checks as dead code.
+    targets: list[tuple[str | None, str | None, Path]]
     if "assays" in manifest_payload:
-        targets = [
-            (cast(str, a["chemistry"]), cast(str, a["assay_dir"]), Path(cast(str, a["manifest"])))
-            for a in cast(list, manifest_payload["assays"])
-        ]
+        assays_payload = manifest_payload["assays"]
+        assert isinstance(assays_payload, list), "a multi-assay fill reports its assays as a list"
+        targets = [(a["chemistry"], a["assay_dir"], Path(a["manifest"])) for a in assays_payload]
     else:
-        targets = [(None, None, Path(cast(str, manifest_payload["manifest"])))]
+        manifest_file = manifest_payload["manifest"]
+        assert isinstance(manifest_file, str), "fill reports the manifest path it wrote"
+        targets = [(None, None, Path(manifest_file))]
 
     # 4-5) The flags + the deliverable, per assay. Each is a normal single-chemistry compile.
     compiled: list[tuple[str | None, str, dict[str, object], int]] = []
@@ -467,7 +486,7 @@ def run_cmd(
                 "subdir": subdir,
                 "n_samples": len(manifest.experiment.samples),
                 "manifest": str(manifest_path),
-                "snakefile": cast(dict, summary.get("compose", {})).get("snakefile_path"),
+                "snakefile": _nested_field(summary, "compose", "snakefile_path"),
             }
         )
 

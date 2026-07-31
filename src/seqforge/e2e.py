@@ -36,7 +36,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import product as _product
@@ -45,7 +45,7 @@ from pathlib import Path
 import yaml
 
 from . import __version__
-from .compose import compose
+from .compose import ComposePlan, compose
 from .compose import plan as compose_plan
 from .io import OnlistRegistry
 from .kb import load_spec
@@ -464,9 +464,17 @@ def parse_h5ad(path: Path, layer: str | None = None) -> dict[tuple[str, str], in
     tests alone believe in, and becomes something ``kb e2e`` would fail on real reads.
     """
     import anndata as ad
+    from scipy.sparse import sparray, spmatrix
 
     adata = ad.read_h5ad(path)
-    mat = (adata.X if layer is None else adata.layers[layer]).tocoo()
+    matrix = adata.X if layer is None else adata.layers[layer]
+    # ``.X`` is legally absent, dense, or a backed dataset; only a sparse one has ``.tocoo()``. The
+    # packaging rule writes sparse counts, so anything else here is that rule having changed shape —
+    # say so, rather than let it read as a missing attribute five lines into the comprehension.
+    assert isinstance(matrix, sparray | spmatrix), (
+        f"{path}: expected a sparse count matrix, got {type(matrix).__name__}"
+    )
+    mat = matrix.tocoo()
     obs = list(adata.obs_names)
     var = list(adata.var_names)
     return {
@@ -488,6 +496,19 @@ def _fq_arg(fq: Path | Sequence[Path]) -> str:
     if not fq:
         raise E2EUnavailable("no FASTQ shards were produced")
     return ",".join(str(p) for p in fq)
+
+
+def _solo_params(composed: ComposePlan) -> dict[str, object]:
+    """The aligner param block compose emitted, as a dict a gate can copy and mutate.
+
+    ``ComposePlan.config`` is ``dict[str, object]`` because it carries lists, ints and nested blocks
+    alongside this one; the block is checked here, once, instead of at each gate. A config without it
+    is a composer that stopped emitting its params, which is exactly the silent regression these gates
+    exist to catch — so it fails here rather than as an empty STAR command line.
+    """
+    block = composed.config["solo"]
+    assert isinstance(block, dict), f"compose emitted no aligner param block: {block!r}"
+    return dict(block)
 
 
 def run_starsolo(
@@ -841,7 +862,7 @@ def run_e2e(
         seqforge_version=__version__,
     )
     composed = compose_plan(manifest, processing, registry=registry)
-    solo = dict(composed.config["solo"])  # type: ignore[arg-type]
+    solo = _solo_params(composed)
 
     # Run the Snakefile COMPOSE EMITTED — not a second, hand-written STAR command line that merely
     # uses the same params. See `run_composed`.
@@ -869,6 +890,7 @@ def run_e2e(
         if stats.get("input_reads")
         else 0.0
     )
+    # `_compare` hands back a JSON-shaped `dict[str, object]`; this key is the ratio it computed.
     recovery = float(verdict["recovery_rate"])  # type: ignore[arg-type]
     # `unexplained_loss` is the clause that actually indicts US: of the reads STAR placed uniquely,
     # how many failed to land in the right (cell, gene)? STAR's multimapper loss is subtracted out,
@@ -1026,7 +1048,7 @@ def run_intron_e2e(
         seqforge_version=__version__,
     )
     composed = compose_plan(manifest, processing, registry=registry)
-    solo = dict(composed.config["solo"])  # type: ignore[arg-type]
+    solo = _solo_params(composed)
     composed_features = _feature_list(solo["soloFeatures"])
     # No override. The compiler's own params run, and both Gene and GeneFull are among them because
     # the default counts everything. If that ever regresses, this gate cannot even read its own
@@ -1068,6 +1090,7 @@ def run_intron_e2e(
     # (<=1.02x rather than <= exactly: STAR can place a rare read ambiguously either way.)
     gene_excludes_introns = gene_total <= n_exonic * 1.02
     genefull_exceeds_gene = full_total > gene_total
+    # the same JSON-shaped `dict[str, object]` from `_compare`: both keys are ratios it computed.
     recovery_gene = float(v_gene["recovery_rate"])  # type: ignore[arg-type]
     recovery_full = float(v_full["recovery_rate"])  # type: ignore[arg-type]
 
@@ -1270,7 +1293,9 @@ def run_cost_sweep(
         )
 
     measured = [p for p in points if not p.get("failed")]
-    fit = _fit_line([(int(p["n_reads"]), float(p["star_peak_rss_gb"])) for p in measured])  # type: ignore[arg-type]
+    fit = _fit_line(
+        [(int(_point_number(p, "n_reads")), _point_number(p, "star_peak_rss_gb")) for p in measured]
+    )
     return {
         "assembly": assets.assembly,
         "annotation": assets.annotation,
@@ -1367,7 +1392,7 @@ def _compose_cost_params(
         seqforge_version=__version__,
     )
     composed = compose_plan(manifest, processing, registry=registry)
-    solo = dict(composed.config["solo"])  # type: ignore[arg-type]
+    solo = _solo_params(composed)
 
     # run_starsolo takes the whitelist as a path of its own (the composed value is a run-dir-relative
     # name), exactly as the gates do it.
@@ -1452,6 +1477,19 @@ def _cost_fingerprint(
         sort_keys=True,
     )
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+def _point_number(point: Mapping[str, object], key: str) -> float:
+    """One numeric field out of a sweep point, claimed back where it is read.
+
+    A point mixes read counts, seconds, gigabytes and a nested ``star`` block, so ``dict[str, object]``
+    is its honest type and no number comes out of it unchecked. Asserting here means a malformed point
+    — from a truncated or hand-edited ``cost.json``, which is what `kb e2e-fit` merges — names the
+    field, instead of surfacing as ``float()`` refusing a dict from inside a fit.
+    """
+    value = point[key]
+    assert isinstance(value, int | float), f"cost point field {key!r} is not a number: {value!r}"
+    return float(value)
 
 
 def _fit_line(points: list[tuple[int, float]]) -> dict[str, object]:
@@ -1677,6 +1715,8 @@ def _gen_shard(
     args: tuple[int, int, Path, Path, float, int, int],
 ) -> dict[str, int]:
     idx, n_reads, cdna_path, bc_path, intron_frac, read_len, seed = args
+    # One inherited dict carries two unlike things (gene models, barcodes), so its values read as
+    # `object`; `_init_gen_worker` is its only writer and runs before any shard.
     return write_cost_fastqs(
         _GEN_STATE["models"],  # type: ignore[arg-type]
         n_reads=n_reads,
@@ -1767,7 +1807,7 @@ def _gen_shard_inline(
 def read_whitelist(path: Path) -> list[str]:
     """Load a 10x whitelist (plain or gzipped) as barcode strings."""
     opener = gzip.open if path.suffix == ".gz" else open
-    with opener(path, "rt") as fh:  # type: ignore[operator]
+    with opener(path, "rt") as fh:
         return [ln.strip() for ln in fh if ln.strip()]
 
 

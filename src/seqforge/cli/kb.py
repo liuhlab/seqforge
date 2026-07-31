@@ -219,7 +219,7 @@ def kb_e2e_fit(
     all three, so splicing them into one line would silently fit a curve through incomparable points —
     the exact failure the per-shard seed and the resume guard exist to prevent elsewhere.
     """
-    from ..e2e import _fit_line
+    from ..e2e import _fit_line, _point_number
 
     runs = []
     for path in results:
@@ -261,8 +261,8 @@ def kb_e2e_fit(
     points: list[dict[str, object]] = []
     for _p, r in runs:
         points.extend(p for p in r.get("points", []) if not p.get("failed"))
-    points.sort(key=lambda p: int(p["n_reads"]))
-    if len({int(p["n_reads"]) for p in points}) != len(points):
+    points.sort(key=lambda p: int(_point_number(p, "n_reads")))
+    if len({int(_point_number(p, "n_reads")) for p in points}) != len(points):
         typer.echo("duplicate read depths across results; refusing to fit", err=True)
         raise typer.Exit(3)
 
@@ -278,7 +278,10 @@ def kb_e2e_fit(
                 "n_runs_merged": len(runs),
                 "points": points,
                 "fit": _fit_line(
-                    [(int(p["n_reads"]), float(p["star_peak_rss_gb"])) for p in points]
+                    [
+                        (int(_point_number(p, "n_reads")), _point_number(p, "star_peak_rss_gb"))
+                        for p in points
+                    ]
                 ),
             },
             indent=2,

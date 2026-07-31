@@ -387,6 +387,8 @@ def compose(
         snakefile_path=str(snakefile_path.relative_to(Path(workspace))),
         config_path=str(config_path.relative_to(Path(workspace))),
         units_path=str(units_path.relative_to(Path(workspace))),
+        # `wiring_gate` and `e2e_gate` are annotated `-> str`, so this dict is `dict[str, str]`;
+        # pass/fail/skip is all either can return, and the model pins that.
         gate=gate,  # type: ignore[arg-type]
         params_preview=preview,
     )

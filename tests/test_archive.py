@@ -10,6 +10,8 @@ without a byte of network.
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -27,7 +29,9 @@ class _FakeExperiment:
         self.accession = accession
 
 
-def _patch_labdata(monkeypatch: pytest.MonkeyPatch, resolver) -> None:
+def _patch_labdata(
+    monkeypatch: pytest.MonkeyPatch, resolver: Callable[[str], list[_FakeExperiment]]
+) -> None:
     """Install ``resolver`` as ``labdata.experiments_for`` (absent in the pinned build, so no raise)."""
     import labdata
 
@@ -88,7 +92,7 @@ def test_experiments_for_retries_a_transient_labdata_error(
         return [_FakeExperiment("SRX1")]
 
     _patch_labdata(monkeypatch, resolver)
-    monkeypatch.setattr(archive.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)  # `archive` calls `time.sleep` directly
     assert archive._experiments_for("GSE274290") == ["SRX1"]
     assert calls["n"] == 2  # retried through the 500
 
@@ -106,7 +110,7 @@ def test_experiments_for_does_not_retry_a_terminal_labdata_error(
         raise LabdataError("banana is not a resolvable accession")
 
     _patch_labdata(monkeypatch, resolver)
-    monkeypatch.setattr(archive.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
     with pytest.raises(RemoteError, match="could not resolve experiments"):
         archive._experiments_for("banana")
     assert calls["n"] == 1
@@ -155,7 +159,7 @@ def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
 ) -> None:
     """eutils raises its 3->10 req/sec cap for a keyed caller (#9). The key is read from the
     environment and added to the request params, and it never appears when unset."""
-    captured: dict[str, object] = {}
+    captured: dict[str, dict[str, str] | None] = {}
 
     def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
         captured["params"] = params
@@ -165,8 +169,12 @@ def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
 
     monkeypatch.setenv("NCBI_API_KEY", "SECRET-KEY-123")
     archive._efetch("sra", ["SRX1"])
-    assert captured["params"]["api_key"] == "SECRET-KEY-123"  # type: ignore[index]
+    keyed = captured["params"]
+    assert keyed is not None, "_efetch reached _get with no params at all"
+    assert keyed["api_key"] == "SECRET-KEY-123"
 
     monkeypatch.delenv("NCBI_API_KEY", raising=False)
     archive._efetch("sra", ["SRX1"])
-    assert "api_key" not in captured["params"]  # type: ignore[operator]
+    unkeyed = captured["params"]
+    assert unkeyed is not None, "_efetch reached _get with no params at all"
+    assert "api_key" not in unkeyed

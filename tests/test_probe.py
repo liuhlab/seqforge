@@ -9,8 +9,9 @@ import json
 import random
 import re
 from collections.abc import Callable
-from io import BytesIO
+from io import BufferedReader, BytesIO
 from pathlib import Path
+from types import TracebackType
 
 import pytest
 
@@ -516,29 +517,34 @@ def test_local_uri_follows_the_head_not_the_file_it_describes(tmp_path: Path) ->
 class _CountingReader:
     """Wrap a binary file object and tally every byte handed out by ``read``/``readinto``."""
 
-    def __init__(self, fh, counter: list[int]) -> None:
+    def __init__(self, fh: BufferedReader, counter: list[int]) -> None:
         self._fh = fh
         self._counter = counter
 
-    def read(self, *args):
+    def read(self, *args: int) -> bytes:
         data = self._fh.read(*args)
         self._counter[0] += len(data)
         return data
 
-    def readinto(self, b):
+    def readinto(self, b: bytearray | memoryview) -> int:
         n = self._fh.readinto(b)
         self._counter[0] += n
         return n
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> object:
         return getattr(self._fh, name)
 
-    def __enter__(self):
+    def __enter__(self) -> _CountingReader:
         self._fh.__enter__()
         return self
 
-    def __exit__(self, *exc):
-        return self._fh.__exit__(*exc)
+    def __exit__(
+        self,
+        cls: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self._fh.__exit__(cls, value, traceback)
 
 
 @pytest.mark.xdist_group("enormous-fastq")
@@ -558,9 +564,13 @@ def test_the_content_address_never_scans_the_whole_file(
     on_disk = path.stat().st_size
 
     counter = [0]
-    real_open = builtins.open
+    # Every open inside the patched window is `open(<path>, "rb")`, so the passthrough is binary —
+    # but it stays varargs, because `open` is patched on `builtins` and must forward whatever it gets.
+    real_open: Callable[..., BufferedReader] = builtins.open
 
-    def counting_open(file, *args, **kwargs):
+    def counting_open(
+        file: object, *args: object, **kwargs: object
+    ) -> BufferedReader | _CountingReader:
         fh = real_open(file, *args, **kwargs)
         return _CountingReader(fh, counter) if str(file) == str(path) else fh
 

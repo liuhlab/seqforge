@@ -14,6 +14,8 @@ import pytest
 
 from seqforge.harvest import (
     DEFAULT_PDF_BACKEND,
+    NormalizedDoc,
+    PdfBackend,
     UnreadableDocument,
     clean_invalid_unicode,
     entails,
@@ -130,6 +132,7 @@ def test_a_multi_sheet_xlsx_renders_every_sheet_not_just_the_first(tmp_path: Pat
 
     wb = Workbook()
     design = wb.active
+    assert design is not None, "a fresh Workbook always has an active sheet"
     design.title = "Experimental design"
     design.append(["note", "single-cell RNA-seq, two conditions"])
     samples = wb.create_sheet("Sample metadata")
@@ -166,6 +169,7 @@ def test_a_dirty_xlsx_transcribes_faithfully_without_cleaning(tmp_path: Path) ->
 
     wb = Workbook()
     legend = wb.active
+    assert legend is not None, "a fresh Workbook always has an active sheet"
     legend.title = "Legend"  # an irrelevant sheet — rendered, not dropped, and it breaks nothing
     legend.append(["colour code", "red = failed QC"])
     samples = wb.create_sheet("Table S3")
@@ -203,6 +207,7 @@ def test_a_dumped_sheet_is_bounded_and_the_truncation_is_marked(tmp_path: Path) 
 
     wb = Workbook()
     dump = wb.active
+    assert dump is not None, "a fresh Workbook always has an active sheet"
     dump.title = "counts"
     for i in range(_MAX_ROWS_PER_SHEET + 50):
         dump.append([f"gene_{i}", i])
@@ -272,7 +277,7 @@ def test_entailment_is_vacuous_when_the_value_is_copied_out_of_the_quote() -> No
 
 
 # ---------- verify: the tripwire end to end ----------
-def _doc(tmp_path: Path, text: str) -> object:
+def _doc(tmp_path: Path, text: str) -> NormalizedDoc:
     p = tmp_path / "methods.txt"
     p.write_text(text)
     return normalize_document(p)
@@ -510,14 +515,16 @@ def test_the_default_pdf_backend_is_pymupdf() -> None:
 
 
 @pytest.mark.parametrize("backend", ["pypdf", "pymupdf"])
-def test_a_pdf_extracts_normalizes_and_verifies_end_to_end(tmp_path: Path, backend: str) -> None:
+def test_a_pdf_extracts_normalizes_and_verifies_end_to_end(
+    tmp_path: Path, backend: PdfBackend
+) -> None:
     """Both backends turn a PDF into canonical text a truthful quote greps back into, and the chosen
     backend is recorded on the document. The span space is the same contract as for a .txt."""
     pdf = _pdf(
         tmp_path,
         ["Methods. Libraries were prepared with the Chromium Single Cell 3' v3 kit."],
     )
-    nd = normalize_document(pdf, pdf_backend=backend)  # type: ignore[arg-type]
+    nd = normalize_document(pdf, pdf_backend=backend)
     assert nd.extractor == backend
     assert nd.pages and nd.pages[0].number == 1
     draft = AssertionDraft(

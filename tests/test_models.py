@@ -232,7 +232,7 @@ def test_segment_discriminated_union_dispatches_on_kind() -> None:
     exercises the `kind` discriminator: each dict routes to its class, and a `kind` that matches no
     member is a `ValidationError` rather than a silent mis-parse.
     """
-    adapter = TypeAdapter(Segment)
+    adapter: TypeAdapter[Segment] = TypeAdapter(Segment)
     obs_segments = [
         {"kind": "constant", "start": 22, "end": 44, "consensus": "GAGT", "purity": 0.98},
         {"kind": "random", "start": 0, "end": 16, "mean_entropy_bits": 1.99},
@@ -252,6 +252,9 @@ def test_segment_discriminated_union_dispatches_on_kind() -> None:
 def test_evidenced_is_frozen() -> None:
     ev = m.EvidencedStr(value="starsolo", basis="inferred", confidence=1.0, rung=0)
     with pytest.raises(ValidationError):
+        # DELIBERATE: writing to a frozen field is the subject here. The checker refusing it
+        # statically is half the guarantee; this asserts pydantic refuses it at runtime too, which
+        # is the half that holds for a value arriving from JSON.
         ev.value = "bwa"  # type: ignore[misc]
 
 
@@ -314,7 +317,10 @@ def test_the_processing_manifest_refuses_an_unknown_key() -> None:
     section = valid.processing.model_dump()
 
     with pytest.raises(ValidationError) as exc:
-        m.ProcessingSection(**section, soloStrand="Reverse")
+        # DELIBERATE: the unknown keyword IS the subject of this test. The checker rejecting
+        # `soloStrand` is exactly the refusal being asserted, one layer earlier; silencing it here
+        # keeps the runtime refusal — the one that holds for a key arriving from YAML — under test.
+        m.ProcessingSection(**section, soloStrand="Reverse")  # type: ignore[call-arg]
     assert "soloStrand" in str(exc.value)
 
     with pytest.raises(ValidationError):
@@ -351,7 +357,10 @@ def test_solo_quant_rejects_duplicates_and_emptiness() -> None:
 def test_solo_quant_rejects_a_feature_starsolo_does_not_have() -> None:
     """The closure is what makes span-verification non-vacuous for this field — see verify.entails."""
     with pytest.raises(ValidationError):
-        m.SoloQuant(features=["GeneFullish"])
+        # DELIBERATE: the feature STARsolo does not have IS the subject. The literal is closed at
+        # type level too, so the checker flags it; the assertion is that the closure also holds for
+        # a feature name that arrives as data.
+        m.SoloQuant(features=["GeneFullish"])  # type: ignore[list-item]
 
 
 def test_the_module_graph_enforces_the_split() -> None:

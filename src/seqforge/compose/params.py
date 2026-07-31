@@ -121,9 +121,8 @@ def derived_params(spec: Spec) -> dict[str, str]:
     aliases = _whitelist_aliases(backend.params.get("soloCBwhitelist"))
     out: dict[str, str] = {}
 
-    anchored = bc_read is not None and any(el.anchor is not None for el in bc_read.elements)
-    if anchored:
-        frame = _adapter_frame(bc_read)  # type: ignore[arg-type]
+    if bc_read is not None and any(el.anchor is not None for el in bc_read.elements):
+        frame = _adapter_frame(bc_read)
         if frame is None:
             return {}  # no linker anchor to hang the adapter on — nothing safe to derive
         adapter_seq, quad = frame

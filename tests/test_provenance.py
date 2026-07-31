@@ -269,7 +269,10 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
 
     assert out.code == 4, out.payload  # an open provenance conflict -> NEEDS_HUMAN
     report = out.payload["report"] if isinstance(out.payload, dict) else {}
-    fields = [c["field"] for c in report.get("conflicts", [])]
+    assert isinstance(report, dict), f"the refusal carried no report object: {report!r}"
+    conflicts = report.get("conflicts", [])
+    assert isinstance(conflicts, list), f"`conflicts` is not a list: {conflicts!r}"
+    fields = [c["field"] for c in conflicts]
     assert "document.provenance" in fields
     # the conflict is surfaced for the Stop hook, not just returned
     assert (state_dir(tmp_path) / "questions.md").exists()
