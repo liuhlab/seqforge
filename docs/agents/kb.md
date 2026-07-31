@@ -153,10 +153,15 @@ Two disciplines that entry demonstrates, and that a new entry should copy:
   is an actively-versioned commercial descendant with different linkers and whitelists; it is deferred
   to its own future entry and never conflated. Two protocols in one spec is the failure that makes an
   entry unfalsifiable.
-- **Pin the read structure to a citable source, verbatim.** SPLiT-seq's layout and both linker
-  sequences are taken from
+- **Pin the read structure to a citable source, verbatim — then check it against reads.** SPLiT-seq's
+  layout and both linker sequences are taken from
   [scg_lib_structs](https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html) (CC-BY),
-  not from memory.
+  not from memory. That is the floor, not the ceiling: base 8 of `linker1` is **`C`** in 90.3% of real
+  GSE110823 reads and the published `A` appears in 0.9%, below the sequencing-error floor — and Table
+  S12, scg_lib_structs and the authors' own pipeline all carry the `A`. Three independent citations
+  agreed with each other and disagreed with the instrument. A citable source beats memory; real reads
+  beat a citable source, and the only reason this survived is that nothing greps the linker (our gate
+  measures *constancy*, the authors' code uses their linker string only to locate offsets).
 
 The `anchor` path — a floating element whose frame is recovered per read — is exercised instead by
 **BD Rhapsody Enhanced**, whose 0–3 bp diversity insert floats every CB block and whose motif-anchored

@@ -1,0 +1,26 @@
+outcome: decide
+description: >-
+  Rosenberg et al., Science 2018 — the dataset SPLiT-seq was published on, and the case the synthetic
+  corpus structurally cannot be. This is a PRE-REGISTERED PREDICTION OF A FIX, not a record of current
+  behaviour: as written today this case FAILS, and that is the point of committing it.
+
+  What it measures. `10x-*` and `bd-rhapsody-*` are proven on real barcodes by their own cases;
+  `splitseq` was proven only on reads seqforge generated from its own spec. That circularity hid a real
+  defect for the life of the entry. Run against real reads, `resolve score` returns `bulk-rnaseq-pe` at
+  score 0.98, rung 2, with zero conflicts, zero questions and exit 0 — the whitelists derived from
+  Table S12 are correct and are never consulted, because `splitseq` fails its own `requires` gate
+  before rung 3 is reached. `has_segment kind: constant` needs mean_maxfrac >= 0.9 and real reads give
+  linker2 0.827 (0.99+ over the ~61% of reads that are genuinely SPLiT-seq; the rest is head junk).
+
+  Why the expectation is `decide` anyway. Only a prediction can be wrong. Grading this against what the
+  code does today would enshrine the defect as the specification; grading it against what the chemistry
+  IS makes the benchmark the instrument that reports the gap. It goes green when the purity gate is
+  fixed, and not before. The benchmark job is opt-in and never runs in CI, so a red case here reports a
+  measurement rather than blocking a merge — and an unreachable package skips, so this stays quiet
+  until GSE110823.fingerprint.tar.gz is uploaded.
+
+  The whitelists themselves are already confirmed on this data: round 3/2/1 hit at 0.86 / 0.80 / 0.66
+  against a 0.0015 random floor, forward as pinned, and unambiguously the v1 Science-2018 variant
+  (Round1 hits 0.659 at [86,94) and 0.0012 at Parse/v2's [78,86)).
+fields:
+  library.chemistry: splitseq
