@@ -1,0 +1,97 @@
+# PRE-REGISTERED 2026-07-31, from declared metadata only — written and committed BEFORE `preflight`
+# or `resolve` was pointed at a single byte of this run. Its seven oldest neighbours were seeded from
+# a run and then REVIEWED against their publications (also 2026-07-31), which makes them sound
+# regression baselines; this file is a prediction, and that is the only reason it can be wrong
+# (ADR-0016).
+#
+# WHAT THIS CASE BUYS. The benchmark's only real BD Rhapsody dataset is GSE274290, the ORIGINAL
+# fixed-offset bead (`bd-rhapsody-wta`). The Enhanced chemistries — 0-3 bp variable diversity insert,
+# short GTGA/GACA linkers, `kb/anchor.py`'s phase-locked frame — were exercised ONLY on reads seqforge
+# generated from its own spec. That is exactly the circularity that hid a real defect in `splitseq`
+# for the life of that entry (see benchmark/GSE110823). This case closes it with real reads.
+#
+# AND IT IS A SHARP AUTO-DISTINCTION, not merely a second BD dataset. GSE274290's extract protocol
+# names the "BD Rhapsody Express Single-Cell Analysis System" and resolves to `bd-rhapsody-wta`. THIS
+# sample's extract protocol names the SAME instrument string, verbatim — "BD Rhapsody Express
+# Single-Cell Analysis System (BD Bioscience)" — and differs only in the declared BEAD:
+# `bd rhapsody_capture_bead_version: enhanced beads`. Express is the instrument; Enhanced is the bead.
+# So a resolver that reads the instrument name, or that leans on anything but the bead oligo's own
+# bytes, gets exactly one of these two cases wrong. Nothing in the fingerprint distinguishes them
+# except the R1 structure the KB claims to recognise.
+#
+# ---- WHY `bd-rhapsody-wta-enhanced-v2` AND NOT `-v1` -------------------------------------------
+# The archive pins the FAMILY but not the leaf: "enhanced beads" is BD's product name and is written
+# the same way whether the cartridge carried the 96(97)x3 or the 384x3 cell-label pools. seqforge's
+# two Enhanced leaves are byte-identical in geometry and are separated ONLY by which pool hits at
+# rung 3, so the leaf had to be predicted from something else. Two independent producer-published
+# sources, both metadata rather than reads, and neither touching this run's FASTQs:
+#
+#  1. The depositors' own BD pipeline header, published on GEO as this sample's processed data
+#     (GSM9270243_Colon_Crod_Mm_ST01_Expression_Data.st.txt.gz):
+#       "## BD Rhapsody WTA Analysis Pipeline Version 1.12.1"
+#       "## Libraries - ... - Bead version detected: Enhanced V2"
+#     i.e. BD's OWN bead detector, run by the people who made the library, says Enhanced V2. The
+#     sibling WTA sample in this series (GSM9270242, same lab, same NovaSeq X, analysed 2025-04)
+#     carries the identical "Bead version detected: Enhanced V2" line.
+#  2. The same table's `Cell_Index` column decodes the plexity arithmetically. BD packs the three
+#     cell labels as (CL1-1)*n^2 + (CL2-1)*n + CL3. Observed indices run to 56,617,547, which is
+#     under 384^3 = 56,623,104 and 64x over 96^3 = 884,736; 11,924 of the first 12,111 distinct
+#     indices exceed 96^3. Only a 384-plex encoding can produce them.
+#
+# BD "Enhanced V2" == rhapsodist class `enhanced_v2` == 384 x 3 pools == `bd-rhapsody-wta-enhanced-v2`
+# here; the 384 and 97 pools are disjoint (0 shared 9-mers, verified against
+# imallona/rock_roi_method data/whitelist_{96,384}x3), so the onlist genuinely decides and a wrong
+# leaf cannot hide. If the bytes disagree with this line, LEAVE IT STANDING and report the gap: a
+# benchmark case that reports a gap is worth more than one edited to agree.
+#
+# ---- SCOPE NOTES -------------------------------------------------------------------------------
+# * WTA, not the sample tags. This series pairs every WTA library with a cell-hashing companion;
+#   GSM9270243 (`Colon_Crod_Mm_WTA`) is the WTA half and GSM9270245 (`Colon_Crod_Mm_ST`,
+#   SRX30721100) is the sample-tag half, whose R2 is a short tag rather than cDNA. The fingerprint
+#   is of the WTA library only.
+# * Single species (`Mus musculus`, taxid 10090), so `experiment.organism` is a clean claim and no
+#   read filtering arises at all.
+# * `bd rhapsody_capture_bead_version` is NOT an NCBI-harmonized BioSample attribute, so the
+#   transcriber drops it and it cannot appear under `experiment.samples.*`. The declared bead is
+#   therefore evidence FOR this pre-registration, and never something the run can grade itself
+#   against — which is the honest arrangement.
+# * `study.center` is deliberately unclaimed: the archive's copy of it is mojibake
+#   ("...University of Z\xc3\xbcrich"), and a pre-registration should not pin an encoding bug.
+outcome: decide
+description: >-
+  GSE282765 / GSM9270243 (`Colon_Crod_Mm_WTA`, SRX30721098, SRR35669366) — mouse colon CD45+ cells
+  after Citrobacter rodentium infection, BD Rhapsody WTA on ENHANCED capture beads. The benchmark's
+  first REAL BD Rhapsody Enhanced dataset: until now the 0-3 bp diversity insert, the GTGA/GACA
+  linkers and the anchored per-read frame recovery were proven only on reads seqforge generated from
+  its own spec, which is the same circularity that hid a defect in `splitseq`.
+
+  Its edge against GSE274290 is the point. Both samples' extract protocols name the "BD Rhapsody
+  Express Single-Cell Analysis System"; GSE274290 is the original fixed-offset bead and this one
+  declares `enhanced beads`. Express is the instrument, Enhanced is the bead, and only the R1 bytes
+  tell them apart — so this pair fails loudly if the KB ever starts deciding BD chemistry from
+  anything but the bead oligo.
+
+  Breaking it would mean one of: the anchored linker frame no longer phase-locks on real reads (as
+  against synthetic ones), or the 384x3 Enhanced pools no longer separate from the disjoint 97x3
+  pools at rung 3, or the archive transcriber stopped carrying this BioSample's strain/tissue/
+  treatment. PRE-REGISTERED before any run — see the header for the evidence chain and for why the
+  leaf is predicted `-v2` rather than `-v1`.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: bd-rhapsody-wta-enhanced-v2
+  experiment.organism: 10090
+  experiment.study.title: Eosinophils restrict CRC metastasis by inhibiting pro-tumorigenic Spp1+ macrophage
+    differentiation.
+  experiment.samples.*.strain:
+  - C57BL/6J Cre
+  experiment.samples.*.tissue:
+  - Colon
+  experiment.samples.*.treatment:
+  - Citrobacter rodentium infection
+  experiment.samples.*.source_name:
+  - Colon
+  experiment.samples.SAMN52065473.strain: C57BL/6J Cre
+  experiment.samples.SAMN52065473.treatment: Citrobacter rodentium infection

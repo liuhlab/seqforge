@@ -1,0 +1,12 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# GSE282765 / GSM9270243 -> SRX30721098 -> SRR35669366, the `Colon_Crod_Mm_WTA` library. This series
+# pairs every WTA library with a cell-hashing companion; the sample-tag half of THIS cartridge is
+# GSM9270245 / SRX30721100 (`Colon_Crod_Mm_ST`) and is deliberately NOT fingerprinted — its R2 is a
+# short sample tag rather than cDNA, so it is a different library type, not another view of this one.
+#
+# Rebuild with: seqforge preflight --accession SRR35669366 -n 20000 -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE282765-colon-crod-wta.fingerprint.tar.gz
