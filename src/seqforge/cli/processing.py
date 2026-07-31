@@ -30,7 +30,7 @@ from .root import processing_app
 def _instructions_from(path: Path | None) -> list[Instruction]:
     """Rebuild the instructable surface from `harvest extract`'s artifact.
 
-    The precedence ladder (§7) is flag > instruction > policy, and `resolve_processing` has always
+    The precedence ladder is flag > instruction > policy, and `resolve_processing` has always
     implemented it — its `PolicyError` even tells you to "name an assembly in an --instruction
     document". That branch was unreachable: `--assembly` was a REQUIRED option, and nothing passed
     `instructions=` from any production caller. This is the last mile of a join that already existed.

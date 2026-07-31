@@ -22,7 +22,7 @@ from ..models.resolve import ValidationReport
 # Confidence below which a decided chemistry is flagged (non-blocking) as a close call. Rung-aware: a
 # rung-3 winner had an onlist positively participate (the barcode read matched a whitelist), so it is
 # trusted at a lower score than a rung-2 geometry-only winner, whose seat rests on read geometry
-# alone. Calibrated conservatively — a clean chemistry scores ~1.0 (design §3.6), well clear of these
+# alone. Calibrated conservatively — a clean chemistry scores ~1.0, well clear of these
 # floors, while the compile audit's two broken winners scored 0.44 / 0.59; those are now caught
 # upstream by the BARCODE_READ_ABSENT blocker, so this warning covers the *residual* lonely-low winner
 # that composes silently. A warning, never a gate: many legitimately-moderate datasets score in this

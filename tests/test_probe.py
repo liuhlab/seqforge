@@ -194,7 +194,7 @@ def enormous_fastq(tmp_path_factory: pytest.TempPathFactory) -> Enormous:
 
     Module scope, not a cached function: a shape that skipped a rebuild inconsistently would leave
     `assert on_disk < 2_000_000` and `assert on_disk > compressed_bytes_read * 3` measuring a file
-    nobody wrote this run — R3's strongest scale test, passing against a stale artifact.
+    nobody wrote this run — the read budget's strongest scale test, passing against a stale artifact.
     """
     path = tmp_path_factory.mktemp("enormous") / "enormous.fastq.gz"
     return path, _write_enormous_fastq_gz(path)
@@ -265,7 +265,7 @@ def _reader_fixture(tmp_path: Path, n: int = 500, read_len: int = 40) -> bytes:
 
 
 def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
-    """R3's first budget, tested where it is enforced rather than through a probe."""
+    """The read budget's first bound, tested where it is enforced rather than through a probe."""
     reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(10, 1 << 30))
     records = list(reader)
 

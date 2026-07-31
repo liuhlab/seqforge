@@ -264,7 +264,8 @@ def _fill_manifest_pipeline(
         workspace=workspace,
         use_cache=False,
         cpus=cpus,
-        # The read budgets travel together (R3): the default is the small N=2000 slice, and a caller
+        # The read budget's two bounds travel together: the default is the small N=2000 slice, and a
+        # caller
         # who forces a larger --max-reads to read more of the full-size FASTQs raises both here. A
         # fingerprint run ignores them — its slices were already fixed at preflight time (see _probed).
         max_reads=max_reads,

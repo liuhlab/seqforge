@@ -17,7 +17,7 @@ alternatives are both wrong.
 
 Barcodes are 2-bit packed into a width-generic integer array (``uint32`` for <=16 bp, ``uint64`` for
 <=32 bp — never a hardcoded 16 bp), which gives O(1) membership for :func:`onlist_hit_rate` and
-``np.intersect1d`` set-intersection for the confusability check (§2.4). ``onlist_hit_rate`` tests the
+``np.intersect1d`` set-intersection for the confusability check. ``onlist_hit_rate`` tests the
 window **forward and reverse-complement** across a **small positional-offset scan** and records the
 winning ``(orientation, offset)`` — a revcomp hit means the barcode read is on the other strand.
 """
@@ -167,7 +167,7 @@ def write_onlist_text(registry: OnlistRegistry, name: str, path: str | Path) -> 
 
 
 def intersect_fraction(a: PackedOnlist, b: PackedOnlist) -> float:
-    """Fraction of the smaller whitelist that also appears in the larger (onlist_separable, §2.4).
+    """Fraction of the smaller whitelist that also appears in the larger (``onlist_separable``).
 
     Computed by actual set-intersection over the packed arrays (not sha256 inequality — different
     file hashes prove the files differ, not that the barcode *sets* differ). Different-width lists
@@ -182,7 +182,7 @@ def intersect_fraction(a: PackedOnlist, b: PackedOnlist) -> float:
 
 @dataclass(frozen=True)
 class HitResult:
-    """The best onlist hit found over the orientation x offset scan (§3.1)."""
+    """The best onlist hit found over the orientation x offset scan."""
 
     hit_rate: float
     orientation: Strand
@@ -514,7 +514,7 @@ class OnlistRegistry:
 
         Refusing rather than warning, because a wrong whitelist does not error downstream: STARsolo
         exits 0 and emits a matrix that merely looks like a thin dataset — the same failure shape as
-        an inverted strand (§5), and the reason eager verification exists at all.
+        an inverted strand, and the reason eager verification exists at all.
         """
         digest = codes_sha256(codes)
         if entry.sha256 and digest != entry.sha256:

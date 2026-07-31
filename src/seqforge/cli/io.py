@@ -112,8 +112,8 @@ def io_onlist_pack(
 
     The shipped form is 2-bit-packed, sorted, de-duplicated, delta-encoded and gzipped: 10x's
     6 794 880-barcode v3 list is 522 kB here against 12 MB as their `.txt.gz`. That is why shipping
-    them is cheap, and it also closes the `.npy` precompilation §14 has wanted since the beginning --
-    nothing re-packs 6.8M barcodes per process any more.
+    them is cheap, and it also removes the need for a `.npy` precompilation step -- nothing re-packs
+    6.8M barcodes per process any more.
     """
     import gzip as _gzip
     import hashlib as _hashlib

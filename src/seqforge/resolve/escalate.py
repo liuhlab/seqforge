@@ -1,11 +1,11 @@
-"""Escalation: ranked evaluations -> ``{Decision | Conflict | Question | Blocker}`` (§3.5).
+"""Escalation: ranked evaluations -> ``{Decision | Conflict | Question | Blocker}``.
 
 Deterministic code owns the decision; the hypothesis only changes *which* candidates are computed and
 can break a genuinely-non-decisive divergent tie (recorded ``basis: asserted``, surfaced). The three
 terminal shapes:
 
 - **Decision** — a clear winner (``margin > θ``, no divergent tie). Declared ``processing_equivalent``
-  twins are recorded together into the chemistry equivalence class with **0** questions (§12 benign).
+  twins are recorded together into the chemistry equivalence class with **0** questions (benign).
 - **Conflict** — an observed value contradicts an asserted one. Detected unconditionally, in parallel;
   the library always takes the observed value. A CROSS-family contradiction (single-cell asserted, bulk
   observed) is surfaced ``open`` — exit 4, a human decides. A WITHIN-family geometry difference
@@ -57,7 +57,7 @@ def escalate(
         return Escalation(candidates=[], blockers=integrity, rung_reached=2)
 
     # `tech` is the LAST key and it is here for determinism, not for judgement: two candidates can tie
-    # on (value, rung) exactly — §12 benign twins do it BY CONSTRUCTION, since they are byte-identical
+    # on (value, rung) exactly — benign twins do it BY CONSTRUCTION, since they are byte-identical
     # — and without a final tiebreak the ordering falls through to the KB dict's iteration order. The
     # representative of an equivalence class is arbitrary; it still has to be arbitrary the SAME way on
     # every run, or `candidates[0].technology` flips between runs of an unchanged input.
@@ -200,7 +200,8 @@ def _pretrimmed_blockers(
 ) -> list[Blocker]:
     """Variable length on a read the chemistry declares FIXED => someone trimmed before uploading.
 
-    This is the quiet failure §5 is built around, and it survives every other check by construction.
+    This is the quiet failure the escalation ladder is built around, and it survives every other
+    check by construction.
     ``read_length_compatible`` matches on the **mode**, so a file whose reads are mostly 28 bp with a
     trimmed tail scores exactly like a clean one and wins its candidate outright. Nothing downstream
     looks again: STARsolo reads the barcode from a fixed offset, and on a shifted read that offset is
@@ -456,7 +457,8 @@ def _single_cell_collapse_conflict(
     The failure this catches: the asserted single-cell tech's barcode read was *forbidden* — trimmed,
     or over-sequenced past its length gate — so that tech dropped out of ``valid`` and the generic bulk
     fallback won by default. The result is a bulk manifest for a single-cell dataset, at exit 0. That
-    is the quiet corpus-poisoning §5 exists to prevent (GSE126954's over-length SRX5411291; GSE274290
+    is the quiet corpus-poisoning this stage exists to prevent (GSE126954's over-length SRX5411291;
+    GSE274290
     before a BD Rhapsody spec exists).
 
     ``_detect_conflicts`` provably cannot see this: it compares barcode *lengths*, and a bulk winner

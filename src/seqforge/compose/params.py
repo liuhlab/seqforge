@@ -1,4 +1,4 @@
-"""The **params gate** — the semantic assertions a dry-run cannot make (design §4.1, part 2).
+"""The **params gate** — the semantic assertions a dry-run cannot make.
 
 ``snakemake -n`` proves the *wiring*; it cannot see that ``--soloUMIlen`` is 10 when the reads carry a
 12 bp UMI, or that ``--readFilesIn`` puts the barcode read where the cDNA read belongs. Those are the

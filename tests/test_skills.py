@@ -16,8 +16,9 @@ import pytest
 import yaml
 
 #: `repo` is applied PER TEST, not to the whole module (#113). Half this file introspects the live
-#: Typer app and goes red when `src/` changes — that is exactly what R6 names its anchor to catch, so
-#: those tests must run under `test-fast` (a machine with no snakemake still wants R6 checked). Only the
+#: Typer app and goes red when `src/` changes — a renamed verb leaving the skills behind is exactly
+#: what they exist to catch, so those tests must run under `test-fast` (a machine with no snakemake
+#: still wants the skill-vs-CLI agreement checked). Only the
 #: five tests that genuinely check the shipped skills/installer rather than `src/` carry `@pytest.mark.repo`.
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -118,7 +119,7 @@ def test_skill_documents_only_real_cli_verbs(page: Path) -> None:
     Only long options, and only for verbs we can resolve: a short flag is ambiguous in prose, and a
     placeholder like `--profile <your-cluster-profile>` belongs to snakemake, not to us.
 
-    R6 names this function; do not rename it without updating CLAUDE.md's enforcement table.
+    The agent-facing rule table names this function; do not rename it without updating that table.
     """
     real = _real_verbs()
     used = _verbs_used(page.read_text())

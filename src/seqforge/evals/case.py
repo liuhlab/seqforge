@@ -1,6 +1,6 @@
-"""Eval cases — a declarative, *byte-free* description of a dataset and its ground truth (brief §9).
+"""Eval cases — a declarative, *byte-free* description of a dataset and its ground truth.
 
-Layout, per the brief::
+Layout::
 
     evals/cases/<case_id>/
       inputs/recipe.yaml   # HOW to build the FASTQ, not the FASTQ itself
@@ -158,7 +158,7 @@ class Recipe(BaseModel):
 class ExpectedConflict(BaseModel):
     """The conflict a case must surface.
 
-    ``positions`` is the load-bearing assertion, not ``field``: design §3.5 specifies the conflict by
+    ``positions`` is the load-bearing assertion, not ``field``: a Conflict is specified by
     the values that disagree (26 bp asserted vs 28 bp observed), because *that* is the decidable pair
     a human is being shown. Asserting only the field name would let both positions collapse to the
     same value and still pass.

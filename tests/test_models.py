@@ -14,7 +14,7 @@ HEX64 = "a" * 64
 
 
 def _valid_manifest() -> m.DatasetManifest:
-    """Build a minimal, fully valid DATASET manifest (a §12-shaped 10x 3' v3 worm dataset)."""
+    """Build a minimal, fully valid DATASET manifest (a benign-twin 10x 3' v3 worm dataset)."""
     read_layout = m.ReadLayout(
         modality="rna",
         reads=[
@@ -154,7 +154,7 @@ def test_manifest_round_trips_through_json() -> None:
 
 
 def test_the_assay_cannot_disagree_with_the_chemistry_it_names() -> None:
-    """One label per chemistry, so the §12 twin keeps its own CURIE instead of being dropped.
+    """One label per chemistry, so the benign twin keeps its own CURIE instead of being dropped.
 
     The pilot's manifest printed `assay: EFO:0009922` beside `chemistry: [v3, v3.1]` and the user
     reasonably asked what the difference was. There is none -- they are one answer in two

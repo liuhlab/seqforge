@@ -1,4 +1,4 @@
-"""Hook guards — the rules turned into mechanism (design §4.2).
+"""Hook guards — the rules turned into mechanism.
 
 `CLAUDE.md` says never read a whole FASTQ, no absolute paths in a manifest, and refusal is an exit
 code. Written down, those are aspirations. Here they become something that actually stops a tool call.

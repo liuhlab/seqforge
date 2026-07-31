@@ -94,9 +94,10 @@ confusable_with:
     distinguishable_by: [none]
     note: >
       Identical 16+12=28 bp geometry, identical 3M-february-2018 whitelist, byte-identical STARsolo
-      params -> §12 benign: the resolver records both ids and asks 0 questions. KEPT as an explicit
-      edge (not collapsed into the parent): backend-identity is a byte fact the §2.4 biconditional
-      verifies pairwise, distinct from the divergent sibling relationship the tree carries.
+      params -> benign: the resolver records both ids and asks 0 questions. KEPT as an explicit
+      edge (not collapsed into the parent): backend-identity is a byte fact the `backend_identical`
+      biconditional verifies pairwise, distinct from the divergent sibling relationship the tree
+      carries.
   - id: 10x-multiome-gex
     relationship: processing_divergent
     distinguishable_by: [onlist]

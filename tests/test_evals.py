@@ -155,7 +155,7 @@ CONFUSION_MATRIX = [
         _result(), 0, Grade.FALSE_ACCEPT, None, False,
         id="guessing-where-refusal-was-correct-is-false-accept",
     ),
-    # Brief §9: failing to ask a needed question is a hard fail. Its mechanism is a silent pick.
+    # Failing to ask a needed question is a hard fail. Its mechanism is a silent pick.
     pytest.param(
         {"outcome": "ask"},
         _result(), 0, Grade.FALSE_ACCEPT, None, True,
@@ -432,7 +432,8 @@ def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
     hermetic ``kind: spec`` cases count (a local/fingerprint case backed by out-of-git data skips in
     CI, so crediting it would let coverage lapse silently). Processing-equivalent twins (v3 <-> v3.1:
     identical ``backend.params``, so a real dataset only ever lands the pair) are credited to whichever
-    twin has a case — exercising both would re-test the KB's §12 biconditional, not the resolver.
+    twin has a case — exercising both would re-test the KB's benign-twin biconditional, not the
+    resolver.
     """
     from seqforge import kb
     from seqforge.evals.case import SpecRecipe
@@ -587,7 +588,7 @@ def test_corpus_is_green(case: Case) -> None:
     The aggregate assertions it used to carry (`false_accept_rate == 0.0`, `field_accuracy == 1.0`)
     are ENTAILED, not dropped: `grade_case` returns CORRECT only when no field check failed, so
     all-CORRECT gives both by construction. `build_report`'s rate arithmetic — including the
-    `questions_asked` metric R11(c) names — is separately unit-tested above at <5ms, against
+    `questions_asked` metric — is separately unit-tested above at <5ms, against
     synthetic runs rather than a 7-second corpus pass.
 
     The item count rises by 14 here, and that is the intended kind of growth: it tracks
@@ -890,7 +891,7 @@ def _bulk_fingerprint(tmp_path: Path):
     from seqforge.fingerprint.build import build_fingerprint
 
     # n=600 with reads=400 below, not n=1500/reads=2000. bulk-rnaseq-pe is decided by STRUCTURE
-    # alone and R3 says the chemistry call is N-invariant, so the smaller N grades identically. It
+    # alone and the chemistry call is N-invariant, so the smaller N grades identically. It
     # also makes the docstring true: at n=1500 with reads=2000 the "slice" was the WHOLE file, so
     # "no full FASTQ is present (only the slice)" was not being proved by anything.
     spec = kb.load_spec("bulk-rnaseq-pe")

@@ -1,14 +1,21 @@
-"""Repo-wide R10 invariants — seqforge is a CONSUMER of the liulab stack, not a parallel universe.
+"""Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-AST/attribute guards that read ``src/seqforge`` and never compose anything: it defines no genome
-machinery and no aligner environments of its own (those belong to ``liulab-genome`` /
-``liulab-runtime``), and every ``liulab-genome`` attribute it calls really exists on the imported
-class. The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
+Two families live here, and neither composes anything:
+
+- **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
+  environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
+  ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards.
+- **Prose that stays true.** No comment points at a governing document by number, because a number
+  is a mutable label: renumber the document and the comment lies, silently, forever.
+
+The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
 
 from __future__ import annotations
 
 import ast
+import re
+from pathlib import Path
 
 import pytest
 
@@ -138,3 +145,120 @@ def test_seqforge_defines_no_aligner_environments() -> None:
     assert set(get_args(RuntimeEnv)) == {"align-rna", "align-dna", "ml", "ml-gpu"}
     found = [str(p) for name in _ENV_DEFINITION_FILES for p in _src_root().rglob(name)]
     assert not found, f"seqforge is defining an aligner environment: {found}"
+
+
+#: The section sign (U+00A7), spelled as a codepoint so this file does not contain the character it
+#: forbids. It has no meaning in this domain at all, which is what makes forbidding it outright the
+#: unambiguous half of this guard.
+_SECTION_SIGN = chr(0xA7)
+
+#: A pointer at a governing document's NUMBERED rule, as a regex over one line of prose.
+#:
+#: Deliberately NARROW, because the alternative is a guard that blocks the project's own vocabulary.
+#: A capital ``R`` followed by a low digit is a **read designation** here and appears everywhere
+#: legitimately: the barcode read is one, ``--readFilesIn`` names two, a bcl2fastq basename carries
+#: one, a dotted manifest path ends in one, a sacCer3 genome build starts with one, and a worm
+#: replicate label in a fixture is another. None of those may be touched, so the low numbers are
+#: matched only in a shape that cannot be any of them.
+#:
+#: Two arms, therefore:
+#:
+#: - a bare ``R`` plus a rule number of **four or above** — no instrument writes a fourth or a
+#:   nineteenth read, so at those numbers the token can only be a pointer. Unless it is
+#:   quote-adjacent: a quoted token is *data*, and one eval case names a read id that deliberately
+#:   does not exist.
+#: - the words ``rule`` or ``per`` in front of ``R`` plus **any** number — a shape prose never uses
+#:   for a read.
+#:
+#: The known gap is therefore a pointer at one of the first three rules written any other way. That
+#: is the price of never firing on a read designation, and it is the right side to err on: a guard
+#: that cries wolf gets deleted, and this one has to survive.
+_NUMBERED_RULE = re.compile(r"(?<![\"'])\bR(?:[4-9]|1[0-9])\b(?![\"'])|\b(?:rule|per)\s+R[0-9]+\b")
+
+#: The surfaces a human writes prose into. Everything the sweep found lived in one of these.
+_PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk"})
+
+#: The one exemption, and it is the file whose SUBJECT is the numbered rules: it parses their ids out
+#: of the agent-facing documents and asserts the two lists agree. There, a rule number is *data under
+#: test*, not a pointer — exempting it is the difference between "no comment cites a rule by number"
+#: and "the rule table may not be tested". The cost is that a real pointer inside that one file goes
+#: unseen, which is the smaller of the two harms by a wide margin.
+_EXEMPT = frozenset({"test_docs.py"})
+
+
+def _points_by_number(text: str) -> bool:
+    """Does this line point at a governing document by NUMBER instead of naming the thing?
+
+    The exact predicate ``test_no_comment_points_at_a_governing_document_by_number`` applies to every
+    line under ``src/`` and ``tests/``. Shared so its discriminator exercises the real guard rather
+    than a re-implementation of it.
+    """
+    return _SECTION_SIGN in text or bool(_NUMBERED_RULE.search(text))
+
+
+def _numbered(n: int) -> str:
+    """``R`` plus a number, assembled at run time so this file holds no literal pointer of its own."""
+    return f"R{n}"
+
+
+def _prose_files() -> list[Path]:
+    """Every file under ``src/seqforge`` and ``tests/`` that a human writes prose into."""
+    roots = (_src_root(), Path(__file__).resolve().parent)
+    return sorted(
+        p
+        for root in roots
+        for p in root.rglob("*")
+        if p.suffix in _PROSE_SUFFIXES and p.name not in _EXEMPT
+    )
+
+
+def test_no_comment_points_at_a_governing_document_by_number() -> None:
+    """A pointer by number rots; a sentence does not.
+
+    Comments used to cite the governing documents by numbered section and by numbered rule. Four of
+    those pointers were already dangling when this guard was written: one named a brief that had been
+    absorbed into another file and deleted, two named an old numbering the document no longer used,
+    and one named a section that had never existed. Nothing could have noticed — a comment is not
+    executable, and the document it points into is not either.
+
+    So the fix is not "update the numbers", it is "stop depending on them". A comment that only
+    carried a pointer is deleted; a comment that carried an explanation keeps the explanation and
+    says the thing in words. That leaves the comment true under any renumbering, and true for a
+    reader who never opens the other document at all.
+    """
+    offenders = [
+        f"{path}:{i}: {line.strip()[:100]}"
+        for path in _prose_files()
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+        if _points_by_number(line)
+    ]
+    assert not offenders, (
+        "a comment points at a governing document by number:\n"
+        + "\n".join(offenders)
+        + "\n\nWrite the idea instead of the label. Name the concept — the read budget, a Blocker, "
+        "the byte resolver, a benign twin; CONTEXT.md is the glossary — and delete the comment "
+        "outright if the pointer was all it carried. A number is a mutable label, and four of them "
+        "had already gone stale by the time this check existed."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicate: it must fire on every shape the
+    # sweep removed, and stay silent on the read designations, the genome build and the replicate
+    # label that share the spelling. A guard nobody proved fires is a guard that always allows.
+    assert _points_by_number(f"the count matrix gate (design {_SECTION_SIGN}4.1)")
+    assert _points_by_number(f"{_SECTION_SIGN}12 says two entries with identical params")
+    assert _points_by_number(f"per {_numbered(10)} we consume it rather than reimplement it")
+    assert _points_by_number(f"rule {_numbered(5)}: disk is state, context is cache")
+    assert _points_by_number(f"the CLI is the API ({_numbered(6)})")
+    assert _points_by_number(f"the metric {_numbered(11)}(c) names")
+    assert _points_by_number(
+        f"rule {_numbered(1)} — emit data, never code"
+    )  # low, in a cited shape
+
+    assert not _points_by_number("R1 = CB + UMI; R2 = cDNA, sense to the mRNA")
+    assert not _points_by_number("--readFilesIn R2,R1")
+    assert not _points_by_number("SRR1234567_S1_L001_R1_001.fastq.gz")
+    assert not _points_by_number("library.read_layout.R1.length")
+    assert not _points_by_number("#!genome-build R64-1-1")
+    assert not _points_by_number('a run alias ("N2_wild_type", "daf-2 R3")')
+    assert not _points_by_number("the canonical geometry is a 16 bp barcode read (R2)")
+    assert not _points_by_number(f'{{"file": "{_numbered(9)}"}}')  # quoted -> a fixture's read id

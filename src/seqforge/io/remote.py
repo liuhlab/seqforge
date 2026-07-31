@@ -1,4 +1,4 @@
-"""``io peek`` / ``io resolve`` / ``io probe-remote`` — the ONLY network surface (design §4).
+"""``io peek`` / ``io resolve`` / ``io probe-remote`` — the ONLY network surface.
 
 Three verbs, all bounded:
 
@@ -408,7 +408,7 @@ def dropped_reads(run: dict[str, str], stats: RunStatistics) -> DroppedReads | N
 
 
 def technical_read_remedy(accession: str) -> str:
-    """The operable remedy for a dropped technical read (design §1.5: remedies must be actionable).
+    """The operable remedy for a dropped technical read — a Blocker's remedy must be actionable.
 
     ``fasterq-dump --include-technical`` is the real fix; SDL is a fallback. Originals
     (``sra-pub-src-*``) are published for "select high value and newly-released studies" only, and

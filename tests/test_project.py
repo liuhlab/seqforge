@@ -86,7 +86,7 @@ def test_the_attribute_columns_are_the_union_of_what_resolved_not_a_fixed_schema
     ]
     # ...and the rows are ordered by assay, not by the order the manifests were handed over.
     assert [r["sample_id"] for r in rows] == ["s_10x", "s_bulk"]
-    # `files` carries basenames only: a manifest is machine-independent (R7), and so is a view of one.
+    # `files` carries basenames only: a manifest is machine-independent, and so is a view of one.
     assert rows[0]["files"] == "s_10x_R1.fastq.gz;s_10x_R2.fastq.gz"
     assert rows[0]["n_files"] == "2"
 

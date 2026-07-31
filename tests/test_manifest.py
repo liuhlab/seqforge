@@ -123,7 +123,7 @@ def test_two_runs_with_the_same_basename_do_not_collapse_to_one_uri(tmp_path: Pa
 
 def test_fill_records_the_equivalence_class_and_byte_derived_roles(built_v3: Built) -> None:
     manifest, _ = built_v3
-    # §12 benign twins recorded together, basis observed
+    # benign twins recorded together, basis observed
     assert manifest.library.chemistry.value == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
     assert manifest.library.chemistry.basis == "observed"
     # One label per member of the class, and the twin keeps its OWN curie. `assay` used to be a
@@ -156,7 +156,7 @@ def test_processing_carries_the_derived_intent(built_v3: Built) -> None:
     assert p.processing.environment.value == "align-rna"
     assert p.processing.genome.value.assembly == "sacCer3"
     # basis records WHO DECIDED; policy defaults are `inferred` + an evidence ref naming the rule,
-    # which is why no `policy_default` basis is needed (design §1.0's open note).
+    # which is why no `policy_default` basis is needed.
     assert p.processing.quantification.basis == "inferred"
     assert p.processing.quantification.evidence == ["policy:default-solo-features"]
     assert p.provenance.workflow_version == WORKFLOW_VERSION

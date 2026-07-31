@@ -23,9 +23,9 @@ times and nothing could be tuned in one place. What lives here:
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 
 **What may be shared is immutable products only.** The manifest, the registry and a directory
-nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit
-(rule R5), so a shared workspace would let a later test collect a cached ``Observation`` and pass
-for the wrong reason. Every test still composes into its own ``tmp_path``.
+nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit, so
+a shared workspace would let a later test collect a cached ``Observation`` and pass for the wrong
+reason. Every test still composes into its own ``tmp_path``.
 """
 
 from __future__ import annotations

@@ -9,7 +9,8 @@
 #
 # The deliverable is a tabix-indexed `fragments.tsv.gz`, NOT a count matrix — there are no genes to
 # count in ATAC. The genome index resolves at RUN TIME from a `liulab-genome` assembly id via
-# `get_chromap_index` (the R10 analog of starsolo's `get_star_index`); no genome path is ever baked into
+# `get_chromap_index` (the upstream analog of starsolo's `get_star_index`); no genome path is ever
+# baked into
 # a config or a manifest, and chromap needs no gene annotation, so there is exactly one index per
 # assembly.
 

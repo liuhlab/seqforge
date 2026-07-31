@@ -38,7 +38,8 @@ class Budget:
     """The pair that bounds a head: ``max_reads`` records and ``max_bytes`` *decompressed* bytes.
 
     One value rather than two ints threaded side by side, because they are never meaningful apart —
-    R3 is "whichever trips first", so a function holding one and not the other cannot enforce it.
+    the budget is two-part and whichever trips first stops the read, so a function holding one bound
+    and not the other cannot enforce it.
     ``CONTEXT.md`` has named this concept **Budget** since the glossary was written; this is the type.
 
     A head carries the budget it was actually read under (:attr:`FastqHead.budget`), which is what

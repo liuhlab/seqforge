@@ -51,8 +51,8 @@ DEFAULT_SOLO_FEATURES: tuple[SoloFeature, ...] = (
 
 One alignment, five counting rules, one pass. Download and alignment dominate the cost by orders of
 magnitude, and count matrices are small — so we emit every answer and let the consumer choose. That
-**dissolves** the cells-vs-nuclei question rather than answering it, which is the sibling of the §12
-benign rule: §12 says never escalate an ambiguity that cannot change the output; this says never
+**dissolves** the cells-vs-nuclei question rather than answering it, which is the sibling of the
+benign-twin rule: never escalate an ambiguity that cannot change the output; this says never
 escalate one whose every answer you can afford to emit.
 
 We measured the alternative. ``--soloFeatures Gene`` silently discards **40.7 %** of a nuclear library
@@ -366,7 +366,8 @@ def resolve_processing(
             "no annotation: --annotation names a GTF REGISTERED with liulab-genome (e.g. WS298). "
             "It is a registry name, not something a paper writes, so there is nothing to infer."
         )
-    # §7's ladder: a CLI flag and an --instruction document are BOTH `user_confirmed` and differ only
+    # The precedence ladder: a CLI flag and an --instruction document are BOTH `user_confirmed` and
+    # differ only
     # in PRECEDENCE — they are the same user, one talking later. The channel lives in `evidence`.
     #
     # This read `"user_confirmed" if ov.assembly else "asserted"`, and `asserted` is what a database

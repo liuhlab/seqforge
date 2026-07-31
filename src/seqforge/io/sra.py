@@ -4,7 +4,7 @@ The archive twin of :func:`seqforge.io.remote.probe_remote`. ``probe_remote`` fi
 URL* with one bounded HTTP Range read; this fingerprints a *run accession* whose FASTQ was never
 mirrored (or was mirrored unfaithfully) by streaming the first N spots of its ``.sra`` straight into
 memory — no FASTQ, ``.sra``, or cache ever touches disk. The sra-tools half lives in **liulab-data**
-(``labdata.stream_run_reads``); per R10 we *consume* it exactly as :mod:`seqforge.io.archive` consumes
+(``labdata.stream_run_reads``); we *consume* it exactly as :mod:`seqforge.io.archive` consumes
 ``labdata.experiments_for``, and feed its reads through the identical Tier-A pipeline
 (``probe.build_observation``), so a run resolves to a library exactly as a local file does.
 
@@ -78,7 +78,7 @@ class SraMateProbe:
 
 
 def _stream_run(run_accession: str, *, n_spots: int) -> Any:
-    """Stream the first ``n_spots`` spots of a run via ``labdata`` — the R10 consume seam.
+    """Stream the first ``n_spots`` spots of a run via ``labdata`` — the upstream consume seam.
 
     Imported lazily (like ``archive._experiments_for``) so ``labdata`` is a runtime dependency only for
     the SRA path, and a transient failure is retried with backoff before becoming a loud

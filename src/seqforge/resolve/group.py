@@ -17,8 +17,8 @@ of the same library resolve to the same chemistry and a mis-grouped pair does no
 always was. The bug was that nobody split first: hand it a 6-run dataset's 12 files and it does a
 single global role assignment, picks the best (R1, R2) pair out of all 12, and leaves the other **ten**
 with no role at all. `_units` then skips them, `validate` passes clean, and you get a content-addressed
-manifest that has quietly dropped 5/6 of the data. Exit 0. That is the failure class §5 of the brief
-exists to prevent, and the pilot dataset is exactly 6 runs.
+manifest that has quietly dropped 5/6 of the data. Exit 0. Silent data loss at exit 0 is the failure
+class this compiler exists to prevent, and the pilot dataset is exactly 6 runs.
 """
 
 from __future__ import annotations

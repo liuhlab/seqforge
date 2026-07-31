@@ -1,4 +1,4 @@
-"""``WindowProbe`` — the bounded, role-conditioned view the resolver scores against (§3.1).
+"""``WindowProbe`` — the bounded, role-conditioned view the resolver scores against.
 
 The structural :class:`Observation` is deliberately role-free and carries no raw sequences, but the
 resolver needs role-conditioned answers — distinct-ratio and onlist hit-rate over *arbitrary*

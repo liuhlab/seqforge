@@ -31,7 +31,7 @@ from .window import WindowProbe
 
 @dataclass(frozen=True)
 class Hypothesis:
-    """A span-verified metadata assertion entering ``score`` as a selector / tie-break (§3.4)."""
+    """A span-verified metadata assertion entering ``score`` as a selector / tie-break."""
 
     value: str
     id: str = "hypothesis"

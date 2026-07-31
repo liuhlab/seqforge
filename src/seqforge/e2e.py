@@ -1,4 +1,4 @@
-"""``kb e2e`` — the one real end-to-end run, asserted against injected ground truth (design §4.1.3).
+"""``kb e2e`` — the one real end-to-end run, asserted against injected ground truth.
 
 This is the only gate that can catch the failures that **do not error**: an inverted ``--soloStrand``,
 a wrong ``--soloUMIlen``, a mangled whitelist. STARsolo exits 0 and emits a matrix that merely looks
@@ -935,7 +935,7 @@ def run_intron_e2e(
     min_recovery: float = 0.90,
     features: tuple[str, ...] | None = None,
 ) -> dict[str, object]:
-    """The intron-rich / **GeneFull** gate (design §4.1 coverage caveat; needs ce11, not sacCer3).
+    """The intron-rich / **GeneFull** gate — the coverage the sacCer3 run cannot give (needs ce11).
 
     Yeast is nearly intron-free, so ``Gene`` and ``GeneFull`` are indistinguishable on it and the
     existing e2e certifies neither. This one injects a known number of **intronic** reads — what a
@@ -952,7 +952,7 @@ def run_intron_e2e(
     It also produces the number that matters for the design: ``gene_signal_lost`` is the fraction of a
     nuclear library that ``--soloFeatures Gene`` silently throws away. STARsolo exits 0 either way and
     the matrix merely looks like a thin dataset — the same failure shape as a strand inversion, and
-    exactly the class §4.1 exists to catch.
+    exactly the class the end-to-end gate exists to catch.
 
     This gate runs on the **compiler's own params**: no override. It used to force
     ``soloFeatures = [Gene, GeneFull]`` past a compiler that would have emitted ``Gene``, and its
@@ -1105,8 +1105,8 @@ def run_intron_e2e(
         # This arm now runs the composed Snakefile, so the process it could time is *snakemake*, and
         # `wait4`'s `ru_maxrss` folds in descendants — the number would be "STAR's peak, probably".
         # A memory instrument may not be approximate. `kb e2e-cost` invokes STAR directly and is the
-        # instrument; design.md §4.1 already says so ("no longer `kb e2e-introns --quantify`, which
-        # is a correctness gate that happens to time itself"). This is that sentence becoming true.
+        # instrument. This arm is a correctness gate, and a correctness gate that happens to time
+        # itself reports a number nobody can defend.
         "star": star_stats(star_prefix),
         "gene_verdict": v_gene,
         "genefull_verdict": v_full,

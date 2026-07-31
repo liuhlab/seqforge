@@ -1,6 +1,7 @@
 schema_version: 1
 
-# The §12 benign twin of 10x-3p-gex-v3, and the ONLY reason it is a separate file: `backend_identical`
+# The processing-equivalent twin of 10x-3p-gex-v3, and the ONLY reason it is a separate file:
+# `backend_identical`
 # is a computed predicate, and a predicate cannot be computed about a spec that does not exist. v3
 # declared `processing_equivalent: 10x-3p-gex-v3.1` from the start, but the twin was never written, so
 # the flagship example of the rule the whole resolver is built around was the one pair CI could not
@@ -20,8 +21,9 @@ identity:
 
 reads:
   # Identical to v3: 28 bp = 16 CB + 12 UMI (max_len null: an over-sequenced R1 is still v3.1). This
-  # identity is the whole point — the probe cannot separate v3 from v3.1, and §12 says it does not
-  # need to; the over_length_min below keeps 28 separable from v2's 26 either way.
+  # identity is the whole point — the probe cannot separate v3 from v3.1, and identical backend
+  # params mean it does not need to; the over_length_min below keeps 28 separable from v2's 26
+  # either way.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
@@ -74,7 +76,7 @@ signature:
 
 backend:
   module: map/starsolo
-  params:                       # byte-identical to v3 -> backend_identical -> §12 benign
+  params:                       # byte-identical to v3 -> backend_identical -> benign
     soloType: CB_UMI_Simple
     soloCBstart: 1
     soloCBlen: 16
@@ -99,7 +101,7 @@ confusable_with:
     distinguishable_by: [none]
     note: >
       The back-edge of v3's declaration. Identical 16+12=28 bp geometry, identical 3M-february-2018
-      whitelist, byte-identical STARsolo params -> §12 benign: the resolver records both ids and asks
+      whitelist, byte-identical STARsolo params -> benign: the resolver records both ids and asks
       0 questions. Declared on both sides so the relation reads as symmetric in the file, which is
       what a human checks; the CI biconditional takes the union of both directions regardless.
   - id: 10x-multiome-gex

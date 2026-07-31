@@ -48,10 +48,10 @@ harvest_app = typer.Typer(
 )
 app.add_typer(harvest_app, name="harvest")
 
-eval_app = typer.Typer(help="The evals harness: measure what unit tests cannot (brief §9).")
+eval_app = typer.Typer(help="The evals harness: measure what unit tests cannot.")
 app.add_typer(eval_app, name="eval")
 
-hook_app = typer.Typer(help="Agent hooks: the rules as mechanism, not aspiration (design §4.2).")
+hook_app = typer.Typer(help="Agent hooks: the rules as mechanism, not aspiration.")
 app.add_typer(hook_app, name="hook")
 
 project_app = typer.Typer(

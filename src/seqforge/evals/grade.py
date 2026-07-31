@@ -1,4 +1,4 @@
-"""Grading — turn (expected, actual) into the metrics brief §9 actually asks for.
+"""Grading — turn (expected, actual) into the metrics the harness actually asks for.
 
 The whole harness reduces to one asymmetry: **not all failures cost the same.** A refusal is cheap —
 a human looks at it. A confidently wrong manifest is expensive — it silently poisons a training
@@ -43,7 +43,7 @@ from ..models.resolve import MetadataResolution, ResolveResult
 
 
 class Grade(StrEnum):
-    """How a case came out. ``FALSE_ACCEPT`` is the metric that matters (brief §9)."""
+    """How a case came out. ``FALSE_ACCEPT`` is the metric that matters."""
 
     CORRECT = "correct"
     #: Produced a decision that is wrong, or produced one at all when it should have stopped.
@@ -117,9 +117,9 @@ def grade_case(
 
     ``metadata`` is the second resolver's answer, and until it existed the harness could not see a
     sample at all: it graded a ``ResolveResult``, which has candidates and conflicts and no samples,
-    so every sample-level claim in a pre-registration was un-checkable prose. design.md §9 named
-    that gap ("the grader cannot express … SRX→sample mapping") and it stayed named for as long as
-    nothing produced samples to grade.
+    so every sample-level claim in a pre-registration was un-checkable prose. The gap was known and
+    written down ("the grader cannot express … SRX→sample mapping"), and it stayed open for as long
+    as nothing produced samples to grade.
     """
     actual = outcome_of(exit_code)
     exp = expected.outcome
@@ -128,8 +128,8 @@ def grade_case(
     if actual == "error":
         return CaseGrade(case_id, Grade.FALSE_REFUSE, exp, actual, notes=[f"exit {exit_code}"])
 
-    # Field checks run on `ask` too, not just `decide`: design §3.5 says the library section takes the
-    # observed value while the conflict stays attached. So "what did the library land on" is a real
+    # Field checks run on `ask` too, not just `decide`: the library section takes the observed
+    # value while the conflict stays attached. So "what did the library land on" is a real
     # assertion even when the case correctly stops to ask, and skipping it would leave the value
     # untested on exactly the path where metadata is known to be lying.
     checks = (

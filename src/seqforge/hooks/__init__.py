@@ -1,4 +1,4 @@
-"""``hooks`` — policy becomes mechanism (design §4.2).
+"""``hooks`` — policy becomes mechanism.
 
 `CLAUDE.md` can *say* "never read a whole FASTQ". Only a hook can stop one. These are the checked
 edges of the rules: bounded reads, no absolute path in a manifest, and code — not the model — decides

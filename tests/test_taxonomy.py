@@ -116,7 +116,7 @@ def test_an_unseeded_name_refuses_offline_rather_than_guessing() -> None:
 def test_a_name_ncbi_does_not_know_is_a_refusal_not_a_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Everyone's default is human. On a worm dataset a silent default maps at near-zero (§12), so a
+    """Everyone's default is human. On a worm dataset a silent default maps at near-zero, so a
     name NCBI returns no id for is a refusal, never a fallback. Driven offline with a canned empty
     esearch — formerly a live call `_net` would turn into a green skip, so CI never guaranteed it.
     """

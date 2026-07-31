@@ -1,4 +1,4 @@
-"""``evals`` — the harness that stops the compiler rotting invisibly (brief §9).
+"""``evals`` — the harness that stops the compiler rotting invisibly.
 
 Every other module in seqforge can be pinned by a unit test: same bytes in, same artifact out. Two
 things here cannot.

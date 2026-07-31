@@ -90,17 +90,17 @@ def test_splitseq_recovers_fixed_linker_structure() -> None:
     assert (56, 86) in constant_spans
 
 
-# ---------- §12: the benign rule, as a computed biconditional (design §2.4) ----------
+# ---------- the benign-twin rule, as a computed biconditional ----------
 def test_section_12_biconditional_holds_over_every_loaded_spec_pair() -> None:
     """``backend_identical(A, B) <=> declared processing_equivalent`` — the rule the resolver is built on.
 
-    Both `confuse.py`'s docstring and design §2.4 asserted CI computed this. Nothing did:
+    `confuse.py`'s docstring asserted CI computed this. Nothing did:
     `backend_identical` had zero callers, and the one pair it existed for (v3 <-> v3.1) named a spec
     that was never written, so the flagship example of the rule was the one pair no one could check.
 
     The two directions fail differently, which is why both halves matter:
     - identical but NOT declared -> we would interrogate a user about a distinction that cannot change
-      a single byte of output. §12 exists to forbid exactly that.
+      a single byte of output. The benign-twin rule exists to forbid exactly that.
     - declared but NOT identical -> a FALSE BENIGN: two chemistries that really do compile differently
       get recorded together and one config is emitted for both. That is a silent wrong answer, and it
       is the failure this test is really here for.
@@ -115,7 +115,7 @@ def test_section_12_biconditional_holds_over_every_loaded_spec_pair() -> None:
         # union of both directions, mirroring what escalate() actually consults at runtime
         declared = b in declared_equivalents(specs[a]) or a in declared_equivalents(specs[b])
         assert identical == declared, (
-            f"§12 biconditional broken for {a} vs {b}: "
+            f"benign-twin biconditional broken for {a} vs {b}: "
             f"backend_identical={identical} but declared processing_equivalent={declared}"
         )
 
@@ -222,13 +222,13 @@ def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
 
 
 def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> None:
-    """A §12 FALSE BENIGN this repo shipped: canonical_backend used to SORT list-valued params.
+    """A FALSE BENIGN this repo shipped: canonical_backend used to SORT list-valued params.
 
     Its only justification was `soloFeatures=[Gene,GeneFull] == [GeneFull,Gene]` — and soloFeatures has
     since left backend.params. What remained under the sort was splitseq's `soloCBwhitelist`,
     which is POSITIONAL: the rounds map to CB positions in order. So a spec and the same spec with its
     rounds permuted — two chemistries that parse reads DIFFERENTLY — canonicalized byte-equal, i.e.
-    processing_equivalent, i.e. §12-benign: record both, ask zero questions, emit ONE config for both.
+    processing_equivalent, i.e. benign: record both, ask zero questions, emit ONE config for both.
 
     It never fired only by the alphabetical accident that round1 < round2 < round3. Rename the
     registry entries bc3/bc2/bc1 and it does.
@@ -460,10 +460,10 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
     assert misfires <= 8  # chance frame matches are rare and would fail the onlist anyway
 
 
-# ---------- The rung-0-2 separability guard (design §2.4, fact 1) ----------
+# ---------- The rung-0-2 separability guard ----------
 @pytest.mark.xdist_group("kb-probes")
 def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) -> None:
-    """The under-declaration guard design §2.4 specified and nobody built.
+    """The under-declaration guard the confusability contract called for and nobody built.
 
     `decidable_by` and `confusable_with` were hand-maintained claims: nothing computed whether the
     cheap probes ACTUALLY separate two entries, so a new technology that silently collided with an
@@ -507,7 +507,7 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
 
 
 def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
-    """ "Ask the human" must be a COMPUTED property, not a prompt hope (§6).
+    """ "Ask the human" must be a COMPUTED property, not a prompt hope.
 
     A pair that the cheap probes cannot separate has to name the mechanism that can — onlist,
     metadata, alignment or a user — because that name is what the escalation ladder branches on. A
@@ -544,7 +544,7 @@ def test_the_separability_guard_can_actually_catch_a_collision(kb_probes: KbProb
 
 @pytest.mark.xdist_group("kb-probes")
 def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProbes) -> None:
-    """R8 for an ABSTRACT family: it self-tests by RECOGNITION, not by round-trip.
+    """Self-testing, for an ABSTRACT family: it proves itself by RECOGNITION, not by round-trip.
 
     A family node has no runnable backend, so `spec -> synth -> probe -> recover params` is meaningless.
     Its contract instead: (1) accept EVERY child's reads at rungs 0-2, so a prior that names the family
@@ -678,7 +678,7 @@ def test_writing_a_decidable_by_into_a_spec_is_now_an_error() -> None:
 
 
 def test_a_spec_with_no_divergent_confusable_is_decidable_by_nothing() -> None:
-    """Not a bug: nothing to decide. §12's equivalent twins are recorded together, never chosen between.
+    """Not a bug: nothing to decide. Equivalent twins are recorded together, never chosen between.
 
     Every shipped spec now carries at least one *divergent* confusable (v2 gained its over-length
     v2<->v3 edge, and the rest always had one), so the property is tested on a spec stripped to its

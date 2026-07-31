@@ -1,4 +1,4 @@
-"""Joint role->file assignment: the injective, cardinality-normalized optimization (§3.3).
+"""Joint role->file assignment: the injective, cardinality-normalized optimization.
 
 An assignment ``A: R_t -> F`` is **injective** (each role a distinct file). ``valid(A)`` selects no
 forbidden cell and fills every role. Over valid ``A`` we optimize ``(coverage, Σ(cell + β·prior))``

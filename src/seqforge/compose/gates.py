@@ -1,4 +1,4 @@
-"""The compose gate's other two parts: **wiring** and **e2e** (design §4.1, parts 1 and 3).
+"""The compose gate's other two parts: **wiring** and **e2e**.
 
 Both depend on a toolchain seqforge does not own, so both report **``skip``** — never ``pass`` — when
 that toolchain is absent. A gate that silently reports ``pass`` because it did not run is worse than
