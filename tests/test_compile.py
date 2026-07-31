@@ -8,14 +8,20 @@ chemistry-defining knob, must both FAIL — silently emitting them is how a corp
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
 from pathlib import Path
 from typing import get_args
 
 import pytest
 import yaml
 
-from conftest import SrcTrees, SynthDataset, build_synth_dataset, registry_for, write_fastq_gz
+from conftest import (
+    DryRun,
+    SrcTrees,
+    SynthDataset,
+    build_synth_dataset,
+    registry_for,
+    write_fastq_gz,
+)
 from seqforge import __version__, kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
@@ -184,13 +190,6 @@ def _processing(
         seqforge_version=__version__,
     )
     return p
-
-
-def _pair(
-    tmp_path: Path, tech: str, keys: tuple[str, str]
-) -> tuple[DatasetManifest, ProcessingManifest, OnlistRegistry]:
-    manifest, reg = _build(tmp_path, tech, keys)
-    return manifest, _processing(manifest), reg
 
 
 # ---------- manifest ----------
@@ -515,7 +514,7 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
 
 
 def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
-    tmp_path: Path, synth_splitseq: SynthDataset, dry_run: Callable[..., str]
+    tmp_path: Path, synth_splitseq: SynthDataset, dry_run: DryRun
 ) -> None:
     """BD Rhapsody Enhanced compiles to the adapter-anchored STARsolo recipe endorsed on STAR #1607.
 
@@ -592,7 +591,7 @@ def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> No
 
 
 def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
-    built_v3: Built, tmp_path: Path, dry_run: Callable[..., str]
+    built_v3: Built, tmp_path: Path, dry_run: DryRun
 ) -> None:
     """A pooled (multi-run) sample must reach STAR comma-joined per mate AND with mates paired by run.
 
@@ -715,7 +714,7 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
 
 
 def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length(
-    built_v3: Built, tmp_path: Path, dry_run: Callable[..., str]
+    built_v3: Built, tmp_path: Path, dry_run: DryRun
 ) -> None:
     """Everything the DEFAULT 10x plan text has to say, off one `snakemake -n -p`.
 

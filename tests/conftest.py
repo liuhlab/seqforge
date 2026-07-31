@@ -19,6 +19,8 @@ times and nothing could be tuned in one place. What lives here:
   keeps rebuilding: barcoded, no-barcode, and complex-geometry.
 * :data:`kb_probes` — every KB spec's own reads, probed once (``spec id -> [WindowProbe]``).
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
+* :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
+  Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 
 **What may be shared is immutable products only.** The manifest, the registry and a directory
 nothing writes into are safe; a *workspace* never is. ``seqforge/cache/`` makes resume implicit
@@ -35,10 +37,12 @@ import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import pytest
 
 from seqforge import __version__, kb
+from seqforge.compose.core import ComposePlan
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import ExperimentInputs, fill_manifest
 from seqforge.models.dataset import DatasetManifest, SampleGroup
@@ -108,18 +112,22 @@ def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     from ``test-fast``.
 
     The "and then never runs it" half is a **mechanism, not a promise**: the real gate is installed
-    behind a counter, and reaching it fails the test at teardown. Without that, this fixture would be
-    a second hand-written claim about what a test does — the exact thing deriving the marker from
+    behind a counter, and reaching it turns the run red at teardown. Without that, this fixture would
+    be a second hand-written claim about what a test does — the exact thing deriving the marker from
     fixture names exists to avoid.
+
+    Precisely: pytest renders a teardown failure as an ERROR against the test rather than as a FAIL,
+    so the test itself still reads "passed" in the dot line. The run is non-zero either way, which is
+    what matters; do not go looking for a red F.
     """
     from seqforge.compose import gates
 
     real = gates.wiring_gate
     calls: list[Path] = []
 
-    def counted(pipeline_dir: Path, plan: object) -> str:
+    def counted(pipeline_dir: Path, plan: ComposePlan) -> str:
         calls.append(pipeline_dir)
-        return real(pipeline_dir, plan)  # type: ignore[arg-type]
+        return real(pipeline_dir, plan)
 
     monkeypatch.setattr("seqforge.compose.gates.wiring_gate", counted)
     yield
@@ -129,8 +137,16 @@ def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     )
 
 
+class DryRun(Protocol):
+    """What :func:`dry_run` hands back. A Protocol, because the ``plan`` argument is OPTIONAL and
+    ``Callable[...]`` cannot say so — spelling it ``Callable[..., str]`` erases both parameters and
+    leaves the three call sites with no signature to check at all."""
+
+    def __call__(self, directory: Path, plan: ComposePlan | None = None) -> str: ...
+
+
 @pytest.fixture
-def dry_run() -> Callable[..., str]:
+def dry_run() -> DryRun:
     """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
 
     A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
@@ -148,8 +164,8 @@ def dry_run() -> Callable[..., str]:
 
     from seqforge.compose.gates import _replica
 
-    def run(directory: Path, plan: object | None = None) -> str:
-        target = _replica(directory, plan) if plan is not None else directory  # type: ignore[arg-type]
+    def run(directory: Path, plan: ComposePlan | None = None) -> str:
+        target = _replica(directory, plan) if plan is not None else directory
         try:
             proc = subprocess.run(
                 ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],

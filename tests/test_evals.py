@@ -599,6 +599,28 @@ def test_corpus_is_green(case: Case) -> None:
     assert run.grade.ok, run.to_json()
 
 
+def test_run_cases_fans_out_and_aggregates() -> None:
+    """`run_cases` is what `seqforge eval run` calls; `test_corpus_is_green` no longer does.
+
+    Parametrizing the corpus moved that test onto `run_case` (singular), which left the plural — the
+    one the CLI actually invokes — with no caller in the suite at all. It is two lines, and two lines
+    that nothing tests are two lines that can break silently in the verb a release is graded by.
+
+    One case, because what is under test is the fan-out and the hand-off to `build_report`, not the
+    corpus. The report is round-tripped through JSON here too: that claim used to have a test of its
+    own over a synthetic run, and this is a better place for it — the report came from a real one.
+    """
+    from seqforge.evals import run_cases
+
+    case = next(c for c in HERMETIC_CASES if c.id == "10x-v3-bytes-only")
+    report, runs = run_cases([case], llm=False)
+
+    assert [r.case_id for r in runs] == [case.id]
+    assert report.n_cases == 1
+    assert report.false_accept_rate == 0.0
+    assert report.model_dump(mode="json")["n_cases"] == 1
+
+
 # --------------------------------------------------------------------------------------------
 # the --llm path, driven offline by a stub provider
 #

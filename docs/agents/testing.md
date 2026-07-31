@@ -22,7 +22,7 @@ with no `snakemake` — but it is no longer a rung, because a rung that saves no
 should be told to climb.
 
 **Rung 1 is where you live.** A single file with `-k` is one to two seconds; a whole test file is
-under ten. Nothing about a one-line change is learned by running ~829 tests that a targeted run does
+under ten. Nothing about a one-line change is learned by running 834 tests that a targeted run does
 not tell you in a tenth of the time.
 
 **Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
@@ -68,7 +68,7 @@ what it is about:
 
 `test-fast` is `-m 'not external and not repo'`. It is not much faster than the whole suite, and that
 is the honest state of things: the subprocess cost that used to dominate is gone, so what remains is
-mostly real work — ~735 tests against ~829. Both it and `test` run under `pytest-xdist` — see below.
+mostly real work — 742 tests against 834. Both it and `test` run under `pytest-xdist` — see below.
 
 **One hole to know about.** `repo` is about what a test is *about*, not what it depends on, and
 `tests/test_skills.py` is the case where the two come apart: it checks documentation, but it does so
@@ -213,16 +213,19 @@ exact failure mode this project refuses everywhere else. See
 Measured on one box. The suite was **164s serial**; it is now **~10s on twelve workers**, and none of
 that came from making a test weaker:
 
+`saved` is CPU unless marked otherwise — the rows differ in what they remove, and the last one
+removes none at all:
+
 | change | saved |
 | ------ | ----- |
 | the wiring gate paid once per workflow module instead of ~41 times per compose | ~39s |
 | `kb.load_spec` cached, YAML parsed with `CSafeLoader` | ~41s |
 | the 45 repeated manifest builds session-scoped | ~11s |
 | `-n auto --maxprocesses 12` over what remained | ~63s |
-| `--dist=loadgroup` + `xdist_group`: shared fixtures built once, not once per worker | ~9s CPU |
-| `test_compile.py`'s 13 `snakemake` spawns down to 7 (the plan text was already in hand) | ~34s CPU |
-| four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | ~2.5s CPU |
-| three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | ~1.9s CPU |
+| `--dist=loadgroup` + `xdist_group`: shared fixtures built once, not once per worker | ~9s |
+| `test_compile.py`'s 13 `snakemake` spawns down to 7 (the plan text was already in hand) | ~8.7s off that file, serial |
+| four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | ~2.5s |
+| three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | ~1.9s |
 | `test_corpus_is_green` parametrized per case | 5.7s off the **critical path** |
 
 Nothing here was a slow *test*. Every one was a fact being re-proved because the seam that owned it
