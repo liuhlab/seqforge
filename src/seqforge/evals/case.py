@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
@@ -33,7 +34,8 @@ from .. import kb
 from ..io import OnlistRegistry
 from ..kb.generate import write_fastq_gz
 from ..models.observation import Observation
-from ..models.records import ArchiveRecordSet
+from ..models.records import ArchiveRecord, ArchiveRecordSet
+from ..resolve.group import run_key
 
 CASES_DIRNAME = "cases"
 
@@ -278,8 +280,25 @@ class CaseError(RuntimeError):
     """A case is malformed. Distinct from a case *failing* — this is a bug in the case itself."""
 
 
+#: Why a case did not run. ``unavailable`` is an accident of *this machine* — no local root, no API
+#: key, the archive offline — and says nothing about the corpus. ``absent`` is a property of the
+#: **corpus itself**: the package was never published, so the case cannot run anywhere, for anyone,
+#: until someone uploads it. One is weather and the other is a gap, and a report that spelled them
+#: the same way let a dataset go quietly missing behind a word that reads as transient.
+SkipKind = Literal["unavailable", "absent"]
+
+
 class CaseSkipped(RuntimeError):
-    """A case cannot run here (local root unset, LLM needed but disabled). Never a pass or fail."""
+    """A case cannot run here (local root unset, LLM needed but disabled). Never a pass or fail.
+
+    ``kind`` is the machine-readable half of the reason, carried on the exception rather than
+    re-derived from its message: a report that had to grep a sentence for "404" would be a parser
+    over prose, which is the thing exit codes exist to avoid.
+    """
+
+    def __init__(self, message: str, *, kind: SkipKind = "unavailable") -> None:
+        super().__init__(message)
+        self.kind: SkipKind = kind
 
 
 def default_cases_dir() -> Path:
@@ -367,7 +386,46 @@ def materialize(case: Case, dest: Path) -> Materialized:
         built = _materialize_random(gen, dest)
     else:
         built = _materialize_spec(gen, dest)
-    return replace(built, records=case.records)
+    records = case.records
+    if records is not None and isinstance(gen, FingerprintRecipe):
+        records = _records_the_package_reaches(records, built.paths)
+    return replace(built, records=records)
+
+
+def _records_the_package_reaches(
+    records: ArchiveRecordSet, paths: Sequence[Path]
+) -> ArchiveRecordSet:
+    """Drop the archive records no slice in the package can ever join to.
+
+    A fingerprint package pins a chosen subset of a series' runs, but the committed transcript is
+    whatever the archive declared for the whole accession — so the two drift apart silently, and the
+    drift is one-sided. A file with no record refuses the join outright; a record with no file is
+    never reached, because the join walks the files on disk. It costs one extraction call per record
+    and grades nothing: GSE126954 declared a re-analysis sample whose 910 runs were 92% of the case's
+    spend and 83% of the whole benchmark's, for claims the resolver then discarded unread.
+
+    Narrowing here rather than in the metadata resolver is deliberate. A real dataset legitimately
+    has records for runs you were not handed, and refusing or dropping them there would be a change
+    to what seqforge decides. This is a property of the *fixture*: a case grades the bytes it ships,
+    so it should ask about the samples it ships and nothing else.
+
+    Run identity is matched the way the join matches it — by run accession, or by an original
+    filename the record declares — so a package whose slices keep submitter names narrows the same
+    way one carrying SRA names does.
+    """
+    basenames = {p.name for p in paths}
+    reachable = {run_key(name) for name in basenames}
+    keep: set[str] = set()
+    for run in records.at("run"):
+        if run.accession not in reachable and not (set(run.filenames) & basenames):
+            continue
+        current: ArchiveRecord | None = run
+        while current is not None and current.accession not in keep:
+            keep.add(current.accession)
+            current = records.by_accession(current.parent) if current.parent else None
+    return records.model_copy(
+        update={"records": [r for r in records.records if r.accession in keep]}
+    )
 
 
 def _materialize_fingerprint(gen: FingerprintRecipe, case_root: Path, dest: Path) -> Materialized:
@@ -394,12 +452,16 @@ def _materialize_fingerprint(gen: FingerprintRecipe, case_root: Path, dest: Path
 def _fingerprint_package(gen: FingerprintRecipe, case_root: Path) -> Path:
     """Resolve a fingerprint recipe to a package on disk, or :class:`CaseSkipped` if it is not here.
 
-    Three sources, one skip contract. A ``root_env`` package lives outside the repo; unset or absent it
-    **skips**, like a local case. An ``hf`` package is pulled from the public HF benchmark (pooch-cached,
-    no token); unreachable — offline, or not yet uploaded — it **skips**, so the networked job stays
-    green before the repo is populated. A committed ``path`` package is a hermetic fixture and should
-    always be present, so a missing one also skips (never a silent pass — the ci fixture's own test
-    fails loudly if it vanishes).
+    Three sources, one skip contract, **two kinds of skip**. A ``root_env`` package lives outside the
+    repo; unset or missing it **skips**, like a local case. An ``hf`` package is pulled from the public
+    HF benchmark (pooch-cached, no token): unreachable — offline, or the archive unwell — it skips as
+    ``unavailable``, so the networked job stays green on a bad day; a 404 skips as ``absent``, because
+    a package nobody published is a gap in the corpus rather than weather, and the report names it as
+    one. A committed ``path`` package is a hermetic fixture and should always be present, so a missing
+    one also skips (never a silent pass — the ci fixture's own test fails loudly if it vanishes).
+
+    Both kinds still skip. The benchmark tier is opt-in and gates no merge, so a missing package must
+    not fail a run; what it must not do either is look like a network blip nobody has to act on.
     """
     if gen.root_env:
         root = os.environ.get(gen.root_env)
@@ -412,10 +474,16 @@ def _fingerprint_package(gen: FingerprintRecipe, case_root: Path) -> Path:
             raise CaseSkipped(f"${gen.root_env}={root} does not exist on this machine")
         return pkg
     if gen.hf:
-        from ..io import BenchmarkPackageUnavailable, fetch_benchmark_package
+        from ..io import (
+            BenchmarkPackageAbsent,
+            BenchmarkPackageUnavailable,
+            fetch_benchmark_package,
+        )
 
         try:
             return fetch_benchmark_package(gen.hf)
+        except BenchmarkPackageAbsent as exc:
+            raise CaseSkipped(str(exc), kind="absent") from exc
         except BenchmarkPackageUnavailable as exc:
             raise CaseSkipped(str(exc)) from exc
     pkg = (case_root / gen.path).resolve()
