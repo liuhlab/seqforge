@@ -7,6 +7,14 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+# Coverage artifacts. `test-cov` writes `.coverage`, but under xdist every worker first writes its
+# own `.coverage.<host>.<pid>.<random>` and they are combined afterwards -- so the glob is not
+# optional, and a run that dies mid-way leaves the per-worker files behind. Nothing here is anyone's
+# deliverable: it is a line-hit database for one run on one machine, rewritten by the next.
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 build/
 dist/
 # seqforge working state (resumable, content-addressed — never committed).
