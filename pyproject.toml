@@ -118,6 +118,26 @@ pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
 
+# One thread per worker. A process sizes its BLAS/OpenMP pools to the whole machine the first time
+# the numeric stack is imported, and every worker is its own process — so twelve workers each opened
+# a pool wide enough for the box and then fought each other for it, burning CPU on the contention and
+# making the wall time swing between repeats. Three names because three libraries are underneath and
+# each reads its own in preference; pinning one leaves the other two sizing themselves to the box.
+#
+# On the FEATURE's environment, not on a task: the suite is invoked five ways (the parallel verb,
+# the fast verb, a narrowed run, the gate, CI), and a task-level spelling would hold for one of
+# them. `test_the_test_environment_pins_its_thread_pools` asserts both this declaration and that a
+# running test can see it, because a declaration that never reaches the workers looks identical to
+# success from here.
+#
+# `default` composes this feature, so the pin lands there too -- which is required, since the gate
+# runs the suite from `default`. The cost is that everything else in that environment is
+# single-threaded as well; nothing here is a numeric workload, so that buys and loses nothing.
+[tool.pixi.feature.test.activation.env]
+OMP_NUM_THREADS = "1"
+OPENBLAS_NUM_THREADS = "1"
+MKL_NUM_THREADS = "1"
+
 [tool.pixi.feature.dev.dependencies]
 ruff = "*"
 mypy = "*"
