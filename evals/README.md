@@ -4,6 +4,7 @@
 seqforge eval list                       # what is in the corpus
 seqforge eval run                        # deterministic cases only — no API key, no network
 seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
+seqforge eval run --llm --model deepseek-v4-pro    # spend for recall; the default is -v4-flash
 seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
 seqforge eval run --no-llm > report.json && seqforge eval report report.json -o report.html
@@ -25,6 +26,13 @@ things here cannot, and both matter.
 2. **Prompt and KB edits are silent.** Add a KB alias, reword an instruction, and extraction behavior
    changes without a single test going red. The brief is explicit: *treat prompt and KB changes as
    code changes.*
+
+**So every number here is scoped to an extractor**, and the report says which one:
+`extractor: {provider, model, prompt_version}`. `--llm` takes the provider's own default —
+`deepseek-v4-flash`, the cheap end of V4, since a harness meant for corpus scale should not spend
+pro money by default — and `--model deepseek-v4-pro` buys recall on the hardest prose. The same
+prompt on a different model is a **different extractor** ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)),
+so a run's numbers may only be compared against a baseline that names the same one.
 
 ## The metric that matters
 

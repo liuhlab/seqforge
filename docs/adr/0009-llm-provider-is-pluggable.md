@@ -72,6 +72,9 @@ reaching verification through the weakest-shaped provider, and
 - **The default model is not the baselined one.** The recorded eval numbers were measured on
   `deepseek-v4-pro`, and `ExtractorProvenance.model_id` says so; a `--llm` run at the new default is a
   *different extractor* and does not inherit them. Re-baseline on flash, or pass `--model` to compare.
+  `eval run` therefore stamps `EvalReport.extractor` — `{provider, model, prompt_version}`, the
+  provider's default resolved rather than echoed as `null` — so a report always names the extractor it
+  is a claim about. Absent on `--no-llm`, which has none.
 - Known gap: **no transient API error is retried, by either adapter.** A 429, a 5xx or a timeout
   becomes `ProviderUnavailable` on the first attempt, `harvest extract` reports `llm_unavailable`,
   and the run exits 1. The only retry that exists is narrower and sits in one adapter:

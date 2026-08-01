@@ -51,8 +51,9 @@ def eval_run(
     model: str | None = typer.Option(
         None,
         "--model",
-        help="Override the provider's default model. A baseline is model-scoped: the recorded "
-        "numbers were measured on deepseek-v4-pro, not on the deepseek-v4-flash default.",
+        help="Override the provider's default model — on DeepSeek that default is "
+        "deepseek-v4-flash; pass deepseek-v4-pro to spend for recall. Whichever ran is recorded "
+        "in the report's `extractor`, because a baseline does not transfer across models.",
     ),
     trials: int = typer.Option(
         1, "--trials", min=1, help="Re-run each prose case N times; extraction is nondeterministic."
@@ -74,6 +75,12 @@ def eval_run(
     `--no-llm` (the default) restricts to deterministic cases, so this runs in a CI with no API key;
     prose cases skip rather than fail. Exit 3 if any false-accept occurs or accuracy drops below
     `--fail-under` — a false accept is never tolerable at any threshold, so it is not on a slider.
+
+    `--llm` inherits the provider's own default model rather than pinning one here — that is
+    `deepseek-v4-flash` on the DeepSeek preset, the cheap end of V4, which is what a corpus-scale
+    harness should reach for by default. `--model deepseek-v4-pro` buys recall on the hardest prose.
+    The report names whichever ran, since the numbers are a claim about that extractor and not
+    about the harness.
     """
     from ..evals import CaseError, Grade, load_cases, run_cases
     from ..harvest import ProviderUnavailable, resolve_provider

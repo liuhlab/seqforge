@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from ..harvest import (
+    EXTRACT_PROMPT_VERSION,
     ExtractUnavailable,
     LLMProvider,
     extract_drafts,
@@ -306,11 +307,32 @@ def run_cases(
             # `map` yields in submission order, so `runs` matches `cases` however they interleave.
             runs = list(pool.map(one, cases))
 
-    return build_report(runs, wall_seconds=time.monotonic() - started), runs
+    # Resolved once, here, rather than read off a run: `model` is usually None and the *effective*
+    # model is the provider's default — `deepseek-v4-flash` on the DeepSeek preset. A report that
+    # printed `null` for the common case would say nothing about the run that actually happened, and
+    # this number does not transfer across models (ADR-0009).
+    extractor = None
+    if llm and provider is not None:
+        extractor = {
+            "provider": provider.name,
+            "model": model or provider.default_model(),
+            "prompt_version": EXTRACT_PROMPT_VERSION,
+        }
+
+    return build_report(runs, wall_seconds=time.monotonic() - started, extractor=extractor), runs
 
 
-def build_report(runs: list[CaseRun], *, wall_seconds: float | None = None) -> EvalReport:
+def build_report(
+    runs: list[CaseRun],
+    *,
+    wall_seconds: float | None = None,
+    extractor: dict[str, str] | None = None,
+) -> EvalReport:
     """Aggregate. Skipped cases are excluded from every rate — a skip is not a pass.
+
+    ``extractor`` names who produced the LLM-dependent numbers and is carried through untouched;
+    :func:`run_cases` fills it, a ``--no-llm`` run leaves it ``None``. It is *not* derived from the
+    runs, because a case that skipped for a missing key would silently drop it.
 
     ``cost.seconds`` is the sum of the cases' own durations; under ``jobs > 1`` that is work done,
     not time taken. ``wall_seconds`` is the elapsed time and is reported *beside* it rather than
@@ -358,6 +380,7 @@ def build_report(runs: list[CaseRun], *, wall_seconds: float | None = None) -> E
             "missed": float(missed),
         },
         cost=cost,
+        extractor=extractor,
         per_case=[r.to_json() for r in runs],
     )
 

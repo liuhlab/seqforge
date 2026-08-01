@@ -40,6 +40,7 @@ from seqforge.evals import (
 )
 from seqforge.evals.case import Recipe
 from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest, _merge_harvest
+from seqforge.harvest import EXTRACT_PROMPT_VERSION
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.conflict import Conflict, ConflictPosition
 from seqforge.models.resolve import (
@@ -677,6 +678,38 @@ def _trap_case() -> Case:
     return next(c for c in discover_cases() if c.id == "chemistry-unstated-trap")
 
 
+def test_report_names_the_extractor_that_produced_it() -> None:
+    """A baseline is model-scoped, so the report has to say which model it is a claim about.
+
+    The DeepSeek preset serves two V4 models and defaults to the cheap one, so the same command over
+    the same corpus can produce two different sets of numbers. `--model` is usually unset, which is
+    exactly the case that must not report `null`: the effective model is the provider's default.
+    """
+    from seqforge.evals import run_cases
+
+    case = _trap_case()
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+
+    inherited, _ = run_cases([case], llm=True, provider=provider)
+    assert inherited.extractor is not None
+    assert inherited.extractor["provider"] == "stub"
+    assert inherited.extractor["model"] == provider.default_model()  # the DEFAULT, not None
+    assert inherited.extractor["prompt_version"] == EXTRACT_PROMPT_VERSION
+
+    asked, _ = run_cases([case], llm=True, provider=provider, model="stub-model-pro")
+    assert asked.extractor is not None
+    assert asked.extractor["model"] == "stub-model-pro"
+
+    # `--no-llm` has no extractor at all, and says so rather than naming one that never ran.
+    byte_only, _ = run_cases(
+        [next(c for c in HERMETIC_CASES if c.id == "10x-v3-bytes-only")], llm=False
+    )
+    assert byte_only.extractor is None
+    assert byte_only.model_dump(mode="json")["extractor"] is None
+
+
 def test_llm_case_passes_when_the_model_behaves() -> None:
     """Extract the stated organism, stay silent on the unstated chemistry."""
     case = _trap_case()
@@ -1100,6 +1133,11 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
 def _render_fixture() -> dict[str, Any]:
     return {
         "n_cases": 6,
+        "extractor": {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "prompt_version": "2026.7.2",
+        },
         "field_accuracy": 0.5,
         "false_accept_rate": 1 / 6,
         "false_refuse_rate": 1 / 6,
@@ -1297,6 +1335,24 @@ def test_the_report_separates_work_done_from_elapsed_time() -> None:
     del older["cost"]["wall_seconds"]
     page = render_html(older, title="T", source=None)
     assert "not recorded by this run" in page
+
+
+def test_header_names_the_extractor_beside_the_command() -> None:
+    """The command alone under-describes the run now that one preset has two models.
+
+    `seqforge eval run --llm` reads identically whether it spent flash money or pro money, and the
+    numbers differ. The header carries both; a report from a `--no-llm` run, or from before the
+    field existed, drops the chip rather than guessing a model that never ran.
+    """
+    page = render_html(_render_fixture(), title="T", source="seqforge eval run --llm")
+    assert "deepseek/deepseek-v4-flash" in page, "which model produced these numbers"
+    assert "2026.7.2" in page, "and under which prompt — the other half of the extractor"
+
+    byte_only = _render_fixture()
+    del byte_only["extractor"]
+    page = render_html(byte_only, title="T", source="seqforge eval run")
+    assert "extractor" not in page.split("</style>", 1)[1]
+    assert "seqforge eval run" in page, "the command line survives on its own"
 
 
 def test_cases_are_ordered_worst_first_and_severity_is_carried_in_form() -> None:

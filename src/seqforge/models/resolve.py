@@ -208,6 +208,15 @@ class EvalReport(BaseModel):
     """The output of ``eval run``: the metrics tracked on every prompt/KB/resolve change."""
 
     n_cases: int
+    #: Who produced the LLM-dependent numbers — ``{provider, model, prompt_version}``. ``None`` on a
+    #: ``--no-llm`` run, which has no extractor at all.
+    #:
+    #: **A baseline is model-scoped**, and now demonstrably so: the DeepSeek preset serves two V4
+    #: models and defaults to the cheap one, so two reports can carry the same prompt, the same
+    #: corpus and different numbers. The same prompt on a different model is a different extractor
+    #: (ADR-0009), and a report that does not name its own is a number nobody can reproduce or
+    #: compare against the last one.
+    extractor: dict[str, str] | None = None
     field_accuracy: float
     false_accept_rate: float
     false_refuse_rate: float

@@ -670,12 +670,23 @@ def render_html(
     n_skipped = len(cases) - len(graded)
     n_fail = sum(1 for c in graded if c.level != "ok")
 
-    src_line = (
-        '<div class="src"><span class="src-k">produced by</span>'
-        f'<code class="val">{esc(source)}</code></div>'
-        if source
-        else ""
-    )
+    # The header line is the page's provenance, and the command alone is no longer enough of it: the
+    # DeepSeek preset serves two V4 models and defaults to the cheap one, so the same command on the
+    # same corpus can produce different numbers. `extractor` is absent on a `--no-llm` run (nothing
+    # extracted) and on any report predating the field — both render as no chip rather than a guess.
+    bits = []
+    if source:
+        bits.append(f'<span class="src-k">produced by</span><code class="val">{esc(source)}</code>')
+    extractor: dict[str, Any] = report.get("extractor") or {}
+    if extractor:
+        who = f"{extractor.get('provider', '?')}/{extractor.get('model', '?')}"
+        bits.append(f'<span class="src-k">extractor</span><code class="val">{esc(who)}</code>')
+        if extractor.get("prompt_version"):
+            bits.append(
+                '<span class="src-k">prompt</span>'
+                f'<code class="val">{esc(str(extractor["prompt_version"]))}</code>'
+            )
+    src_line = f'<div class="src">{"".join(bits)}</div>' if bits else ""
     stamp = f" · {esc(generated_at)}" if generated_at else ""
 
     return _fill(
