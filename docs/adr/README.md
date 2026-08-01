@@ -43,7 +43,7 @@ Numbers only; the table below carries the links.
 | # | Title | The decision | Governs |
 | --- | --- | --- | --- |
 | [0001](0001-head-and-wholefile.md) | A probe joins a head to a whole file; there is no read-source seam | `build_observation(head, file)`; four sources keep four naming authorities and share a type, not an adapter | `probe/`, `fingerprint/load.py`, `io/remote.py`, `io/sra.py`, `models/observation.py` |
-| [0002](0002-no-test-impact-analysis.md) | No test-impact analysis; the ladder is a rule, not a tool | Two markers, two narrowing tasks and a written ladder instead of a coverage-graph selector that cannot see a data edit | `tests/`, and the pixi test tasks |
+| [0002](0002-no-test-impact-analysis.md) | No test-impact analysis; the ladder is a rule, not a tool | Two markers, two narrowing tasks and a written ladder instead of a coverage-graph selector that cannot see a data edit | `tests/`, the pixi test tasks, and what CI may run over them |
 | [0003](0003-manifest-is-the-missing-interface.md) | The manifest is the interface SRAgent and scRecounter never had | One compiler around a decided manifest: decide and refuse, never grid-search | the compiler as a whole; `manifest/`, `resolve/` |
 | [0004](0004-two-artifacts-not-one.md) | Two artifacts: the immutable dataset and the plural recipe | `manifest.yaml` is what the data IS, `processing.yaml` what to do with it; a change of intent never moves `dataset_hash` | `models/dataset.py`, `models/processing.py`, `manifest/`, `compose/` |
 | [0005](0005-run-id-is-the-pairing.md) | `run_id` hashes the pairing, and is recorded at compile time | The compiled run is identified by all four components, stored in the output and inside neither input | `manifest/hash.py`, `compose/`, `workspace.py` |
