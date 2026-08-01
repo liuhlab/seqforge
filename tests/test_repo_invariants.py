@@ -1,6 +1,6 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Three families live here, and none of them composes anything:
+Four families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
@@ -9,6 +9,9 @@ Three families live here, and none of them composes anything:
   is a mutable label: renumber the document and the comment lies, silently, forever.
 - **Nothing tracked escapes the type checker.** The declared mypy scope covers every committed
   Python file, and every path the exclusion list hides is already gitignored.
+- **The test loop declares what it needs.** What the suite requires of its environment is declared
+  in the project configuration rather than remembered by whoever types the command — and the
+  declaration is checked where it has to land, in the running process.
 
 The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
@@ -16,10 +19,13 @@ The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.p
 from __future__ import annotations
 
 import ast
+import os
 import re
 import subprocess
 import tomllib
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -312,9 +318,14 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
 _REPO = Path(__file__).resolve().parent.parent
 
 
+def _pyproject() -> dict[str, Any]:
+    """The project configuration, parsed. Two guards here read declarations out of it."""
+    return tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))
+
+
 def _mypy_scope() -> tuple[list[str], list[str]]:
     """The declared type-checking scope: the roots it covers, and the patterns it hides."""
-    mypy = tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mypy"]
+    mypy = _pyproject()["tool"]["mypy"]
     return list(mypy["files"]), list(mypy.get("exclude", []))
 
 
@@ -432,3 +443,87 @@ def test_nothing_tracked_escapes_the_type_checker() -> None:
             f"back in the checker's scope, and only the developer who owns one will notice."
         )
     assert _hidden_by(exclude, [here]) == []  # ...while a committed test is untouched by them
+
+
+#: The thread-pool variables the numeric stack reads ONCE, at import time, in whichever process
+#: imported it. Every xdist worker is a separate process, so each one otherwise sizes its own BLAS
+#: and OpenMP pools to the whole machine — twelve workers, each believing it has 48 cores.
+#:
+#: Three names rather than one because three libraries are underneath: OpenMP is what the runtime
+#: itself reads, and the two BLAS builds that arrive with numpy read their own name in preference.
+#: Pinning one of the three leaves the other two sizing themselves to the box.
+_THREAD_POOL_VARS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+
+
+def _unpinned(env: Mapping[str, str]) -> list[str]:
+    """Which thread-pool variables ``env`` fails to pin to a single thread.
+
+    The exact predicate ``test_the_test_environment_pins_its_thread_pools`` applies to BOTH ends —
+    the declaration in the project configuration and the environment of the running process. Shared
+    so the guard's discriminator exercises the real thing rather than a copy of it, and so the two
+    ends cannot drift into asking different questions.
+    """
+    return sorted(name for name in _THREAD_POOL_VARS if env.get(name) != "1")
+
+
+def _test_feature_env() -> dict[str, str]:
+    """What the ``test`` feature's environment DECLARES, read from the project configuration.
+
+    A feature's activation environment, not a task's: a task-level spelling would hold only for the
+    verb it was written on, and the suite is invoked several other ways.
+    """
+    feature = _pyproject()["tool"]["pixi"]["feature"]["test"]
+    declared = feature.get("activation", {}).get("env", {})
+    return {name: str(value) for name, value in declared.items()}
+
+
+@pytest.mark.repo
+def test_the_test_environment_pins_its_thread_pools() -> None:
+    """One thread per worker, declared once — and proven to have arrived.
+
+    A process sizes its thread pools to the whole machine the first time the numeric stack is
+    imported, and every worker is its own process — so twelve workers each opened a pool wide enough
+    for the box and then fought each other for it, spending CPU on the contention and making the wall
+    time swing between repeats until an ordinary run could read as a regression.
+
+    Both ends are asserted, and the second is the one that matters. A declaration that is present in
+    the project configuration but never reaches the worker processes fails in exactly the way this
+    guard exists to prevent, and it looks identical to success from the configuration side alone. So
+    the running process is asked directly — and a worker inherits the environment the session was
+    started with, so what this process can see is what a worker would have got.
+
+    Being a property of the environment rather than a flag on one task is the whole point — every
+    invocation of the suite inherits it, the parallel verb and the narrowed run and CI alike, and
+    nobody has to remember a flag.
+    """
+    declared = _test_feature_env()
+    assert not _unpinned(declared), (
+        f"the test environment does not pin {_unpinned(declared)} to one thread.\n"
+        f"Declare them in the `test` feature's activation environment, where every invocation of "
+        f"the suite inherits them -- not on a task, which would hold for one verb only."
+    )
+
+    observed = _unpinned(os.environ)
+    assert not observed, (
+        f"the running test process does not see {observed} pinned to one thread.\n"
+        f"The declaration exists but did not reach here, so the workers are still oversubscribing "
+        f"the box. Run the suite through the test environment (`pixi run test`), and if it is "
+        f"already running there, the activation environment is not being applied."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicate: it must fire on an environment
+    # that pins nothing, on one that pins some but not all, and on one that pins a name to a count
+    # that is not one — and stay silent only on the fully pinned case. A guard nobody proved fires
+    # is a guard that always allows.
+    # Both the inputs and the expected values are spelled out rather than derived from the tuple
+    # above, so dropping a name from it goes red here instead of quietly narrowing what the guard
+    # demands of the environment.
+    pinned = {"OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
+    assert _unpinned({}) == ["MKL_NUM_THREADS", "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"]
+    assert _unpinned(pinned) == []  # ...and the pinned environment this change replaces it with
+    assert _unpinned({**pinned, "OMP_NUM_THREADS": "8"}) == [
+        "OMP_NUM_THREADS"
+    ]  # declared, but wide
+    # One of three: the failure a single-variable declaration would leave behind, silently, since the
+    # two BLAS names each win over the generic one in the library that reads them.
+    assert _unpinned({"OMP_NUM_THREADS": "1"}) == ["MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"]

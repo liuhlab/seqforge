@@ -135,33 +135,67 @@ pixi run test-fast                                      # the suite minus what n
 serial: starting twelve workers to run three tests costs more than it saves, and rung 1 is where you
 live.
 
-The worker count was measured, not chosen — swept on a 48-core box over the whole suite, most
-recently after the fixture-sharing work of #102. Relative to the best time:
+### One thread per worker
 
-| workers | wall |
-| ------- | ---- |
-| serial | ~6x |
-| 8 | ~1.2x |
-| **12** | **1.0x** |
-| 16 | 1.0x |
-| `auto` (48) | ~2.2x |
+The `test` feature's **activation environment** declares `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`
+and `MKL_NUM_THREADS` as `1`. A process sizes its BLAS and OpenMP pools to the whole machine the
+first time the numeric stack is imported, and every worker is its own process — so twelve workers
+each opened a pool wide enough for the box and then fought each other for it. Three names because
+three libraries are underneath and each prefers its own; pinning one leaves the other two wide.
 
-**More workers stop helping around twelve and then actively hurt.** Every worker pays the interpreter
-import and rebuilds each session-scoped fixture, so past the knee that fixed cost grows faster than
-the remaining work shrinks. `-n auto` on a big box means one worker per core and is *slower than 12*;
-a bare `-n 12` on a 2-core runner oversubscribes it for the mirrored reason. `auto` capped at 12 is
-the one spelling that is right in both places.
+It is on the **environment, not on a task**, and that is the whole point: every way of invoking the
+suite inherits it — the parallel verb, the fast verb, a narrowed run, the gate, and CI — so there is
+no flag to remember, and nothing about *which* tests run changes.
 
-12 and 16 are now within noise of each other, which is what the fixture sharing bought: the knee got
-flatter because there is less per-worker fixed cost to pay. The cap stays at 12 — it is the smaller
-number on a tie, and the 2-core-runner argument is unchanged. Re-sweep before changing it; the knee
-moves when the per-worker fixed cost does.
+`tests/test_repo_invariants.py::test_the_test_environment_pins_its_thread_pools` holds it open at
+both ends: the declaration in the project file, and the value a running test can actually see. The
+second end is the one that matters. A declaration that never reaches the worker processes is exactly
+the failure this prevents, and from the configuration side it looks identical to success.
 
-A second sweep on **8 pinned CPUs** (the #102 audit, 2026-07-30) confirms the cap from the
-small-machine side: `n=4`/`n=8`/`n=12` were flat within ~4% (34.5s / 33.3s / 34.8s) and it degraded
-past 16 (`n=16` 42.3s, `n=24` 42.7s). The two sweeps together — one 48-core box, one 8-core — are what
-justify `--maxprocesses 12` on *both* large and small runners: flat up to the core count, never faster
-past ~12-16, and never oversubscribed on a small one.
+### The worker sweep, re-measured on the pinned environment (2026-08-01)
+
+The previous sweep was taken before the thread pools were pinned, so part of what it measured was the
+oversubscription that is now gone. Re-swept over the whole suite, medians of three repeats, with an
+identical pass/skip count in every run — the sweep changed how the suite ran, never what it ran.
+**On a 48-core box, relative to the shipped setting of 12:**
+
+| workers | wall | CPU |
+| ------- | ---- | --- |
+| 8 | 1.3x | 0.9x |
+| **12** | **1.0x** | **1.0x** |
+| 16 | 0.8x | 1.1x |
+| `auto` (48) | 1.3x | 3.2x |
+
+**On 8 CPUs (the same box confined with `taskset`), relative to 8 — the count `auto` yields on a
+genuinely 8-core machine:**
+
+| workers | wall | CPU |
+| ------- | ---- | --- |
+| 4 | 1.0x | 0.9x |
+| **8** | **1.0x** | **1.0x** |
+| 12 | 1.2x | 1.1x |
+| 16 | 1.2x | 1.2x |
+| 24 | 1.5x | 1.4x |
+
+Both were taken on a **shared** login node whose load moved between ~10 and ~44 during the sweep, so
+the wall figures carry real noise: repeats at one setting spread by as much as 1.6x, which is why
+these are medians and why nothing here is quoted past one decimal — 12 and 16 on the small box are
+indistinguishable. The CPU column varied by under 2% across repeats and is the trustworthy half.
+Serial was not re-measured; the crossover between serial and parallel belongs to the work that decides
+parallelism from the size of the selection.
+
+**Past the core count more workers only cost**, and `auto` uncapped is the clear loser — 1.3x the wall
+of 12 and, the part that matters on a shared box, **3.2x its CPU**. Every worker pays the interpreter
+import and rebuilds each session-scoped fixture, so once the cores are covered that fixed cost is all
+that is left to grow. Below the core count the picture is flatter than it used to be, and that is what
+pinning bought: on the 48-core box the wall still improves slightly from 12 to 16, buying about a fifth
+of the wall for ~9% more CPU.
+
+**The cap stays at 12: use the cores that are available, up to twelve.** That is a decision, not an
+inference from the table — the table says 16 would be tolerable on a large box. On a small machine
+`auto` resolves below the cap and it never binds, so 12 only ever applies where the box is large, and
+there it bounds what one test run may take from everyone else sharing it. The table is here to say
+what that choice costs, not to move the number.
 
 `--dist loadfile` was measured and rejected: it sat at the same wall at *every* worker count, because
 it hands a whole file to one worker, so the longest file becomes the floor. When that was measured the
@@ -261,14 +295,20 @@ the seconds:
 | the composer tests' 13 `snakemake` spawns down to 7 | the default plan re-derived seven times |
 | `--dist=loadgroup` + `xdist_group` | shared fixtures rebuilt once per worker |
 | four more immutable products shared (`kb_probes`, the 128 MB FASTQ, `src_trees`, two manifests) | duplicated fixture builds |
+| the test environment pins its thread pools | twelve workers each sizing their thread pools to the whole box |
 | three `test_resolve.py` tests off the shipped 6.8M-barcode onlist they never hit | a whitelist scan nothing asserted on |
 | `test_corpus_is_green` parametrized per case | **no CPU at all** — see below |
 
-Nothing here was a slow *test*. Every one was a fact being re-proved because the seam that owned it
-sat on the wrong interface — which is the shape to look for when the number creeps back up. The
-`snakemake` row is the cleanest example: `wiring_gate` returned a four-character verdict while its
+Nothing here was a slow *test*. Almost every one was a fact being re-proved because the seam that
+owned it sat on the wrong interface — which is the shape to look for when the number creeps back up.
+The `snakemake` row is the cleanest example: `wiring_gate` returned a four-character verdict while its
 implementation held the whole `snakemake -n -p` plan text, so every test that wanted the plan spawned
 its own. The fix was to expose what was already computed, not to run less.
+
+The thread-pool row is the one exception, and it is worth knowing as a second shape: nothing was being
+re-proved there, and no work was removed at all. The workers were **contending** rather than
+duplicating — the same work, spent fighting over the machine instead of doing it. When the wall swings
+between repeats rather than sitting high, look for contention before looking for waste.
 
 The last row is a different lever and worth naming separately: it removed **no CPU at all**. It split
 the suite's longest *indivisible* block — one test that ran the whole eval corpus — into one item per
