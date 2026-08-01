@@ -57,6 +57,9 @@ from .normalize import (  # noqa: E402
 from .providers import (  # noqa: E402
     ANTHROPIC_DEFAULT_MODEL,
     DEEPSEEK_DEFAULT_MODEL,
+    DEEPSEEK_FLASH_MODEL,
+    DEEPSEEK_MODELS,
+    DEEPSEEK_PRO_MODEL,
     AnthropicProvider,
     LLMProvider,
     LLMResponse,
@@ -118,4 +121,7 @@ __all__ = [
     "ProviderUnavailable",
     "ANTHROPIC_DEFAULT_MODEL",
     "DEEPSEEK_DEFAULT_MODEL",
+    "DEEPSEEK_FLASH_MODEL",
+    "DEEPSEEK_PRO_MODEL",
+    "DEEPSEEK_MODELS",
 ]

@@ -22,6 +22,9 @@ from seqforge import kb
 from seqforge.harvest import (
     ANTHROPIC_DEFAULT_MODEL,
     DEEPSEEK_DEFAULT_MODEL,
+    DEEPSEEK_FLASH_MODEL,
+    DEEPSEEK_MODELS,
+    DEEPSEEK_PRO_MODEL,
     EXTRACT_PROMPT_VERSION,
     AnthropicProvider,
     ExtractUnavailable,
@@ -467,7 +470,21 @@ def test_provider_defaults() -> None:
     assert AnthropicProvider().default_model() == ANTHROPIC_DEFAULT_MODEL == "claude-opus-4-8"
     # V4 explicitly: deepseek-chat / -reasoner are deprecated aliases (2026-07-24) onto V4-Flash
     assert deepseek_provider(api_key="k").default_model() == DEEPSEEK_DEFAULT_MODEL
-    assert DEEPSEEK_DEFAULT_MODEL.startswith("deepseek-v4")
+    assert DEEPSEEK_MODELS == (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
+    assert all(m.startswith("deepseek-v4") for m in DEEPSEEK_MODELS)
+    # Flash is the default — ~3x cheaper at the same V4 bar, and cost is the only axis the choice
+    # can move: R2 re-verifies every quote whichever model proposed it.
+    assert DEEPSEEK_DEFAULT_MODEL == DEEPSEEK_FLASH_MODEL == "deepseek-v4-flash"
+
+
+def test_deepseek_model_catalogue_is_not_an_allowlist() -> None:
+    """A name we do not list still reaches the endpoint — DeepSeek may ship one before we do."""
+    client = _FakeOpenAIClient('{"drafts": []}')
+    provider = deepseek_provider(api_key="k", client=client)
+    provider.complete_json(
+        system="s", user="u", schema={}, model="deepseek-v9-unreleased", max_tokens=64
+    )
+    assert client.captured["model"] == "deepseek-v9-unreleased"
 
 
 def test_openai_compatible_provider_is_generic() -> None:

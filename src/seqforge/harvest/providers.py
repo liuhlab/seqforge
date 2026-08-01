@@ -29,11 +29,25 @@ from ..io.remote import _RETRY_STATUS
 #: Anthropic. Adaptive thinking + strict schema.
 ANTHROPIC_DEFAULT_MODEL = "claude-opus-4-8"
 
-#: DeepSeek V4. `-pro` is the default for the accuracy-critical extraction stage; `-flash` is ~3x
-#: cheaper and also V4 (1M ctx) if throughput matters more than recall — pass --model to switch.
-#: NB `deepseek-chat` / `deepseek-reasoner` are deprecated (2026-07-24) aliases onto V4-Flash; we
-#: name a V4 model explicitly so nothing breaks when they are withdrawn.
-DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-pro"
+#: DeepSeek V4, the two models the API serves. Both are V4 (1M ctx) and speak the same json_object
+#: contract; they differ in price and in recall on hard prose. NB `deepseek-chat` /
+#: `deepseek-reasoner` are deprecated (2026-07-24) aliases onto V4-Flash; we name a V4 model
+#: explicitly so nothing breaks when they are withdrawn.
+DEEPSEEK_FLASH_MODEL = "deepseek-v4-flash"
+DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
+
+#: What `--model` may name on the DeepSeek preset — a **catalogue, not an allowlist**. The model
+#: string is passed through unchecked because the same adapter serves arbitrary OpenAI-shaped
+#: endpoints whose models we cannot enumerate, and because a name DeepSeek ships tomorrow must not
+#: need a release here. An unknown name comes back as a 400: a verdict, not retried (see
+#: `classify_api_error`).
+DEEPSEEK_MODELS = (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
+
+#: `-flash` is the default: ~3x cheaper at the same V4 quality bar, which is the lever that matters
+#: across 10⁴ datasets — and one that is safe to pull, because no provider can move correctness
+#: here (R2 re-greps every quote afterwards regardless of who proposed it). `-pro` buys recall on
+#: the hardest prose; pass `--model deepseek-v4-pro` when a missed assertion costs more than tokens.
+DEEPSEEK_DEFAULT_MODEL = DEEPSEEK_FLASH_MODEL
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 #: Exception *type* names that mean the call never reached a verdict — the transport gave out. Matched
@@ -265,9 +279,9 @@ class OpenAICompatibleProvider:
                 retry_after="0",
                 usage=usage,
             )
-        # `thinking` is the MODEL's own (v4-pro/-reasoner reason inherently); the API takes no toggle,
-        # so it is reported as the model name's business, not a flag we set. `response_format` is the
-        # weaker json_object contract, which is why Pydantic — not the provider — enforces the shape.
+        # `thinking` is the MODEL's own (how much a V4 reasons is baked into -flash vs -pro); the API
+        # takes no toggle, so it is the model name's business, not a flag we set. `response_format` is
+        # the weaker json_object contract: Pydantic — not the provider — enforces the shape.
         return LLMResponse(
             text=text,
             usage=usage,

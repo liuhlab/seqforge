@@ -20,7 +20,7 @@ story.
 | provider | shape | caching | default model |
 | --- | --- | --- | --- |
 | `anthropic` | strict `json_schema`, **guaranteed** | explicit `cache_control` | `claude-opus-4-8` |
-| `deepseek` | `json_object` only, **not** enforced | automatic prefix caching | `deepseek-v4-pro` |
+| `deepseek` | `json_object` only, **not** enforced | automatic prefix caching | `deepseek-v4-flash` |
 | `openai-compatible` | caller's problem | provider's | caller-supplied |
 
 Code re-greps every quote, checks entailment, and validates the batch against `AssertionDraft`
@@ -65,7 +65,13 @@ reaching verification through the weakest-shaped provider, and
   credential is present — silently extracting with a different model than intended is a provenance
   bug, and a cheap one to make.
 - V4-Flash is ≈3× cheaper than V4-Pro, so provider choice is a real cost lever across 10⁴ datasets —
-  which is only safe to pull because it cannot move correctness.
+  which is only safe to pull because it cannot move correctness. **The DeepSeek preset takes the
+  cheap end by default** (`deepseek-v4-flash`; `deepseek-v4-pro` is one `--model` away when recall on
+  hard prose is worth the tokens). Neither is an allowlist — the model string is passed through, so a
+  model DeepSeek ships tomorrow needs no release here, and an unknown name comes back as a 400.
+- **The default model is not the baselined one.** The recorded eval numbers were measured on
+  `deepseek-v4-pro`, and `ExtractorProvenance.model_id` says so; a `--llm` run at the new default is a
+  *different extractor* and does not inherit them. Re-baseline on flash, or pass `--model` to compare.
 - Known gap: **no transient API error is retried, by either adapter.** A 429, a 5xx or a timeout
   becomes `ProviderUnavailable` on the first attempt, `harvest extract` reports `llm_unavailable`,
   and the run exits 1. The only retry that exists is narrower and sits in one adapter:

@@ -130,7 +130,10 @@ def harvest_extract(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
     model: str | None = typer.Option(
-        None, "--model", help="Override the model (default: the provider's own default)."
+        None,
+        "--model",
+        help="Override the model (default: the provider's own). DeepSeek serves "
+        "deepseek-v4-flash (default, cheap) and deepseek-v4-pro (recall on hard prose).",
     ),
     verify: bool = typer.Option(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately."
