@@ -20,7 +20,7 @@ touches. It costs nothing under `--no-llm`, which spends no tokens at all.
 
 **`-C` gives the run a directory**, under `seqforge/eval/`: `report.json` — byte-identical to what the
 command printed — and `transcripts/<case>.jsonl` for every case that reached a model. That is where a
-transcript lives, because stdout *is* the result object and a 983-exchange chat history cannot ride on
+transcript lives, because stdout *is* the result object and a thousand-exchange transcript cannot ride on
 it; the report gains the paths, never the contents. `seqforge eval report` is handed the directory.
 
 `eval run` emits machine JSON on stdout and nothing else ([ADR-0013](../docs/adr/0013-cli-is-a-machine-interface.md)),
@@ -29,7 +29,7 @@ so the human-readable page is a *consumer* of that stream rather than a second o
 the false accepts instead of averaging them into a rate. `benchmark.yml` uploads it as the job's
 artifact.
 
-**The page shows the claims, the refusals, and a sample of the chat history.** Each graded assertion
+**The page shows the claims, the refusals, and a sample of the transcript.** Each graded assertion
 is rendered with the quote it rests on and the span code computed for it — `library.chemistry =
 "RNA-Seq"` is not a finding, *from this quote, in this document, at these offsets* is — and the drafts
 the tripwire threw out are a readable list rather than an integer.

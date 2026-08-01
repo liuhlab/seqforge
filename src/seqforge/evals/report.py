@@ -43,7 +43,7 @@ carries the Assertions themselves, so the page can say *from this quote, in this
 offsets* rather than only ``field = value``; and the drafts the tripwire threw out are a readable
 list rather than an integer, because a count says a net caught something and nothing about what.
 
-**The chat history is sampled, and the page says so.** :func:`attach_transcripts` folds the
+**The transcript is sampled, and the page says so.** :func:`attach_transcripts` folds the
 ``.jsonl`` files beside the report into it before rendering — the system prompt once (it is
 byte-identical across a run, which is what makes prefix caching work), then a *representative*
 selection of exchanges per case. Rendering stays a pure function of one dict; what varies is how
@@ -893,7 +893,7 @@ def _blob(label: str, text: str, limit: int) -> str:
 
 
 def _exchange_block(case: CaseView) -> str:
-    """The case's chat history: a bounded selection of exchanges, and what it left out.
+    """The case's transcript: a bounded selection of exchanges, and what it left out.
 
     An exchange is a request and the response it got, so it is a document plus a JSON batch — and a
     corpus-scale run makes hundreds of them. What is shown is :func:`select_exchanges`' sample, and
@@ -1008,7 +1008,7 @@ def _meta(case: CaseView) -> str:
     bits.append(f'<span class="meta"><b class="tabular-nums">{case.seconds:.1f}s</b></span>')
     if case.llm_calls:
         bits.append(
-            f'<span class="meta"><b class="tabular-nums">{case.llm_calls}</b> LLM calls</span>'
+            f'<span class="meta"><b class="tabular-nums">{case.llm_calls}</b> exchanges</span>'
         )
     # `input_tokens` is the WHOLE input on both providers; `cached` and `cache written` are the
     # breakdown of it, not extra tokens beside it. `cache_write_tokens` only the Anthropic path
@@ -1247,7 +1247,7 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
         tiles.append(_tile("elapsed", "—", "not recorded by this run"))
     tiles.append(
         _tile(
-            "LLM calls",
+            "exchanges",
             _count(float(cost.get("llm_calls", 0) or 0)),
             f"{tokens:,} tokens" if tokens else "none — this tier is deterministic",
         )

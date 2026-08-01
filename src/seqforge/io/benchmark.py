@@ -201,7 +201,7 @@ def publish_benchmark_package(
         return result
 
     if api is None:
-        from huggingface_hub import HfApi  # local import: the consumer never needs this dependency
+        from huggingface_hub import HfApi  # local: nothing on the reading side imports this
 
         api = HfApi(token=token)
     info = api.upload_file(

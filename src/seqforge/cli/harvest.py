@@ -175,7 +175,7 @@ def harvest_extract(
     the chemistry and nothing else. Since a sample's document contains one sample's prose, "which
     sample" is answered by which file we handed the model — the model never names one, and cannot. A
     sample's RUNS are one document between them rather than one each: a run belongs to exactly one
-    sample, so the claims still name that sample and the call count stops scaling with the run count.
+    sample, so the claims still name that sample and the exchange count stops scaling with the run count.
 
     **`--dry-run` answers "what will this cost" without asking anybody.** It renders every document —
     which costs no token and no network — and prints the plan, so the send list you inspected is the
@@ -342,7 +342,7 @@ def _harvest_extract_pipeline(
         "usage": {**llm.usage(), "n_calls": llm.n_exchanges, "n_documents": len(normalized)},
         "usage_by_document": usage_records,
         "usage_path": str(logs / "usage.json"),
-        # The chat history, at an address. `usage.json` says what the run spent; this says what it
+        # The transcript, at an address. `usage.json` says what the run spent; this says what it
         # spent it on, and it is a PATH on stdout rather than the text: stdout is the result object,
         # and a thousand exchanges cannot ride on it.
         "transcript_path": str(_write_transcript(logs, llm)),

@@ -54,6 +54,12 @@ CACHE_DIRNAME = "cache"
 #: than cache: re-running it costs real tokens, so deleting it loses work.
 EVAL_DIRNAME = "eval"
 
+#: The two names *inside* an eval run directory. They live here for the same reason every other name
+#: does: a caller that spells one itself is a second owner, and the two drift apart silently — the
+#: workflow that reads the report is not the code that wrote it.
+EVAL_REPORT_FILENAME = "report.json"
+EVAL_TRANSCRIPTS_DIRNAME = "transcripts"
+
 #: A *deliverable*, top-level beside `pipeline/`, NOT under `cache/`. A fingerprint package is a
 #: portable slice of a dataset — head-sampled FASTQs + a pin that reproduces the full dataset's
 #: identity — that a user carries off this machine; it is output, not a rebuildable cache entry.
@@ -155,6 +161,8 @@ __all__ = [
     "CACHE_DIRNAME",
     "FINGERPRINT_DIRNAME",
     "EVAL_DIRNAME",
+    "EVAL_REPORT_FILENAME",
+    "EVAL_TRANSCRIPTS_DIRNAME",
     "REPORT_HTML",
     "state_dir",
     "records_dir",

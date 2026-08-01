@@ -47,7 +47,7 @@ from ..models.blocker import Blocker
 from ..models.resolve import EvalReport
 from ..resolve import Hypothesis, resolve_dataset
 from ..resolve.records import DocumentSubject, resolve_metadata
-from ..workspace import eval_dir
+from ..workspace import EVAL_TRANSCRIPTS_DIRNAME, eval_dir
 from .case import (
     Case,
     CaseError,
@@ -352,7 +352,6 @@ def run_case(
 #: Under the run directory, one file per case. A directory rather than one file for the corpus: a
 #: transcript is per dataset, and a reader opening a case's exchanges should not have to filter
 #: thirteen other datasets out of them first.
-TRANSCRIPTS_DIRNAME = "transcripts"
 
 
 def _save_transcript(workspace: Path | None, case_id: str, meter: TokenMeter | None) -> str | None:
@@ -368,7 +367,7 @@ def _save_transcript(workspace: Path | None, case_id: str, meter: TokenMeter | N
     transcript = meter.transcript()
     if not transcript.exchanges:
         return None
-    relative = f"{TRANSCRIPTS_DIRNAME}/{case_id}.jsonl"
+    relative = f"{EVAL_TRANSCRIPTS_DIRNAME}/{case_id}.jsonl"
     write_transcript(workspace / relative, transcript)
     return relative
 

@@ -92,7 +92,7 @@ class ExtractionPlanReport(BaseModel):
     """What ``harvest extract --dry-run`` answers: the whole ask, costed, with nothing spent.
 
     A dataset's cost used to be a property nobody computed until it had been paid. ``n_documents`` is
-    the call count (before retries), and ``estimated_input_tokens`` charges the stable system prefix
+    the exchange count (before retries), and ``estimated_input_tokens`` charges the stable system prefix
     once **per document** — which is what makes a fan-out over one-line archive records expensive.
     Output tokens are not estimated: the model decides how many claims a document supports, and the
     token Ceiling is what bounds that half.
@@ -102,7 +102,7 @@ class ExtractionPlanReport(BaseModel):
     #: Archive records with prose that this plan reads. A level asked nothing (``project``) and a
     #: record with no free text are not read, and are not counted here.
     n_records_read: int = 0
-    #: Records read but not costing a call of their own — the runs folded into their sample's document.
+    #: Records read but not costing an exchange of their own — the runs folded into their sample's document.
     n_records_collapsed: int = 0
     n_chars: int = 0
     system_prompt_chars: int = 0

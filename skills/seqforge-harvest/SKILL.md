@@ -20,7 +20,7 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 ```
 
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
-— how many calls, of what, and the estimated input tokens — while reaching no model and needing no
+— how many exchanges, of what, and the estimated input tokens — while reaching no model and needing no
 credential. A dataset's cost used to be a property nobody computed until it had been paid: one
 benchmark series billed 983 calls, 92% of them one-line run aliases. Each archive record is a
 document, except that a sample's *runs* are one document between them (a run belongs to exactly one

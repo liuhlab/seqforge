@@ -3,10 +3,12 @@
 # and a 404 => absent, which the report names as a gap in the corpus rather than as a network blip.
 # Publish the package with: seqforge io publish-package <the .fingerprint.tar.gz>
 #
-# This case is RED ON PURPOSE — see expected.yaml. It is not withheld to keep the tier green.
+# Published on whatever colour it grades — see expected.yaml. It was committed as a prediction of a
+# fix while it still failed, and now grades correct; it was never withheld to keep the tier green.
 #
-# SRR6750041 (the cheapest run at ~77.6 M reads) plus the SRR6750042 control scg_lib_structs itself
-# uses. Rebuild with: seqforge preflight --accession SRR6750041 -n 20000 -C <dir>  (~60 s, ~10 MB).
+# SRR6750041, the cheapest run at ~77.6 M reads. The transcript beside this file is narrowed to that
+# one run, because a record no slice can join to costs an extraction call and grades nothing.
+# Rebuild with: seqforge preflight --accession SRR6750041 -n 20000 -C <dir>  (~60 s, ~10 MB).
 generate:
   kind: fingerprint
   hf: packages/GSE110823.fingerprint.tar.gz

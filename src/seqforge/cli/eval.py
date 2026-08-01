@@ -18,7 +18,6 @@ DEFAULT_EVAL_CEILING = 500_000
 
 #: The report's name inside the run directory. `eval report <directory>` looks for exactly this, so
 #: a caller passes the directory a run wrote rather than a filename it has to remember.
-REPORT_FILENAME = "report.json"
 
 
 @eval_app.command("list")
@@ -115,7 +114,7 @@ def eval_run(
     """
     from ..evals import CaseError, Grade, load_cases, run_cases
     from ..harvest import ProviderUnavailable, resolve_provider
-    from ..workspace import eval_dir
+    from ..workspace import EVAL_REPORT_FILENAME, eval_dir
 
     try:
         cases = load_cases(cases_dir, only=list(case) if case else None)
@@ -150,7 +149,7 @@ def eval_run(
     # its directory now, and stdout is still exactly the result object.
     run_dir = eval_dir(workspace)
     run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / REPORT_FILENAME).write_text(rendered, encoding="utf-8")
+    (run_dir / EVAL_REPORT_FILENAME).write_text(rendered, encoding="utf-8")
     typer.echo(rendered)
 
     # Before the accuracy gate, because a blocked case was not graded at all: reporting "accuracy
@@ -199,7 +198,7 @@ def eval_report(
     transcript: str = typer.Option(
         "sample",
         "--transcript",
-        help="How much of the chat history to render: sample (a representative selection per case, "
+        help="How much of the transcript to render: sample (a representative selection per case, "
         "the default), all (every exchange), none. Needs the run DIRECTORY — the exchanges live in "
         "files beside the report, never in it.",
     ),
@@ -222,7 +221,7 @@ def eval_report(
     path to a JSON file still works, and so does `-`: a report that arrived over a pipe is still a
     report, it just has no transcripts beside it.
 
-    `--transcript` says how much of the chat history to render. The default `sample` is a
+    `--transcript` says how much of the transcript to render. The default `sample` is a
     representative selection per case — one exchange per document scope, plus every exchange that
     produced a rejected draft or a graded assertion — and the page states how many it left out, since
     a silently truncated transcript reads as a complete one. `all` renders every exchange (a
@@ -236,12 +235,19 @@ def eval_report(
     from datetime import datetime
 
     from ..evals.report import TRANSCRIPT_MODES, attach_transcripts, render_html
+    from ..workspace import EVAL_REPORT_FILENAME, eval_dir
 
     if transcript not in TRANSCRIPT_MODES:
         typer.echo(f"--transcript must be one of {'|'.join(TRANSCRIPT_MODES)}", err=True)
         raise typer.Exit(2)
 
-    source_path = report / REPORT_FILENAME if report.is_dir() else report
+    source_path = report
+    if report.is_dir():
+        # A run directory, or the workspace one lives under. Accepting both means a caller never has
+        # to spell `seqforge/eval` — which is the whole point of one module owning that name, and the
+        # CI workflow was the drift waiting to happen.
+        run_dir = report if (report / EVAL_REPORT_FILENAME).is_file() else eval_dir(report)
+        source_path = run_dir / EVAL_REPORT_FILENAME
     if str(report) == "-":
         if output is None:
             typer.echo("reading from stdin needs an explicit -o/--output", err=True)

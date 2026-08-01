@@ -87,7 +87,7 @@ class ExtractionPlan:
     #: Archive records with prose that this plan reads. Records at a level with an empty ask
     #: (``project``) and records with no prose at all are not read, and are not counted here.
     n_records_read: int = 0
-    #: Records this plan folded away: read, but not costing a call of their own.
+    #: Records this plan folded away: read, but not costing an exchange of their own.
     n_records_collapsed: int = 0
     #: The stable system prefix, in characters. It is byte-identical on every request — which is what
     #: makes prefix caching work — and it is therefore paid once **per document**, not once per run.

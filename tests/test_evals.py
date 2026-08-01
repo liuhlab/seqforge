@@ -1807,7 +1807,7 @@ def test_the_report_surfaces_trials_harvest_and_the_token_bill() -> None:
     A case correct 2 times in 3 is a finding, not a rounding error (`_merge_harvest` refuses to
     average it away, so the page must not either). A `hallucinated` field is corpus poison and is
     labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as a
-    failure. Tokens and LLM calls are what a `--llm` pass costs.
+    failure. Tokens and exchanges are what a `--llm` pass costs.
     """
     page = render_html(_render_fixture(), title="T", source=None)
     assert "1/3</b> trials correct" in page, "stability is reported as a fraction of trials"
@@ -1889,7 +1889,7 @@ def test_a_report_from_before_the_grade_carried_its_claims_still_renders() -> No
 
 
 # --------------------------------------------------------------------------------------------
-# the chat history on the page — a sample, and what it left out
+# the transcript on the page — a sample, and what it left out
 # --------------------------------------------------------------------------------------------
 #
 # A transcript is one system prompt plus N (document, response) pairs, and N reaches the hundreds on
@@ -2552,7 +2552,7 @@ def test_the_page_joins_a_real_run_to_the_exchanges_it_paid_for(tmp_path: Path) 
     assert "Caenorhabditis elegans" in page
 
 
-def test_the_transcript_flag_chooses_how_much_chat_history_the_page_carries(
+def test_the_transcript_flag_chooses_how_many_exchanges_the_page_carries(
     tmp_path: Path,
 ) -> None:
     """`all | sample | none`, and a report with no directory beside it renders either way.
@@ -2600,3 +2600,36 @@ def test_the_transcript_flag_chooses_how_much_chat_history_the_page_carries(
     result = runner.invoke(app, ["eval", "report", str(lonely), "--no-timestamp"])
     assert result.exit_code == 0, result.output
     assert "The system prompt" not in lonely.with_suffix(".html").read_text()
+
+
+def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: Path) -> None:
+    """`eval report <workspace>` finds the run beneath it, so no caller spells the state path.
+
+    `eval run -C <ws>` writes under `<ws>/seqforge/eval/`, and only `workspace.py` is allowed to know
+    that. A caller that reconstructs the path by hand is a second owner of the name: the CI workflow
+    did exactly that, and a rename of the directory would have left it reading a file that no longer
+    existed while still exiting 0. Both spellings resolve to the same report.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.workspace import eval_dir
+
+    runner = CliRunner()
+    ws = tmp_path / "ws"
+    written = runner.invoke(
+        app, ["eval", "run", "--no-llm", "--cases", str(default_cases_dir()), "-C", str(ws)]
+    )
+    assert written.exit_code in (0, 3), written.output
+    run_dir = eval_dir(ws)
+    assert (run_dir / "report.json").is_file(), "the run directory holds the report"
+
+    from_workspace = runner.invoke(
+        app, ["eval", "report", str(ws), "-o", str(tmp_path / "a.html"), "--no-timestamp"]
+    )
+    from_run_dir = runner.invoke(
+        app, ["eval", "report", str(run_dir), "-o", str(tmp_path / "b.html"), "--no-timestamp"]
+    )
+    assert from_workspace.exit_code == 0, from_workspace.output
+    assert from_run_dir.exit_code == 0, from_run_dir.output
+    assert (tmp_path / "a.html").read_text() == (tmp_path / "b.html").read_text()

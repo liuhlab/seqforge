@@ -44,8 +44,11 @@ an environment variable.
 design.** A public HF dataset serves every file at a stable URL to an anonymous GET, so the consumer
 side is the same pooch call the onlist registry makes. Writing is an authenticated commit, so
 `seqforge io publish-package` uses `huggingface_hub`'s `HfApi().upload_file` and the maintainer's
-write token — never the `hf` command-line client, which hangs. The dependency is declared for the
-producer; nothing in the networked eval job reaches it, and the CI job carries no secret.
+write token — never the `hf` command-line client, which hangs. The dependency is a hard one, so it
+installs everywhere, but the import is local to the publishing path: nothing on the reading side
+executes it, the networked eval job never reaches it, and the CI job carries no secret. It sits
+beside `anthropic` and `openai`, which are declared the same way for the same reason — a verb
+most installs never call still has to work without an extras incantation.
 
 **An unreachable package skips; it never fails. A package the corpus does not hold is reported as
 `absent`.** These are two states, not one: a 404 means the archive answered and has no such package —

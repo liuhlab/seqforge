@@ -66,8 +66,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          test -s report/seqforge/eval/report.json || exit 0
-          pixi run -e test seqforge eval report report/seqforge/eval \
+          test -d report || exit 0
+          pixi run -e test seqforge eval report report \
             -o report/benchmark.html \
             --title "seqforge benchmark — ${{ github.sha }}" \
             --source "seqforge eval run --no-llm --cases evals/benchmark -C report"
