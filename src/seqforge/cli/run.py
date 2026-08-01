@@ -290,7 +290,11 @@ def run_cmd(
     provider: str | None = typer.Option(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
-    model: str | None = typer.Option(None, "--model", help="Override the extraction model."),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Override the extraction model (DeepSeek: deepseek-v4-flash | deepseek-v4-pro).",
+    ),
     processing_id: str = typer.Option("default", "--id", help="Human slug for the recipe."),
     fastq_dir: Path | None = typer.Option(
         None, "--fastq-dir", help="Where this machine keeps the FASTQs (for units.tsv)."

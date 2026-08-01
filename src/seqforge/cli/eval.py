@@ -49,7 +49,10 @@ def eval_run(
         None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
     ),
     model: str | None = typer.Option(
-        None, "--model", help="Override the provider's default model."
+        None,
+        "--model",
+        help="Override the provider's default model. A baseline is model-scoped: the recorded "
+        "numbers were measured on deepseek-v4-pro, not on the deepseek-v4-flash default.",
     ),
     trials: int = typer.Option(
         1, "--trials", min=1, help="Re-run each prose case N times; extraction is nondeterministic."

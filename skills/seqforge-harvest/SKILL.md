@@ -20,6 +20,8 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 
 Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
 `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` and **refuses rather than guessing** when neither is set.
+DeepSeek serves two V4 models: `deepseek-v4-flash` (the default — ~3× cheaper) and `deepseek-v4-pro`
+(more recall on hard prose). The choice moves cost, never correctness: R2 re-greps every quote after.
 
 ## Document ROLE: only a file you hand us may steer the pipeline
 
