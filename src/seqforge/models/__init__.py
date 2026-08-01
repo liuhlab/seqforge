@@ -19,7 +19,9 @@ from pydantic import BaseModel
 from .assertion import (
     Assertion,
     AssertionDraft,
+    ExtractionPlanReport,
     ExtractorProvenance,
+    PlannedDocument,
     SourceSpan,
 )
 from .base import (
@@ -69,6 +71,11 @@ from .evidenced import (
     EvidencedChemistrySet,
     EvidencedStr,
     EvidencedTaxid,
+)
+from .fingerprint import (
+    FilePin,
+    FingerprintManifest,
+    PublishedPackage,
 )
 from .observation import (
     ConstantSegment,
@@ -124,6 +131,7 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         # harvest
         AssertionDraft,
         Assertion,
+        ExtractionPlanReport,
         # resolve / conflict / blocker
         Conflict,
         Blocker,
@@ -141,6 +149,9 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         ComposeResult,
         RunResult,
         EvalReport,
+        # the fingerprint corpus — the package's pin, and what publishing one reports
+        FingerprintManifest,
+        PublishedPackage,
     )
 }
 
@@ -216,6 +227,8 @@ __all__ = [
     "AssertionDraft",
     "Assertion",
     "ExtractorProvenance",
+    "PlannedDocument",
+    "ExtractionPlanReport",
     # conflict
     "Conflict",
     "ConflictPosition",
@@ -265,4 +278,8 @@ __all__ = [
     "ComposeResult",
     "RunResult",
     "EvalReport",
+    # the fingerprint package: its pin, and what publishing one reports
+    "FilePin",
+    "FingerprintManifest",
+    "PublishedPackage",
 ]

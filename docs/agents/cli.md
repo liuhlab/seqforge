@@ -67,6 +67,11 @@ recurs, and what it must mean when it does:
   one (R3).
 - **`--provider` / `--model`** — on the verbs that reach a model. Selection is
   explicit-beats-implicit, and refuses rather than guessing when no credential is present.
+- **`--ceiling`** — the token **Ceiling**, on those same verbs. It **refuses**: reaching it emits a
+  `TOKEN_CEILING_EXCEEDED` Blocker and exits 3, never a warning, because a ceiling that only warns is
+  a number nobody sets. Counted raw — cached input and cache writes count too — and `0` removes it.
+  Not the read budget and not `max_tokens`: a budget bounds one head in bytes and reads, `max_tokens`
+  bounds one response's output, and a ceiling bounds a whole run in tokens.
 
 A new flag on an existing verb is cheap; a new flag that duplicates one of these under another name is
 not. And a flag documented in prose but absent from the app fails the introspecting test, so prose and
@@ -78,6 +83,11 @@ Three costs, and each verb should be obviously in or out of each:
 
 - **Network** — the `io` group is the *only* network surface. Everything it fetches is checksum-verified
   and cached; whitelists go through pooch. If a verb outside `io` needs the network, it is calling `io`.
+  One verb there **writes** rather than reads — `io publish-package` commits a fingerprint package to
+  the public benchmark corpus — and it is in this group for that reason and no other: a verb whose
+  whole content is a remote call belongs where a reader expects remote calls to be. It validates the
+  package before it sends a byte, refuses rather than guessing when no credential is present, and has
+  a `--dry-run` that resolves the destination while touching neither.
 - **An LLM** — `harvest extract` is the **one** LLM touchpoint in a headless run, and verification runs
   inside it rather than after it. `run` (alias `compile`) reaches a model only by way of that stage, so
   `run --no-llm` is a fully deterministic pipeline. `eval run` reaches a model only for prose cases.

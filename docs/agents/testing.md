@@ -56,6 +56,9 @@ Test files mirror packages, so rung 1 has an answer:
 | tree-wide R10 AST guards (read `src/`, never compose) | `tests/test_repo_invariants.py` |
 | `harvest/` | `tests/test_harvest.py`, `tests/test_extract.py` |
 | `harvest/fields.py` (the asked/permitted vocabulary) | `tests/test_fields.py` |
+| `harvest/meter.py` (the Exchange count, the Ceiling, the transcript) | `tests/test_extract.py` |
+| `harvest/plan.py` (records → documents, the per-sample collapse, the fan-out) | `tests/test_extract.py`; where a collapsed document's claims LAND is `tests/test_records.py` |
+| `harvest/transcript.py` (the `.jsonl` round trip) | `tests/test_extract.py` |
 | `io/` | `tests/test_io.py`, `tests/test_remote.py`, `tests/test_sra.py`, `tests/test_archive.py` |
 | `io/taxonomy.py` | `tests/test_taxonomy.py` |
 | `fingerprint/` | `tests/test_fingerprint.py` |

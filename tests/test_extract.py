@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,7 @@ from seqforge.harvest import (
 )
 from seqforge.harvest.providers import classify_api_error
 from seqforge.io.remote import _MAX_RETRIES
+from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
 
 _QUOTE = "Chromium Single Cell 3' v3"
 _TEXT = "Libraries were prepared with the Chromium Single Cell 3' v3 kit."
@@ -691,3 +693,527 @@ def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_p
     report = verify_drafts(outcome.drafts, [nd], extractor=outcome.extractor)
     assert report.n_accepted == 1
     assert report.rejected[0]["reason"] == "span_not_found"
+
+
+# ---------- the meter at the provider seam ----------
+# One module counts, refuses and records; the three adapters stay untouched. These prove the three
+# jobs separately, and prove that doing them does not change what the caller gets back.
+
+
+def _meter(outcomes: list[object], **kwargs: Any) -> Any:
+    """A `TokenMeter` over a `_SequencedProvider`, so a test can watch retries reach the meter."""
+    from seqforge.harvest import TokenMeter
+
+    return TokenMeter(_SequencedProvider(outcomes), **kwargs)
+
+
+def test_the_meter_proxies_the_wrapped_providers_identity(tmp_path: Path) -> None:
+    """`ExtractorProvenance.model_id` is `provider/model`, so a meter that named itself would
+    restamp every assertion in a corpus with a provider that does not exist."""
+    from seqforge.harvest import TokenMeter
+
+    inner = deepseek_provider(api_key="k", client=_FakeOpenAIClient(_batch()))
+    meter = TokenMeter(inner)
+
+    assert meter.name == "deepseek"
+    assert meter.default_model() == DEEPSEEK_DEFAULT_MODEL
+    assert meter.base_url == inner.base_url, "anything else falls through to the provider"
+
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    assert outcome.extractor.model_id == f"deepseek/{DEEPSEEK_DEFAULT_MODEL}"
+    assert outcome.provider == "deepseek"
+
+
+@pytest.mark.parametrize("outcomes, expected, n_calls", _PROVIDER_RETRY)
+def test_the_meter_counts_real_requests_not_documents(
+    outcomes: list[object],
+    expected: str | None,
+    n_calls: int,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`n_calls` was `len(documents)`, so up to three retries per document cost tokens nothing
+    counted. Metered, it is the retry table's own count — one exchange per request, failures
+    included, over ONE document in every row."""
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
+    meter = _meter(outcomes)
+
+    if expected is None:
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    else:
+        with pytest.raises(ExtractUnavailable, match=expected):
+            extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    assert meter.n_exchanges == n_calls
+
+
+def test_the_meter_banks_what_a_refused_attempt_cost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
+    meter = _meter([_transient(usage={"input_tokens": 700}), _OK])
+
+    extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    assert meter.usage()["input_tokens"] == 710, "the 429's 700 plus the successful call's 10"
+    assert meter.n_exchanges == 2
+
+
+def test_the_meter_hands_the_response_back_untouched(tmp_path: Path) -> None:
+    """It measures; it never reads the text for meaning. Repairing or partly accepting a batch stays
+    the forbidden act, and a meter that rewrote a response would be doing it."""
+    from seqforge.harvest import TokenMeter
+
+    inner = _FakeProvider(_batch())
+    unmetered = inner.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+    metered = TokenMeter(_FakeProvider(_batch())).complete_json(
+        system="s", user="u", schema={}, model="m", max_tokens=8
+    )
+    assert metered == unmetered
+
+
+# ---------- the Ceiling ----------
+def test_the_ceiling_refuses_the_request_after_the_one_that_crossed_it(tmp_path: Path) -> None:
+    """The crossing request is ISSUED — its cost is not knowable until it returns — and everything
+    admitted after it is refused, un-issued. That is what makes a breach reproducible."""
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    inner = _SequencedProvider([_OK])  # 10 input tokens per call
+    meter = TokenMeter(inner, ceiling=25)
+
+    def one() -> None:
+        meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+
+    for _ in range(3):  # 10, 20, 30 -> the third is the one that crosses
+        one()
+    with pytest.raises(CeilingExceeded) as caught:
+        one()
+
+    assert inner.n_calls == 3, "the refused request never reached the provider"
+    assert meter.n_exchanges == 3 and meter.tokens == 30
+    assert caught.value.spent == 30 and caught.value.ceiling == 25
+
+
+def test_the_ceiling_counts_raw_so_cached_input_is_not_free() -> None:
+    """Decided and written down: fresh input, cached input, cache writes and output ALL count. A
+    ceiling is a backstop, not a price — and `input_tokens` is normalized to be the whole input on
+    both providers, so the reading does not depend on who answered."""
+    from seqforge.harvest import raw_tokens
+
+    deepseek = {"input_tokens": 3000, "output_tokens": 300, "cache_read_tokens": 2800}
+    anthropic = {
+        "input_tokens": 3000,
+        "output_tokens": 300,
+        "cache_read_tokens": 2500,
+        "cache_write_tokens": 300,
+    }
+    assert raw_tokens(deepseek) == raw_tokens(anthropic) == 3300
+
+
+def test_a_ceiling_breach_is_a_blocker_with_an_operable_remedy() -> None:
+    """Exit 3 with a refusal a caller can act on — never a warning, and never `llm_unavailable`."""
+    from seqforge.harvest import CeilingExceeded
+    from seqforge.models.blocker import BlockerCode
+
+    blocker = CeilingExceeded(
+        ceiling=500_000, spent=512_000, n_exchanges=180, subject="GSE126954"
+    ).blocker()
+
+    assert blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
+    assert blocker.subject.kind == "dataset" and blocker.subject.ref == "GSE126954"
+    assert "--ceiling" in blocker.remedy, "a remedy that names no command is not finished"
+    assert "500,000" in blocker.message and "180" in blocker.message
+
+
+def test_no_ceiling_never_refuses() -> None:
+    """`None` and `0` both mean no ceiling, so a CLI default of 0 needs no special case."""
+    from seqforge.harvest import TokenMeter
+
+    for ceiling in (None, 0):
+        meter = TokenMeter(_SequencedProvider([_OK]), ceiling=ceiling)
+        for _ in range(5):
+            meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+        assert meter.n_exchanges == 5 and meter.ceiling is None
+
+
+def test_the_meter_holds_under_the_concurrent_fan_out() -> None:
+    """Extraction fans out over threads — a pool per document under a pool per case — so the running
+    total is shared mutable state. Unlocked, `+=` on it loses increments, and the ceiling it guards
+    reads low exactly when the run is widest."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    meter = TokenMeter(_SequencedProvider([_OK]), ceiling=200)  # 10 input tokens per call
+
+    def one(_i: int) -> bool:
+        try:
+            meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+        except CeilingExceeded:
+            return False
+        return True
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        issued = sum(pool.map(one, range(200)))
+
+    assert meter.n_exchanges == issued, "every issued request was banked exactly once"
+    assert meter.tokens == 10 * issued
+    # The in-flight ones finish and are banked, so the total may overshoot by at most the width of
+    # the pool; nothing may be admitted once the ceiling is reached.
+    assert 200 <= meter.tokens <= 200 + 10 * 8
+
+
+# ---------- the transcript ----------
+def test_the_transcript_is_one_prompt_plus_a_pair_per_exchange(tmp_path: Path) -> None:
+    """983 exchanges share one byte-identical system prompt (that is why prefix caching works), so
+    a transcript stores it ONCE and every exchange points at it."""
+    from seqforge.harvest import TokenMeter
+
+    meter = TokenMeter(_SequencedProvider([_OK]))
+    docs = []
+    for i in range(4):
+        (tmp_path / f"d{i}").mkdir()
+        docs.append(_doc(tmp_path / f"d{i}", f"We used protocol number {i}."))
+    for doc in docs:
+        extract_drafts(doc, kb.load_all_specs(), provider=meter)
+
+    transcript = meter.transcript()
+    assert transcript.n_exchanges == 4
+    assert len(transcript.prompts) == 1, "the stable prefix is stored once, not four times"
+    system = transcript.prompt_for(transcript.exchanges[0])
+    assert system == build_system_prompt(kb.load_all_specs(), llm_schema())
+    # the volatile half is per document, and it is the document that varies
+    assert [d.text in e.user for d, e in zip(docs, transcript.exchanges, strict=True)] == [True] * 4
+    assert all(e.ok and e.text == _OK for e in transcript.exchanges)
+
+
+def test_a_refused_exchange_is_still_in_the_transcript(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A retry is its own exchange, because tokens were spent on it. A transcript that dropped the
+    failures would disagree with the count beside it."""
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
+    meter = _meter([_transient("429 rate limited", usage={"input_tokens": 700}), _OK])
+
+    extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    transcript = meter.transcript()
+
+    assert transcript.n_exchanges == 2
+    failed, succeeded = transcript.exchanges
+    assert not failed.ok and "429" in (failed.error or "") and failed.text == ""
+    assert failed.tokens == 700 and succeeded.tokens == 10
+    assert succeeded.ok
+    # json-safe, and the failure says so rather than reading as an empty response
+    assert "error" in failed.to_json() and "error" not in succeeded.to_json()
+    assert transcript.to_json()["prompts"] == transcript.prompts
+
+
+# ---------- the plan: records -> documents, before a token is spent ----------
+# One module owns the fan-out both `harvest extract` and the eval harness used to spell for
+# themselves. What it must get right is the count (a call per run was 92% of a corpus's bill), the
+# reassembly (a dict keyed by document identity loses one of two identical documents), and where a
+# collapsed document's claims land (a subject that maps to no sample is silently discarded).
+
+
+def _records(runs_per_sample: dict[str, int], *, alias: str = "N2_wild_type") -> ArchiveRecordSet:
+    """A record set shaped like a real one: project -> sample -> experiment -> runs."""
+    records = [
+        ArchiveRecord(
+            level="project",
+            accession="PRJNA1",
+            free_text=[FreeText(label="study_abstract", text="Wild-type and daf-2 mutants.")],
+        )
+    ]
+    for sample, n_runs in runs_per_sample.items():
+        experiment = f"SRX{sample[-1]}"
+        records += [
+            ArchiveRecord(
+                level="sample",
+                accession=sample,
+                parent="PRJNA1",
+                free_text=[FreeText(label="sample_alias", text=f"{sample} whole worm")],
+            ),
+            ArchiveRecord(
+                level="experiment",
+                accession=experiment,
+                parent=sample,
+                free_text=[FreeText(label="design", text="Chromium Single Cell 3' v3.")],
+            ),
+        ]
+        records += [
+            ArchiveRecord(
+                level="run",
+                accession=f"SRR{sample[-1]}{i}",
+                parent=experiment,
+                free_text=[FreeText(label="run_alias", text=f"{alias}_r{i}")],
+            )
+            for i in range(n_runs)
+        ]
+    return ArchiveRecordSet(source="test", query="PRJNA1", records=records)
+
+
+def test_the_runs_of_one_sample_are_one_document_not_one_each() -> None:
+    """The actual fix, and the ceiling is only a backstop.
+
+    A run alias is often the only place a WT-vs-mutant contrast is written, so the runs are still
+    READ — the defect was one call per run, not reading runs. Twelve one-line aliases belonging to
+    one sample are one document; two samples are two.
+    """
+    from seqforge.harvest import plan_extraction
+
+    plan = plan_extraction(records=_records({"SAMN1": 12, "SAMN2": 4}))
+
+    by_scope = Counter(d.scope for d in plan.documents)
+    assert by_scope == {"sample": 2, "experiment": 2, "run": 2}, "one run document per SAMPLE"
+    assert "project" not in by_scope, "a project record is asked nothing, so it costs no call"
+    assert plan.n_records_read == 2 + 2 + 16
+    assert plan.n_records_collapsed == 14, "16 runs, 2 documents"
+
+    collapsed = next(d for d in plan.documents if d.scope == "run")
+    assert collapsed.text.count("run_alias") == 12, "every alias is still in the document"
+    assert plan.members[collapsed.doc_sha256] == tuple(f"SRR1{i}" for i in range(12))
+
+
+def test_a_collapsed_run_document_speaks_for_its_sample_not_for_one_run() -> None:
+    """Where the collapse is placed is the whole risk, and it fails silently when it is wrong.
+
+    `resolve/records.py` keeps a claim only when the document's subject maps to the sample being
+    resolved, and DROPS it otherwise with nothing said. `_subject_to_sample` maps a sample accession
+    to itself, so a document carrying the sample's accession resolves as `asserted` — while pointing
+    it at one of its twelve runs would attribute the other eleven aliases to a run they did not come
+    from. That the claims survive the join is proved end to end in `tests/test_records.py`.
+    """
+    from seqforge.harvest import plan_extraction
+
+    plan = plan_extraction(records=_records({"SAMN1": 3, "SAMN2": 3}))
+    collapsed = [d for d in plan.documents if d.scope == "run"]
+
+    assert {d.subject for d in collapsed} == {"SAMN1", "SAMN2"}
+    assert {d.source_basename for d in collapsed} == {"runs-SAMN1.txt", "runs-SAMN2.txt"}
+
+
+def test_a_run_document_is_asked_what_an_alias_can_answer() -> None:
+    """Scope stays `run` because that is what the prose IS, and the ask follows the scope."""
+    from seqforge.harvest import plan_extraction
+    from seqforge.harvest.fields import ASKED_SAMPLE_ATTRIBUTES
+
+    plan = plan_extraction(records=_records({"SAMN1": 2}))
+    collapsed = next(d for d in plan.documents if d.scope == "run")
+
+    assert plan.asked(collapsed) == tuple(
+        f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES
+    )
+    assert "library.chemistry" not in plan.asked(collapsed)
+
+
+def test_a_lone_run_is_rendered_exactly_as_its_own_record() -> None:
+    """Collapsing one run must not invent a second rendering of it: a quote is only checkable while
+    the exact bytes it was greppedded against can be regenerated from the record."""
+    from seqforge.harvest import normalize_record, plan_extraction
+
+    records = _records({"SAMN1": 1})
+    plan = plan_extraction(records=records)
+    run = next(r for r in records.records if r.level == "run")
+
+    doc = next(d for d in plan.documents if d.scope == "run")
+    assert doc.doc_sha256 == normalize_record(run).doc_sha256
+    assert doc.subject == run.accession, "no sample to speak for; it speaks for itself"
+
+
+def test_a_run_whose_sample_is_missing_keeps_its_own_identity() -> None:
+    """Folding an orphan run in with unrelated runs would be inventing a join the archive did not
+    declare — and `_basis_for` would then place its claims on somebody else's sample."""
+    from seqforge.harvest import plan_extraction
+
+    records = ArchiveRecordSet(
+        source="test",
+        query="PRJNA1",
+        records=[
+            ArchiveRecord(
+                level="run",
+                accession=f"SRR{i}",
+                free_text=[FreeText(label="run_alias", text=f"orphan_{i}")],
+            )
+            for i in range(3)
+        ],
+    )
+    plan = plan_extraction(records=records)
+
+    assert {d.subject for d in plan.documents} == {"SRR0", "SRR1", "SRR2"}
+    assert plan.n_records_collapsed == 0
+
+
+def test_a_record_with_nothing_to_read_or_nothing_to_ask_costs_no_call() -> None:
+    from seqforge.harvest import plan_extraction
+
+    records = ArchiveRecordSet(
+        source="test",
+        query="PRJNA1",
+        records=[
+            ArchiveRecord(level="project", accession="PRJNA1"),
+            ArchiveRecord(level="sample", accession="SAMN1", parent="PRJNA1"),  # no prose
+            ArchiveRecord(
+                level="run",
+                accession="SRR1",
+                parent="SAMN1",
+                free_text=[FreeText(label="run_alias", text="   ")],  # whitespace is not prose
+            ),
+        ],
+    )
+    plan = plan_extraction(records=records)
+
+    assert plan.n_documents == 0 and plan.n_records_read == 0
+    assert plan.estimated_input_tokens == 0, "no call, no stable prefix to pay for"
+
+
+def test_the_plan_charges_the_stable_prefix_once_per_document(tmp_path: Path) -> None:
+    """The prefix is ~3 KB and byte-identical on every request, so N documents pay it N times. That
+    is the arithmetic that makes a fan-out over one-line aliases expensive, and a plan that only
+    counted the documents' own text would hide it."""
+    from seqforge.harvest import plan_extraction
+
+    prefix = len(build_system_prompt(kb.load_all_specs(), llm_schema()))
+    plan = plan_extraction(
+        documents=[_doc(tmp_path)], records=_records({"SAMN1": 4}), system_prompt_chars=prefix
+    )
+
+    assert plan.n_documents == 4  # the paper, a sample, an experiment, one collapsed run document
+    assert plan.n_chars == sum(len(d.text) for d in plan.documents)
+    assert plan.estimated_input_tokens == (4 * prefix + plan.n_chars) // 4
+    assert plan.estimated_input_tokens > 4 * prefix // 4
+
+
+def test_the_plan_is_free_and_the_dry_run_is_the_list_the_paid_run_sends(tmp_path: Path) -> None:
+    """A dry run is exact rather than a projection: it renders the same documents, and rendering
+    costs no token and no network."""
+    from seqforge.harvest import plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path)], records=_records({"SAMN1": 2}))
+    report = plan.report()
+
+    assert report.n_documents == plan.n_documents == len(report.documents)
+    assert [d.doc_sha256 for d in report.documents] == [d.doc_sha256 for d in plan.documents]
+    collapsed = next(d for d in report.documents if d.scope == "run")
+    assert collapsed.members == ["SRR10", "SRR11"], "the collapse is visible, not implicit"
+    assert report.model_dump(mode="json")["n_records_collapsed"] == 1
+
+
+def test_two_identical_asks_are_one_document_and_one_result(tmp_path: Path) -> None:
+    """The reassembly bug, pinned.
+
+    `cli/harvest.py` keyed its outcomes by `doc_sha256`: two documents that render identically each
+    cost a call, one result survived, and the loop then read that one outcome once per colliding
+    document — duplicating its drafts, its rejected list and its usage. So the plan folds an
+    identical ask into one document, and the fan-out returns a LIST in plan order with no key to
+    collide on.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    doc = _doc(tmp_path)
+    plan = plan_extraction(documents=[doc, doc, doc])
+    assert plan.n_documents == 1
+
+    provider = _FakeProvider(_batch())
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    assert len(outcomes) == 1
+    assert sum(len(o.drafts) for o in outcomes) == 1, "one document, one document's worth of drafts"
+
+
+def test_the_same_document_under_two_roles_is_two_asks(tmp_path: Path) -> None:
+    """Identity is the whole question the call would put, not just the bytes: a reference document is
+    never asked about `processing.*`, so the same file offered under both flags is two calls."""
+    from dataclasses import replace as _replace
+
+    from seqforge.harvest import plan_extraction
+
+    reference = _doc(tmp_path)
+    instruction = _replace(reference, role="instruction")
+    plan = plan_extraction(documents=[reference, instruction])
+
+    assert plan.n_documents == 2
+    assert "processing.quantification" in plan.asked(instruction)
+    assert "processing.quantification" not in plan.asked(reference)
+
+
+def test_the_fan_out_returns_outcomes_in_plan_order(tmp_path: Path) -> None:
+    """Positional, and required rather than tidy: `verify_drafts` and the last-wins field map both
+    read the drafts list positionally, so a completion-ordered result would make a run's graded
+    assertions depend on which socket returned first."""
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(records=_records({"SAMN1": 2, "SAMN2": 2}))
+    assert plan.n_documents == 6
+
+    class _FinishesOutOfOrder:
+        """The first document submitted is the last to answer."""
+
+        name = "echo"
+
+        def default_model(self) -> str:
+            return "echo-1"
+
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            time.sleep(0.05 if plan.documents[0].text in str(kwargs["user"]) else 0.0)
+            return LLMResponse(text=_batch(quote=_QUOTE), usage={"input_tokens": 1})
+
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=_FinishesOutOfOrder())
+
+    # every draft is anchored by code onto the document that was actually sent, so the shas ARE the
+    # order the calls were made in
+    assert [o.drafts[0].span.doc_sha256 for o in outcomes] == [d.doc_sha256 for d in plan.documents]
+
+
+def test_the_fan_out_bounds_what_the_provider_sees_however_the_pools_nest() -> None:
+    """Case-level and document-level concurrency MULTIPLY, and the provider sees the product. The
+    semaphore, not the pool size, is what bounds it — a pool per document under a pool per case is
+    14 x 24 requests in flight from one key, which measures a rate limiter and not the compiler."""
+    from seqforge.evals.run import MAX_DEFAULT_JOBS
+    from seqforge.harvest import MAX_IN_FLIGHT, plan
+
+    assert MAX_IN_FLIGHT <= MAX_DEFAULT_JOBS
+    assert plan._SLOTS._value == MAX_IN_FLIGHT, "sized once at import, shared by every pool"
+
+
+# ---------- the transcript's address on disk ----------
+def test_a_transcript_round_trips_through_its_file(tmp_path: Path) -> None:
+    """One writer, one reader, one format. A writer with no reader is a shape every consumer has to
+    re-derive from the code that produced it — and the report renderer is the consumer."""
+    from seqforge.harvest import TokenMeter, read_transcript, write_transcript
+
+    monkey = _SequencedProvider([_transient("429 rate limited", usage={"input_tokens": 700}), _OK])
+    meter = TokenMeter(monkey)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(time, "sleep", lambda _s: None)
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+
+    path = write_transcript(tmp_path / "transcript.jsonl", meter.transcript())
+    back = read_transcript(path)
+
+    assert back.to_json() == meter.transcript().to_json()
+    assert back.n_exchanges == 2
+    assert not back.exchanges[0].ok and "429" in (back.exchanges[0].error or "")
+    assert back.prompt_for(back.exchanges[1]) == build_system_prompt(
+        kb.load_all_specs(), llm_schema()
+    )
+
+
+def test_the_transcript_file_holds_one_prompt_and_a_line_per_exchange(tmp_path: Path) -> None:
+    """The header carries the prompts; every line after it is one exchange pointing at its sha. At
+    983 exchanges the alternative is three megabytes of one repeated string, and a file nobody
+    opens — and it is what makes the file streamable rather than a tree to parse whole."""
+    from seqforge.harvest import TokenMeter, write_transcript
+
+    meter = TokenMeter(_SequencedProvider([_OK, _OK, _OK]))
+    for i in range(3):
+        (tmp_path / f"d{i}").mkdir()
+        extract_drafts(
+            _doc(tmp_path / f"d{i}", f"We used protocol {i}."),
+            kb.load_all_specs(),
+            provider=meter,
+        )
+
+    lines = write_transcript(tmp_path / "t.jsonl", meter.transcript()).read_text().splitlines()
+
+    assert len(lines) == 4, "one header plus one line per exchange"
+    header = json.loads(lines[0])
+    assert list(header["prompts"]) == [json.loads(lines[1])["prompt_sha256"]]
+    assert header["n_exchanges"] == 3
+    assert all("prompts" not in json.loads(line) for line in lines[1:])

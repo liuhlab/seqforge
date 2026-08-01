@@ -342,18 +342,31 @@ def resolve_provider(name: str | None = None) -> LLMProvider:
 
 
 def _anthropic_usage(response: Any) -> dict[str, int]:
+    """Anthropic's three input buckets, normalized onto the common keys.
+
+    **``input_tokens`` is EVERY input token the request was billed for**, and the two cache keys are
+    a breakdown of that same total rather than extra tokens beside it. Anthropic reports three
+    disjoint buckets — uncached, cache-creation, cache-read — where DeepSeek's ``prompt_tokens``
+    is already the inclusive figure, so summing the raw fields would make one usage key mean two
+    different things depending on who answered. A ceiling at a pluggable seam cannot survive that:
+    the same run would read as 3.5M tokens on one provider and 675K on the other.
+    """
     usage = getattr(response, "usage", None)
     if usage is None:
         return {}
+    fresh = int(getattr(usage, "input_tokens", 0) or 0)
+    cache_read = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+    cache_write = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
     return {
-        "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
+        "input_tokens": fresh + cache_read + cache_write,
         "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
-        "cache_read_tokens": int(getattr(usage, "cache_read_input_tokens", 0) or 0),
-        "cache_write_tokens": int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
+        "cache_read_tokens": cache_read,
+        "cache_write_tokens": cache_write,
     }
 
 
 def _openai_usage(response: Any) -> dict[str, int]:
+    """The OpenAI shape, on the same convention: ``prompt_tokens`` already includes the cache hits."""
     usage = getattr(response, "usage", None)
     if usage is None:
         return {}
@@ -361,7 +374,9 @@ def _openai_usage(response: Any) -> dict[str, int]:
         "input_tokens": int(getattr(usage, "prompt_tokens", 0) or 0),
         "output_tokens": int(getattr(usage, "completion_tokens", 0) or 0),
     }
-    # DeepSeek reports automatic prefix caching this way; normalize onto the common key.
+    # DeepSeek reports automatic prefix caching this way; normalize onto the common key. It is a
+    # BREAKDOWN of `input_tokens`, not an addition to it — these endpoints bill cached input inside
+    # `prompt_tokens`, and the Anthropic normalizer above is folded to match.
     hit = getattr(usage, "prompt_cache_hit_tokens", None)
     if hit is not None:
         out["cache_read_tokens"] = int(hit or 0)

@@ -47,12 +47,24 @@ post-process, repair or partially accept a response: a malformed batch fails who
 when no credential names a provider, refuse — never fall back to one, because extracting under a
 different model than intended is a provenance bug that looks like success.
 
+**A wrapper at the seam is not a wider adapter, and the meter is the case in point.**
+`harvest/meter.py` satisfies `LLMProvider` and wraps one so that a run has somewhere to stand
+*between* two calls — to count real requests, to refuse past a token **Ceiling**, and to hold the
+transcript. It never reads `response.text` for meaning and hands the response back byte-identical, so
+it does none of the three forbidden acts above; the three adapters stay untouched, and
+`ExtractionResult.model_validate_json` is still the only gate. What it *does* touch is identity, and
+that is the trap to watch: `ExtractorProvenance.model_id` is `f"{provider.name}/{model}"`, so a
+wrapper that named itself would restamp every assertion in a corpus with a provider that does not
+exist. It proxies `name` and `default_model()` instead.
+
 **Enforced by.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
 (`tests/test_extract.py`) for the selection;
 `test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify` (same file) for one prompt
 reaching verification through the weakest-shaped provider, and
 `test_system_prompt_satisfies_the_json_mode_contract` for the prompt itself;
-`test_extract_records_provider_in_provenance` for `provider/model`.
+`test_extract_records_provider_in_provenance` for `provider/model`, and
+`test_the_meter_proxies_the_wrapped_providers_identity` for the same fact through the wrapper —
+`test_the_meter_hands_the_response_back_untouched` is the other half.
 
 ## Consequences
 
@@ -75,10 +87,19 @@ reaching verification through the weakest-shaped provider, and
   `eval run` therefore stamps `EvalReport.extractor` — `{provider, model, prompt_version}`, the
   provider's default resolved rather than echoed as `null` — so a report always names the extractor it
   is a claim about. Absent on `--no-llm`, which has none.
-- Known gap: **no transient API error is retried, by either adapter.** A 429, a 5xx or a timeout
-  becomes `ProviderUnavailable` on the first attempt, `harvest extract` reports `llm_unavailable`,
-  and the run exits 1. The only retry that exists is narrower and sits in one adapter:
-  `OpenAICompatibleProvider` — and so the DeepSeek preset — re-issues a bounded number of times when
-  json_object mode returns an **empty** body, because that is a provider hiccup rather than the
-  document saying nothing (which is a well-formed `{"drafts": []}`). The Anthropic path has neither
-  retry. A bounded backoff around both calls is the fix.
+- **Transient API errors are retried once the provider says they are transient**, and the loop is
+  above both adapters rather than inside either (`_complete_with_retry`, `harvest/extract.py`). This
+  bullet used to record the opposite as a known gap — that a 429, a 5xx or a timeout became
+  `ProviderUnavailable` on the first attempt and exited the run at 1 — and that gap is closed: the
+  provider classifies (`ProviderUnavailable.transient` / `.retry_after`, because by the time the
+  exception reaches the loop the SDK's own is gone and "no credential" is indistinguishable from
+  "rate limited"), and the loop only obeys. One budget of `_MAX_RETRIES` covers both the transient
+  API case and the empty-body hiccup that used to have its own nested loop in
+  `OpenAICompatibleProvider`. Usage accrues across attempts, because a refused call still burned
+  tokens.
+- **The usage keys mean one thing across providers**, which is what makes a token Ceiling possible at
+  a pluggable seam at all. `input_tokens` is *every* input token the request was billed for;
+  `cache_read_tokens` and `cache_write_tokens` are a breakdown of that same total, not extra tokens
+  beside it. DeepSeek's `prompt_tokens` is already inclusive and Anthropic's three input buckets are
+  disjoint, so the Anthropic normalizer folds them — without that, one run reads as 3.5M tokens on
+  one provider and 675K on the other, and the ceiling would mean a different thing per vendor.

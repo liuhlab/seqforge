@@ -28,6 +28,7 @@ from .extract import (  # noqa: E402
     ExtractUnavailable,
     build_kb_context,
     build_system_prompt,
+    document_sha256_in,
     extract_drafts,
     llm_schema,
 )
@@ -37,6 +38,14 @@ from .fields import (  # noqa: E402
     PERMITTED_FIELDS,
     DocScope,
     is_permitted,
+)
+from .meter import (  # noqa: E402
+    RAW_KEYS,
+    CeilingExceeded,
+    Exchange,
+    TokenMeter,
+    Transcript,
+    raw_tokens,
 )
 from .normalize import (  # noqa: E402
     DEFAULT_PDF_BACKEND,
@@ -54,6 +63,13 @@ from .normalize import (  # noqa: E402
     read_document,
     render_record,
 )
+from .plan import (  # noqa: E402
+    CHARS_PER_TOKEN,
+    MAX_IN_FLIGHT,
+    ExtractionPlan,
+    extract_planned,
+    plan_extraction,
+)
 from .providers import (  # noqa: E402
     ANTHROPIC_DEFAULT_MODEL,
     DEEPSEEK_DEFAULT_MODEL,
@@ -67,6 +83,11 @@ from .providers import (  # noqa: E402
     ProviderUnavailable,
     deepseek_provider,
     resolve_provider,
+)
+from .transcript import (  # noqa: E402
+    TRANSCRIPT_FILENAME,
+    read_transcript,
+    write_transcript,
 )
 from .verify import (  # noqa: E402
     VerifyReport,
@@ -105,12 +126,19 @@ __all__ = [
     "ASKED_SAMPLE_ATTRIBUTES",
     "DocScope",
     "extract_drafts",
+    "document_sha256_in",
     "build_kb_context",
     "build_system_prompt",
     "llm_schema",
     "ExtractionResult",
     "ExtractionOutcome",
     "ExtractUnavailable",
+    # the plan: records -> documents, costed before a token is spent
+    "ExtractionPlan",
+    "plan_extraction",
+    "extract_planned",
+    "CHARS_PER_TOKEN",
+    "MAX_IN_FLIGHT",
     # providers (the LLM is swappable; nothing downstream trusts it)
     "LLMProvider",
     "LLMResponse",
@@ -124,4 +152,15 @@ __all__ = [
     "DEEPSEEK_FLASH_MODEL",
     "DEEPSEEK_PRO_MODEL",
     "DEEPSEEK_MODELS",
+    # the meter (counts every exchange, refuses past the Ceiling, holds the transcript)
+    "TokenMeter",
+    "CeilingExceeded",
+    "Exchange",
+    "Transcript",
+    "raw_tokens",
+    "RAW_KEYS",
+    # the transcript's address on disk (the meter holds it; this writes and reads it)
+    "TRANSCRIPT_FILENAME",
+    "write_transcript",
+    "read_transcript",
 ]
