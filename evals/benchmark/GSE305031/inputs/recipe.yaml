@@ -1,0 +1,25 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# GSE305031 -> GSM9161260 -> SRX30064076 -> SRR34941573, the `Wildtype N2 embryos` library:
+# C. elegans early embryos on a Chromium X with a GEM-X Single Cell 3' Chip Kit v4.
+#
+# No `hypothesis:`, deliberately. GEM-X is reachable from the R1 bytes alone — its whitelist
+# `3M-3pgex-may-2023` and the v3-era `3M-february-2018` cross-hit at only ~0.9%, so a real v4
+# library outscores every 28 bp sibling at rung 3. Handing the resolver the chemistry in prose
+# would defeat the one thing this case exists to test.
+#
+# Note the package must carry the BARCODE read, which ENA does not mirror for this run: ENA serves a
+# single 90 bp cDNA FASTQ, while SRA's normalized .sra holds all four reads (I1 10, I2 10, R1 28,
+# R2 90). `preflight --accession` streams with --include-technical and recovers R1, so rebuild via
+# the accession and never from the ENA FASTQ.
+#
+# Keyed on the run rather than the series on purpose: `seqforge io resolve GSE305031` fails with
+# "no SRA study in the GEO record" (the series carries only a BioProject relation), and GSE229022's
+# records.json already uses an SRR as its query.
+#
+# Rebuild with:
+#   seqforge preflight --accession SRR34941573 -n 20000 --name GSE305031 -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE305031.fingerprint.tar.gz

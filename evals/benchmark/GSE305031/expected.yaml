@@ -1,0 +1,129 @@
+# PRE-REGISTERED 2026-08-01, from declared metadata only — written and committed BEFORE `preflight`
+# or `resolve` was pointed at a single byte of this run. Only a prediction can be wrong (ADR-0016).
+#
+# WHAT THIS CASE BUYS. `10x-gemx-3p-v4` is the newest 10x 3' chemistry in the KB and the one most
+# likely to be mistaken for its predecessors, and it was exercised only by reads seqforge generated
+# from its own spec. That is the weakest possible coverage for exactly this entry: a generator built
+# from the same spec as the scorer cannot show that the spec distinguishes GEM-X from 3' v3/v3.1.
+#
+# And the existing synthetic case is weaker than it looks. `evals/cases/spec/10x-gemx-3p-v4-bytes-only`
+# uses `onlists: synthetic`, which registers a pool only for an element that carries one — so the
+# SIBLING specs' real whitelists are never registered at all, and v3/v3.1 score 0 on their onlist
+# support. It proves separation only in the trivial "the sibling had no whitelist" sense. This case
+# is the first thing anywhere in either tier that runs GEM-X against the REAL registry, where
+# `3M-february-2018` is loaded and competing.
+#
+# ---- WHAT ACTUALLY SEPARATES GEM-X FROM 3' v3.1 IN THE BYTES -----------------------------------
+# Nothing structural. That is the finding, and it is worth stating plainly rather than discovering
+# again later. Every structural rung is identical BY CONSTRUCTION between `10x-gemx-3p-v4`,
+# `10x-3p-gex-v3` and `10x-3p-gex-v3.1`: `read_count roles:2`, `segment_length R1 length:28
+# tolerance:0`, `has_segment [0,16) random`, `has_segment [16,28) random`. SRA's own per-read table
+# for this run declares the same 28 bp R1 (stdev 0) + 90 bp cDNA layout the corpus already holds for
+# GSE229022, which resolves to v3/v3.1. So geometry cannot decide, and the WHITELIST at rung 3 is the
+# entire separation — precisely what the spec's `distinguishable_by: [onlist]` claims.
+#
+# That separator was verified 2026-08-01 against the VENDOR's own shipped data — Cell Ranger 10.1.0,
+# `lib/python/cellranger/`, which is not seqforge and not this dataset:
+#   * `chemistry_defs.json` maps SC3Pv4-polyA/-CS1 ("Single Cell 3' v4") to `3M-3pgex-may-2023`, and
+#     SC3Pv3-polyA/-CS1 ("Single Cell 3' v3") to `3M-february-2018`. seqforge's two entries point at
+#     exactly those two lists, so the KB's mapping is the vendor's mapping.
+#   * Cell Ranger 10.1 splits each list into per-kit TRU/NXT halves. Their UNION reproduces seqforge's
+#     packed lists exactly: 3,686,400 + 3,686,400 = 7,372,800 for `3M-3pgex-may-2023`, and the v3 pair
+#     unions to 6,794,880 for `3M-february-2018`. Both CR halves are strict subsets of the seqforge
+#     entry, so a real library of either chemistry is fully covered by the list seqforge would load.
+#   * Cross-hit, measured: barcodes drawn from CR's v4 list hit seqforge's `3M-february-2018` at
+#     0.9026%, and CR's v3 list hits `3M-3pgex-may-2023` at 0.9272%. Both are ~1%, an order of
+#     magnitude under the 0.6 `excludes` gate and well under the ~4.8% margin bar, against the 70-95%
+#     a genuine library scores on its OWN list.
+# So GEM-X is reachable from bytes — no hypothesis is needed, and this recipe carries none. The
+# asymmetry is deliberate and worth recording: `10x-gemx-3p-v4` declares an `excludes` anti-gate
+# against the v3 list, so on genuine v3 bytes v4 is FORBIDDEN outright; `10x-3p-gex-v3.1` declares no
+# anti-gate against the GEM-X list, so on genuine v4 bytes it is merely outscored (R1 cell ~0.383 vs
+# ~1.0). This case exercises the second, softer direction, which is the one that can silently go wrong.
+#
+# ---- WHY THIS DATASET, AND THE TRAP IN THE KEYWORD ---------------------------------------------
+# The sample's own extract protocol names all three discriminating facts at once:
+#   "Single-cell suspension was loaded on a Chromium X instrument using a GEM-X Single Cell 3' Chip
+#    Kit v4 (10x Genomics). Libraries were constructed following manufacturer's protocol."
+# corroborated by the series overall design ("Cells were loaded onto a Chromium GEM-X chip") and by
+# the processing line ("Raw reads were processed using 10x Cell Ranger (9.0.1)") — Cell Ranger >= 8.0
+# is required for GEM-X, so 9.0.1 is consistent rather than merely recent.
+#
+# THE TRAP, recorded so the next search does not fall into it: "GEM-X" ALONE IS NOT EVIDENCE FOR THIS
+# ENTRY. It is a platform-generation name spanning at least four products — 3' v4, 5' v3, Flex, and
+# OCM (on-chip multiplexing) — and three of those four are NOT `10x-gemx-3p-v4`. Two otherwise
+# plausible mouse candidates were eliminated on exactly this: GSE308872 declares "GEM-X OCM 3' Chip
+# Kit v4 4-plex" (a different barcode layout the KB has no entry for) and GSE337641 declares "GEM-X
+# Flex Gene Expression" (probe-based, not 3' at all). The evidence must name 3' AND v4, as this one
+# does. Conversely "Next GEM" is the PREDECESSOR generation (v3.1), so a bare "GEM" search is
+# actively misleading.
+#
+# Also eliminated: GSE316206 (mouse, protocol says "Chromium GEM-X Single Cell 3' Reagent Kits v4"
+# verbatim and has a richer sample axis — but the run is NOT LOADED: spots=0, no ENA reads, nothing
+# for preflight to stream and no declared read lengths to predict against; worth revisiting as a
+# mouse companion). GSE314726 (Cell Ranger 6.1.1, pre-8.0, cannot be GEM-X); GSE288912 and GSE310667
+# (Chromium Controller, the pre-GEM-X instrument); GSE286418 (names "Single Cell 3' v3" explicitly).
+# An `esearch` over both `sra` and `gds` for "GEM-X" AND "Caenorhabditis elegans"[Organism] returns
+# count=1 — this record — so within the corpus's preferred organism there was no alternative to weigh.
+#
+# ---- SCOPE NOTES -------------------------------------------------------------------------------
+# * ENA DROPPED THE BARCODE READ, and the package recovers it. `seqforge io resolve SRR34941573`
+#   exits 4 with `n_runs_missing_technical_read: 1`: ENA mirrors a single 90 bp cDNA FASTQ
+#   (887,123,754 reads x 90 bases), while SRA's normalized .sra holds all four reads (I1 10, I2 10,
+#   R1 28, R2 90). `preflight --accession` streams with
+#   --include-technical, so R1 is present in the package. This is the GSE229022 situation, not the
+#   GSE208154 one — GSE208154 is irrecoverable because CB/UMI are BAM tags, whereas here the read
+#   exists and only the ENA mirror lacks it.
+# * The run therefore carries dual 10 bp index reads, so I1/I2 must be left unassigned rather than
+#   seated. That property is NOT claimed as this case's contribution — GSE229022 already owns it.
+# * Single-sample series, so the per-accession claim on SAMN50554797 carries no cross-sample shuffle
+#   test; it pins only that the transcript still joins to the right BioSample. Same caveat GSE229022
+#   records.
+# * `source_name` is NOT claimed: its value is "whole embryos", a verbatim duplicate of `tissue`. One
+#   string asserted twice is one claim, not two.
+# * `study.center` ("UCSF") is NOT claimed, consistent with the 2026-07-31 review's pruning of center
+#   across the corpus.
+# * `experiment.organism` IS claimed here (6239): unlike the BD barnyard case added alongside it, this
+#   is a single-species N2 library and the BioSample taxon is the library's truth.
+#
+# If the bytes disagree with any line above, LEAVE IT STANDING and report the gap: a benchmark case
+# that reports a gap is worth more than one edited to agree.
+outcome: decide
+description: >-
+  GSE305031 / GSM9161260 (`Wildtype N2 embryos`, SRX30064076, SRR34941573) — C. elegans early
+  embryos enriched by 12C culture, from the CONCORD benchmarking paper. The corpus's first REAL
+  `10x-gemx-3p-v4` reads, closing the newest 10x 3' leaf.
+
+  It is the only case in either tier that tests the GEM-X/v3 distinction against the real onlist
+  registry. The synthetic spec case registers no whitelist for the competing siblings, so it cannot
+  fail the way this one can. Geometry is identical across v4, v3 and v3.1 by construction — the
+  whitelist at rung 3 is the entire separation, and `3M-3pgex-may-2023` and `3M-february-2018` are
+  the closest 3M-scale pair in the KB at ~1% cross-hit. That makes this a strictly harder version of
+  what GSE283483-multiome-gex tests, where the ARC list is essentially disjoint.
+
+  It is also a second C. elegans EMBRYO dataset beside GSE126954 (10x 3' v2 embryos): same organism,
+  same tissue, three chemistry generations apart — so a regression that collapses the 10x 3' family
+  shows up as two rows disagreeing about identical biology.
+
+  Breaking it would mean one of: the GEM-X whitelist stopped being loaded or stopped outscoring
+  `3M-february-2018`, or a v3-era entry started stealing v4 data, or `--include-technical` stopped
+  recovering the barcode read that ENA drops for this run. PRE-REGISTERED before any run; the header
+  carries the vendor-verified whitelist arithmetic and the "GEM-X is not one chemistry" trap.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: 10x-gemx-3p-v4
+  experiment.organism: 6239
+  experiment.study.title: Single-cell RNA-seq data of C. elegans early embryos.
+  experiment.samples.*.strain:
+  - N2
+  experiment.samples.*.tissue:
+  - whole embryos
+  experiment.samples.*.cell_type:
+  - embryonic
+  experiment.samples.*.treatment:
+  - grown at 12C
+  experiment.samples.SAMN50554797.strain: N2
+  experiment.samples.SAMN50554797.treatment: grown at 12C
