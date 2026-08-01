@@ -11,7 +11,7 @@ and everything else sorts into one of three subtrees:
 |---------|-------|----------------|
 | `cache/` | `cache/observations/` (per-file `Observation`, keyed by content-address: a bounded local key, or a provider md5 for hosted bytes — **never** a whole-file sha256); `cache/candidates/` (per-dataset, keyed by `sha256(sorted(file_shas) ⊕ kb_version)` with probe/resolve versions folded in); `cache/taxonomy.json` | yes |
 | `records/` | `records/<accession>.json` — what the archive declared; `records/documents/<stem>-<hash12>.txt` — the canonical text a span greps into, including documents rendered from records, which live with the records they came from | no |
-| `logs/` | `logs/usage.json` (the harvest token/mode cost ledger) and `logs/assertions.json` — run and debug material, never the deliverable | yes |
+| `logs/` | `logs/usage.json` (the harvest token/mode cost ledger), `logs/transcript.jsonl` (the exchanges that ledger is about — one header line carrying the system prompt, then one line per `Exchange`) and `logs/assertions.json` — run and debug material, never the deliverable | yes |
 
 `manifest.yaml` is written only after a clean `manifest validate`, and exactly one of
 `manifest.yaml` / `manifest.draft.yaml` exists at a time (`fill` unlinks the other).
@@ -22,6 +22,16 @@ locally. Keyed by the **run**, because one dataset compiled two ways is two runs
 ([ADR-0005](../adr/0005-run-id-is-the-pairing.md)). The module is copied in rather than referenced by
 package path so that a run directory still reads and reproduces after it is moved off the composing
 machine.
+
+`eval/` is the fourth top-level thing, beside `pipeline/`, `fingerprint/` and `report.html`, and it is
+there because evals were the one part of seqforge that honoured none of this: every case ran in a
+temporary directory that was deleted and the whole result rode on stdout, which left a
+983-exchange transcript with no address it could go to. `seqforge eval run -C <root>` writes
+`eval/report.json` — byte-identical to what it prints — and `eval/transcripts/<case>.jsonl` for each
+case that reached a model, and `seqforge eval report` is handed that directory. Output rather than
+cache: re-running it costs real tokens. The directory is also why the rendered page can show the chat
+history at all: `--transcript sample|all|none` reads those files from **beside** the report, never
+out of it, and the sample states how many exchanges it left out.
 
 **Onlists are not stored.** `rule onlist` materializes a whitelist, STAR reads it, `temp()` deletes
 it — expanding 6 794 880 barcodes into every run directory cost 111 MB of duplicate bytes

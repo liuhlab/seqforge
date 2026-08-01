@@ -907,3 +907,341 @@ def test_sync_questions_unlinks_a_stale_file_on_a_clean_run(tmp_path: Path) -> N
     )
     _sync_questions(state, [clean])
     assert not (state / "questions.md").exists()
+
+
+def test_io_publish_package_answers_on_stdout_and_uploads_nothing_on_a_dry_run(
+    tmp_path: Path,
+) -> None:
+    """`seqforge io publish-package` is the producer half `preflight` never had.
+
+    Three things are the contract, and each has a failure mode that is silent without it. It emits
+    the **public URL** an eval recipe's `hf:` key must equal, because a package uploaded under a name
+    no recipe points at is a 404 nobody discovers until the benchmark next runs. `--dry-run` needs no
+    credential and touches no network, so the question is answerable before spending a commit. And a
+    tarball that is not a fingerprint package is refused with exit 2 rather than uploaded — a corrupt
+    package in the public corpus is worse than an absent one, since an absent one skips with a reason.
+    """
+    from seqforge.fingerprint.build import build_fingerprint
+
+    src = tmp_path / "src"
+    src.mkdir()
+    rng = random.Random(3)
+    for read in ("R1", "R2"):
+        write_fastq_gz(
+            src / f"s_{read}.fastq.gz",
+            ["".join(rng.choice("ACGT") for _ in range(60)) for _ in range(40)],
+        )
+    built = build_fingerprint(
+        sorted(src.glob("*.fastq.gz")), workspace=tmp_path, reads=20, name="GSE110823"
+    ).package
+
+    result = runner.invoke(app, ["io", "publish-package", str(built), "--dry-run"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["dry_run"] is True and payload["commit_url"] is None
+    assert payload["rel_path"] == "packages/GSE110823.fingerprint.tar.gz"
+    assert payload["url"].endswith("/resolve/main/packages/GSE110823.fingerprint.tar.gz")
+    assert payload["repo"] == "liuhlab/seqforge-benchmark"
+    assert payload["n_files"] == 2, "the pin was read, so the summary says what is IN the package"
+
+    missing = runner.invoke(app, ["io", "publish-package", str(tmp_path / "nope.tar.gz")])
+    assert missing.exit_code == 2, missing.output
+
+
+def test_io_publish_package_refuses_rather_than_guessing_when_no_token_is_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A real upload with no credential refuses up front, the way provider selection does.
+
+    Letting it through would mean the archive answers 401 halfway into a multi-megabyte POST, which
+    reads as a network problem. `--dry-run` is named in the refusal because it is the thing the
+    caller probably wanted.
+    """
+    import huggingface_hub
+
+    monkeypatch.setattr(huggingface_hub, "get_token", lambda: None)
+    package = tmp_path / "x.fingerprint.tar.gz"
+    package.write_bytes(b"")
+
+    result = runner.invoke(app, ["io", "publish-package", str(package)])
+    assert result.exit_code == 2
+    assert "no_hf_token" in result.stderr
+    assert "--dry-run" in result.stderr
+
+
+# ---------- the token Ceiling on the verbs that reach a model ----------
+class _CountingProvider:
+    """A provider that always answers, and always costs the same. Enough to reach a ceiling."""
+
+    name = "counting"
+
+    def __init__(self, per_call: int = 1000) -> None:
+        self.per_call = per_call
+        self.n_calls = 0
+
+    def default_model(self) -> str:
+        return "counting-model-1"
+
+    def complete_json(self, **kwargs: object) -> object:
+        from seqforge.harvest import LLMResponse
+
+        self.n_calls += 1
+        return LLMResponse(text=json.dumps({"drafts": []}), usage={"input_tokens": self.per_call})
+
+
+def _prose_docs(tmp_path: Path, n: int) -> list[str]:
+    paths = []
+    for i in range(n):
+        doc = tmp_path / f"methods-{i}.txt"
+        doc.write_text(f"Libraries were prepared with the Chromium Single Cell 3' v{i} kit.")
+        paths.append(str(doc))
+    return paths
+
+
+def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ceiling that only warned would be a number nobody sets, so it is a refusal: exit 3 with a
+    `Blocker`, the same shape every other refusal in the compiler takes — never `llm_unavailable`
+    at exit 1, which says the endpoint failed when it answered every request it was given."""
+    import seqforge.harvest as harvest_pkg
+
+    provider = _CountingProvider(per_call=1000)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    result = runner.invoke(
+        app,
+        [
+            "harvest",
+            "extract",
+            *_prose_docs(tmp_path, 6),
+            "--ceiling",
+            "2500",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 3, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["error"] == "token_ceiling_exceeded"
+    blocker = payload["blockers"][0]
+    assert blocker["code"] == "TOKEN_CEILING_EXCEEDED"
+    assert "--ceiling" in blocker["remedy"]
+    # The ledger is written anyway: the tokens up to the ceiling were really spent, and a reader
+    # asking "on what?" is exactly the reader a breach produces.
+    totals = json.loads((tmp_path / "seqforge" / "logs" / "usage.json").read_text())["totals"]
+    assert totals["n_calls"] == provider.n_calls
+    assert totals["input_tokens"] == 1000 * provider.n_calls
+
+
+def test_harvest_usage_counts_requests_not_documents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`n_calls` was `len(documents)`, so every retry was free in the one place a reader looks. It
+    is the meter's count of real requests now, with the document count kept beside it."""
+    import seqforge.harvest as harvest_pkg
+
+    provider = _CountingProvider(per_call=7)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    result = runner.invoke(
+        app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "-C", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.stdout
+    usage = json.loads(result.stdout)["usage"]
+    assert usage["n_calls"] == 3 and usage["n_documents"] == 3
+    assert usage["input_tokens"] == 21
+
+
+def test_harvest_extract_writes_its_transcript_beside_the_ledger(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nothing anywhere used to persist a prompt or a response: `usage.json` records the shape of
+    every call and no text, so "why did the model say that" became unanswerable the moment the
+    process exited. The transcript is a PATH on stdout and a file on disk — a thousand exchanges
+    cannot ride on a stream that is the result object.
+    """
+    import seqforge.harvest as harvest_pkg
+    from seqforge.harvest import read_transcript
+
+    provider = _CountingProvider(per_call=7)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    result = runner.invoke(
+        app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "-C", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+
+    path = Path(payload["transcript_path"])
+    assert path == tmp_path / "seqforge" / "logs" / "transcript.jsonl", "beside usage.json"
+    assert Path(payload["usage_path"]).parent == path.parent
+
+    transcript = read_transcript(path)
+    assert transcript.n_exchanges == 3 == payload["usage"]["n_calls"]
+    # the paths, not the contents: neither the system prompt nor a raw response is on stdout
+    assert next(iter(transcript.prompts.values())) not in result.stdout
+    assert transcript.exchanges[0].user not in result.stdout
+    assert len(transcript.prompts) == 1, "the stable prefix is stored once, not once per exchange"
+    assert [len(e.text) > 0 for e in transcript.exchanges] == [True] * 3
+    # the three documents' own text is the volatile half, and each exchange holds its own
+    assert len({e.user for e in transcript.exchanges}) == 3
+
+
+def test_harvest_extract_writes_the_transcript_of_a_run_it_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run stopped at its ceiling is the one whose exchanges are most worth reading."""
+    import seqforge.harvest as harvest_pkg
+    from seqforge.harvest import read_transcript
+
+    provider = _CountingProvider(per_call=1000)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    result = runner.invoke(
+        app,
+        ["harvest", "extract", *_prose_docs(tmp_path, 6), "--ceiling", "2500", "-C", str(tmp_path)],
+    )
+    assert result.exit_code == 3
+    transcript = read_transcript(Path(json.loads(result.stdout)["transcript_path"]))
+    assert transcript.n_exchanges == provider.n_calls
+
+
+def test_harvest_extract_dry_run_costs_nothing_and_needs_no_credential(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ "What will this dataset cost" must be answerable before it is paid, and on a machine with no
+    key at all — so the plan is returned before a provider is even resolved."""
+    import seqforge.harvest as harvest_pkg
+    from seqforge.harvest import ProviderUnavailable
+
+    def _no_provider(_name: str | None = None) -> object:
+        raise ProviderUnavailable("no credential")
+
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
+
+    result = runner.invoke(
+        app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "--dry-run", "-C", str(tmp_path)]
+    )
+    assert result.exit_code == 0, result.stdout
+    plan = json.loads(result.stdout)
+    assert plan["n_documents"] == 3
+    assert plan["estimated_input_tokens"] > 3 * plan["system_prompt_chars"] // 4
+    assert [d["scope"] for d in plan["documents"]] == ["dataset"] * 3
+    assert not (tmp_path / "seqforge").exists(), "a dry run writes nothing either"
+
+
+def test_harvest_extract_pays_once_for_a_document_handed_to_it_twice(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reassembly bug, from the outside.
+
+    Outcomes were collected into a dict keyed by `doc_sha256`, so two documents that render
+    identically each cost a call, one result survived, and the loop then read that one outcome once
+    per collider — reporting twice its drafts, twice its rejections and twice its usage. One ask is
+    one document now, and the results come back positionally.
+    """
+    import seqforge.harvest as harvest_pkg
+
+    class _OneDraftEach:
+        name = "one-draft"
+
+        def __init__(self) -> None:
+            self.n_calls = 0
+
+        def default_model(self) -> str:
+            return "one-draft-1"
+
+        def complete_json(self, **kwargs: object) -> object:
+            from seqforge.harvest import LLMResponse
+
+            self.n_calls += 1
+            draft = {
+                "field": "experiment.organism",
+                "value": "Caenorhabditis elegans",
+                "span": {"doc_sha256": "0" * 64, "quote": "Caenorhabditis elegans"},
+                "llm_confidence": 0.9,
+            }
+            return LLMResponse(text=json.dumps({"drafts": [draft]}), usage={"input_tokens": 100})
+
+    provider = _OneDraftEach()
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    doc = tmp_path / "methods.txt"
+    doc.write_text("Worms are Caenorhabditis elegans, maintained at 20 C.")
+    result = runner.invoke(
+        app, ["harvest", "extract", str(doc), str(doc), str(doc), "-C", str(tmp_path)]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert provider.n_calls == 1, "three copies of one document are one question"
+    assert payload["usage"]["n_calls"] == 1 and payload["usage"]["n_documents"] == 1
+    assert payload["usage"]["input_tokens"] == 100, "counted once, not once per collider"
+    assert payload["n_drafts"] == 1 and payload["n_accepted"] == 1
+
+
+def test_harvest_extract_asks_a_samples_runs_once_between_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fan-out, end to end through the verb.
+
+    Every archive record with prose used to be its own call, so a series with twelve runs per sample
+    spent twelve calls asking twelve one-line aliases the same nine questions. The runs are still
+    READ — an alias is often the only place a WT-vs-mutant contrast is written — but a run belongs to
+    exactly one sample, so they are one document, and it is the SAMPLE that document names.
+    """
+    import seqforge.harvest as harvest_pkg
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+
+    provider = _CountingProvider(per_call=7)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+
+    records = ArchiveRecordSet(
+        source="test",
+        query="PRJNA9",
+        records=[
+            ArchiveRecord(
+                level="project",
+                accession="PRJNA9",
+                free_text=[FreeText(label="abstract", text="Wild-type and daf-2 mutants.")],
+            ),
+            ArchiveRecord(level="sample", accession="SAMN1"),  # no prose: nothing to read
+            ArchiveRecord(level="experiment", accession="SRX1", parent="SAMN1"),
+            *(
+                ArchiveRecord(
+                    level="run",
+                    accession=f"SRR{i}",
+                    parent="SRX1",
+                    free_text=[FreeText(label="run_alias", text=f"N2_wild_type_r{i}")],
+                )
+                for i in range(6)
+            ),
+        ],
+    )
+    records_path = tmp_path / "records.json"
+    records_path.write_text(records.model_dump_json())
+
+    result = runner.invoke(
+        app,
+        [
+            "harvest",
+            "extract",
+            *_prose_docs(tmp_path, 1),
+            "--records",
+            str(records_path),
+            "-C",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    usage = json.loads(result.stdout)["usage"]
+    assert usage["n_documents"] == 2, "the paper, and the six runs as one document"
+    assert usage["n_calls"] == 2
+    # the project is asked nothing at all, and a record with no prose has nothing to read
+    subjects = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
+    placed = {(d["scope"], d["subject"]) for d in subjects["document_subjects"]}
+    assert placed == {("dataset", None), ("run", "SAMN1")}
+    # the bytes a citation greps into are on disk under a name a human can read
+    documents = tmp_path / "seqforge" / "records" / "documents"
+    assert any(p.name.startswith("runs-SAMN1-") for p in documents.iterdir())

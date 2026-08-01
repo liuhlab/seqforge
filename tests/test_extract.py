@@ -179,6 +179,23 @@ def test_extract_keeps_the_document_out_of_the_cached_prefix(tmp_path: Path) -> 
     assert _TEXT in provider.captured["user"]
 
 
+def test_the_request_says_which_document_it_is_about_and_says_it_readably(tmp_path: Path) -> None:
+    """An Exchange keeps the request verbatim and nothing else about it, so the prompt's own first
+    line is the only thing that ties a stored exchange back to a document. Written and read in this
+    module on purpose: a reader that re-derived the format elsewhere would drift in silence, and
+    what it would take with it is the eval report's ability to say which record an exchange was
+    about."""
+    from seqforge.harvest import document_sha256_in
+
+    doc = _doc(tmp_path)
+    provider = _FakeProvider(json.dumps({"drafts": []}))
+    extract_drafts(doc, kb.load_all_specs(), provider=provider)
+
+    assert document_sha256_in(provider.captured["user"]) == doc.doc_sha256
+    assert document_sha256_in("no document line here") is None
+    assert document_sha256_in(provider.captured["system"]) is None, "the prefix names no document"
+
+
 # ---------- code owns the gate, provenance, offsets ----------
 def test_extract_drops_one_malformed_draft_and_keeps_the_rest(tmp_path: Path) -> None:
     """A single malformed draft must NOT sink the batch (#5). Pydantic is still the gate, but per

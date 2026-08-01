@@ -7,14 +7,44 @@ seqforge eval run --llm --trials 3       # include the prose cases (costs tokens
 seqforge eval run --llm --model deepseek-v4-pro    # spend for recall; the default is -v4-flash
 seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
-seqforge eval run --no-llm > report.json && seqforge eval report report.json -o report.html
+seqforge eval run --llm --ceiling 2000000  # raise the per-case token ceiling; 0 removes it
+seqforge eval run --no-llm -C out && seqforge eval report out/seqforge/eval
 ```
+
+**`--ceiling` ships on, at 500,000 raw tokens per case**, and it refuses rather than warns: a case
+that reaches it is reported with a `TOKEN_CEILING_EXCEEDED` Blocker instead of a grade, and the run
+exits 3. Raw means everything counts — fresh input, cached input, cache writes and output — because
+a ceiling is a backstop and not a price. Measured 2026-07-31, the largest benchmark case other than
+GSE126954 spent 122 K, so the default clears the corpus by 4x and is a number nothing normally
+touches. It costs nothing under `--no-llm`, which spends no tokens at all.
+
+**`-C` gives the run a directory**, under `seqforge/eval/`: `report.json` — byte-identical to what the
+command printed — and `transcripts/<case>.jsonl` for every case that reached a model. That is where a
+transcript lives, because stdout *is* the result object and a 983-exchange chat history cannot ride on
+it; the report gains the paths, never the contents. `seqforge eval report` is handed the directory.
 
 `eval run` emits machine JSON on stdout and nothing else ([ADR-0013](../docs/adr/0013-cli-is-a-machine-interface.md)),
 so the human-readable page is a *consumer* of that stream rather than a second output mode:
 `seqforge eval report` writes one self-contained HTML file (every asset inlined, no network) that names
 the false accepts instead of averaging them into a rate. `benchmark.yml` uploads it as the job's
 artifact.
+
+**The page shows the claims, the refusals, and a sample of the chat history.** Each graded assertion
+is rendered with the quote it rests on and the span code computed for it — `library.chemistry =
+"RNA-Seq"` is not a finding, *from this quote, in this document, at these offsets* is — and the drafts
+the tripwire threw out are a readable list rather than an integer.
+
+```bash
+seqforge eval report out/seqforge/eval                        # a representative sample (default)
+seqforge eval report out/seqforge/eval --transcript all       # every exchange; a large page
+seqforge eval report out/seqforge/eval --transcript none      # grades only
+```
+
+The system prompt is rendered **once** per report: it is byte-identical across every request in a run,
+which is what makes prefix caching work, so a transcript is one prompt plus N (document, response)
+pairs. The default `sample` keeps one exchange per document scope plus every exchange that produced a
+refused draft or a graded claim, and the page says how many it left out — a silently truncated
+transcript reads as a complete one.
 
 ## Why this exists
 
@@ -154,7 +184,12 @@ Real datasets (mostly *C. elegans*), run from their byte-light **fingerprint pac
 [`liuhlab/seqforge-benchmark`](https://huggingface.co/datasets/liuhlab/seqforge-benchmark). Each
 `benchmark/<accession>/` case is a `kind: fingerprint` recipe (`hf: packages/<accession>.fingerprint.tar.gz`)
 plus a committed `records.json`, so chemistry grades from the pinned bytes and sample facts from the
-archive transcript — anonymous read, no token, no NCBI key. A package that is unreachable **skips**.
+archive transcript — anonymous read, no token, no NCBI key. A package that is unreachable **skips**; a
+package the repo does not hold (a 404 — it was never published) is reported as **absent**, a gap in
+the corpus rather than a network blip. Both are excluded from every rate. Publish one with
+`seqforge io publish-package <package>` (`--dry-run` first: it prints the URL the `hf:` key below must
+match). A case that a real dataset makes red is published anyway — see
+[ADR-0018](../docs/adr/0018-a-red-benchmark-case-is-published-anyway.md).
 
 ```yaml
 # benchmark/<accession>/inputs/recipe.yaml
