@@ -567,6 +567,72 @@ def test_only_free_text_is_rendered_never_the_structured_half(records: ArchiveRe
     assert "hermaphrodite" not in text
 
 
+def test_a_collapsed_run_document_is_asserted_of_the_sample_its_runs_belong_to() -> None:
+    """The runs of one sample become ONE document, and its claims must still land on that sample.
+
+    That is the half of the collapse that fails silently when it is wrong: `_basis_for` keeps a claim
+    only when the document's subject maps to the sample being resolved, and otherwise drops it with
+    nothing said — so a collapsed document pointed at the wrong subject is cheap and empty rather
+    than cheap and correct. `_subject_to_sample` maps a sample accession to itself, which is why the
+    document carries the SAMPLE's accession while its scope stays `run`.
+
+    Which documents exist is `harvest/plan.py`'s decision, so the plan builds them here rather than
+    the test hand-rolling a document the shipping path would never produce.
+    """
+    from seqforge.harvest import plan_extraction
+    from seqforge.models.records import ArchiveRecord, FreeText
+
+    def _run(accession: str, experiment: str, alias: str) -> ArchiveRecord:
+        return ArchiveRecord(
+            level="run",
+            accession=accession,
+            parent=experiment,
+            free_text=[FreeText(label="run_alias", text=alias)],
+        )
+
+    records = ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA9",
+        records=[
+            ArchiveRecord(level="sample", accession="SAMN1"),
+            ArchiveRecord(level="experiment", accession="SRX1", parent="SAMN1"),
+            _run("SRR11", "SRX1", "N2_wild_type_r1"),
+            _run("SRR12", "SRX1", "N2_wild_type_r2"),
+            ArchiveRecord(level="sample", accession="SAMN2"),
+            ArchiveRecord(level="experiment", accession="SRX2", parent="SAMN2"),
+            _run("SRR21", "SRX2", "daf-2_mutant_r1"),
+            _run("SRR22", "SRX2", "daf-2_mutant_r2"),
+        ],
+    )
+    plan = plan_extraction(records=records)
+    collapsed = {d.subject: d for d in plan.documents if d.scope == "run"}
+    assert set(collapsed) == {"SAMN1", "SAMN2"}, "two samples, two documents, not four"
+
+    files = [
+        _file(f"{run}_1.fastq.gz", f"{i}".ljust(64, "a"))
+        for i, run in enumerate(("SRR11", "SRR12", "SRR21", "SRR22"))
+    ]
+    out = resolve_metadata(
+        files=files,
+        records=records,
+        assertions=[
+            _assertion("experiment.samples.genotype", "daf-2", collapsed["SAMN2"].doc_sha256)
+        ],
+        subjects=[
+            DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
+            for d in plan.documents
+        ],
+    )
+
+    by_sample = {s.accession: s for s in out.samples}
+    landed = by_sample["SAMN2"].attributes["genotype"]
+    assert landed.value == "daf-2"
+    assert landed.basis == "asserted", (
+        "a run belongs to one sample, so its alias declares that sample"
+    )
+    assert "genotype" not in by_sample["SAMN1"].attributes, "and it declares no OTHER sample"
+
+
 # What a record document may be ASKED -- the scope/role vocabulary, `fields_for`, `permitted_for`,
 # `ASKED_SAMPLE_ATTRIBUTES`, `describe_asked` -- is `harvest/fields.py`'s table, and its tests live in
 # `tests/test_fields.py`. The claim they used to carry here, "a record document may never set
