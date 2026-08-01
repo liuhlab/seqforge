@@ -91,13 +91,21 @@
 #
 # ================================================================================================
 # POST-RUN, 2026-08-01 — THIS CASE IS RED, AND NOBODY PREDICTED IT. A DEFECT REPORT.
-# Appended after the run. NOT ONE LINE ABOVE OR BELOW WAS EDITED: the prediction stands exactly as
-# committed, which is the only reason this paragraph means anything.
+# Appended after the run, and precisely: `outcome`, `predicts` and every one of the nine `fields`
+# claims below are byte-identical to the pre-registration commit; only comment lines and the
+# `description` were added. The prediction stands exactly as committed, which is the only reason this
+# paragraph means anything.
 #
 # Grade: `false_refuse`. resolve exits 3 with BARCODE_READ_ABSENT
-# ("10x-gemx-3p-v4 is barcoded, but no read carries whitelist-matchable barcodes"). All 8 field
-# claims still PASS (field_accuracy 1.0) and there are 0 false accepts — the refusal is the whole
-# of the failure.
+# ("10x-gemx-3p-v4 is barcoded, but no read carries whitelist-matchable barcodes"), and the case
+# contributes 0 false accepts.
+#
+# THE NINE FIELD CLAIMS ARE UNTESTED BY THIS RUN, and reporting otherwise would be the same sin this
+# file exists to report. `grade.py` runs `_check_fields` only when the actual outcome is `decide` or
+# `ask`, so a refusal grades NO fields at all — the run returns `"fields": []` for this case. The
+# tier's `field_accuracy: 1.0` is an average over the OTHER cases; this one contributes to neither
+# its numerator nor its denominator. Whether the archive transcript still joins to the right
+# BioSample here is simply not known until the refusal is fixed.
 #
 # THE CHEMISTRY CALL WAS RIGHT, AND NOT NARROWLY. Measured over the package's full 20,000-read R1
 # slice: 73.11% against `3M-3pgex-may-2023` (GEM-X) and 0.81% against `3M-february-2018` (v3) —
@@ -156,8 +164,9 @@ description: >-
   carries the vendor-verified whitelist arithmetic and the "GEM-X is not one chemistry" trap.
 
   RED TODAY, AND UNPREDICTED — a defect report, not an instrument. resolve refuses with
-  BARCODE_READ_ABSENT, so the case grades `false_refuse`; all 8 field claims pass and there are 0
-  false accepts. The chemistry call is right by a factor of 90 (73.11% on the GEM-X whitelist vs
+  BARCODE_READ_ABSENT, so the case grades `false_refuse` and contributes 0 false accepts. Its nine
+  field claims are UNTESTED by this run — a refusal grades no fields at all — so they stay unverified
+  until the refusal is fixed. The chemistry call is right by a factor of 90 (73.11% on the GEM-X whitelist vs
   0.81% on the v3 list, over the package's full 20,000-read slice). What fails is the SAMPLE: R1
   cycle 2 is a dark cycle at the head of this run — N in 91.35% of the first 2,000 reads, 0.00% by
   the end of the slice — and since seqforge matches barcodes exactly, one N in the 16 bp CB makes

@@ -82,8 +82,10 @@ this one name the *same* instrument string ("BD Rhapsody Express Single-Cell Ana
 extract protocols and differ only in the declared bead, so anything deciding BD chemistry from the
 instrument rather than the R1 bytes gets exactly one of them wrong.
 
-**Nothing is synthetic-only any more, as of 2026-08-01.** The last four leaves got real reads in one
-tranche, each pre-registered from declared metadata and committed before its run:
+**The synthetic-only list is empty, as of 2026-08-01.** All four leaves it named got real reads in one
+tranche, each pre-registered from declared metadata and committed before its run. (`10x-3p-gex-v3.1`
+still has no case of its own, and needs none: it is declared `equivalent` to `10x-3p-gex-v3` with
+`distinguishable_by: [none]`, so the resolver records both ids and the v3 cases carry it.)
 
 | leaf | case | how the leaf was pinned, before any byte |
 |---|---|---|
