@@ -1,0 +1,190 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR37001527",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1415162",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Experimental Immunology, Chiba University",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2026-01-27",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Thymic CD11c+ cells [scRNA-seq]"
+        },
+        {
+          "label": "study_abstract",
+          "text": "This study investigates the dynamics of thymic dendritic cells (DCs) under tumor-bearing conditions and the role of CCR9 in regulating thymic DC homeostasis. CD11c? thymic cells were enriched from wild-type (WT) and CCR9 knockout (CCR9 KO) mice subjected to different experimental treatments. Four experimental groups were analyzed: CCR9 WT mice treated with PBS for 2 weeks CCR9 WT mice bearing MC38 tumors for 2 weeks CCR9 WT mice bearing MC38 tumors for 3 weeks CCR9 KO mice bearing MC38 tumors for 3 weeks Overall design: This dataset contains single-cell RNA sequencing (scRNA-seq) data of thymic CD11c+ cells isolated from CCR9 wild-type (WT) and CCR9 knockout (KO) mice under different experimental conditions. Four samples are included: CCR9 WT mice treated with PBS for 2 weeks, CCR9 WT mice bearing MC38 tumors for 2 weeks, CCR9 WT mice bearing MC38 tumors for 3 weeks, and CCR9 KO mice bearing MC38 tumors for 3 weeks. After subcutaneous MC38 tumor implantation, CD11c+ cells were sorted from the thymus using BD FACS Aria III and subjected to droplet-based single-cell RNA sequencing using the Chromium Next GEM Single-Cell 5' Reagent Kit v2 (10x Genomics). Libraries were sequenced on a DNBSEQ platform (MGI). Sequencing data were processed using Cell Ranger v7.1.0 (10x Genomics) with the mouse reference (refdata-gex-mm10-2020-A)."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN54923653",
+      "parent": "PRJNA1415162",
+      "attributes": [
+        {
+          "name": "batch",
+          "value": "2",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "Thymic CD11c+ cells",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "cell_type",
+          "value": "CD11c+ cells",
+          "harmonized": true,
+          "raw_name": "cell type"
+        },
+        {
+          "name": "center_name",
+          "value": "Experimental Immunology, Chiba University",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "genotype",
+          "value": "CCR9KO",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Thymus",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "Thymus",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "treatment",
+          "value": "MC38_3 weeks",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM9477514"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX31951151",
+      "parent": "SAMN54923653",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "DNBSEQ-G400",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM9477514: CCR9 KO_MC38 tumor_3 weeks; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM9477514_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM9477514"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR37001527",
+      "parent": "SRX31951151",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9477514_r1"
+        }
+      ],
+      "filenames": [
+        "DK23269_03_S1_L001_R1_001.fastq.gz",
+        "DK23269_03_S1_L001_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}
