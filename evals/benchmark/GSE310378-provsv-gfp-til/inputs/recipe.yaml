@@ -1,0 +1,21 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# GSE310378 -> GSM9294935 -> SRX31137659 -> SRR36092078, the `Pro VSV GFP treated control` library:
+# mouse MC38 tumour-infiltrating lymphocytes, 10x Chromium GEM-X Single Cell 5' v3 (CG000733 revA).
+#
+# No `hypothesis:`, deliberately — and that is the contrast with its sibling case
+# GSE317744-ccr9ko-thymic-dc, which cannot do without one. This leaf IS reachable from bytes: its
+# `3M-5pgex-jan-2023` whitelist overlaps the four structurally identical 28 bp rivals at only
+# 0.62% (3' v3/v3.1), 6.87% (GEM-X v4) and 0.00% (ARC), so rung 3 decides. Handing resolve the
+# chemistry in prose would defeat the one thing this case exists to test.
+#
+# The sample carries five lane-level runs (SRR36092078-82) of one library; only SRR36092078 is
+# fingerprinted. SRX31137660 ("Pro VSV IL12") is deliberately avoided — it mixes 28/90 GEX runs with
+# 151/151 VDJ runs under a single experiment, while SRX31137659 is uniformly 28/90.
+#
+# Rebuild with:
+#   seqforge preflight --accession SRR36092078 -n 20000 --name GSE310378-provsv-gfp-til -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE310378-provsv-gfp-til.fingerprint.tar.gz

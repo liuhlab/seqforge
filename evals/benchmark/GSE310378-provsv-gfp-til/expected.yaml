@@ -1,0 +1,110 @@
+# PRE-REGISTERED 2026-08-01, from declared metadata only — written and committed BEFORE `preflight`
+# or `resolve` was pointed at a single byte of this run. Only a prediction can be wrong (ADR-0016).
+#
+# WHAT THIS CASE BUYS, AND WHY THE 5' FAMILY NEEDS TWO CASES RATHER THAN ONE. Its sibling
+# GSE317744-ccr9ko-thymic-dc closes `10x-5p-gex-v2`; this closes `10x-5p-gex-v3`. They are not
+# redundant, because the two leaves are separated by DIFFERENT EVIDENCE MECHANISMS rather than by
+# different values of one mechanism:
+#
+#   10x-5p-gex-v2   26 bp R1, `737K-august-2016`  — byte-identical to 3' v2 in every observable;
+#                   `distinguishable_by: [metadata, alignment]`. NO byte path exists at any rung, so
+#                   its case necessarily grades the metadata-hypothesis branch.
+#   10x-5p-gex-v3   28 bp R1, `3M-5pgex-jan-2023` — `distinguishable_by: [onlist]`, decided at rung 3
+#                   against four structurally identical 28 bp entries. Its case grades the byte path,
+#                   and carries no hypothesis at all.
+#
+# One case structurally cannot cover both: it would either carry a hypothesis (and never test the
+# whitelist) or omit one (and never reach v2). This is NOT the BD Enhanced situation, where one real
+# case plus a measured whitelist intersection was honest coverage — there the separation IS a number
+# you can measure once. Here the v2 leaf's "separation" is the documented ABSENCE of one, and an
+# absence is only tested by a case that reaches the leaf without it. Hence two.
+#
+# ---- WHAT DECIDES THIS LEAF FROM BYTES ---------------------------------------------------------
+# The 28 bp R1 geometry (16 CB + 12 UMI) is shared with `10x-3p-gex-v3`, `10x-3p-gex-v3.1`,
+# `10x-gemx-3p-v4` and `10x-multiome-gex` — five entries, one geometry. Only the whitelist separates
+# them, and the spec's own measured overlaps against `3M-5pgex-jan-2023` are 0.62% (3' v3/v3.1),
+# 6.87% (GEM-X v4) and 0.00% (ARC). Re-verified 2026-08-01 from the packed registry: 22,932 of
+# 3,686,400 shared with `3M-february-2018`, 253,420 with `3M-3pgex-may-2023`, 0 with `737K-arc-v1`.
+# Cell Ranger 10.1.0's `chemistry_defs.json` independently maps every SC5P-*-v3 chemistry to
+# `3M-5pgex-jan-2023`, matching the KB, and seqforge's packed copy of that list is set-identical to
+# the vendor's shipped `3M-5pgex-jan-2023.txt.gz` (3,686,400 barcodes).
+#
+# 6.87% against GEM-X is the closest pair in the KB — an order of magnitude under the 0.6 gate, but
+# the tightest margin the 5' family has, which is precisely why it is worth a real-read case.
+#
+# ---- THE CHEMISTRY EVIDENCE --------------------------------------------------------------------
+# The sample's own extract protocol, verbatim (GEO `!Sample_extract_protocol_ch1` on GSM9294935):
+#   "Up to 29,000 cells were then loaded for capture onto one lane of a 10x Genomics Chromium GEM-X
+#    Single Cell 5' Chip v3.  Capture, barcoding and llumina sequencing library preparation were
+#    performed according to manufacturer protocols using the 10x Genomics Chromium X platform 5'
+#    version 3 GEM-X chemistry (protocol CG000733, revA)."
+# and, in the same record, the read structure declared in words before any byte is read:
+#   "Libraries were sequenced on an Illumina NovaSeq X+ (10B 100 cycle) flow cell with a
+#    28-10-10-90 (R1-I1-I2-R2) asymmetric read configuration"
+# `CG000733` is the same 10x user guide `10x-5p-gex-v3/spec.yaml` already cites for its 90-cycle R2
+# and TSO derivation, so the record names the exact document the KB entry was built from.
+#
+# Note the "GEM-X" trap that its GEM-X 3' neighbour GSE305031 records: GEM-X is a platform generation
+# spanning 3' v4, 5' v3, Flex and OCM. Here it is qualified by "5'" and "v3" twice over, so it lands
+# on this leaf and not on `10x-gemx-3p-v4`.
+#
+# ---- SCOPE NOTES -------------------------------------------------------------------------------
+# * `experiment.study.title` IS DELIBERATELY NOT CLAIMED, and the reason is worth recording. GEO
+#   reports this series as "Public on May 30 2026" with the real title "Engineered Vesicular
+#   Stomatitis Virus for Cancer-Specific Delivery of Potent Immunotherapy Payloads", but SRA's
+#   BioProject copy still carries the pre-release placeholder "GEO accession GSE310378 is currently
+#   private and is scheduled to be released on Jan 01, 2027." records.json is the SRA transcript, so
+#   claiming the title would pin a stale string that is both wrong and guaranteed to change. A
+#   pre-registration should not pin an archive-sync artefact.
+# * THE RECORD DECLARES I1/I2 THAT THE ARCHIVE DOES NOT HOLD. The protocol says 28-10-10-90, but SRA
+#   holds nreads=2 (28 + 90, stdev 0) — the index reads were never submitted. That is the MIRROR
+#   IMAGE of GSE229022, which contains its index reads, and it keeps this case from duplicating that
+#   coverage. `io resolve` reports no dropped technical read, because the barcode read is present.
+# * The sample has five lane-level runs (SRR36092078-82); the package fingerprints SRR36092078 only.
+#   They are lanes of one library, so sample-level facts are unaffected. records.json is committed as
+#   the unmodified archive transcript rather than trimmed, so it still declares one sample.
+# * SRX31137660 ("Pro VSV IL12") was avoided: it mixes 28/90 GEX runs with 151/151 VDJ runs under one
+#   experiment. SRX31137659 is uniformly 28/90.
+# * `source_name` is NOT claimed: its value is "Tumor", a verbatim duplicate of `tissue`.
+# * `study.center` is NOT claimed, consistent with the 2026-07-31 review's pruning of center.
+#
+# If the bytes disagree with any line above, LEAVE IT STANDING and report the gap: a benchmark case
+# that reports a gap is worth more than one edited to agree.
+outcome: decide
+description: >-
+  GSE310378 / GSM9294935 (`MC38 Tumor, Pro VSV GFP treated control`, SRX31137659, SRR36092078) —
+  mouse tumour-infiltrating lymphocytes, 10x Chromium GEM-X Single Cell 5' v3 (protocol CG000733
+  revA). The benchmark's only real `10x-5p-gex-v3` library, and the byte-decided half of the 5'
+  family's two-case coverage.
+
+  It is the only real test of `distinguishable_by: [onlist]` for the 5' family: a 28 bp R1
+  structurally identical to four 3'-side entries — 3' v3, 3' v3.1, GEM-X v4 and multiome GEX — with
+  `3M-5pgex-jan-2023` the only thing separating it, at 0.62% / 6.87% / 0.00% overlap. The 6.87%
+  against GEM-X is the closest pair in the KB.
+
+  Its sibling GSE317744-ccr9ko-thymic-dc closes the v2 leaf, which has no byte path at all and must
+  be reached by hypothesis. Two cases, because the leaves are separated by different mechanisms
+  rather than by different values of one — see this file's header for the argument.
+
+  Breaking it would mean the 5' whitelist stopped being the deciding evidence at rung 3 and a 5'
+  library was absorbed into the 28 bp 3' cohort, emitting `soloStrand Forward` for a Reverse library.
+  Together with its sibling these are the first real cases whose correct compiled parameter is
+  Reverse, so a regression that defaults or hardcodes Forward is invisible everywhere else in the
+  corpus. PRE-REGISTERED before any run.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: 10x-5p-gex-v3
+  experiment.organism: 10090
+  experiment.samples.*.tissue:
+  - Tumor
+  experiment.samples.*.cell_type:
+  - Tumor Infiltrating Lymphocyte
+  experiment.samples.*.cell_line:
+  - MC38
+  experiment.samples.*.treatment:
+  - Pro VSV GFP
+  experiment.samples.SAMN53298197.cell_line: MC38
+  experiment.samples.SAMN53298197.treatment: Pro VSV GFP

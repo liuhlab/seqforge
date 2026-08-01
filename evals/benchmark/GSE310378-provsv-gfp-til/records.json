@@ -1,0 +1,242 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR36092078",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1365850",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Wang Lab, Immunology, UConn Health",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2025-11-18",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "GEO accession GSE310378 is currently private and is scheduled to be released on Jan 01, 2027."
+        },
+        {
+          "label": "study_abstract",
+          "text": "If GEO accession GSE310378 has been cited in a publication, please notify us at geo@ncbi.nlm.nih.gov to initiate the public release of associated data."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN53298197",
+      "parent": "PRJNA1365850",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "MC38",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "cell_type",
+          "value": "Tumor Infiltrating Lymphocyte",
+          "harmonized": true,
+          "raw_name": "cell type"
+        },
+        {
+          "name": "center_name",
+          "value": "Wang Lab, Immunology, UConn Health",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Tumor",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "10090",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "Tumor",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "treatment",
+          "value": "Pro VSV GFP",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM9294935"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX31137659",
+      "parent": "SAMN53298197",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina NovaSeq X Plus",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM9294935: MC38 Tumor, Pro VSV GFP treated control, 3 injections, 5 combined samples; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM9294935_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM9294935"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR36092078",
+      "parent": "SRX31137659",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9294935_r5"
+        }
+      ],
+      "filenames": [
+        "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R1_001.fastq.gz",
+        "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR36092079",
+      "parent": "SRX31137659",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9294935_r4"
+        }
+      ],
+      "filenames": [
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R1_001.fastq.gz",
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR36092080",
+      "parent": "SRX31137659",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9294935_r3"
+        }
+      ],
+      "filenames": [
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R1_001.fastq.gz",
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR36092081",
+      "parent": "SRX31137659",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9294935_r2"
+        }
+      ],
+      "filenames": [
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R1_001.fastq.gz",
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R2_001.fastq.gz"
+      ]
+    },
+    {
+      "level": "run",
+      "accession": "SRR36092082",
+      "parent": "SRX31137659",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9294935_r1"
+        }
+      ],
+      "filenames": [
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R1_001.fastq.gz",
+        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

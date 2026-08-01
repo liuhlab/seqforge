@@ -1,0 +1,106 @@
+# PRE-REGISTERED 2026-08-01, from declared metadata only — written and committed BEFORE `preflight`
+# or `resolve` was pointed at a single byte of this run. Only a prediction can be wrong (ADR-0016).
+#
+# WHAT THIS CASE BUYS. Every real dataset in the benchmark today is 3', bulk, or ATAC, so the 5'
+# geometry has never met real data at all — and `10x-5p-gex-v2` was exercised only by reads seqforge
+# generated from its own spec. This is the 5' family's first real library, and it is the half of the
+# family that CANNOT be settled from bytes.
+#
+# ---- WHY THIS LEAF NEEDS A `hypothesis:`, AND WHY THAT IS THE POINT --------------------------
+# `10x-5p-gex-v2` (which covers 10x 5' v1 and v2) is byte-identical to `10x-3p-gex-v2`: the same
+# 26 bp R1 of 16 bp CB + 10 bp UMI, the same open-ended cDNA mate, the SAME `737K-august-2016`
+# whitelist file, and — compare `10x-5p-gex-v2/spec.yaml` against `10x-3p-gex-v2/spec.yaml` — the
+# same signature tests at the same weights, both with `excludes: []` and neither carrying
+# `header_index`. The KB says so outright: `distinguishable_by: [metadata, alignment]`, "THE
+# read-undecidable pair, and the only one in this KB".
+#
+# Confirmed 2026-08-01 against the vendor's own definitions, Cell Ranger 10.1.0
+# `lib/python/cellranger/chemistry_defs.json`, which is neither seqforge nor this dataset:
+#   SC3Pv2   barcode {length 16, offset 0, read R1, whitelist 737K-august-2016}, umi {length 10,
+#            offset 16},  strandedness "+"
+#   SC5P-R2  barcode {length 16, offset 0, read R1, whitelist 737K-august-2016}, umi {length 10,
+#            offset 16},  strandedness "-"
+# Identical field for field EXCEPT strandedness, which no probe can observe. So there is no rung at
+# which bytes reach this leaf, and a real case for it necessarily grades the metadata branch.
+#
+# That branch has never been exercised on real data. `GSE208154` is the benchmark tier's only other
+# `hypothesis:` case and its outcome is `refuse`, so this is the FIRST real dataset in either tier
+# where a metadata hypothesis produces a `decide`. A declared mechanism that nothing exercises is a
+# declaration nobody has tested.
+#
+# The hypothesis names the FAMILY ("10x 5'"), not the leaf — that is what prose actually supplies,
+# and it is what the existing spec case `10x-5p-gex-v2-metadata-decided` asserts. Exactly one tie
+# member sits under the asserted family, which is what makes the pick deterministic rather than a
+# preference.
+#
+# ---- THE CHEMISTRY EVIDENCE --------------------------------------------------------------------
+# The sample's own extract protocol, verbatim (GEO `!Sample_extract_protocol_ch1` on GSM9477514, and
+# the identical string as SRA's LIBRARY_CONSTRUCTION_PROTOCOL on SRX31951151):
+#   "Libraries were prepared following the manufacturer's instructions using the Chromium Next GEM
+#    Single-Cell 5' Reagent Kit v2 (10x Genomics)."
+# The series overall design repeats it and adds the sequencer. The published paper agrees — Wang Y
+# et al., "Distinct thymic pDC populations promote tumor immune tolerance through complementary
+# mechanisms", Sci Adv 12(30):eadx9864 (2026), PMID 42490439 — whose Methods name the same kit and
+# whose Data availability names GSE317744.
+#
+# "Next GEM" is the PREDECESSOR generation, not GEM-X; combined with "5'" and "v2" it names this leaf
+# unambiguously. SRA's own read table declares 26 bp + 90 bp (nreads=2, stdev 0), which is the v2
+# geometry and rules out the 28 bp `10x-5p-gex-v3` sibling before any byte is read.
+#
+# ---- SCOPE NOTES -------------------------------------------------------------------------------
+# * FIRST NON-ILLUMINA PACKAGE IN EITHER TIER: this library was sequenced on a DNBSEQ-G400 (MGI), and
+#   every other real case in the corpus is Illumina. Read headers, quality encoding and error profile
+#   all come from a different instrument family, so this is also the corpus's only guard that nothing
+#   in probe or resolve quietly assumes an Illumina read name.
+# * FIRST REAL LIBRARY WHOSE CORRECT COMPILED PARAMETER IS `soloStrand Reverse`. Every real case today
+#   compiles Forward (3'/bulk) or is ATAC, so a regression that hardcodes or defaults Forward is
+#   currently invisible and would surface here first.
+# * `source_name` is NOT claimed: its value is "Thymus", a verbatim duplicate of `tissue`.
+# * `cell_line` is NOT claimed: its value is "Thymic CD11c+ cells", which is `tissue` and `cell_type`
+#   concatenated, and these are primary sorted cells rather than a cell line at all — a mis-filed
+#   field is not a second fact.
+# * `batch` ("2") is NOT claimed: submitter bookkeeping, not science.
+# * `study.center` is NOT claimed, consistent with the 2026-07-31 review's pruning of center.
+# * One of the series' four samples is fingerprinted, so `experiment.samples.*` carries one entry.
+#
+# If the bytes disagree with any line above, LEAVE IT STANDING and report the gap: a benchmark case
+# that reports a gap is worth more than one edited to agree.
+outcome: decide
+description: >-
+  GSE317744 / GSM9477514 (`CCR9 KO_MC38 tumor_3 weeks`, SRX31951151, SRR37001527) — mouse thymic
+  CD11c+ dendritic cells from a CCR9-knockout tumour-bearing model, 10x Chromium Next GEM Single Cell
+  5' v2. The benchmark's first REAL 5' library of any kind.
+
+  It is the corpus's only chemistry that cannot be decided from bytes at any rung, and therefore its
+  only real `decide` reached through a `hypothesis:` rather than through the resolver's evidence
+  matrix. 5' v2 and 3' v2 share the 26 bp geometry, the `737K-august-2016` whitelist file and a
+  byte-identical signature, differing only in `soloStrand` — which no probe observes. GSE208154 is
+  the only other hypothesis-carrying benchmark case and it refuses, so the metadata-decided path has
+  never produced a decision on real data until now.
+
+  It is also the first non-Illumina package in either tier (DNBSEQ-G400, MGI) and the first real
+  library whose correct compiled parameter is `soloStrand Reverse`.
+
+  Breaking it would mean one of: the hypothesis stopped reaching the 5' leaf and a 26 bp library fell
+  silently to `10x-3p-gex-v2`, compiling Forward for a Reverse library; or — worse — resolve started
+  DECIDING the 26 bp tie from bytes, which would mean an asymmetry had crept into two signatures that
+  are byte-identical by construction, turning a tie into a guess wearing a decision's clothes.
+  PRE-REGISTERED before any run.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: 10x-5p-gex-v2
+  experiment.organism: 10090
+  experiment.study.title: Thymic CD11c+ cells [scRNA-seq]
+  experiment.samples.*.genotype:
+  - CCR9KO
+  experiment.samples.*.tissue:
+  - Thymus
+  experiment.samples.*.cell_type:
+  - CD11c+ cells
+  experiment.samples.*.treatment:
+  - MC38_3 weeks
+  experiment.samples.SAMN54923653.genotype: CCR9KO
+  experiment.samples.SAMN54923653.treatment: MC38_3 weeks

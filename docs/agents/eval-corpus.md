@@ -82,13 +82,46 @@ this one name the *same* instrument string ("BD Rhapsody Express Single-Cell Ana
 extract protocols and differ only in the declared bead, so anything deciding BD chemistry from the
 instrument rather than the R1 bytes gets exactly one of them wrong.
 
-**Still synthetic-only, as of 2026-07-31:** `bd-rhapsody-wta-enhanced-v1` (the 97×3 sibling — only
-`-v2` got real reads), `10x-5p-gex-v2` / `-v3`, and `10x-gemx-3p-v4`. Each is covered in `evals/cases/spec`
-by reads seqforge generated from its own spec, which proves the generator and the spec agree with each
-other and nothing else. The pre-registerable candidate for `enhanced-v1` is `GSE266161` → `GSM8238055`
-→ `SRR28817193`, pinned to the 96×3 pools by a producer-authored script rather than by a measurement
-of ours (`rock_roi_paper/06_Sankey_plots/wta_unmod_first_mixing_experiment.sh` matches
-`^[ACTG]{0,3}${line}` against `whitelist_96x3/BD_CLS1.txt` on that run's exact filename).
+**The synthetic-only list is empty, as of 2026-08-01.** All four leaves it named got real reads in one
+tranche, each pre-registered from declared metadata and committed before its run. (`10x-3p-gex-v3.1`
+still has no case of its own, and needs none: it is declared `equivalent` to `10x-3p-gex-v3` with
+`distinguishable_by: [none]`, so the resolver records both ids and the v3 cases carry it.)
+
+| leaf | case | how the leaf was pinned, before any byte |
+|---|---|---|
+| `bd-rhapsody-wta-enhanced-v1` | `GSE266161-unmod-first-mixing` | a producer-authored script rather than a measurement of ours: `rock_roi_paper/06_Sankey_plots/wta_unmod_first_mixing_experiment.sh` greps lines of `whitelist_96x3/BD_CLS{1,2,3}.txt` (with the `^[ACTG]{0,3}` diversity insert) against `o307161_1-Unmodified_S4_R1_001.fastq.gz` — verbatim the R1 filename SRA holds for `SRR28817193`. Those files are set-identical to the packed `bd-rhapsody-cls{1,2,3}` (97 entries each; the directory is named "96x3") and share 0 barcodes per block with the 384×3 pools |
+| `10x-5p-gex-v2` | `GSE317744-ccr9ko-thymic-dc` | the record names "Chromium Next GEM Single-Cell 5' Reagent Kit v2"; the leaf has **no byte path at any rung**, so the case carries `hypothesis: "10x 5'"` |
+| `10x-5p-gex-v3` | `GSE310378-provsv-gfp-til` | the record names "Chromium GEM-X Single Cell 5' Chip v3 … protocol CG000733, revA" — the same 10x guide the spec cites — and the leaf decides from bytes at rung 3 |
+| `10x-gemx-3p-v4` | `GSE305031` | the record names a "GEM-X Single Cell 3' Chip Kit v4" on a Chromium X, with Cell Ranger 9.0.1 |
+
+**The 5′ family needed two cases, and the reason generalises.** Its leaves are separated by *different
+mechanisms*, not by different values of one. `10x-5p-gex-v2` is byte-identical to `10x-3p-gex-v2` —
+same 26 bp geometry, the **same** `737K-august-2016` file, the same signature tests at the same
+weights, both `excludes: []` — and Cell Ranger 10.1.0's own `chemistry_defs.json` shows `SC3Pv2` and
+`SC5P-R2` identical field for field except `strandedness`, which no probe can observe. `10x-5p-gex-v3`
+is decided at rung 3 by `3M-5pgex-jan-2023` (0.6221 % / 6.8745 % / 0.0000 % overlap with the 3′ v3,
+GEM-X v4 and ARC lists). One case would either carry a hypothesis and never test the whitelist, or
+omit one and never reach v2. Contrast the BD Enhanced pair, where one real case plus a measured
+intersection *was* honest coverage: there the separation is a number you can measure once, whereas the
+v2 leaf's separation is a documented **absence**, and an absence is only tested by a case that reaches
+the leaf without it. `GSE317744` is also the first real dataset in either tier where a metadata
+hypothesis produces a `decide` — `GSE208154`, the only other hypothesis-carrying benchmark case,
+refuses — and the first non-Illumina package anywhere in the corpus (DNBSEQ-G400, MGI).
+
+**`10x-gemx-3p-v4` is RED, and nobody predicted it — a defect report, not an instrument.** The
+chemistry call was right by a factor of 90: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
+`3M-february-2018`, over the package's full 20 000-read slice. What fails is the **sample**. R1 cycle 2
+is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of reads
+2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in the
+16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads and scores
+7.90 % against an admission bar of 0.08583, missing by 0.68 pp and raising `BARCODE_READ_ABSENT`; the
+verdict flips to `decide` between 2 000 and 3 000 reads. This falsifies the rationale
+`probe/__init__.py` gives for `DEFAULT_MAX_READS = 2_000` — "the resolved chemistry is invariant from
+1k to 200k reads across every benchmarked worm library" — **on a worm library**. The invariance held
+across the libraries benchmarked at the time; it is not a property of head slices. A head slice is not
+a random sample, it is the flow cell's first tiles, which is precisely where a dark cycle lives. The
+expectation is left at `decide` deliberately: grading it against today's behaviour would enshrine the
+defect as the specification.
 
 **Considered and not added** — recorded here rather than in a commit message, because the next person
 to grow the corpus needs the reasons, not just the outcome. These are candidates, not reservations;
@@ -99,6 +132,24 @@ nothing about a held-out set is decided.
 | `GSE208229` | the single-index variant of the layout `GSE229022` covers in its harder dual-index form; its only unique asset is a non-null `readTypes` string, an `io resolve` metadata property a fingerprint cannot carry |
 | `GSE136049` | 10x v3 at 2×150 — the over-length-R1 case `resolve/` already names `GSE126954`'s `SRX5411291` as the exemplar of. 395 M reads, ~29 GB/file, no new coverage |
 | `GSE310667` | same over-length-R1 coverage. Released Nov 2025 and never compiled here, so it is also the strongest candidate on this list should a held-out test set ever be built — which is a reason to spend it carefully, not a reservation |
+| `GSE316206` | mouse GEM-X 3′ v4, protocol says "Chromium GEM-X Single Cell 3' Reagent Kits v4" verbatim and the sample axis is richer than `GSE305031`'s (genotype/sex/age/treatment). **The run is not loaded**: `spots=0`, no `<Statistics>`, ENA `read_count=0`. Nothing for `preflight` to stream and no declared read lengths to predict against. Worth revisiting as a mouse companion once it loads |
+| `GSE308872` | says "GEM-X" but is the **wrong** GEM-X: "GEM-X OCM 3' Chip Kit v4 4-plex" — on-chip multiplexing, a barcode layout the KB has no entry for |
+| `GSE337641` | wrong GEM-X again: "GEM-X Flex Gene Expression" — probe-based fixed-RNA profiling, not 3′ at all |
+| `GSE325467` | a genuinely good GEM-X 5′ v3 alternative (`SRR37705344`, 28/90). Passed over for `GSE310378`, which names the exact 10x document the spec cites (CG000733 revA) and declares its read configuration in words |
+| `GSE319238` | one series carrying 5′ v2 microglia *and* 3′ v3.1 whole brain — attractive, but the protocol sentence is a **conditional naming both kits** for every sample, so a per-sample chemistry claim would require resolving the condition. Weaker pre-registration than `GSE317744`'s one-kit-per-sample statement; keep as a future `steering/` candidate |
+
+**A trap and a finding, both worth not rediscovering.** *The trap:* "GEM-X" alone is **not** evidence
+for `10x-gemx-3p-v4`. It is a platform-generation name spanning 3′ v4, 5′ v3, Flex and OCM, and three
+of those four are a different entry or no entry at all — the evidence must name **3′ and v4**.
+Conversely "Next GEM" is the *predecessor* generation (v3.1 / 5′ v2), so a bare "GEM" search is
+actively misleading. *The finding:* `GSE282525` declares "Chromium Next GEM Single Cell 5' Reagent Kit
+v2" but archives every run at 28 bp R1, two cycles past that kit's 26. Under `10x-5p-gex-v2`'s
+`segment_length {length: 26, tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it
+is exact-checked, fails, and the **true leaf is eliminated before scoring** — with `hypothesis:
+"10x 5'"` attached it would land on `10x-5p-gex-v3` and pull in the wrong whitelist. Cell Ranger
+tolerates this (`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed). It was
+deliberately **not** added, because a red there would be a spec-design consequence rather than a
+compiler defect — but it is a strong future `steering/` or `refusal/` candidate.
 
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for

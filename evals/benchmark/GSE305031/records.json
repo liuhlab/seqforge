@@ -1,0 +1,180 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR34941573",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1304262",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "UCSF",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2025-08-11",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "Single-cell RNA-seq data of C. elegans early embryos."
+        },
+        {
+          "label": "study_abstract",
+          "text": "We performed single-cell transcriptional profiling of Caenorhabditis elegans embryos to benchmark CONCORD, a dimensionality reduction and data integration framework for single-cell analysis. This dataset complements previously published late-stage embryogenesis transcriptomic studies by enriching for early-stage embryos through low-temperature culture conditions, enabling construction of a comprehensive, continuous map of the full embryogenesis process. Overall design: Wildtype N2 worms were grown on NGM plates and synchronized by bleaching. Eggs hatched on 10-cm plates and grown until L3/L4 stage. Then, plates were transferred to a 12\u00c2\u00b0C and incubated for 48 h. Adult worms were lysed by bleaching, and embryos were dissociated into single cells. Cells were loaded onto a Chromium GEM-X chip, libraries were prepared following the 10x Genomics protocol."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN50554797",
+      "parent": "PRJNA1304262",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_type",
+          "value": "embryonic",
+          "harmonized": true,
+          "raw_name": "cell type"
+        },
+        {
+          "name": "center_name",
+          "value": "UCSF",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "whole embryos",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "strain",
+          "value": "N2",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "6239",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "tissue",
+          "value": "whole embryos",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "treatment",
+          "value": "grown at 12C",
+          "harmonized": true,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM9161260"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX30064076",
+      "parent": "SAMN50554797",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina NovaSeq X Plus",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM9161260: Wildtype N2 embryos; Caenorhabditis elegans; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM9161260_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM9161260"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR34941573",
+      "parent": "SRX30064076",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM9161260_r1"
+        }
+      ],
+      "filenames": [
+        "N2_S11_L003_I1_001.fastq.gz",
+        "N2_S11_L003_I2_001.fastq.gz",
+        "N2_S11_L003_R1_001.fastq.gz",
+        "N2_S11_L003_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

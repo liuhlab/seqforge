@@ -1,0 +1,27 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# GSE317744 -> GSM9477514 -> SRX31951151 -> SRR37001527, the `CCR9 KO_MC38 tumor_3 weeks` library:
+# mouse thymic CD11c+ dendritic cells, 10x Chromium Next GEM Single Cell 5' v2, on a DNBSEQ-G400.
+#
+# THE `hypothesis:` IS THE POINT OF THIS CASE, NOT A WORKAROUND. `10x-5p-gex-v2` is byte-identical to
+# `10x-3p-gex-v2` — same 26 bp R1 (16 CB + 10 UMI), same open cDNA mate, the SAME
+# `737K-august-2016` whitelist, and the same signature tests at the same weights. The KB declares the
+# pair `distinguishable_by: [metadata, alignment]`, and Cell Ranger 10.1.0's own chemistry_defs.json
+# shows SC3Pv2 and SC5P-R2 identical field for field except `strandedness` (+ vs -), which no probe
+# can observe. There is no rung at which bytes reach this leaf.
+#
+# The claim names the FAMILY, not the leaf, because that is what prose reliably supplies. It enters
+# resolve as a rung-0 claim with no LLM, so the case stays hermetic.
+#
+# The record states the chemistry verbatim (GEO !Sample_extract_protocol_ch1 on GSM9477514, and the
+# same string as SRA's LIBRARY_CONSTRUCTION_PROTOCOL on SRX31951151):
+#   "Libraries were prepared following the manufacturer's instructions using the Chromium Next GEM
+#    Single-Cell 5' Reagent Kit v2 (10x Genomics)."
+#
+# Rebuild with:
+#   seqforge preflight --accession SRR37001527 -n 20000 --name GSE317744-ccr9ko-thymic-dc -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE317744-ccr9ko-thymic-dc.fingerprint.tar.gz
+hypothesis: "10x 5'"
