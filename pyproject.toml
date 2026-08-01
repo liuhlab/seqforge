@@ -28,6 +28,10 @@ dependencies = [
     "pooch>=1.8",
     "requests>=2.31",
     "tqdm>=4",
+    # Publishing a fingerprint package to the benchmark corpus, and nothing else. READING one needs
+    # neither this nor a token — a public dataset repo serves every file to an anonymous GET, which
+    # pooch already does. Writing is an authenticated commit, so the producer half needs the SDK.
+    "huggingface_hub>=0.25",
     # The document readers are hard dependencies, not extras: `read_document` advertises these
     # formats and a paper is the normal shape of the prose seqforge is handed.
     "pypdf>=4",
@@ -90,6 +94,7 @@ pooch = ">=1.8"
 typer = ">=0.12"
 requests = ">=2.31"
 tqdm = ">=4"
+huggingface_hub = ">=0.25"
 pypdf = ">=4"
 openpyxl = ">=3.1"
 anndata = ">=0.10"

@@ -78,6 +78,34 @@ def load_fingerprint(
     return LoadedFingerprint(root=root, manifest=manifest)
 
 
+def read_pin(source: str | Path) -> FingerprintManifest:
+    """The pin alone, read out of a package **without unpacking it**.
+
+    :func:`load_fingerprint` extracts the whole tree because a run needs the slices; a caller that
+    only wants to know *whether this is a fingerprint package, and what it declares* should not pay
+    for that. ``io.publish_benchmark_package`` is the case: it validates before it uploads, and a
+    validation step that wrote a directory somewhere would be a side effect nobody asked for.
+
+    Raises ``ValueError`` when the archive carries no ``fingerprint.json`` — which is the refusal
+    that keeps a tarball that is not a package out of the public corpus.
+    """
+    src = Path(source)
+    if src.is_dir():
+        return FingerprintManifest.model_validate_json((src / "fingerprint.json").read_text())
+    with tarfile.open(src, mode="r:*") as tar:
+        member = next(
+            (m for m in tar.getmembers() if Path(m.name).name == "fingerprint.json" and m.isfile()),
+            None,
+        )
+        if member is None:
+            raise ValueError(f"{src} carries no fingerprint.json — it is not a fingerprint package")
+        handle = tar.extractfile(member)
+        if handle is None:
+            raise ValueError(f"{src}: fingerprint.json is not a readable file member")
+        with handle:
+            return FingerprintManifest.model_validate_json(handle.read().decode("utf-8"))
+
+
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
     """Extract every member under ``dest``, refusing any path that escapes it (path-traversal guard).
 
@@ -174,5 +202,6 @@ __all__ = [
     "load_fingerprint",
     "pinned_whole_file",
     "probed_from_fingerprint",
+    "read_pin",
     "replayed_integrity",
 ]

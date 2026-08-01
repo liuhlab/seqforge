@@ -8,7 +8,7 @@ from typing import cast
 
 import typer
 
-from ..io import DEFAULT_REGISTRY, Orientation, default_registry
+from ..io import DEFAULT_REGISTRY, HF_BENCHMARK_REPO, Orientation, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import records_dir
@@ -332,6 +332,92 @@ def io_cram(
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
     typer.echo(json.dumps({"written": str(written)}, indent=2))
+
+
+@io_app.command("publish-package")
+def io_publish_package(
+    package: Path = typer.Argument(..., help="A local <dataset>.fingerprint.tar.gz to publish."),
+    path_in_repo: str | None = typer.Option(
+        None,
+        "--path-in-repo",
+        help="Destination path inside the repo (default: packages/<the file's own name>). It must "
+        "equal the `hf:` key of the eval recipe that consumes it.",
+    ),
+    repo: str = typer.Option(
+        HF_BENCHMARK_REPO, "--repo", help="Hugging Face DATASET repo id to commit to."
+    ),
+    revision: str = typer.Option("main", "--revision", help="Branch to commit on."),
+    token: str | None = typer.Option(
+        None,
+        "--token",
+        help="HF write token. Default: whatever `huggingface_hub` already has (HF_TOKEN, or a "
+        "`hf auth login` session). Refuses rather than guessing when none is present.",
+    ),
+    message: str | None = typer.Option(
+        None, "--message", "-m", help="Commit message (default: 'Publish <path in repo>')."
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run/--no-dry-run",
+        help="Resolve the destination, read the pin and hash the bytes — upload nothing, and touch "
+        "no credential.",
+    ),
+) -> None:
+    """Publish a fingerprint package to the public benchmark corpus. The producer half of `preflight`.
+
+    `preflight` builds a package; this is what puts one in the corpus, so a dataset's route from a
+    maintainer's disk to a benchmark case is a verb with an exit code rather than a remembered
+    sequence of clicks. It lives under `io` and not beside `preflight` because it is a network
+    operation and nothing else: `preflight` reads bytes and writes a file, while this one only talks
+    to a remote archive, and the `io` group is the one place a reader is entitled to expect that.
+
+    The pin is READ AND VALIDATED before a byte is sent — a tarball that is not a fingerprint package
+    is refused here rather than becoming a corrupt package every future run of that case has to
+    diagnose. `--dry-run` answers "where does this go, under what name, and what is in it" for free.
+
+        seqforge io publish-package GSE110823.fingerprint.tar.gz --dry-run
+        seqforge io publish-package GSE110823.fingerprint.tar.gz
+
+    Exit 2 if the file is missing or is not a fingerprint package, or if a real upload has no
+    credential; exit 1 if the archive refuses the commit.
+    """
+    from ..io.benchmark import publish_benchmark_package
+
+    try:
+        if not dry_run and token is None:
+            from huggingface_hub import get_token
+
+            token = get_token()
+            if not token:
+                typer.echo(
+                    json.dumps(
+                        {
+                            "error": "no_hf_token",
+                            "detail": "publishing writes to a public repo and needs a write token: "
+                            "pass --token, set HF_TOKEN, or run `hf auth login`. Use --dry-run to "
+                            "resolve the destination without one.",
+                        },
+                        indent=2,
+                    ),
+                    err=True,
+                )
+                raise typer.Exit(2)
+        result = publish_benchmark_package(
+            package,
+            rel_path=path_in_repo,
+            repo=repo,
+            revision=revision,
+            token=token,
+            message=message,
+            dry_run=dry_run,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        typer.echo(json.dumps({"error": "not_a_package", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(2) from exc
+    except OSError as exc:
+        typer.echo(json.dumps({"error": "publish_failed", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
 
 
 @io_app.command("peek")

@@ -114,4 +114,43 @@ class FingerprintManifest(BaseModel):
     info: list[str] = Field(default_factory=list)
 
 
-__all__ = ["FINGERPRINT_VERSION", "FilePin", "FingerprintManifest"]
+class PublishedPackage(BaseModel):
+    """The result of putting one fingerprint package into the public benchmark corpus.
+
+    The producer half of what ``preflight`` builds — ``seqforge io publish-package``'s stdout object.
+    It names both ends of the round trip: the local file that was read, and the **public URL an eval
+    recipe's** ``hf:`` **key will resolve to**. Those two are the pair a maintainer actually has to
+    check, because a package uploaded under a name no recipe points at is a 404 nobody discovers
+    until the benchmark next runs.
+
+    ``sha256`` is over the package bytes and is provenance of the *upload*, not of the dataset: the
+    dataset's own identity lives in the pins inside the package, and a re-compression that changed
+    this number would leave that untouched. ``n_files`` and ``reads`` are read out of the pin before
+    anything is sent, so the summary states what entered the corpus rather than what was named.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    #: The local package that was read.
+    package: str
+    #: The HF dataset repo it went to, e.g. ``liuhlab/seqforge-benchmark``.
+    repo: str
+    #: The branch or revision the commit landed on.
+    revision: str
+    #: Its path inside the repo — the string an eval recipe's ``hf:`` key must equal.
+    rel_path: str
+    #: The public, anonymous-read URL the fetch side will GET.
+    url: str
+    size_bytes: int = Field(ge=0)
+    sha256: Sha256
+    #: How many FASTQ slices the package pins, read from ``fingerprint.json``.
+    n_files: int = Field(ge=0)
+    #: The read budget (N) those slices were cut to.
+    reads: int = Field(gt=0)
+    #: True when nothing was uploaded: the destination was resolved and the bytes hashed, no more.
+    dry_run: bool = False
+    #: The commit the upload created. ``None`` on a dry run, and on an API that returned no URL.
+    commit_url: str | None = None
+
+
+__all__ = ["FINGERPRINT_VERSION", "FilePin", "FingerprintManifest", "PublishedPackage"]
