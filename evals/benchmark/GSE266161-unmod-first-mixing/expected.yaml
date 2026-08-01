@@ -1,0 +1,115 @@
+# PRE-REGISTERED 2026-08-01, from declared metadata only — written and committed BEFORE `preflight`
+# or `resolve` was pointed at a single byte of this run. Its claims come from the archive record, the
+# depositors' own published analysis code, and reference whitelists that are not this dataset. Only a
+# prediction can be wrong (ADR-0016).
+#
+# WHAT THIS CASE BUYS. `bd-rhapsody-wta-enhanced-v1` — the 97x3 Enhanced leaf — was exercised only by
+# reads seqforge generated from its own spec, which proves the generator and the spec agree with each
+# other and nothing else. That is precisely the circularity that hid a real defect in the `splitseq`
+# entry for the life of that entry (see benchmark/GSE110823). GSE282765-colon-crod-wta closed the
+# Enhanced `-v2` (384x3) leaf; this closes its sibling, and makes the BD arm a TRIPLE:
+#
+#   GSE274290                  bd-rhapsody-wta               ORIGINAL fixed-offset bead
+#   GSE266161-unmod-first-mixing  bd-rhapsody-wta-enhanced-v1   Enhanced bead, 97x3 pools   <- this
+#   GSE282765-colon-crod-wta   bd-rhapsody-wta-enhanced-v2   Enhanced bead, 384x3 pools
+#
+# All three extract protocols name the SAME instrument — "BD Rhapsody Express" — and differ only in
+# the declared bead and pool. So a resolver that decides BD chemistry from the instrument string, or
+# from anything but the R1 bead oligo's own bytes, gets at least one of the three wrong. This case is
+# also the negative control for the ORIGINAL bead in a way `-v2` cannot be: `enhanced-v1` and
+# `bd-rhapsody-wta` SHARE the `bd-rhapsody-cls{1,2,3}` whitelists, so the onlist cannot separate them
+# and only the staggered GTGA/GACA linker structure can. `-v2` never tests that edge.
+#
+# ---- WHY `-v1` (97x3) AND NOT `-v2` (384x3) ----------------------------------------------------
+# The two Enhanced leaves are byte-identical in geometry and are separated ONLY by which cell-label
+# pool hits at rung 3, so the leaf had to be predicted from something that is not this run's reads.
+# The evidence is producer-authored, and it is a FILENAME-LEVEL pin:
+#
+#  1. The depositors' own analysis script, published at
+#     imallona/rock_roi_paper, `06_Sankey_plots/wta_unmod_first_mixing_experiment.sh`, line 6, reads
+#       zcat o307161_1-Unmodified_S4_R1_001.fastq.gz | awk 'NR%4==2' \
+#            | grep -P '^[ACTG]{9,12}GTGA[ACTG]{9}GACA'
+#     and `o307161_1-Unmodified_S4_R1_001.fastq.gz` is EXACTLY the R1 filename SRA holds for
+#     SRR28817193 (`<SRAFile ... supertype="Original">`, md5 08620b026213cdcb995d63f483cbd736). The
+#     script then greps that output against `~/whitelist_96x3/BD_CLS1.txt`, `BD_CLS2.txt` and
+#     `BD_CLS3.txt` (lines 14-15, 23-24, 32-33), with the leading `^[ACTG]{0,3}` that is the 0-3 bp
+#     diversity insert. The people who made this library resolved it against the 96x3 pools.
+#  2. Those files are the same pools seqforge ships. Verified 2026-08-01 by set comparison of
+#     imallona/rock_roi_method `data/whitelist_96x3/BD_CLS{1,2,3}.txt` against the packed
+#     `bd-rhapsody-cls{1,2,3}` registry entries: IDENTICAL, 97 barcodes each (the directory is named
+#     "96x3" but each file holds 97 — the nominal 96 plus one). Against the 384x3 pools that `-v2`
+#     uses they share 0 barcodes, per block. So the onlist genuinely decides between the two Enhanced
+#     leaves and a wrong leaf cannot hide.
+#  3. The GEO extract protocol independently pins the FAMILY: "Libraries were generated on a BD
+#     Rhapsody Express machine. ... The protocol for v1 BD Rhapsody was used (i.e. a single RPE
+#     reaction) and applied to enhanced beads."
+#
+# On (3), read carefully rather than conveniently: that sentence's "v1" is glossed by its own
+# parenthetical as the LIBRARY PROTOCOL (a single RPE reaction), not the bead pool size. Taken alone
+# it pins "Enhanced" and not the leaf. It is listed as corroboration; the load-bearing evidence for
+# 97x3 is (1)+(2). Recording that distinction is the point — the prediction is only as good as the
+# weakest link it actually leans on.
+#
+# If the bytes disagree with this line, LEAVE IT STANDING and report the gap: a benchmark case that
+# reports a gap is worth more than one edited to agree.
+#
+# ---- WHY `experiment.organism` IS NOT CLAIMED --------------------------------------------------
+# This run is a deliberate mouse+human barnyard — the experiment title is "GSM8238055: unmod, first
+# mixing experiment; Homo sapiens; Mus musculus; RNA-Seq", and `cell_line` is "Mix of L-cells and
+# HEK293T cells". The BioSample `taxonomy_id` says `9606` because BioSample carries exactly one
+# taxon, not because the library is human. Claiming `experiment.organism: 9606` would grade GREEN off
+# records.json and still assert something false about the library, so it is left unclaimed and the
+# dataset table's organism column reads `-`.
+#
+# Species mixing does NOT weaken the chemistry claim, and that is worth stating rather than assuming.
+# The evidence matrix for this entry reads the R1 bead oligo (0-3 bp diversity insert, 9 bp CLS1,
+# GTGA, 9 bp CLS2, GACA, 9 bp CLS3, 8 bp UMI) and scores R2 only for base diversity — never transcript
+# identity, never a genome. Every rung that decides this case is species-independent, so a barnyard is
+# a perfectly ordinary chemistry fingerprint. It would matter to counting; it does not matter here.
+#
+# ---- SCOPE NOTES -------------------------------------------------------------------------------
+# * The `unmod` (unmodified) arm, deliberately. This series' whole point is RoCK and ROI — beads with
+#   MODIFIED capture oligos and spiked-in ROI primers. Those arms are a different library, not another
+#   view of this one. `unmod` is the plain WTA control, which is the only arm whose R1 is a stock
+#   Enhanced bead oligo and therefore the only one this KB entry claims to recognise.
+# * GSM8238055 belongs to SubSeries GSE265962 and SuperSeries GSE266161; the table names the
+#   SuperSeries, which is what the ticket scouted and what SRA's study title (ending " I") reflects.
+# * `source_name` is NOT claimed: its value is "Mix of L-cells and HEK293T cells", a verbatim
+#   duplicate of `cell_line`. One string asserted twice is one claim, not two — the same pruning the
+#   2026-07-31 review applied to GSE126954, GSE234962, GSE256266 and GSE274290.
+# * `study.center` is NOT claimed: "Prof. Dr. Konrad Basler, DMLS, University of Zurich" is a
+#   submitter-typed string carrying a person's title, and both BD neighbours pruned center for the
+#   same reason.
+outcome: decide
+description: >-
+  GSE266161 / GSM8238055 (`unmod, first mixing experiment`, SRX24380279, SRR28817193) — a 50/50 mix
+  of mouse L-cells and human HEK293T cells, BD Rhapsody WTA on ENHANCED capture beads with the 97x3
+  cell-label pools. The benchmark's first REAL `bd-rhapsody-wta-enhanced-v1` library, closing the
+  last synthetic-only BD leaf.
+
+  It completes a three-way BD distinction that no single case can make. GSE274290 is the original
+  fixed-offset bead, GSE282765-colon-crod-wta is Enhanced on the 384x3 pools, and this is Enhanced on
+  the disjoint 97x3 pools. All three name "BD Rhapsody Express" as the instrument. Crucially, this
+  leaf SHARES its whitelists with the original bead, so unlike the `-v2` case it cannot be carried by
+  the onlist at all — only the staggered GTGA/GACA linker frame separates it, which makes it the one
+  case that puts `kb/anchor.py`'s per-read frame recovery on real reads with a real alternative.
+
+  Breaking it would mean one of: the anchored linker frame stopped phase-locking on real reads, or
+  the 97x3 pools stopped separating from the disjoint 384x3 pools at rung 3, or the original
+  fixed-offset bead started stealing Enhanced data. PRE-REGISTERED before any run; the header carries
+  the filename-level evidence chain that pins the 97x3 leaf, and says why `experiment.organism` is
+  deliberately unclaimed on a barnyard.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.7.7
+  workflow: 2026.7.14
+fields:
+  library.chemistry: bd-rhapsody-wta-enhanced-v1
+  experiment.study.title: 'RoCK and ROI: a single-cell RNA-sequencing method with enhanced
+    transcriptome information via targeted enrichment of transcripts and preselected, region-specific
+    sequencing I'
+  experiment.samples.*.cell_line:
+  - Mix of L-cells and HEK293T cells
+  experiment.samples.*.cell_type:
+  - Mouse adult adipose, human embryonic kidney
+  experiment.samples.SAMN41096408.cell_line: Mix of L-cells and HEK293T cells

@@ -1,0 +1,166 @@
+{
+  "source": "ncbi-sra+biosample",
+  "query": "SRR28817193",
+  "records": [
+    {
+      "level": "project",
+      "accession": "PRJNA1105052",
+      "parent": null,
+      "attributes": [
+        {
+          "name": "center_name",
+          "value": "Prof. Dr. Konrad Basler, DMLS, University of Zurich",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "data_type",
+          "value": "Transcriptome or Gene expression",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "submission_date",
+          "value": "2024-04-26",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "study_title",
+          "text": "RoCK and ROI: a single-cell RNA-sequencing method with enhanced transcriptome information via targeted enrichment of transcripts and preselected, region-specific sequencing I"
+        },
+        {
+          "label": "study_abstract",
+          "text": "Many scRNAseq-based methods suffer from a high number of non-detects and a bias towards the 3' or 5' end of transcripts. We developed a method termed RoCK and ROI to address these two biases. RoCK and ROI leads to the enrichment of the transcriptome profile of cells with information on transcripts of interest Overall design: RoCK and ROI is based on barcoded beads of the BD Rhapsody platform. For RoCKseq specific capture, TSO oligos on BD Rhapsody beads are modified with a/ multiple capture sequence(s) specific to transcripts of interest. ROIseq, on the other hand, is based on specific primers which are spiked in during library generation, directing reads to regions of interest (ROIs). Multiple scRNAseq experiments were performed on several biological samples to validate RoCK and ROI. To validate RoCK and ROI library generation, scRNAseq experiments were performed on a mix of murine and human cell lines expressing eGFP or tdTomato respectively. As a further validation of RoCK and ROI, epithelial and mesenchymal cells from a transgenic mouse strain (B6.129S4-Pdgfratm11(EGFP)Sor/J) were used."
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "sample",
+      "accession": "SAMN41096408",
+      "parent": "PRJNA1105052",
+      "attributes": [
+        {
+          "name": "biosample_package",
+          "value": "Generic.1.0",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "cell_line",
+          "value": "Mix of L-cells and HEK293T cells",
+          "harmonized": true,
+          "raw_name": "cell line"
+        },
+        {
+          "name": "cell_type",
+          "value": "Mouse adult adipose, human embryonic kidney",
+          "harmonized": true,
+          "raw_name": "cell type"
+        },
+        {
+          "name": "center_name",
+          "value": "Prof. Dr. Konrad Basler, DMLS, University of Zurich",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "collection_date",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "geo_loc_name",
+          "value": "missing",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "source_name",
+          "value": "Mix of L-cells and HEK293T cells",
+          "harmonized": true,
+          "raw_name": null
+        },
+        {
+          "name": "taxonomy_id",
+          "value": "9606",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "sample_alias",
+          "text": "GSM8238055"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "experiment",
+      "accession": "SRX24380279",
+      "parent": "SAMN41096408",
+      "attributes": [
+        {
+          "name": "library_strategy",
+          "value": "RNA-Seq",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_source",
+          "value": "TRANSCRIPTOMIC SINGLE CELL",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "library_selection",
+          "value": "cDNA",
+          "harmonized": false,
+          "raw_name": null
+        },
+        {
+          "name": "instrument_model",
+          "value": "Illumina NovaSeq 6000",
+          "harmonized": false,
+          "raw_name": null
+        }
+      ],
+      "free_text": [
+        {
+          "label": "experiment_title",
+          "text": "GSM8238055: unmod, first mixing experiment; Homo sapiens; Mus musculus; RNA-Seq"
+        },
+        {
+          "label": "experiment_alias",
+          "text": "GSM8238055_r1"
+        },
+        {
+          "label": "library_name",
+          "text": "GSM8238055"
+        }
+      ],
+      "filenames": []
+    },
+    {
+      "level": "run",
+      "accession": "SRR28817193",
+      "parent": "SRX24380279",
+      "attributes": [],
+      "free_text": [
+        {
+          "label": "run_alias",
+          "text": "GSM8238055_r1"
+        }
+      ],
+      "filenames": [
+        "o307161_1-Unmodified_S4_R1_001.fastq.gz",
+        "o307161_1-Unmodified_S4_R2_001.fastq.gz"
+      ]
+    }
+  ]
+}

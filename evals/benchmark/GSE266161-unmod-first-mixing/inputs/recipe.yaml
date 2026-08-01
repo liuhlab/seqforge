@@ -1,0 +1,22 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip.
+#
+# GSE266161 (SuperSeries; GSM8238055 sits in SubSeries GSE265962) -> GSM8238055 -> SRX24380279 ->
+# SRR28817193, the `unmod, first mixing experiment` library: a mouse L-cell + human HEK293T barnyard
+# run as plain BD Rhapsody WTA on ENHANCED beads.
+#
+# The `unmod` arm ONLY, and deliberately. This series is the RoCK and ROI method paper, whose other
+# arms use beads with MODIFIED capture oligos (RoCK) and spiked-in region-of-interest primers (ROI).
+# Those are different libraries rather than another view of this one; `unmod` is the plain WTA
+# control, and the only arm whose R1 is a stock Enhanced bead oligo of the kind this KB entry claims.
+#
+# No `hypothesis:` — the point of the case is that the 97x3 leaf is reachable from the R1 bytes
+# alone. The archive's own prose would not settle it anyway: the extract protocol says "The protocol
+# for v1 BD Rhapsody was used (i.e. a single RPE reaction) and applied to enhanced beads", where the
+# parenthetical glosses "v1" as the library protocol rather than the cell-label pool size.
+#
+# Rebuild with:
+#   seqforge preflight --accession SRR28817193 -n 20000 --name GSE266161-unmod-first-mixing -C <dir>
+generate:
+  kind: fingerprint
+  hf: packages/GSE266161-unmod-first-mixing.fingerprint.tar.gz
