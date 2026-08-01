@@ -88,6 +88,51 @@
 #
 # If the bytes disagree with any line above, LEAVE IT STANDING and report the gap: a benchmark case
 # that reports a gap is worth more than one edited to agree.
+#
+# ================================================================================================
+# POST-RUN, 2026-08-01 — THIS CASE IS RED, AND NOBODY PREDICTED IT. A DEFECT REPORT.
+# Appended after the run. NOT ONE LINE ABOVE OR BELOW WAS EDITED: the prediction stands exactly as
+# committed, which is the only reason this paragraph means anything.
+#
+# Grade: `false_refuse`. resolve exits 3 with BARCODE_READ_ABSENT
+# ("10x-gemx-3p-v4 is barcoded, but no read carries whitelist-matchable barcodes"). All 8 field
+# claims still PASS (field_accuracy 1.0) and there are 0 false accepts — the refusal is the whole
+# of the failure.
+#
+# THE CHEMISTRY CALL WAS RIGHT, AND NOT NARROWLY. Measured over the package's full 20,000-read R1
+# slice: 73.11% against `3M-3pgex-may-2023` (GEM-X) and 0.81% against `3M-february-2018` (v3) —
+# a 90x margin, and 0.81% is the ~0.9% cross-hit this header predicted from Cell Ranger's lists
+# before the run. The library is GEM-X v4. Nothing about the KB entry, the whitelist mapping or the
+# `distinguishable_by: [onlist]` claim is wrong.
+#
+# WHAT ACTUALLY FAILED IS THE SAMPLE, AND IT IS A ONE-CYCLE ARTEFACT. R1 cycle 2 is a DARK CYCLE at
+# the head of this run. Fraction of reads with N at 0-indexed position 1:
+#     first 2,000 reads   91.35%      reads 2,000-4,000   73.05%      last 2,000 of the slice  0.00%
+# No other cycle is affected (every other position is 0.00%). seqforge matches barcodes EXACTLY —
+# no 1MM correction, as `evaluators.py` states outright — so a single N anywhere in the 16 bp CB
+# makes that read unmatchable. resolve samples the FIRST 2,000 reads (`DEFAULT_MAX_READS`), so its
+# entire window sits inside the dark region. Hit rate by depth, against an admission bar of
+# max(0.05, floor x 50) = 0.08583:
+#     1,000 -> 0.40%   2,000 -> 7.90%   3,000 -> 13.77%   5,000 -> 22.54%
+#    10,000 -> 54.03%  20,000 -> 73.11%
+# The verdict flips from refuse to decide between 2,000 and 3,000 reads. At the shipped budget it
+# misses the bar by 0.68 percentage points.
+#
+# THE DOCUMENTED ASSUMPTION THIS FALSIFIES. `probe/__init__.py` justifies `DEFAULT_MAX_READS = 2_000`
+# with "The resolved chemistry is invariant from 1k to 200k reads across every benchmarked worm
+# library" and "The benchmarked N-invariant floor is <=1k across every chemistry (issue #63)". This
+# is a *C. elegans* library, so the counterexample lands inside that claim's own stated domain. The
+# invariance held across the libraries benchmarked at the time; it is not a property of head slices.
+# A head slice is not a random sample — it is the flow cell's first tiles, which is exactly where a
+# dark cycle lives.
+#
+# WHY THE EXPECTATION IS LEFT AT `decide`. Grading this against what the code does today would
+# enshrine the defect as the specification. The chemistry IS `10x-gemx-3p-v4`; the case goes green
+# when a head slice stops being mistaken for a random sample, and not before. Deliberately NOT fixed
+# by rebuilding the package at a larger -n: the package already carries 20,000 reads and resolve
+# samples 2,000 of them, so no -n makes this pass. Deliberately NOT fixed by trimming the dark head,
+# which would be selecting the reads that agree with the answer.
+# ================================================================================================
 outcome: decide
 description: >-
   GSE305031 / GSM9161260 (`Wildtype N2 embryos`, SRX30064076, SRR34941573) — C. elegans early
@@ -109,6 +154,18 @@ description: >-
   `3M-february-2018`, or a v3-era entry started stealing v4 data, or `--include-technical` stopped
   recovering the barcode read that ENA drops for this run. PRE-REGISTERED before any run; the header
   carries the vendor-verified whitelist arithmetic and the "GEM-X is not one chemistry" trap.
+
+  RED TODAY, AND UNPREDICTED — a defect report, not an instrument. resolve refuses with
+  BARCODE_READ_ABSENT, so the case grades `false_refuse`; all 8 field claims pass and there are 0
+  false accepts. The chemistry call is right by a factor of 90 (73.11% on the GEM-X whitelist vs
+  0.81% on the v3 list, over the package's full 20,000-read slice). What fails is the SAMPLE: R1
+  cycle 2 is a dark cycle at the head of this run — N in 91.35% of the first 2,000 reads, 0.00% by
+  the end of the slice — and since seqforge matches barcodes exactly, one N in the 16 bp CB makes
+  the read unmatchable. resolve samples exactly those first 2,000 reads, scoring 7.90% against an
+  8.583% admission bar and missing by 0.68pp; the verdict flips to `decide` between 2,000 and 3,000
+  reads. This falsifies `probe/__init__.py`'s stated basis for DEFAULT_MAX_READS=2_000 — that the
+  resolved chemistry is invariant from 1k to 200k reads across every benchmarked worm library — on a
+  worm library. The expectation is left at `decide` on purpose: see the POST-RUN block in the header.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
