@@ -48,6 +48,11 @@ class BlockerCode(StrEnum):
     #: sample facts, and a manifest that is confidently right about four samples and silent about two
     #: reads as a manifest about six.
     RECORD_JOIN_INCOMPLETE = "RECORD_JOIN_INCOMPLETE"
+    #: One run reached the ceiling on the tokens it may spend at the model seam, so the request that
+    #: would have followed was refused and the extraction is incomplete. A ceiling that only warned
+    #: would be a number nobody sets: the run it exists to stop is exactly the run whose warning
+    #: scrolls past at request 400 of 983.
+    TOKEN_CEILING_EXCEEDED = "TOKEN_CEILING_EXCEEDED"
 
 
 class BlockerSubject(BaseModel):

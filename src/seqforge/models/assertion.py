@@ -8,7 +8,7 @@ fails closed.
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .base import Confidence
 
@@ -66,3 +66,45 @@ class Assertion(BaseModel):
     entailment_ok: bool = False
     llm_confidence: Confidence
     extractor: ExtractorProvenance
+
+
+class PlannedDocument(BaseModel):
+    """One document an extraction will pay for, described before it is sent.
+
+    ``members`` is what the collapse is visible as: the archive records folded into this document.
+    One entry for a record rendered on its own, many for the runs of one sample, none for a document
+    a human handed us.
+    """
+
+    doc_sha256: str
+    source: str
+    role: str
+    scope: str
+    #: The record this document speaks for — a sample's accession on a collapsed run document,
+    #: because that is the sample its claims are declarations about. ``None`` for a dataset document.
+    subject: str | None = None
+    n_chars: int
+    fields: list[str]
+    members: list[str] = Field(default_factory=list)
+
+
+class ExtractionPlanReport(BaseModel):
+    """What ``harvest extract --dry-run`` answers: the whole ask, costed, with nothing spent.
+
+    A dataset's cost used to be a property nobody computed until it had been paid. ``n_documents`` is
+    the exchange count (before retries), and ``estimated_input_tokens`` charges the stable system prefix
+    once **per document** — which is what makes a fan-out over one-line archive records expensive.
+    Output tokens are not estimated: the model decides how many claims a document supports, and the
+    token Ceiling is what bounds that half.
+    """
+
+    n_documents: int
+    #: Archive records with prose that this plan reads. A level asked nothing (``project``) and a
+    #: record with no free text are not read, and are not counted here.
+    n_records_read: int = 0
+    #: Records read but not costing an exchange of their own — the runs folded into their sample's document.
+    n_records_collapsed: int = 0
+    n_chars: int = 0
+    system_prompt_chars: int = 0
+    estimated_input_tokens: int = 0
+    documents: list[PlannedDocument] = Field(default_factory=list)

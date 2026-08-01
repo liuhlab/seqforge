@@ -12,6 +12,17 @@
 # Illumina NextSeq instruments", which agrees with the resolved 10x-3p-gex-v2. A code change that
 # moves it turns this case red.
 #
+# The transcript beside this file declares SEVEN samples, not the archive's eight. The eighth
+# (SAMN14126930 / SRX7740729) carried 910 of the series' 966 run records, and a run record with
+# prose is one extraction call — so it was 92% of this case's LLM spend and 83% of the whole
+# benchmark's, for a sample no slice in the package can join to and no expectation below grades.
+# `materialize` now narrows a fingerprint case's records to what its slices reach, so the transcript
+# cannot drift back: re-fetching the full accession and committing it lands here at seven again.
+#
+# Measured cost, deepseek-v4-pro, before -> after (the drop above, then collapsing each sample's run
+# aliases into one document): 983 -> 22 calls, 3,141,899 -> 86,220 input tokens, 300.6s -> 131.7s.
+# The 500,000-token ceiling this run carried was never approached, which is what a ceiling is for.
+#
 # THIS CASE IS RED TODAY, on the OUTCOME and not on any field. Graded 2026-07-31 it returns
 # `over_ask`: all seven field claims pass, but resolve ASKS where this file says `decide`. That
 # predates the review — nothing here touched `outcome` or the chemistry — and the likely cause is
@@ -29,9 +40,9 @@ description: >-
   mixed-embryo collections are N2, a real lab-level split stated in both the paper's methods and
   each sample's growth protocol — so a shuffled join surfaces as a wrong strain instead of passing
   on the `*` list alone. The series' eighth sample (GSM4318946 / SAMN14126930) is the L2-stage
-  sci-RNA-seq re-analysis of Cao et al. 2017 and is NOT in the package; were it ever added, these
-  lists would grow an eighth entry and a dev_stage of L2. Breaking this case means the chemistry
-  decision or the record join moved.
+  sci-RNA-seq re-analysis of Cao et al. 2017 and is in neither the package nor `records.json`; were
+  it ever added, these lists would grow an eighth entry and a dev_stage of L2. Breaking this case
+  means the chemistry decision or the record join moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6

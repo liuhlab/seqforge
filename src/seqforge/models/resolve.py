@@ -222,4 +222,10 @@ class EvalReport(BaseModel):
     false_refuse_rate: float
     questions_asked: dict[str, float]
     cost: dict[str, float]
+    #: The run directory this report was written into — the one holding ``report.json`` and
+    #: ``transcripts/<case>.jsonl``. ``None`` when the run wrote nothing (no ``-C``), which is the
+    #: shape every report had before evals honoured "disk is state". Each case's own
+    #: ``transcript`` key in ``per_case`` is relative to this, so the directory survives being moved
+    #: or downloaded as a CI artifact while this records where it was produced.
+    run_dir: str | None = None
     per_case: list[dict[str, object]]

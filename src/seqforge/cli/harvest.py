@@ -20,7 +20,9 @@ from .root import harvest_app
 
 if TYPE_CHECKING:
     from ..harvest.fields import DocRole
+    from ..harvest.meter import TokenMeter
     from ..harvest.normalize import PdfBackend
+    from ..models.assertion import ExtractorProvenance
 
 
 class PdfBackendChoice(StrEnum):
@@ -135,6 +137,19 @@ def harvest_extract(
         help="Override the model (default: the provider's own). DeepSeek serves "
         "deepseek-v4-flash (default, cheap) and deepseek-v4-pro (recall on hard prose).",
     ),
+    ceiling: int = typer.Option(
+        0,
+        "--ceiling",
+        min=0,
+        help="Refuse past N tokens spent at the model seam in this run (raw: cached input and "
+        "cache writes count too). Blocks with exit 3 rather than warning. 0 = no ceiling.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Print the extraction PLAN and stop: what will be asked, of what, and an estimated "
+        "input-token cost. Reaches no model and needs no credential.",
+    ),
     verify: bool = typer.Option(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately."
     ),
@@ -151,13 +166,20 @@ def harvest_extract(
 
     The model only proposes `{field, value, quote}`; code computes the offsets and decides what
     survives — which is what makes the provider swappable. Auto-detects DEEPSEEK_API_KEY /
-    ANTHROPIC_API_KEY. Exit 1 if the LLM surface is unavailable, 4 if any claim fails verification.
+    ANTHROPIC_API_KEY. Exit 1 if the LLM surface is unavailable, 3 if the run reaches its
+    `--ceiling`, 4 if any claim fails verification.
 
     **`--records` is how a claim names a sample.** Each archive record is rendered as its own
     document and asked only what a record at that level can answer: a BioSample's document is asked
     for sample attributes and never for a chemistry; an experiment's protocol paragraph is asked for
     the chemistry and nothing else. Since a sample's document contains one sample's prose, "which
-    sample" is answered by which file we handed the model — the model never names one, and cannot.
+    sample" is answered by which file we handed the model — the model never names one, and cannot. A
+    sample's RUNS are one document between them rather than one each: a run belongs to exactly one
+    sample, so the claims still name that sample and the exchange count stops scaling with the run count.
+
+    **`--dry-run` answers "what will this cost" without asking anybody.** It renders every document —
+    which costs no token and no network — and prints the plan, so the send list you inspected is the
+    one a real run would use.
     """
     _emit(
         _harvest_extract_pipeline(
@@ -166,7 +188,9 @@ def harvest_extract(
             records_path=records_path,
             provider=provider,
             model=model,
+            ceiling=ceiling,
             verify=verify,
+            dry_run=dry_run,
             workspace=workspace,
             pdf_backend=pdf_backend.value,
         )
@@ -183,25 +207,32 @@ def _harvest_extract_pipeline(
     verify: bool,
     workspace: Path,
     pdf_backend: PdfBackend = "pymupdf",
+    ceiling: int = 0,
+    dry_run: bool = False,
 ) -> _StageOut:
     """The body of ``harvest extract``, returned as a value so ``seqforge run`` can chain it.
 
     The one LLM stage, and the one place ``run`` cannot be fully deterministic — hence ``--no-llm``,
     which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if no
-    provider or the endpoint fails, exit 4 if a claim fails the span tripwire (a rejected claim needs
-    a human, not a silent drop). On success it still writes ``assertions.json`` and the rendered
+    provider or the endpoint fails, exit 3 with a ``Blocker`` if the run reaches its token
+    ``ceiling``, exit 4 if a claim fails the span tripwire (a rejected claim needs a human, not a
+    silent drop). On success it still writes ``assertions.json``, the transcript and the rendered
     documents to disk, because a span citation is only checkable while the exact text survives.
+
+    ``dry_run`` returns the plan and stops **before** a provider is even resolved: "what will this
+    dataset cost" must be answerable on a machine with no credential at all.
     """
     from ..harvest import (
-        ExtractionOutcome,
+        CeilingExceeded,
         ExtractUnavailable,
-        NormalizedDoc,
         ProviderUnavailable,
+        TokenMeter,
         UnreadableDocument,
-        extract_drafts,
-        has_prose,
+        build_system_prompt,
+        extract_planned,
+        llm_schema,
         normalize_document,
-        normalize_record,
+        plan_extraction,
         resolve_provider,
         verify_drafts,
     )
@@ -209,21 +240,10 @@ def _harvest_extract_pipeline(
     from ..models.records import ArchiveRecordSet
 
     specs = load_all_specs()
-    logs = logs_dir(workspace)
-    logs.mkdir(parents=True, exist_ok=True)
-    try:
-        llm = resolve_provider(provider)
-    except ProviderUnavailable as exc:
-        return _StageOut({"error": "no_provider", "detail": str(exc)}, 1, err=True)
-    chosen = model or llm.default_model()
-
-    all_drafts = []
-    normalized = []
-    usage_total: dict[str, int] = {}
-    extractor = None
+    handed = []
     for doc, role in _roled(docs, instruction):
         try:
-            nd = normalize_document(doc, role=role, pdf_backend=pdf_backend)
+            handed.append(normalize_document(doc, role=role, pdf_backend=pdf_backend))
         except UnreadableDocument as exc:
             # A document that yields no quotable text is a refusal, not a silent empty extraction:
             # surface it with a nonzero exit exactly like a missing provider, so `run` halts here
@@ -233,49 +253,72 @@ def _harvest_extract_pipeline(
                 1,
                 err=True,
             )
-        normalized.append(nd)
 
+    dataset_ref = "dataset"
+    records = None
     if records_path is not None:
         records = ArchiveRecordSet.model_validate_json(records_path.read_text())
-        # Only records that HAVE prose, and only levels we ask anything of. A record with an empty
-        # ask costs an API call to be told nothing; `fields_for` already knows which those are.
-        from ..harvest.fields import fields_for
+        dataset_ref = records.query or dataset_ref
 
-        for record in records.records:
-            if has_prose(record) and fields_for(record.level, "reference"):
-                normalized.append(normalize_record(record))
+    # Which documents exist, and what each will be asked, is one module's decision — the eval harness
+    # makes the same call. Rendering costs nothing, so the plan is the send list rather than a
+    # projection of one, and `--dry-run` hands it back before a provider is resolved.
+    plan = plan_extraction(
+        documents=handed,
+        records=records,
+        system_prompt_chars=len(build_system_prompt(specs, llm_schema())),
+    )
+    if dry_run:
+        return _StageOut(plan.report().model_dump(mode="json"), 0)
 
-    # The one place `run` cannot be deterministic, and now the one it need not be slow. Each document
-    # is an independent, network-bound LLM call, so they go out concurrently on a THREAD pool (I/O, so
-    # threads release the GIL — processes would only add IPC). Results are reassembled in `normalized`
-    # order below, so assertions.json is byte-identical no matter which call returned first.
-    def _extract(nd: NormalizedDoc) -> ExtractionOutcome:
-        return extract_drafts(nd, specs, provider=llm, model=chosen)
-
-    outcomes: dict[str, ExtractionOutcome] = {}
+    logs = logs_dir(workspace)
+    logs.mkdir(parents=True, exist_ok=True)
     try:
-        if len(normalized) > 1:
-            from concurrent.futures import ThreadPoolExecutor
+        resolved = resolve_provider(provider)
+    except ProviderUnavailable as exc:
+        return _StageOut({"error": "no_provider", "detail": str(exc)}, 1, err=True)
+    chosen = model or resolved.default_model()
 
-            with ThreadPoolExecutor(max_workers=min(8, len(normalized))) as pool:
-                futures = {pool.submit(_extract, nd): nd for nd in normalized}
-                for fut in futures:
-                    outcomes[futures[fut].doc_sha256] = fut.result()
-        else:
-            for nd in normalized:
-                outcomes[nd.doc_sha256] = _extract(nd)
+    all_drafts = []
+    normalized = list(plan.documents)
+    extractor = None
+
+    # Every request goes through the meter, and only the meter counts. It proxies the provider's
+    # identity (`name`, `default_model`), so provenance still records who actually answered.
+    llm = TokenMeter(resolved, ceiling=ceiling, subject=dataset_ref)
+
+    usage_records: list[dict[str, object]] = []
+    try:
+        outcomes = extract_planned(plan, specs, provider=llm, model=chosen)
+    except CeilingExceeded as exc:
+        # A refusal, not a failure: the provider was fine and another attempt would only spend more.
+        # The ledger and the transcript are written first, because the tokens up to the ceiling were
+        # really spent and a reader asking "on what?" is exactly the reader a breach produces.
+        _write_usage(logs, llm, chosen, None, usage_records, len(normalized))
+        return _StageOut(
+            {
+                "error": "token_ceiling_exceeded",
+                "detail": str(exc),
+                "blockers": [exc.blocker().model_dump(mode="json")],
+                "usage": {**llm.usage(), "n_calls": llm.n_exchanges},
+                "usage_path": str(logs / "usage.json"),
+                "transcript_path": str(_write_transcript(logs, llm)),
+            },
+            # stdout, like every other refusal: a `blockers` list IS the result object, and a caller
+            # that has to parse stderr to learn why a run stopped has no contract at all.
+            3,
+        )
     except ExtractUnavailable as exc:
         return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
 
-    usage_records: list[dict[str, object]] = []
     extract_rejected: list[dict[str, object]] = []
-    for nd in normalized:
-        outcome = outcomes[nd.doc_sha256]
+    # Positional, never keyed by document identity: two documents that render identically are one
+    # document to the plan, and a dict keyed by `doc_sha256` used to pay for both, keep one result
+    # and then read it once per collider — duplicating its drafts, its rejections and its usage.
+    for nd, outcome in zip(normalized, outcomes, strict=True):
         all_drafts.extend(outcome.drafts)
         extract_rejected.extend(outcome.rejected)
         extractor = outcome.extractor
-        for k, v in outcome.usage.items():
-            usage_total[k] = usage_total.get(k, 0) + v
         usage_records.append(
             {
                 "document": {"scope": nd.scope, "subject": nd.subject, "doc_sha256": nd.doc_sha256},
@@ -286,22 +329,7 @@ def _harvest_extract_pipeline(
             }
         )
 
-    # The cost ledger (disk is state). Written whether or not we go on to verify, because the call
-    # happened and cost tokens regardless. `n_calls` is per-document; `cache_read_tokens > 0` means the
-    # stable KB prefix was served from cache, so a second run over the same documents is much cheaper.
-    (logs / "usage.json").write_text(
-        json.dumps(
-            {
-                "provider": llm.name,
-                "model": chosen,
-                "prompt_version": extractor.prompt_version if extractor else None,
-                "totals": {**usage_total, "n_calls": len(normalized)},
-                "calls": usage_records,
-            },
-            indent=2,
-        )
-    )
-
+    _write_usage(logs, llm, chosen, extractor, usage_records, len(normalized))
     payload: dict[str, object] = {
         "provider": llm.name,
         "model": chosen,
@@ -311,9 +339,13 @@ def _harvest_extract_pipeline(
         # token is a provider hiccup we tolerate, not a claim a human must weigh in on.
         "n_extract_rejected": len(extract_rejected),
         "extract_rejected": extract_rejected,
-        "usage": {**usage_total, "n_calls": len(normalized)},
+        "usage": {**llm.usage(), "n_calls": llm.n_exchanges, "n_documents": len(normalized)},
         "usage_by_document": usage_records,
         "usage_path": str(logs / "usage.json"),
+        # The transcript, at an address. `usage.json` says what the run spent; this says what it
+        # spent it on, and it is a PATH on stdout rather than the text: stdout is the result object,
+        # and a thousand exchanges cannot ride on it.
+        "transcript_path": str(_write_transcript(logs, llm)),
         "drafts": [d.model_dump(mode="json") for d in all_drafts],
     }
     if not verify:
@@ -368,6 +400,56 @@ def _harvest_extract_pipeline(
     # that failed the span tripwire needs a human rather than a silent drop.
     code = 4 if (conflicts or report.rejected) else 0
     return _StageOut(payload, code)
+
+
+def _write_transcript(logs: Path, meter: TokenMeter) -> Path:
+    """The run's exchanges, on disk beside the ledger that says what they cost.
+
+    Nothing anywhere used to persist a prompt or a response: ``usage.json`` records the shape of every
+    call and no text, and ``records/documents/`` holds the document but never the message. So "why did
+    the model say that" was unanswerable the moment the process exited, which is exactly when it is
+    asked. Written whether or not verification follows, and written on a ceiling breach too — a run
+    that stopped mid-way is the one whose transcript is most worth reading.
+    """
+    from ..harvest import TRANSCRIPT_FILENAME, write_transcript
+
+    return write_transcript(logs / TRANSCRIPT_FILENAME, meter.transcript())
+
+
+def _write_usage(
+    logs: Path,
+    meter: TokenMeter,
+    model: str,
+    extractor: ExtractorProvenance | None,
+    rows: list[dict[str, object]],
+    n_documents: int,
+) -> None:
+    """The cost ledger (disk is state), written whether or not we go on to verify — the calls
+    happened and cost tokens regardless, and a run refused at its ceiling is the one that most needs
+    to say what it spent.
+
+    ``n_calls`` is the meter's count of real REQUESTS, retries included. It used to be the document
+    count, which made every retry free in the only place a reader would look. ``n_documents`` keeps
+    the old number beside it, because "983 documents, 1002 requests" is two facts and neither
+    substitutes for the other. ``cache_read_tokens > 0`` means the stable KB prefix was served from
+    cache, so a second run over the same documents is much cheaper.
+    """
+    (logs / "usage.json").write_text(
+        json.dumps(
+            {
+                "provider": meter.name,
+                "model": model,
+                "prompt_version": extractor.prompt_version if extractor else None,
+                "totals": {
+                    **meter.usage(),
+                    "n_calls": meter.n_exchanges,
+                    "n_documents": n_documents,
+                },
+                "calls": rows,
+            },
+            indent=2,
+        )
+    )
 
 
 @harvest_app.command("verify")

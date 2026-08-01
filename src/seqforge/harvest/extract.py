@@ -21,6 +21,7 @@ contract cannot drift from ``models/``.
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field, replace
 from typing import Any
@@ -177,6 +178,19 @@ def build_system_prompt(specs: dict[str, Spec], schema: dict[str, Any]) -> str:
     return "\n\n".join([_INSTRUCTIONS, schema_prompt(schema), build_kb_context(specs)])
 
 
+#: The first line :func:`_user_content` writes, read back. An Exchange keeps the user half verbatim
+#: and nothing else about the document — it is a record of a request, not of a plan — so this line is
+#: how a stored exchange is joined back to the document it was about. Written and read in one module
+#: on purpose: a reader that re-derived the format elsewhere would drift from the writer in silence.
+_DOC_LINE = re.compile(r"^Document sha256: ([0-9a-f]{64})\s*$", re.MULTILINE)
+
+
+def document_sha256_in(user: str) -> str | None:
+    """Which document an exchange's user half was about, or ``None`` if it does not say."""
+    match = _DOC_LINE.search(user)
+    return match.group(1) if match is not None else None
+
+
 def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
     """The per-document half of the prompt: which fields, and the document.
 
@@ -308,7 +322,7 @@ def extract_drafts(
         try:
             drafts.append(AssertionDraft.model_validate(item))
         except ValidationError as exc:
-            rejected.append(_malformed_draft(item, exc))
+            rejected.append(_malformed_draft(item, doc, exc))
 
     extractor = ExtractorProvenance(
         # provenance records the provider too: the same prompt on a different model is a different
@@ -327,15 +341,21 @@ def extract_drafts(
     )
 
 
-def _malformed_draft(item: object, exc: ValidationError) -> dict[str, object]:
+def _malformed_draft(item: object, doc: NormalizedDoc, exc: ValidationError) -> dict[str, object]:
     """One draft the model returned malformed. Recorded in the ``rejected`` channel and dropped — a
     non-fatal echo of ``verify._reject``, so both surfaces read the same way. Kept defensive because
-    ``item`` failed validation: any field may be missing or the wrong type."""
+    ``item`` failed validation: any field may be missing or the wrong type.
+
+    The document is the one we **sent**, never the one the draft claims: a draft that failed
+    validation has no trustworthy span, and code owns provenance identity here for the same reason
+    :func:`_anchor` overwrites it on a draft that passed. Recording it is what makes a rejection
+    readable as *this claim, from this record* rather than as an anonymous line in a tally."""
     span = item.get("span") if isinstance(item, dict) else None
     quote = span.get("quote") if isinstance(span, dict) else None
     errors = exc.errors()
     detail = errors[0]["msg"] if errors else str(exc)
     return {
+        "doc_sha256": doc.doc_sha256,
         "field": item.get("field") if isinstance(item, dict) else None,
         "value": item.get("value") if isinstance(item, dict) else None,
         "quote": quote[:120] if isinstance(quote, str) else None,

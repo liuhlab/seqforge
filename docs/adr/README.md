@@ -22,18 +22,18 @@ Numbers only; the table below carries the links.
 
 | area | ADRs |
 | --- | --- |
-| `src/seqforge/cli/` | 0013 |
+| `src/seqforge/cli/` | 0013, 0018 |
 | `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009 |
-| `src/seqforge/io/` | 0001, 0007, 0015 |
+| `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
 | `src/seqforge/kb/` | 0011, 0012 |
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014 |
 | `src/seqforge/workflows/` | 0015 |
-| `evals/` and `src/seqforge/evals/` | 0016 |
+| `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
 | every Python file in the tree — what type-checks it, and what your editor shows | 0017 |
 | the compiler as a whole — what it is *for* | 0003 |
@@ -59,3 +59,4 @@ Numbers only; the table below carries the links.
 | [0015](0015-onlists-are-built-and-deleted.md) | Barcode whitelists are built by a rule and `temp()`-deleted | `rule onlist` materializes one on demand; the shipped packed array is the only stored copy | `workflows/map/`, `io/onlist.py`, `compose/` |
 | [0016](0016-no-held-out-dataset.md) | No held-out dataset — a pre-registered prediction instead | The reservation is retired; `expected.yaml` is written from declared metadata before the run | `evals/`, `src/seqforge/evals/` |
 | [0017](0017-one-type-checker-and-the-editor-runs-it.md) | One type checker, and the editor runs it | mypy is the only one, its scope is the whole repo, and Pylance's checker is off so the two cannot disagree | `pyproject.toml`, `.vscode/`, and every `.py` file in the tree |
+| [0018](0018-a-red-benchmark-case-is-published-anyway.md) | A benchmark case a real dataset makes red is published anyway | Never withhold a package to keep a rate green; a package the corpus does not hold reports **absent**, not a skip | `evals/`, `src/seqforge/evals/`, `io/benchmark.py`, `cli/io.py` |

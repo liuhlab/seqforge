@@ -47,6 +47,19 @@ DOCUMENTS_DIRNAME = "documents"  #: under records/ — the bytes a span citation
 LOGS_DIRNAME = "logs"
 CACHE_DIRNAME = "cache"
 
+#: The eval harness's own output, top-level beside `pipeline/`: one directory per run holding
+#: `report.json` and `transcripts/<case>.jsonl`. Evals were the one part of seqforge that wrote
+#: nothing at all — every case ran in a temporary directory that was deleted and the whole result
+#: rode on stdout — which left a thousand-exchange transcript with no address. It is output rather
+#: than cache: re-running it costs real tokens, so deleting it loses work.
+EVAL_DIRNAME = "eval"
+
+#: The two names *inside* an eval run directory. They live here for the same reason every other name
+#: does: a caller that spells one itself is a second owner, and the two drift apart silently — the
+#: workflow that reads the report is not the code that wrote it.
+EVAL_REPORT_FILENAME = "report.json"
+EVAL_TRANSCRIPTS_DIRNAME = "transcripts"
+
 #: A *deliverable*, top-level beside `pipeline/`, NOT under `cache/`. A fingerprint package is a
 #: portable slice of a dataset — head-sampled FASTQs + a pin that reproduces the full dataset's
 #: identity — that a user carries off this machine; it is output, not a rebuildable cache entry.
@@ -101,6 +114,11 @@ def fingerprint_dir(workspace: str | Path = ".") -> Path:
     return state_dir(workspace, FINGERPRINT_DIRNAME)
 
 
+def eval_dir(workspace: str | Path = ".") -> Path:
+    """``seqforge/eval/`` — an eval run's report and the per-case transcripts beneath it."""
+    return state_dir(workspace, EVAL_DIRNAME)
+
+
 def report_html_path(workspace: str | Path = ".") -> Path:
     """``seqforge/report.html`` — the single-file decision report (a deliverable, not cache)."""
     return state_dir(workspace, REPORT_HTML)
@@ -142,6 +160,9 @@ __all__ = [
     "LOGS_DIRNAME",
     "CACHE_DIRNAME",
     "FINGERPRINT_DIRNAME",
+    "EVAL_DIRNAME",
+    "EVAL_REPORT_FILENAME",
+    "EVAL_TRANSCRIPTS_DIRNAME",
     "REPORT_HTML",
     "state_dir",
     "records_dir",
@@ -149,6 +170,7 @@ __all__ = [
     "logs_dir",
     "cache_dir",
     "fingerprint_dir",
+    "eval_dir",
     "report_html_path",
     "readable",
     "legacy_state_dir",

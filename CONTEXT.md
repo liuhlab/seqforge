@@ -204,6 +204,35 @@ llm_confidence}`. It carries no offsets and no `subject` by design — both woul
 nothing to check (`docs/adr/0008`).
 _Avoid_: proposal, raw assertion, candidate (a candidate is a scored technology)
 
+**Exchange**:
+One request and the response it got at the model seam, kept whole: system prompt, user text, returned
+text, usage, mode. The unit a transcript is a list of, and the unit a call is counted in — a retry is
+its own exchange, because tokens were spent on it.
+_Avoid_: call, turn, message, completion, round-trip; a **Document** is what an exchange is *about*,
+not the exchange
+
+**Ceiling**:
+The most tokens one run may spend at the model seam. Counted raw — fresh input, cached input, cache
+writes and output all count, because a ceiling is a backstop and not a price. Crossing it is a
+**Blocker**: a ceiling that only warns is a number nobody sets. Not a **Budget** — a budget bounds one
+head in bytes and reads, a ceiling bounds a whole run in tokens, and neither substitutes for the other.
+_Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound, per call)
+
+**Plan**:
+Which **Document**s one extraction will send, what each will be asked, and the input tokens that
+costs — computed before a token is spent. Exact rather than projected: rendering a document is free,
+so a plan holds the same send list the paid run uses. `harvest extract --dry-run` is a plan and
+nothing else.
+_Avoid_: estimate, preview, dry run (that is the flag that prints one), schedule; and never for
+`compose`'s output, which is a Snakemake plan
+
+**Transcript**:
+Every **Exchange** of one run, assembled: one system prompt plus N (document, response) pairs, since
+the prompt is byte-identical across a run. It is a file — stdout is the result object and a thousand
+exchanges cannot ride on it — and the meter that records it never chooses its address.
+_Avoid_: log, history, conversation, trace; `logs/usage.json` is the **ledger** (what a run spent),
+this is what it spent it on
+
 ### Deciding the library
 
 **Observation**:

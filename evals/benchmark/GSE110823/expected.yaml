@@ -1,25 +1,38 @@
 outcome: decide
 description: >-
   Rosenberg et al., Science 2018 — the dataset SPLiT-seq was published on, and the case the synthetic
-  corpus structurally cannot be. This is a PRE-REGISTERED PREDICTION OF A FIX, not a record of current
-  behaviour: as written today this case FAILS, and that is the point of committing it.
+  corpus structurally cannot be. It was committed on 2026-07-23 as a PRE-REGISTERED PREDICTION OF A
+  FIX rather than a record of behaviour: at the time it was written this case FAILED, and committing
+  a failing expectation was the point. **The prediction has since come true** — the purity gate was
+  fixed and this case now grades `correct`. Read the next paragraph as history, not as current
+  behaviour.
 
-  What it measures. `10x-*` and `bd-rhapsody-*` are proven on real barcodes by their own cases;
-  `splitseq` was proven only on reads seqforge generated from its own spec. That circularity hid a real
-  defect for the life of the entry. Run against real reads, `resolve score` returns `bulk-rnaseq-pe` at
-  score 0.98, rung 2, with zero conflicts, zero questions and exit 0 — the whitelists derived from
-  Table S12 are correct and are never consulted, because `splitseq` fails its own `requires` gate
-  before rung 3 is reached. `has_segment kind: constant` needs mean_maxfrac >= 0.9 and real reads give
-  linker2 0.827 (0.99+ over the ~61% of reads that are genuinely SPLiT-seq; the rest is head junk).
+  What it measured, and what was wrong. `10x-*` and `bd-rhapsody-*` are proven on real barcodes by
+  their own cases; `splitseq` was proven only on reads seqforge generated from its own spec. That
+  circularity hid a real defect for the life of the entry. Run against real reads, `resolve score`
+  returned `bulk-rnaseq-pe` at score 0.98, rung 2, with zero conflicts, zero questions and exit 0 —
+  the whitelists derived from Table S12 were correct and were never consulted, because `splitseq`
+  failed its own `requires` gate before rung 3 was reached. `has_segment kind: constant` demanded a
+  per-cycle mean_maxfrac >= 0.9 and real reads give linker2 0.827 (0.99+ over the ~61% of reads that
+  are genuinely SPLiT-seq; the rest is head junk).
 
-  Why the expectation is `decide` anyway. Only a prediction can be wrong. Grading this against what the
-  code does today would enshrine the defect as the specification; grading it against what the chemistry
-  IS makes the benchmark the instrument that reports the gap. It goes green when the purity gate is
-  fixed, and not before. The benchmark job is opt-in and never runs in CI, so a red case here reports a
-  measurement rather than blocking a merge — and an unreachable package skips, so this stays quiet
-  until GSE110823.fingerprint.tar.gz is uploaded.
+  What settled it. A constant segment is now scored as a **share of reads** rather than a per-cycle
+  purity, so the ~39% off-structure head junk no longer forbids the `bc` role; the splitseq spec
+  carries these very numbers as the measurement that forced the change. That is the whole argument
+  for pre-registration: only a prediction can be wrong, and this one was right. Grading the case
+  against what the code did would have enshrined the defect as the specification; grading it against
+  what the chemistry IS made the benchmark the instrument that reported the gap, and then reported it
+  closed.
 
-  The whitelists themselves are already confirmed on this data: round 3/2/1 hit at 0.86 / 0.80 / 0.66
+  Published anyway, and that decision stands (ADR-0018). The package was withheld for one release so
+  the benchmark would not go permanently red. Eval is not pytest: a corpus that holds only the cases
+  it passes measures nothing, so a case is published on whether it is green or red. These are the
+  corpus's only real SPLiT-seq reads and the only instrument that can report this gate at all — which
+  is why it is worth carrying whichever colour it happens to be. Should the package ever go missing
+  the fetch answers 404 and the case reports **absent**: a gap in the corpus, named as one, and never
+  a network skip.
+
+  The whitelists themselves are confirmed on this data: round 3/2/1 hit at 0.86 / 0.80 / 0.66
   against a 0.0015 random floor, forward as pinned, and unambiguously the v1 Science-2018 variant
   (Round1 hits 0.659 at [86,94) and 0.0012 at Parse/v2's [78,86)).
 fields:

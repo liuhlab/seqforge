@@ -14,7 +14,9 @@ behind a resolver that happens to be right.
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -41,6 +43,7 @@ from seqforge.evals import (
 from seqforge.evals.case import Recipe
 from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest, _merge_harvest
 from seqforge.harvest import EXTRACT_PROMPT_VERSION
+from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.conflict import Conflict, ConflictPosition
 from seqforge.models.resolve import (
@@ -660,7 +663,11 @@ class _StubProvider:
         from seqforge.harvest import LLMResponse
 
         return LLMResponse(
-            text=_json.dumps(self._payload), usage={"input_tokens": 100, "output_tokens": 20}
+            text=_json.dumps(self._payload),
+            usage={"input_tokens": 100, "output_tokens": 20},
+            # A real adapter records HOW the call was made, and the eval path used to drop it while
+            # the CLI path kept it. A stub that returned no mode could not tell those two apart.
+            mode={"max_tokens": 8000, "response_format": "json_object"},
         )
 
 
@@ -753,7 +760,12 @@ def test_the_trap_fires_on_a_guess_that_happens_to_be_right() -> None:
 
 
 def test_fabricated_quote_is_caught_by_the_tripwire_not_the_grader() -> None:
-    """Defence in depth: a quote that is not in the document dies at verify, before grading."""
+    """Defence in depth: a quote that is not in the document dies at verify, before grading.
+
+    And it dies **legibly**. The refusal used to survive as one increment of an integer, so a report
+    could say four drafts were thrown out and nothing about which claim, from which document, for
+    what reason — the count says a net caught something and nothing whatever about what.
+    """
     case = _trap_case()
     provider = _StubProvider(
         [
@@ -764,7 +776,68 @@ def test_fabricated_quote_is_caught_by_the_tripwire_not_the_grader() -> None:
     run = run_case(case, llm=True, provider=provider)
     assert run.harvest is not None
     assert run.harvest.n_rejected >= 1
-    assert "library.chemistry" not in run.harvest.extracted
+    assert "library.chemistry" not in {a.field for a in run.harvest.assertions}
+
+    refused = next(r for r in run.harvest.rejected if r["field"] == "library.chemistry")
+    assert refused["reason"] == "span_not_found"
+    assert refused["quote"] == "we used the Chromium Single Cell 3' v3", "the quote, not a tally"
+    assert refused["value"] == "10x-3p-gex-v3"
+    # ...and which document it was refused against, which is what makes it readable at all — and
+    # what joins it back to the exchange that produced it.
+    assert refused["doc_sha256"] in {d["doc_sha256"] for d in run.harvest.documents}
+    assert run.harvest.to_json()["n_rejected"] == len(run.harvest.rejected)
+
+
+def test_the_harvest_grade_keeps_the_quote_it_graded() -> None:
+    """A graded claim travels whole — value, quote, span, document — not as `field -> str(value)`.
+
+    Flattening it was a claim about the model's answer with the evidence for the answer removed: the
+    report could say `experiment.organism = "Caenorhabditis elegans"` and never *from this quote, in
+    this document, at these offsets*, which is the entire content of the tripwire that let the claim
+    through. `matched`/`missing`/`hallucinated` are verdicts about these Assertions; a verdict whose
+    evidence was thrown away on the way to the report cannot be checked by the person reading it.
+    """
+    run = run_case(
+        _trap_case(),
+        llm=True,
+        provider=_StubProvider(
+            [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+        ),
+    )
+    assert run.harvest is not None
+    (claim,) = run.harvest.assertions
+    assert claim.field == "experiment.organism"
+    assert claim.value == "Caenorhabditis elegans"
+    assert claim.span.quote == "Caenorhabditis elegans"
+    # code-owned, and the reason a quote is checkable rather than decorative
+    assert claim.span.char_start is not None and claim.span.char_end is not None
+    assert claim.span_verified and claim.entailment_ok
+
+    row = run.harvest.to_json()
+    assert row["assertions"][0]["span"]["quote"] == "Caenorhabditis elegans", "and it survives JSON"
+    assert "extracted" not in row, "the flattened dict is gone, not carried alongside"
+    # the documents that were sent, so a sha256 in a span resolves back to something readable
+    sources = {d["doc_sha256"]: d for d in row["documents"]}
+    assert claim.span.doc_sha256 in sources
+    assert sources[claim.span.doc_sha256]["scope"] in {"dataset", "sample", "experiment", "run"}
+    assert row["mode"], "how the call was made was dropped on this path and the CLI path kept it"
+
+
+def test_a_malformed_draft_reaches_the_grade_instead_of_the_floor() -> None:
+    """The extract-time refusal channel, which the eval path read past entirely.
+
+    `ExtractionOutcome` has four halves and the loop read two, so a model returning nothing but
+    broken drafts graded identically to one that read the document and honestly found nothing. Both
+    producers of a refusal now land in one list, and the reason tells them apart.
+    """
+    bad: dict[str, object] = {"field": "experiment.organism", "value": None, "span": {"quote": "x"}}
+    run = run_case(_trap_case(), llm=True, provider=_StubProvider([bad]))
+
+    assert run.harvest is not None
+    (refused,) = run.harvest.rejected
+    assert refused["reason"] == "malformed_draft"
+    assert refused["doc_sha256"] in {d["doc_sha256"] for d in run.harvest.documents}
+    assert run.harvest.assertions == []
 
 
 def test_under_extraction_is_graded_wrong_reason_not_correct() -> None:
@@ -901,6 +974,43 @@ def test_a_field_found_in_only_some_trials_is_reported_unstable() -> None:
     assert merged.matched == [], "a field missed in any trial must not count as matched"
     assert merged.unstable == ["experiment.organism"]
     assert merged.missing == ["experiment.organism"]
+
+
+def _assertion(field_name: str, value: str, quote: str, sha: str = "d" * 64) -> Assertion:
+    return Assertion(
+        id=f"assert-{sha[:8]}-0",
+        field=field_name,
+        value=value,
+        span=SourceSpan(doc_sha256=sha, quote=quote, char_start=0, char_end=len(quote)),
+        span_verified=True,
+        entailment_ok=True,
+        llm_confidence=0.9,
+        extractor=ExtractorProvenance(model_id="stub/stub-model-1", prompt_version="2026.7.4"),
+    )
+
+
+def test_merging_trials_keeps_every_distinct_claim_and_every_refusal() -> None:
+    """The claim merge follows the same rule the field merge does, and the old one did not.
+
+    `extracted.update(...)` let the last trial win, so a claim only one trial made vanished — the
+    exact fact `unstable` exists to report, deleted from the evidence that would let a reader see
+    it. Distinct claims union; the same claim made twice is one claim, keyed by what the claim IS
+    (field, value, quote, document) rather than by an `id` that carries a draft's position in a
+    batch. Refusals concatenate instead: a draft refused in every trial cost three refusals, which
+    is what the count has always said.
+    """
+    a = _assertion("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")
+    b = _assertion("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3")
+    docs = [{"doc_sha256": "d" * 64, "source": "methods.txt", "scope": "dataset", "n_chars": 40}]
+    one = HarvestGrade(assertions=[a, b], rejected=[{"reason": "not_entailed"}], documents=docs)
+    two = HarvestGrade(assertions=[a], rejected=[{"reason": "not_entailed"}], documents=docs)
+
+    merged = _merge_harvest([one, two, two])
+    assert [x.field for x in merged.assertions] == ["experiment.organism", "library.chemistry"]
+    assert merged.n_rejected == 3, "a refusal repeated in every trial was paid for three times"
+    assert merged.documents == docs, (
+        "the plan is a function of the case, so it is one list not three"
+    )
 
 
 def test_usage_is_accumulated_into_the_report() -> None:
@@ -1063,6 +1173,88 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert all(c.root.resolve() not in hermetic_roots for c in cases)
 
 
+def test_a_benchmark_case_declares_exactly_the_samples_it_grades() -> None:
+    """A benchmark case's `records.json` may not carry a sample the case does not grade.
+
+    The transcript is fetched for a whole accession; the package pins a chosen subset of its runs. So
+    the two drift, and the drift is expensive rather than wrong: every record with prose is one
+    extraction call, and a sample no slice can join to is billed and then discarded unread. GSE126954
+    declared the series' eighth sample, whose 910 run records were 92% of that case's LLM spend and
+    83% of the whole benchmark's, for claims the resolver never reached.
+
+    This is the offline half of the invariant, and it is a proxy: the expectation's
+    `experiment.samples.*` lists are one entry per graded sample, so their length is what the
+    transcript's sample count must equal. It needs no package and therefore runs everywhere. The
+    networked half below asserts the real property against the bytes.
+    """
+    bench = _benchmark_tier_or_skip()
+    for case in discover_cases(bench):
+        assert case.records is not None, f"{case.id}: a benchmark case commits its records.json"
+        declared = {r.accession for r in case.records.at("sample")}
+        graded = {
+            len(v)
+            for k, v in case.expected.fields.items()
+            if k.startswith("experiment.samples.*") and isinstance(v, list)
+        }
+        assert len(graded) <= 1, (
+            f"{case.id}: the `*` lists disagree on how many samples this case grades: {graded}"
+        )
+        if graded:
+            assert len(declared) == graded.pop(), (
+                f"{case.id}: records.json declares {len(declared)} sample(s) but the expectation "
+                f"grades a different number — narrow the transcript to what the package pins"
+            )
+        # A per-accession pin naming a sample the transcript does not carry can never be graded.
+        for key in case.expected.fields:
+            parts = key.split(".")
+            if key.startswith("experiment.samples.") and parts[2] != "*":
+                assert parts[2] in declared, f"{case.id}: {key} names an undeclared sample"
+
+
+@pytest.mark.skipif(
+    not os.environ.get("SEQFORGE_LIVE_NET"),
+    reason="needs the HF packages; set SEQFORGE_LIVE_NET=1 to check transcripts against real bytes",
+)
+def test_a_benchmark_transcript_declares_exactly_what_its_package_pins() -> None:
+    """The real invariant, against the bytes: every sample the transcript declares is one the package ships.
+
+    `materialize` drops the records no slice can reach, so a fixture that has drifted still runs
+    correctly — which is exactly why the drift would otherwise stay invisible. Here the narrowing is
+    applied to the committed file and no *sample* may disappear: one that does is a sample the case
+    can never grade, and every record under it is an extraction call spent on nothing.
+
+    The grain is the sample, not the record, and that is deliberate. A package legitimately pins a
+    subset of a sample's runs — GSE229022 ships one lane of a two-lane sample — so a run record with
+    no slice is thrift, not drift, and the narrowing quietly saves its call. A *sample* with no slice
+    is the GSE126954 defect: 910 runs, 92% of the case's spend, joined to nothing.
+
+    Opt-in, because it pulls every package from Hugging Face. A package that will not download skips
+    that case rather than failing it, the same contract the harness keeps.
+    """
+    from seqforge.evals.case import CaseSkipped, _records_the_package_reaches, materialize
+
+    bench = _benchmark_tier_or_skip()
+    checked = 0
+    for case in discover_cases(bench):
+        assert case.records is not None
+        with tempfile.TemporaryDirectory(prefix="seqforge-invariant-") as tmp:
+            try:
+                built = materialize(case, Path(tmp) / "inputs")
+            except CaseSkipped:
+                continue
+            narrowed = _records_the_package_reaches(case.records, built.paths)
+        dropped = {r.accession for r in case.records.at("sample")} - {
+            r.accession for r in narrowed.at("sample")
+        }
+        assert not dropped, (
+            f"{case.id}: records.json declares sample(s) {sorted(dropped)} that no slice in the "
+            f"package reaches — every record under them is an extraction call that grades nothing"
+        )
+        checked += 1
+    if not checked:
+        pytest.skip("no benchmark package could be fetched")
+
+
 def test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it() -> None:
     """`evals/benchmark-datasets.tsv` is one row per benchmark case, and it cannot drift.
 
@@ -1127,12 +1319,49 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
 # --------------------------------------------------------------------------------------------------
 
 
+#: The sha256 of the one document the fixture's exchanges are about. A real one is a real sha; what
+#: matters here is that the SAME string appears in the document list, in a claim's span, on a
+#: refusal, and on the "Document sha256:" line of an exchange — that chain is what the page joins on.
+_FIXTURE_DOC = "a1" * 32
+_FIXTURE_SAMPLE_DOC = "b2" * 32
+
+
+def _fixture_exchange(sha: str, why: str, **over: Any) -> dict[str, Any]:
+    """One exchange as `attach_transcripts` writes it into a case row."""
+    row: dict[str, Any] = {
+        "doc_sha256": sha,
+        "why": why,
+        "prompt_sha256": "c3" * 32,
+        "model": "deepseek-v4-flash",
+        "user": f"Document sha256: {sha}\nEcho that exact string as span.doc_sha256.\n\n"
+        "Fields to look for:\n- experiment.organism\n\n<document>\n"
+        # Long enough to trip the clip, and carrying the characters that would end the page early if
+        # anything here reached the browser as markup rather than as text.
+        + ("Worms were grown at 20 C <b>& harvested</b> </script> alert(1). " * 30)
+        + "\n</document>",
+        "text": '{"drafts": [{"field": "experiment.organism", "value": "Caenorhabditis elegans"}]}',
+        "usage": {"input_tokens": 4102, "output_tokens": 210},
+    }
+    row.update(over)
+    return row
+
+
 #: Every branch the renderer has, in one report: a false accept with a wrong scalar AND a wrong
 #: multiset, each of the other four failure grades, a correct case, a skip, harvest (including a
-#: hallucination), multiple trials, and both clocks. Built fresh per call because tests mutate it.
+#: hallucination, the claims it graded, and the drafts it refused), a sampled transcript with the
+#: system prompt beside it, multiple trials, and both clocks. Built fresh per call because tests
+#: mutate it.
 def _render_fixture() -> dict[str, Any]:
     return {
         "n_cases": 6,
+        "prompts": [
+            {
+                "sha256": "c3" * 32,
+                "text": "You extract factual claims from a scientific methods document.\n"
+                "Rules:\n1. Extract ONLY what the document explicitly states.\n",
+                "n_exchanges": 412,
+            }
+        ],
         "extractor": {
             "provider": "deepseek",
             "model": "deepseek-v4-flash",
@@ -1197,8 +1426,101 @@ def _render_fixture() -> dict[str, Any]:
                     "hallucinated": ["experiment.samples.tissue"],
                     "unstable": ["experiment.samples.dev_stage"],
                     "n_rejected": 4,
-                    "extracted": {"experiment.organism": "Caenorhabditis elegans"},
+                    "n_calls": 412,
+                    "n_documents": 73,
+                    "mode": {"max_tokens": 8000, "response_format": "json_object"},
+                    "documents": [
+                        {
+                            "doc_sha256": _FIXTURE_DOC,
+                            "source": "methods.pdf",
+                            "scope": "dataset",
+                            "subject": None,
+                            "n_chars": 41233,
+                        },
+                        {
+                            "doc_sha256": _FIXTURE_SAMPLE_DOC,
+                            "source": "SAMN14126930.txt",
+                            "scope": "sample",
+                            "subject": "SAMN14126930",
+                            "n_chars": 812,
+                        },
+                    ],
+                    # The claim, WITH the quote it rests on and the span that locates it — the whole
+                    # point of the grade carrying Assertions rather than `field -> str(value)`.
+                    "assertions": [
+                        {
+                            "id": "assert-a1a1a1a1-0",
+                            "field": "experiment.organism",
+                            "value": "Caenorhabditis elegans",
+                            "span": {
+                                "doc_sha256": _FIXTURE_DOC,
+                                "quote": "worms (Caenorhabditis elegans) were grown at 20 C",
+                                "context": None,
+                                "char_start": 4120,
+                                "char_end": 4168,
+                                "page": 3,
+                            },
+                            "span_verified": True,
+                            "entailment_ok": True,
+                            "llm_confidence": 0.94,
+                            "extractor": {
+                                "model_id": "deepseek/deepseek-v4-flash",
+                                "prompt_version": "2026.7.2",
+                            },
+                        }
+                    ],
+                    # Both producers, so the page has to render a malformed draft (no field, no
+                    # value, no quote) beside a verify refusal that has all three.
+                    "rejected": [
+                        {
+                            "doc_sha256": _FIXTURE_DOC,
+                            "field": "library.chemistry",
+                            "value": "10x-3p-gex-v3",
+                            "quote": "droplet-based single-cell",
+                            "reason": "not_entailed",
+                            "detail": "quote does not support value '10x-3p-gex-v3'",
+                        },
+                        {
+                            "doc_sha256": _FIXTURE_DOC,
+                            "field": "experiment.samples.tissue",
+                            "value": "L4 larva",
+                            "quote": "synchronised L4 larvae",
+                            "reason": "field_not_permitted_for_doc",
+                            "detail": "'experiment.samples.tissue' may not be set by 'methods.pdf'",
+                        },
+                        {
+                            "doc_sha256": _FIXTURE_SAMPLE_DOC,
+                            "field": None,
+                            "value": None,
+                            "quote": None,
+                            "reason": "malformed_draft",
+                            "detail": "draft failed AssertionDraft validation: Input should be a "
+                            "valid string",
+                        },
+                        {
+                            "doc_sha256": _FIXTURE_SAMPLE_DOC,
+                            "field": "processing.genome.assembly",
+                            "value": "ce11",
+                            "quote": "mapped to the worm genome",
+                            "reason": "not_entailed",
+                            "detail": "quote does not support value 'ce11'",
+                        },
+                    ],
                 },
+                # What `attach_transcripts` folds in from `transcripts/<case>.jsonl`: a SAMPLE, and
+                # the total it was drawn from, so the page can say what it left out.
+                "transcript": "transcripts/poisoned-one.jsonl",
+                "n_exchanges": 412,
+                "exchanges": [
+                    _fixture_exchange(_FIXTURE_DOC, "produced a graded assertion"),
+                    _fixture_exchange(
+                        _FIXTURE_SAMPLE_DOC,
+                        "the request failed",
+                        text="",
+                        error="deepseek: 429 rate limited",
+                        usage={"input_tokens": 3980, "output_tokens": 0},
+                    ),
+                ],
             },
             {
                 "case": "triaged-wrong",
@@ -1253,10 +1575,20 @@ def _render_fixture() -> dict[str, Any]:
                 "stability": 0.0,
             },
             {
-                "case": "absent-one",
+                "case": "offline-one",
                 "seconds": 0.19,
                 "llm_calls": 0,
                 "skipped": "package unreachable",
+            },
+            # The other skip, and the reason `skip_kind` exists: the archive answered, and it does
+            # not hold this package. Nothing about the wire went wrong; the corpus has a hole.
+            {
+                "case": "never-published-one",
+                "seconds": 0.11,
+                "llm_calls": 0,
+                "skipped": "benchmark package 'packages/GSE110823.fingerprint.tar.gz' was never "
+                "published to liuhlab/seqforge-benchmark",
+                "skip_kind": "absent",
             },
         ],
     }
@@ -1296,10 +1628,10 @@ def test_a_skip_keeps_its_reason_and_never_becomes_a_pass() -> None:
     are outside the rates.
     """
     page = render_html(_render_fixture(), title="T", source=None)
-    assert "absent-one" in page, "a skip is not a silent omission"
+    assert "offline-one" in page, "a skip is not a silent omission"
     assert "package unreachable" in page, "and it carries WHY"
     assert "excluded from every rate" in page, "a skip is never a pass"
-    assert "1 skipped" in page, "and the count is on the summary tile"
+    assert "2 skipped" in page, "and the count is on the summary tile"
 
     # The degenerate benchmark run: HF is down, every package is unreachable, nothing graded. That
     # must read as "nothing was measured", never as a clean sheet.
@@ -1311,6 +1643,66 @@ def test_a_skip_keeps_its_reason_and_never_becomes_a_pass() -> None:
     page = render_html(all_skipped, title="T", source=None)
     assert "Nothing was graded — all 3 cases skipped." in page
     assert "No false accepts." in page, "true, and stated beside the fact that nothing ran"
+
+
+def test_a_package_the_corpus_never_held_reads_as_a_gap_and_not_as_a_blip() -> None:
+    """`skip_kind: absent` is a finding about the CORPUS; a plain skip is an accident of the machine.
+
+    Both stay outside every rate — the benchmark tier is opt-in and gates no merge, so a dataset that
+    was never uploaded must not fail a run. What it must not do either is read as bad weather: the
+    fix for "offline" is to try again, and the fix for "never published" is to publish the package.
+    A page that spelled them the same way let a dataset go quietly missing behind a word that means
+    *transient*, which is exactly how GSE110823 sat out of the corpus without anyone tripping over it.
+
+    The distinction is machine-readable first (`skip_kind` in the JSON, and in `eval report`'s stdout
+    summary) and visible second, so an agent reading the report never has to grep a sentence for 404.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "never-published-one" in page
+    assert ">absent<" in page, "the absent case is labelled as such, not as a generic skip"
+    assert "a gap in the corpus" in page, "and the page says what that means"
+    assert "1 of them never published" in page, "counted apart from the skips on the summary tile"
+    # ...and the plain skip is untouched: still a skip, still excluded, still not called absent.
+    offline = page[page.index("offline-one") :]
+    assert offline[: offline.index("</div>")].count(">absent<") == 0
+
+    # The degenerate case of the degenerate case: nothing graded, and the reason is the corpus.
+    nothing = {
+        "per_case": [
+            {"case": f"c{i}", "skipped": "never published", "skip_kind": "absent"} for i in range(3)
+        ],
+        "cost": {},
+        "questions_asked": {},
+    }
+    empty = render_html(nothing, title="T", source=None)
+    assert "Nothing was graded — all 3 cases skipped." in empty
+    assert "3 of them absent — the corpus does not hold those packages." in empty
+
+
+def test_the_harness_carries_the_absent_state_from_the_fetch_seam_to_the_json() -> None:
+    """One fact, three layers: `io` types it, `case` labels the skip, `run` puts it in the JSON.
+
+    The report can only tell a gap from a blip if the state survives the whole way, and every hop is
+    somewhere it could be flattened back into a sentence. This walks the hops rather than the page.
+    """
+    from seqforge.evals.case import CaseSkipped
+    from seqforge.evals.run import CaseRun
+    from seqforge.io import BenchmarkPackageAbsent, BenchmarkPackageUnavailable
+
+    assert issubclass(BenchmarkPackageAbsent, BenchmarkPackageUnavailable)
+    assert CaseSkipped("x").kind == "unavailable", "the default is the state that says nothing"
+    assert CaseSkipped("x", kind="absent").kind == "absent"
+
+    absent = CaseRun("c", _empty_grade_for("c"), skipped="never published", skip_kind="absent")
+    assert absent.to_json() == {
+        "case": "c",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "skipped": "never published",
+        "skip_kind": "absent",
+    }
+    plain = CaseRun("c", _empty_grade_for("c"), skipped="offline")
+    assert plain.to_json()["skip_kind"] == "unavailable"
 
 
 def test_the_report_separates_work_done_from_elapsed_time() -> None:
@@ -1374,7 +1766,9 @@ def test_cases_are_ordered_worst_first_and_severity_is_carried_in_form() -> None
             "right-answer-wrong-reason",  # wrong_reason
             "asked-too-much",  # over_ask
             "green-one",  # correct
-            "absent-one",  # skipped — a state, not a grade, so it sorts last
+            # Skips are a state, not a grade, so they sort last — and among themselves by id.
+            "never-published-one",
+            "offline-one",
         )
     ]
     assert order == sorted(order), "cases must be laid out worst grade first, then skips"
@@ -1413,7 +1807,7 @@ def test_the_report_surfaces_trials_harvest_and_the_token_bill() -> None:
     A case correct 2 times in 3 is a finding, not a rounding error (`_merge_harvest` refuses to
     average it away, so the page must not either). A `hallucinated` field is corpus poison and is
     labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as a
-    failure. Tokens and LLM calls are what a `--llm` pass costs.
+    failure. Tokens and exchanges are what a `--llm` pass costs.
     """
     page = render_html(_render_fixture(), title="T", source=None)
     assert "1/3</b> trials correct" in page, "stability is reported as a fraction of trials"
@@ -1421,8 +1815,230 @@ def test_the_report_surfaces_trials_harvest_and_the_token_bill() -> None:
     assert "nothing downstream would catch these" in page, "a hallucination is named as poison"
     assert "unstable" in page and "experiment.samples.dev_stage" in page
     assert "the safety net working, not a failure" in page, "n_rejected is not a failure count"
+    assert "max_tokens 8000 · response_format json_object" in page, (
+        "how the calls were made, beside what they cost — the eval path used to drop it"
+    )
     assert "188,423 tokens" in page, "the token bill"
     assert "missed a question it had to ask" in page, "questions_asked.missed reaches the case"
+
+
+def test_a_graded_claim_is_shown_with_the_quote_it_rests_on() -> None:
+    """`library.chemistry = "RNA-Seq"` is not a finding; *from this quote, at these offsets* is.
+
+    The grade used to flatten each Assertion to `field -> str(value)` on the way to the report, which
+    threw away the only part of it a reader can independently check. So the page shows the quote, the
+    document it came from, and the span code computed for it.
+
+    What the page deliberately does NOT show is a per-row pair of verification ticks. `verify` only
+    builds an Assertion once `span_verified` and `entailment_ok` both hold, so a column of them is a
+    column of the constant `true` — evidence-shaped and carrying nothing. The invariant is stated
+    once, and it points at the rejected drawer, where those checks are the ones that fired.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+
+    assert "worms (Caenorhabditis elegans) were grown at 20 C" in page, "the quote itself"
+    assert "chars 4,120–4,168" in page, "and where it is, which is what makes it checkable"
+    assert "p.3" in page, "including the page, when the document has pages"
+    assert "methods.pdf · dataset" in page, "and which document, not a bare sha256"
+    assert "span-verified <b>and</b> entailment-checked" in page, "the invariant, stated once"
+    assert page.count("span-verified") == 1, "...once, not once per row of always-true booleans"
+
+
+def test_rejected_drafts_are_readable_instead_of_being_a_count() -> None:
+    """One benchmark case's 84 refusals survived as the integer 84 — a net caught something, and
+    nothing about what.
+
+    Both producers have to read the same way: a draft the model returned malformed (whose field,
+    value and quote may all be absent — the row says `none` rather than printing `None`) and a draft
+    whose field, document, quote or entailment failed. The reason is what tells them apart, so it
+    leads the row.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+
+    assert "the 4 draft(s) the tripwire threw out" in page
+    assert "not_entailed" in page and "field_not_permitted_for_doc" in page
+    assert "droplet-based single-cell" in page, "the quote that was refused"
+    assert "10x-3p-gex-v3" in page, "beside the value it failed to support"
+    assert "quote does not support value" in page, "and the detail that says which check fired"
+    assert "malformed_draft" in page and ">none<" in page, "a draft with no field says so"
+    assert "SAMN14126930 · sample" in page, "every refusal names the document it came from"
+
+
+def test_a_report_from_before_the_grade_carried_its_claims_still_renders() -> None:
+    """The committed benchmark reports predate the shape and must not become unreadable.
+
+    An older run recorded a flat `extracted` dict and an integer `n_rejected`. It projects with the
+    values it has and says outright that it has no quotes, rather than dropping the block or
+    inventing provenance for a claim whose provenance was never written down.
+    """
+    older = _render_fixture()
+    case = older["per_case"][1]
+    case["harvest"] = {
+        "matched": ["experiment.organism"],
+        "missing": [],
+        "hallucinated": [],
+        "n_rejected": 84,
+        "extracted": {"experiment.organism": "Caenorhabditis elegans"},
+    }
+    case.pop("exchanges")
+    page = render_html(older, title="T", source=None)
+
+    assert "Caenorhabditis elegans" in page, "the value it did record"
+    assert "not recorded by this run" in page, "and the absence of a quote, said out loud"
+    assert "84" in page, "the old count still reads as the count it was"
+
+
+# --------------------------------------------------------------------------------------------
+# the transcript on the page — a sample, and what it left out
+# --------------------------------------------------------------------------------------------
+#
+# A transcript is one system prompt plus N (document, response) pairs, and N reaches the hundreds on
+# a corpus-scale run. The page is ONE inlined file that opens from `file://`, so every exchange is
+# not an option — and the first twelve is not a sample, it is whatever the thread pool finished
+# first. These pin what is selected, and that the page never shows less than everything in silence.
+
+
+def _exchange(sha: str, *, text: str = '{"drafts": []}', error: str | None = None) -> Any:
+    from seqforge.harvest import Exchange
+
+    return Exchange(
+        prompt_sha256="c3" * 32,
+        user=f"Document sha256: {sha}\nFields to look for:\n- experiment.organism\n\n<document>x",
+        text=text,
+        usage={"input_tokens": 100, "output_tokens": 10},
+        model="stub-1",
+        error=error,
+    )
+
+
+def test_the_exchange_selection_keeps_what_has_signal_and_one_of_every_scope() -> None:
+    """The representative rule, against the function that owns it.
+
+    Four things earn an exchange its place: it failed (it produced neither draft nor claim, so no
+    other rule would keep it, and "we paid and got nothing" is exactly what a reader is looking
+    for), its document produced a refused draft, its document produced a graded claim, or it is the
+    first of its scope. The cap bounds the first three; scope coverage is added afterwards and never
+    competes with them, because five extra exchanges is what coverage costs.
+    """
+    from seqforge.evals.report import select_exchanges
+
+    shas = [f"{i:02x}" * 32 for i in range(6)]
+    exchanges = [_exchange(s) for s in shas] + [_exchange(shas[4], error="429")]
+    scopes = {shas[0]: "dataset", shas[1]: "sample", shas[2]: "sample", shas[3]: "sample"}
+    # shas[4] and shas[5] are in no document list at all — an exchange the report cannot place.
+
+    chosen = select_exchanges(
+        exchanges,
+        scopes=scopes,
+        claimed={shas[1]},
+        refused={shas[3]},
+        limit=None,
+    )
+    why = {x.user.split()[2]: reason for x, reason in chosen}
+    assert why[shas[1]] == "produced a graded assertion"
+    assert why[shas[3]] == "produced a rejected draft"
+    assert why[shas[4]] == "the request failed", "an exchange no document list can place, kept"
+    assert why[shas[0]] == "the first dataset-scoped document"
+    assert len(chosen) == 4, "the two with signal, the failed request, and the uncovered scope"
+    assert shas[2] not in why, "`sample` was already covered — coverage, not one per document"
+    assert [x for x, _ in chosen] == sorted((x for x, _ in chosen), key=exchanges.index), (
+        "the sample is a subsequence of the run, never a ranking"
+    )
+
+    # The cap bites the signal-selected ones only, and coverage survives it.
+    capped = select_exchanges(exchanges, scopes=scopes, claimed=set(shas), refused=set(), limit=1)
+    assert len(capped) == 2, "one under the cap, plus the scope nothing else covered"
+
+
+def test_a_sampled_transcript_says_how_much_it_left_out() -> None:
+    """The minimum this page owes a reader. A transcript truncated in silence reads as a complete
+    one, which turns "the model was never asked about that" and "we did not show you" into the same
+    page."""
+    page = render_html(_render_fixture(), title="T", source=None)
+
+    assert "Showing <b>2 of 412 exchanges</b>" in page
+    assert "clipped — showing 800 of 2,112 characters" in page, "and the clip inside one, too"
+    assert "transcripts/poisoned-one.jsonl" in page, "beside the address of the unclipped run"
+    assert "produced a graded assertion" in page, "each exchange says why it was the one shown"
+    assert "deepseek: 429 rate limited" in page, "a failed request is spend with nothing to show"
+
+
+def test_the_system_prompt_is_rendered_once_for_the_whole_report() -> None:
+    """One prompt plus N (document, response) pairs — that IS a transcript.
+
+    The system prompt is byte-identical across every request in a run, which is exactly why prefix
+    caching works; rendering it per exchange would be the same three kilobytes a few hundred times.
+    """
+    fixture = _render_fixture()
+    page = render_html(fixture, title="T", source=None)
+    body = page.split("</style>", 1)[1]
+
+    prompt = fixture["prompts"][0]["text"]
+    assert body.count("You extract factual claims") == 1, "once per report, not once per exchange"
+    assert prompt.splitlines()[0] in body
+    assert "The system prompt <code class='val'>2026.7.2</code>" in body, "with its version"
+    assert "412 exchange(s)" in body, "and how many requests it was sent with"
+
+    # A run that somehow issued two prompts says so: the prefix cannot have been cached across them.
+    fixture["prompts"].append({"sha256": "d4" * 32, "text": "Other.", "n_exchanges": 3})
+    assert "2</b> distinct system prompts" in render_html(fixture, title="T", source=None)
+
+    # ...and a report with no transcript beside it has no panel at all. Absent, not empty.
+    del fixture["prompts"]
+    assert "The system prompt" not in render_html(fixture, title="T", source=None)
+
+
+def test_a_recorded_transcript_that_was_not_read_says_so_rather_than_reading_as_none() -> None:
+    """`eval report report.json` (or `--transcript none`) renders the grade and no exchanges. That
+    is a different sentence from "this case reached no model", and the page has to spell it."""
+    fixture = _render_fixture()
+    case = fixture["per_case"][1]
+    del case["exchanges"]
+    del fixture["prompts"]
+    page = render_html(fixture, title="T", source=None)
+    assert "were recorded in" in page and "transcripts/poisoned-one.jsonl" in page
+    assert "and not read" in page
+
+
+def test_a_case_stopped_at_its_ceiling_still_shows_what_it_spent_the_tokens_on() -> None:
+    """A blocked case reports as a skip, and a skip card carries no grade — but the exchanges up to
+    the breach were paid for, and "on what?" is the whole question a Ceiling breach produces."""
+    fixture = _render_fixture()
+    blocked = fixture["per_case"][1]
+    blocked["skipped"] = "token ceiling: 500,000 tokens spent over 412 exchange(s)"
+    page = render_html(fixture, title="T", source=None)
+
+    assert "token ceiling" in page
+    assert "Showing <b>2 of 412 exchanges</b>" in page, (
+        "the spend is on the card, not only a number"
+    )
+
+
+def test_a_corpus_scale_transcript_is_bounded_by_the_sample_and_not_by_the_run() -> None:
+    """The display discipline, measured. A saturated corpus — fourteen cases, hundreds of exchanges
+    each, one of them with 84 refused drafts — must produce a page a browser opens, and the number
+    of exchanges the RUN made must not be what decides its size."""
+    fixture = _render_fixture()
+    template = fixture["per_case"][1]
+    saturated = []
+    for i in range(14):
+        case = json.loads(json.dumps(template))
+        case["case"] = f"heavy-{i:02d}"
+        case["n_exchanges"] = 983
+        case["exchanges"] = [
+            _fixture_exchange(_FIXTURE_DOC, "produced a rejected draft") for _ in range(17)
+        ]
+        case["harvest"]["rejected"] = case["harvest"]["rejected"] * 21  # 84
+        saturated.append(case)
+    fixture["per_case"] = saturated
+
+    page = render_html(fixture, title="T", source=None)
+    assert len(page.encode()) < 1_000_000, "a saturated corpus still opens as one page"
+
+    # And the total is not what sized it: ten times the exchanges, byte-identical page.
+    for case in fixture["per_case"]:
+        case["n_exchanges"] = 9830
+    assert len(render_html(fixture, title="T", source=None).encode()) == len(page.encode()) + 14
 
 
 def test_the_eval_report_makes_no_external_network_reference() -> None:
@@ -1597,7 +2213,8 @@ def test_eval_report_is_a_verb_that_writes_a_file_and_answers_on_stdout(tmp_path
     assert result.exit_code == 0, result.output
     payload = json.loads(result.stdout)
     assert payload["false_accepts"] == ["poisoned-one"], "named on stdout, not just counted"
-    assert payload["skipped"] == 1
+    assert payload["skipped"] == 2
+    assert payload["absent"] == 1, "a package the corpus never held is counted apart from a skip"
     assert out.exists() and payload["bytes"] == len(out.read_text().encode())
     assert out.read_text().startswith("<!doctype html>")
 
@@ -1686,3 +2303,333 @@ def test_the_job_default_reads_usable_cores_and_stays_capped() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("os.process_cpu_count", lambda: None)  # unknowable: serial, never 0
         assert default_jobs() == 1
+
+
+# --------------------------------------------------------------------------------------------
+# the meter in the harness: what a case really cost, and the ceiling that stops one that runs away
+# --------------------------------------------------------------------------------------------
+
+
+class _RetryingProvider:
+    """Refuses transiently `n_refusals` times, then answers. Every attempt costs tokens."""
+
+    name = "retrying"
+
+    def __init__(self, n_refusals: int) -> None:
+        self._left = n_refusals
+        self.calls = 0
+
+    def default_model(self) -> str:
+        return "retrying-1"
+
+    def complete_json(self, **kwargs: object) -> LLMResponse:
+        import json as _json
+
+        from seqforge.harvest import LLMResponse, ProviderUnavailable
+
+        self.calls += 1
+        if self._left > 0:
+            self._left -= 1
+            raise ProviderUnavailable(
+                "429 rate limited",
+                transient=True,
+                retry_after="0",
+                usage={"input_tokens": 40},
+            )
+        return LLMResponse(text=_json.dumps({"drafts": []}), usage={"input_tokens": 100})
+
+
+def test_a_cases_call_count_is_requests_not_documents(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One document, two requests: the first was rate-limited and cost tokens. The old count was
+    `len(docs)`, so the retry was invisible in the only number a cost review reads."""
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
+    provider = _RetryingProvider(n_refusals=1)
+
+    run = run_case(_trap_case(), llm=True, provider=provider)
+
+    assert provider.calls == 2
+    assert run.harvest is not None
+    assert run.harvest.n_calls == 2, "the refused attempt is its own exchange"
+    assert run.harvest.n_documents == 1, "and the document count is kept beside it"
+    assert run.llm_calls == 2
+    assert run.usage["input_tokens"] == 140, "the 429's 40 plus the answered call's 100"
+
+
+def test_a_case_that_reaches_its_ceiling_is_blocked_not_graded() -> None:
+    """Per case, because a case is a dataset and the ceiling bounds a dataset — and the meter spans
+    the case's trials, so the second trial here is refused on what the first spent. It refuses: the
+    case carries a `Blocker` and scores nothing, rather than warning into a log nobody reads.
+
+    The request that CROSSES the ceiling is issued (its cost is not knowable until it returns); it
+    is the one after it that never leaves. That is why a one-document, one-trial case cannot breach
+    at all, and why a breach is reproducible rather than a race.
+    """
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=1, trials=2)
+
+    assert run.blocker is not None
+    assert run.llm_calls == 1, "the first trial's request was issued; the second never left"
+    assert run.blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
+    assert run.blocker.subject.ref == _trap_case().id, "the refusal names the dataset it is about"
+    assert run.skipped is not None and "ceiling" in run.skipped
+    assert run.to_json()["blockers"][0]["code"] == "TOKEN_CEILING_EXCEEDED"
+    # excluded from every rate: the case did not run, so it is neither a pass nor a failure
+    assert build_report([run]).n_cases == 0
+
+
+def test_a_ceiling_high_enough_never_binds() -> None:
+    """A backstop is a number nothing normally touches; the default must not change any grade."""
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=500_000)
+    assert run.blocker is None and run.skipped is None
+
+
+def test_the_report_carries_cache_write_tokens() -> None:
+    """The Anthropic normalizer produces it and every consumer but the on-disk ledger dropped it —
+    so a cache-heavy run's cost was reported short in the only place anybody reads it."""
+
+    class _CachingProvider:
+        name = "caching"
+
+        def default_model(self) -> str:
+            return "caching-1"
+
+        def complete_json(self, **kwargs: object) -> LLMResponse:
+            from seqforge.harvest import LLMResponse
+
+            return LLMResponse(
+                text=json.dumps({"drafts": []}),
+                usage={
+                    "input_tokens": 1500,
+                    "output_tokens": 60,
+                    "cache_read_tokens": 1000,
+                    "cache_write_tokens": 200,
+                },
+            )
+
+    run = run_case(_trap_case(), llm=True, provider=_CachingProvider())
+    cost = build_report([run]).cost
+    assert cost["cache_write_tokens"] == 200.0
+    assert cost["cache_read_tokens"] == 1000.0
+
+
+def test_the_default_eval_ceiling_clears_every_case_the_benchmark_measured() -> None:
+    """500,000 is a measurement, not a round number: the largest benchmark case other than
+    GSE126954 spent 122 K raw (2026-07-31), and this clears it by 4x while stopping GSE126954's
+    3.47 M however it is counted."""
+    from seqforge.cli.eval import DEFAULT_EVAL_CEILING
+
+    assert DEFAULT_EVAL_CEILING == 500_000
+    assert DEFAULT_EVAL_CEILING >= 4 * 122_000
+    assert DEFAULT_EVAL_CEILING < 3_475_000
+
+
+# --------------------------------------------------------------------------------------------
+# the run directory — evals were the one part of seqforge that wrote nothing
+# --------------------------------------------------------------------------------------------
+#
+# `run_case` did everything in a TemporaryDirectory that is deleted and the whole result rode on
+# stdout, so a 983-exchange transcript had no address it could go to. Stdout is the result object,
+# which means the transcript has to be a file, which means the verb has to own a directory.
+
+
+def test_eval_run_writes_a_run_directory_and_stdout_gains_the_paths(tmp_path: Path) -> None:
+    """The paths, not the contents. What lands on stdout keeps its shape and names the files; the
+    exchanges themselves are on disk, where a thousand of them are readable."""
+    from seqforge.evals import run_cases
+    from seqforge.harvest import read_transcript
+    from seqforge.workspace import eval_dir
+
+    case = _trap_case()
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    report, _ = run_cases([case], llm=True, provider=provider, workspace=tmp_path)
+
+    run_dir = eval_dir(tmp_path)
+    assert report.run_dir == str(run_dir)
+    row = report.model_dump(mode="json")["per_case"][0]
+    assert row["transcript"] == f"transcripts/{case.id}.jsonl", "relative: the directory travels"
+
+    transcript = read_transcript(run_dir / row["transcript"])
+    assert transcript.n_exchanges == row["llm_calls"] == 1
+    assert transcript.exchanges[0].user not in json.dumps(report.model_dump(mode="json"))
+
+
+def test_a_run_with_nowhere_to_write_holds_no_transcript(tmp_path: Path) -> None:
+    """14 cases x N exchanges of held text is memory nothing will read, so the meter only records
+    when there is a directory to write it into."""
+    from seqforge.evals import run_cases
+
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    report, runs = run_cases([_trap_case()], llm=True, provider=provider)
+
+    assert report.run_dir is None
+    assert runs[0].transcript is None
+    assert "transcript" not in runs[0].to_json()
+
+
+def test_a_case_stopped_at_its_ceiling_still_names_its_transcript(tmp_path: Path) -> None:
+    """A skip short-circuits `to_json`, and a blocked case is reported as a skip — but the exchanges
+    up to the breach were paid for, and "on what?" is exactly the question a breach produces."""
+    from seqforge.harvest import read_transcript
+    from seqforge.workspace import eval_dir
+
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    run = run_case(
+        _trap_case(), llm=True, provider=provider, ceiling=1, trials=2, workspace=eval_dir(tmp_path)
+    )
+
+    assert run.blocker is not None and run.skipped is not None
+    row = run.to_json()
+    assert row["skipped"] and row["transcript"] == f"transcripts/{run.case_id}.jsonl"
+    assert read_transcript(eval_dir(tmp_path) / row["transcript"]).n_exchanges == 1
+
+
+def test_eval_run_owns_its_directory_and_eval_report_reads_it(tmp_path: Path) -> None:
+    """CI used to `mkdir` a directory and `tee` stdout into a path the YAML invented, so the layout
+    existed only as long as that shell line. The verb writes `report.json` itself — the same bytes
+    it prints — and the renderer is handed the directory rather than a filename to remember."""
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.workspace import eval_dir
+
+    runner = CliRunner()
+    ran = runner.invoke(
+        app, ["eval", "run", "--no-llm", "--case", "10x-v3-bytes-only", "-C", str(tmp_path)]
+    )
+    assert ran.exit_code == 0, ran.output
+
+    run_dir = eval_dir(tmp_path)
+    written = (run_dir / "report.json").read_text()
+    assert json.loads(written) == json.loads(ran.stdout), "the file and the stream are one object"
+
+    rendered = runner.invoke(app, ["eval", "report", str(run_dir), "--no-timestamp"])
+    assert rendered.exit_code == 0, rendered.output
+    page = Path(json.loads(rendered.stdout)["report"])
+    assert page == run_dir / "report.html", "the page belongs inside the directory it renders"
+    assert page.read_text().startswith("<!doctype html>")
+
+
+def test_the_page_joins_a_real_run_to_the_exchanges_it_paid_for(tmp_path: Path) -> None:
+    """The join the whole display rests on, end to end and through a real transcript file.
+
+    An `Exchange` keeps the request verbatim and nothing else about it — it is a record of what was
+    sent, not of what was planned — so the only thing tying one to a document is the line the prompt
+    itself writes: `Document sha256: <sha>`. `extract` writes it and `document_sha256_in` reads it
+    back, in one module, and this pins both ends against the same run: break the prompt's first line
+    and the page silently stops being able to say which record an exchange was about.
+    """
+    from seqforge.evals import run_cases
+    from seqforge.evals.report import attach_transcripts
+    from seqforge.workspace import eval_dir
+
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    report, _ = run_cases([_trap_case()], llm=True, provider=provider, workspace=tmp_path)
+
+    payload = attach_transcripts(report.model_dump(mode="json"), eval_dir(tmp_path))
+    row = payload["per_case"][0]
+    (exchange,) = row["exchanges"]
+    assert exchange["doc_sha256"] == row["harvest"]["assertions"][0]["span"]["doc_sha256"]
+    assert exchange["why"] == "produced a graded assertion"
+    assert row["n_exchanges"] == row["llm_calls"] == 1
+    assert payload["prompts"][0]["text"].startswith("You extract factual claims")
+    assert payload["prompts"][0]["n_exchanges"] == 1
+
+    page = render_html(payload, title="T", source=None, generated_at=None)
+    assert "Showing <b>every exchange</b>" in page, "one exchange IS the whole run here"
+    assert "Caenorhabditis elegans" in page
+
+
+def test_the_transcript_flag_chooses_how_many_exchanges_the_page_carries(
+    tmp_path: Path,
+) -> None:
+    """`all | sample | none`, and a report with no directory beside it renders either way.
+
+    The default is a sample because a corpus-scale run cannot be shown whole; `all` exists because
+    "show me everything" is a real request; `none` exists because a grading page that is only about
+    the grades is a legitimate thing to want. What none of them may do is quietly show less.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.evals import run_cases
+    from seqforge.workspace import eval_dir
+
+    provider = _StubProvider(
+        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    )
+    report, _ = run_cases([_trap_case()], llm=True, provider=provider, workspace=tmp_path)
+    run_dir = eval_dir(tmp_path)
+    # what `eval run` writes beside the transcripts it just produced
+    (run_dir / "report.json").write_text(json.dumps(report.model_dump(mode="json")))
+    runner = CliRunner()
+
+    def _render(*flags: str) -> str:
+        out = tmp_path / f"page-{'-'.join(flags) or 'default'}.html"
+        result = runner.invoke(
+            app, ["eval", "report", str(run_dir), "-o", str(out), "--no-timestamp", *flags]
+        )
+        assert result.exit_code == 0, result.output
+        return out.read_text()
+
+    assert "The system prompt" in _render(), "sampled by default"
+    assert "The system prompt" in _render("--transcript", "all")
+    dark = _render("--transcript", "none")
+    assert "The system prompt" not in dark, "none means none"
+    assert "and not read" in dark, "...and says the exchanges exist and were not read"
+
+    bad = runner.invoke(app, ["eval", "report", str(run_dir), "--transcript", "everything"])
+    assert bad.exit_code == 2, "a bad mode is a usage error, not a page with a guess in it"
+
+    # The JSON alone, with no directory of transcripts beside it: still a report, still renders.
+    lonely = tmp_path / "alone" / "report.json"
+    lonely.parent.mkdir()
+    lonely.write_text((run_dir / "report.json").read_text())
+    result = runner.invoke(app, ["eval", "report", str(lonely), "--no-timestamp"])
+    assert result.exit_code == 0, result.output
+    assert "The system prompt" not in lonely.with_suffix(".html").read_text()
+
+
+def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: Path) -> None:
+    """`eval report <workspace>` finds the run beneath it, so no caller spells the state path.
+
+    `eval run -C <ws>` writes under `<ws>/seqforge/eval/`, and only `workspace.py` is allowed to know
+    that. A caller that reconstructs the path by hand is a second owner of the name: the CI workflow
+    did exactly that, and a rename of the directory would have left it reading a file that no longer
+    existed while still exiting 0. Both spellings resolve to the same report.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+    from seqforge.workspace import eval_dir
+
+    runner = CliRunner()
+    ws = tmp_path / "ws"
+    written = runner.invoke(
+        app, ["eval", "run", "--no-llm", "--cases", str(default_cases_dir()), "-C", str(ws)]
+    )
+    assert written.exit_code in (0, 3), written.output
+    run_dir = eval_dir(ws)
+    assert (run_dir / "report.json").is_file(), "the run directory holds the report"
+
+    from_workspace = runner.invoke(
+        app, ["eval", "report", str(ws), "-o", str(tmp_path / "a.html"), "--no-timestamp"]
+    )
+    from_run_dir = runner.invoke(
+        app, ["eval", "report", str(run_dir), "-o", str(tmp_path / "b.html"), "--no-timestamp"]
+    )
+    assert from_workspace.exit_code == 0, from_workspace.output
+    assert from_run_dir.exit_code == 0, from_run_dir.output
+    assert (tmp_path / "a.html").read_text() == (tmp_path / "b.html").read_text()

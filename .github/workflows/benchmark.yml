@@ -12,8 +12,14 @@ name: benchmark
 # Triggered on a published RELEASE and on manual `workflow_dispatch` — NOT on push/PR, and NOT on a
 # schedule: the benchmark gates a release, not a commit. `seqforge eval run` exits 3 on ANY
 # false-accept (a confident wrong manifest is the one failure the corpus never recovers from). A
-# package that is unreachable (offline, or withdrawn) SKIPS, never fails; sample facts come from the
-# committed `records.json`, so no NCBI credential is needed either.
+# package that is unreachable (offline, or the archive unwell) SKIPS, never fails; sample facts come
+# from the committed `records.json`, so no NCBI credential is needed either.
+#
+# A RED CASE HERE IS A MEASUREMENT, NOT A BREAKAGE, and the corpus is stocked on that basis: a case a
+# real dataset makes red is published anyway, because a corpus that holds only what it passes measures
+# nothing (ADR-0018). What this job must never report as routine is a package the corpus does not
+# HOLD — a 404 is reported as `absent` rather than folded into the skips, because "try again later"
+# and "publish the package" are different instructions.
 
 on:
   workflow_dispatch:
@@ -43,31 +49,28 @@ jobs:
       # a maintainer who has a key (`--llm --provider <p>`); CI must stay runnable by anyone with a
       # fork. `--cases evals/benchmark` selects the HF tier; each case pulls its package from HF.
       #
-      # The report is written to a file and uploaded rather than left on stdout, because a job that
-      # exits 0 and keeps its detail tells you a number and not which case carried the risk. `tee`
-      # keeps the log readable while capturing the artifact, and `pipefail` keeps the exit 3 on a
-      # false-accept from being swallowed by the pipe.
+      # `-C report` and nothing else: the verb owns its run directory, writes `report.json` and any
+      # per-case transcripts into it, and still prints the same object on stdout. This step used to
+      # `mkdir` a directory and `tee` stdout into a path the YAML invented — an artifact layout that
+      # existed only as long as this shell line, and needed `set -o pipefail` so a false accept's
+      # exit 3 was not swallowed by the pipe. With a direct invocation the exit code is the command's.
       - name: seqforge eval run (pulls HF benchmark packages)
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p report
-          pixi run -e test eval -- --no-llm --cases evals/benchmark | tee report/benchmark.json
+        run: pixi run -e test eval -- --no-llm --cases evals/benchmark -C report
 
       # Runs on failure too — a red benchmark is exactly when the per-case detail is worth having.
-      # `seqforge eval report` is a verb like `seqforge report`: it writes the HTML file and prints a
-      # JSON summary on stdout. It renders whatever the run produced and always exits 0 — the verdict
-      # is `eval run`'s (exit 3 above), and a renderer that also failed would make a red benchmark
-      # fail twice while destroying the artifact that explains it.
+      # `seqforge eval report` is a verb like `seqforge report`: it reads the run directory, writes
+      # the HTML file and prints a JSON summary on stdout. It renders whatever the run produced and
+      # always exits 0 — the verdict is `eval run`'s (exit 3 above), and a renderer that also failed
+      # would make a red benchmark fail twice while destroying the artifact that explains it.
       - name: render the HTML report
         if: always()
         shell: bash
         run: |
-          test -s report/benchmark.json || exit 0
-          pixi run -e test seqforge eval report report/benchmark.json \
+          test -d report || exit 0
+          pixi run -e test seqforge eval report report \
             -o report/benchmark.html \
             --title "seqforge benchmark — ${{ github.sha }}" \
-            --source "seqforge eval run --no-llm --cases evals/benchmark"
+            --source "seqforge eval run --no-llm --cases evals/benchmark -C report"
 
       - name: upload the report
         if: always()

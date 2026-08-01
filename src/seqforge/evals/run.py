@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import os
 import tempfile
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
@@ -30,53 +29,100 @@ from typing import Any
 
 from ..harvest import (
     EXTRACT_PROMPT_VERSION,
+    CeilingExceeded,
     ExtractUnavailable,
     LLMProvider,
-    extract_drafts,
-    has_prose,
+    TokenMeter,
+    extract_planned,
     normalize_document,
-    normalize_record,
+    plan_extraction,
     resolve_provider,
     verify_drafts,
+    write_transcript,
 )
-from ..harvest.fields import fields_for
 from ..harvest.normalize import NormalizedDoc
 from ..kb.loader import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance
+from ..models.blocker import Blocker
 from ..models.resolve import EvalReport
 from ..resolve import Hypothesis, resolve_dataset
 from ..resolve.records import DocumentSubject, resolve_metadata
-from .case import Case, CaseError, CaseSkipped, Materialized, discover_cases, materialize
+from ..workspace import EVAL_TRANSCRIPTS_DIRNAME, eval_dir
+from .case import (
+    Case,
+    CaseError,
+    CaseSkipped,
+    Materialized,
+    SkipKind,
+    discover_cases,
+    materialize,
+)
 from .grade import CaseGrade, Grade, grade_case
 
 
 @dataclass
 class HarvestGrade:
-    """How the LLM stage did on one case: recall, hallucination, and what the tripwire caught."""
+    """How the LLM stage did on one case: recall, hallucination, and what the tripwire caught.
+
+    It carries the **claims**, not a summary of them. Both halves used to be flattened on the way in:
+    an accepted claim became one ``field -> str(value)`` entry, dropping the quote it rests on and
+    the span that makes the quote checkable, and a refused draft became one increment of an integer.
+    So a report could say ``library.chemistry = "RNA-Seq"`` and never *from this quote, in this
+    document, at these offsets* — which is the entire content of the hallucination tripwire — while
+    one benchmark case's 84 refusals survived as the number 84.
+    """
 
     matched: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     #: Forbidden fields that survived verification — a claim the prose does not make. Corpus poison.
     hallucinated: list[str] = field(default_factory=list)
-    #: Drafts the span-verification tripwire rejected. Not a failure: this is the safety net doing its job.
-    n_rejected: int = 0
-    #: Extraction calls actually made — one per normalized document, and an archive record with prose
-    #: is a document. The caller cannot infer this from the file count it passed in.
+    #: Requests actually issued at the model seam, counted by the meter — **not** the document
+    #: count, which is a floor: a document whose first attempt hit a 429 costs two requests and the
+    #: old number reported one. An archive record with prose is its own document, so the caller
+    #: cannot infer either number from the file count it passed in.
     n_calls: int = 0
+    #: Documents sent, kept beside `n_calls` because "73 documents, 78 requests" is two facts and
+    #: neither substitutes for the other.
+    n_documents: int = 0
     #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
     #: times in three is a field you cannot depend on, and that is a finding in its own right.
     unstable: list[str] = field(default_factory=list)
-    extracted: dict[str, str] = field(default_factory=dict)
+    #: The Assertions this grade was computed over, whole — each with the quote it rests on and the
+    #: span that locates it. `matched`/`missing`/`hallucinated` are verdicts about these; this is the
+    #: evidence they were reached from, and a verdict with the evidence thrown away is not checkable.
+    assertions: list[Assertion] = field(default_factory=list)
+    #: The drafts that did NOT survive — field, value, quote, reason, detail, and the document each
+    #: came from. Both producers land here: a draft the model returned malformed (extract-time, where
+    #: field/value/quote may be absent) and one whose field, quote or entailment failed (verify).
+    rejected: list[dict[str, Any]] = field(default_factory=list)
+    #: What each document sent was: sha, basename, scope, subject, size. Small by construction, and
+    #: it is what turns the sha256 in a Span back into "GSM4318946's sample record" for a reader.
+    documents: list[dict[str, Any]] = field(default_factory=list)
+    #: How the calls were made — max_tokens, response_format, thinking. One dict, because every
+    #: request in a run is made the same way; the eval path used to drop it while the CLI kept it.
+    mode: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def n_rejected(self) -> int:
+        """How many drafts the tripwire threw out. A summary of :attr:`rejected`, never a substitute
+        for it: the count says a net caught something and nothing whatever about what."""
+        return len(self.rejected)
 
     def to_json(self) -> dict[str, Any]:
-        out = {
+        out: dict[str, Any] = {
             "matched": self.matched,
             "missing": self.missing,
             "hallucinated": self.hallucinated,
             "n_rejected": self.n_rejected,
             "n_calls": self.n_calls,
-            "extracted": self.extracted,
+            "n_documents": self.n_documents,
+            "assertions": [a.model_dump(mode="json") for a in self.assertions],
+            "rejected": self.rejected,
         }
+        if self.documents:
+            out["documents"] = self.documents
+        if self.mode:
+            out["mode"] = self.mode
         if self.unstable:
             out["unstable"] = self.unstable
         return out
@@ -95,6 +141,18 @@ class CaseRun:
     seconds: float = 0.0
     llm_calls: int = 0
     skipped: str | None = None
+    #: WHICH skip, as a key rather than a sentence. ``absent`` means the corpus does not hold this
+    #: case's package at all, so nobody anywhere can run it; ``unavailable`` is this machine's
+    #: problem. Both are excluded from every rate, and only one is something to act on.
+    skip_kind: SkipKind = "unavailable"
+    #: Set when this case reached its token Ceiling. The case did not finish, so it is reported as a
+    #: skip and excluded from every rate — but a skip is a shrug and this is a refusal, so it also
+    #: carries the structured ``Blocker`` and `eval run` exits 3 on it.
+    blocker: Blocker | None = None
+    #: Where this case's exchanges landed, RELATIVE to the run directory — so the report survives the
+    #: directory being moved or downloaded as a CI artifact. ``None`` when nothing was recorded: a
+    #: byte-only run reaches no model, and a run with no workspace has nowhere to put one.
+    transcript: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -102,8 +160,14 @@ class CaseRun:
             "seconds": round(self.seconds, 3),
             "llm_calls": self.llm_calls,
         }
+        # Before the skip short-circuit: a case stopped at its ceiling is the one whose exchanges are
+        # most worth reading, and it reports as a skip.
+        if self.transcript is not None:
+            out["transcript"] = self.transcript
+        if self.blocker is not None:
+            out["blockers"] = [self.blocker.model_dump(mode="json")]
         if self.skipped:
-            return {**out, "skipped": self.skipped}
+            return {**out, "skipped": self.skipped, "skip_kind": self.skip_kind}
         out.update(self.grade.to_json())
         out["trials"] = self.trials
         out["stability"] = round(self.stability, 3)
@@ -121,11 +185,20 @@ def run_case(
     provider: LLMProvider | None = None,
     model: str | None = None,
     trials: int = 1,
+    ceiling: int | None = None,
     workspace: Path | None = None,
 ) -> CaseRun:
     """Run one case through the compiler ``trials`` times and grade every trial.
 
     Deterministic cases ignore ``trials`` (re-running identical bytes measures nothing).
+
+    ``ceiling`` is **per case**, because a case is a dataset and the ceiling bounds a dataset. A
+    corpus-wide one would stop the whole run at the first expensive case and never grade the
+    thirteen behind it, which is the opposite of what a backstop is for.
+
+    ``workspace`` is the run directory every case in this run shares — where this case's exchanges
+    land, as ``transcripts/<case>.jsonl``. Without one the case still runs, in a temporary directory
+    that is deleted, and records nothing: a transcript with no address is memory nobody reads.
     """
     started = time.monotonic()
     if case.needs_llm and not llm:
@@ -151,7 +224,11 @@ def run_case(
             built = materialize(case, tmp_path / "inputs")
         except CaseSkipped as exc:
             return CaseRun(
-                case.id, _empty_grade(case), skipped=str(exc), seconds=time.monotonic() - started
+                case.id,
+                _empty_grade(case),
+                skipped=str(exc),
+                skip_kind=exc.kind,
+                seconds=time.monotonic() - started,
             )
 
         # A synthetic case keeps its prose in the case dir; a fingerprint case ships it inside the
@@ -159,6 +236,21 @@ def run_case(
         docs = built.metadata_docs or case.metadata_docs
         use_llm = llm and (bool(docs) or case.records is not None)
         n = trials if use_llm else 1
+
+        # One meter per case, spanning every trial: it is the only thing that counts the requests,
+        # and the ceiling it holds is this dataset's. It records only when there is a run directory
+        # to write the transcript into — otherwise 14 cases x N exchanges of held text is memory
+        # nothing will ever read.
+        meter = (
+            TokenMeter(
+                provider if provider is not None else resolve_provider(),
+                ceiling=ceiling,
+                subject=case.id,
+                record=workspace is not None,
+            )
+            if use_llm
+            else None
+        )
 
         ws = workspace or tmp_path
         for _ in range(n):
@@ -168,9 +260,26 @@ def run_case(
             verified: list[Assertion] = []
             subjects: list[DocumentSubject] = []
             if use_llm:
+                assert meter is not None  # built above from the same `use_llm`
                 try:
                     hg, hyp, u, verified, subjects = _run_harvest(
-                        case, docs, provider=provider, model=model
+                        case, docs, meter=meter, model=model
+                    )
+                except CeilingExceeded as exc:
+                    # A refusal, not an unavailability: the provider answered every request it was
+                    # given. The case did not finish, so it scores nothing — but it carries the
+                    # Blocker, and `eval run` exits 3 on it rather than shrugging.
+                    return CaseRun(
+                        case.id,
+                        _empty_grade(case),
+                        skipped=f"token ceiling: {exc}",
+                        blocker=exc.blocker(),
+                        usage=meter.usage(),
+                        llm_calls=meter.n_exchanges,
+                        seconds=time.monotonic() - started,
+                        # The exchanges up to the breach were paid for, and "on what?" is exactly
+                        # the question a breach produces.
+                        transcript=_save_transcript(workspace, case.id, meter),
                     )
                 except ExtractUnavailable as exc:
                     return CaseRun(
@@ -178,12 +287,13 @@ def run_case(
                         _empty_grade(case),
                         skipped=f"LLM unavailable: {exc}",
                         seconds=time.monotonic() - started,
+                        transcript=_save_transcript(workspace, case.id, meter),
                     )
                 harvests.append(hg)
-                # `hg.n_calls`, NOT `len(docs)`. Every archive record with prose is extracted as its
-                # own document too, so the carried-file count under-reports the real cost by the
-                # record count — on GSE126954 that is 1 against 983, and a cost metric off by three
-                # orders of magnitude is worse than none.
+                # `hg.n_calls` is the METER's count of requests, not `len(docs)`. Every archive
+                # record with prose is extracted as its own document, so the carried-file count
+                # under-reports the real cost by the record count — on GSE126954 that is 1 against
+                # 983 — and the document count in turn under-reports it by every retry.
                 calls += hg.n_calls
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
@@ -235,7 +345,31 @@ def run_case(
         usage=usage,
         seconds=time.monotonic() - started,
         llm_calls=calls,
+        transcript=_save_transcript(workspace, case.id, meter),
     )
+
+
+#: Under the run directory, one file per case. A directory rather than one file for the corpus: a
+#: transcript is per dataset, and a reader opening a case's exchanges should not have to filter
+#: thirteen other datasets out of them first.
+
+
+def _save_transcript(workspace: Path | None, case_id: str, meter: TokenMeter | None) -> str | None:
+    """Write one case's exchanges under the run directory; return the path RELATIVE to it.
+
+    Relative because the run directory travels — it is downloaded as a CI artifact and read on
+    another machine — and an absolute path recorded on the machine that produced it would name a
+    directory that is not there. ``None`` when there is nothing to write: no run directory, no model
+    reached, or a meter that recorded nothing.
+    """
+    if workspace is None or meter is None:
+        return None
+    transcript = meter.transcript()
+    if not transcript.exchanges:
+        return None
+    relative = f"{EVAL_TRANSCRIPTS_DIRNAME}/{case_id}.jsonl"
+    write_transcript(workspace / relative, transcript)
+    return relative
 
 
 #: Ceiling on the default fan-out. A run wide enough to saturate a shared node is not a faster run:
@@ -244,10 +378,10 @@ def run_case(
 #: maintainer's choice (2026-07-31), not a measurement — raise it per-run with ``--jobs``.
 MAX_DEFAULT_JOBS = 24
 
-#: Total extraction calls in flight across the WHOLE run, however the pools nest above it. Case-level
-#: and document-level concurrency multiply, and the provider sees the product; this is the one number
-#: it actually sees. Sized once at import so every pool in the process shares the same allowance.
-_EXTRACT_SLOTS = threading.Semaphore(min(MAX_DEFAULT_JOBS, (os.cpu_count() or 1) * 2))
+#: The bound on extraction calls in flight — case-level and document-level concurrency multiply and
+#: the provider sees the product — lives with the fan-out that makes them (`harvest/plan.py`), not
+#: here. It moved when that fan-out stopped being written twice; it was never a property of the eval
+#: harness, and `harvest extract` needs the same protection.
 
 
 def default_jobs() -> int:
@@ -278,6 +412,8 @@ def run_cases(
     model: str | None = None,
     trials: int = 1,
     jobs: int | None = None,
+    ceiling: int | None = None,
+    workspace: Path | None = None,
 ) -> tuple[EvalReport, list[CaseRun]]:
     """Run every case and aggregate into the harness's metric set.
 
@@ -293,12 +429,27 @@ def run_cases(
     reports and read in diffs, so it must not depend on which case happened to finish first. The
     aggregate metrics are order-independent already, but a report that shuffles its own rows every
     run cannot be compared to the last one.
+
+    ``workspace`` turns the run into something on disk: the returned report names the directory it
+    wrote, and each case's exchanges land under it. The harness was the one part of seqforge that
+    kept nothing — every case ran in a temporary directory that was deleted, so a transcript had
+    nowhere to go and stdout is the wrong place for a thousand exchanges.
     """
     n = jobs if jobs is not None else default_jobs()
     started = time.monotonic()
+    run_dir = eval_dir(workspace) if workspace is not None else None
 
     def one(case: Case) -> CaseRun:
-        return run_case(case, llm=llm, provider=provider, model=model, trials=trials)
+        # `ceiling` is handed down per case, not shared: it bounds a dataset, and each case is one.
+        return run_case(
+            case,
+            llm=llm,
+            provider=provider,
+            model=model,
+            trials=trials,
+            ceiling=ceiling,
+            workspace=run_dir,
+        )
 
     if n <= 1 or len(cases) <= 1:
         runs = [one(c) for c in cases]
@@ -319,7 +470,10 @@ def run_cases(
             "prompt_version": EXTRACT_PROMPT_VERSION,
         }
 
-    return build_report(runs, wall_seconds=time.monotonic() - started, extractor=extractor), runs
+    report = build_report(runs, wall_seconds=time.monotonic() - started, extractor=extractor)
+    if run_dir is not None:
+        report = report.model_copy(update={"run_dir": str(run_dir)})
+    return report, runs
 
 
 def build_report(
@@ -364,7 +518,9 @@ def build_report(
     }
     if wall_seconds is not None:
         cost["wall_seconds"] = round(wall_seconds, 3)
-    for key in ("input_tokens", "output_tokens", "cache_read_tokens"):
+    # `cache_write_tokens` is in this tuple because the Anthropic normalizer produces it and every
+    # consumer but the on-disk ledger used to drop it — a cost the report simply did not show.
+    for key in ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens"):
         total = sum(r.usage.get(key, 0) for r in runs)
         if total:
             cost[key] = float(total)
@@ -400,7 +556,7 @@ def _run_harvest(
     case: Case,
     doc_paths: list[Path],
     *,
-    provider: LLMProvider | None,
+    meter: TokenMeter,
     model: str | None,
 ) -> tuple[HarvestGrade, Hypothesis | None, dict[str, int], list[Assertion], list[DocumentSubject]]:
     """normalize -> extract -> verify over the case's prose. Only verified claims are graded.
@@ -409,46 +565,42 @@ def _run_harvest(
     fingerprint package carried inside itself (``doc_paths`` is whichever of the two materialize
     surfaced), and each archive record rendered as its own document. The record path is what lets a
     claim name a sample, so a harness that read only the human's documents could never grade one.
+
+    Every request goes through ``meter``, which is the case's and spans its trials — so the call
+    count this returns is a **delta** over that meter, not a fresh count. It proxies the provider's
+    identity, so ``ExtractorProvenance`` still records who answered.
     """
     specs = load_all_specs()
-    llm = provider if provider is not None else resolve_provider()
+    called_before = meter.n_exchanges
 
-    docs: list[NormalizedDoc] = [normalize_document(p) for p in doc_paths]
-    if case.records is not None:
-        docs += [
-            normalize_record(r)
-            for r in case.records.records
-            if has_prose(r) and fields_for(r.level, "reference")
-        ]
-    # One extraction per document, concurrently. This loop, not the case loop, is where a real
-    # dataset's cost lives: every archive record with prose is its own document, so GSE126954's 966
-    # runs make 982 calls inside ONE case. Running cases in parallel cannot touch that — the case is
-    # the unit above this — so a serial loop here left the `--llm` tier hours long and effectively
-    # unrunnable. Bound by the same `default_jobs()` the case level uses; the calls are socket waits.
-    #
-    # `map` preserves order, and that is required rather than tidy: `verify_drafts` and the
-    # last-wins `by_field` below both read this list positionally, so a completion-ordered `drafts`
-    # would make a case's graded assertions depend on which request returned first.
+    # Which documents exist, and the fan-out that pays for them, is `harvest/plan.py`'s job — the
+    # same call `harvest extract` makes. This loop, not the case loop, is where a real dataset's cost
+    # lives: an archive record with prose used to be its own document, so GSE126954's runs made one
+    # call each inside ONE case, and running cases in parallel cannot touch that because the case is
+    # the unit above it. The plan collapses a sample's runs into one document, and its results come
+    # back positionally — required rather than tidy, because `verify_drafts` and the last-wins
+    # `by_field` below both read this list in order.
+    plan = plan_extraction(
+        documents=[normalize_document(p) for p in doc_paths], records=case.records
+    )
+    docs: list[NormalizedDoc] = list(plan.documents)
     drafts: list[AssertionDraft] = []
     usage: dict[str, int] = {}
     extractor: ExtractorProvenance | None = None
+    #: An outcome has FOUR halves and this loop used to read two. The drafts a document produced and
+    #: what it cost were kept; the drafts it produced *malformed* and how the call was made were
+    #: dropped on the floor — so a model returning nothing but broken JSON graded identically to one
+    #: that read the document and found nothing in it.
+    rejected: list[dict[str, Any]] = []
+    mode: dict[str, Any] = {}
 
-    def _extract(doc: NormalizedDoc) -> Any:
-        # The semaphore, not the pool size, is what the provider sees. Two pools nest here — cases
-        # above, documents below — and pool sizes MULTIPLY: 14 cases x 24 documents is 336 requests
-        # in flight from one key, which measures the provider's rate limiter and not the compiler.
-        with _EXTRACT_SLOTS:
-            return extract_drafts(doc, specs, provider=llm, model=model)
-
-    if len(docs) <= 1:
-        outcomes = [_extract(d) for d in docs]
-    else:
-        with ThreadPoolExecutor(max_workers=min(default_jobs(), len(docs))) as pool:
-            outcomes = list(pool.map(_extract, docs))
+    outcomes = extract_planned(plan, specs, provider=meter, model=model)
 
     for outcome in outcomes:
         drafts.extend(outcome.drafts)
         extractor = outcome.extractor
+        rejected.extend(outcome.rejected)
+        mode = dict(outcome.mode) or mode
         for k, v in outcome.usage.items():
             usage[k] = usage.get(k, 0) + v
 
@@ -456,9 +608,16 @@ def _run_harvest(
     report = verify_drafts(drafts, docs, extractor=extractor)
     accepted: list[Assertion] = report.assertions
     by_field = {a.field: a for a in accepted}
+    rejected.extend(report.rejected)
 
-    grade = HarvestGrade(n_rejected=len(report.rejected), n_calls=len(docs))
-    grade.extracted = {a.field: str(a.value) for a in accepted}
+    grade = HarvestGrade(
+        n_calls=meter.n_exchanges - called_before,
+        n_documents=len(docs),
+        assertions=list(accepted),
+        rejected=rejected,
+        documents=[_document_row(d) for d in docs],
+        mode=mode,
+    )
     for want in case.expected.assertions:
         got = by_field.get(want.field)
         if got is not None and str(got.value) == want.value:
@@ -477,6 +636,23 @@ def _run_harvest(
     return grade, hypothesis, usage, accepted, subjects
 
 
+def _document_row(doc: NormalizedDoc) -> dict[str, Any]:
+    """One sent document, small enough to carry per case: what a Span's sha256 resolves back to.
+
+    Deliberately not the plan's own report. That one carries the fields asked of each document and
+    every archive record folded into it — hundreds of accessions for a collapsed run document, none
+    of which a reader of a graded claim wants. ``scope`` is the load-bearing entry: it is what lets
+    one exchange stand for its level when a run has more of them than anyone will read.
+    """
+    return {
+        "doc_sha256": doc.doc_sha256,
+        "source": doc.source_basename,
+        "scope": doc.scope,
+        "subject": doc.subject,
+        "n_chars": len(doc.text),
+    }
+
+
 def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     """Across trials, keep the WORST — never the last.
 
@@ -488,6 +664,12 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     So: ``hallucinated`` and ``missing`` union (any trial failing is a failure), ``matched``
     intersects (a field counts only if EVERY trial got it), and fields that come and go are surfaced
     as ``unstable`` rather than silently averaged into a rate.
+
+    The claims follow the same rule, which is why they are not merged the way the flattened dict was
+    (``update``, last trial wins): a claim only one trial made is exactly what ``unstable`` names, so
+    it has to survive the merge for the page to be able to show it. Distinct claims union; the same
+    claim made three times is one claim. Refusals concatenate instead, because a draft refused in
+    every trial cost three refusals — which is what the count has always said.
     """
     if len(grades) == 1:
         return grades[0]
@@ -495,13 +677,50 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     merged.hallucinated = sorted({f for g in grades for f in g.hallucinated})
     merged.missing = sorted({f for g in grades for f in g.missing})
     merged.matched = sorted(set.intersection(*(set(g.matched) for g in grades)))
-    merged.n_rejected = sum(g.n_rejected for g in grades)
-    merged.n_calls = sum(g.n_calls for g in grades)  # cost is spent per trial, not merged away
+    merged.rejected = [r for g in grades for r in g.rejected]
+    merged.assertions = _distinct_assertions(grades)
+    merged.documents = _distinct_documents(grades)
+    merged.mode = next((g.mode for g in grades if g.mode), {})
+    # cost is spent per trial, not merged away — the same for the requests and the documents behind
+    merged.n_calls = sum(g.n_calls for g in grades)
+    merged.n_documents = sum(g.n_documents for g in grades)
     seen = {f for g in grades for f in g.matched}
     merged.unstable = sorted(seen - set(merged.matched))
-    for g in grades:
-        merged.extracted.update(g.extracted)
     return merged
+
+
+def _distinct_assertions(grades: list[HarvestGrade]) -> list[Assertion]:
+    """Every distinct claim any trial made, in the order it was first made.
+
+    Identity is the claim itself — field, value, and the quote it rests on in the document it cites —
+    never the ``id``, which carries the draft's position in a batch and so differs across trials for
+    what is plainly the same claim.
+    """
+    out: list[Assertion] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for grade in grades:
+        for a in grade.assertions:
+            key = (a.field, a.value, a.span.doc_sha256, a.span.quote)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(a)
+    return out
+
+
+def _distinct_documents(grades: list[HarvestGrade]) -> list[dict[str, Any]]:
+    """The documents the trials sent, deduplicated. Every trial sends the same list — the plan is a
+    pure function of the case — so this is one list, not N stacked."""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for grade in grades:
+        for row in grade.documents:
+            sha = str(row.get("doc_sha256", ""))
+            if sha in seen:
+                continue
+            seen.add(sha)
+            out.append(row)
+    return out
 
 
 def _fold_harvest(grade: CaseGrade, harvest: HarvestGrade) -> CaseGrade:

@@ -11774,6 +11774,7 @@ packages:
   - pooch>=1.8
   - requests>=2.31
   - tqdm>=4
+  - huggingface-hub>=0.25
   - pypdf>=4
   - pymupdf>=1.24
   - pdfplumber>=0.11

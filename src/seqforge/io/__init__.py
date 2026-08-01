@@ -12,9 +12,13 @@ from __future__ import annotations
 
 from .benchmark import (
     HF_BENCHMARK_REPO,
+    HF_PACKAGE_PREFIX,
+    BenchmarkPackageAbsent,
     BenchmarkPackageUnavailable,
+    default_package_path,
     fetch_benchmark_package,
     hf_package_url,
+    publish_benchmark_package,
 )
 from .onlist import (
     DEFAULT_REGISTRY,
@@ -64,9 +68,13 @@ __all__ = [
     "fastq_targets",
     "resolve_accession",
     "NotYetImplemented",
-    # HF benchmark fetch (opt-in / networked eval job only)
+    # HF benchmark: anonymous fetch (opt-in / networked eval job) + the maintainer's publish
     "HF_BENCHMARK_REPO",
+    "HF_PACKAGE_PREFIX",
+    "BenchmarkPackageAbsent",
     "BenchmarkPackageUnavailable",
+    "default_package_path",
     "fetch_benchmark_package",
     "hf_package_url",
+    "publish_benchmark_package",
 ]

@@ -123,7 +123,8 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
     harvest = stages.get("harvest")
     if isinstance(harvest, dict) and isinstance(harvest.get("usage"), dict):
         # The token cost of understanding the prose, surfaced at the top: the full per-document ledger
-        # is on disk (seqforge/usage.json) and in the harvest stage; this is the total a reader wants.
+        # is on disk (seqforge/logs/usage.json, where the ledger has always lived) and in the harvest
+        # stage; this is the total a reader wants. `n_calls` is real requests, retries included.
         summary["llm_usage"] = harvest["usage"]
     if code == 0:
         assays = stages.get("assays")
@@ -147,9 +148,11 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
 def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
     """Does a harvest result stop the one-pass, or is it surfaced and stepped past?
 
-    A **conflict** (two instructions disagreeing on a `processing.*` field) or an unavailable provider
-    halts `run` — the first decides a value nothing else can, the second means the LLM stage could not
-    run at all. A **rejected reference claim** does not: it never entered `assertions.json`, so the
+    A **conflict** (two instructions disagreeing on a `processing.*` field), an unavailable provider
+    or a token ceiling reached halts `run` — the first decides a value nothing else can, the second
+    means the LLM stage could not run at all, and the third means it ran only partly and the manifest
+    would be built from an extraction that was cut off mid-way. A **rejected reference claim** does
+    not: it never entered `assertions.json`, so the
     manifest is built from the accepted claims and the bytes, and chemistry comes from bytes anyway. It
     is reported in the summary (`needs_review` + the `rejected` list), which is what we ask for — "not a
     silent drop" — while letting a paper whose prose the span-checker cannot formally tie to a KB id
@@ -295,6 +298,13 @@ def run_cmd(
         "--model",
         help="Override the extraction model (DeepSeek: deepseek-v4-flash | deepseek-v4-pro).",
     ),
+    ceiling: int = typer.Option(
+        0,
+        "--ceiling",
+        min=0,
+        help="Refuse past N tokens spent at the model seam in the harvest stage (raw: cached input "
+        "and cache writes count too). Halts the run with exit 3. 0 = no ceiling.",
+    ),
     processing_id: str = typer.Option("default", "--id", help="Human slug for the recipe."),
     fastq_dir: Path | None = typer.Option(
         None, "--fastq-dir", help="Where this machine keeps the FASTQs (for units.tsv)."
@@ -404,6 +414,7 @@ def run_cmd(
             records_path=records_file,
             provider=provider,
             model=model,
+            ceiling=ceiling,
             verify=True,
             workspace=workspace,
             pdf_backend=pdf_backend.value,

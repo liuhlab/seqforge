@@ -15,8 +15,20 @@ The only stage where a model proposes anything. Everything else in seqforge is a
 ```bash
 seqforge harvest normalize DOCS               # -> canonical span space (deterministic)
 seqforge harvest extract DOCS --verify        # -> AssertionDraft[] -> Assertion[]  (LLM)
+seqforge harvest extract DOCS --records r.json --dry-run   # what it WILL ask, and what that costs
 seqforge harvest verify DRAFTS                # -> the span-verification tripwire, on its own
 ```
+
+**Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
+— how many exchanges, of what, and the estimated input tokens — while reaching no model and needing no
+credential. A dataset's cost used to be a property nobody computed until it had been paid: one
+benchmark series billed 983 calls, 92% of them one-line run aliases. Each archive record is a
+document, except that a sample's *runs* are one document between them (a run belongs to exactly one
+sample, so its alias still declares that sample). `--ceiling N` is the backstop underneath: it
+refuses at exit 3 rather than warning.
+
+`extract` writes `seqforge/logs/transcript.jsonl` beside `usage.json` — the ledger says what the run
+spent, the transcript says what it spent it on. Stdout carries the path, never the exchanges.
 
 Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
 `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` and **refuses rather than guessing** when neither is set.

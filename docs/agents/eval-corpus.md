@@ -37,9 +37,25 @@ same hash, that the originals would — then grades chemistry from the pinned by
 attributes from a committed `records.json`. No full FASTQ, and no API key.
 
 A package comes from one of three sources: a path committed in the case directory, a path in the
-public Hugging Face benchmark repo (`liuhlab/seqforge-benchmark`, pulled anonymously and pooch-cached
-— no token, no `huggingface_hub` dependency), or a root staged out of git behind an environment
-variable. **An unreachable package skips; it never fails.**
+public Hugging Face benchmark repo (`liuhlab/seqforge-benchmark`), or a root staged out of git behind
+an environment variable.
+
+**Reading a package needs no token and no SDK; publishing one needs both, and that asymmetry is the
+design.** A public HF dataset serves every file at a stable URL to an anonymous GET, so the consumer
+side is the same pooch call the onlist registry makes. Writing is an authenticated commit, so
+`seqforge io publish-package` uses `huggingface_hub`'s `HfApi().upload_file` and the maintainer's
+write token — never the `hf` command-line client, which hangs. The dependency is a hard one, so it
+installs everywhere, but the import is local to the publishing path: nothing on the reading side
+executes it, the networked eval job never reaches it, and the CI job carries no secret. It sits
+beside `anthropic` and `openai`, which are declared the same way for the same reason — a verb
+most installs never call still has to work without an extras incantation.
+
+**An unreachable package skips; it never fails. A package the corpus does not hold is reported as
+`absent`.** These are two states, not one: a 404 means the archive answered and has no such package —
+it was never published — so the case cannot run anywhere, for anyone, and the fix is to publish it
+rather than to try again later. Both are excluded from every rate, and only one is an instruction.
+Folding them together is how `GSE110823` sat out of the corpus for a release without anyone tripping
+over it, behind a word that reads as transient.
 
 Two tiers ride that mechanism, in two directories, and they are disjoint on purpose:
 

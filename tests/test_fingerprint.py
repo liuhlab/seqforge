@@ -13,6 +13,7 @@ from __future__ import annotations
 import gzip
 import json
 import random
+import tarfile
 from pathlib import Path
 
 import pytest
@@ -203,6 +204,36 @@ def test_the_package_round_trips_from_the_tarball(tmp_path: Path, reads: int) ->
     assert len(probed) == len(paths)
     for sp in slice_paths:
         assert sp.exists()
+
+
+def test_the_pin_can_be_read_without_unpacking_the_package(tmp_path: Path) -> None:
+    """`read_pin` answers "is this a package, and what does it declare" for the price of one member.
+
+    `load_fingerprint` extracts the whole tree because a run needs the slices. A caller that only
+    wants to validate a package should not pay for that, and — the part worth pinning — should not
+    leave a directory behind: `io publish-package` validates before it uploads, and a check with a
+    side effect is a check nobody runs twice.
+    """
+    from seqforge.fingerprint.load import read_pin
+
+    paths, _ = _synth_dataset(tmp_path, n=120)
+    result = build_fingerprint(paths, workspace=tmp_path, reads=100, name="ds")
+    before = sorted(p.name for p in result.package.parent.iterdir())
+
+    pin = read_pin(result.package)
+    assert [p.sha256 for p in pin.files] == [p.sha256 for p in result.manifest.files]
+    assert pin.reads == 100
+    assert sorted(p.name for p in result.package.parent.iterdir()) == before, "nothing was unpacked"
+    # The unpacked directory reads identically, which is what lets the same call serve both forms.
+    assert read_pin(result.staging).files == pin.files
+
+    # ...and a tarball that is not a package is refused rather than half-loaded.
+    junk = tmp_path / "junk.tar.gz"
+    (tmp_path / "note.txt").write_text("hi")
+    with tarfile.open(junk, "w:gz") as tar:
+        tar.add(tmp_path / "note.txt", arcname="note.txt")
+    with pytest.raises(ValueError, match="not a fingerprint package"):
+        read_pin(junk)
 
 
 def _cut(path: Path, fraction: float = 0.6) -> None:

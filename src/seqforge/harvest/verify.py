@@ -242,7 +242,11 @@ def verify_drafts(
 
 
 def _reject(draft: AssertionDraft, reason: str, detail: str) -> dict[str, object]:
+    """One refused draft, kept whole. The document is on it because a rejection is only readable as
+    *this claim, from this record*: a count says a net caught something and nothing about what, and
+    the sha is also what joins the refusal back to the exchange that produced it."""
     return {
+        "doc_sha256": draft.span.doc_sha256,
         "field": draft.field,
         "value": draft.value,
         "quote": draft.span.quote[:120],

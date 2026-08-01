@@ -25,28 +25,75 @@ a severity stripe and a pill, and a false accept gets a filled pill where every 
 outline — so the one failure that poisons the corpus does not look like the four that cost attention.
 Correct cases collapse; failures open.
 
-**A skip is a state, not an omission.** An unreachable benchmark package is a real outcome of the HF
-tier. Skips render with their reason on the face of the card and are excluded from every rate, exactly
-as ``build_report`` excludes them — a skip is never a pass.
+**A skip is a state, not an omission — and there are two of them.** An unreachable benchmark package is
+a real outcome of the HF tier. Skips render with their reason on the face of the card and are excluded
+from every rate, exactly as ``build_report`` excludes them — a skip is never a pass. A package the
+archive answered *404* for is labelled **absent** instead: it was never published, so the case cannot
+run anywhere for anyone, and the fix is to publish it rather than to try again later. Both stay outside
+every rate; only one is an instruction, and a page that spelled them the same way let a dataset go
+quietly missing behind a word that reads as transient.
 
 **Both times, labelled.** ``cost.seconds`` is the sum of the per-case durations (work done);
 ``cost.wall_seconds`` is the elapsed time. Under the parallel runner they differ by the fan-out, and
 calling the sum "wall time" — as this renderer's predecessor did — reports a run as ten times slower
 than it was.
+
+**A claim is shown with the quote it rests on, and a refusal is shown at all.** The harvest grade
+carries the Assertions themselves, so the page can say *from this quote, in this document, at these
+offsets* rather than only ``field = value``; and the drafts the tripwire threw out are a readable
+list rather than an integer, because a count says a net caught something and nothing about what.
+
+**The transcript is sampled, and the page says so.** :func:`attach_transcripts` folds the
+``.jsonl`` files beside the report into it before rendering — the system prompt once (it is
+byte-identical across a run, which is what makes prefix caching work), then a *representative*
+selection of exchanges per case. Rendering stays a pure function of one dict; what varies is how
+much was folded in, and every fragment that shows less than everything states what it left out. A
+silently truncated transcript reads as a complete one, which is the failure this page is built
+against.
 """
 
 from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from html import escape
 from importlib.resources import files
+from pathlib import Path
 from typing import Any
+
+from ..harvest.extract import document_sha256_in
+from ..harvest.meter import RAW_KEYS, Exchange
+from ..harvest.transcript import read_transcript
 
 #: Bumped when the page's layout or projection changes. Not folded into any content-addressed key —
 #: the report is a rebuildable view of a JSON file, never an input to anything.
-EVAL_REPORT_VERSION = "2026.7.1"
+EVAL_REPORT_VERSION = "2026.8.1"
+
+#: What ``--transcript`` accepts. ``sample`` is the default: see :func:`select_exchanges` for what a
+#: sample is and :func:`_exchange_block` for where the page states what it left out.
+TRANSCRIPT_MODES = ("all", "sample", "none")
+
+#: The most exchanges one case contributes under ``sample``. Twelve because that is roughly what a
+#: reader will actually open, and because the alternative is not "all of them" but a page nobody can
+#: load: one benchmark case has been measured at 983 exchanges, and every exchange carries a document.
+#: Scope representatives are added on TOP of this (there are at most five scopes), so the cheap
+#: "one per level" guarantee is never the thing a cap eats.
+SAMPLED_EXCHANGES = 12
+
+#: How much of each half of one exchange the page renders. The transcript file is the full text's
+#: address; this is a view over it. Wherever it bites, the page says so — a clipped document that
+#: did not admit it is the same lie as a truncated transcript that reads as a complete one.
+EXCHANGE_CHARS = 800
+
+#: The system prompt is rendered ONCE per report, so it can afford to be whole. The bound is a
+#: guard against a pathological prompt, not a display choice.
+PROMPT_CHARS = 24_000
+
+#: Refused drafts rendered per case. One case has produced 84; past a few dozen a reader is
+#: skimming, and the JSON has all of them.
+REJECTED_ROWS = 40
 
 #: The grade vocabulary, worst first. ``false_accept`` leads because it is the one failure the corpus
 #: never recovers from: a confident wrong manifest that nobody looks at again (``evals/README.md``).
@@ -152,6 +199,135 @@ def _script_guard(text: str) -> str:
 
 
 # --------------------------------------------------------------------------------------------------
+# the transcript: the exchanges live in files beside the report, and are folded in before rendering
+# --------------------------------------------------------------------------------------------------
+
+
+def attach_transcripts(
+    report: dict[str, Any], run_dir: Path | None, *, mode: str = "sample"
+) -> dict[str, Any]:
+    """Fold the ``.jsonl`` transcripts beside ``report`` into it, and return a NEW report dict.
+
+    A transcript cannot ride on stdout — stdout *is* the result object — so ``eval run`` writes it to
+    a file and the report names the path. That leaves the renderer with two inputs and one seam: this
+    reads the files the report points at and puts a bounded, selected view of them **into** the same
+    dict, so :func:`render_html` stays a pure function of one object and a fixture can exercise every
+    branch of the page without a directory on disk.
+
+    Absent, never empty: a report that named no transcript, an ``--no-llm`` run, a report that
+    arrived over a pipe with no directory beside it, and ``mode="none"`` all come back unchanged, and
+    the page renders without an exchanges section rather than with an empty one.
+    """
+    if mode not in TRANSCRIPT_MODES:
+        raise ValueError(f"unknown transcript mode {mode!r}: expected one of {TRANSCRIPT_MODES}")
+    if mode == "none" or run_dir is None:
+        return report
+
+    prompts: dict[str, dict[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
+    attached = False
+    for raw in report.get("per_case", []):
+        relative = raw.get("transcript")
+        if not isinstance(relative, str):
+            rows.append(raw)
+            continue
+        try:
+            transcript = read_transcript(run_dir / relative)
+        except (OSError, ValueError):
+            # Named and unreadable — a downloaded artifact missing a file, or a half-written one.
+            # The row keeps its path and the page says the exchanges were not read.
+            rows.append(raw)
+            continue
+        harvest = raw.get("harvest") or {}
+        chosen = select_exchanges(
+            transcript.exchanges,
+            scopes={
+                str(d.get("doc_sha256")): str(d.get("scope", "?"))
+                for d in harvest.get("documents", [])
+            },
+            claimed={
+                str(a.get("span", {}).get("doc_sha256")) for a in harvest.get("assertions", [])
+            },
+            refused={str(r.get("doc_sha256")) for r in harvest.get("rejected", [])},
+            limit=None if mode == "all" else SAMPLED_EXCHANGES,
+        )
+        rows.append(
+            {
+                **raw,
+                # The document each exchange was about is resolved HERE, from the one line the
+                # prompt writes it on, so the projection below never has to parse a prompt.
+                "exchanges": [
+                    {**x.to_json(), "why": why, "doc_sha256": document_sha256_in(x.user)}
+                    for x, why in chosen
+                ],
+                "n_exchanges": transcript.n_exchanges,
+            }
+        )
+        attached = True
+        for sha, text in transcript.prompts.items():
+            entry = prompts.setdefault(sha, {"sha256": sha, "text": text, "n_exchanges": 0})
+            entry["n_exchanges"] += sum(1 for x in transcript.exchanges if x.prompt_sha256 == sha)
+
+    if not attached:
+        return report
+    return {**report, "per_case": rows, "prompts": list(prompts.values())}
+
+
+def select_exchanges(
+    exchanges: Sequence[Exchange],
+    *,
+    scopes: Mapping[str, str],
+    claimed: set[str],
+    refused: set[str],
+    limit: int | None,
+) -> list[tuple[Exchange, str]]:
+    """The representative selection, and the reason each exchange survived it.
+
+    A corpus-scale run produces hundreds of exchanges and the page is one inlined file, so showing
+    all of them is not an option and showing the first N is not a sample — it is whatever the thread
+    pool happened to finish first. What has signal is:
+
+    - **every exchange that failed.** It produced neither a draft nor a claim, so no other rule below
+      would keep it, and it is the one exchange whose whole story is "we paid and got nothing back";
+    - **every exchange whose document produced a refused draft** — where the tripwire fired;
+    - **every exchange whose document produced a graded claim** — where the evidence came from;
+    - **one exchange per document scope**, so a reader sees what a ``sample`` record's ask looks like
+      even in a run where every sample answered cleanly.
+
+    The scope representatives are chosen *after* the rest and never compete with them for the cap:
+    the point of that rule is coverage, and it costs at most five exchanges. ``limit`` bounds the
+    signal-selected ones only; ``None`` (``--transcript all``) keeps everything. Order is the
+    transcript's own throughout, so the sample reads as a subsequence of the run rather than as a
+    ranking.
+
+    The join is by document, and a retry is its own exchange: two exchanges for one document are both
+    kept, which is the honest answer — one of them is a request that was paid for twice.
+    """
+    kept: dict[int, str] = {}
+    docs = [document_sha256_in(x.user) for x in exchanges]
+
+    for i, exchange in enumerate(exchanges):
+        sha = docs[i]
+        if exchange.error is not None:
+            kept[i] = "the request failed"
+        elif sha is not None and sha in refused:
+            kept[i] = "produced a rejected draft"
+        elif sha is not None and sha in claimed:
+            kept[i] = "produced a graded assertion"
+    if limit is not None and len(kept) > limit:
+        kept = dict(sorted(kept.items())[:limit])
+
+    covered = {scopes.get(docs[i] or "", "") for i in kept}
+    for i, sha in enumerate(docs):
+        scope = scopes.get(sha or "")
+        if i in kept or scope is None or scope in covered:
+            continue
+        covered.add(scope)
+        kept[i] = f"the first {scope}-scoped document"
+    return [(exchanges[i], kept[i]) for i in sorted(kept)]
+
+
+# --------------------------------------------------------------------------------------------------
 # the projection: raw JSON -> something typed, so the fragments below read as HTML and not as dict
 # archaeology, and so mypy checks the page against the shape `build_report` actually emits.
 # --------------------------------------------------------------------------------------------------
@@ -168,6 +344,75 @@ class FieldView:
 
 
 @dataclass(frozen=True)
+class DocView:
+    """One document a case sent, so a sha256 in a span resolves back to something a human reads."""
+
+    sha256: str
+    source: str
+    scope: str
+    subject: str | None
+    n_chars: int
+
+    @property
+    def label(self) -> str:
+        """``GSM4318946`` where the document speaks for a record, its basename where it does not."""
+        return self.subject or self.source
+
+
+@dataclass(frozen=True)
+class ClaimView:
+    """One Assertion the harvest grade was computed over, with the quote it rests on."""
+
+    field: str
+    value: str
+    quote: str
+    doc_sha256: str
+    char_start: int | None
+    char_end: int | None
+    page: int | None
+    confidence: float | None
+
+    @property
+    def where(self) -> str:
+        """The span, as a reader checks it: characters into the canonical text, and a PDF page."""
+        bits = []
+        if self.char_start is not None and self.char_end is not None:
+            bits.append(f"chars {self.char_start:,}–{self.char_end:,}")
+        if self.page is not None:
+            bits.append(f"p.{self.page}")
+        return " · ".join(bits)
+
+
+@dataclass(frozen=True)
+class RefusalView:
+    """One draft that did not survive. Every field may be absent: a malformed draft is malformed."""
+
+    field: str | None
+    value: str | None
+    quote: str | None
+    reason: str
+    detail: str
+    doc_sha256: str | None
+
+
+@dataclass(frozen=True)
+class ExchangeView:
+    """One request and what came back, as the page shows it."""
+
+    doc_sha256: str | None
+    user: str
+    text: str
+    model: str
+    error: str | None
+    why: str
+    usage: dict[str, int]
+
+    @property
+    def tokens(self) -> int:
+        return sum(int(self.usage.get(k, 0) or 0) for k in RAW_KEYS)
+
+
+@dataclass(frozen=True)
 class HarvestView:
     """How the LLM stage did on one case. Absent under ``--no-llm``, where nothing harvested."""
 
@@ -176,12 +421,29 @@ class HarvestView:
     hallucinated: list[str]
     unstable: list[str]
     n_rejected: int
-    extracted: dict[str, str]
+    claims: list[ClaimView]
+    refusals: list[RefusalView]
+    documents: dict[str, DocView]
+    mode: dict[str, Any]
+
+    def source_of(self, doc_sha256: str | None) -> str:
+        """What a document sha reads as — its subject and level, or a short sha if it is unknown."""
+        doc = self.documents.get(doc_sha256 or "")
+        if doc is None:
+            return f"{doc_sha256[:8]}…" if doc_sha256 else "unknown document"
+        return f"{doc.label} · {doc.scope}"
 
     @property
     def worth_showing(self) -> bool:
         return bool(
-            self.matched or self.missing or self.hallucinated or self.unstable or self.n_rejected
+            self.matched
+            or self.missing
+            or self.hallucinated
+            or self.unstable
+            or self.n_rejected
+            # A case that extracted claims nothing expected still extracted them, and hiding those
+            # behind an empty scorecard is how a corpus grows a field nobody knew it was producing.
+            or self.claims
         )
 
 
@@ -192,6 +454,10 @@ class CaseView:
     case_id: str
     grade: str | None
     skipped: str | None
+    #: ``absent`` when the corpus does not hold this case's package at all — never published, so it
+    #: cannot run anywhere. Anything else is this machine's accident. An older report predates the
+    #: field and reads as ``unavailable``, which is what it always meant.
+    skip_kind: str
     expected: str | None
     actual: str | None
     fields: list[FieldView]
@@ -203,6 +469,13 @@ class CaseView:
     usage: dict[str, int]
     seconds: float
     llm_calls: int
+    #: The exchanges folded in by :func:`attach_transcripts` — a selection, not the run.
+    exchanges: list[ExchangeView]
+    #: How many there were in total, so the page can say what it left out.
+    n_exchanges: int
+    #: Where they live, RELATIVE to the run directory. Set whenever the case reached a model, even
+    #: when nothing was read back — "recorded, not shown" is a different sentence from "none".
+    transcript: str | None
 
     @property
     def level(self) -> str:
@@ -221,6 +494,11 @@ class CaseView:
             return _UNKNOWN_RANK
 
     @property
+    def is_absent(self) -> bool:
+        """The package was never published. A finding about the corpus, not about this run."""
+        return self.skipped is not None and self.skip_kind == "absent"
+
+    @property
     def bad_fields(self) -> list[FieldView]:
         return [f for f in self.fields if not f.ok]
 
@@ -236,6 +514,7 @@ def _case_view(raw: dict[str, Any]) -> CaseView:
         case_id=str(raw.get("case", "?")),
         grade=raw.get("grade"),
         skipped=raw.get("skipped"),
+        skip_kind=str(raw.get("skip_kind") or "unavailable"),
         expected=raw.get("expected"),
         actual=raw.get("actual"),
         fields=[
@@ -251,19 +530,96 @@ def _case_view(raw: dict[str, Any]) -> CaseView:
         missed_question=bool(raw.get("missed_question")),
         trials=int(raw.get("trials", 1) or 1),
         stability=float(raw.get("stability", 1.0) or 0.0),
-        harvest=None
-        if harvest is None
-        else HarvestView(
-            matched=[str(x) for x in harvest.get("matched", [])],
-            missing=[str(x) for x in harvest.get("missing", [])],
-            hallucinated=[str(x) for x in harvest.get("hallucinated", [])],
-            unstable=[str(x) for x in harvest.get("unstable", [])],
-            n_rejected=int(harvest.get("n_rejected", 0) or 0),
-            extracted={str(k): str(v) for k, v in harvest.get("extracted", {}).items()},
-        ),
+        harvest=None if harvest is None else _harvest_view(harvest),
         seconds=float(raw.get("seconds", 0.0) or 0.0),
         llm_calls=int(raw.get("llm_calls", 0) or 0),
         usage={str(k): int(v) for k, v in raw.get("usage", {}).items()},
+        exchanges=[_exchange_view(x) for x in raw.get("exchanges", [])],
+        n_exchanges=int(raw.get("n_exchanges", 0) or 0),
+        transcript=raw.get("transcript"),
+    )
+
+
+def _harvest_view(harvest: dict[str, Any]) -> HarvestView:
+    """Project the harvest grade, from a report of any age.
+
+    Every read is a ``.get`` because the shape moved: a report written before the grade carried its
+    claims has a flat ``extracted`` dict and an integer ``n_rejected``, and it still renders — with
+    the values it recorded and without the quotes it never had. A renderer that could only read the
+    current shape would make the committed benchmark reports unreadable on the day the shape changed.
+    """
+    documents = {
+        str(d.get("doc_sha256", "")): DocView(
+            sha256=str(d.get("doc_sha256", "")),
+            source=str(d.get("source", "?")),
+            scope=str(d.get("scope", "?")),
+            subject=(str(d["subject"]) if d.get("subject") else None),
+            n_chars=int(d.get("n_chars", 0) or 0),
+        )
+        for d in harvest.get("documents", [])
+    }
+    claims = [
+        ClaimView(
+            field=str(a.get("field", "?")),
+            value=str(a.get("value", "")),
+            quote=str((a.get("span") or {}).get("quote", "")),
+            doc_sha256=str((a.get("span") or {}).get("doc_sha256", "")),
+            char_start=(a.get("span") or {}).get("char_start"),
+            char_end=(a.get("span") or {}).get("char_end"),
+            page=(a.get("span") or {}).get("page"),
+            confidence=a.get("llm_confidence"),
+        )
+        for a in harvest.get("assertions", [])
+    ]
+    claims += [
+        # The older shape, kept legible rather than dropped: a value with no quote beside it, which
+        # is exactly what that report recorded.
+        ClaimView(
+            field=str(k),
+            value=str(v),
+            quote="",
+            doc_sha256="",
+            char_start=None,
+            char_end=None,
+            page=None,
+            confidence=None,
+        )
+        for k, v in harvest.get("extracted", {}).items()
+    ]
+    refusals = [
+        RefusalView(
+            field=(str(r["field"]) if r.get("field") else None),
+            value=(str(r["value"]) if r.get("value") else None),
+            quote=(str(r["quote"]) if r.get("quote") else None),
+            reason=str(r.get("reason", "?")),
+            detail=str(r.get("detail", "")),
+            doc_sha256=(str(r["doc_sha256"]) if r.get("doc_sha256") else None),
+        )
+        for r in harvest.get("rejected", [])
+    ]
+    return HarvestView(
+        matched=[str(x) for x in harvest.get("matched", [])],
+        missing=[str(x) for x in harvest.get("missing", [])],
+        hallucinated=[str(x) for x in harvest.get("hallucinated", [])],
+        unstable=[str(x) for x in harvest.get("unstable", [])],
+        # From the list where there is one, from the old integer where there is not.
+        n_rejected=len(refusals) or int(harvest.get("n_rejected", 0) or 0),
+        claims=claims,
+        refusals=refusals,
+        documents=documents,
+        mode={str(k): v for k, v in (harvest.get("mode") or {}).items()},
+    )
+
+
+def _exchange_view(raw: dict[str, Any]) -> ExchangeView:
+    return ExchangeView(
+        doc_sha256=(str(raw["doc_sha256"]) if raw.get("doc_sha256") else None),
+        user=str(raw.get("user", "")),
+        text=str(raw.get("text", "")),
+        model=str(raw.get("model", "")),
+        error=(str(raw["error"]) if raw.get("error") else None),
+        why=str(raw.get("why", "")),
+        usage={str(k): int(v) for k, v in (raw.get("usage") or {}).items()},
     )
 
 
@@ -381,7 +737,13 @@ def _field_table(fields: list[FieldView]) -> str:
 
 
 def _harvest_block(h: HarvestView) -> str:
-    """The LLM stage's own scorecard. ``hallucinated`` is corpus poison; ``n_rejected`` is the net."""
+    """The LLM stage's own scorecard. ``hallucinated`` is corpus poison; ``n_rejected`` is the net.
+
+    The verdicts come first as chips, then the two drawers they are verdicts *about*: the drafts the
+    net caught, and the claims that got through with the quote each rests on. A scorecard whose
+    evidence is one drawer away is checkable; the same scorecard with the evidence discarded on the
+    way in is a number to be believed.
+    """
     parts = []
     if h.hallucinated:
         parts.append(
@@ -412,19 +774,216 @@ def _harvest_block(h: HarvestView) -> str:
             '<span class="hv-note">drafts the span-verification tripwire threw out — '
             "the safety net working, not a failure</span></div>"
         )
-    if h.extracted:
-        rows = "".join(
-            f'<tr><td class="align-top"><code class="path">{esc(k)}</code></td>'
-            f'<td class="align-top">{_value_html(v, None)}</td></tr>'
-            for k, v in sorted(h.extracted.items())
-        )
-        parts.append(
-            '<details class="drawer"><summary>everything the model extracted '
-            f"({len(h.extracted)})</summary>"
-            f'<div class="scroll-x mt-2"><table class="w-full text-sm"><tbody>{rows}'
-            "</tbody></table></div></details>"
-        )
+    parts.append(_refusals_drawer(h))
+    parts.append(_claims_drawer(h))
     return f'<div class="sub-h">harvest</div><div class="hv-list">{"".join(parts)}</div>'
+
+
+def _claims_drawer(h: HarvestView) -> str:
+    """Every claim that survived, with the quote it rests on and where that quote is.
+
+    **What is deliberately NOT a column: the two verification flags.** ``span_verified`` and
+    ``entailment_ok`` are code-owned and an Assertion is only constructed once both hold, so a
+    per-row pair of ticks would be two columns of the constant ``true`` — evidence-shaped and
+    carrying nothing. The invariant is worth stating and it is stated once, in the line above the
+    table, where it also points at the refusals: the drafts where those checks did something are the
+    ones that FAILED them, and they are in the drawer above this one.
+
+    What varies per row, and is therefore what a row shows: the quote (the model's contribution, and
+    the only part a reader can independently check), where the quote sits (code's contribution),
+    which document it came from, and the model's own confidence — the one number on an Assertion
+    that is not a verdict code reached.
+    """
+    if not h.claims:
+        return ""
+    rows = "".join(
+        f'<tr><td class="align-top"><code class="path">{esc(c.field)}</code></td>'
+        f'<td class="align-top">{_value_html(c.value, None)}</td>'
+        f'<td class="align-top">{_quote_cell(c, h)}</td>'
+        + '<td class="align-top tabular-nums text-dim">'
+        + (f"{c.confidence:.2f}" if c.confidence is not None else "—")
+        + "</td></tr>"
+        for c in sorted(h.claims, key=lambda c: (c.field, c.value))
+    )
+    return (
+        f'<details class="drawer"><summary>the {len(h.claims)} claim(s) that survived, with the '
+        "quote each rests on</summary>"
+        '<p class="hv-note mt-2">Every row is span-verified <b>and</b> entailment-checked: an '
+        "Assertion is only built once both hold, so the flags are stated here rather than repeated "
+        "as two true columns. Where those checks did something is the rejected drawer above.</p>"
+        '<div class="scroll-x mt-2"><table class="w-full text-sm">'
+        '<thead><tr><th class="text-left">field</th><th class="text-left">value</th>'
+        '<th class="text-left">quote it rests on</th><th class="text-left">conf</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table></div></details>"
+    )
+
+
+def _quote_cell(claim: ClaimView, h: HarvestView) -> str:
+    """The quote, then where it is — document, offsets, page. Empty for an older report."""
+    if not claim.quote:
+        return '<span class="nil">not recorded by this run</span>'
+    where = " · ".join(x for x in (h.source_of(claim.doc_sha256), claim.where) if x)
+    return f'<code class="quote">{esc(claim.quote)}</code><span class="hv-note">{esc(where)}</span>'
+
+
+def _refusals_drawer(h: HarvestView) -> str:
+    """The drafts that did not survive, read as claims rather than counted as a number.
+
+    Two producers land in one list and the reason tells them apart: ``malformed_draft`` is a draft
+    the model returned broken (so its field, value and quote may all be absent, and the row says so
+    rather than inventing them), and everything else is a draft whose field, document, quote or
+    entailment failed. Sorted by reason, because the question a reader has is which check fired.
+    """
+    if not h.refusals:
+        return ""
+    shown = sorted(h.refusals, key=lambda r: (r.reason, r.field or ""))[:REJECTED_ROWS]
+    rows = "".join(
+        f'<tr><td class="align-top"><code class="chip chip-diff">{esc(r.reason)}</code></td>'
+        f'<td class="align-top">{_or_nil(r.field, "path")}</td>'
+        f'<td class="align-top">{_or_nil(r.value, "val")}</td>'
+        f'<td class="align-top">{_or_nil(r.quote, "quote")}'
+        f'<span class="hv-note">{esc(h.source_of(r.doc_sha256))}</span></td>'
+        f'<td class="align-top text-dim">{esc(r.detail)}</td></tr>'
+        for r in shown
+    )
+    dropped = (
+        ""
+        if len(shown) == len(h.refusals)
+        else f'<p class="hv-note mt-2">Showing {len(shown)} of {len(h.refusals)} — the rest are in '
+        "the report JSON.</p>"
+    )
+    return (
+        f'<details class="drawer"><summary>the {len(h.refusals)} draft(s) the tripwire threw out'
+        "</summary>"
+        f"{dropped}"
+        '<div class="scroll-x mt-2"><table class="w-full text-sm">'
+        '<thead><tr><th class="text-left">reason</th><th class="text-left">field</th>'
+        '<th class="text-left">value</th><th class="text-left">quote</th>'
+        '<th class="text-left">detail</th></tr></thead>'
+        f"<tbody>{rows}</tbody></table></div></details>"
+    )
+
+
+def _or_nil(value: str | None, cls: str) -> str:
+    """A malformed draft may carry no field, no value and no quote. Say so; never print ``None``."""
+    return f'<code class="{cls}">{esc(value)}</code>' if value else '<span class="nil">none</span>'
+
+
+def _blob(label: str, text: str, limit: int) -> str:
+    """One block of untrusted text — a document we sent, or whatever the model sent back.
+
+    Everything in it is ``esc``aped: model output is not markup, and it will contain ``<``, ``&`` and
+    sooner or later ``</script>``. Clipped to ``limit`` characters, and the clip is *stated*: a page
+    that quietly showed the first 800 characters of a document would be a smaller version of the
+    same lie as a transcript that shows the first twelve exchanges without saying so.
+    """
+    if not text:
+        # An empty box reads as a broken renderer; "nothing" is a real answer here, and on the
+        # returned half of a failed request it is the answer.
+        return f'<div class="mt-2"><span class="src-k">{esc(label)}</span><span class="nil">nothing</span></div>'
+    clipped = (
+        ""
+        if len(text) <= limit
+        else f'<span class="hv-note">clipped — showing {limit:,} of {len(text):,} characters</span>'
+    )
+    return (
+        f'<div class="mt-2"><span class="src-k">{esc(label)}</span>{clipped}'
+        f'<pre class="blob">{esc(text[:limit])}</pre></div>'
+    )
+
+
+def _exchange_block(case: CaseView) -> str:
+    """The case's transcript: a bounded selection of exchanges, and what it left out.
+
+    An exchange is a request and the response it got, so it is a document plus a JSON batch — and a
+    corpus-scale run makes hundreds of them. What is shown is :func:`select_exchanges`' sample, and
+    the summary line above it names both numbers, because a silently truncated transcript reads as a
+    complete one and that is the whole hazard here.
+
+    The system prompt is NOT in any of these: it is byte-identical across every request in a run —
+    which is what makes prefix caching work — so the page carries it once, in its own panel.
+    """
+    if not case.exchanges:
+        if case.transcript and case.llm_calls:
+            # Recorded, and not read: rendered from a bare report.json, from a pipe, or under
+            # `--transcript none`. That is a different sentence from "this case reached no model".
+            return (
+                f'<div class="sub-h">exchanges</div><p class="hv-note">{case.llm_calls} exchange(s) '
+                f'were recorded in <code class="path">{esc(case.transcript)}</code> and not read. '
+                "Render the run directory (not the JSON alone) with <code class='val'>--transcript "
+                "sample</code> to see them.</p>"
+            )
+        return ""
+
+    total = max(case.n_exchanges, len(case.exchanges))
+    dropped = (
+        "every exchange"
+        if len(case.exchanges) >= total
+        else f"{len(case.exchanges)} of {total} exchanges"
+    )
+    cards = []
+    for x in case.exchanges:
+        source = case.harvest.source_of(x.doc_sha256) if case.harvest else (x.doc_sha256 or "?")
+        head = (
+            f'<code class="path">{esc(source)}</code>'
+            f'<span class="hv-note">{esc(x.why)}</span>'
+            f'<span class="hv-note tabular-nums">{x.tokens:,} tokens</span>'
+        )
+        if x.error:
+            head += f'<span class="chip chip-diff">{esc(x.error)}</span>'
+        cards.append(
+            f'<details class="drawer"><summary>{head}</summary>'
+            + _blob("sent", x.user, EXCHANGE_CHARS)
+            + _blob("returned", x.text, EXCHANGE_CHARS)
+            + "</details>"
+        )
+    return (
+        f'<div class="sub-h">exchanges</div>'
+        f'<p class="hv-note">Showing <b>{dropped}</b>. Each is one request and the response it got; '
+        "the system prompt is identical across all of them and is at the foot of this page. The "
+        f'unclipped run is in <code class="path">{esc(case.transcript or "the transcript")}</code>.'
+        f"</p>{''.join(cards)}"
+    )
+
+
+def _prompt_panel(report: dict[str, Any]) -> str:
+    """The system prompt, once per report.
+
+    It is byte-identical across every request in a run — that is exactly why prefix caching works —
+    so a transcript is one prompt plus N (document, response) pairs, not N full exchanges. Rendering
+    it per exchange would be the same string a few hundred times, which is the difference between a
+    page a human opens and one they do not.
+
+    ``prompts`` is keyed by sha256 and normally holds one entry. More than one is a finding rather
+    than a layout problem — the prefix cannot have been cached across them — so the page says so
+    instead of picking the first.
+    """
+    prompts = [p for p in report.get("prompts", []) if p.get("text")]
+    if not prompts:
+        return ""
+    version = (report.get("extractor") or {}).get("prompt_version")
+    stamped = f" <code class='val'>{esc(version)}</code>" if version else ""
+    drawers = "".join(
+        '<details class="drawer"><summary>'
+        f'<code class="path">{esc(str(p.get("sha256", ""))[:12])}…</code>'
+        f'<span class="hv-note">{len(str(p.get("text", ""))):,} characters · '
+        f"{int(p.get('n_exchanges', 0) or 0):,} exchange(s)</span></summary>"
+        + _blob("system prompt", str(p.get("text", "")), PROMPT_CHARS)
+        + "</details>"
+        for p in prompts
+    )
+    split = (
+        ""
+        if len(prompts) == 1
+        else f'<p class="panel-sub">This run issued <b>{len(prompts)}</b> distinct system prompts, '
+        "so the stable prefix cannot have been cached across them.</p>"
+    )
+    return (
+        f'<section class="panel"><h2 class="panel-h">The system prompt{stamped}</h2>'
+        '<p class="panel-sub">Sent with every request, byte for byte — which is what makes prefix '
+        "caching work, and why it is here once instead of beside each exchange above.</p>"
+        f"{split}{drawers}</section>"
+    )
 
 
 def _meta(case: CaseView) -> str:
@@ -449,32 +1008,56 @@ def _meta(case: CaseView) -> str:
     bits.append(f'<span class="meta"><b class="tabular-nums">{case.seconds:.1f}s</b></span>')
     if case.llm_calls:
         bits.append(
-            f'<span class="meta"><b class="tabular-nums">{case.llm_calls}</b> LLM calls</span>'
+            f'<span class="meta"><b class="tabular-nums">{case.llm_calls}</b> exchanges</span>'
         )
+    # `input_tokens` is the WHOLE input on both providers; `cached` and `cache written` are the
+    # breakdown of it, not extra tokens beside it. `cache_write_tokens` only the Anthropic path
+    # reports, and every consumer but the on-disk ledger used to drop it.
     for key, label in (
         ("input_tokens", "in"),
         ("output_tokens", "out"),
         ("cache_read_tokens", "cached"),
+        ("cache_write_tokens", "cache-written"),
     ):
         if case.usage.get(key):
             bits.append(
                 f'<span class="meta"><b class="tabular-nums">{case.usage[key]:,}</b> '
                 f"{label} tokens</span>"
             )
+    # How the calls were made — the fourth thing an extraction outcome carries, and the one the eval
+    # path used to drop. It belongs beside the token counts because it is the same kind of fact: not
+    # what the model said, but what it was asked to do it under.
+    if case.harvest is not None and case.harvest.mode:
+        made = " · ".join(f"{k} {v}" for k, v in sorted(case.harvest.mode.items()))
+        bits.append(f'<span class="meta">{esc(made)}</span>')
     return f'<div class="meta-row">{"".join(bits)}</div>'
 
 
 def _case_card(case: CaseView) -> str:
     if case.skipped is not None:
+        # Two skips, told apart on the face of the card. `absent` means the corpus does not hold this
+        # case's package, so it cannot run anywhere for anyone — a gap somebody has to close, not a
+        # bad day on the wire. Both stay outside every rate; only one is an instruction.
+        pill, outcome = (
+            ("absent", "never published — a gap in the corpus, excluded from every rate")
+            if case.is_absent
+            else ("skipped", "excluded from every rate")
+        )
+        level = "warn" if case.is_absent else "skip"
+        # The one thing a skipped card still owes a reader. A case stopped at its token Ceiling
+        # reports AS a skip — it was not graded — but the exchanges up to the breach were paid for,
+        # and "on what?" is exactly the question a breach produces. A skip that reached no model has
+        # no exchanges, so this is empty for every other skip there is.
+        spent = f'<div class="case-body">{_exchange_block(case)}</div>' if case.exchanges else ""
         return (
             '<div class="case lv-skip" data-level="skip">'
             '<div class="case-head">'
             f'<code class="case-id">{esc(case.case_id)}</code>'
-            '<span class="pill lv-skip">skipped</span>'
-            '<span class="outcome ml-auto">excluded from every rate</span>'
+            f'<span class="pill lv-{level}">{pill}</span>'
+            f'<span class="outcome ml-auto">{outcome}</span>'
             "</div>"
             f'<p class="skip-why"><b>why:</b> {esc(case.skipped)}</p>'
-            "</div>"
+            f"{spent}</div>"
         )
 
     grade = case.grade or "?"
@@ -484,6 +1067,9 @@ def _case_card(case: CaseView) -> str:
             "".join(f'<p class="note">{esc(n)}</p>' for n in case.notes),
             _field_table(case.fields),
             _harvest_block(case.harvest) if case.harvest and case.harvest.worth_showing else "",
+            # After the scorecard and before the costs: the exchanges are the raw material the
+            # harvest block is a view over, so they read as "and here is what that came from".
+            _exchange_block(case),
             _meta(case),
         ]
     )
@@ -525,17 +1111,26 @@ def _legend(seen: list[str]) -> str:
     )
 
 
-def _distribution(counts: Counter[str], n_skipped: int) -> str:
+def _distribution(counts: Counter[str], n_skipped: int, n_absent: int = 0) -> str:
     """A single bar: the whole graded run, worst segment first. Width is the share; colour the level.
 
     A run with nothing graded says so rather than drawing an empty bar — an all-skipped benchmark tier
     (every package unreachable) is a legible outcome and must not look like a run with no failures.
+
+    ``n_absent`` is the subset of the skips whose package the corpus does not hold. It gets its own
+    key rather than being folded into the skip count, because the two ask different things of a
+    reader: one is "try again later", the other is "publish the package".
     """
     total = sum(counts.values())
     if not total:
         return (
             '<p class="panel-sub">Nothing was graded'
             + (f" — all {n_skipped} cases skipped." if n_skipped else ".")
+            + (
+                f" {n_absent} of them absent — the corpus does not hold those packages."
+                if n_absent
+                else ""
+            )
             + "</p>"
         )
     segments = "".join(
@@ -550,11 +1145,17 @@ def _distribution(counts: Counter[str], n_skipped: int) -> str:
         for g in GRADE_ORDER
         if counts[g]
     )
-    if n_skipped:
+    if n_skipped - n_absent:
         keys += (
             f'<span class="key"><span class="sw lv-skip"></span>'
-            f'<b class="tabular-nums">{n_skipped}</b> skipped '
+            f'<b class="tabular-nums">{n_skipped - n_absent}</b> skipped '
             "<span class='text-dim'>(excluded from every rate)</span></span>"
+        )
+    if n_absent:
+        keys += (
+            f'<span class="key"><span class="sw lv-warn"></span>'
+            f'<b class="tabular-nums">{n_absent}</b> absent '
+            "<span class='text-dim'>(never published — a gap in the corpus)</span></span>"
         )
     return f'<div class="bar">{segments}</div><div class="keys">{keys}</div>'
 
@@ -567,6 +1168,7 @@ def _distribution(counts: Counter[str], n_skipped: int) -> str:
 def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[CaseView]) -> str:
     graded = [c for c in cases if c.skipped is None]
     skipped = [c for c in cases if c.skipped is not None]
+    absent = [c for c in skipped if c.is_absent]
     cost: dict[str, Any] = report.get("cost", {}) or {}
     questions: dict[str, Any] = report.get("questions_asked", {}) or {}
 
@@ -588,15 +1190,21 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
 
     work = float(cost.get("seconds", 0.0) or 0.0)
     wall = cost.get("wall_seconds")
-    tokens = sum(
-        int(cost.get(k, 0) or 0) for k in ("input_tokens", "output_tokens", "cache_read_tokens")
-    )
+    # Raw, and only two keys: `input_tokens` already includes the cached input and the cache writes
+    # on both providers, so adding the breakdown back in would count the cached half twice. Same
+    # arithmetic the token Ceiling uses, so the tile and the refusal agree about what a run cost.
+    tokens = sum(int(cost.get(k, 0) or 0) for k in RAW_KEYS)
 
     tiles = [
         _tile(
             "cases graded",
             f"{len(graded)}",
-            f"{len(skipped)} skipped" if skipped else "none skipped",
+            (
+                f"{len(skipped)} skipped"
+                + (f", {len(absent)} of them never published" if absent else "")
+            )
+            if skipped
+            else "none skipped",
         ),
         _tile(
             "false accepts",
@@ -639,7 +1247,7 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
         tiles.append(_tile("elapsed", "—", "not recorded by this run"))
     tiles.append(
         _tile(
-            "LLM calls",
+            "exchanges",
             _count(float(cost.get("llm_calls", 0) or 0)),
             f"{tokens:,} tokens" if tokens else "none — this tier is deterministic",
         )
@@ -668,6 +1276,7 @@ def render_html(
     false_accepts = [c for c in graded if c.grade == "false_accept"]
     counts: Counter[str] = Counter(c.grade or "?" for c in graded)
     n_skipped = len(cases) - len(graded)
+    n_absent = sum(1 for c in cases if c.is_absent)
     n_fail = sum(1 for c in graded if c.level != "ok")
 
     # The header line is the page's provenance, and the command alone is no longer enough of it: the
@@ -697,12 +1306,18 @@ def render_html(
         SOURCE=src_line,
         VERDICT=_banner(false_accepts),
         TILES=_tiles(report, cases, false_accepts),
-        DISTRIBUTION=_distribution(counts, n_skipped),
+        DISTRIBUTION=_distribution(counts, n_skipped, n_absent),
         CASES="".join(_case_card(c) for c in cases),
-        LEGEND=_legend(list(counts)),
+        # Two trailing panels through one slot, deliberately: the template's sections are the page's
+        # SHAPE, and "reference material after the cases" is one shape whether it holds one panel or
+        # two. A second slot for a panel that renders only on an `--llm` run would put a decision
+        # about what to show into the file that must not contain one.
+        LEGEND=_legend(list(counts)) + _prompt_panel(report),
         FOOTER=(
             f"seqforge eval report v{esc(EVAL_REPORT_VERSION)}{stamp} · "
-            f"{len(graded)} graded, {n_skipped} skipped, {n_fail} not correct · "
+            f"{len(graded)} graded, {n_skipped} skipped"
+            + (f" ({n_absent} absent)" if n_absent else "")
+            + f", {n_fail} not correct · "
             "rendered from the JSON <code class='val'>seqforge eval run</code> emits, with every "
             "asset inlined — this page fetches nothing."
         ),
@@ -714,5 +1329,9 @@ __all__ = [
     "GRADE_BLURB",
     "GRADE_LEVEL",
     "GRADE_ORDER",
+    "SAMPLED_EXCHANGES",
+    "TRANSCRIPT_MODES",
+    "attach_transcripts",
     "render_html",
+    "select_exchanges",
 ]

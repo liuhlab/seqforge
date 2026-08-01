@@ -390,6 +390,37 @@
   .drawer > summary { color: var(--sf-accent); }
   .drawer > summary:hover { text-decoration: underline; }
 
+  /* ---- transcript ---------------------------------------------------------------------------------
+   * The two blocks of untrusted text the page shows: a document that was sent, and whatever came
+   * back. Both are bounded in HEIGHT here rather than only in characters, because an exchange that
+   * expanded to four screens would push every case below it off the page — and both are inside a
+   * collapsed drawer, so this only ever costs a reader who asked. Wrapping (rather than a horizontal
+   * scroll) because prose is what is in them. */
+  .blob {
+    @apply mt-1 overflow-auto rounded-lg border p-3;
+    border-color: var(--sf-line);
+    background: var(--sf-sunk);
+    color: var(--sf-ink);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 22rem;
+  }
+
+  /* The verbatim substring a claim rests on — the model's whole contribution to an Assertion, and
+   * the only part of one a reader can check without leaving the page. Set apart by a rule rather
+   * than by a chip's background: a quote is a sentence, not a token. */
+  .quote {
+    @apply block;
+    font-size: 12px;
+    color: var(--sf-dim);
+    border-left: 2px solid var(--sf-line-strong);
+    padding-left: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+
   .empty-note {
     @apply mt-3 text-sm italic;
     color: var(--sf-dim);

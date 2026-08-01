@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
 
@@ -519,14 +520,213 @@ def test_hf_package_url_is_the_public_resolve_endpoint() -> None:
 def test_a_fetch_failure_is_a_typed_unavailable_not_a_crash(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """pooch raising (offline, 404, DNS) must surface as BenchmarkPackageUnavailable — i.e. a skip."""
+    """A network failure (offline, DNS, a 5xx) surfaces as BenchmarkPackageUnavailable — a skip.
+
+    Note what this test no longer claims. It used to say "offline, 404, DNS" in one breath, and that
+    single bucket is exactly the defect below: a package nobody ever published is a *gap in the
+    corpus*, not a network blip, and folding the two made a missing dataset look like bad weather.
+    """
     import pooch
 
-    from seqforge.io import BenchmarkPackageUnavailable, fetch_benchmark_package
+    from seqforge.io import (
+        BenchmarkPackageAbsent,
+        BenchmarkPackageUnavailable,
+        fetch_benchmark_package,
+    )
 
     def _boom(**kwargs: object) -> NoReturn:
         raise OSError("no network in CI")
 
     monkeypatch.setattr(pooch, "retrieve", _boom)
-    with pytest.raises(BenchmarkPackageUnavailable, match="GSE274290"):
+    with pytest.raises(BenchmarkPackageUnavailable, match="GSE274290") as caught:
         fetch_benchmark_package("packages/GSE274290.fingerprint.tar.gz", cache_dir=tmp_path)
+    assert not isinstance(caught.value, BenchmarkPackageAbsent), (
+        "no HTTP response came back at all, so nothing was learned about whether the package exists"
+    )
+
+
+def test_a_404_is_absent_and_a_5xx_is_merely_unreachable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The archive answering "no such file" is a different fact from the archive not answering.
+
+    A 404 means the repo was reached and does not hold this package — it was never published, which
+    is a gap in the corpus that the eval report has to say out loud. Everything else the wire can do
+    (offline, DNS, a rate limit, a 503) says nothing about whether the package exists, so it stays
+    the old skip. `BenchmarkPackageAbsent` SUBCLASSES `BenchmarkPackageUnavailable` on purpose: every
+    existing `except` keeps catching both, and only a caller that wants the distinction pays for it.
+    """
+    import pooch
+    import requests
+
+    from seqforge.io import (
+        BenchmarkPackageAbsent,
+        BenchmarkPackageUnavailable,
+        fetch_benchmark_package,
+    )
+
+    def _status(code: int) -> Callable[..., NoReturn]:
+        def _raise(**kwargs: object) -> NoReturn:
+            response = requests.Response()
+            response.status_code = code
+            response.url = "https://huggingface.co/x"
+            raise requests.exceptions.HTTPError(f"{code} for url", response=response)
+
+        return _raise
+
+    monkeypatch.setattr(pooch, "retrieve", _status(404))
+    with pytest.raises(BenchmarkPackageAbsent, match="GSE110823") as absent:
+        fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
+    assert isinstance(absent.value, BenchmarkPackageUnavailable), "still catchable as the old type"
+    assert "never published" in str(absent.value), "the reason is on the exception, not inferred"
+
+    for code in (429, 500, 503):
+        monkeypatch.setattr(pooch, "retrieve", _status(code))
+        with pytest.raises(BenchmarkPackageUnavailable) as caught:
+            fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
+        assert not isinstance(caught.value, BenchmarkPackageAbsent), (
+            f"HTTP {code} is the archive being unwell, not the package being missing"
+        )
+
+
+def test_the_404_is_found_even_when_pooch_wraps_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The status is read off the exception CHAIN, not off the top-level exception only.
+
+    pooch hands the requests error straight through today, but it downloads through a pluggable
+    downloader and a future one may re-raise its own type `from` the original. Walking the chain
+    costs nothing and means a wrapped 404 does not silently demote to "offline".
+    """
+    import pooch
+    import requests
+
+    from seqforge.io import BenchmarkPackageAbsent, fetch_benchmark_package
+
+    def _wrapped(**kwargs: object) -> NoReturn:
+        response = requests.Response()
+        response.status_code = 404
+        try:
+            raise requests.exceptions.HTTPError("404 for url", response=response)
+        except requests.exceptions.HTTPError as inner:
+            raise RuntimeError("download failed") from inner
+
+    monkeypatch.setattr(pooch, "retrieve", _wrapped)
+    with pytest.raises(BenchmarkPackageAbsent):
+        fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
+
+
+# --------------------------------------------------------------------------------------------
+# publishing a fingerprint package: the producer half of the same contract
+#
+# `preflight` builds a package and `fetch_benchmark_package` reads one; between them there used to
+# be nothing but a maintainer's memory. These tests never upload — the real call is behind an
+# injected API object, which is also what keeps the suite hermetic.
+# --------------------------------------------------------------------------------------------
+
+
+def _tiny_package(tmp_path: Path, *, name: str = "GSE110823") -> Path:
+    """A real (tiny) fingerprint package on disk — built by the builder, not hand-assembled."""
+    from conftest import write_fastq_gz
+    from seqforge.fingerprint.build import build_fingerprint
+
+    src = tmp_path / "src"
+    src.mkdir()
+    rng = random.Random(7)
+    for read in ("R1", "R2"):
+        path = src / f"sample_{read}.fastq.gz"
+        write_fastq_gz(path, ["".join(rng.choice("ACGT") for _ in range(50)) for _ in range(40)])
+    return build_fingerprint(
+        sorted(src.glob("*.fastq.gz")), workspace=tmp_path / "ws", reads=20, name=name
+    ).package
+
+
+class _FakeCommit:
+    commit_url = "https://huggingface.co/datasets/liuhlab/seqforge-benchmark/commit/deadbeef"
+
+
+class _FakeApi:
+    """Stands in for `HfApi`. Records the one call it is allowed to receive."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def upload_file(self, **kwargs: object) -> _FakeCommit:
+        self.calls.append(kwargs)
+        return _FakeCommit()
+
+
+def test_a_dry_run_publish_resolves_the_destination_and_uploads_nothing(tmp_path: Path) -> None:
+    """ "Where does this go, and under what name" must be answerable without spending a commit.
+
+    The destination is DERIVED from the filename rather than typed, because the consuming side
+    derives it too: an eval recipe's `hf:` key is written by hand, and a package uploaded under a
+    name no recipe points at is a 404 that nobody discovers until the benchmark next runs. So the
+    dry run reports the public URL the fetch will GET, which is the string those two must agree on.
+    """
+    from seqforge.io import hf_package_url, publish_benchmark_package
+
+    package = _tiny_package(tmp_path)
+    result = publish_benchmark_package(package, dry_run=True, api=_FakeApi())
+
+    assert result.dry_run is True
+    assert result.commit_url is None, "a dry run committed nothing, and says so"
+    # The BUILD names its output `GSE110823-<digest12>.fingerprint.tar.gz`; the corpus is keyed by
+    # dataset. A recipe pinned to the digest would 404 the moment the package was rebuilt.
+    assert "-" not in Path(result.rel_path).name.removesuffix(".fingerprint.tar.gz")
+    assert result.rel_path == "packages/GSE110823.fingerprint.tar.gz"
+    assert result.url == hf_package_url(result.rel_path)
+    # It read the pin, so the summary states what would enter the corpus rather than what was named.
+    assert result.n_files == 2 and result.reads == 20
+    assert result.size_bytes == package.stat().st_size
+
+
+def test_publishing_uploads_exactly_the_path_the_fetch_side_reads(tmp_path: Path) -> None:
+    """The upload goes through `HfApi().upload_file` — never the `hf` command line, which hangs.
+
+    Pinned here because the failure mode of getting it wrong is not an error: shelling out to `hf
+    upload` blocks forever with no output, which reads as a slow network rather than as a bug.
+
+    The path is asserted against `hf_package_url`'s own output rather than a literal, so the two
+    halves of the contract cannot drift apart while both tests stay green.
+    """
+    from seqforge.io import hf_package_url, publish_benchmark_package
+
+    package = _tiny_package(tmp_path)
+    api = _FakeApi()
+    result = publish_benchmark_package(package, api=api, message="Publish it")
+
+    assert len(api.calls) == 1
+    call = api.calls[0]
+    assert call["path_in_repo"] == "packages/GSE110823.fingerprint.tar.gz"
+    assert call["repo_type"] == "dataset", "a dataset repo, not a model repo — the URL differs"
+    assert call["repo_id"] == "liuhlab/seqforge-benchmark"
+    assert call["revision"] == "main"
+    assert call["commit_message"] == "Publish it"
+    assert result.dry_run is False
+    assert result.commit_url == _FakeCommit.commit_url
+    assert result.url == hf_package_url(str(call["path_in_repo"]))
+
+
+def test_publishing_refuses_anything_that_is_not_a_fingerprint_package(tmp_path: Path) -> None:
+    """The pin is validated BEFORE a byte is sent, and a refusal uploads nothing.
+
+    A corrupt package on the public repo is worse than a missing one: a missing one skips with a
+    reason, and a corrupt one turns every future run of that case into a diagnosis. The check is
+    cheap — the pin is read straight out of the tarball, without unpacking it anywhere.
+    """
+    from seqforge.io import publish_benchmark_package
+
+    api = _FakeApi()
+    junk = tmp_path / "notes.tar.gz"
+    import tarfile
+
+    (tmp_path / "notes.txt").write_text("not a package")
+    with tarfile.open(junk, "w:gz") as tar:
+        tar.add(tmp_path / "notes.txt", arcname="notes.txt")
+
+    with pytest.raises(ValueError, match="not a fingerprint package"):
+        publish_benchmark_package(junk, api=api)
+    with pytest.raises(FileNotFoundError):
+        publish_benchmark_package(tmp_path / "nope.tar.gz", api=api)
+    assert api.calls == [], "a refusal must not have uploaded anything first"
