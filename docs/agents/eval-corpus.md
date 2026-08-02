@@ -263,6 +263,30 @@ document including the records, since the grade is computed over the whole accep
 grades `library.chemistry` from prose on this tier — that stays `cases/prose`'s job, because on a real
 dataset the byte resolver already decides it and a prose claim only enters as a hypothesis.
 
+**What the first graded `--llm` pass actually measured (2026-08-01, `deepseek-v4-flash`, whole tier at
+the default fan-out).** Two things, and neither is the arithmetic:
+
+- **The planned 141 requests were not the 141 issued.** The run made **68**, spending 257,592 input,
+  203,079 output and 161,920 cache-read tokens over 326 s wall — because **five of the seven
+  prose-carrying cases aborted** on DeepSeek's known empty-`json_object` failure (#4) after exhausting
+  their retries, and skipped. Re-run one or two at a time, the same cases go through: across three
+  runs, prose-carrying cases succeeded in 5 of 11 attempts, and the failures cluster where the
+  document is a whole paper. A skip is excluded from every rate so nothing is poisoned — but the
+  harvest half of a tier pass is only *sometimes* measured on the cheap model, and `--model
+  deepseek-v4-pro` or a smaller `--jobs` is what buys it. Do not read the plan's document count as a
+  prediction of the bill on flash; read it as the bill if nothing aborts.
+- **`GSE282765-colon-crod-wta` grades `false_accept` under `--llm` and `correct` under `--no-llm`**,
+  and the mechanism is worth writing down because it is not a harvest hallucination. Its BioSample
+  declares `treatment = "Citrobacter rodentium infection"`; the experiment record's title says
+  "Mouse colon Citrobacter rodentium CD45 pos"; harvest quoted the title and asserted
+  `experiment.samples.treatment = "Citrobacter rodentium"`. Both positions arrive at
+  `resolve.records._decide` as **`asserted`**, they differ, and equal authorities that disagree
+  leave the attribute **null** — so a partial quote of a record's own field *deletes* the value that
+  record already supplied, and the case loses a graded field it passes without a model. The rule is
+  right (null beats a permanent wrong value); what is wrong is that a claim re-deriving a structured
+  attribute from the same record's prose is treated as an independent authority at all. It is
+  unrelated to the assertions added above, predates them, and belongs to the metadata resolver.
+
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
 **Nothing here is decided, and there is no third tier.**

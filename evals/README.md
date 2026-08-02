@@ -283,6 +283,19 @@ Three rules for adding more, learned from writing these two:
 None of this changes what `--no-llm` does: chemistry still comes from the pinned bytes and sample
 facts from `records.json`, with no key and nothing graded about harvest.
 
+**Read this before you spend, because the plan is not the bill on the cheap model.** The first graded
+tier pass (2026-08-01, `deepseek-v4-flash`, default fan-out) issued **68** of the planned 141 requests
+— 257,592 input, 203,079 output, 161,920 cache-read tokens, 326 s wall — because five of the seven
+prose-carrying cases aborted on DeepSeek's known empty-`json_object` failure and **skipped**. The
+failures cluster on whole-paper documents; the same cases go through when run one or two at a time. A
+skip is excluded from every rate, so no number is poisoned, but the harvest half is only sometimes
+measured that way. `--model deepseek-v4-pro`, or a smaller `--jobs`, is what buys it.
+
+Two findings from that pass are recorded in
+[`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md), including one case that grades
+`false_accept` under `--llm` and `correct` without it — a partial quote of a record's own attribute
+colliding with the attribute itself, which is the metadata resolver's business rather than harvest's.
+
 None of those provenances makes this a *test* set: when a case goes red we fix the compiler and grade
 it again, which is exactly what a held-out set forbids. Run it with `seqforge eval run --no-llm --cases
 evals/benchmark`; it fires in CI only on a published release or manual dispatch
