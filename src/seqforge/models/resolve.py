@@ -229,3 +229,66 @@ class EvalReport(BaseModel):
     #: or downloaded as a CI artifact while this records where it was produced.
     run_dir: str | None = None
     per_case: list[dict[str, object]]
+
+
+class CasePlanRow(BaseModel):
+    """One case's share of an ``--llm`` bill, before any of it is paid.
+
+    A case that could not be planned carries ``skipped`` and zeros for everything else: a skip is not
+    a free case, it is a case whose price is unknown, and reporting 0 tokens for it without saying so
+    would understate the tier.
+    """
+
+    case: str
+    #: Extraction requests this case would issue, before retries. It is the exchange count, which is
+    #: also the floor on ``llm_calls``: a document whose first attempt is refused costs two.
+    n_documents: int = 0
+    n_records_read: int = 0
+    n_records_collapsed: int = 0
+    n_chars: int = 0
+    #: Input only, and the system prefix charged once **per document** — that is what makes a fan-out
+    #: over one-line archive records expensive. Output is not estimable: the model decides how many
+    #: claims a document supports.
+    estimated_input_tokens: int = 0
+    skipped: str | None = None
+    #: ``unavailable`` (this machine) or ``absent`` (the corpus never held the package). A plain
+    #: string rather than the harness's ``SkipKind``, because a wire model may not import the harness.
+    skip_kind: str | None = None
+
+
+class EvalPlanReport(BaseModel):
+    """The output of ``eval plan``: what an ``--llm`` run over a whole TIER would ask, and cost.
+
+    ``harvest extract --dry-run`` answers the same question for one dataset. This is the tier-wide
+    half, and it exists because the decision it informs — *is this run worth its money* — is taken
+    over a corpus and was answerable only by spending one.
+
+    Every token here is an **input** token, and the estimate is a lower bound against a Ceiling:
+    ``--ceiling`` counts output and cache writes too, and neither is knowable before the model
+    answers. So a case in :attr:`estimated_over_ceiling` will certainly breach, and a case absent
+    from it may still.
+    """
+
+    #: Cases planned — skips excluded, exactly as ``EvalReport.n_cases`` excludes them.
+    n_cases: int
+    #: Of those, the ones that would reach a model at all: a case with neither prose nor records
+    #: costs nothing under ``--llm`` and is not a saving worth hiding inside an average.
+    n_reaching_a_model: int = 0
+    n_skipped: int = 0
+    #: What ``eval run --trials N`` would multiply the whole bill by. Every total below already
+    #: carries it; the per-case rows are per trial, because a trial is the repeated unit.
+    trials: int = 1
+    n_documents: int = 0
+    n_records_read: int = 0
+    n_records_collapsed: int = 0
+    n_chars: int = 0
+    #: The stable prefix, byte-identical on every request — which is what makes prefix caching work,
+    #: and why it is charged per document rather than per run.
+    system_prompt_chars: int = 0
+    estimated_input_tokens: int = 0
+    #: The per-case token Ceiling this plan was read against, or ``None`` if none was given.
+    ceiling: int | None = None
+    #: Cases whose estimated INPUT alone already clears the ceiling. A lower bound, never a list of
+    #: the only cases that can breach.
+    estimated_over_ceiling: list[str] = Field(default_factory=list)
+    per_case: list[CasePlanRow] = Field(default_factory=list)

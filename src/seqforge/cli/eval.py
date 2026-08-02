@@ -46,6 +46,63 @@ def eval_list(
     typer.echo(json.dumps(payload, indent=2))
 
 
+@eval_app.command("plan")
+def eval_plan(
+    case: list[str] = typer.Option(None, "--case", help="Plan only these case ids (repeatable)."),
+    cases_dir: Path | None = typer.Option(
+        None, "--cases", help="Case root (default: evals/cases)."
+    ),
+    trials: int = typer.Option(
+        1, "--trials", min=1, help="Price N trials per case, as `eval run --trials N` would spend."
+    ),
+    jobs: int | None = typer.Option(
+        None,
+        "--jobs",
+        "-j",
+        min=1,
+        help="Cases to plan at once. Default: usable cores, capped at 24. 1 forces sequential.",
+    ),
+    ceiling: int = typer.Option(
+        DEFAULT_EVAL_CEILING,
+        "--ceiling",
+        min=0,
+        help="Name the cases whose estimated input alone already clears this per-case ceiling. "
+        "0 = do not check.",
+    ),
+) -> None:
+    """What an `--llm` run over this tier would ask, and cost — with nothing spent.
+
+    The dry run for a whole corpus. `harvest extract --dry-run` prices one dataset; this prices the
+    tier, which is the grain the decision is actually taken at: whether an `--llm` pass over
+    `evals/benchmark` is worth its money is asked once, over every case, and used to be answerable
+    only by making one.
+
+        seqforge eval plan --cases evals/benchmark
+
+    It reaches **no model and needs no credential**. It does materialize each case, because a
+    fingerprint package carries its prose inside itself and those characters cannot be counted
+    without unpacking it — a package pull and a probe, cached by pooch, and exactly what a `--no-llm`
+    run already pays. A case whose package is unreachable skips and is named, never costed at zero.
+
+    Every token reported is an **input** token. Output is not estimated, because the model decides
+    how many claims a document supports; `--ceiling` is what bounds that half, and the estimate is
+    therefore a lower bound against it.
+    """
+    from ..evals import CaseError, load_cases, plan_cases
+
+    try:
+        cases = load_cases(cases_dir, only=list(case) if case else None)
+    except CaseError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+    if not cases:
+        typer.echo("no cases found", err=True)
+        raise typer.Exit(2)
+
+    report = plan_cases(cases, trials=trials, ceiling=ceiling or None, jobs=jobs)
+    typer.echo(json.dumps(report.model_dump(mode="json"), indent=2))
+
+
 @eval_app.command("run")
 def eval_run(
     case: list[str] = typer.Option(None, "--case", help="Run only these case ids (repeatable)."),
