@@ -951,6 +951,186 @@ def test_harvest_hypothesis_steers_resolve() -> None:
     assert sorted(run.harvest.matched) == ["experiment.organism", "library.chemistry"]
 
 
+# --------------------------------------------------------------------------------------------
+# a stage that did not run, told apart from one that ran and found nothing (#182)
+# --------------------------------------------------------------------------------------------
+
+
+class _PoisonedProvider(_StubProvider):
+    """Answers every document except the one whose text holds ``poison``.
+
+    The real failure it stands in for is DeepSeek's empty/invalid ``json_object`` (#4), and the
+    shape is the part worth copying: on `GSE234962` both aborts landed on `mmc2.txt`, a 1 KB
+    supplementary table the model quotes rows of — so the failure keys on the length of the
+    RESPONSE a document provokes, not on the length of the document.
+    """
+
+    name = "poisoned"
+
+    def __init__(self, drafts: list[dict[str, object]], poison: str) -> None:
+        super().__init__(drafts)
+        self._poison = poison
+
+    def complete_json(self, **kwargs: object) -> LLMResponse:
+        if self._poison in str(kwargs["user"]):
+            from seqforge.harvest import LLMResponse
+
+            return LLMResponse(text="", usage={"input_tokens": 40})
+        return super().complete_json(**kwargs)
+
+
+def _two_document_trap(tmp_path: Path) -> Case:
+    """The trap case plus a second document that states nothing — so one can fail and one survive."""
+    import dataclasses
+
+    second = tmp_path / "supplementary.txt"
+    second.write_text("Table S1. A per-sample grid of nothing in particular.\n")
+    case = _trap_case()
+    return dataclasses.replace(case, metadata_docs=[*case.metadata_docs, second])
+
+
+def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
+    """The heart of #182: a skipped harvest stage must not read as a clean one.
+
+    Five of seven prose-carrying benchmark cases aborted on the first graded tier pass and skipped
+    ENTIRELY — so the byte half of each, which needs no model at all, went ungraded too, and the
+    summary said nothing about any of them. Now the case grades what it can and the harvest grade
+    carries the one word that qualifies the rest of it.
+    """
+    run = run_case(_trap_case(), llm=True, provider=_PoisonedProvider([], "droplet"))
+
+    assert run.skipped is None, "the deterministic half of the case still runs and still grades"
+    assert run.grade.grade is Grade.CORRECT
+    assert run.harvest is not None
+    assert run.harvest.status == "unmeasured"
+    assert run.harvest.n_documents == 1 and run.harvest.n_documents_failed == 1
+    # `could not check`, never `checked and found nothing` — the same split the corpus already makes
+    # between a package that is `absent` and one that is `unavailable`.
+    assert run.harvest.unchecked == ["experiment.organism"]
+    assert run.harvest.missing == []
+    assert run.grade.grade is not Grade.WRONG_REASON, "an unchecked field is not a failed extraction"
+    # and WHICH document never answered, in the row a reader looks a sha up in
+    (doc,) = run.harvest.documents
+    assert "failure" in doc and doc["failure"]
+    assert run.harvest.to_json()["status"] == "unmeasured"
+
+
+def test_one_documents_abort_no_longer_takes_the_whole_case_down(tmp_path: Path) -> None:
+    """The sharpest edge of the finding, and the highest-value half of the fix.
+
+    `--trials N` made this worse rather than measurable: one document's abort raised through the
+    whole case, so all N trials skipped together and measured nothing. Now the documents that
+    answered are still graded, and the one that did not is named.
+    """
+    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    run = run_case(
+        _two_document_trap(tmp_path), llm=True, provider=_PoisonedProvider(good, "Table S1")
+    )
+
+    assert run.skipped is None
+    assert run.harvest is not None
+    assert run.harvest.status == "partial"
+    assert run.harvest.n_documents == 2 and run.harvest.n_documents_failed == 1
+    # The surviving document was asked the same field, so the verdict on it is a REAL one.
+    assert run.harvest.matched == ["experiment.organism"]
+    assert run.harvest.unchecked == []
+    assert run.grade.grade is Grade.CORRECT
+    failed = [d for d in run.harvest.documents if "failure" in d]
+    assert [d["source"] for d in failed] == ["supplementary.txt"]
+
+
+def test_an_unchecked_assertion_poisons_no_rate_and_is_reported_instead() -> None:
+    """A skip poisons no rate — which is correct, and is exactly why it was invisible.
+
+    So the constraint holds (nothing unchecked enters `field_accuracy`'s denominator) and the run
+    report carries the coverage that says how much of the stage the rate is a claim about.
+    """
+    from seqforge.evals import run_cases
+
+    report, _ = run_cases([_trap_case()], llm=True, provider=_PoisonedProvider([], "droplet"))
+
+    assert report.field_accuracy == 1.0, "the byte half graded; the unchecked assertion did not"
+    assert report.harvest is not None
+    assert report.harvest["assertions_unchecked"] == 1.0
+    assert report.harvest["cases_unmeasured"] == 1.0
+    assert report.harvest["cases_complete"] == 0.0
+
+
+def test_the_report_carries_the_plan_versus_issued_gap() -> None:
+    """`eval plan` prices the tier; the run is where the gap between that and what was issued shows.
+
+    141 planned, 68 issued, and no number anywhere said so. `documents_planned` is this run's own
+    plan, so the comparison needs no second command and cannot be read against a different day's.
+    """
+    from seqforge.evals import run_cases
+
+    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    report, _ = run_cases([_trap_case()], llm=True, provider=_StubProvider(good))
+
+    assert report.harvest is not None
+    assert report.harvest["documents_planned"] == 1.0
+    assert report.harvest["documents_extracted"] == 1.0
+    assert report.harvest["documents_failed"] == 0.0
+    assert report.harvest["cases_complete"] == 1.0
+    # and it survives the wire, because a number nobody can read out of the JSON is not reported
+    assert report.model_dump(mode="json")["harvest"]["documents_planned"] == 1.0
+
+
+def test_a_no_llm_run_reports_no_harvest_coverage_rather_than_zeros() -> None:
+    """Zeros would read as a stage that ran and found nothing. `--no-llm` ran no stage at all."""
+    from seqforge.evals import run_cases
+
+    report, _ = run_cases(
+        [next(c for c in HERMETIC_CASES if c.id == "10x-v3-bytes-only")], llm=False
+    )
+    assert report.harvest is None
+    assert report.model_dump(mode="json")["harvest"] is None
+
+
+def test_harvest_status_names_the_three_states_and_nothing_between() -> None:
+    """`complete` | `partial` | `unmeasured`, decided from the counts and never set by a caller."""
+    assert HarvestGrade(n_documents=3).status == "complete"
+    assert HarvestGrade(n_documents=3, n_documents_failed=1).status == "partial"
+    assert HarvestGrade(n_documents=3, n_documents_failed=3).status == "unmeasured"
+    # A case that sent nothing measured nothing; reporting `complete` would be the whole bug again.
+    assert HarvestGrade().status == "unmeasured"
+
+
+def test_across_trials_one_trial_reaching_the_document_settles_it() -> None:
+    """`unchecked` intersects while `missing` unions, and the pair has to stay consistent.
+
+    A field one trial could not reach and another read has a real verdict; a field matched in one
+    trial and missed in another is `unstable`, which is a finding rather than a gap.
+    """
+    reached = HarvestGrade(matched=["experiment.organism"], n_documents=2)
+    blind = HarvestGrade(unchecked=["experiment.organism"], n_documents=2, n_documents_failed=2)
+    merged = _merge_harvest([blind, reached])
+
+    assert merged.unchecked == [], "one trial read the document, so this is not a gap"
+    assert merged.matched == ["experiment.organism"]
+    assert merged.n_documents_failed == 2, "each failed attempt was paid for separately"
+    assert merged.status == "partial"
+
+    both_blind = _merge_harvest([blind, blind])
+    assert both_blind.unchecked == ["experiment.organism"]
+    assert both_blind.status == "unmeasured"
+
+
+def test_a_field_matched_in_one_trial_and_missed_in_another_is_still_unstable() -> None:
+    """The pre-existing merge rule, pinned while the rule that computes it is rewritten.
+
+    `matched` used to be a plain intersection. It is now "some trial got it and none missed it",
+    which is the same set whenever every trial could check every field — and this is that case.
+    """
+    got = HarvestGrade(matched=["experiment.organism"], n_documents=1)
+    missed = HarvestGrade(missing=["experiment.organism"], n_documents=1)
+    merged = _merge_harvest([got, missed])
+
+    assert merged.matched == []
+    assert merged.missing == ["experiment.organism"]
+    assert merged.unstable == ["experiment.organism"]
+
+
 class _FlakyProvider:
     """Returns a different payload per call — a stand-in for real extraction nondeterminism."""
 

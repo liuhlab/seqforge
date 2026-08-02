@@ -15,6 +15,13 @@ away is how a harness lies to you.
 **Harvest false-accepts roll up into the case grade.** A verified-but-wrong ``experiment.*`` assertion
 is not a lesser failure than a wrong chemistry: bytes can never contradict it, so it reaches the
 manifest unchallenged. It grades ``false_accept`` like any other silent wrong answer.
+
+**A stage that did not run says so.** Every harvest grade carries a ``status`` — ``complete``,
+``partial`` or ``unmeasured`` — and the report carries the tier-wide totals behind it. A skip still
+poisons no rate, which is exactly why it used to be invisible: the first graded ``--llm`` tier pass
+issued 68 of 141 planned requests because five of the seven prose-carrying cases aborted, and the
+summary reported a clean ``harvest.matched`` for the two that happened to survive. Silence about a
+stage that ran and silence about a stage that never did are different sentences (#182).
 """
 
 from __future__ import annotations
@@ -30,7 +37,6 @@ from typing import Any
 from ..harvest import (
     EXTRACT_PROMPT_VERSION,
     CeilingExceeded,
-    ExtractUnavailable,
     LLMProvider,
     TokenMeter,
     extract_planned,
@@ -74,6 +80,12 @@ class HarvestGrade:
 
     matched: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
+    #: Expected fields no document that ANSWERED was even asked for, because the documents that
+    #: would have carried them never came back. **Could not check**, as against ``missing``'s checked
+    #: and found nothing — the same distinction the corpus already insists on between a package that
+    #: is ``absent`` and one that is ``unavailable``, and for the same reason: folding them together
+    #: hides a gap behind a word that reads as a finding. Excluded from every rate.
+    unchecked: list[str] = field(default_factory=list)
     #: Forbidden fields that survived verification — a claim the prose does not make. Corpus poison.
     hallucinated: list[str] = field(default_factory=list)
     #: Requests actually issued at the model seam, counted by the meter — **not** the document
@@ -84,6 +96,10 @@ class HarvestGrade:
     #: Documents sent, kept beside `n_calls` because "73 documents, 78 requests" is two facts and
     #: neither substitutes for the other.
     n_documents: int = 0
+    #: Of those, the ones the provider never answered — retries exhausted, nothing to read. It is
+    #: the plan-versus-issued gap at the grain a reader can act on, and the third fact beside the
+    #: other two: 73 documents, 78 requests, 5 of the documents never answered.
+    n_documents_failed: int = 0
     #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
     #: times in three is a field you cannot depend on, and that is a finding in its own right.
     unstable: list[str] = field(default_factory=list)
@@ -108,14 +124,29 @@ class HarvestGrade:
         for it: the count says a net caught something and nothing whatever about what."""
         return len(self.rejected)
 
+    @property
+    def status(self) -> str:
+        """``complete`` | ``partial`` | ``unmeasured`` — how much of this stage actually ran.
+
+        The one word a reader needs before believing anything else in this grade. A stage that never
+        ran and a stage that ran and found nothing both report empty lists, and a green tier that
+        cannot tell them apart says nothing at all about the cases whose model never answered.
+        """
+        if not self.n_documents or self.n_documents_failed >= self.n_documents:
+            return "unmeasured"
+        return "partial" if self.n_documents_failed else "complete"
+
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
+            # First, because it qualifies every list under it.
+            "status": self.status,
             "matched": self.matched,
             "missing": self.missing,
             "hallucinated": self.hallucinated,
             "n_rejected": self.n_rejected,
             "n_calls": self.n_calls,
             "n_documents": self.n_documents,
+            "n_documents_failed": self.n_documents_failed,
             "assertions": [a.model_dump(mode="json") for a in self.assertions],
             "rejected": self.rejected,
         }
@@ -125,6 +156,8 @@ class HarvestGrade:
             out["mode"] = self.mode
         if self.unstable:
             out["unstable"] = self.unstable
+        if self.unchecked:
+            out["unchecked"] = self.unchecked
         return out
 
 
@@ -279,14 +312,6 @@ def run_case(
                         seconds=time.monotonic() - started,
                         # The exchanges up to the breach were paid for, and "on what?" is exactly
                         # the question a breach produces.
-                        transcript=_save_transcript(workspace, case.id, meter),
-                    )
-                except ExtractUnavailable as exc:
-                    return CaseRun(
-                        case.id,
-                        _empty_grade(case),
-                        skipped=f"LLM unavailable: {exc}",
-                        seconds=time.monotonic() - started,
                         transcript=_save_transcript(workspace, case.id, meter),
                     )
                 harvests.append(hg)
@@ -493,6 +518,11 @@ def build_report(
     replacing it — the sum is what tells you the corpus got more expensive, and the elapsed time is
     what tells you the run got faster. Collapsing them into one number loses whichever question you
     were asking.
+
+    ``harvest`` is the tier-wide coverage of the LLM stage — planned, extracted, unanswered, and how
+    many cases sat at each of the three statuses. It is ``None`` on a run where nothing harvested,
+    because zeros there would read as a stage that ran and found nothing, which is the one thing
+    this key exists to distinguish.
     """
     scored = [r for r in runs if r.skipped is None]
     n = len(scored)
@@ -536,9 +566,48 @@ def build_report(
             "missed": float(missed),
         },
         cost=cost,
+        harvest=_harvest_coverage(runs),
         extractor=extractor,
         per_case=[r.to_json() for r in runs],
     )
+
+
+def _harvest_coverage(runs: list[CaseRun]) -> dict[str, float] | None:
+    """How much of the LLM stage a run actually measured, tier-wide. ``None`` when it ran none.
+
+    **This is the plan-versus-issued gap, carried by the run that has it.** ``eval plan`` prices a
+    tier's documents before anything is spent, and the first graded pass then issued 68 of 141
+    planned requests without the summary saying so anywhere. ``documents_planned`` here is what this
+    run's own plans asked for, so the gap needs no second command and cannot be read against a plan
+    of a different tier on a different day. A large one means the report's ``harvest`` numbers
+    describe a fraction of the corpus, and names which fraction:
+
+    - ``documents_planned`` against ``documents_extracted`` — how much of the prose was read;
+    - ``documents_extracted`` against ``cost.llm_calls`` — what retries cost on top of it;
+    - ``cases_unmeasured`` — the cases a green ``harvest.matched`` says nothing whatever about.
+
+    A case that skipped before harvest (an unreachable package) contributes nothing here and is
+    counted where every other skip is. Comparing this ``documents_planned`` against ``eval plan``'s
+    ``n_documents`` is what surfaces those.
+    """
+    harvests = [r.harvest for r in runs if r.harvest is not None]
+    if not harvests:
+        return None
+    planned = sum(h.n_documents for h in harvests)
+    failed = sum(h.n_documents_failed for h in harvests)
+    statuses = [h.status for h in harvests]
+    return {
+        "cases": float(len(harvests)),
+        "cases_complete": float(statuses.count("complete")),
+        "cases_partial": float(statuses.count("partial")),
+        "cases_unmeasured": float(statuses.count("unmeasured")),
+        "documents_planned": float(planned),
+        "documents_extracted": float(planned - failed),
+        "documents_failed": float(failed),
+        # Assertions this pass could not reach a verdict on. Excluded from `field_accuracy`, exactly
+        # as a skipped case is excluded from every rate — which is why it has to be reported here.
+        "assertions_unchecked": float(sum(len(h.unchecked) for h in harvests)),
+    }
 
 
 def load_cases(cases_dir: Path | None = None, *, only: list[str] | None = None) -> list[Case]:
@@ -569,6 +638,14 @@ def _run_harvest(
     Every request goes through ``meter``, which is the case's and spans its trials — so the call
     count this returns is a **delta** over that meter, not a fresh count. It proxies the provider's
     identity, so ``ExtractorProvenance`` still records who answered.
+
+    **The fan-out is asked for a partial result**, which is the opposite of what the compiler asks
+    it for and is right for opposite reasons. A harness exists to measure the stage; a case that
+    reports nothing because one of its documents was never answered has measured nothing, and five
+    of seven prose-carrying benchmark cases did exactly that on the first graded tier pass. What
+    survives instead is every document that did answer, plus a per-document record of the ones that
+    did not — and the fields those documents alone could have carried are reported as **unchecked**
+    rather than as claims the model failed to make.
     """
     specs = load_all_specs()
     called_before = meter.n_exchanges
@@ -594,15 +671,18 @@ def _run_harvest(
     rejected: list[dict[str, Any]] = []
     mode: dict[str, Any] = {}
 
-    outcomes = extract_planned(plan, specs, provider=meter, model=model)
+    outcomes = extract_planned(plan, specs, provider=meter, model=model, partial=True)
 
-    for outcome in outcomes:
+    unanswered: dict[str, str] = {}
+    for doc, outcome in zip(docs, outcomes, strict=True):
         drafts.extend(outcome.drafts)
         extractor = outcome.extractor
         rejected.extend(outcome.rejected)
         mode = dict(outcome.mode) or mode
         for k, v in outcome.usage.items():
             usage[k] = usage.get(k, 0) + v
+        if outcome.failure is not None:
+            unanswered[doc.doc_sha256] = outcome.failure
 
     assert extractor is not None  # docs is non-empty (checked by the caller via has_prose)
     report = verify_drafts(drafts, docs, extractor=extractor)
@@ -610,18 +690,30 @@ def _run_harvest(
     by_field = {a.field: a for a in accepted}
     rejected.extend(report.rejected)
 
+    # What could have been asked of a document that really answered. A field only these documents
+    # could carry is a field this run has no verdict about, whatever the model did elsewhere.
+    answerable: set[str] = {
+        f for d in docs if d.doc_sha256 not in unanswered for f in plan.asked(d)
+    }
+
     grade = HarvestGrade(
         n_calls=meter.n_exchanges - called_before,
         n_documents=len(docs),
+        n_documents_failed=len(unanswered),
         assertions=list(accepted),
         rejected=rejected,
-        documents=[_document_row(d) for d in docs],
+        documents=[_document_row(d, unanswered.get(d.doc_sha256)) for d in docs],
         mode=mode,
     )
     for want in case.expected.assertions:
         got = by_field.get(want.field)
         if got is not None and str(got.value) == want.value:
             grade.matched.append(want.field)
+        elif unanswered and want.field not in answerable:
+            # Nothing that answered was ever asked this. Reporting it `missing` would charge the
+            # model for a document it never got to read, and would put a silent zero into
+            # `field_accuracy` — the shape a skipped case is excluded from every rate to avoid.
+            grade.unchecked.append(want.field)
         else:
             grade.missing.append(want.field)
     grade.hallucinated = [f for f in case.expected.forbidden_fields if f in by_field]
@@ -636,21 +728,28 @@ def _run_harvest(
     return grade, hypothesis, usage, accepted, subjects
 
 
-def _document_row(doc: NormalizedDoc) -> dict[str, Any]:
+def _document_row(doc: NormalizedDoc, failure: str | None = None) -> dict[str, Any]:
     """One sent document, small enough to carry per case: what a Span's sha256 resolves back to.
 
     Deliberately not the plan's own report. That one carries the fields asked of each document and
     every archive record folded into it — hundreds of accessions for a collapsed run document, none
     of which a reader of a graded claim wants. ``scope`` is the load-bearing entry: it is what lets
     one exchange stand for its level when a run has more of them than anyone will read.
+
+    ``failure`` is the provider's own message where this document was never answered, and it lives
+    here rather than in a list of its own because *which* document went unanswered is the question a
+    failure produces — and this row is already where a sha resolves into something a human reads.
     """
-    return {
+    row: dict[str, Any] = {
         "doc_sha256": doc.doc_sha256,
         "source": doc.source_basename,
         "scope": doc.scope,
         "subject": doc.subject,
         "n_chars": len(doc.text),
     }
+    if failure is not None:
+        row["failure"] = failure
+    return row
 
 
 def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
@@ -661,9 +760,11 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     trial (the bug this replaces) let a real hallucination vanish on a re-run — exactly the illusion
     trials exist to dispel.
 
-    So: ``hallucinated`` and ``missing`` union (any trial failing is a failure), ``matched``
-    intersects (a field counts only if EVERY trial got it), and fields that come and go are surfaced
-    as ``unstable`` rather than silently averaged into a rate.
+    So: ``hallucinated`` and ``missing`` union (any trial failing is a failure), ``matched`` is what
+    some trial got and none missed — which is the intersection whenever every trial could check
+    every field, and is not when one of them could not — and fields that come and go are surfaced as
+    ``unstable`` rather than silently averaged into a rate. ``unchecked`` intersects, because one
+    trial reaching the document is enough to make the verdict a real one.
 
     The claims follow the same rule, which is why they are not merged the way the flattened dict was
     (``update``, last trial wins): a claim only one trial made is exactly what ``unstable`` names, so
@@ -676,7 +777,9 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     merged = HarvestGrade()
     merged.hallucinated = sorted({f for g in grades for f in g.hallucinated})
     merged.missing = sorted({f for g in grades for f in g.missing})
-    merged.matched = sorted(set.intersection(*(set(g.matched) for g in grades)))
+    seen = {f for g in grades for f in g.matched}
+    merged.matched = sorted(seen - set(merged.missing))
+    merged.unchecked = sorted(set.intersection(*(set(g.unchecked) for g in grades)))
     merged.rejected = [r for g in grades for r in g.rejected]
     merged.assertions = _distinct_assertions(grades)
     merged.documents = _distinct_documents(grades)
@@ -684,7 +787,7 @@ def _merge_harvest(grades: list[HarvestGrade]) -> HarvestGrade:
     # cost is spent per trial, not merged away — the same for the requests and the documents behind
     merged.n_calls = sum(g.n_calls for g in grades)
     merged.n_documents = sum(g.n_documents for g in grades)
-    seen = {f for g in grades for f in g.matched}
+    merged.n_documents_failed = sum(g.n_documents_failed for g in grades)
     merged.unstable = sorted(seen - set(merged.matched))
     return merged
 
@@ -710,16 +813,23 @@ def _distinct_assertions(grades: list[HarvestGrade]) -> list[Assertion]:
 
 def _distinct_documents(grades: list[HarvestGrade]) -> list[dict[str, Any]]:
     """The documents the trials sent, deduplicated. Every trial sends the same list — the plan is a
-    pure function of the case — so this is one list, not N stacked."""
+    pure function of the case — so this is one list, not N stacked.
+
+    Answering beats not answering. A document read in one trial and unanswered in another *was*
+    read, and the row a reader looks a sha up in should say so; the fact that it also failed
+    somewhere survives in ``n_documents_failed``, which counts per trial because each failure was
+    its own paid attempt.
+    """
     out: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    at: dict[str, int] = {}
     for grade in grades:
         for row in grade.documents:
             sha = str(row.get("doc_sha256", ""))
-            if sha in seen:
-                continue
-            seen.add(sha)
-            out.append(row)
+            if sha not in at:
+                at[sha] = len(out)
+                out.append(row)
+            elif "failure" not in row:
+                out[at[sha]] = row
     return out
 
 
