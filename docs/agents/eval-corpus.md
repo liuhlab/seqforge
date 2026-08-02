@@ -278,11 +278,12 @@ the default fan-out).** Two things, and neither is the arithmetic:
   203,079 output and 161,920 cache-read tokens over 326 s wall — because **five of the seven
   prose-carrying cases aborted** on DeepSeek's known empty-`json_object` failure (#4) after exhausting
   their retries, and skipped. Re-run one or two at a time, the same cases go through: across three
-  runs, prose-carrying cases succeeded in 5 of 11 attempts, and the failures cluster where the
-  document is a whole paper. A skip is excluded from every rate so nothing is poisoned — but the
-  harvest half of a tier pass is only *sometimes* measured on the cheap model, and `--model
-  deepseek-v4-pro` or a smaller `--jobs` is what buys it. Do not read the plan's document count as a
-  prediction of the bill on flash; read it as the bill if nothing aborts.
+  runs, prose-carrying cases succeeded in 5 of 11 attempts. A skip is excluded from every rate so
+  nothing is poisoned — but the harvest half of a tier pass is only *sometimes* measured on the cheap
+  model, and `--model deepseek-v4-pro` or a smaller `--jobs` is what buys it. Do not read the plan's
+  document count as a prediction of the bill on flash; read it as the bill if nothing aborts.
+  **Fixed (#182, finding 2): a stage that did not run now says so** — the abort costs one document
+  rather than one dataset, and the report carries the coverage. See the section below.
 - **`GSE282765-colon-crod-wta` grades `false_accept` under `--llm` and `correct` under `--no-llm`**,
   and the mechanism is worth writing down because it is not a harvest hallucination. Its BioSample
   declares `treatment = "Citrobacter rodentium infection"`; the experiment record's title says
@@ -300,6 +301,65 @@ the default fan-out).** Two things, and neither is the arithmetic:
   holds in one direction only and over whole words, so a reading that *extends* the typed value
   (`control` read as `control RNAi`) is still a disagreement and still leaves null. The first bullet
   above is untouched and still live.
+
+### What a harvest grade is a claim ABOUT, decided 2026-08-01 (#182, finding 2)
+
+The bullet above is the finding; this is what was done with it, and the argument is one this file
+already makes two sections earlier about packages: *"Folding them together is how `GSE110823` sat out
+of the corpus for a release without anyone tripping over it, behind a word that reads as
+transient."* An `absent` package and an `unavailable` one are two states because one is a gap in the
+corpus and the other is weather. A harvest stage that never ran and one that ran and matched nothing
+are the same pair, one level in — and the same argument decided them the same way.
+
+**The abort's blast radius was the whole case, and shrinking it is the load-bearing half.** One
+document raising through `extract_planned` took its dataset with it, so five of seven prose-carrying
+cases measured nothing at all — including the *byte* half, which needs no model and which `--no-llm`
+grades green on every one of them. A `--llm` pass therefore graded thirteen cases where `--no-llm`
+graded eighteen, and the two could not be diffed. The fan-out now takes an explicit `partial`: the
+harness asks for it, and the compiler does not. `harvest extract` still fails closed, because an
+extraction silently short a document produces a manifest nothing downstream can tell from a complete
+one — the two callers want opposite answers and now get them, rather than sharing the compiler's.
+
+This is also why **`--trials N` was the wrong instrument** and three single-trial runs were the right
+one: all N trials skipped together, so the flag a maintainer reaches for to measure stability was the
+one that hid the instability. That is fixed at the cause rather than documented as a caveat.
+
+**What the report carries.** Every harvest grade has a `status` — `complete` / `partial` /
+`unmeasured` — plus `n_documents`, `n_documents_failed`, and the provider's own message on the row of
+each document that never answered. `EvalReport.harvest` is the tier-wide roll-up, `None` on a
+`--no-llm` run because zeros there would read as a stage that ran and found nothing. It carries
+`documents_planned` from the run's own plans, which is the plan-versus-issued gap without needing a
+second command; `eval plan`'s `n_documents` compared against it catches the cases that never planned
+at all, and `cost.llm_calls` against `documents_extracted` is what retries cost.
+
+**A negative verdict needs every document; a positive one needs any.** A graded assertion that a
+failed document would have been asked is `unchecked`, never `missing`, and `unchecked` enters no
+rate. The asymmetry was measured rather than assumed: on `GSE234962` the paper aborts while `mmc2.txt`
+answers, both are dataset-scoped and both are asked `experiment.organism`, and the symmetric rule
+("no answering document was asked this") reported the binomial that paper writes fifteen times as a
+claim the model had failed to make. `missing` asserts the model read everything and did not say it.
+
+**Three things were decided against, and the reasons are the useful part.**
+
+- **A skipped harvest still fails nothing.** Exit 3 means the compiler produced a wrong answer and
+  exit 4 means a human is owed one. A stage the provider did not answer is neither, and a tier whose
+  exit code tracked DeepSeek's uptime would be a worse instrument than one that reports coverage. It
+  gets a number, a stderr line and a tile.
+- **`--llm` keeps `deepseek-v4-flash`** (#167). That default is a cost decision across 10⁴ datasets
+  and this failure mode does not touch it: R2 re-greps every quote whichever model proposed it, so
+  flakiness spends coverage, never correctness.
+- **No automatic fallback to `-pro` after N failures.** The same prompt on a different model is a
+  different extractor ([ADR-0009](../adr/0009-llm-provider-is-pluggable.md)), so a run that switched
+  mid-pass could not name its own — and `extractor` is the entire reason two reports are comparable.
+  A fallback would buy a greener number by making it mean less. With the blast radius now one
+  document, `--model deepseek-v4-pro` is a decision a reader takes *from the report*.
+
+**Measured, live, `deepseek-v4-flash`, 2026-08-01, `GSE234962` (14 planned documents, ~64 K estimated
+input).** Two single-trial runs, both of which would have skipped whole on `main`: the first answered
+13 of 14 (the paper aborted mid-JSON), the second 12 of 14 (the paper again, and `mmc2.txt` with the
+empty-content failure verbatim). Both graded `over_ask` — the instability #184 owns, unchanged — and
+the second reported `experiment.organism` as `unchecked` with `field_accuracy 1.0`, which is the
+whole ticket in one line: the rate is honest, and it now says how much of the corpus it is about.
 
 ### The two unsettled cases, settled 2026-08-01 (#160) — and only one of them was a defect
 
