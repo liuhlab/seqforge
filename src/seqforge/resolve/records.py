@@ -38,7 +38,11 @@ a model reading a DATASET-level document     ``inferred``     the paper says it 
 A disagreement across bases keeps the stronger basis's value (``asserted`` over ``inferred``); a
 disagreement *within* one basis stores **no value at all**, because two equal authorities contradicting
 each other is not something code may break, and a wrong value here is permanent (``experiment`` is
-inside ``dataset_hash`` and the manifest is never rewritten). Either way the resolver has **decided** —
+inside ``dataset_hash`` and the manifest is never rewritten). That last rule is about two *sources*,
+though, and one archive deposit read at two of its levels is one source — the sample's typed slot and
+the experiment title were written by the same hand, in the same submission. So a prose reading wholly
+inside what that submission typed into the slot is the declaration quoted short, not a second
+authority, and it is absorbed rather than tied against (:func:`_without_short_readings`). Either way the resolver has **decided** —
 so the disagreement is a non-blocking ``warning``, not a refusal. Null-over-wrong is a value, not a
 question for a human, and a single sample annotation is no reason to stop a whole dataset compiling.
 Only the byte resolver's ``observed`` vs ``asserted`` conflict blocks: that one decides what the data
@@ -107,6 +111,13 @@ _RECORD_META = frozenset(
 #: The prefix an assertion uses to name a sample attribute: ``experiment.samples.tissue``.
 SAMPLE_FIELD_PREFIX = "experiment.samples."
 
+#: One archive deposit, as a SOURCE. Every level of it — the sample's typed slots, the experiment
+#: title, the run alias — is one submitter filling one submission, so two answers drawn from it are
+#: two readings of one thing rather than two opinions. A document a human handed us is a different
+#: author entirely and is identified by its own ``doc_sha256``, which can never equal this (a sha256
+#: is 64 hex characters).
+_ARCHIVE_SOURCE = "archive"
+
 #: What a document is ABOUT — set by code from which record produced it, never by the model and never
 #: from the filename. ``dataset`` is a document handed to us for the whole pile of files (a paper, a
 #: README); the others name one record.
@@ -137,6 +148,14 @@ class _Position:
     evidence: list[str]
     confidence: float | None
     rung: int
+    #: WHICH source produced this answer. Basis says how strongly a claim is held and cannot say
+    #: whether two claims came from the same place, so a record's own field and a model's reading of
+    #: that record's prose used to be indistinguishable from a BioSample contradicting a paper.
+    source: str
+    #: True when the source TYPED this value into a slot for this attribute, rather than a model
+    #: having read it out of that source's prose. Only a typed value can absorb a short reading of
+    #: itself, because only it is a string the submitter actually wrote for this attribute.
+    declared: bool
 
 
 def resolve_metadata(
@@ -349,6 +368,8 @@ def _positions_for(
                     # `Evidenced.confidence`.
                     confidence=None,
                     rung=0,
+                    source=_ARCHIVE_SOURCE,
+                    declared=True,
                 )
             )
 
@@ -371,6 +392,9 @@ def _positions_for(
                 evidence=[a.id],
                 confidence=a.llm_confidence,
                 rung=0,
+                source=_source_of(doc),
+                # A model read this out of prose; nobody typed it into a slot for this attribute.
+                declared=False,
             )
         )
     return out, notes
@@ -425,6 +449,19 @@ def _basis_for(
     return None
 
 
+def _source_of(doc: DocumentSubject) -> str:
+    """WHICH source a document's claims come from — a different question from how strong they are.
+
+    It branches where :func:`_basis_for` branches, and on the same fact, because it is the same
+    distinction asked for a different purpose: a document code rendered from a record is the archive
+    speaking (every level of one deposit is one submitter), and a document a human handed us is a
+    separate author who happens to describe the same study. Basis alone cannot answer this — a record
+    field and a model's reading of that record's own prose are both ``asserted``, which is exactly how
+    one source arguing with itself became indistinguishable from a BioSample contradicting a paper.
+    """
+    return doc.doc_sha256 if doc.scope == "dataset" else _ARCHIVE_SOURCE
+
+
 def _decide(
     sample_id: str,
     positions: dict[str, list[_Position]],
@@ -438,7 +475,8 @@ def _decide(
     - a stronger authority wins (``asserted`` over ``inferred``): keep its value, note the weaker
       source that disagreed;
     - equal authorities that disagree leave the attribute **null**, because a wrong value is permanent
-      and a missing one is not. Null is a value here, not a question for a human.
+      and a missing one is not. Null is a value here, not a question for a human. Two readings of ONE
+      source are not two authorities, so they are folded first (:func:`_without_short_readings`).
     - a sample covered ONLY by a dataset-level ``inferred`` claim, for an attribute some *other* sample
       owns per-sample (``sample_scoped_attrs``), is also left **null**: the paper's blanket value
       varies by sample and is an unsafe guess for a sample the archive left blank (#10).
@@ -450,7 +488,8 @@ def _decide(
     attrs: dict[str, EvidencedStr] = {}
     warnings: list[ValidationWarning] = []
 
-    for name, found in sorted(positions.items()):
+    for name, all_found in sorted(positions.items()):
+        found = _without_short_readings(all_found)
         if name in sample_scoped_attrs and all(p.basis == "inferred" for p in found):
             # This sample has only a dataset-level (paper) claim for an attribute the archive declares
             # per-sample elsewhere — so the attribute is sample-specific and the study-wide value is a
@@ -499,6 +538,76 @@ def _decide(
         )
 
     return attrs, warnings
+
+
+def _without_short_readings(found: list[_Position]) -> list[_Position]:
+    """Drop a prose reading that sits wholly inside what the SAME source typed into the slot.
+
+    GSE282765's BioSample types ``treatment = "Citrobacter rodentium infection"``, and a model reading
+    that same submission's experiment title asserts ``treatment = "Citrobacter rodentium"`` — correct,
+    span-verified, entailed, and one word short. Both arrive ``asserted``, they compare unequal, and
+    the equal-authority rule leaves the attribute null: **adding a true statement destroyed a fact the
+    archive had already supplied** (#182). That rule was written for a BioSample disagreeing with a
+    paper, and nothing here could tell that apart from a record disagreeing with a reading of itself.
+
+    So the fix is not to rank the two. It is to notice there is only one of them: ``source`` says the
+    typed slot and the experiment title came out of one deposit, and a submitter does not contradict
+    themselves by being quoted short.
+
+    **Agreement is containment in ONE direction, and the direction is the whole safety argument.** A
+    reading wholly inside the typed value adds nothing — what gets stored is the submitter's own
+    string, byte for byte, exactly what a run with no prose at all would store, so nothing new can
+    reach the manifest this way. A reading that EXTENDS the typed value is the opposite case: a slot
+    saying ``control``, read out of the prose as ``control RNAi``, would bake a permanent claim that
+    RNAi was done onto a sample whose submitter typed no such thing. That stays a disagreement, and it
+    is why this is not "prefer the more specific value".
+
+    Two further narrowings, each of which is a way containment goes wrong:
+
+    - **Whole words, never characters** (:func:`_is_short_reading_of`). ``CD4`` is inside
+      ``CD45 positive`` and is a different antigen; ``L2`` is inside ``L21``.
+    - **Only against a typed slot, and only within one source.** A paper is a second author, so its
+      shorter wording still loses on precedence *and* still leaves the note that says so. And where
+      nothing was typed at all, two prose readings are two guesses with no submitter's string behind
+      either, so preferring the longer one would be code breaking a tie — they stay a disagreement.
+
+    Nothing is warned about here, because nothing was excluded: the declaration is stored intact and a
+    reader comparing the manifest to the record sees no gap. A note would land on every dataset where
+    a model quotes a record short, which is most of them with a record at all, and that is how a
+    warning stops being read.
+
+    This changes what the resolver decides, so it is fair to ask whether it must re-key a cache. It
+    must not, and there is nothing to re-key: no artifact holds this stage's output. The metadata
+    resolution is recomputed inside every ``manifest fill``, and ``RESOLVE_VERSION`` keys the *byte*
+    resolver's candidates and evidence matrix, which this does not touch — bumping it would re-probe
+    every cached dataset to change nothing about them.
+    """
+    declared = [p for p in found if p.declared]
+    if not declared:
+        return found
+    return [
+        p
+        for p in found
+        if p.declared
+        or not any(
+            q.source == p.source and _is_short_reading_of(p.value, q.value) for q in declared
+        )
+    ]
+
+
+def _is_short_reading_of(part: str, whole: str) -> bool:
+    """Is ``part`` a strictly shorter run of the same WORDS as ``whole``?
+
+    Words rather than characters, because character containment finds agreement in the middle of a
+    token: ``CD4`` is a substring of ``CD45 positive`` and names a different antigen, and ``L2`` sits
+    inside ``L21``. Contiguity is the second half of the same caution — matching scattered words would
+    make ``control`` agree with ``sham control of the treated arm``.
+    """
+    p = _norm_value(part).split()
+    w = _norm_value(whole).split()
+    if not p or len(p) >= len(w):
+        return False
+    return any(w[i : i + len(p)] == p for i in range(len(w) - len(p) + 1))
 
 
 def _norm_value(value: str) -> str:
