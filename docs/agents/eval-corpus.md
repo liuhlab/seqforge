@@ -173,13 +173,33 @@ for `10x-gemx-3p-v4`. It is a platform-generation name spanning 3′ v4, 5′ v3
 of those four are a different entry or no entry at all — the evidence must name **3′ and v4**.
 Conversely "Next GEM" is the *predecessor* generation (v3.1 / 5′ v2), so a bare "GEM" search is
 actively misleading. *The finding:* `GSE282525` declares "Chromium Next GEM Single Cell 5' Reagent Kit
-v2" but archives every run at 28 bp R1, two cycles past that kit's 26. Under `10x-5p-gex-v2`'s
-`segment_length {length: 26, tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it
-is exact-checked, fails, and the **true leaf is eliminated before scoring** — with `hypothesis:
-"10x 5'"` attached it would land on `10x-5p-gex-v3` and pull in the wrong whitelist. Cell Ranger
-tolerates this (`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed). It was
-deliberately **not** added, because a red there would be a spec-design consequence rather than a
-compiler defect — but it is a strong future `steering/` or `refusal/` candidate.
+v2" but archives every run at 28 bp R1, two cycles past that kit's 26 — Cell Ranger tolerates this
+(`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed), so it is a shape that
+keeps arriving rather than a malformed submission.
+
+**That finding was written from the spec text, and running it reverses the conclusion** (#177) — which
+is itself the more useful lesson. It read: under `10x-5p-gex-v2`'s `segment_length {length: 26,
+tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it is exact-checked, fails, and
+the true leaf is eliminated before scoring, landing on `10x-5p-gex-v3` with the wrong whitelist once a
+`10x 5'` hypothesis is attached. **Measured, none of that happens.** `26 < 28 < 100` is precisely the
+over-length *dead zone*, so the whitelist admission fires, the leaf is scored, and the bytes tie
+`10x-5p-gex-v2` with `10x-3p-gex-v2` — the honest answer, since those two are the KB's one genuinely
+read-undecidable pair. With no claim attached resolve **asks** between exactly those two; with the
+family claim it decides `10x-5p-gex-v2` at exit 0. Against the real registry, where every shipped
+whitelist is loaded, `10x-5p-gex-v3` is outscored rather than reached, because `3M-5pgex-jan-2023`
+declines these barcodes. Verified from 100 % whitelist hit rate down to 10 %, far below anything a real
+library shows.
+
+So **the spec is unchanged, and `tolerance: 0` stays.** Widening it was the tempting fix and is the
+wrong one twice over: `10x-5p-gex-v2`'s signature is byte-identical to `10x-3p-gex-v2`'s on purpose —
+test for test, weight for weight — so widening one side hands it a systematic edge over its twin and
+turns a genuine tie into a silent guess, while widening both erases 26-vs-28, which *is* the 5′ v2/v3
+split and, on the 3′ side, the v2/v3 one. What the episode did earn is a case, because the behaviour
+was latent — argued from spec text rather than measured — and that is exactly the state a case exists
+to end: `steering/declared-5p-v2-sequenced-two-cycles-long`, generated from the leaf's own spec plus
+the two extra cycles the submitter's run had. It is the first hermetic case anywhere for the
+over-length admission path, which until now only real datasets in the networked tier exercised, and it
+needed one new recipe knob (`over_length`) to be expressible at all.
 
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for

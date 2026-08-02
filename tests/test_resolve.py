@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from conftest import KbProbes, registry_for, write_fastq_gz
+from conftest import KbProbes, real_cbs, registry_for, write_fastq_gz
 from seqforge import __version__, kb
 from seqforge import models as m
 from seqforge.compose import core
@@ -1801,6 +1801,94 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
         "a whitelist-missing 75 bp read must not be admitted"
     )
     assert winner.technology == "bulk-rnaseq-pe"
+
+
+# `GSE282525` (Vijay Lab) declares "Chromium Next GEM Single Cell 5' Reagent Kit v2" verbatim and
+# archives every run at 10/10/28/90 — a declared-26 bp kit sequenced two cycles long. Reading
+# `10x-5p-gex-v2/spec.yaml`'s `{test: segment_length, length: 26, tolerance: 0, over_length_min: 100}`
+# statically says the true leaf is exact-checked, fails, and is eliminated before scoring, so the spec
+# needs a tolerance. RUNNING IT SAYS OTHERWISE, and that is why this is a test rather than a spec edit
+# (#177): 26 < 28 < 100 is exactly the over-length DEAD ZONE, the whitelist admission fires, and the
+# leaf is scored. `tolerance: 0` is doing no harm here, and it is load-bearing elsewhere — widening it
+# to admit 28 would break the symmetry `10x-5p-gex-v2` keeps with `10x-3p-gex-v2` deliberately (the
+# two are byte-identical, test for test and weight for weight, because they are the KB's one genuinely
+# read-undecidable pair), and would collapse the 26-vs-28 UMI distinction the 5' v2/v3 split IS.
+_GSE282525_R1 = (
+    28  # the archived R1 length: 16 bp CB + 10 bp UMI + 2 cycles the kit does not declare
+)
+
+
+def test_a_declared_chemistry_sequenced_two_cycles_long_still_reaches_its_own_leaf(
+    tmp_path: Path,
+) -> None:
+    """The `GSE282525` shape, against the REAL registry so every competing whitelist is loaded.
+
+    Three things are asserted and each one is a claim the static reading of the spec gets wrong:
+    the 5' v2 leaf is SCORED rather than forbidden; it ties at the top with `10x-3p-gex-v2`, which is
+    the honest answer because those two share the 26 bp geometry AND the 737K-august-2016 file; and the
+    question asked names exactly that pair. In particular `10x-5p-gex-v3` — the leaf a widened tolerance
+    or an eliminated v2 would hand this library to, along with the wrong whitelist — is nowhere near
+    the top, because its own `3M-5pgex-jan-2023` is loaded here and declines these barcodes.
+    """
+    cbs = real_cbs(4000, onlist="737K-august-2016")
+    rng = random.Random(3)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    r1 = tmp_path / "GSE282525_R1.fastq.gz"
+    r2 = tmp_path / "GSE282525_R2.fastq.gz"
+    write_fastq_gz(r1, [rng.choice(cbs) + rand(_GSE282525_R1 - 16) for _ in range(600)])
+    write_fastq_gz(r2, [rand(90) for _ in range(600)])
+
+    out = resolve_dataset([r1, r2], registry=DEFAULT_REGISTRY, use_cache=False)
+    scored = {c.technology: c.score for c in out.result.candidates}
+
+    assert "10x-5p-gex-v2" in scored, "the declared leaf must be a candidate at all"
+    assert scored["10x-5p-gex-v2"].status == "scored", scored["10x-5p-gex-v2"].reason
+    assert not out.result.blockers, [b.message for b in out.result.blockers]
+
+    top = out.result.candidates[0].score.value
+    assert top is not None
+    assert scored["10x-5p-gex-v2"].value == top, (
+        "the declared leaf ties for the top, it is not a runner-up"
+    )
+    assert scored["10x-3p-gex-v2"].value == top, "and its read-undecidable partner ties with it"
+    v3 = scored["10x-5p-gex-v3"].value
+    assert v3 is not None and v3 < top, (
+        "the 28 bp 5' sibling must NOT win on geometry: its whitelist declines these barcodes"
+    )
+
+    assert [q.options for q in out.result.questions] == [["10x-3p-gex-v2", "10x-5p-gex-v2"]], (
+        "the surviving tie is the declared read-undecidable pair, and resolve asks rather than guesses"
+    )
+
+
+def test_the_two_extra_cycles_do_not_cost_the_leaf_its_metadata_decision(tmp_path: Path) -> None:
+    """`GSE282525` with the claim its record actually makes: the prose says "10x 5'", so the tie above
+    resolves — to `10x-5p-gex-v2` and its `737K-august-2016` whitelist, at exit 0.
+
+    This is the half that would have been a SILENT wrong answer if the leaf really were eliminated:
+    with v2 gone, the only 5' leaf left under the asserted family is `10x-5p-gex-v3`, and the resolver
+    would have decided it and compiled a 12 bp UMI against `3M-5pgex-jan-2023`. Nothing would be red.
+    """
+    cbs = real_cbs(4000, onlist="737K-august-2016")
+    rng = random.Random(3)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    r1 = tmp_path / "GSE282525_R1.fastq.gz"
+    r2 = tmp_path / "GSE282525_R2.fastq.gz"
+    write_fastq_gz(r1, [rng.choice(cbs) + rand(_GSE282525_R1 - 16) for _ in range(600)])
+    write_fastq_gz(r2, [rand(90) for _ in range(600)])
+
+    out = resolve_dataset(
+        [r1, r2], registry=DEFAULT_REGISTRY, use_cache=False, hypothesis=Hypothesis(value="10x 5'")
+    )
+
+    assert out.exit_code() == 0, [q.prompt for q in out.result.questions]
+    assert out.result.candidates[0].technology == "10x-5p-gex-v2"
 
 
 def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(

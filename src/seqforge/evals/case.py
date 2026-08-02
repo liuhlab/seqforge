@@ -49,6 +49,27 @@ class Truncate(BaseModel):
     fraction: float = Field(default=0.6, gt=0.0, lt=1.0)
 
 
+class OverLength(BaseModel):
+    """Sequence one read past the cycles its chemistry declares — the archive's commonest deviation.
+
+    A kit's declared read length is a recommendation, and submitters routinely exceed it: a 26 bp 10x
+    barcode read arrives at 28, or a 28 bp one at 150. The CB/UMI still sit at the declared offsets and
+    the trailing bases are junk the aligner ignores, so the library is unchanged — but the exact
+    ``segment_length`` gate that separates two chemistries by two cycles cannot know that, and the
+    whitelist has to say so instead. Without this knob that shape is inexpressible in a recipe, so the
+    only cases covering it are real datasets in the networked tier.
+
+    ``extra`` random ACGT bases are appended to every read of ``read``, deterministically in the
+    recipe's own ``seed`` — a recipe stays reproducible or it is not a stand-in for the bytes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: A ``Read.id`` of the spec being generated (``R1``, ``bc``, …).
+    read: str
+    extra: int = Field(gt=0)
+
+
 class SpecRecipe(BaseModel):
     """Synthesize inputs from a KB spec via the round-trip generator."""
 
@@ -63,6 +84,7 @@ class SpecRecipe(BaseModel):
     #: ``none`` withholds the whitelist, so the case can only be settled by structure (rung <=2).
     onlists: Literal["synthetic", "none"] = "synthetic"
     truncate: Truncate | None = None
+    over_length: OverLength | None = None
 
 
 class RandomRecipe(BaseModel):
@@ -526,6 +548,20 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
 
     pools = kb.build_pools(spec, seed=gen.seed, pool_size=gen.pool_size)
     reads = kb.generate_reads(spec, n=gen.n, seed=gen.seed, pool_size=gen.pool_size, pools=pools)
+
+    if gen.over_length is not None:
+        ol = gen.over_length
+        if ol.read not in reads:
+            raise CaseError(
+                f"over_length.read={ol.read!r} is not a read of spec {gen.spec!r} "
+                f"(have: {sorted(reads)})"
+            )
+        # A stream of its own, offset from the generator's, so appending junk cannot shift the barcodes
+        # a case's whole point may rest on.
+        rng = random.Random(gen.seed + 977)
+        reads[ol.read] = [
+            seq + "".join(rng.choice("ACGT") for _ in range(ol.extra)) for seq in reads[ol.read]
+        ]
 
     paths: list[Path] = []
     labels: dict[str, str] = {}
