@@ -296,7 +296,8 @@ def run_cmd(
     model: str | None = typer.Option(
         None,
         "--model",
-        help="Override the extraction model (DeepSeek: deepseek-v4-flash | deepseek-v4-pro).",
+        help="Override the extraction model (DeepSeek: deepseek-v4-pro is the default | "
+        "deepseek-v4-flash).",
     ),
     ceiling: int = typer.Option(
         0,

@@ -5,7 +5,7 @@ seqforge eval list                       # what is in the corpus
 seqforge eval plan --cases evals/benchmark   # what an --llm pass would cost; spends nothing
 seqforge eval run                        # deterministic cases only — no API key, no network
 seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
-seqforge eval run --llm --model deepseek-v4-pro    # spend for recall; the default is -v4-flash
+seqforge eval run --llm --model deepseek-v4-flash  # the other V4; the default is -v4-pro
 seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
 seqforge eval run --llm --ceiling 2000000  # raise the per-case token ceiling; 0 removes it
@@ -68,10 +68,10 @@ things here cannot, and both matter.
 
 **So every number here is scoped to an extractor**, and the report says which one:
 `extractor: {provider, model, prompt_version}`. `--llm` takes the provider's own default —
-`deepseek-v4-flash`, the cheap end of V4, since a harness meant for corpus scale should not spend
-pro money by default — and `--model deepseek-v4-pro` buys recall on the hardest prose. The same
-prompt on a different model is a **different extractor** ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)),
-so a run's numbers may only be compared against a baseline that names the same one.
+`deepseek-v4-pro`, and this corpus is what settled that (see the bottom of this file) — and
+`--model deepseek-v4-flash` is the other V4 DeepSeek serves. The same prompt on a different model is
+a **different extractor** ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run's
+numbers may only be compared against a baseline that names the same one.
 
 ## The metric that matters
 
@@ -296,8 +296,8 @@ tier pass (2026-08-01, `deepseek-v4-flash`, default fan-out) issued **68** of th
 — 257,592 input, 203,079 output, 161,920 cache-read tokens, 326 s wall — because five of the seven
 prose-carrying cases aborted on DeepSeek's known empty-`json_object` failure and **skipped**. A skip
 is excluded from every rate, so no number is poisoned, but the harvest half was only sometimes
-measured and nothing said which times. `--model deepseek-v4-pro`, or a smaller `--jobs`, buys recall;
-what the report now buys is knowing you needed it.
+measured and nothing said which times. That pass is why `deepseek-v4-pro` is now the default (below);
+what the report buys is knowing you needed it.
 
 ### A stage that did not run is not a stage that found nothing (2026-08-01, #182)
 
@@ -343,14 +343,42 @@ a wrong answer and exit 4 says a human is owed one; a stage the provider did not
 and a red tier on DeepSeek's uptime would be a worse instrument than a green one. What it gets is a
 number, a stderr line, and a tile on the page.
 
-**The default model stays `deepseek-v4-flash`** (#167). The argument for the cheap default was cost
-across 10⁴ datasets, and this failure mode does not touch it: span verification re-greps every quote
-whichever model proposed it, so the flakiness costs coverage and never correctness. A silent
-fallback to `-pro` after N failures was considered and rejected — the same prompt on a different
+### The default model, and the run that decided it (2026-08-02, #188)
+
+**This section is the measurement's home.** Everywhere else that says pro is the default — ADR-0009,
+`docs/agents/eval-corpus.md`, `harvest/providers.py`, `cli/eval.py`, the harvest skill — carries the
+claim and points here, so there is one place to re-date when the next re-baseline lands.
+
+`deepseek-v4-flash` was the default (#167) on a *cost* argument: ≈3× cheaper per token across 10⁴
+datasets, and safe to pull because it cannot move correctness (span verification re-greps every quote
+whichever model proposed it, so a weak model costs coverage and never correctness). It lost in its own
+currency. Three runs of this corpus at `ac11b44`, same prompt `2026.7.4`, `trials=1`, differing only
+in extractor — the table is #188's:
+
+| | no-LLM | `deepseek-v4-flash` | `deepseek-v4-pro` |
+|---|---:|---:|---:|
+| cases correct | **18 / 18** | 12 / 18 | 15 / 18 |
+| field accuracy | 1.000 | 0.955 | **0.982** |
+| wall clock | 89.8 s | 369.3 s | **140.5 s** |
+| output tokens | — | 328,857 | **93,716** |
+| documents failed | — | 6 / 141 | **1 / 141** |
+
+Pro is ~2.6× faster on ~3.5× the output-token efficiency, on the same input. Flash's extra output is
+largely `field_not_permitted_for_doc` rejections — claims the prompt never asked of that document,
+which `verify_drafts` discards. **The default is `deepseek-v4-pro`.**
+
+**Read the pro column as one draw, not as the extractor's baseline.** A second pro run of the same
+18 cases at the same commit graded the same 15/18 but reported **0/141 documents failed** and 100,328
+output tokens. Single-trial LLM numbers are claims about one sample (`stability` is unmeasured at
+`trials=1`); what survives across both draws is the *shape* — pro faster, pro cheaper in output, pro
+failing at most one document where flash failed six. The comparison is directional and it is enough
+to settle a default; it is not a baseline any later run may be diffed against.
+
+A silent fallback to another model after N failures is still rejected: the same prompt on a different
 model is a different extractor ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run
 that switched mid-pass could not name its own, and `extractor` is the field that makes a baseline
-comparable at all. Now that one abort costs one document rather than one dataset, `--model
-deepseek-v4-pro` is a decision a reader can take *from the report* instead of from a call count.
+comparable at all. `--model` stays a decision a reader takes *from the report*, which is also why the
+coverage line names the model that ran and prescribes none.
 
 Two findings from that pass are recorded in
 [`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md), including one case that grades

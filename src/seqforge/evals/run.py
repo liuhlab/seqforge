@@ -51,7 +51,7 @@ from ..kb.loader import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance
 from ..models.blocker import Blocker
 from ..models.resolve import EvalReport
-from ..resolve import Hypothesis, resolve_dataset
+from ..resolve import Hypothesis, chemistry_hypothesis, resolve_dataset
 from ..resolve.records import DocumentSubject, resolve_metadata
 from ..workspace import EVAL_TRANSCRIPTS_DIRNAME, eval_dir
 from .case import (
@@ -296,9 +296,7 @@ def run_case(
             if use_llm:
                 assert meter is not None  # built above from the same `use_llm`
                 try:
-                    hg, hyp, u, verified, subjects = _run_harvest(
-                        case, docs, meter=meter, model=model
-                    )
+                    hg, u, verified, subjects = _run_harvest(case, docs, meter=meter, model=model)
                 except CeilingExceeded as exc:
                     # A refusal, not an unavailability: the provider answered every request it was
                     # given. The case did not finish, so it scores nothing — but it carries the
@@ -323,6 +321,12 @@ def run_case(
                 calls += hg.n_calls
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
+                # The SAME reduction `manifest fill` makes, over the same verified assertions — a
+                # harness that reduced prose its own way would be measuring itself (#188). `None`
+                # means harvest has no opinion, which is NOT the same as overriding: a case that
+                # declared its hypothesis in `inputs/recipe.yaml` keeps it, and that channel is the
+                # only one `GSE317744` is graded on chemistry through.
+                hyp = chemistry_hypothesis(verified)
                 if hyp is not None:
                     hypothesis = hyp
 
@@ -485,9 +489,10 @@ def run_cases(
             runs = list(pool.map(one, cases))
 
     # Resolved once, here, rather than read off a run: `model` is usually None and the *effective*
-    # model is the provider's default — `deepseek-v4-flash` on the DeepSeek preset. A report that
+    # model is the provider's default — `deepseek-v4-pro` on the DeepSeek preset. A report that
     # printed `null` for the common case would say nothing about the run that actually happened, and
-    # this number does not transfer across models (ADR-0009).
+    # this number does not transfer across models (ADR-0009). `eval run`'s coverage warning reads
+    # this back, which is how a remedy line can name the model that ran instead of prescribing one.
     extractor = None
     if llm and provider is not None:
         extractor = {
@@ -628,7 +633,7 @@ def _run_harvest(
     *,
     meter: TokenMeter,
     model: str | None,
-) -> tuple[HarvestGrade, Hypothesis | None, dict[str, int], list[Assertion], list[DocumentSubject]]:
+) -> tuple[HarvestGrade, dict[str, int], list[Assertion], list[DocumentSubject]]:
     """normalize -> extract -> verify over the case's prose. Only verified claims are graded.
 
     "The case's prose" now means three things: the documents a human put beside the case, the prose a
@@ -657,7 +662,7 @@ def _run_harvest(
     # call each inside ONE case, and running cases in parallel cannot touch that because the case is
     # the unit above it. The plan collapses a sample's runs into one document, and its results come
     # back positionally — required rather than tidy, because `verify_drafts` and the last-wins
-    # `by_field` below both read this list in order.
+    # `by_field` below (the HARVEST grade: did the model say this at all) both read it in order.
     plan = plan_extraction(
         documents=[normalize_document(p) for p in doc_paths], records=case.records
     )
@@ -721,14 +726,14 @@ def _run_harvest(
             grade.missing.append(want.field)
     grade.hallucinated = [f for f in case.expected.forbidden_fields if f in by_field]
 
-    hypothesis: Hypothesis | None = None
-    chem = by_field.get("library.chemistry")
-    if chem is not None:
-        hypothesis = Hypothesis(value=str(chem.value), id="harvest", confidence=0.9)
+    # No hypothesis is built here. `accepted` is returned whole and the CALLER reduces it with the
+    # compiler's own `chemistry_hypothesis` — one reduction, both callers. This function used to
+    # take `by_field["library.chemistry"]`, i.e. the LAST document to claim one, which is a
+    # different answer from the compiler's on exactly the datasets where it matters.
     subjects = [
         DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject) for d in docs
     ]
-    return grade, hypothesis, usage, accepted, subjects
+    return grade, usage, accepted, subjects
 
 
 def _document_row(doc: NormalizedDoc, failure: str | None = None) -> dict[str, Any]:

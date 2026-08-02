@@ -135,7 +135,7 @@ def harvest_extract(
         None,
         "--model",
         help="Override the model (default: the provider's own). DeepSeek serves "
-        "deepseek-v4-flash (default, cheap) and deepseek-v4-pro (recall on hard prose).",
+        "deepseek-v4-pro (the default) and deepseek-v4-flash.",
     ),
     ceiling: int = typer.Option(
         0,

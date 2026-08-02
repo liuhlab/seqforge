@@ -119,7 +119,7 @@ def eval_run(
         None,
         "--model",
         help="Override the provider's default model — on DeepSeek that default is "
-        "deepseek-v4-flash; pass deepseek-v4-pro to spend for recall. Whichever ran is recorded "
+        "deepseek-v4-pro; deepseek-v4-flash is the other V4 it serves. Whichever ran is recorded "
         "in the report's `extractor`, because a baseline does not transfer across models.",
     ),
     trials: int = typer.Option(
@@ -155,10 +155,10 @@ def eval_run(
     `--fail-under` — a false accept is never tolerable at any threshold, so it is not on a slider.
 
     `--llm` inherits the provider's own default model rather than pinning one here — that is
-    `deepseek-v4-flash` on the DeepSeek preset, the cheap end of V4, which is what a corpus-scale
-    harness should reach for by default. `--model deepseek-v4-pro` buys recall on the hardest prose.
-    The report names whichever ran, since the numbers are a claim about that extractor and not
-    about the harness.
+    `deepseek-v4-pro` on the DeepSeek preset, and this corpus is what settled it: pro was faster
+    *and* spent fewer output tokens than `deepseek-v4-flash`, so the cheap-end argument for flash
+    lost on its own terms (#188; the run is written up in `evals/README.md`). The report names
+    whichever ran, since the numbers are a claim about that extractor and not about the harness.
 
     `--ceiling` is the token backstop, per case, and it refuses rather than warns: a case that
     reaches it is reported with a `Blocker` instead of a grade and the run exits 3. It costs nothing
@@ -219,13 +219,20 @@ def eval_run(
         unmeasured = [
             r.case_id for r in runs if r.harvest is not None and r.harvest.status != "complete"
         ]
+        # Name the model that ran; prescribe no model at all. This line used to advise `--model
+        # deepseek-v4-pro` unconditionally, and printed that on a run of pro — a remedy that does not
+        # know what it is remedying. Negating it ("a --model other than the one that ran") is no
+        # better: the preset serves two models, so on the default that sentence means "use flash",
+        # which answered SIX of 141 documents where pro answered all but one. What the reader
+        # actually needs is the extractor's name, so the coverage gap is attributable at all — and
+        # `--jobs`, the one lever that is about this failure rather than about who ran.
+        ran = (report.extractor or {}).get("model") or "the provider's default model"
         typer.echo(
             f"HARVEST PARTLY MEASURED: {int(coverage['documents_extracted']):,} of "
-            f"{int(coverage['documents_planned']):,} planned documents were answered, and "
+            f"{int(coverage['documents_planned']):,} planned documents were answered by {ran}, and "
             f"{len(unmeasured)} case(s) are a claim about less than their whole prose: {unmeasured}. "
             f"Every rate above excludes what could not be checked, so it is honest and it is "
-            f"narrower than it looks — re-run those cases with --model deepseek-v4-pro, or with a "
-            f"smaller --jobs",
+            f"narrower than it looks — re-run those cases with a smaller --jobs",
             err=True,
         )
 

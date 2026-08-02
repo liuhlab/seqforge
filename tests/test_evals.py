@@ -53,6 +53,7 @@ from seqforge.models.resolve import (
     RoleAssignment,
     TechScore,
 )
+from seqforge.resolve import Hypothesis
 
 if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
     from seqforge.harvest import LLMResponse
@@ -949,6 +950,93 @@ def test_harvest_hypothesis_steers_resolve() -> None:
     assert run.grade.grade is Grade.CORRECT
     assert run.harvest is not None
     assert sorted(run.harvest.matched) == ["experiment.organism", "library.chemistry"]
+
+
+def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Hypothesis | None]:
+    """Record the hypothesis each `resolve_dataset` call is handed, then let the real one run."""
+    from seqforge.evals import run as run_module
+    from seqforge.resolve import resolve_dataset as real  # the same object `run.py` imported
+
+    seen: list[Hypothesis | None] = []
+
+    def _spy(*args: Any, **kwargs: Any) -> Any:
+        seen.append(kwargs.get("hypothesis"))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_module, "resolve_dataset", _spy)
+    return seen
+
+
+def _two_chemistry_provider() -> _StubProvider:
+    """A model that names v3 and v2. Each draft verifies against exactly one of the two documents."""
+    return _StubProvider(
+        [
+            _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
+            _draft("library.chemistry", "10x-3p-gex-v2", "Chromium Single Cell 3' v2 Reagent Kit"),
+        ]
+    )
+
+
+def _prose_case_plus_a_second_chemistry(tmp_path: Path, *, hypothesis: str | None = None) -> Case:
+    """`10x-v3-prose`, plus a document naming a DIFFERENT chemistry. Two documents, two answers.
+
+    A second document rather than a second draft on the first: `verify_drafts` anchors every draft to
+    the document it was extracted from, so a v2 quote absent from the v3 methods text is rejected
+    before it can become an assertion. Two documents is also the real shape — GSE234962's four
+    experiment records are what put a second chemistry into that dataset's accepted set.
+
+    ``hypothesis`` declares one in the recipe, as a case that must run without an API key does.
+    """
+    import dataclasses
+
+    second = tmp_path / "supplementary_methods.txt"
+    second.write_text(
+        "Supplementary Methods\n\n"
+        "The pilot libraries were prepared with the Chromium Single Cell 3' v2 Reagent Kit.\n"
+    )
+    case = next(c for c in discover_cases() if c.id == "10x-v3-prose")
+    return dataclasses.replace(
+        case,
+        metadata_docs=[*case.metadata_docs, second],
+        recipe=case.recipe.model_copy(update={"hypothesis": hypothesis}),
+    )
+
+
+def test_two_documents_naming_two_chemistries_steer_the_harness_with_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The harness reduces prose to a hypothesis exactly as `manifest fill` does: unanimity or nothing.
+
+    It used to reduce it with a last-wins `by_field` dict, so a dataset whose prose named two
+    chemistries handed the scorer whichever document happened to be extracted last, while the
+    compiler over the identical prose handed it nothing. That is a harness failing differently from
+    the thing it measures (#188), and it makes a benchmark number a claim about the benchmark.
+
+    The harvest GRADE is deliberately not asserted here: "did the model say this at all" is a
+    different question from "what did the manifest store", and only the second one is this reduction.
+    """
+    seen = _capture_hypotheses(monkeypatch)
+    run_case(
+        _prose_case_plus_a_second_chemistry(tmp_path), llm=True, provider=_two_chemistry_provider()
+    )
+    assert seen == [None], "two accepted chemistry claims must steer nothing"
+
+
+def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`None` from harvest means "no opinion", never "override the declared one with nothing".
+
+    A case may declare its hypothesis in `inputs/recipe.yaml` so it runs with no API key; the
+    benchmark's one metadata-decided case (`GSE317744`) is graded on chemistry through exactly that
+    channel. Reducing harvest's two answers to `None` must leave the recipe's claim where it was —
+    the harness's `if hyp is not None` guard, asserted rather than assumed.
+    """
+    case = _prose_case_plus_a_second_chemistry(tmp_path, hypothesis="10x-3p-gex-v3")
+    seen = _capture_hypotheses(monkeypatch)
+    run_case(case, llm=True, provider=_two_chemistry_provider())
+    assert len(seen) == 1 and seen[0] is not None
+    assert (seen[0].value, seen[0].id) == ("10x-3p-gex-v3", "recipe")
 
 
 # --------------------------------------------------------------------------------------------
@@ -2813,6 +2901,11 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
     # ...and it is said where a human looks, on the stream that is not the result object.
     assert "HARVEST PARTLY MEASURED" in result.stderr
     assert "chemistry-unstated-trap" in result.stderr
+    # The remedy names the model that ran and prescribes no model at all. It used to advise `--model
+    # deepseek-v4-pro` unconditionally — including on a run of pro, where the advice was to change
+    # nothing (#188). `stub-model-1` is this provider's default, resolved rather than echoed as null.
+    assert "answered by stub-model-1" in result.stderr
+    assert "--model" not in result.stderr, "naming the extractor is not prescribing a replacement"
 
 
 def _stub_case(case_id: str) -> Case:
