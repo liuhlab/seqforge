@@ -215,7 +215,10 @@ def _check_conflict(want: Any, result: ResolveResult) -> tuple[bool, str]:
             return False, f"expected a question offering {sorted(want.options)}, got no question"
         got_options = sorted({o for q in asked for o in q.options})
         if got_options != sorted(want.options):
-            return False, f"expected the question to offer {sorted(want.options)}, got {got_options}"
+            return (
+                False,
+                f"expected the question to offer {sorted(want.options)}, got {got_options}",
+            )
     return True, ""
 
 
