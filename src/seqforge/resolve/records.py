@@ -38,15 +38,17 @@ a model reading a DATASET-level document     ``inferred``     the paper says it 
 A disagreement across bases keeps the stronger basis's value (``asserted`` over ``inferred``); a
 disagreement *within* one basis stores **no value at all**, because two equal authorities contradicting
 each other is not something code may break, and a wrong value here is permanent (``experiment`` is
-inside ``dataset_hash`` and the manifest is never rewritten). That last rule is about two *sources*,
-though, and one archive deposit read at two of its levels is one source — the sample's typed slot and
-the experiment title were written by the same hand, in the same submission. So a prose reading wholly
-inside what that submission typed into the slot is the declaration quoted short, not a second
-authority, and it is absorbed rather than tied against (:func:`_without_short_readings`). Either way the resolver has **decided** —
+inside ``dataset_hash`` and the manifest is never rewritten). Either way the resolver has **decided** —
 so the disagreement is a non-blocking ``warning``, not a refusal. Null-over-wrong is a value, not a
 question for a human, and a single sample annotation is no reason to stop a whole dataset compiling.
 Only the byte resolver's ``observed`` vs ``asserted`` conflict blocks: that one decides what the data
 *is*, and code may not auto-pick it.
+
+**Two equal authorities, though, must actually be two sources.** One archive deposit read at two of
+its levels is one: the sample's typed slot and the experiment title were written by the same hand, in
+the same submission, so a prose reading wholly inside what that submission typed is the declaration
+quoted short rather than a second authority contradicting the first. It is absorbed before anything is
+ranked — :func:`_without_short_readings`, which also argues the direction and the word boundary.
 
 That asymmetry still catches the error span verification provably cannot. "We dissected neurons and body wall muscle"
 entails ``tissue=neurons`` *and* ``tissue=muscle`` — both quotes are real, both pass span verification
