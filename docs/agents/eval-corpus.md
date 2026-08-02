@@ -360,17 +360,24 @@ for sample attributes, and did not generalise to the chemistry hypothesis. Movin
 would enshrine a manufactured conflict as the specification. It is filed as **#184**, with the three
 candidate fixes and the one already rejected.
 
-**How often, measured — five single-trial `--llm` runs of this one case, `deepseek-v4-pro`,
-2026-08-01.** Three completed and graded: **one `over_ask` and two `correct`**, which is the
+**How often, measured — six single-trial `--llm` runs of this one case, `deepseek-v4-pro`,
+2026-08-01.** Four completed and graded: **two `over_ask` and two `correct`**, which is the
 instability as a number rather than as a suspicion, and it is why one run reporting green settles
-nothing here. The `RNA-Seq` claim appeared in **2 of the 5** passes over the four experiment
-documents, from a *different* experiment record each time — so it is a property of the document
-shape, which all four share, and not of one record. The other two runs aborted on DeepSeek's
-invalid-JSON failure (#4), both on `mmc2.txt`, the 1 KB supplementary table rather than the whole
-paper, which is worth noting against the first bullet above: the failures cluster on documents that
-provoke a long response, not simply on long documents. Every one of the five refused the paper's own
-`10x-3p-gex-v3` draft as `not_entailed`. The whole exercise cost **421,692 input, 112,782 output and
-416,896 cache-read tokens** across six runs, which is the price of learning that a benchmark grade
+nothing here. The `RNA-Seq` claim appeared in **3 of the 6** passes over the four experiment
+documents, and in **three different records** — so it is a property of the document *shape*, which
+all four share, and not of one record. The other two runs aborted on DeepSeek's invalid-JSON failure
+(#4), both on `mmc2.txt` — the 1 KB supplementary table, not the whole paper — which qualifies the
+first bullet above: the failures cluster on documents that provoke a long *response* (that table is a
+per-sample grid, and the model quotes rows of it), not simply on long documents. Every one of the six
+refused the paper's own `10x-3p-gex-v3` draft as `not_entailed`.
+
+Two things ride along, and both are the harness working. The graded `experiment.organism` assertion
+matched in **3 of the 4** graded runs and was refused `span_not_found` in the fourth — the claim is
+not in doubt, the carried text writes the binomial 15 times, so what that run recorded is the
+stage's *recall*, which is what an `assertions:` block is for. And a `--trials 3` invocation is a
+worse instrument than three single-trial runs on this tier: one document's abort raises through the
+whole case, so all three trials skip together and measure nothing. The exercise cost **552,381 input,
+151,800 output and 546,560 cache-read tokens**, which is the price of learning that a benchmark grade
 was a coin flip.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
