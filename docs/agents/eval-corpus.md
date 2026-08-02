@@ -286,6 +286,12 @@ the default fan-out).** Two things, and neither is the arithmetic:
   right (null beats a permanent wrong value); what is wrong is that a claim re-deriving a structured
   attribute from the same record's prose is treated as an independent authority at all. It is
   unrelated to the assertions added above, predates them, and belongs to the metadata resolver.
+  **Fixed (#182, finding 1): one archive deposit read at two of its levels is one source**, so a
+  prose reading wholly inside what that submission typed into the slot is absorbed instead of tied
+  against — the declaration stands, and the case now grades `correct` under both flags. Containment
+  holds in one direction only and over whole words, so a reading that *extends* the typed value
+  (`control` read as `control RNAi`) is still a disagreement and still leaves null. The first bullet
+  above is untouched and still live.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
