@@ -1,0 +1,39 @@
+outcome: decide
+description: >-
+  A declared chemistry sequenced two cycles past its kit, and the answer is still that chemistry. The
+  real shape is `GSE282525`, which declares "Chromium Next GEM Single Cell 5' Reagent Kit v2" and
+  archives 10/10/28/90 — 28 bp of R1 where the kit declares 26.
+
+  IT IS HERE BECAUSE THE SPEC READS AS IF IT SHOULD FAIL. `10x-5p-gex-v2` gates R1 with
+  `{test: segment_length, length: 26, tolerance: 0, over_length_min: 100}`, and 28 is above the
+  canonical length and below `over_length_min` — so a static reading says the true leaf is
+  exact-checked, fails, and is eliminated before scoring, which would make a tolerance the fix.
+  Running it says otherwise: 26 < 28 < 100 is exactly the over-length DEAD ZONE, the whitelist
+  admission fires, and the leaf is scored. That behaviour was latent — argued about from the spec text
+  rather than measured — until this case pinned it (#177).
+
+  WHY NOT WIDEN THE TOLERANCE, recorded so the argument is not had twice. `10x-5p-gex-v2`'s signature
+  is deliberately byte-identical to `10x-3p-gex-v2`'s, test for test and weight for weight, because
+  those two are the KB's one genuinely read-undecidable pair — same 26 bp geometry, same
+  737K-august-2016 file. Widening one side's tolerance would hand it a systematic edge over its twin
+  and turn that honest tie into a silent guess. Widening both would erase 26-vs-28, which IS the 5'
+  v2 / v3 split (a 10 bp UMI against a 12 bp one) and, on the 3' side, the v2 / v3 one. The exact gate
+  costs nothing here and is load-bearing there, so it stays and the whitelist does the admitting.
+
+  WHAT THE HYPOTHESIS BUYS, AND WHAT IT DOES NOT. Without it these bytes correctly ASK between
+  `10x-3p-gex-v2` and `10x-5p-gex-v2` — the same question `spec/10x-v2-bytes-only` asks at 26 bp,
+  which is the point: two extra cycles must not change which question the bytes can answer. The claim
+  names the family, so the 5' leaf is picked and `soloStrand Reverse` is emitted rather than Forward.
+  The failure this case forbids is the quiet one: had the leaf really been eliminated, the only 5'
+  leaf left under the asserted family is `10x-5p-gex-v3`, and the resolver would have decided it and
+  compiled a 12 bp UMI against `3M-5pgex-jan-2023` at exit 0, with nothing red.
+
+  Synthetic onlists register the pool the reads were drawn from under `737K-august-2016` — the name
+  BOTH v2 leaves consult, which is what makes the tie real here rather than an artefact. The sibling
+  whitelists are not registered, so this case cannot show `10x-5p-gex-v3` being outscored on its own
+  list; `tests/test_resolve.py` covers that half against the real registry, where every shipped
+  whitelist is loaded and v3's declines these barcodes.
+fields:
+  library.chemistry: 10x-5p-gex-v2
+  library.roles.R1: R1
+  library.roles.R2: R2

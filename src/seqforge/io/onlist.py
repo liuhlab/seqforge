@@ -19,7 +19,9 @@ Barcodes are 2-bit packed into a width-generic integer array (``uint32`` for <=1
 <=32 bp — never a hardcoded 16 bp), which gives O(1) membership for :func:`onlist_hit_rate` and
 ``np.intersect1d`` set-intersection for the confusability check. ``onlist_hit_rate`` tests the
 window **forward and reverse-complement** across a **small positional-offset scan** and records the
-winning ``(orientation, offset)`` — a revcomp hit means the barcode read is on the other strand.
+winning ``(orientation, offset)`` — a revcomp hit means the barcode read is on the other strand. Its
+denominator counts only the reads that *could* have hit; the comment above it argues why, against the
+neighbouring statistic that counts everything.
 """
 
 from __future__ import annotations
@@ -272,6 +274,43 @@ _STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
 }
 
 
+# ---- A read whose barcode cycles never fired LEAVES THE DENOMINATOR --------------------------------
+#
+# A window holding a non-ACGT base is unpackable, so it can never be a hit. Counting it makes the
+# statistic measure *how many cycles the sequencer called*, times the thing we actually asked about —
+# and the first factor is not a property of the library. Excluding it loses nothing recoverable: the
+# reads dropped are exactly `HitResult.n_tested`, so a dark cycle deflates the COVERAGE and leaves the
+# RATE alone.
+#
+# The measurement that forced this (#177): `evals/benchmark/GSE305031` is a genuine 10x GEM-X 3' v4
+# worm library whose R1 cycle 2 is a DARK CYCLE AT THE HEAD OF THE RUN — N in 91.35% of the first 2 000
+# reads, 0.00% of the last 2 000, and no other cycle touched. Barcodes are matched EXACTLY here (no 1MM
+# correction), so one N in the 16 bp CB makes a read unmatchable: over the sampled head the rate read
+# 7.90% against an admission bar of 0.08583 and the library was refused as barcode-absent, while the
+# reads that DID have a called cycle 2 hit at 91.33% — the same answer the full 20 000-read slice gives
+# (92.33%). The bounded sample is the head of the file, and the head of a file is the flow cell's first
+# tiles, which is exactly where a dark cycle lives. A head slice is not a random sample, so this is a
+# property of every head slice in the corpus rather than of one dataset.
+#
+# THIS IS THE OPPOSITE POLICY FROM THE CONSTANT-SEGMENT CARRIER STATISTIC in `resolve.evaluators`,
+# deliberately, and the difference is what a non-hit MEANS. There, junk reads are counted and never
+# filtered, so contamination lowers the statistic instead of being removed from its own measurement —
+# because a read that genuinely does not carry the linker IS evidence against the chemistry, and
+# selecting the reads that agree with the consensus before measuring their agreement makes every window
+# read ~1.0. Here the excluded read is evidence against nothing: the base was never called, so the read
+# is silent about which whitelist it came from. Keeping it in the denominator does not measure
+# contamination, it measures the sequencer. A junk read is a fact about the LIBRARY; an uncalled base is
+# a fact about the RUN. Only the first belongs in a statistic about the library.
+#
+# The precedent is already in the tree: the anchored twin (`resolve.window.anchored_onlist_hit`) has
+# always let a read whose frame did not resolve simply not contribute. Both twins now apply one policy,
+# which is the point — a denominator that differs between them is the drift `_STRANDS_SCANNED` exists to
+# prevent one level down.
+#
+# Degenerate case, stated so it is not rediscovered as a bug: if EVERY window is unreadable, `n_tested`
+# is 0, no window becomes `best`, and the rate returned is 0.0 — nothing is admitted and the caller
+# refuses. "Could not check" and "checked and missed" are not told apart at this seam; they were not
+# before either, and separating them is a change to the evaluator's ABSTAIN, not to this denominator.
 def onlist_hit_rate(
     seqs: list[str],
     start: int,
@@ -291,7 +330,10 @@ def onlist_hit_rate(
 
     Vectorized: the sample is encoded once into a base-code matrix, and each window is a slice + a
     ``searchsorted`` against the onlist's sorted codes. ``n_tested`` counts reads long enough to hold
-    the window (as before, including non-ACGT reads that cannot hit); ``hit_rate = hits / n_tested``.
+    the window **whose window is all-ACGT** — the reads that could have hit; ``hit_rate = hits /
+    n_tested``, and the coverage a dark cycle destroys shows up in ``n_tested`` rather than in the
+    rate. The comment block above this function says why, and names the neighbouring statistic that
+    takes the opposite policy on purpose.
     """
     width = onlist.width
     strands = _STRANDS_SCANNED[as_orientation(orientation)]
@@ -314,16 +356,18 @@ def onlist_hit_rate(
             if s < 0 or e > maxcol:
                 continue
             inrange = lengths >= e
-            tested = int(inrange.sum())
-            if tested == 0:
+            if not inrange.any():
                 continue
             packed, valid = _pack_window(mat[inrange], s, width, rc=strand == "revcomp")
+            # `valid` is the all-ACGT mask, so `packable` is exactly the set of reads that COULD have
+            # hit. It is both the numerator's candidate pool and the denominator — the block comment
+            # above this function argues why, and against which neighbouring statistic.
             packable = packed[valid]
-            if packable.size:
-                idx = np.clip(np.searchsorted(wl, packable), 0, wl.size - 1)
-                hits = int((wl[idx] == packable).sum())
-            else:
-                hits = 0
+            tested = int(packable.size)
+            if tested == 0:
+                continue
+            idx = np.clip(np.searchsorted(wl, packable), 0, wl.size - 1)
+            hits = int((wl[idx] == packable).sum())
             rate = hits / tested
             if rate > best.hit_rate:
                 best = HitResult(

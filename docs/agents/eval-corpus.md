@@ -124,20 +124,34 @@ the leaf without it. `GSE317744` is also the first real dataset in either tier w
 hypothesis produces a `decide` — `GSE208154`, the only other hypothesis-carrying benchmark case,
 refuses — and the first non-Illumina package anywhere in the corpus (DNBSEQ-G400, MGI).
 
-**`10x-gemx-3p-v4` is RED, and nobody predicted it — a defect report, not an instrument.** The
-chemistry call was right by a factor of 90: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
-`3M-february-2018`, over the package's full 20 000-read slice. What fails is the **sample**. R1 cycle 2
-is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of reads
-2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in the
-16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads and scores
-7.90 % against an admission bar of 0.08583, missing by 0.68 pp and raising `BARCODE_READ_ABSENT`; the
-verdict flips to `decide` between 2 000 and 3 000 reads. This falsifies the rationale
-`probe/__init__.py` gives for `DEFAULT_MAX_READS = 2_000` — "the resolved chemistry is invariant from
-1k to 200k reads across every benchmarked worm library" — **on a worm library**. The invariance held
-across the libraries benchmarked at the time; it is not a property of head slices. A head slice is not
-a random sample, it is the flow cell's first tiles, which is precisely where a dark cycle lives. The
-expectation is left at `decide` deliberately: grading it against today's behaviour would enshrine the
-defect as the specification.
+**`10x-gemx-3p-v4` was RED, nobody predicted it, and it is now green with the prediction untouched.**
+It is the corpus's one worked example of a case earning its keep on the first run. The chemistry call
+was right by a factor of 90 throughout: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
+`3M-february-2018`, over the package's full 20 000-read slice. What failed was the **sample**. R1
+cycle 2 is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of
+reads 2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in
+the 16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads, scored
+7.90 % against an admission bar of 0.08583, missed by 0.68 pp and raised `BARCODE_READ_ABSENT`. That
+falsified the rationale `probe/__init__.py` gave for `DEFAULT_MAX_READS = 2_000` — "the resolved
+chemistry is invariant from 1k to 200k reads across every benchmarked worm library" — **on a worm
+library**. The invariance held across the libraries benchmarked at the time; it is not a property of
+head slices. **A head slice is not a random sample, it is the flow cell's first tiles, which is
+precisely where a dark cycle lives.**
+
+**The fix (#177) was to the hit rate's denominator, not to the read budget**, and the distinction is
+the lesson. A window holding a non-ACGT base is unpackable, so it can never be a hit; counting it
+measured how many cycles the sequencer called rather than which whitelist the library came from. It
+now leaves `n_tested`, so a dark cycle costs **coverage** and leaves the **rate** alone — the same
+2 000 reads score 91.33 % over the 173 whose cycle 2 fired, against 92.33 % over all 20 000, which is
+how you can tell the small sample was never the problem. `DEFAULT_MAX_READS` is still 2 000 and
+`PROBE_VERSION` is unmoved (no observation value changed); `RESOLVE_VERSION` bumped, because the
+defect being fixed is a cached *refusal*. Raising N was rejected as buying one dataset while leaving
+the assumption standing, and lowering the admission bar as spending the thing that keeps cDNA out of
+a barcode role. Measured across the whole tier before and after: `false_refuse_rate` 0.0556 → 0.0000
+with `field_accuracy` 1.0 and `false_accept_rate` 0.0 unchanged, and **no other case moved** — all 17
+other per-case grades identical. The expectation was never edited: `outcome` and all nine `fields`
+claims are byte-identical to the pre-registration commit, and the nine graded for the first time on
+the green run, because a refusal grades no fields at all.
 
 **Considered and not added** — recorded here rather than in a commit message, because the next person
 to grow the corpus needs the reasons, not just the outcome. These are candidates, not reservations;
@@ -159,13 +173,33 @@ for `10x-gemx-3p-v4`. It is a platform-generation name spanning 3′ v4, 5′ v3
 of those four are a different entry or no entry at all — the evidence must name **3′ and v4**.
 Conversely "Next GEM" is the *predecessor* generation (v3.1 / 5′ v2), so a bare "GEM" search is
 actively misleading. *The finding:* `GSE282525` declares "Chromium Next GEM Single Cell 5' Reagent Kit
-v2" but archives every run at 28 bp R1, two cycles past that kit's 26. Under `10x-5p-gex-v2`'s
-`segment_length {length: 26, tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it
-is exact-checked, fails, and the **true leaf is eliminated before scoring** — with `hypothesis:
-"10x 5'"` attached it would land on `10x-5p-gex-v3` and pull in the wrong whitelist. Cell Ranger
-tolerates this (`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed). It was
-deliberately **not** added, because a red there would be a spec-design consequence rather than a
-compiler defect — but it is a strong future `steering/` or `refusal/` candidate.
+v2" but archives every run at 28 bp R1, two cycles past that kit's 26 — Cell Ranger tolerates this
+(`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed), so it is a shape that
+keeps arriving rather than a malformed submission.
+
+**That finding was written from the spec text, and running it reverses the conclusion** (#177) — which
+is itself the more useful lesson. It read: under `10x-5p-gex-v2`'s `segment_length {length: 26,
+tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it is exact-checked, fails, and
+the true leaf is eliminated before scoring, landing on `10x-5p-gex-v3` with the wrong whitelist once a
+`10x 5'` hypothesis is attached. **Measured, none of that happens.** `26 < 28 < 100` is precisely the
+over-length *dead zone*, so the whitelist admission fires, the leaf is scored, and the bytes tie
+`10x-5p-gex-v2` with `10x-3p-gex-v2` — the honest answer, since those two are the KB's one genuinely
+read-undecidable pair. With no claim attached resolve **asks** between exactly those two; with the
+family claim it decides `10x-5p-gex-v2` at exit 0. Against the real registry, where every shipped
+whitelist is loaded, `10x-5p-gex-v3` is outscored rather than reached, because `3M-5pgex-jan-2023`
+declines these barcodes. Verified from 100 % whitelist hit rate down to 10 %, far below anything a real
+library shows.
+
+So **the spec is unchanged, and `tolerance: 0` stays.** Widening it was the tempting fix and is the
+wrong one twice over: `10x-5p-gex-v2`'s signature is byte-identical to `10x-3p-gex-v2`'s on purpose —
+test for test, weight for weight — so widening one side hands it a systematic edge over its twin and
+turns a genuine tie into a silent guess, while widening both erases 26-vs-28, which *is* the 5′ v2/v3
+split and, on the 3′ side, the v2/v3 one. What the episode did earn is a case, because the behaviour
+was latent — argued from spec text rather than measured — and that is exactly the state a case exists
+to end: `steering/declared-5p-v2-sequenced-two-cycles-long`, generated from the leaf's own spec plus
+the two extra cycles the submitter's run had. It is the first hermetic case anywhere for the
+over-length admission path, which until now only real datasets in the networked tier exercised, and it
+needed one new recipe knob (`over_length`) to be expressible at all.
 
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for

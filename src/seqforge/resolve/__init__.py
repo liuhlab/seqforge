@@ -71,7 +71,13 @@ from __future__ import annotations
 #: fixes is a cached verdict. A real SPLiT-seq dataset already resolved to `bulk-rnaseq-pe` at exit 0
 #: would otherwise keep serving that candidate straight out of the cache, and the fix would land
 #: green while changing nothing anyone could observe.
-RESOLVE_VERSION = "2026.7.15"
+#: 2026.7.16 — the onlist hit rate's DENOMINATOR counts only reads that could have hit: a window
+#: holding a non-ACGT base is unpackable, so it leaves `n_tested` instead of diluting the rate (#177).
+#: Both the fixed-offset and the anchored path now share that policy. This MUST re-key for the same
+#: reason 2026.7.15 did — the defect it fixes is a cached REFUSAL. `evals/benchmark/GSE305031` (a real
+#: GEM-X 3' v4 worm library with a dark cycle at R1 cycle 2) is already sitting in caches as
+#: BARCODE_READ_ABSENT, and would keep being served straight out of one while the fix landed green.
+RESOLVE_VERSION = "2026.7.16"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

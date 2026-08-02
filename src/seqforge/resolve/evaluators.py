@@ -45,6 +45,14 @@ from .window import WindowProbe
 #: population. Junk reads are COUNTED, never filtered: they stay in the denominator, so contamination
 #: lowers the statistic instead of being removed from its own measurement. Real SPLiT-seq measures
 #: 0.85 (linker1) and 0.73 (linker2) here, against ~0 for any window that has no fixed sequence in it.
+#:
+#: THE ONLIST HIT RATE TAKES THE OPPOSITE POLICY, and the two do not contradict each other (#177). A
+#: read that does not carry the linker is a real read that genuinely is not this chemistry — evidence
+#: AGAINST it, so filtering it would remove contamination from the measurement of contamination. A read
+#: whose barcode cycle was never called is evidence for nothing at all: it cannot hit any whitelist, so
+#: counting it measures the run's base-calling instead of the library, which is why `io.onlist` drops it
+#: from that denominator and reports the loss as coverage. The rule that produces both answers is the
+#: same one: keep what the LIBRARY did, drop what only the RUN did.
 _CONSTANT_CARRIER_MIN = 0.5
 #: Slack to the modal consensus, per base of window: 3 of 30 for a SPLiT-seq linker, 1 of 12 for a BD
 #: Rhapsody one. It absorbs sequencing error and nothing else — the statistic is nearly flat in it

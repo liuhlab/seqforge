@@ -1,0 +1,25 @@
+# The GSE282525 shape, hermetically. That series (Vijay Lab) declares "Chromium Next GEM Single Cell
+# 5' Reagent Kit v2" verbatim and archives every run at 10/10/28/90 — a kit whose R1 is 26 bp,
+# sequenced two cycles long. `over_length` is what makes that expressible in a recipe: the reads are
+# generated from the leaf's own spec and then given the two extra cycles the submitter's run had, so
+# the case is the declared chemistry plus the deviation and nothing else.
+#
+# The 2 bp is the whole point, and it is the smallest deviation that can hurt. 26 vs 28 IS the 5' v2 /
+# 5' v3 split (a 10 bp UMI vs a 12 bp one), so a library sequenced across that boundary looks like its
+# own sibling on geometry — and the sibling carries a different whitelist. Cell Ranger tolerates the
+# extra cycles (`SC5P-R2-v3`'s UMI declares `"min_length": 10`, and R1 is trimmed), so this is a shape
+# that keeps arriving rather than a malformed submission.
+#
+# The hypothesis is not a workaround, for the same reason it is not one in
+# `spec/10x-5p-gex-v2-metadata-decided`: 10x 5' v1/v2 and 10x 3' v2 share the 26 bp geometry AND the
+# 737K-august-2016 whitelist, so they are the KB's one genuinely read-undecidable pair and no byte
+# settles them. It names the FAMILY, exactly as prose does, and enters resolve as a rung-0 claim with
+# no LLM, so this runs in a CI with no API key.
+generate:
+  kind: spec
+  spec: 10x-5p-gex-v2
+  n: 3000
+  seed: 0
+  onlists: synthetic
+  over_length: {read: R1, extra: 2}
+hypothesis: "10x 5'"
