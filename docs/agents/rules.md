@@ -210,7 +210,10 @@ on disagreement: the byte resolver **blocks**, and the metadata resolver *decide
 [`resolve/records.py`](../../src/seqforge/resolve/records.py). What *counts* as a disagreement is
 narrower than it looks: an asserted family term that narrows to the observed leaf is agreement, and a
 string naming no KB node asserts nothing at all —
-[ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md).
+[ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md). And two equal authorities must
+be two *sources*: within one deposit the slot the submitter typed outranks a model's reading of that
+same deposit's prose, at both the resolve and the harvest layer —
+[ADR-0021](../adr/0021-one-deposit-is-one-source-at-every-layer.md).
 
 **Enforced by.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
 `test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`) on

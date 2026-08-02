@@ -22,7 +22,13 @@ from seqforge.models.blocker import BlockerCode
 from seqforge.models.observation import FileIdentity
 from seqforge.models.records import ArchiveRecordSet
 from seqforge.models.resolve import MetadataResolution, ResolvedSample
-from seqforge.resolve.records import SAMPLE_FIELD_PREFIX, DocumentSubject, resolve_metadata
+from seqforge.resolve.records import (
+    SAMPLE_FIELD_PREFIX,
+    DocumentSubject,
+    _decide,
+    _Position,
+    resolve_metadata,
+)
 
 # ================================================================================================
 # records — the metadata resolver against the archive's real bytes
@@ -451,18 +457,36 @@ _PRECEDENCE_TABLE: tuple[_Cell, ...] = (
         warn_count=6,
         warn_contains=("muscle", "Neurons"),
     ),
-    # Two equal authorities (the record and a sample-scoped assertion) disagree: code does not break the
-    # tie, so the attribute is left null — a value, per "null beats a wrong guess" — and the
-    # disagreement is a warning. Every OTHER sample keeps its record value.
+    # The record's typed slot against a model's reading of that same deposit's prose. They are one
+    # source at two layers, not two authorities, so the submitter's own string stands and the reading
+    # is noted (#182, #189, ADR-0021). Every OTHER sample keeps its record value, untouched.
     _Cell(
-        id="equal_authorities_disagree_leave_null",
+        id="a_typed_slot_outranks_a_reading_of_the_same_deposit",
         use_records=True,
         claims=(_Claim("experiment.samples.tissue", "muscle", "sample", "SAMN40935621"),),
         attr="tissue",
-        value=None,
+        value="Neurons",
+        basis="asserted",
         others="keep_record",
         warning="ambiguous",
-        warn_contains=("SAMN40935621",),
+        warn_contains=("SAMN40935621", "muscle"),
+    ),
+    # Two readings of equal authority with NOTHING typed behind either — the record declares no
+    # `treatment` at all. Neither value is the submitter's own string, so code has no tie to break and
+    # the attribute is left null: a value, per "null beats a wrong guess", and a warning. This is the
+    # row the rule above deliberately does not reach; arbitration at rungs 4-6 is what it is for.
+    _Cell(
+        id="equal_authorities_disagree_leave_null",
+        use_records=True,
+        claims=(
+            _Claim("experiment.samples.treatment", "E. coli OP50", "experiment", "@experiment0"),
+            _Claim("experiment.samples.treatment", "starved", "experiment", "@experiment0"),
+        ),
+        attr="treatment",
+        value=None,
+        others="absent",
+        warning="ambiguous",
+        warn_contains=("E. coli OP50", "starved"),
     ),
     # 'Neurons' and 'neurons' are the same value; a permanent manifest must not null an equal-authority
     # attribute over capitalization alone (PRJNA1195922 lost `sex` exactly this way). Equal authorities
@@ -604,20 +628,28 @@ def _expect_warnings(out: MetadataResolution, cell: _Cell, subject_acc: str | No
         assert not any(subject_acc in w.message and w.subject.ref == ref for w in warnings)
 
 
-# ------------------------------------------------ one source read twice is not two sources (#182)
+# --------------------------------- a typed slot beats a reading of that same deposit (#182, #189)
 #
 # The table's `equal_authorities_disagree_leave_null` row is the policy this section qualifies, and
-# the policy is right: code may not break a tie between two sources of equal authority, and a wrong
-# value is permanent where a missing one is not. What was wrong is that it fired on a pair that is
-# not two sources. GSE282765's BioSample TYPES `treatment = "Citrobacter rodentium infection"`;
-# harvest reads that SAME submission's experiment title and asserts `treatment = "Citrobacter
-# rodentium"` — span-verified, entailed, true, and one word short. Both land `asserted`, they compare
-# unequal, and the archive's own value was deleted by a claim that agreed with it.
+# the policy is right where it applies: code may not break a tie between two sources of equal
+# authority. What was wrong is that it fired on a pair that is not two sources. GSE282765's BioSample
+# TYPES `treatment = "Citrobacter rodentium infection"`; harvest reads that SAME submission's
+# experiment title and asserts `treatment = "Citrobacter rodentium"` — span-verified, entailed, true,
+# and one word short. Both land `asserted`, they compare unequal, and the archive's own value was
+# deleted by a claim that agreed with it (#182).
 #
-# So a reading wholly inside what the same source typed into the slot is that declaration quoted
-# short, and the declaration stands. A reading that ADDS a word is not, and the tie stands: the rows
-# below pin both, plus the two ways containment could be read too loosely — across a word boundary,
-# and across sources.
+# The first repair compared the two strings: a reading wholly inside what the same source typed was
+# that declaration quoted short. It closed that shape and no other, and GSE317744 is why it is gone.
+# There the BioSample types `treatment = "MC38_3 weeks"` and a model asserted `treatment = "CCR9 KO"`
+# — the sample's GENOTYPE, filed under the wrong key. The two strings share nothing, so containment,
+# overlap, synonyms and punctuation folding all reach the first case and none of them reaches this
+# one; `harvest/verify.py` concedes span verification cannot reach it either, by construction.
+#
+# So the rule is not about the strings at all. Within ONE source, a value the submitter TYPED into a
+# slot for this attribute beats a model's reading of that source's prose — paraphrase, misfiling or
+# nonsense alike (ADR-0021). What lands is the submitter's own string, byte for byte, which is
+# exactly what a run with no prose at all would store; the losing reading is named in a warning,
+# because a decision was made and it has to stay auditable.
 
 
 def _typed_slot_records(attr: str, declared: str, read: str) -> ArchiveRecordSet:
@@ -674,14 +706,17 @@ def _read_out_of_the_experiment_title(attr: str, declared: str, read: str) -> Me
 
 @dataclass(frozen=True)
 class _Reading:
-    """What one submission typed, what a model read out of that same submission, and what must land."""
+    """What one submission typed, what a model read out of that same submission, and what must land.
+
+    The stored value is the typed one on every row, and that is the rule rather than a coincidence of
+    the examples: what varies is only whether a decision was made — i.e. whether the reading differed
+    from the declaration at all, and so whether there is a losing value to name.
+    """
 
     id: str
     attr: str
     declared: str
     read: str
-    #: The stored value, or ``None`` for "left null".
-    value: str | None
     ambiguous: bool
 
 
@@ -692,81 +727,135 @@ _READINGS: tuple[_Reading, ...] = (
         attr="treatment",
         declared="Citrobacter rodentium infection",
         read="Citrobacter rodentium",
-        value="Citrobacter rodentium infection",
-        ambiguous=False,
+        ambiguous=True,
     ),
-    # The issue's own example of agreement: a stage named without its head noun is the same stage.
+    # The issue's own example: a stage named without its head noun is the same stage.
     _Reading(
         id="a_stage_named_without_its_head_noun_keeps_it",
         attr="dev_stage",
         declared="L2 larvae",
         read="L2",
-        value="L2 larvae",
-        ambiguous=False,
+        ambiguous=True,
     ),
-    # THE TRAP, and the reason this is not "prefer the more specific value". Containment holds in the
-    # other direction here, and storing the longer string would bake a permanent claim that RNAi was
-    # done onto a sample whose submitter typed no such thing.
+    # THE FEARED CASE, and the reason this is not "prefer the more specific value": storing the
+    # longer string would bake a permanent claim that RNAi was done onto a sample whose submitter
+    # typed no such thing. The typed slot wins, so the qualifier the prose added never lands.
     _Reading(
-        id="a_reading_that_adds_a_qualifier_is_still_a_disagreement",
+        id="a_reading_that_adds_a_qualifier_does_not_win",
         attr="treatment",
         declared="control",
         read="control RNAi",
-        value=None,
         ambiguous=True,
     ),
-    # The other trap: 'CD4' is inside 'CD45' as characters and is a different antigen. Containment is
-    # over whole words, so this is a disagreement and not a short quote.
+    # 'CD4' is inside 'CD45' as characters and is a different antigen. Nothing here compares the two
+    # strings any more, so it needs no word-boundary rule to come out right.
     _Reading(
-        id="containment_inside_a_word_is_not_agreement",
+        id="a_reading_naming_a_different_antigen_does_not_win",
         attr="cell_type",
         declared="CD45 positive",
         read="CD4",
-        value=None,
         ambiguous=True,
     ),
-    # The policy this section must not weaken: two equal authorities that plainly disagree.
+    # GSE317744, and the shape no string comparison reaches: `CCR9 KO` is the sample's genotype,
+    # filed under `treatment`. It shares not one word with the typed value.
     _Reading(
-        id="plainly_different_values_are_still_left_null",
+        id="a_misfiled_reading_does_not_delete_the_slot_it_landed_in",
+        attr="treatment",
+        declared="MC38_3 weeks",
+        read="CCR9 KO",
+        ambiguous=True,
+    ),
+    # Two plainly different values: still one deposit, so still the submitter's own string.
+    _Reading(
+        id="plainly_different_values_keep_the_typed_one",
         attr="tissue",
         declared="Colon",
         read="Ileum",
-        value=None,
         ambiguous=True,
     ),
-    # And the rule already in place beside it: case alone is not a disagreement.
+    # And the folding beside it: case alone was never a disagreement...
     _Reading(
         id="the_same_words_in_another_case_still_agree",
         attr="tissue",
         declared="Colon",
         read="colon",
-        value="Colon",
+        ambiguous=False,
+    ),
+    # ...and neither is the punctuation a submitter joined two words with (#189). Orthogonal hygiene:
+    # it decides nothing the rule above has not already decided, it only keeps a warning quiet where
+    # there is no disagreement to report.
+    _Reading(
+        id="the_same_words_across_a_hyphen_still_agree",
+        attr="genotype",
+        declared="wild-type",
+        read="wild type",
         ambiguous=False,
     ),
 )
 
 
 @pytest.mark.parametrize("row", _READINGS, ids=[r.id for r in _READINGS])
-def test_a_prose_reading_of_the_declaration_is_not_a_second_source(row: _Reading) -> None:
+def test_a_prose_reading_never_outranks_the_slot_the_submitter_typed(row: _Reading) -> None:
     """One BioSample slot, one reading of that same submission's prose, and what must survive."""
     out = _read_out_of_the_experiment_title(row.attr, row.declared, row.read)
     assert not out.blockers
     assert len(out.samples) == 1
     attrs = out.samples[0].attributes
-    if row.value is None:
-        assert row.attr not in attrs, f"{row.attr} should have been left null"
-    else:
-        assert attrs[row.attr].value == row.value
-        assert attrs[row.attr].basis == "asserted"
+    assert attrs[row.attr].value == row.declared
+    assert attrs[row.attr].basis == "asserted"
 
     ambiguous = [w for w in out.warnings if w.code == "sample_attribute_ambiguous"]
     if row.ambiguous:
-        assert len(ambiguous) == 1, "a real disagreement is still surfaced"
+        # The known cost of this rule is a submitter who typed a placeholder, and this warning is the
+        # whole mitigation for it: the reading that lost is on the record, by name, with no
+        # enumerated list of placeholder strings anywhere.
+        assert len(ambiguous) == 1, "the losing reading must still be named"
         assert row.declared in ambiguous[0].message and row.read in ambiguous[0].message
     else:
-        # Nothing was excluded, so there is nothing to note: the manifest carries the submitter's own
-        # string and a reader comparing it to the record sees no gap.
+        # The two values fold to one, so nothing was decided and there is nothing to note.
         assert ambiguous == [], [w.message for w in ambiguous]
+
+
+def _position(value: str, *, declared: bool) -> _Position:
+    """One position, at the only basis a record document and its own record can both reach."""
+    return _Position(
+        value=value,
+        basis="asserted",
+        evidence=["SAMN1" if declared else "a-1"],
+        confidence=None if declared else 0.9,
+        rung=0,
+        source="archive",
+        declared=declared,
+    )
+
+
+def test_the_typed_slot_wins_wherever_it_sits_in_the_list() -> None:
+    """Precedence, never list order — the resolver must not depend on which position it saw first.
+
+    ``_positions_for`` happens to append a record's typed attributes before any assertion, so through
+    the public call the declared position is always first and an ordering bug would be invisible.
+    This asks ``_decide`` directly, both ways round.
+
+    **Both branches, because both store a value.** When the two disagree, precedence picks the winner
+    — GSE317744's own pair. When they FOLD TOGETHER, nothing is decided and nothing is noted, but a
+    spelling is still chosen and written into a content-hashed manifest: `wild-type` and `wild type`
+    are one genotype, and which of them a reader finds in the manifest must be the submitter's, not
+    whichever position code happened to build first.
+    """
+    typed, read = _position("MC38_3 weeks", declared=True), _position("CCR9 KO", declared=False)
+    for order in ([typed, read], [read, typed]):
+        attrs, warnings = _decide("SAMN1", {"treatment": list(order)})
+        assert attrs["treatment"].value == "MC38_3 weeks"
+        assert attrs["treatment"].evidence == ["SAMN1"], "the stored value cites the record"
+        assert [w.code for w in warnings] == ["sample_attribute_ambiguous"]
+        assert "CCR9 KO" in warnings[0].message
+
+    typed, read = _position("wild-type", declared=True), _position("wild type", declared=False)
+    for order in ([typed, read], [read, typed]):
+        attrs, warnings = _decide("SAMN1", {"genotype": list(order)})
+        assert attrs["genotype"].value == "wild-type", "the submitter's spelling, not the reading's"
+        assert attrs["genotype"].evidence == ["SAMN1"]
+        assert warnings == [], "values that fold together decided nothing worth noting"
 
 
 def test_a_short_quote_of_the_records_own_field_does_not_delete_it() -> None:
@@ -804,14 +893,19 @@ def test_a_short_quote_of_the_records_own_field_does_not_delete_it() -> None:
     treatment = with_prose.samples[0].attributes.get("treatment")
     assert treatment is not None, "a true claim about the same fact deleted the archive's value"
     assert treatment.value == "Citrobacter rodentium infection"
-    assert not [w for w in with_prose.warnings if w.code == "sample_attribute_ambiguous"]
+    # The value this case is about is unchanged; what the second repair added is the note. The
+    # declaration outranking the reading IS a decision, so it is recorded like every other one.
+    ambiguous = [w for w in with_prose.warnings if w.code == "sample_attribute_ambiguous"]
+    assert len(ambiguous) == 1
+    assert "Citrobacter rodentium" in ambiguous[0].message
 
 
 def test_a_papers_shorter_reading_is_a_second_source_and_still_says_so() -> None:
-    """A paper is not the archive reading itself, so its containment is not one source read twice.
+    """A paper is a second author, so it loses on basis rather than on being read out of the archive.
 
-    The record still wins on precedence, exactly as before — but the weaker source that disagreed
-    stays on the record as a note, which is what makes a resolved disagreement auditable at all.
+    Nothing about the typed slot enters here: the record wins because ``asserted`` outranks
+    ``inferred``, and the weaker source that disagreed stays on the record as a note, which is what
+    makes a resolved disagreement auditable at all.
     """
     from seqforge.evals.case import load_case
 

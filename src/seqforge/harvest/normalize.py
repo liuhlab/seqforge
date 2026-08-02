@@ -18,6 +18,7 @@ import math
 import re
 import unicodedata
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -97,6 +98,25 @@ class PageSpan:
 
 
 @dataclass(frozen=True)
+class DeclaredSpan:
+    """Where a record re-rendered one of its OWN typed columns into its own free text.
+
+    A half-open ``[start, end)`` range into the canonical text, plus the proof that it is one: the
+    attribute the submitter typed, and the value they typed into it. The proof is the whole point —
+    this is not a guess about which part of a title looks like metadata, it is a byte-equal match
+    against a column of the same record, so a reader can check it against the record and a mark can
+    never be argued with.
+    """
+
+    start: int
+    end: int
+    #: The record's own name for the column, raw tag where it has one.
+    attribute: str
+    #: What the record types there. Kept whole, because a rejection is only readable with it.
+    value: str
+
+
+@dataclass(frozen=True)
 class NormalizedDoc:
     """One document reduced to the canonical span space, with both identities recorded.
 
@@ -126,6 +146,9 @@ class NormalizedDoc:
     n_chars: int = 0
     #: Per-page ranges into ``text`` — non-empty only for a PDF, so a span can be tagged with its page.
     pages: tuple[PageSpan, ...] = ()
+    #: Ranges of ``text`` that are this record repeating one of its own typed columns
+    #: (:func:`declared_spans`). Empty for every document a human handed us, which have no columns.
+    declared: tuple[DeclaredSpan, ...] = ()
     #: Which extractor produced ``text``: a :data:`PdfBackend` for a PDF, ``"text"`` otherwise.
     extractor: str = "text"
 
@@ -508,6 +531,79 @@ def render_record(record: ArchiveRecord) -> str:
     return "\n\n".join(lines)
 
 
+def _is_token_char(ch: str) -> bool:
+    return ch.isalnum() or ch == "_"
+
+
+def _on_token_boundary(text: str, start: int, end: int) -> bool:
+    """Does ``text[start:end]`` stand as its own run of tokens rather than sit inside a longer one?
+
+    The ``CD4``-inside-``CD45`` caution, one layer earlier than the resolver's: a typed value that
+    happens to be spelled inside a longer word is a coincidence of characters, and marking it would
+    claim the record re-rendered a column where it did nothing of the kind. Only the two edges are
+    checked, and only where both sides of an edge are token characters — a value that begins or ends
+    in punctuation (``3'``) needs no boundary there and must not be denied one.
+    """
+    if start > 0 and _is_token_char(text[start - 1]) and _is_token_char(text[start]):
+        return False
+    return not (end < len(text) and _is_token_char(text[end - 1]) and _is_token_char(text[end]))
+
+
+def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[DeclaredSpan, ...]:
+    """Every span of ``text`` byte-equal to a value one of ``records`` typed into a column of its own.
+
+    A record carries a fact twice: once as a structured column code already reads, and once inside
+    the prose it renders for a human. SRA's experiment title is the shape that measured this — an
+    experiment types ``library_strategy = "RNA-Seq"`` and then ends its title with the same word, so a
+    model asked for the chemistry answers with it, quoting verbatim. The quote greps back, entailment
+    is vacuous because the value sits inside its own quote, and a transcription of a column arrives
+    looking exactly like a reading of prose (#184).
+
+    Marking it is the only way to tell those apart, and the mark has to be **provable**: a span is
+    marked when it is byte-equal to a value on the record that produced this text, whole tokens only.
+    Nothing here parses the prose. There is no delimiter grammar, no accession format, no notion of
+    which archive rendered the string — #188's "split the title on ``;``" is exactly what this must
+    not be, because seqforge compiles in-house datasets that never had an accession and other
+    archives lay their records out differently. Where there are no records there are no columns, and
+    this is a no-op that returns ``()``.
+
+    ``records`` is plural because a document may be the concatenation of several records' renderings
+    (:func:`~seqforge.harvest.plan._collapsed_run_document` folds one sample's runs into one). They
+    are levels of one deposit, so a span byte-equal to any member's column is still that submitter
+    repeating themselves; offsets are computed against the joined text, which is the only string a
+    quote is ever checked against.
+    """
+    found: list[DeclaredSpan] = []
+    for record in records:
+        for attr in record.attributes:
+            # Fold the needle the same way the haystack was folded, or a value the archive stored
+            # with a non-breaking space could never match its own rendering.
+            needle = normalize_text(attr.value)
+            if not needle:
+                continue
+            start = text.find(needle)
+            while start >= 0:
+                end = start + len(needle)
+                if _on_token_boundary(text, start, end):
+                    found.append(
+                        DeclaredSpan(
+                            start=start,
+                            end=end,
+                            attribute=attr.raw_name or attr.name,
+                            value=attr.value,
+                        )
+                    )
+                start = text.find(needle, start + 1)
+    # One span, one mark. Two runs of a sample type the same `library_strategy`, and each of them
+    # finds it in both of their renderings, so the same range would otherwise be marked once per
+    # (record x occurrence) — four copies of two spans, and any count over them a fiction. Which
+    # column proves a span is a detail; that it is proven at all is the fact.
+    unique = {
+        (d.start, d.end): d for d in sorted(found, key=lambda d: (d.start, d.end, d.attribute))
+    }
+    return tuple(unique.values())
+
+
 def normalize_record(record: ArchiveRecord) -> NormalizedDoc:
     """An archive record -> its own document, scoped to itself.
 
@@ -515,6 +611,9 @@ def normalize_record(record: ArchiveRecord) -> NormalizedDoc:
     sample". The document holds one record's prose, so whatever the model finds in it is about that
     record, because that is the only thing in it. ``subject`` is set from the record we rendered —
     code knows it because code chose it, exactly as ``instruct.py`` decides document role.
+
+    It is also where the record's own columns are marked in its own text (:func:`declared_spans`), so
+    that a quote which merely repeats one can be told from a reading of the prose around it.
     """
     text = normalize_text(render_record(record))
     digest = hashlib.sha256(text.encode()).hexdigest()
@@ -529,6 +628,7 @@ def normalize_record(record: ArchiveRecord) -> NormalizedDoc:
         scope=record.level,
         subject=record.accession,
         n_chars=len(text),
+        declared=declared_spans(text, [record]),
     )
 
 

@@ -25,6 +25,7 @@ from seqforge.harvest import (
     verify_drafts,
 )
 from seqforge.models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
+from seqforge.models.records import ArchiveRecord, FreeText, RecordAttribute
 
 EXTRACTOR = ExtractorProvenance(model_id="test-model", prompt_version="v1")
 
@@ -719,3 +720,147 @@ def test_the_kb_node_check_is_only_asked_of_the_chemistry_field(tmp_path: Path) 
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
     assert report.n_accepted == 1, report.rejected
+
+
+# ---------- mark-with-proof: a record re-rendering its own typed column is not a second source ----
+#
+# An archive record carries a fact twice — once as a typed column, and once inside the free text it
+# renders for a human. SRA's experiment title is the shape that measured it: `library_strategy` is
+# typed as `RNA-Seq`, and the same three characters end the title the model is shown. A model asked
+# for the chemistry answers with them, quoting verbatim; the quote greps back and entailment is
+# vacuous, so both tripwires pass on a claim that is a transcription of a column code already read.
+#
+# So the span is marked where it can be PROVED — byte-equal to a value typed on that same record —
+# and a draft whose quote lies wholly inside a marked span is refused. It is the same principle as
+# `resolve/records.py`'s declared-beats-read, one layer earlier: one deposit is one source, at every
+# layer (ADR-0021). Archive-neutral by construction: no delimiter grammar, no accession format, and
+# nothing at all to do where there are no records.
+
+
+def _experiment_record(
+    *, title: str = "GSM1: MC38 tumor 3 weeks; Mus musculus; RNA-Seq", strategy: str = "RNA-Seq"
+) -> ArchiveRecord:
+    """One SRA experiment record: a typed column, and the title that renders it back out."""
+    return ArchiveRecord(
+        level="experiment",
+        accession="SRX1",
+        parent="SAMN1",
+        attributes=[RecordAttribute(name="library_strategy", value=strategy)],
+        free_text=[FreeText(label="experiment_title", text=title)],
+    )
+
+
+def test_a_span_that_re_renders_the_records_own_typed_column_is_marked() -> None:
+    """The mark carries its own proof: which attribute, and the value that matched."""
+    from seqforge.harvest import normalize_record
+
+    doc = normalize_record(_experiment_record())
+    assert [(doc.text[d.start : d.end], d.attribute, d.value) for d in doc.declared] == [
+        ("RNA-Seq", "library_strategy", "RNA-Seq")
+    ]
+
+
+def test_a_typed_value_appearing_only_inside_a_longer_token_is_not_marked() -> None:
+    """Whole words, never characters — the `CD4` inside `CD45` caution, one layer earlier."""
+    from seqforge.harvest import normalize_record
+
+    doc = normalize_record(
+        _experiment_record(title="GSM1: CD45 positive cells; Mus musculus", strategy="CD4")
+    )
+    assert doc.declared == ()
+
+
+def test_verify_rejects_a_draft_quoting_the_records_own_typed_column() -> None:
+    """The measured shape: `library.chemistry = "RNA-Seq"`, quoted out of the title that renders it.
+
+    Both existing tripwires pass on this draft — the quote is real and the value sits inside it — and
+    it is refused anyway, because the span is the record repeating a column, not prose about it.
+    """
+    from seqforge.harvest import normalize_record
+
+    doc = normalize_record(_experiment_record())
+    draft = AssertionDraft(
+        field="library.chemistry",
+        value="RNA-Seq",
+        span=SourceSpan(doc_sha256=doc.doc_sha256, quote="RNA-Seq"),
+        llm_confidence=0.95,
+    )
+    report = verify_drafts([draft], [doc], extractor=EXTRACTOR)
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "quote_is_a_typed_column"
+    assert "library_strategy" in str(report.rejected[0]["detail"])
+
+    # ...and it is the MARK talking, not the two checks that already existed.
+    assert find_span(doc.text, draft.span.quote) is not None
+    assert entails(draft.span.quote, draft.field, draft.value)
+
+
+def test_a_quote_reaching_past_the_typed_column_is_still_prose() -> None:
+    """ "Wholly inside" is the whole rule: a quote that says more than the column did is a reading.
+
+    Both drafts here would die if the mark rejected anything merely *touching* it — one quotes a
+    different part of the same title, the other quotes the title entire.
+    """
+    from seqforge.harvest import normalize_record
+
+    doc = normalize_record(_experiment_record())
+    part = AssertionDraft(
+        field="experiment.samples.treatment",
+        value="MC38 tumor 3 weeks",
+        span=SourceSpan(doc_sha256=doc.doc_sha256, quote="MC38 tumor 3 weeks"),
+        llm_confidence=0.9,
+    )
+    whole = AssertionDraft(
+        field="experiment.samples.treatment",
+        value="MC38 tumor 3 weeks",
+        span=SourceSpan(doc_sha256=doc.doc_sha256, quote=doc.text.splitlines()[-1]),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([part, whole], [doc], extractor=EXTRACTOR)
+    assert report.n_accepted == 2, report.rejected
+
+
+def test_a_document_that_came_from_no_record_carries_no_marks(tmp_path: Path) -> None:
+    """The no-op that keeps this archive-neutral: a paper someone handed us has no typed columns.
+
+    Most sequencing data never had an accession, so a rule that needed one would be a rule most
+    datasets could not obey. There is nothing to mark here and nothing is marked.
+    """
+    nd = _doc(tmp_path, "We prepared libraries with the Chromium Single Cell 3' v3 kit. RNA-Seq.")
+    assert nd.declared == ()
+    draft = AssertionDraft(
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Chromium Single Cell 3' v3"),
+        llm_confidence=0.9,
+    )
+    assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
+
+
+def test_a_collapsed_run_document_marks_the_columns_its_members_typed() -> None:
+    """The runs of one sample become one document, and the marks have to survive the concatenation.
+
+    Offsets are computed against the joined canonical text, so a mark found in the second run's
+    rendering must point into the joined string rather than into that run's own.
+    """
+    from seqforge.harvest import plan_extraction
+    from seqforge.models.records import ArchiveRecordSet
+
+    runs = [
+        ArchiveRecord(
+            level="run",
+            accession=f"SRR{i}",
+            parent="SAMN1",
+            attributes=[RecordAttribute(name="library_strategy", value="RNA-Seq")],
+            free_text=[FreeText(label="run_alias", text=f"MC38 tumor 3 weeks rep{i}; RNA-Seq")],
+        )
+        for i in (1, 2)
+    ]
+    records = ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA1",
+        records=[ArchiveRecord(level="sample", accession="SAMN1"), *runs],
+    )
+    doc = next(d for d in plan_extraction(records=records).documents if d.scope == "run")
+    assert [doc.text[d.start : d.end] for d in doc.declared] == ["RNA-Seq", "RNA-Seq"]
+    assert len({d.start for d in doc.declared}) == 2, "each occurrence has its own offset"

@@ -147,6 +147,16 @@ each other only by precedence. Almost exclusively a recipe basis: it is what the
 carry (`docs/adr/0004`).
 _Avoid_: manual, override, approved, human-in-the-loop
 
+**Declared**:
+Not a fifth **Basis** — a property of one position *within* a source: the submitter typed this value
+into a slot **for this attribute**, rather than a model having read it out of that source's prose.
+Inside one source it wins, whatever the reading says, and the reading is named in a **Warning**
+(`docs/adr/0021`). One layer earlier the same fact marks a free-text span byte-equal to a typed
+column, and a quote wholly inside one is refused rather than read as prose.
+_Avoid_: as a synonym for **Asserted** — a record's typed slot and a model's reading of that record's
+title are both asserted, which is precisely the pair this term exists to separate; also stated,
+declared-by-the-archive, structured (that is the half of a **Record**, not this)
+
 **Rung**:
 The escalation-ladder step `0..7` that settled one field — 0 metadata, 2 bytes and geometry, 3 an
 onlist check, 7 ask a human. Recorded per field, because which rung paid for an answer is provenance
