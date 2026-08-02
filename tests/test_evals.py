@@ -128,6 +128,21 @@ def _grade(expected: dict[str, object], result: ResolveResult, exit_code: int) -
 # --------------------------------------------------------------------------------------------
 
 
+def _question(
+    field: str = "library.chemistry",
+    options: list[str] | None = None,
+) -> Question:
+    """An exit-4 the resolver raised as a QUESTION rather than a conflict: no positions, an option set."""
+    return Question(
+        id="q-chemistry",
+        field=field,
+        prompt="Which chemistry applies?",
+        options=options or ["10x-3p-gex-v2", "10x-5p-gex-v2"],
+        decidable_by=["alignment", "metadata"],
+        rung=7,
+    )
+
+
 def _collapsed_conflict() -> Conflict:
     """A "conflict" whose two positions carry the SAME value — i.e. not a conflict at all."""
     return _conflict().model_copy(
@@ -240,6 +255,46 @@ CONFUSION_MATRIX = [
         {"outcome": "ask", "conflict": {"field": "library.chemistry"}},
         _result(), 4, Grade.WRONG_REASON, "no open conflict", False,
         id="exit-4-with-no-conflict-or-question-is-caught",
+    ),
+    # -- questions: the OPTION SET is what `positions` is for a conflict --
+    # A question has no positions to disagree — it has the set of answers a human is being offered.
+    # Naming the field alone would pass on any chemistry question at all, which is exactly the pin a
+    # real case needs: "it asks, and it asks between THESE two".
+    pytest.param(
+        {
+            "outcome": "ask",
+            "conflict": {
+                "field": "library.chemistry",
+                "options": ["10x-3p-gex-v2", "10x-5p-gex-v2"],
+            },
+        },
+        _result(questions=[_question()]), 4, Grade.CORRECT, None, False,
+        id="an-expected-question-matches-on-field-and-option-set",
+    ),
+    pytest.param(
+        {
+            "outcome": "ask",
+            "conflict": {
+                "field": "library.chemistry",
+                "options": ["10x-3p-gex-v2", "10x-5p-gex-v2"],
+            },
+        },
+        _result(questions=[_question(options=["10x-3p-gex-v3", "10x-gemx-3p-v4"])]),
+        4, Grade.WRONG_REASON, "10x-5p-gex-v2", False,
+        id="the-right-field-with-the-wrong-pair-is-wrong-reason",
+    ),
+    # An option set asserted where the exit-4 was a Conflict has nothing to match, and saying so is
+    # the point: the two shapes are not interchangeable.
+    pytest.param(
+        {
+            "outcome": "ask",
+            "conflict": {
+                "field": "library.read_layout.R1.length",
+                "options": ["26", "28"],
+            },
+        },
+        _result(conflicts=[_conflict()]), 4, Grade.WRONG_REASON, "no question", False,
+        id="an-option-set-against-a-conflict-is-caught-rather-than-ignored",
     ),
     # It stopped, so nothing was committed — but the human gets the right question, wrong state.
     pytest.param(
@@ -436,6 +491,38 @@ def test_the_corpus_is_well_formed() -> None:
 
     stray = [p for p in base.rglob("*") if p.suffix in (".gz", ".fastq", ".fq")]
     assert not stray, f"eval cases must ship recipes, not bytes: {stray}"
+
+
+def test_a_case_that_expects_a_question_pins_which_question() -> None:
+    """`outcome: ask` obliges a `conflict:` block that says WHAT is being asked, in both tiers.
+
+    Without it the expectation is only "it stopped", which the exit code already said. A case could
+    then keep passing while the resolver stopped for an entirely unrelated reason — the failure mode
+    the blocker-code check has always forbidden on the refusal side, and the same argument applies
+    here.
+
+    `field` alone is not enough either, and the two shapes of exit 4 pin their reason differently. A
+    Conflict is two positions that disagree, so `positions` is the assertion. A Question is a tie the
+    bytes cannot break and has no positions at all, so its option set is. Requiring one or the other
+    is what stops a chemistry question about an unrelated pair from satisfying a case.
+    """
+    roots = [default_cases_dir(), default_cases_dir().parent / "benchmark"]
+    checked = 0
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for case in discover_cases(root):
+            if case.expected.outcome != "ask":
+                continue
+            checked += 1
+            want = case.expected.conflict
+            assert want is not None, f"{case.id}: expects a question but names none"
+            assert want.field, f"{case.id}: names no field for the question it expects"
+            assert want.positions or want.options, (
+                f"{case.id}: pins only the field — a Conflict owes `positions`, a Question owes "
+                f"`options`, or the expectation asserts nothing beyond 'it stopped'"
+            )
+    assert checked, "no case expects a question — this test is asserting nothing"
 
 
 def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:

@@ -205,6 +205,20 @@ def _check_conflict(want: Any, result: ResolveResult) -> tuple[bool, str]:
         got = {p.basis: p.value for c in matching for p in c.positions}
         if got != want.positions:
             return False, f"expected positions {want.positions}, got {got}"
+    if want.options:
+        # The question's own answer set, which is what a tie has instead of two disagreeing
+        # positions. Checked against questions ONLY: a Conflict carries no options, so an expectation
+        # naming a set where the resolver raised a conflict is asserting the wrong shape of exit 4
+        # and must say so rather than pass on the field name it happens to share.
+        asked = [q for q in result.questions if not want.field or q.field == want.field]
+        if not asked:
+            return False, f"expected a question offering {sorted(want.options)}, got no question"
+        got_options = sorted({o for q in asked for o in q.options})
+        if got_options != sorted(want.options):
+            return (
+                False,
+                f"expected the question to offer {sorted(want.options)}, got {got_options}",
+            )
     return True, ""
 
 

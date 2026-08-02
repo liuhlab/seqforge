@@ -258,10 +258,18 @@ An assertion must be checked against **what the package carries**, not the publi
 extracted text and it is the only thing a run can read. A forbidden field must be absent from **every**
 document including the records, since the grade is computed over the whole accepted set.
 
-**Not done, deliberately.** The other five prose-carrying cases have no `assertions:` yet; two of them
-(`GSE126954`, `GSE234962`) belong to #160, and the rest are the obvious next tranche. Nothing here
-grades `library.chemistry` from prose on this tier — that stays `cases/prose`'s job, because on a real
-dataset the byte resolver already decides it and a prose claim only enters as a hypothesis.
+`GSE234962` is the third, added 2026-08-01 by #160, and its `treatment` bait is the one that is
+*typed*: the paper says "embryos obtained by hypochlorite treatment of adult hermaphrodites" — bleach
+synchronisation — while every BioSample beside it carries `synchronization protocol: L1 arrest` in a
+field of its own, so both halves of the trap are real text about real husbandry and neither is an
+experimental variable.
+
+**Not done, deliberately.** The remaining four prose-carrying cases have no `assertions:` yet, and
+they are the obvious next tranche. `GSE126954` stays without them on purpose: it is settled at
+`outcome: ask` (below), so a `--llm` pass over it costs 22 calls to grade claims that ride alongside a
+question rather than deciding it. Nothing here grades `library.chemistry` from prose on this tier —
+that stays `cases/prose`'s job, because on a real dataset the byte resolver already decides it and a
+prose claim only enters as a hypothesis.
 
 **What the first graded `--llm` pass actually measured (2026-08-01, `deepseek-v4-flash`, whole tier at
 the default fan-out).** Two things, and neither is the arithmetic:
@@ -292,6 +300,78 @@ the default fan-out).** Two things, and neither is the arithmetic:
   holds in one direction only and over whole words, so a reading that *extends* the typed value
   (`control` read as `control RNAi`) is still a disagreement and still leaves null. The first bullet
   above is untouched and still live.
+
+### The two unsettled cases, settled 2026-08-01 (#160) — and only one of them was a defect
+
+Both were `expected: decide`, both stopped, and they stopped for opposite reasons. Writing them down
+together is the point: the corpus's job is to tell an honest question from a manufactured one, and
+these are one of each.
+
+**`GSE126954` asks, and the question is a human's. Its expectation is now `ask`.** The suspected cause
+was this series' over-sequenced `SRX5411291` — the read `resolve/` names in five places — and it was
+wrong. The resolver states the pair it stops on: the reads are byte-consistent with `10x-3p-gex-v2`
+*and* `10x-5p-gex-v2`. That is the KB's one declared read-undecidable pair and its own entry says so
+(`distinguishable_by: [metadata, alignment]`): same 26 bp R1 of 16 CB + 10 UMI, same open-ended cDNA
+mate, and the **same** `737K-august-2016` file, so every structural rung ties by construction and rung
+3 consults one whitelist for both. The single differing backend param is `soloStrand`, which no probe
+observes and which a published both-ways run priced at 0.5–0.6 gene-expression correlation against
+>0.98. So `decide` had been correct only while the 5′ leaf had no entry — the same sentence
+`evals/cases/spec/10x-v2-bytes-only` already carries for synthetic 26 bp reads, and this is its
+real-data instance. **Neither declared mechanism is reachable here**: alignment is rung 6 and unbuilt,
+and rung 0 has nothing to read — every experiment record is a GSM title plus `library_strategy`, and
+the carried paper writes "10X Genomics v2 chemistry" once and never names the end. A recipe
+`hypothesis:` is therefore not available either; it stands in for a chemistry a record states
+verbatim. All seven field claims, chemistry included, still grade — `fields` is checked on `ask`.
+
+**`GSE234962` decides byte-only and is unstable under `--llm`, and there was no flip to explain.** It
+graded `over_ask` when #160 was filed and `correct` afterwards, and the suspicion was that #178's
+run-alias collapse had moved it. It did not, and could not: this series has four samples with one run
+each, so every group is a group of one and the collapsed document *is* that run's own —
+`seqforge eval plan --case GSE234962` reports `n_records_collapsed: 0`, and the twelve record
+documents are byte-identical in identical order before and after. #183 is likewise ruled out by
+construction rather than by measurement: it changed which sample-attribute values the *metadata*
+resolver keeps, and a case's outcome class is read from the **byte** resolver's exit code, which that
+resolver never reaches.
+
+What actually stops it is one claim, and it is reproducible with no model at all. `library.chemistry`
+is asked of every experiment document, and this series' experiment documents are a GSM title —
+"GSM7486859: lin-39p::RFP wt MNs rep 1; Caenorhabditis elegans; RNA-Seq" — plus two aliases. A draft
+of `library.chemistry = "RNA-Seq"` off that span-verifies and entails **by construction**, because the
+value *is* the quote; entailment is vacuous whenever `value ⊆ quote`, which is exactly the limit
+`harvest/verify.py` documents about itself. `"RNA-Seq"` is not a chemistry — it is SRA's
+`library_strategy`, true of every 10x deposit ever made — but an asserted chemistry is matched against
+KB ids and aliases by substring, and `"rna-seq"` sits inside `bulk-rnaseq-pe`'s `"bulk RNA-seq"`. So
+it arrives as a **bulk** assertion against barcoded observed bytes and surfaces
+`conflict-bulk-asserted-single-cell-observed`, exit 4. Handing that string to the byte resolver as a
+hypothesis on this case's own pinned bytes reproduces it exactly, with no LLM in the loop;
+`"10x Chromium v3 chemistry"` and `"single cell 3' RNA sequencing"` both give exit 0.
+
+Two smaller facts make it stick rather than being overridden. The accepted claims are a **last-wins**
+map over the documents in plan order, and the four experiment documents come after both carried texts
+— so one line of GSM title overwrites the supplementary table's good `10x-3p-gex-v3`. And the paper's
+own correct claim never reaches that map at all: its quote is "single cell 30 RNA sequencing utilizing
+the 10X Chromium system, v3 chemistry" — the PDF's `3′` extracted as `30` — and it is rejected
+`not_entailed`, which is the tripwire working.
+
+**So the expectation stays at `decide`, and that is the argued half.** Unlike GSE126954's, this
+question is one code should settle: the bytes are decisive, and what stops the run is a
+`library_strategy` re-read out of the same record that typed it — the shape #183 fixed one field over,
+for sample attributes, and did not generalise to the chemistry hypothesis. Moving `outcome` to `ask`
+would enshrine a manufactured conflict as the specification. It is filed as **#184**, with the three
+candidate fixes and the one already rejected.
+
+**How often, measured — five single-trial `--llm` runs of this one case, `deepseek-v4-pro`,
+2026-08-01.** Three completed and graded: **one `over_ask` and two `correct`**, which is the
+instability as a number rather than as a suspicion, and it is why one run reporting green settles
+nothing here. The `RNA-Seq` claim appeared in **2 of the 5** passes over the four experiment
+documents, from a *different* experiment record each time — so it is a property of the document
+shape, which all four share, and not of one record. The other two runs aborted on DeepSeek's
+invalid-JSON failure (#4), both on `mmc2.txt`, the 1 KB supplementary table rather than the whole
+paper, which is worth noting against the first bullet above: the failures cluster on documents that
+provoke a long response, not simply on long documents. Every one of the five refused the paper's own
+`10x-3p-gex-v3` draft as `not_entailed`. The whole exercise cost **421,692 input, 112,782 output and
+416,896 cache-read tokens** across six runs, which is the price of learning that a benchmark grade
+was a coin flip.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 

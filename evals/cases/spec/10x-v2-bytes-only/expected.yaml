@@ -20,7 +20,14 @@ description: >-
   `10x-5p-gex-v2-metadata-decided`, the case that proves `distinguishable_by: [metadata, alignment]`
   can actually fire.
 conflict:
+  # A Question, not a Conflict — nothing disagrees, the bytes tie — so the option set is what
+  # `positions` would be for the other shape. Naming only the field would be satisfied by any
+  # chemistry question at all, including one about a pair these reads are nowhere near, and "which
+  # two chemistries are indistinguishable here" is the entire content of this case.
   field: library.chemistry
+  options:
+  - 10x-3p-gex-v2
+  - 10x-5p-gex-v2
 fields:
   library.chemistry: 10x-3p-gex-v2
   library.roles.R1: R1
