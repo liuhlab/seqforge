@@ -493,6 +493,38 @@ def test_the_corpus_is_well_formed() -> None:
     assert not stray, f"eval cases must ship recipes, not bytes: {stray}"
 
 
+def test_a_case_that_expects_a_question_pins_which_question() -> None:
+    """`outcome: ask` obliges a `conflict:` block that says WHAT is being asked, in both tiers.
+
+    Without it the expectation is only "it stopped", which the exit code already said. A case could
+    then keep passing while the resolver stopped for an entirely unrelated reason — the failure mode
+    the blocker-code check has always forbidden on the refusal side, and the same argument applies
+    here.
+
+    `field` alone is not enough either, and the two shapes of exit 4 pin their reason differently. A
+    Conflict is two positions that disagree, so `positions` is the assertion. A Question is a tie the
+    bytes cannot break and has no positions at all, so its option set is. Requiring one or the other
+    is what stops a chemistry question about an unrelated pair from satisfying a case.
+    """
+    roots = [default_cases_dir(), default_cases_dir().parent / "benchmark"]
+    checked = 0
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for case in discover_cases(root):
+            if case.expected.outcome != "ask":
+                continue
+            checked += 1
+            want = case.expected.conflict
+            assert want is not None, f"{case.id}: expects a question but names none"
+            assert want.field, f"{case.id}: names no field for the question it expects"
+            assert want.positions or want.options, (
+                f"{case.id}: pins only the field — a Conflict owes `positions`, a Question owes "
+                f"`options`, or the expectation asserts nothing beyond 'it stopped'"
+            )
+    assert checked, "no case expects a question — this test is asserting nothing"
+
+
 def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
     """One dataset per KB spec: every runnable leaf resolves in a hermetic (no-LLM, no-network) case.
 
