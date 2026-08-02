@@ -56,3 +56,26 @@ fields:
   - young adult
   - young adult
   experiment.samples.SAMN35739865.strain: KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
+# Harvest ground truth, added 2026-08-01, and checked against the text the PACKAGE carries — the
+# extracted `info/text` beside the reads, not the published article — because that file is the only
+# thing a run can read. Graded only under --llm.
+assertions:
+  # Written verbatim 15 times in the carried text, opening with "we generate a comprehensive
+  # molecular atlas of adult Caenorhabditis elegans MNs". `experiment.organism` is asked of a
+  # dataset-scoped document and of nothing else, so the carried paper is its only possible source and
+  # no archive record can collide with it.
+  - field: experiment.organism
+    value: Caenorhabditis elegans
+forbidden_fields:
+  # The bait is real and it is TYPED, which is what makes it this case's own. The carried text says
+  # "embryos obtained by hypochlorite treatment of adult hermaphrodites" — bleach synchronisation,
+  # husbandry rather than an experimental variable — and every BioSample beside it carries
+  # "synchronization protocol: L1 arrest" in a field of its own. `treatment` is asked of all four
+  # experiment documents, whose whole text is a GSM title, so a quote landing here would be a real
+  # sentence attached to the wrong sample and no byte could contradict it. This study has no
+  # treatment: the variable is the reporter strain.
+  - experiment.samples.treatment
+  # "disease" occurs four times in the carried text and never about a worm — "an ancient cell type
+  # targeted by multiple adult-onset diseases", ALS, and hindbrain/spinal-cord susceptibility. It is
+  # the paper's motivation, not a property of the animals that were sequenced.
+  - experiment.samples.disease

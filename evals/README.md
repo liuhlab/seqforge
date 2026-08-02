@@ -159,6 +159,7 @@ blockers: [TRUNCATED_GZIP]              # outcome: refuse
 conflict:                               # outcome: ask
   field: library.read_layout.R1.length
   positions: {asserted: "26", observed: "28"}   # the load-bearing part, not the field name
+  options: [10x-3p-gex-v2, 10x-5p-gex-v2]       # what `positions` is when the exit 4 is a QUESTION
 assertions:                             # harvest ground truth (only checked under --llm)
   - {field: experiment.organism, value: Caenorhabditis elegans}
 forbidden_fields:                       # fields the prose does NOT state — silence is correct
@@ -167,6 +168,13 @@ forbidden_fields:                       # fields the prose does NOT state — si
 
 `forbidden_fields` is not an afterthought. Rewarding recall alone trains the prompt to guess; these
 are the cases where the right answer is to say nothing.
+
+**An `outcome: ask` arrives in two shapes, and the `conflict` block pins whichever one it is.** A
+Conflict is two positions that disagree, so `positions` is the assertion. A Question is a tie the
+bytes cannot break, so it has no positions at all — what it has is the answer set a human is being
+offered, and `options` is the assertion. Give one or the other; naming only `field` would pass on any
+question about that field, which leaves the "and why" unasserted. Asserting `options` where the
+resolver raised a *conflict* fails rather than passing on the shared field name.
 
 ## Cases backed by real data
 

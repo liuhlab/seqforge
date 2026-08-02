@@ -23,14 +23,42 @@
 # aliases into one document): 983 -> 22 calls, 3,141,899 -> 86,220 input tokens, 300.6s -> 131.7s.
 # The 500,000-token ceiling this run carried was never approached, which is what a ceiling is for.
 #
-# THIS CASE IS RED TODAY, on the OUTCOME and not on any field. Graded 2026-07-31 it returns
-# `over_ask`: all seven field claims pass, but resolve ASKS where this file says `decide`. That
-# predates the review — nothing here touched `outcome` or the chemistry — and the likely cause is
-# this series' own SRX5411291, the over-sequenced R1 that `resolve/` names in four places as the
-# reason the v2 length gate is floor-anchored. The expectation is left at `decide` deliberately:
-# grading it against what the code does today would enshrine the ask as the specification. It goes
-# green when the question is settled or the expectation is argued down, and not before.
-outcome: decide
+# SETTLED 2026-08-01 (#160): the outcome moves from `decide` to `ask`, and the question is one a
+# human must answer. Nothing about the chemistry claim moved with it.
+#
+# It graded `over_ask` from 2026-07-31, and the suspected cause — this series' own over-sequenced
+# SRX5411291 — was wrong. The resolver names the pair it stops on: "Reads are byte-consistent with
+# multiple processing-divergent chemistries (10x-3p-gex-v2, 10x-5p-gex-v2)". The 5' v1/v2 entry
+# landed in the KB that same day, and it is byte-identical to 3' v2 by construction — 26 bp R1
+# (16 CB + 10 UMI), open-ended cDNA mate, and the SAME 737K-august-2016 whitelist, so every
+# structural rung ties and rung 3 consults one file for both. The KB says so itself
+# (`distinguishable_by: [metadata, alignment]`); the one param that differs is soloStrand, which no
+# probe observes, and a published both-ways run measured 0.5-0.6 gene-expression correlation under
+# the wrong orientation against >0.98 under the right one. So the ask is the honest answer and
+# `decide` had been correct only while the alternative had no entry — the same sentence
+# `evals/cases/spec/10x-v2-bytes-only` already carries for synthetic 26 bp reads. This case is the
+# real-data instance of it.
+#
+# NEITHER MECHANISM THE LADDER OFFERS IS AVAILABLE HERE, which is why the answer is a human's.
+# Alignment is rung 6 and unbuilt. Metadata is rung 0 and this dataset has none to give: the
+# archive records never write 3' or 5' — every experiment record is a GSM title plus
+# `library_strategy: RNA-Seq` — and the carried paper says "10X Genomics v2 chemistry" once and
+# never names the end. A recipe `hypothesis:` is therefore not available either; it stands in for a
+# chemistry the record states verbatim, and no record here states this one. What the corpus knows is
+# what is pinned below: the library lands on 10x-3p-gex-v2, and it asks between exactly two leaves.
+#
+# The chemistry field claim is UNCHANGED and is still graded — `fields` is checked on `ask` as well,
+# because the library takes a value while the question rides alongside — so the paper's own
+# "10X Genomics v2 chemistry" remains the assertion this case has always made.
+outcome: ask
+conflict:
+  # A Question, not a Conflict: nothing disagrees, the bytes tie. `options` is what `positions` is
+  # for that shape, and it is the load-bearing half — the field name alone would be satisfied by any
+  # chemistry question at all, including one about a pair these reads are nowhere near.
+  field: library.chemistry
+  options:
+  - 10x-3p-gex-v2
+  - 10x-5p-gex-v2
 description: >-
   Benchmark: GSE126954 (Packer et al., Science 2019) resolved from its fingerprint package. It pins
   two things at once. First, that resolve still reads 10x-3p-gex-v2 out of the pinned bytes — the

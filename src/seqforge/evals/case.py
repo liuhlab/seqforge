@@ -180,12 +180,18 @@ class Recipe(BaseModel):
 
 
 class ExpectedConflict(BaseModel):
-    """The conflict a case must surface.
+    """The conflict — or the question — a case must surface. Both are exit 4, and both are pinned here.
 
     ``positions`` is the load-bearing assertion, not ``field``: a Conflict is specified by
     the values that disagree (26 bp asserted vs 28 bp observed), because *that* is the decidable pair
     a human is being shown. Asserting only the field name would let both positions collapse to the
     same value and still pass.
+
+    ``options`` is what ``positions`` is for the other shape of exit 4. A question has nothing that
+    disagrees — it has the answers a human is being offered — so a case that stops because the bytes
+    tie between two chemistries can name that pair and nothing else will satisfy it. Naming only the
+    field would pass on *any* chemistry question, which leaves the interesting half of "it asks, and
+    here is why" unasserted.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -194,6 +200,8 @@ class ExpectedConflict(BaseModel):
     field: str | None = None
     #: Expected ``basis -> value`` for each position, e.g. ``{asserted: "26", observed: "28"}``.
     positions: dict[str, str] = Field(default_factory=dict)
+    #: Expected option set of the Question, e.g. ``["10x-3p-gex-v2", "10x-5p-gex-v2"]``.
+    options: list[str] = Field(default_factory=list)
 
 
 class ExpectedAssertion(BaseModel):
