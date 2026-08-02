@@ -1040,6 +1040,25 @@ def test_one_documents_abort_no_longer_takes_the_whole_case_down(tmp_path: Path)
     assert [d["source"] for d in failed] == ["supplementary.txt"]
 
 
+def test_a_negative_verdict_needs_every_document_a_positive_one_needs_one(tmp_path: Path) -> None:
+    """Measured live on `GSE234962`, and the reason the rule is asymmetric.
+
+    Its paper aborted while its supplementary table answered. Both are dataset-scoped, so both were
+    asked `experiment.organism` — and the first cut of this reported the binomial the paper writes
+    fifteen times as a claim the model had failed to make. `missing` means the model read everything
+    and did not say it, so one unread document unsettles it; `matched` needs a single document, so
+    nothing unsettles it.
+    """
+    silent = run_case(
+        _two_document_trap(tmp_path), llm=True, provider=_PoisonedProvider([], "droplet-based")
+    )
+    assert silent.harvest is not None
+    assert silent.harvest.status == "partial", "the second document answered, and honestly said no"
+    assert silent.harvest.unchecked == ["experiment.organism"]
+    assert silent.harvest.missing == []
+    assert silent.grade.grade is Grade.CORRECT, "not `wrong_reason`: nothing was established"
+
+
 def test_an_unchecked_assertion_poisons_no_rate_and_is_reported_instead() -> None:
     """A skip poisons no rate — which is correct, and is exactly why it was invisible.
 

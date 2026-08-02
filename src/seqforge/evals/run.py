@@ -80,11 +80,12 @@ class HarvestGrade:
 
     matched: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
-    #: Expected fields no document that ANSWERED was even asked for, because the documents that
-    #: would have carried them never came back. **Could not check**, as against ``missing``'s checked
-    #: and found nothing — the same distinction the corpus already insists on between a package that
-    #: is ``absent`` and one that is ``unavailable``, and for the same reason: folding them together
-    #: hides a gap behind a word that reads as a finding. Excluded from every rate.
+    #: Expected fields a document that never answered would have been asked. **Could not check**, as
+    #: against ``missing``'s checked and found nothing — the same distinction the corpus already
+    #: insists on between a package that is ``absent`` and one that is ``unavailable``, and for the
+    #: same reason: folding them together hides a gap behind a word that reads as a finding.
+    #: Excluded from every rate. A field that was nonetheless *found* elsewhere is ``matched``: a
+    #: negative verdict needs the whole accepted set, a positive one needs one document.
     unchecked: list[str] = field(default_factory=list)
     #: Forbidden fields that survived verification — a claim the prose does not make. Corpus poison.
     hallucinated: list[str] = field(default_factory=list)
@@ -690,11 +691,13 @@ def _run_harvest(
     by_field = {a.field: a for a in accepted}
     rejected.extend(report.rejected)
 
-    # What could have been asked of a document that really answered. A field only these documents
-    # could carry is a field this run has no verdict about, whatever the model did elsewhere.
-    answerable: set[str] = {
-        f for d in docs if d.doc_sha256 not in unanswered for f in plan.asked(d)
-    }
+    # Fields a document that never answered would have been asked. A NEGATIVE verdict is a claim
+    # about the whole accepted set — "the model read everything and did not say this" — so one hole
+    # in that set unsettles it; a POSITIVE one needs a single document and is unaffected. Keying on
+    # "no answering document was asked" instead was measurably too weak: on `GSE234962` the paper
+    # aborted while the supplementary table answered, both are dataset-scoped, and the organism the
+    # paper writes fifteen times was reported as a claim the model failed to make.
+    blinded: set[str] = {f for d in docs if d.doc_sha256 in unanswered for f in plan.asked(d)}
 
     grade = HarvestGrade(
         n_calls=meter.n_exchanges - called_before,
@@ -709,9 +712,9 @@ def _run_harvest(
         got = by_field.get(want.field)
         if got is not None and str(got.value) == want.value:
             grade.matched.append(want.field)
-        elif unanswered and want.field not in answerable:
-            # Nothing that answered was ever asked this. Reporting it `missing` would charge the
-            # model for a document it never got to read, and would put a silent zero into
+        elif want.field in blinded:
+            # A document that would have been asked this was never answered. Reporting it `missing`
+            # charges the model for prose it never got to read, and puts a silent zero into
             # `field_accuracy` — the shape a skipped case is excluded from every rate to avoid.
             grade.unchecked.append(want.field)
         else:
