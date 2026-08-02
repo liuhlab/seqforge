@@ -188,6 +188,88 @@ def test_the_project_facts_are_structured_only(records: ArchiveRecordSet) -> Non
     assert "abstract" not in out.project.model_dump()
 
 
+# ------------------------------------------------- what a record declares that has no key at all
+#
+# A submitter may type a fact into a structured characteristic under a name nobody controls, and the
+# key space is closed, so that fact can never become an `experiment.samples.*` value. Keeping it out
+# is the decision. Being QUIET about it was not: the same sentence in a free-text protocol field
+# reaches the prose path, so the submitter who used the structured slot ended up less legible to the
+# compiler than the one who buried it in a paragraph. These two tests are the pair — the note fires
+# on the invented tag, and stays silent on the bookkeeping every archive stamps on every sample,
+# which is what keeps it worth reading (#165).
+
+BENCHMARK = Path(__file__).resolve().parents[1] / "evals" / "benchmark"
+
+#: The BD Rhapsody case whose GEO record declares its capture bead in a characteristic. Its
+#: `records.json` is committed, so this needs no network and no FASTQ.
+BD_CASE = BENCHMARK / "GSE282765-colon-crod-wta"
+BD_BEAD_TAG = "bd rhapsody_capture_bead_version"
+
+
+def _bd_case_files(records: ArchiveRecordSet) -> list[FileIdentity]:
+    """The two filenames the run record itself declares. The join is by name, so no bytes are needed."""
+    run = records.at("run")[0]
+    return [_file(name, str(i).ljust(64, "d")) for i, name in enumerate(run.filenames)]
+
+
+def test_an_unharmonized_characteristic_is_surfaced_rather_than_silently_dropped() -> None:
+    """`bd rhapsody_capture_bead_version: enhanced beads` is the whole chemistry of that library.
+
+    It survives transcription — the record keeps it, unharmonized, with the submitter's own tag —
+    and then stops here, because NCBI does not define that name and a key we coined would accept
+    whatever an extraction wanted to put in it. Both halves are asserted below: the value does NOT
+    become a sample attribute, AND the resolver says out loud what it declined to key.
+
+    "It warns" is exactly the claim that rots, which is why the message is read rather than counted:
+    a note that no longer names the tag or the value is a note nobody can act on.
+    """
+    from seqforge.evals.case import load_case
+
+    case = load_case(BD_CASE)
+    assert case.records is not None, "the case commits its archive records, so this runs offline"
+    out = resolve_metadata(files=_bd_case_files(case.records), records=case.records)
+
+    assert not out.blockers, "an attribute with no key is never a refusal"
+    assert len(out.samples) == 1
+    sample = out.samples[0]
+    assert sample.accession == "SAMN52065473"
+    # the vocabulary is NOT widened: the bead has no key, under its own name or any near neighbour
+    assert not [k for k in sample.attributes if "bead" in k or k == BD_BEAD_TAG]
+    # ...and the harmonized siblings on the same record still land, so nothing was thrown out with it
+    assert sample.attributes["tissue"].value == "Colon"
+    assert sample.attributes["strain"].value == "C57BL/6J Cre"
+
+    notes = [w for w in out.warnings if w.code == "sample_attribute_unharmonized"]
+    bead = [w for w in notes if BD_BEAD_TAG in w.message]
+    assert len(bead) == 1, f"the dropped bead is invisible; notes were {[w.message for w in notes]}"
+    assert "enhanced beads" in bead[0].message, "a note that omits the value cannot be acted on"
+    assert sample.sample_id in bead[0].message, "and it must say WHICH sample declared it"
+    assert bead[0].subject.ref == f"{SAMPLE_FIELD_PREFIX}{BD_BEAD_TAG}"
+
+    # The arrangement this case was built with is unchanged: the declared bead is evidence FOR the
+    # pre-registration and never something the run grades itself against. A claim keyed on it would
+    # be the case marking its own homework.
+    assert not [k for k in case.expected.fields if BD_BEAD_TAG in k]
+
+
+def test_the_bookkeeping_every_archive_stamps_on_a_sample_is_not_surfaced(
+    records: ArchiveRecordSet,
+) -> None:
+    """The note has to be rare to be worth reading, and the pilot is the proof that it is.
+
+    `center_name`, `biosample_package` and `taxonomy_id` are unharmonized on every BioSample NCBI
+    serves, and they are facts about the record rather than about the biology — the organism is read
+    by name here and becomes `experiment.organism`, not a sample attribute. A note on each of them
+    would be three lines per sample on every dataset that has a record at all, which is how a warning
+    stops being read.
+    """
+    out = resolve_metadata(files=_pilot_files(), records=records)
+    assert len(out.samples) == 6
+    assert [w for w in out.warnings if w.code == "sample_attribute_unharmonized"] == []
+    # the taxid is not dropped, it is read by name — which is why it owes no note
+    assert out.organism is not None and out.organism.value == 6239
+
+
 # ---------------------------------------------------------------- the join, and its refusal
 
 
