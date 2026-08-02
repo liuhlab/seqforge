@@ -207,6 +207,62 @@ copyright and its figures until the figure pipeline improves — the reads and p
 the dataset hash is preserved. A run falls back to the extracted text, so nothing we may not
 redistribute reaches Hugging Face while the harvest input survives.
 
+### The `--llm` pass grades harvest, decided 2026-08-01 on two measurements (#164)
+
+**What was true until this date:** the benchmark tier's `--llm` pass ran the extraction stage on every
+case and graded nothing it produced. `Case.needs_llm` is false for all eighteen — a fingerprint case
+carries a committed `records.json` and surfaces its package prose at `materialize` time, so it runs
+hermetically with no key — but `use_llm` in `evals/run.py` is `llm and (docs or records is not None)`,
+so under `--llm` every one of them harvested anyway. No `expected.yaml` declared `assertions:`. The
+stage therefore cost real money and was measured only by whether it crashed.
+
+The choice was between making the real datasets carry harvest ground truth and declaring the pass a
+smoke test with `evals/cases/prose` owning the grading. **The first was chosen**, and the two
+measurements it rests on are these — either one moving is a reason to reopen it, which is why they are
+dated rather than asserted.
+
+**Cost, 2026-08-01, `seqforge eval plan --cases evals/benchmark`: 141 documents and ~517 K estimated
+input tokens** for the whole tier, largest case `PRJNA1195922` at 25 documents / ~83 K, nothing within
+4× of the 500 K per-case ceiling. The number the smoke-test argument was written against was **1,100
+calls and 3.70 M input tokens** over thirteen graded cases — 92 % of it `GSE126954` asking the
+nine-attribute sample vocabulary once per *run*. Collapsing each sample's runs into one document and
+narrowing the committed transcripts to what the packages pin removed it, so the argument from cost
+no longer has a cost to argue from. That the number is now *discoverable* is the other half of the
+decision: `eval plan` is the tier-wide sibling of `harvest extract --dry-run`, reaches no model, and
+needs no credential.
+
+**Coverage, from the packages themselves: 7 of 18 carry an `info/text` document at all** —
+`GSE126954`, `GSE234962`, `GSE256266`, `GSE274290`, `PRJNA1027859`, `PRJNA1195922`, `PRJNA658829`.
+The remaining eleven have only their archive records to read, and `GSE282765-colon-crod-wta` was built
+with no `--doc` because its series has no linked publication. So this tier is a *supplement* to
+`cases/prose`, never a replacement: it is where a claim is checked against prose somebody else wrote,
+while the adversarial cases stay synthetic because a trap has to be constructed.
+
+`GSE274290` and `PRJNA658829` carry the first two, each with `forbidden_fields`, and the choice of
+field is the part worth copying:
+
+- **`experiment.organism` is the assertion**, because it is asked of a `dataset`-scoped document and
+  of nothing else (`harvest/fields.py`), so the carried paper is its only possible source and no
+  archive record can collide with it. `verify` applies no normalization to its value, so the graded
+  string is whatever the model wrote — which is checkable only because the prompt fixes the form
+  ("the scientific name as written") and every carried paper writes the binomial verbatim.
+- **`experiment.samples.treatment` is forbidden in both, and it is the point.** `GSE274290`'s paper
+  really does describe RNAi-treated animals, for its downstream western blots rather than for the
+  library that was sequenced; `PRJNA658829` has no treatment at all, but every experiment record is
+  two thousand characters of husbandry and `treatment` is asked of an experiment document. Both are
+  *real quotes attached to the wrong sample* — the failure `span_verified` and `entailment_ok` pass by
+  construction, and the one bytes can never contradict. Rewarding recall alone would train the prompt
+  to make exactly this claim.
+
+An assertion must be checked against **what the package carries**, not the publication: `info/text` is
+extracted text and it is the only thing a run can read. A forbidden field must be absent from **every**
+document including the records, since the grade is computed over the whole accepted set.
+
+**Not done, deliberately.** The other five prose-carrying cases have no `assertions:` yet; two of them
+(`GSE126954`, `GSE234962`) belong to #160, and the rest are the obvious next tranche. Nothing here
+grades `library.chemistry` from prose on this tier — that stays `cases/prose`'s job, because on a real
+dataset the byte resolver already decides it and a prose claim only enters as a hypothesis.
+
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
 **Nothing here is decided, and there is no third tier.**

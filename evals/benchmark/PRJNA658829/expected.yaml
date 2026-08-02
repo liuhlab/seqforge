@@ -44,3 +44,22 @@ fields:
   - L2
   - L2
   experiment.samples.SAMN15970313.strain: QX2314xPTM299_F4
+# Harvest ground truth, added 2026-08-01, and checked against the text the PACKAGE carries
+# (`info/text/Ben-David et al. 2020 - ...txt`) rather than against the published paper — that file is
+# the only thing a run can read. Graded only under --llm.
+assertions:
+  # Written verbatim in the carried text, e.g. "the model nematode Caenorhabditis elegans". Asked of
+  # a dataset-scoped document only, so the paper is the sole possible source and nothing collides.
+  - field: experiment.organism
+    value: Caenorhabditis elegans
+forbidden_fields:
+  # This study has no experimental treatment at all — it is a cross, and the variable is genotype.
+  # The bait is that each experiment record's design_description is two thousand characters of
+  # routine husbandry ("seeded on four 10cm NGM+agarose plates seeded with OP50"), and `treatment`
+  # IS asked of an experiment document. Worm husbandry misfiled as an experimental condition is the
+  # exact extraction defect that replaced our invented `condition` field with NCBI's vocabulary, so
+  # this is the corpus re-testing that fix on real prose instead of a fixture.
+  - experiment.samples.treatment
+  # "disease" occurs ten times in the carried text and never about a worm: it is the human-genetics
+  # framing of eQTL mapping ("underlies variation in disease risk"), plus six reference titles.
+  - experiment.samples.disease

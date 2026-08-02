@@ -2,6 +2,7 @@
 
 ```bash
 seqforge eval list                       # what is in the corpus
+seqforge eval plan --cases evals/benchmark   # what an --llm pass would cost; spends nothing
 seqforge eval run                        # deterministic cases only — no API key, no network
 seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
 seqforge eval run --llm --model deepseek-v4-pro    # spend for recall; the default is -v4-flash
@@ -10,6 +11,14 @@ seqforge eval run --case chemistry-unstated-trap --llm
 seqforge eval run --llm --ceiling 2000000  # raise the per-case token ceiling; 0 removes it
 seqforge eval run --no-llm -C out && seqforge eval report out/seqforge/eval
 ```
+
+**`eval plan` is the dry run for a whole tier.** `harvest extract --dry-run` prices one dataset; the
+decision it informs — *is this `--llm` pass worth its money* — is taken over a corpus, and used to be
+answerable only by making one. It reaches no model and needs no credential, though it does
+materialize each case, because a fingerprint package carries its prose inside itself and those
+characters cannot be counted without unpacking it. Every token it reports is an **input** token:
+output is not estimable, since the model decides how many claims a document supports, and that half
+is what `--ceiling` bounds.
 
 **`--ceiling` ships on, at 500,000 raw tokens per case**, and it refuses rather than warns: a case
 that reaches it is reported with a `TOKEN_CEILING_EXCEEDED` Blocker instead of a grade, and the run
@@ -222,6 +231,57 @@ of decoration is what makes a green benchmark meaningless.
 What each dataset is, and the one thing it covers that nothing else does, is a row in
 [`benchmark-datasets.tsv`](benchmark-datasets.tsv) — read it before adding a dataset, because the
 question is not "is this a nice dataset" but "what does the corpus not yet cover".
+
+### The `--llm` pass on this tier grades harvest too, and that is a decision (2026-08-01)
+
+**It was not always. Until this date the tier's `--llm` pass ran the extraction stage on all eighteen
+cases and measured only whether it crashed** — no case declared `assertions:`, so nothing the model
+found was graded, and nothing it invented could fail. The alternative on the table was to keep it that
+way and call it a smoke test, leaving `cases/prose` the only place harvest is measured. Two
+measurements decided it the other way, and both are worth keeping because either one moving should
+reopen the question.
+
+**The cost that argued for a smoke test is gone.** `seqforge eval plan --cases evals/benchmark`, run
+on 2026-08-01: **141 documents — so 141 requests before retries — and ~517 K estimated input tokens**
+across all eighteen cases, the largest single case being `PRJNA1195922` at 25 documents / ~83 K. The
+same pass used to be **1,100 calls and 3.70 M input tokens** over thirteen graded cases, most of it one
+dataset asking the nine-attribute sample vocabulary once per *run*. Collapsing a sample's runs into one
+document and narrowing the committed transcripts removed it. A tier pass is now roughly a tenth of what
+it was, so "too expensive to be worth grading" is no longer a true sentence about it.
+
+**The prose is real, but it is not everywhere.** Only **7 of the 18** packages carry an `info/text`
+document at all — `GSE126954`, `GSE234962`, `GSE256266`, `GSE274290`, `PRJNA1027859`, `PRJNA1195922`,
+`PRJNA658829`. The other eleven have nothing but their archive records, and `GSE282765-colon-crod-wta`
+was built with no `--doc` at all because its series has no linked publication. So this tier can never
+be *the* harvest corpus; it can hold real, checkable claims where a real document makes them, and
+`cases/prose` keeps owning the adversarial ones a synthetic document can be built to contain.
+
+Two cases carry that ground truth today, and the pattern to copy is in their files:
+
+| case | assertion | forbidden, and why silence is right |
+|---|---|---|
+| `GSE274290` | `experiment.organism` | the paper describes RNAi-treated animals — for its *western blots*, not for the library that was sequenced |
+| `PRJNA658829` | `experiment.organism` | every experiment record is 2 KB of routine husbandry, and `treatment` is asked of it |
+
+Both also forbid `experiment.samples.disease`, which each document baits and neither states about a
+worm. **`forbidden_fields` is the half that earns this.** A graded assertion only rewards recall, and
+rewarding recall alone trains the prompt to guess; the claim these cases exist to catch is a *real
+quote attached to the wrong sample*, which span verification passes by construction and no byte can
+ever contradict.
+
+Three rules for adding more, learned from writing these two:
+
+- **Check the assertion against the package, not the paper you read online.** `info/text` is
+  extracted text, sometimes lightly mangled, and it is the only thing a run can see. Unpack the
+  package and grep.
+- **Prefer a field only one document can answer.** `experiment.organism` is asked of a
+  *dataset*-scoped document and of nothing else, so the carried paper is its sole possible source. A
+  sample attribute can be claimed by several documents at once, and the grade keeps one of them.
+- **A forbidden field must be absent from every document**, the archive records included — not just
+  from the paper. The grade looks at the whole accepted set.
+
+None of this changes what `--no-llm` does: chemistry still comes from the pinned bytes and sample
+facts from `records.json`, with no key and nothing graded about harvest.
 
 None of those provenances makes this a *test* set: when a case goes red we fix the compiler and grade
 it again, which is exactly what a held-out set forbids. Run it with `seqforge eval run --no-llm --cases
