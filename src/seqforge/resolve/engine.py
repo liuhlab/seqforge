@@ -16,6 +16,7 @@ from pathlib import Path
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
 from ..kb.schema import Spec
+from ..models.assertion import Assertion
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
@@ -36,6 +37,35 @@ class Hypothesis:
     value: str
     id: str = "hypothesis"
     confidence: float = 0.8
+
+
+def chemistry_hypothesis(assertions: Sequence[Assertion]) -> Hypothesis | None:
+    """The chemistry the prose claims, entering `score` as a hypothesis. ``None`` when it cannot.
+
+    **What this is allowed to do.** `score` builds a grid — one row per read role, one column per
+    file — from eight byte-tests, and the hypothesis touches none of them. It orders the candidates
+    (so the right whitelist is checked first) and it can break a tie the bytes genuinely cannot
+    settle. For prose to move a *score* there would have to be a ninth test, `metadata_says`, and a
+    spec could then declare a chemistry that identifies itself by being described rather than by
+    what is in its reads. That is the thing we do not build.
+
+    **Agreement or nothing.** Every chemistry claim in the dataset must say the same thing. Two
+    experiments describing two protocols is a real dataset, and one dataset-level hypothesis would
+    steer both — half of them wrongly. Dropping it costs only a hint: the bytes still decide, and if
+    the runs really are two chemistries, `resolve_runs` blocks on the disagreement, which is the right
+    answer arrived at honestly.
+
+    **It lives here, beside the type it returns, because it has two callers.** `manifest fill` is
+    one; `evals/run.py` — the harness that measures `manifest fill` — is the other, and it used to
+    reduce the same list its own way (a last-wins ``by_field`` dict), so a dataset naming two
+    chemistries steered the harness's scorer with whichever document was read last and the
+    compiler's with nothing. A benchmark that reduces differently from production is measuring the
+    benchmark; there is one reduction and both callers make it.
+    """
+    values = {a.value for a in assertions if a.field == "library.chemistry"}
+    if len(values) != 1:
+        return None
+    return Hypothesis(value=next(iter(values)), id="harvest", confidence=0.9)
 
 
 @dataclass(frozen=True)

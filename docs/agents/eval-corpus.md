@@ -345,14 +345,17 @@ claim the model had failed to make. `missing` asserts the model read everything 
   exit 4 means a human is owed one. A stage the provider did not answer is neither, and a tier whose
   exit code tracked DeepSeek's uptime would be a worse instrument than one that reports coverage. It
   gets a number, a stderr line and a tile.
-- **`--llm` keeps `deepseek-v4-flash`** (#167). That default is a cost decision across 10⁴ datasets
-  and this failure mode does not touch it: R2 re-greps every quote whichever model proposed it, so
-  flakiness spends coverage, never correctness.
-- **No automatic fallback to `-pro` after N failures.** The same prompt on a different model is a
-  different extractor ([ADR-0009](../adr/0009-llm-provider-is-pluggable.md)), so a run that switched
-  mid-pass could not name its own — and `extractor` is the entire reason two reports are comparable.
-  A fallback would buy a greener number by making it mean less. With the blast radius now one
-  document, `--model deepseek-v4-pro` is a decision a reader takes *from the report*.
+- **`--llm` kept `deepseek-v4-flash`** (#167) — until the corpus measured the cost argument that
+  chose it and reversed it (2026-08-02, #188). Correctness was never at stake: R2 re-greps every
+  quote whichever model proposed it, so a flaky model spends coverage, never correctness. But
+  head-to-head at `ac11b44`, `deepseek-v4-pro` was 2.6× faster, spent 3.5× fewer output tokens, and
+  failed 1 document against 6. The default is `deepseek-v4-pro`; see `evals/README.md`.
+- **No automatic fallback to another model after N failures.** The same prompt on a different model
+  is a different extractor ([ADR-0009](../adr/0009-llm-provider-is-pluggable.md)), so a run that
+  switched mid-pass could not name its own — and `extractor` is the entire reason two reports are
+  comparable. A fallback would buy a greener number by making it mean less. With the blast radius
+  now one document, `--model` stays a decision a reader takes *from the report* — which is why the
+  coverage line names the model that ran instead of prescribing one.
 
 **Measured, live, `deepseek-v4-flash`, 2026-08-01, `GSE234962` (14 planned documents, ~64 K estimated
 input).** Two single-trial runs, both of which would have skipped whole on `main`: the first answered

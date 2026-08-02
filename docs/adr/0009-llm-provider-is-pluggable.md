@@ -20,7 +20,7 @@ story.
 | provider | shape | caching | default model |
 | --- | --- | --- | --- |
 | `anthropic` | strict `json_schema`, **guaranteed** | explicit `cache_control` | `claude-opus-4-8` |
-| `deepseek` | `json_object` only, **not** enforced | automatic prefix caching | `deepseek-v4-flash` |
+| `deepseek` | `json_object` only, **not** enforced | automatic prefix caching | `deepseek-v4-pro` |
 | `openai-compatible` | caller's problem | provider's | caller-supplied |
 
 Code re-greps every quote, checks entailment, and validates the batch against `AssertionDraft`
@@ -76,17 +76,21 @@ reaching verification through the weakest-shaped provider, and
   from `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`) and **refuses rather than guessing** when no
   credential is present — silently extracting with a different model than intended is a provenance
   bug, and a cheap one to make.
-- V4-Flash is ≈3× cheaper than V4-Pro, so provider choice is a real cost lever across 10⁴ datasets —
-  which is only safe to pull because it cannot move correctness. **The DeepSeek preset takes the
-  cheap end by default** (`deepseek-v4-flash`; `deepseek-v4-pro` is one `--model` away when recall on
-  hard prose is worth the tokens). Neither is an allowlist — the model string is passed through, so a
-  model DeepSeek ships tomorrow needs no release here, and an unknown name comes back as a 400.
-- **The default model is not the baselined one.** The recorded eval numbers were measured on
-  `deepseek-v4-pro`, and `ExtractorProvenance.model_id` says so; a `--llm` run at the new default is a
-  *different extractor* and does not inherit them. Re-baseline on flash, or pass `--model` to compare.
-  `eval run` therefore stamps `EvalReport.extractor` — `{provider, model, prompt_version}`, the
-  provider's default resolved rather than echoed as `null` — so a report always names the extractor it
-  is a claim about. Absent on `--no-llm`, which has none.
+- **Model choice is a cost lever, and the corpus is what decides which way it points.** This bullet
+  used to say the DeepSeek preset takes the cheap end by default (`deepseek-v4-flash`, "≈3× cheaper
+  per token"), because that is a real lever across 10⁴ datasets and it is safe to pull — it cannot
+  move correctness. Per-token price was the wrong currency: measured head-to-head over the 18-case
+  benchmark at `ac11b44`, `deepseek-v4-pro` was **2.6× faster and spent 3.5× fewer output tokens**,
+  most of flash's extra output being claims the prompt never asked of that document and
+  `verify_drafts` throws away. The default is `deepseek-v4-pro` (#188, #184); flash is one `--model`
+  away. Neither is an allowlist — the model string is passed through, so a model DeepSeek ships
+  tomorrow needs no release here, and an unknown name comes back as a 400.
+- **The default model must still be named, not assumed.** The same prompt on a different model is a
+  *different extractor*, so a run's numbers transfer to no other one. `eval run` stamps
+  `EvalReport.extractor` — `{provider, model, prompt_version}`, the provider's default resolved
+  rather than echoed as `null` — so a report always names the extractor it is a claim about, and so
+  the coverage warning can name the model that ran instead of prescribing one. Absent on `--no-llm`,
+  which has none.
 - **Transient API errors are retried once the provider says they are transient**, and the loop is
   above both adapters rather than inside either (`_complete_with_retry`, `harvest/extract.py`). This
   bullet used to record the opposite as a known gap — that a 429, a 5xx or a timeout became

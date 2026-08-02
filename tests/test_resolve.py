@@ -40,7 +40,13 @@ from seqforge.models.dataset import INDEX_ROLE, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.resolve import TechScore
 from seqforge.probe import probe_file
-from seqforge.resolve import Hypothesis, resolve_dataset, resolve_runs, role_of_sha_for
+from seqforge.resolve import (
+    Hypothesis,
+    chemistry_hypothesis,
+    resolve_dataset,
+    resolve_runs,
+    role_of_sha_for,
+)
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
 from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles
@@ -1348,6 +1354,65 @@ def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> No
     assert not out.result.candidates
     codes = {b.code for b in out.result.blockers}
     assert codes == {BlockerCode.UNSUPPORTED_TECHNOLOGY}
+
+
+def _chem_assertion(value: str, *, field: str = "library.chemistry") -> m.Assertion:
+    """A verified assertion carrying ``value`` on ``field``. Only ``field``/``value`` are read here."""
+    return m.Assertion(
+        id=f"a-{field}-{value}",
+        field=field,
+        value=value,
+        span=m.SourceSpan(doc_sha256="0" * 64, quote=value, char_start=0, char_end=len(value)),
+        span_verified=True,
+        entailment_ok=True,
+        llm_confidence=0.9,
+        extractor=m.ExtractorProvenance(model_id="test/fixture", prompt_version="v1"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        pytest.param([], None, id="no-claim"),
+        pytest.param(["10x-3p-gex-v3"], "10x-3p-gex-v3", id="one-claim"),
+        pytest.param(["10x 5'", "10x 5'"], "10x 5'", id="two-documents-one-answer"),
+        pytest.param(["10x-3p-gex-v2", "10x-3p-gex-v3"], None, id="two-answers-steers-nothing"),
+        pytest.param(["bulk-rnaseq-pe", "10x-3p-gex-v3", "bulk-rnaseq-pe"], None, id="majority"),
+    ],
+)
+def test_chemistry_hypothesis_is_agreement_or_nothing(
+    values: list[str], expected: str | None
+) -> None:
+    """The ONE reduction from verified prose to a steering hypothesis: unanimity, or ``None``.
+
+    Two callers reduce the same list — ``manifest fill`` (the compiler) and ``evals/run.py`` (the
+    harness that measures it) — and they used to disagree: the harness took a last-wins
+    ``by_field`` dict, so a dataset whose prose named two chemistries steered the scorer with
+    whichever document happened to be read last, while the compiler over the identical prose
+    steered with nothing. A harness that fails differently from production measures the harness.
+
+    A MAJORITY is not agreement either. Two experiments describing two protocols is a real dataset,
+    and one dataset-level hypothesis would steer both — half of them wrongly. Dropping it costs only
+    a hint: the bytes still decide.
+    """
+    got = chemistry_hypothesis([_chem_assertion(v) for v in values])
+    if expected is None:
+        assert got is None
+    else:
+        assert got is not None
+        assert (got.value, got.id, got.confidence) == (expected, "harvest", 0.9)
+
+
+def test_chemistry_hypothesis_reads_only_the_chemistry_field() -> None:
+    """An organism claim is not a chemistry claim, and must neither supply nor spoil the hypothesis."""
+    claims = [
+        _chem_assertion("Caenorhabditis elegans", field="experiment.organism"),
+        _chem_assertion("10x-3p-gex-v3"),
+        _chem_assertion("nuclei", field="library.prep_type"),
+    ]
+    got = chemistry_hypothesis(claims)
+    assert got is not None and got.value == "10x-3p-gex-v3"
+    assert chemistry_hypothesis([c for c in claims if c.field != "library.chemistry"]) is None
 
 
 def test_metadata_v2_vs_reads_v3_resolves_to_v3_at_the_leaf(tmp_path: Path) -> None:

@@ -498,9 +498,11 @@ def test_provider_defaults() -> None:
     assert deepseek_provider(api_key="k").default_model() == DEEPSEEK_DEFAULT_MODEL
     assert DEEPSEEK_MODELS == (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
     assert all(m.startswith("deepseek-v4") for m in DEEPSEEK_MODELS)
-    # Flash is the default — ~3x cheaper at the same V4 bar, and cost is the only axis the choice
-    # can move: R2 re-verifies every quote whichever model proposed it.
-    assert DEEPSEEK_DEFAULT_MODEL == DEEPSEEK_FLASH_MODEL == "deepseek-v4-flash"
+    # Pro is the default. Flash was, on the argument that it is the cheap end of V4 — and the same
+    # 18-case benchmark that argument was made for falsified it (#188): pro is 2.6x faster, spends
+    # 3.5x FEWER output tokens, and fails 1 document against 6. Cost is still the only axis a model
+    # can move (R2 re-greps every quote whichever one proposed it); flash just loses that axis too.
+    assert DEEPSEEK_DEFAULT_MODEL == DEEPSEEK_PRO_MODEL == "deepseek-v4-pro"
 
 
 def test_deepseek_model_catalogue_is_not_an_allowlist() -> None:

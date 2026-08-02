@@ -105,6 +105,16 @@ span-verified hypothesis, and it has exactly **two control-flow effects and zero
 
 It never enters the matrix, never un-gates a forbidden cell, and never wins a `Conflict`.
 
+**Where one comes from: `chemistry_hypothesis`, and it is agreement-or-nothing.** A dataset's
+verified assertions reduce to at most one hypothesis, and only when every `library.chemistry` claim
+among them says the same thing — two experiments describing two protocols is a real dataset, and one
+dataset-level hypothesis would steer both, half of them wrongly. `None` is the ordinary outcome and
+costs only a hint. It lives in `engine.py` beside `Hypothesis` because it has **two** callers:
+`manifest fill` and the eval harness that measures `manifest fill`. Those two used to reduce the
+same list differently (the harness took the last document to claim one), so the benchmark could
+steer a scorer the compiler would have left unsteered — #188's "the harness fails differently from
+production". An operator's `--assert-chemistry` is the other source and outranks this one.
+
 **The determinism argument.** For a fixed observation, the validity and finite score of any candidate
 that gets computed is a pure function of the bytes. The hypothesis changes only *which* candidates are
 computed, at *what* cost, and to *which* rung. So the same observation with the same hypothesis gives

@@ -175,7 +175,9 @@ class Recipe(BaseModel):
         discriminator="kind"
     )
     #: A metadata claim entering resolve as a hypothesis WITHOUT an LLM, so conflict/steering cases
-    #: are testable in a no-API-key CI. When a case has prose and `--llm` is on, harvest overrides it.
+    #: are testable in a no-API-key CI. When a case has prose and `--llm` is on, harvest overrides it
+    #: — but only where the prose AGREES with itself: two chemistries in one dataset reduce to no
+    #: hypothesis at all (`resolve.chemistry_hypothesis`), and this declared one is what survives.
     hypothesis: str | None = None
 
 
