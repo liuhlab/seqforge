@@ -360,8 +360,8 @@ def onlist_hit_rate(
                 continue
             packed, valid = _pack_window(mat[inrange], s, width, rc=strand == "revcomp")
             # `valid` is the all-ACGT mask, so `packable` is exactly the set of reads that COULD have
-            # hit. It is both the numerator's candidate pool and the denominator — see
-            # `_UNCALLED_BASES_LEAVE_THE_DENOMINATOR`.
+            # hit. It is both the numerator's candidate pool and the denominator — the block comment
+            # above this function argues why, and against which neighbouring statistic.
             packable = packed[valid]
             tested = int(packable.size)
             if tested == 0:

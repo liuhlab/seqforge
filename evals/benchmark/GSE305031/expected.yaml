@@ -168,10 +168,11 @@
 # information either way. Both treat a measurement error as a threshold problem.
 #
 # THE PREDICTION IS UNTOUCHED AND CAME TRUE. `outcome`, `predicts` and all nine `fields` claims are
-# still byte-identical to the pre-registration commit — the whole file's non-comment content has
-# never been edited. The case predicted `decide` -> `10x-gemx-3p-v4` from declared metadata alone,
-# was red for a reason nobody predicted, and is green without a single expectation being moved to
-# meet it. That is the only shape in which a red case turning green means anything.
+# still byte-identical to the pre-registration commit; only the header comments and the
+# `description` below have been rewritten, and nothing the grader reads has moved. The case predicted
+# `decide` -> `10x-gemx-3p-v4` from declared metadata alone, was red for a reason nobody predicted,
+# and is green without a single expectation being moved to meet it. That is the only shape in which a
+# red case turning green means anything.
 # ================================================================================================
 outcome: decide
 description: >-
