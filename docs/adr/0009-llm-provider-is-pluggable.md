@@ -79,12 +79,14 @@ reaching verification through the weakest-shaped provider, and
 - **Model choice is a cost lever, and the corpus is what decides which way it points.** This bullet
   used to say the DeepSeek preset takes the cheap end by default (`deepseek-v4-flash`, "≈3× cheaper
   per token"), because that is a real lever across 10⁴ datasets and it is safe to pull — it cannot
-  move correctness. Per-token price was the wrong currency: measured head-to-head over the 18-case
-  benchmark at `ac11b44`, `deepseek-v4-pro` was **2.6× faster and spent 3.5× fewer output tokens**,
-  most of flash's extra output being claims the prompt never asked of that document and
-  `verify_drafts` throws away. The default is `deepseek-v4-pro` (#188, #184); flash is one `--model`
-  away. Neither is an allowlist — the model string is passed through, so a model DeepSeek ships
-  tomorrow needs no release here, and an unknown name comes back as a 400.
+  move correctness. Per-token price was the wrong currency: measured head-to-head over the benchmark
+  corpus, `deepseek-v4-pro` was **faster and spent fewer output tokens** on the same input, most of
+  flash's extra output being claims the prompt never asked of that document and `verify_drafts`
+  throws away. The default is `deepseek-v4-pro` (#188, #184); flash is one `--model` away. The
+  numbers, and the caveat that they are single-trial draws, are in `evals/README.md` — a decision
+  belongs here, a measurement belongs where it is dated. Neither model is an allowlist — the model
+  string is passed through, so a model DeepSeek ships tomorrow needs no release here, and an unknown
+  name comes back as a 400.
 - **The default model must still be named, not assumed.** The same prompt on a different model is a
   *different extractor*, so a run's numbers transfer to no other one. `eval run` stamps
   `EvalReport.extractor` — `{provider, model, prompt_version}`, the provider's default resolved

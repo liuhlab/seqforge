@@ -1356,15 +1356,21 @@ def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> No
     assert codes == {BlockerCode.UNSUPPORTED_TECHNOLOGY}
 
 
-def _chem_assertion(value: str, *, field: str = "library.chemistry") -> m.Assertion:
-    """A verified assertion carrying ``value`` on ``field``. Only ``field``/``value`` are read here."""
+def _chem_assertion(
+    value: str,
+    *,
+    field: str = "library.chemistry",
+    span_verified: bool = True,
+    entailment_ok: bool = True,
+) -> m.Assertion:
+    """An assertion carrying ``value`` on ``field``, verified unless a flag is turned off."""
     return m.Assertion(
         id=f"a-{field}-{value}",
         field=field,
         value=value,
         span=m.SourceSpan(doc_sha256="0" * 64, quote=value, char_start=0, char_end=len(value)),
-        span_verified=True,
-        entailment_ok=True,
+        span_verified=span_verified,
+        entailment_ok=entailment_ok,
         llm_confidence=0.9,
         extractor=m.ExtractorProvenance(model_id="test/fixture", prompt_version="v1"),
     )
@@ -1413,6 +1419,33 @@ def test_chemistry_hypothesis_reads_only_the_chemistry_field() -> None:
     got = chemistry_hypothesis(claims)
     assert got is not None and got.value == "10x-3p-gex-v3"
     assert chemistry_hypothesis([c for c in claims if c.field != "library.chemistry"]) is None
+
+
+@pytest.mark.parametrize(
+    ("span_verified", "entailment_ok"),
+    [
+        pytest.param(False, True, id="quote-does-not-grep-back"),
+        pytest.param(True, False, id="quote-does-not-entail-the-value"),
+        pytest.param(False, False, id="neither"),
+    ],
+)
+def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: bool) -> None:
+    """R2's floor, enforced where the claim is *used* and not only where it was composed.
+
+    `verify_drafts` sets both flags itself, so a harvest run cannot reach here unverified. The open
+    door is `manifest fill --assertions <file>`: that file is parsed straight into `Assertion`s with
+    no flag check, so a hand-written one could steer the scorer with a quote that greps back nowhere.
+    Both flags are code-owned and fail closed; a claim missing either is not a claim.
+
+    It must also not *spoil* a good one by counting as a second, disagreeing answer — an ignored
+    claim is ignored, not a veto.
+    """
+    bad = _chem_assertion(
+        "bulk-rnaseq-pe", span_verified=span_verified, entailment_ok=entailment_ok
+    )
+    assert chemistry_hypothesis([bad]) is None
+    got = chemistry_hypothesis([_chem_assertion("10x-3p-gex-v3"), bad])
+    assert got is not None and got.value == "10x-3p-gex-v3"
 
 
 def test_metadata_v2_vs_reads_v3_resolves_to_v3_at_the_leaf(tmp_path: Path) -> None:

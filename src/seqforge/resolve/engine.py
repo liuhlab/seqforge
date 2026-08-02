@@ -61,8 +61,18 @@ def chemistry_hypothesis(assertions: Sequence[Assertion]) -> Hypothesis | None:
     chemistries steered the harness's scorer with whichever document was read last and the
     compiler's with nothing. A benchmark that reduces differently from production is measuring the
     benchmark; there is one reduction and both callers make it.
+
+    **An unverified claim is not a claim** (R2). `verify_drafts` sets both flags itself, so a harvest
+    run cannot arrive here unverified — but `manifest fill --assertions <file>` parses that file
+    straight into `Assertion`s with no flag check, and this is a public function now. A claim whose
+    quote does not grep back, or does not entail its value, is skipped rather than counted: ignoring
+    it must not become a veto over a good one.
     """
-    values = {a.value for a in assertions if a.field == "library.chemistry"}
+    values = {
+        a.value
+        for a in assertions
+        if a.field == "library.chemistry" and a.span_verified and a.entailment_ok
+    }
     if len(values) != 1:
         return None
     return Hypothesis(value=next(iter(values)), id="harvest", confidence=0.9)

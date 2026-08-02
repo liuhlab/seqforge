@@ -43,15 +43,13 @@ DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
 #: `classify_api_error`).
 DEEPSEEK_MODELS = (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
 
-#: `-pro` is the default, and it is the default because `-flash` was measured (#188). The old
-#: default rested on "~3x cheaper at the same V4 quality bar, which is the lever that matters across
-#: 10⁴ datasets"; run head-to-head over the 18-case benchmark at `ac11b44`, same prompt, pro won
-#: every axis including the two flash was chosen for — **2.6x faster wall clock and 3.5x FEWER
-#: output tokens** (93,716 against 328,857), 15/18 cases correct against 12/18, and 1 failed
-#: document against 6. Flash spends its extra output on claims the prompt never asked for and
-#: `verify_drafts` discards (38 `field_not_permitted_for_doc` rejections on one case; pro does it
-#: 0-2 times). Correctness was never the axis in question — R2 re-greps every quote whichever model
-#: proposed it — so this is a cost decision that flipped when someone measured the cost.
+#: `-pro` is the default because `-flash` was measured (#188). The old default rested on "~3x cheaper
+#: at the same V4 quality bar, which is the lever that matters across 10⁴ datasets"; run head-to-head
+#: over the benchmark corpus, pro won every axis including the two flash was chosen for — faster, and
+#: FEWER output tokens, on the same input. Correctness was never the axis in question (R2 re-greps
+#: every quote whichever model proposed it), so this is a cost decision that flipped when someone
+#: measured the cost. The run, its numbers and its caveats: `evals/README.md`, "The default model,
+#: and the run that decided it".
 DEEPSEEK_DEFAULT_MODEL = DEEPSEEK_PRO_MODEL
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 

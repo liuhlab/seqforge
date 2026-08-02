@@ -348,8 +348,9 @@ claim the model had failed to make. `missing` asserts the model read everything 
 - **`--llm` kept `deepseek-v4-flash`** (#167) — until the corpus measured the cost argument that
   chose it and reversed it (2026-08-02, #188). Correctness was never at stake: R2 re-greps every
   quote whichever model proposed it, so a flaky model spends coverage, never correctness. But
-  head-to-head at `ac11b44`, `deepseek-v4-pro` was 2.6× faster, spent 3.5× fewer output tokens, and
-  failed 1 document against 6. The default is `deepseek-v4-pro`; see `evals/README.md`.
+  head-to-head, `deepseek-v4-pro` was faster *and* spent fewer output tokens. The default is
+  `deepseek-v4-pro`; the run, its numbers and its caveats live in `evals/README.md`, "The default
+  model, and the run that decided it".
 - **No automatic fallback to another model after N failures.** The same prompt on a different model
   is a different extractor ([ADR-0009](../adr/0009-llm-provider-is-pluggable.md)), so a run that
   switched mid-pass could not name its own — and `extractor` is the entire reason two reports are
@@ -363,6 +364,41 @@ input).** Two single-trial runs, both of which would have skipped whole on `main
 empty-content failure verbatim). Both graded `over_ask` — the instability #184 owns, unchanged — and
 the second reported `experiment.organism` as `unchecked` with `field_accuracy 1.0`, which is the
 whole ticket in one line: the rate is honest, and it now says how much of the corpus it is about.
+
+### One reduction for the hypothesis, and what measuring it actually showed (2026-08-02, #184/#188)
+
+**The harness was not reducing prose the way the compiler does.** `manifest fill` takes a dataset's
+chemistry claims agreement-or-nothing; the harness took the last document to claim one, off a
+`by_field` dict. Two callers, one stage, different answers — so a dataset naming two chemistries
+steered the harness's scorer and the compiler's not at all, and the grade was partly a claim about
+the harness. There is one `resolve.chemistry_hypothesis` now and both call it. **This is a change to
+the ruler, deliberately landed on its own**, before any compiler fix, so the next tier pass is
+measuring one changed thing.
+
+**Measured after it, `deepseek-v4-pro`, `trials=1`, whole benchmark tier: 15/18, exit 3.** Against
+the same command at `ac11b44` (also 15/18, exit 3), and this is the part worth writing down:
+
+| | `ac11b44` | after the ruler fix |
+|---|---|---|
+| `GSE234962` | `over_ask` | **`correct`** |
+| `GSE229022` | `correct` | `over_ask` |
+| `GSE317744` | `false_accept` (attribute drop) | `over_ask`, and chemistry **wrong** (`10x-3p-gex-v2`) |
+| `GSE310378` | `false_accept` | `false_accept` |
+
+**None of those moves is attributable to the change.** Recomputing both reductions over each run's own
+accepted assertions: on the post-fix draw the old and the new return the **same hypothesis on all 18
+cases** (no case produced two *distinct* chemistry values), so the fix was a measured no-op there. What
+moved is which case `library.chemistry = "RNA-Seq"` landed on — one accepted claim on `GSE234962`
+before, one each on `GSE229022` and `GSE317744` after. Mechanism 1 is real and its case list is a
+per-draw lottery; **scope to the mechanism, never to a case list**, and do not read a single-trial
+per-case grade as a property of the extractor.
+
+`GSE317744` is the sharpest instance: byte-identical to `10x-3p-gex-v2` at every rung, so its recipe's
+`10x 5'` is the only thing that can decide it. A single `"RNA-Seq"` claim displaced that hypothesis
+and the run resolved the wrong chemistry — the metadata-decided channel losing to a `library_strategy`
+suffix, live, on pro. That is #189's premise reproducing, not this change's doing.
+
+The no-LLM tier is unmoved: 18/18, exit 0, 92 s.
 
 ### The two unsettled cases, settled 2026-08-01 (#160) — and only one of them was a defect
 

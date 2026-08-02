@@ -343,20 +343,42 @@ a wrong answer and exit 4 says a human is owed one; a stage the provider did not
 and a red tier on DeepSeek's uptime would be a worse instrument than a green one. What it gets is a
 number, a stderr line, and a tile on the page.
 
-**The default model was `deepseek-v4-flash` (#167) until this corpus measured it (2026-08-02, #188).**
-The cheap default was never a correctness argument — span verification re-greps every quote whichever
-model proposed it, so a flaky model costs coverage and never correctness — it was a *cost* argument
-across 10⁴ datasets, and it lost in its own currency. Run head-to-head at `ac11b44`, same prompt,
-`trials=1`, `deepseek-v4-pro` was **2.6× faster** (140 s against 369 s), spent **3.5× fewer output
-tokens** (93,716 against 328,857), failed **1 document against 6**, and graded 15/18 against 12/18.
-Flash's extra output is largely `field_not_permitted_for_doc` rejections — claims the prompt never
-asked of that document, which `verify_drafts` discards. The default is `deepseek-v4-pro`.
+### The default model, and the run that decided it (2026-08-02, #188)
+
+**This section is the measurement's home.** Everywhere else that says pro is the default — ADR-0009,
+`docs/agents/eval-corpus.md`, `harvest/providers.py`, `cli/eval.py`, the harvest skill — carries the
+claim and points here, so there is one place to re-date when the next re-baseline lands.
+
+`deepseek-v4-flash` was the default (#167) on a *cost* argument: ≈3× cheaper per token across 10⁴
+datasets, and safe to pull because it cannot move correctness (span verification re-greps every quote
+whichever model proposed it, so a weak model costs coverage and never correctness). It lost in its own
+currency. Three runs of this corpus at `ac11b44`, same prompt `2026.7.4`, `trials=1`, differing only
+in extractor — the table is #188's:
+
+| | no-LLM | `deepseek-v4-flash` | `deepseek-v4-pro` |
+|---|---:|---:|---:|
+| cases correct | **18 / 18** | 12 / 18 | 15 / 18 |
+| field accuracy | 1.000 | 0.955 | **0.982** |
+| wall clock | 89.8 s | 369.3 s | **140.5 s** |
+| output tokens | — | 328,857 | **93,716** |
+| documents failed | — | 6 / 141 | **1 / 141** |
+
+Pro is ~2.6× faster on ~3.5× the output-token efficiency, on the same input. Flash's extra output is
+largely `field_not_permitted_for_doc` rejections — claims the prompt never asked of that document,
+which `verify_drafts` discards. **The default is `deepseek-v4-pro`.**
+
+**Read the pro column as one draw, not as the extractor's baseline.** A second pro run of the same
+18 cases at the same commit graded the same 15/18 but reported **0/141 documents failed** and 100,328
+output tokens. Single-trial LLM numbers are claims about one sample (`stability` is unmeasured at
+`trials=1`); what survives across both draws is the *shape* — pro faster, pro cheaper in output, pro
+failing at most one document where flash failed six. The comparison is directional and it is enough
+to settle a default; it is not a baseline any later run may be diffed against.
 
 A silent fallback to another model after N failures is still rejected: the same prompt on a different
 model is a different extractor ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run
 that switched mid-pass could not name its own, and `extractor` is the field that makes a baseline
 comparable at all. `--model` stays a decision a reader takes *from the report*, which is also why the
-coverage line names the model that ran rather than prescribing one.
+coverage line names the model that ran and prescribes none.
 
 Two findings from that pass are recorded in
 [`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md), including one case that grades

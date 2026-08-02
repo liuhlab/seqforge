@@ -53,6 +53,7 @@ from seqforge.models.resolve import (
     RoleAssignment,
     TechScore,
 )
+from seqforge.resolve import Hypothesis
 
 if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
     from seqforge.harvest import LLMResponse
@@ -951,12 +952,12 @@ def test_harvest_hypothesis_steers_resolve() -> None:
     assert sorted(run.harvest.matched) == ["experiment.organism", "library.chemistry"]
 
 
-def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
+def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Hypothesis | None]:
     """Record the hypothesis each `resolve_dataset` call is handed, then let the real one run."""
     from seqforge.evals import run as run_module
     from seqforge.resolve import resolve_dataset as real  # the same object `run.py` imported
 
-    seen: list[Any] = []
+    seen: list[Hypothesis | None] = []
 
     def _spy(*args: Any, **kwargs: Any) -> Any:
         seen.append(kwargs.get("hypothesis"))
@@ -966,13 +967,25 @@ def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
     return seen
 
 
-def _prose_case_plus_a_second_chemistry(tmp_path: Path) -> Case:
+def _two_chemistry_provider() -> _StubProvider:
+    """A model that names v3 and v2. Each draft verifies against exactly one of the two documents."""
+    return _StubProvider(
+        [
+            _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
+            _draft("library.chemistry", "10x-3p-gex-v2", "Chromium Single Cell 3' v2 Reagent Kit"),
+        ]
+    )
+
+
+def _prose_case_plus_a_second_chemistry(tmp_path: Path, *, hypothesis: str | None = None) -> Case:
     """`10x-v3-prose`, plus a document naming a DIFFERENT chemistry. Two documents, two answers.
 
     A second document rather than a second draft on the first: `verify_drafts` anchors every draft to
     the document it was extracted from, so a v2 quote absent from the v3 methods text is rejected
     before it can become an assertion. Two documents is also the real shape — GSE234962's four
     experiment records are what put a second chemistry into that dataset's accepted set.
+
+    ``hypothesis`` declares one in the recipe, as a case that must run without an API key does.
     """
     import dataclasses
 
@@ -982,7 +995,11 @@ def _prose_case_plus_a_second_chemistry(tmp_path: Path) -> Case:
         "The pilot libraries were prepared with the Chromium Single Cell 3' v2 Reagent Kit.\n"
     )
     case = next(c for c in discover_cases() if c.id == "10x-v3-prose")
-    return dataclasses.replace(case, metadata_docs=[*case.metadata_docs, second])
+    return dataclasses.replace(
+        case,
+        metadata_docs=[*case.metadata_docs, second],
+        recipe=case.recipe.model_copy(update={"hypothesis": hypothesis}),
+    )
 
 
 def test_two_documents_naming_two_chemistries_steer_the_harness_with_nothing(
@@ -999,13 +1016,9 @@ def test_two_documents_naming_two_chemistries_steer_the_harness_with_nothing(
     different question from "what did the manifest store", and only the second one is this reduction.
     """
     seen = _capture_hypotheses(monkeypatch)
-    provider = _StubProvider(
-        [
-            _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
-            _draft("library.chemistry", "10x-3p-gex-v2", "Chromium Single Cell 3' v2 Reagent Kit"),
-        ]
+    run_case(
+        _prose_case_plus_a_second_chemistry(tmp_path), llm=True, provider=_two_chemistry_provider()
     )
-    run_case(_prose_case_plus_a_second_chemistry(tmp_path), llm=True, provider=provider)
     assert seen == [None], "two accepted chemistry claims must steer nothing"
 
 
@@ -1019,20 +1032,9 @@ def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing
     channel. Reducing harvest's two answers to `None` must leave the recipe's claim where it was —
     the harness's `if hyp is not None` guard, asserted rather than assumed.
     """
-    import dataclasses
-
-    case = _prose_case_plus_a_second_chemistry(tmp_path)
-    case = dataclasses.replace(
-        case, recipe=case.recipe.model_copy(update={"hypothesis": "10x-3p-gex-v3"})
-    )
+    case = _prose_case_plus_a_second_chemistry(tmp_path, hypothesis="10x-3p-gex-v3")
     seen = _capture_hypotheses(monkeypatch)
-    provider = _StubProvider(
-        [
-            _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
-            _draft("library.chemistry", "10x-3p-gex-v2", "Chromium Single Cell 3' v2 Reagent Kit"),
-        ]
-    )
-    run_case(case, llm=True, provider=provider)
+    run_case(case, llm=True, provider=_two_chemistry_provider())
     assert len(seen) == 1 and seen[0] is not None
     assert (seen[0].value, seen[0].id) == ("10x-3p-gex-v3", "recipe")
 
@@ -2899,11 +2901,11 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
     # ...and it is said where a human looks, on the stream that is not the result object.
     assert "HARVEST PARTLY MEASURED" in result.stderr
     assert "chemistry-unstated-trap" in result.stderr
-    # The remedy names the model that ran, and never prescribes it. It used to advise `--model
+    # The remedy names the model that ran and prescribes no model at all. It used to advise `--model
     # deepseek-v4-pro` unconditionally — including on a run of pro, where the advice was to change
     # nothing (#188). `stub-model-1` is this provider's default, resolved rather than echoed as null.
     assert "answered by stub-model-1" in result.stderr
-    assert "a --model other than stub-model-1" in result.stderr
+    assert "--model" not in result.stderr, "naming the extractor is not prescribing a replacement"
 
 
 def _stub_case(case_id: str) -> Case:
