@@ -38,6 +38,7 @@ from .case import (  # noqa: E402
     materialize,
 )
 from .grade import CaseGrade, FieldCheck, Grade, grade_case, outcome_of  # noqa: E402
+from .plan import plan_case, plan_cases, system_prompt_chars  # noqa: E402
 from .report import EVAL_REPORT_VERSION, render_html  # noqa: E402
 from .run import (  # noqa: E402
     CaseRun,
@@ -71,6 +72,10 @@ __all__ = [
     "FieldCheck",
     "grade_case",
     "outcome_of",
+    # pricing an --llm pass before making one (`seqforge eval plan`)
+    "plan_case",
+    "plan_cases",
+    "system_prompt_chars",
     # running
     "run_case",
     "run_cases",

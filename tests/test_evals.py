@@ -1310,6 +1310,176 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
 
 
 # --------------------------------------------------------------------------------------------------
+# `seqforge eval plan` — what an --llm pass over a TIER costs, before any of it is paid
+#
+# `harvest extract --dry-run` priced one dataset. The decision it informs is taken over a corpus, and
+# was answerable only by spending one. These pin the two things that make the number worth trusting:
+# it is the send list the paid run really uses, and a case it could not price says so instead of
+# reporting zero.
+# --------------------------------------------------------------------------------------------------
+
+
+def _priceable_case(tmp_path: Path, *, n_runs: int = 3) -> Case:
+    """A case with prose beside it AND a records transcript — the two halves of a real bill."""
+    from seqforge.evals.case import load_case
+
+    case_dir = tmp_path / "priceable"
+    (case_dir / "inputs").mkdir(parents=True)
+    (case_dir / "inputs" / "recipe.yaml").write_text(
+        "generate:\n  kind: random\n  n: 4\n  min_len: 40\n  max_len: 60\n"
+    )
+    (case_dir / "expected.yaml").write_text(
+        "outcome: refuse\ndescription: prose plus a transcript, so a plan has both halves to price\n"
+        "blockers: [UNSUPPORTED_TECHNOLOGY]\n"
+    )
+    (case_dir / "metadata").mkdir()
+    (case_dir / "metadata" / "methods.txt").write_text(
+        "We profiled Caenorhabditis elegans by droplet-based single-cell RNA sequencing.\n"
+    )
+    (case_dir / "records.json").write_text(
+        json.dumps(
+            {
+                "source": "test",
+                "query": "TEST",
+                "records": [
+                    {
+                        "level": "sample",
+                        "accession": "SAMN1",
+                        "free_text": [{"label": "title", "text": "adult hermaphrodite neurons"}],
+                    },
+                    *(
+                        {
+                            "level": "run",
+                            "accession": f"SRR{i}",
+                            "parent": "SAMN1",
+                            "free_text": [{"label": "alias", "text": f"N2_wild_type_rep{i}"}],
+                        }
+                        for i in range(n_runs)
+                    ),
+                ],
+            }
+        )
+    )
+    return load_case(case_dir)
+
+
+def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -> None:
+    """The plan and the run must not be able to drift, so this checks one against the other.
+
+    A cost estimate nobody can join back to the run it predicts is decoration. Both sides are
+    computed here — the plan with no provider at all, the run against a stub that answers every
+    request — and the document count has to agree. It is also the number a maintainer reads as
+    "requests", so the run's own call count is asserted against it: the plan is the floor, and a
+    retry is the only thing allowed to push the real run above it.
+    """
+    from seqforge.evals import plan_case, system_prompt_chars
+
+    case = _priceable_case(tmp_path)
+    row = plan_case(case, prompt_chars=system_prompt_chars())
+
+    # One human document + one sample record + the sample's three runs, collapsed into one document.
+    assert row.n_documents == 3
+    assert row.n_records_read == 4
+    assert row.n_records_collapsed == 2
+    assert row.n_chars > 0
+    assert row.estimated_input_tokens > row.n_chars // 4, (
+        "the system prefix is charged per document"
+    )
+    assert row.skipped is None
+
+    run = run_case(case, llm=True, provider=_StubProvider([]))
+    assert run.harvest is not None
+    assert run.harvest.n_documents == row.n_documents
+    assert run.llm_calls == row.n_documents, "the plan is the floor on what the run issues"
+
+
+def test_a_case_the_plan_cannot_price_is_named_rather_than_costed_at_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A skip is a case whose price is unknown, not a case that is free.
+
+    Reporting zero tokens for an unreachable package would understate the tier by exactly the cases a
+    maintainer most needs to know about, and it would understate it silently. So the row carries the
+    reason and the kind, and the totals exclude it — the same contract `eval run` keeps for a skip.
+    """
+    from seqforge.evals import plan_cases
+    from seqforge.evals.case import load_case
+
+    monkeypatch.delenv("SEQFORGE_TEST_FP", raising=False)
+    case_dir = _fingerprint_case_dir(
+        tmp_path, "generate:\n  kind: fingerprint\n  root_env: SEQFORGE_TEST_FP\n", None
+    )
+    report = plan_cases([load_case(case_dir), _priceable_case(tmp_path)], jobs=1)
+
+    assert report.n_cases == 1, (
+        "a skipped case is excluded from the totals, as it is from every rate"
+    )
+    assert report.n_skipped == 1
+    assert report.n_reaching_a_model == 1
+    skipped = next(r for r in report.per_case if r.skipped is not None)
+    assert "SEQFORGE_TEST_FP" in (skipped.skipped or "")
+    assert skipped.skip_kind == "unavailable"
+    assert skipped.estimated_input_tokens == 0
+
+
+def test_the_plan_prices_the_trials_it_is_asked_about_and_names_what_will_breach(
+    tmp_path: Path,
+) -> None:
+    """`--trials N` really does send the same list N times, so a plan that ignored it would lie.
+
+    The ceiling check is deliberately one-sided and named as such: it lists the cases whose estimated
+    INPUT alone already clears the bar. Output and cache-write tokens count against a Ceiling too and
+    neither is knowable before the model answers, so this can only ever be a lower bound.
+    """
+    from seqforge.evals import plan_cases
+
+    case = _priceable_case(tmp_path)
+    once = plan_cases([case], jobs=1)
+    thrice = plan_cases([case], trials=3, jobs=1)
+
+    assert thrice.trials == 3
+    assert thrice.estimated_input_tokens == once.estimated_input_tokens * 3
+    assert thrice.n_documents == once.n_documents * 3
+    # Per-case rows stay per trial: a trial is the unit that repeats, so multiplying them too would
+    # report the same tokens twice to anyone adding the column up.
+    assert thrice.per_case[0].estimated_input_tokens == once.per_case[0].estimated_input_tokens
+
+    assert once.estimated_over_ceiling == []
+    tight = plan_cases([case], ceiling=1, jobs=1)
+    assert tight.ceiling == 1
+    assert tight.estimated_over_ceiling == [case.id]
+
+
+def test_eval_plan_is_a_verb_that_prices_a_tier_and_needs_no_credential(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The whole point is that it answers on a machine with no key, so the key is removed here.
+
+    `--dry-run` on `harvest extract` returns before a provider is even resolved; this is the tier-wide
+    half of that promise, and a verb that quietly needed a credential would be useless for the one
+    decision it exists to inform.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    for key in ("DEEPSEEK_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+    _priceable_case(tmp_path)
+
+    result = CliRunner().invoke(app, ["eval", "plan", "--cases", str(tmp_path), "-j", "1"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["n_cases"] == 1
+    assert payload["per_case"][0]["n_documents"] == 3
+    assert payload["estimated_input_tokens"] > 0
+    assert payload["system_prompt_chars"] > 0
+
+    empty = CliRunner().invoke(app, ["eval", "plan", "--cases", str(tmp_path / "nothing")])
+    assert empty.exit_code == 2
+
+
+# --------------------------------------------------------------------------------------------------
 # `seqforge eval report` — the HTML renderer
 #
 # The renderer exists because the benchmark job produced a number and threw the detail away: a green

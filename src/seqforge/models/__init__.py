@@ -110,8 +110,10 @@ from .resolve import (
     ArbitrationRequest,
     ArbitrationResponse,
     Candidate,
+    CasePlanRow,
     ComposeResult,
     Decision,
+    EvalPlanReport,
     EvalReport,
     ModuleSelection,
     Question,
@@ -149,6 +151,7 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         ComposeResult,
         RunResult,
         EvalReport,
+        EvalPlanReport,
         # the fingerprint corpus — the package's pin, and what publishing one reports
         FingerprintManifest,
         PublishedPackage,
@@ -278,6 +281,8 @@ __all__ = [
     "ComposeResult",
     "RunResult",
     "EvalReport",
+    "EvalPlanReport",
+    "CasePlanRow",
     # the fingerprint package: its pin, and what publishing one reports
     "FilePin",
     "FingerprintManifest",

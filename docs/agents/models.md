@@ -74,6 +74,13 @@ deliberately not in `LLM_FACING`. `estimated_input_tokens` charges the stable sy
 output tokens are absent because the model decides how many claims a document supports, and the
 **Ceiling** is what bounds that half.
 
+`EvalPlanReport` / `CasePlanRow` ([`models/resolve.py`](../../src/seqforge/models/resolve.py)) are the
+same object one level up — what `seqforge eval plan` answers for a whole tier — and they live beside
+`EvalReport` rather than beside `ExtractionPlanReport` because they are shaped by the harness's
+grain: rows in case order, and a **skip that is named rather than costed at zero**. A skipped case is
+a case whose price is unknown, not a free one, so it is excluded from the totals and carries its
+`unavailable`/`absent` kind, exactly as it does in `EvalReport.per_case`.
+
 ## `Conflict` — surfaced, never auto-picked
 
 [`models/conflict.py`](../../src/seqforge/models/conflict.py). `positions[]` (minimum 2) generalizes

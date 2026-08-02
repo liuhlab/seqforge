@@ -46,3 +46,25 @@ fields:
   experiment.samples.*.cell_type:
   - germ cell
   experiment.samples.SAMN43079677.strain: gfp::tev::flag::prg-1
+# Harvest ground truth, added 2026-08-01, and checked against the text the PACKAGE carries
+# (`info/text/Li et al. 2025 - ...txt`) rather than against the published PDF — that file is the only
+# thing a run can read, so it is the only thing an expectation may rest on. Graded only under --llm.
+assertions:
+  # Written verbatim 24 times in the carried text, including "single-cell gene expression profiles
+  # for Caenorhabditis elegans sperm cells". `experiment.organism` is asked of a dataset-scoped
+  # document and of nothing else, so this claim can only come from the paper — no archive record can
+  # supply it, and no other document can collide with it.
+  - field: experiment.organism
+    value: Caenorhabditis elegans
+forbidden_fields:
+  # The one that hurts, and the reason this case was chosen. The paper really does describe
+  # RNAi-treated animals — "control RNAi- and nhr-23 RNA interference (RNAi)-treated L4 stage
+  # C. elegans" — but those are the downstream western-blot and phenotype experiments. What was
+  # SEQUENCED is the gfp::tev::flag::prg-1 knock-in, untreated, which is why the review above pruned
+  # the archive's "L4 worm after synchronization" as a stage typed into a treatment field. A verified
+  # quote pinned to this field would be a real sentence attached to the wrong sample, and no byte
+  # could ever contradict it.
+  - experiment.samples.treatment
+  # "disease" occurs exactly once in the carried text, inside a reference title ("a Caenorhabditis
+  # elegans model of Lewy body disease"). A citation is not a claim about the sample.
+  - experiment.samples.disease
