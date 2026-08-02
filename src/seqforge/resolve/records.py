@@ -51,6 +51,15 @@ sample (``asserted``) and the paper's reading is our inference (``inferred``), s
 stands and the paper's is surfaced as a warning a reader can see — never baked in as a fact a corpus
 inherits, and never a refusal that stops the compile.
 
+**What the record said that has no key is noted, not swallowed.** The key space is NCBI's 960
+harmonized names and it stays closed — a key we coined would accept whatever an extraction wanted to
+put in it. But a submitter may type a load-bearing fact into a structured characteristic under a name
+nobody curates (``bd rhapsody_capture_bead_version: enhanced beads``), and the same sentence in a
+free-text protocol field would have reached the prose path. Silently skipping the structured one made
+it *less* legible than the paragraph, so each such attribute leaves a non-blocking note naming the
+tag, the value and the sample. Nothing new reaches the manifest; the difference is that the gap is
+visible.
+
 **No archive is the normal case, not the degraded one.** Most sequencing data has never had an
 accession and never will: a freshly sequenced plate on a lab filesystem has no BioProject, no
 BioSample, and no submitter alias. With no record, sample identity falls back to the run grouping
@@ -71,7 +80,7 @@ from ..models.base import Basis
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.evidenced import EvidencedStr, EvidencedTaxid
 from ..models.observation import FileIdentity
-from ..models.records import ArchiveRecord, ArchiveRecordSet
+from ..models.records import ArchiveRecord, ArchiveRecordSet, RecordAttribute
 from ..models.resolve import MetadataResolution, ProjectFacts, ResolvedSample
 from .group import run_key
 
@@ -86,9 +95,14 @@ _BASIS_RANK: dict[Basis, int] = {
 }
 
 #: A record attribute that is real, useful, and NOT one of NCBI's 960 sample attributes. These are
-#: facts about the record rather than the biology, so they are read by name here and never offered as
-#: sample fields.
-_RECORD_META = frozenset({"center_name", "biosample_package", "data_type", "submission_date"})
+#: facts about the record rather than the biology — the submitting centre, the BioSample package, the
+#: taxid that becomes ``experiment.organism`` — so they are read by name here and never offered as
+#: sample fields. Naming them is also what keeps :func:`_unharmonized_note` worth reading: every
+#: archive stamps these on every sample, so noting them would be several lines per sample on every
+#: dataset that has a record at all, which is how a note stops being read.
+_RECORD_META = frozenset(
+    {"center_name", "biosample_package", "data_type", "submission_date", "taxonomy_id"}
+)
 
 #: The prefix an assertion uses to name a sample attribute: ``experiment.samples.tissue``.
 SAMPLE_FIELD_PREFIX = "experiment.samples."
@@ -144,9 +158,12 @@ def resolve_metadata(
     subject_to_sample = _subject_to_sample(records)
 
     verified = [a for a in assertions if a.span_verified and a.entailment_ok]
-    per_sample = {
-        s.sample_id: _positions_for(s, verified, by_doc, subject_to_sample) for s in samples
-    }
+    per_sample: dict[str, dict[str, list[_Position]]] = {}
+    unkeyed: dict[str, list[ValidationWarning]] = {}
+    for s in samples:
+        per_sample[s.sample_id], unkeyed[s.sample_id] = _positions_for(
+            s, verified, by_doc, subject_to_sample
+        )
     # Which attributes the archive/prose declares PER SAMPLE for anyone — proof the attribute varies by
     # sample. A dataset-level (paper) claim may only fill an attribute nobody declares per-sample; the
     # moment one sample owns a value for it, a blanket study-wide value is an unsafe guess for the
@@ -170,6 +187,8 @@ def resolve_metadata(
                 file_shas=sample.file_shas,
             )
         )
+        # what the record said and this stage could not key, then what it decided under disagreement
+        warnings.extend(unkeyed[sample.sample_id])
         warnings.extend(sample_warnings)
 
     return MetadataResolution(
@@ -307,13 +326,19 @@ def _positions_for(
     assertions: Sequence[Assertion],
     by_doc: dict[str, DocumentSubject],
     subject_to_sample: dict[str, str],
-) -> dict[str, list[_Position]]:
-    """Every source's answer for every attribute of one sample. Decides nothing."""
+) -> tuple[dict[str, list[_Position]], list[ValidationWarning]]:
+    """Every source's answer for every attribute of one sample, plus what the record said that has no
+    key to say it under. Decides nothing: the notes report an exclusion the key space already made.
+    """
     out: dict[str, list[_Position]] = {}
+    notes: list[ValidationWarning] = []
 
     if sample.record is not None:
         for attr in sample.record.attributes:
-            if not attr.harmonized or attr.name in _RECORD_META or not is_attribute(attr.name):
+            if attr.name in _RECORD_META:
+                continue
+            if not attr.harmonized or not is_attribute(attr.name):
+                notes.append(_unharmonized_note(sample.sample_id, attr))
                 continue
             out.setdefault(attr.name, []).append(
                 _Position(
@@ -348,7 +373,36 @@ def _positions_for(
                 rung=0,
             )
         )
-    return out
+    return out, notes
+
+
+def _unharmonized_note(sample_id: str, attr: RecordAttribute) -> ValidationWarning:
+    """The submitter typed a fact into a structured slot under a name nobody controls.
+
+    Keeping it out of ``experiment.samples`` is the decision, and it stands: a key we coined would
+    accept whatever an extraction wanted to put in it, which is exactly how a field called
+    "condition" swallowed routine worm husbandry. *Silence* was never part of that decision, though,
+    and it produced an asymmetry worth naming — the same sentence in a free-text protocol field
+    reaches the prose path and can become a span-verified claim, so a submitter who used the
+    structured slot was LESS legible to the compiler than one who buried it in a paragraph. A GEO
+    record declaring ``bd rhapsody_capture_bead_version: enhanced beads`` — the single fact that
+    separates one BD Rhapsody bead from the other — vanished here without a word.
+
+    So the drop is noted rather than closed: no key is invented, no refusal is weakened, nothing
+    reaches the manifest that could not before, and the fact stops being invisible (#165). This
+    stage decides and never blocks, so a note is the whole of what it may emit.
+    """
+    tag = attr.raw_name or attr.name
+    return ValidationWarning(
+        code="sample_attribute_unharmonized",
+        message=(
+            f"{sample_id}: the record declares {tag!r} = {attr.value!r}, which is not one of NCBI's "
+            f"harmonized attribute names, so it stays on the record and becomes no sample fact — a "
+            f"key nobody curates would accept whatever was put in it. The same words in a free-text "
+            f"field would have reached the prose path instead."
+        ),
+        subject=BlockerSubject(kind="field", ref=f"{SAMPLE_FIELD_PREFIX}{attr.name}"),
+    )
 
 
 def _basis_for(
