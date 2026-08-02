@@ -1007,8 +1007,9 @@ def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
     # `could not check`, never `checked and found nothing` — the same split the corpus already makes
     # between a package that is `absent` and one that is `unavailable`.
     assert run.harvest.unchecked == ["experiment.organism"]
+    # An empty `missing` is what keeps the grade above at `correct`: an unchecked field must not
+    # fold in as a failed extraction, which would grade `wrong_reason` for a document nobody read.
     assert run.harvest.missing == []
-    assert run.grade.grade is not Grade.WRONG_REASON, "an unchecked field is not a failed extraction"
     # and WHICH document never answered, in the row a reader looks a sha up in
     (doc,) = run.harvest.documents
     assert "failure" in doc and doc["failure"]
@@ -2164,6 +2165,85 @@ def test_the_report_separates_work_done_from_elapsed_time() -> None:
     del older["cost"]["wall_seconds"]
     page = render_html(older, title="T", source=None)
     assert "not recorded by this run" in page
+
+
+def _partly_measured_fixture() -> dict[str, Any]:
+    """The fixture's one harvesting case, with a document the provider never answered."""
+    fixture = _render_fixture()
+    fixture["harvest"] = {
+        "cases": 1.0,
+        "cases_complete": 0.0,
+        "cases_partial": 1.0,
+        "cases_unmeasured": 0.0,
+        "documents_planned": 73.0,
+        "documents_extracted": 68.0,
+        "documents_failed": 5.0,
+        "assertions_unchecked": 1.0,
+    }
+    case = next(c for c in fixture["per_case"] if c["case"] == "poisoned-one")
+    case["harvest"]["status"] = "partial"
+    case["harvest"]["n_documents_failed"] = 5
+    case["harvest"]["unchecked"] = ["experiment.samples.strain"]
+    case["harvest"]["documents"][1]["failure"] = (
+        "deepseek returned output that is not valid JSON: Expecting value: line 1 column 1"
+    )
+    return fixture
+
+
+def test_the_page_says_how_much_of_the_harvest_stage_ran() -> None:
+    """The finding, on the page: a green `matched` list says nothing about the documents that never
+    answered, and until now nothing on the page said which those were.
+
+    Three places, because they answer three different questions — how much of the tier (the tile),
+    how much of this case (the status line on the card), and which document and why (its own row).
+    """
+    page = render_html(_partly_measured_fixture(), title="T", source=None)
+
+    assert "harvest coverage" in page and "68 of 73" in page
+    assert "1 partly" in page and "1 assertion(s) unchecked" in page
+    assert "documents answered" in page, "the per-case status line qualifies the chips under it"
+    assert "unchecked" in page and "experiment.samples.strain" in page
+    assert "could not check, not checked and found nothing" in page
+    # ...and WHICH document, by the name a human reads, with the provider's own reason
+    assert "SAMN14126930" in page and "not valid JSON" in page
+
+
+def test_a_fully_measured_run_says_so_rather_than_staying_silent() -> None:
+    """The other half: a page that only ever mentions coverage when it is bad teaches a reader to
+    read silence as good, which is precisely how the first tier pass went unnoticed."""
+    fixture = _partly_measured_fixture()
+    fixture["harvest"] = {
+        "cases": 1.0,
+        "cases_complete": 1.0,
+        "cases_partial": 0.0,
+        "cases_unmeasured": 0.0,
+        "documents_planned": 73.0,
+        "documents_extracted": 73.0,
+        "documents_failed": 0.0,
+        "assertions_unchecked": 0.0,
+    }
+    page = render_html(fixture, title="T", source=None)
+    assert "every planned document answered" in page
+
+
+def test_a_report_predating_the_coverage_field_still_renders_as_it_meant() -> None:
+    """An older report has no `status` and no `harvest` block, and it is read as complete — which is
+    what it meant, since a case whose model failed did not appear as a graded case at all then.
+
+    A renderer that could only read the current shape would make the committed benchmark reports
+    unreadable on the day the shape changed.
+    """
+    page = render_html(_render_fixture(), title="T", source=None)
+    assert "harvest coverage" not in page, "no coverage was recorded, so none is claimed"
+    assert "unmeasured" not in page and "documents answered" not in page
+    assert "experiment.organism" in page, "and the harvest block it DID record still renders"
+
+
+def test_a_no_llm_run_gets_no_coverage_tile_rather_than_a_zeroed_one() -> None:
+    """`0 of 0 documents` reads as a coverage failure. `--no-llm` has no stage to have covered."""
+    byte_only = _render_fixture()
+    byte_only["harvest"] = None
+    assert "harvest coverage" not in render_html(byte_only, title="T", source=None)
 
 
 def test_header_names_the_extractor_beside_the_command() -> None:

@@ -209,6 +209,26 @@ def eval_run(
     (run_dir / EVAL_REPORT_FILENAME).write_text(rendered, encoding="utf-8")
     typer.echo(rendered)
 
+    # Coverage before verdict, for the same reason: how much of the LLM stage ran qualifies every
+    # harvest number under it. It is NOT an exit code. Exit 3 says the compiler produced a wrong
+    # answer and exit 4 says a human is owed one; a stage the provider did not answer is neither,
+    # and turning a provider's flakiness into a red tier would make this command's exit code a
+    # report on somebody else's uptime. A skip still poisons no rate — it is now merely visible.
+    coverage = report.harvest or {}
+    if coverage.get("cases_unmeasured") or coverage.get("cases_partial"):
+        unmeasured = [
+            r.case_id for r in runs if r.harvest is not None and r.harvest.status != "complete"
+        ]
+        typer.echo(
+            f"HARVEST PARTLY MEASURED: {int(coverage['documents_extracted']):,} of "
+            f"{int(coverage['documents_planned']):,} planned documents were answered, and "
+            f"{len(unmeasured)} case(s) are a claim about less than their whole prose: {unmeasured}. "
+            f"Every rate above excludes what could not be checked, so it is honest and it is "
+            f"narrower than it looks — re-run those cases with --model deepseek-v4-pro, or with a "
+            f"smaller --jobs",
+            err=True,
+        )
+
     # Before the accuracy gate, because a blocked case was not graded at all: reporting "accuracy
     # 1.000" over the cases that did finish, and only then mentioning the one that was cut off, gets
     # the order of the two facts backwards.
@@ -357,6 +377,14 @@ def eval_report(
                 # The subset the corpus itself is missing. Counted apart from the skips because it
                 # is the one that is an instruction: publish the package.
                 "absent": sum(1 for c in cases if c.get("skip_kind") == "absent"),
+                # The same question one level in: a case that graded, whose LLM stage did not. It
+                # is not a skip — the byte half really ran — so it would otherwise be invisible in
+                # a count of what did.
+                "harvest_not_fully_measured": sum(
+                    1
+                    for c in cases
+                    if (c.get("harvest") or {}).get("status") not in (None, "complete")
+                ),
                 # Named, not counted: the whole point of the page is that a false accept is a
                 # verdict with the cases attached, and the summary line says the same thing.
                 "false_accepts": false_accepts,
