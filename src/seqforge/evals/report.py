@@ -33,6 +33,12 @@ run anywhere for anyone, and the fix is to publish it rather than to try again l
 every rate; only one is an instruction, and a page that spelled them the same way let a dataset go
 quietly missing behind a word that reads as transient.
 
+**And a harvest stage that did not run is a third state, on the same argument.** A case whose
+documents the model never answered still grades its byte half, so it is not a skip — but its
+``matched`` list is empty for a reason no reader could otherwise see. Every harvest block carries a
+``status``, the page counts the three across the tier in a tile of their own, and a field nothing
+that answered was asked for renders as **unchecked** rather than as one the model failed to find.
+
 **Both times, labelled.** ``cost.seconds`` is the sum of the per-case durations (work done);
 ``cost.wall_seconds`` is the elapsed time. Under the parallel runner they differ by the fan-out, and
 calling the sum "wall time" — as this renderer's predecessor did — reports a run as ten times slower
@@ -352,6 +358,9 @@ class DocView:
     scope: str
     subject: str | None
     n_chars: int
+    #: The provider's own message where this document was never answered; ``None`` where it was.
+    #: An empty batch is an answer and leaves this ``None``, which is the whole distinction.
+    failure: str | None = None
 
     @property
     def label(self) -> str:
@@ -420,11 +429,26 @@ class HarvestView:
     missing: list[str]
     hallucinated: list[str]
     unstable: list[str]
+    #: Expected fields nothing that answered was asked for. Could not check, not checked and found
+    #: nothing — and a page that renders it as ``missing`` blames a model for a document it was
+    #: never shown.
+    unchecked: list[str]
     n_rejected: int
     claims: list[ClaimView]
     refusals: list[RefusalView]
     documents: dict[str, DocView]
     mode: dict[str, Any]
+    #: ``complete`` | ``partial`` | ``unmeasured``. Absent from a report written before this field,
+    #: which is read as ``complete`` — that is what such a report meant, since a case whose model
+    #: failed did not appear as a graded case at all.
+    status: str = "complete"
+    n_documents: int = 0
+    n_documents_failed: int = 0
+
+    @property
+    def unanswered(self) -> list[DocView]:
+        """The documents the provider never answered, each with its own reason."""
+        return [d for d in self.documents.values() if d.failure is not None]
 
     def source_of(self, doc_sha256: str | None) -> str:
         """What a document sha reads as — its subject and level, or a short sha if it is unknown."""
@@ -440,6 +464,10 @@ class HarvestView:
             or self.missing
             or self.hallucinated
             or self.unstable
+            or self.unchecked
+            # A stage that did not finish is the case most worth showing and the one with least to
+            # show: every list above it is empty precisely because it did not run.
+            or self.status != "complete"
             or self.n_rejected
             # A case that extracted claims nothing expected still extracted them, and hiding those
             # behind an empty scorecard is how a corpus grows a field nobody knew it was producing.
@@ -555,6 +583,7 @@ def _harvest_view(harvest: dict[str, Any]) -> HarvestView:
             scope=str(d.get("scope", "?")),
             subject=(str(d["subject"]) if d.get("subject") else None),
             n_chars=int(d.get("n_chars", 0) or 0),
+            failure=(str(d["failure"]) if d.get("failure") else None),
         )
         for d in harvest.get("documents", [])
     }
@@ -602,12 +631,16 @@ def _harvest_view(harvest: dict[str, Any]) -> HarvestView:
         missing=[str(x) for x in harvest.get("missing", [])],
         hallucinated=[str(x) for x in harvest.get("hallucinated", [])],
         unstable=[str(x) for x in harvest.get("unstable", [])],
+        unchecked=[str(x) for x in harvest.get("unchecked", [])],
         # From the list where there is one, from the old integer where there is not.
         n_rejected=len(refusals) or int(harvest.get("n_rejected", 0) or 0),
         claims=claims,
         refusals=refusals,
         documents=documents,
         mode={str(k): v for k, v in (harvest.get("mode") or {}).items()},
+        status=str(harvest.get("status") or "complete"),
+        n_documents=int(harvest.get("n_documents", 0) or 0),
+        n_documents_failed=int(harvest.get("n_documents_failed", 0) or 0),
     )
 
 
@@ -745,6 +778,23 @@ def _harvest_block(h: HarvestView) -> str:
     way in is a number to be believed.
     """
     parts = []
+    if h.status != "complete":
+        # First, because it qualifies every chip under it. An empty `matched` beneath a stage that
+        # never ran is not the same reading as an empty `matched` beneath one that did.
+        n_ok = h.n_documents - h.n_documents_failed
+        why = "; ".join(f"{d.label} · {d.scope}: {d.failure}" for d in h.unanswered if d.failure)
+        parts.append(
+            f'<div class="hv lv-warn"><span class="hv-k">{esc(h.status)}</span>'
+            f'<span class="tabular-nums font-semibold">{n_ok} of {h.n_documents}</span>'
+            '<span class="hv-note">documents answered — this scorecard is a claim about those '
+            f"only{(' · ' + esc(why)) if why else ''}</span></div>"
+        )
+    if h.unchecked:
+        parts.append(
+            f'<div class="hv lv-warn"><span class="hv-k">unchecked</span>{_chips(h.unchecked)}'
+            '<span class="hv-note">nothing that answered was asked these — could not check, '
+            "not checked and found nothing; excluded from every rate</span></div>"
+        )
     if h.hallucinated:
         parts.append(
             '<div class="hv lv-poison"><span class="hv-k">hallucinated</span>'
@@ -1252,6 +1302,28 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
             f"{tokens:,} tokens" if tokens else "none — this tier is deterministic",
         )
     )
+    # Only on a run that harvested. A `--no-llm` run has no stage to report coverage of, and a tile
+    # reading "0 of 0 documents" would be a coverage failure rather than the absence of one.
+    harvest: dict[str, Any] = report.get("harvest") or {}
+    if harvest:
+        planned = int(harvest.get("documents_planned", 0) or 0)
+        got = int(harvest.get("documents_extracted", 0) or 0)
+        unmeasured = int(harvest.get("cases_unmeasured", 0) or 0)
+        partial = int(harvest.get("cases_partial", 0) or 0)
+        unchecked = int(harvest.get("assertions_unchecked", 0) or 0)
+        short = [
+            f"{unmeasured} case(s) measured nothing" if unmeasured else "",
+            f"{partial} partly" if partial else "",
+            f"{unchecked} assertion(s) unchecked" if unchecked else "",
+        ]
+        tiles.append(
+            _tile(
+                "harvest coverage",
+                f"{got} of {planned}",
+                ", ".join(s for s in short if s) or "every planned document answered",
+                "bad" if unmeasured or partial else "ok",
+            )
+        )
     return f'<div class="tiles">{"".join(tiles)}</div>'
 
 

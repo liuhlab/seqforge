@@ -294,10 +294,63 @@ facts from `records.json`, with no key and nothing graded about harvest.
 **Read this before you spend, because the plan is not the bill on the cheap model.** The first graded
 tier pass (2026-08-01, `deepseek-v4-flash`, default fan-out) issued **68** of the planned 141 requests
 — 257,592 input, 203,079 output, 161,920 cache-read tokens, 326 s wall — because five of the seven
-prose-carrying cases aborted on DeepSeek's known empty-`json_object` failure and **skipped**. The
-failures cluster on whole-paper documents; the same cases go through when run one or two at a time. A
-skip is excluded from every rate, so no number is poisoned, but the harvest half is only sometimes
-measured that way. `--model deepseek-v4-pro`, or a smaller `--jobs`, is what buys it.
+prose-carrying cases aborted on DeepSeek's known empty-`json_object` failure and **skipped**. A skip
+is excluded from every rate, so no number is poisoned, but the harvest half was only sometimes
+measured and nothing said which times. `--model deepseek-v4-pro`, or a smaller `--jobs`, buys recall;
+what the report now buys is knowing you needed it.
+
+### A stage that did not run is not a stage that found nothing (2026-08-01, #182)
+
+That pass reported a clean `harvest.matched` for the two cases that survived and **said nothing at
+all** about the five that did not. It is the same "could not check" versus "checked and found
+nothing" split this file already draws between an `unavailable` package and an `absent` one, one
+level in — and it was decided the same way. Three things changed, and no exit code did.
+
+**A per-document abort no longer takes the case down with it.** One document raising through the
+whole case is what made the tier's harvest half all-or-nothing, and it is why `--trials N` is the
+*wrong* instrument here: all N trials skip together and measure nothing, so three single-trial runs
+are strictly better. Under `--llm` the documents that answered are graded and the ones that did not
+are named, with the provider's own message. (`harvest extract` is unchanged and still fails closed:
+a manifest silently short a fact cannot be told from a complete one.)
+
+**A case whose model failed still grades its byte half.** It used to skip entirely, so a `--llm`
+pass graded thirteen cases where `--no-llm` graded eighteen — two runs that could not be diffed at
+all. Nothing about the byte half needs a model.
+
+**Every harvest grade carries a `status`**, and the report a tier-wide `harvest` block:
+
+```jsonc
+"harvest": {
+  "cases_complete": 0, "cases_partial": 1, "cases_unmeasured": 0,
+  "documents_planned": 14, "documents_extracted": 12, "documents_failed": 2,
+  "assertions_unchecked": 1          // excluded from field_accuracy, which is why it is reported
+}
+```
+
+`documents_planned` is this run's own plan, so the plan-versus-issued gap needs no second command;
+compare it against `eval plan`'s `n_documents` to also catch the cases that never planned at all
+(an unreachable package). `documents_extracted` against `cost.llm_calls` is what retries cost.
+
+A graded assertion a failed document would have been asked is reported **`unchecked`**, never
+`missing`. The rule is asymmetric on purpose: `missing` claims the model read everything and did not
+say it, so one unread document unsettles it, while `matched` needs a single document and nothing
+unsettles it. Measured on `GSE234962`, whose paper aborts while its supplementary table answers —
+both dataset-scoped — the symmetric rule reported the binomial that paper writes fifteen times as a
+claim the model had failed to make.
+
+**A skip still poisons no rate, and this is still not a failure.** Exit 3 says the compiler produced
+a wrong answer and exit 4 says a human is owed one; a stage the provider did not answer is neither,
+and a red tier on DeepSeek's uptime would be a worse instrument than a green one. What it gets is a
+number, a stderr line, and a tile on the page.
+
+**The default model stays `deepseek-v4-flash`** (#167). The argument for the cheap default was cost
+across 10⁴ datasets, and this failure mode does not touch it: span verification re-greps every quote
+whichever model proposed it, so the flakiness costs coverage and never correctness. A silent
+fallback to `-pro` after N failures was considered and rejected — the same prompt on a different
+model is a different extractor ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run
+that switched mid-pass could not name its own, and `extractor` is the field that makes a baseline
+comparable at all. Now that one abort costs one document rather than one dataset, `--model
+deepseek-v4-pro` is a decision a reader can take *from the report* instead of from a call count.
 
 Two findings from that pass are recorded in
 [`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md), including one case that grades

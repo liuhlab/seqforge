@@ -76,6 +76,13 @@ def _doc(tmp_path: Path, text: str = _TEXT) -> NormalizedDoc:
     return normalize_document(p)
 
 
+def _sub(tmp_path: Path) -> Path:
+    """A second directory, so a second document can keep the same basename as the first."""
+    other = tmp_path / "other"
+    other.mkdir(exist_ok=True)
+    return other
+
+
 def _batch(
     quote: str = _QUOTE, value: str = "10x-3p-gex-v3", sha: str = "0" * 64, **extra: Any
 ) -> str:
@@ -1176,6 +1183,106 @@ def test_the_fan_out_returns_outcomes_in_plan_order(tmp_path: Path) -> None:
     # every draft is anchored by code onto the document that was actually sent, so the shas ARE the
     # order the calls were made in
     assert [o.drafts[0].span.doc_sha256 for o in outcomes] == [d.doc_sha256 for d in plan.documents]
+
+
+class _OneDocumentFails:
+    """Answers every document except the one whose text holds ``poison``, which comes back unusable.
+
+    Modelled on the failure that produced this seam: DeepSeek's empty/invalid ``json_object`` (#4),
+    which lands on whichever document provokes a long response rather than on the longest document.
+    """
+
+    name = "flaky"
+
+    def __init__(self, poison: str) -> None:
+        self._poison = poison
+        self.n_calls = 0
+
+    def default_model(self) -> str:
+        return "flaky-1"
+
+    def complete_json(self, **kwargs: Any) -> LLMResponse:
+        self.n_calls += 1
+        if self._poison in str(kwargs["user"]):
+            return LLMResponse(text="not json at all", usage={"input_tokens": 3})
+        return LLMResponse(text=_batch(quote=_QUOTE), usage={"input_tokens": 1})
+
+
+def test_one_documents_abort_takes_down_the_whole_plan_by_default(tmp_path: Path) -> None:
+    """The compiler fails closed, and that stays true.
+
+    An extraction missing a document produces a manifest silently short a fact, and nothing
+    downstream can tell it from a complete one — so the default is still to raise.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path), _doc(_sub(tmp_path), "A poison table.")])
+    assert plan.n_documents == 2
+
+    with pytest.raises(ExtractUnavailable):
+        extract_planned(plan, kb.load_all_specs(), provider=_OneDocumentFails("poison"))
+
+
+def test_under_partial_one_documents_abort_costs_only_that_document(tmp_path: Path) -> None:
+    """The harness's opposite need, and the sharpest half of #182.
+
+    Five of seven prose-carrying benchmark cases measured **nothing** because one document each
+    raised through the whole case — and the aborts landed on a 1 KB supplementary table, not on the
+    whole paper. A report saying "the other documents extracted these claims, this one never
+    answered" is strictly more informative than one saying nothing.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    good, bad = _doc(tmp_path), _doc(_sub(tmp_path), "A poison table.")
+    plan = plan_extraction(documents=[good, bad])
+
+    outcomes = extract_planned(
+        plan, kb.load_all_specs(), provider=_OneDocumentFails("poison"), partial=True
+    )
+
+    assert len(outcomes) == 2, "still positionally aligned with the plan"
+    by_doc = dict(zip(plan.documents, outcomes, strict=True))
+    assert by_doc[good].answered and by_doc[good].drafts, "the good document still extracted"
+    survivor = by_doc[bad]
+    assert not survivor.answered
+    assert survivor.drafts == []
+    assert survivor.failure is not None and "not valid JSON" in survivor.failure
+    # ...and it still names who did not answer, because "nothing came back" is a fact about an
+    # extractor and a report that cannot say which one is unreadable a week later.
+    assert survivor.extractor.model_id == "flaky/flaky-1"
+
+
+def test_an_empty_batch_is_an_answer_and_a_failure_is_not(tmp_path: Path) -> None:
+    """The distinction the whole ticket rests on: checked and found nothing, versus could not check.
+
+    Both produce zero drafts. Folding them together is what let a stage that never ran report the
+    same way as one that read the document honestly and had nothing to say about it.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path, "We sequenced some things.")])
+    (silent,) = extract_planned(
+        plan, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []})), partial=True
+    )
+    assert silent.answered and silent.drafts == [] and silent.failure is None
+
+
+def test_partial_does_not_swallow_a_ceiling(tmp_path: Path) -> None:
+    """A Ceiling is a refusal, not an unavailability — the provider answered everything it was given.
+
+    It owes the caller a ``Blocker`` and exit 3, so it must reach one however the fan-out was asked
+    to treat a failed document.
+    """
+    from seqforge.harvest import CeilingExceeded, TokenMeter, extract_planned, plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path)])
+    meter = TokenMeter(_FakeProvider(_batch()), ceiling=1)
+    # Bank a request's worth first, so the ceiling is already reached when the fan-out asks to be
+    # admitted — the check is on the total banked so far, not on a guess about the next request.
+    meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+
+    with pytest.raises(CeilingExceeded):
+        extract_planned(plan, kb.load_all_specs(), provider=meter, partial=True)
 
 
 def test_the_fan_out_bounds_what_the_provider_sees_however_the_pools_nest() -> None:

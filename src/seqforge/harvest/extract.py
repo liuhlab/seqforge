@@ -145,11 +145,41 @@ class ExtractionOutcome:
     #: Individual drafts the model returned malformed (e.g. ``value: null``) — dropped, not fatal. Same
     #: shape as ``VerifyReport.rejected`` so a run can report both surfaces the same way.
     rejected: list[dict[str, object]] = field(default_factory=list)
+    #: Why this document produced nothing, when the reason is that it was never answered — the
+    #: provider's own message. ``None`` on every outcome a model really returned, including one that
+    #: honestly returned no drafts. **The two are not the same fact**, and an outcome that could not
+    #: tell them apart is what let a whole dataset's extraction read as a document supporting nothing.
+    failure: str | None = None
+
+    @property
+    def answered(self) -> bool:
+        """Did the model answer this document at all? An empty batch is an answer; a failure is not."""
+        return self.failure is None
 
     @property
     def cache_hit(self) -> bool:
         """True iff the stable prefix was served from cache (0 across repeats => an invalidator)."""
         return self.usage.get("cache_read_tokens", 0) > 0
+
+    @classmethod
+    def unanswered(
+        cls, *, provider: str, model: str, detail: str, usage: dict[str, int] | None = None
+    ) -> ExtractionOutcome:
+        """One document the provider never answered, as a result rather than as an exception.
+
+        It still names who was asked, because "nothing came back" is a fact about an extractor and a
+        report that could not say which one would be unreadable a week later.
+        """
+        return cls(
+            drafts=[],
+            extractor=ExtractorProvenance(
+                model_id=f"{provider}/{model}", prompt_version=EXTRACT_PROMPT_VERSION
+            ),
+            provider=provider,
+            model=model,
+            usage=dict(usage or {}),
+            failure=detail,
+        )
 
 
 def build_kb_context(specs: dict[str, Spec]) -> str:

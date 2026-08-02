@@ -222,6 +222,14 @@ class EvalReport(BaseModel):
     false_refuse_rate: float
     questions_asked: dict[str, float]
     cost: dict[str, float]
+    #: How much of the LLM stage this run actually measured: documents planned against documents
+    #: extracted, and how many cases were ``complete`` / ``partial`` / ``unmeasured``. ``None`` on a
+    #: run that harvested nothing, because zeros would read as a stage that ran and found nothing.
+    #:
+    #: It is here because a skip poisons no rate — correctly — and that is exactly what made a
+    #: half-measured pass invisible: `harvest.matched` was reported for whichever cases survived,
+    #: and the summary said nothing about the ones that never ran. This is the number that says so.
+    harvest: dict[str, float] | None = None
     #: The run directory this report was written into — the one holding ``report.json`` and
     #: ``transcripts/<case>.jsonl``. ``None`` when the run wrote nothing (no ``-C``), which is the
     #: shape every report had before evals honoured "disk is state". Each case's own
