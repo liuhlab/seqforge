@@ -898,6 +898,39 @@ def test_the_anchored_onlist_hit_tests_every_resolved_frame_and_only_those(tmp_p
     assert miss.hit_rate == 0.0
 
 
+def test_the_anchored_onlist_hit_drops_a_frame_the_sequencer_never_called(tmp_path: Path) -> None:
+    """An uncalled base inside a RESOLVED frame leaves the denominator, exactly as a lost frame does.
+
+    The two twins must answer the same question the same way, and until #177 they did not: the
+    fixed-offset path counted a non-ACGT window as a tested miss while this one counted it as tested
+    too, so a dark cycle read as "these barcodes are not on the whitelist" on both. A frame the
+    sequencer never called cannot hit any whitelist, so it says nothing about which whitelist the
+    library came from — it is lost coverage, not a miss.
+    """
+    wp, bc, pools = _enhanced_bc_probe(tmp_path)
+    onlist = PackedOnlist.from_barcodes(pools[0])
+    clean = wp.anchored_onlist_hit(bc, "cls1", onlist, orientation="forward")
+
+    # Blank one base of every OTHER framed read's cls1 slice, leaving the frame (and its anchors) intact.
+    darkened = list(wp.seqs)
+    frames = wp._frames(bc)
+    blanked = 0
+    for i, frame in enumerate(frames):
+        if frame is None or i % 2:
+            continue
+        start, end = frame["cls1"]
+        seq = darkened[i]
+        darkened[i] = seq[:start] + "N" + seq[start + 1 : end] + seq[end:]
+        blanked += 1
+    assert blanked, "the fixture must have framed reads to darken, or this proves nothing"
+
+    dark = WindowProbe(observation=wp.observation, seqs=darkened)
+    hit = dark.anchored_onlist_hit(bc, "cls1", onlist, orientation="forward")
+
+    assert hit.n_tested == clean.n_tested - blanked, "the blanked frames are coverage, not misses"
+    assert hit.hit_rate == 1.0, "every frame that WAS called still came out of this very pool"
+
+
 # ================================================================================================
 # has_segment kind: constant — the SHARE OF READS carrying a fixed sequence
 # ================================================================================================

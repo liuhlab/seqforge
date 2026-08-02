@@ -140,6 +140,38 @@
 # by rebuilding the package at a larger -n: the package already carries 20,000 reads and resolve
 # samples 2,000 of them, so no -n makes this pass. Deliberately NOT fixed by trimming the dark head,
 # which would be selecting the reads that agree with the answer.
+#
+# ------------------------------------------------------------------------------------------------
+# POST-RUN, 2026-08-01 (SECOND ENTRY, SAME DAY) — GREEN. The defect above is FIXED, and the block
+# reporting it is kept because a corpus that deletes its own defect reports cannot be audited.
+#
+# Grade: `correct`. resolve exits 0 and decides `10x-gemx-3p-v4`. All NINE field claims now grade
+# and all nine pass — they were `"fields": []` above because a refusal grades no fields, so this is
+# the first run in which the archive transcript's join to SAMN50554797 is actually tested here. The
+# tier moves 18 cases / false_refuse_rate 0.0556 -> 18 cases / false_refuse_rate 0.0000, with
+# `field_accuracy` 1.0 and `false_accept_rate` 0.0 both unchanged. NO OTHER CASE MOVED: all 17 other
+# per-case grades are identical before and after, which is the measurement that matters, since a
+# change to a hit-rate denominator could have moved every row in the tier.
+#
+# WHAT CHANGED, AND IT IS NOT THE SAMPLE SIZE. `DEFAULT_MAX_READS` is still 2,000 and `PROBE_VERSION`
+# is unmoved, because no observation value changed. What changed is the onlist hit rate's DENOMINATOR
+# (`io/onlist.py`, and its anchored twin in `resolve/window.py`): a read whose scored window holds a
+# non-ACGT base is unpackable, so it can never be a hit, and it now leaves `n_tested` instead of
+# diluting the rate. On this run's first 2,000 reads that is 7.90% -> 91.33% over the 173 reads whose
+# cycle 2 actually fired — against 92.33% over all 20,000, so the small sample was never the problem.
+# The dark cycle now costs COVERAGE (n_tested 2,000 -> 173), which is the honest report of it.
+#
+# WHY NOT THE OTHER TWO CANDIDATE FIXES. Raising or adapting N would have bought this one dataset and
+# left the false assumption standing — and cannot be right in general, because the head of a file is
+# the flow cell's first tiles and no N is far enough from them. Lowering the admission bar would have
+# spent the one thing keeping cDNA out of a barcode role, to compensate for reads that carry no
+# information either way. Both treat a measurement error as a threshold problem.
+#
+# THE PREDICTION IS UNTOUCHED AND CAME TRUE. `outcome`, `predicts` and all nine `fields` claims are
+# still byte-identical to the pre-registration commit — the whole file's non-comment content has
+# never been edited. The case predicted `decide` -> `10x-gemx-3p-v4` from declared metadata alone,
+# was red for a reason nobody predicted, and is green without a single expectation being moved to
+# meet it. That is the only shape in which a red case turning green means anything.
 # ================================================================================================
 outcome: decide
 description: >-
@@ -163,18 +195,22 @@ description: >-
   recovering the barcode read that ENA drops for this run. PRE-REGISTERED before any run; the header
   carries the vendor-verified whitelist arithmetic and the "GEM-X is not one chemistry" trap.
 
-  RED TODAY, AND UNPREDICTED — a defect report, not an instrument. resolve refuses with
-  BARCODE_READ_ABSENT, so the case grades `false_refuse` and contributes 0 false accepts. Its nine
-  field claims are UNTESTED by this run — a refusal grades no fields at all — so they stay unverified
-  until the refusal is fixed. The chemistry call is right by a factor of 90 (73.11% on the GEM-X whitelist vs
-  0.81% on the v3 list, over the package's full 20,000-read slice). What fails is the SAMPLE: R1
-  cycle 2 is a dark cycle at the head of this run — N in 91.35% of the first 2,000 reads, 0.00% by
-  the end of the slice — and since seqforge matches barcodes exactly, one N in the 16 bp CB makes
-  the read unmatchable. resolve samples exactly those first 2,000 reads, scoring 7.90% against an
-  8.583% admission bar and missing by 0.68pp; the verdict flips to `decide` between 2,000 and 3,000
-  reads. This falsifies `probe/__init__.py`'s stated basis for DEFAULT_MAX_READS=2_000 — that the
-  resolved chemistry is invariant from 1k to 200k reads across every benchmarked worm library — on a
-  worm library. The expectation is left at `decide` on purpose: see the POST-RUN block in the header.
+  IT WAS RED, AND UNPREDICTED, AND IT IS NOW GREEN WITH THE PREDICTION UNTOUCHED. On its first run
+  resolve refused with BARCODE_READ_ABSENT and the case graded `false_refuse`, its nine field claims
+  ungraded (a refusal grades no fields). The chemistry call was right by a factor of 90 all along
+  (73.11% on the GEM-X whitelist vs 0.81% on the v3 list, over the package's full 20,000-read slice).
+  What failed was the SAMPLE: R1 cycle 2 is a dark cycle at the head of this run — N in 91.35% of the
+  first 2,000 reads, 0.00% by the end of the slice — and since seqforge matches barcodes exactly, one
+  N in the 16 bp CB made the read unmatchable, so the sampled head scored 7.90% against an 8.583%
+  admission bar. That is what this case caught, and it is a property of head slices rather than of
+  this dataset: a head slice is not a random sample, it is the flow cell's first tiles.
+
+  The fix was to the hit rate's DENOMINATOR, not to the read budget: a window the sequencer never
+  called cannot hit any whitelist, so it leaves `n_tested` instead of diluting the rate. The same
+  2,000 reads now score 91.33% over the 173 whose cycle 2 fired, against 92.33% over all 20,000.
+  DEFAULT_MAX_READS is still 2,000. Both `outcome` and all nine `fields` are byte-identical to the
+  pre-registration commit — the case was never edited to meet the code. See the two dated POST-RUN
+  blocks in the header, the first of which reported the defect and is deliberately kept.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7

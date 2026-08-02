@@ -124,20 +124,34 @@ the leaf without it. `GSE317744` is also the first real dataset in either tier w
 hypothesis produces a `decide` — `GSE208154`, the only other hypothesis-carrying benchmark case,
 refuses — and the first non-Illumina package anywhere in the corpus (DNBSEQ-G400, MGI).
 
-**`10x-gemx-3p-v4` is RED, and nobody predicted it — a defect report, not an instrument.** The
-chemistry call was right by a factor of 90: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
-`3M-february-2018`, over the package's full 20 000-read slice. What fails is the **sample**. R1 cycle 2
-is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of reads
-2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in the
-16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads and scores
-7.90 % against an admission bar of 0.08583, missing by 0.68 pp and raising `BARCODE_READ_ABSENT`; the
-verdict flips to `decide` between 2 000 and 3 000 reads. This falsifies the rationale
-`probe/__init__.py` gives for `DEFAULT_MAX_READS = 2_000` — "the resolved chemistry is invariant from
-1k to 200k reads across every benchmarked worm library" — **on a worm library**. The invariance held
-across the libraries benchmarked at the time; it is not a property of head slices. A head slice is not
-a random sample, it is the flow cell's first tiles, which is precisely where a dark cycle lives. The
-expectation is left at `decide` deliberately: grading it against today's behaviour would enshrine the
-defect as the specification.
+**`10x-gemx-3p-v4` was RED, nobody predicted it, and it is now green with the prediction untouched.**
+It is the corpus's one worked example of a case earning its keep on the first run. The chemistry call
+was right by a factor of 90 throughout: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
+`3M-february-2018`, over the package's full 20 000-read slice. What failed was the **sample**. R1
+cycle 2 is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of
+reads 2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in
+the 16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads, scored
+7.90 % against an admission bar of 0.08583, missed by 0.68 pp and raised `BARCODE_READ_ABSENT`. That
+falsified the rationale `probe/__init__.py` gave for `DEFAULT_MAX_READS = 2_000` — "the resolved
+chemistry is invariant from 1k to 200k reads across every benchmarked worm library" — **on a worm
+library**. The invariance held across the libraries benchmarked at the time; it is not a property of
+head slices. **A head slice is not a random sample, it is the flow cell's first tiles, which is
+precisely where a dark cycle lives.**
+
+**The fix (#177) was to the hit rate's denominator, not to the read budget**, and the distinction is
+the lesson. A window holding a non-ACGT base is unpackable, so it can never be a hit; counting it
+measured how many cycles the sequencer called rather than which whitelist the library came from. It
+now leaves `n_tested`, so a dark cycle costs **coverage** and leaves the **rate** alone — the same
+2 000 reads score 91.33 % over the 173 whose cycle 2 fired, against 92.33 % over all 20 000, which is
+how you can tell the small sample was never the problem. `DEFAULT_MAX_READS` is still 2 000 and
+`PROBE_VERSION` is unmoved (no observation value changed); `RESOLVE_VERSION` bumped, because the
+defect being fixed is a cached *refusal*. Raising N was rejected as buying one dataset while leaving
+the assumption standing, and lowering the admission bar as spending the thing that keeps cDNA out of
+a barcode role. Measured across the whole tier before and after: `false_refuse_rate` 0.0556 → 0.0000
+with `field_accuracy` 1.0 and `false_accept_rate` 0.0 unchanged, and **no other case moved** — all 17
+other per-case grades identical. The expectation was never edited: `outcome` and all nine `fields`
+claims are byte-identical to the pre-registration commit, and the nine graded for the first time on
+the green run, because a refusal grades no fields at all.
 
 **Considered and not added** — recorded here rather than in a commit message, because the next person
 to grow the corpus needs the reasons, not just the outcome. These are candidates, not reservations;

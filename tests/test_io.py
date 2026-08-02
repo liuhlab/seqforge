@@ -83,6 +83,41 @@ def test_onlist_hit_rate_offset_scan_recovers_shift() -> None:
     assert hit.hit_rate > 0.95
 
 
+def test_a_dark_cycle_costs_coverage_not_hit_rate() -> None:
+    """A read the sequencer never called leaves the DENOMINATOR (#177).
+
+    The shape is `evals/benchmark/GSE305031`: one dark cycle inside the 16 bp barcode window, in most
+    of the reads at the head of the run. Barcodes are matched exactly, so every affected read is
+    unmatchable — and under the old denominator that dragged the rate down in proportion to the dark
+    fraction, turning a 91% library into a 9% one and refusing it as barcode-absent.
+
+    Both halves are asserted, because only the pair pins the policy: the rate must be the rate among
+    reads that COULD hit, and the loss must still be visible as `n_tested`. A change that silently
+    dropped the coverage report would pass on the rate alone.
+    """
+    rng = random.Random(17)
+    pool = _pool(rng, 64, 16)
+    onlist = PackedOnlist.from_barcodes(pool)
+    dark = 900  # of 1000 reads: N at 0-indexed position 1, exactly as the real run has
+    reads = []
+    for i in range(1000):
+        cb = rng.choice(pool)
+        if i < dark:
+            cb = cb[0] + "N" + cb[2:]
+        reads.append(cb + "ACGT" * 5)
+
+    hit = onlist_hit_rate(reads, 0, onlist, orientation="forward")
+
+    assert hit.hit_rate > 0.95, (
+        "the reads whose cycle 2 fired are whitelist barcodes; the rate is theirs"
+    )
+    assert hit.n_tested == 1000 - dark, (
+        "the dark reads are the lost coverage, and are reported as such"
+    )
+    # The old denominator's answer, spelled out so the regression is unmistakable: 100/1000.
+    assert hit.hit_rate > 0.5 > (1000 - dark) / 1000
+
+
 def test_onlist_hit_rate_random_reads_near_floor() -> None:
     rng = random.Random(3)
     onlist = PackedOnlist.from_barcodes(_pool(rng, 64, 16))
@@ -119,9 +154,11 @@ def _naive_hit_rate(
                 if len(seq) < e:
                     continue
                 window = revcomp(seq[s:e]) if strand == "revcomp" else seq[s:e]
-                tested += 1
                 code = pack_barcode(window)
-                if code is not None and onlist.contains(code):
+                if code is None:
+                    continue  # a non-ACGT window cannot hit, so it is not tested
+                tested += 1
+                if onlist.contains(code):
                     hits += 1
             if tested and hits / tested > best.hit_rate:
                 best = HitResult(
@@ -137,8 +174,8 @@ def _naive_hit_rate(
 def test_vectorized_hit_rate_matches_the_naive_loop_including_edges() -> None:
     """The numpy rewrite must agree with the read-by-read loop it replaced, byte for byte.
 
-    Covers the cases that make packing subtle: N bases (unpackable, counted in `tested` but never a
-    hit), reads shorter than the window, non-zero anchors + offsets, revcomp, and an empty sample.
+    Covers the cases that make packing subtle: N bases (unpackable, so neither a hit nor a test),
+    reads shorter than the window, non-zero anchors + offsets, revcomp, and an empty sample.
     """
     rng = random.Random(11)
     pool = _pool(rng, 300, 16)

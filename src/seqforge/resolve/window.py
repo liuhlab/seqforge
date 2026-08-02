@@ -79,7 +79,11 @@ class WindowProbe:
 
         The anchored twin of :func:`~seqforge.io.onlist.onlist_hit_rate`: no offset scan (the frame IS
         the offset), forward and/or reverse-complement per ``orientation``. ``n_tested`` counts reads
-        whose frame resolved to a window of the onlist's width; a lost frame simply does not contribute.
+        whose frame resolved to a window of the onlist's width **and whose window is all-ACGT** — a
+        lost frame does not contribute, and neither does a window the sequencer never called. That is
+        one policy shared with the fixed-offset twin, which argues it in full; in one line, a read that
+        cannot hit by construction measures the run rather than the library, so it leaves the
+        denominator and shows up as lost coverage in ``n_tested`` instead.
         """
         bases = element_bases(self.seqs, self._frames(read), element_name)
         # The same TOTAL mapping the fixed-offset twin uses, rather than a second if/elif/else whose
@@ -99,9 +103,14 @@ class WindowProbe:
             for sub in bases:
                 if len(sub) != onlist.width:
                     continue
-                tested += 1
                 code = pack_barcode(revcomp(sub) if strand == "revcomp" else sub)
-                if code is not None and onlist.contains(code):
+                if code is None:
+                    # A non-ACGT base in the frame: unpackable, so it cannot hit however good the
+                    # whitelist is. It leaves the denominator for the same reason a lost frame does —
+                    # neither read says anything about which whitelist these barcodes came from.
+                    continue
+                tested += 1
+                if onlist.contains(code):
                     hits += 1
             if tested and hits / tested > best.hit_rate:
                 best = HitResult(
