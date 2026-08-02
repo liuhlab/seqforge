@@ -36,19 +36,21 @@ a model reading a DATASET-level document     ``inferred``     the paper says it 
 ===========================================  ===============  ================================
 
 A disagreement across bases keeps the stronger basis's value (``asserted`` over ``inferred``); a
-disagreement *within* one basis stores **no value at all**, because two equal authorities contradicting
-each other is not something code may break, and a wrong value here is permanent (``experiment`` is
-inside ``dataset_hash`` and the manifest is never rewritten). Either way the resolver has **decided** —
-so the disagreement is a non-blocking ``warning``, not a refusal. Null-over-wrong is a value, not a
-question for a human, and a single sample annotation is no reason to stop a whole dataset compiling.
-Only the byte resolver's ``observed`` vs ``asserted`` conflict blocks: that one decides what the data
-*is*, and code may not auto-pick it.
+disagreement that survives every level of precedence stores **no value at all**, because two equal
+authorities contradicting each other is not something code may break. Null is not the *safe* answer
+there — ``experiment`` is inside ``dataset_hash`` and the manifest is never rewritten, so a null is
+exactly as permanent as a wrong value, and the harness grades it ``false_accept``. It is the honest
+one, and only where nothing outranks anything. Either way the resolver has **decided** — so the
+disagreement is a non-blocking ``warning``, not a refusal, and a single sample annotation is no reason
+to stop a whole dataset compiling. Only the byte resolver's ``observed`` vs ``asserted`` conflict
+blocks: that one decides what the data *is*, and code may not auto-pick it.
 
 **Two equal authorities, though, must actually be two sources.** One archive deposit read at two of
 its levels is one: the sample's typed slot and the experiment title were written by the same hand, in
-the same submission, so a prose reading wholly inside what that submission typed is the declaration
-quoted short rather than a second authority contradicting the first. It is absorbed before anything is
-ranked — :func:`_without_short_readings`, which also argues the direction and the word boundary.
+the same submission, so a model's reading of that submission's prose is not a second authority
+contradicting the first — it is the same submitter, read back. So inside one source the typed slot
+wins and the reading is noted, whether it paraphrases the declaration or files another attribute's
+value under it (:func:`_outranking`; ADR-0021).
 
 That asymmetry still catches the error span verification provably cannot. "We dissected neurons and body wall muscle"
 entails ``tissue=neurons`` *and* ``tissue=muscle`` — both quotes are real, both pass span verification
@@ -155,8 +157,9 @@ class _Position:
     #: that record's prose used to be indistinguishable from a BioSample contradicting a paper.
     source: str
     #: True when the source TYPED this value into a slot for this attribute, rather than a model
-    #: having read it out of that source's prose. Only a typed value can absorb a short reading of
-    #: itself, because only it is a string the submitter actually wrote for this attribute.
+    #: having read it out of that source's prose. It is not a fifth ``Basis`` — it separates two
+    #: positions that share one — and inside one source it decides between them, because only the
+    #: typed one is a string the submitter actually wrote for this attribute (:func:`_outranking`).
     declared: bool
 
 
@@ -474,11 +477,11 @@ def _decide(
     The resolver DECIDES here rather than defer, and either way it is resolved — so a disagreement is a
     ``warning``, not a blocking conflict:
 
-    - a stronger authority wins (``asserted`` over ``inferred``): keep its value, note the weaker
-      source that disagreed;
-    - equal authorities that disagree leave the attribute **null**, because a wrong value is permanent
-      and a missing one is not. Null is a value here, not a question for a human. Two readings of ONE
-      source are not two authorities, so they are folded first (:func:`_without_short_readings`).
+    - a stronger authority wins (:func:`_outranking`): keep its value, note the source that disagreed.
+      Two levels — ``asserted`` over ``inferred``, and then, inside ONE source, the slot the submitter
+      typed over a model's reading of that source's prose;
+    - authorities that still tie leave the attribute **null**, because code does not get to break a
+      tie between equals. Null is a value here, not a question for a human;
     - a sample covered ONLY by a dataset-level ``inferred`` claim, for an attribute some *other* sample
       owns per-sample (``sample_scoped_attrs``), is also left **null**: the paper's blanket value
       varies by sample and is an unsafe guess for a sample the archive left blank (#10).
@@ -490,8 +493,7 @@ def _decide(
     attrs: dict[str, EvidencedStr] = {}
     warnings: list[ValidationWarning] = []
 
-    for name, all_found in sorted(positions.items()):
-        found = _without_short_readings(all_found)
+    for name, found in sorted(positions.items()):
         if name in sample_scoped_attrs and all(p.basis == "inferred" for p in found):
             # This sample has only a dataset-level (paper) claim for an attribute the archive declares
             # per-sample elsewhere — so the attribute is sample-specific and the study-wide value is a
@@ -511,25 +513,35 @@ def _decide(
                 )
             )
             continue
+        ranked = _outranking(found)
         distinct = {_norm_value(p.value) for p in found}
         if len(distinct) == 1:
-            best = max(found, key=lambda p: _BASIS_RANK[p.basis])
-            attrs[name] = _evidenced(best)
+            # Everyone agrees, so nothing is decided and nothing is noted — but the SPELLING still
+            # has to be chosen, and it is chosen by the same precedence rather than by which position
+            # happened to be built first. `Colon`/`colon` fold together and so do `wild-type`/`wild
+            # type`, so what the submitter typed is what a write-once manifest carries.
+            attrs[name] = _evidenced(ranked[0])
             continue
 
-        ranked = sorted(found, key=lambda p: -_BASIS_RANK[p.basis])
-        top = _BASIS_RANK[ranked[0].basis]
-        winners = {_norm_value(p.value) for p in ranked if _BASIS_RANK[p.basis] == top}
+        winners = {_norm_value(p.value) for p in ranked}
         seen = ", ".join(sorted(f"{p.value!r} ({p.basis})" for p in found))
         if len(winners) == 1:
-            # a stronger authority exists: keep its value; the weaker source is only a note
+            # a stronger authority exists: keep its value; what it outranked is only a note
             attrs[name] = _evidenced(ranked[0])
-            resolution = f"kept the {ranked[0].basis} value {ranked[0].value!r}"
+            held = (
+                "the value the record declares"
+                if ranked[0].declared
+                else f"the {ranked[0].basis} value"
+            )
+            resolution = f"kept {held} {ranked[0].value!r}"
         else:
-            # two equal authorities disagree: store nothing. A wrong value here is permanent, a
-            # missing one is not, and code does not get to break a tie between equals.
+            # Equal authorities disagree and code does not get to break a tie between equals. Null is
+            # not the safe answer — the manifest is write-once and content-hashed (ADR-0004), so a
+            # null is exactly as permanent as a wrong value, and the harness grades it `false_accept`.
+            # It is the honest one: with nothing typed behind either reading there is no third fact
+            # to prefer, which is what rungs 4-6 exist for.
             resolution = (
-                "left null — equal-authority sources disagree, and null beats a wrong guess"
+                "left null — equal-authority sources disagree, and code may not break the tie"
             )
         warnings.append(
             ValidationWarning(
@@ -542,83 +554,68 @@ def _decide(
     return attrs, warnings
 
 
-def _without_short_readings(found: list[_Position]) -> list[_Position]:
-    """Drop a prose reading that sits wholly inside what the SAME source typed into the slot.
+def _outranking(found: list[_Position]) -> list[_Position]:
+    """The positions nothing here outranks — one of them wins, and a tie between them is null.
 
-    GSE282765's BioSample types ``treatment = "Citrobacter rodentium infection"``, and a model reading
-    that same submission's experiment title asserts ``treatment = "Citrobacter rodentium"`` — correct,
-    span-verified, entailed, and one word short. Both arrive ``asserted``, they compare unequal, and
-    the equal-authority rule leaves the attribute null: **adding a true statement destroyed a fact the
+    Two levels, applied in order (`docs/adr/0021-one-deposit-is-one-source-at-every-layer.md`):
+
+    1. **Basis.** A declaration about this sample beats our inference from a paper.
+    2. **Declared, within ONE source.** A value the submitter TYPED into a slot for this attribute
+       beats a model's reading of that same source's prose — whatever the reading says.
+
+    Level 2 is what makes level 1 safe to state at all. GSE282765's BioSample types
+    ``treatment = "Citrobacter rodentium infection"`` and a model reading that same submission's
+    experiment title asserts ``treatment = "Citrobacter rodentium"`` — correct, span-verified,
+    entailed, and one word short. Both arrive ``asserted``, they compare unequal, and the
+    equal-authority rule left the attribute null: **adding a true statement destroyed a fact the
     archive had already supplied** (#182). That rule was written for a BioSample disagreeing with a
-    paper, and nothing here could tell that apart from a record disagreeing with a reading of itself.
+    paper, and nothing could tell that apart from a record disagreeing with a reading of itself.
 
-    So the fix is not to rank the two. It is to notice there is only one of them: ``source`` says the
-    typed slot and the experiment title came out of one deposit, and a submitter does not contradict
-    themselves by being quoted short.
+    **It is not a comparison of the two strings, and that is the whole of it.** The earlier repair
+    absorbed a reading wholly *inside* the typed value; it closed the shape above and no other.
+    GSE317744 types ``treatment = "MC38_3 weeks"`` and the model asserted ``treatment = "CCR9 KO"`` —
+    the sample's genotype, filed under the wrong key (#189). The two strings share nothing, so
+    containment, overlap, synonyms and punctuation folding all miss it, and
+    :func:`~seqforge.harvest.verify.entails` concedes it cannot see a field-assignment error at all.
+    Preferring the typed slot covers both, because it never asks what the reading says.
 
-    **Agreement is containment in ONE direction, and the direction is the whole safety argument.** A
-    reading wholly inside the typed value adds nothing — what gets stored is the submitter's own
-    string, byte for byte, exactly what a run with no prose at all would store, so nothing new can
-    reach the manifest this way. A reading that EXTENDS the typed value is the opposite case: a slot
-    saying ``control``, read out of the prose as ``control RNAi``, would bake a permanent claim that
-    RNAi was done onto a sample whose submitter typed no such thing. That stays a disagreement, and it
-    is why this is not "prefer the more specific value".
+    **Safety is that nothing new reaches the manifest.** What gets stored is the submitter's own
+    string, byte for byte — exactly what a run with no prose at all would store. The cost is the
+    mirror image: a submitter who typed a placeholder now beats real prose, which is why the losing
+    reading is always named in a ``sample_attribute_ambiguous`` warning rather than dropped silently.
 
-    Two further narrowings, each of which is a way containment goes wrong:
-
-    - **Whole words, never characters** (:func:`_is_short_reading_of`). ``CD4`` is inside
-      ``CD45 positive`` and is a different antigen; ``L2`` is inside ``L21``.
-    - **Only against a typed slot, and only within one source.** A paper is a second author, so its
-      shorter wording still loses on precedence *and* still leaves the note that says so. And where
-      nothing was typed at all, two prose readings are two guesses with no submitter's string behind
-      either, so preferring the longer one would be code breaking a tie — they stay a disagreement.
-
-    Nothing is warned about here, because nothing was excluded: the declaration is stored intact and a
-    reader comparing the manifest to the record sees no gap. A note would land on every dataset where
-    a model quotes a record short, which is most of them with a record at all, and that is how a
-    warning stops being read.
-
-    This changes what the resolver decides, so it is fair to ask whether it must re-key a cache. It
-    must not, and there is nothing to re-key: no artifact holds this stage's output. The metadata
-    resolution is recomputed inside every ``manifest fill``, and ``RESOLVE_VERSION`` keys the *byte*
-    resolver's candidates and evidence matrix, which this does not touch — bumping it would re-probe
-    every cached dataset to change nothing about them.
+    **Only within one source, and only against something actually typed.** ``declared`` is set only
+    where a record carried the value in a slot of its own, so the level-2 filter is scoped by
+    ``source``: a paper is a second author and still loses on basis, with the note that says so. Where
+    nothing was typed at all — two prose readings, no submitter's string behind either — nothing is
+    filtered and the tie stands, which is the arbitration verb's job and not code's.
     """
-    declared = [p for p in found if p.declared]
-    if not declared:
-        return found
-    return [
-        p
-        for p in found
-        if p.declared
-        or not any(
-            q.source == p.source and _is_short_reading_of(p.value, q.value) for q in declared
-        )
-    ]
+    rank = max(_BASIS_RANK[p.basis] for p in found)
+    top = [p for p in found if _BASIS_RANK[p.basis] == rank]
+    typed = {p.source for p in top if p.declared}
+    kept = [p for p in top if p.declared or p.source not in typed]
+    # Declared first, so the stored value is the submitter's own string rather than whichever
+    # position happened to be built first.
+    return sorted(kept, key=lambda p: not p.declared)
 
 
-def _is_short_reading_of(part: str, whole: str) -> bool:
-    """Is ``part`` a strictly shorter run of the same WORDS as ``whole``?
-
-    Words rather than characters, because character containment finds agreement in the middle of a
-    token: ``CD4`` is a substring of ``CD45 positive`` and names a different antigen, and ``L2`` sits
-    inside ``L21``. Contiguity is the second half of the same caution — matching scattered words would
-    make ``control`` agree with ``sham control of the treated arm``.
-    """
-    p = _norm_value(part).split()
-    w = _norm_value(whole).split()
-    if not p or len(p) >= len(w):
-        return False
-    return any(w[i : i + len(p)] == p for i in range(len(w) - len(p) + 1))
+#: Joiners a submitter uses where another types a space. It fixes no failing case on its own —
+#: ``MC38_3 weeks`` and ``MC38 tumor_3 weeks`` still differ, and the precedence above is what settles
+#: that pair — so what it buys is narrower and worth stating: two positions spelled apart only by one
+#: of these stop being a disagreement, which is a warning not raised and, where nothing is declared,
+#: a value stored instead of a null.
+_VALUE_JOINERS = str.maketrans("-_/", "   ")
 
 
 def _norm_value(value: str) -> str:
-    """Case- and whitespace-folded key for testing whether two attribute VALUES agree. 'Male' and
-    'male' are the same sex, and a permanent, content-addressed manifest must not null an
-    equal-authority attribute over a capitalization difference — only a genuine disagreement should.
-    The STORED value keeps its original case (via `_evidenced`); this folds only for the comparison.
+    """Case-, whitespace- and joiner-folded key for testing whether two attribute VALUES agree.
+    'Male' and 'male' are the same sex and ``wild-type`` is the same genotype as ``wild type``; a
+    permanent, content-addressed manifest must not null or warn about an attribute over a
+    capitalization or a hyphen — only a genuine disagreement should. Which SPELLING is then stored is
+    precedence's answer, not this function's: it folds for the comparison only, and `_evidenced`
+    keeps whichever position :func:`_outranking` ranked first exactly as its source wrote it.
     """
-    return " ".join(value.split()).casefold()
+    return " ".join(value.translate(_VALUE_JOINERS).split()).casefold()
 
 
 def _evidenced(p: _Position) -> EvidencedStr:

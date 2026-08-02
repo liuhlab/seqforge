@@ -46,6 +46,7 @@ from .extract import ExtractionOutcome, ExtractUnavailable, extract_drafts
 from .fields import DocScope, fields_for
 from .normalize import (
     NormalizedDoc,
+    declared_spans,
     has_prose,
     normalize_record,
     normalize_text,
@@ -275,6 +276,10 @@ def _collapsed_run_document(owner: str, runs: Sequence[ArchiveRecord]) -> Normal
     document is asked the sample-attribute vocabulary, which is precisely what an alias answers. The
     text is the members' own renderings concatenated in accession order, so it stays reproducible
     from the record set forever — a quote is only checkable while the exact bytes can be regenerated.
+
+    Every member's typed columns are marked in the joined text, not in its own rendering
+    (:func:`~seqforge.harvest.normalize.declared_spans`): the join is the only string a quote is ever
+    checked against, so an offset into anything else would point at the wrong characters.
     """
     ordered = sorted(runs, key=lambda r: r.accession)
     if len(ordered) == 1:
@@ -291,6 +296,7 @@ def _collapsed_run_document(owner: str, runs: Sequence[ArchiveRecord]) -> Normal
         scope=scope,
         subject=owner,
         n_chars=len(text),
+        declared=declared_spans(text, ordered),
     )
 
 

@@ -25,13 +25,13 @@ Numbers only; the table below carries the links.
 | `src/seqforge/cli/` | 0013, 0018 |
 | `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015 |
 | `src/seqforge/fingerprint/` | 0001 |
-| `src/seqforge/harvest/` | 0008, 0009, 0020 |
+| `src/seqforge/harvest/` | 0008, 0009, 0020, 0021 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
 | `src/seqforge/kb/` | 0011, 0012, 0020 |
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014 |
 | `src/seqforge/probe/` | 0001 |
-| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020 |
+| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021 |
 | `src/seqforge/workflows/` | 0015 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
@@ -61,3 +61,4 @@ Numbers only; the table below carries the links.
 | [0017](0017-one-type-checker-and-the-editor-runs-it.md) | One type checker, and the editor runs it | mypy is the only one, its scope is the whole repo, and Pylance's checker is off so the two cannot disagree | `pyproject.toml`, `.vscode/`, and every `.py` file in the tree |
 | [0018](0018-a-red-benchmark-case-is-published-anyway.md) | A benchmark case a real dataset makes red is published anyway | Never withhold a package to keep a rate green; a package the corpus does not hold reports **absent**, not a skip | `evals/`, `src/seqforge/evals/`, `io/benchmark.py`, `cli/io.py` |
 | [0020](0020-a-family-term-narrows-it-does-not-conflict.md) | A family term narrows; it does not conflict | One one-directional matcher answers what a chemistry string NAMES; a value naming no node asserts nothing, and an ancestor of the observed leaf is agreement | `kb/match.py`, `resolve/escalate.py`, `resolve/confuse.py`, `harvest/verify.py` |
+| [0021](0021-one-deposit-is-one-source-at-every-layer.md) | One deposit is one source, at every layer | The slot a submitter typed outranks a model's reading of that same deposit, and a span byte-equal to a typed column is not prose to read | `resolve/records.py`, `harvest/normalize.py`, `harvest/verify.py`, `harvest/plan.py` |

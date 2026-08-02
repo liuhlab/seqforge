@@ -28,7 +28,7 @@ from ..kb import load_all_specs
 from ..kb.match import carries, curated_forms, resolve_chemistry, squash
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import PERMITTED_FIELDS, permitted_for
-from .normalize import NormalizedDoc, page_for_offset
+from .normalize import DeclaredSpan, NormalizedDoc, page_for_offset
 from .prep import normalize_prep_type
 
 
@@ -196,6 +196,22 @@ def verify_drafts(
                 _reject(draft, "span_not_found", "quote does not occur in the document")
             )
             continue
+        column = _typed_column_at(doc, *found)
+        if column is not None:
+            # ...and before asking what the quote SUPPORTS, ask what it IS. A span byte-equal to a
+            # column of the record that produced this document is that record repeating itself, not
+            # prose about it — one deposit is one source, at every layer (ADR-0021). Both checks
+            # below pass on such a draft by construction: the quote is real, and entailment is
+            # vacuous because the model answered with the column's own string.
+            rejected.append(
+                _reject(
+                    draft,
+                    "quote_is_a_typed_column",
+                    f"the quote lies wholly inside {column.value!r}, which this record types as "
+                    f"{column.attribute!r} — a column code already reads, not prose about one",
+                )
+            )
+            continue
         if not entails(draft.span.quote, draft.field, draft.value):
             # real quote, wrong value — the failure span-verification alone would miss
             rejected.append(
@@ -243,6 +259,16 @@ def verify_drafts(
             )
         )
     return VerifyReport(assertions=assertions, rejected=rejected)
+
+
+def _typed_column_at(doc: NormalizedDoc, start: int, end: int) -> DeclaredSpan | None:
+    """The marked span this quote lies **wholly inside**, if any — and "wholly" is the whole rule.
+
+    A quote that reaches past the column says something the column did not, so it is a reading and
+    survives; only a quote with nothing of its own to add is refused. Equality counts as inside: the
+    measured draft quoted the column exactly.
+    """
+    return next((d for d in doc.declared if d.start <= start and end <= d.end), None)
 
 
 def _reject(draft: AssertionDraft, reason: str, detail: str) -> dict[str, object]:
