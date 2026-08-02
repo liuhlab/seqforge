@@ -2761,6 +2761,60 @@ def test_eval_report_is_a_verb_that_writes_a_file_and_answers_on_stdout(tmp_path
     assert not (tmp_path / "junk.html").exists()
 
 
+def test_the_render_summary_counts_a_case_whose_stage_did_not_finish(tmp_path: Path) -> None:
+    """A graded case whose LLM half did not run is invisible in a count of what skipped, because it
+    did not skip — the byte half really ran. So the summary counts it on a line of its own."""
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    src = tmp_path / "report.json"
+    src.write_text(json.dumps(_partly_measured_fixture()))
+    result = CliRunner().invoke(
+        app, ["eval", "report", str(src), "-o", str(tmp_path / "p.html"), "--no-timestamp"]
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["harvest_not_fully_measured"] == 1
+    assert payload["skipped"] == 2, "and it is not double-counted as one of those"
+
+
+def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The constraint and the fix in one place.
+
+    Making a flaky provider fail the tier would put this command's exit code at the mercy of
+    somebody else's uptime — exit 3 means the compiler answered wrong and exit 4 means a human is
+    owed an answer, and an unanswered document is neither. So the coverage is *said*, loudly, on the
+    stream humans read, and the exit code is unmoved.
+    """
+    from typer.testing import CliRunner
+
+    import seqforge.harvest as harvest_mod
+    from seqforge.cli import app
+
+    monkeypatch.setattr(
+        harvest_mod, "resolve_provider", lambda *a, **k: _PoisonedProvider([], "droplet")
+    )
+    result = CliRunner().invoke(
+        app,
+        ["eval", "run", "--llm", "--case", "chemistry-unstated-trap", "-C", str(tmp_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["harvest"]["cases_unmeasured"] == 1.0
+    assert payload["field_accuracy"] == 1.0, "the byte half graded; nothing unchecked entered it"
+    (row,) = payload["per_case"]
+    assert "skipped" not in row, "the case graded; only its LLM half did not"
+    assert row["harvest"]["status"] == "unmeasured"
+    # ...and it is said where a human looks, on the stream that is not the result object.
+    assert "HARVEST PARTLY MEASURED" in result.stderr
+    assert "chemistry-unstated-trap" in result.stderr
+
+
 def _stub_case(case_id: str) -> Case:
     """A Case the parallel tests can make by the dozen — `run_case` is patched out, so only `id`
     is ever read, but it is a real Case so the signature under test is the real one."""
