@@ -51,10 +51,13 @@
 #   is of the WTA library only.
 # * Single species (`Mus musculus`, taxid 10090), so `experiment.organism` is a clean claim and no
 #   read filtering arises at all.
-# * `bd rhapsody_capture_bead_version` is NOT an NCBI-harmonized BioSample attribute, so the
-#   transcriber drops it and it cannot appear under `experiment.samples.*`. The declared bead is
-#   therefore evidence FOR this pre-registration, and never something the run can grade itself
-#   against — which is the honest arrangement.
+# * `bd rhapsody_capture_bead_version` is NOT an NCBI-harmonized BioSample attribute, so it cannot
+#   appear under `experiment.samples.*`. The transcriber is not what loses it — the record keeps it,
+#   unharmonized, under the submitter's own tag; the metadata resolver is what declines to key it,
+#   because a key nobody curates would accept whatever an extraction put in it. It no longer does so
+#   in silence: the drop leaves a `sample_attribute_unharmonized` note naming the tag, the value and
+#   this sample (#165). The declared bead is therefore evidence FOR this pre-registration, and never
+#   something the run can grade itself against — which is the honest arrangement.
 # * `study.center` is deliberately unclaimed: the archive's copy of it is mojibake
 #   ("...University of Z\xc3\xbcrich"), and a pre-registration should not pin an encoding bug.
 outcome: decide

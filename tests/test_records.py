@@ -604,6 +604,277 @@ def _expect_warnings(out: MetadataResolution, cell: _Cell, subject_acc: str | No
         assert not any(subject_acc in w.message and w.subject.ref == ref for w in warnings)
 
 
+# ------------------------------------------------ one source read twice is not two sources (#182)
+#
+# The table's `equal_authorities_disagree_leave_null` row is the policy this section qualifies, and
+# the policy is right: code may not break a tie between two sources of equal authority, and a wrong
+# value is permanent where a missing one is not. What was wrong is that it fired on a pair that is
+# not two sources. GSE282765's BioSample TYPES `treatment = "Citrobacter rodentium infection"`;
+# harvest reads that SAME submission's experiment title and asserts `treatment = "Citrobacter
+# rodentium"` — span-verified, entailed, true, and one word short. Both land `asserted`, they compare
+# unequal, and the archive's own value was deleted by a claim that agreed with it.
+#
+# So a reading wholly inside what the same source typed into the slot is that declaration quoted
+# short, and the declaration stands. A reading that ADDS a word is not, and the tie stands: the rows
+# below pin both, plus the two ways containment could be read too loosely — across a word boundary,
+# and across sources.
+
+
+def _typed_slot_records(attr: str, declared: str, read: str) -> ArchiveRecordSet:
+    """One submission: a BioSample that TYPED ``attr``, and an experiment title holding ``read``.
+
+    Deliberately the two halves of ONE deposit — the structured slot and the prose a model is shown
+    — because that pairing is the whole subject here.
+    """
+    from seqforge.models.records import ArchiveRecord, FreeText, RecordAttribute
+
+    return ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA182",
+        records=[
+            ArchiveRecord(
+                level="sample",
+                accession="SAMN1",
+                attributes=[RecordAttribute(name=attr, value=declared, harmonized=True)],
+            ),
+            ArchiveRecord(
+                level="experiment",
+                accession="SRX1",
+                parent="SAMN1",
+                free_text=[FreeText(label="experiment_title", text=f"GSM1: {read}, scRNAseq")],
+            ),
+            ArchiveRecord(
+                level="run",
+                accession="SRR1",
+                parent="SRX1",
+                filenames=["one_1.fastq.gz", "one_2.fastq.gz"],
+            ),
+        ],
+    )
+
+
+def _read_out_of_the_experiment_title(attr: str, declared: str, read: str) -> MetadataResolution:
+    """Resolve one sample whose slot says ``declared`` and whose own title was read as ``read``."""
+    from seqforge.harvest import normalize_record
+
+    records = _typed_slot_records(attr, declared, read)
+    experiment = records.by_accession("SRX1")
+    assert experiment is not None
+    doc = normalize_record(experiment)
+    files = [
+        _file(name, str(i).ljust(64, "e")) for i, name in enumerate(records.at("run")[0].filenames)
+    ]
+    return resolve_metadata(
+        files=files,
+        records=records,
+        assertions=[_assertion(f"{SAMPLE_FIELD_PREFIX}{attr}", read, doc.doc_sha256)],
+        subjects=[DocumentSubject(doc_sha256=doc.doc_sha256, scope=doc.scope, subject=doc.subject)],
+    )
+
+
+@dataclass(frozen=True)
+class _Reading:
+    """What one submission typed, what a model read out of that same submission, and what must land."""
+
+    id: str
+    attr: str
+    declared: str
+    read: str
+    #: The stored value, or ``None`` for "left null".
+    value: str | None
+    ambiguous: bool
+
+
+_READINGS: tuple[_Reading, ...] = (
+    # The defect itself, as a shape: the model quoted the declaration one word short.
+    _Reading(
+        id="a_shorter_quote_of_the_declaration_keeps_it",
+        attr="treatment",
+        declared="Citrobacter rodentium infection",
+        read="Citrobacter rodentium",
+        value="Citrobacter rodentium infection",
+        ambiguous=False,
+    ),
+    # The issue's own example of agreement: a stage named without its head noun is the same stage.
+    _Reading(
+        id="a_stage_named_without_its_head_noun_keeps_it",
+        attr="dev_stage",
+        declared="L2 larvae",
+        read="L2",
+        value="L2 larvae",
+        ambiguous=False,
+    ),
+    # THE TRAP, and the reason this is not "prefer the more specific value". Containment holds in the
+    # other direction here, and storing the longer string would bake a permanent claim that RNAi was
+    # done onto a sample whose submitter typed no such thing.
+    _Reading(
+        id="a_reading_that_adds_a_qualifier_is_still_a_disagreement",
+        attr="treatment",
+        declared="control",
+        read="control RNAi",
+        value=None,
+        ambiguous=True,
+    ),
+    # The other trap: 'CD4' is inside 'CD45' as characters and is a different antigen. Containment is
+    # over whole words, so this is a disagreement and not a short quote.
+    _Reading(
+        id="containment_inside_a_word_is_not_agreement",
+        attr="cell_type",
+        declared="CD45 positive",
+        read="CD4",
+        value=None,
+        ambiguous=True,
+    ),
+    # The policy this section must not weaken: two equal authorities that plainly disagree.
+    _Reading(
+        id="plainly_different_values_are_still_left_null",
+        attr="tissue",
+        declared="Colon",
+        read="Ileum",
+        value=None,
+        ambiguous=True,
+    ),
+    # And the rule already in place beside it: case alone is not a disagreement.
+    _Reading(
+        id="the_same_words_in_another_case_still_agree",
+        attr="tissue",
+        declared="Colon",
+        read="colon",
+        value="Colon",
+        ambiguous=False,
+    ),
+)
+
+
+@pytest.mark.parametrize("row", _READINGS, ids=[r.id for r in _READINGS])
+def test_a_prose_reading_of_the_declaration_is_not_a_second_source(row: _Reading) -> None:
+    """One BioSample slot, one reading of that same submission's prose, and what must survive."""
+    out = _read_out_of_the_experiment_title(row.attr, row.declared, row.read)
+    assert not out.blockers
+    assert len(out.samples) == 1
+    attrs = out.samples[0].attributes
+    if row.value is None:
+        assert row.attr not in attrs, f"{row.attr} should have been left null"
+    else:
+        assert attrs[row.attr].value == row.value
+        assert attrs[row.attr].basis == "asserted"
+
+    ambiguous = [w for w in out.warnings if w.code == "sample_attribute_ambiguous"]
+    if row.ambiguous:
+        assert len(ambiguous) == 1, "a real disagreement is still surfaced"
+        assert row.declared in ambiguous[0].message and row.read in ambiguous[0].message
+    else:
+        # Nothing was excluded, so there is nothing to note: the manifest carries the submitter's own
+        # string and a reader comparing it to the record sees no gap.
+        assert ambiguous == [], [w.message for w in ambiguous]
+
+
+def test_a_short_quote_of_the_records_own_field_does_not_delete_it() -> None:
+    """The reported case, off the committed records and one hand-built claim — no model, no network.
+
+    GSE282765 graded `correct` with no prose and `false_accept` with it, which is the whole finding:
+    adding a true statement destroyed a fact the archive had already supplied (#182). The document is
+    built by the shipping planner rather than hand-rolled, so the identity the claim cites is the one
+    a real run would produce.
+    """
+    from seqforge.evals.case import load_case
+    from seqforge.harvest import plan_extraction
+
+    case = load_case(BD_CASE)
+    assert case.records is not None, "the case commits its archive records, so this runs offline"
+    plan = plan_extraction(records=case.records)
+    title_doc = next(d for d in plan.documents if d.scope == "experiment")
+    assert "Citrobacter rodentium" in title_doc.text, "the quote greps back into the document"
+
+    subjects = [
+        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
+        for d in plan.documents
+    ]
+    claim = _assertion(
+        f"{SAMPLE_FIELD_PREFIX}treatment", "Citrobacter rodentium", title_doc.doc_sha256
+    )
+    files = _bd_case_files(case.records)
+
+    without = resolve_metadata(files=files, records=case.records)
+    assert without.samples[0].attributes["treatment"].value == "Citrobacter rodentium infection"
+
+    with_prose = resolve_metadata(
+        files=files, records=case.records, assertions=[claim], subjects=subjects
+    )
+    treatment = with_prose.samples[0].attributes.get("treatment")
+    assert treatment is not None, "a true claim about the same fact deleted the archive's value"
+    assert treatment.value == "Citrobacter rodentium infection"
+    assert not [w for w in with_prose.warnings if w.code == "sample_attribute_ambiguous"]
+
+
+def test_a_papers_shorter_reading_is_a_second_source_and_still_says_so() -> None:
+    """A paper is not the archive reading itself, so its containment is not one source read twice.
+
+    The record still wins on precedence, exactly as before — but the weaker source that disagreed
+    stays on the record as a note, which is what makes a resolved disagreement auditable at all.
+    """
+    from seqforge.evals.case import load_case
+
+    case = load_case(BD_CASE)
+    assert case.records is not None
+    paper = "f" * 64
+    out = resolve_metadata(
+        files=_bd_case_files(case.records),
+        records=case.records,
+        assertions=[_assertion(f"{SAMPLE_FIELD_PREFIX}treatment", "Citrobacter rodentium", paper)],
+        subjects=[DocumentSubject(doc_sha256=paper, scope="dataset", subject=None)],
+    )
+    assert out.samples[0].attributes["treatment"].value == "Citrobacter rodentium infection"
+    ambiguous = [w for w in out.warnings if w.code == "sample_attribute_ambiguous"]
+    assert len(ambiguous) == 1, "the paper's weaker claim is still noted"
+    assert "Citrobacter rodentium" in ambiguous[0].message
+
+
+def test_two_prose_readings_with_no_typed_slot_are_still_a_disagreement() -> None:
+    """The anchor is the submitter's typed slot, not containment on its own.
+
+    With nothing typed, both values are a model's reading and neither is the archive's own string, so
+    preferring the longer one would store a value code chose between two guesses. Null instead.
+    """
+    from seqforge.models.records import ArchiveRecord, FreeText
+
+    records = ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA182b",
+        records=[
+            ArchiveRecord(level="sample", accession="SAMN1"),
+            ArchiveRecord(
+                level="experiment",
+                accession="SRX1",
+                parent="SAMN1",
+                free_text=[FreeText(label="experiment_title", text="GSM1: L2, scRNAseq")],
+            ),
+            ArchiveRecord(
+                level="run",
+                accession="SRR1",
+                parent="SRX1",
+                free_text=[FreeText(label="run_alias", text="L2 larvae rep1")],
+                filenames=["two_1.fastq.gz"],
+            ),
+        ],
+    )
+    title, alias = "1" * 64, "2" * 64
+    out = resolve_metadata(
+        files=[_file("two_1.fastq.gz", "3" * 64)],
+        records=records,
+        assertions=[
+            _assertion(f"{SAMPLE_FIELD_PREFIX}dev_stage", "L2", title),
+            _assertion(f"{SAMPLE_FIELD_PREFIX}dev_stage", "L2 larvae", alias),
+        ],
+        subjects=[
+            DocumentSubject(doc_sha256=title, scope="experiment", subject="SRX1"),
+            DocumentSubject(doc_sha256=alias, scope="run", subject="SRR1"),
+        ],
+    )
+    assert "dev_stage" not in out.samples[0].attributes
+    assert [w.code for w in out.warnings] == ["sample_attribute_ambiguous"]
+
+
 # ---------------------------------------------------------------- A3: a record IS a document
 
 
