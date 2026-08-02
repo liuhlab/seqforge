@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING
 
 from ..models.assertion import ExtractionPlanReport, PlannedDocument
 from ..models.records import ArchiveRecord, ArchiveRecordSet
-from .extract import extract_drafts
+from .extract import ExtractionOutcome, ExtractUnavailable, extract_drafts
 from .fields import DocScope, fields_for
 from .normalize import (
     NormalizedDoc,
@@ -54,7 +54,6 @@ from .normalize import (
 
 if TYPE_CHECKING:
     from ..kb.schema import Spec
-    from .extract import ExtractionOutcome
     from .providers import LLMProvider
 
 #: The most extraction requests this process may have in flight at once, however the pools nest above
@@ -190,6 +189,7 @@ def extract_planned(
     *,
     provider: LLMProvider,
     model: str | None = None,
+    partial: bool = False,
 ) -> list[ExtractionOutcome]:
     """One extraction per planned document, concurrently, returned **in plan order**.
 
@@ -200,11 +200,32 @@ def extract_planned(
     Each document is an independent, network-bound call, so they go out on a THREAD pool — the wait
     is on a socket, and processes would only add IPC. :data:`_SLOTS` is what the provider actually
     sees, because a caller may already be inside a pool of its own.
+
+    ``partial`` decides what one document's failure costs the other twelve, and the two callers want
+    opposite answers. **Off (the default) it raises**, so the compiler fails closed: an extraction
+    missing a document produces a manifest that is silently short a fact, and there is no way to tell
+    that manifest from a complete one afterwards. **On, an unanswered document comes back as an
+    outcome carrying its** ``failure`` — because a harness measuring the stage learns nothing from
+    twelve documents it declined to send, and a whole dataset raising on its one flaky supplementary
+    table is how a graded tier reported nothing at all about five of its seven prose cases.
+
+    A **Ceiling** is not caught either way. It is a refusal rather than an unavailability — the
+    provider answered everything it was given — and the caller owes it a ``Blocker``, so it must
+    still reach one.
     """
 
     def _one(doc: NormalizedDoc) -> ExtractionOutcome:
         with _SLOTS:
-            return extract_drafts(doc, specs, provider=provider, model=model)
+            if not partial:
+                return extract_drafts(doc, specs, provider=provider, model=model)
+            try:
+                return extract_drafts(doc, specs, provider=provider, model=model)
+            except ExtractUnavailable as exc:
+                return ExtractionOutcome.unanswered(
+                    provider=provider.name,
+                    model=model or provider.default_model(),
+                    detail=str(exc),
+                )
 
     docs = plan.documents
     if len(docs) <= 1:
