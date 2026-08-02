@@ -64,15 +64,20 @@
 # conflict as the specification, so it stays and this case reads `over_ask` whenever the claim
 # appears. Filed as #184, with the candidate fixes and the one already rejected.
 #
-# HOW OFTEN, measured rather than inferred — five single-trial --llm runs of this case on
-# deepseek-v4-pro, 2026-08-01. Three completed and graded: ONE `over_ask` and TWO `correct`, which is
-# the instability stated as a number rather than as a suspicion. The `RNA-Seq` claim appeared in 2 of
-# the 5 passes over the four experiment documents, from a DIFFERENT experiment record each time
-# (SRX20684355, then SRX20684354) — so it is a property of the document shape, which all four share,
-# and not of one record. The other two runs aborted on DeepSeek's known invalid-JSON failure, both on
-# mmc2.txt, and skipped. Every one of the five refused the paper's own `10x-3p-gex-v3` draft.
-# EXPECT THIS CASE TO FLIP under --llm until #184 is settled; it is stable and green byte-only, which
-# is what the per-release job runs.
+# HOW OFTEN, measured rather than inferred — six single-trial --llm runs of this case on
+# deepseek-v4-pro, 2026-08-01. Four completed and graded: TWO `over_ask` and TWO `correct`, which is
+# the instability stated as a number rather than as a suspicion, and which is why one green run
+# settles nothing here. The `RNA-Seq` claim appeared in 3 of the 6 passes over the four experiment
+# documents, and in THREE DIFFERENT records (SRX20684355, SRX20684354, SRX20684353) — so it is a
+# property of the document shape, which all four share, and not of one record. The other two runs
+# aborted on DeepSeek's known invalid-JSON failure, both on mmc2.txt, and skipped. Every one of the
+# six refused the paper's own `10x-3p-gex-v3` draft. EXPECT THIS CASE TO FLIP under --llm until #184
+# is settled; it is stable and green byte-only, which is what the per-release job runs.
+#
+# The graded assertion below is a measurement too, and it moved: `experiment.organism` matched in 3
+# of the 4 graded runs and was refused `span_not_found` in the fourth. The claim is not in doubt —
+# the carried text writes the binomial 15 times — so what that fourth run recorded is the extraction
+# stage's recall, which is the thing an `assertions:` block exists to measure rather than to assume.
 outcome: decide
 description: >-
   Benchmark: GSE234962 (Smith et al. 2024, Cell Rep) pins two independent things — that resolve
