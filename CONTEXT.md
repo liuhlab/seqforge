@@ -271,6 +271,14 @@ is the one judgement the library section's envelope belongs to (`docs/adr/0006`)
 _Avoid_: kit, platform, protocol, version; `technology` is the field name in code — prefer chemistry
 in prose
 
+**Family term**:
+A chemistry claim naming a family **Spec** rather than a leaf — "10x 3'", not `10x-3p-gex-v3`. It
+*narrows*: an observed leaf inside that node's subtree satisfies it, so it is agreement and never a
+**Conflict** (`docs/adr/0020`). A *sibling* claim is not one — there the bytes decide the leaf and the
+discarded claim is kept as a resolved Conflict.
+_Avoid_: partial match, vague chemistry, family-level conflict; a string naming no node at all is not
+a weak family term, it asserts nothing and is rejected
+
 **Spec**:
 One node of the KB — a directory holding `spec.yaml` (read layout, onlist refs, detection signature,
 backend params) plus a `README.md`. Executable and self-testing: `kb roundtrip` proves it recovers

@@ -1678,6 +1678,87 @@ def test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict(tmp_pat
     ), [c.id for c in out.result.conflicts]
 
 
+def test_narrows_to_is_directional_subtree_membership() -> None:
+    """The predicate ADR-0020 turns on: an asserted node CONTAINS the observed one, or it does not."""
+    from seqforge.resolve.confuse import narrows_to
+
+    specs = kb.load_all_specs()
+    assert narrows_to(specs, "10x-3p-gex", "10x-3p-gex-v3")  # a family narrows to its leaf
+    assert narrows_to(specs, "10x-3p-gex-v3", "10x-3p-gex-v3")  # reflexive
+    assert narrows_to(specs, "bd-rhapsody-wta-enhanced", "bd-rhapsody-wta-enhanced-v2")
+    # the direction matters: a leaf claims MORE than its family, so an observed family node is the
+    # bytes saying less than the prose — not a narrowing.
+    assert not narrows_to(specs, "10x-3p-gex-v3", "10x-3p-gex")
+    # ...and siblings do not narrow to each other. Asserted v2 against observed v3 is a real
+    # disagreement that `same_family` keeps as a RESOLVED conflict (2026.7.8); it is not suppressed.
+    assert not narrows_to(specs, "10x-3p-gex-v2", "10x-3p-gex-v3")
+    assert not narrows_to(specs, "bulk-rnaseq-pe", "10x-3p-gex-v3")
+    assert not narrows_to(specs, "no-such-tech", "10x-3p-gex-v3")
+
+
+def test_a_family_hypothesis_is_agreement_with_the_leaf_the_bytes_decided(tmp_path: Path) -> None:
+    """ADR-0020 end to end: prose says "10x 3'", the bytes say v3, and that is one answer, not two.
+
+    The prose named a node and the bytes named a descendant of it, so the claim is *satisfied*: exit
+    0, the leaf in the manifest, and nothing surfaced. This is the shape both operator doors take too
+    (`manifest fill --chemistry 10x-3p-gex`), and neither of them passes through `verify_drafts`.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    f1 = tmp_path / "sample_R1.fastq.gz"
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+
+    out = resolve_dataset(
+        [f1, f2],
+        registry=registry_for(spec),
+        hypothesis=Hypothesis(value="10x 3'", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
+    assert out.exit_code() == 0
+    assert out.result.conflicts == []
+
+
+def test_an_archive_filing_word_asserts_no_chemistry_at_all(tmp_path: Path) -> None:
+    """The defect this PR closes, at the resolver: `RNA-Seq` steered nothing, and now names nothing.
+
+    Every transcriptomic run in SRA carries `library_strategy: RNA-Seq`, and the old matcher read that
+    as `bulk-rnaseq-pe` — so a single-cell library, byte-provably 10x v3, became an asserted-bulk /
+    observed-single-cell contradiction and a decided dataset turned into an exit-4 question
+    (GSE229022), or the bogus hypothesis displaced a real one (GSE317744). The guards are unchanged
+    and still fire on a *real* bulk claim, which the test above pins; what changed is that a word
+    naming a whole field of assays no longer makes one.
+    """
+    from seqforge.resolve.escalate import _bulk_asserted_single_cell_observed
+
+    specs = kb.load_all_specs()
+    top = _te("10x-3p-gex-v3", 0.8)
+    for word in ("RNA-Seq", "Illumina", "transcriptome"):
+        assert (
+            _bulk_asserted_single_cell_observed(
+                word, "harvest", 0.9, top, specs["10x-3p-gex-v3"], [], specs
+            )
+            is None
+        ), word
+
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    f1 = tmp_path / "sample_R1.fastq.gz"
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    out = resolve_dataset(
+        [f1, f2],
+        registry=registry_for(spec),
+        hypothesis=Hypothesis(value="RNA-Seq", id="harvest", confidence=0.9),
+        use_cache=False,
+    )
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
+    assert out.exit_code() == 0, [c.id for c in out.result.conflicts]
+
+
 # ================================================================================================
 # over-length — an over-sequenced barcode read still resolves
 # ================================================================================================

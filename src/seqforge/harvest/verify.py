@@ -25,17 +25,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..kb import load_all_specs
+from ..kb.match import carries, curated_forms, resolve_chemistry, squash
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import PERMITTED_FIELDS, permitted_for
 from .normalize import NormalizedDoc, page_for_offset
 from .prep import normalize_prep_type
-
-_WS = re.compile(r"\s+")
-_TOKEN = re.compile(r"[a-z0-9']+")
-#: tokens too generic to carry entailment weight on their own
-_STOPWORDS = frozenset(
-    {"the", "a", "an", "of", "for", "with", "and", "or", "was", "were", "used", "using", "kit"}
-)
 
 
 @dataclass(frozen=True)
@@ -50,14 +44,6 @@ class VerifyReport:
         return len(self.assertions)
 
 
-def _squash(text: str) -> str:
-    return _WS.sub(" ", text).strip()
-
-
-def _tokens(text: str) -> list[str]:
-    return _TOKEN.findall(text.lower().replace("-", " "))
-
-
 def find_span(text: str, quote: str) -> tuple[int, int] | None:
     """Locate ``quote`` in ``text``, tolerating whitespace differences. Returns ``(start, end)``.
 
@@ -69,7 +55,7 @@ def find_span(text: str, quote: str) -> tuple[int, int] | None:
     idx = text.find(quote)
     if idx >= 0:
         return idx, idx + len(quote)
-    squashed = _squash(quote)
+    squashed = squash(quote)
     idx = text.find(squashed)
     if idx >= 0:
         return idx, idx + len(squashed)
@@ -81,11 +67,17 @@ def find_span(text: str, quote: str) -> tuple[int, int] | None:
 
 
 def _kb_chemistry_aliases(value: str) -> list[str]:
-    """A paper says "Chromium Single Cell 3' v3", not "10x-3p-gex-v3". The KB curates those aliases."""
+    """A paper says "Chromium Single Cell 3' v3", not "10x-3p-gex-v3". The KB curates those aliases.
+
+    EXACT match on the way in, deliberately: this answers "the value is already known to be this node,
+    what else may a quote call it", so it is looked up by an id the model was handed. Which strings
+    NAME a node in the first place is the other question, and `kb.match.resolve_chemistry` owns it —
+    both read the same :func:`~seqforge.kb.match.curated_forms`, so the two cannot drift apart.
+    """
     forms: list[str] = []
     for tech_id, spec in load_all_specs().items():
-        candidates = {tech_id, spec.identity.id, spec.identity.name, *spec.identity.aliases}
-        if any(_squash(c).lower() == _squash(value).lower() for c in candidates):
+        candidates = curated_forms(tech_id, spec)
+        if any(squash(c).lower() == squash(value).lower() for c in candidates):
             forms.extend(candidates)
     return forms
 
@@ -121,16 +113,20 @@ def surface_forms(field: str, value: str) -> list[str]:
 def entails(quote: str, field: str, value: str) -> bool:
     """Does ``quote`` support ``value``? True iff some surface form is carried by the quote.
 
-    A form matches when it is a substring, or when all of its significant tokens appear in the quote
-    (order-independent — "Chromium Single Cell 3' v3" carries the alias "Chromium 3' v3"). Purely
-    generic tokens cannot entail on their own, so a quote saying only "single-cell RNA-seq" can never
-    entail a specific chemistry version.
+    :func:`~seqforge.kb.match.carries` is the primitive, and the same one
+    :func:`~seqforge.kb.match.resolve_chemistry` reads the KB with: a form matches when it is a
+    substring, or when all of its significant tokens appear in the quote (order-independent —
+    "Chromium Single Cell 3' v3" carries the alias "Chromium 3' v3"). Purely generic tokens cannot
+    entail on their own, so a quote saying only "single-cell RNA-seq" can never entail a specific
+    chemistry version.
 
     **Know what this check cannot do.** Its power comes entirely from ``value`` being drawn from a
     controlled vocabulary: for ``library.chemistry`` the value is a KB id, so the quote must contain a
     real alias, and a quote about "droplet-based single-cell" cannot smuggle in a v3 chemistry. For a
     free-text field the model supplies a value copied *out of* the quote, so ``form in quote`` is
     trivially true and this returns True for anything. **Entailment is vacuous when value ⊆ quote.**
+    That assumption used to be only an assumption; :func:`verify_drafts` now checks it on the one
+    field that has a vocabulary to check against, and rejects a chemistry value naming no KB node.
 
     So span verification is a tripwire for fabricated and mis-attributed claims, NOT for field-assignment errors. A
     real quote filed under the wrong field passes here by construction — `eval run --llm` caught
@@ -149,16 +145,7 @@ def entails(quote: str, field: str, value: str) -> bool:
     if field == "library.prep_type":
         qp = normalize_prep_type(quote)
         return qp is not None and qp == normalize_prep_type(value)
-    q = _squash(quote).lower()
-    q_tokens = set(_tokens(q))
-    for form in surface_forms(field, value):
-        f = _squash(form).lower()
-        if f and f in q:
-            return True
-        f_tokens = [t for t in _tokens(f) if t not in _STOPWORDS]
-        if f_tokens and set(f_tokens) <= q_tokens:
-            return True
-    return False
+    return any(carries(quote, form) for form in surface_forms(field, value))
 
 
 def verify_drafts(
@@ -213,6 +200,23 @@ def verify_drafts(
             # real quote, wrong value — the failure span-verification alone would miss
             rejected.append(
                 _reject(draft, "not_entailed", f"quote does not support value {draft.value!r}")
+            )
+            continue
+        if draft.field == "library.chemistry" and resolve_chemistry(draft.value) is None:
+            # ...and LAST, the check that makes the one above mean anything. `entails` is strong only
+            # while `value` comes from a controlled vocabulary (its own docstring says so), and
+            # nothing was checking that it did: a model handed an SRA experiment record answers with
+            # that record's `library_strategy`, "RNA-Seq", quoting it verbatim. The quote greps back
+            # and entailment is VACUOUS because the value sits inside its own quote — a draft that
+            # passes both tripwires while naming a whole field of assays instead of a chemistry, and
+            # then steers the resolver into a cross-family conflict (#184). A chemistry value must
+            # name a chemistry; the KB is what "a chemistry" means.
+            rejected.append(
+                _reject(
+                    draft,
+                    "chemistry_names_no_kb_node",
+                    f"{draft.value!r} carries no knowledge-base chemistry",
+                )
             )
             continue
         start, end = found

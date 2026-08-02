@@ -645,3 +645,77 @@ def test_a_pdf_table_is_spliced_into_the_canonical_text_and_a_cell_verifies(
         llm_confidence=0.9,
     )
     assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
+
+
+def test_verify_rejects_a_chemistry_draft_that_names_no_kb_node(tmp_path: Path) -> None:
+    """A chemistry value must NAME a chemistry. Span verification alone cannot ask that.
+
+    `entails` is powerful exactly while the value comes from a controlled vocabulary — and nothing
+    made it come from one. A model handed an SRA experiment record answers `library.chemistry` with
+    the record's own `library_strategy`, "RNA-Seq", quoting it verbatim; the quote greps back, and
+    entailment is *vacuous* because the value is a substring of its own quote. The draft passes both
+    tripwires while claiming nothing, and then steers the resolver: asserted-bulk against an observed
+    single-cell library is a cross-family conflict, so one such draft turned a decided dataset into a
+    question and displaced a real hypothesis on another (#184).
+
+    So code checks the half nothing else does — that the value resolves to a KB node — and that check
+    is the vocabulary the entailment check was assuming all along.
+    """
+    nd = _doc(tmp_path, "GSM7486857: acr-2::GFP wt MNs rep 1; Caenorhabditis elegans; RNA-Seq")
+    draft = AssertionDraft(
+        field="library.chemistry",
+        value="RNA-Seq",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="RNA-Seq"),
+        llm_confidence=0.95,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "chemistry_names_no_kb_node"
+
+    # ...and prove it is the VOCABULARY talking: both span-verification checks pass on this draft.
+    from seqforge.harvest.verify import entails, find_span
+
+    assert find_span(nd.text, draft.span.quote) is not None
+    assert entails(draft.span.quote, draft.field, draft.value)
+
+
+def test_verify_keeps_a_chemistry_draft_whose_value_names_a_node(tmp_path: Path) -> None:
+    """The other half: the check must not cost the claims the channel exists for.
+
+    A KB id and a real kit name both name a node, so both survive — the rejection is aimed at the
+    term that names a whole field of assays, not at prose.
+    """
+    nd = _doc(
+        tmp_path,
+        "Libraries were prepared with the Chromium Next GEM Single-Cell 5' Reagent Kit v2 "
+        "and the Chromium Single Cell 3' v3 kit.",
+    )
+    ids = AssertionDraft(
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Chromium Single Cell 3' v3"),
+        llm_confidence=0.9,
+    )
+    prose = AssertionDraft(
+        field="library.chemistry",
+        value="Chromium Next GEM Single-Cell 5' Reagent Kit v2",
+        span=SourceSpan(
+            doc_sha256=nd.doc_sha256, quote="Chromium Next GEM Single-Cell 5' Reagent Kit v2"
+        ),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([ids, prose], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 2, report.rejected
+
+
+def test_the_kb_node_check_is_only_asked_of_the_chemistry_field(tmp_path: Path) -> None:
+    """Every other field's vocabulary is its own; a strain is not a chemistry and owes the KB nothing."""
+    nd = _doc(tmp_path, "Worms of strain RNA-Seq-1 were grown at 20C.")
+    draft = AssertionDraft(
+        field="experiment.samples.strain",
+        value="RNA-Seq-1",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="strain RNA-Seq-1"),
+        llm_confidence=0.9,
+    )
+    report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
+    assert report.n_accepted == 1, report.rejected

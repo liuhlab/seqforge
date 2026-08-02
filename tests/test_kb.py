@@ -841,3 +841,139 @@ def test_a_spec_with_no_divergent_confusable_is_decidable_by_nothing() -> None:
     assert equiv_only.confusable_with  # non-vacuous: it keeps the v3 twin
     assert all(c.relationship == "processing_equivalent" for c in equiv_only.confusable_with)
     assert equiv_only.decidable_by == []
+
+
+# ---------- resolve_chemistry: what a prose chemistry string NAMES in the KB ----------
+#: Every chemistry string the benchmark corpus is known to produce — a value a model emitted into a
+#: `library.chemistry` draft, or a phrase a record carries verbatim — and the node it must name.
+#: Measured against the live KB before the matcher was written (#184); pinned here so the measurement
+#: is a test rather than a paragraph.
+_CORPUS_STRINGS: list[tuple[str, str | None]] = [
+    # The bug this matcher exists to close: SRA writes `library_strategy: RNA-Seq` on every
+    # transcriptomic run, and the old substring rule read that as the bulk paired-end chemistry.
+    ("RNA-Seq", None),
+    # A trademark glued to the next word by PDF extraction. `BD Rhapsody` is still carried by it.
+    ("BD Rhapsody™Whole Transcriptome Analysis Kit", "bd-rhapsody-wta"),
+    # A real kit that is not in the KB at all. Naming no node is the honest answer.
+    ("SMARTer Stranded Total RNA-seq Pico Input Mammalian V2 kit (Takara Bio)", None),
+    ("10x-3p-gex-v3.1", "10x-3p-gex-v3.1"),
+    # The improvement: a whole methods sentence carries the leaf's alias, and now reaches it.
+    (
+        "10X Genomics Chromium X system using the Single Cell 3' v3.1 Reagent Kits",
+        "10x-3p-gex-v3.1",
+    ),
+    # "Chromium" plus a generic assay word names a vendor, not a chemistry: 3' and 5' are the same
+    # sentence and different pipelines.
+    ("Chromium single-cell RNA-sequencing", None),
+    ("10x 5'", "10x-5p-gex"),
+]
+
+#: The four hypothesis strings the eval corpus steers with. They resolve where `_match_tech` put
+#: them, which is what protects the deterministic (`--no-llm`) tier from this change.
+_CORPUS_HYPOTHESES: list[tuple[str, str]] = [
+    ("10x 5'", "10x-5p-gex"),
+    ("10x-3p-gex-v2", "10x-3p-gex-v2"),
+    ("10x-3p-gex-v3", "10x-3p-gex-v3"),
+    ("bulk-rnaseq-pe", "bulk-rnaseq-pe"),
+]
+
+
+def _resolved_id(value: str) -> str | None:
+    spec = kb.resolve_chemistry(value)
+    return None if spec is None else spec.identity.id
+
+
+@pytest.mark.parametrize(("value", "expected"), _CORPUS_STRINGS)
+def test_every_chemistry_string_the_corpus_produces_names_what_it_was_measured_to_name(
+    value: str, expected: str | None
+) -> None:
+    assert _resolved_id(value) == expected
+
+
+@pytest.mark.parametrize(("value", "expected"), _CORPUS_HYPOTHESES)
+def test_the_corpus_hypotheses_land_where_the_matcher_they_replace_put_them(
+    value: str, expected: str
+) -> None:
+    assert _resolved_id(value) == expected
+
+
+def test_a_generic_strategy_word_names_no_chemistry() -> None:
+    """The whole point: an archive's own strategy/platform vocabulary is not a chemistry claim.
+
+    Each of these resolved to a real KB node under the old two-directional substring rule — `RNA-Seq`
+    and `Illumina` to `bulk-rnaseq-pe` (via the alias "Illumina PE RNA-seq"), `transcriptome` and
+    `WTA` to `bd-rhapsody-wta` (via "…Whole Transcriptome Analysis") — because the *needle* was
+    allowed to sit inside the alias. A term that names a whole field of assays entails no chemistry,
+    and no amount of it appearing in a curated alias makes it one.
+    """
+    for value in (
+        "RNA-Seq",
+        "Illumina",
+        "transcriptome",
+        "WTA",
+        "single-cell RNA-seq",
+        "10X Genomics v2 chemistry",  # names a vendor and a version, but no assay end
+        "",
+        "   ",
+    ):
+        assert kb.resolve_chemistry(value) is None, value
+
+
+def test_chemistry_matching_is_one_directional() -> None:
+    """`alias ⊆ needle` narrows; `needle ⊆ alias` is vacuous, and it is the direction that was wrong.
+
+    A value carrying a curated alias says at least what the alias says. A value that is merely a
+    FRAGMENT of an alias says less than it — "RNA-seq" is inside "bulk RNA-seq" and inside
+    "paired-end RNA-seq", and inside a hundred other kit names nobody has curated. Only the first
+    direction is entailment.
+    """
+    assert _resolved_id("libraries were built with the bulk RNA-seq protocol") == "bulk-rnaseq-pe"
+    assert kb.resolve_chemistry("RNA-seq") is None
+    assert kb.resolve_chemistry("Rhapsody") is not None  # a whole alias, short but curated
+    assert kb.resolve_chemistry("Rhap") is None  # ...and a fragment of one is not
+
+
+def test_a_leaf_alias_outranks_the_family_alias_it_contains() -> None:
+    """Tie-break: most alias tokens matched, which picks the leaf over its own family node.
+
+    Every leaf's spelling contains its family's ("10x 3' v3" carries "10x 3'"), so both match and the
+    winner has to be the more specific claim. The reverse — a bare family term — must still stop at
+    the family, because that is all the prose said.
+    """
+    assert _resolved_id("10x 3' v3") == "10x-3p-gex-v3"
+    assert _resolved_id("10x 3'") == "10x-3p-gex"
+    assert _resolved_id("10x-3p-gex-v3.1") == "10x-3p-gex-v3.1"  # not the v3 prefix inside it
+
+
+def test_a_real_kit_name_resolves_where_a_strict_alias_table_would_refuse() -> None:
+    """Why the repair is entailment and not exact-alias matching (measured in #184).
+
+    Requiring an exact KB id/name/alias rejects every realistic prose spelling — a paper writes
+    "Chromium Next GEM Single-Cell 5' Reagent Kit v2", never `10x-5p-gex-v2`. That would have closed
+    the metadata-hypothesis channel in production while the benchmark stayed green on its recipe
+    hypotheses: the harness failing differently from the product, which is the trap this whole line
+    of work opens with.
+    """
+    assert _resolved_id("Chromium Next GEM Single-Cell 5' Reagent Kit v2") == "10x-5p-gex-v2"
+    assert _resolved_id("Chromium Single Cell 3' v3") == "10x-3p-gex-v3"
+    # the GEM-X trap: "GEM-X" alone is 3' or 5', and the sentence says which
+    assert _resolved_id("10x Genomics Chromium GEM-X Single Cell 5' Chip v3") == "10x-5p-gex-v3"
+
+
+def test_chemistry_matching_does_not_depend_on_the_order_specs_were_loaded_in() -> None:
+    """A KB addition must never re-point an unrelated dataset — `run_id` folds the chemistry.
+
+    The rule it replaces returned the FIRST dict-order match, so `WTA` named `bd-rhapsody-wta` only
+    because that directory sorts before `bd-rhapsody-wta-enhanced`; loading the KB the other way
+    round moved it. Scoring every candidate and breaking the tie on (alias tokens, id) makes the
+    answer a property of the strings, and the same either way.
+    """
+    specs = kb.load_all_specs()
+    reversed_specs = dict(reversed(list(specs.items())))
+    for value in [*(v for v, _ in _CORPUS_STRINGS), "Rhapsody Enhanced", "WTA", "10x 3' v3"]:
+        forward = kb.resolve_chemistry(value, specs)
+        backward = kb.resolve_chemistry(value, reversed_specs)
+        assert (forward is None) == (backward is None), value
+        if forward is not None and backward is not None:
+            assert forward.identity.id == backward.identity.id, value
+    assert _resolved_id("Rhapsody Enhanced") == "bd-rhapsody-wta-enhanced"

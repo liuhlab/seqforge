@@ -45,8 +45,10 @@ the provider swappable — the check is ours, not the vendor's) and
 exit code plus structured `Blocker`s). Three parts: (a) no field enters the manifest without passing a
 validator, and LLM `confidence` is advisory — it never overrides observed bytes; (b) every `Assertion`
 carries a `quote` that greps back into the normalized canonical text **and** *entails* its value, else
-it is rejected — the hallucination tripwire; (c) when code decides *no*, the LLM only chooses *what
-question to ask*.
+it is rejected — the hallucination tripwire, and on `library.chemistry` the value must additionally
+name a KB node, because entailment is vacuous when the value sits inside its own quote
+([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md)); (c) when code decides *no*,
+the LLM only chooses *what question to ask*.
 
 **Enforced by.** Pydantic validators + `manifest validate`; `verify_drafts` (`harvest/verify.py`), run
 inside `harvest extract` and covered by `tests/test_harvest.py` (`harvest verify` is a standalone
@@ -205,10 +207,15 @@ the prediction.
 on disagreement: the byte resolver **blocks**, and the metadata resolver *decides* and only
 **warns** — null over wrong, never a question. The asymmetry is
 [ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md); the line is
-[`resolve/records.py`](../../src/seqforge/resolve/records.py).
+[`resolve/records.py`](../../src/seqforge/resolve/records.py). What *counts* as a disagreement is
+narrower than it looks: an asserted family term that narrows to the observed leaf is agreement, and a
+string naming no KB node asserts nothing at all —
+[ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md).
 
 **Enforced by.** `test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict` and
 `test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict` (`tests/test_resolve.py`) on
-the blocking side; `test_the_sample_attribute_precedence_table` (`tests/test_records.py`),
+the blocking side, with `test_an_archive_filing_word_asserts_no_chemistry_at_all` and
+`test_a_family_hypothesis_is_agreement_with_the_leaf_the_bytes_decided` on what does not reach it;
+`test_the_sample_attribute_precedence_table` (`tests/test_records.py`),
 parametrized over every cell of the table, and
 `test_the_metadata_resolver_is_handed_identity_not_signal`, which keeps probe signal out of it.

@@ -77,7 +77,16 @@ from __future__ import annotations
 #: reason 2026.7.15 did — the defect it fixes is a cached REFUSAL. `evals/benchmark/GSE305031` (a real
 #: GEM-X 3' v4 worm library with a dark cycle at R1 cycle 2) is already sitting in caches as
 #: BARCODE_READ_ABSENT, and would keep being served straight out of one while the fix landed green.
-RESOLVE_VERSION = "2026.7.16"
+#: 2026.7.17 — an asserted chemistry must NAME one: `resolve_chemistry` matches a KB node by
+#: one-directional entailment (a curated alias inside the value, never the value inside an alias), and
+#: a family term that narrows to the observed leaf is agreement rather than a conflict (ADR-0020).
+#: This MUST re-key, and for the reason 2026.7.15 and 2026.7.16 did — the defect it fixes is a cached
+#: REFUSAL. Every transcriptomic run in SRA carries `library_strategy: RNA-Seq`, which the old matcher
+#: read as `bulk-rnaseq-pe`, so a byte-provably single-cell dataset is already sitting in caches as
+#: `conflict-bulk-asserted-single-cell-observed` at exit 4. Without the bump those datasets would keep
+#: being served that refusal out of the cache while this landed green and changed nothing anyone could
+#: observe. `evals` run with `use_cache=False`, so the benchmark cannot report this either way.
+RESOLVE_VERSION = "2026.7.17"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

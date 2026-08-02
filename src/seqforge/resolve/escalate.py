@@ -14,18 +14,27 @@ terminal shapes:
 - **Question / Blocker** — a processing-*divergent* tie that metadata/onlist can't settle routes to a
   human (exit 4); a structural dead end (missing technical read, truncated gzip, unsupported tech)
   is a ``Blocker`` (exit 3).
+
+Every guard here that reads the hypothesis first asks :func:`~seqforge.kb.match.resolve_chemistry_id`
+what the asserted string NAMES, and that matcher is one-directional: a curated alias must sit inside
+the value, never the value inside an alias. What that removes is a whole class of manufactured claim —
+`library_strategy: RNA-Seq` used to name ``bulk-rnaseq-pe``, so an archive's filing vocabulary became a
+bulk assertion and every guard below then read a single-cell winner as a cross-family contradiction. A
+string naming no node asserts nothing, and a term naming an ANCESTOR of the winner narrows to it rather
+than disagreeing with it (``narrows_to``, ADR-0020).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..kb.match import resolve_chemistry_id
 from ..kb.schema import Read, SegmentLength, Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
-from .confuse import is_processing_equivalent, same_family, sibling_decided_by
+from .confuse import is_processing_equivalent, narrows_to, same_family, sibling_decided_by
 from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
@@ -338,7 +347,7 @@ def _no_candidate_blocker(
     evaluations: list[TechEvaluation], hypothesis_value: str | None, specs: dict[str, Spec]
 ) -> Blocker:
     """No technology passed its requires: a missing technical read, or genuinely unsupported."""
-    hyp_tech = _match_tech(hypothesis_value, specs) if hypothesis_value else None
+    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
     if hyp_tech is not None:
         e = next((ev for ev in evaluations if ev.tech == hyp_tech), None)
         if (
@@ -390,6 +399,14 @@ def _detect_conflicts(
     """
     if not hypothesis_value:
         return []
+    asserted_tech = resolve_chemistry_id(hypothesis_value, specs)
+    if asserted_tech is not None and narrows_to(specs, asserted_tech, top.tech):
+        # ADR-0020: the asserted term is an ANCESTOR of the winner — the prose named a node and the
+        # bytes named one of its descendants, so the claim is satisfied and there is no delta to
+        # surface. (Unfirable on today's KB: every family node declares a length RANGE rather than a
+        # fixed one, so the comparison below returns early anyway. It is the invariant, not the
+        # observation — a family that ever pinned one number would conflict with every leaf under it.)
+        return []
     asserted_len = _asserted_barcode_length(hypothesis_value, specs)
     observed_len = _observed_barcode_length(top, top_spec, observations)
     if asserted_len is None or observed_len is None or asserted_len == observed_len:
@@ -413,7 +430,6 @@ def _detect_conflicts(
             confidence=0.99,
         ),
     ]
-    asserted_tech = _match_tech(hypothesis_value, specs)
     if asserted_tech is not None and same_family(specs, asserted_tech, top.tech):
         # Within-family leaf difference: harvest named the family (reliable), the bytes decide the leaf
         # (v2 vs v3). Resolve to the observed leaf; keep the asserted claim as a RESOLVED conflict so the
@@ -477,9 +493,11 @@ def _single_cell_collapse_conflict(
     """
     if not hypothesis_value:
         return None
-    hyp_tech = _match_tech(hypothesis_value, specs)
+    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
     if hyp_tech is None:
         return None  # the asserted chemistry names no KB tech, so "single-cell" is not established
+    if narrows_to(specs, hyp_tech, top.tech):
+        return None  # ADR-0020: the winner lies under the asserted node — the term narrowed
     if _barcode_read_id(specs[hyp_tech]) is None:
         return None  # a bulk chemistry was asserted and bulk won — no collapse, agreement
     if _barcode_read_id(top_spec) is not None:
@@ -529,9 +547,11 @@ def _bulk_asserted_single_cell_observed(
     """
     if not hypothesis_value:
         return None
-    hyp_tech = _match_tech(hypothesis_value, specs)
+    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
     if hyp_tech is None:
         return None  # the asserted chemistry names no KB tech, so "bulk" is not established
+    if narrows_to(specs, hyp_tech, top.tech):
+        return None  # ADR-0020: the winner lies under the asserted node — the term narrowed
     if _barcode_read_id(specs[hyp_tech]) is not None:
         return None  # a single-cell chemistry was asserted — the forward collapse guard's job, not this
     if _barcode_read_id(top_spec) is None:
@@ -584,7 +604,7 @@ def _metadata_disambiguation(
     """
     if not hypothesis_value:
         return None
-    hyp_tech = _match_tech(hypothesis_value, specs)
+    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
     if hyp_tech is None:
         return None
     members = [top, *divergent_ties]
@@ -675,7 +695,7 @@ def _asserted_barcode_length(value: str, specs: dict[str, Spec]) -> int | None:
     stripped = value.strip()
     if stripped.isdigit():
         return int(stripped)
-    tech = _match_tech(value, specs)
+    tech = resolve_chemistry_id(value, specs)
     return _spec_barcode_length(specs[tech]) if tech else None
 
 
@@ -691,23 +711,4 @@ def _observed_barcode_length(
     for obs in observations:
         if obs.file.sha256 == sha:
             return obs.read_length.mode
-    return None
-
-
-def _match_tech(value: str | None, specs: dict[str, Spec]) -> str | None:
-    """Match an asserted chemistry string to a KB tech id or alias (case-insensitive)."""
-    if not value:
-        return None
-    needle = value.strip().lower()
-    for tech_id in specs:
-        if needle == tech_id.lower():
-            return tech_id
-    for tech_id, spec in specs.items():
-        names = [spec.identity.id, spec.identity.name, *spec.identity.aliases]
-        if any(needle == n.lower() for n in names):
-            return tech_id
-    for tech_id, spec in specs.items():
-        names = [spec.identity.name, *spec.identity.aliases]
-        if any(needle in n.lower() or n.lower() in needle for n in names):
-            return tech_id
     return None

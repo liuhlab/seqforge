@@ -17,6 +17,7 @@ from .loader import (
     load_tree,
     runnable_spec_ids,
 )
+from .match import curated_forms, resolve_chemistry, resolve_chemistry_id
 from .roundtrip import run_roundtrip
 from .schema import Spec
 
@@ -56,6 +57,9 @@ __all__ = [
     "build_tree",
     "list_spec_ids",
     "runnable_spec_ids",
+    "resolve_chemistry",
+    "resolve_chemistry_id",
+    "curated_forms",
     "generate_reads",
     "build_pools",
     "run_roundtrip",
