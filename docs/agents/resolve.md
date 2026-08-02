@@ -115,6 +115,16 @@ same list differently (the harness took the last document to claim one), so the 
 steer a scorer the compiler would have left unsteered — #188's "the harness fails differently from
 production". An operator's `--assert-chemistry` is the other source and outranks this one.
 
+**What the string NAMES is a separate question from whether it disagrees**, and `kb.match`
+answers it: `resolve_chemistry(value) -> Spec | None` matches a node when one of its curated forms is
+*carried by* the value — `alias ⊆ needle`, never the reverse. So `RNA-Seq` (SRA's `library_strategy`
+on every transcriptomic run) names nothing, while "Chromium Next GEM Single-Cell 5' Reagent Kit v2"
+reaches the leaf. It returns a **node**, because a family answer and a leaf answer are different
+claims. `harvest verify` rejects a chemistry draft that resolves to `None`; the two operator doors
+(`manifest fill --chemistry`, `resolve score --assert-chemistry`) do not pass through verify, so the
+matcher — not the rejection — is what closes them.
+[ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md).
+
 **The determinism argument.** For a fixed observation, the validity and finite score of any candidate
 that gets computed is a pure function of the bytes. The hypothesis changes only *which* candidates are
 computed, at *what* cost, and to *which* rung. So the same observation with the same hypothesis gives
@@ -164,6 +174,15 @@ contradicts an asserted one — metadata says 26 bp, the bytes say 28 bp — a `
 library section takes the observed value, because there its authority is the evidence; the Conflict
 stays attached; and compiling refuses until a human confirms. A `Conflict` does **not** escalate: it
 is surfaced alongside, not instead of, the decision.
+
+**A difference is not automatically a contradiction**, and there are exactly three shapes
+([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md)):
+
+| asserted vs observed | verdict |
+| --- | --- |
+| the asserted node is an ANCESTOR of the observed one (`narrows_to`) | agreement — no `Conflict` at all |
+| same family, not an ancestor (asserted v2, observed v3) | `resolved` `Conflict`: the bytes decide the leaf, exit 0 |
+| cross-family (asserted bulk, observed barcoded, or the reverse) | `open` `Conflict`, exit 4 |
 
 **The exit-code contract** is uniform across every verb: an open `Conflict` or a non-empty
 `questions.md` is exit **4**, which a human answer can clear; a hard `Blocker` is exit **3**, which no

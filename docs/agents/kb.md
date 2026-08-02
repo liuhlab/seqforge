@@ -22,6 +22,15 @@ A `spec.yaml` is human-authored and CI-validated; no model writes one.
 The tree is hierarchical: an abstract family node (`10x-3p-gex`, which carries no backend) descends to
 leaf chemistries.
 
+**`identity.aliases` is load-bearing, and it is read in one direction.**
+[`kb/match.py`](../../src/seqforge/kb/match.py) is the only place a prose chemistry string becomes a
+node: an alias matches when the *value carries it* (substring, or all of its significant tokens), and
+the tie goes to the most alias tokens matched. So writing an alias is writing a claim that any text
+carrying it is this chemistry — `10x 3'` on the family and `10x 3' v3` on the leaf is the pattern, and
+a bare generic word (`WTA`, `RNA-seq`) is one you must not add, because it would name a whole field of
+assays. A value that carries no alias resolves to nothing, which is the honest answer and a refusal
+downstream ([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md)).
+
 ## The schema decisions a field list cannot show
 
 - **An `Element` has exactly one coherent addressing mode** — a fixed `[start, end)` XOR an `anchor`

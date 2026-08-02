@@ -187,17 +187,23 @@ def sibling_decided_by(specs: Mapping[str, Spec], a: str, b: str) -> list[str]:
     return [m for m in specs[parent].children_decided_by if m != "none"]
 
 
+def _lineage(specs: Mapping[str, Spec], tech: str) -> list[str]:
+    """``tech`` and every ancestor above it, nearest first — the one ``parent`` walk this file makes.
+
+    Cycle-guarded rather than trusting the tree: ``build_tree`` rejects a cycle, but these predicates
+    are handed whatever pool the caller is scoring against, which need not have been through it.
+    """
+    chain: list[str] = []
+    cur: str | None = tech
+    while cur is not None and cur not in chain:
+        chain.append(cur)
+        cur = specs[cur].parent if cur in specs else None
+    return chain
+
+
 def _root_of(specs: Mapping[str, Spec], tech: str) -> str:
-    """The family-root ancestor of ``tech`` — walk ``parent`` links to the top of its tree."""
-    cur = tech
-    seen: set[str] = set()
-    while cur in specs and cur not in seen:
-        parent = specs[cur].parent
-        if parent is None:
-            break
-        seen.add(cur)
-        cur = parent
-    return cur
+    """The family-root ancestor of ``tech`` — the top of its ``parent`` chain."""
+    return _lineage(specs, tech)[-1]
 
 
 def same_family(specs: Mapping[str, Spec], a: str, b: str) -> bool:
@@ -216,3 +222,21 @@ def same_family(specs: Mapping[str, Spec], a: str, b: str) -> bool:
     if a not in specs or b not in specs:
         return False
     return _root_of(specs, a) == _root_of(specs, b)
+
+
+def narrows_to(specs: Mapping[str, Spec], asserted: str, observed: str) -> bool:
+    """True iff ``observed`` lies in ``asserted``'s subtree — the asserted term NARROWS to it.
+
+    The predicate behind ADR-0020. A claim of "10x 3'" against an observed ``10x-3p-gex-v3`` is not a
+    disagreement of any strength: the prose named a node, the bytes named one of its descendants, and
+    the family term is *satisfied* by the leaf. Nothing was discarded, so there is nothing to surface.
+
+    Strictly narrower than :func:`same_family`, and deliberately **directional**. Siblings do not
+    narrow to each other (asserted v2, observed v3 is a real disagreement — the bytes win it and the
+    discarded claim is kept as a ``resolved`` conflict, per 2026.7.8), and a leaf does not narrow to
+    its own family node: "10x 3' v3" claims more than "10x 3'", so an observed family node would be
+    the bytes saying LESS than the prose, which is not a narrowing.
+    """
+    if asserted not in specs or observed not in specs:
+        return False
+    return asserted in _lineage(specs, observed)
