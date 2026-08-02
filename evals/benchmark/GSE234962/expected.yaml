@@ -22,6 +22,57 @@
 # extra allele. The value graded here is the archive's, per the corpus contract; strain stays
 # because it is the ONLY attribute that differs between the four samples, so it is what makes the
 # per-accession claim below able to catch a shuffled join at all.
+#
+# SETTLED 2026-08-01 (#160): the `--llm` grade that moved is EXPLAINED, and the explanation is that
+# nothing moved it. This case decides byte-only and is NONDETERMINISTIC under --llm; the mechanism is
+# exact and reproduces with no model at all; and neither code change suspected of having fixed it
+# can have. `outcome` stays `decide`, which is the argued half — see the last paragraph.
+#
+# WHAT STOPS IT. `library.chemistry` is asked of every experiment document, and this series'
+# experiment documents are one GSM title — "GSM7486859: lin-39p::RFP wt MNs rep 1; Caenorhabditis
+# elegans; RNA-Seq" — plus two aliases. A draft of `library.chemistry = "RNA-Seq"` off that
+# span-verifies and entails BY CONSTRUCTION, because the value IS the quote: entailment is vacuous
+# wherever the value is a substring of its own quote, which is the limit the verifier documents about
+# itself. "RNA-Seq" is not a chemistry — it is SRA's library_strategy, true of every 10x deposit ever
+# made — but an asserted chemistry is matched against KB ids and aliases by substring, and "rna-seq"
+# sits inside bulk-rnaseq-pe's "bulk RNA-seq". So it reaches the byte resolver as a BULK claim
+# against barcoded observed bytes and surfaces `conflict-bulk-asserted-single-cell-observed` on
+# library.chemistry: exit 4, graded `over_ask`. Handing that one string to the resolver as a
+# hypothesis over this case's own pinned bytes reproduces it exactly with no LLM in the loop, while
+# "10x Chromium v3 chemistry" and "single cell 3' RNA sequencing" both give exit 0.
+#
+# AND NOTHING OVERRIDES IT. The accepted claims are a last-wins map over the documents in plan order,
+# and the four experiment documents come after both carried texts — so one line of GSM title
+# overwrites the good `10x-3p-gex-v3` read off mmc2.txt, the supplementary table that names the kit
+# version per sample. The paper's own correct claim never reaches that map at all: its quote is
+# "single cell 30 RNA sequencing utilizing the 10X Chromium system, v3 chemistry" — the extracted
+# text renders 3' as 30 — and it is refused `not_entailed`, which is the tripwire working.
+#
+# WHAT DID NOT MOVE IT, checked rather than assumed. The run-alias collapse (#178) is a NO-OP here:
+# four samples with one run each, so every group is a group of one and the collapsed document IS that
+# run's own document. `seqforge eval plan --case GSE234962` reports `n_records_collapsed: 0`, and the
+# twelve record documents are byte-identical, in identical order, before and after it. The metadata
+# resolver's one-source rule (#183) is ruled out by construction rather than by measurement: it
+# changes which sample-attribute values survive, and a case's outcome class is read from the BYTE
+# resolver's exit code, which that resolver never reaches. So the earlier `over_ask` and the later
+# `correct` are two draws from one stochastic stage, not two code states.
+#
+# THE EXPECTATION STAYS AT `decide`. Unlike GSE126954's, this question is one code should settle: the
+# bytes are decisive, and what stops the run is a library_strategy re-read out of the same record
+# that typed it — the shape #183 fixed one field over, for sample attributes, and which did not
+# generalise to the chemistry hypothesis. Moving `outcome` to `ask` would enshrine a manufactured
+# conflict as the specification, so it stays and this case reads `over_ask` whenever the claim
+# appears. Filed as #184, with the candidate fixes and the one already rejected.
+#
+# HOW OFTEN, measured rather than inferred — five single-trial --llm runs of this case on
+# deepseek-v4-pro, 2026-08-01. Three completed and graded: ONE `over_ask` and TWO `correct`, which is
+# the instability stated as a number rather than as a suspicion. The `RNA-Seq` claim appeared in 2 of
+# the 5 passes over the four experiment documents, from a DIFFERENT experiment record each time
+# (SRX20684355, then SRX20684354) — so it is a property of the document shape, which all four share,
+# and not of one record. The other two runs aborted on DeepSeek's known invalid-JSON failure, both on
+# mmc2.txt, and skipped. Every one of the five refused the paper's own `10x-3p-gex-v3` draft.
+# EXPECT THIS CASE TO FLIP under --llm until #184 is settled; it is stable and green byte-only, which
+# is what the per-release job runs.
 outcome: decide
 description: >-
   Benchmark: GSE234962 (Smith et al. 2024, Cell Rep) pins two independent things — that resolve

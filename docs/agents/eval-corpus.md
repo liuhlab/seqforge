@@ -357,10 +357,21 @@ the 10X Chromium system, v3 chemistry" — the PDF's `3′` extracted as `30` �
 question is one code should settle: the bytes are decisive, and what stops the run is a
 `library_strategy` re-read out of the same record that typed it — the shape #183 fixed one field over,
 for sample attributes, and did not generalise to the chemistry hypothesis. Moving `outcome` to `ask`
-would enshrine a manufactured conflict as the specification. Measured on `deepseek-v4-pro`,
-2026-08-01: the `RNA-Seq` claim appeared in **every** completed extraction pass, from a different one
-of the four experiment records each time, so the earlier `correct` was the unusual draw and not the
-steady state.
+would enshrine a manufactured conflict as the specification. It is filed as **#184**, with the three
+candidate fixes and the one already rejected.
+
+**How often, measured — five single-trial `--llm` runs of this one case, `deepseek-v4-pro`,
+2026-08-01.** Three completed and graded: **one `over_ask` and two `correct`**, which is the
+instability as a number rather than as a suspicion, and it is why one run reporting green settles
+nothing here. The `RNA-Seq` claim appeared in **2 of the 5** passes over the four experiment
+documents, from a *different* experiment record each time — so it is a property of the document
+shape, which all four share, and not of one record. The other two runs aborted on DeepSeek's
+invalid-JSON failure (#4), both on `mmc2.txt`, the 1 KB supplementary table rather than the whole
+paper, which is worth noting against the first bullet above: the failures cluster on documents that
+provoke a long response, not simply on long documents. Every one of the five refused the paper's own
+`10x-3p-gex-v3` draft as `not_entailed`. The whole exercise cost **421,692 input, 112,782 output and
+416,896 cache-read tokens** across six runs, which is the price of learning that a benchmark grade
+was a coin flip.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
