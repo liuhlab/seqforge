@@ -4,7 +4,9 @@ Date: 2026-07-31
 
 ## Status
 
-Accepted.
+Accepted. **Amended by [0022](0022-three-owners-for-an-aligner-param.md)** on the CellRanger-parity
+knobs below: they are neither the KB's nor the recipe's but the workflow module's, written as literals
+in its shell block. The parse/count split this record exists to state is unchanged.
 
 ## Context
 
@@ -34,9 +36,15 @@ Because the two key sets are disjoint, *"a user instruction contradicts the byte
 processing models.
 
 **What moved out of the KB backend:** the CellRanger-parity knobs (`soloUMIdedup 1MM_CR`,
-`soloUMIfiltering MultiGeneUMI_CR`, `clipAdapterType CellRanger4`, `outFilterScoreMin 30`) are
-processing **policy**, not chemistry. They are applied at `compose` time from the recipe, so
-`backend_identical` stays sensitive to chemistry and blind to policy.
+`soloUMIfiltering MultiGeneUMI_CR`, `clipAdapterType CellRanger4`, `outFilterScoreMin 30`) are not
+chemistry, so `backend_identical` stays sensitive to chemistry and blind to them.
+
+This record originally said they were processing **policy**, applied at `compose` time from the
+recipe. **That never happened**: measured on `main` at `70ba9fd`, none of the four appeared in the
+module, in `models/processing.py` or in any spec, so they moved out of the KB and landed nowhere, and
+every matrix seqforge shipped until then was counted with STARsolo's defaults.
+[0022](0022-three-owners-for-an-aligner-param.md) settles where they belong — the workflow module, as
+literals, because their value varies with nothing — and states the test that decides an owner.
 
 ## Why the confusability matrix sorts keys and not list values
 
@@ -69,8 +77,9 @@ over every loaded spec pair in CI.
 belongs to `backend.params` only if reads cannot be *parsed* without it; everything about what to
 count, and against which genome, aligner, environment and resources, belongs to the recipe
 (`CONTEXT.md` keeps the two apart as **Backend params** and **Recipe**). Do not add a template token
-beyond `{onlist:<alias>}`, do not put a policy knob in a spec — CellRanger parity is applied at
-`compose` time — and when canonicalizing for comparison, **sort keys, never list values**.
+beyond `{onlist:<alias>}`, do not put a knob that varies with nothing in a spec *or* a recipe — the
+CellRanger-parity set is a module literal, see [0022](0022-three-owners-for-an-aligner-param.md) —
+and when canonicalizing for comparison, **sort keys, never list values**.
 
 **Enforced by.** The `Backend` key allowlist, with `test_backend_rejects_illegal_template_token`
 (`tests/test_kb.py`); `extra="forbid"` on the processing models, with

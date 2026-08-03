@@ -100,6 +100,12 @@ backend:
     soloUMIstart: 17
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
+    # CellRanger >=3's own barcode correction — one mismatch, candidates weighed by a pseudocount-
+    # carrying whitelist prior, N-containing barcodes rescued rather than dropped — so these counts are
+    # comparable to a published CellRanger matrix, which STARsolo's `1MM_multi` default is not. Legal
+    # for CB_UMI_Simple only; full note in `10x-3p-gex-v3`. Identical to 3' v3's, so the two params
+    # this entry diverges in are still soloCBwhitelist and soloStrand.
+    soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
     # soloStrand Reverse — derived from the kit's own oligos, in full, in the sibling entry
     # `10x-5p-gex-v2/spec.yaml`. In one line: the 5' gel-bead primer ends in the template-switch tail
     # rGrGrG rather than poly(dT) (10x CG000733 p.99), so the barcode is appended to the antisense

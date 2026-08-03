@@ -22,6 +22,32 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.1 — the retained CRAM carries the BARCODE, and the counts become CellRanger-comparable
+#: (#198). Five changes, deliberately in ONE bump: `run_id = H(dataset | processing | kb | workflow)`,
+#: so five merges would mean five rounds of run_id invalidation and five reprocessing passes over the
+#: same ~920 GiB. (a) `starsolo_count` writes `--outSAMtype BAM SortedByCoordinate` with
+#: `--outSAMattributes NH HI AS nM CB UB` — STAR refuses CB/UB in anything but the sorted BAM, and
+#: without them the CRAM we retained could not recount, could not be re-quantified, and could not be
+#: re-run under another tool; measured 12% SMALLER than the barcode-less CRAM it replaces. It also
+#: passes `--limitBAMsortRAM`, 3/4 of `mem_mb` (STAR's default 0 means "reuse the genome allocation",
+#: which on a small fixture genome is too small and FATALs). MEASURED, because it is a real operating
+#: cost of the barcode: STAR's coordinate sort needs ~160 B per alignment record and REFUSES rather
+#: than spilling, so a 215M-read sample wants ~32 GB of sort RAM and a `resources.mem_gb` raised to
+#: match. `--outBAMsortingBinsN` does not help (200 bins measured identical, 1000 slightly worse).
+#: (b) the CellRanger >=4 equivalence set — `clipAdapterType
+#: CellRanger4`, `outFilterScoreMin 30`, `soloUMIfiltering MultiGeneUMI_CR`, `soloUMIdedup 1MM_CR`,
+#: `soloCellFilter EmptyDrops_CR` — hardcoded here, because none varies by chemistry and a `SOLO[...]`
+#: subscript would silently make each a required key every KB spec must declare. (c) NEW REQUIRED KEY
+#: `solo.soloCBmatchWLtype`: it left this module's `soloType` branch for the KB, where the value can
+#: differ between two chemistries that share a soloType. (d) `solo_to_cram` no longer sorts (STAR
+#: did), so its `samtools sort` — and the undeclared temp files a preempted one leaked — is gone by
+#: construction rather than by configuration; the `.fai` fallback moved to a per-call temp dir, so the
+#: rule writes nothing snakemake has not declared. (e) `io h5ad` drops every barcode no feature
+#: counted: `raw/barcodes.tsv` is the whole whitelist and ~87.6% of it is empty, measured 633.8 MB ->
+#: 95.5 MB per deliverable, provably lossless. The mask is the UNION across features, never
+#: `X.sum() > 0` — `X` is exonic and `GeneFull` counts introns, so the narrow mask silently deletes
+#: the barcodes whose counts are all intronic. Which artifact owns each flag above, and the rule that
+#: decides it, is ADR-0022.
 #: 2026.7.14 — a SECOND aligner: `map/chromap` (chromap.smk) maps barcoded scATAC to a tabix-indexed
 #: `fragments.tsv.gz` (not a count matrix). It resolves its index via liulab-genome's `get_chromap_index`
 #: (no GTF — one index per assembly), reads two GENOMIC mates + a barcode read (`read_layout_kind`
@@ -62,7 +88,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.14"
+WORKFLOW_VERSION = "2026.8.1"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -159,6 +185,14 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
         "soloStrand",
         "soloAdapterSequence",
         "soloBarcodeReadLength",
+        # How a read barcode is matched back to the whitelist — a parse knob by the same test as the
+        # rest: it is decided by the chemistry's own vendor pipeline, never by what a user wants
+        # counted. It was a `soloType` branch in starsolo.smk (`1MM` for Complex, STAR's default for
+        # Simple) until #198, and a two-way branch cannot express what the KB already needs: Parse
+        # Evercode and BD Rhapsody are BOTH `CB_UMI_Complex` and take different values (`EditDist_2`
+        # vs `1MM`). Three answers, so it moves to the artifact that has one row per chemistry. Which
+        # values are legal depends on the soloType (compose's params gate enforces the pairing).
+        "soloCBmatchWLtype",
     }
 )
 

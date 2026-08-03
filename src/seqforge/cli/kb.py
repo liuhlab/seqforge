@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 from pydantic import ValidationError
 
+from ..e2e import SHIPPED_OUT_SAM_TYPE
 from ..kb import list_spec_ids, load_spec, run_roundtrip
 from ._common import _parse_quantify
 from .root import kb_app
@@ -146,10 +147,14 @@ def kb_e2e_cost(
     quantify: str | None = typer.Option(
         None, "--quantify", help="Override soloFeatures. Omit to price the compiler's own default."
     ),
+    # The shipped value is interpolated, never retyped: this help text is one of the four places that
+    # used to spell it out, and the only reason a reader trusts "the shipped module runs X" is that
+    # nobody had to remember to update it when the module moved.
     out_sam_type: str = typer.Option(
         "None",
         "--out-sam-type",
-        help="STAR --outSAMtype. The shipped module runs 'BAM Unsorted' — pass it to price the gap.",
+        help="STAR --outSAMtype. The shipped module runs "
+        f"'{' '.join(SHIPPED_OUT_SAM_TYPE)}' — pass it to price the gap.",
     ),
     keep_reads: bool = typer.Option(
         False, "--keep-reads", help="Do not delete FASTQs after a run."

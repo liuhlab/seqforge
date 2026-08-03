@@ -113,10 +113,15 @@ linear; the residual was genuinely 0.0; the model was genuinely wrong. **A resid
 within the range sampled — it can never report that the range itself was too narrow.** The four-point
 fit does say so (``max_residual_gb: 2.312``), one point too late to have helped.
 
-The ``--outSAMtype`` gap was measured on the same principle: the sweep ran ``None``, the shipped
-module runs ``BAM Unsorted``, and one variable changed gives **34.600 -> 35.345 GB (+745 MB) and
+The ``--outSAMtype`` gap was measured on the same principle: the sweep ran ``None``, the module then
+shipped ``BAM Unsorted``, and one variable changed gives **34.600 -> 35.345 GB (+745 MB) and
 +19 % wall-clock** at 40 M. Measured at one depth, and after the knee, "one depth" is a warning rather
-than a footnote.
+than a footnote. **The module has since moved to a coordinate-sorted BAM** — STAR emits ``CB``/``UB``
+into no other output, so a CRAM that carries a barcode requires it — and nobody has re-measured the
+gap since. So read that +745 MB as a floor on writing a BAM at all, not as today's number: a
+coordinate sort holds records back to order them, in a buffer STAR bounds with ``--limitBAMsortRAM``.
+What ships is written down once, in :data:`seqforge.e2e.SHIPPED_OUT_SAM_TYPE`, and deliberately not
+restated here.
 
 Read every number with its configuration or not at all: peak RSS includes STAR's per-thread buffers,
 so these are peaks **at 16 threads**. That is why ``kb e2e-fit`` refuses to merge runs differing in

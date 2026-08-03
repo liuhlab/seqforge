@@ -1,5 +1,5 @@
-"""Convert STAR's ``Aligned.out.bam`` to a coordinate-sorted CRAM — the finalize step that shrinks
-the retained alignment.
+"""Convert STAR's coordinate-sorted BAM to CRAM — the finalize step that shrinks the retained
+alignment.
 
 CRAM stores each read as its *difference* from the reference, so it is markedly smaller than BAM. The
 reference is not embedded (``embed_ref`` is deliberately off): ``samtools view -C -T <ref>`` records
@@ -7,6 +7,19 @@ each sequence's MD5 in the header's ``@SQ … M5:`` tags, and seqforge's referen
 that ``liulab-genome`` resolves deterministically forever — so the checksum plus the assembly id
 recorded in the QC bundle are enough to recover the exact reference. Not embedding is the smaller,
 standard choice, and the user's call.
+
+**Nothing here sorts, and the deletion of that stage is the point.** STAR is now run with
+``--outSAMtype BAM SortedByCoordinate`` — it must be, because STAR refuses to write the ``CB``/``UB``
+barcode tags into anything but the sorted BAM, and a CRAM with no barcode cannot be recounted, which
+is the only reason we keep one. So the BAM arrives sorted and the ``samtools sort`` that used to
+stand here is gone. It was built with no ``-T``, so its spill files landed in the process's CWD (the
+pipeline dir) as ``samtools.<pid>.<tid>.tmp.NNNN.bam``: undeclared to Snakemake, therefore
+un-cleanable by it, and a killed or preempted job simply left them — 41.4 GiB had accumulated across
+five pipeline dirs before anyone looked. Giving the sort a ``-T`` under a Snakemake-owned directory
+would have fixed that leak; **removing the sort makes it impossible**, and a mechanism that cannot
+leak beats one that has to be configured correctly. It also deletes a full re-sort pass over every
+BAM. Do not reintroduce a sort here on the assumption that the input might be unsorted: if it ever
+is, the module that ran STAR is what changed, and that is where it has to be fixed.
 
 **This takes a resolved FASTA path, never an assembly id.** Resolving ``assembly -> fasta_path`` needs
 ``liulab-genome``, which ships no type stubs; keeping that import in the (untyped) CLI verb lets this
@@ -23,6 +36,7 @@ it" line that keeps STAR out of every dependency table here.
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -46,6 +60,15 @@ def _ensure_fai(fasta: Path, workdir: Path) -> Path:
     read-only, so writing the index next to the FASTA fails. If an index already exists we use the
     FASTA in place; otherwise we mirror the FASTA into ``workdir`` (a symlink — no bytes copied) and
     index *that*, so the ``.fai`` lands somewhere writable.
+
+    ``workdir`` is a **per-call temporary directory**, not the rule's output directory, and that is
+    the last undeclared write this module had. The mirror used to land beside the CRAM: two files
+    Snakemake never declared and therefore could never clean, in the very tree whose undeclared temp
+    files this release set out to make impossible. Bounded and idempotent is better than the sort's
+    unbounded spill, but it is not the same claim as *nothing*. Now the pair lives for the length of
+    one conversion and goes with it, and the only files left under `results/` are the rule's declared
+    outputs. (In practice the branch is not taken at all — ``liulab-genome`` ships the ``.fai``
+    beside the FASTA — which is exactly why it was worth closing rather than watching.)
     """
     if fasta.with_name(fasta.name + ".fai").exists():
         return fasta
@@ -57,61 +80,98 @@ def _ensure_fai(fasta: Path, workdir: Path) -> Path:
     return local
 
 
-#: Floor for samtools sort's per-thread memory (``-m``). Below this, sort spills to many tiny temp
-#: files and thrashes; this keeps a sane minimum even when the budget divided by threads is small.
-_MIN_SORT_MEM_MB = 256
+#: Stage 2 of the pipe: every QNAME becomes ``r<N>``, counting the alignment lines as they go past.
+#:
+#: ``FS`` and ``OFS`` are both pinned to tab and both are load-bearing. awk rebuilds the whole record
+#: the moment a field is assigned, joining it with ``OFS`` — whose default is a **space**. Leave it
+#: unpinned and this hands the encoder a file whose fields are space-separated, which is not SAM at
+#: all; the failure is total rather than subtle, but it is also not obvious from reading the program.
+#:
+#: ``/^@/`` is a sound header test rather than a convenient guess: the SAM specification restricts a
+#: QNAME's first character to ``[!-?A-~]``, which excludes ``@`` (0x40) by construction. So no
+#: alignment line can begin with one, and no header line can be missed.
+_RENAME_QNAME = r'BEGIN{FS=OFS="\t"} /^@/{print; next} {n++; $1="r" n; print}'
 
 
-def _sort_mem_per_thread_mb(sort_mem_mb: int | None, threads: int) -> int | None:
-    """Per-thread ``-m`` for ``samtools sort`` from a TOTAL budget, or ``None`` to use its default.
+def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
+    """STAR's coordinate-sorted BAM -> ``out`` (CRAM) + ``out.crai``. Returns ``out``.
 
-    samtools sort holds ``-m`` bytes **per thread** before spilling, so the total is ``threads * m``.
-    We spend ~3/4 of the budget on the sort (leaving headroom for the CRAM encoder running in the same
-    pipe, plus the OS) and split that across threads — so more cores *and* more memory both make it
-    finish faster, which is the whole point of setting it rather than single-threading the default.
-    """
-    if sort_mem_mb is None:
-        return None
-    return max(_MIN_SORT_MEM_MB, (sort_mem_mb * 3 // 4) // max(1, threads))
+    Three stages in one pipe, so nothing intermediate is ever written to disk. Each was measured on
+    one real lane (GSE208154 / SAMN29720279), and together they land 12% **below** the CRAM this
+    shipped before it carried a barcode at all:
 
+    1. ``samtools view -h -F 0x100`` — primary alignments only, −17.8%. A secondary record re-states
+       a read we already have, at a locus we did not choose to believe.
+    2. ``awk`` — the read-name rewrite, −16.2%. Illumina names are 38 characters
+       (``K00125:217:HCL2YBBXY:8:2111:24637:43374``) and mean nothing once the barcode is a ``CB`` /
+       ``UB`` tag: the name was only ever the join key back to R1, and R1 is now in the record.
+       samtools has no flag for this — ``--output-fmt-option lossy_names=1`` was measured and saves
+       exactly zero bytes — so the rewrite happens in the stream. ``awk`` is in the pinned
+       ``align-rna`` image (it is what the measurement itself used), so this adds no dependency.
+    3. ``samtools view -C -T`` — the CRAM encoder, unchanged, still not embedding the reference.
 
-def bam_to_cram(
-    bam: Path, fasta: Path, out: Path, threads: int = 1, sort_mem_mb: int | None = None
-) -> Path:
-    """``Aligned.out.bam`` -> coordinate-sorted ``out`` (CRAM) + ``out.crai``. Returns ``out``.
-
-    Sorted so the CRAM is indexable (random access by region) and so like reads compress together.
-    Every samtools stage runs multi-threaded (``-@ threads``) and the sort is given a real memory
-    budget (``-m`` per thread, derived from ``sort_mem_mb``) so a fat node is actually used — never a
-    single-threaded default. The BAM is left in place; the caller (a Snakemake ``temp()`` output) owns
-    its deletion.
+    Every stage is multi-threaded (``--threads``) so a fat node is actually used, and **every stage's
+    exit status is checked**. A pipe reports only its last stage, and ``samtools view -C`` will
+    encode a truncated stream and exit 0 — so a filter or a rewrite that died mid-file would become a
+    CRAM quietly missing most of its reads. That is expensive here in particular: the BAM is a
+    Snakemake ``temp()`` output, deleted the moment this rule reports success. The BAM is left in
+    place; the caller owns its deletion.
     """
     if not bam.exists():
         raise CramError(f"{bam} is missing; the STAR run that should have written it did not")
     if not fasta.exists():
         raise CramError(f"reference FASTA {fasta} does not exist")
-    ref = _ensure_fai(fasta, out.parent)
     out.parent.mkdir(parents=True, exist_ok=True)
-    # sort (BAM is written --outSAMtype BAM Unsorted) piped straight into the CRAM encoder, so no
-    # intermediate sorted BAM lands on disk. `-T` names the reference; no embed_ref -> smallest CRAM.
-    sort = ["samtools", "sort", "-@", str(threads), "-O", "bam"]
-    per_thread = _sort_mem_per_thread_mb(sort_mem_mb, threads)
-    if per_thread is not None:
-        sort += ["-m", f"{per_thread}M"]
-    sort.append(str(bam))
-    view = ["samtools", "view", "-C", "-T", str(ref), "-@", str(threads), "-o", str(out), "-"]
-    try:
-        with subprocess.Popen(sort, stdout=subprocess.PIPE) as sorter:
-            assert sorter.stdout is not None
-            view_proc = subprocess.run(view, stdin=sorter.stdout, check=False)
-        if sorter.returncode:
-            raise CramError(f"samtools sort exited {sorter.returncode}")
-        if view_proc.returncode:
-            raise CramError(f"samtools view (CRAM) exited {view_proc.returncode}")
-    except FileNotFoundError as exc:
-        raise CramError("samtools is not installed; CRAM conversion needs samtools") from exc
+    # The `.fai` fallback gets a directory that outlives nothing: it must survive the encode, which is
+    # why the whole conversion happens inside the `with`, and it must survive nothing else, which is
+    # why there is a `with` at all. See `_ensure_fai`.
+    with tempfile.TemporaryDirectory(prefix="seqforge-cram-") as tmp:
+        ref = _ensure_fai(fasta, Path(tmp))
+        _encode(bam, ref, out, threads)
     _run(["samtools", "index", "-@", str(threads), str(out)])
     return out
+
+
+def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
+    """The three-stage pipe of :func:`bam_to_cram`, waited on and checked stage by stage."""
+    # `-h` keeps the header: the encoder needs the @SQ lines to match sequences to the reference.
+    # `-T` names that reference; no embed_ref -> smallest CRAM.
+    nthreads = str(threads)
+    primary = ["samtools", "view", "-h", "-F", "0x100", "--threads", nthreads, str(bam)]
+    rename = ["awk", _RENAME_QNAME]
+    encode = ["samtools", "view", "-C", "-T", str(ref), "--threads", nthreads, "-o", str(out), "-"]
+    try:
+        # Each stage hands its read end to the next and then drops this process's copy. Holding one
+        # open would keep the upstream stage blocked on a full pipe forever if its consumer died,
+        # instead of letting it see EPIPE and exit — and a hang is the one failure a checked exit
+        # status cannot report. Both handoffs need it, not just the first: an encoder that dies on a
+        # full disk mid-file would otherwise leave awk writing into a pipe nobody drains, and the
+        # `with` block waiting on awk.
+        with subprocess.Popen(primary, stdout=subprocess.PIPE) as filt:
+            assert filt.stdout is not None
+            with subprocess.Popen(rename, stdin=filt.stdout, stdout=subprocess.PIPE) as renamer:
+                filt.stdout.close()
+                assert renamer.stdout is not None
+                with subprocess.Popen(encode, stdin=renamer.stdout) as encoder:
+                    renamer.stdout.close()
+        # Reported together, in pipeline order. A stage that fails kills the ones upstream of it with
+        # SIGPIPE (they show as -13), so naming only one of them would have to guess which nonzero
+        # was the cause; listing them all says what happened without pretending to know.
+        failures = [
+            f"{name} exited {code}"
+            for name, code in (
+                ("samtools view (primary alignments)", filt.returncode),
+                ("awk (read-name rewrite)", renamer.returncode),
+                ("samtools view (CRAM encode)", encoder.returncode),
+            )
+            if code
+        ]
+        if failures:
+            raise CramError(f"{bam} -> CRAM failed: " + "; ".join(failures))
+    except FileNotFoundError as exc:
+        raise CramError(
+            f"{exc.filename} is not installed; CRAM conversion needs samtools and awk"
+        ) from exc
 
 
 __all__ = ["CramError", "bam_to_cram"]

@@ -78,6 +78,37 @@ _COMPLEMENT = str.maketrans("ACGTN", "TGCAN")
 #: The pilot's e2e chemistry: 16 bp CB + 12 bp UMI on R1, cDNA on R2, soloStrand Forward.
 E2E_TECH = "10x-3p-gex-v3"
 
+#: What ``starsolo.smk`` hardcodes for ``--outSAMtype``: the value the SHIPPED pipeline really runs.
+#:
+#: The gates and the cost sweep both default to ``None`` — they want a count matrix, and a BAM they
+#: never read is pure cost — so this is the other half of ``kb e2e-cost --out-sam-type``, which exists
+#: to price the gap between the command the instrument runs and the command users run. That makes it
+#: a claim about *another file*, and it was written out as a literal in four of them: the argv comment
+#: in :func:`run_starsolo`, :func:`run_composed`'s docstring, ``--out-sam-type``'s help text, and the
+#: resume-fingerprint test. Four copies of one fact is four chances to leave the cost arm pricing a
+#: command nobody runs. ``tests/test_e2e.py`` reads the module's own shell block back and asserts it
+#: equals this, so the one copy that remains cannot drift either.
+#:
+#: **Coordinate-sorted rather than unsorted, and that is not tidiness.** STAR refuses to put ``CB``
+#: and ``UB`` in anything but the sorted BAM, so this is what lets the retained CRAM carry a barcode
+#: at all — and a CRAM without one can be recounted under no other GTF and joined back to no cell.
+SHIPPED_OUT_SAM_TYPE: tuple[str, ...] = ("BAM", "SortedByCoordinate")
+
+#: What ``starsolo.smk`` hardcodes for ``--soloCellFilter``: CellRanger >=3's cell caller.
+#:
+#: Adopted with the rest of the CellRanger-equivalence set (#198), and it is the only member of that
+#: set whose correctness argument had a hole in it: ``EmptyDrops_CR`` is **Monte-Carlo** (10 000
+#: ambient simulations by default). A nondeterministic QC bundle would be a genuine problem for a
+#: content-addressed compiler, so it was measured before it was adopted — bit-identical across
+#: repeats, thread counts and RNG seeds on a real 6.79M-barcode matrix.
+#:
+#: That measurement is what :func:`run_cell_filter_determinism` exists to keep true. Seed-independence
+#: is *stronger* than the theory predicts, and the benign explanation — that no candidate sat near the
+#: FDR boundary on that one sample, so simulation noise had nothing to flip — cannot be ruled out from
+#: one dataset. So the property is asserted on every gate run rather than believed, which also covers
+#: the case nobody would otherwise notice: a future ``align-rna`` bumping STAR under it.
+SHIPPED_CELL_FILTER = "EmptyDrops_CR"
+
 
 class E2EUnavailable(RuntimeError):
     """The e2e toolchain (STAR + a genome index) is not present on this machine."""
@@ -583,9 +614,9 @@ def run_starsolo(
         "--outFileNamePrefix",
         f"{outdir}/",
         # `None` by default: the gates want a count matrix, not alignments, and writing a BAM they
-        # never read would be pure cost. But the SHIPPED module runs `BAM Unsorted`, so a cost arm
-        # that only ever prices `None` prices a command nobody runs -- which is why this is a
-        # parameter rather than a constant, and why `kb e2e-cost --out-sam-type` exists to measure
+        # never read would be pure cost. But the SHIPPED module runs `SHIPPED_OUT_SAM_TYPE`, so a
+        # cost arm that only ever prices `None` prices a command nobody runs -- which is why this is
+        # a parameter rather than a constant, and why `kb e2e-cost --out-sam-type` exists to measure
         # the gap instead of estimating it in a docstring.
         "--outSAMtype",
         *out_sam_type,
@@ -729,9 +760,15 @@ def run_composed(
 
     Two consequences worth naming rather than discovering:
 
-    - **`--outSAMtype BAM Unsorted`** is what the module hardcodes, so that is what runs here; the old
-      path passed `None` to save time. Slower and bigger, and correct: a gate that runs a command
-      nobody ships is measuring the wrong thing. On a 12 Mb yeast fixture the difference is noise.
+    - **`SHIPPED_OUT_SAM_TYPE`** is what the module hardcodes, so that is what runs here; the old path
+      passed `None` to save time. Slower and bigger, and correct: a gate that runs a command nobody
+      ships is measuring the wrong thing. The *sort* is load-bearing rather than tidy — STAR writes
+      `CB`/`UB` into no output but the coordinate-sorted BAM, so it is what lets the retained CRAM
+      carry a barcode at all — and it costs more wall-clock and more RAM than `Unsorted`. That is why
+      the module also passes `--limitBAMsortRAM` from `config["mem_mb"]`: STAR's default of `0` means
+      "reuse the genome allocation", and on a genome as small as this gate's yeast index there is not
+      enough of it to sort in, so STAR FATALs instead of spilling. On a 12 Mb fixture the extra
+      wall-clock is still noise.
     - **The `genome_index` rule now executes**, resolving the index through liulab-genome exactly as a
       real run does (`get_star_index`, a pure lookup), instead of the test handing STAR a path it
       found itself. seqforge never builds the index, so it must be prebuilt for this assembly +
@@ -801,6 +838,115 @@ def _feature_list(value: object) -> list[str]:
     if isinstance(value, list | tuple):
         return [str(v) for v in value]
     return str(value).split()
+
+
+#: The synthetic raw matrix the determinism guard filters: enough barcodes for an ambient
+#: distribution to exist, and a planted set of real cells an order of magnitude denser than it.
+#: EmptyDrops needs both — it builds its null from the empty droplets and tests candidates against
+#: it, so a matrix of nothing but cells would have it deciding nothing and the guard proving nothing.
+_FILTER_FIXTURE = {"n_genes": 300, "n_barcodes": 3000, "n_cells": 60, "genes_per_cell": 120}
+
+
+def _write_raw_matrix(raw: Path, *, seed: int) -> int:
+    """A small ``Solo.out/<feature>/raw/`` triple with cells planted in it. Returns the cell count.
+
+    Written rather than borrowed from the pipeline run, because the module declares every
+    ``Solo.out`` file ``temp()`` and Snakemake has deleted the lot by the time the composed run
+    returns. Synthesising one costs milliseconds and makes the guard independent of a genome, an
+    index, and an alignment — it is a claim about STAR's cell caller, not about our counts.
+    """
+    rng = random.Random(seed)
+    n_genes = _FILTER_FIXTURE["n_genes"]
+    n_bc, n_cells = _FILTER_FIXTURE["n_barcodes"], _FILTER_FIXTURE["n_cells"]
+    raw.mkdir(parents=True, exist_ok=True)
+    (raw / "features.tsv").write_text(
+        "".join(f"G{i}\tG{i}\tGene Expression\n" for i in range(n_genes))
+    )
+    (raw / "barcodes.tsv").write_text(
+        "".join("".join(rng.choice("ACGT") for _ in range(16)) + "\n" for _ in range(n_bc))
+    )
+    entries: list[tuple[int, int, int]] = []
+    for b in range(n_bc):
+        # a planted cell: many genes, several UMIs each. ambient: a handful of genes, one UMI each.
+        n_g, max_umi = (_FILTER_FIXTURE["genes_per_cell"], 8) if b < n_cells else (4, 1)
+        entries += [
+            (g + 1, b + 1, rng.randint(1, max_umi)) for g in rng.sample(range(n_genes), n_g)
+        ]
+    with (raw / "matrix.mtx").open("w") as fh:
+        fh.write("%%MatrixMarket matrix coordinate integer general\n%\n")
+        fh.write(f"{n_genes} {n_bc} {len(entries)}\n")
+        fh.writelines(f"{g} {b} {v}\n" for g, b, v in entries)
+    return n_cells
+
+
+def run_cell_filter_determinism(
+    assets: E2EAssets, *, workdir: Path, repeats: int = 2, seed: int = 0, timeout: int = 300
+) -> dict[str, object]:
+    """Run ``--soloCellFilter`` twice on ONE raw matrix and assert ``barcodes.tsv`` is byte-identical.
+
+    The guard the cell-filter decision was made conditional on (#198). ``EmptyDrops_CR`` runs 10 000
+    ambient simulations, so "which barcodes were called" is in principle a function of an RNG — and
+    that list is archived in every ``<sample>.qc.json.gz``. A content-addressed compiler whose
+    artifact that changes when nothing changed has a hash that means nothing, so this turns a property
+    we *measured once, on one sample* into one the gate re-proves on every run and on every future
+    pinned STAR.
+
+    Cheap enough to be unconditional: ``--runMode soloCellFiltering`` reads an existing matrix, loads
+    no genome and touches no read, and returns in about a second. It is deliberately *not* a
+    reimplementation of the cell caller — it asserts nothing about WHICH barcodes are right, only that
+    asking twice gives one answer. Whether the caller is the right one is a judgement, made in the
+    issue; whether it is stable is a fact, checked here.
+
+    Each repeat runs in its own directory with ``cwd`` set to it, because ``soloCellFiltering`` writes
+    ``Log.out`` and ``_STARtmp`` beside the caller rather than under the output prefix — and a guard
+    that litters the tree it is guarding would be its own small version of the leak this release
+    deleted.
+    """
+    workdir.mkdir(parents=True, exist_ok=True)
+    raw = workdir / "raw"
+    n_planted = _write_raw_matrix(raw, seed=seed)
+
+    digests: list[str] = []
+    called: list[int] = []
+    for i in range(repeats):
+        out = workdir / f"filter{i}"
+        out.mkdir(parents=True, exist_ok=True)
+        proc = subprocess.run(
+            [
+                assets.star_bin,
+                "--runMode",
+                "soloCellFiltering",
+                f"{raw}/",
+                f"{out}/",
+                "--soloCellFilter",
+                SHIPPED_CELL_FILTER,
+            ],
+            cwd=str(out),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if proc.returncode != 0:
+            raise E2EUnavailable(
+                f"--runMode soloCellFiltering exited {proc.returncode}: {proc.stderr[-2000:]}"
+            )
+        barcodes = (out / "barcodes.tsv").read_bytes()
+        digests.append(hashlib.sha256(barcodes).hexdigest()[:16])
+        called.append(len(barcodes.split()))
+
+    # One digest is not enough on its own: a caller that called NOTHING is perfectly reproducible, and
+    # a guard that goes green on two empty files proves only that STAR can write two empty files. So
+    # the fixture's planted cells have to come back — measured against the pinned STAR 2.7.11b, all 60
+    # of them do, and requiring merely "some" leaves room for a future caller to be stricter without
+    # this turning red for the wrong reason.
+    return {
+        "passed": len(set(digests)) == 1 and min(called) > 0,
+        "cell_filter": SHIPPED_CELL_FILTER,
+        "repeats": repeats,
+        "digests": digests,
+        "n_called": called,
+        "n_planted": n_planted,
+    }
 
 
 def run_e2e(
@@ -941,6 +1087,15 @@ def run_e2e(
         # an inverted strand must destroy the signal; if it did not, the gate is blind
         result["strand_sensitive"] = inv_total < 0.2 * total
         result["passed"] = bool(result["passed"] and result["strand_sensitive"])
+
+    # --- the Monte-Carlo cell caller must give one answer to one matrix ---
+    # The only flag in the shipped command whose output is not a deterministic function of its input
+    # by construction. It never reaches an `.h5ad` — cell calling is a downstream decision and the
+    # deliverable is built from `raw/` — but the barcodes it calls ARE archived in the QC bundle, so
+    # a drifting caller means a content-addressed artifact that changes with nothing changed.
+    filt = run_cell_filter_determinism(assets, workdir=workdir / "cellfilter", seed=seed)
+    result["cell_filter"] = filt
+    result["passed"] = bool(result["passed"] and filt["passed"])
 
     return result
 

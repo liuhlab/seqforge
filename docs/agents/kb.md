@@ -41,9 +41,10 @@ downstream ([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md
   is depth-dependent; `supports` are additive positive evidence, and this is where an onlist test and
   a distinct ratio belong; `excludes` are anti-gates, and any pass disqualifies. `read_count` counts
   biological and barcode **roles**, not raw files.
-- **`Backend.params` is the chemistry-defining minimum only** — how to *parse* reads. CellRanger-parity
-  knobs are recipe policy, not chemistry (below). The one interpolation token allowed anywhere in it is
-  `{onlist:<alias>}`, and it is validated: any other `{…}` fails.
+- **`Backend.params` is the chemistry-defining minimum only** — how to *parse* reads. A knob whose
+  value is the same for every dataset is the module's, not the KB's and not the recipe's (below). The
+  one interpolation token allowed anywhere in it is `{onlist:<alias>}`, and it is validated: any other
+  `{…}` fails.
 - **`decidable_by` is a derived `Spec` property, not a stored field** — the union over the
   processing-divergent confusables of the minimal sufficient mechanism. It used to be hand-typed on
   every spec, read by nothing, under a comment claiming a "CI-computed union" that no CI computed, so
@@ -60,10 +61,18 @@ downstream ([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md
 ### What moved out of the backend
 
 CellRanger-parity knobs — `soloUMIdedup 1MM_CR`, `soloUMIfiltering MultiGeneUMI_CR`,
-`clipAdapterType CellRanger4`, `outFilterScoreMin 30` — are processing **policy**, not chemistry. The
-parse-versus-count key split that puts them in the recipe, and thereby makes "a user instruction
-contradicts the bytes" inexpressible, is
+`clipAdapterType CellRanger4`, `outFilterScoreMin 30`, and `soloCellFilter EmptyDrops_CR` beside them —
+are not chemistry, so they are not the KB's. They are not the recipe's either: their value varies with
+*nothing*, so they are **literals in `starsolo.smk`'s shell block**
+([ADR-0022](../adr/0022-three-owners-for-an-aligner-param.md)). The parse-versus-count key split that
+makes "a user instruction contradicts the bytes" inexpressible is
 [ADR-0011](../adr/0011-closed-instructable-surface.md).
+
+**`soloCBmatchWLtype` is the KB's, and it is the useful edge case.** Its 10x value
+(`1MM_multi_Nbase_pseudocounts`) was chosen for CellRanger parity exactly like the five above — but
+unlike them it *varies with the chemistry* (`1MM` for BD Rhapsody and SPLiT-seq, `EditDist_2` for
+Parse Evercode), and for a `CB_UMI_Complex` spec STAR rejects its own global default, so reads cannot
+be parsed without it. Owner is decided by what the value varies with, never by what it is for.
 
 Positions are the same story one level down: `soloCBposition` and `soloUMIposition` are **omitted from
 the KB and derived from the element coordinates at compose time**, never hand-typed. Two spellings of

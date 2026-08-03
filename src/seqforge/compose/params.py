@@ -28,6 +28,12 @@ Four checks:
    of truth for one decision, unable to disagree only because one was never consulted.
 4. **Cross-derivation** — the KB's declared offsets/lengths agree with the *observed* read layout
    (catches a KB whose params contradict the bytes: ``soloCBlen 16`` over a 12 bp CB).
+5. **Pairwise legality** — a param whose legal values depend on another param's value is checked as a
+   PAIR, not as two independent strings. Today that is ``(soloType, soloCBmatchWLtype)``: an illegal
+   combination is a hard STAR FATAL, and STAR raises it *after* the genome loads, on a compute node,
+   minutes into a job. A gate check turns that into a compose-time refusal, which is precisely this
+   gate's stated job.
+6. **readFilesIn** — each read role maps to the byte-decided read, per the pipeline's layout kind.
 
 Strand correctness itself is NOT decidable here — only the `kb e2e` count-matrix run can catch an
 inverted ``--soloStrand``. This gate asserts the value survives compose intact; the e2e asserts it is
@@ -49,6 +55,32 @@ ParamOwner = Literal["kb", "processing", "derived"]
 
 RECIPE_PARAM_KEYS: frozenset[str] = frozenset({"soloFeatures", "quantMode"})
 """Every backend param sourced from the processing manifest. Each says what to **COUNT**."""
+
+CB_MATCH_WL_TYPES: dict[str, frozenset[str]] = {
+    "CB_UMI_Simple": frozenset(
+        {"Exact", "1MM", "1MM_multi", "1MM_multi_pseudocounts", "1MM_multi_Nbase_pseudocounts"}
+    ),
+    "CB_UMI_Complex": frozenset({"Exact", "1MM", "EditDist_2"}),
+}
+"""Which ``--soloCBmatchWLtype`` values STAR accepts, **per soloType**.
+
+Measured, not read off ``--help``: all six values were run against the STAR 2.7.11b binary under both
+soloTypes, because ``--help`` lists the six as one flat menu and says nothing about the split. The two
+sets overlap in ``Exact``/``1MM`` and are otherwise disjoint — the ``1MM_multi*`` family is
+Simple-only, ``EditDist_2`` is Complex-only — and STAR's refusal is a hard ``EXITING because of fatal
+PARAMETERS error``, not a warning it proceeds past.
+
+The value that makes this worth gating rather than documenting: **STAR's own global default,
+``1MM_multi``, is illegal for ``CB_UMI_Complex``.** So the failure is not "someone typed an exotic
+value"; it is "a Complex chemistry said nothing", which is the easiest thing in the world for a new
+spec to do. It is also the failure class this repo names explicitly — every wrong answer here breaks
+the four Complex chemistries and leaves all seven 10x ones green.
+
+A soloType that is not a key here is refused rather than waved through. STAR has others (``SmartSeq``,
+``CB_samTagOut``) and ``starsolo.smk`` emits ``--soloCBmatchWLtype`` unconditionally, so a spec
+declaring one would be a contract we have not established — the same "must not be guessed at" line
+:attr:`~seqforge.workflows.WorkflowModule.param_block` draws.
+"""
 
 DERIVED_PARAM_KEYS: frozenset[str] = frozenset(
     {"soloCBposition", "soloUMIposition", "soloAdapterSequence", "read_format"}
@@ -435,10 +467,53 @@ def params_gate(
         else:
             problems += _check_simple_geometry(bc_read, params)
 
-    # ---- 5. readFilesIn: each role maps to the byte-decided read (per this pipeline's layout kind) ----
+    # ---- 5. pairwise legality: (soloType, soloCBmatchWLtype) must be a pair STAR accepts ----
+    problems += _check_cb_match_wl_type(params)
+
+    # ---- 6. readFilesIn: each role maps to the byte-decided read (per this pipeline's layout kind) ----
     problems += _check_read_files_in(manifest, config, get_module(backend.module).read_layout_kind)
 
     return ("fail" if problems else "pass"), problems
+
+
+def _check_cb_match_wl_type(params: Mapping[str, object]) -> list[str]:
+    """Refuse a ``(soloType, soloCBmatchWLtype)`` pair STAR would FATAL on — see :data:`CB_MATCH_WL_TYPES`.
+
+    Gated on ``soloType`` being declared at all, which is what scopes this to STARsolo: a bulk or a
+    chromap backend has no such key and falls straight through, rather than being asked about a flag
+    its aligner has never heard of.
+
+    A **missing** ``soloCBmatchWLtype`` is refused too, and that is the same bug wearing different
+    clothes. The module dereferences the key unconditionally, so a starsolo spec that omits it dies at
+    Snakemake parse time on a compute node; and if the module instead fell back to STAR's default, a
+    Complex spec would die at STAR on a value it never chose. Both are "a run that ends on the node",
+    which is what this gate exists to convert into an exit code.
+    """
+    solo_type = params.get("soloType")
+    if solo_type is None:
+        return []
+    legal = CB_MATCH_WL_TYPES.get(str(solo_type))
+    if legal is None:
+        return [
+            f"KB declares soloType={solo_type!r}, whose legal --soloCBmatchWLtype values this gate "
+            f"does not know (it knows {sorted(CB_MATCH_WL_TYPES)}). Add the measured row to "
+            f"CB_MATCH_WL_TYPES rather than letting an unchecked pair reach a compute node"
+        ]
+    value = params.get("soloCBmatchWLtype")
+    if value is None:
+        return [
+            f"KB declares soloType={solo_type!r} but no soloCBmatchWLtype; every starsolo chemistry "
+            f"must name its own barcode-match mode (legal here: {sorted(legal)}). STAR's global "
+            f"default is 1MM_multi, which CB_UMI_Complex rejects outright, so there is no safe value "
+            f"to fall back to"
+        ]
+    if str(value) not in legal:
+        return [
+            f"KB soloCBmatchWLtype={str(value)!r} is illegal for soloType={solo_type!r}; STAR accepts "
+            f"{sorted(legal)} there. This is a hard STAR FATAL raised after the genome loads, so "
+            f"compose refuses it now instead of a compute node refusing it in twenty minutes"
+        ]
+    return []
 
 
 def _check_simple_geometry(bc_read: ReadDef, params: Mapping[str, object]) -> list[str]:

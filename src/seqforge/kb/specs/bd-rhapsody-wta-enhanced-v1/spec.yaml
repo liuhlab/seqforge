@@ -78,6 +78,12 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]   # order == CB-position order
+    # `1MM` = one mismatch per barcode BLOCK — the tolerant CB_UMI_Complex-legal mode, and what the
+    # maintainer-endorsed BD Rhapsody recipe on STAR issue #1607 intends. NOT droppable: STAR's global
+    # default `1MM_multi` is REJECTED for CB_UMI_Complex, so a Complex chemistry naming no match type
+    # FATALs on the default alone, on a compute node after the genome has loaded. Confirmed against
+    # real reads of this bead (seqforge #43); full note in `bd-rhapsody-wta`.
+    soloCBmatchWLtype: 1MM
     # soloStrand Forward: the bead oligo ends in poly(dT) priming off the mRNA poly(A), so R2 is sense to
     # the transcript — a 3' poly-dT capture library like the original bead (STAR #1607 sets Forward).
     soloStrand: Forward

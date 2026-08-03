@@ -83,6 +83,20 @@ backend:
     soloUMIstart: 17
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
+    # How an observed CB is matched against that whitelist — a per-CHEMISTRY parse fact, because the
+    # value tracks whichever reference pipeline the vendor ships, and for every 10x kit that is
+    # CellRanger. `1MM_multi_Nbase_pseudocounts` IS CellRanger >=3's own barcode correction: one
+    # mismatch, multiple candidates weighed by a whitelist prior carrying PSEUDOCOUNTS, and barcodes
+    # containing an N rescued rather than dropped. STARsolo's default (`1MM_multi`) has neither
+    # refinement, so default counts are NOT comparable to a published CellRanger matrix — and a corpus
+    # whose whole value is cross-dataset comparability cannot afford that. Arc Institute's scRecounter
+    # — STARsolo over public SRA, the same problem — pins the same value in `workflows/star_full.nf`.
+    # LEGAL FOR CB_UMI_Simple ONLY. Measured against the STAR 2.7.11b binary, run directly rather than
+    # read off --help, over all six values x both soloTypes: Complex REJECTS all three `1MM_multi*`
+    # modes and Simple rejects `EditDist_2`; `Exact` and `1MM` are legal under both. So the
+    # (soloType, soloCBmatchWLtype) pair is gated at compose, where an illegal one is a named refusal,
+    # instead of a STAR FATAL on a compute node after the genome has loaded.
+    soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
     soloStrand: Forward
     # 0 disables STARsolo's barcode-read-length check, which by default (1) FATALs when the barcode
     # read is longer than CB+UMI. An over-sequenced R1 (150 bp) needs this; CB/UMI are still read from

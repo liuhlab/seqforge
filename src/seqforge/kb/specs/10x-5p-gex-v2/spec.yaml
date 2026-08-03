@@ -98,6 +98,14 @@ backend:
     soloUMIstart: 17
     soloUMIlen: 10              # 10 bp UMI (vs v3's 12) -> 26 bp R1
     soloCBwhitelist: "{onlist:cb_whitelist}"
+    # CellRanger >=3's own barcode correction — one mismatch, candidates weighed by a pseudocount-
+    # carrying whitelist prior, N-containing barcodes rescued rather than dropped — so these counts are
+    # comparable to a published CellRanger matrix, which STARsolo's `1MM_multi` default is not. A parse
+    # fact and a per-chemistry one: the value tracks the vendor's reference pipeline, and 5' is a
+    # CellRanger kit like the 3' ones. Legal for CB_UMI_Simple only (Complex rejects every
+    # `1MM_multi*` mode); full note in `10x-3p-gex-v3`. Identical to 3' v2's, which keeps soloStrand
+    # the whole of the difference.
+    soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
     # soloStrand Reverse. DERIVED FROM THE KIT'S OWN OLIGOS, not recalled and not inferred from
     # community practice — strand is the value where being wrong is quietest, so it is derived here in
     # full and the derivation is reproducible from the cited pages:

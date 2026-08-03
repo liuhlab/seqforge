@@ -90,6 +90,12 @@ backend:
     soloUMIstart: 17
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
+    # CellRanger >=3's own barcode correction — one mismatch, candidates weighed by a pseudocount-
+    # carrying whitelist prior, N-containing barcodes rescued rather than dropped — so these counts are
+    # comparable to a published CellRanger matrix, which STARsolo's `1MM_multi` default is not. Legal
+    # for CB_UMI_Simple only; full note in `10x-3p-gex-v3`, and byte-identical to the value there,
+    # which is what keeps `backend_identical` true across the twin.
+    soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
     soloStrand: Forward
     # 0 disables STARsolo's barcode-read-length check (default 1 FATALs on an over-length barcode
     # read); byte-identical to v3's, which is what keeps `backend_identical` true.

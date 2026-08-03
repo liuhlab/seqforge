@@ -187,6 +187,66 @@ def test_kb_specs_declare_only_parse_keys(tech: str) -> None:
     assert not set(params) & RECIPE_PARAM_KEYS, f"{tech}: a count key is misfiled as chemistry"
 
 
+def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> None:
+    """``soloCBmatchWLtype`` is KB-owned now, and both ways of getting it wrong die on a compute node.
+
+    Declaring NOTHING is the dangerous one, because it looks like restraint. The module emits the key
+    unconditionally, and STAR's own global default — ``1MM_multi`` — is illegal for
+    ``CB_UMI_Complex``, so a new combinatorial chemistry that simply said nothing would FATAL after
+    the genome had loaded. Declaring a value from the wrong half of the menu fails identically: the
+    ``1MM_multi*`` family is Simple-only and ``EditDist_2`` is Complex-only, so the legal set is a
+    function of the spec's own ``soloType`` and cannot be checked one string at a time.
+
+    Collected from the loader, not from a roster of the eleven specs that carry the key today, so the
+    twelfth is covered *because it exists*. That is the point of the move: the value used to be a
+    branch on ``soloType`` inside ``starsolo.smk``, which can hold two answers, and a planned Parse
+    Evercode entry is a third — ``CB_UMI_Complex`` like BD Rhapsody and SPLiT-seq, and ``EditDist_2``
+    rather than their ``1MM``. It needs no module change; it needs a line in its own spec.
+
+    The legality matrix is IMPORTED from the composer rather than restated here. It was measured
+    against the STAR binary, it is what the compose gate refuses on, and a second copy is a second
+    thing to drift — the KB would then be free to declare a pair compose rejects.
+    """
+    from seqforge.compose.params import CB_MATCH_WL_TYPES
+
+    checked: set[str] = set()
+    seen_types: set[str] = set()
+    for tech in kb.runnable_spec_ids():
+        backend = kb.load_spec(tech).require_backend()
+        if backend.module != "map/starsolo":
+            continue
+        checked.add(tech)
+        seen_types.add(str(backend.params.get("soloType")))
+        declared = backend.params.get("soloCBmatchWLtype")
+        assert declared is not None, (
+            f"{tech}: declares no soloCBmatchWLtype. Saying nothing is not the safe answer — STAR's "
+            f"global default 1MM_multi is itself illegal for CB_UMI_Complex"
+        )
+        solo_type = backend.params["soloType"]
+        # A param value is typed as the DSL's whole union (scalars and the positional whitelist list);
+        # both of these keys are strings in every spec that has them, so narrow rather than cast.
+        assert isinstance(solo_type, str) and isinstance(declared, str), (
+            f"{tech}: soloType/soloCBmatchWLtype must be strings, got {solo_type!r} / {declared!r}"
+        )
+        legal = CB_MATCH_WL_TYPES.get(solo_type)
+        assert legal is not None, f"{tech}: soloType {solo_type!r} has no measured legality set"
+        assert declared in legal, (
+            f"{tech}: soloCBmatchWLtype {declared!r} is not legal for {solo_type} — STAR accepts "
+            f"{sorted(legal)} there, and refuses anything else with a hard PARAMETERS error"
+        )
+
+    # A sweep that selected nothing passes, which is the failure this loop is least able to notice:
+    # rename the module and every assertion above stops running with nothing red.
+    assert len(checked) > 1, f"expected the starsolo specs, selected {sorted(checked)}"
+    # And a sweep that selected only Simple chemistries is the SAME failure, one layer in — it is the
+    # shape this whole key was moved to fix, and the shape the issue warns leaves a 10x-only suite
+    # green. Both halves of the measured legality matrix must actually be exercised by a real spec.
+    assert seen_types == set(CB_MATCH_WL_TYPES), (
+        f"the sweep covered soloTypes {sorted(seen_types)}, not {sorted(CB_MATCH_WL_TYPES)}; every "
+        f"wrong answer about soloCBmatchWLtype breaks the Complex specs and leaves the 10x ones green"
+    )
+
+
 def test_the_kb_cannot_even_express_a_count_key() -> None:
     """Not a convention — a validator. It fires in load_spec, kb lint, and every test that loads."""
     backend = kb.load_spec("10x-3p-gex-v3").require_backend()
