@@ -708,6 +708,15 @@ gate asserts the four things that indict **us**:
 - **strand sensitivity** — the same reads re-run under an inverted strand must *collapse*, or the gate
   could not have caught an inversion in the first place.
 
+A fifth clause rides along and is about the aligner rather than about us: **cell-filter determinism**.
+`--soloCellFilter EmptyDrops_CR`, adopted in #198, is Monte-Carlo — 10 000 ambient simulations — and
+the barcodes it calls are archived in every `<sample>.qc.json.gz`. A content-addressed artifact that
+changes when nothing changed has a hash that means nothing, so the gate filters one synthetic raw
+matrix twice and demands byte-identical `barcodes.tsv`. It loads no genome and reads no FASTQ, so it
+costs about a second; it asserts nothing about *which* barcodes are right, only that asking twice
+gives one answer. That was measured once, on one real sample, before the caller was adopted — this is
+what keeps it true across a future `align-rna` that bumps STAR underneath us.
+
 ## What the runs measured
 
 **`kb e2e`** (sacCer3, 2 000 reads, 120 genes, 8 cells, measured 2026-07-15): resolve decided

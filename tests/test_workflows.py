@@ -33,7 +33,7 @@ from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
-from seqforge.workflows.cram import CramError, _sort_mem_per_thread_mb, bam_to_cram
+from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
     FragmentsError,
     build_fragments_qc,
@@ -105,23 +105,42 @@ def _feature_dir(
     genes: list[str] = GENES,
     barcodes: list[str] = BARCODES,
     base: int,
+    entries: dict[str, dict[tuple[int, int], int]] | None = None,
 ) -> None:
-    """One ``Solo.out/<feature>/raw/``. ``base`` makes each feature's counts distinguishable."""
+    """One ``Solo.out/<feature>/raw/``. ``base`` makes each feature's counts distinguishable.
+
+    ``entries`` overrides the counts per matrix FILE — ``{"spliced.mtx": {(gene, cell): n}}`` — which
+    is what lets one feature, or one of Velocyto's three matrices, carry a barcode the others do not.
+    Without it every matrix gets the same two ``base``-derived counts, so every barcode is nonzero
+    everywhere and the all-zero trim has nothing to remove.
+    """
     raw = solo / feature / "raw"
     raw.mkdir(parents=True)
     raw.joinpath("features.tsv").write_text(
         "".join(f"{g}\t{g}-name\tGene Expression\n" for g in genes)
     )
     raw.joinpath("barcodes.tsv").write_text("".join(f"{b}\n" for b in barcodes))
-    entries = {(1, 1): base + 1, (2, 2): base + 2}
+    default = {(1, 1): base + 1, (2, 2): base + 2}
     for name in SOLO_FEATURE_OUTPUT[feature].matrices:
-        _mtx(raw / name, entries, len(genes), len(barcodes))
+        _mtx(raw / name, (entries or {}).get(name, default), len(genes), len(barcodes))
 
 
-def _solo_out(tmp_path: Path, features: list[SoloFeature], **kwargs: list[str]) -> Path:
+def _solo_out(
+    tmp_path: Path,
+    features: list[SoloFeature],
+    *,
+    genes: list[str] = GENES,
+    barcodes: list[str] = BARCODES,
+) -> Path:
+    """Every feature over the same axes and the same counts — a `Solo.out` with nothing to trim.
+
+    The axes are named rather than forwarded as `**kwargs`: `_feature_dir` now also takes per-matrix
+    `entries`, which no whole-tree caller wants (the point of overriding entries is to make ONE
+    feature differ from the others), and a `**kwargs` wide enough to carry it would let that through.
+    """
     solo = tmp_path / "Solo.out"
     for i, feature in enumerate(features):
-        _feature_dir(solo, feature, base=i * 10, **kwargs)
+        _feature_dir(solo, feature, genes=genes, barcodes=barcodes, base=i * 10)
     return solo
 
 
@@ -204,9 +223,15 @@ def test_filtered_files_cover_every_gene_axis_feature_but_not_sj() -> None:
 
 
 def test_star_run_files_are_the_logs_the_bundle_reads_and_the_bam_is_separate() -> None:
-    """The log/table set feeds qc_bundle; the BAM is its own constant (solo_to_cram consumes it)."""
+    """The log/table set feeds qc_bundle; the BAM is its own constant (solo_to_cram consumes it).
+
+    The name is STAR's, and it follows from `--outSAMtype BAM SortedByCoordinate` — which the module
+    must pass, because STAR refuses to put the `CB`/`UB` barcode tags in anything but the sorted BAM.
+    Get this literal wrong and `starsolo_count` declares an output STAR never writes: the rule fails
+    after the whole alignment has been paid for.
+    """
     assert set(STAR_LOG_FILES) == {"Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab"}
-    assert STAR_BAM == "Aligned.out.bam"
+    assert STAR_BAM == "Aligned.sortedByCoord.out.bam"
     assert STAR_BAM not in STAR_LOG_FILES
 
 
@@ -310,6 +335,98 @@ def test_a_primary_that_is_not_stackable_falls_back_rather_than_crashing(tmp_pat
     solo = _solo_out(tmp_path, features)
     write_h5ad(solo, features, "Velocyto", tmp_path / "s1")
     assert ad.read_h5ad(tmp_path / "s1.h5ad").uns["primary_feature"] == "Gene"
+
+
+#: STARsolo's `raw/barcodes.tsv` is the entire whitelist, so most of it is empty: 6,794,880 rows on
+#: 10x v3, of which 845,694 carried a count. Four rows here stand in for that shape -- `AAAA` counts
+#: in both features, `GGGG` counts in `GeneFull` ONLY, and `CCCC`/`TTTT` are the silent 87.6%.
+_WHITELIST = ["AAAA", "CCCC", "GGGG", "TTTT"]
+
+
+def _mostly_empty_solo(tmp_path: Path) -> Path:
+    """A `Solo.out` whose whitelist is four barcodes and whose counts reach only two of them."""
+    solo = tmp_path / "Solo.out"
+    _feature_dir(solo, "Gene", barcodes=_WHITELIST, base=0, entries={"matrix.mtx": {(1, 1): 5}})
+    _feature_dir(
+        solo,
+        "GeneFull",
+        barcodes=_WHITELIST,
+        base=0,
+        entries={"matrix.mtx": {(1, 1): 7, (2, 3): 9}},
+    )
+    return solo
+
+
+def test_the_mask_is_the_union_across_features_not_the_primary_alone(tmp_path: Path) -> None:
+    """The trap this trim is subtle enough to be worth a test for.
+
+    `X` is `Gene` — exonic reads — while `GeneFull` counts introns too, so a barcode can be zero in
+    the primary matrix and carry real counts in a layer. On the sample this was measured against,
+    22,319 barcodes were exactly that, and trimming on `X.sum() > 0` deletes every one of them: cells
+    that opened fine, plotted fine, and were simply not there. The mask has to be the UNION over the
+    primary and every layer, which is what `GGGG` (counts in `GeneFull` only) pins down here.
+    """
+    write_h5ad(_mostly_empty_solo(tmp_path), ["Gene", "GeneFull"], "Gene", tmp_path / "s1")
+    adata = ad.read_h5ad(tmp_path / "s1.h5ad")
+
+    assert list(adata.obs_names) == ["AAAA", "GGGG"]
+    assert _counts(adata)[1].nnz == 0, "GGGG is empty in the primary and must survive anyway"
+    # entry (2, 3) = gene 2, cell 3 in STAR's file -> obs 1 (GGGG, once CCCC is gone), var 1
+    assert _counts(adata, "GeneFull")[1, 1] == 9
+
+
+def test_a_barcode_empty_in_every_feature_is_dropped_and_the_survivors_are_untouched(
+    tmp_path: Path,
+) -> None:
+    """Lossless by construction: what goes is exactly what carried no information.
+
+    A barcode with no count in any feature says nothing about the experiment, so dropping it changes
+    no analysis — and the counts that stay must be bit-identical, not merely present, because a trim
+    that quietly renumbered or reordered anything would be far worse than the 85% it saves. `var` is
+    untouched: this is a cut along one axis.
+    """
+    write_h5ad(_mostly_empty_solo(tmp_path), ["Gene", "GeneFull"], "Gene", tmp_path / "s1")
+    adata = ad.read_h5ad(tmp_path / "s1.h5ad")
+
+    assert adata.shape == (2, len(GENES))  # CCCC and TTTT are gone; all three genes stay
+    assert list(adata.var_names) == GENES
+    assert _counts(adata)[0, 0] == 5
+    assert _counts(adata, "GeneFull")[0, 0] == 7
+    assert _counts(adata).nnz == 1 and _counts(adata, "GeneFull").nnz == 2  # nothing else appeared
+    # Provenance: once `raw/` is deleted (it is a `temp()` output) this is all that says the obs axis
+    # was cut down from a whitelist, and by how much.
+    assert adata.uns["n_barcodes_whitelist"] == 4
+    assert adata.uns["n_barcodes_retained"] == 2
+
+
+def test_the_velocyto_mask_is_the_union_of_spliced_unspliced_and_ambiguous(tmp_path: Path) -> None:
+    """Same union, three layers — and `X` duplicating `spliced` is what makes it easy to get wrong.
+
+    A barcode with only unspliced counts is a real cell in the middle of transcription, and it is
+    zero in `X`. Each of the three matrices here reaches a different barcode, so any mask narrower
+    than their union loses one of them.
+    """
+    solo = tmp_path / "Solo.out"
+    _feature_dir(
+        solo,
+        "Velocyto",
+        barcodes=_WHITELIST,
+        base=0,
+        entries={
+            "spliced.mtx": {(1, 1): 3},
+            "unspliced.mtx": {(1, 2): 4},
+            "ambiguous.mtx": {(1, 3): 5},
+        },
+    )
+    write_h5ad(solo, ["Velocyto"], "Velocyto", tmp_path / "s1")
+    velo = ad.read_h5ad(tmp_path / "s1.velocyto.h5ad")
+
+    assert list(velo.obs_names) == ["AAAA", "CCCC", "GGGG"]  # only TTTT is empty in all three
+    assert _counts(velo, "unspliced")[1, 0] == 4
+    assert _counts(velo, "ambiguous")[2, 0] == 5
+    assert _counts(velo)[1].nnz == 0, "CCCC is empty in spliced (= X) and must survive anyway"
+    assert velo.uns["n_barcodes_whitelist"] == 4
+    assert velo.uns["n_barcodes_retained"] == 3
 
 
 # ================================================================================================
@@ -417,49 +534,67 @@ def test_a_missing_star_file_is_a_refusal_not_a_silent_gap(tmp_path: Path) -> No
 # cram — BAM -> CRAM finalize
 # ================================================================================================
 #
-# BAM -> CRAM finalize. The gates: the reference is passed (never embedded), the sort is
-# multi-threaded with a real memory budget (never samtools' single-thread default), and the reference
-# FASTA is resolved from the assembly id rather than baked as a path.
+# BAM -> CRAM finalize. The gates: the reference is passed (never embedded), NOTHING sorts (STAR
+# already did, and the `samtools sort` that used to stand here is what leaked undeclared temp files
+# into the pipeline dir), only primary alignments reach the encoder, the read names are rewritten,
+# and every stage of the pipe has its exit status checked.
 #
 # samtools is stubbed so the test needs no binary and no genome: what is asserted is the *argv* we hand
-# it, which is where the correctness lives (a stray ``embed_ref``, a missing ``-T``, a single thread).
+# it, which is where the correctness lives (a stray ``embed_ref``, a missing ``-T``, a resurrected
+# ``sort``, a single thread).
 
 
-def test_sort_memory_is_split_across_threads_with_headroom() -> None:
-    """More cores and more memory both shrink per-thread ``-m`` sensibly; a floor stops thrashing."""
-    # 32 GB budget, 8 threads -> 3/4 headroom, split 8 ways. The expected value is a LITERAL: it
-    # used to be `(32768 * 3 // 4) // 8`, which is the function's own formula and so could not fail.
-    assert _sort_mem_per_thread_mb(32768, 8) == 3072
-    # A tiny budget never drops below the floor.
-    assert _sort_mem_per_thread_mb(100, 8) == 256
-    # No budget -> None, so samtools keeps its own default rather than us guessing.
-    assert _sort_mem_per_thread_mb(None, 8) is None
+class _FakePipe:
+    """Stands in for a `Popen.stdout`. It exists to have a `close()`: the real pipeline hands each
+    read end to the next stage and then drops the parent's copy, which an `int` fd cannot model."""
+
+    def close(self) -> None:
+        return None
 
 
 class _Recorder:
-    """Captures every samtools argv and makes the pipeline 'succeed' by touching the output file."""
+    """Captures every samtools/awk argv and makes the pipeline 'succeed' by touching the output file.
 
-    def __init__(self) -> None:
+    `fails` names one argv token; whichever stage carries it exits 1 instead of 0. One token is
+    enough to address any stage of the pipe — `-F` is the primary filter, `awk` the read-name
+    rewrite, `-C` the encoder — so the three failure cases need no three near-identical fakes.
+    """
+
+    def __init__(self, fails: str | None = None) -> None:
         self.calls: list[list[str]] = []
+        self.fails = fails
 
-    def run(self, cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
-        self.calls.append(cmd)
+    def _returncode(self, cmd: list[str]) -> int:
+        return 1 if self.fails is not None and self.fails in cmd else 0
+
+    def _side_effects(self, cmd: list[str], code: int) -> None:
+        """What a successful stage leaves on disk, so the next step finds what it expects."""
         # `samtools view -o <out>` and `samtools faidx <local>` must leave their file behind.
-        if "view" in cmd and "-o" in cmd:
+        if "view" in cmd and "-o" in cmd and not code:
             Path(cmd[cmd.index("-o") + 1]).write_bytes(b"CRAM\0")
         if cmd[:2] == ["samtools", "faidx"]:
             Path(cmd[-1] + ".fai").write_text("")
-        return subprocess.CompletedProcess(cmd, 0)
+
+    def run(self, cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+        self.calls.append(cmd)
+        code = self._returncode(cmd)
+        self._side_effects(cmd, code)
+        return subprocess.CompletedProcess(cmd, code)
 
     def popen(self, cmd: list[str], **kwargs: object) -> _FakePopen:
         self.calls.append(cmd)
-        return _FakePopen(cmd)
+        code = self._returncode(cmd)
+        # Every stage of the pipe is a `Popen` now, the encoder included — it is the one that writes
+        # the CRAM, and the parent has to close its copy of awk's read end *while the encoder runs*,
+        # which a blocking `subprocess.run` gives it no chance to do.
+        self._side_effects(cmd, code)
+        return _FakePopen(code)
 
 
 class _FakePopen:
-    def __init__(self, cmd: list[str]) -> None:
-        self.stdout = subprocess.DEVNULL
-        self.returncode = 0
+    def __init__(self, returncode: int = 0) -> None:
+        self.stdout = _FakePipe()
+        self.returncode = returncode
 
     def __enter__(self) -> _FakePopen:
         return self
@@ -468,8 +603,8 @@ class _FakePopen:
         return None
 
 
-def _stub_samtools(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
-    rec = _Recorder()
+def _stub_samtools(monkeypatch: pytest.MonkeyPatch, fails: str | None = None) -> _Recorder:
+    rec = _Recorder(fails)
     monkeypatch.setattr(subprocess, "run", rec.run)
     monkeypatch.setattr(subprocess, "Popen", rec.popen)
     return rec
@@ -478,27 +613,69 @@ def _stub_samtools(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
 def test_cram_passes_the_reference_and_never_embeds_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The whole argv, in one place: filter, rename, encode — and no sort anywhere in it.
+
+    The absent `samtools sort` is the load-bearing assertion. STAR now writes the BAM already
+    coordinate-sorted, so re-sorting it here would be a wasted pass over every alignment AND would
+    bring back the `-T`-less spill files that leaked 41.4 GiB into five pipeline dirs. The leak is
+    meant to be impossible now, not merely configured away, so the stage may not come back.
+    """
     rec = _stub_samtools(monkeypatch)
-    bam = tmp_path / "Aligned.out.bam"
+    bam = tmp_path / STAR_BAM
     bam.write_bytes(b"BAM\0")
     fasta = tmp_path / "ref.fa"
     fasta.write_text(">chr\nACGT\n")
     (tmp_path / "ref.fa.fai").write_text("")  # index already beside the fasta
 
     out = tmp_path / "S1" / "S1.cram"
-    bam_to_cram(bam, fasta, out, threads=8, sort_mem_mb=32768)
+    bam_to_cram(bam, fasta, out, threads=8)
 
     flat = " ".join(" ".join(c) for c in rec.calls)
     # CRAM against the reference, reference NOT embedded.
     assert "-C -T" in flat
     assert str(fasta) in flat
     assert "embed_ref" not in flat
-    # Multi-threaded sort with a real per-thread budget, not a single-thread default.
-    sort = next(c for c in rec.calls if c[:2] == ["samtools", "sort"])
-    assert "-@" in sort and sort[sort.index("-@") + 1] == "8"
-    assert "-m" in sort
+    # STAR sorted it; nothing here re-sorts, and no `-T`-less spill file can be left behind.
+    assert not any(c[:2] == ["samtools", "sort"] for c in rec.calls)
+    # Primary alignments only, header kept (the encoder needs the @SQ lines), multi-threaded.
+    primary = next(c for c in rec.calls if "-F" in c)
+    assert primary[:2] == ["samtools", "view"] and "-h" in primary
+    assert primary[primary.index("-F") + 1] == "0x100"
+    assert primary[primary.index("--threads") + 1] == "8"
+    # The read names are rewritten in the stream: `awk`, tab-delimited in AND out, headers passed
+    # through untouched, and the new QNAME is a counter.
+    rename = next(c for c in rec.calls if c[0] == "awk")
+    assert r'FS=OFS="\t"' in rename[1]
+    assert "/^@/" in rename[1] and '$1="r"' in rename[1]
     # The CRAM is indexed.
     assert any(c[:3] == ["samtools", "index", "-@"] for c in rec.calls)
+
+
+@pytest.mark.parametrize(
+    ("fails", "named"),
+    [("-F", "primary alignments"), ("awk", "read-name rewrite"), ("-C", "CRAM encode")],
+    ids=["primary-filter", "read-name-rewrite", "cram-encoder"],
+)
+def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
+    fails: str, named: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A pipe reports the exit status of its LAST stage, so two of these three would pass silently.
+
+    `samtools view -C` happily encodes a truncated stream and exits 0, which is how a filter or a
+    rewrite that died mid-file becomes a CRAM missing most of its reads — the silent-plausible-wrong
+    class again, and expensive here because the BAM it came from is a `temp()` output that snakemake
+    deletes the moment this rule succeeds. So each stage is waited on and named.
+    """
+    _stub_samtools(monkeypatch, fails=fails)
+    bam = tmp_path / STAR_BAM
+    bam.write_bytes(b"BAM\0")
+    fasta = tmp_path / "ref.fa"
+    fasta.write_text(">chr\nACGT\n")
+    (tmp_path / "ref.fa.fai").write_text("")
+
+    out = tmp_path / "S1" / "S1.cram"
+    with pytest.raises(CramError, match=named):
+        bam_to_cram(bam, fasta, out, threads=2)
 
 
 def test_a_missing_bam_refuses_before_touching_samtools(tmp_path: Path) -> None:
@@ -511,7 +688,7 @@ def test_a_read_only_reference_store_gets_its_fai_written_somewhere_writable(
 ) -> None:
     """No .fai beside the FASTA -> we mirror it into the output dir and index there, not in the store."""
     rec = _stub_samtools(monkeypatch)
-    bam = tmp_path / "Aligned.out.bam"
+    bam = tmp_path / STAR_BAM
     bam.write_bytes(b"BAM\0")
     fasta = tmp_path / "store" / "ref.fa"
     fasta.parent.mkdir()
@@ -897,7 +1074,8 @@ def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
     # tautological, since `parse_keys_for` IS `get_module(module).parse_keys`. The behavioural claims
     # below stay.
     assert "soloType" in parse_keys_for("map/starsolo")
-    assert len(parse_keys_for("map/starsolo")) == 11
+    # 12 since `soloCBmatchWLtype` moved out of starsolo.smk's `soloType` branch and into the KB.
+    assert len(parse_keys_for("map/starsolo")) == 12
     # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
     assert parse_keys_for("map/star") == frozenset()
     with pytest.raises(KeyError, match="unknown workflow module"):

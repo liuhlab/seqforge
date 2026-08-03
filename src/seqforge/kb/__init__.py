@@ -45,7 +45,18 @@ from .schema import Spec
 #: BD Rhapsody Enhanced bead (variable 0-3 bp diversity insert). New `diversity` element type + per-
 #: element anchors; the family recognizes the GTGA/GACA frame by motif; leaves split on onlist (97 vs
 #: 384 CLS pools, disjoint). Ships bd-rhapsody-cls{1,2,3}-384; -96 reuses the original bead's lists.
-KB_VERSION = "2026.7.7"
+#: 2026.8.1 — soloCBmatchWLtype became a KB-OWNED parse key, declared by all 11 starsolo specs:
+#: 1MM_multi_Nbase_pseudocounts for the 7 CB_UMI_Simple (10x) entries — CellRanger >=3's own barcode
+#: correction, without which our counts are not comparable to a published CellRanger matrix — and 1MM
+#: for the 4 CB_UMI_Complex ones (bd-rhapsody-wta, its two Enhanced leaves, splitseq). It was a
+#: soloType branch hardcoded in starsolo.smk, which can express two answers; three are already needed,
+#: because a planned Parse Evercode entry is CB_UMI_Complex too and takes EditDist_2. Legality is
+#: chemistry-dependent (Complex rejects every 1MM_multi* mode including STAR's global default, Simple
+#: rejects EditDist_2 — measured against the 2.7.11b binary), so the (soloType, value) pair is gated at
+#: compose and an illegal one is a named refusal rather than a FATAL on a compute node.
+#: Every dataset gets a new run_id: the KB version is one of its four inputs. The reprocessing that
+#: costs is accepted — the alternative is a corpus whose barcode correction nobody can state.
+KB_VERSION = "2026.8.1"
 
 __all__ = [
     "KB_VERSION",

@@ -22,6 +22,22 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.1 — the retained CRAM carries the BARCODE, and the counts become CellRanger-comparable
+#: (#198). Four changes, deliberately in ONE bump: `run_id = H(dataset | processing | kb | workflow)`,
+#: so four merges would mean four rounds of run_id invalidation and four reprocessing passes over the
+#: same ~920 GiB. (a) `starsolo_count` writes `--outSAMtype BAM SortedByCoordinate` with
+#: `--outSAMattributes NH HI AS nM CB UB` — STAR refuses CB/UB in anything but the sorted BAM, and
+#: without them the CRAM we retained could not recount, could not be re-quantified, and could not be
+#: re-run under another tool; measured 12% SMALLER than the barcode-less CRAM it replaces. It also
+#: passes `--limitBAMsortRAM` (STAR's default 0 means "reuse the genome allocation", which on a small
+#: fixture genome is too small and FATALs). (b) the CellRanger >=4 equivalence set — `clipAdapterType
+#: CellRanger4`, `outFilterScoreMin 30`, `soloUMIfiltering MultiGeneUMI_CR`, `soloUMIdedup 1MM_CR`,
+#: `soloCellFilter EmptyDrops_CR` — hardcoded here, because none varies by chemistry and a `SOLO[...]`
+#: subscript would silently make each a required key every KB spec must declare. (c) NEW REQUIRED KEY
+#: `solo.soloCBmatchWLtype`: it left this module's `soloType` branch for the KB, where the value can
+#: differ between two chemistries that share a soloType. (d) `solo_to_cram` no longer sorts (STAR
+#: did), so its `samtools sort` — and the undeclared temp files a preempted one leaked — is gone by
+#: construction rather than by configuration.
 #: 2026.7.14 — a SECOND aligner: `map/chromap` (chromap.smk) maps barcoded scATAC to a tabix-indexed
 #: `fragments.tsv.gz` (not a count matrix). It resolves its index via liulab-genome's `get_chromap_index`
 #: (no GTF — one index per assembly), reads two GENOMIC mates + a barcode read (`read_layout_kind`
@@ -62,7 +78,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.7.14"
+WORKFLOW_VERSION = "2026.8.1"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -159,6 +175,14 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
         "soloStrand",
         "soloAdapterSequence",
         "soloBarcodeReadLength",
+        # How a read barcode is matched back to the whitelist — a parse knob by the same test as the
+        # rest: it is decided by the chemistry's own vendor pipeline, never by what a user wants
+        # counted. It was a `soloType` branch in starsolo.smk (`1MM` for Complex, STAR's default for
+        # Simple) until #198, and a two-way branch cannot express what the KB already needs: Parse
+        # Evercode and BD Rhapsody are BOTH `CB_UMI_Complex` and take different values (`EditDist_2`
+        # vs `1MM`). Three answers, so it moves to the artifact that has one row per chemistry. Which
+        # values are legal depends on the soloType (compose's params gate enforces the pairing).
+        "soloCBmatchWLtype",
     }
 )
 

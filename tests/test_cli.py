@@ -18,7 +18,7 @@ runner = CliRunner()
 
 #: ``(argv, exit_code, substrings that must appear in stdout)``.
 #:
-#: Seven one-liner functions, each invoking a verb and pinning its exit code. The CLI is the
+#: One one-liner function per case, each invoking a verb and pinning its exit code. The CLI is the
 #: API, so what is under test is the SURFACE — and a surface reads as a table. A verb that starts
 #: refusing, or stops naming what it lists, goes red as a named case.
 #:
@@ -39,6 +39,14 @@ CLI_SURFACE = [
     ),
     pytest.param(
         ["io", "peek", "s3://bucket/reads.fastq.gz"], 1, (), id="io-peek-not-implemented-exits-1"
+    ),
+    # STAR now writes the BAM already coordinate-sorted (the only output it will put CB/UB in), so
+    # `io cram` runs no sort and has no memory budget to split across threads. A caller still passing
+    # the old knob — a stale rule, a script somebody kept — must be REFUSED at the gate: a sort budget
+    # silently accepted and ignored reads as a tuned pipeline and is a lie about what ran.
+    pytest.param(
+        ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
+         "--sort-mem-mb", "8000"], 2, (), id="io-cram-has-no-sort-memory-knob",
     ),
 ]  # fmt: skip
 

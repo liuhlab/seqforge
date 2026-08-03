@@ -140,6 +140,14 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:round1}", "{onlist:round2}", "{onlist:round3}"]
+    # `1MM` = one mismatch per barcode BLOCK — the tolerant CB_UMI_Complex-legal mode, and the closest
+    # analogue of what a Simple chemistry gets by default. NOT omittable: STAR's global default
+    # `1MM_multi` is REJECTED for CB_UMI_Complex, so an entry naming no match type FATALs on the
+    # default alone, on a compute node after the genome has loaded. Deliberately NOT Parse Evercode's
+    # `EditDist_2` — the descendant chemistry this entry refuses to model takes a different value at
+    # the same soloType, which is exactly why the key belongs to the KB and not to a soloType branch in
+    # the module. Full note in `bd-rhapsody-wta`.
+    soloCBmatchWLtype: 1MM
     # soloStrand: DERIVED (FLAG closed). Was the most dangerous value in this file — a wrong strand
     # leaves most reads unassigned while STARsolo exits 0 and emits a matrix that merely looks like a
     # thin dataset. Neither gate can catch it: the params gate only proves the value survives compose

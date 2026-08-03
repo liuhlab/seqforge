@@ -75,6 +75,11 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]
+    # `1MM` = one mismatch per barcode BLOCK, the tolerant CB_UMI_Complex-legal mode. Not droppable:
+    # STAR's global default `1MM_multi` is REJECTED for CB_UMI_Complex, so naming no match type FATALs
+    # on the default alone. Identical to `bd-rhapsody-wta-enhanced-v1`'s, as the whole read layout is —
+    # the CLS pools are the only difference between the two leaves. Full note in `bd-rhapsody-wta`.
+    soloCBmatchWLtype: 1MM
     soloStrand: Forward
     # soloAdapterSequence / soloCBposition / soloUMIposition DERIVED from the anchored elements (see -96).
 

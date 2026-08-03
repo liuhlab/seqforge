@@ -122,6 +122,14 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     )
     assert f"--soloAdapterSequence {solo['soloAdapterSequence']}" in planned
     assert f"--soloCBposition {solo['soloCBposition']}" in planned
+    # The Complex half of the barcode-match mode, in argv, where it is decidable. `1MM` was a literal
+    # in `cb_umi_geometry()`'s Complex branch until #198; it is now the KB's, and this asserts BOTH
+    # halves of that move — it arrives (a Complex chemistry that named no match type would FATAL on
+    # STAR's own default) and it arrives ONCE. A module that kept the old literal alongside the new
+    # placeholder would pass the params gate, which only ever inspects the config, while handing STAR
+    # two values and honouring the last.
+    assert "--soloCBmatchWLtype 1MM " in planned
+    assert planned.count("--soloCBmatchWLtype") == 1
     # neither chemistry declares it, and the module reads it with `SOLO.get(...)` so its absence must
     # render as absence, not as a KeyError or an empty flag
     assert "--soloBarcodeReadLength" not in planned
@@ -267,7 +275,7 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
     )
 
 
-def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length(
+def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives(
     built_v3: Built, tmp_path: Path, dry_run: DryRun
 ) -> None:
     """Everything the DEFAULT 10x plan text has to say, off one `snakemake -n -p`.
@@ -275,7 +283,7 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read
     Three tests used to read the plan of this same compose — the h5ad deliverable, the temporary
     whitelist, and `--soloBarcodeReadLength` — and the whitelist one paid twice, once for its own dry
     run and once for a `real_wiring_gate` whose `gate["wiring"] == "pass"` is owned by
-    `test_every_registered_module_wires_into_a_runnable_dag[map/starsolo]`. One plan, three claims.
+    `test_every_registered_module_wires_into_a_runnable_dag[map/starsolo]`. One plan, four claims.
 
     1. **The deliverable.** `rule all` used to demand `directory(Solo.out)`, so a green pipeline ended
        in a folder of Matrix Market files — and STAR writing three of five features and exiting 0 was
@@ -287,8 +295,13 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read
     3. **`--soloBarcodeReadLength 0` reaches STAR.** The module reads it with `SOLO.get(...)`, not a
        subscript, so that it stays optional for chemistries that do not declare it; nothing but the
        argv proves the 10x half of that still arrives.
+    4. **The whole STARsolo command line, as STAR would receive it** (#198): the KB-owned barcode
+       match mode, the five hardcoded CellRanger-equivalence flags, the multimapper flag we rejected,
+       and the sorted-BAM-plus-CB/UB pair that is the only reason the retained CRAM has a barcode at
+       all. Each is a *source* claim everywhere else — a literal in a shell block, a key in a spec —
+       and a source claim about a command is not a claim about a command.
 
-    All three read the actual plan rather than an exit code, for the reason the gate does: a dry run
+    All four read the actual plan rather than an exit code, for the reason the gate does: a dry run
     that plans NOTHING also exits 0.
     """
     manifest, reg = built_v3
@@ -312,6 +325,41 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read
     assert "3M-february-2018" in planned
 
     assert "--soloBarcodeReadLength 0" in planned
+
+    # The Simple half of the barcode-match mode. Its twin lives in the bd-enhanced dry run, and the
+    # pair is the point: `1MM_multi_Nbase_pseudocounts` is CellRanger >=3's correction and is
+    # Simple-ONLY, `1MM` is what the four Complex specs carry, and the legality matrix has no value
+    # that is both correct and universal. This is the class of change that leaves all seven 10x specs
+    # green and breaks only the Complex ones, so the two halves are asserted in two chemistries.
+    assert "--soloCBmatchWLtype 1MM_multi_Nbase_pseudocounts" in planned
+
+    # The CellRanger >=4 equivalence set, hardcoded in the module because none of it varies by
+    # chemistry — but "hardcoded" is a claim about the source, and only argv proves the flags survive
+    # into the command. Without them we emit STARsolo-default counts, which are not comparable to
+    # published CellRanger matrices; the whole point of the corpus is that they are.
+    for flag in (
+        "--clipAdapterType CellRanger4",
+        "--outFilterScoreMin 30",
+        "--soloUMIfiltering MultiGeneUMI_CR",
+        "--soloUMIdedup 1MM_CR",
+        "--soloCellFilter EmptyDrops_CR",
+    ):
+        assert flag in planned, f"{flag} does not reach STAR"
+    # ...and the one scRecounter flag we REJECTED. 87% of the multi-gene signal on the measured
+    # library was the tandem rDNA array, and all four multimapper matrices are fractional, which
+    # breaks pseudobulk. An absence is only a decision if something notices it being reversed.
+    assert "--soloMultiMappers" not in planned
+
+    # The barcode itself: STARsolo writes only the cDNA mate, so with no CB/UB tag the barcode is
+    # irrecoverably absent from the retained CRAM — which is what made 920 GiB of it unable to
+    # recount. STAR emits those tags in the sorted BAM and nowhere else, so the two flags are one
+    # decision and are asserted together, along with the sort budget the sort then needs.
+    assert "--outSAMtype BAM SortedByCoordinate" in planned
+    assert "--outSAMattributes NH HI AS nM CB UB" in planned
+    assert re.search(r"--limitBAMsortRAM \d+", planned), (
+        "STAR's default of 0 means 'reuse the genome allocation', which is too small on a small "
+        "genome and FATALs; the module must pass a budget derived from the job's own memory"
+    )
 
 
 def _rule_blocks(snakefile: Path) -> dict[str, str]:
@@ -576,6 +624,35 @@ def _corrupt_emits_a_key_with_no_owner(
     return spec, {**config, "solo": {**solo_block(config), "outFilterMismatchNmax": "10"}}
 
 
+def _corrupt_kb_pairs_a_complex_only_match_mode_with_a_simple_chemistry(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
+    # `EditDist_2` is a real STAR value and a legal one -- for CB_UMI_Complex. Against this 10x
+    # chemistry it is a hard FATAL raised after the genome loads, so the gate is the last place it
+    # can be caught without spending a compute node to find out.
+    backend = spec.require_backend()
+    illegal = spec.model_copy(
+        update={
+            "backend": backend.model_copy(
+                update={"params": {**backend.params, "soloCBmatchWLtype": "EditDist_2"}}
+            )
+        }
+    )
+    return illegal, {**config, "solo": {**solo_block(config), "soloCBmatchWLtype": "EditDist_2"}}
+
+
+def _corrupt_kb_names_no_barcode_match_mode(
+    spec: kb.Spec, config: dict[str, object]
+) -> tuple[kb.Spec, dict[str, object]]:
+    # The module dereferences the key unconditionally, so silence here is a KeyError at Snakemake
+    # parse time on a compute node -- and there is no safe default to fall back to, since STAR's own
+    # (`1MM_multi`) is illegal for half the chemistries in the KB.
+    backend = spec.require_backend()
+    params = {k: v for k, v in backend.params.items() if k != "soloCBmatchWLtype"}
+    silent = spec.model_copy(update={"backend": backend.model_copy(update={"params": params})})
+    return silent, config
+
+
 @pytest.mark.parametrize(
     "corruption, expected_problem",
     [
@@ -585,6 +662,11 @@ def _corrupt_emits_a_key_with_no_owner(
         (_corrupt_config_disagrees_with_the_manifest, "does not match the processing manifest"),
         (_corrupt_kb_declares_a_count_key, "count key"),
         (_corrupt_emits_a_key_with_no_owner, "no owner declares"),
+        (
+            _corrupt_kb_pairs_a_complex_only_match_mode_with_a_simple_chemistry,
+            "is illegal for soloType",
+        ),
+        (_corrupt_kb_names_no_barcode_match_mode, "no soloCBmatchWLtype"),
     ],
     ids=[
         "kb_offsets_contradict_the_observed_layout",
@@ -593,15 +675,21 @@ def _corrupt_emits_a_key_with_no_owner(
         "config_disagrees_with_the_manifest",
         "kb_declares_a_count_key",
         "emitted_key_with_no_owner",
+        "kb_pairs_an_illegal_barcode_match_mode_with_the_solotype",
+        "kb_names_no_barcode_match_mode_at_all",
     ],
 )
 def test_the_params_gate_fails_on_a_corrupt_params_dict(
     built_v3: Built, corruption: Corruption, expected_problem: str
 ) -> None:
-    """Six corruptions, one shared plan; silently emitting any of them is how a corpus gets poisoned.
+    """Eight corruptions, one shared plan; silently emitting any of them is how a corpus gets poisoned.
 
-    Each id localises the failure it is meant to catch, so a single-row regression names itself. The
-    six were six functions that each re-paid the byte-identical `built_v3` + `plan(...)` setup.
+    Each id localises the failure it is meant to catch, so a single-row regression names itself. They
+    began as one function apiece, each re-paying the byte-identical `built_v3` + `plan(...)` setup.
+
+    The two `soloCBmatchWLtype` rows are the newest and the only ones whose corruption is a value STAR
+    genuinely accepts — just not from *this* chemistry. That is why the check is pairwise: neither the
+    soloType nor the match mode is wrong on its own.
     """
     manifest, reg = built_v3
     p = _processing(manifest)
@@ -715,6 +803,43 @@ def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(
     assert len(str(solo["soloCBwhitelist"]).split()) == 3  # one whitelist per split-pool round
 
 
+def test_a_complex_chemistry_is_refused_the_barcode_match_mode_only_simple_chemistries_may_use(
+    synth_splitseq: SynthDataset,
+) -> None:
+    """The acceptance criterion of #198's B2: `1MM_multi` + `CB_UMI_Complex` is refused, by name.
+
+    This is the failure mode that made `soloCBmatchWLtype` worth gating at all rather than merely
+    documenting. `1MM_multi` is STAR's **global default**, so it is what a Complex spec gets by
+    saying nothing — and STAR rejects it outright for `CB_UMI_Complex`. The whole class passes a
+    10x-only suite: every wrong answer here leaves all seven Simple specs green and breaks only the
+    four Complex ones, which is why this test composes SPLiT-seq specifically.
+
+    Deliberately the mirror of the Simple-side row in the corruption table above: same key, opposite
+    chemistry, opposite half of the measured legality matrix.
+    """
+    manifest, reg = synth_splitseq.manifest, synth_splitseq.registry
+    processing = _processing(manifest)
+    spec = kb.load_spec("splitseq")
+    config = plan(manifest, processing, registry=reg).config
+    assert solo_block(config)["soloType"] == "CB_UMI_Complex"
+    assert params_gate(manifest, processing, spec, config) == ("pass", []), (
+        "the clean pair must pass"
+    )
+
+    backend = spec.require_backend()
+    illegal = spec.model_copy(
+        update={
+            "backend": backend.model_copy(
+                update={"params": {**backend.params, "soloCBmatchWLtype": "1MM_multi"}}
+            )
+        }
+    )
+    poisoned = {**config, "solo": {**solo_block(config), "soloCBmatchWLtype": "1MM_multi"}}
+    status, problems = params_gate(manifest, processing, illegal, poisoned)
+    assert status == "fail"
+    assert any("1MM_multi" in p and "CB_UMI_Complex" in p for p in problems), problems
+
+
 def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared() -> None:
     """The "make it actually run" flag: 10x sets it, SPLiT-seq must not be forced to.
 
@@ -730,6 +855,23 @@ def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared()
     assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
 
 
+def test_soloCBmatchWLtype_is_required_of_every_starsolo_chemistry() -> None:
+    """The exact mirror of the test above, and the pair is the point.
+
+    `soloBarcodeReadLength` is read with `SOLO.get(...)` because only some chemistries have one;
+    `soloCBmatchWLtype` is read with a SUBSCRIPT because every one of them must. That difference is
+    the whole mechanism by which a key becomes mandatory here — `required_config` is derived from the
+    module source, so the subscript is what obliges all 11 specs to declare a value and obliges the
+    params gate to police it.
+
+    Asserted rather than assumed, deliberately: it is derived, so it "should be automatic", and a
+    thing that should be automatic is exactly what nobody checks. If a refactor to `SOLO.get(...)`
+    ever made it optional, a Complex spec that dropped the key would compose clean and then FATAL at
+    STAR on the global default `1MM_multi`, which CB_UMI_Complex rejects.
+    """
+    assert "solo.soloCBmatchWLtype" in get_module("map/starsolo").required_config
+
+
 def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(
     built_v3: Built, synth_splitseq: SynthDataset
 ) -> None:
@@ -737,7 +879,7 @@ def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(
 
     Whether it then reaches the rendered STAR command is the plan text's business, and that costs a
     subprocess, so it is asserted where a dry run is already being paid for: the 10x half in
-    `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_barcode_read_length`, the
+    `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives`, the
     absent half in `test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe` (which
     asserts its own `solo` keys are a superset of SPLiT-seq's, so standing in for it is checked
     rather than assumed). This half needs no subprocess at all.

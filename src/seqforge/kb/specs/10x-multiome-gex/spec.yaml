@@ -75,6 +75,12 @@ backend:
     soloUMIstart: 17
     soloUMIlen: 12
     soloCBwhitelist: "{onlist:cb_whitelist}"
+    # CellRanger >=3's own barcode correction — one mismatch, candidates weighed by a pseudocount-
+    # carrying whitelist prior, N-containing barcodes rescued rather than dropped — so these counts are
+    # comparable to a published CellRanger matrix, which STARsolo's `1MM_multi` default is not. Legal
+    # for CB_UMI_Simple only; full note in `10x-3p-gex-v3`. Identical to 3' v3's, so soloCBwhitelist
+    # remains the ONE param this entry diverges in.
+    soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
     soloStrand: Forward
     soloBarcodeReadLength: 0
     # soloFeatures is NOT here. Multiome GEX is snRNA (single-nucleus), so GeneFull is the sensible

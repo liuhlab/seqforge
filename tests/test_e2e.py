@@ -549,6 +549,90 @@ def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint
     assert _load_resumable_points(partial, "different") == {}, "a changed input must not be reused"
 
 
+def test_the_shipped_outsamtype_is_the_one_the_module_actually_hardcodes() -> None:
+    """`kb e2e-cost` prices a command it does not itself run, so what it names had better be real.
+
+    The instrument runs `--outSAMtype None` -- it wants a count matrix, and a BAM nobody reads is pure
+    cost -- and `--out-sam-type` exists to price the gap up to what users run. That makes the shipped
+    value a claim about ANOTHER FILE, and a claim about another file spelled out by hand is the shape
+    this repo keeps finding broken: it was written out four times (an argv comment, `run_composed`'s
+    docstring, the flag's help text, the fingerprint case below) and all four still said `BAM Unsorted`
+    while `starsolo.smk` moved to a coordinate-sorted BAM to get `CB`/`UB` into the CRAM.
+
+    One constant now, and this reads the module's shell block back to prove it, so a future move
+    fails here instead of silently repricing the wrong command.
+    """
+    from seqforge.e2e import SHIPPED_OUT_SAM_TYPE
+    from seqforge.workflows import get_module
+
+    # Whitespace-normalized: the flag and its values are one argv fragment, and how the module's shell
+    # block happens to indent or wrap is not what is under test.
+    source = " ".join(get_module("map/starsolo").snakefile.read_text().split())
+    flag = "--outSAMtype " + " ".join(SHIPPED_OUT_SAM_TYPE)
+    assert flag in source, (
+        f"starsolo.smk does not run `{flag}`, so SHIPPED_OUT_SAM_TYPE names a command nobody ships "
+        f"and every gap `kb e2e-cost --out-sam-type` measures against it is the wrong gap"
+    )
+
+
+def test_the_determinism_guard_filters_the_cell_caller_the_module_actually_runs() -> None:
+    """The guard must interrogate the shipped caller, not a caller of its own choosing.
+
+    `run_cell_filter_determinism` proves that asking `--soloCellFilter` twice gives one answer. That
+    claim is worth nothing if the value it passes has drifted from the module's: `CellRanger2.2` is a
+    closed-form knee and could not be nondeterministic if it tried, so a guard that quietly fell back
+    to it would go green forever while the Monte-Carlo caller we actually ship went unchecked. Same
+    shape as `SHIPPED_OUT_SAM_TYPE` above — a constant that is a claim about another file.
+    """
+    from seqforge.e2e import SHIPPED_CELL_FILTER
+    from seqforge.workflows import get_module
+
+    source = " ".join(get_module("map/starsolo").snakefile.read_text().split())
+    assert f"--soloCellFilter {SHIPPED_CELL_FILTER}" in source, (
+        f"starsolo.smk does not run `--soloCellFilter {SHIPPED_CELL_FILTER}`, so the determinism "
+        f"guard is proving a property of a cell caller nobody ships"
+    )
+
+
+def test_the_cell_filter_fixture_plants_cells_inside_an_ambient_background(tmp_path: Path) -> None:
+    """EmptyDrops needs empty droplets: a matrix of nothing but cells would decide nothing.
+
+    The guard's whole cost-effectiveness rests on synthesising its own raw matrix rather than
+    borrowing one from a pipeline run (everything under `Solo.out` is `temp()` and gone by then). That
+    is only sound if what it synthesises is something a cell caller can have an opinion about — a
+    dense minority against a sparse majority — so the fixture's shape is asserted here, where no STAR
+    is needed, rather than inferred from the guard going green on a machine that has one.
+    """
+    from seqforge.e2e import _write_raw_matrix
+
+    raw = tmp_path / "raw"
+    planted = _write_raw_matrix(raw, seed=0)
+    barcodes = (raw / "barcodes.tsv").read_text().split()
+    features = (raw / "features.tsv").read_text().splitlines()
+    lines = [ln for ln in (raw / "matrix.mtx").read_text().splitlines() if not ln.startswith("%")]
+    header, body = lines[0], lines[1:]
+    n_genes, n_bc, nnz = (int(v) for v in header.split())
+
+    # STARsolo writes genes x barcodes, and a transposed fixture would be a silently valid matrix
+    # about which the caller would answer a different question.
+    assert (n_genes, n_bc) == (len(features), len(barcodes))
+    assert len(body) == nnz, "the Matrix Market header must count the entries that follow it"
+    assert 0 < planted < n_bc / 10, "the planted cells must be a small minority of the barcodes"
+
+    # per-barcode totals: the planted cells sit an order of magnitude above the ambient droplets,
+    # which is the separation the caller is being asked to find.
+    totals = [0] * (n_bc + 1)
+    for line in body:
+        _gene, bc, value = line.split()
+        totals[int(bc)] += int(value)
+    cells = totals[1 : planted + 1]
+    ambient = totals[planted + 1 :]
+    assert min(cells) > 10 * (sum(ambient) / len(ambient)), (
+        "the planted cells are not distinguishable from the ambient background, so a cell caller "
+        "given this matrix is not being asked a question"
+    )
+
+
 def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_path: Path) -> None:
     """Change any one of them and the fingerprint must change; change none and it must not.
 
@@ -556,7 +640,7 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
     the key -- and a test that only checks "same args => same hash" would pass with every field
     dropped. Each case below is a measurement that would be silently reused as another's.
     """
-    from seqforge.e2e import _cost_fingerprint
+    from seqforge.e2e import SHIPPED_OUT_SAM_TYPE, _cost_fingerprint
 
     base = dict(
         feature_list=["Gene", "Velocyto"],
@@ -591,7 +675,9 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
         ("seed", 1),
         ("star_version", "2.7.10a"),  # a different aligner is a different allocator
         ("whitelist_entries", 737_280),  # a different chemistry's onlist
-        ("out_sam_type", ("BAM", "Unsorted")),  # the module's real setting costs buffers
+        # The shipped setting costs buffers -- named, not retyped, so this case keeps varying the
+        # value the cost arm exists to price rather than one the module has moved off.
+        ("out_sam_type", SHIPPED_OUT_SAM_TYPE),
     ]:
         assert _cost_fingerprint(**{**base, field: changed}) != ref, (  # type: ignore[arg-type]
             f"{field} changes the measured peak but not the resume key -- a run that varied it "

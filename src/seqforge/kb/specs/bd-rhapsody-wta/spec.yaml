@@ -98,6 +98,22 @@ backend:
   params:
     soloType: CB_UMI_Complex
     soloCBwhitelist: ["{onlist:cls1}", "{onlist:cls2}", "{onlist:cls3}"]   # order == CB-position order
+    # How an observed CB BLOCK is matched against its whitelist, and naming it is NOT optional for a
+    # combinatorial chemistry. STAR's GLOBAL default is `1MM_multi`, which it REJECTS for
+    # CB_UMI_Complex — measured against the STAR 2.7.11b binary, run directly rather than read off
+    # --help, over all six values x both soloTypes: Complex accepts only `Exact` / `1MM` /
+    # `EditDist_2`, while Simple accepts everything except `EditDist_2`. So a Complex chemistry that
+    # named no match type would FATAL at STAR on the default alone — a run that dies on a compute node
+    # rather than emitting a thin matrix: loud, but only after the queue wait and the genome load.
+    # `1MM` is the tolerant Complex-legal mode: one mismatch per barcode BLOCK, the closest analogue of
+    # what Simple chemistries get by default. It is what the maintainer-endorsed BD Rhapsody STARsolo
+    # recipe on STAR issue #1607 intends — its "1MM multi" is 1MM for a complex barcode — and it was
+    # confirmed against real BD Rhapsody Enhanced reads (seqforge #43).
+    # This value lived inside starsolo.smk's CB_UMI_Complex branch until it moved here, because it is a
+    # per-chemistry PARSE fact rather than a soloType one: Parse Evercode is also CB_UMI_Complex and
+    # takes `EditDist_2`, its own pipeline's value. A yes/no branch on soloType yields two answers
+    # where three are already needed, and the third one has nowhere to be said.
+    soloCBmatchWLtype: 1MM
     # soloStrand: DERIVED, not pattern-matched (a wrong strand leaves most reads unassigned while
     # STARsolo exits 0 and emits a matrix that merely looks thin — neither gate can catch it).
     # DERIVATION: the bead oligo terminates in (dT)18 at its 3' end; that poly(dT) primes reverse

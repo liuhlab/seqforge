@@ -28,11 +28,24 @@ Everything is read from ``raw/``, never ``filtered/``. Cell calling is a downstr
 once, on evidence we do not have at compile time, and ``raw`` is the only form that keeps it
 available. (``filtered/`` does exist for every feature including Velocyto — checked on real output,
 because I had assumed otherwise.)
+
+**But ``raw/`` is the whole whitelist, and most of it is empty.** ``raw/barcodes.tsv`` on 10x v3 is
+all 6,794,880 barcodes the chemistry can express; on the sample this was measured against, 845,694
+of them (12.4%) carried a count in any feature. Writing the other 87.6% cost 633.8 MB per
+deliverable, against 95.5 MB once they are dropped — and dropping them is lossless in the strict
+sense, because a barcode with no count in any feature carries no information about the experiment.
+This is emphatically **not** cell calling: a barcode with a single UMI survives, and which barcodes
+are cells stays the downstream decision it was.
+
+The mask is the **union** over every matrix in the object, never the primary alone. ``X`` is
+``Gene`` — exonic reads — while ``GeneFull`` counts introns as well, so a barcode can be zero in one
+and carry real counts in the other; 22,319 barcodes on that sample were exactly that, and
+``X.sum() > 0`` would have deleted every one of them. See :func:`_barcode_mask`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -145,13 +158,21 @@ def _gene_axis(features: Sequence[SoloFeature]) -> list[SoloFeature]:
 
 
 #: STAR's per-run log/table files, written beside ``Solo.out`` at ``{OUTDIR}/{sample}/`` (not per
-#: feature). ``Aligned.out.bam`` is deliberately **not** here: it is the CRAM rule's input, declared
-#: on its own, while these four are the stats bundle's. All are written by every ``alignReads`` run.
+#: feature). The alignment (:data:`STAR_BAM`) is deliberately **not** here: it is the CRAM rule's
+#: input, declared on its own, while these four are the stats bundle's. All are written by every
+#: ``alignReads`` run.
 STAR_LOG_FILES: tuple[str, ...] = ("Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab")
 
-#: The unsorted alignment STAR writes under ``{OUTDIR}/{sample}/``. Its own constant because exactly
-#: one rule (``solo_to_cram``) consumes it, and the file naming has to come from somewhere.
-STAR_BAM = "Aligned.out.bam"
+#: The coordinate-sorted alignment STAR writes under ``{OUTDIR}/{sample}/``. Its own constant because
+#: exactly one rule (``solo_to_cram``) consumes it, and the file naming has to come from somewhere.
+#:
+#: **Sorted, and the name says so.** STAR names its output after ``--outSAMtype``, and the module has
+#: no choice but ``BAM SortedByCoordinate``: STAR rejects ``CB``/``UB`` in ``--outSAMattributes``
+#: outright for an unsorted BAM, and a retained CRAM with no barcode cannot be recounted under
+#: another GTF — which is the only reason to retain one. A stale literal here is not a subtle bug:
+#: ``starsolo_count`` declares this path as an output, so the rule fails *after* the whole alignment
+#: has been paid for.
+STAR_BAM = "Aligned.sortedByCoord.out.bam"
 
 
 def solo_stats_files(features: Sequence[SoloFeature]) -> list[str]:
@@ -267,10 +288,69 @@ def _read_matrix(path: Path, shape: tuple[int, int]) -> csr_matrix:
     return mat.tocsr()
 
 
+#: What ``uns`` records about the trim. Both go on every object this module writes: ``raw/`` is a
+#: Snakemake ``temp()`` output, so once the run finishes these two numbers are the only surviving
+#: statement that the obs axis was cut down from a whitelist, and from what size.
+_UNS_WHITELIST = "n_barcodes_whitelist"
+_UNS_RETAINED = "n_barcodes_retained"
+
+
+@dataclass(frozen=True)
+class _BarcodeMask:
+    """One decision about which barcodes are worth writing, and the two things that must agree on it.
+
+    ``barcodes`` is already subset and :meth:`apply` is the only way a matrix gets subset, so the obs
+    axis and every matrix are cut by the same mask, computed once — they cannot drift apart into an
+    object whose row labels name different cells than its counts do. A matrix that somehow escaped
+    ``apply`` is not a silent misalignment either: AnnData refuses a layer whose shape disagrees with
+    ``X``, so the mistake is a hard error at construction rather than counts on the wrong cells.
+    """
+
+    keep: np.ndarray
+    barcodes: list[str]
+    n_whitelist: int
+
+    def apply(self, matrix: csr_matrix) -> csr_matrix:
+        """``matrix``, keeping only the rows this mask kept. Row order is preserved."""
+        return matrix[self.keep]
+
+    def record(self, adata: anndata.AnnData) -> None:
+        """State in ``uns`` what the object was cut down from, and to what."""
+        adata.uns[_UNS_WHITELIST] = self.n_whitelist
+        adata.uns[_UNS_RETAINED] = len(self.barcodes)
+
+
+def _barcode_mask(barcodes: list[str], matrices: Iterable[csr_matrix]) -> _BarcodeMask:
+    """The barcodes carrying a count in ANY of ``matrices``, as one mask over ``barcodes``.
+
+    The union is the whole subtlety — the module docstring carries the number it is worth — so hand
+    this every matrix that will end up in the object, ``X`` and each layer alike, and hand them over
+    *before* any of them is subset. A caller that passes only the primary gets an object missing the
+    cells whose counts happen to be intronic, and nothing anywhere says so.
+    """
+    keep = np.zeros(len(barcodes), dtype=bool)
+    for matrix in matrices:
+        # `getnnz` counts STORED entries rather than nonzero values, and in general those differ --
+        # but not on this path. Every matrix here was parsed from a Matrix Market file, whose
+        # coordinate form lists only the entries that exist, and STAR writes no explicit zero. So
+        # this is an honest nonzero test, and it walks the stored indices instead of summing a
+        # 6.8-million-row matrix per feature.
+        keep |= matrix.getnnz(axis=1) > 0
+    return _BarcodeMask(
+        keep=keep,
+        barcodes=[b for b, k in zip(barcodes, keep, strict=True) if k],
+        n_whitelist=len(barcodes),
+    )
+
+
 def _stack(
     solo_dir: Path, features: Sequence[SoloFeature], primary: SoloFeature
 ) -> anndata.AnnData:
-    """The gene-axis features as one object: ``X`` = primary, one layer per other feature."""
+    """The gene-axis features as one object: ``X`` = primary, one layer per other feature.
+
+    The obs axis is ``raw/barcodes.tsv`` minus the barcodes no feature counted — see
+    :func:`_barcode_mask`, and note that the *union* there is what makes this correct.
+    """
     import anndata as ad
 
     raws = {f: solo_dir / f / "raw" for f in features}
@@ -292,9 +372,14 @@ def _stack(
     # Every matrix is read before the object is built, so a missing one raises BEFORE anything is
     # written: a refusal must not leave a half-written deliverable on disk for someone to find.
     mats = {f: _read_matrix(raws[f] / "matrix.mtx", shape) for f in features}
+    # The whitelist's empty rows go, on the union across every feature -- which is why the mask is
+    # built from all of `mats` and not from `mats[primary]`. The axis assertion above has already
+    # run: it compares the files as STAR wrote them, and must not be handed a trimmed axis.
+    mask = _barcode_mask(barcodes, mats.values())
+    mats = {f: mask.apply(m) for f, m in mats.items()}
 
     adata = ad.AnnData(X=mats[primary])
-    adata.obs_names = barcodes
+    adata.obs_names = mask.barcodes
     adata.var_names = names
     for col, values in extra.items():
         adata.var[col] = values
@@ -303,6 +388,7 @@ def _stack(
             adata.layers[feat] = mat
     adata.uns["primary_feature"] = primary
     adata.uns["soloFeatures"] = list(features)
+    mask.record(adata)
     return adata
 
 
@@ -322,14 +408,21 @@ def _velocyto(solo_dir: Path) -> anndata.AnnData:
         m.removesuffix(".mtx"): _read_matrix(raw / m, shape)
         for m in SOLO_FEATURE_OUTPUT[_VELOCYTO].matrices
     }
+    # Union across all three, and `X` duplicating `spliced` is exactly what makes the narrower mask
+    # tempting here: a barcode whose counts are all unspliced is a cell in the middle of
+    # transcription, and it is zero in `X`.
+    mask = _barcode_mask(barcodes, layers.values())
+    layers = {name: mask.apply(mat) for name, mat in layers.items()}
+
     adata = ad.AnnData(X=layers["spliced"])
-    adata.obs_names = barcodes
+    adata.obs_names = mask.barcodes
     adata.var_names = names
     for col, values in extra.items():
         adata.var[col] = values
     for name, mat in layers.items():
         adata.layers[name] = mat
     adata.uns["primary_feature"] = "spliced"
+    mask.record(adata)
     return adata
 
 
