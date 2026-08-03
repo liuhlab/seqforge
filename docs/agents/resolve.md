@@ -115,6 +115,15 @@ same list differently (the harness took the last document to claim one), so the 
 steer a scorer the compiler would have left unsteered — #188's "the harness fails differently from
 production". An operator's `--assert-chemistry` is the other source and outranks this one.
 
+**A record may withhold a hint, and that is its whole authority.** `chemistry_hypothesis` also reads
+the deposit's own `library_source`: a record declaring a single-cell library standing over a **bulk**
+hint makes that hint non-credible, so the hint is dropped. It may never name a chemistry, never move
+a score, and never raise anything — the worst it can do is decline to offer one, and the bytes decide
+either way. Deliberately **not** a `Conflict`: most single-cell deposits carry a bare
+`TRANSCRIPTOMIC`, so absence carries no information whatever, and reading the pair as two comparable
+claims would false-block correct datasets. An operator's `--assert-chemistry` is out of reach by
+construction — that branch builds its `Hypothesis` inline and never calls this function.
+
 **What the string NAMES is a separate question from whether it disagrees**, and `kb.match`
 answers it: `resolve_chemistry(value) -> Spec | None` matches a node when one of its curated forms is
 *carried by* the value — `alias ⊆ needle`, never the reverse. So `RNA-Seq` (SRA's `library_strategy`

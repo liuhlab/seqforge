@@ -246,7 +246,7 @@ than a wrong answer:
 | linker with 1–2 mismatches | still recovered |
 | barcode read dropped entirely | `Blocker(MISSING_TECHNICAL_READ)` with its remedy |
 | a 26 bp R1 against a 28 bp spec | misses the segment-length gate — 28 bp alone does not pick a chemistry |
-| fixed-cycle read with more than one distinct length | `Blocker(PRETRIMMED_VARIABLE_LENGTH)` |
+| fixed-cycle read with a minority of reads still at the declared length | `Blocker(PRETRIMMED_VARIABLE_LENGTH)` |
 | SRA-normalized header | the header test abstains, and does not gate |
 
 `seqforge kb roundtrip` runs this and exits 3 on failure; `seqforge kb lint` validates the schema and
