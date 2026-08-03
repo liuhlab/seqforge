@@ -989,19 +989,45 @@ class _CountingProvider:
         return LLMResponse(text=json.dumps({"drafts": []}), usage={"input_tokens": self.per_call})
 
 
-#: A ceiling roughly two requests wide for the documents `_prose_docs` writes. The meter reserves a
+#: A ceiling one request wide for the documents `_prose_docs_apart` writes. The meter reserves a
 #: request's estimated cost before issuing it, so what a ceiling buys is a number of REQUESTS, not a
 #: number of documents — and a test that pinned the ceiling to a wave of the pool would pass only
-#: while the pool stayed narrow. Raise it if the system prompt ever grows past ~22k characters —
-#: past that, one request no longer fits under this ceiling and the run refuses before it issues one.
+#: while the pool stayed narrow. One of those documents is estimated at roughly 5.2k tokens, so the
+#: first request is admitted and every other one is refused however many the pool offered at once.
 _CEILING = 6000
 
 
 def _prose_docs(tmp_path: Path, n: int) -> list[str]:
+    """N one-line documents, which all receive the same ask and therefore travel in ONE request."""
     paths = []
     for i in range(n):
         doc = tmp_path / f"methods-{i}.txt"
         doc.write_text(f"Libraries were prepared with the Chromium Single Cell 3' v{i} kit.")
+        paths.append(str(doc))
+    return paths
+
+
+def _prose_docs_apart(tmp_path: Path, n: int) -> list[str]:
+    """N documents that cannot share a request, for the tests that are about a COUNT of requests.
+
+    Same-ask documents batch, and one-line prose all receives the same ask — so a test about
+    exchanges, or about a ceiling refusing partway through a fan-out, would otherwise be a test of a
+    single request and its counts would all read 1. Past half the character budget no two documents
+    fit together, which restores one request per document without any test having to say so.
+
+    The distinction is deliberately a second helper rather than a wider `_prose_docs`: what
+    `usage.n_calls` reports when several documents DO share a request is itself a thing worth
+    pinning, and inflating every document would delete the only case that can show it.
+    """
+    from seqforge.harvest.plan import MAX_BATCH_CHARS
+
+    filler = "Cells were fixed and washed. " * (MAX_BATCH_CHARS // 58 + 4)
+    paths = []
+    for i in range(n):
+        doc = tmp_path / f"methods-{i}.txt"
+        doc.write_text(
+            f"Libraries were prepared with the Chromium Single Cell 3' v{i} kit. {filler}"
+        )
         paths.append(str(doc))
     return paths
 
@@ -1014,9 +1040,9 @@ def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
     at exit 1, which says the endpoint failed when it answered every request it was given.
 
     Six documents is deliberately more than one wave of a small pool: the refusal must not depend on
-    the fan-out serialising. One request of this shape is estimated at roughly 2.7k tokens — a 9k-
-    character system prompt plus a short document — so `_CEILING` covers two of the six and the rest
-    are refused however many of them the pool offered at once.
+    the fan-out serialising. They are written too long to share a request, so six documents really
+    are six requests — one request of this shape is estimated at roughly 5.2k tokens, so `_CEILING`
+    covers one of the six and the rest are refused however many the pool offered at once.
     """
     import seqforge.harvest as harvest_pkg
 
@@ -1028,7 +1054,7 @@ def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
         [
             "harvest",
             "extract",
-            *_prose_docs(tmp_path, 6),
+            *_prose_docs_apart(tmp_path, 6),
             "--ceiling",
             str(_CEILING),
             "-C",
@@ -1053,7 +1079,14 @@ def test_harvest_usage_counts_requests_not_documents(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`n_calls` was `len(documents)`, so every retry was free in the one place a reader looks. It
-    is the meter's count of real requests now, with the document count kept beside it."""
+    is the meter's count of real requests now, with the document count kept beside it.
+
+    These three documents receive the same ask and travel in ONE request, which is what makes this
+    the case worth pinning: the two numbers now differ in the ordinary run rather than only after a
+    retry, so a reader who confuses them is wrong about the bill by the batching factor. Handing this
+    test documents too long to batch would put the two numbers back in agreement and delete the only
+    case that can tell them apart.
+    """
     import seqforge.harvest as harvest_pkg
 
     provider = _CountingProvider(per_call=7)
@@ -1064,8 +1097,8 @@ def test_harvest_usage_counts_requests_not_documents(
     )
     assert result.exit_code == 0, result.stdout
     usage = json.loads(result.stdout)["usage"]
-    assert usage["n_calls"] == 3 and usage["n_documents"] == 3
-    assert usage["input_tokens"] == 21
+    assert usage["n_calls"] == 1 and usage["n_documents"] == 3
+    assert usage["input_tokens"] == 7, "one request's worth, not one per document"
 
 
 def test_harvest_extract_writes_its_transcript_beside_the_ledger(
@@ -1083,7 +1116,7 @@ def test_harvest_extract_writes_its_transcript_beside_the_ledger(
     monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
 
     result = runner.invoke(
-        app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "-C", str(tmp_path)]
+        app, ["harvest", "extract", *_prose_docs_apart(tmp_path, 3), "-C", str(tmp_path)]
     )
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
@@ -1118,7 +1151,7 @@ def test_harvest_extract_writes_the_transcript_of_a_run_it_refused(
         [
             "harvest",
             "extract",
-            *_prose_docs(tmp_path, 6),
+            *_prose_docs_apart(tmp_path, 6),
             "--ceiling",
             str(_CEILING),
             "-C",
@@ -1149,7 +1182,13 @@ def test_harvest_extract_dry_run_costs_nothing_and_needs_no_credential(
     assert result.exit_code == 0, result.stdout
     plan = json.loads(result.stdout)
     assert plan["n_documents"] == 3
-    assert plan["estimated_input_tokens"] > 3 * plan["system_prompt_chars"] // 4
+    # ...and what it will COST is a count of requests, not of documents: these three receive the
+    # same ask, so the stable prefix is paid once. A plan charging it per document would overstate a
+    # real run by twice the prefix, and a dry run that disagrees with the run it prices is worse
+    # than none.
+    assert plan["n_requests"] == 1
+    assert plan["estimated_input_tokens"] > plan["system_prompt_chars"] // 4
+    assert plan["estimated_input_tokens"] < 2 * plan["system_prompt_chars"] // 4
     assert [d["scope"] for d in plan["documents"]] == ["dataset"] * 3
     assert not (tmp_path / "seqforge").exists(), "a dry run writes nothing either"
 

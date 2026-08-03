@@ -28,6 +28,12 @@ keyed by ``doc_sha256``, so two identical documents each cost a call, one result
 reassembly loop then read that single outcome once per colliding document — duplicating its drafts,
 its rejected list and its usage. Here identical asks are one document, and the results come back as a
 LIST in plan order, so there is no key to collide on.
+
+**Documents that receive the same ask share a request.** A document is not a request: the ~9 KB system
+prefix and the ~1.3 KB ask are byte-identical per request, so three archive records of 45, 209 and 213
+characters cost ~9.4 K input tokens as three requests, >95 % of it prompt, paid three times over three
+round trips (#190). :func:`batch_documents` is where that stops, and it is the only thing here that
+decides how many requests a plan is.
 """
 
 from __future__ import annotations
@@ -42,7 +48,7 @@ from typing import TYPE_CHECKING
 
 from ..models.assertion import ExtractionPlanReport, PlannedDocument
 from ..models.records import ArchiveRecord, ArchiveRecordSet
-from .extract import ExtractionOutcome, ExtractUnavailable, extract_drafts
+from .extract import ExtractionOutcome, ExtractUnavailable, extract_batch, extract_drafts
 from .fields import DocScope, fields_for
 from .meter import CHARS_PER_TOKEN
 from .normalize import (
@@ -65,6 +71,33 @@ if TYPE_CHECKING:
 MAX_IN_FLIGHT = min(24, (os.cpu_count() or 1) * 2)
 
 _SLOTS = threading.Semaphore(MAX_IN_FLIGHT)
+
+#: The most DOCUMENT TEXT one request may carry, in characters. ~6 K tokens, which is how much a
+#: batch may add to a request that would have been made anyway — and that number is the width of the
+#: promise a token Ceiling makes.
+#:
+#: The meter reserves a request's estimate before issuing it, so "a run overshoots its ceiling by at
+#: most approximately one request's cost" is now one BATCH's cost, and a ceiling narrower than one
+#: batch refuses the run at the gate having issued nothing. Two things keep that honest.
+#: :func:`~seqforge.harvest.meter.estimated_tokens` reads the prompt actually being sent, so a batch
+#: of three 200-character records estimates what a single such request estimates and coarsens nothing;
+#: and this cap bounds the worst case at +6 K tokens over one document's request, which is smaller
+#: than one long paper already is. Against the 500 K per-case ceiling `eval run` defaults to, a full
+#: batch is ~1.7 % — well under, which is the property to preserve if this number ever moves.
+#:
+#: A document longer than the budget is never split: it is its own request. Splitting one would change
+#: the text a quote is greppable against, which is the one thing this pipeline may not do.
+MAX_BATCH_CHARS = 24_000
+
+#: The most documents one request may carry, however little they weigh. The character budget alone
+#: does not bound this — a plan of one-line run aliases is exactly the case batching exists for, and
+#: 24 K characters of them is hundreds of documents in one request.
+#:
+#: Two reasons for a second, tighter cap. The response half is bounded by ``max_tokens`` per REQUEST
+#: and not per document, and a one-line alias can still support nine sample-attribute claims, so what
+#: bounds the output is the document count rather than the input size. And a batch-level failure
+#: costs a re-ask of every member: eight is a round trip lost, several hundred is a wave.
+MAX_BATCH_DOCUMENTS = 8
 
 
 @dataclass(frozen=True)
@@ -94,13 +127,30 @@ class ExtractionPlan:
         return len(self.documents)
 
     @property
+    def batches(self) -> tuple[tuple[int, ...], ...]:
+        """Indices into :attr:`documents`, grouped into the requests they will be sent as."""
+        return batch_documents(self.documents)
+
+    @property
+    def n_requests(self) -> int:
+        """How many times this plan will reach a model, before any retry. Never more than
+        :attr:`n_documents`, and fewer whenever two documents receive the same ask."""
+        return len(self.batches)
+
+    @property
     def n_chars(self) -> int:
         """Document text this plan will send, in characters. The volatile half of the prompt."""
         return sum(len(d.text) for d in self.documents)
 
     @property
     def estimated_input_tokens(self) -> int:
-        """A plan's whole point: the system prefix is charged **per document**.
+        """A plan's whole point: the system prefix is charged **per request**.
+
+        It used to be charged per document, and that was the same number until documents began
+        sharing a request. Keeping it per document would leave a dry run overstating a real run by
+        ``(n_documents - n_requests) x system_prompt_chars``, which on a dataset of one-line archive
+        records is most of the bill — a dry run whose whole job is to be the price of the paid run
+        must move when the paid run does, in both directions.
 
         Output is not estimated and is not estimable — the model decides how many claims a document
         supports. The token Ceiling is what bounds that half; this bounds the half we choose.
@@ -111,7 +161,7 @@ class ExtractionPlan:
         then refused it, and a dry run that disagrees with the run it is a dry run of is worse than
         no dry run.
         """
-        return (self.n_documents * self.system_prompt_chars + self.n_chars) // CHARS_PER_TOKEN
+        return (self.n_requests * self.system_prompt_chars + self.n_chars) // CHARS_PER_TOKEN
 
     def asked(self, doc: NormalizedDoc) -> tuple[str, ...]:
         """The fields this document will be asked for. Extraction derives the same set."""
@@ -121,6 +171,7 @@ class ExtractionPlan:
         """The wire form: what a ``--dry-run`` prints, and the first-class result type it needs."""
         return ExtractionPlanReport(
             n_documents=self.n_documents,
+            n_requests=self.n_requests,
             n_records_read=self.n_records_read,
             n_records_collapsed=self.n_records_collapsed,
             n_chars=self.n_chars,
@@ -186,6 +237,51 @@ def plan_extraction(
     )
 
 
+def batch_documents(documents: Sequence[NormalizedDoc]) -> tuple[tuple[int, ...], ...]:
+    """Plan-ordered document indices, grouped into the requests they will be sent as.
+
+    **The group key is the ask itself** — ``fields_for(scope, role)`` — and not the ``(scope, role)``
+    pair it is derived from. A prompt is the only place the ask exists, so two documents may share a
+    request exactly when the request would put the same question to both; anything else asks one of
+    them for fields it will never be permitted to answer, which wastes the ask on every request. That
+    the key is the ask and not its inputs is worth the indirection: a ``sample`` record and a
+    collapsed ``run`` document are asked the same nine attributes, and keying on scope would send two
+    requests to ask one question. Safety is not what this decides — ``verify_drafts`` refuses an
+    off-scope field whatever was asked.
+
+    Two caps bound a request (:data:`MAX_BATCH_CHARS`, :data:`MAX_BATCH_DOCUMENTS`), and a batch also
+    never holds one document's sha256 twice: the model routes its drafts by that sha, and two members
+    it cannot tell apart is a question with no answer. A document that alone exceeds the character
+    budget is its own request rather than being split.
+
+    Batches come back ordered by their first member and each is ascending, so a plan's requests are a
+    deterministic function of the plan — the same documents produce the same requests on a laptop and
+    on a 48-core node.
+    """
+    open_batches: dict[tuple[str, ...], list[int]] = {}
+    open_chars: dict[tuple[str, ...], int] = {}
+    closed: list[list[int]] = []
+
+    for i, doc in enumerate(documents):
+        key = fields_for(doc.scope, doc.role)
+        current = open_batches.get(key)
+        if current is not None and (
+            len(current) >= MAX_BATCH_DOCUMENTS
+            or open_chars[key] + len(doc.text) > MAX_BATCH_CHARS
+            or any(documents[j].doc_sha256 == doc.doc_sha256 for j in current)
+        ):
+            closed.append(current)
+            current = None
+        if current is None:
+            current = open_batches[key] = []
+            open_chars[key] = 0
+        current.append(i)
+        open_chars[key] += len(doc.text)
+
+    closed.extend(open_batches.values())
+    return tuple(tuple(b) for b in sorted(closed, key=lambda b: b[0]))
+
+
 def extract_planned(
     plan: ExtractionPlan,
     specs: dict[str, Spec],
@@ -194,15 +290,30 @@ def extract_planned(
     model: str | None = None,
     partial: bool = False,
 ) -> list[ExtractionOutcome]:
-    """One extraction per planned document, concurrently, returned **in plan order**.
+    """Extract every planned document, concurrently, returned **in plan order**.
 
     A LIST, positionally aligned with ``plan.documents``, and that is the whole reassembly contract:
     a dict keyed by document identity loses one of two identical documents, and a completion-ordered
     list would make a run's graded assertions depend on which socket returned first.
 
-    Each document is an independent, network-bound call, so they go out on a THREAD pool — the wait
-    is on a socket, and processes would only add IPC. :data:`_SLOTS` is what the provider actually
-    sees, because a caller may already be inside a pool of its own.
+    **One request per batch, not per document** (:func:`batch_documents`), and each request is an
+    independent, network-bound call, so they go out on a THREAD pool — the wait is on a socket, and
+    processes would only add IPC. :data:`_SLOTS` is what the provider actually sees, because a caller
+    may already be inside a pool of its own.
+
+    **A batch-level failure falls back to per-document calls, immediately.** Unbatched, a failed
+    request costs one document; batched it could cost eight, which would make "half a batch is worse
+    than none" worse rather than better. So batching may never lose more documents than not batching
+    would have: worst case one extra round trip, best case most of the per-request prompt overhead
+    gone. Three properties make that a guarantee rather than a hope —
+
+    - the fallback re-asks through a request shape that has never been batched (one document, and the
+      echoed sha discarded), so it cannot fail for the reason the batch did;
+    - the retries run SEQUENTIALLY inside the slot the batch already holds. A nested pool reaching for
+      :data:`_SLOTS` while holding one of them deadlocks as soon as every slot is held by a batch
+      waiting on a retry;
+    - what the fallback then does with a document that fails alone is exactly what an unbatched run
+      does, ``partial`` and all.
 
     ``partial`` decides what one document's failure costs the other twelve, and the two callers want
     opposite answers. **Off (the default) it raises**, so the compiler fails closed: an extraction
@@ -212,31 +323,53 @@ def extract_planned(
     twelve documents it declined to send, and a whole dataset raising on its one flaky supplementary
     table is how a graded tier reported nothing at all about five of its seven prose cases.
 
-    A **Ceiling** is not caught either way. It is a refusal rather than an unavailability — the
-    provider answered everything it was given — and the caller owes it a ``Blocker``, so it must
-    still reach one.
+    A **Ceiling** is not caught either way, and a batch failure does not fall back past one. It is a
+    refusal rather than an unavailability — the provider answered everything it was given — and the
+    caller owes it a ``Blocker``, so it must still reach one. The meter reconciles a reservation on
+    every path out of a request, so a batch that failed has already given its estimate back by the
+    time the retries ask for theirs; what the retries do face is the batch's REAL spend, which was
+    banked because it was really spent.
     """
 
-    def _one(doc: NormalizedDoc) -> ExtractionOutcome:
-        with _SLOTS:
-            if not partial:
-                return extract_drafts(doc, specs, provider=provider, model=model)
-            try:
-                return extract_drafts(doc, specs, provider=provider, model=model)
-            except ExtractUnavailable as exc:
-                return ExtractionOutcome.unanswered(
-                    provider=provider.name,
-                    model=model or provider.default_model(),
-                    detail=str(exc),
-                )
+    def _alone(doc: NormalizedDoc) -> ExtractionOutcome:
+        """One document, one request — what an unbatched run does, and what a fallback retries as."""
+        if not partial:
+            return extract_drafts(doc, specs, provider=provider, model=model)
+        try:
+            return extract_drafts(doc, specs, provider=provider, model=model)
+        except ExtractUnavailable as exc:
+            return ExtractionOutcome.unanswered(
+                provider=provider.name,
+                model=model or provider.default_model(),
+                detail=str(exc),
+            )
 
-    docs = plan.documents
-    if len(docs) <= 1:
-        return [_one(d) for d in docs]
-    with ThreadPoolExecutor(max_workers=min(MAX_IN_FLIGHT, len(docs))) as pool:
-        # `map` yields in submission order, so the result list matches `plan.documents` however the
-        # calls interleave.
-        return list(pool.map(_one, docs))
+    def _one(batch: tuple[int, ...]) -> list[ExtractionOutcome]:
+        docs = [plan.documents[i] for i in batch]
+        with _SLOTS:
+            if len(docs) == 1:
+                return [_alone(docs[0])]
+            try:
+                return extract_batch(docs, specs, provider=provider, model=model)
+            except ExtractUnavailable:
+                # The whole of the decision: this batch is unusable, so ask its documents one at a
+                # time. The failure itself is not reported — every document is about to be asked
+                # again, and one that answers alone was never lost to report.
+                return [_alone(d) for d in docs]
+
+    batches = plan.batches
+    if len(batches) <= 1:
+        answered = [_one(b) for b in batches]
+    else:
+        with ThreadPoolExecutor(max_workers=min(MAX_IN_FLIGHT, len(batches))) as pool:
+            answered = list(pool.map(_one, batches))
+
+    # Scattered back to plan positions rather than concatenated: a batch is a set of positions, and
+    # only the batching happens to be order-preserving today.
+    ordered: dict[int, ExtractionOutcome] = {}
+    for batch, outcomes in zip(batches, answered, strict=True):
+        ordered.update(zip(batch, outcomes, strict=True))
+    return [ordered[i] for i in range(len(plan.documents))]
 
 
 def _worth_asking(record: ArchiveRecord) -> bool:
@@ -323,8 +456,11 @@ def _deduplicated(documents: Sequence[NormalizedDoc]) -> list[NormalizedDoc]:
 
 __all__ = [
     "CHARS_PER_TOKEN",
+    "MAX_BATCH_CHARS",
+    "MAX_BATCH_DOCUMENTS",
     "MAX_IN_FLIGHT",
     "ExtractionPlan",
+    "batch_documents",
     "extract_planned",
     "plan_extraction",
 ]

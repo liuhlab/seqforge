@@ -2016,9 +2016,14 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
 
     A cost estimate nobody can join back to the run it predicts is decoration. Both sides are
     computed here — the plan with no provider at all, the run against a stub that answers every
-    request — and the document count has to agree. It is also the number a maintainer reads as
-    "requests", so the run's own call count is asserted against it: the plan is the floor, and a
-    retry is the only thing allowed to push the real run above it.
+    request — and both counts have to agree.
+
+    The two counts are separate because they stopped being the same number: documents that receive
+    the same ask travel in one request, so `n_documents` is how much material is read and
+    `n_requests` is how many times a model is reached. It is the second that a run's call count must
+    be joined to — the plan is the floor, and a retry is the only thing allowed to push the real run
+    above it. Asserting the run against the DOCUMENT count would silently re-pin one-call-per-
+    document, which is the thing batching removed.
     """
     from seqforge.evals import plan_case, system_prompt_chars
 
@@ -2027,18 +2032,19 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
 
     # One human document + one sample record + the sample's three runs, collapsed into one document.
     assert row.n_documents == 3
+    # The sample and run documents share the same ask and travel together; the human document's
+    # dataset-scope ask is different, so it cannot join them.
+    assert row.n_requests == 2
     assert row.n_records_read == 4
     assert row.n_records_collapsed == 2
     assert row.n_chars > 0
-    assert row.estimated_input_tokens > row.n_chars // 4, (
-        "the system prefix is charged per document"
-    )
+    assert row.estimated_input_tokens > row.n_chars // 4, "the system prefix is charged per request"
     assert row.skipped is None
 
     run = run_case(case, llm=True, provider=_StubProvider([]))
     assert run.harvest is not None
     assert run.harvest.n_documents == row.n_documents
-    assert run.llm_calls == row.n_documents, "the plan is the floor on what the run issues"
+    assert run.llm_calls == row.n_requests, "the plan is the floor on what the run issues"
 
 
 def test_a_case_the_plan_cannot_price_is_named_rather_than_costed_at_zero(
