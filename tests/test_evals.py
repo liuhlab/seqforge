@@ -3311,19 +3311,36 @@ def test_a_cases_call_count_is_requests_not_documents(monkeypatch: pytest.Monkey
     assert run.usage["input_tokens"] == 140, "the 429's 40 plus the answered call's 100"
 
 
+class _ExpensiveStub(_StubProvider):
+    """A stub whose one answered request costs more than the ceiling can carry twice.
+
+    The meter reserves a request's ESTIMATE before issuing it, so a ceiling buys a number of
+    requests rather than a number of banked tokens — which means `ceiling=1` no longer produces a
+    breach to observe: it cannot cover the first request either, so nothing is issued, nothing is
+    banked, and there is no ledger. Making the SPEND large instead of the ceiling tiny keeps these
+    two tests about what they were always about — a case refused on what it already paid for.
+    """
+
+    def complete_json(self, **kwargs: object) -> LLMResponse:
+        from dataclasses import replace
+
+        return replace(super().complete_json(**kwargs), usage={"input_tokens": 100_000})
+
+
 def test_a_case_that_reaches_its_ceiling_is_blocked_not_graded() -> None:
     """Per case, because a case is a dataset and the ceiling bounds a dataset — and the meter spans
     the case's trials, so the second trial here is refused on what the first spent. It refuses: the
     case carries a `Blocker` and scores nothing, rather than warning into a log nobody reads.
 
-    The request that CROSSES the ceiling is issued (its cost is not knowable until it returns); it
-    is the one after it that never leaves. That is why a one-document, one-trial case cannot breach
-    at all, and why a breach is reproducible rather than a race.
+    The request that would cross the ceiling is refused BEFORE it is issued, on its estimate: the
+    first trial is admitted and banks more than a second could fit under, so the second never
+    leaves. A breach is therefore reproducible rather than a race, and — unlike the accounting this
+    replaced — it does not depend on how many requests happened to be in flight.
     """
-    provider = _StubProvider(
+    provider = _ExpensiveStub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=1, trials=2)
+    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=50_000, trials=2)
 
     assert run.blocker is not None
     assert run.llm_calls == 1, "the first trial's request was issued; the second never left"
@@ -3437,11 +3454,16 @@ def test_a_case_stopped_at_its_ceiling_still_names_its_transcript(tmp_path: Path
     from seqforge.harvest import read_transcript
     from seqforge.workspace import eval_dir
 
-    provider = _StubProvider(
+    provider = _ExpensiveStub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
     run = run_case(
-        _trap_case(), llm=True, provider=provider, ceiling=1, trials=2, workspace=eval_dir(tmp_path)
+        _trap_case(),
+        llm=True,
+        provider=provider,
+        ceiling=50_000,
+        trials=2,
+        workspace=eval_dir(tmp_path),
     )
 
     assert run.blocker is not None and run.skipped is not None

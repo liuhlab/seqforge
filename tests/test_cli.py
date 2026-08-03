@@ -989,6 +989,14 @@ class _CountingProvider:
         return LLMResponse(text=json.dumps({"drafts": []}), usage={"input_tokens": self.per_call})
 
 
+#: A ceiling roughly two requests wide for the documents `_prose_docs` writes. The meter reserves a
+#: request's estimated cost before issuing it, so what a ceiling buys is a number of REQUESTS, not a
+#: number of documents — and a test that pinned the ceiling to a wave of the pool would pass only
+#: while the pool stayed narrow. Raise it if the system prompt ever grows past ~22k characters —
+#: past that, one request no longer fits under this ceiling and the run refuses before it issues one.
+_CEILING = 6000
+
+
 def _prose_docs(tmp_path: Path, n: int) -> list[str]:
     paths = []
     for i in range(n):
@@ -1003,7 +1011,13 @@ def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
 ) -> None:
     """A ceiling that only warned would be a number nobody sets, so it is a refusal: exit 3 with a
     `Blocker`, the same shape every other refusal in the compiler takes — never `llm_unavailable`
-    at exit 1, which says the endpoint failed when it answered every request it was given."""
+    at exit 1, which says the endpoint failed when it answered every request it was given.
+
+    Six documents is deliberately more than one wave of a small pool: the refusal must not depend on
+    the fan-out serialising. One request of this shape is estimated at roughly 2.7k tokens — a 9k-
+    character system prompt plus a short document — so `_CEILING` covers two of the six and the rest
+    are refused however many of them the pool offered at once.
+    """
     import seqforge.harvest as harvest_pkg
 
     provider = _CountingProvider(per_call=1000)
@@ -1016,7 +1030,7 @@ def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
             "extract",
             *_prose_docs(tmp_path, 6),
             "--ceiling",
-            "2500",
+            str(_CEILING),
             "-C",
             str(tmp_path),
         ],
@@ -1029,6 +1043,7 @@ def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
     assert "--ceiling" in blocker["remedy"]
     # The ledger is written anyway: the tokens up to the ceiling were really spent, and a reader
     # asking "on what?" is exactly the reader a breach produces.
+    assert provider.n_calls >= 1, "a ceiling below one request's estimate would prove nothing here"
     totals = json.loads((tmp_path / "seqforge" / "logs" / "usage.json").read_text())["totals"]
     assert totals["n_calls"] == provider.n_calls
     assert totals["input_tokens"] == 1000 * provider.n_calls
@@ -1100,11 +1115,19 @@ def test_harvest_extract_writes_the_transcript_of_a_run_it_refused(
 
     result = runner.invoke(
         app,
-        ["harvest", "extract", *_prose_docs(tmp_path, 6), "--ceiling", "2500", "-C", str(tmp_path)],
+        [
+            "harvest",
+            "extract",
+            *_prose_docs(tmp_path, 6),
+            "--ceiling",
+            str(_CEILING),
+            "-C",
+            str(tmp_path),
+        ],
     )
     assert result.exit_code == 3
     transcript = read_transcript(Path(json.loads(result.stdout)["transcript_path"]))
-    assert transcript.n_exchanges == provider.n_calls
+    assert provider.n_calls >= 1 and transcript.n_exchanges == provider.n_calls
 
 
 def test_harvest_extract_dry_run_costs_nothing_and_needs_no_credential(

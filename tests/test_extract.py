@@ -12,6 +12,7 @@ guarantees the shape, a json-object provider (DeepSeek) does not. The gate must 
 from __future__ import annotations
 
 import json
+import threading
 import time
 from collections import Counter
 from pathlib import Path
@@ -797,25 +798,157 @@ def test_the_meter_hands_the_response_back_untouched(tmp_path: Path) -> None:
 
 
 # ---------- the Ceiling ----------
-def test_the_ceiling_refuses_the_request_after_the_one_that_crossed_it(tmp_path: Path) -> None:
-    """The crossing request is ISSUED — its cost is not knowable until it returns — and everything
-    admitted after it is refused, un-issued. That is what makes a breach reproducible."""
+#: A prompt whose ESTIMATE is exactly 1000 tokens. The meter deducts a request's estimated cost from
+#: the budget before it issues it, and that estimate is the prompt's characters over
+#: `CHARS_PER_TOKEN` — so fixing the character count fixes the reservation, and the ceilings below
+#: read as a whole number of requests.
+_SYSTEM_1K = "s" * 3600
+_USER_1K = "u" * 400
+
+
+class _CostingProvider:
+    """Always answers, always costs the same. Enough to reach a ceiling, from any number of threads."""
+
+    name = "costing"
+
+    def __init__(self, per_call: int = 1000) -> None:
+        self.per_call = per_call
+        self.n_calls = 0
+        self._lock = threading.Lock()
+
+    def default_model(self) -> str:
+        return "costing-1"
+
+    def complete_json(self, **kwargs: Any) -> LLMResponse:
+        with self._lock:
+            self.n_calls += 1
+        return LLMResponse(text=_OK, usage={"input_tokens": self.per_call})
+
+
+def _ask(meter: Any, system: str = _SYSTEM_1K, user: str = _USER_1K) -> None:
+    meter.complete_json(system=system, user=user, schema={}, model="m", max_tokens=8)
+
+
+def test_the_ceiling_refuses_the_request_it_cannot_afford_before_issuing_it() -> None:
+    """A Ceiling bounds what a run may SPEND, so the refused request is the one the budget could not
+    cover — not the one after it. What it will cost is not knowable until it returns, so an estimate
+    is deducted at admission and reconciled against the real usage when the response arrives."""
     from seqforge.harvest import CeilingExceeded, TokenMeter
 
-    inner = _SequencedProvider([_OK])  # 10 input tokens per call
-    meter = TokenMeter(inner, ceiling=25)
+    inner = _CostingProvider(per_call=1000)
+    meter = TokenMeter(inner, ceiling=2500)
 
-    def one() -> None:
-        meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+    _ask(meter)
+    _ask(meter)  # 2000 banked, and a third request is estimated at 1000 more than the budget has
 
-    for _ in range(3):  # 10, 20, 30 -> the third is the one that crosses
-        one()
     with pytest.raises(CeilingExceeded) as caught:
-        one()
+        _ask(meter)
 
-    assert inner.n_calls == 3, "the refused request never reached the provider"
-    assert meter.n_exchanges == 3 and meter.tokens == 30
-    assert caught.value.spent == 30 and caught.value.ceiling == 25
+    assert inner.n_calls == 2, "the request the budget could not cover never reached the provider"
+    assert meter.n_exchanges == 2 and meter.tokens == 2000
+    assert caught.value.spent == 2000 and caught.value.ceiling == 2500
+
+
+def test_the_ceiling_refuses_a_wave_admitted_before_anything_has_banked() -> None:
+    """The concurrent case, pinned — a whole document set admitted in one wave of the pool.
+
+    A check on the tokens ALREADY BANKED asks a question whose answer is not yet knowable: six
+    workers pass it before any of them has banked a thing, so a run that fits inside one wave could
+    never refuse at all, and the tightness of a ceiling would depend on the core count of the
+    machine that ran it. Nothing here banks until every worker has settled — issued or refused — so
+    a meter that admitted on banked totals alone issues all six and this goes red.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    settled = threading.Semaphore(0)  # one release per worker that has been issued OR refused
+    resume = threading.Event()
+
+    class _HeldOpen(_CostingProvider):
+        """Holds every issued request open until the whole wave has settled."""
+
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            settled.release()
+            assert resume.wait(timeout=10), "the wave never settled"
+            return super().complete_json(**kwargs)
+
+    inner = _HeldOpen(per_call=1000)
+    meter = TokenMeter(inner, ceiling=3000)  # three requests, at an estimated 1000 each
+
+    def one(_i: int) -> bool:
+        try:
+            _ask(meter)
+        except CeilingExceeded:
+            settled.release()
+            return False
+        return True
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = [pool.submit(one, i) for i in range(6)]
+        for _ in range(6):
+            assert settled.acquire(timeout=10), "a worker neither reached the provider nor refused"
+        resume.set()
+        issued = [f.result() for f in futures]
+
+    assert inner.n_calls == 3, "what the budget covered, however many the pool offered at once"
+    assert sum(issued) == 3 and issued.count(False) == 3
+    assert meter.tokens == 3000, "the ceiling was spent, not overshot by five more requests"
+
+
+def test_a_request_the_whole_ceiling_cannot_cover_refuses_at_the_gate() -> None:
+    """A ceiling smaller than one request stops the run before anything is issued. Admitting it
+    "because nothing has been spent yet" would be a ceiling that always allows one arbitrarily
+    large call, which is the reading a run of a single enormous document would get."""
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    inner = _CostingProvider(per_call=1000)
+    meter = TokenMeter(inner, ceiling=500)  # one request is estimated at 1000
+
+    with pytest.raises(CeilingExceeded) as caught:
+        _ask(meter)
+
+    assert inner.n_calls == 0 and meter.n_exchanges == 0 and meter.tokens == 0
+    assert caught.value.spent == 0 and caught.value.estimate == 1000
+    # "0 tokens spent, ceiling 500" reads as a bug rather than a refusal, so the number that
+    # actually decided it is in the message a caller sees.
+    assert "estimated at 1,000 tokens" in str(caught.value)
+
+
+def test_a_failed_request_gives_its_reservation_back() -> None:
+    """Reserving before the request means reconciling after it, on the failure path too. A leaked
+    reservation would starve a run of budget it never spent, and the leak compounds: three flaky
+    documents early on would refuse everything after them for the rest of the run."""
+    from seqforge.harvest import ProviderUnavailable, TokenMeter
+
+    inner = _SequencedProvider([_transient(), _transient(), _transient(), _OK])
+    meter = TokenMeter(inner, ceiling=1000)  # room for exactly one request's estimate at a time
+
+    for _ in range(3):
+        with pytest.raises(ProviderUnavailable):
+            _ask(meter)
+
+    _ask(meter)  # admitted: three failed requests hold nothing against the budget
+    assert meter.n_exchanges == 4 and meter.tokens == 10
+
+
+def test_the_reservation_learns_what_a_request_really_costs() -> None:
+    """The character estimate is a rule of thumb that knows nothing about the OUTPUT half, so on its
+    own it under-reserves — and a systematic under-reservation restores exactly the pool-width
+    dependence that reserving exists to remove. Once a run has banked an exchange it stops guessing:
+    a reservation is at least what an exchange has really cost so far.
+    """
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    inner = _CostingProvider(per_call=100)
+    meter = TokenMeter(inner, ceiling=350)
+
+    for _ in range(3):
+        _ask(meter, system="", user="")  # nothing to estimate FROM: zero characters
+
+    with pytest.raises(CeilingExceeded):
+        _ask(meter, system="", user="")
+    assert meter.tokens == 300, "three at 100, and a fourth the remaining 50 could not cover"
 
 
 def test_the_ceiling_counts_raw_so_cached_input_is_not_free() -> None:
@@ -882,9 +1015,9 @@ def test_the_meter_holds_under_the_concurrent_fan_out() -> None:
 
     assert meter.n_exchanges == issued, "every issued request was banked exactly once"
     assert meter.tokens == 10 * issued
-    # The in-flight ones finish and are banked, so the total may overshoot by at most the width of
-    # the pool; nothing may be admitted once the ceiling is reached.
-    assert 200 <= meter.tokens <= 200 + 10 * 8
+    # Reserving is what makes this exact rather than pool-shaped: every request costs what the run
+    # has learned a request costs, so the budget is spent to the last token and none of it twice.
+    assert meter.tokens == 200
 
 
 # ---------- the transcript ----------

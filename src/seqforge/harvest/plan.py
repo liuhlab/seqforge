@@ -44,6 +44,7 @@ from ..models.assertion import ExtractionPlanReport, PlannedDocument
 from ..models.records import ArchiveRecord, ArchiveRecordSet
 from .extract import ExtractionOutcome, ExtractUnavailable, extract_drafts
 from .fields import DocScope, fields_for
+from .meter import CHARS_PER_TOKEN
 from .normalize import (
     NormalizedDoc,
     declared_spans,
@@ -64,11 +65,6 @@ if TYPE_CHECKING:
 MAX_IN_FLIGHT = min(24, (os.cpu_count() or 1) * 2)
 
 _SLOTS = threading.Semaphore(MAX_IN_FLIGHT)
-
-#: Characters per token, near enough to plan with. A plan is a warning about an order of magnitude —
-#: "this dataset is 900 calls" — and a real tokenizer would buy a second decimal place nobody acts on
-#: while adding a dependency and a model-specific answer to a question asked before a model is chosen.
-CHARS_PER_TOKEN = 4
 
 
 @dataclass(frozen=True)
@@ -108,6 +104,12 @@ class ExtractionPlan:
 
         Output is not estimated and is not estimable — the model decides how many claims a document
         supports. The token Ceiling is what bounds that half; this bounds the half we choose.
+
+        ``CHARS_PER_TOKEN`` comes from the meter rather than living here, because the meter applies
+        the same rule of thumb per request: it reserves a request's estimated cost against the
+        Ceiling before issuing it. A plan costed by a second constant could fit under a ceiling that
+        then refused it, and a dry run that disagrees with the run it is a dry run of is worse than
+        no dry run.
         """
         return (self.n_documents * self.system_prompt_chars + self.n_chars) // CHARS_PER_TOKEN
 
