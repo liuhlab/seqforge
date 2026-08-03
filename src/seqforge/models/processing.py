@@ -149,10 +149,33 @@ class EvidencedQuantification(Evidenced[Quantification]):
 
 
 class ResourceHints(BaseModel):
-    """Advisory resource requests for the workflow scheduler."""
+    """Advisory resource requests for the workflow scheduler.
+
+    ``mem_gb`` is advisory to the *scheduler* but load-bearing for STAR, because ``starsolo.smk``
+    derives ``--limitBAMsortRAM`` from it (3/4 of the request). Since #198 the coordinate sort is not
+    optional — STAR emits ``CB``/``UB`` only in a sorted BAM — and STAR **refuses rather than
+    spilling**: it reports the memory it needed and exits, where the ``samtools sort`` it replaced
+    would have spilled to disk and finished.
+
+    So the default is sized against the sort, measured on GSE208154/SAMN29720279 in the pinned image:
+    the requirement is linear at **~160 B per alignment record** (1,999,909 records -> 394 MB;
+    9,844,534 -> 1,590 MB) and is **not** reduced by ``--outBAMsortingBinsN``, STAR's documented
+    remedy. At 48 GB the sort gets 36 GB, which covers ~225M alignment records — a typical sample here
+    (SAMN29720279: 215M reads, 199M records) with headroom. 32 GB gave the sort 24 GB and would have
+    FATAL'd that sample, which is why this moved.
+
+    **It does not cover everything, and that is deliberate rather than overlooked.** The largest
+    sample in the worm corpus (PRJNA658829/SAMN15970313) is 2.23 **billion** reads / 2.44 billion
+    records; the same linear model puts its sort near 390 GB, which is not a sane default for every
+    recipe. That figure is a ~250x extrapolation beyond the measured range, so it is a reason to
+    measure that sample before reprocessing it, not a number to trust — and if it holds, that sample
+    wants a per-recipe override, not a bigger default for the other hundred. The failure mode is
+    loud: STAR names the number it needed and exits, so an under-sized job stops rather than
+    producing a short BAM.
+    """
 
     threads: int = Field(ge=1, default=8)
-    mem_gb: int = Field(ge=1, default=32)
+    mem_gb: int = Field(ge=1, default=48)
     disk_gb: int | None = None
     gpus: int = Field(ge=0, default=0)
 
