@@ -23,7 +23,9 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from pydantic import ValidationError
+from typer.testing import CliRunner
 
+from seqforge.cli import app
 from seqforge.evals import (
     Case,
     CaseError,
@@ -46,14 +48,16 @@ from seqforge.harvest import EXTRACT_PROMPT_VERSION
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.conflict import Conflict, ConflictPosition
+from seqforge.models.dataset import DatasetManifest
 from seqforge.models.resolve import (
     Candidate,
+    MetadataResolution,
     Question,
     ResolveResult,
     RoleAssignment,
     TechScore,
 )
-from seqforge.resolve import Hypothesis
+from seqforge.resolve import Hypothesis, ResolveOutput
 
 if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
     from seqforge.harvest import LLMResponse
@@ -1037,6 +1041,275 @@ def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing
     run_case(case, llm=True, provider=_two_chemistry_provider())
     assert len(seen) == 1 and seen[0] is not None
     assert (seen[0].value, seen[0].id) == ("10x-3p-gex-v3", "recipe")
+
+
+# --------------------------------------------------------------------------------------------
+# the contract: two front doors onto one compiler, and therefore onto one manifest
+# --------------------------------------------------------------------------------------------
+
+#: The organism both paths are pinned to. Nothing in this case declares one — it has no archive
+#: records — and a manifest refuses to be assembled without an organism, so leaving it unpinned
+#: would put a difference into the manifest that says nothing whatever about the contract.
+CONTRACT_TAXID = 6239
+
+
+def _bulk_reads_under_one_run_name(tmp_path: Path) -> Path:
+    """The corpus's own `bulk-pe-bytes-only` bytes, in one directory that both paths read.
+
+    **Bulk, because it is the shape that needs no whitelist.** A case generated from a barcoded spec
+    hands the harness a registry built from the very pools its reads were drawn from, while
+    `manifest fill` takes no registry at all and always resolves against the shipped one — so its
+    synthetic barcodes would miss every real whitelist and the two paths could not be compared on
+    any manifest. That is a property of the corpus's generator, not of the pipeline, and choosing
+    the no-onlist shape removes it rather than papering over it.
+
+    **The rename is the other half.** `materialize` names each generated file after the read it
+    carries, so a paired case is `R1.fastq.gz` + `R2.fastq.gz` — two names sharing no stem.
+    `manifest fill` groups files into runs by filename and therefore sees two single-file runs and
+    refuses both, where the harness hands a case's whole file list to `resolve_dataset` as one
+    library. A real deposit's names group as the one run the harness assumes; the corpus's do not.
+    """
+    case = next(c for c in discover_cases() if c.id == "bulk-pe-bytes-only")
+    data = tmp_path / "data"
+    for path in materialize(case, data).paths:
+        path.rename(path.with_name(f"sample_{path.name}"))
+    return data
+
+
+def _two_chemistry_case_over(data: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Case:
+    """A case over `data` carrying two documents that name two DIFFERENT chemistries.
+
+    Two claims rather than one is what makes the reduction load-bearing. With one claim the
+    last-wins dict the harness used to keep and the compiler's agreement-or-nothing rule return the
+    same hypothesis, and no comparison downstream of them can tell the two apart. With two they
+    return different answers — and against barcodeless bulk reads a single-cell hypothesis surfaces
+    a cross-family conflict, so a harness reducing prose its own way *stops* where the compiler
+    decides.
+
+    A `local` recipe rather than a copy: it points the harness at this directory instead of
+    generating its own, so both paths probe the same inodes and the file URIs cannot drift.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    first = docs / "methods.txt"
+    first.write_text(
+        "Methods\n\nLibraries were prepared with the Chromium Single Cell 3' v3 Reagent Kit.\n"
+    )
+    second = docs / "supplementary_methods.txt"
+    second.write_text(
+        "Supplementary Methods\n\n"
+        "The pilot libraries used the Chromium Single Cell 3' v2 Reagent Kit.\n"
+    )
+    monkeypatch.setenv("SEQFORGE_CONTRACT_ROOT", str(data))
+    recipe = Recipe.model_validate(
+        {"generate": {"kind": "local", "root_env": "SEQFORGE_CONTRACT_ROOT"}}
+    )
+    return Case(
+        "harness-vs-front-door",
+        tmp_path,
+        recipe,
+        Expected(outcome="decide", fields={"library.chemistry": "bulk-rnaseq-pe"}),
+        [first, second],
+    )
+
+
+def _harness_decisions(
+    case: Case, provider: _StubProvider, monkeypatch: pytest.MonkeyPatch
+) -> tuple[CaseRun, ResolveOutput, MetadataResolution]:
+    """`run_case` in full, plus the two resolutions it reached: `(run, byte resolve, metadata)`.
+
+    Spies rather than a reimplementation — each records what the real function returned and hands it
+    straight back — so what is captured is what the harness actually decided, on the path a
+    `seqforge eval run` takes.
+    """
+    from seqforge.evals import run as run_module
+    from seqforge.resolve import resolve_dataset as real_resolve
+    from seqforge.resolve.records import resolve_metadata as real_metadata
+
+    seen: dict[str, Any] = {}
+
+    def _resolve(*args: Any, **kwargs: Any) -> Any:
+        seen["resolve"] = real_resolve(*args, **kwargs)
+        return seen["resolve"]
+
+    def _metadata(*args: Any, **kwargs: Any) -> Any:
+        seen["metadata"] = real_metadata(*args, **kwargs)
+        return seen["metadata"]
+
+    monkeypatch.setattr(run_module, "resolve_dataset", _resolve)
+    monkeypatch.setattr(run_module, "resolve_metadata", _metadata)
+    run = run_case(case, llm=True, provider=provider)
+    return run, seen["resolve"], seen["metadata"]
+
+
+def _manifest_the_harness_decided(
+    out: ResolveOutput, metadata: MetadataResolution
+) -> DatasetManifest | None:
+    """What the compiler would have written from the harness's own two resolutions — or ``None``.
+
+    The harness stops at a graded `ResolveResult` and builds no manifest, which is exactly why this
+    contract has to be stated rather than read off a file. `fill_manifest` is a pure function of
+    what the two resolvers decided, so assembling the harness's outputs with the compiler's OWN
+    assembler asks "would `manifest fill` have written this?" and asks nothing at all about the
+    assembler, which is shared and is not what ever diverged.
+
+    ``None`` is the compiler's own gate, not an absence: the fill pipeline returns before it
+    assembles anything when the byte resolve does not exit 0, so a refusal here is a comparable
+    answer rather than a missing one — and it is the answer a divergent hypothesis produces.
+    """
+    from seqforge import __version__, kb
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.manifest import dataset_uris, experiment_from_metadata, fill_manifest
+
+    if out.exit_code() != 0:
+        return None
+    uris = dataset_uris(out.observations)
+    return fill_manifest(
+        result=out.result,
+        spec=kb.load_spec(out.result.candidates[0].technology),
+        observations=out.observations,
+        registry=DEFAULT_REGISTRY,
+        experiment=experiment_from_metadata(
+            metadata, out.observations, organism_taxid=CONTRACT_TAXID, uris=uris
+        ),
+        seqforge_version=__version__,
+        uris=uris,
+    )
+
+
+def _flat(value: Any, prefix: str = "") -> dict[str, Any]:
+    """A manifest as ``dotted.path -> scalar``, so a mismatch can name a field."""
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for key, sub in value.items():
+            out.update(_flat(sub, f"{prefix}.{key}" if prefix else str(key)))
+        return out
+    if isinstance(value, list):
+        listed: dict[str, Any] = {}
+        for i, sub in enumerate(value):
+            listed.update(_flat(sub, f"{prefix}[{i}]"))
+        return listed
+    return {prefix: value}
+
+
+def _field_diff(harness: dict[str, Any], front_door: dict[str, Any]) -> str:
+    """Only the fields that differ, one per line. Two 400-line dumps are not a diagnosis."""
+    a, b = _flat(harness), _flat(front_door)
+    return "\n".join(
+        f"  {path}: harness={a.get(path)!r} manifest-fill={b.get(path)!r}"
+        for path in sorted(set(a) | set(b))
+        if a.get(path) != b.get(path)
+    )
+
+
+def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One case, both front doors, one manifest — the guard the last divergence lived without.
+
+    `evals/run.py` calls the product's own `resolve_dataset`, `resolve_metadata`, `extract_planned`
+    and `chemistry_hypothesis`, so there is no second pipeline left to unify. Nothing *pinned* that,
+    though, and the one divergence there was — the harness reducing a dataset's chemistry claims
+    with a last-wins `by_field` dict while `manifest fill` took them agreement-or-nothing — went
+    unnoticed for the corpus's whole life. So: run one case through both doors and assert they land
+    on the same manifest, hash and field by field.
+
+    **The case is built so the reduction decides the answer.** Two documents name two different
+    chemistries over barcodeless bulk reads. Agreement-or-nothing yields no hypothesis and the bytes
+    decide `bulk-rnaseq-pe` at exit 0; any reduction that picks one of the two instead hands a
+    single-cell claim to bulk bytes, which surfaces a cross-family conflict at exit 4 — and a
+    pipeline that stops writes no manifest at all. That is why the outcome is compared before the
+    content: the divergence changes *whether* there is a manifest, and the two manifests it does
+    produce are identical.
+
+    **What is pinned, and why each one is.**
+
+    - *the files* — a `local` recipe aims the harness at the same directory the argv names, so
+      neither path generates its own bytes and the URIs cannot drift;
+    - *the organism* — no record declares one and the manifest will not assemble without it;
+    - *`--offline`* — the harness reaches no network by construction, so the front door must not
+      either, or the comparison would depend on a socket;
+    - *the accepted claims* — the front door is handed the harness's own verified assertions, in
+      `harvest extract`'s artifact shape. Extraction is nondeterministic and is **not** the contract:
+      both paths already call `extract_planned`. The reduction of what it returns is.
+
+    **What this deliberately does NOT compare: the harvest grade.** `matched` / `missing` /
+    `hallucinated` answer "did the model say this at all", which is a different question from "what
+    did the manifest store" — on purpose, and it is why the harness keeps a per-field view the
+    manifest has no room for. Do not "fix" that by asserting it here.
+
+    The stub provider is the same offline one the rest of this file drives the `--llm` path with:
+    no key, no socket, and a canned payload standing in for the two documents' claims.
+    """
+    import yaml
+
+    from seqforge.manifest import dataset_content_hash
+
+    data = _bulk_reads_under_one_run_name(tmp_path)
+    case = _two_chemistry_case_over(data, tmp_path, monkeypatch)
+    run, out, metadata = _harness_decisions(case, _two_chemistry_provider(), monkeypatch)
+
+    assert run.skipped is None, run.skipped
+    assert run.harvest is not None
+    claimed = {a.value for a in run.harvest.assertions if a.field == "library.chemistry"}
+    assert claimed == {"10x-3p-gex-v2", "10x-3p-gex-v3"}, (
+        f"both claims must survive verification or the reduction is never exercised: {claimed}"
+    )
+
+    # `harvest extract`'s artifact, which is how `manifest fill` is given prose at all. The subjects
+    # ride along because an assertion's doc_sha256 is an opaque hash without them.
+    artifact = tmp_path / "assertions.json"
+    artifact.write_text(
+        json.dumps(
+            {
+                "assertions": [a.model_dump(mode="json") for a in run.harvest.assertions],
+                "document_subjects": [
+                    {"doc_sha256": d["doc_sha256"], "scope": d["scope"], "subject": d["subject"]}
+                    for d in run.harvest.documents
+                ],
+            }
+        )
+    )
+
+    workspace = tmp_path / "front-door"
+    filled = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "fill",
+            *sorted(str(p) for p in data.glob("*.fastq.gz")),
+            "--organism",
+            str(CONTRACT_TAXID),
+            "--offline",
+            "--assertions",
+            str(artifact),
+            "-C",
+            str(workspace),
+        ],
+    )
+
+    assert filled.exit_code == out.exit_code(), (
+        f"the two paths disagree on the OUTCOME, before any manifest: harness exit "
+        f"{out.exit_code()}, `manifest fill` exit {filled.exit_code}\n{filled.stdout}"
+    )
+
+    harness = _manifest_the_harness_decided(out, metadata)
+    written = workspace / "seqforge" / "manifest.yaml"
+    assert written.is_file() is (harness is not None), (
+        "one path produced a manifest and the other refused to"
+    )
+    assert harness is not None, "this case is meant to decide; a refusal grades nothing"
+
+    front_door = DatasetManifest.model_validate(yaml.safe_load(written.read_text()))
+    mine, theirs = harness.model_dump(mode="json"), front_door.model_dump(mode="json")
+    assert mine == theirs, (
+        "the same bytes and the same claims compiled into two different manifests:\n"
+        + _field_diff(mine, theirs)
+    )
+    # Recomputed rather than read off `provenance`: the content address is what a processing
+    # manifest pins to, so "the same manifest" has to mean the same identity a later compose
+    # resolves against, not merely two files that happen to serialize alike.
+    assert dataset_content_hash(harness) == dataset_content_hash(front_door)
 
 
 # --------------------------------------------------------------------------------------------
