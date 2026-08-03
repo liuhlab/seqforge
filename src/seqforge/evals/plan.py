@@ -65,6 +65,7 @@ def plan_case(case: Case, *, prompt_chars: int) -> CasePlanRow:
     return CasePlanRow(
         case=case.id,
         n_documents=plan.n_documents,
+        n_requests=plan.n_requests,
         n_records_read=plan.n_records_read,
         n_records_collapsed=plan.n_records_collapsed,
         n_chars=plan.n_chars,
@@ -114,6 +115,7 @@ def plan_cases(
         n_skipped=len(rows) - len(planned),
         trials=trials,
         n_documents=sum(r.n_documents for r in planned) * trials,
+        n_requests=sum(r.n_requests for r in planned) * trials,
         n_records_read=sum(r.n_records_read for r in planned) * trials,
         n_records_collapsed=sum(r.n_records_collapsed for r in planned) * trials,
         n_chars=sum(r.n_chars for r in planned) * trials,

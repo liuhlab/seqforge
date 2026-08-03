@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -66,7 +67,14 @@ from .providers import (
 #: own words and still names no feature — "single nuclei" is a prep, not GeneFull. Code owns the
 #: nuclei->GeneFull-primary mapping (`manifest.policy`), so span verification stays a check on the
 #: quote, never a licence to infer a processing decision from biology.
-EXTRACT_PROMPT_VERSION = "2026.7.4"
+#: 2026.7.5 — documents that receive the SAME ask may travel in ONE request (#190). The system half is
+#: byte-untouched, so the cached prefix — and every eval number that turns on it — is unaffected; what
+#: moved is the user half of a MULTI-document request, which states the shared ask once and then names
+#: each document's sha256 above its own text. A ONE-document request is byte-identical to 2026.7.4's,
+#: so a plan whose documents all differ in what is asked of them sends exactly what it sent before —
+#: and the version moves anyway, because one code state is one extractor, and a `prompt_version` that
+#: depended on how a particular plan happened to group would be unusable as provenance.
+EXTRACT_PROMPT_VERSION = "2026.7.5"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -216,7 +224,14 @@ _DOC_LINE = re.compile(r"^Document sha256: ([0-9a-f]{64})\s*$", re.MULTILINE)
 
 
 def document_sha256_in(user: str) -> str | None:
-    """Which document an exchange's user half was about, or ``None`` if it does not say."""
+    """Which document an exchange's user half was about, or ``None`` if it does not say.
+
+    **The FIRST one it names.** A request carrying several documents that share an ask names each of
+    them, and this reports the one the request opens with — which is the same document the request's
+    cost is booked against in :func:`extract_batch`. So a batched request has one document it is
+    "about" for ledger and transcript purposes, and the two surfaces agree on which; what neither can
+    say is that the other members were in the same request.
+    """
     match = _DOC_LINE.search(user)
     return match.group(1) if match is not None else None
 
@@ -240,6 +255,42 @@ def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
         + "\n\n<document>\n"
         + doc.text
         + "\n</document>"
+    )
+
+
+def _batch_user_content(docs: Sequence[NormalizedDoc], fields: tuple[str, ...]) -> str:
+    """Several documents that receive the SAME ask, as the volatile half of ONE request.
+
+    The ask is written **once** and the documents follow it, which is the second half of what
+    batching saves: the nine sample attributes with their NCBI definitions are ~1.3 KB, paid per
+    request now rather than per document, on top of the ~9 KB system prefix.
+
+    All of it lives in the USER half, and none of it in the system prompt. That placement is
+    load-bearing rather than tidy: the system half is byte-identical across a run, which is the only
+    reason prefix caching works at all, and a preamble that said "3 documents follow" would make the
+    cached prefix a function of how a plan happened to group — invalidating the cache on every batch
+    of a different width.
+
+    One document renders **byte-identically to** :func:`_user_content`, deliberately: a plan whose
+    documents all differ in what is asked of them then sends exactly what it sent before batching
+    existed, and — the part that matters — the per-document fallback in
+    :func:`~seqforge.harvest.plan.extract_planned` re-asks through a shape that has never been
+    batched. A fallback that inherited the batch envelope could fail for the same reason the batch
+    did.
+    """
+    if len(docs) == 1:
+        return _user_content(docs[0], fields)
+    return (
+        f"{len(docs)} documents follow, each preceded by its own sha256.\n"
+        f"Answer all of them in ONE `drafts` list. On every assertion, copy the sha256 printed "
+        f"above the document the quote came from into span.doc_sha256, exactly as written. A "
+        f"document that supports nothing simply contributes no assertion, which is normal.\n\n"
+        f"Fields to look for (omit any the document does not state):\n"
+        + describe_asked(fields)
+        + "\n\n"
+        + "\n\n".join(
+            f"Document sha256: {d.doc_sha256}\n<document>\n{d.text}\n</document>" for d in docs
+        )
     )
 
 
@@ -302,8 +353,125 @@ def extract_drafts(
     is never asked about ``processing.*``, and a sample record's document is never asked about the
     chemistry. Asking and enforcing are separate jobs, though — ``verify_drafts`` refuses an
     off-scope field regardless of what was asked, because a prompt is not a boundary.
+
+    One document, one request: this is :func:`extract_batch` at width one, and that width is the one
+    where the model's echoed ``doc_sha256`` is worthless as evidence and code overwrites it outright.
     """
-    asked = fields if fields is not None else fields_for(doc.scope, doc.role)
+    return extract_batch(
+        [doc],
+        specs,
+        provider=provider,
+        model=model,
+        fields=fields,
+        max_tokens=max_tokens,
+    )[0]
+
+
+def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
+    """THE gate: the response's top-level shape, or a wholesale refusal. Returns the raw draft list.
+
+    json-object providers do not enforce shape, so this is where a malformed batch is caught. The
+    split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array under either
+    accepted envelope) is a provider failure with nothing to salvage and dies wholesale (that is #4's
+    empty-content case). But a single malformed DRAFT — a `value: null`, a missing span — is just one
+    bad proposal from a proposer we already distrust: the caller drops it into `rejected` and keeps
+    the rest, exactly as `verify` drops a claim whose quote will not grep back. One flaky token from
+    the model must not sink a whole document's worth of valid extraction (#5).
+
+    **This is the only notion of "the response was unusable" there is**, and a batched request adds
+    no second one: a batch that fails here fails exactly as a single document does, and what its
+    caller then does about it — re-ask each document alone — is a recovery policy, not another
+    verdict about the response.
+    """
+    try:
+        raw = json.loads(text)
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ExtractUnavailable(
+            f"{provider_name} returned output that is not valid JSON: {exc}"
+        ) from exc
+    if isinstance(raw, list):
+        # A bare top-level array is that same batch under a different envelope, so unwrap it and let
+        # the per-draft gate below do exactly what it does for a wrapped one. Every element still
+        # faces `AssertionDraft.model_validate` alone and a malformed one still lands in `rejected` —
+        # nothing here is more trusted than before, only differently packaged. Losing the document
+        # instead costs a whole document's worth of valid extraction for one token the model failed
+        # to write, and it is measurably live: on the benchmark corpus the weaker json-object model
+        # lost 6 of 141 documents this way, the stronger one 0-1 (#190).
+        #
+        # This is NOT the silent half-parse a malformed batch must die of. That one is hunting for a
+        # drafts-shaped array *inside* a response whose shape we did not understand, and promoting a
+        # fragment of it — half a batch, which is the only outcome worse than none. Here the whole
+        # response IS the array: nothing is left over, nothing is searched for, and nothing is
+        # repaired. Every other top-level shape (a string, a number, `null`, an object with no usable
+        # `drafts` key) still dies wholesale below, because none of them contains a batch to keep.
+        #
+        # Deliberately not recorded as an envelope quirk anywhere. `Exchange.text` already holds the
+        # response verbatim and every run writes its transcript to an address, so how often a model
+        # does this is a grep away at full fidelity; a flag beside it would be a lossy second copy of
+        # a fact we keep, computed on every outcome for no reader — the shape of dead field this repo
+        # has just finished deleting. And an envelope we have never seen still fails loudly, so a
+        # provider whose behaviour really changes announces itself rather than being normalised away.
+        raw = {"drafts": raw}
+    if not isinstance(raw, dict):
+        raise ExtractUnavailable(
+            f"{provider_name} returned a top-level {type(raw).__name__}, not a JSON object with a "
+            f"`drafts` array (nor a bare array of drafts)"
+        )
+    if not isinstance(raw.get("drafts"), list):
+        # Name what is actually wrong with `drafts` — missing, or the wrong type ({'drafts': null}
+        # reports "null", not the useless "got dict" of the top-level object.
+        detail = "missing" if "drafts" not in raw else f"a {type(raw['drafts']).__name__}"
+        raise ExtractUnavailable(
+            f"{provider_name} returned no `drafts` array: the `drafts` key is {detail}, not a list"
+        )
+    return list(raw["drafts"])
+
+
+def extract_batch(
+    docs: Sequence[NormalizedDoc],
+    specs: dict[str, Spec],
+    *,
+    provider: LLMProvider | None = None,
+    model: str | None = None,
+    fields: tuple[str, ...] | None = None,
+    max_tokens: int = 8000,
+) -> list[ExtractionOutcome]:
+    """One request for several documents that receive the same ask. One outcome per document, in order.
+
+    The overhead this removes is the whole reason it exists: the system prefix is ~9 KB and the
+    sample-attribute ask ~1.3 KB, both byte-identical per request, so three archive records of 45,
+    209 and 213 characters cost ~9.4 K input tokens as three requests and are >95 % prompt (#190).
+
+    **Every document in ``docs`` must receive the same ask**, because a prompt is the only place the
+    ask exists: batching two different asks would silently ask each document the union, wasting the
+    ask on documents it does not fit. :func:`~seqforge.harvest.plan.batch_documents` is what
+    guarantees it; ``fields`` here defaults from the first document, and enforcement is
+    ``verify_drafts``'s regardless — it refuses an off-scope field whatever was asked, so grouping is
+    about not *wasting* the ask, never about safety.
+
+    **Which document a draft belongs to is the one thing a batch makes the model responsible for.**
+    At width one code overwrites the echoed ``span.doc_sha256`` outright, because we know what we
+    sent; at width N the echo is how a draft is routed, and a draft naming a sha that is in no
+    document of this batch means the model lost track of the batch. That is a batch-level failure and
+    the whole batch is refused, rather than the draft being dropped: dropping it would lose a claim
+    that an unbatched run would have kept, which is precisely what batching may not do, while
+    refusing costs one extra round trip through a request shape that has no shas to lose track of.
+
+    Routing by the echo is safe for the same reason the batch is: the claim still has to grep back
+    into the document it names. A draft mis-routed *between two members* is not caught here on
+    purpose — `verify.find_span` is the authority on whether a document carries a quote, and a second,
+    weaker "is this substring in that text" living here would disagree with it, re-issuing batches
+    over claims that verify fine. Such a draft fails span verification loudly instead.
+
+    A response that answers only SOME of the batch is **not** a failure. A document supporting nothing
+    is a correct and common answer that returns no drafts at all, so partial coverage is
+    indistinguishable from it — and treating it as a failure would re-ask a batch of eight sample
+    records every time six of them had nothing to say, which is strictly more requests than not
+    batching at all.
+    """
+    if not docs:
+        return []
+    asked = fields if fields is not None else fields_for(docs[0].scope, docs[0].role)
     try:
         llm = provider if provider is not None else resolve_provider()
     except ProviderUnavailable as exc:
@@ -314,45 +482,40 @@ def extract_drafts(
     response = _complete_with_retry(
         llm,
         system=build_system_prompt(specs, schema),
-        user=_user_content(doc, asked),
+        user=_batch_user_content(docs, asked),
         schema=schema,
         model=chosen,
         max_tokens=max_tokens,
     )
 
-    # THE gate. json-object providers do not enforce shape, so this is where a malformed batch is
-    # caught. The split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array)
-    # is a provider failure with nothing to salvage and dies wholesale (that is #4's empty-content
-    # case). But a single malformed DRAFT — a `value: null`, a missing span — is just one bad proposal
-    # from a proposer we already distrust: drop it into `rejected` and keep the rest, exactly as
-    # `verify` drops a claim whose quote will not grep back. One flaky token from the model must not
-    # sink a whole document's worth of valid extraction (#5).
-    try:
-        raw = json.loads(response.text)
-    except (json.JSONDecodeError, ValueError) as exc:
-        raise ExtractUnavailable(
-            f"{llm.name} returned output that is not valid JSON: {exc}"
-        ) from exc
-    if not isinstance(raw, dict):
-        raise ExtractUnavailable(
-            f"{llm.name} returned a top-level {type(raw).__name__}, not a JSON object with a "
-            f"`drafts` array"
-        )
-    if not isinstance(raw.get("drafts"), list):
-        # Name what is actually wrong with `drafts` — missing, or the wrong type ({'drafts': null}
-        # reports "null", not the useless "got dict" of the top-level object.
-        detail = "missing" if "drafts" not in raw else f"a {type(raw['drafts']).__name__}"
-        raise ExtractUnavailable(
-            f"{llm.name} returned no `drafts` array: the `drafts` key is {detail}, not a list"
-        )
+    # First index rather than the document itself: two members could in principle render identically,
+    # and a sha-keyed map would then quietly drop one of them. `batch_documents` keeps a batch's shas
+    # distinct so this is not reachable from the planner, and a caller that ignores that gets the
+    # first — which is what `verify_drafts` would do with the same pair anyway.
+    home_of: dict[str, int] = {}
+    for i, doc in enumerate(docs):
+        home_of.setdefault(doc.doc_sha256, i)
 
-    drafts: list[AssertionDraft] = []
-    rejected: list[dict[str, object]] = []
-    for item in raw["drafts"]:
+    drafts: list[list[AssertionDraft]] = [[] for _ in docs]
+    rejected: list[list[dict[str, object]]] = [[] for _ in docs]
+    for item in _parsed_drafts(response.text, llm.name):
         try:
-            drafts.append(AssertionDraft.model_validate(item))
+            draft = AssertionDraft.model_validate(item)
         except ValidationError as exc:
-            rejected.append(_malformed_draft(item, doc, exc))
+            # A malformed draft is dropped whether or not this was a batch, so an unroutable one
+            # costs nothing to file against the request's own first document — unlike a VALID draft,
+            # which is a claim we would otherwise keep and so is worth a round trip to place.
+            claimed = _claimed_index(item, home_of)
+            where = 0 if claimed is None else claimed
+            rejected[where].append(_malformed_draft(item, docs[where], exc))
+            continue
+        index = 0 if len(docs) == 1 else home_of.get(draft.span.doc_sha256, -1)
+        if index < 0:
+            raise ExtractUnavailable(
+                f"{llm.name} returned a draft for document {draft.span.doc_sha256!r}, which is "
+                f"none of the {len(docs)} documents this request carried"
+            )
+        drafts[index].append(_anchor(draft, docs[index]))
 
     extractor = ExtractorProvenance(
         # provenance records the provider too: the same prompt on a different model is a different
@@ -360,15 +523,31 @@ def extract_drafts(
         model_id=f"{llm.name}/{chosen}",
         prompt_version=EXTRACT_PROMPT_VERSION,
     )
-    return ExtractionOutcome(
-        drafts=[_anchor(d, doc) for d in drafts],
-        extractor=extractor,
-        provider=llm.name,
-        model=chosen,
-        mode=response.mode,
-        usage=response.usage,
-        rejected=rejected,
-    )
+    return [
+        ExtractionOutcome(
+            drafts=drafts[i],
+            extractor=extractor,
+            provider=llm.name,
+            model=chosen,
+            mode=response.mode,
+            # Cost is a property of the REQUEST, and this batch was one. It is booked whole against
+            # the document the request opens with — the one `document_sha256_in` reports for the
+            # stored exchange, so the ledger and the transcript name the same document — and the
+            # others carry nothing. Dividing it per document would print a number nobody was billed;
+            # repeating it per document would make every consumer that sums the outcomes (the eval
+            # harness does) report N times the real spend.
+            usage=response.usage if i == 0 else {},
+            rejected=rejected[i],
+        )
+        for i in range(len(docs))
+    ]
+
+
+def _claimed_index(item: object, home_of: dict[str, int]) -> int | None:
+    """Which document a MALFORMED draft claims to be about, if it named one of this request's."""
+    span = item.get("span") if isinstance(item, dict) else None
+    sha = span.get("doc_sha256") if isinstance(span, dict) else None
+    return home_of.get(sha) if isinstance(sha, str) else None
 
 
 def _malformed_draft(item: object, doc: NormalizedDoc, exc: ValidationError) -> dict[str, object]:
@@ -376,10 +555,12 @@ def _malformed_draft(item: object, doc: NormalizedDoc, exc: ValidationError) -> 
     non-fatal echo of ``verify._reject``, so both surfaces read the same way. Kept defensive because
     ``item`` failed validation: any field may be missing or the wrong type.
 
-    The document is the one we **sent**, never the one the draft claims: a draft that failed
-    validation has no trustworthy span, and code owns provenance identity here for the same reason
-    :func:`_anchor` overwrites it on a draft that passed. Recording it is what makes a rejection
-    readable as *this claim, from this record* rather than as an anonymous line in a tally."""
+    ``doc`` is one this request really carried, chosen by the caller, and never whatever the draft
+    claims: a draft that failed validation has no trustworthy span, and code owns provenance identity
+    here for the same reason :func:`_anchor` overwrites it on a draft that passed. (A batched request
+    carries several, and the caller reads the claimed sha only to pick between documents it did send
+    — never to accept one it did not.) Recording it is what makes a rejection readable as *this
+    claim, from this record* rather than as an anonymous line in a tally."""
     span = item.get("span") if isinstance(item, dict) else None
     quote = span.get("quote") if isinstance(span, dict) else None
     errors = exc.errors()

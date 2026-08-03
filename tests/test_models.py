@@ -234,9 +234,23 @@ def test_segment_discriminated_union_dispatches_on_kind() -> None:
     """
     adapter: TypeAdapter[Segment] = TypeAdapter(Segment)
     obs_segments = [
-        {"kind": "constant", "start": 22, "end": 44, "consensus": "GAGT", "purity": 0.98},
-        {"kind": "random", "start": 0, "end": 16, "mean_entropy_bits": 1.99},
-        {"kind": "homopolymer", "base": "T", "start": 44, "end": 60, "mean_run": 15.0},
+        {
+            "kind": "constant",
+            "start": 22,
+            "end": 44,
+            "consensus": "GAGT",
+            "purity": 0.98,
+            "coverage": 1.0,
+        },
+        {"kind": "random", "start": 0, "end": 16, "mean_entropy_bits": 1.99, "coverage": 1.0},
+        {
+            "kind": "homopolymer",
+            "base": "T",
+            "start": 44,
+            "end": 60,
+            "mean_run": 15.0,
+            "coverage": 0.5,
+        },
     ]
     parsed = [adapter.validate_python(d) for d in obs_segments]
     assert [s.kind for s in parsed] == ["constant", "random", "homopolymer"]

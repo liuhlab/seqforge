@@ -49,8 +49,13 @@ Decisions the field list cannot show:
   `4^len` and the sampled read count before reading it (see [`resolve.md`](resolve.md)).
 - **`ABSTAIN` is first-class** — "the probe cannot see this signal" is not "the signal is absent" —
   and it never gates.
-- `n_distinct > 1` on a fixed-geometry read means a **pre-trimmed upload**, which is a
-  `PRETRIMMED_VARIABLE_LENGTH` Blocker; a truncated gzip member is `TRUNCATED_GZIP`.
+- A fixed-geometry read whose **`mode_share` is a minority** — most of its reads have left the length
+  the chemistry declares — means a **pre-trimmed upload**, which is a `PRETRIMMED_VARIABLE_LENGTH`
+  Blocker; a truncated gzip member is `TRUNCATED_GZIP`. `n_distinct > 1` is not the test and was:
+  one read a base short in a 2 000-read head refused the dataset.
+- **Head-derived statistics report the coverage they were measured over, and nothing gates on it.**
+  `CycleComposition.n_sampled`, each segment's `coverage`, and `Observation.coverage` exist to be
+  collected; a threshold picked before the corpus distribution is visible would be a guess.
 - **`estimated_total_reads` is extrapolated from *compressed* bytes-per-read** (or the gzip ISIZE),
   never a full scan: the naive decompressed form undercounts by the ~3–5× compression ratio.
 - **`FileIdentity.local_uri` is the one place a local path is allowed.** It records where probe read

@@ -248,15 +248,17 @@ class CasePlanRow(BaseModel):
     """
 
     case: str
-    #: Extraction requests this case would issue, before retries. It is the exchange count, which is
-    #: also the floor on ``llm_calls``: a document whose first attempt is refused costs two.
+    #: Documents this case would read. NOT the exchange count — same-ask documents share a request.
     n_documents: int = 0
+    #: Extraction requests this case would issue, before retries. It is the exchange count, which is
+    #: also the floor on ``llm_calls``: a request whose first attempt is refused costs two.
+    n_requests: int = 0
     n_records_read: int = 0
     n_records_collapsed: int = 0
     n_chars: int = 0
-    #: Input only, and the system prefix charged once **per document** — that is what makes a fan-out
-    #: over one-line archive records expensive. Output is not estimable: the model decides how many
-    #: claims a document supports.
+    #: Input only, and the system prefix charged once **per request** — charging it per document is
+    #: what made a fan-out over one-line archive records expensive. Output is not estimable: the
+    #: model decides how many claims a document supports.
     estimated_input_tokens: int = 0
     skipped: str | None = None
     #: ``unavailable`` (this machine) or ``absent`` (the corpus never held the package). A plain
@@ -287,11 +289,14 @@ class EvalPlanReport(BaseModel):
     #: carries it; the per-case rows are per trial, because a trial is the repeated unit.
     trials: int = 1
     n_documents: int = 0
+    #: Requests the tier would issue, before retries. Below ``n_documents`` by however much batching
+    #: same-ask documents bought; equal to it on a tier where no two documents share an ask.
+    n_requests: int = 0
     n_records_read: int = 0
     n_records_collapsed: int = 0
     n_chars: int = 0
     #: The stable prefix, byte-identical on every request — which is what makes prefix caching work,
-    #: and why it is charged per document rather than per run.
+    #: and why it is charged per request rather than per run.
     system_prompt_chars: int = 0
     estimated_input_tokens: int = 0
     #: The per-case token Ceiling this plan was read against, or ``None`` if none was given.

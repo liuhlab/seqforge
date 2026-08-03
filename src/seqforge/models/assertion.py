@@ -91,14 +91,22 @@ class PlannedDocument(BaseModel):
 class ExtractionPlanReport(BaseModel):
     """What ``harvest extract --dry-run`` answers: the whole ask, costed, with nothing spent.
 
-    A dataset's cost used to be a property nobody computed until it had been paid. ``n_documents`` is
-    the exchange count (before retries), and ``estimated_input_tokens`` charges the stable system prefix
-    once **per document** — which is what makes a fan-out over one-line archive records expensive.
-    Output tokens are not estimated: the model decides how many claims a document supports, and the
-    token Ceiling is what bounds that half.
+    A dataset's cost used to be a property nobody computed until it had been paid. ``n_requests`` is
+    the exchange count (before retries) and ``estimated_input_tokens`` charges the stable system
+    prefix once **per request** — which is what a fan-out over one-line archive records used to make
+    expensive, and what batching same-ask documents buys back. Output tokens are not estimated: the
+    model decides how many claims a document supports, and the token Ceiling bounds that half.
+
+    ``n_documents`` and ``n_requests`` are reported apart because they answer different questions —
+    how much material was read, and how many times a model is reached. They were the same number
+    until documents began sharing a request, and a reader who has only the first cannot tell a plan
+    that batched well from one that could not batch at all.
     """
 
     n_documents: int
+    #: Requests this plan will issue, before retries — the floor on ``llm_calls``. Never more than
+    #: ``n_documents``, and fewer wherever two documents receive the same ask.
+    n_requests: int = 0
     #: Archive records with prose that this plan reads. A level asked nothing (``project``) and a
     #: record with no free text are not read, and are not counted here.
     n_records_read: int = 0

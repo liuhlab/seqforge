@@ -12,6 +12,7 @@ guarantees the shape, a json-object provider (DeepSeek) does not. The gate must 
 from __future__ import annotations
 
 import json
+import threading
 import time
 from collections import Counter
 from pathlib import Path
@@ -256,6 +257,77 @@ def test_extract_rejects_non_json(tmp_path: Path) -> None:
         extract_drafts(
             _doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider("I cannot help.")
         )
+
+
+def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
+    tmp_path: Path,
+) -> None:
+    """A model that returns the drafts array without wrapping it has still returned the batch.
+
+    The elements are byte-identical either way and each one still faces
+    `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
+    discard a whole document's worth of valid extraction for one missing token — the same defect
+    `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
+    live on the weaker json-object models (#190).
+    """
+    wrapped = _batch()
+    bare = json.dumps(json.loads(wrapped)["drafts"])  # the identical elements, unwrapped
+    doc = _doc(tmp_path)
+
+    under_wrapper = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(wrapped))
+    unwrapped = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(bare))
+
+    assert unwrapped.drafts == under_wrapper.drafts
+    assert unwrapped.rejected == under_wrapper.rejected == []
+    assert unwrapped.answered
+
+
+def test_a_bare_top_level_array_still_drops_only_the_malformed_draft(tmp_path: Path) -> None:
+    """Unwrapping changes the envelope and nothing else: the per-draft gate is still the gate."""
+    good = {
+        "field": "library.chemistry",
+        "value": "10x-3p-gex-v3",
+        "span": {"doc_sha256": "0" * 64, "quote": _QUOTE, "context": None},
+        "llm_confidence": 0.9,
+    }
+    bad = {**good, "value": None}
+    outcome = extract_drafts(
+        _doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(json.dumps([good, bad, good]))
+    )
+
+    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3", "10x-3p-gex-v3"]
+    assert [r["reason"] for r in outcome.rejected] == ["malformed_draft"]
+
+
+def test_a_bare_empty_array_answers_exactly_as_an_empty_drafts_array(tmp_path: Path) -> None:
+    """`[]` and `{"drafts": []}` are one fact — the document supports nothing — and an envelope may
+    not turn a correct, common answer into a lost document."""
+    doc = _doc(tmp_path, "We sequenced some things.")
+    wrapped = extract_drafts(
+        doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []}))
+    )
+    bare = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider("[]"))
+
+    assert bare.drafts == wrapped.drafts == []
+    assert bare.rejected == wrapped.rejected == []
+    assert bare.answered and bare.failure is None
+
+
+@pytest.mark.parametrize(
+    "payload, named", [('"drafts"', "str"), ("7", "int"), ("null", "NoneType")]
+)
+def test_every_other_top_level_shape_still_dies_wholesale(
+    tmp_path: Path, payload: str, named: str
+) -> None:
+    """The array is the ONE extra envelope. A scalar carries no batch to keep, so it stays fatal —
+    and the refusal names what came back plus both shapes that would have been read, which the old
+    wording ("not a JSON object") can no longer say now that an object is not the only one."""
+    with pytest.raises(ExtractUnavailable) as caught:
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(payload))
+
+    message = str(caught.value)
+    assert f"top-level {named}" in message
+    assert "`drafts`" in message and "array of drafts" in message
 
 
 def test_extract_overwrites_the_models_doc_sha(tmp_path: Path) -> None:
@@ -797,25 +869,157 @@ def test_the_meter_hands_the_response_back_untouched(tmp_path: Path) -> None:
 
 
 # ---------- the Ceiling ----------
-def test_the_ceiling_refuses_the_request_after_the_one_that_crossed_it(tmp_path: Path) -> None:
-    """The crossing request is ISSUED — its cost is not knowable until it returns — and everything
-    admitted after it is refused, un-issued. That is what makes a breach reproducible."""
+#: A prompt whose ESTIMATE is exactly 1000 tokens. The meter deducts a request's estimated cost from
+#: the budget before it issues it, and that estimate is the prompt's characters over
+#: `CHARS_PER_TOKEN` — so fixing the character count fixes the reservation, and the ceilings below
+#: read as a whole number of requests.
+_SYSTEM_1K = "s" * 3600
+_USER_1K = "u" * 400
+
+
+class _CostingProvider:
+    """Always answers, always costs the same. Enough to reach a ceiling, from any number of threads."""
+
+    name = "costing"
+
+    def __init__(self, per_call: int = 1000) -> None:
+        self.per_call = per_call
+        self.n_calls = 0
+        self._lock = threading.Lock()
+
+    def default_model(self) -> str:
+        return "costing-1"
+
+    def complete_json(self, **kwargs: Any) -> LLMResponse:
+        with self._lock:
+            self.n_calls += 1
+        return LLMResponse(text=_OK, usage={"input_tokens": self.per_call})
+
+
+def _ask(meter: Any, system: str = _SYSTEM_1K, user: str = _USER_1K) -> None:
+    meter.complete_json(system=system, user=user, schema={}, model="m", max_tokens=8)
+
+
+def test_the_ceiling_refuses_the_request_it_cannot_afford_before_issuing_it() -> None:
+    """A Ceiling bounds what a run may SPEND, so the refused request is the one the budget could not
+    cover — not the one after it. What it will cost is not knowable until it returns, so an estimate
+    is deducted at admission and reconciled against the real usage when the response arrives."""
     from seqforge.harvest import CeilingExceeded, TokenMeter
 
-    inner = _SequencedProvider([_OK])  # 10 input tokens per call
-    meter = TokenMeter(inner, ceiling=25)
+    inner = _CostingProvider(per_call=1000)
+    meter = TokenMeter(inner, ceiling=2500)
 
-    def one() -> None:
-        meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+    _ask(meter)
+    _ask(meter)  # 2000 banked, and a third request is estimated at 1000 more than the budget has
 
-    for _ in range(3):  # 10, 20, 30 -> the third is the one that crosses
-        one()
     with pytest.raises(CeilingExceeded) as caught:
-        one()
+        _ask(meter)
 
-    assert inner.n_calls == 3, "the refused request never reached the provider"
-    assert meter.n_exchanges == 3 and meter.tokens == 30
-    assert caught.value.spent == 30 and caught.value.ceiling == 25
+    assert inner.n_calls == 2, "the request the budget could not cover never reached the provider"
+    assert meter.n_exchanges == 2 and meter.tokens == 2000
+    assert caught.value.spent == 2000 and caught.value.ceiling == 2500
+
+
+def test_the_ceiling_refuses_a_wave_admitted_before_anything_has_banked() -> None:
+    """The concurrent case, pinned — a whole document set admitted in one wave of the pool.
+
+    A check on the tokens ALREADY BANKED asks a question whose answer is not yet knowable: six
+    workers pass it before any of them has banked a thing, so a run that fits inside one wave could
+    never refuse at all, and the tightness of a ceiling would depend on the core count of the
+    machine that ran it. Nothing here banks until every worker has settled — issued or refused — so
+    a meter that admitted on banked totals alone issues all six and this goes red.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    settled = threading.Semaphore(0)  # one release per worker that has been issued OR refused
+    resume = threading.Event()
+
+    class _HeldOpen(_CostingProvider):
+        """Holds every issued request open until the whole wave has settled."""
+
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            settled.release()
+            assert resume.wait(timeout=10), "the wave never settled"
+            return super().complete_json(**kwargs)
+
+    inner = _HeldOpen(per_call=1000)
+    meter = TokenMeter(inner, ceiling=3000)  # three requests, at an estimated 1000 each
+
+    def one(_i: int) -> bool:
+        try:
+            _ask(meter)
+        except CeilingExceeded:
+            settled.release()
+            return False
+        return True
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = [pool.submit(one, i) for i in range(6)]
+        for _ in range(6):
+            assert settled.acquire(timeout=10), "a worker neither reached the provider nor refused"
+        resume.set()
+        issued = [f.result() for f in futures]
+
+    assert inner.n_calls == 3, "what the budget covered, however many the pool offered at once"
+    assert sum(issued) == 3 and issued.count(False) == 3
+    assert meter.tokens == 3000, "the ceiling was spent, not overshot by five more requests"
+
+
+def test_a_request_the_whole_ceiling_cannot_cover_refuses_at_the_gate() -> None:
+    """A ceiling smaller than one request stops the run before anything is issued. Admitting it
+    "because nothing has been spent yet" would be a ceiling that always allows one arbitrarily
+    large call, which is the reading a run of a single enormous document would get."""
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    inner = _CostingProvider(per_call=1000)
+    meter = TokenMeter(inner, ceiling=500)  # one request is estimated at 1000
+
+    with pytest.raises(CeilingExceeded) as caught:
+        _ask(meter)
+
+    assert inner.n_calls == 0 and meter.n_exchanges == 0 and meter.tokens == 0
+    assert caught.value.spent == 0 and caught.value.estimate == 1000
+    # "0 tokens spent, ceiling 500" reads as a bug rather than a refusal, so the number that
+    # actually decided it is in the message a caller sees.
+    assert "estimated at 1,000 tokens" in str(caught.value)
+
+
+def test_a_failed_request_gives_its_reservation_back() -> None:
+    """Reserving before the request means reconciling after it, on the failure path too. A leaked
+    reservation would starve a run of budget it never spent, and the leak compounds: three flaky
+    documents early on would refuse everything after them for the rest of the run."""
+    from seqforge.harvest import ProviderUnavailable, TokenMeter
+
+    inner = _SequencedProvider([_transient(), _transient(), _transient(), _OK])
+    meter = TokenMeter(inner, ceiling=1000)  # room for exactly one request's estimate at a time
+
+    for _ in range(3):
+        with pytest.raises(ProviderUnavailable):
+            _ask(meter)
+
+    _ask(meter)  # admitted: three failed requests hold nothing against the budget
+    assert meter.n_exchanges == 4 and meter.tokens == 10
+
+
+def test_the_reservation_learns_what_a_request_really_costs() -> None:
+    """The character estimate is a rule of thumb that knows nothing about the OUTPUT half, so on its
+    own it under-reserves — and a systematic under-reservation restores exactly the pool-width
+    dependence that reserving exists to remove. Once a run has banked an exchange it stops guessing:
+    a reservation is at least what an exchange has really cost so far.
+    """
+    from seqforge.harvest import CeilingExceeded, TokenMeter
+
+    inner = _CostingProvider(per_call=100)
+    meter = TokenMeter(inner, ceiling=350)
+
+    for _ in range(3):
+        _ask(meter, system="", user="")  # nothing to estimate FROM: zero characters
+
+    with pytest.raises(CeilingExceeded):
+        _ask(meter, system="", user="")
+    assert meter.tokens == 300, "three at 100, and a fourth the remaining 50 could not cover"
 
 
 def test_the_ceiling_counts_raw_so_cached_input_is_not_free() -> None:
@@ -882,9 +1086,9 @@ def test_the_meter_holds_under_the_concurrent_fan_out() -> None:
 
     assert meter.n_exchanges == issued, "every issued request was banked exactly once"
     assert meter.tokens == 10 * issued
-    # The in-flight ones finish and are banked, so the total may overshoot by at most the width of
-    # the pool; nothing may be admitted once the ceiling is reached.
-    assert 200 <= meter.tokens <= 200 + 10 * 8
+    # Reserving is what makes this exact rather than pool-shaped: every request costs what the run
+    # has learned a request costs, so the budget is spent to the last token and none of it twice.
+    assert meter.tokens == 200
 
 
 # ---------- the transcript ----------
@@ -1090,10 +1294,15 @@ def test_a_record_with_nothing_to_read_or_nothing_to_ask_costs_no_call() -> None
     assert plan.estimated_input_tokens == 0, "no call, no stable prefix to pay for"
 
 
-def test_the_plan_charges_the_stable_prefix_once_per_document(tmp_path: Path) -> None:
-    """The prefix is ~3 KB and byte-identical on every request, so N documents pay it N times. That
-    is the arithmetic that makes a fan-out over one-line aliases expensive, and a plan that only
-    counted the documents' own text would hide it."""
+def test_the_plan_charges_the_stable_prefix_once_per_request(tmp_path: Path) -> None:
+    """The prefix is ~9 KB and byte-identical on every request, so N requests pay it N times. That is
+    the arithmetic that makes a fan-out over one-line aliases expensive, and a plan that only counted
+    the documents' own text would hide it.
+
+    Per REQUEST, not per document: the sample record and the collapsed run document are asked the
+    same nine attributes and travel together (#190), so four documents are three requests — and a
+    dry run still charging four would overstate the run it is a dry run of by a whole prefix.
+    """
     from seqforge.harvest import plan_extraction
 
     prefix = len(build_system_prompt(kb.load_all_specs(), llm_schema()))
@@ -1102,9 +1311,10 @@ def test_the_plan_charges_the_stable_prefix_once_per_document(tmp_path: Path) ->
     )
 
     assert plan.n_documents == 4  # the paper, a sample, an experiment, one collapsed run document
+    assert plan.n_requests == 3, "the sample and the run document are one question, asked once"
     assert plan.n_chars == sum(len(d.text) for d in plan.documents)
-    assert plan.estimated_input_tokens == (4 * prefix + plan.n_chars) // 4
-    assert plan.estimated_input_tokens > 4 * prefix // 4
+    assert plan.estimated_input_tokens == (3 * prefix + plan.n_chars) // 4
+    assert plan.estimated_input_tokens > 3 * prefix // 4
 
 
 def test_the_plan_is_free_and_the_dry_run_is_the_list_the_paid_run_sends(tmp_path: Path) -> None:
@@ -1343,3 +1553,439 @@ def test_the_transcript_file_holds_one_prompt_and_a_line_per_exchange(tmp_path: 
     assert list(header["prompts"]) == [json.loads(lines[1])["prompt_sha256"]]
     assert header["n_exchanges"] == 3
     assert all("prompts" not in json.loads(line) for line in lines[1:])
+
+
+# ---------- one request for the documents that get the same question ----------
+# A document is not a request. Three archive records of 45, 209 and 213 characters cost 9,382 input
+# tokens as three requests — >95% prompt, paid three times over three round trips — and the whole
+# point of grouping them is that the count drops. What makes it safe is the tripwire that was already
+# there: every draft carries a `doc_sha256` and the quote must grep back into THAT document, so
+# cross-document contamination fails span verification by construction. What makes it never worse is
+# the fallback: a batch that fails is immediately re-asked one document at a time.
+
+_SPECIES = ("Caenorhabditis elegans", "Drosophila melanogaster", "Mus musculus")
+
+
+def _many(tmp_path: Path, texts: list[str]) -> list[NormalizedDoc]:
+    """One document per text, each in its own directory so the basenames may collide."""
+    docs = []
+    for i, text in enumerate(texts):
+        where = tmp_path / f"doc-{i}"
+        where.mkdir()
+        docs.append(_doc(where, text))
+    return docs
+
+
+def _species_docs(tmp_path: Path) -> tuple[list[NormalizedDoc], dict[str, str]]:
+    """Three same-ask documents, each naming an organism the other two never mention.
+
+    Distinct claims are what make routing checkable at all: with three identical documents, a draft
+    filed against the wrong one is indistinguishable from a draft filed against the right one.
+    """
+    docs = _many(tmp_path, [f"Samples were {s}, reared at 20 C." for s in _SPECIES])
+    return docs, {d.doc_sha256: s for d, s in zip(docs, _SPECIES, strict=True)}
+
+
+def _shas_in(user: str) -> list[str]:
+    """Every document the request names, in the order it names them."""
+    prefix = "Document sha256: "
+    return [line[len(prefix) :] for line in user.splitlines() if line.startswith(prefix)]
+
+
+def _organism(value: str, sha: str) -> dict[str, Any]:
+    """One draft the model could honestly return: the species, quoted from the document naming it."""
+    return {
+        "field": "experiment.organism",
+        "value": value,
+        "span": {"doc_sha256": sha, "quote": value, "context": None},
+        "llm_confidence": 0.9,
+    }
+
+
+class _AnswersEveryDocument:
+    """A model that answers every document a request carries, and says which claim came from which.
+
+    Batching hands the model one job a single-document request never gives it: naming the document a
+    claim came from. So this reads the shas the request printed, answers each with the claim only
+    that document supports, and records the WIDTH of every request — which is how a test observes
+    that the request count dropped rather than inferring it.
+
+    The knobs are the three ways a batch can go wrong, one per test: refusing a multi-document
+    request outright, answering only some of it, and losing track of which document is which.
+    """
+
+    name = "batching"
+
+    def __init__(
+        self,
+        answers: dict[str, str],
+        *,
+        batch_failure: Exception | str | None = None,
+        answer_only: int | None = None,
+        reroute: dict[str, str] | None = None,
+    ) -> None:
+        self._answers = answers
+        self._batch_failure = batch_failure
+        self._answer_only = answer_only
+        self._reroute = reroute or {}
+        self.n_calls = 0
+        #: How many documents each request carried, in call order.
+        self.widths: list[int] = []
+        self.asked: list[dict[str, Any]] = []
+
+    def default_model(self) -> str:
+        return "batching-1"
+
+    def complete_json(self, **kwargs: Any) -> LLMResponse:
+        self.n_calls += 1
+        self.asked.append(kwargs)
+        shas = _shas_in(str(kwargs["user"]))
+        self.widths.append(len(shas))
+        if len(shas) > 1 and self._batch_failure is not None:
+            if isinstance(self._batch_failure, Exception):
+                raise self._batch_failure
+            return LLMResponse(text=self._batch_failure, usage={"input_tokens": 30})
+        drafts = [
+            _organism(self._answers[sha], self._reroute.get(sha, sha))
+            for sha in shas[: self._answer_only]
+        ]
+        return LLMResponse(text=json.dumps({"drafts": drafts}), usage={"input_tokens": 10})
+
+
+def test_documents_that_receive_the_same_ask_travel_in_one_request(tmp_path: Path) -> None:
+    """The item itself (#190): the request count drops, and the prompt overhead drops with it.
+
+    Three documents, one request. The stable system prefix is unchanged — batching lives entirely in
+    the volatile half, because a preamble in the cached half would make the prefix a function of how
+    a plan happened to group and invalidate the cache on every batch of a different width — and the
+    ask, ~1.3 KB of NCBI definitions, is now written once per REQUEST rather than once per document.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+    provider = _AnswersEveryDocument(answers)
+
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+
+    assert plan.n_documents == 3, "still three documents..."
+    assert plan.n_requests == provider.n_calls == 1, "...and one question, asked once"
+    assert provider.widths == [3]
+    assert [len(o.drafts) for o in outcomes] == [1, 1, 1], "every document still got its own answer"
+
+    (sent,) = provider.asked
+    assert sent["system"] == build_system_prompt(kb.load_all_specs(), llm_schema())
+    assert sent["user"].count("Fields to look for") == 1, "the ask is paid once, not once per doc"
+    assert _shas_in(sent["user"]) == [d.doc_sha256 for d in docs]
+    assert all(d.text in sent["user"] for d in docs)
+
+
+def test_two_different_asks_never_share_a_request() -> None:
+    """The group key is the ASK, not the (scope, role) pair it comes from.
+
+    A prompt is the only place the ask exists, so documents may share a request exactly when the
+    request would put the same question to both. A `sample` record and a collapsed `run` document are
+    asked the same nine attributes and are one question; an `experiment` document is asked two fields
+    and is another. Keying on scope would send two requests to ask one question.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(records=_records({"SAMN1": 2, "SAMN2": 2}))
+    assert plan.n_documents == 6
+
+    by_index = {i: plan.asked(plan.documents[i]) for i in range(6)}
+    for batch in plan.batches:
+        assert len({by_index[i] for i in batch}) == 1, "one request puts one question"
+
+    scopes = {tuple(sorted(plan.documents[i].scope for i in batch)) for batch in plan.batches}
+    assert scopes == {("run", "run", "sample", "sample"), ("experiment", "experiment")}
+
+    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+    assert provider.n_calls == 2 < plan.n_documents
+    assert sorted(provider.widths) == [2, 4]
+
+
+def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_request(
+    tmp_path: Path,
+) -> None:
+    """The budget bounds one request, and a document is never split to fit it.
+
+    Splitting one would change the text a quote is greppable against, which is the one thing this
+    pipeline may not do — so a document larger than the whole budget is simply its own request, and
+    arrives whole.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+    from seqforge.harvest.plan import MAX_BATCH_CHARS
+
+    sentence = "Cells were fixed. "
+    half = sentence * (MAX_BATCH_CHARS // (2 * len(sentence)) + 10)  # two never fit together
+    over = sentence * (MAX_BATCH_CHARS // len(sentence) + 10)  # one is a request by itself
+    docs = _many(tmp_path, [f"{half} Aliquot 0.", f"{half} Aliquot 1.", f"{over} Aliquot 2."])
+    assert 2 * len(docs[0].text) > MAX_BATCH_CHARS and len(docs[2].text) > MAX_BATCH_CHARS
+
+    plan = plan_extraction(documents=docs)
+    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in docs})
+    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+
+    assert plan.n_requests == provider.n_calls == 3 and provider.widths == [1, 1, 1]
+    assert all(any(d.text in str(sent["user"]) for sent in provider.asked) for d in docs), (
+        "whole, in one request each"
+    )
+
+
+def test_a_request_is_bounded_by_documents_too_and_never_asks_about_one_twice(
+    tmp_path: Path,
+) -> None:
+    """Characters alone do not bound a batch of one-line records, and two caps are not one cap twice.
+
+    A run alias is 20 characters and can still support nine sample attributes, so what bounds the
+    RESPONSE is the document count; and a batch-level failure costs a re-ask of every member, so a
+    request carrying hundreds of them is a wave to lose rather than a round trip. Separately, two
+    documents whose text is byte-identical are indistinguishable to a model routing by sha, so they
+    never share a request — a question with no answer must not be asked.
+    """
+    from dataclasses import replace as _replace
+
+    from seqforge.harvest import plan_extraction
+    from seqforge.harvest.plan import MAX_BATCH_DOCUMENTS, batch_documents
+
+    tiny = _many(tmp_path, [f"Rep {i} was N2 wild type." for i in range(MAX_BATCH_DOCUMENTS + 3)])
+    plan = plan_extraction(documents=tiny)
+    assert [len(b) for b in plan.batches] == [MAX_BATCH_DOCUMENTS, 3]
+
+    # Same bytes, same ask, different subject: one document to the model, two to the plan.
+    twin = _replace(tiny[0], subject="SAMN9")
+    assert batch_documents([tiny[0], twin]) == ((0,), (1,))
+
+
+def test_a_batched_run_lands_every_claim_on_the_document_that_carried_it(tmp_path: Path) -> None:
+    """The correctness the whole item rests on, checked all the way through the tripwire.
+
+    A batched run must produce the same assertions as an unbatched one, against the same documents:
+    the sha the model echoes is how a draft is routed, `verify` then re-greps the quote into the
+    document it names, and every claim here belongs to exactly one of the three.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+
+    batched = extract_planned(plan, kb.load_all_specs(), provider=_AnswersEveryDocument(answers))
+    alone = [
+        extract_drafts(d, kb.load_all_specs(), provider=_AnswersEveryDocument(answers))
+        for d in docs
+    ]
+
+    assert [[d.model_dump() for d in o.drafts] for o in batched] == [
+        [d.model_dump() for d in o.drafts] for o in alone
+    ], "one request or three, the drafts are the same drafts on the same documents"
+
+    report = verify_drafts(
+        [d for o in batched for d in o.drafts], docs, extractor=batched[0].extractor
+    )
+    assert report.rejected == []
+    assert [(a.value, a.span.doc_sha256) for a in report.assertions] == [
+        (species, doc.doc_sha256) for doc, species in zip(docs, _SPECIES, strict=True)
+    ]
+
+
+def test_a_claim_routed_to_the_wrong_member_fails_the_span_tripwire(tmp_path: Path) -> None:
+    """Why batching is safe by construction, rather than by the model being careful.
+
+    A model that files one document's claim under another member's sha has produced a quote that is
+    not in the document it cites, and `verify` greps it back into THAT document — so contamination
+    between two members of one request fails closed, exactly as a fabricated citation does. Nothing
+    in `extract` re-checks it: `find_span` is the authority on whether a document carries a quote,
+    and a second, weaker answer here would disagree with it and re-issue batches over claims that
+    verify fine.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+    swap = {docs[0].doc_sha256: docs[1].doc_sha256}
+
+    (contaminated,) = [
+        o
+        for o in extract_planned(
+            plan, kb.load_all_specs(), provider=_AnswersEveryDocument(answers, reroute=swap)
+        )
+        if len(o.drafts) == 2
+    ]
+    report = verify_drafts(contaminated.drafts, docs, extractor=contaminated.extractor)
+
+    assert [a.value for a in report.assertions] == [_SPECIES[1]], "its own claim survives"
+    assert [r["reason"] for r in report.rejected] == ["span_not_found"]
+
+
+def test_a_batch_that_answers_only_some_of_its_documents_is_not_a_failure(tmp_path: Path) -> None:
+    """Per-document silence is a legitimate answer, and it is why coverage cannot be a failure signal.
+
+    "This document supports nothing" returns no drafts, so a batch answering two of its three
+    documents is indistinguishable from one where the third had nothing to say — which is the common
+    case, not the exception. Treating it as a batch failure would re-ask eight sample records every
+    time six of them were silent, which is strictly more requests than never batching at all.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+    provider = _AnswersEveryDocument(answers, answer_only=2)
+
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+
+    assert provider.n_calls == 1, "no fallback: the request was answered"
+    assert [len(o.drafts) for o in outcomes] == [1, 1, 0]
+    assert [o.answered for o in outcomes] == [True, True, True]
+    assert outcomes[2].failure is None, "checked and found nothing is not could not check"
+
+
+def test_a_draft_for_a_document_the_request_never_carried_refuses_the_whole_batch(
+    tmp_path: Path,
+) -> None:
+    """An unroutable draft means the model lost track of the batch, so the batch is re-asked.
+
+    Silently dropping it would lose a claim an unbatched run would have kept — code overwrites the
+    echoed sha at width one, so there is nothing there to lose track of — and losing a claim is
+    exactly what batching may not do. Re-asking costs one round trip and recovers it, which is the
+    trade the fallback already makes.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+    from seqforge.harvest.extract import extract_batch
+
+    docs, answers = _species_docs(tmp_path)
+    stray = {docs[2].doc_sha256: "f" * 64}
+
+    with pytest.raises(ExtractUnavailable, match="none of the 3 documents"):
+        extract_batch(
+            docs, kb.load_all_specs(), provider=_AnswersEveryDocument(answers, reroute=stray)
+        )
+
+    plan = plan_extraction(documents=docs)
+    provider = _AnswersEveryDocument(answers, reroute=stray)
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+
+    assert provider.widths == [3, 1, 1, 1], "the batch, then one request per document"
+    assert [len(o.drafts) for o in outcomes] == [1, 1, 1], "and the claim it nearly dropped is back"
+
+
+_BATCH_FAILURES = [
+    pytest.param(ProviderUnavailable("this endpoint refused the request"), id="a-provider-error"),
+    pytest.param("not json at all", id="an-unusable-envelope"),
+    pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
+]
+
+
+@pytest.mark.parametrize("failure", _BATCH_FAILURES)
+def test_a_batch_failure_falls_back_to_per_document_calls_and_loses_nothing(
+    failure: Exception | str, tmp_path: Path
+) -> None:
+    """THE decision (#190): batching may never lose more documents than not batching would have.
+
+    Unbatched, a failed request costs one document; batched it could cost eight, which would make
+    "half a batch is worse than none" worse rather than better. So a batch-level failure — a provider
+    error, or any response the one shape gate cannot use — re-asks every member individually, at
+    once. Worst case that is one extra round trip; here the provider fails on anything wider than one
+    document, which is the worst case, and all three documents still answer with the claim each
+    carries.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+    provider = _AnswersEveryDocument(answers, batch_failure=failure)
+
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+
+    assert [o.answered for o in outcomes] == [True] * 3
+    assert [d.value for o in outcomes for d in o.drafts] == list(_SPECIES)
+    assert provider.widths == [3, 1, 1, 1], "one wasted round trip, and exactly one"
+    assert provider.n_calls == 1 + plan.n_documents
+
+
+def test_a_document_that_fails_alone_costs_what_it_cost_before_batching(tmp_path: Path) -> None:
+    """What the fallback does with a document that fails on its own is what an unbatched run does.
+
+    `partial` still decides it, and it still decides it per document: off, the plan raises and the
+    compiler fails closed; on, that one document comes back unanswered and the other two keep their
+    claims. Neither answer is new — the point is that a batch failure hands the decision back to the
+    policy that already existed rather than making one of its own.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+
+    class _AlsoFailsOnOne(_AnswersEveryDocument):
+        """Refuses every batch, and also refuses one particular document on its own."""
+
+        def complete_json(self, **kwargs: Any) -> LLMResponse:
+            if docs[1].text in str(kwargs["user"]) and len(_shas_in(str(kwargs["user"]))) == 1:
+                self.n_calls += 1
+                self.widths.append(1)
+                return LLMResponse(text="not json at all", usage={"input_tokens": 3})
+            return super().complete_json(**kwargs)
+
+    with pytest.raises(ExtractUnavailable):
+        extract_planned(
+            plan,
+            kb.load_all_specs(),
+            provider=_AlsoFailsOnOne(answers, batch_failure="not json at all"),
+        )
+
+    outcomes = extract_planned(
+        plan,
+        kb.load_all_specs(),
+        provider=_AlsoFailsOnOne(answers, batch_failure="not json at all"),
+        partial=True,
+    )
+    assert [o.answered for o in outcomes] == [True, False, True]
+    assert outcomes[1].failure is not None and "not valid JSON" in outcomes[1].failure
+    assert [d.value for o in outcomes for d in o.drafts] == [_SPECIES[0], _SPECIES[2]]
+
+
+def test_a_failed_batch_gives_its_reservation_back_before_the_fallback_asks_for_one(
+    tmp_path: Path,
+) -> None:
+    """The meter interaction the fallback must not get wrong: a batch that failed still reserved.
+
+    The meter deducts a request's estimate before issuing it and reconciles on every path out, so by
+    the time the retries ask to be admitted the batch's estimate is already back in the budget. Held
+    instead, it would starve the very fallback it was meant to protect — the run would refuse at a
+    ceiling that comfortably covers one batch plus one document at a time, having answered nothing.
+    """
+    from seqforge.harvest import CeilingExceeded, TokenMeter, extract_planned, plan_extraction
+    from seqforge.harvest.meter import estimated_tokens
+
+    docs, answers = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs)
+    refuses = ProviderUnavailable("this endpoint refused the request")
+
+    # The PROMPTS are read off an unceilinged run; what they are estimated at is then computed with
+    # the meter's own `estimated_tokens`, deliberately. This is a ceiling expressed as a SCALE, not
+    # an expected value: the subject is whether a failed batch's reservation comes back, and that is
+    # only observable against a budget tight enough that holding it would starve the retries. Pinning
+    # a literal here would pin the estimator instead, and go red on any change to it while proving
+    # nothing about release. What gives this test its failure power is the mechanism, not the number
+    # — neuter `_release` and it refuses at the third retry.
+    probe = TokenMeter(_AnswersEveryDocument(answers, batch_failure=refuses))
+    extract_planned(plan, kb.load_all_specs(), provider=probe)
+    transcript = probe.transcript()
+    costs = [estimated_tokens(transcript.prompt_for(x), x.user) for x in transcript.exchanges[:2]]
+
+    provider = _AnswersEveryDocument(answers, batch_failure=refuses)
+    meter = TokenMeter(provider, ceiling=sum(costs) - 1)
+    outcomes = extract_planned(plan, kb.load_all_specs(), provider=meter)
+
+    assert [o.answered for o in outcomes] == [True] * 3
+    assert provider.widths == [3, 1, 1, 1]
+    # ...and the ceiling is genuinely binding: one token less and the batch itself cannot be issued.
+    with pytest.raises(CeilingExceeded):
+        extract_planned(
+            plan,
+            kb.load_all_specs(),
+            provider=TokenMeter(
+                _AnswersEveryDocument(answers, batch_failure=refuses), ceiling=costs[0] - 1
+            ),
+        )

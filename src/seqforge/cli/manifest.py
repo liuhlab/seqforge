@@ -251,10 +251,14 @@ def _fill_manifest_pipeline(
     # override for the one thing prose alone cannot settle — a genuine byte tie (10x v2 vs v3). It is
     # still only a SELECTOR / tie-break into `score`, never a ninth evidence test, so it can order the
     # candidates and break a tie the bytes cannot, but it can never overrule what the bytes decide.
+    #
+    # The records reach only the prose branch, and that is the whole reason the two branches are
+    # written apart: a deposit declaring a single-cell library may withhold a *hint* the prose offered,
+    # and a human's override is not a hint. Nothing states that rule — this call graph is it.
     hypothesis = (
         Hypothesis(value=chemistry_override, id="operator", confidence=1.0)
         if chemistry_override is not None
-        else chemistry_hypothesis(parsed)
+        else chemistry_hypothesis(parsed, records=records.records if records is not None else None)
     )
     multi = resolve_runs(
         [str(f) for f in files],

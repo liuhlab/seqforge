@@ -260,7 +260,7 @@ files each, which a file-level mark cannot express at all:
 | ----- | ------- | ------- |
 | `enormous-fastq` | the 128 MB-decompressed FASTQ | 3 tests in `test_probe.py` |
 | `kb-probes` | every KB spec's reads, probed | 3 in `test_kb.py` + 3 in `test_resolve.py` |
-| `src-trees` | `src/seqforge` parsed | 1 in `test_repo_invariants.py` + 1 in `test_workflows.py` + 1 in `test_cli.py` |
+| `src-trees` | `src/seqforge` parsed | 1 each in `test_repo_invariants.py`, `test_workflows.py`, `test_cli.py`, `test_probe.py` |
 
 In each of these the build dominates its readers outright — the `enormous-fastq` write costs tens of
 times what the three probes it enables do — which is what makes the trade obvious without a sweep.

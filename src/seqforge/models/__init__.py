@@ -82,6 +82,7 @@ from .observation import (
     CycleComposition,
     FileIdentity,
     GzipIntegrity,
+    HeadCoverage,
     HomopolymerSegment,
     Observation,
     ProbeProvenance,
@@ -224,6 +225,7 @@ __all__ = [
     "ReadLengthProfile",
     "WindowDistinctRatio",
     "ReadNameGrammar",
+    "HeadCoverage",
     "GzipIntegrity",
     # assertion
     "SourceSpan",

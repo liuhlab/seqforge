@@ -15,16 +15,23 @@ from pathlib import Path
 
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
+from ..kb.match import carries, resolve_chemistry
 from ..kb.schema import Spec
 from ..models.assertion import Assertion
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
+from ..models.records import ArchiveRecord
 from ..models.resolve import Candidate, ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
 from .cache import Cache, dataset_id, resume_key
-from .escalate import escalate
+
+# The SAME predicate the cross-family guards ask ("does this chemistry have a barcode role?"), taken
+# rather than restated. The drop below exists to stop one of those guards firing on a hint it should
+# never have been offered, so if the two disagreed about what "bulk" means the drop would fail to
+# prevent the very conflict it is for.
+from .escalate import _barcode_read_id, escalate
 from .geometry import length_feasible
 from .scoring import TechEvaluation, build_tech_evaluation
 from .window import WindowProbe
@@ -39,7 +46,50 @@ class Hypothesis:
     confidence: float = 0.8
 
 
-def chemistry_hypothesis(assertions: Sequence[Assertion]) -> Hypothesis | None:
+#: The archive-neutral key ``io/archive.py`` normalizes a deposit's library descriptor into. It is the
+#: NAME that is the contract here, never one archive's XML: an in-house record set built by hand may
+#: carry the same key, and a record set that carries nothing at all is the ordinary case.
+_LIBRARY_SOURCE = "library_source"
+#: The one form whose presence in that value makes a bulk hint non-credible. ONE form, deliberately:
+#: matching is tolerant of case, whitespace and hyphens because the KB's own entailment test is, and it
+#: stops there — the answer to an unenumerable list of spellings is not a longer list. Its ABSENCE says
+#: nothing at all, which is why nothing below reads absence.
+_SINGLE_CELL_FORM = "single cell"
+
+
+def _declares_single_cell(records: Sequence[ArchiveRecord] | None) -> bool:
+    """Does any record's declared library source say the deposit is single-cell?
+
+    Every level is scanned, not just ``experiment``: the attribute NAME is the archive-neutral thing,
+    and which level an archive hangs its library descriptor off is that archive's shape. Reading
+    ``attributes`` directly rather than through :meth:`ArchiveRecord.attribute` is likewise deliberate
+    — that accessor answers only for HARMONIZED names, the curated sample-attribute namespace a
+    manifest fact may come from, and a library descriptor is not one, so it would answer ``None`` on
+    every real record.
+    """
+    return any(
+        carries(attr.value, _SINGLE_CELL_FORM)
+        for record in records or ()
+        for attr in record.attributes
+        if attr.name == _LIBRARY_SOURCE
+    )
+
+
+def _names_a_bulk_chemistry(value: str) -> bool:
+    """Does ``value`` name a KB chemistry with no barcode role — the bulk shape?
+
+    The KB answers this, never a list of names here: a spec declaring no ``barcode`` element has
+    nothing to demultiplex, and that is what makes it bulk. A string naming no KB node asserts no
+    chemistry at all, so there is nothing to rule out and the answer is ``False`` — the narrow reading,
+    which costs at most a hint that was never credible anyway.
+    """
+    spec = resolve_chemistry(value)
+    return spec is not None and _barcode_read_id(spec) is None
+
+
+def chemistry_hypothesis(
+    assertions: Sequence[Assertion], *, records: Sequence[ArchiveRecord] | None = None
+) -> Hypothesis | None:
     """The chemistry the prose claims, entering `score` as a hypothesis. ``None`` when it cannot.
 
     **What this is allowed to do.** `score` builds a grid — one row per read role, one column per
@@ -67,6 +117,23 @@ def chemistry_hypothesis(assertions: Sequence[Assertion]) -> Hypothesis | None:
     straight into `Assertion`s with no flag check, and this is a public function now. A claim whose
     quote does not grep back, or does not entail its value, is skipped rather than counted: ignoring
     it must not become a veto over a good one.
+
+    **A record may rule a hint OUT, and that is its whole authority.** `records` is the deposit's own
+    structured library descriptor — deterministic, no model, no network — and a value declaring a
+    single-cell library on a *bulk* hint makes that hint non-credible, so the hint is dropped. It may
+    never name a chemistry, never move a score, and never raise anything: the worst it can do is
+    decline to offer a hint, and the bytes decide either way.
+
+    Not a `Conflict`, and the asymmetry is the point. Most single-cell deposits carry a bare
+    `TRANSCRIPTOMIC`, so ABSENCE of the single-cell reading carries no information whatever; treating
+    the pair as two comparable claims would false-block correct datasets by the hundred. So presence
+    withholds a hint and absence does nothing — which is also why an in-house dataset with no records
+    at all, the ordinary case, is byte-identically unaffected.
+
+    **An operator's `--assert-chemistry` is out of reach here, by construction.** `manifest fill`
+    builds that `Hypothesis` itself and never calls this function for it, so a deliberate human
+    selector cannot be dropped by a record — no guard states that, the call graph does. A hint is what
+    this rule is entitled to withhold, and an operator override is not a hint.
     """
     values = {
         a.value
@@ -75,7 +142,12 @@ def chemistry_hypothesis(assertions: Sequence[Assertion]) -> Hypothesis | None:
     }
     if len(values) != 1:
         return None
-    return Hypothesis(value=next(iter(values)), id="harvest", confidence=0.9)
+    value = next(iter(values))
+    # Records first: the check is free where there are none, and asking the KB what a string names
+    # would otherwise load every spec on a question nothing is going to act on.
+    if _declares_single_cell(records) and _names_a_bulk_chemistry(value):
+        return None
+    return Hypothesis(value=value, id="harvest", confidence=0.9)
 
 
 @dataclass(frozen=True)

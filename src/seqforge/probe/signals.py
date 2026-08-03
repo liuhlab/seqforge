@@ -16,6 +16,7 @@ import numpy as np
 from ..models.observation import (
     ConstantSegment,
     CycleComposition,
+    HeadCoverage,
     HomopolymerSegment,
     RandomSegment,
     ReadLengthProfile,
@@ -24,7 +25,6 @@ from ..models.observation import (
     WindowDistinctRatio,
 )
 
-_BASE_IDX = {"A": 0, "C": 1, "G": 2, "T": 3}
 _PURE_THRESHOLD = 0.9  # a cycle whose dominant base fraction >= this is "constant sequence"
 _HOMOPOLYMER_MIN = (
     4  # a run of >= this many identical dominant bases is a homopolymer, not a linker
@@ -41,6 +41,11 @@ def per_cycle_composition(seqs: list[str]) -> list[CycleComposition]:
     so every :class:`CycleComposition` — and therefore the observation hash — is byte-for-byte the same.
     This was ~79% of a full-size probe (issue #66); it is the dominant per-read cost and the cleanest to
     lift out of Python, which matters most on the explicit large-``--max-reads`` path.
+
+    The per-cycle denominator is *reported*, not just used: ``n_sampled`` carries the column's own
+    ``denom``, which every coverage figure downstream reduces. Computing it costs nothing here — it
+    is the reduction the fractions were already divided by — and it cannot be recovered later from a
+    fraction.
     """
     if not seqs:
         return []
@@ -72,9 +77,57 @@ def per_cycle_composition(seqs: list[str]) -> list[CycleComposition]:
                 g=int(g[i]) / d,
                 t=int(t[i]) / d,
                 n=int(nb[i]) / d,
+                n_sampled=int(denom[i]),  # the true count, never the divide-by-zero guard
             )
         )
     return out
+
+
+def _called_cells(comps: list[CycleComposition], lo: int, hi: int) -> int:
+    """Cells over cycles ``[lo, hi)`` that carried a called base: reads reaching, minus uncalled.
+
+    Recovered from the fractions rather than re-counted, so the head is walked once. Both factors
+    came from exact ``int / int`` divisions of the same column, so the product is an integer that has
+    made one round trip through a double; ``round`` returns it rather than trusting the last bit.
+    """
+    return sum(round(c.n_sampled * (1.0 - c.n)) for c in comps[lo:hi])
+
+
+def _span_coverage(comps: list[CycleComposition], lo: int, hi: int, n_reads: int) -> float:
+    """Share of the head's ``(read, cycle)`` cells over ``[lo, hi)`` that carried a called base.
+
+    The denominator is every sampled read across the whole span — the material that *could* have
+    contributed — so both ways a cell goes missing are counted: a read too short to reach the cycle,
+    and a base the sequencer never called. A span nothing could contribute to reads ``0.0``.
+
+    Nothing clamps the result: a called-cell count above the cells that exist is arithmetically
+    impossible, so the ``Confidence`` bound on the field refusing it is the report we want, not a
+    quietly capped number.
+    """
+    possible = n_reads * (hi - lo)
+    if possible <= 0:
+        return 0.0
+    return _called_cells(comps, lo, hi) / possible
+
+
+def head_coverage(comps: list[CycleComposition], n_reads: int) -> HeadCoverage:
+    """Split the head's overall coverage into its two loss channels — reach, then base call.
+
+    ``n_reads`` is the head's own sampled-read count (what the observation reports as
+    ``probe.n_reads_sampled``), so the denominator is the sample the caller will see beside the
+    figure rather than a count re-derived here. The two multiply to the head's overall coverage —
+    the same quantity each segment reports over its own span — and
+    :class:`~seqforge.models.observation.HeadCoverage` argues why they are reported apart, and why
+    nothing reads either.
+    """
+    possible = n_reads * len(comps)
+    reached = sum(c.n_sampled for c in comps)
+    if possible <= 0 or reached <= 0:  # no cells at all: an empty head covers nothing
+        return HeadCoverage(reach_fraction=0.0, called_fraction=0.0)
+    return HeadCoverage(
+        reach_fraction=reached / possible,
+        called_fraction=_called_cells(comps, 0, len(comps)) / reached,
+    )
 
 
 def _dominant(comp: CycleComposition) -> tuple[str, float]:
@@ -97,13 +150,19 @@ def _entropy_bits(comp: CycleComposition) -> float:
     return bits
 
 
-def segment(comps: list[CycleComposition]) -> list[Segment]:
+def segment(comps: list[CycleComposition], n_reads: int) -> list[Segment]:
     """Merge cycles into constant / homopolymer / random segments (structural, role-free).
 
     A cycle whose dominant base fraction >= ``_PURE_THRESHOLD`` is "constant sequence". Within a run
     of pure cycles, a run of the same dominant base (>= ``_HOMOPOLYMER_MIN``) is a homopolymer (polyT
     capture / polyA tail); a stretch of varying pure bases is a linker/adapter/TSO (constant).
     Everything else is random (CB/UMI/cDNA candidate). Index == cycle by construction.
+
+    ``n_reads`` is the head's sampled-read count and is the coverage denominator, nothing else: each
+    segment records what share of the sampled material its span was classified over. That is the one
+    thing a classification cannot say about itself — a dominant-base fraction of 0.08 looks like
+    "random" whether the cycle is genuinely random or 92% uncalled — and no consumer decides anything
+    from it.
     """
     if not comps:
         return []
@@ -122,14 +181,27 @@ def segment(comps: list[CycleComposition]) -> list[Segment]:
             j += 1
         if kind == "random":
             mean_bits = sum(_entropy_bits(comps[k]) for k in range(i, j)) / (j - i)
-            segments.append(RandomSegment(start=i, end=j, mean_entropy_bits=mean_bits))
+            segments.append(
+                RandomSegment(
+                    start=i,
+                    end=j,
+                    mean_entropy_bits=mean_bits,
+                    coverage=_span_coverage(comps, i, j, n_reads),
+                )
+            )
         else:
-            segments.extend(_split_pure_run(labels, i, j))
+            segments.extend(_split_pure_run(labels, comps, i, j, n_reads))
         i = j
     return segments
 
 
-def _split_pure_run(labels: list[tuple[str, str, float]], lo: int, hi: int) -> list[Segment]:
+def _split_pure_run(
+    labels: list[tuple[str, str, float]],
+    comps: list[CycleComposition],
+    lo: int,
+    hi: int,
+    n_reads: int,
+) -> list[Segment]:
     """Split a run of pure cycles ``[lo, hi)`` into homopolymer + constant (linker) segments."""
     out: list[Segment] = []
     const_start: int | None = None
@@ -141,7 +213,13 @@ def _split_pure_run(labels: list[tuple[str, str, float]], lo: int, hi: int) -> l
         bases = [labels[k][1] for k in range(const_start, end)]
         purity = sum(labels[k][2] for k in range(const_start, end)) / (end - const_start)
         out.append(
-            ConstantSegment(start=const_start, end=end, consensus="".join(bases), purity=purity)
+            ConstantSegment(
+                start=const_start,
+                end=end,
+                consensus="".join(bases),
+                purity=purity,
+                coverage=_span_coverage(comps, const_start, end, n_reads),
+            )
         )
         const_start = None
 
@@ -160,6 +238,7 @@ def _split_pure_run(labels: list[tuple[str, str, float]], lo: int, hi: int) -> l
                     start=k,
                     end=r,
                     mean_run=float(r - k),
+                    coverage=_span_coverage(comps, k, r, n_reads),
                 )
             )
         elif const_start is None:
@@ -170,10 +249,16 @@ def _split_pure_run(labels: list[tuple[str, str, float]], lo: int, hi: int) -> l
 
 
 def read_length_profile(seqs: list[str]) -> ReadLengthProfile:
-    """Mode, distinct-count, min/max, and (only when variable) percentiles of read length."""
+    """Mode, its share of the reads, distinct-count, min/max, and (when variable) percentiles.
+
+    ``mode_share`` is the share of the sampled reads sitting at the modal length -- the population
+    statement ``n_distinct`` cannot make, since counting which lengths are present says nothing about
+    how the reads divide among them. Every read has a length, so the denominator is the whole sample
+    and an empty head reports 0.0 rather than a vacuous 1.0.
+    """
     lengths = sorted(len(s) for s in seqs)
     if not lengths:
-        return ReadLengthProfile(mode=0, n_distinct=1, min_len=0, max_len=0)
+        return ReadLengthProfile(mode=0, n_distinct=1, min_len=0, max_len=0, mode_share=0.0)
     freq: dict[int, int] = {}
     for length in lengths:
         freq[length] = freq.get(length, 0) + 1
@@ -191,6 +276,7 @@ def read_length_profile(seqs: list[str]) -> ReadLengthProfile:
         n_distinct=n_distinct,
         min_len=lengths[0],
         max_len=lengths[-1],
+        mode_share=freq[mode] / len(lengths),
         percentiles=percentiles,
     )
 
@@ -244,6 +330,13 @@ def consensus_match_rate(bases: list[str], max_mismatch: int) -> float | None:
     file's reads are long enough to fill a role at all is the declared geometry's question, and
     ``read_length_compatible`` asks it before scoring gets here. Contamination this cannot see is
     contamination the length gate already refused.
+
+    **How many reads that was, is reported elsewhere and not here.** This function is handed a list
+    and counts it; the window it came from is role-conditioned, chosen at scoring time, and unknown
+    to the probe. The observation records the denominator per cycle instead
+    (``CycleComposition.n_sampled``), from which the count for any window is the value at its last
+    cycle — one figure that covers every window anyone will ever cut, rather than a coverage number
+    this function would have to invent a window to report.
     """
     if not bases:
         return None
@@ -321,15 +414,3 @@ def quality_encoding(
     if max_ord > 74:
         return "phred64"
     return "unknown"
-
-
-def n_rate(seqs: list[str]) -> float:
-    """Fraction of non-ACGT (N) bases across the sample."""
-    total = 0
-    n_count = 0
-    for s in seqs:
-        total += len(s)
-        for ch in s:
-            if ch not in _BASE_IDX:
-                n_count += 1
-    return (n_count / total) if total else 0.0
