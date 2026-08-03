@@ -58,6 +58,13 @@ from seqforge.probe import content_key_from_md5, content_key_from_sra, probe_sam
 #: (`fingerprint.load.replayed_integrity`). It stays here because the *value* must still agree -- and
 #: for these clean bytes it does, which is what makes the pinned path a faithful stand-in rather than
 #: a second opinion. `test_fingerprint.py` covers the case where the two authorities differ.
+#:
+#: `coverage` is here and NOT in `FROM_THE_WHOLE_FILE`, which is a design decision rather than a
+#: convenience: it says what fraction of the SAMPLED HEAD fed the head-derived statistics, and its
+#: denominator is the head's own read count. A whole-file denominator is precisely what a range read
+#: and a fingerprint slice cannot honestly supply -- neither has a tail to reach -- so the figure is
+#: defined not to need one, and what share of the file the head is stays where it already was:
+#: `n_reads_sampled` over `estimated_total_reads`, qualified by `est_method`, both below.
 FROM_THE_HEAD = {
     "per_cycle_composition",
     "segments",
@@ -65,7 +72,7 @@ FROM_THE_HEAD = {
     "distinct_value_windows",
     "read_name",
     "quality_encoding",
-    "n_rate",
+    "coverage",
     "gzip",
 }
 #: Agree only because this fixture is read to EOF; see the module docstring.

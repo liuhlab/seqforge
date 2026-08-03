@@ -7,8 +7,9 @@ stream. Every touch is bounded by a read budget (``--max-reads``, default 200 00
 
 Tier A (this module) computes structural signals with no KB: per-cycle base composition, segmentation
 (constant/random/homopolymer), read-length profile, distinct-value ratios, read-name grammar,
-N-rate, quality encoding, gzip integrity, and an extrapolated read-count estimate. It assigns **no
-roles** — that interpretation belongs to ``resolve``.
+quality encoding, gzip integrity, an extrapolated read-count estimate, and — beside each statistic
+built from the head — the coverage it was measured over. It assigns **no roles** — that
+interpretation belongs to ``resolve``.
 """
 
 from __future__ import annotations
@@ -28,7 +29,24 @@ from __future__ import annotations
 #: corrupt deflate payload reports it at all rather than raising. Only malformed inputs move; a clean
 #: FASTQ observes identically, so no clean manifest re-hashes — but a *cached* verdict from the old
 #: probe would replay the old meaning, which is what this stamp evicts.
-PROBE_VERSION = "2026.7.3"
+#: 2026.8.0 — every head-derived statistic now reports what it was measured OVER (issue #190). The
+#: correction below moved the budget's defence onto `onlist_hit_rate`'s denominator and left three
+#: statistics built from the same head — composition, segmentation, and the windows
+#: `consensus_match_rate` is cut from — with no equivalent figure, which is exactly the gap
+#: GSE305031 walks through: a cycle that is 91% uncalled in the first 2 000 reads scores as "random"
+#: rather than as "unread", and the segmentation says so with the same confidence it would have on a
+#: clean file. So a cycle carries the denominator it divided by, a segment carries the share of the
+#: head's cells its classification was decided over, and the head carries both loss channels apart.
+#: `n_rate` — the whole-head N fraction, computed since the first probe and read by NOTHING — is
+#: gone as a field and survives as `coverage.called_fraction`, which is the same measurement stated
+#: as coverage rather than as its complement, and split from the ragged-read-length channel it used
+#: to hide. It is not a deletion: it is the number this issue asks for, moved to where it means
+#: something and joined by the two figures that localize it.
+#: Every clean FASTQ observes DIFFERENTLY (the fields are new and `n_rate` is gone), so every cached
+#: observation must recompute — which is what this stamp is for. The manifest hash covers `library`
+#: and `experiment`, neither of which carries an observation value that moved, so no pinned dataset
+#: re-hashes. NOTHING gates on the new numbers; they exist to be collected first.
+PROBE_VERSION = "2026.8.0"
 
 #: Default bounded-read budget: 2_000 reads, ~100x cheaper than the old arbitrary 200_000.
 #: Fingerprint-based probe on these small slices is the routine path; a caller that wants to read more
@@ -53,6 +71,16 @@ PROBE_VERSION = "2026.7.3"
 #: full 20 000 reads, i.e. the small sample was never the problem. Raising N here would have bought one
 #: dataset and left the assumption standing; a caller who genuinely needs more reads still passes
 #: --max-reads.
+#:
+#: That defence only ever covered ONE statistic. Composition, segmentation and the windows
+#: `consensus_match_rate` is cut from are read off the same head and cannot count their way around a
+#: dark cycle — a cycle nobody called has no dominant base, so it is classified as random with
+#: nothing to say it was never read. They now report their coverage instead
+#: (`models.observation.HeadCoverage`), which is a weaker remedy than the onlist's on purpose:
+#: excluding a read from a hit rate is arithmetic, while excluding a cycle from a segmentation would
+#: change what the segmentation IS. Nothing gates on the reported numbers, and a poor one refuses
+#: nothing — the corpus distribution has to be visible before a threshold can be argued for, and a
+#: threshold picked before it would be the same guess dressed as a calibration as picking N was.
 DEFAULT_MAX_READS = 2_000
 
 #: Default decompressed-byte cap. Whichever budget trips first stops the stream.

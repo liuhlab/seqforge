@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import builtins
 import gzip
 import hashlib
@@ -15,7 +16,7 @@ from types import TracebackType
 
 import pytest
 
-from conftest import write_fastq_gz
+from conftest import SrcTrees, write_fastq_gz
 from seqforge.models.observation import ConstantSegment, HomopolymerSegment, RandomSegment
 from seqforge.probe import (
     DEFAULT_MAX_BYTES,
@@ -36,8 +37,9 @@ W1_LINKER = (
 
 #: sha256 over the canonically-serialized signal fields of ``_value_stable_fixture``'s observation.
 #: Changing this literal is never a fix — it means a probe change moved an observed value, which
-#: re-hashes every pinned manifest. Re-pin only alongside a deliberate PROBE_VERSION bump.
-VALUE_STABLE_DIGEST = "2518cb673702347e78e00ac2c1265756dfa787dc3bd08a72acec527d52c6c5b5"
+#: re-hashes every pinned manifest. Re-pin only alongside a deliberate PROBE_VERSION bump — last
+#: moved by 2026.8.0, which added the coverage figures and dropped the unread whole-head N rate.
+VALUE_STABLE_DIGEST = "d6b58bf732fac12ff6cf0215b234a30671ee481de82226589cdf907e94f15edf"
 #: 16 bp CB | 22 bp W1 linker | 8 bp UMI | 10 bp polyT, recovered structurally.
 VALUE_STABLE_SEGMENTS = ["RandomSegment", "ConstantSegment", "RandomSegment", "HomopolymerSegment"]
 
@@ -386,7 +388,7 @@ def _value_stable_fixture(path: Path) -> None:
     for i in range(200):
         seq = rng.choice(pool) + W1_LINKER + _rand_seq(rng, 8) + "T" * 10
         if i % 50 == 0:
-            seq = seq[:30] + "N" + seq[31:]  # a sprinkle of N so n_rate is non-zero
+            seq = seq[:30] + "N" + seq[31:]  # a sprinkle of N so called coverage is below 1.0
         qual = "".join(chr(35 + (j % 39)) for j in range(len(seq)))
         records.append((f"INSTR:1:FLOWCELL:1:1101:{1000 + i}:{2000 + i} 1:N:0:ACGTACGT", seq, qual))
     # The fixture that pins bytes owns its compressor. `size_bytes` and `sha256` below are literals,
@@ -422,7 +424,9 @@ def test_the_signal_fields_are_value_stable(tmp_path: Path) -> None:
     assert obs.est_method == "isize"
     assert obs.quality_encoding == "phred33"
     assert obs.gzip.ok and not obs.gzip.truncated
-    assert 0 < obs.n_rate < 0.01
+    # 200 reads x 56 cycles, four of them holding the one sprinkled N.
+    assert obs.coverage.reach_fraction == 1.0
+    assert obs.coverage.called_fraction == pytest.approx(1 - 4 / (200 * 56))
     assert obs.read_name.parsed and obs.read_name.lane == 1
     assert [type(s).__name__ for s in obs.segments] == VALUE_STABLE_SEGMENTS
 
@@ -584,6 +588,159 @@ def test_the_content_address_never_scans_the_whole_file(
     assert counter[0] < on_disk  # ...without scanning the whole compressed file
     # Tighter: only the bounded head sample (+ the 4-byte ISIZE trailer + decoder read-ahead).
     assert counter[0] <= obs.probe.compressed_bytes_read + 65_536
+
+
+# ================================================================================================
+# head coverage — what each head-derived statistic was actually measured over (#190)
+# ================================================================================================
+#: A head slice is not a random sample, so composition, segmentation and the windows
+#: `consensus_match_rate` is cut from are worth what they were taken over. These pin the figure that
+#: says so: honest on a head that covers its material, and loud on the one cycle that does not.
+#: They pin REPORTING only — `test_the_coverage_figures_decide_nothing` is the other half.
+
+
+def test_a_head_that_covers_its_material_says_so(tmp_path: Path) -> None:
+    """The undegraded baseline, without which a degraded number means nothing.
+
+    Every read is the same length and every base was called, so nothing went missing by either
+    route: each cycle's denominator is the whole sample, and every span was classified over all of
+    it. A figure that could not read 1.0 here would be a units bug rather than a measurement.
+    """
+    rng = random.Random(20)
+    seqs = [_rand_seq(rng, 30) for _ in range(400)]
+    path = tmp_path / "clean.fastq.gz"
+    write_fastq_gz(path, _recs(seqs))
+
+    obs = probe_file(path)
+
+    assert obs.coverage.reach_fraction == 1.0
+    assert obs.coverage.called_fraction == 1.0
+    assert [c.n_sampled for c in obs.per_cycle_composition] == [400] * 30
+    assert obs.segments and all(s.coverage == 1.0 for s in obs.segments)
+
+
+def test_a_ragged_head_loses_reach_while_every_base_it_has_was_called(tmp_path: Path) -> None:
+    """The two loss channels are separable, and a trimmed file must not read as an unread one.
+
+    Half these reads stop at cycle 20, so a statistic over the tail rests on half the sample — the
+    denominator `window_bases` silently applies when it drops a read too short to span a column.
+    That is a fact about read lengths and nothing is wrong with the run, which is exactly why it is
+    reported apart from the base-call channel instead of averaged into one number.
+    """
+    rng = random.Random(21)
+    seqs = [_rand_seq(rng, 50) for _ in range(100)] + [_rand_seq(rng, 20) for _ in range(100)]
+    path = tmp_path / "ragged.fastq.gz"
+    write_fastq_gz(path, _recs(seqs))
+
+    obs = probe_file(path)
+    denoms = [c.n_sampled for c in obs.per_cycle_composition]
+
+    assert denoms[:20] == [200] * 20  # every read reaches the first 20 cycles...
+    assert denoms[20:] == [100] * 30  # ...and only the long half reaches the rest
+    assert obs.coverage.reach_fraction == pytest.approx((100 * 50 + 100 * 20) / (200 * 50))
+    assert obs.coverage.called_fraction == 1.0  # nothing here was uncalled
+
+
+#: The dark cycle, at GSE305031's proportion: N at one cycle in 91% of the head's reads and nowhere
+#: else. `i % 100 >= 9` puts 91 of every 100 reads in the dark.
+DARK_CYCLE = 12
+DARK_SHARE = 0.91
+
+
+def _dark_cycle_fixture(path: Path, n: int = 1000) -> None:
+    """8 bp barcode | 22 bp W1 linker | 10 bp polyT, with one linker cycle mostly uncalled."""
+    rng = random.Random(22)
+    seqs = []
+    for i in range(n):
+        seq = _rand_seq(rng, 8) + W1_LINKER + "T" * 10
+        if i % 100 >= 9:
+            seq = seq[:DARK_CYCLE] + "N" + seq[DARK_CYCLE + 1 :]
+        seqs.append(seq)
+    write_fastq_gz(path, _recs(seqs))
+
+
+def test_a_dark_cycle_shows_up_as_lost_coverage_and_nowhere_else_in_the_segmentation(
+    tmp_path: Path,
+) -> None:
+    """The measured case: a cycle nobody called splits a linker, and only coverage says why.
+
+    91% N at one cycle leaves a dominant base fraction of 0.09, which is under the purity threshold,
+    so the cycle is classified `random` — and a `random` span carries nothing that distinguishes
+    "these bases vary" from "these bases were never read". `evals/benchmark/GSE305031` is a real
+    library shaped exactly like this at R1 cycle 2. The classification is left alone deliberately;
+    what changes is that the span now says it was decided over 9% of the sample while its neighbours
+    were decided over all of it.
+    """
+    path = tmp_path / "dark.fastq.gz"
+    _dark_cycle_fixture(path)
+
+    obs = probe_file(path)
+    spans = [(type(s).__name__, s.start, s.end) for s in obs.segments]
+
+    # The linker is split in two by the one cycle that was not read.
+    assert spans == [
+        ("RandomSegment", 0, 8),
+        ("ConstantSegment", 8, 12),
+        ("RandomSegment", 12, 13),
+        ("ConstantSegment", 13, 28),
+        ("HomopolymerSegment", 28, 40),
+    ]
+    dark = next(s for s in obs.segments if (s.start, s.end) == (DARK_CYCLE, DARK_CYCLE + 1))
+    assert dark.coverage == pytest.approx(1 - DARK_SHARE)
+    assert all(s.coverage == 1.0 for s in obs.segments if s is not dark)
+    assert obs.per_cycle_composition[DARK_CYCLE].n == pytest.approx(DARK_SHARE)
+
+
+def test_the_head_wide_figure_barely_moves_for_the_cycle_that_ruined_a_statistic(
+    tmp_path: Path,
+) -> None:
+    """Why the figure is recorded per span and not only per file: one bad cycle in forty is 2%.
+
+    A whole-head average dilutes exactly the artefact it would be consulted about — the head-wide
+    called coverage of the fixture above is ~0.977, which is indistinguishable from a clean file,
+    while the span that a chemistry decision actually reads sits at 0.09. A single number would have
+    been collected for the corpus and shown nothing.
+    """
+    path = tmp_path / "dark.fastq.gz"
+    _dark_cycle_fixture(path)
+
+    obs = probe_file(path)
+    read_len = 8 + len(W1_LINKER) + 10
+
+    assert obs.coverage.reach_fraction == 1.0  # every read is full length; only a base is missing
+    assert obs.coverage.called_fraction == pytest.approx(1 - DARK_SHARE / read_len)
+    assert obs.coverage.called_fraction > 0.97
+
+
+#: The three field names this issue added that a scorer must never read. `CycleComposition.n_sampled`
+#: is deliberately NOT here: `WindowProbe` already exposes an `n_sampled` of its own that scoring may
+#: legitimately read, and an attribute guard cannot tell the two apart.
+REPORT_ONLY_FIGURES = {"coverage", "reach_fraction", "called_fraction"}
+
+
+@pytest.mark.xdist_group("src-trees")
+def test_the_coverage_figures_decide_nothing(src_trees: SrcTrees) -> None:
+    """Report only, as a mechanism rather than as a remembered rule.
+
+    The decision that added these numbers was explicit that a poor one must refuse nothing: making
+    coverage gate is a separate call with refusal consequences, and there is no evidence yet about
+    where a sensible threshold sits. That intent survives exactly as long as someone remembers it,
+    so it is checked instead — no module outside the two that produce and declare the figures may
+    even read one. A future change that gates on coverage has to delete this test, which is the
+    point: it makes the gate a decision someone takes rather than one that arrives in a diff.
+    """
+    owners = {"probe", "models"}
+    offenders = [
+        f"{path.parent.name}/{path.name}:{node.lineno} reads .{node.attr}"
+        for path, tree in src_trees.items()
+        if path.parent.name not in owners
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute) and node.attr in REPORT_ONLY_FIGURES
+    ]
+
+    assert not offenders, (
+        "a coverage figure is report-only and nothing may consume one:\n  " + "\n  ".join(offenders)
+    )
 
 
 # ================================================================================================

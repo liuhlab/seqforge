@@ -184,14 +184,19 @@ def build_observation(head: FastqHead, file: WholeFile) -> tuple[Observation, li
     ``file.isize`` is the gzip ISIZE trailer when reachable (a local file) and ``None`` when it is not
     (a range-read head has no tail, a stream has no file), which simply falls the read estimate back
     to the compressed-size ratio.
+
+    The coverage figures take their denominator from ``head.n_reads`` — the same count that is
+    stamped as ``probe.n_reads_sampled`` — so a coverage number and the sample size printed beside it
+    can never describe different reads. They are computed from the head alone, which is what makes
+    them agree across all four callers.
     """
     comps = sig.per_cycle_composition(head.seqs)
-    segments = sig.segment(comps)
+    segments = sig.segment(comps, head.n_reads)
     read_length = sig.read_length_profile(head.seqs)
     windows = sig.distinct_ratios(head.seqs, segments)
     read_name = sig.parse_read_name(head.first_name)
     quality = sig.quality_encoding(head.qual_min_ord, head.qual_max_ord)
-    nrate = sig.n_rate(head.seqs)
+    coverage = sig.head_coverage(comps, head.n_reads)
 
     estimated_total, est_method = _estimate_reads(
         file.size_bytes,
@@ -222,7 +227,7 @@ def build_observation(head: FastqHead, file: WholeFile) -> tuple[Observation, li
         distinct_value_windows=windows,
         read_name=read_name,
         quality_encoding=quality,
-        n_rate=nrate,
+        coverage=coverage,
         estimated_total_reads=estimated_total,
         est_method=est_method,
         gzip=GzipIntegrity(ok=head.ok, truncated=head.truncated),

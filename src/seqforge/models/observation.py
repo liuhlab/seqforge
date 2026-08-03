@@ -15,7 +15,15 @@ from .base import Confidence, LocalPath, Sha256
 
 
 class CycleComposition(BaseModel):
-    """Base fractions at one 0-based cycle; ``a + c + g + t + n ~= 1.0``."""
+    """Base fractions at one 0-based cycle; ``a + c + g + t + n ~= 1.0``.
+
+    ``n_sampled`` is the denominator those fractions were divided by: the sampled reads long enough
+    to reach this cycle. It is the primitive every coverage figure here reduces — a segment's
+    ``coverage`` and the head's :class:`HeadCoverage` are both sums over it — and it is also the
+    denominator of a *window* statistic cut from the same head, because a read too short to span a
+    column is dropped before ``consensus_match_rate`` or ``distinct_ratio`` ever sees it. Without it
+    a cycle measured over three reads and one measured over two thousand printed identically.
+    """
 
     cycle: int = Field(ge=0)
     a: float
@@ -23,12 +31,19 @@ class CycleComposition(BaseModel):
     g: float
     t: float
     n: float
+    n_sampled: int = Field(ge=0)
 
 
 class ConstantSegment(BaseModel):
     """A cycle span where one base dominates (>~90%): a linker/adapter/TSO candidate.
 
     Structural only — the role is NOT assigned here.
+
+    ``purity`` and ``coverage`` are different questions and an uncalled cycle moves both: purity is
+    how constant the span *looked*, coverage is how much of the sampled material was there to look
+    at. Purity alone cannot tell them apart, because an uncalled base sits in its denominator and so
+    reads as "not constant" — which is how a dark cycle turns a linker into a random span. See
+    :class:`HeadCoverage`; nothing gates on ``coverage``.
     """
 
     kind: Literal["constant"] = "constant"
@@ -36,25 +51,38 @@ class ConstantSegment(BaseModel):
     end: int = Field(ge=0)
     consensus: str
     purity: Confidence
+    coverage: Confidence
 
 
 class RandomSegment(BaseModel):
-    """A near-uniform ACGT span: a CB/UMI/cDNA candidate (role NOT assigned)."""
+    """A near-uniform ACGT span: a CB/UMI/cDNA candidate (role NOT assigned).
+
+    ``coverage`` is the share of the head's ``(read, cycle)`` cells in this span that carried a
+    called base — what this classification was decided over. See :class:`HeadCoverage`; nothing
+    gates on it.
+    """
 
     kind: Literal["random"] = "random"
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     mean_entropy_bits: float
+    coverage: Confidence
 
 
 class HomopolymerSegment(BaseModel):
-    """A run of one base (polyT capture / polyA tail): structural only."""
+    """A run of one base (polyT capture / polyA tail): structural only.
+
+    ``coverage`` is the share of the head's ``(read, cycle)`` cells in this span that carried a
+    called base — what this classification was decided over. See :class:`HeadCoverage`; nothing
+    gates on it.
+    """
 
     kind: Literal["homopolymer"] = "homopolymer"
     base: Literal["A", "C", "G", "T"]
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     mean_run: float
+    coverage: Confidence
 
 
 Segment = Annotated[
@@ -129,6 +157,41 @@ class ReadNameGrammar(BaseModel):
     sra_normalized: bool = False
 
 
+class HeadCoverage(BaseModel):
+    """How much of the sampled head actually fed the statistics computed from it.
+
+    A head slice is not a random sample, so a statistic taken off one is worth only what it was
+    taken *over*. The defence already exists one module away: ``io.onlist.onlist_hit_rate`` counts
+    only the reads that could have hit, so an uncalled cycle costs it coverage rather than moving
+    its rate. The other head-derived statistics — per-cycle composition, the segmentation built on
+    it, and the windows ``consensus_match_rate`` is cut from — had no such figure. This is it.
+
+    **Two loss channels, reported apart because they mean different things.** A *cell* is one
+    ``(read, cycle)`` pair, and the head could have held ``probe.n_reads_sampled`` x the longest
+    read of them. ``reach_fraction`` is the share a read was long enough to occupy: low on a trimmed
+    or ragged file, and a fact about read lengths rather than about the run. ``called_fraction`` is
+    the share of the *occupied* cells whose base was called — what a dark cycle destroys, and
+    exactly the complement of the head-wide N rate that used to sit on the observation unread. Their
+    product is the overall coverage; one number could not tell a short read from an uncalled base,
+    and only the second says anything is wrong.
+
+    **Nothing reads either to decide anything** — no Blocker, no Conflict, no score. They are
+    recorded so the distribution across the corpus can be *seen* before any threshold is proposed,
+    because making a poor number refuse is a separate decision with refusal consequences.
+
+    What share of the FILE the head is, is deliberately not repeated here: it is
+    ``probe.n_reads_sampled / estimated_total_reads``, already on the observation and already
+    qualified by ``est_method`` (an exact count when the file was read to EOF, an ISIZE
+    extrapolation, or a compressed-size ratio when — as on a remote range read — there is no tail to
+    reach). A stored quotient of two neighbouring fields could only ever disagree with them.
+
+    An empty head covers nothing, and both fields read ``0.0`` rather than a vacuous ``1.0``.
+    """
+
+    reach_fraction: Confidence
+    called_fraction: Confidence
+
+
 class GzipIntegrity(BaseModel):
     """Gzip stream integrity — **two** verdicts, never both true, each with its own Blocker.
 
@@ -163,7 +226,7 @@ class Observation(BaseModel):
     distinct_value_windows: list[WindowDistinctRatio]
     read_name: ReadNameGrammar
     quality_encoding: Literal["phred33", "phred64", "unknown"]
-    n_rate: Confidence
+    coverage: HeadCoverage
     estimated_total_reads: int = Field(ge=0)
     est_method: Literal["isize", "compressed_ratio"]
     gzip: GzipIntegrity
