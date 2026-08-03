@@ -33,6 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .. import kb
 from ..io import OnlistRegistry
 from ..kb.generate import write_fastq_gz
+from ..kb.schema import Spec
 from ..models.observation import Observation
 from ..models.records import ArchiveRecord, ArchiveRecordSet
 from ..resolve.group import run_key
@@ -550,6 +551,36 @@ def _materialize_random(gen: RandomRecipe, dest: Path) -> Materialized:
     return Materialized(paths=[path], registry=None, labels={path.name: gen.name})
 
 
+#: The run accession stand-in every generated case deposits its files under. A case built from one KB
+#: spec IS one library, so its files are one run's — and the only thing that says so downstream is the
+#: filename, because `resolve.group_runs` groups by name (never by role) and nothing else in the
+#: pipeline knows a case exists. Deliberately not an `[SED]RR\d+` shape: these bytes were never in an
+#: archive, and a name that reads like an accession in a manifest is a lie a reader cannot check.
+SIM_RUN = "SIM"
+
+
+def _deposited_as(spec: Spec, read_id: str, index: int) -> str:
+    """The filename read ``read_id``'s bytes are written under: ``SIM_R1.fastq.gz``.
+
+    **The generator used to name each file after the read it carries** — `R1.fastq.gz`,
+    `cdna.fastq.gz` — which is a shape no deposit has and, worse, one that groups into no run: two
+    names sharing no stem are two single-file RUNS to `resolve.group_runs`, and a barcode read with
+    no cDNA mate resolves to nothing. That was invisible for as long as the eval harness handed a
+    case's whole file list to `resolve_dataset` as one library; the moment it resolves runs the way
+    `manifest fill` does (#196), every generated case refuses `UNSUPPORTED_TECHNOLOGY`.
+
+    The mate token is the spec's own ``file_hint`` (`_R1_` -> `R1`), so the name carries exactly the
+    conventional slot a real submitter's file carries, and `scoring.filename_prior` — a sub-threshold
+    nudge that can break an exact byte tie and nothing else — reads the same token off a generated
+    case that it reads off a real one. A spec that declares no hint falls back to the read's 1-based
+    position, which still groups; what may never happen is a token `group_runs` cannot read as a
+    mate, because then the case silently splits into runs again.
+    """
+    read = next((r for r in spec.reads if r.id == read_id), None)
+    hint = (read.file_hint or "").strip("_") if read is not None else ""
+    return f"{SIM_RUN}_{hint or index}.fastq.gz"
+
+
 def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
     try:
         spec = kb.load_spec(gen.spec)
@@ -575,19 +606,23 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
 
     paths: list[Path] = []
     labels: dict[str, str] = {}
+    names = {read_id: _deposited_as(spec, read_id, i) for i, read_id in enumerate(reads, start=1)}
     for read_id, seqs in reads.items():
-        path = dest / f"{read_id}.fastq.gz"
+        path = dest / names[read_id]
         _write_fastq_gz(path, seqs)
         paths.append(path)
         labels[path.name] = read_id
 
     if gen.truncate is not None:
-        target = dest / f"{gen.truncate.file}.fastq.gz"
-        if not target.is_file():
+        # A recipe names the READ, never the file it landed under — that name is this function's
+        # business. A typo must stay the loud case error it always was, not a silently un-truncated
+        # (and therefore passing) case.
+        if gen.truncate.file not in names:
             raise CaseError(
                 f"truncate.file={gen.truncate.file!r} is not a read of spec {gen.spec!r} "
                 f"(have: {sorted(reads)})"
             )
+        target = dest / names[gen.truncate.file]
         data = target.read_bytes()
         target.write_bytes(data[: int(len(data) * gen.truncate.fraction)])
 

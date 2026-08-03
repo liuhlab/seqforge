@@ -197,6 +197,35 @@ is surfaced alongside, not instead of, the decision.
 `questions.md` is exit **4**, which a human answer can clear; a hard `Blocker` is exit **3**, which no
 human answer can. See [`cli.md`](cli.md).
 
+## From N runs to one dataset verdict: `reduce_dataset`
+
+Everything above answers "what is this ONE library?" — that is `resolve_dataset`, and a dataset is
+not one library. `resolve_runs` splits the files into runs by name (`group.py`, a rung-1 prior about
+*identity*, never about role) and resolves each on its own bytes; **`reduce_dataset` is what turns
+those N answers back into the one verdict a caller acts on**, and both front doors call it.
+
+Four gates, in this order, each a refusal:
+
+| gate | means | exit |
+|---|---|---|
+| `run` | a run did not resolve on its own bytes, or asked. `MultiRunOutput.exit_code()` is the max over the runs, so one run's blocker or one run's open question is the dataset's | 3 or 4 |
+| `metadata` | the record join refused — a record whose runs are not the files on disk | 3 |
+| `sample` | one sample's files span two chemistries. This is the relocated "all runs must agree" invariant, now per-SAMPLE: across *different* samples a difference is a legal partition into assays, within one sample it is a mis-grouping | 3 |
+| `assay` | nothing named a chemistry. The defensive floor; the `run` gate catches this in practice | 3 |
+
+Through all four, `assays` is the partition — one group per chemistry — and **more than one group is
+a verdict, not an error**: a large project holds several assays, and `manifest fill` writes one
+manifest each. `DatasetResolution.result` is the one `ResolveResult` a consumer that wants one
+answer reads: the first assay's first run (the run `manifest fill` builds that assay's manifest
+from), carrying the **union** of every run's conflicts, questions and blockers, deduplicated. Run 0's
+result alone would show a dataset exiting 4 with nothing open on it.
+
+**It lives beside the type it reduces, for `chemistry_hypothesis`'s reason.** `manifest fill` made
+this reduction inline and the eval harness that measures `manifest fill` skipped it entirely, calling
+`resolve_dataset` on a whole dataset's file list — so on 11 of the 18 benchmark cases the benchmark
+graded a code path the product had abandoned (#196). It was green only because those corpora are
+homogeneous, which is a property of the corpus and not of the compiler. One reduction, both callers.
+
 ## Worked example: the benign twin
 
 A synthetic two-file sample, one 28 bp read and one ~90 bp read. The `_1`/`_2` tokens carry no role

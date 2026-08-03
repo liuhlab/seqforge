@@ -42,7 +42,7 @@ from seqforge.evals import (
     render_html,
     run_case,
 )
-from seqforge.evals.case import Recipe
+from seqforge.evals.case import SIM_RUN, Recipe
 from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest, _merge_harvest
 from seqforge.harvest import EXTRACT_PROMPT_VERSION
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
@@ -57,7 +57,7 @@ from seqforge.models.resolve import (
     RoleAssignment,
     TechScore,
 )
-from seqforge.resolve import Hypothesis, ResolveOutput
+from seqforge.resolve import DatasetResolution, Hypothesis
 
 if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
     from seqforge.harvest import LLMResponse
@@ -372,6 +372,35 @@ def test_error_exit_is_not_silently_correct() -> None:
     assert g.grade is Grade.FALSE_REFUSE
 
 
+def test_a_dataset_that_resolved_into_two_assays_reports_both_and_fails() -> None:
+    """A project holding two assays has no ONE `library.chemistry`, and grading has to say so.
+
+    `reduce_dataset` partitions the runs by chemistry and more than one group is a legal verdict,
+    not an error — but a pre-registration naming a single chemistry did not predict this dataset. If
+    the harness graded a representative assay instead, the case would PASS whenever the expectation
+    happened to name that one, having compiled a dataset nobody described.
+    """
+    both = ["10x-3p-gex-v3", "bulk-rnaseq-pe"]
+    g = grade_case(
+        "t",
+        Expected.model_validate({"outcome": "decide", "fields": {"library.chemistry": both[0]}}),
+        _result(),
+        0,
+        LABELS,
+        chemistries=both,
+    )
+    assert g.grade is Grade.FALSE_ACCEPT
+    assert [c.actual for c in g.fields if c.path == "library.chemistry"] == [both]
+
+
+def test_one_assay_grades_exactly_as_the_winning_candidate_does() -> None:
+    """The ordinary case: one assay reads off the representative result, unchanged by the partition."""
+    expected = {"outcome": "decide", "fields": {"library.chemistry": "10x-3p-gex-v3"}}
+    args = ("t", Expected.model_validate(expected), _result(), 0, LABELS, None)
+    assert grade_case(*args).grade is Grade.CORRECT
+    assert grade_case(*args, chemistries=["10x-3p-gex-v3"]).grade is Grade.CORRECT
+
+
 # --------------------------------------------------------------------------------------------
 # harvest grading: a verified-but-wrong assertion is a false accept
 # --------------------------------------------------------------------------------------------
@@ -605,9 +634,10 @@ def test_generated_gz_pins_mtime_so_the_header_is_content_only(tmp_path: Path) -
 def test_truncate_recipe_actually_truncates(tmp_path: Path) -> None:
     case = next(c for c in discover_cases() if c.id == "truncated-gzip")
     built = materialize(case, tmp_path / "t")
-    r1 = next(p for p in built.paths if p.name.startswith("R1"))
-    r2 = next(p for p in built.paths if p.name.startswith("R2"))
-    assert r1.stat().st_size < r2.stat().st_size
+    # By LABEL, not by filename: a generated file is named for the run it belongs to and the mate
+    # slot it fills, and the read it carries is what `labels` records.
+    by_read = {built.labels[p.name]: p for p in built.paths}
+    assert by_read["R1"].stat().st_size < by_read["R2"].stat().st_size
 
 
 def test_truncate_naming_a_nonexistent_read_is_a_case_error(tmp_path: Path) -> None:
@@ -957,9 +987,9 @@ def test_harvest_hypothesis_steers_resolve() -> None:
 
 
 def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Hypothesis | None]:
-    """Record the hypothesis each `resolve_dataset` call is handed, then let the real one run."""
+    """Record the hypothesis each `resolve_runs` call is handed, then let the real one run."""
     from seqforge.evals import run as run_module
-    from seqforge.resolve import resolve_dataset as real  # the same object `run.py` imported
+    from seqforge.resolve import resolve_runs as real  # the same object `run.py` imported
 
     seen: list[Hypothesis | None] = []
 
@@ -967,7 +997,7 @@ def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Hypothesis | No
         seen.append(kwargs.get("hypothesis"))
         return real(*args, **kwargs)
 
-    monkeypatch.setattr(run_module, "resolve_dataset", _spy)
+    monkeypatch.setattr(run_module, "resolve_runs", _spy)
     return seen
 
 
@@ -1053,8 +1083,15 @@ def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing
 CONTRACT_TAXID = 6239
 
 
-def _bulk_reads_under_one_run_name(tmp_path: Path) -> Path:
-    """The corpus's own `bulk-pe-bytes-only` bytes, in one directory that both paths read.
+#: The two run accessions the fixture below deposits its generated pairs under. Two, because ONE run
+#: cannot tell the two resolvers apart: `resolve_dataset` scores a whole file list as one library and
+#: `resolve_runs` scores each run on its own bytes, and on a single-run dataset those are the same
+#: call. The whole divergence this contract now guards (#196) is invisible below two.
+CONTRACT_RUNS = ("SRR9000001", "SRR9000002")
+
+
+def _two_bulk_runs(tmp_path: Path) -> Path:
+    """The corpus's own `bulk-pe-bytes-only` bytes, TWICE, in one directory that both paths read.
 
     **Bulk, because it is the shape that needs no whitelist.** A case generated from a barcoded spec
     hands the harness a registry built from the very pools its reads were drawn from, while
@@ -1063,16 +1100,27 @@ def _bulk_reads_under_one_run_name(tmp_path: Path) -> Path:
     any manifest. That is a property of the corpus's generator, not of the pipeline, and choosing
     the no-onlist shape removes it rather than papering over it.
 
-    **The rename is the other half.** `materialize` names each generated file after the read it
-    carries, so a paired case is `R1.fastq.gz` + `R2.fastq.gz` — two names sharing no stem.
-    `manifest fill` groups files into runs by filename and therefore sees two single-file runs and
-    refuses both, where the harness hands a case's whole file list to `resolve_dataset` as one
-    library. A real deposit's names group as the one run the harness assumes; the corpus's do not.
+    **Two runs, and a different seed for each.** `materialize` deposits one case's files under ONE
+    run (`SIM_R1`, `SIM_R2`), because one KB spec is one library — so a multi-run dataset is built by
+    generating it twice and re-depositing each pair under its own accession. Only the run stem moves;
+    the mate token the generator wrote is left exactly as it is, so neither pair is renamed into a
+    shape the resolver reads differently. The seeds differ because the two runs must be different
+    bytes: identical reads content-address to identical shas, and a manifest keyed by sha would
+    silently hold two files where four were handed to it.
     """
+    import dataclasses
+
     case = next(c for c in discover_cases() if c.id == "bulk-pe-bytes-only")
     data = tmp_path / "data"
-    for path in materialize(case, data).paths:
-        path.rename(path.with_name(f"sample_{path.name}"))
+    data.mkdir(parents=True, exist_ok=True)
+    for seed, accession in enumerate(CONTRACT_RUNS):
+        seeded = case.recipe.generate.model_copy(update={"seed": seed})
+        built = materialize(
+            dataclasses.replace(case, recipe=case.recipe.model_copy(update={"generate": seeded})),
+            tmp_path / f"gen-{accession}",
+        )
+        for path in built.paths:
+            path.rename(data / path.name.replace(SIM_RUN, accession, 1))
     return data
 
 
@@ -1115,35 +1163,37 @@ def _two_chemistry_case_over(data: Path, tmp_path: Path, monkeypatch: pytest.Mon
 
 def _harness_decisions(
     case: Case, provider: _StubProvider, monkeypatch: pytest.MonkeyPatch
-) -> tuple[CaseRun, ResolveOutput, MetadataResolution]:
-    """`run_case` in full, plus the two resolutions it reached: `(run, byte resolve, metadata)`.
+) -> tuple[CaseRun, DatasetResolution, MetadataResolution]:
+    """`run_case` in full, plus the two resolutions it reached: `(run, dataset resolve, metadata)`.
 
     Spies rather than a reimplementation — each records what the real function returned and hands it
     straight back — so what is captured is what the harness actually decided, on the path a
-    `seqforge eval run` takes.
+    `seqforge eval run` takes. The byte spy sits on `reduce_dataset` rather than on `resolve_runs`,
+    because the dataset-level verdict is what the harness grades and what the front door renders;
+    the run-by-run resolve underneath it is the same function on both paths and never diverged.
     """
     from seqforge.evals import run as run_module
-    from seqforge.resolve import resolve_dataset as real_resolve
+    from seqforge.resolve import reduce_dataset as real_reduce
     from seqforge.resolve.records import resolve_metadata as real_metadata
 
     seen: dict[str, Any] = {}
 
-    def _resolve(*args: Any, **kwargs: Any) -> Any:
-        seen["resolve"] = real_resolve(*args, **kwargs)
+    def _reduce(*args: Any, **kwargs: Any) -> Any:
+        seen["resolve"] = real_reduce(*args, **kwargs)
         return seen["resolve"]
 
     def _metadata(*args: Any, **kwargs: Any) -> Any:
         seen["metadata"] = real_metadata(*args, **kwargs)
         return seen["metadata"]
 
-    monkeypatch.setattr(run_module, "resolve_dataset", _resolve)
+    monkeypatch.setattr(run_module, "reduce_dataset", _reduce)
     monkeypatch.setattr(run_module, "resolve_metadata", _metadata)
     run = run_case(case, llm=True, provider=provider)
     return run, seen["resolve"], seen["metadata"]
 
 
 def _manifest_the_harness_decided(
-    out: ResolveOutput, metadata: MetadataResolution
+    out: DatasetResolution, metadata: MetadataResolution
 ) -> DatasetManifest | None:
     """What the compiler would have written from the harness's own two resolutions — or ``None``.
 
@@ -1153,6 +1203,11 @@ def _manifest_the_harness_decided(
     assembler asks "would `manifest fill` have written this?" and asks nothing at all about the
     assembler, which is shared and is not what ever diverged.
 
+    ``role_of_sha`` is passed for the reason it exists: a `RoleAssignment` maps each role to ONE
+    file, so a two-run dataset's second pair has no role in it at all. Omitting it here would leave
+    those files bare in the harness's manifest and present in the front door's — a difference this
+    fixture would report as a divergence when it is only this helper under-calling the assembler.
+
     ``None`` is the compiler's own gate, not an absence: the fill pipeline returns before it
     assembles anything when the byte resolve does not exit 0, so a refusal here is a comparable
     answer rather than a missing one — and it is the answer a divergent hypothesis produces.
@@ -1161,7 +1216,7 @@ def _manifest_the_harness_decided(
     from seqforge.io import DEFAULT_REGISTRY
     from seqforge.manifest import dataset_uris, experiment_from_metadata, fill_manifest
 
-    if out.exit_code() != 0:
+    if out.exit_code != 0:
         return None
     uris = dataset_uris(out.observations)
     return fill_manifest(
@@ -1173,6 +1228,7 @@ def _manifest_the_harness_decided(
             metadata, out.observations, organism_taxid=CONTRACT_TAXID, uris=uris
         ),
         seqforge_version=__version__,
+        role_of_sha=out.role_of_sha(),
         uris=uris,
     )
 
@@ -1207,18 +1263,27 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
 ) -> None:
     """One case, both front doors, one manifest — the guard the last divergence lived without.
 
-    `evals/run.py` calls the product's own `resolve_dataset`, `resolve_metadata`, `extract_planned`
-    and `chemistry_hypothesis`, so there is no second pipeline left to unify. Nothing *pinned* that,
-    though, and the one divergence there was — the harness reducing a dataset's chemistry claims
-    with a last-wins `by_field` dict while `manifest fill` took them agreement-or-nothing — went
-    unnoticed for the corpus's whole life. So: run one case through both doors and assert they land
-    on the same manifest, hash and field by field.
+    `evals/run.py` calls the product's own `resolve_runs`, `reduce_dataset`, `resolve_metadata`,
+    `extract_planned` and `chemistry_hypothesis`, so there is no second pipeline left to unify.
+    Nothing *pinned* that, though, and the divergences there were went unnoticed for years of the
+    corpus's life: the harness reducing a dataset's chemistry claims with a last-wins `by_field`
+    dict while `manifest fill` took them agreement-or-nothing (#188), and then the harness calling
+    `resolve_dataset` on a whole dataset while the front door called `resolve_runs` (#196). So: run
+    one case through both doors and assert they land on the same manifest, hash and field by field.
 
-    **The case is built so the reduction decides the answer.** Two documents name two different
-    chemistries over barcodeless bulk reads. Agreement-or-nothing yields no hypothesis and the bytes
-    decide `bulk-rnaseq-pe` at exit 0; any reduction that picks one of the two instead hands a
-    single-cell claim to bulk bytes, which surfaces a cross-family conflict at exit 4 — and a
-    pipeline that stops writes no manifest at all. That is why the outcome is compared before the
+    **The case is MULTI-RUN, and that is what makes the second divergence visible.**
+    `resolve_dataset` and `resolve_runs` are the same call on a one-run dataset, so the single-run
+    case this test was born with could not tell them apart — and had to rename its files into one
+    run to get `manifest fill` to accept them at all. Two runs of bulk reads is the smallest shape
+    where the two resolvers answer differently: whole-dataset scoring seats one (R1, R2) pair out of
+    the four files and leaves the other two with no role, which lands in the manifest as two bare
+    inventory rows and a different `dataset_hash`.
+
+    **The case is also built so the prose reduction decides the answer.** Two documents name two
+    different chemistries over barcodeless bulk reads. Agreement-or-nothing yields no hypothesis and
+    the bytes decide `bulk-rnaseq-pe` at exit 0; any reduction that picks one of the two instead
+    hands a single-cell claim to bulk bytes, which surfaces a cross-family conflict at exit 4 — and
+    a pipeline that stops writes no manifest at all. That is why the outcome is compared before the
     content: the divergence changes *whether* there is a manifest, and the two manifests it does
     produce are identical.
 
@@ -1226,6 +1291,8 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
 
     - *the files* — a `local` recipe aims the harness at the same directory the argv names, so
       neither path generates its own bytes and the URIs cannot drift;
+    - *the run count* — asserted below rather than assumed, because a fixture that quietly collapses
+      to one run turns this back into a test that cannot see #196;
     - *the organism* — no record declares one and the manifest will not assemble without it;
     - *`--offline`* — the harness reaches no network by construction, so the front door must not
       either, or the comparison would depend on a socket;
@@ -1245,11 +1312,15 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
 
     from seqforge.manifest import dataset_content_hash
 
-    data = _bulk_reads_under_one_run_name(tmp_path)
+    data = _two_bulk_runs(tmp_path)
     case = _two_chemistry_case_over(data, tmp_path, monkeypatch)
     run, out, metadata = _harness_decisions(case, _two_chemistry_provider(), monkeypatch)
 
     assert run.skipped is None, run.skipped
+    assert [r.run_id for r in out.runs.runs] == list(CONTRACT_RUNS), (
+        "the harness must resolve this case as the two runs it is; one run cannot distinguish "
+        "`resolve_dataset` from `resolve_runs`, which is the whole point of the fixture"
+    )
     assert run.harvest is not None
     claimed = {a.value for a in run.harvest.assertions if a.field == "library.chemistry"}
     assert claimed == {"10x-3p-gex-v2", "10x-3p-gex-v3"}, (
@@ -1288,9 +1359,9 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
         ],
     )
 
-    assert filled.exit_code == out.exit_code(), (
+    assert filled.exit_code == out.exit_code, (
         f"the two paths disagree on the OUTCOME, before any manifest: harness exit "
-        f"{out.exit_code()}, `manifest fill` exit {filled.exit_code}\n{filled.stdout}"
+        f"{out.exit_code}, `manifest fill` exit {filled.exit_code}\n{filled.stdout}"
     )
 
     harness = _manifest_the_harness_decided(out, metadata)
@@ -1702,7 +1773,10 @@ def _bulk_fingerprint(tmp_path: Path) -> tuple[Path, str]:
     src.mkdir(parents=True)
     paths = []
     for rid, seqs in reads.items():
-        p = src / f"{rid}.fastq.gz"
+        # A real deposit's names, because that is what a real package holds: the run accession the
+        # archive assigned plus a mate token, which is how `group_runs` learns these two files are
+        # one run and how the record join below reaches them.
+        p = src / f"SRR12345678_{rid}.fastq.gz"
         with gzip.open(p, "wt") as fh:
             for i, s in enumerate(seqs):
                 fh.write(f"@r{i}\n{s}\n+\n{'I' * len(s)}\n")

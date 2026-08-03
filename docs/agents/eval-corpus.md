@@ -403,6 +403,39 @@ suffix, live, on pro. That is #189's premise reproducing, not this change's doin
 
 The no-LLM tier is unmoved: 18/18, exit 0, 92 s.
 
+### One resolver for the dataset, and the corpus's filenames had to become real (2026-08-02, #196)
+
+**The same shape one layer down, and larger.** `manifest fill` calls `resolve_runs` — group the files
+into runs by name, resolve each run on its own bytes. The harness called `resolve_dataset`, which
+answers "what is this ONE library?" and does one global role assignment: handed
+`PRJNA1027859`'s 18 files it seats one (R1, R2) pair and leaves sixteen with no role at all. **11 of
+the 18 benchmark cases are multi-run** (`GSE126954` is 175 files across 56 runs), so on eleven cases
+the benchmark graded a code path the product had abandoned. It passed because those corpora are
+*homogeneous* — every run shares one geometry, so one global assignment lands on a correct chemistry
+— which is a property of the corpus, not of the code.
+
+The fix promotes the reduction rather than teaching the harness to imitate it: `reduce_dataset` (see
+[`resolve.md`](resolve.md)) is one function with two callers, exactly as `chemistry_hypothesis` is.
+**This is a change to the ruler**, landed on its own.
+
+**The corollary, and it is not cosmetic.** `materialize` named each generated file after the read it
+carries — `R1.fastq.gz`, `cdna.fastq.gz` — which is a shape no deposit has and, worse, one that
+groups into no run: two names sharing no stem are two single-file *runs*, and a barcode read with no
+cDNA mate resolves to nothing. That was invisible while the harness scored a whole file list as one
+library; the moment it resolves runs, **every generated case refuses `UNSUPPORTED_TECHNOLOGY`**. A
+case built from one KB spec is one library, so its files are now deposited under one run,
+`SIM_<mate>.fastq.gz`, where the mate token is the spec's own `file_hint` — the same token
+`filename_prior` reads off a real submitter's file, so the sub-threshold nudge is unchanged and the
+symmetric-role bulk case still seats R1 and R2 the way it always did. The label a case's
+`expected.yaml` writes role assertions against (`R1`, `cdna`) is unchanged; only the filename moved.
+
+**Measured, no-LLM tier, before and after: 18/18 both times, and *zero* cases moved** — every field's
+graded `actual` byte-identical, `field_accuracy 1.0`, `false_accept_rate 0.0`, one question asked
+(`GSE126954`). Wall clock 89.9 s → 92.6 s: resolving 56 runs against the KB is more total work than
+resolving one 175-file pool once. A no-op on this corpus was the prediction — homogeneity is exactly
+why the divergence was invisible — and it is worth the same sentence #188 earned: the fix is
+justified by the divergence being real, not by the number moving.
+
 ### The two unsettled cases, settled 2026-08-01 (#160) — and only one of them was a defect
 
 Both were `expected: decide`, both stopped, and they stopped for opposite reasons. Writing them down
