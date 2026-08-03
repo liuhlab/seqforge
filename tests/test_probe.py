@@ -38,8 +38,9 @@ W1_LINKER = (
 #: sha256 over the canonically-serialized signal fields of ``_value_stable_fixture``'s observation.
 #: Changing this literal is never a fix — it means a probe change moved an observed value, which
 #: re-hashes every pinned manifest. Re-pin only alongside a deliberate PROBE_VERSION bump — last
-#: moved by 2026.8.0, which added the coverage figures and dropped the unread whole-head N rate.
-VALUE_STABLE_DIGEST = "d6b58bf732fac12ff6cf0215b234a30671ee481de82226589cdf907e94f15edf"
+#: moved by 2026.8.1, which added `read_length.mode_share` (this fixture is fixed-length, so it reads
+#: 1.0 and no pre-existing value moved with it).
+VALUE_STABLE_DIGEST = "93d3304f1cf317ecb1ffc2fc0c5133c3e054e43e08919ffece35f5651ad11d28"
 #: 16 bp CB | 22 bp W1 linker | 8 bp UMI | 10 bp polyT, recovered structurally.
 VALUE_STABLE_SEGMENTS = ["RandomSegment", "ConstantSegment", "RandomSegment", "HomopolymerSegment"]
 
@@ -62,6 +63,7 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     obs = probe_file(path)
     assert obs.read_length.mode == 28
     assert obs.read_length.n_distinct == 1
+    assert obs.read_length.mode_share == 1.0  # every read is at the mode, and the profile says so
     assert obs.probe.n_reads_sampled == 2000
     assert obs.gzip.ok and not obs.gzip.truncated
     assert any(isinstance(s, RandomSegment) for s in obs.segments)
@@ -120,6 +122,43 @@ def test_per_cycle_composition_matches_the_reference_loop_byte_for_byte() -> Non
             for _ in range(rng.randint(1, 40))
         ]
         assert_identical(seqs)
+
+
+@pytest.mark.parametrize("at_mode, n", [(2000, 2000), (1999, 2000), (1200, 2000), (1001, 2000)])
+def test_the_read_length_profile_reports_the_share_of_reads_at_the_mode(
+    at_mode: int, n: int
+) -> None:
+    """`n_distinct` counts which lengths are present and never how the reads divide among them.
+
+    One read of 2 000 a base short and a file where two reads in five were trimmed both report
+    `n_distinct == 2`, so a gate reading only that number cannot tell a ragged tail from a library
+    that moved — which is exactly what `resolve`'s pre-trimming refusal could not do until #190.
+    `mode_share` is the quantity it needed. Its denominator is every sampled read, because a read
+    cannot fail to reach its own length: unlike a window statistic, nothing drops out of it, which is
+    why the profile carries the share and not a denominator of its own.
+    """
+    from seqforge.probe.signals import read_length_profile
+
+    profile = read_length_profile(["A" * 28 if i < at_mode else "A" * 27 for i in range(n)])
+
+    assert profile.mode == 28
+    assert profile.n_distinct == (1 if at_mode == n else 2)
+    assert profile.mode_share == pytest.approx(at_mode / n)
+
+
+def test_a_head_with_no_reads_has_no_share_at_its_mode() -> None:
+    """0.0, not a vacuous 1.0 — the answer `HeadCoverage` already gives for an empty head.
+
+    Nothing was observed, so nothing sits at the mode. It is unreachable from the gate that reads it
+    (a file with no reads has mode 0, which fills no role), and it stays honest rather than
+    convenient in case that ever stops being true.
+    """
+    from seqforge.probe.signals import read_length_profile
+
+    profile = read_length_profile([])
+
+    assert profile.mode == 0
+    assert profile.mode_share == 0.0
 
 
 def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:

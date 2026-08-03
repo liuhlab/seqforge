@@ -38,6 +38,7 @@ from seqforge.manifest.validate import _CHEM_CONF_FLOOR_GEOMETRY, _CHEM_CONF_FLO
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.dataset import INDEX_ROLE, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
+from seqforge.models.observation import Observation
 from seqforge.models.records import ArchiveRecord, RecordAttribute
 from seqforge.models.resolve import TechScore
 from seqforge.probe import probe_file
@@ -51,7 +52,7 @@ from seqforge.resolve import (
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
 from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles
-from seqforge.resolve.escalate import escalate
+from seqforge.resolve.escalate import _pretrimmed_blockers, escalate
 from seqforge.resolve.evaluators import Outcome, evaluate
 from seqforge.resolve.geometry import (
     geometry_could_accept,
@@ -1282,39 +1283,180 @@ def test_truncated_gzip_blocks(tmp_path: Path) -> None:
     assert blk.remedy  # actionable, non-empty
 
 
+#: Bases a 3' trimmer took off a 28 bp barcode read: 27, 26, 25, 24 bp under an intact peak. Spread
+#: over four lengths rather than one so the trimmed reads can outnumber the intact ones without any
+#: single short length becoming the mode.
+_TRIM_BY = (1, 2, 3, 4)
+
+
+def _partly_trimmed_v3(tmp_path: Path, at_mode: int, n: int, seed: int = 0) -> tuple[Path, Path]:
+    """A v3 pair whose barcode read keeps ``at_mode`` of ``n`` reads at the declared 28 bp.
+
+    The rest are shortened round-robin from the 3' end, which is the shape a trimmer leaves: a spread
+    of shorter lengths under a peak that is still where the chemistry says it is. The peak has to stay
+    the single most common length, because the **mode** is what seats a file in the barcode role at
+    all (`read_length_compatible`) — a trimmer that moved the mode itself is a different failure,
+    forbidden by the geometry gates before escalation ever runs. Every read keeps its full 16 bp CB,
+    so the whitelist still hits and the chemistry still wins: length, and only length, is what these
+    fixtures vary.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=n, seed=seed)
+    trimmed = [
+        s if i < at_mode else s[: -_TRIM_BY[i % len(_TRIM_BY)]] for i, s in enumerate(reads["R1"])
+    ]
+    random.Random(seed).shuffle(trimmed)  # so no statistic can depend on read order
+    f1 = tmp_path / f"trimmed-{at_mode}-of-{n}_R1.fastq.gz"
+    f2 = tmp_path / f"trimmed-{at_mode}-of-{n}_R2.fastq.gz"
+    write_fastq_gz(f1, trimmed)
+    write_fastq_gz(f2, reads["R2"])  # cDNA, untouched: variable by design
+    return f1, f2
+
+
+def _seated_v3(observations: list[Observation]) -> TechEvaluation:
+    """A winning v3 evaluation seating R1 and R2 on the two observations, in order.
+
+    `_pretrimmed_blockers` reads exactly one thing off an evaluation — which file the winner seated in
+    each role — so everything else here is scenery. Driving the gate directly is what lets the
+    turnover below be pinned at the single read that crosses it, without paying for a full scoring
+    pass per point.
+    """
+    shas = [o.file.sha256 for o in observations]
+    return TechEvaluation(
+        tech="10x-3p-gex-v3",
+        roles=["R1", "R2"],
+        file_shas=shas,
+        matrix={},
+        assignment=AssignmentResult(valid=True, mapping={0: 0, 1: 1}, unassigned_files=[], raw=1.0),
+        score=TechScore(technology="10x-3p-gex-v3", status="scored", value=1.0),
+        rung=3,
+        used_onlist=True,
+        equivalence_members=[],
+        barcode_role_ids=["R1"],
+        unfillable_role_ids=[],
+        cdna_role_fillable=True,
+        barcode_onlist_hit=True,
+        barcode_onlist_available=True,
+    )
+
+
+def _pretrimmed_gate(f1: Path, f2: Path) -> list[m.Blocker]:
+    """The gate alone, over an already-seated v3 assignment: the blockers it emits, if any."""
+    observations = [probe_file(f1), probe_file(f2)]
+    return _pretrimmed_blockers(
+        _seated_v3(observations), kb.load_spec("10x-3p-gex-v3"), observations
+    )
+
+
 def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
     """The quiet negative: it scores like a clean dataset, so nothing else catches it.
 
-    `read_length_compatible` gates on the read-length **mode**, so a barcode read that is mostly
-    28 bp with a trimmed tail passes every geometry check and wins its candidate outright. Downstream
-    never looks again: STARsolo reads the barcode from a fixed offset, and on a shifted read that
-    offset is an arbitrary 16-mer — it matches no whitelist, the cell is dropped, the matrix is thin,
-    and STAR exits 0. That is the silent-garbage path this blocker was written to close, and
-    `PRETRIMMED_VARIABLE_LENGTH` sat declared-but-never-emitted while it stayed open.
+    `read_length_compatible` gates on the read-length **mode**, so a barcode read whose modal length
+    is still 28 bp passes every geometry check and wins its candidate outright, however few of its
+    reads are actually there. Downstream never looks again: STARsolo reads the barcode from a fixed
+    offset, and on a shifted read that offset is an arbitrary 16-mer — it matches no whitelist, the
+    cell is dropped, the matrix is thin, and STAR exits 0. That is the silent-garbage path this
+    blocker was written to close, and `PRETRIMMED_VARIABLE_LENGTH` sat declared-but-never-emitted
+    while it stayed open.
 
-    Note only R1 is trimmed here. R2 is cDNA — open-ended and *legitimately* variable — which is
-    exactly why this cannot be "variable length is bad": it has to be variable length on a read the
-    chemistry declares fixed.
+    A *majority* of the reads are off-length here, which is what the gate now asks about: the declared
+    length is no longer where this library sits. Note only R1 is trimmed. R2 is cDNA — open-ended and
+    *legitimately* variable — which is exactly why this cannot be "variable length is bad": it has to
+    be variable length on a read the chemistry declares fixed.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
-    reads = kb.generate_reads(spec, n=3000, seed=0)
-    # cutadapt ran over the barcode read: most reads survive at 28 bp, a minority come back short.
-    trimmed = [s[:20] if i % 20 == 0 else s for i, s in enumerate(reads["R1"])]
-    assert len({len(s) for s in trimmed}) == 2  # the fixture really is variable...
-    assert max(set(trimmed), key=len).__len__() == 28  # ...with the mode still at the declared 28
-
-    f1 = tmp_path / "sample_R1.fastq.gz"
-    f2 = tmp_path / "sample_R2.fastq.gz"
-    write_fastq_gz(f1, trimmed)
-    write_fastq_gz(f2, reads["R2"])
+    f1, f2 = _partly_trimmed_v3(tmp_path, at_mode=800, n=2000)
 
     out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
 
     assert out.exit_code() == 3
     assert not out.result.candidates  # refused: no manifest may be filled over this
     blk = next(b for b in out.result.blockers if b.code == BlockerCode.PRETRIMMED_VARIABLE_LENGTH)
-    assert blk.subject.ref == "sample_R1.fastq.gz"  # names the trimmed file, not the clean cDNA
+    assert blk.subject.ref == f1.name  # names the trimmed file, not the clean cDNA
     assert "sra-pub-src" in blk.remedy  # actionable: where the untrimmed original lives
+    # The message states the share it refused on, not merely that the lengths differ: a reader who
+    # disagrees with the refusal has to be able to see the number that produced it.
+    assert "40" in blk.message and "28 bp" in blk.message, blk.message
+
+
+def test_a_single_read_a_base_short_in_a_two_thousand_read_head_does_not_block(
+    tmp_path: Path,
+) -> None:
+    """The case the old gate could not survive (#190): `n_distinct == 1` made one stray read fatal.
+
+    One read of 2 000 trimmed by a single base is 0.05% of the head — a ragged record, not a trimmer
+    that moved a library's offsets — and it refused the whole dataset at exit 3, with no appeal and no
+    escape short of re-fetching a file that was never wrong. The Observation could always tell the two
+    apart; the gate just never asked it.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    f1, f2 = _partly_trimmed_v3(tmp_path, at_mode=1999, n=2000)
+
+    out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
+
+    assert not any(b.code == BlockerCode.PRETRIMMED_VARIABLE_LENGTH for b in out.result.blockers), [
+        b.message for b in out.result.blockers
+    ]
+    assert out.result.candidates[0].technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
+    assert out.exit_code() == 0
+
+
+def test_the_pretrimmed_gate_turns_over_at_a_majority_of_reads_at_the_declared_length(
+    tmp_path: Path,
+) -> None:
+    """The floor is a majority — the bar `has_segment kind: constant` already settled on (2026.7.15).
+
+    Both sides of it, at the single read that crosses: 300 of 600 reads at the declared length is a
+    library that still sits there and passes, 299 is one that does not and refuses. The far ends are
+    the ones that matter — a quarter of the reads at the declared length is a genuine offset shift and
+    must refuse, and an untouched file must never refuse — but a boundary asserted only at the ends is
+    a boundary asserted nowhere.
+
+    25% is as low as this fixture can go while still *reaching* the gate: below ~20% a shortened
+    length becomes the mode, the file stops matching the declared geometry, and the refusal that
+    follows is `read_length_compatible`'s, not this one's.
+    """
+    blocked = [
+        at_mode
+        for at_mode in (150, 270, 299, 300, 330, 600)
+        if _pretrimmed_gate(*_partly_trimmed_v3(tmp_path, at_mode=at_mode, n=600))
+    ]
+    assert blocked == [150, 270, 299]
+
+
+def test_the_over_length_escape_survives_a_tail_too_ragged_for_the_share_floor(
+    tmp_path: Path,
+) -> None:
+    """The escape below the gate is load-bearing, not a duplicate of the share floor.
+
+    An over-sequenced barcode read varies in its junk tail, and that tail can be ragged enough to put
+    the share at the modal length *under* the floor while CB and UMI sit untouched at their fixed
+    offsets. Only 40% of these reads are 150 bp — the share floor alone would refuse them — and the
+    over-length escape is the whole reason they are not refused. A test whose raggedness cleared the
+    floor anyway would pass with the escape deleted.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    cb_pool = kb.build_pools(spec, seed=0)["cb_whitelist"]
+    rng = random.Random(3)
+
+    def rand(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    tails = (122, 112, 102, 92, 82)  # 150 bp mode, then four shorter junk tails
+    barcode = [
+        rng.choice(cb_pool) + rand(12) + rand(tails[0] if i < 240 else tails[1 + i % 4])
+        for i in range(600)
+    ]
+    r1 = tmp_path / "ragged_over_length_R1.fastq.gz"
+    r2 = tmp_path / "ragged_over_length_R2.fastq.gz"
+    write_fastq_gz(r1, barcode)
+    write_fastq_gz(r2, [rand(OVER_LEN) for _ in range(600)])
+
+    obs = probe_file(r1)
+    assert obs.read_length.mode == OVER_LEN  # over-length, and the peak is a minority of the head
+    assert obs.read_length.mode_share == pytest.approx(0.4)
+
+    assert not _pretrimmed_gate(r1, r2)
 
 
 def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Path) -> None:

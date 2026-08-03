@@ -46,7 +46,21 @@ from __future__ import annotations
 #: observation must recompute — which is what this stamp is for. The manifest hash covers `library`
 #: and `experiment`, neither of which carries an observation value that moved, so no pinned dataset
 #: re-hashes. NOTHING gates on the new numbers; they exist to be collected first.
-PROBE_VERSION = "2026.8.0"
+#: 2026.8.1 — `read_length` reports `mode_share`, the share of the sampled reads sitting at the modal
+#: length (issue #190). `n_distinct` counts which lengths are present and says nothing about how the
+#: reads divide among them, so one read of 2 000 a base short and a file where half the reads were
+#: trimmed are the same number — and the pre-trimming refusal downstream, which had only that number
+#: to read, refused both. The share is the population statement the refusal was always making, and
+#: the profile could not supply it: `percentiles` is populated only when the lengths vary and, being
+#: p1/p50/p99, cannot express a majority either.
+#: UNLIKE the figures above, this one is added TO BE READ — `resolve.escalate` gates on it — which is
+#: why it is not in `test_probe.REPORT_ONLY_FIGURES`. Every FASTQ observes differently (the field is
+#: new), so every cached observation recomputes; it is REQUIRED rather than defaulted, so an
+#: observation written by an older probe fails validation and is re-probed instead of reading as
+#: "no read sits at the mode" and refusing a dataset that is fine. The manifest hash covers `library`
+#: and `experiment`, and `manifest.fill` reads only `min_len`/`max_len` off this profile, so no
+#: pinned dataset re-hashes.
+PROBE_VERSION = "2026.8.1"
 
 #: Default bounded-read budget: 2_000 reads, ~100x cheaper than the old arbitrary 200_000.
 #: Fingerprint-based probe on these small slices is the routine path; a caller that wants to read more

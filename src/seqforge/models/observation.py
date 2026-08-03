@@ -122,12 +122,26 @@ class ProbeProvenance(BaseModel):
 
 
 class ReadLengthProfile(BaseModel):
-    """Read-length summary. ``n_distinct > 1`` on a fixed-geometry read -> PRETRIMMED_VARIABLE_LENGTH."""
+    """Read-length summary. A fixed-geometry read whose ``mode_share`` is a minority was pre-trimmed.
+
+    ``n_distinct`` counts which lengths are present and says nothing about how the reads divide among
+    them: one read of two thousand a base short and a file where half the reads were trimmed both
+    report ``2``. ``mode_share`` is what separates them — the share of the sampled reads sitting at
+    ``mode`` — and it is the quantity ``PRETRIMMED_VARIABLE_LENGTH`` is decided on
+    (``resolve.escalate``), because "a trimmer moved this library" is a claim about a population of
+    reads and its honest form is a proportion.
+
+    Its denominator is every sampled read (``probe.n_reads_sampled``) and is not repeated here: a read
+    cannot fail to reach its own length, so unlike :class:`WindowDistinctRatio` or
+    :class:`CycleComposition` nothing drops out of the count. An empty head reports ``0.0`` rather
+    than a vacuous ``1.0``, exactly as :class:`HeadCoverage` does.
+    """
 
     mode: int = Field(ge=0)
     n_distinct: int = Field(ge=1)
     min_len: int = Field(ge=0)
     max_len: int = Field(ge=0)
+    mode_share: Confidence
     percentiles: dict[str, int] | None = None
 
 

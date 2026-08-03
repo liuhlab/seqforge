@@ -249,10 +249,16 @@ def _split_pure_run(
 
 
 def read_length_profile(seqs: list[str]) -> ReadLengthProfile:
-    """Mode, distinct-count, min/max, and (only when variable) percentiles of read length."""
+    """Mode, its share of the reads, distinct-count, min/max, and (when variable) percentiles.
+
+    ``mode_share`` is the share of the sampled reads sitting at the modal length -- the population
+    statement ``n_distinct`` cannot make, since counting which lengths are present says nothing about
+    how the reads divide among them. Every read has a length, so the denominator is the whole sample
+    and an empty head reports 0.0 rather than a vacuous 1.0.
+    """
     lengths = sorted(len(s) for s in seqs)
     if not lengths:
-        return ReadLengthProfile(mode=0, n_distinct=1, min_len=0, max_len=0)
+        return ReadLengthProfile(mode=0, n_distinct=1, min_len=0, max_len=0, mode_share=0.0)
     freq: dict[int, int] = {}
     for length in lengths:
         freq[length] = freq.get(length, 0) + 1
@@ -270,6 +276,7 @@ def read_length_profile(seqs: list[str]) -> ReadLengthProfile:
         n_distinct=n_distinct,
         min_len=lengths[0],
         max_len=lengths[-1],
+        mode_share=freq[mode] / len(lengths),
         percentiles=percentiles,
     )
 

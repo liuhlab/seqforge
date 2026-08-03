@@ -86,7 +86,19 @@ from __future__ import annotations
 #: `conflict-bulk-asserted-single-cell-observed` at exit 4. Without the bump those datasets would keep
 #: being served that refusal out of the cache while this landed green and changed nothing anyone could
 #: observe. `evals` run with `use_cache=False`, so the benchmark cannot report this either way.
-RESOLVE_VERSION = "2026.7.17"
+#: 2026.7.18 — `PRETRIMMED_VARIABLE_LENGTH` is decided on a FLOOR under the share of a fixed-cycle
+#: read's reads that sit at its modal length, not on "every read agrees" (#190). The gate was
+#: `n_distinct == 1`, so one read a single base short in a 2 000-read head refused the dataset at
+#: exit 3 with no appeal — the same failure, and the same cure, as 2026.7.15 one layer over: a
+#: statistic that cannot tell "every read is this length" from "most are and the rest of the head is
+#: ragged". The bar is that entry's majority, for that entry's reason.
+#: This MUST re-key, and for the reason 2026.7.15/.16/.17 did — the defect it fixes is a cached
+#: REFUSAL. A dataset with a ragged tail is already sitting in caches as PRETRIMMED_VARIABLE_LENGTH at
+#: exit 3, and would keep being served that refusal while this landed green. The accompanying
+#: PROBE_VERSION bump (2026.8.1, which adds the share this reads) moves `dataset_id` as well, but
+#: that is a probe fact: the resolver's own stamp is what states that the resolver's verdict is stale,
+#: and a reader of this log must not have to cross-reference another module's to learn it.
+RESOLVE_VERSION = "2026.7.18"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

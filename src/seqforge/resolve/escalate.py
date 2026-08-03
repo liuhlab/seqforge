@@ -39,6 +39,25 @@ from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
 
+#: Floor on the share of a fixed-cycle read's reads that must sit at its modal length before
+#: `_pretrimmed_blockers` accepts that the library is where the chemistry says it is.
+#:
+#: This is `evaluators._CONSTANT_CARRIER_MIN`'s bar, and it is here for that bar's reason (2026.7.15):
+#: "this file was pre-trimmed" is a claim about a POPULATION of reads, and its honest form is a
+#: proportion — a majority is what "the reads are this length" means. The gate this replaced asked
+#: `n_distinct == 1`, which is the same failure `has_segment kind: constant` had one layer over: a
+#: statistic that cannot tell "every read carries this" from "most do and the rest of the head is
+#: junk". There it forbade real SPLiT-seq; here it refused a whole dataset at exit 3, with no appeal,
+#: for one read of two thousand that came back a base short (#190).
+#:
+#: What does NOT transfer is how much slack the number enjoys. A window with no fixed sequence in it
+#: measures ~0, so that bar sits in a wide dead zone; read lengths have no such gap — a partly trimmed
+#: file lands anywhere in (0, 1) — so this one is load-bearing at its value, and a majority is where
+#: the argument already made in this repo puts it. Erring towards accepting is also the cheaper
+#: mistake: a trimmed read's barcode misses the whitelist and its cell drops, so a minority costs
+#: yield, while refusing costs the dataset.
+_MODE_SHARE_MIN = 0.5
+
 
 @dataclass(frozen=True)
 class Escalation:
@@ -215,23 +234,29 @@ def _declared_fixed_length(spec: Spec, read: Read) -> tuple[int, int | None] | N
 def _pretrimmed_blockers(
     top: TechEvaluation, spec: Spec, observations: list[Observation]
 ) -> list[Blocker]:
-    """Variable length on a read the chemistry declares FIXED => someone trimmed before uploading.
+    """A fixed-cycle read whose reads have mostly LEFT that length => someone trimmed before uploading.
 
     This is the quiet failure the escalation ladder is built around, and it survives every other
-    check by construction.
-    ``read_length_compatible`` matches on the **mode**, so a file whose reads are mostly 28 bp with a
-    trimmed tail scores exactly like a clean one and wins its candidate outright. Nothing downstream
-    looks again: STARsolo reads the barcode from a fixed offset, and on a shifted read that offset is
-    an arbitrary 16-mer. It matches no whitelist, the cell is dropped, the matrix comes out thin, and
-    STAR exits 0.
+    check by construction. ``read_length_compatible`` matches on the **mode**, and a mode says nothing
+    about how many reads are at it — so a barcode read most of which has been trimmed off 28 bp scores
+    exactly like a clean one and wins its candidate outright. Nothing downstream looks again: STARsolo
+    reads the barcode from a fixed offset, and on a shifted read that offset is an arbitrary 16-mer. It
+    matches no whitelist, the cell is dropped, the matrix comes out thin, and STAR exits 0.
 
-    A fixed-cycle Illumina run does not produce variable-length reads. If the technical read is
-    variable, a trimmer ran — and cutadapt/trimmomatic do not know a barcode from an adapter.
+    A fixed-cycle Illumina run does not move its reads off the length it was configured for. If most
+    of the technical read has left that length, a trimmer ran — and cutadapt/trimmomatic do not know a
+    barcode from an adapter.
 
-    An OVER-LENGTH read (a barcode read sequenced past CB+UMI) is exempt: its length varies only in
-    the junk tail, while CB/UMI stay at their fixed offsets, so that variation is not a trimmed
-    barcode. The canonical length is still enforced — a read at its declared length that is *also*
-    variable is trimmed and blocks, exactly as before.
+    **Where "most" is** — ``_MODE_SHARE_MIN``. Asking for a share rather than for uniformity is the
+    whole of #190. The gate used to be ``n_distinct == 1``: one read a single base short in a
+    2 000-read head refused the dataset at exit 3, with no appeal and no remedy short of re-fetching a
+    file that was never wrong — while the Observation carried the share that separates a 0.05% ragged
+    tail from a library whose offsets moved, and nothing asked it.
+
+    An OVER-LENGTH read (a barcode read sequenced past CB+UMI) is exempt whatever its share: its
+    length varies only in the junk tail, while CB/UMI stay at their fixed offsets, so that variation is
+    not a trimmed barcode. The canonical length is still enforced — a read sitting AT its declared
+    length, most of whose reads have left it, is trimmed and blocks.
     """
     by_sha = {o.file.sha256: o for o in observations}
     assigned = top.role_assignment_shas()
@@ -243,21 +268,24 @@ def _pretrimmed_blockers(
         declared, over_min = fixed
         sha = assigned.get(read.id)
         obs = by_sha.get(sha) if sha else None
-        if obs is None or obs.read_length.n_distinct == 1:
+        if obs is None or obs.read_length.mode_share >= _MODE_SHARE_MIN:
             continue
         if over_min is not None and obs.read_length.mode >= over_min:
             continue  # over-length: variation is in the junk tail, not the barcode
         role_id = read.id
         ref = obs.file.basename
+        profile = obs.read_length
         blockers.append(
             Blocker(
                 id=f"blk-pretrimmed-{obs.file.sha256[:8]}",
                 code=BlockerCode.PRETRIMMED_VARIABLE_LENGTH,
                 message=(
                     f"{ref}: {spec.identity.id} declares read {role_id!r} as fixed-cycle "
-                    f"({declared} bp), but the file carries {obs.read_length.n_distinct} distinct "
-                    f"read lengths (mode {obs.read_length.mode}). A trimmer ran before upload, so "
-                    f"barcode/UMI offsets may have shifted — counts would be silently wrong."
+                    f"({declared} bp), but only {profile.mode_share:.0%} of the sampled reads sit at "
+                    f"the modal length {profile.mode} — lengths span {profile.min_len}-"
+                    f"{profile.max_len} bp across {profile.n_distinct} distinct values. A trimmer "
+                    f"ran before upload, so barcode/UMI offsets may have shifted — counts would be "
+                    f"silently wrong."
                 ),
                 remedy=(
                     "Re-fetch the untrimmed original (SRA's sra-pub-src-* buckets preserve the "
