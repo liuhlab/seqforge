@@ -46,6 +46,7 @@ from seqforge.probe import probe_file
 from seqforge.resolve import (
     Hypothesis,
     chemistry_hypothesis,
+    exit_code_for,
     reduce_dataset,
     resolve_dataset,
     resolve_runs,
@@ -891,6 +892,33 @@ def test_reduce_dataset_stops_at_the_metadata_gate(two_chemistry_multi: Any) -> 
     assert resolution.refused_at == "metadata"
     assert resolution.exit_code == 3
     assert [b.id for b in resolution.blockers] == ["blk-join"]
+    # And it is READABLE off the one result. The metadata and sample gates refuse without any run
+    # refusing, so a result carrying only the runs' blockers is empty on exactly the two gates this
+    # reduction added — exit 3 with no code to name it by, which is a red a consumer cannot report.
+    assert [b.id for b in resolution.result.blockers] == ["blk-join"]
+
+
+def test_a_sample_gate_refusal_is_readable_off_the_one_result(two_chemistry_multi: Any) -> None:
+    """The same for gate 3, whose blocker no run carries either — the byte resolver cannot see a
+    sample, so a mis-grouping exists only at the dataset level."""
+    multi = two_chemistry_multi
+    by_run = _shas_by_run(multi)
+    resolution = reduce_dataset(multi, _metadata_over(mixed=by_run["SRR1"] + by_run["SRR2"]))
+
+    assert all(not r.output.result.blockers for r in multi.runs), "no run refused; the dataset did"
+    assert [b.id for b in resolution.result.blockers] == [b.id for b in resolution.blockers]
+    assert exit_code_for(resolution.result) == resolution.exit_code
+
+
+def test_reduce_dataset_refuses_to_skip_the_per_sample_gate(two_chemistry_multi: Any) -> None:
+    """No metadata is legal only where gate 1 already refused. Past it, it RAISES.
+
+    An empty resolution would sail through the per-sample gate — no samples, no disagreements — and
+    silently drop the invariant this reduction exists to apply, so a caller that forgot the join
+    would get a clean verdict rather than an error.
+    """
+    with pytest.raises(ValueError, match="metadata resolution"):
+        reduce_dataset(two_chemistry_multi)
 
 
 def test_reduce_dataset_stops_at_the_run_gate_whatever_the_join_says(tmp_path: Path) -> None:

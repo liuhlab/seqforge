@@ -607,6 +607,16 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
     paths: list[Path] = []
     labels: dict[str, str] = {}
     names = {read_id: _deposited_as(spec, read_id, i) for i, read_id in enumerate(reads, start=1)}
+    # The invariant `_deposited_as` promises, ENFORCED rather than trusted: one spec is one library
+    # is one run. A spec whose `file_hint` `group_runs` cannot read as a mate would split the case
+    # back into single-file runs, and the symptom is a case refusing UNSUPPORTED_TECHNOLOGY three
+    # layers away — so it fails here, naming the spec, instead of there, naming nothing.
+    if len({run_key(name) for name in names.values()}) != 1:
+        raise CaseError(
+            f"spec {gen.spec!r} generated files that do not group into one run: "
+            f"{sorted(names.values())} -> {sorted({run_key(n) for n in names.values()})}. A case is "
+            f"one library; check the reads' `file_hint` against `resolve.group_runs`."
+        )
     for read_id, seqs in reads.items():
         path = dest / names[read_id]
         _write_fastq_gz(path, seqs)

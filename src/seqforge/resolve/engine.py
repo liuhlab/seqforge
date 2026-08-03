@@ -612,10 +612,16 @@ class DatasetResolution:
         agreed on the chemistry and so any one of them is the assay's. A dataset that refused before
         it could name an assay falls back to its first run, which is where the refusal is written.
 
-        It carries **every** run's conflicts, questions and blockers, which is the other half of what
-        the front door does (``conflicts = [c for run in runs for c in ...]``). A question raised by
-        run 12 is the dataset's question: a consumer handed run 0's result alone would see the
-        dataset exit 4 with nothing open on it, and report a refusal it could not name.
+        It carries **every** run's conflicts and questions, which is the other half of what the front
+        door does (``conflicts = [c for run in runs for c in ...]``). A question raised by run 12 is
+        the dataset's question: a consumer handed run 0's result alone would see the dataset exit 4
+        with nothing open on it, and report a refusal it could not name.
+
+        Its blockers are every run's **and** :attr:`blockers` — the dataset's own, from the
+        ``metadata`` and ``sample`` gates. Those refuse without any run refusing, so a result holding
+        only the runs' blockers would be empty on exactly the two gates this reduction added: a
+        consumer reading one result would see exit 3 and no code to name it by, which is the same
+        unnameable refusal one run's-worth of conflicts would have been.
         """
         runs = next(iter(self.assays.values()), None) or self.runs.runs
         if not runs:
@@ -630,12 +636,16 @@ class DatasetResolution:
                 "questions": _distinct(
                     q for r in self.runs.runs for q in r.output.result.questions
                 ),
-                "blockers": _distinct(b for r in self.runs.runs for b in r.output.result.blockers),
+                "blockers": _distinct(
+                    [b for r in self.runs.runs for b in r.output.result.blockers] + self.blockers
+                ),
             }
         )
 
 
-def reduce_dataset(multi: MultiRunOutput, metadata: MetadataResolution) -> DatasetResolution:
+def reduce_dataset(
+    multi: MultiRunOutput, metadata: MetadataResolution | None = None
+) -> DatasetResolution:
     """Reduce N independently-resolved runs + the metadata resolution to one dataset-level verdict.
 
     Four gates, asked in this order, each of which is a refusal a caller renders its own way:
@@ -652,6 +662,12 @@ def reduce_dataset(multi: MultiRunOutput, metadata: MetadataResolution) -> Datas
     ``metadata`` is read for exactly one thing: the sample -> files map gate 3 needs. No attribute
     it resolved is consulted, and none may be — the two resolvers are not shown each other's input
     (ADR-0010), and this is their join, not a channel between them.
+
+    ``None`` means the caller has not run the join, which is legal only when gate 1 refuses first —
+    `manifest fill` has never paid for a record join over a dataset whose bytes did not decide, and
+    making this function the sole caller of it would have changed that. Reaching gate 2 without one
+    RAISES rather than proceeding: an empty resolution would sail through gate 3 (no samples, no
+    disagreements) and silently drop the per-sample invariant this reduction exists to apply.
     """
     assays = multi.by_chemistry()
 
@@ -662,6 +678,11 @@ def reduce_dataset(multi: MultiRunOutput, metadata: MetadataResolution) -> Datas
 
     if (code := multi.exit_code()) != 0:
         return _refused("run", list(multi.blockers), code)
+    if metadata is None:
+        raise ValueError(
+            "reduce_dataset needs the metadata resolution for a dataset whose every run resolved: "
+            "the per-sample chemistry-agreement gate is checked against the sample -> files map"
+        )
     if metadata.blockers:
         return _refused("metadata", list(metadata.blockers), 3)
     sample_shas = {s.sample_id: list(s.file_shas) for s in metadata.samples}

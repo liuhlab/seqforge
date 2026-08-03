@@ -202,7 +202,9 @@ human answer can. See [`cli.md`](cli.md).
 Everything above answers "what is this ONE library?" — that is `resolve_dataset`, and a dataset is
 not one library. `resolve_runs` splits the files into runs by name (`group.py`, a rung-1 prior about
 *identity*, never about role) and resolves each on its own bytes; **`reduce_dataset` is what turns
-those N answers back into the one verdict a caller acts on**, and both front doors call it.
+those N answers back into the one verdict a caller acts on**, and the two callers that are handed a
+whole dataset — `manifest fill` and the eval harness — both call it. (`resolve score` and `e2e.py`
+still call `resolve_dataset` directly, and correctly: each is handed one library's files.)
 
 Four gates, in this order, each a refusal:
 

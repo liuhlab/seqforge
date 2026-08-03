@@ -299,36 +299,41 @@ def _fill_manifest_pipeline(
     # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly
     # what the Stop hook rglobs, so a genuine cross-family disagreement is made visible and enforced.
     _sync_questions(state_dir(workspace), multi.runs)
-    metadata = resolve_metadata(
-        # Identity only: the metadata resolver is handed no probe signal and cannot read one.
-        files=[o.file for o in multi.observations],
-        records=records,
-        assertions=parsed,
-        subjects=subjects,
+    # The byte gate is asked twice, and only one of the two is a verdict. `reduce_dataset` owns which
+    # gate refuses, with which blockers and at which exit code; this asks the cheaper question the
+    # reduction cannot ask for us — is the record join worth running at all? A dataset whose bytes
+    # did not decide has never paid for one, and it must not start now.
+    metadata = (
+        resolve_metadata(
+            # Identity only: the metadata resolver is handed no probe signal and cannot read one.
+            files=[o.file for o in multi.observations],
+            records=records,
+            assertions=parsed,
+            subjects=subjects,
+        )
+        if multi.exit_code() == 0
+        else None
     )
     # The four refusal gates, in one place, asked by the same function the eval harness asks
     # (#196) — only their rendering below is the CLI's. What each gate means is on `reduce_dataset`.
-    # The join now runs before the byte gate rather than after it: it is pure, records-only and
-    # already-fetched, so its cost on a dataset about to refuse is arithmetic, and paying it buys one
-    # call site with one gate order instead of two orders that have to be kept in step.
-    resolution = reduce_dataset(multi, metadata)
-    if resolution.refused_at == "run":
+    dataset = reduce_dataset(multi, metadata)
+    if dataset.refused_at == "run":
         return _StageOut(
             {
                 "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
-                "blockers": [b.model_dump(mode="json") for b in resolution.blockers],
+                "blockers": [b.model_dump(mode="json") for b in dataset.blockers],
             },
-            resolution.exit_code,
+            dataset.exit_code,
         )
-    if resolution.refused_at in ("metadata", "sample"):
+    if dataset.refused_at in ("metadata", "sample"):
         return _StageOut(
-            {"blockers": [b.model_dump(mode="json") for b in resolution.blockers]},
-            resolution.exit_code,
+            {"blockers": [b.model_dump(mode="json") for b in dataset.blockers]}, dataset.exit_code
         )
-    if resolution.refused_at == "assay":
-        return _StageOut({"error": "no run resolved to a chemistry"}, resolution.exit_code)
+    if dataset.refused_at == "assay":
+        return _StageOut({"error": "no run resolved to a chemistry"}, dataset.exit_code)
 
-    groups = resolution.assays
+    assert metadata is not None  # gate 1 passed, so the join above ran
+    groups = dataset.assays
     chem_of = multi.chemistry_of_sha()
 
     # --- wrong-PDF guard: does a staged document describe a DIFFERENT study than the bytes? (#51) ---

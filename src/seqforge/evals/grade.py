@@ -132,6 +132,13 @@ def grade_case(
     actual = outcome_of(exit_code)
     exp = expected.outcome
     notes: list[str] = []
+    if chemistries is not None and len(chemistries) > 1:
+        # Said once, before any branch, so the partition is on the record whatever the case pinned.
+        # `library.chemistry` fails on it below — but a case that pinned only roles, or only
+        # `experiment.*`, would otherwise be graded entirely against assay 0 and say nothing about
+        # the other. The benchmark tier requires every case to pin a chemistry; the other tiers
+        # do not, and a note costs nothing where the field check already speaks.
+        notes.append(f"the dataset resolved into {len(chemistries)} assays: {chemistries}")
 
     if actual == "error":
         return CaseGrade(case_id, Grade.FALSE_REFUSE, exp, actual, notes=[f"exit {exit_code}"])
