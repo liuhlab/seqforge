@@ -1,8 +1,8 @@
 """The eval runner — drive real cases through the real compiler and score the outcome.
 
 This runs the shipping code path, not a reimplementation of it: ``materialize -> [harvest] -> resolve``
-via the same ``resolve_dataset`` / ``extract_drafts`` / ``verify_drafts`` the CLI calls. An eval that
-tested a parallel copy of the pipeline would grade the wrong program.
+via the same ``resolve_runs`` / ``reduce_dataset`` / ``extract_drafts`` / ``verify_drafts`` the CLI
+calls. An eval that tested a parallel copy of the pipeline would grade the wrong program.
 
 Two design points carry most of the value:
 
@@ -51,7 +51,13 @@ from ..kb.loader import load_all_specs
 from ..models.assertion import Assertion, AssertionDraft, ExtractorProvenance
 from ..models.blocker import Blocker
 from ..models.resolve import EvalReport
-from ..resolve import Hypothesis, chemistry_hypothesis, resolve_dataset
+from ..resolve import (
+    DatasetResolution,
+    Hypothesis,
+    chemistry_hypothesis,
+    reduce_dataset,
+    resolve_runs,
+)
 from ..resolve.records import DocumentSubject, resolve_metadata
 from ..workspace import EVAL_TRANSCRIPTS_DIRNAME, eval_dir
 from .case import (
@@ -336,7 +342,13 @@ def run_case(
                 if hyp is not None:
                     hypothesis = hyp
 
-            out = resolve_dataset(
+            # `resolve_runs`, because that is what the product calls. `resolve_dataset` answers
+            # "what is this ONE library?" and a case's file list is not one library: 11 of the 18
+            # benchmark cases are multi-run, and on each of them a whole-dataset call does one global
+            # role assignment — one (R1, R2) pair out of eighteen files, ten left with no role at all
+            # — and graded a code path `manifest fill` abandoned (#196). It was green only because
+            # those corpora are homogeneous, which is a property of the corpus, not of the compiler.
+            multi = resolve_runs(
                 built.paths,
                 registry=built.registry,
                 hypothesis=hypothesis,
@@ -349,18 +361,23 @@ def run_case(
             # pre-registration's sample claims be graded at all -- before this the harness could not
             # see a sample, so "tissue=Neurons" was prose in a description field.
             metadata = resolve_metadata(
-                files=[o.file for o in out.observations],
+                files=[o.file for o in multi.observations],
                 records=built.records,
                 assertions=verified,
                 subjects=subjects,
             )
+            # The SAME reduction `manifest fill` makes, from the same function — the exit code, the
+            # one result, and the per-sample chemistry-agreement gate the harness used to skip
+            # entirely. A harness that reduced its own way would grade the harness.
+            out = reduce_dataset(multi, metadata)
             trial_grade = grade_case(
                 case.id,
                 case.expected,
                 out.result,
-                out.exit_code(),
+                out.exit_code,
                 _labels(out, built),
                 metadata,
+                chemistries=sorted(out.assays),
             )
             # Fold THIS trial's harvest into THIS trial's grade. Folding once at the end against the
             # merged harvest would charge every trial for one trial's hallucination, and `stability`
@@ -887,8 +904,12 @@ def _worst(grades: list[CaseGrade]) -> CaseGrade:
     return min(grades, key=lambda g: order[g.grade])
 
 
-def _labels(out: Any, built: Materialized) -> dict[str, str]:
-    """sha256 -> recipe read id, so role assertions are written against ``R1``/``R2``, not hashes."""
+def _labels(out: DatasetResolution, built: Materialized) -> dict[str, str]:
+    """sha256 -> recipe read id, so role assertions are written against ``R1``/``R2``, not hashes.
+
+    Over the DATASET's observations — every run's, not one run's — because a role expectation names
+    a file and the file it names may belong to any run.
+    """
     return {
         o.file.sha256: built.labels.get(o.file.basename, o.file.basename) for o in out.observations
     }

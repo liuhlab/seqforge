@@ -26,7 +26,7 @@ from ..manifest import (
 )
 from ..models.assertion import Assertion
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..resolve import Cache, Hypothesis, chemistry_hypothesis, resolve_runs
+from ..resolve import Cache, Hypothesis, chemistry_hypothesis, reduce_dataset, resolve_runs
 from ..workspace import legacy_state_dir, state_dir
 from ._common import _auto_cpus, _emit, _load_manifest, _resolve_organism, _StageOut
 from .root import manifest_app
@@ -299,36 +299,41 @@ def _fill_manifest_pipeline(
     # clean re-run) BEFORE the exit-code branch below short-circuits -- `state_dir(workspace)` is exactly
     # what the Stop hook rglobs, so a genuine cross-family disagreement is made visible and enforced.
     _sync_questions(state_dir(workspace), multi.runs)
-    if (
-        multi.exit_code() != 0
-    ):  # a run that itself failed to resolve (no dataset-wide block any more)
+    # The byte gate is asked twice, and only one of the two is a verdict. `reduce_dataset` owns which
+    # gate refuses, with which blockers and at which exit code; this asks the cheaper question the
+    # reduction cannot ask for us — is the record join worth running at all? A dataset whose bytes
+    # did not decide has never paid for one, and it must not start now.
+    metadata = (
+        resolve_metadata(
+            # Identity only: the metadata resolver is handed no probe signal and cannot read one.
+            files=[o.file for o in multi.observations],
+            records=records,
+            assertions=parsed,
+            subjects=subjects,
+        )
+        if multi.exit_code() == 0
+        else None
+    )
+    # The four refusal gates, in one place, asked by the same function the eval harness asks
+    # (#196) — only their rendering below is the CLI's. What each gate means is on `reduce_dataset`.
+    dataset = reduce_dataset(multi, metadata)
+    if dataset.refused_at == "run":
         return _StageOut(
             {
                 "runs": {r.run_id: r.output.result.model_dump(mode="json") for r in multi.runs},
-                "blockers": [b.model_dump(mode="json") for b in multi.blockers],
+                "blockers": [b.model_dump(mode="json") for b in dataset.blockers],
             },
-            multi.exit_code(),
+            dataset.exit_code,
         )
+    if dataset.refused_at in ("metadata", "sample"):
+        return _StageOut(
+            {"blockers": [b.model_dump(mode="json") for b in dataset.blockers]}, dataset.exit_code
+        )
+    if dataset.refused_at == "assay":
+        return _StageOut({"error": "no run resolved to a chemistry"}, dataset.exit_code)
 
-    metadata = resolve_metadata(
-        # Identity only: the metadata resolver is handed no probe signal and cannot read one.
-        files=[o.file for o in multi.observations],
-        records=records,
-        assertions=parsed,
-        subjects=subjects,
-    )
-    if metadata.blockers:
-        return _StageOut({"blockers": [b.model_dump(mode="json") for b in metadata.blockers]}, 3)
-
-    # The relocated invariant: a single sample whose files span more than one chemistry is a
-    # mis-grouping and blocks. Different chemistries across DIFFERENT samples are a legal partition.
-    sample_shas = {s.sample_id: list(s.file_shas) for s in metadata.samples}
-    if sample_blockers := multi.sample_disagreements(sample_shas):
-        return _StageOut({"blockers": [b.model_dump(mode="json") for b in sample_blockers]}, 3)
-
-    groups = multi.by_chemistry()
-    if not groups:  # every run carried its own blocker (caught above); nothing to build
-        return _StageOut({"error": "no run resolved to a chemistry"}, 3)
+    assert metadata is not None  # gate 1 passed, so the join above ran
+    groups = dataset.assays
     chem_of = multi.chemistry_of_sha()
 
     # --- wrong-PDF guard: does a staged document describe a DIFFERENT study than the bytes? (#51) ---

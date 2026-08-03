@@ -11,6 +11,7 @@ are siblings, and they part on disagreement (see ``resolve/records.py``); they d
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 import random
@@ -40,11 +41,13 @@ from seqforge.models.dataset import INDEX_ROLE, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.observation import Observation
 from seqforge.models.records import ArchiveRecord, RecordAttribute
-from seqforge.models.resolve import TechScore
+from seqforge.models.resolve import MetadataResolution, ResolvedSample, TechScore
 from seqforge.probe import probe_file
 from seqforge.resolve import (
     Hypothesis,
     chemistry_hypothesis,
+    exit_code_for,
+    reduce_dataset,
     resolve_dataset,
     resolve_runs,
     role_of_sha_for,
@@ -820,6 +823,171 @@ def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(
     # Two samples, one chemistry each -> a legal 2-assay project, no block.
     two_samples = {"s1": by_run["SRR1"], "s2": by_run["SRR2"]}
     assert multi.sample_disagreements(two_samples) == []
+
+
+# ---------- the dataset-level reduction both front doors make (#196) ----------
+
+
+def _metadata_over(**samples: list[str]) -> MetadataResolution:
+    """A `MetadataResolution` carrying just the sample -> files map, which is all `reduce_dataset`
+    reads. Built by hand rather than resolved: the join is `test_records.py`'s subject, and what is
+    under test here is which gate a given map opens."""
+    return MetadataResolution(
+        samples=[
+            ResolvedSample(sample_id=sid, file_shas=shas) for sid, shas in sorted(samples.items())
+        ]
+    )
+
+
+def _shas_by_run(multi: MultiRunOutput) -> dict[str, list[str]]:
+    return {r.run_id: [o.file.sha256 for o in r.output.observations] for r in multi.runs}
+
+
+def test_reduce_dataset_lets_a_clean_multi_assay_project_through(two_chemistry_multi: Any) -> None:
+    """Two samples of two chemistries pass all four gates: a partition is a verdict, not a refusal."""
+    multi = two_chemistry_multi
+    by_run = _shas_by_run(multi)
+    resolution = reduce_dataset(multi, _metadata_over(s1=by_run["SRR1"], s2=by_run["SRR2"]))
+
+    assert resolution.refused_at is None
+    assert resolution.exit_code == 0
+    assert resolution.blockers == []
+    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert len(resolution.observations) == 4
+    assert len(resolution.role_of_sha()) == 4, "every file of every run keeps its role"
+
+
+def test_reduce_dataset_stops_at_the_sample_gate_on_a_mis_grouping(
+    two_chemistry_multi: Any,
+) -> None:
+    """One sample owning both chemistries' files is the relocated "runs must agree" invariant."""
+    multi = two_chemistry_multi
+    by_run = _shas_by_run(multi)
+    resolution = reduce_dataset(multi, _metadata_over(mixed=by_run["SRR1"] + by_run["SRR2"]))
+
+    assert resolution.refused_at == "sample"
+    assert resolution.exit_code == 3
+    assert len(resolution.blockers) == 1 and "mixed" in resolution.blockers[0].message
+    # The partition is still computed and reported — the refusal is about the JOIN, and a caller
+    # rendering it should be able to say which two chemistries the sample was split across.
+    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+
+
+def test_reduce_dataset_stops_at_the_metadata_gate(two_chemistry_multi: Any) -> None:
+    """A record whose runs do not match the files on disk refuses before any assay is named."""
+    multi = two_chemistry_multi
+    refused = MetadataResolution(
+        blockers=[
+            m.Blocker(
+                id="blk-join",
+                code=BlockerCode.RECORD_JOIN_INCOMPLETE,
+                message="the record's runs are not these files",
+                remedy="re-fetch",
+                subject=m.BlockerSubject(kind="dataset", ref="d"),
+            )
+        ]
+    )
+    resolution = reduce_dataset(multi, refused)
+
+    assert resolution.refused_at == "metadata"
+    assert resolution.exit_code == 3
+    assert [b.id for b in resolution.blockers] == ["blk-join"]
+    # And it is READABLE off the one result. The metadata and sample gates refuse without any run
+    # refusing, so a result carrying only the runs' blockers is empty on exactly the two gates this
+    # reduction added — exit 3 with no code to name it by, which is a red a consumer cannot report.
+    assert [b.id for b in resolution.result.blockers] == ["blk-join"]
+
+
+def test_a_sample_gate_refusal_is_readable_off_the_one_result(two_chemistry_multi: Any) -> None:
+    """The same for gate 3, whose blocker no run carries either — the byte resolver cannot see a
+    sample, so a mis-grouping exists only at the dataset level."""
+    multi = two_chemistry_multi
+    by_run = _shas_by_run(multi)
+    resolution = reduce_dataset(multi, _metadata_over(mixed=by_run["SRR1"] + by_run["SRR2"]))
+
+    assert all(not r.output.result.blockers for r in multi.runs), "no run refused; the dataset did"
+    assert [b.id for b in resolution.result.blockers] == [b.id for b in resolution.blockers]
+    assert exit_code_for(resolution.result) == resolution.exit_code
+
+
+def test_reduce_dataset_refuses_to_skip_the_per_sample_gate(two_chemistry_multi: Any) -> None:
+    """No metadata is legal only where gate 1 already refused. Past it, it RAISES.
+
+    An empty resolution would sail through the per-sample gate — no samples, no disagreements — and
+    silently drop the invariant this reduction exists to apply, so a caller that forgot the join
+    would get a clean verdict rather than an error.
+    """
+    with pytest.raises(ValueError, match="metadata resolution"):
+        reduce_dataset(two_chemistry_multi)
+
+
+def test_reduce_dataset_stops_at_the_run_gate_whatever_the_join_says(tmp_path: Path) -> None:
+    """A run that did not resolve on its own bytes refuses first, and the record join cannot rescue
+    it: the byte resolver blocks and the metadata resolver only warns (ADR-0010)."""
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=200, seed=0)
+    lone = tmp_path / "SRR1_1.fastq.gz"  # one barcode read, no cDNA mate: nothing can fill R2
+    _write_fastq_gz(lone, reads["R1"])
+    multi = resolve_runs([lone], registry=registry_for(spec), use_cache=False)
+
+    resolution = reduce_dataset(multi, _metadata_over(s1=_shas_by_run(multi)["SRR1"]))
+    assert multi.exit_code() == 3
+    assert resolution.refused_at == "run"
+    assert resolution.exit_code == 3
+    # The run's own blockers stay on the run — and reach the caller through `result`, not through
+    # the dataset-level list, which is for what the DATASET decided.
+    assert resolution.blockers == []
+    assert resolution.result.blockers, "the refusal has to be readable off the one result"
+
+
+def test_the_datasets_one_result_is_the_representative_run_of_the_first_assay(
+    tmp_path: Path,
+) -> None:
+    """A homogeneous six-run dataset reduces to the run `manifest fill` would build its manifest
+    from — and to the DATASET's role map, which one run's `RoleAssignment` cannot express."""
+    paths, reg = _six_run_dataset(tmp_path)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    resolution = reduce_dataset(multi, _metadata_over(**_shas_by_run(multi)))
+
+    first = next(iter(resolution.assays.values()))[0]
+    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.result.dataset_id == first.output.result.dataset_id
+    assert resolution.result.candidates == first.output.result.candidates
+    assert resolution.role_of_sha() == multi.role_of_sha()
+    assert len(resolution.role_of_sha()) == 12, "the dataset-wide role map is still all 12"
+
+
+def test_the_datasets_one_result_carries_every_runs_judgements_once(tmp_path: Path) -> None:
+    """The one result unions what every run surfaced, deduplicated.
+
+    Six runs of one library raise one library's question six times. A consumer that grades or
+    reports ONE result must see it — run 0 alone would show the dataset exiting 4 with nothing open
+    on it, a refusal it could not name — and must see it once, because six identical questions are
+    one question. A judgement only ONE run raised must survive: that is the half run 0 loses.
+    """
+    paths, reg = _six_run_dataset(tmp_path)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    shared = m.Question(
+        id="q-chemistry",
+        field="library.chemistry",
+        prompt="which one?",
+        options=["10x-3p-gex-v2", "10x-5p-gex-v2"],
+        decidable_by=["user"],
+        rung=7,
+    )
+    only_the_last = shared.model_copy(update={"id": "q-lane", "field": "library.lane"})
+
+    def _asking(run: Any, questions: list[m.Question]) -> Any:
+        result = run.output.result.model_copy(update={"questions": questions})
+        return dataclasses.replace(run, output=dataclasses.replace(run.output, result=result))
+
+    asked = [_asking(r, [shared]) for r in multi.runs[:-1]]
+    asked.append(_asking(multi.runs[-1], [shared, only_the_last]))
+    asking = MultiRunOutput(runs=asked)
+
+    resolution = reduce_dataset(asking, _metadata_over(**_shas_by_run(asking)))
+    assert resolution.exit_code == 4, "one run's open question is the dataset's"
+    assert [q.id for q in resolution.result.questions] == ["q-chemistry", "q-lane"]
 
 
 # ---------- the anchored measures, pinned by value ----------

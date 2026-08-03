@@ -102,12 +102,14 @@ RESOLVE_VERSION = "2026.7.18"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
+    DatasetResolution,
     Hypothesis,
     MultiRunOutput,
     ResolveOutput,
     RunResolution,
     chemistry_hypothesis,
     exit_code_for,
+    reduce_dataset,
     resolve_dataset,
     resolve_runs,
     role_of_sha_for,
@@ -123,6 +125,8 @@ __all__ = [
     "ResolveOutput",
     "MultiRunOutput",
     "RunResolution",
+    "DatasetResolution",
+    "reduce_dataset",
     "role_of_sha_for",
     "group_runs",
     "run_key",

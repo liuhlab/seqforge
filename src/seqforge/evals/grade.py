@@ -109,11 +109,19 @@ def grade_case(
     exit_code: int,
     labels: dict[str, str],
     metadata: MetadataResolution | None = None,
+    chemistries: list[str] | None = None,
 ) -> CaseGrade:
     """Grade one resolve outcome against a case's ``expected.yaml``.
 
     ``labels`` maps file sha256 -> a stable label (``R1``/``R2``) so role assertions can be written
     against the recipe's read ids rather than machine-dependent hashes.
+
+    ``chemistries`` is every assay the dataset partitioned into. One is the ordinary case and reads
+    exactly as ``result``'s own winner does; **more than one is a real verdict** and has to grade as
+    one. A project holding two assays has no single ``library.chemistry``, so the actual reported
+    against a pre-registration that names one is the whole list — which fails, and names both. The
+    alternative is silent: pick a representative assay and the case passes whenever the expectation
+    happens to name that one, having compiled a dataset the pre-registration never described.
 
     ``metadata`` is the second resolver's answer, and until it existed the harness could not see a
     sample at all: it graded a ``ResolveResult``, which has candidates and conflicts and no samples,
@@ -124,6 +132,13 @@ def grade_case(
     actual = outcome_of(exit_code)
     exp = expected.outcome
     notes: list[str] = []
+    if chemistries is not None and len(chemistries) > 1:
+        # Said once, before any branch, so the partition is on the record whatever the case pinned.
+        # `library.chemistry` fails on it below — but a case that pinned only roles, or only
+        # `experiment.*`, would otherwise be graded entirely against assay 0 and say nothing about
+        # the other. The benchmark tier requires every case to pin a chemistry; the other tiers
+        # do not, and a note costs nothing where the field check already speaks.
+        notes.append(f"the dataset resolved into {len(chemistries)} assays: {chemistries}")
 
     if actual == "error":
         return CaseGrade(case_id, Grade.FALSE_REFUSE, exp, actual, notes=[f"exit {exit_code}"])
@@ -133,7 +148,7 @@ def grade_case(
     # assertion even when the case correctly stops to ask, and skipping it would leave the value
     # untested on exactly the path where metadata is known to be lying.
     checks = (
-        _check_fields(expected.fields, result, labels, metadata)
+        _check_fields(expected.fields, result, labels, metadata, chemistries)
         if actual in ("decide", "ask")
         else []
     )
@@ -227,11 +242,12 @@ def _check_fields(
     result: ResolveResult,
     labels: dict[str, str],
     metadata: MetadataResolution | None = None,
+    chemistries: list[str] | None = None,
 ) -> list[FieldCheck]:
     checks: list[FieldCheck] = []
     top = result.candidates[0] if result.candidates else None
     for path, expected in sorted(want.items()):
-        actual = _extract_field(path, result, top, labels, metadata)
+        actual = _extract_field(path, result, top, labels, metadata, chemistries)
         checks.append(FieldCheck(path, expected, actual, _equal(expected, actual)))
     return checks
 
@@ -242,9 +258,15 @@ def _extract_field(
     top: Any,
     labels: dict[str, str],
     metadata: MetadataResolution | None = None,
+    chemistries: list[str] | None = None,
 ) -> Any:
     if path.startswith("experiment."):
         return _extract_experiment_field(path, metadata)
+    if path == "library.chemistry" and chemistries is not None and len(chemistries) > 1:
+        # The dataset partitioned into several assays, so it has no ONE chemistry. Report the whole
+        # partition: it fails against a pre-registration naming a single value, and it fails saying
+        # what it actually found. Everything else below stays the representative assay's.
+        return chemistries
     if top is None:
         return None
     if path == "library.chemistry":
