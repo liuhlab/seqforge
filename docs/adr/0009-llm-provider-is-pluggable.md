@@ -47,6 +47,18 @@ post-process, repair or partially accept a response: a malformed batch fails who
 when no credential names a provider, refuse — never fall back to one, because extracting under a
 different model than intended is a provenance bug that looks like success.
 
+**The gate reads exactly two envelopes, and that is not "partially accept" (2026-08-02).** A
+response whose top level is a bare JSON array is the same batch under a different envelope: it is
+rewrapped as `drafts` and falls into the identical per-draft validation. This is not the forbidden
+act, on two counts. It is not in a **provider adapter** — the three adapters are still untouched and
+the shared gate is still the only place a shape is judged; and nothing is *partially* accepted,
+because the whole response must BE the array. Nothing is searched for inside a response, nothing is
+repaired, and every other top-level shape still fails whole. The forbidden thing is salvaging a
+drafts-shaped fragment out of a response that also contained something else — that is the silent
+half-parse this ADR is about, and it stays forbidden. The accepted set is closed at two; a third
+shape raises. Measured cost of not doing this: 6 of 141 documents lost on `deepseek-v4-flash`, whole,
+each of them valid.
+
 **A wrapper at the seam is not a wider adapter, and the meter is the case in point.**
 `harvest/meter.py` satisfies `LLMProvider` and wraps one so that a run has somewhere to stand
 *between* two calls — to count real requests, to refuse past a token **Ceiling**, and to hold the

@@ -20,12 +20,18 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 ```
 
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
-— how many exchanges, of what, and the estimated input tokens — while reaching no model and needing no
+— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no model and needing no
 credential. A dataset's cost used to be a property nobody computed until it had been paid: one
 benchmark series billed 983 calls, 92% of them one-line run aliases. Each archive record is a
 document, except that a sample's *runs* are one document between them (a run belongs to exactly one
-sample, so its alias still declares that sample). `--ceiling N` is the backstop underneath: it
-refuses at exit 3 rather than warning.
+sample, so its alias still declares that sample).
+
+**`n_requests` is the number to read as the cost, not `n_documents`.** Documents that receive the
+same ask travel in one request, so the stable prefix is paid once for the group rather than once
+each — which is most of the bill on a fan-out over one-line records. `--ceiling N` is the backstop
+underneath, and it bounds what the run may *spend*: a request's estimate is reserved before it is
+issued, so the one the budget cannot cover is refused un-issued at exit 3 rather than warning. A
+ceiling below one request's estimate refuses at the gate having issued nothing.
 
 `extract` writes `seqforge/logs/transcript.jsonl` beside `usage.json` — the ledger says what the run
 spent, the transcript says what it spent it on. Stdout carries the path, never the exchanges.

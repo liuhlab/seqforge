@@ -223,9 +223,14 @@ not the exchange
 
 **Ceiling**:
 The most tokens one run may spend at the model seam. Counted raw — fresh input, cached input, cache
-writes and output all count, because a ceiling is a backstop and not a price. Crossing it is a
-**Blocker**: a ceiling that only warns is a number nobody sets. Not a **Budget** — a budget bounds one
-head in bytes and reads, a ceiling bounds a whole run in tokens, and neither substitutes for the other.
+writes and output all count, because a ceiling is a backstop and not a price. It bounds what may be
+**spent**, not what may be started: a request's estimated cost is reserved before it is issued and
+reconciled against the real usage when it returns, so the request the remaining budget cannot cover
+is refused **un-issued** and carries a `TOKEN_CEILING_EXCEEDED` **Blocker** at exit 3. A ceiling that
+only warns is a number nobody sets. The bound is *approximate* and must not be described otherwise —
+a response's token count is unknowable until it returns, so a run may finish a little over. Not a
+**Budget** — a budget bounds one head in bytes and reads, a ceiling bounds a whole run in tokens, and
+neither substitutes for the other.
 _Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound, per call)
 
 **Plan**:

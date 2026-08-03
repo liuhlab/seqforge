@@ -1962,9 +1962,13 @@ def test_a_failed_batch_gives_its_reservation_back_before_the_fallback_asks_for_
     plan = plan_extraction(documents=docs)
     refuses = ProviderUnavailable("this endpoint refused the request")
 
-    # What the batch and one fallback retry are each estimated at, read off an unceilinged run rather
-    # than recomputed here: the meter's own arithmetic decides admission, and a test that re-derived
-    # it would pass whatever that arithmetic became.
+    # The PROMPTS are read off an unceilinged run; what they are estimated at is then computed with
+    # the meter's own `estimated_tokens`, deliberately. This is a ceiling expressed as a SCALE, not
+    # an expected value: the subject is whether a failed batch's reservation comes back, and that is
+    # only observable against a budget tight enough that holding it would starve the retries. Pinning
+    # a literal here would pin the estimator instead, and go red on any change to it while proving
+    # nothing about release. What gives this test its failure power is the mechanism, not the number
+    # — neuter `_release` and it refuses at the third retry.
     probe = TokenMeter(_AnswersEveryDocument(answers, batch_failure=refuses))
     extract_planned(plan, kb.load_all_specs(), provider=probe)
     transcript = probe.transcript()

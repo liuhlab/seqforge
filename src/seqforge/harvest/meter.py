@@ -246,8 +246,21 @@ class TokenMeter:
     **The bound is approximate, and claiming otherwise is the defect this replaced.** A response's
     token count is not knowable until it returns, so what a Ceiling promises is that a run will not
     overshoot it by more than approximately one request's cost — never that it cannot exceed it.
-    The size of that "approximately" is the estimate's error, which is a property of this code
-    rather than of the machine it ran on, and :meth:`_reserve` is where it can be improved.
+    The size of that "approximately" is the estimate's error, and :meth:`_reserve` is where it can
+    be improved.
+
+    **That claim is weaker for the FIRST wave, and saying so is the point of this paragraph.**
+    :func:`estimated_tokens` reads the prompt, so it reserves the input half and nothing of the
+    output half; the correction that closes the gap is the mean cost of an exchange that has already
+    banked, and during the first wave none has. So until one request has returned, the unreserved
+    remainder is the output of every request in flight, and *that* much of the overshoot does still
+    scale with the pool — the machine-shaped error this replaced, surviving in the one window where
+    nothing has been measured yet. After the first exchange banks it is gone.
+
+    Reserving a request's ``max_tokens`` outright would close the window, at the price of refusing
+    runs that would have fitted: the cap is several times a real extraction's output, so a tight
+    ceiling would refuse at the gate having issued nothing. That is a trade about how strong the
+    refusal should be rather than about how it is accounted, so it is not made here.
     """
 
     #: A plain instance attribute, assigned from the wrapped provider in ``__init__``. The protocol

@@ -330,7 +330,10 @@ each document that never answered. `EvalReport.harvest` is the tier-wide roll-up
 `--no-llm` run because zeros there would read as a stage that ran and found nothing. It carries
 `documents_planned` from the run's own plans, which is the plan-versus-issued gap without needing a
 second command; `eval plan`'s `n_documents` compared against it catches the cases that never planned
-at all, and `cost.llm_calls` against `documents_extracted` is what retries cost.
+at all. **What retries cost is `cost.llm_calls` against `n_requests`, not against
+`documents_extracted`** — documents that receive the same ask travel in one request, so the gap
+between calls and *documents* is mostly batching and only incidentally retries. `n_requests` is the
+floor a run may not go below; anything above it is a retry.
 
 **A negative verdict needs every document; a positive one needs any.** A graded assertion that a
 failed document would have been asked is `unchecked`, never `missing`, and `unchecked` enters no

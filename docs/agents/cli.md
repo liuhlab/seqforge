@@ -67,9 +67,13 @@ recurs, and what it must mean when it does:
   one (R3).
 - **`--provider` / `--model`** — on the verbs that reach a model. Selection is
   explicit-beats-implicit, and refuses rather than guessing when no credential is present.
-- **`--ceiling`** — the token **Ceiling**, on those same verbs. It **refuses**: reaching it emits a
-  `TOKEN_CEILING_EXCEEDED` Blocker and exits 3, never a warning, because a ceiling that only warns is
-  a number nobody sets. Counted raw — cached input and cache writes count too — and `0` removes it.
+- **`--ceiling`** — the token **Ceiling**, on those same verbs. It **refuses**, and it bounds what a
+  run may *spend* rather than what it may start: a request's estimated cost is reserved before the
+  request is issued, so the one the remaining budget cannot cover is refused un-issued with a
+  `TOKEN_CEILING_EXCEEDED` Blocker at exit 3 — never a warning, because a ceiling that only warns is
+  a number nobody sets. A ceiling under one request's estimate therefore refuses at the gate having
+  issued nothing. The bound is approximate: a response's cost is unknowable until it returns, so a
+  run may finish a little over. Counted raw — cached input and cache writes count too — and `0` removes it.
   Not the read budget and not `max_tokens`: a budget bounds one head in bytes and reads, `max_tokens`
   bounds one response's output, and a ceiling bounds a whole run in tokens.
 
