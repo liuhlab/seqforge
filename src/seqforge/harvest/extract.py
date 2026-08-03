@@ -321,22 +321,45 @@ def extract_drafts(
     )
 
     # THE gate. json-object providers do not enforce shape, so this is where a malformed batch is
-    # caught. The split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array)
-    # is a provider failure with nothing to salvage and dies wholesale (that is #4's empty-content
-    # case). But a single malformed DRAFT — a `value: null`, a missing span — is just one bad proposal
-    # from a proposer we already distrust: drop it into `rejected` and keep the rest, exactly as
-    # `verify` drops a claim whose quote will not grep back. One flaky token from the model must not
-    # sink a whole document's worth of valid extraction (#5).
+    # caught. The split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array
+    # under either accepted envelope) is a provider failure with nothing to salvage and dies wholesale
+    # (that is #4's empty-content case). But a single malformed DRAFT — a `value: null`, a missing
+    # span — is just one bad proposal from a proposer we already distrust: drop it into `rejected` and
+    # keep the rest, exactly as `verify` drops a claim whose quote will not grep back. One flaky token
+    # from the model must not sink a whole document's worth of valid extraction (#5).
     try:
         raw = json.loads(response.text)
     except (json.JSONDecodeError, ValueError) as exc:
         raise ExtractUnavailable(
             f"{llm.name} returned output that is not valid JSON: {exc}"
         ) from exc
+    if isinstance(raw, list):
+        # A bare top-level array is that same batch under a different envelope, so unwrap it and let
+        # the per-draft gate below do exactly what it does for a wrapped one. Every element still
+        # faces `AssertionDraft.model_validate` alone and a malformed one still lands in `rejected` —
+        # nothing here is more trusted than before, only differently packaged. Losing the document
+        # instead costs a whole document's worth of valid extraction for one token the model failed
+        # to write, and it is measurably live: on the benchmark corpus the weaker json-object model
+        # lost 6 of 141 documents this way, the stronger one 0-1 (#190).
+        #
+        # This is NOT the silent half-parse a malformed batch must die of. That one is hunting for a
+        # drafts-shaped array *inside* a response whose shape we did not understand, and promoting a
+        # fragment of it — half a batch, which is the only outcome worse than none. Here the whole
+        # response IS the array: nothing is left over, nothing is searched for, and nothing is
+        # repaired. Every other top-level shape (a string, a number, `null`, an object with no usable
+        # `drafts` key) still dies wholesale below, because none of them contains a batch to keep.
+        #
+        # Deliberately not recorded as an envelope quirk anywhere. `Exchange.text` already holds the
+        # response verbatim and every run writes its transcript to an address, so how often a model
+        # does this is a grep away at full fidelity; a flag beside it would be a lossy second copy of
+        # a fact we keep, computed on every outcome for no reader — the shape of dead field this repo
+        # has just finished deleting. And an envelope we have never seen still fails loudly, so a
+        # provider whose behaviour really changes announces itself rather than being normalised away.
+        raw = {"drafts": raw}
     if not isinstance(raw, dict):
         raise ExtractUnavailable(
             f"{llm.name} returned a top-level {type(raw).__name__}, not a JSON object with a "
-            f"`drafts` array"
+            f"`drafts` array (nor a bare array of drafts)"
         )
     if not isinstance(raw.get("drafts"), list):
         # Name what is actually wrong with `drafts` — missing, or the wrong type ({'drafts': null}

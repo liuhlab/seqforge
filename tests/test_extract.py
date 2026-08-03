@@ -259,6 +259,77 @@ def test_extract_rejects_non_json(tmp_path: Path) -> None:
         )
 
 
+def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
+    tmp_path: Path,
+) -> None:
+    """A model that returns the drafts array without wrapping it has still returned the batch.
+
+    The elements are byte-identical either way and each one still faces
+    `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
+    discard a whole document's worth of valid extraction for one missing token — the same defect
+    `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
+    live on the weaker json-object models (#190).
+    """
+    wrapped = _batch()
+    bare = json.dumps(json.loads(wrapped)["drafts"])  # the identical elements, unwrapped
+    doc = _doc(tmp_path)
+
+    under_wrapper = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(wrapped))
+    unwrapped = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(bare))
+
+    assert unwrapped.drafts == under_wrapper.drafts
+    assert unwrapped.rejected == under_wrapper.rejected == []
+    assert unwrapped.answered
+
+
+def test_a_bare_top_level_array_still_drops_only_the_malformed_draft(tmp_path: Path) -> None:
+    """Unwrapping changes the envelope and nothing else: the per-draft gate is still the gate."""
+    good = {
+        "field": "library.chemistry",
+        "value": "10x-3p-gex-v3",
+        "span": {"doc_sha256": "0" * 64, "quote": _QUOTE, "context": None},
+        "llm_confidence": 0.9,
+    }
+    bad = {**good, "value": None}
+    outcome = extract_drafts(
+        _doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(json.dumps([good, bad, good]))
+    )
+
+    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3", "10x-3p-gex-v3"]
+    assert [r["reason"] for r in outcome.rejected] == ["malformed_draft"]
+
+
+def test_a_bare_empty_array_answers_exactly_as_an_empty_drafts_array(tmp_path: Path) -> None:
+    """`[]` and `{"drafts": []}` are one fact — the document supports nothing — and an envelope may
+    not turn a correct, common answer into a lost document."""
+    doc = _doc(tmp_path, "We sequenced some things.")
+    wrapped = extract_drafts(
+        doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []}))
+    )
+    bare = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider("[]"))
+
+    assert bare.drafts == wrapped.drafts == []
+    assert bare.rejected == wrapped.rejected == []
+    assert bare.answered and bare.failure is None
+
+
+@pytest.mark.parametrize(
+    "payload, named", [('"drafts"', "str"), ("7", "int"), ("null", "NoneType")]
+)
+def test_every_other_top_level_shape_still_dies_wholesale(
+    tmp_path: Path, payload: str, named: str
+) -> None:
+    """The array is the ONE extra envelope. A scalar carries no batch to keep, so it stays fatal —
+    and the refusal names what came back plus both shapes that would have been read, which the old
+    wording ("not a JSON object") can no longer say now that an object is not the only one."""
+    with pytest.raises(ExtractUnavailable) as caught:
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(payload))
+
+    message = str(caught.value)
+    assert f"top-level {named}" in message
+    assert "`drafts`" in message and "array of drafts" in message
+
+
 def test_extract_overwrites_the_models_doc_sha(tmp_path: Path) -> None:
     """We know which document we sent; the model's echo is worthless as evidence. Code wins."""
     nd = _doc(tmp_path)
