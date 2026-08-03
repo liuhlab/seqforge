@@ -40,6 +40,19 @@ sbatch/
 /tests/_*_test.py
 /tests/_test_*.py
 
+# STAR run artifacts. STAR writes these to its `--outFileNamePrefix`, which defaults to the CWD, so
+# any STAR invocation from the repo root drops them here. The whole family is listed, not just the
+# `Log.out` that actually got caught: ignoring one name leaves the next stray (`Log.final.out`,
+# `SJ.out.tab`, ...) sweepable by a broad `git add`, which is the failure this file keeps preventing.
+/Log.out
+/Log.final.out
+/Log.progress.out
+/SJ.out.tab
+/_STARtmp/
+/Aligned.out.bam
+/Aligned.sortedByCoord.out.bam
+/Solo.out/
+
 # Agent worktrees. Claude Code puts an isolated checkout here, INSIDE the repo, so every root-level
 # tool walks into it: ruff lints another session's half-finished file and fails your gate, and
 # `ruff format .` / `--fix` rewrites their working tree from under them. Ignoring it fixes both
