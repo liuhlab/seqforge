@@ -38,6 +38,7 @@ from seqforge.manifest.validate import _CHEM_CONF_FLOOR_GEOMETRY, _CHEM_CONF_FLO
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.dataset import INDEX_ROLE, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
+from seqforge.models.records import ArchiveRecord, RecordAttribute
 from seqforge.models.resolve import TechScore
 from seqforge.probe import probe_file
 from seqforge.resolve import (
@@ -1446,6 +1447,144 @@ def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: 
     assert chemistry_hypothesis([bad]) is None
     got = chemistry_hypothesis([_chem_assertion("10x-3p-gex-v3"), bad])
     assert got is not None and got.value == "10x-3p-gex-v3"
+
+
+def _experiment_record(library_source: str | None) -> ArchiveRecord:
+    """One experiment record, carrying ``library_source`` only when the deposit declared one.
+
+    ``harmonized=False`` is not an oversight: ``io/archive.py`` files the library descriptor
+    unharmonized (the harmonized namespace is NCBI's curated *sample* attribute list), so a rule that
+    read it through ``ArchiveRecord.attribute`` would silently see nothing on every real record.
+    """
+    return ArchiveRecord(
+        level="experiment",
+        accession="SRX000001",
+        attributes=(
+            []
+            if library_source is None
+            else [RecordAttribute(name="library_source", value=library_source)]
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("library_source", "chemistry", "expected"),
+    [
+        pytest.param(
+            "TRANSCRIPTOMIC SINGLE CELL", "bulk-rnaseq-pe", None, id="single-cell-drops-bulk"
+        ),
+        pytest.param(
+            "transcriptomic single-cell", "bulk RNA-seq", None, id="case-and-hyphen-tolerant"
+        ),
+        pytest.param(
+            "TRANSCRIPTOMIC SINGLE CELL",
+            "10x-3p-gex-v3",
+            "10x-3p-gex-v3",
+            id="single-cell-hint-untouched",
+        ),
+        pytest.param(
+            "TRANSCRIPTOMIC",
+            "bulk-rnaseq-pe",
+            "bulk-rnaseq-pe",
+            id="bare-transcriptomic-says-nothing",
+        ),
+        pytest.param(
+            None, "bulk-rnaseq-pe", "bulk-rnaseq-pe", id="no-library-source-attribute-at-all"
+        ),
+    ],
+)
+def test_a_single_cell_deposit_rules_a_bulk_hint_out(
+    library_source: str | None, chemistry: str, expected: str | None
+) -> None:
+    """A record declaring a single-cell library makes a BULK hint non-credible, and nothing more.
+
+    ``library_source`` is deterministic, needs no model and no network, and speaks on exactly the axis
+    the cross-family guard fires on. Its authority is one-directional: it may decline to offer a hint,
+    never supply one, so a single-cell reading leaves a single-cell hint exactly as it found it.
+
+    Bare ``TRANSCRIPTOMIC`` must change nothing, and that is the load-bearing negative — most
+    single-cell deposits carry it, so reading its absence as evidence of bulk would false-block
+    correct datasets by the hundred. Matching is tolerant of case and of a hyphen (the same normalizing
+    the KB's own entailment test does) and stops there: the answer to an unenumerable list of spellings
+    is not a longer list.
+    """
+    got = chemistry_hypothesis(
+        [_chem_assertion(chemistry)], records=[_experiment_record(library_source)]
+    )
+    if expected is None:
+        assert got is None
+    else:
+        assert got is not None and got.value == expected
+
+
+def test_a_dataset_with_no_records_keeps_every_hint() -> None:
+    """Most sequencing data never had an accession, so the no-record path is the ORDINARY one.
+
+    An archive-shaped column may only ever enrich; a rule that needed one would refuse the in-house
+    plate on the lab filesystem, which has no records at all and never will.
+    """
+    claim = [_chem_assertion("bulk-rnaseq-pe")]
+    empty: list[list[ArchiveRecord] | None] = [None, []]
+    for records in empty:
+        got = chemistry_hypothesis(claim, records=records)
+        assert got is not None and got.value == "bulk-rnaseq-pe"
+    got = chemistry_hypothesis(claim)  # the parameter is optional, and absent means absent
+    assert got is not None and got.value == "bulk-rnaseq-pe"
+
+
+def test_a_single_cell_record_never_manufactures_a_hypothesis() -> None:
+    """It rules OUT. Where the prose named no chemistry, a record leaves the answer at ``None``.
+
+    Letting metadata *name* a chemistry would be the ninth evidence test this resolver does not
+    build — a spec could then identify itself by being described rather than by what is in its reads.
+    Silence is what a record is entitled to produce.
+    """
+    records = [_experiment_record("TRANSCRIPTOMIC SINGLE CELL")]
+    assert chemistry_hypothesis([], records=records) is None
+    two_protocols = [_chem_assertion("bulk-rnaseq-pe"), _chem_assertion("10x-3p-gex-v3")]
+    assert chemistry_hypothesis(two_protocols, records=records) is None
+
+
+def test_a_single_cell_record_declines_the_hint_rather_than_blocking(tmp_path: Path) -> None:
+    """End to end, against the exit-4 refusal this exists to prevent — and its own control.
+
+    The bytes are 10x v3, the prose says bulk. With no record that is a cross-family contradiction and
+    a human is asked (the control below, and the case
+    ``test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict`` pins it on its own). Hand
+    the same run a deposit declaring ``TRANSCRIPTOMIC SINGLE CELL`` and the bulk hint is simply not
+    offered: same winner, no conflict, no blocker, exit 0.
+
+    The worst this rule can do is withhold a hint — it raises nothing of its own, so there is no new
+    way for it to refuse a dataset.
+    """
+    spec = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(spec, n=1500, seed=0)
+    f1 = tmp_path / "sample_R1.fastq.gz"
+    f2 = tmp_path / "sample_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    prose = [_chem_assertion("bulk RNA-seq")]
+
+    control = chemistry_hypothesis(prose)
+    assert control is not None and control.value == "bulk RNA-seq"
+    refused = resolve_dataset(
+        [f1, f2], registry=registry_for(spec), hypothesis=control, use_cache=False
+    )
+    assert refused.exit_code() == 4
+    assert [c.id for c in refused.result.conflicts] == [
+        "conflict-bulk-asserted-single-cell-observed"
+    ]
+
+    hypothesis = chemistry_hypothesis(
+        prose, records=[_experiment_record("TRANSCRIPTOMIC SINGLE CELL")]
+    )
+    assert hypothesis is None
+    out = resolve_dataset(
+        [f1, f2], registry=registry_for(spec), hypothesis=hypothesis, use_cache=False
+    )
+    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
+    assert out.result.conflicts == [] and out.result.blockers == []
+    assert out.exit_code() == 0
 
 
 def test_metadata_v2_vs_reads_v3_resolves_to_v3_at_the_leaf(tmp_path: Path) -> None:

@@ -321,12 +321,18 @@ def run_case(
                 calls += hg.n_calls
                 for k, v in u.items():
                     usage[k] = usage.get(k, 0) + v
-                # The SAME reduction `manifest fill` makes, over the same verified assertions — a
-                # harness that reduced prose its own way would be measuring itself (#188). `None`
-                # means harvest has no opinion, which is NOT the same as overriding: a case that
+                # The SAME reduction `manifest fill` makes, over the same verified assertions AND the
+                # same records — a harness that reduced prose its own way would be measuring itself
+                # (#188), and one shown less input than production would measure a different compiler.
+                # `None` means harvest has no opinion, which is NOT the same as overriding: a case that
                 # declared its hypothesis in `inputs/recipe.yaml` keeps it, and that channel is the
-                # only one `GSE317744` is graded on chemistry through.
-                hyp = chemistry_hypothesis(verified)
+                # only one `GSE317744` is graded on chemistry through. A case-declared hypothesis is
+                # this harness's stand-in for `--assert-chemistry`, so a record leaves it alone for the
+                # same reason it leaves an operator's override alone.
+                hyp = chemistry_hypothesis(
+                    verified,
+                    records=built.records.records if built.records is not None else None,
+                )
                 if hyp is not None:
                     hypothesis = hyp
 
