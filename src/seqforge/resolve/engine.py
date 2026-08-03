@@ -12,6 +12,9 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal, TypeVar
+
+from pydantic import BaseModel
 
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
@@ -22,7 +25,7 @@ from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
 from ..models.records import ArchiveRecord
-from ..models.resolve import Candidate, ResolveResult
+from ..models.resolve import Candidate, MetadataResolution, ResolveResult
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS, PROBE_VERSION, probe_sample
 from . import RESOLVE_VERSION
 from .cache import Cache, dataset_id, resume_key
@@ -35,6 +38,10 @@ from .escalate import _barcode_read_id, escalate
 from .geometry import length_feasible
 from .scoring import TechEvaluation, build_tech_evaluation
 from .window import WindowProbe
+
+#: Any of the three surfaced-judgement models a run can carry (`Conflict`, `Question`, `Blocker`),
+#: for the one helper that unions them across a dataset's runs.
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 
 @dataclass(frozen=True)
@@ -529,6 +536,140 @@ class MultiRunOutput:
         if self.blockers:
             return 3
         return max((r.output.exit_code() for r in self.runs), default=0)
+
+
+#: Which gate turned a dataset down, in the order :func:`reduce_dataset` asks them. ``run`` is a run
+#: that did not resolve on its own bytes (or asked); ``metadata`` is the record join refusing;
+#: ``sample`` is one sample's files spanning two chemistries; ``assay`` is the defensive floor —
+#: nothing left to name an assay with, which the ``run`` gate has already caught in every case that
+#: reaches it. Named rather than inferred from the exit code, because three of the four are exit 3
+#: and a caller rendering a refusal has to say which one.
+RefusalGate = Literal["run", "metadata", "sample", "assay"]
+
+
+def _distinct(items: Iterable[_ModelT]) -> list[_ModelT]:
+    """``items`` with exact duplicates dropped, first occurrence kept.
+
+    One question asked by fifty-six runs is one question. Ids here are stable strings the escalator
+    writes (``q-chemistry``, ``conflict-barcode-length``), not run-scoped, so identical objects
+    really are the same claim about the same dataset — while anything that differs, in any field,
+    survives as its own row.
+    """
+    seen: set[str] = set()
+    out: list[_ModelT] = []
+    for item in items:
+        key = item.model_dump_json()
+        if key not in seen:
+            seen.add(key)
+            out.append(item)
+    return out
+
+
+@dataclass(frozen=True)
+class DatasetResolution:
+    """A dataset's independently-resolved runs, reduced to the ONE verdict a consumer acts on.
+
+    **It exists because there are two consumers and there was one implementation.** `manifest fill`
+    made this reduction inline; the eval harness that measures `manifest fill` skipped it entirely
+    and called :func:`resolve_dataset` on a whole dataset's file list, which scores those files as
+    ONE library and hands out one global (R1, R2) assignment. On any multi-run dataset the benchmark
+    therefore graded a code path the product had abandoned — 11 of the 18 benchmark cases (#196),
+    green only because those corpora happen to be homogeneous. That is the same shape as the
+    divergence :func:`chemistry_hypothesis` closed, and the same cure: one reduction, both callers.
+
+    Nothing here re-decides anything. Every field is read off :class:`MultiRunOutput` and the
+    metadata resolution; the gates and their order are exactly the ones `manifest fill` asked.
+    """
+
+    #: The runs, each resolved on its own bytes. Observations and the role map are read off it.
+    runs: MultiRunOutput
+    #: One group per **assay** — the samples sharing one chemistry. More than one group is a legal
+    #: partition of a large project, not an error; empty means no run named a chemistry at all.
+    assays: dict[str, list[RunResolution]]
+    #: The gate that turned this dataset down, or ``None`` when it got through all four.
+    refused_at: RefusalGate | None
+    #: The DATASET-level reasons behind ``refused_at``. A run's own blockers stay on that run — they
+    #: are already in :attr:`result` and in the per-run payload a caller renders.
+    blockers: list[Blocker]
+    #: The uniform exit contract: 0 decide, 3 refuse, 4 ask.
+    exit_code: int
+
+    @property
+    def observations(self) -> list[Observation]:
+        return self.runs.observations
+
+    def role_of_sha(self) -> dict[str, str]:
+        """The dataset-wide file-sha -> role map. A six-run dataset has six R1s; this is where they
+        are, and a single run's `RoleAssignment` cannot express it."""
+        return self.runs.role_of_sha()
+
+    @property
+    def result(self) -> ResolveResult:
+        """One :class:`ResolveResult` for the whole dataset, for a consumer that grades or reports one.
+
+        The representative is the first run of the first assay — the same run `manifest fill` builds
+        an assay's manifest from (``result=runs[0].output.result``), because every run of an assay
+        agreed on the chemistry and so any one of them is the assay's. A dataset that refused before
+        it could name an assay falls back to its first run, which is where the refusal is written.
+
+        It carries **every** run's conflicts, questions and blockers, which is the other half of what
+        the front door does (``conflicts = [c for run in runs for c in ...]``). A question raised by
+        run 12 is the dataset's question: a consumer handed run 0's result alone would see the
+        dataset exit 4 with nothing open on it, and report a refusal it could not name.
+        """
+        runs = next(iter(self.assays.values()), None) or self.runs.runs
+        if not runs:
+            raise ValueError(
+                "a dataset with no runs has no result — resolve_runs was given no files"
+            )
+        return runs[0].output.result.model_copy(
+            update={
+                "conflicts": _distinct(
+                    c for r in self.runs.runs for c in r.output.result.conflicts
+                ),
+                "questions": _distinct(
+                    q for r in self.runs.runs for q in r.output.result.questions
+                ),
+                "blockers": _distinct(b for r in self.runs.runs for b in r.output.result.blockers),
+            }
+        )
+
+
+def reduce_dataset(multi: MultiRunOutput, metadata: MetadataResolution) -> DatasetResolution:
+    """Reduce N independently-resolved runs + the metadata resolution to one dataset-level verdict.
+
+    Four gates, asked in this order, each of which is a refusal a caller renders its own way:
+
+    1. **a run did not resolve** — ``multi.exit_code()`` is the max over the runs, so one run's
+       blocker (exit 3) or one run's open question (exit 4) is the dataset's;
+    2. **the record join refused** — a record whose runs do not match the files on disk;
+    3. **a sample spans two chemistries** — the relocated "runs must agree" invariant, per-SAMPLE
+       (:meth:`MultiRunOutput.sample_disagreements`). Across *different* samples a difference is a
+       legal partition into assays; within one it is a mis-grouping;
+    4. **nothing named an assay** — the defensive floor. Every run whose bytes decided nothing
+       carries its own blocker, so gate 1 has already caught this in practice.
+
+    ``metadata`` is read for exactly one thing: the sample -> files map gate 3 needs. No attribute
+    it resolved is consulted, and none may be — the two resolvers are not shown each other's input
+    (ADR-0010), and this is their join, not a channel between them.
+    """
+    assays = multi.by_chemistry()
+
+    def _refused(gate: RefusalGate, blockers: list[Blocker], code: int) -> DatasetResolution:
+        return DatasetResolution(
+            runs=multi, assays=assays, refused_at=gate, blockers=blockers, exit_code=code
+        )
+
+    if (code := multi.exit_code()) != 0:
+        return _refused("run", list(multi.blockers), code)
+    if metadata.blockers:
+        return _refused("metadata", list(metadata.blockers), 3)
+    sample_shas = {s.sample_id: list(s.file_shas) for s in metadata.samples}
+    if sample_blockers := multi.sample_disagreements(sample_shas):
+        return _refused("sample", sample_blockers, 3)
+    if not assays:
+        return _refused("assay", [], 3)
+    return DatasetResolution(runs=multi, assays=assays, refused_at=None, blockers=[], exit_code=0)
 
 
 def _resolve_one_run(
