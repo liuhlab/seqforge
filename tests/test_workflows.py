@@ -683,10 +683,19 @@ def test_a_missing_bam_refuses_before_touching_samtools(tmp_path: Path) -> None:
         bam_to_cram(tmp_path / "nope.bam", tmp_path / "ref.fa", tmp_path / "o.cram")
 
 
-def test_a_read_only_reference_store_gets_its_fai_written_somewhere_writable(
+def test_a_read_only_reference_store_gets_its_fai_written_somewhere_writable_and_temporary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """No .fai beside the FASTA -> we mirror it into the output dir and index there, not in the store."""
+    """No .fai beside the FASTA -> mirror and index in scratch that is gone when the call returns.
+
+    Two claims, and the second is the one that moved. It is not enough that the index avoids the
+    read-only store; it must also avoid the rule's OUTPUT directory, where it was an undeclared file
+    Snakemake could never clean — the same shape as the `samtools sort` spill this release deleted,
+    only smaller. A per-call temp dir makes "the rule writes nothing it did not declare" true rather
+    than argued, so the last assertion is that the output dir afterwards holds nothing but the CRAM.
+    (`samtools index` is stubbed, so no `.crai` appears here; on a real run it is the rule's other
+    declared output.)
+    """
     rec = _stub_samtools(monkeypatch)
     bam = tmp_path / STAR_BAM
     bam.write_bytes(b"BAM\0")
@@ -699,8 +708,10 @@ def test_a_read_only_reference_store_gets_its_fai_written_somewhere_writable(
 
     faidx = next(c for c in rec.calls if c[:2] == ["samtools", "faidx"])
     indexed = Path(faidx[-1])
-    assert indexed.parent == out.parent  # written into the writable run dir, not the store
-    assert indexed.is_symlink()
+    assert indexed.parent != fasta.parent  # never the store, which is frequently read-only
+    assert indexed.parent != out.parent  # and never the output dir, where it would be undeclared
+    assert not indexed.parent.exists()  # the scratch went with the call that made it
+    assert {p.name for p in out.parent.iterdir()} == {out.name}
 
 
 # ================================================================================================

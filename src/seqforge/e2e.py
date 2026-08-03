@@ -934,8 +934,13 @@ def run_cell_filter_determinism(
         digests.append(hashlib.sha256(barcodes).hexdigest()[:16])
         called.append(len(barcodes.split()))
 
+    # One digest is not enough on its own: a caller that called NOTHING is perfectly reproducible, and
+    # a guard that goes green on two empty files proves only that STAR can write two empty files. So
+    # the fixture's planted cells have to come back — measured against the pinned STAR 2.7.11b, all 60
+    # of them do, and requiring merely "some" leaves room for a future caller to be stricter without
+    # this turning red for the wrong reason.
     return {
-        "passed": len(set(digests)) == 1,
+        "passed": len(set(digests)) == 1 and min(called) > 0,
         "cell_filter": SHIPPED_CELL_FILTER,
         "repeats": repeats,
         "digests": digests,

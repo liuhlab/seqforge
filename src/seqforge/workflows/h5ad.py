@@ -198,11 +198,13 @@ def solo_stats_files(features: Sequence[SoloFeature]) -> list[str]:
 def solo_filtered_files(features: Sequence[SoloFeature]) -> list[str]:
     """Every ``filtered/`` file a ``--soloFeatures`` run writes, relative to ``Solo.out``.
 
-    STAR's default cell filter (``--soloCellFilter`` default ``CellRanger2.2 3000 0.99 10``) writes a
-    ``filtered/`` copy of each gene-axis feature — same matrices + axis files as ``raw/``. Nothing
-    downstream reads it (the h5ad is built from ``raw/``), so it is declared ``temp()`` and the
-    ``qc_bundle`` rule lists it as input purely to (a) record ``filtered/barcodes.tsv`` — what STAR
-    *called* — as provenance and (b) trigger its deletion.
+    The cell filter (``--soloCellFilter EmptyDrops_CR``, hardcoded in ``starsolo.smk``; STAR's own
+    default is ``CellRanger2.2 3000 0.99 10``) writes a ``filtered/`` copy of each gene-axis feature —
+    same matrices + axis files as ``raw/``. Which caller runs does not change this list, and that was
+    checked on a real ``EmptyDrops_CR`` run rather than assumed: the tree it wrote is exactly what
+    this function declares, no more and no less. Nothing downstream reads it (the h5ad is built from
+    ``raw/``), so it is declared ``temp()`` and the ``qc_bundle`` rule lists it as input purely to (a)
+    record ``filtered/barcodes.tsv`` — what STAR *called* — as provenance and (b) trigger its deletion.
     """
     return [f"{feat}/filtered/{name}" for feat in _gene_axis(features) for name in raw_files(feat)]
 

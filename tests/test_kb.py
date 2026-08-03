@@ -210,11 +210,13 @@ def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> 
     from seqforge.compose.params import CB_MATCH_WL_TYPES
 
     checked: set[str] = set()
+    seen_types: set[str] = set()
     for tech in kb.runnable_spec_ids():
         backend = kb.load_spec(tech).require_backend()
         if backend.module != "map/starsolo":
             continue
         checked.add(tech)
+        seen_types.add(str(backend.params.get("soloType")))
         declared = backend.params.get("soloCBmatchWLtype")
         assert declared is not None, (
             f"{tech}: declares no soloCBmatchWLtype. Saying nothing is not the safe answer — STAR's "
@@ -236,6 +238,13 @@ def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> 
     # A sweep that selected nothing passes, which is the failure this loop is least able to notice:
     # rename the module and every assertion above stops running with nothing red.
     assert len(checked) > 1, f"expected the starsolo specs, selected {sorted(checked)}"
+    # And a sweep that selected only Simple chemistries is the SAME failure, one layer in — it is the
+    # shape this whole key was moved to fix, and the shape the issue warns leaves a 10x-only suite
+    # green. Both halves of the measured legality matrix must actually be exercised by a real spec.
+    assert seen_types == set(CB_MATCH_WL_TYPES), (
+        f"the sweep covered soloTypes {sorted(seen_types)}, not {sorted(CB_MATCH_WL_TYPES)}; every "
+        f"wrong answer about soloCBmatchWLtype breaks the Complex specs and leaves the 10x ones green"
+    )
 
 
 def test_the_kb_cannot_even_express_a_count_key() -> None:

@@ -133,16 +133,29 @@ def adapter_sequence():
 
 #: Floor for STAR's BAM sort budget, in MiB. A job whose whole memory request is smaller than this is
 #: not going to align anything anyway, so the floor costs nothing real and keeps the arithmetic below
-#: from handing STAR a buffer too small to sort a single bin into.
+#: from handing STAR a value smaller than a trivial sort needs.
 _MIN_BAM_SORT_RAM_MB = 1024
 
-#: What fraction of the job's memory the coordinate sort may claim: a QUARTER, because the genome
-#: index is resident while STAR sorts and it is the larger tenant (~30 GB on hg38, paid before a read
-#: is parsed). STAR does not merely cap itself at this number, it sizes its sort bins by it -- a
-#: bigger limit means fewer, fatter bins and MORE resident bytes -- so passing the whole budget would
-#: over-commit the job against its own genome rather than "allow up to". Fewer bins is only a speed
-#: win; being killed by the scheduler is not.
-_BAM_SORT_RAM_SHARE = 4
+#: What share of the job's memory the coordinate sort may claim: THREE QUARTERS, leaving a quarter for
+#: the genome index, the aligner's own working set and the OS. Deliberately the same 3/4 the
+#: `samtools sort` this replaced was given, because it is the same job against the same budget.
+#:
+#: Measured before it was chosen, on GSE208154/SAMN29720279 L001 in the pinned image, because the
+#: shape of this number is not obvious: `--limitBAMsortRAM` is a CAP, not an allocation. STAR reports
+#: "Max memory needed for sorting" and then refuses if that exceeds the cap; it allocates the need,
+#: never the cap. So a generous cap costs a small run nothing, and a tight one only converts runs that
+#: would have fit into FATALs.
+#:
+#: | records | max memory STAR needed |
+#: | --- | --- |
+#: | 1,999,909 | 394 MB |
+#: | 9,844,534 | 1,590 MB |
+#:
+#: Linear, at **~160 bytes per alignment record**, and NOT reducible by binning: `--outBAMsortingBinsN`
+#: 200 gave the identical figure and 1000 gave a slightly larger one, so the obvious remedy for
+#: STAR's "not enough memory for BAM sorting" does not work here. A tight cap FATALs outright rather
+#: than spilling — verified by passing 200 MB against a run needing 394 MB.
+_BAM_SORT_RAM_NUMERATOR, _BAM_SORT_RAM_DENOMINATOR = 3, 4
 
 
 def bam_sort_ram():
@@ -154,10 +167,19 @@ def bam_sort_ram():
     too small and STAR FATALs. Neither failure has anything to do with how much memory the job was
     actually given, which is the number that should decide this -- so we pass it.
 
+    **Sizing the job is the caller's business, and it is not free.** At ~160 B/record (measured
+    above), a 215M-read sample lands near 32 GB of sort RAM -- more than `mem_gb`'s default of 32
+    leaves after the genome. That is a real cost of putting CB/UB in the CRAM, since STAR emits them
+    only in the sorted BAM, and it is the recipe's `resources.mem_gb` that answers it. The failure is
+    at least legible: STAR names the number it needed and exits, rather than producing a short BAM.
+
     STAR takes bytes; `config["mem_mb"]` is MiB, and that unit crossing is the whole reason this is a
     named function rather than an expression in the shell block.
     """
-    return max(_MIN_BAM_SORT_RAM_MB, config["mem_mb"] // _BAM_SORT_RAM_SHARE) * 1024 * 1024
+    share = config["mem_mb"] * _BAM_SORT_RAM_NUMERATOR // _BAM_SORT_RAM_DENOMINATOR
+    # The floor may not exceed the budget itself: on a job smaller than the floor, claiming more than
+    # the whole request would trade STAR's legible refusal for the scheduler's OOM kill.
+    return min(config["mem_mb"], max(_MIN_BAM_SORT_RAM_MB, share)) * 1024 * 1024
 
 
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared

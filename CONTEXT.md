@@ -302,10 +302,12 @@ _Avoid_: config, definition, rule, profile; the *schema* is what validates a spe
 itself
 
 **Backend params**:
-A spec's parse half — how to *read* reads (`soloType`, CB/UMI offsets, whitelist, strand). Decided
-by bytes and never instructable; what to *count* belongs to the recipe, and the two key sets are
-disjoint (`docs/adr/0011`).
-_Avoid_: settings, options, aligner flags; CellRanger-parity knobs are policy and live in the recipe
+A spec's parse half — how to *read* reads (`soloType`, CB/UMI offsets, whitelist, strand, barcode
+match mode). Decided by bytes and never instructable; what to *count* belongs to the recipe, and the
+two key sets are disjoint (`docs/adr/0011`). A flag whose value varies with neither the chemistry nor
+the user's intent is the workflow module's, as a literal, and is in neither (`docs/adr/0022`).
+_Avoid_: settings, options, aligner flags; the CellRanger-parity knobs are module literals and belong
+to no artifact
 
 **Onlist**:
 A barcode whitelist, identified by the *set* of barcodes it holds rather than by the file carrying

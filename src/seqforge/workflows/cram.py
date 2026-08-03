@@ -36,6 +36,7 @@ it" line that keeps STAR out of every dependency table here.
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -60,12 +61,14 @@ def _ensure_fai(fasta: Path, workdir: Path) -> Path:
     FASTA in place; otherwise we mirror the FASTA into ``workdir`` (a symlink — no bytes copied) and
     index *that*, so the ``.fai`` lands somewhere writable.
 
-    Those two files are the only things this module now writes that Snakemake does not declare, and
-    naming that is the point of this paragraph rather than a reason to change it. They are not the
-    shape of leak the deleted ``samtools sort`` was: the names are fixed, so a rerun reuses them
-    instead of adding to them, the pair is a symlink plus a few KB, and a preempted job leaves at
-    most that. Bounded and idempotent is a different thing from unbounded and per-attempt. In
-    practice the branch is not even taken — ``liulab-genome`` ships the ``.fai`` beside the FASTA.
+    ``workdir`` is a **per-call temporary directory**, not the rule's output directory, and that is
+    the last undeclared write this module had. The mirror used to land beside the CRAM: two files
+    Snakemake never declared and therefore could never clean, in the very tree whose undeclared temp
+    files this release set out to make impossible. Bounded and idempotent is better than the sort's
+    unbounded spill, but it is not the same claim as *nothing*. Now the pair lives for the length of
+    one conversion and goes with it, and the only files left under `results/` are the rule's declared
+    outputs. (In practice the branch is not taken at all — ``liulab-genome`` ships the ``.fai``
+    beside the FASTA — which is exactly why it was worth closing rather than watching.)
     """
     if fasta.with_name(fasta.name + ".fai").exists():
         return fasta
@@ -118,8 +121,19 @@ def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
         raise CramError(f"{bam} is missing; the STAR run that should have written it did not")
     if not fasta.exists():
         raise CramError(f"reference FASTA {fasta} does not exist")
-    ref = _ensure_fai(fasta, out.parent)
     out.parent.mkdir(parents=True, exist_ok=True)
+    # The `.fai` fallback gets a directory that outlives nothing: it must survive the encode, which is
+    # why the whole conversion happens inside the `with`, and it must survive nothing else, which is
+    # why there is a `with` at all. See `_ensure_fai`.
+    with tempfile.TemporaryDirectory(prefix="seqforge-cram-") as tmp:
+        ref = _ensure_fai(fasta, Path(tmp))
+        _encode(bam, ref, out, threads)
+    _run(["samtools", "index", "-@", str(threads), str(out)])
+    return out
+
+
+def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
+    """The three-stage pipe of :func:`bam_to_cram`, waited on and checked stage by stage."""
     # `-h` keeps the header: the encoder needs the @SQ lines to match sequences to the reference.
     # `-T` names that reference; no embed_ref -> smallest CRAM.
     nthreads = str(threads)
@@ -158,8 +172,6 @@ def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
         raise CramError(
             f"{exc.filename} is not installed; CRAM conversion needs samtools and awk"
         ) from exc
-    _run(["samtools", "index", "-@", str(threads), str(out)])
-    return out
 
 
 __all__ = ["CramError", "bam_to_cram"]
