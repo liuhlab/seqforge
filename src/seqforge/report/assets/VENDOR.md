@@ -22,6 +22,17 @@ unlayered, wins every overlap on the cascade alone. Putting it second means it a
 order, which is what decides the small *unlayered* remainder Tailwind emits (`@property`
 registrations today). Two arguments agreeing beats one of them silently mattering.
 
+That argument covers `report.css`'s **class** rules completely — a migrated element stops wearing the
+class and the rule stops matching, which is what lets one tab be redesigned at a time and reviewed on
+its own. It does not cover the three bare-**element** rules that sheet also carries (`table`,
+`th, td`, `th`), which no amount of removing classes escapes: `th, td { text-align: left }` beats a
+`text-right` utility on a metric cell, and `th { z-index: 1 }` beats the sticky column's. So
+`report.src.css` ends in one deliberately *unlayered* block — five declarations, scoped to the
+Results table by `.grp-table` — which wins on **specificity** rather than on source order, since
+`report.css` is inlined second and would take a tie. It is a bridge, its own comment says so, and
+`test_the_results_table_bridge_lasts_exactly_as_long_as_the_sheet_it_bridges` goes red in the commit
+that stops inlining the hand-written sheet.
+
 ## Tailwind IS vendored, as a built file
 
 Third-party: **Tailwind CSS v4.3.3** (MIT). It is not linked, not fetched and not reimplemented —

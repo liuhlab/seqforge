@@ -49,10 +49,22 @@
     --sf-accent: #4338ca;
     --sf-accent-weak: #eef0fe;
 
-    /* verdict semantics */
+    /* Verdict semantics. `warn` and `crit` are the pair a reader has to tell apart, so the pair is
+     * MEASURED rather than eyeballed — ΔE against the surface each is drawn on, once for normal
+     * colour vision and once through a deuteranope simulation:
+     *
+     *   light  #8a5a00 vs #b42318 on #ffffff   CVD ΔE  0.3   normal ΔE 12.8   FAILS both gates
+     *   light  #a97a00 vs #b42318 on #ffffff   CVD ΔE 10.6   normal ΔE 18.1   passes
+     *   dark   #d9a441 vs #f85149 on #161c24   CVD ΔE  8.2   normal ΔE 18.4   passes, no margin
+     *   dark   #e8b14a vs #f85149 on #161c24   CVD ΔE 12.4   normal ΔE 20.8   comfortable
+     *
+     * The first row is what shipped: to a deuteranope the old amber and the red were the SAME
+     * COLOUR. Both warns are re-stepped to the passing values, and both reports get the fix from
+     * this one file. It is also why every graded thing on either page carries a NON-COLOUR mark
+     * beside its tint — a hue pair can pass a gate and still be lost to a greyscale printout. */
     --sf-ok: #167a4b;
     --sf-ok-weak: #e7f5ee;
-    --sf-warn: #8a5a00;
+    --sf-warn: #a97a00;
     --sf-warn-weak: #fdf3e2;
     --sf-crit: #b42318;
     --sf-crit-weak: #fdecea;
@@ -85,7 +97,7 @@
     --sf-accent-weak: #1c2140;
     --sf-ok: #3fb950;
     --sf-ok-weak: #102619;
-    --sf-warn: #d9a441;
+    --sf-warn: #e8b14a;
     --sf-warn-weak: #2b2010;
     --sf-crit: #f85149;
     --sf-crit-weak: #33191a;
@@ -111,7 +123,7 @@
       --sf-accent-weak: #1c2140;
       --sf-ok: #3fb950;
       --sf-ok-weak: #102619;
-      --sf-warn: #d9a441;
+      --sf-warn: #e8b14a;
       --sf-warn-weak: #2b2010;
       --sf-crit: #f85149;
       --sf-crit-weak: #33191a;

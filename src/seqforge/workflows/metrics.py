@@ -39,6 +39,18 @@ from pydantic import BaseModel, ConfigDict, Field
 #: simply absent from the list, never a zero.
 Level = Literal["ok", "warn", "bad", "none"]
 
+#: Which stage of the pipeline a metric speaks *about* — the answer to "what is this number for?",
+#: which is a fact about the measurement and not about how a page draws it. Six, and **closed**: the
+#: report renders a group as a labelled header band over its columns, so a seventh member must break
+#: a test rather than quietly render a span of columns under no heading at all.
+#:
+#: Declared here rather than in the renderer for the same reason :data:`Level` is: the module that
+#: knows what "reads in genes" measures is the one that can say it belongs to counting and not to
+#: alignment, and there is deliberately **no global key -> group table** anywhere — ``reads`` is
+#: emitted by two adapters under two different labels, and a lookup keyed on the string would have to
+#: guess which. The group is declared at the call site, beside ``hint`` and ``headline``.
+MetricGroup = Literal["input", "barcode", "alignment", "counts", "duplication", "cells"]
+
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -49,6 +61,11 @@ class Metric(_Frozen):
 
     key: str
     label: str
+    #: Which band this column sits under. **No default, deliberately**: every construction path runs
+    #: through the three builders below, so an omitted group is a mypy error at the call site rather
+    #: than a convention someone has to remember — and the failure it prevents is a metric rendering
+    #: under a heading that misdescribes it, which is a page telling a lie in a header.
+    group: MetricGroup
     #: The raw number, kept beside the formatted string so a machine consumer (the JSON summary, a
     #: future corpus-level aggregate) never has to parse ``"97.8%"`` back into a float.
     value: float
@@ -163,6 +180,7 @@ def fraction(
     label: str,
     value: float | None,
     *,
+    group: MetricGroup,
     ok: float | None = None,
     warn: float | None = None,
     higher_is_better: bool = True,
@@ -180,6 +198,7 @@ def fraction(
     return Metric(
         key=key,
         label=label,
+        group=group,
         value=float(value),
         display=fmt_pct(float(value)),
         level=grade(float(value), ok=ok, warn=warn, higher_is_better=higher_is_better),
@@ -193,6 +212,7 @@ def count(
     label: str,
     value: float | None,
     *,
+    group: MetricGroup,
     ok: float | None = None,
     warn: float | None = None,
     higher_is_better: bool = True,
@@ -207,6 +227,7 @@ def count(
     return Metric(
         key=key,
         label=label,
+        group=group,
         value=n,
         display=fmt_int(n) if exact else fmt_count(n),
         level=grade(n, ok=ok, warn=warn, higher_is_better=higher_is_better),
@@ -220,6 +241,7 @@ def ratio(
     label: str,
     value: float | None,
     *,
+    group: MetricGroup,
     ok: float | None = None,
     warn: float | None = None,
     higher_is_better: bool = True,
@@ -238,6 +260,7 @@ def ratio(
     return Metric(
         key=key,
         label=label,
+        group=group,
         value=n,
         display=fmt_ratio(n),
         level=grade(n, ok=ok, warn=warn, higher_is_better=higher_is_better),
@@ -277,6 +300,7 @@ def knee_points(
 __all__ = [
     "Level",
     "Metric",
+    "MetricGroup",
     "SampleStats",
     "PipelineStats",
     "MAX_KNEE_POINTS",
