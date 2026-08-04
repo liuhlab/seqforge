@@ -17,7 +17,16 @@ from pathlib import Path
 import pytest
 import yaml
 
-from conftest import Built, DryRun, SynthDataset, _build, _processing, _src_root, solo_block
+from conftest import (
+    Built,
+    DryRun,
+    SynthDataset,
+    _build,
+    _processing,
+    _rule_blocks,
+    _src_root,
+    solo_block,
+)
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
@@ -295,13 +304,22 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     3. **`--soloBarcodeReadLength 0` reaches STAR.** The module reads it with `SOLO.get(...)`, not a
        subscript, so that it stays optional for chemistries that do not declare it; nothing but the
        argv proves the 10x half of that still arrives.
-    4. **The whole STARsolo command line, as STAR would receive it** (#198): the KB-owned barcode
-       match mode, the five hardcoded CellRanger-equivalence flags, the multimapper flag we rejected,
-       and the sorted-BAM-plus-CB/UB pair that is the only reason the retained CRAM has a barcode at
-       all. Each is a *source* claim everywhere else — a literal in a shell block, a key in a spec —
-       and a source claim about a command is not a claim about a command.
+    4. **The whole STARsolo command line, as STAR would receive it** (#198, #205): the KB-owned
+       barcode match mode, the five hardcoded CellRanger-equivalence flags, the multimapper flag we
+       rejected, the sorted-BAM-plus-CB/UB pair that is the only reason the retained CRAM has a
+       barcode at all, and `--outSAMmultNmax 1`. Each is a *source* claim everywhere else — a literal
+       in a shell block, a key in a spec — and a source claim about a command is not a claim about a
+       command. The argv is the ONLY place a module literal is visible at all.
+    5. **The exact `--limitBAMsortRAM` byte count**, computed from the `mem_mb` this compose emitted.
+       Not cosmetic: it is the only end-to-end proof that the `params:` callable really is handed
+       `resources`, and that snakemake resolves `mem_mb` for the attempt *before* evaluating it. Wire
+       that wrong and the dry run raises rather than plans; have the callable quietly fall back to
+       some other number — STAR's default, a literal, a mis-scaled MiB — and the `\\d+` this replaced
+       matched it just as happily. What no argv can show is `resources.mem_mb` vs `config["mem_mb"]`,
+       since on attempt 1 they are the same number; that is why
+       `test_the_star_rule_escalates_its_memory_on_retry` reads the rule's source shape instead.
 
-    All four read the actual plan rather than an exit code, for the reason the gate does: a dry run
+    All five read the actual plan rather than an exit code, for the reason the gate does: a dry run
     that plans NOTHING also exits 0.
     """
     manifest, reg = built_v3
@@ -356,17 +374,35 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     # decision and are asserted together, along with the sort budget the sort then needs.
     assert "--outSAMtype BAM SortedByCoordinate" in planned
     assert "--outSAMattributes NH HI AS nM CB UB" in planned
-    assert re.search(r"--limitBAMsortRAM \d+", planned), (
+
+    # One alignment per read reaches the BAM (#205). STAR emits every alignment of a multi-mapping
+    # read and coordinate-sorts them all, and `seqforge io cram` then drops the secondaries with
+    # `-F 0x100`: 198.8M records sorted against 162.9M retained on the measured sample, ~18% of the
+    # sort spent producing bytes the very next rule deletes. `nTrOutWrite = min(P.outSAMmultNmax,
+    # nTrOutSAM)` writes exactly one top-scoring alignment, which is the record that filter keeps, so
+    # both the sort budget and the wall-clock are cheaper. The counts are unaffected; the CRAM is NOT
+    # byte-identical for a multimapper (`HI`, and which of several tied loci is retained) — ADR-0023
+    # carries the source lines. Like the CellRanger set above it is a module literal, and argv is the
+    # only place a module literal is visible at all.
+    assert "--outSAMmultNmax 1" in planned
+
+    # The sort budget, to the byte. Both numbers are LITERALS rather than a call to `bam_sort_ram`:
+    # recomputing an expectation with the shipped formula cannot fail (`docs/agents/testing.md`,
+    # "Adding a test"), and it would agree with a wrong formula as readily as a right one. 48 GiB is
+    # `ResourceHints.mem_gb`'s default, so 49152 MiB is what the composer emits and 36 GiB — 3/4 of
+    # it, in BYTES — is what STAR must be handed. The exactness is what proves the wiring: the number
+    # is produced by a real `snakemake -n` resolving a `resources:` callable, and the `\d+` this
+    # replaced matched a fall-back constant, a mis-scaled MiB figure and STAR's own default equally
+    # well. What argv cannot show is that the cap FOLLOWS the attempt, since attempt 1 is the only one
+    # a dry run renders — `test_a_snakemake_retry_re_expands_a_resource_and_never_a_param` and
+    # `test_the_star_rule_escalates_its_memory_on_retry` (`tests/test_workflows.py`) own that half.
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["mem_mb"] == 48 * 1024, "the default memory request moved; restate the cap below"
+    assert "--limitBAMsortRAM 38654705664" in planned, (
         "STAR's default of 0 means 'reuse the genome allocation', which is too small on a small "
-        "genome and FATALs; the module must pass a budget derived from the job's own memory"
+        "genome and FATALs; the module must pass 3/4 of the memory THIS attempt was granted. "
+        f"Planned: {[ln for ln in planned.splitlines() if 'limitBAMsortRAM' in ln]}"
     )
-
-
-def _rule_blocks(snakefile: Path) -> dict[str, str]:
-    """`rule <name>:` -> its body text. Snakemake rules are top-level and flat, so a split suffices."""
-    text = snakefile.read_text()
-    parts = re.split(r"^rule (\w+):$", text, flags=re.M)[1:]
-    return dict(zip(parts[0::2], parts[1::2], strict=True))
 
 
 def test_no_run_directive_rule_declares_a_container() -> None:

@@ -567,6 +567,18 @@ def _src_root() -> Path:
     return Path(seqforge.__file__).parent
 
 
+def _rule_blocks(snakefile: Path) -> dict[str, str]:
+    """`rule <name>:` -> its body text. Snakemake rules are top-level and flat, so a split suffices.
+
+    Here rather than beside its first caller because it now has two of them — `test_compose.py` reads
+    rule bodies for the container/`run:` invariants, `test_workflows.py` for the memory-escalation
+    shape — and this file is where every other shared test helper lives. One splitter, so the two
+    files cannot come to disagree about what a rule body is.
+    """
+    parts = re.split(r"^rule (\w+):$", snakefile.read_text(), flags=re.M)[1:]
+    return dict(zip(parts[0::2], parts[1::2], strict=True))
+
+
 @pytest.fixture(scope="session")
 def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
     """Every KB spec's own synthetic reads, probed — ``spec id -> the probes a scorer would see``.

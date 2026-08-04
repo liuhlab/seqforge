@@ -22,6 +22,50 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.2 — `starsolo_count` asks for more memory on a retry, and every memory cap STAR is handed
+#: follows the escalated request (#205). The rule declares `retries: STARSOLO_RETRIES` (2) and
+#: `resources: mem_mb=escalated_mem_mb(config["mem_mb"], attempt)`, LINEAR — attempt 1 asks for
+#: exactly what the recipe asked for, and the third and last attempt gets 3x. `--limitBAMsortRAM` is
+#: a SECOND `resources:` entry over the same `attempt` (`bam_sort_ram_bytes`) instead of a constant
+#: fraction of `config["mem_mb"]`, so the sort budget rises with the request rather than staying
+#: pinned to attempt 1 while the job around it triples. A `resources:` entry and not a `params:` one,
+#: measured rather than assumed: `Job.attempt`'s setter clears `_resources` and not `_params`, so a
+#: params callable — even one taking `resources`, which snakemake does pass — is expanded once and
+#: reused by every retry (traced 750/750/750 against 750/1500/2250 for the same arithmetic as a
+#: resource). MEASURED, and the reason 3/4 of the request was never the whole story: `--limitBAMsortRAM`
+#: bounds the coordinate sort and nothing else, while STARsolo also holds `readInfo` — 16 B x every
+#: INPUT read, `resize(nReadsInput)` over a `{uint64 cb; uint32 umi;}` struct — which none of STAR's
+#: eight `--limit*` knobs covers, and there is no `--limitSoloRAM` to add. 215M reads is 3.4 GB of it;
+#: the largest worm sample, 2.23 billion reads, is 35.7 GB. And `--limitBAMsortRAM` PERMITS rather
+#: than reserves — STAR allocates what the sort needs and refuses only above the cap — so on a large
+#: sample the 3/4 rule cheerfully authorises a sort allocation on top of a 36 GB `readInfo`, and the
+#: SCHEDULER OOM-kills the job instead of STAR refusing it. What that removes is the illegible death,
+#: not the need for memory: a job that still does not fit after 3x fails, loudly and by design, and in
+#: the common case — the sort is what did not fit — STAR names the number it needed and exits.
+#: Second change, free in memory and in wall-clock alike: `--outSAMmultNmax 1`, a new module literal.
+#: STAR wrote and sorted every alignment of a multi-mapping read and `workflows/cram.py` then
+#: discarded the secondaries with `-F 0x100` — 198.8M records sorted to retain 162.9M on the measured
+#: sample, ~18% of the sort spent on records nothing keeps. `nTrOutWrite = min(P.outSAMmultNmax,
+#: nTrOutSAM)` writes only the top-scoring alignment, which is exactly the primary that survives that
+#: filter; read off the STAR source, the parameter appears in the SAM/BAM write path and the
+#: alignment-ordering code and in NO Solo counting file, so THE COUNTS ARE UNAFFECTED. The retained
+#: CRAM is **not** byte-identical, and #205's claim that it was is wrong: for a read with `NH > 1`,
+#: `outSAMmultNmax != -1` makes `ReadAlign_multMapSelect.cpp` partition `trMult` so top-scoring
+#: alignments come first and then mark `trMult[0]` primary instead of `trBest`, and `HI` is an
+#: OUTPUT-ORDER index (`iTrOut + outSAMattrIHstart`, `ReadAlign_alignBAM.cpp`). So a multimapper's
+#: retained record always carries `HI:i:1` now, and where several loci tie on score it may be a
+#: different one of them — `trBest` breaks the tie on the shorter `gLength`, the partition takes the
+#: first in window order. Both are top-scoring, so this is a change of tie-break and not of quality;
+#: `NH` still counts every locus (it is computed from `nTrOutSAM`, not the truncated write count), and
+#: a uniquely-mapping read is untouched. The version bump already obliges reprocessing, which is what
+#: makes a changed CRAM affordable here. `-F 0x100` stays in `cram.py` as a cheap invariant rather
+#: than a load-bearing filter. The sort arithmetic left the `.smk` for `workflows/memory.py`
+#: (`STARSOLO_RETRIES`, `escalated_mem_mb`, `bam_sort_ram`), where it is importable and unit-tested
+#: instead of being a lambda only a real retry ever renders. No new config key — `mem_mb` is the same
+#: key it always was, read now as the FIRST attempt's request. The bump invalidates
+#: `run_id = H(dataset | processing | kb | workflow)`, which is the axis that exists for "the module
+#: changed" (ADR-0005); why the escalation ends in a loud failure rather than a bigger default, and
+#: the four alternatives rejected on the way there, is ADR-0023.
 #: 2026.8.1 — the retained CRAM carries the BARCODE, and the counts become CellRanger-comparable
 #: (#198). Five changes, deliberately in ONE bump: `run_id = H(dataset | processing | kb | workflow)`,
 #: so five merges would mean five rounds of run_id invalidation and five reprocessing passes over the
@@ -88,7 +132,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.1"
+WORKFLOW_VERSION = "2026.8.2"
 
 _MODULE_DIR = Path(__file__).parent
 

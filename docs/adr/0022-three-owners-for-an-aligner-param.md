@@ -51,7 +51,8 @@ with — not by what the value is for.**
 
 So the CellRanger-parity set, plus `--soloCellFilter EmptyDrops_CR`, is hardcoded in
 `workflows/map/starsolo.smk`. `--outSAMtype`, `--outSAMattributes` and `--limitBAMsortRAM` are the
-same owner and always were.
+same owner and always were; `--outSAMmultNmax`, added by
+[0023](0023-star-memory-escalates-on-retry.md), is a fourth.
 
 **`soloCBmatchWLtype` is the exception that proves the rule is about variance**: its 10x value was
 chosen for CellRanger parity, exactly like the four above, and it is nevertheless the **KB's** — see

@@ -100,8 +100,15 @@ def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
     one real lane (GSE208154 / SAMN29720279), and together they land 12% **below** the CRAM this
     shipped before it carried a barcode at all:
 
-    1. ``samtools view -h -F 0x100`` — primary alignments only, −17.8%. A secondary record re-states
-       a read we already have, at a locus we did not choose to believe.
+    1. ``samtools view -h -F 0x100`` — primary alignments only. A secondary record re-states a read
+       we already have, at a locus we did not choose to believe. It measured −17.8% when it was the
+       thing removing them; **since #205 it removes nothing**, because ``starsolo.smk`` passes
+       ``--outSAMmultNmax 1`` and STAR no longer writes a secondary record for the sort to carry —
+       the saving is real and is now taken one stage earlier, in the aligner, where it also buys back
+       the sort budget and the wall-clock. The flag stays anyway, and deliberately: it is a cheap
+       invariant rather than a load-bearing filter, and it is what makes this function's output
+       independent of how STAR happened to be invoked. Do not delete it for having stopped firing
+       (ADR-0023).
     2. ``awk`` — the read-name rewrite, −16.2%. Illumina names are 38 characters
        (``K00125:217:HCL2YBBXY:8:2111:24637:43374``) and mean nothing once the barcode is a ``CB`` /
        ``UB`` tag: the name was only ever the join key back to R1, and R1 is now in the record.
