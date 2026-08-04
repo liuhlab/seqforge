@@ -12,6 +12,7 @@ import ast
 import json
 import re
 import shutil
+from html import unescape
 from pathlib import Path
 from typing import get_args
 
@@ -256,6 +257,19 @@ def _body_classes(html: str) -> set[str]:
     }
 
 
+def _pane(html: str, tab: str) -> str:
+    """One tab's rendered markup, cut out of the page — the seam every visual assertion belongs at.
+
+    Sliced on the `data-tab` hook rather than on a class the redesign is free to change, and bounded
+    by the next pane's opening tag so a claim about one tab cannot be satisfied by another's markup.
+    """
+    body = html.split("</style>")[-1]
+    start = body.index(f'data-tab="{tab}">', body.index("<main"))
+    rest = body[start:]
+    end = rest.find('<div class="pane" data-tab=')
+    return rest if end < 0 else rest[:end]
+
+
 def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: Path) -> None:
     """Four elements share the reading column, and the two sticky ones became one.
 
@@ -310,16 +324,28 @@ def test_the_migrated_shell_wears_no_class_the_old_stylesheet_would_still_win_wi
 
 #: What the Overview, Flow and Pipeline panes were built out of before the redesign. Each is still a
 #: live rule in `report.css`, which is unlayered and therefore beats every Tailwind utility — so an
-#: element that keeps one of these is not migrated at all, whatever utilities sit beside it. The list
-#: grows as each pane lands; `report.css` itself is #220's and nothing here deletes from it.
-_OLD_NARRATIVE_CLASSES = [
-    "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
-    "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
-    "genstats", "hint", "meter", "meter-line",                              # the Overview
-    "flow-strip", "flow-step", "fs-num", "fs-title", "fs-desc", "fs-note", "fs-arrow",
-    "kind-guess", "kind-measured", "kind-done", "kind-blocked", "kind-ask",
-    "legend", "sw",                                                         # the Flow tab
-]  # fmt: skip
+#: element that keeps one of these is not migrated at all, whatever utilities sit beside it.
+#: `report.css` itself is #220's and nothing here deletes from it.
+#:
+#: Names still worn by a pane this ticket does NOT own (`tbl-wrap`, `basis-dot`, `notice`, `empty`)
+#: are absent on purpose, and the guard is scoped per pane for the same reason: Samples, Evidence
+#: and Results migrate on their own tickets, and a page-wide assertion here would either fail on
+#: their markup or quietly claim credit for it.
+_OLD_NARRATIVE_CLASSES: dict[str, list[str]] = {
+    "overview": [
+        "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
+        "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
+        "genstats", "hint", "meter", "meter-line",
+    ],
+    "flow": [
+        "flow-strip", "flow-step", "fs-num", "fs-title", "fs-desc", "fs-note", "fs-arrow",
+        "kind-guess", "kind-measured", "kind-done", "kind-blocked", "kind-ask", "legend", "sw",
+    ],
+    "pipeline": [
+        "stage-flow", "stage", "stage-icon", "stage-arrow", "tbl-wrap", "recipe-row", "rk", "rv",
+        "who", "basis-dot", "artifact", "artifact-head", "sz", "dl-btn", "code", "sub",
+    ],
+}  # fmt: skip
 
 
 def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_with(
@@ -332,16 +358,18 @@ def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_wit
     that file is deleted. Absence from the markup is what is checked, because a leftover class is not
     a fallback — it is an override that silently wins, and the redesign beside it does nothing.
     """
-    worn = _body_classes(render_html(collect_report(workspace)))
+    page = render_html(collect_report(workspace))
     hand_written = (_ASSETS / "report.css").read_text()
 
-    assert not _classes_with_no_rule(set(_OLD_NARRATIVE_CLASSES), [hand_written]), (
-        "every name here must still be a live rule in report.css, or this test proves nothing"
-    )
-    assert not (worn & set(_OLD_NARRATIVE_CLASSES)), (
-        "a narrative pane still wears the old sheet's classes: "
-        f"{sorted(worn & set(_OLD_NARRATIVE_CLASSES))}"
-    )
+    for tab, names in _OLD_NARRATIVE_CLASSES.items():
+        assert not _classes_with_no_rule(set(names), [hand_written]), (
+            f"every {tab} name must still be a live rule in report.css, or this proves nothing"
+        )
+        worn = _body_classes(_pane(page, tab)) & set(names)
+        assert not worn, (
+            f"the {tab} pane still wears the old sheet's classes: {sorted(worn)} — "
+            "unlayered CSS beats every utility, so those elements are not migrated at all"
+        )
 
 
 def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges(
@@ -404,19 +432,6 @@ def test_the_shell_still_carries_every_hook_the_script_selects_on(workspace: Pat
 def test_collect_raises_only_when_there_is_nothing_to_report(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         collect_report(tmp_path)
-
-
-def _pane(html: str, tab: str) -> str:
-    """One tab's rendered markup, cut out of the page — the seam every visual assertion belongs at.
-
-    Sliced on the `data-tab` hook rather than on a class the redesign is free to change, and bounded
-    by the next pane's opening tag so a claim about one tab cannot be satisfied by another's markup.
-    """
-    body = html.split("</style>")[-1]
-    start = body.index(f'data-tab="{tab}">', body.index("<main"))
-    rest = body[start:]
-    end = rest.find('<div class="pane" data-tab=')
-    return rest if end < 0 else rest[:end]
 
 
 def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
@@ -685,9 +700,21 @@ def _retarget_the_recipe(ws: Path, quantification: dict[str, object]) -> None:
     path.write_text(yaml.safe_dump(doc, sort_keys=True))
 
 
-def _stage_blob(assay: AssayReport) -> str:
-    """The stage diagram's whole rendered wording, lowercased — what a biologist would read."""
-    return " ".join(f"{s.title} {s.detail}" for s in assay.pipeline_stages).lower()
+def _rendered_stage_diagram(ws: Path) -> tuple[AssayReport, str]:
+    """The assay, and its stage diagram as the *page* shows it — lowercased, tags stripped.
+
+    Read off `render_html` and not off `assay.pipeline_stages`, because "the diagram renders the RNA
+    wording on an ATAC dataset" is a claim about the page. The expectation still comes from
+    production (the `AssayReport` returned alongside), which is the half of PR 1's lesson that is
+    easy to lose while fixing the other half.
+    """
+    assay = collect_report(ws).assays[0]
+    pane = _pane(render_html(collect_report(ws)), "pipeline")
+    diagram = pane[pane.index("What the pipeline will run") : pane.index("Processing choices")]
+    # Unescaped, because the page escapes what production wrote: `Align & call fragments` reaches
+    # the DOM as `&amp;`, and a comparison against production's own string must read what a browser
+    # reads, not what the serialiser emitted.
+    return assay, unescape(re.sub(r"<[^>]+>", " ", diagram)).lower()
 
 
 def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_workspace: Path) -> None:
@@ -697,21 +724,23 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
     string copied into the fixture, which is a test that can only ever agree with itself: reword the
     caption in ``_plan`` and the diagram silently reverts to the RNA branch with nothing failing —
     on an ATAC dataset, where "count reads per gene" is not a cosmetic error. So the plan view
-    arrives from ``collect_report`` here, and the caption is then reworded on the way into the
-    diagram to prove it is not what the branch reads.
+    arrives from ``collect_report`` here, the wording is read back off the rendered page, and the
+    caption is then reworded on the way into the diagram to prove it is not what the branch reads.
     """
     from seqforge.report.collect import _pipeline_stages
 
     _retarget_the_recipe(own_workspace, {"kind": "atac"})
-    assay = collect_report(own_workspace).assays[0]
+    assay, blob = _rendered_stage_diagram(own_workspace)
     plan = assay.plan
     assert plan is not None
     assert plan.quantification_kind == "atac"  # the typed family, carried; not the caption
 
-    blob = _stage_blob(assay)
     assert "fragment" in blob
     assert "chromap" in blob
     assert "count genes" not in blob  # the RNA phrasing must not leak into an ATAC run
+    # Every stage production built reached the page, in order — the diagram is not a subset of it.
+    for stage in assay.pipeline_stages:
+        assert stage.title.lower() in blob and stage.detail.lower() in blob
 
     reworded = plan.model_copy(
         update={
@@ -727,10 +756,72 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
 
     # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
     _retarget_the_recipe(own_workspace, {"kind": "solo", "features": ["Gene", "GeneFull"]})
-    solo = collect_report(own_workspace).assays[0]
+    solo, solo_blob = _rendered_stage_diagram(own_workspace)
     assert solo.plan is not None and solo.plan.quantification_kind == "solo"
-    solo_blob = _stage_blob(solo)
     assert "count" in solo_blob and "starsolo" in solo_blob
+
+
+def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_region(
+    workspace: Path,
+) -> None:
+    """The two properties this tab must not lose at any viewport width.
+
+    A compiled artifact rides in the page as ``data:`` bytes — a relative link breaks the moment the
+    HTML moves off the workspace — and every wide thing on the tab (the recipe table, an artifact's
+    inline text) scrolls inside its own box, so the page body never scrolls sideways and the tab is
+    readable on a phone. Both are read off the rendered pane.
+    """
+    pane = _pane(render_html(collect_report(workspace)), "pipeline")
+
+    assert 'download="Snakefile"' in pane and "data:text/plain;base64," in pane
+    assert not re.search(r'href="(?!data:)[^"]*(?:Snakefile|\.yaml|\.tsv)"', pane), (
+        "an artifact is linked out of the page instead of embedded in it"
+    )
+
+    tables = re.findall(r"<table[^>]*>", pane)
+    assert tables and len(tables) == pane.count('<div class="sf-scroll-x"><table'), (
+        "the recipe table can widen the page instead of scrolling inside its own region"
+    )
+    pres = re.findall(r"<pre[^>]*>", pane)
+    assert pres and all("overflow-auto" in tag for tag in pres), (
+        f"an artifact's inline text is not its own scroll region: {pres}"
+    )
+
+
+def test_the_three_narrative_views_stay_readable_at_a_narrow_viewport(workspace: Path) -> None:
+    """A phone is a real reader, and this is what the page can promise one without a browser.
+
+    Two mechanical properties, over the rendered panes: nothing sets a width in pixels (a fixed width
+    is the one thing a narrow viewport cannot recover from), and every multi-column container starts
+    at one or two columns and *adds* columns as the viewport grows, rather than starting wide and
+    hoping. The wide things that genuinely cannot reflow — the recipe table, an artifact's text —
+    are held to their own scroll region by the test above, so the page body never scrolls sideways.
+    """
+    page = render_html(collect_report(workspace))
+    grids = 0
+
+    for tab in ("overview", "flow", "pipeline"):
+        pane = _pane(page, tab)
+        # An absolute width, in a style or as an arbitrary utility. `max-width` is exempt: it only
+        # ever narrows, which is the opposite failure, and the abstract's 70ch cap is deliberate.
+        assert not re.search(r"(?<!max-)(?:min-)?width\s*:\s*\d+\s*(?:px|pt|in|cm|mm)", pane), tab
+        assert not re.search(r"(?<!max-)\b(?:min-)?w-\[\d", pane), (
+            f"{tab} pins a width as a utility"
+        )
+
+        for classes in re.findall(r'class="([^"]*)"', pane):
+            tokens = classes.split()
+            if "grid" not in tokens:
+                continue
+            grids += 1
+            base = [t for t in tokens if re.fullmatch(r"grid-cols-\d+", t)]
+            assert not base or base == ["grid-cols-2"], (
+                f"{tab} starts at {base} columns before any breakpoint: {classes}"
+            )
+            assert [t for t in tokens if re.fullmatch(r"(sm|md|lg|xl):grid-cols-\d+", t)], (
+                f"{tab} has a grid whose column count never changes with the viewport: {classes}"
+            )
+    assert grids >= 2, "no multi-column container was found at all, so nothing above was checked"
 
 
 # -- the finished pipeline (the Results tab) -------------------------------------------------------
