@@ -75,7 +75,7 @@
   // ---- sample row expand/collapse ---------------------------------------------------------------
   // The whole first cell is the target (a big, easy click area), not just the little caret.
   function initRowToggles() {
-    document.querySelectorAll(".sample-toggle").forEach(function (cell) {
+    document.querySelectorAll(".basis-toggle").forEach(function (cell) {
       function toggle() {
         var target = document.getElementById(cell.getAttribute("data-target"));
         if (!target) return;
@@ -83,7 +83,7 @@
         if (open) target.removeAttribute("hidden");
         else target.setAttribute("hidden", "");
         cell.setAttribute("aria-expanded", open ? "true" : "false");
-        var caret = cell.querySelector(".row-toggle");
+        var caret = cell.querySelector(".basis-caret");
         if (caret) caret.textContent = open ? "▾" : "▸";
       }
       cell.addEventListener("click", toggle);
@@ -97,11 +97,22 @@
   // A native title="" tooltip is transient and can't be selected or copied. Instead, a click pins a
   // small card next to the cell with the provenance as real, selectable text plus a Copy button. It
   // lives at the top of <body> (position:fixed) so the samples table's horizontal scroll never clips it.
-  // Results-tab metric COLUMN HEADERS opt into the same popover (.metric-head): a metric's hint is a
-  // sentence of domain knowledge worth selecting and copying, and one behaviour for both tables beats
-  // a second mechanism that behaves almost the same. The header, not the cell — the hint describes the
-  // metric, so it is stored once per column instead of once per sample.
-  var CELL_SEL = ".attr-cell, .metric-head";
+  // Three kinds of cell opt in, and they are the three places this page has a sentence worth copying:
+  // a sample attribute (.basis-cell) carries where a value came from and the quote that says so; an
+  // evidence-matrix cell that was forbidden or never scored (.mx-cell) carries WHY, which used to be a
+  // title="" a reader could neither select nor keep open; and a Results metric COLUMN HEADER
+  // (.metric-head) carries what the number means — on the header, not the cell, because the hint
+  // describes the metric and is stored once per column instead of once per sample.
+  var CELL_SEL = ".basis-cell, .mx-cell, .metric-head";
+
+  // Whether a cell has anything to say. Formerly `!cell.classList.contains("empty")`, which made a
+  // presentation class into a behaviour switch: an empty attribute cell had to keep wearing `.empty`
+  // or it would have opened a popover with nothing in it. The real condition was always "does this
+  // cell carry provenance", and `data-key` is where provenance starts — so a cell opts IN by carrying
+  // data, and no styling decision can turn the popover on or off by accident.
+  function hasProvenance(cell) {
+    return !!(cell && cell.getAttribute("data-key"));
+  }
 
   function initProvPopover() {
     var pop = null;
@@ -205,7 +216,7 @@
     document.addEventListener("click", function (e) {
       if (pop && e.target.closest && e.target.closest(".prov-pop")) return; // clicks inside stay open
       var cell = cellOf(e.target);
-      if (cell && !cell.classList.contains("empty")) {
+      if (hasProvenance(cell)) {
         if (cell === openCell) { close(); return; } // toggle off
         openFor(cell);
         e.stopPropagation();
@@ -217,7 +228,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") { close(); return; }
       var active = document.activeElement;
-      if ((e.key === "Enter" || e.key === " ") && active && active.matches && active.matches(CELL_SEL) && !active.classList.contains("empty")) {
+      if ((e.key === "Enter" || e.key === " ") && active && active.matches && active.matches(CELL_SEL) && hasProvenance(active)) {
         e.preventDefault();
         if (active === openCell) close();
         else openFor(active);

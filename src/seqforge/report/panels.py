@@ -27,6 +27,7 @@ from .model import (
     AttributeView,
     DecisionField,
     EvidenceRef,
+    MatrixCellView,
     MatrixView,
     PipelineStage,
     PlanView,
@@ -70,6 +71,18 @@ _BASIS_PHRASE: dict[str, str] = {
     "asserted": "stated in the records or paper",
     "inferred": "inferred from the surrounding context",
     "user_confirmed": "confirmed by you",
+}
+
+#: The same four bases as the Samples legend says them: three or four words under a mark, not a
+#: sentence. A third map rather than a shortening of :data:`_BASIS_PHRASE`, because a legend entry and
+#: a popover line are read in different places and only one of them has room for a clause — and,
+#: like the other two, it is asserted total over the ``Basis`` literal so a fifth basis cannot ship a
+#: mark whose key says nothing.
+_BASIS_LEGEND: dict[str, str] = {
+    "observed": "your files",
+    "asserted": "records / paper",
+    "inferred": "we inferred it",
+    "user_confirmed": "you",
 }
 
 #: The same four bases in the **who decided** voice, for a *recipe* field. Two maps, and they stay
@@ -273,6 +286,24 @@ def _flow_card(step: FlowStep, index: int) -> str:
 # ---- samples ------------------------------------------------------------------------------------
 
 
+def _basis_legend() -> str:
+    """The key for the provenance marks, iterated over :data:`_BASIS_LEGEND`.
+
+    Over the map and never over a hand-listed tuple, for the reason the level legend gives: a fifth
+    basis would otherwise be carried by the manifest, drawn as a mark by the stylesheet and silently
+    absent from the key that says what the mark means. Insertion order is display order.
+    """
+    marks = "".join(
+        f'<span class="inline-flex items-center gap-2">'
+        f'<span class="basis-mark basis-{esc(key)}" aria-hidden="true"></span>{esc(label)}</span>'
+        for key, label in _BASIS_LEGEND.items()
+    )
+    return (
+        '<p class="mt-0 mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-dim">'
+        f"<span>Where each value came from:</span>{marks}</p>"
+    )
+
+
 def samples_pane(assay: AssayReport, index: int) -> str:
     if not assay.samples:
         return _panel("Samples", '<p class="empty">no samples resolved for this assay.</p>')
@@ -281,30 +312,24 @@ def samples_pane(assay: AssayReport, index: int) -> str:
     read_map = {r.read_id: _read_structure(r) for r in assay.reads}
     file_read = {f.basename: f.read_id for f in assay.files if f.read_id}
 
-    legend = (
-        '<div class="legend-basis">Where each value came from:'
-        '<span class="basis-observed"><span class="basis-dot"></span>your files</span>'
-        '<span class="basis-asserted"><span class="basis-dot"></span>records / paper</span>'
-        '<span class="basis-inferred"><span class="basis-dot"></span>inferred</span>'
-        '<span class="basis-user_confirmed"><span class="basis-dot"></span>you</span>'
-        "</div>"
-    )
-
-    head_cells = "".join(f"<th>{esc(c.replace('_', ' '))}</th>" for c in columns)
+    head_cells = "".join(f'<th scope="col">{esc(c.replace("_", " "))}</th>' for c in columns)
     header = (
-        '<thead><tr><th class="col-sample">Sample</th>'
-        f'{head_cells}<th class="num">Files</th></tr></thead>'
+        '<thead><tr><th scope="col" class="sf-col-sticky">Sample</th>'
+        f'{head_cells}<th scope="col" class="text-right">Files</th></tr></thead>'
     )
     rows = "".join(
         _sample_rows(s, columns, read_map, file_read, index, i) for i, s in enumerate(assay.samples)
     )
+    # `w-auto min-w-full`: fill the panel when a dataset declares three attributes, and grow past it —
+    # letting the region, never the page, scroll — once it declares fifteen. The minimum width that
+    # forces that is stated once, on `.basis-cell`, so it cannot drift column to column.
     table = (
-        '<div class="tbl-wrap tbl-sticky"><table class="samples">'
+        '<div class="sf-scroll-x"><table class="w-auto min-w-full text-sm">'
         f"{header}<tbody>{rows}</tbody></table></div>"
     )
     return _panel(
         "Samples",
-        legend + table,
+        _basis_legend() + table,
         sub=f"{assay.n_samples} sample(s). Click any value to see — and copy — what supports it; open "
         "a row (▸) for its files, their read structure, and the exact quotes.",
     )
@@ -322,23 +347,27 @@ def _sample_rows(
     detail_id = f"detail-{assay_index}-{row_index}"
 
     show_acc = sample.accession and sample.accession != sample.sample_id
-    acc = f'<span class="acc mono">{esc(sample.accession)}</span>' if show_acc else ""
+    acc = (
+        f'<span class="ml-2 font-mono text-xs text-dim">{esc(sample.accession)}</span>'
+        if show_acc
+        else ""
+    )
     # The whole first cell is the toggle — a big, easy click target — not just the little caret.
     sample_cell = (
-        f'<th scope="row" class="col-sample sample-toggle" data-target="{esc(detail_id)}" '
+        f'<th scope="row" class="sf-col-sticky basis-toggle" data-target="{esc(detail_id)}" '
         'role="button" tabindex="0" aria-expanded="false" aria-label="Show this sample\'s files">'
-        '<span class="row-toggle" aria-hidden="true">▸</span>'
-        f'<span class="sid">{esc(sample.sample_id)}</span>{acc}</th>'
+        '<span class="basis-caret" aria-hidden="true">▸</span>'
+        f'<span class="basis-sid">{esc(sample.sample_id)}</span>{acc}</th>'
     )
 
     cells = "".join(_attr_cell(by_key.get(k)) for k in columns)
     summary = (
-        f'<tr class="sample-row">{sample_cell}{cells}<td class="num">{sample.n_files}</td></tr>'
+        f'<tr>{sample_cell}{cells}<td class="text-right tabular-nums">{sample.n_files}</td></tr>'
     )
 
     n_cols = len(columns) + 2
     detail = (
-        f'<tr class="detail-row" id="{esc(detail_id)}" hidden><td colspan="{n_cols}">'
+        f'<tr id="{esc(detail_id)}" hidden><td colspan="{n_cols}">'
         f"{_sample_detail(sample, read_map, file_read)}</td></tr>"
     )
     return summary + detail
@@ -346,28 +375,41 @@ def _sample_rows(
 
 def _attr_cell(attr: AttributeView | None) -> str:
     """One metadata cell. Provenance rides in ``data-*`` attributes, not a native ``title``: the script
-    turns a click into a pinned, selectable, copyable popover — a hover tooltip can be neither."""
+    turns a click into a pinned, selectable, copyable popover — a hover tooltip can be neither.
+
+    The mark rides *beside* the value in a flex row rather than absolutely positioned into a reserved
+    right-hand gutter. Same picture, but the gutter was padding stated in the stylesheet, and a value
+    long enough to be clamped ran under the mark the moment that padding lost a cascade argument. A
+    flex row cannot overlap.
+
+    Three shapes, and all three say something. A withheld attribute is a real answer — "two equally
+    trusted sources disagreed, so nothing was recorded" — and reads as `— withheld`, never as the
+    empty cell that means nobody ever mentioned it. The empty one is the only cell with no
+    ``data-key``, which is exactly how the script knows not to offer a popover with nothing in it.
+    """
     if attr is None:
-        return '<td class="attr-cell empty">—</td>'
+        return '<td class="basis-cell text-faint">—</td>'
     if attr.withheld:
         note = (
             "left blank on purpose — two equally-trusted sources disagreed, "
             "so nothing was recorded rather than guess"
         )
         return (
-            '<td class="attr-cell withheld" role="button" tabindex="0" '
+            '<td class="basis-cell" role="button" tabindex="0" '
             f'data-key="{esc(attr.key)}" data-value="withheld" '
             f'data-basis="{esc(note)}" data-source="" data-quote="">'
-            '<span class="v">— withheld</span></td>'
+            '<span class="basis-v basis-withheld">— withheld</span></td>'
         )
     return (
-        f'<td class="attr-cell basis-{esc(attr.basis)}" role="button" tabindex="0" '
+        '<td class="basis-cell" role="button" tabindex="0" '
         f'data-key="{esc(attr.key)}" data-value="{esc(attr.value)}" '
         f'data-basis="{esc(_basis_phrase(attr.basis))}" '
         f'data-source="{esc(_evidence_source(attr.evidence))}" '
         f'data-quote="{esc(_evidence_quote(attr.evidence))}">'
-        f'<span class="v">{esc(attr.value)}</span>'
-        '<span class="basis-dot" aria-hidden="true"></span></td>'
+        '<span class="flex items-start justify-between gap-2">'
+        f'<span class="basis-v">{esc(attr.value)}</span>'
+        f'<span class="basis-mark basis-{esc(attr.basis)} mt-1" aria-hidden="true"></span>'
+        "</span></td>"
     )
 
 
@@ -432,25 +474,41 @@ def _read_structure(read: ReadView) -> str:
 def _sample_detail(sample: SampleView, read_map: dict[str, str], file_read: dict[str, str]) -> str:
     # Just the files + their read structure. The per-attribute quotes used to be repeated here, but the
     # click popover already carries each value's source and quote, so a second copy was pure redundancy.
+    # `.sub-h` type is spelled out rather than left to the UA: Preflight is not imported yet, so a
+    # bare <h4> is bold-and-small today and would become inherit-weight the day it is — and a heading
+    # that changes size when a reset lands was never really styled.
+    head = (
+        '<h4 class="mt-0 mb-2 text-xs font-bold tracking-[0.07em] text-faint uppercase">'
+        "FASTQ files &amp; read structure</h4>"
+    )
     if not sample.file_names:
-        return '<div class="detail-body"><h4>FASTQ files</h4><p class="empty">none listed</p></div>'
+        return f'<div class="border-l-2 border-line py-1 pl-4">{head}<p class="empty">none listed</p></div>'
     items = ""
     for name in sample.file_names:
         role_id = file_read.get(name)
         struct = read_map.get(role_id, "") if role_id else ""
         desc = (
-            f'<span class="rstruct">{esc(role_id)} · {esc(struct)}</span>'
+            f'<span class="text-xs text-dim">{esc(role_id)} · {esc(struct)}</span>'
             if role_id and struct
             else ""
         )
-        items += f"<li><code>{esc(name)}</code>{desc}</li>"
+        items += (
+            '<li class="flex flex-wrap items-baseline gap-3 py-0.5">'
+            f'<code class="break-words">{esc(name)}</code>{desc}</li>'
+        )
     return (
-        '<div class="detail-body"><h4>FASTQ files &amp; read structure</h4>'
-        f'<ul class="file-list">{items}</ul></div>'
+        '<div class="border-l-2 border-line py-1 pl-4">'
+        f'{head}<ul class="m-0 list-none p-0 text-sm">{items}</ul></div>'
     )
 
 
 # ---- evidence -----------------------------------------------------------------------------------
+
+
+#: A sub-section heading inside a panel. Never a second ``.sf-panel-h``: one panel, one h2, and the
+#: sections under it are a quieter register. Spelled out rather than left to the UA — see the note in
+#: :func:`_sample_detail` — so the day Preflight lands nothing on this page moves.
+_SUB_H = "mt-0 mb-3 text-xs font-bold tracking-[0.07em] text-faint uppercase"
 
 
 def evidence_pane(assay: AssayReport) -> str:
@@ -459,10 +517,13 @@ def evidence_pane(assay: AssayReport) -> str:
     winner_label = chem_name or (chem.value[0] if chem.value else "—")
     conf = f"{chem.confidence:.2f}" if chem.confidence is not None else "no single number"
     confirmed = "confirmed against the kit's published barcode list · " if assay.onlists else ""
+    # Outline and a hairline, no fill. This is the page's good news, and good news gets no tint: a
+    # page whose "it worked" is as loud as its "it did not" has stopped using colour to say anything.
     verdict_strip = (
-        '<div class="verdict-strip">'
-        f'<span class="win-chip">✓ {esc(winner_label)}</span>'
-        f'<span class="vs-note">{esc(confirmed)}{esc(conf)} confidence</span></div>'
+        '<p class="mt-0 mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg '
+        'border border-line px-4 py-3 text-sm">'
+        f'<span class="font-bold">✓ {esc(winner_label)}</span>'
+        f'<span class="text-dim">{esc(confirmed)}{esc(conf)} confidence</span></p>'
     )
 
     if assay.matrices or assay.ruled_out:
@@ -478,14 +539,11 @@ def evidence_pane(assay: AssayReport) -> str:
         siblings = "".join(_sibling(m, winner_score, equivalent=eq) for m, eq in sib_models)
         focus = ""
         if winner_card or siblings:
-            sib_block = f'<div class="siblings">{siblings}</div>' if siblings else ""
             focus = (
-                '<section class="family-focus"><h3>The winning kit'
-                '<span class="fam-note"> — and its close variants</span></h3>'
-                f"{winner_card}{sib_block}</section>"
+                f'<section class="mb-6"><h3 class="{_SUB_H}">The winning kit — and its close '
+                f"variants</h3>{winner_card}{siblings}</section>"
             )
-        ruled = _ruled_out(assay)
-        body = verdict_strip + focus + ruled
+        body = verdict_strip + focus + _ruled_out(assay)
     else:
         body = (
             verdict_strip
@@ -494,34 +552,56 @@ def evidence_pane(assay: AssayReport) -> str:
             "it is recorded in the manifest.</p>"
         )
 
+    # The reading cap sits on the column INSIDE the panel, not on the panel: a panel narrower than the
+    # panel above it is the loudest way a page reads as two products.
     return _panel(
         "How the chemistry was decided",
-        body,
+        f'<div class="max-w-3xl">{body}</div>',
         sub="Every kit whose read layout could plausibly fit was scored against your actual reads. "
         "One family fit; the rest were ruled out by the sequence itself.",
-        cls="evidence",
     )
 
 
 def _matrix_card(m: MatrixView) -> str:
-    win = '<span class="win">winner</span>' if m.is_winner else ""
-    score = f'<span class="score">score {m.score:.2f}</span>' if m.score is not None else ""
-    caption = f'<figcaption><span class="tech">{esc(m.tech)}</span>{win}{score}</figcaption>'
-    return f'<figure class="matrix-card is-winner">{caption}{_matrix_table(m)}</figure>'
+    """The winner's grid: a hairline card, a caption, and the scores. No border colour, no shadow.
+
+    "Winner" is said in the section heading, in the caption and by the ✓ in the strip above; saying it
+    a fourth time in green would spend the verdict palette on a fact that is not a verdict.
+    """
+    win = (
+        '<span class="rounded-full border border-line px-2 py-0.5 text-xs font-bold '
+        'tracking-[0.07em] text-dim uppercase">winner</span>'
+        if m.is_winner
+        else ""
+    )
+    score = (
+        f'<span class="ml-auto tabular-nums text-dim">score {m.score:.2f}</span>'
+        if m.score is not None
+        else ""
+    )
+    caption = (
+        '<figcaption class="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 '
+        f'text-sm"><span class="font-mono font-semibold">{esc(m.tech)}</span>{win}{score}'
+        "</figcaption>"
+    )
+    return f'<figure class="sf-card m-0 mb-3 overflow-hidden">{caption}{_matrix_table(m)}</figure>'
 
 
 def _sibling(m: MatrixView, winner_score: float | None, *, equivalent: bool = False) -> str:
     pct = round(max(0.0, min(1.0, m.score)) * 100) if m.score is not None else 0
-    score = f'<span class="score">{m.score:.2f}</span>' if m.score is not None else ""
+    score = (
+        f'<span class="tabular-nums text-dim">{m.score:.2f}</span>' if m.score is not None else ""
+    )
     why = (
         "processing-equivalent — identical result" if equivalent else _sibling_why(m, winner_score)
     )
     summary = (
-        f'<summary><span class="tech">{esc(m.tech)}</span>'
-        f'<span class="mini-bar" style="--w:{pct}%"></span>{score}'
-        f'<span class="why">{esc(why)}</span></summary>'
+        '<summary class="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">'
+        f'<span class="min-w-32 font-mono font-semibold">{esc(m.tech)}</span>'
+        f'<span class="mx-bar" style="--mx-w:{pct}%"></span>{score}'
+        f'<span class="text-xs text-faint">{esc(why)}</span></summary>'
     )
-    return f'<details class="sibling">{summary}{_matrix_table(m)}</details>'
+    return f'<details class="mx-sib">{summary}{_matrix_table(m)}</details>'
 
 
 def _sibling_why(m: MatrixView, winner_score: float | None) -> str:
@@ -536,39 +616,82 @@ def _sibling_why(m: MatrixView, winner_score: float | None) -> str:
 
 
 def _matrix_table(m: MatrixView) -> str:
-    cols = "".join(f"<th>{esc(label)}</th>" for label in m.file_labels)
+    """One technology's role × file grid, inside its own scroll region.
+
+    The card is already a box, so the region loses its border and its radius rather than drawing a
+    second one inside the first — the whole page separates with a hairline and nests nothing.
+    """
+    cols = "".join(f'<th scope="col">{esc(label)}</th>' for label in m.file_labels)
+    labels = list(m.file_labels)
     rows = ""
     for role in m.roles:
-        cells = ""
-        for cell in role.cells:
-            if cell.status == "scored" and cell.value is not None:
-                pct = round(max(0.0, min(1.0, cell.value)) * 100)
-                bg = f"color-mix(in srgb, var(--heat-1) {pct}%, var(--heat-0))"
-                cells += f'<td class="cell" style="background:{bg}">{cell.value:.2f}</td>'
-            else:
-                reason = esc(cell.reason or "forbidden")
-                cells += f'<td class="cell forbidden" title="{reason}"></td>'
-        rows += f'<tr><td class="mrole">{esc(role.role)}</td>{cells}</tr>'
+        # A row wider than `file_labels` is not a reason to drop a cell: the cell still renders, it
+        # just cannot name its column.
+        cells = "".join(
+            _matrix_cell(cell, role.role, labels[i] if i < len(labels) else "")
+            for i, cell in enumerate(role.cells)
+        )
+        rows += (
+            '<tr><td class="font-semibold whitespace-nowrap text-dim">'
+            f"{esc(role.role)}</td>{cells}</tr>"
+        )
     return (
-        '<table class="matrix"><thead><tr><th>read role</th>'
-        f"{cols}</tr></thead><tbody>{rows}</tbody></table>"
+        '<div class="sf-scroll-x rounded-none border-0"><table class="text-sm">'
+        f'<thead><tr><th scope="col">read role</th>{cols}</tr></thead>'
+        f"<tbody>{rows}</tbody></table></div>"
+    )
+
+
+def _matrix_cell(cell: MatrixCellView, role: str, file_label: str) -> str:
+    """One matrix cell, and every one of the three states it can be in says which it is.
+
+    A forbidden cell used to render as an empty ``<td>`` whose ``✕`` was drawn by the stylesheet and
+    whose reason was a native ``title=`` — so on a page with no stylesheet it was blank, and its
+    reason could be neither selected nor copied. Worse, a cell that was *scored* but carried no number
+    fell down the same branch and was labelled forbidden, which is a different claim: "this kit
+    forbids that" and "nobody scored that" are not the same sentence. Three branches, three tagged
+    statuses, and the reason rides the same pinnable popover the Samples grid uses.
+    """
+    if cell.status == "scored" and cell.value is not None:
+        pct = round(max(0.0, min(1.0, cell.value)) * 100)
+        # Single ink, alpha ramp — the same cyan the provenance marks use, because a matrix cell and
+        # an `observed` mark are the same claim: the bytes support this. Written as an inline style
+        # because a per-cell percentage cannot be a class the purge could ever see.
+        bg = f"color-mix(in srgb, var(--mx-heat) {pct}%, transparent)"
+        return f'<td class="mx-cell mx-scored" style="background:{bg}">{cell.value:.2f}</td>'
+    if cell.status == "forbidden":
+        reason = cell.reason or "this read cannot carry this role for this kit"
+        return (
+            '<td class="mx-cell mx-forbidden" role="button" tabindex="0" '
+            f'data-key="{esc(role)}" data-value="{esc(file_label) or "ruled out"}" '
+            f'data-basis="{esc(reason)}" data-source="" data-quote="">✕</td>'
+        )
+    reason = cell.reason or "no score was recorded for this read and this role"
+    return (
+        '<td class="mx-cell mx-absent" role="button" tabindex="0" '
+        f'data-key="{esc(role)}" data-value="{esc(file_label) or "not scored"}" '
+        f'data-basis="{esc(reason)}" data-source="" data-quote="">not scored</td>'
     )
 
 
 def _ruled_out(assay: AssayReport) -> str:
     if not assay.ruled_out:
         return ""
+    # The ✕ is text, not a hue. Ruling a kit out is this check working, and the paragraph below says
+    # so — tinting it red would make the page's normal, healthy behaviour look like a wall of errors.
     items = "".join(
-        f'<li><span class="x">✕</span><b>{esc(r.tech)}</b>'
-        f'<span class="reason">{esc(r.reason)}</span></li>'
+        '<li class="flex flex-wrap items-baseline gap-3 border-b border-line py-2 last:border-b-0">'
+        f'<span class="text-faint" aria-hidden="true">✕</span>'
+        f'<span class="font-semibold">{esc(r.tech)}</span>'
+        f'<span class="text-dim">{esc(r.reason)}</span></li>'
         for r in assay.ruled_out
     )
     return (
-        '<section class="ruled-out"><h3>Other kits considered'
-        '<span class="fam-note"> — ruled out by the reads</span></h3>'
-        f'<ul class="ruled-list">{items}</ul>'
-        '<p class="ruled-foot">Scoring every kit that could plausibly fit and rejecting the wrong '
-        "ones is the check doing its job — not noise.</p></section>"
+        '<section class="mt-6 border-t border-line pt-5">'
+        f'<h3 class="{_SUB_H}">Other kits considered — ruled out by the reads</h3>'
+        f'<ul class="m-0 list-none p-0 text-sm">{items}</ul>'
+        '<p class="mt-3 mb-0 text-xs text-faint italic">Scoring every kit that could plausibly fit '
+        "and rejecting the wrong ones is the check doing its job — not noise.</p></section>"
     )
 
 
