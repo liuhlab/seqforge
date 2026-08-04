@@ -37,6 +37,7 @@ from seqforge.io.remote import (
     parse_fastq_prefix,
     parse_filereport,
     parse_run_new,
+    parse_soft_bioproject,
     parse_soft_srp,
     parse_soft_superseries,
     peek,
@@ -176,6 +177,49 @@ _SOFT_SUPERSERIES = """\
 !Series_relation = SuperSeries of: GSE140510
 """
 
+#: GSE207085, trimmed from the live brief record. A SubSeries declares no `term=SRP...` and has no
+#: sub-series to walk — the BioProject URL is the only route to its runs. The supplementary-file line
+#: is kept deliberately: it is the other URL in the record, and it must not be read as a BioProject.
+_SOFT_SUBSERIES = """\
+^SERIES = GSE207085
+!Series_title = Three-dimensional morphologic and molecular atlases of murine nasal vasculatures \
+[Mouse_Nasal_SmartSeq]
+!Series_supplementary_file = ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE207nnn/GSE207085/suppl/GSE207085_ss3_prox1_ct_normalized_expression_matrix.csv.gz
+!Series_relation = SubSeries of: GSE207086
+!Series_relation = BioProject: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA853582
+"""
+
+#: GSE207086, the SuperSeries above GSE207085 — it declares BOTH its sub-series and an umbrella
+#: BioProject, which is what makes the order the two are tried in observable.
+_SOFT_SUPERSERIES_WITH_BIOPROJECT = """\
+^SERIES = GSE207086
+!Series_title = Three-dimensional morphologic and molecular atlases of human/mouse nasal vasculatures
+!Series_relation = SuperSeries of: GSE207083
+!Series_relation = SuperSeries of: GSE207084
+!Series_relation = SuperSeries of: GSE207085
+!Series_relation = BioProject: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA853578
+"""
+
+_SOFT_WITH_NOTHING = """\
+^SERIES = GSE999999
+!Series_title = Processed matrices only
+!Series_supplementary_file = ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE999nnn/GSE999999/suppl/counts.csv.gz
+"""
+
+
+def _soft_stub(
+    records: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> list[str]:  # returns the fetch log
+    """Serve GEO SOFT from a dict, and record which accessions were asked for."""
+    fetched: list[str] = []
+
+    def fake_soft(accession: str) -> str:
+        fetched.append(accession)
+        return records[accession]
+
+    monkeypatch.setattr(remote, "geo_soft", fake_soft)
+    return fetched
+
 
 def test_parse_soft_finds_the_srp() -> None:
     """Exact match, which also proves the BioProject is not read as the SRA study: both arrive as
@@ -191,6 +235,60 @@ def test_parse_soft_superseries_is_detected() -> None:
     """
     assert parse_soft_superseries(_SOFT_SUPERSERIES) == ["GSE140399", "GSE140510"]
     assert parse_soft_srp(_SOFT_SUPERSERIES) == [], "a SuperSeries declares no SRP of its own"
+
+
+def test_parse_soft_bioproject_reads_only_the_relation_line() -> None:
+    """The record holds two URLs and only one of them is the BioProject; an FTP supplementary file
+    that happens to sit under a `GSE207nnn` path is not an accession."""
+    assert parse_soft_bioproject(_SOFT_SUBSERIES) == ["PRJNA853582"]
+    assert parse_soft_bioproject(_SOFT_WITH_SRP) == ["PRJNA692883"]
+    assert parse_soft_bioproject(_SOFT_WITH_NOTHING) == []
+
+
+def test_a_subseries_resolves_through_its_own_bioproject(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A GEO accession resolves to the runs of THAT accession (#238).
+
+    A SubSeries handed in directly declares neither an SRA study nor a sub-series, so before this it
+    had nothing to walk and `io resolve GSE207085` exited 1. Its own BioProject is the route. The
+    fetch log is half the assertion: walking up to GSE207086 and back down would also produce runs,
+    but they would be the sibling SubSeries' runs as well, which is not what the caller asked for.
+    """
+    fetched = _soft_stub({"GSE207085": _SOFT_SUBSERIES}, monkeypatch)
+
+    assert remote.geo_to_studies("GSE207085") == ["PRJNA853582"]
+    assert fetched == ["GSE207085"], "the SuperSeries and its siblings were never consulted"
+
+
+def test_a_superseries_still_walks_down_rather_than_taking_its_umbrella_bioproject(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The BioProject is the last resort, not the first: a SuperSeries declares one that spans every
+    sub-series, and taking it would answer with the union whichever accession was asked for."""
+    fetched = _soft_stub(
+        {
+            "GSE207086": _SOFT_SUPERSERIES_WITH_BIOPROJECT,
+            "GSE207083": _SOFT_SUBSERIES.replace("PRJNA853582", "PRJNA853580"),
+            "GSE207084": _SOFT_SUBSERIES.replace("PRJNA853582", "PRJNA853581"),
+            "GSE207085": _SOFT_SUBSERIES,
+        },
+        monkeypatch,
+    )
+
+    assert remote.geo_to_studies("GSE207086") == ["PRJNA853580", "PRJNA853581", "PRJNA853582"]
+    assert "PRJNA853578" not in fetched
+    assert sorted(fetched) == ["GSE207083", "GSE207084", "GSE207085", "GSE207086"]
+
+
+def test_a_geo_record_declaring_neither_refuses_and_names_both(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A series carrying only processed matrices has no raw data anywhere to point at. That is still
+    a failure, and the message says which two declarations were looked for so the reader can check
+    the record rather than guess."""
+    _soft_stub({"GSE999999": _SOFT_WITH_NOTHING}, monkeypatch)
+
+    with pytest.raises(RemoteError, match="no SRA study, sub-series or BioProject"):
+        remote.geo_to_studies("GSE999999")
 
 
 # ---------------------------------------------------------------------------------------------
