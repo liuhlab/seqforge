@@ -302,4 +302,129 @@
   .pp-copy:hover {
     border-color: var(--sf-accent);
   }
+
+  /* ---- the metric verdict (Results) --------------------------------------------------------------
+   * `lvl-{level}` is computed from `Level`, so the four below are components by the first rule and
+   * not by choice. They set two custom properties and nothing else; what READS them is one of the
+   * four shapes underneath, so the same verdict can be a tinted cell, a coloured mark, a left rule
+   * or a legend swatch without any of them re-deciding the palette.
+   *
+   * COLOUR MARKS EXCEPTIONS. `ok` and `none` are byte-identical on purpose — a metric that is fine
+   * must look no different from one nobody could set a defensible bar for, or the page implies a
+   * judgement it never made — and neither carries a tint: not a pale green, nothing. Two tinted
+   * hues on the whole tab is what makes either of them mean "this number is wrong". Category and
+   * group structure is drawn with a rule and a label and never borrows a third hue. */
+  .lvl-ok,
+  .lvl-none {
+    --lv-ink: var(--sf-dim);
+    --lv-bg: transparent;
+  }
+  .lvl-warn {
+    --lv-ink: var(--sf-warn);
+    --lv-bg: var(--sf-warn-weak);
+  }
+  .lvl-bad {
+    --lv-ink: var(--sf-crit);
+    --lv-bg: var(--sf-crit-weak);
+  }
+
+  /* A graded number. The tint is the cell's background and the digits stay ink: a coloured digit on
+   * a coloured field is the same fact twice, and it is the reading that suffers. */
+  .lvl-cell {
+    background: var(--lv-bg);
+  }
+  /* The `!`/`!!` beside a graded value, and the ✓/◐/✗ on the run-state block. NOT garnish: the warn
+   * and critical hues were 0.3 ΔE apart to a deuteranope before this PR re-stepped them (see
+   * `assets/sf-tokens.css`), and even a passing pair is gone in a greyscale printout. */
+  .lvl-flag {
+    color: var(--lv-ink);
+    font-weight: 700;
+  }
+  /* Did the PIPELINE finish — a left rule and, for the two exceptions, a fill. */
+  .lvl-state {
+    background: var(--lv-bg);
+    border-left: 3px solid var(--lv-ink);
+  }
+  /* The legend swatch, which has to look like the cell it explains: a tint for the two that are
+   * tinted and a bare hairline square for the two that are not. */
+  .lvl-chip {
+    @apply inline-grid h-5 min-w-5 place-items-center rounded text-xs font-bold;
+    background: var(--lv-bg);
+    color: var(--lv-ink);
+    border: 1px solid var(--sf-line);
+  }
+
+  /* ---- the metric-table fold (Results) ------------------------------------------------------------
+   * ONE control for the whole table, not one per band, and it is a checkbox and its label: a
+   * `<details>` cannot wrap a subset of a row's `<td>`s, two tables would duplicate every headline
+   * column, and `report.js` is another ticket's file. These are components for the second reason —
+   * no utility can express "hide when a checkbox elsewhere in this subtree is unchecked", and
+   * Tailwind's `peer-checked:` reaches siblings only, never a `<td>` five levels down.
+   *
+   * `:has()` rather than an `id`/`for` pair on purpose: every assay's Results pane is in the DOM at
+   * once, so a duplicate id would make one assay's label toggle another assay's table, and an id
+   * unique per assay would have to be derived from something this pane is not handed. Where `:has()`
+   * is unsupported neither rule ever matches and every column is shown — wide, never broken.
+   *
+   * There is no `display` in the shown direction: a `<td>` that is not hidden keeps `table-cell`,
+   * which is the one value no utility would have got right. */
+  .grp-scope:not(:has(.grp-fold:checked)) .grp-extra {
+    display: none;
+  }
+  .grp-scope:has(.grp-fold:checked) .grp-folded {
+    display: none;
+  }
+  /* The checkbox is `sr-only`, so focus lands on something invisible; the ring has to be drawn on
+   * its label instead, which is a state no utility can reach either. */
+  .grp-btn:has(.grp-fold:focus-visible) {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+/* ── A BRIDGE, DELIBERATELY UNLAYERED, AND #220 DELETES IT ────────────────────────────────────────
+ * Everything above is layered, and layered author CSS loses to `report.css` — which is unlayered —
+ * for every property that sheet also sets. For its CLASS rules that is exactly the design: a
+ * migrated element stops wearing the class and the old rule stops matching, which is what makes each
+ * tab's redesign visible on its own branch.
+ *
+ * It does not hold for the three bare-ELEMENT rules that sheet also carries, and no amount of
+ * removing classes escapes them:
+ *
+ *   table            { width: 100%; font-size: … }
+ *   th, td           { text-align: left; padding: 9px 12px; border-bottom: …; vertical-align: top }
+ *   th               { background: …; font-weight: 600; color: …; position: sticky; top: 0;
+ *                      z-index: 1 }
+ *
+ * Two of those are load-bearing against this table rather than merely cosmetic. `text-align: left`
+ * beats the `text-right` utility on every metric cell, and a column of figures that does not align
+ * is not the table this ticket shipped. And `z-index: 1` beats `.sf-col-sticky`'s, which leaves the
+ * sticky "Sample" header at the same stacking level as the headers that scroll past it — equal
+ * z-index paints in DOM order, so the column that is supposed to stay put would be slid over.
+ *
+ * So five declarations are stated unlayered, scoped to this one table by a class in this ticket's
+ * own prefix. They win on SPECIFICITY (two classes, or a class and an attribute, against a bare
+ * element) and not on source order — `report.css` is inlined second and would take a tie. Nothing
+ * here is a design decision; each one restates what the layered rule above it already says.
+ *
+ * `test_the_results_table_bridge_lasts_exactly_as_long_as_the_sheet_it_bridges` is what stops this
+ * outliving its reason: it goes red in the commit that stops inlining `report.css`, and its failure
+ * message says to delete this block and the `grp-table` class from `panels.py` with it.
+ * ────────────────────────────────────────────────────────────────────────────────────────────── */
+.grp-table th,
+.grp-table td {
+  text-align: right;
+}
+.grp-table .sf-col-sticky {
+  text-align: left;
+}
+.grp-table th[scope="colgroup"] {
+  text-align: center;
+}
+.grp-table tbody th {
+  white-space: normal;
+}
+.grp-table thead .sf-col-sticky {
+  z-index: 3;
 }

@@ -25,6 +25,7 @@ from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport
+from seqforge.workflows.metrics import PipelineStats
 
 runner = CliRunner()
 
@@ -475,18 +476,34 @@ def test_the_level_phrasing_covers_the_closed_verdict_set() -> None:
     assert set(_LEVEL_FLAG) <= members
 
 
-def test_the_level_legend_names_every_verdict_the_page_can_render() -> None:
+def test_the_level_legend_names_every_verdict_the_page_can_render(own_workspace: Path) -> None:
     """The legend is what makes a tint and a mark mean anything, so a verdict missing from it is mute.
 
-    Rendered rather than introspected: the legend is a module-level string built once at import, and
-    the failure this guards is a key present in the map but absent from the built HTML.
+    Asserted against the **rendered page** and not against ``_LEVEL_LEGEND``, which is where this
+    used to reach. A module-level string is not the page: it can be built correctly at import and
+    never reach a reader — dropped from the table's caller, rendered on a tab the page decided not to
+    offer, or emitted into a branch this fixture does not take — and none of that would have failed
+    here. Every visual claim belongs at the render seam, which is the criterion this PR added and the
+    defect PR 1 shipped under.
     """
-    from seqforge.report.panels import _LEVEL_LEGEND, _LEVEL_PHRASE
+    from seqforge.report.panels import _LEVEL_PHRASE
     from seqforge.workflows.metrics import Level
 
-    for level in get_args(Level):
-        assert f'class="lvl-{level}"' in _LEVEL_LEGEND, f"{level} is graded but never explained"
-        assert _LEVEL_PHRASE[level].split(" — ")[0] in _LEVEL_LEGEND
+    _finish_a_starsolo_pipeline(own_workspace)
+    page = render_html(collect_report(own_workspace)).split("</style>")[-1]
+
+    # Each legend entry, read back off the page: its verdict class, its non-colour mark, its words.
+    entries = re.findall(
+        r'<span class="lvl-(\w+)[^"]*"><span class="lvl-chip">([^<]*)</span>([^<]*)</span>', page
+    )
+    named = {level: (mark, words) for level, mark, words in entries}
+
+    assert set(named) == set(get_args(Level)), "a verdict the page can render is missing its key"
+    for level, (mark, words) in named.items():
+        assert words == _LEVEL_PHRASE[level].split(" — ")[0]
+        # The mark is what survives colour-blindness and a greyscale printout, so the key has to
+        # show it — and has to show its ABSENCE for the two verdicts that deliberately carry none.
+        assert mark == {"warn": "!", "bad": "!!"}.get(level, "")
 
 
 def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
@@ -601,14 +618,44 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
 # *present*, which is exactly the seam being exercised. (Both modules report; every registered module
 # does. The swap buys the barcode and knee metrics bulk has no vector for, not reporting at all.)
 
-#: One STARsolo `Summary.csv`, as `qc_bundle` folds it into the artifact. Small on purpose: what is
-#: under test here is the JOIN — does the collector find the file, name the module and count the
-#: samples — and the metric table itself is held to real STARsolo values in `tests/test_workflows.py`.
+#: One STARsolo `Summary.csv` as `qc_bundle` folds it into the artifact — **every** key `qc.metrics`
+#: can read, plus the STAR log the same bundle carries.
+#:
+#: It used to hold four keys, on the argument that what was under test was the JOIN and the metric
+#: table is held to real STARsolo values in `tests/test_workflows.py`. That stopped being true when
+#: the Results tab's density lever became the *column count*: a four-key summary renders four
+#: columns, the fold never engages, three of the six metric groups never appear, and every assertion
+#: below would be about a table `map/starsolo` does not produce. A fixture has to hand the renderer
+#: the module's real shape or it is testing a different module.
+#:
+#: The values are a run with two genuine problems in it — 44.3% of reads in cells and a median 311
+#: UMI — so a rendered page carries an `ok` cell, a `none` cell, and one of each tinted verdict.
 _QC_SUMMARY: dict[str, object] = {
     "Number of Reads": 412331205,
     "Reads With Valid Barcodes": 0.972113,
     "Estimated Number of Cells": 8842,
     "Reads Mapped to Gene: Unique Gene": 0.641902,
+    "Reads Mapped to Genome: Unique": 0.812,
+    "Fraction of Unique Reads in Cells": 0.443,  # -> bad
+    "Median UMI per Cell": 311,  # -> warn
+    "Median Gene per Cell": 902,
+    "Total Gene Detected": 18422,
+    "Sequencing Saturation": 0.612,
+    "Q30 Bases in CB+UMI": 0.941,
+    "Q30 Bases in RNA read": 0.912,
+}
+
+#: One `Log.final.out`, as STAR itself writes it — the artifact `map/star` reports from, and the
+#: block a STARsolo bundle folds in verbatim. Bulk needs no renamed module and no QC bundle, which is
+#: what makes it the cheap way to hand the chained `run` verb a *finished* pipeline. The numbers are
+#: a healthy run; what is under test is the flag, not the grading, which `tests/test_workflows.py`
+#: holds to real STAR values.
+_STAR_FINAL_LOG: dict[str, object] = {
+    "Number of input reads": 1_000_000,
+    "Uniquely mapped reads %": "91.20%",
+    "% of reads mapped to multiple loci": "4.10%",
+    "% of reads mapped to too many loci": "0.30%",
+    "% of reads unmapped: too short": "3.90%",
 }
 
 
@@ -638,6 +685,9 @@ def _finish_a_starsolo_pipeline(ws: Path, *, outdir: str = "results") -> list[st
                 {
                     "sample": sample,
                     "summary": {"Gene": _QC_SUMMARY},
+                    # Folded in verbatim by `qc_bundle`, and the only source of the alignment metrics
+                    # — without it a starsolo page has no Alignment band at all.
+                    "log_final": _STAR_FINAL_LOG,
                     # A per-barcode vector, so the knee figures are drawn rather than skipped: they
                     # are the only code on this page that emits SVG, and the size and byte-identity
                     # guarantees below are worth nothing against a page that never drew one.
@@ -669,8 +719,8 @@ def test_a_finished_pipelines_metrics_are_joined_in_and_the_results_tab_appears(
     html = render_html(collect_report(own_workspace))
     assert ">Results</button>" in html  # the tab is offered, because there is something behind it
     assert "97.2%" in html  # the graded valid-barcode rate, formatted by the code that owns it
-    assert 'class="genstats-table"' in html
-    assert 'class="knee-svg"' in html  # hand-built inline SVG, no plotting library and no network
+    assert '<table class="grp-table' in html  # one row per sample, one column per metric
+    assert "<svg" in html and "<polyline" in html  # hand-built inline SVG, no library, no network
 
 
 def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
@@ -705,8 +755,14 @@ def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
     assert "No readable result" in html
     for sample in samples:  # which sample, and what kind of failure -- not just a count
         assert f"{sample}: its QC artifact could not be read (BadGzipFile)" in html
-    # No disclosure widget promising a table that has no columns behind it.
-    assert 'class="stats-details"' not in html
+    # No table, and no control offering to unfold one: a disclosure promising columns that do not
+    # exist reads as a rendering bug rather than as the honest account this section is. Asserted on
+    # the fold control rather than on the removed `<details>`, because the removed one can never come
+    # back and a guard that can only pass is the rule it replaced -- `grp-fold` DOES render on the
+    # healthy page two tests up, so its absence here is a fact about this branch.
+    pane = _results_pane(html)
+    assert "grp-fold" not in pane
+    assert "<table" not in pane
 
 
 def test_a_workspace_that_was_only_compiled_renders_the_page_it_always_did(workspace: Path) -> None:
@@ -777,19 +833,6 @@ def test_the_report_verb_passes_the_results_flag_through_and_summarises_the_pipe
     }
 
 
-#: One `Log.final.out`, as STAR itself writes it — the artifact `map/star` reports from. Bulk needs no
-#: renamed module and no QC bundle, which is what makes it the cheap way to hand the chained `run`
-#: verb a *finished* pipeline. The numbers are a healthy run; what is under test is the flag, not the
-#: grading, which `tests/test_workflows.py` holds to real STAR values.
-_STAR_FINAL_LOG: dict[str, object] = {
-    "Number of input reads": 1_000_000,
-    "Uniquely mapped reads %": "91.20%",
-    "% of reads mapped to multiple loci": "4.10%",
-    "% of reads mapped to too many loci": "0.30%",
-    "% of reads unmapped: too short": "3.90%",
-}
-
-
 def _finish_a_bulk_pipeline(ws: Path, *, outdir: str) -> list[str]:
     """Land STAR's own final log per contracted sample under ``<pipeline>/<outdir>/``."""
     from seqforge.pipeline import CompiledPipeline
@@ -858,6 +901,265 @@ def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_worksp
     assert html == render_html(collect_report(own_workspace))
 
 
+# -- the Results tab as a table ---------------------------------------------------------------------
+#
+# Sample-by-metric was always a grid, and it used to sit one disclosure below a wall of per-sample
+# tiles. Everything below is asserted against `render_html(...)` output and never against a panel
+# function: a fragment's return value is not the page, and a test that reaches under the seam can
+# pass while encoding the very defect it is named for. That happened here once already (PR 1's stage
+# diagram) and it is why this section exists in this shape.
+
+
+def _results_pane(html: str) -> str:
+    """Just the Results pane of a rendered page — it is the last one, and the footer ends it."""
+    return html.split('<div class="pane" data-tab="results">')[-1].split("<footer")[0]
+
+
+def _render_with_stats(workspace: Path, stats: PipelineStats) -> str:
+    """The real page, with the first assay's pipeline stats swapped for `stats`.
+
+    The shared fixture compiles exactly ONE sample, and two of the properties below need more than
+    one: a column can only have a gap in it if some other sample filled it, and a sticky row header
+    that is the only row proves nothing about scrolling. The stats still come from the production
+    reader over real artifacts on disk — only which assay they hang off is arranged here — and the
+    assertion is still made against `render_html`, which is the seam that matters.
+    """
+    report = collect_report(workspace)
+    assay = report.assays[0].model_copy(update={"pipeline_stats": stats})
+    return render_html(report.model_copy(update={"assays": [assay]}))
+
+
+def _land_bundles(results: Path, bundles: dict[str, dict[str, object]]) -> PipelineStats:
+    """Write one QC bundle per name and read them back through the production adapter."""
+    import gzip
+
+    from seqforge.workflows.stats import read_pipeline_stats
+
+    for sample, summary in bundles.items():
+        out = results / sample / f"{sample}.qc.json.gz"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out, "wt", encoding="utf-8") as fh:
+            json.dump({"sample": sample, "summary": {"Gene": summary}}, fh)
+    stats = read_pipeline_stats("map/starsolo", results, sorted(bundles))
+    assert stats is not None
+    return stats
+
+
+def test_the_table_leads_and_sits_behind_no_disclosure(own_workspace: Path) -> None:
+    """The view that answers the reader's first question is the view they see first.
+
+    One sample is the case that used to render a strip of tiles and fold the table away, because the
+    threshold that chose between them counted the samples that were *found* — so the same dataset
+    laid itself out differently depending on how much of its pipeline had finished, and a run with
+    six samples showed a wall of boxes where a scannable grid belonged. Both the strips and that
+    threshold are gone; what is asserted here is the consequence a reader can see.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    pane = _results_pane(render_html(collect_report(own_workspace)))
+
+    assert "<table" in pane, "the metrics table is the section"
+    assert "<details" not in pane, "nothing on this tab is behind a disclosure widget"
+    # The table comes before the one control that folds part of it away, and there is exactly one
+    # such control -- not one per group.
+    assert pane.index("<table") < pane.index("grp-fold")
+    assert pane.count('type="checkbox"') == 1
+
+
+def test_only_the_two_exceptional_verdicts_are_tinted(own_workspace: Path) -> None:
+    """Colour marks exceptions. A cell that is fine, and one nobody could grade, look the same.
+
+    Both halves are needed and neither is enough alone: the page has to put a verdict class on every
+    graded cell (asserted from the rendered HTML), and the stylesheet has to give two of the four no
+    tint at all (asserted from the built artifact, which is the only place that fact lives). A test
+    that read one and not the other would pass on a page whose `ok` cells were pale green.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    pane = _results_pane(render_html(collect_report(own_workspace)))
+
+    graded = re.findall(r'<td class="lvl-(\w+) lvl-cell', pane)
+    assert set(graded) == {"ok", "warn", "bad", "none"}, (
+        "the fixture must put all four verdicts on the page, or this asserts about three of them"
+    )
+
+    built = (_ASSETS / "report.tw.css").read_text()
+
+    def tint(level: str) -> str:
+        """What `.lvl-cell` would paint a cell of this verdict with — grouped selectors and all."""
+        found = re.search(rf"\.lvl-{level}(?![\w-])[^{{}}]*\{{[^}}]*--lv-bg:\s*([^;}}]+)", built)
+        assert found, f"lvl-{level} declares no --lv-bg, so a cell wearing it paints nothing"
+        return found.group(1).strip()
+
+    assert tint("ok") == tint("none") == "transparent", (
+        "ok and ungraded carry no tint at all, and are identical — a metric that is fine must look "
+        "no different from one nobody could set a defensible bar for"
+    )
+    assert "transparent" not in {tint("warn"), tint("bad")}
+    assert tint("warn") != tint("bad"), "two tinted hues, and they are two"
+    # And the tint is the only thing painting a cell: nothing else in the page's own component block
+    # gives a metric cell a background, or "no tint" would be one rule away from untrue.
+    assert re.search(r"\.lvl-cell\{background:var\(--lv-bg\)\}", built)
+
+
+def test_a_verdict_is_legible_with_the_colour_taken_away(own_workspace: Path) -> None:
+    """Colour-blindness, a greyscale printout, a bad projector: the mark carries the verdict alone.
+
+    The two tinted hues were 0.3 ΔE apart under a deuteranope simulation before this PR re-stepped
+    the amber, which is to say they were the same colour — so the mark was never garnish, it was the
+    only thing working. Marked cells are also deliberately the minority: marking most of them is the
+    same as marking none.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    pane = _results_pane(render_html(collect_report(own_workspace)))
+
+    cells = re.findall(r'<td class="lvl-(\w+) lvl-cell[^>]*>(.*?)</td>', pane)
+    assert cells
+    for level, body in cells:
+        marked = 'role="img"' in body
+        assert marked == (level in {"warn", "bad"}), f"{level} carries the wrong mark: {body!r}"
+        if marked:
+            assert "aria-label=" in body  # the mark says what it means to a screen reader too
+
+
+def test_every_metric_group_reaches_the_page_as_a_labelled_band(own_workspace: Path) -> None:
+    """The closed set is read out of the ``Literal``, so a seventh member fails here on the day it lands.
+
+    Hand-listing the six would make this a test that agrees with itself and notices nothing — the
+    same argument ``test_both_basis_phrasings_cover_the_closed_basis_set`` makes for ``Basis``. What
+    it protects against is a group that is graded by an adapter and reaches the page as a span of
+    columns under no heading at all, which is worse than no grouping.
+
+    Asserted on the rendered page, so it also holds that the label is *drawn* and not merely mapped.
+    """
+    from seqforge.report.panels import _GROUP_LABEL
+    from seqforge.workflows.metrics import MetricGroup
+
+    members = set(get_args(MetricGroup))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+    assert set(_GROUP_LABEL) == members, "a group with no band label renders as a KeyError"
+
+    _finish_a_starsolo_pipeline(own_workspace)
+    pane = _results_pane(render_html(collect_report(own_workspace)))
+
+    # `map/starsolo` is the module that emits every group, which is what makes it the one to assert
+    # exhaustiveness against; a bulk or ATAC page correctly renders fewer bands.
+    bands = dict(re.findall(r'<th scope="colgroup"[^>]*data-group="(\w+)"[^>]*>([^<]+)</th>', pane))
+    assert bands == {group: _GROUP_LABEL[group] for group in members}
+    # Rule and label, never a second hue: a coloured cell must only ever mean "this number is wrong".
+    assert not re.findall(r'<th scope="colgroup"[^>]*class="[^"]*(?:bg-|lvl-)', pane)
+
+
+def test_the_fold_engages_on_the_module_that_needs_it_and_on_no_other(own_workspace: Path) -> None:
+    """The density lever is the module's column count, and that is what makes it safe.
+
+    `map/starsolo` declares sixteen columns, which is a spreadsheet, so it folds to its seven
+    headline ones behind one control. `map/star` declares five — and only two of them headline, so
+    folding would have hidden a bulk run's own read count behind a click for no gain. The threshold
+    is over a property of *which module ran*, identical on the first sample and the ninety-sixth;
+    the threshold this replaces was over how many samples had finished, which is why the same
+    dataset used to change shape while its pipeline was still running.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    solo = _results_pane(render_html(collect_report(own_workspace)))
+
+    assert "grp-fold" in solo
+    headline = re.findall(r'<td class="lvl-\w+ lvl-cell text-right whitespace-nowrap">', solo)
+    folded = re.findall(r'<td class="lvl-\w+ lvl-cell[^"]*grp-extra">', solo)
+    assert len(headline) == 7 and len(folded) == 9, (len(headline), len(folded))
+    assert f"Show all {len(headline) + len(folded)} metrics" in solo
+    assert f"Show the {len(headline)} headline metrics" in solo
+
+
+def test_a_bulk_module_shows_every_column_and_offers_no_disclosure(own_workspace: Path) -> None:
+    """Five columns is not a spreadsheet, so there is nothing to fold and no control to say so."""
+    _finish_a_bulk_pipeline(own_workspace, outdir="results")
+    pane = _results_pane(render_html(collect_report(own_workspace)))
+
+    assert "<table" in pane
+    assert "grp-fold" not in pane, "a disclosure over five columns is a click for nothing"
+    assert "grp-extra" not in pane, "nothing is hidden, so nothing wears the fold class"
+    assert pane.count('<th scope="col"') == 1 + 5  # the sample id, then every metric STAR wrote
+
+
+def test_the_sample_column_is_the_only_one_that_stays_put(own_workspace: Path) -> None:
+    """One sticky column, and it is the row's identifier — never a frozen block of headline columns.
+
+    Eight pinned columns is the whole width of a laptop screen, which collides head-on with the page
+    staying readable at a narrow viewport. So the wide table scrolls inside its own region and the
+    identifier rides along; the page body never scrolls sideways.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY, "S3": _QC_SUMMARY})
+    pane = _results_pane(_render_with_stats(own_workspace, stats))
+
+    assert 'class="sf-scroll-x"' in pane  # the wide table has its own scroll region
+    # One header cell plus one row header per sample, and not one metric cell among them.
+    assert pane.count("sf-col-sticky") == 1 + 3
+    assert not re.findall(r"<td[^>]*sf-col-sticky", pane)
+
+
+def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Path) -> None:
+    """A gap, never a zero — and never a column dropped for everyone because one sample was thin.
+
+    The column set is a union across samples, so a sample whose STARsolo run wrote fewer rows keeps
+    its blanks and every other sample keeps its numbers. A zero here would be a number a reader would
+    act on, and the tool did not write it.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    thin: dict[str, object] = {"Number of Reads": 10, "Sequencing Saturation": 0.5}
+    stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
+    pane = _results_pane(_render_with_stats(own_workspace, stats))
+
+    rows = re.findall(r"<tr><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
+    assert len(rows) == 2
+    thin_row, full_row = rows
+    assert "S1" in thin_row and "S2" in full_row
+    # Same number of cells in both rows -- the column survives -- and the thin one is mostly gaps.
+    assert thin_row.count("<td") == full_row.count("<td") == len(stats.columns)
+    assert thin_row.count(">—</td>") == len(stats.columns) - 2
+    assert ">0</td>" not in thin_row and ">0.0%</td>" not in thin_row  # never a manufactured zero
+
+
+def test_a_partial_run_still_renders_what_landed_and_says_how_much_did(own_workspace: Path) -> None:
+    """Unchanged by the redesign, and re-asserted because a table is a new place to lose it.
+
+    A listing can say what landed and can never say what is missing, so the count comes from the
+    composed config's own sample list. Two of three finished: both rows render, and the page says so
+    rather than looking like a complete run with a short table.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY})
+    partial = stats.model_copy(update={"n_expected": 3})
+    pane = _results_pane(_render_with_stats(own_workspace, partial))
+
+    assert "2 of 3 samples finished" in pane
+    assert 'class="lvl-warn lvl-state' in pane  # a partial run is one of the two tinted states
+    assert pane.count('<th scope="row"') == 2  # what landed is there, in full
+
+
+def test_the_results_table_bridge_lasts_exactly_as_long_as_the_sheet_it_bridges() -> None:
+    """The one unlayered block in the build input, and the mechanism that ends it.
+
+    `report.css` is unlayered, so it outranks every Tailwind layer — which is the design for its
+    CLASS rules, since a migrated element simply stops wearing the class. Its three bare-ELEMENT
+    rules (`table`, `th, td`, `th`) cannot be escaped that way: `text-align: left` beats the
+    `text-right` utility on every metric cell, and `z-index: 1` leaves the sticky sample header at
+    the same stacking level as the headers scrolling past it. So five declarations are restated
+    unlayered and scoped to this table, and this test is what stops them outliving their reason.
+    """
+    from seqforge.report import render
+
+    source = (_ASSETS / "report.src.css").read_text()
+    bridged = ".grp-table" in source
+
+    assert bridged == ("report.css" in render._STYLESHEETS), (
+        "delete the `grp-table` bridge at the foot of report.src.css, drop the class from the "
+        "table in panels.py, and rebuild — the unlayered sheet it works around is gone"
+        if bridged
+        else "the Results table needs the bridge while report.css is inlined: its bare `th, td` "
+        "rule is unlayered and beats every utility on the page"
+    )
+
+
 # -- the vendored stylesheet's drift guards ---------------------------------------------------------
 #
 # `report.tw.css` is Tailwind's output, and Tailwind purges: it contains only what was literally
@@ -886,7 +1188,6 @@ _UNSTYLED_HOOKS = {
     "assay": "<section class='assay' data-assay=N> — the pane the assay switcher shows and hides",
     "genstats-conf": "the confidence <div> inside .genstats, styled by `.genstats > div`",
     "siblings": "the wrapper round the ruled-out drawers; `details.sibling` carries the style",
-    "kgrid": "<g class='kgrid'> in a knee plot, whose `<line class='kg'>` children are styled",
 }
 
 
