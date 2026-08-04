@@ -51,6 +51,7 @@ from .h5ad import STAR_FINAL_LOG
 from .metrics import Finding, PipelineStats, SampleStats
 from .qc import QC_SUFFIX as _STARSOLO_QC_SUFFIX
 from .qc import chemistry_rule as _starsolo_chemistry_rule
+from .qc import gene_model_rule as _starsolo_gene_model_rule
 from .qc import read_metrics as _read_starsolo
 from .qc import read_star_log as _read_star_log
 
@@ -99,7 +100,7 @@ _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(
         artifact=f"{{sample}}{_STARSOLO_QC_SUFFIX}",
         read=_read_starsolo,
-        checks=(_starsolo_chemistry_rule,),
+        checks=(_starsolo_chemistry_rule, _starsolo_gene_model_rule),
     ),
     "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
     "map/star": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
