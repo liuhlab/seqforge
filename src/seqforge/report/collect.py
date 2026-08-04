@@ -781,6 +781,74 @@ def _resolve_solo_features(ctx: _DecisionContext) -> DecisionRef | None:
     )
 
 
+def _resolve_annotation(ctx: _DecisionContext) -> DecisionRef | None:
+    """The registered gene model reads were counted against — a **recipe** field, and named as one.
+
+    Rendered ``assembly / annotation_name``, the way ``_plan`` already builds ``genome_str``, so the
+    string in the alert is the string the Pipeline tab shows and a reader is not left matching two
+    spellings of one decision.
+
+    ``annotation_name`` is ``None`` for a pipeline whose index carries no gene model, and that
+    resolves to ``None`` rather than to ``sacCer3 / None``: there is no annotation to point at, and a
+    decision the workspace cannot answer for is dropped. The rule that names this decision cannot
+    fire on such a pipeline anyway — with no GTF there are no gene rows and no ``reads_in_genes`` —
+    so this is the same fact arriving from the other side, not a second guard.
+    """
+    if ctx.proc is None:
+        return None
+    genome = ctx.proc.processing.genome.value
+    if not genome.annotation_name:
+        return None
+    return DecisionRef(
+        decision="annotation",
+        label="annotation (recipe `processing.genome`)",
+        value=f"{genome.assembly} / {genome.annotation_name}",
+    )
+
+
+#: The composed config's strand key, matched on its LAST dotted segment. Which block carries the KB's
+#: backend params is the **module's** answer (``compose.params.param_block_key`` reads it off
+#: :attr:`WorkflowModule.param_block`), so hard-coding ``solo.soloStrand`` here would make this file a
+#: second owner of that decision and would go quietly mute the day a module declared another block.
+_STRAND_PARAM = "soloStrand"
+
+#: The two ``--soloStrand`` values that are each other's ONLY alternative, so ``change_to`` can be
+#: filled. STARsolo also takes ``Unstranded``, and from there "the alternative" is two values rather
+#: than one — that case keeps its value and offers no flip, because a wrong concrete suggestion is
+#: worse than none (the rule for ``change_to`` that :class:`DecisionRef` already states).
+_STRAND_FLIP: dict[str, str] = {"Forward": "Reverse", "Reverse": "Forward"}
+
+
+def _resolve_strand(ctx: _DecisionContext) -> DecisionRef | None:
+    """Which strand the counter was told the cDNA read sits on — read out of the **composed config**.
+
+    The one decision here that is in neither manifest. ``soloStrand`` is a KB **backend param**: the
+    parse half, byte-decided, owned by the chemistry spec and never instructable — ADR 0011 is the
+    record — and ``compose`` emits it into ``config.yaml``. So it is read from
+    :attr:`PlanView.config`, which is that config verbatim, and the label says so: a reader told to
+    edit their recipe's ``soloStrand`` would open ``processing.yaml`` and find nothing, and an alert
+    that sends its reader to the wrong file is worse than one that names no file at all.
+
+    A workspace that was never composed, or one whose module has no strand param at all (bulk), has
+    nothing to answer with and resolves to ``None``; ``gather_alerts`` then drops the row rather than
+    drawing a field name with no value beside it.
+    """
+    if ctx.plan is None:
+        return None
+    value = next(
+        (v for k, v in ctx.plan.config if k.rsplit(".", 1)[-1] == _STRAND_PARAM and v),
+        None,
+    )
+    if value is None:
+        return None
+    return DecisionRef(
+        decision="strand",
+        label="strand (composed config `soloStrand`; a KB backend param, not a recipe field)",
+        value=value,
+        change_to=_STRAND_FLIP.get(value),
+    )
+
+
 #: Every :data:`~seqforge.workflows.metrics.Decision` a rule can name, and how to read what the
 #: workspace currently says it is. Total over the literal, and an exhaustiveness test derived from
 #: ``get_args`` holds it that way: a member added without teaching this table to read its value would
@@ -791,6 +859,8 @@ def _resolve_solo_features(ctx: _DecisionContext) -> DecisionRef | None:
 _DECISION_RESOLVERS: dict[Decision, Callable[[_DecisionContext], DecisionRef | None]] = {
     "chemistry": _resolve_chemistry,
     "read_roles": _resolve_read_roles,
+    "annotation": _resolve_annotation,
+    "strand": _resolve_strand,
     "solo_features": _resolve_solo_features,
 }
 

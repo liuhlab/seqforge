@@ -135,10 +135,18 @@ Scope = Literal["systematic", "isolated"]
 #: ``chemistry`` is the manifest's ``library.chemistry`` equivalence class; ``read_roles`` is which
 #: file was handed over as which read (``library.files[].read_id``). Both are decisions this compiler
 #: made and recorded, which is the entire premise: a bad number is only actionable once the thing that
-#: produced it is named. ``solo_features`` is the recipe's ``processing.quantification.features`` — an
-#: ORDERED list whose element 0 is the matrix everything downstream reads, which is what makes "you
-#: are counting the wrong feature" a decision a reader can act on rather than an observation.
-Decision = Literal["chemistry", "read_roles", "solo_features"]
+#: produced it is named.
+#:
+#: ``annotation`` is the recipe's ``processing.genome`` — the registered gene model reads are counted
+#: against. ``strand`` is the odd one and is deliberately kept in the same set anyway: it is **not** a
+#: recipe field but a KB **backend param** (``soloStrand``), byte-decided and owned by the chemistry
+#: spec, which ``compose`` emits into the config — see ``docs/adr/0011``. A reader can still act on
+#: it, which is the only membership test this literal has; where they act is what the resolver's label
+#: has to say, because a reader sent to edit a ``soloStrand`` in their recipe will not find one.
+#: ``solo_features`` is the recipe's ``processing.quantification.features`` — an ORDERED list whose
+#: element 0 is the matrix everything downstream reads, which is what makes "you are counting the
+#: wrong feature" a decision a reader can act on rather than an observation.
+Decision = Literal["chemistry", "read_roles", "annotation", "strand", "solo_features"]
 
 #: How each severity reads in words. Total over the literal — the same exhaustiveness shape
 #: :data:`Level` and :data:`MetricGroup` already carry, so a third severity breaks a test instead of
@@ -292,7 +300,7 @@ class PipelineStats(_Frozen):
     notes: list[str] = Field(default_factory=list)
     #: What the module's cross-checks said about the samples above — **here and not on**
     #: :class:`SampleStats`. That carries what the artifact SAID; a finding is a judgement about a
-    #: decision, and R4 is that one judgement is one envelope. It also makes the scope question
+    #: decision, and one judgement is one envelope. It also makes the scope question
     #: answerable: "did this fire on every sample" is a fact about the pipeline, not about a sample.
     findings: list[Finding] = Field(default_factory=list)
 

@@ -73,11 +73,14 @@ from seqforge.workflows.metrics import (
     knee_points,
 )
 from seqforge.workflows.qc import (
+    HEALTHY_GENOME_MAPPING,
     INTRONIC_ONLY_READ_SHARE,
     NEAR_ZERO_VALID_BARCODES,
+    POOR_GENE_ASSIGNMENT,
     QcError,
     build_qc_bundle,
     chemistry_rule,
+    gene_model_rule,
     read_star_log,
     solo_features_rule,
     write_qc_bundle,
@@ -1698,7 +1701,7 @@ def test_the_cross_check_guard_can_actually_catch_drift_in_both_directions(
 
 
 def test_the_modules_findings_land_on_the_pipeline_and_never_on_the_sample(tmp_path: Path) -> None:
-    """The registry runs the rules, and R4 decides where the answers go.
+    """The registry runs the rules, and one-judgement-one-envelope decides where the answers go.
 
     `SampleStats` is what the artifact SAID; a finding is a judgement about a decision, so they are
     two envelopes and the finding rides on the pipeline. That is also what makes scope answerable at
@@ -2598,3 +2601,116 @@ def test_the_feature_gap_rule_reaches_the_pipeline_through_the_registry(tmp_path
         ("s1", "starsolo.intronic-reads-uncounted")
     ]
     assert solo_features_rule in stats_registry._SPECS["map/starsolo"].checks
+
+
+# -- the gene model, and the strand -----------------------------------------
+#
+# The second rule on the same rails, and the one whose SILENCE is half its specification: it reads
+# two numbers that already exist, and speaks only where their combination decides a cause.
+
+
+def test_the_gene_model_rule_fires_when_the_reads_map_and_the_genes_do_not() -> None:
+    """Mapping healthy, counting near-empty — the reads found the genome and the genome had no genes.
+
+    That combination is not a bad library, and it is precisely the one a reader who does not know
+    STARsolo cannot read: both numbers look like alignment and only one of them is. What the rule
+    adds is the two DECISIONS that produce it — which GTF was registered, and which strand the
+    counter was told this kit's cDNA read sits on — because those are the only two things a reader
+    can act on, and the compiler made both.
+    """
+    findings = _fire(gene_model_rule, reads_in_genome=0.884221, reads_in_genes=0.031)
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.reads-mapped-but-not-counted"
+    assert found.severity == "likely"
+    assert set(found.implicates) == {"annotation", "strand"}
+    # Both values it fired on, in the reader's units — the evidence for its own claim.
+    assert "88.4%" in found.measured and "3.1%" in found.measured
+    assert found.sample_id == "S1"
+
+
+def test_the_gene_model_rule_stays_silent_when_both_numbers_are_healthy() -> None:
+    """An alert that fires on a good run is noise, and noise is how every alert stops being read."""
+    assert _fire(gene_model_rule, reads_in_genome=0.884221, reads_in_genes=0.641902) == []
+
+
+def test_the_gene_model_rule_stays_silent_on_the_run_whose_barcode_read_was_wrong() -> None:
+    """Both numbers poor is a MAPPING problem, and this rule is not entitled to claim it.
+
+    `_BROKEN_SUMMARY` is the real run that had the cDNA read handed to STAR as the barcode: 25.9% of
+    reads mapped uniquely and essentially none reached a gene. That run belongs to the chemistry
+    rule, and a page firing two contradictory diagnoses at one run is worse than either alone.
+
+    So both directions are asserted rather than the silence alone: a build where this rule had been
+    wired to the wrong comparison goes red on the first line, and a build where the fixture had
+    stopped raising anything at all goes red on the second.
+    """
+    broken = starsolo_metrics(_bundle(_BROKEN_SUMMARY, _BROKEN_LOG), "broken")
+
+    assert gene_model_rule(broken) == []
+    assert len(chemistry_rule(broken)) == 1, (
+        "the fixture must still raise the chemistry alert, or this asserts silence about nothing"
+    )
+
+
+def test_the_gene_model_rules_boundaries_are_the_two_bars_it_reuses() -> None:
+    """Two numbers this file already argues elsewhere, reused rather than invented a third time.
+
+    `0.60` is the bar `uniquely_mapped` uses for "the genome is the right genome", and this rule's
+    precondition is exactly "mapping is not the problem"; `0.15` is `reads_in_genes`'s own `bad`
+    boundary, so the rule fires precisely where the page already tints that cell red. Two different
+    numbers for one claim is how they drift apart, so each bar is asserted AT its value and one step
+    off it.
+    """
+    poor = POOR_GENE_ASSIGNMENT - 1e-9
+    at_bar = _fire(gene_model_rule, reads_in_genome=HEALTHY_GENOME_MAPPING, reads_in_genes=poor)
+    below = _fire(
+        gene_model_rule, reads_in_genome=HEALTHY_GENOME_MAPPING - 1e-9, reads_in_genes=poor
+    )
+    assert len(at_bar) == 1 and below == []
+
+    healthy = HEALTHY_GENOME_MAPPING
+    assert (
+        _fire(gene_model_rule, reads_in_genome=healthy, reads_in_genes=POOR_GENE_ASSIGNMENT) == []
+    )
+    assert len(_fire(gene_model_rule, reads_in_genome=healthy, reads_in_genes=poor)) == 1
+
+
+def test_an_index_that_carries_no_gene_model_leaves_this_rule_nothing_to_read() -> None:
+    """ "A pipeline whose aligner index carries no gene model never triggers it" — by construction.
+
+    `GenomeRef.annotation_name` is `None` exactly when there is no GTF, and with no GTF STAR writes
+    no gene rows into `Summary.csv` at all, so `reads_in_genes` is simply not a metric. The rule
+    needs no annotation parameter to know that: it needs the number to be absent, which it is.
+    Driving it with the metric missing is therefore the honest test of the claim — a rule handed the
+    name of the annotation would be testing a different sentence, and would stop being pure over one
+    sample's metrics.
+
+    Both halves, because either number alone is half a comparison, and an absent metric is absent and
+    never a zero. That is also what keeps every bulk run silent: bulk measures no gene assignment.
+    """
+    assert _fire(gene_model_rule, reads_in_genome=0.91) == []
+    assert _fire(gene_model_rule, reads_in_genes=0.02) == []
+    assert gene_model_rule(SampleStats(sample_id="S1")) == []
+
+
+def test_the_gene_model_rule_is_registered_and_not_merely_written(tmp_path: Path) -> None:
+    """A rule that is written and never registered fires in its own unit test and on nothing else.
+
+    Driven through `read_pipeline_stats` over real bytes, exactly as the chemistry rule's wiring is:
+    what is asserted here is the entry on `map/starsolo`'s `StatsSpec`, not the function above it.
+    The healthy second sample is the discriminator — a rule wired to fire unconditionally would name
+    it too.
+    """
+    results = tmp_path / "results"
+    uncounted = {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.021}
+    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": uncounted}})
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
+        ("s1", "starsolo.reads-mapped-but-not-counted")
+    ]

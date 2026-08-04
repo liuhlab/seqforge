@@ -702,14 +702,94 @@ def solo_features_rule(sample: SampleStats) -> list[Finding]:
     ]
 
 
+#: At or above this share of uniquely-mapped reads, mapping is **not** the problem — which is this
+#: rule's precondition rather than a grade of its own. It is `uniquely_mapped`'s own `ok` bar, reused
+#: on purpose: that threshold already means "the genome is the right genome" (see
+#: :func:`alignment_metrics`), and this rule's entire claim is "the reads found the genome, so look
+#: past the aligner". Two different numbers for one claim is how the two drift apart, and the day
+#: someone tightens the metric's bar this rule must move with it.
+HEALTHY_GENOME_MAPPING = 0.60
+
+#: Below this share of reads assigned to a gene, gene assignment is poor. It is `reads_in_genes`'s own
+#: `bad` boundary — the `warn` floor in :func:`metrics` — and not a new number, so the rule fires
+#: exactly where the page already tints that cell red and adds the diagnosis the tint cannot carry.
+#:
+#: The silence above it is the design, as with the barcode bar. Between 15% and the metric's 30% bar a
+#: low gene rate has ordinary explanations — an intron-rich prep, a sparse annotation, a degraded
+#: library — and none of them is a decision this compiler made.
+POOR_GENE_ASSIGNMENT = 0.15
+
+
+def gene_model_rule(sample: SampleStats) -> list[Finding]:
+    """Reads landing on the genome and not in genes -> the gene model, or the strand, looks wrong.
+
+    Two numbers the bundle already carries, read *against each other*: ``reads_in_genome`` (STARsolo's
+    ``Reads Mapped to Genome: Unique``) and ``reads_in_genes`` (``Reads Mapped to Gene: Unique
+    Gene``). Neither alone decides anything — the first is a hint with no threshold at all and the
+    second is already graded — and it is the **gap** between them that is diagnostic: reads that found
+    their locus and then found no feature there were counted against the wrong gene model, or counted
+    on the wrong strand. A reader who has not run STARsolo has no way to see that in two adjacent
+    percentages, which is exactly what this layer is for.
+
+    **Silent when both are poor, and that is half the specification.** A run where little maps and
+    little counts has a mapping problem — the wrong assembly, the wrong species, the wrong read handed
+    over as the barcode — and claiming an annotation failure there would be a second, contradictory
+    diagnosis on a page that already carries the right one. A page that fires two contradictory alerts
+    at one run is worse than either alone.
+
+    **Silent when either number is absent**, which is what makes "a pipeline whose aligner index
+    carries no gene model never triggers it" true by construction rather than by a special case:
+    :attr:`~seqforge.models.processing.GenomeRef.annotation_name` is ``None`` exactly when there is no
+    GTF, and with no GTF STAR writes no gene rows into ``Summary.csv``, so ``reads_in_genes`` is
+    simply not there. The rule is deliberately **not** handed the annotation's name: it is pure over
+    one sample's metrics, and a parameter would buy a special case where absence already answers.
+
+    Both decisions are implicated rather than one, for the reason the chemistry rule implicates two:
+    the metric cannot separate them. An inverted ``soloStrand`` and a GTF for the wrong assembly
+    produce the same two percentages, so picking one would be a guess wearing a diagnosis.
+    """
+    genome = _metric_value(sample, "reads_in_genome")
+    genes = _metric_value(sample, "reads_in_genes")
+    if genome is None or genes is None:
+        return []
+    if genome < HEALTHY_GENOME_MAPPING or genes >= POOR_GENE_ASSIGNMENT:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.reads-mapped-but-not-counted",
+            sample_id=sample.sample_id,
+            title="Reads land on the genome but hardly any land in a gene",
+            severity="likely",
+            measured=(
+                f"{fmt_pct(genome)} of reads mapped uniquely to the genome, and only "
+                f"{fmt_pct(genes)} of them were assigned to a gene (this rule fires at or above "
+                f"{fmt_pct(HEALTHY_GENOME_MAPPING)} mapped with under "
+                f"{fmt_pct(POOR_GENE_ASSIGNMENT)} counted); the aligner found the genome, so the "
+                "gap is in what the reads were counted against"
+            ),
+            implicates=["annotation", "strand"],
+            remedy=(
+                "Check that the registered annotation is the gene model for this assembly, and that "
+                "the strand matches how this kit's cDNA read is oriented. The annotation is a "
+                "recipe field; the strand is a KB backend param, so it belongs to the chemistry "
+                "spec and not to your recipe. Correct either and compose again — nothing here "
+                "changes your manifest."
+            ),
+        )
+    ]
+
+
 __all__ = [
+    "HEALTHY_GENOME_MAPPING",
     "INTRONIC_ONLY_READ_SHARE",
     "NEAR_ZERO_VALID_BARCODES",
+    "POOR_GENE_ASSIGNMENT",
     "QC_SUFFIX",
     "QcError",
     "alignment_metrics",
     "chemistry_rule",
     "build_qc_bundle",
+    "gene_model_rule",
     "metrics",
     "read_metrics",
     "read_star_log",
