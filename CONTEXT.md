@@ -101,7 +101,8 @@ are legacy spellings of the byte sense, being retired.
 **Run**:
 One sequencing run — the grouping `resolve/group.py` derives from filenames. With no archive record,
 that grouping *is* the sample identity.
-_Avoid_: lane, experiment (both are narrower archive concepts)
+_Avoid_: lane, experiment (both are narrower archive concepts); and never for the execution of a
+composed Snakefile, which is a **Compiled pipeline**
 
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
@@ -385,6 +386,14 @@ and stored inside neither input (`docs/adr/0005`, which holds the formula in ful
 pipeline directory, so two recipes over one dataset cannot overwrite each other.
 _Avoid_: build id, job id, provenance id; and never for `RunResolution.run_id`, which is a
 filename-derived **Run** key
+
+**Compiled pipeline**:
+One `(manifest, recipe)` pairing made runnable — the directory `compose` writes (the Snakefile, its
+config, the units table, and a copy of the **Workflow module**), and the execution of that Snakefile.
+One word for both, because the directory is where the execution's outputs land, and one module owns
+every question about either (`docs/adr/0024`).
+_Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
+its execution; also build, job, workflow run
 
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it

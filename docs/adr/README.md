@@ -31,9 +31,9 @@ Numbers only; the table below carries the links.
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023 |
 | `src/seqforge/probe/` | 0001 |
-| `src/seqforge/report/` | 0024 |
+| `src/seqforge/report/` | 0024, 0025 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021 |
-| `src/seqforge/workflows/` | 0015, 0022, 0023 |
+| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
@@ -67,3 +67,4 @@ Numbers only; the table below carries the links.
 | [0022](0022-three-owners-for-an-aligner-param.md) | An aligner param has three owners, not two | The KB says how to parse, the recipe what to count, and the module carries every flag whose value varies with nothing — as a literal | `workflows/map/`, `kb/specs/`, `compose/params.py` |
 | [0023](0023-star-memory-escalates-on-retry.md) | STAR's memory escalates on retry, and a job that still does not fit fails loudly | `mem_gb` is the FIRST attempt's request, every cap STAR is handed derives from the escalated one, and exhausting the retries is a legible refusal rather than a bigger default for everyone | `workflows/memory.py`, `workflows/map/starsolo.smk`, `models/processing.py` |
 | [0024](0024-one-owner-for-the-compiled-pipeline.md) | The compiled pipeline directory has one owner, and it sits above the composer | `workspace.py` names the directory and does no I/O; a top-level `pipeline.py` names the three files and answers which module ran, the config, the samples and where the outputs are — the composer writes through it and every other consumer reads through it | `pipeline.py`, `workspace.py`, `compose/`, `report/collect.py`, `e2e.py` |
+| [0025](0025-the-module-that-writes-an-artifact-owns-reading-it.md) | The module that writes a QC artifact owns reading it, and a registry names who does not | A leaf metrics vocabulary, one adapter beside each writer, and a `StatsSpec` registry whose `MODULES_WITHOUT_STATS` half makes "reports nothing" a declaration rather than a silent fall-through | `workflows/metrics.py`, `workflows/stats.py`, `workflows/qc.py`, `report/` |

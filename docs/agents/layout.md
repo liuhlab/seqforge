@@ -25,7 +25,9 @@ pipeline.py what is INSIDE one compiled pipeline directory: the three filenames,
             answers which module ran, the config, the contracted samples, the results dir and the
             per-sample join. Top-level because the composer writes and everyone else reads (ADR-0024)
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
-            h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout)
+            h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout).
+            metrics.py is the leaf metric vocabulary, stats.py the per-module reader registry, and
+            each adapter lives beside the writer whose format it reads (ADR-0025)
 hooks/      PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (root app + sub-typers). JSON by default
 e2e.py      ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11), which RUN THE
