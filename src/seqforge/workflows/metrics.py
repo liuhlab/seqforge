@@ -37,7 +37,7 @@ from collections.abc import Callable, Sequence
 from math import exp, log
 from typing import Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 #: How a metric reads against its own thresholds. ``none`` is not a missing value — it is a value with
 #: **no defensible threshold** (an estimated cell count means nothing without knowing what was loaded),
@@ -106,6 +106,17 @@ class SampleStats(_Frozen):
     #: case too. Absent is absent: a feature that produced no such row is missing from the mapping
     #: rather than carried as a zero, so "counted nothing" and "was not counted" stay distinguishable.
     feature_reads_in_genes: dict[str, float] = Field(default_factory=dict)
+    #: Which feature the RECIPE counts first — element 0 of ``soloFeatures``, the matrix everything
+    #: downstream reads. Not the same question as :attr:`note`'s, which says which feature the page's
+    #: numbers were *read* from: the reader picks by its own preference, the recipe picks by intent,
+    #: and a rule about whether the right thing is being counted needs the second.
+    #:
+    #: Carried so the rules can stay **pure** and still not fire on a run that is already configured
+    #: correctly. Without it a nuclear library counted with ``GeneFull`` first still raises "you are
+    #: counting the wrong feature", and tells the reader to do what they have already done — which is
+    #: the firing-on-a-healthy-run failure that makes a rule worse than no rule. Empty for a tool with
+    #: no such concept, and for a bundle written before it was carried.
+    primary_feature: str = ""
 
 
 # ---- the cross-check ----------------------------------------------------------------------------
@@ -224,6 +235,23 @@ class Alert(_Frozen):
     measured: list[str]
     implicates: list[DecisionRef]
     remedy: str
+
+    @model_validator(mode="after")
+    def _one_measurement_per_firing_sample(self) -> Alert:
+        """The pairing the docstring above promises, enforced where the object is built.
+
+        The renderer walks ``samples`` and ``measured`` together. Left to a prose invariant, a
+        mismatch shows up there as a ``zip`` quietly dropping the tail — an alert that names four
+        samples and shows three measurements, with nothing failing and no way to tell which sample
+        lost its evidence. Refusing to construct one is the mechanism; asking every caller to keep
+        two lists in step is the rule it replaces.
+        """
+        if len(self.samples) != len(self.measured):
+            raise ValueError(
+                f"alert {self.id!r} fired on {len(self.samples)} sample(s) but carries "
+                f"{len(self.measured)} measurement(s); every firing sample keeps its own evidence"
+            )
+        return self
 
 
 def gather_alerts(

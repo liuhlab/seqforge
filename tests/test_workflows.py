@@ -70,6 +70,7 @@ from seqforge.workflows.metrics import (
     fmt_int,
     fraction,
     gather_alerts,
+    grade,
     knee_points,
 )
 from seqforge.workflows.qc import (
@@ -2582,7 +2583,7 @@ def test_the_feature_gap_rule_reaches_the_pipeline_through_the_registry(tmp_path
     """A rule that is written and never registered fires in its own unit test and on nothing else.
 
     Driven through `read_pipeline_stats` over real bytes, like its sibling above: the wiring is the
-    claim. `map/starsolo` now declares two rules, and one guard covers both.
+    claim. `map/starsolo` declares three rules, and each one has a guard of its own here.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -2713,4 +2714,93 @@ def test_the_gene_model_rule_is_registered_and_not_merely_written(tmp_path: Path
     assert stats is not None
     assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
         ("s1", "starsolo.reads-mapped-but-not-counted")
+    ]
+
+
+# -- what the review found: two rules that fired on runs they had no claim on ------------------
+
+
+def test_the_gene_assignment_bar_is_one_number_the_metric_and_the_rule_both_read() -> None:
+    """The rule claims to fire where the page already tints red. This is what makes that true.
+
+    Both docstrings said the rule reuses `reads_in_genes`' own `warn` floor, and both were *copied
+    literals* — regrading the metric would have left the rule behind, silently, with the comment still
+    claiming otherwise. A remembered rule is the thing this repo replaces with a mechanism, so the
+    constant is now passed to `fraction()` and read by the rule, and this asserts they are one number
+    rather than two that currently agree.
+    """
+    graded = _by_key(starsolo_metrics(_bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG), "S1"))[
+        "reads_in_genes"
+    ]
+
+    # The metric's own boundary, recovered from its behaviour rather than from its source: `warn` is
+    # the value at which it stops grading `bad`.
+    assert grade(POOR_GENE_ASSIGNMENT, ok=0.30, warn=POOR_GENE_ASSIGNMENT) == "warn"
+    assert grade(POOR_GENE_ASSIGNMENT - 1e-9, ok=0.30, warn=POOR_GENE_ASSIGNMENT) == "bad"
+    assert graded.level == "ok"  # and the healthy fixture is nowhere near it
+
+    # The rule fires exactly below that boundary and not at it -- the two ends of one number.
+    assert _fire(gene_model_rule, reads_in_genome=0.9, reads_in_genes=POOR_GENE_ASSIGNMENT) == []
+    assert (
+        len(_fire(gene_model_rule, reads_in_genome=0.9, reads_in_genes=POOR_GENE_ASSIGNMENT - 1e-9))
+        == 1
+    )
+
+
+def test_a_nuclear_library_already_counted_full_length_is_not_told_to_do_what_it_did() -> None:
+    """The gap survives the fix, so measuring it is not enough to speak about it.
+
+    A nuclear prep still has intronic reads after `GeneFull` is made primary — the measurement is a
+    fact about the library, not about the recipe. Firing on it anyway raised "you are counting the
+    wrong feature" at a reader counting the right one, with a remedy telling them to reorder a list
+    they had already reordered. `primary_feature` is what separates "counting exonically" from
+    "counting exonically BY MISTAKE", and the claim is about the matrix, not about the biology.
+    """
+    gap = {"Gene": 0.301, "GeneFull": 0.708}
+    counted_wrong = SampleStats(sample_id="s", feature_reads_in_genes=gap, primary_feature="Gene")
+    counted_right = SampleStats(
+        sample_id="s", feature_reads_in_genes=gap, primary_feature="GeneFull"
+    )
+
+    assert [f.alert_id for f in solo_features_rule(counted_wrong)] == [
+        "starsolo.intronic-reads-uncounted"
+    ]
+    assert solo_features_rule(counted_right) == []
+    # A bundle written before the field was carried says nothing about the recipe, so the rule keeps
+    # its old behaviour rather than going silent on every archived run.
+    assert len(solo_features_rule(SampleStats(sample_id="s", feature_reads_in_genes=gap))) == 1
+
+
+def test_the_gene_model_rule_yields_to_the_feature_that_counted_the_same_reads_fine() -> None:
+    """One run, two rules, and only one of them has a claim — the louder one had it wrong.
+
+    The headline `reads_in_genes` comes from whichever feature `_pick_feature` selected, which is
+    `Gene` wherever it exists. So a nuclear library counted exonically shows healthy mapping beside a
+    poor exonic count and looks *exactly* like a wrong annotation. It is not one, and the bundle
+    already proves it: a `GeneFull` count in the same artifact shows the reads did land in genes. The
+    rule that fires must be the one naming the feature, not the one naming the annotation.
+    """
+    nuclear = SampleStats(
+        sample_id="s",
+        metrics=[
+            m
+            for m in (
+                fraction("reads_in_genome", "g", 0.85, group="alignment"),
+                fraction("reads_in_genes", "c", 0.08, group="counts"),
+            )
+            if m is not None
+        ],
+        feature_reads_in_genes={"Gene": 0.08, "GeneFull": 0.62},
+        primary_feature="Gene",
+    )
+
+    assert gene_model_rule(nuclear) == []
+    assert [f.alert_id for f in solo_features_rule(nuclear)] == [
+        "starsolo.intronic-reads-uncounted"
+    ]
+
+    # And it still fires when NO other feature counted them: then the annotation really is suspect.
+    only_exonic = nuclear.model_copy(update={"feature_reads_in_genes": {"Gene": 0.08}})
+    assert [f.alert_id for f in gene_model_rule(only_exonic)] == [
+        "starsolo.reads-mapped-but-not-counted"
     ]

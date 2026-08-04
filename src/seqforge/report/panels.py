@@ -1133,7 +1133,10 @@ def _alert_card(alert: Alert) -> str:
         if alert.scope == "systematic"
         else f"{len(alert.samples)} of {alert.n_samples} samples that finished"
     )
-    shown = list(zip(alert.samples, alert.measured, strict=False))[:_ALERT_MAX_SAMPLES]
+    # `strict=True` because the pairing is guaranteed upstream: `Alert` refuses to exist with the two
+    # lists out of step, so there is nothing here to be lenient about. `strict=False` would have this
+    # renderer silently absorb a defect the model already makes unconstructable.
+    shown = list(zip(alert.samples, alert.measured, strict=True))[:_ALERT_MAX_SAMPLES]
     measured = "".join(
         f'<li><span class="font-mono">{esc(sample)}</span> — {esc(text)}</li>'
         for sample, text in shown
