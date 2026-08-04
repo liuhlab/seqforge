@@ -210,8 +210,13 @@ def read_pipeline_stats(
     # No "N of M finished" note here, though the counts below carry the fact: `n_found`/`n_expected`
     # are on the object and the reader renders them, so a note saying it again in words is one fact
     # twice — a heading and its own small print. Counts are the data; the sentence is the view's.
-    for note in sorted({s.note for s in found if s.note}):
-        notes.append(note)
+    #
+    # And no sample's own caption either. It used to be folded in here as well, which made `notes` two
+    # kinds of thing in one `list[str]`: an artifact nobody could parse, and the caption a sample that
+    # WAS parsed carries. The reader then had to tell them apart again — by matching note strings back
+    # against `SampleStats.note` — so rewording a caption in an adapter would silently stop the match,
+    # and the caption would reappear as a read failure. A distinction this function knows is not one a
+    # consumer should have to reconstruct across a package seam. It stays on the sample that holds it.
 
     return PipelineStats(
         module=module,

@@ -1800,6 +1800,34 @@ def test_a_note_a_whole_plate_shares_is_one_line_and_a_lone_sample_is_still_name
     assert "counted from the Gene feature" in lone and "all 1 samples" not in lone
 
 
+def test_on_a_partial_run_all_ranges_over_the_rows_shown_and_says_so(
+    own_workspace: Path,
+) -> None:
+    """ "all N samples" counts the rows under it, not the plate the config contracted.
+
+    A caption can only speak for an artifact somebody read, so N is the parsed samples — which on a
+    partial run is narrower than the banner directly above ("2 of 5 samples finished"). Two numbers a
+    reader has to reconcile is one too many, so the word *shown* does the reconciling. The complete
+    case must NOT carry it: there is nothing to disambiguate when every contracted sample landed, and
+    a qualifier that never comes off is noise.
+    """
+    from seqforge.workflows.stats import read_pipeline_stats
+
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    _land_bundles_counted_off(results, {"S1": "Gene", "S2": "Gene"})
+    partial = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3", "S4", "S5"])
+    assert partial is not None and (partial.n_found, partial.n_expected) == (2, 5)
+
+    block = _counting_block(_pane(_render_with_stats(own_workspace, partial), "results"))
+    assert "all 2 samples shown" in block, block
+    assert "all 5 samples" not in block, "N is the rows read, never the plate contracted"
+
+    whole = read_pipeline_stats("map/starsolo", results, ["S1", "S2"])
+    assert whole is not None and whole.complete
+    done = _counting_block(_pane(_render_with_stats(own_workspace, whole), "results"))
+    assert "all 2 samples" in done and "shown" not in done
+
+
 def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Path) -> None:
     """A gap, never a zero — and never a column dropped for everyone because one sample was thin.
 

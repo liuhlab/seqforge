@@ -1079,16 +1079,14 @@ def _pipeline_state(stats: PipelineStats) -> str:
         f'text-sm"><span class="lvl-flag" aria-hidden="true">{icon}</span>'
         f"<span>{text}</span></div>"
     )
-    # Only what could not be READ. ``read_pipeline_stats`` folds two kinds of note into one list: an
-    # artifact nobody could parse, and the caption a sample that WAS parsed carries. The second kind
-    # prints under the table now, with the samples it holds for (:func:`_counting_notes`), so printing
-    # it here as well would be one fact twice — once attributed and once not, with the weaker of the
-    # two sitting where a reader looks for failures.
-    carried = {sample.note for sample in stats.samples if sample.note}
-    unread = [note for note in stats.notes if note not in carried]
-    if not unread:
+    # Only what could not be READ, and that is now true of `notes` itself rather than something this
+    # function filters for. A sample that WAS parsed carries its caption on the sample, and it prints
+    # under the table with the samples it holds for (:func:`_counting_notes`); printing it here too
+    # would be one fact twice — once attributed and once not, with the weaker of the two sitting where
+    # a reader looks for failures.
+    if not stats.notes:
         return state
-    notes = "".join(f"<li>{esc(n)}</li>" for n in unread)
+    notes = "".join(f"<li>{esc(n)}</li>" for n in stats.notes)
     return f'{state}<ul class="mt-0 mb-4 list-disc pl-5 text-xs text-dim">{notes}</ul>'
 
 
@@ -1361,8 +1359,15 @@ def _counting_notes(stats: PipelineStats) -> str:
     for note, ids in groups.items():
         # "all N samples" only where N is more than one: on a run with a single well, "all 1 samples"
         # is a sentence about a plate, and the id it declines to print is one word long.
+        #
+        # N counts the samples that PARSED, not the ones the config contracted, because those are the
+        # rows this block sits under and a caption can only speak for an artifact somebody read. On a
+        # partial run that makes "all" narrower than the banner above it ("50 of 96 finished"), so it
+        # says *shown* out loud rather than leaving a reader to decide which of the two numbers "all"
+        # ranges over.
         every = n_samples > 1 and len(ids) == n_samples
-        who = f"all {n_samples} samples" if every else ", ".join(ids)
+        shown = "" if stats.complete else " shown"
+        who = f"all {n_samples} samples{shown}" if every else ", ".join(ids)
         items += (
             f'<li class="mt-1"><span class="italic">{esc(note)}</span> — '
             f'<span class="font-mono">{esc(who)}</span></li>'
