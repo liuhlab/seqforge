@@ -347,9 +347,9 @@ def test_the_adr_index_and_the_adr_tree_hold_the_same_files() -> None:
     """The index is the tree's entry point, so a record it omits is one nobody is sent to.
 
     "Read the ADRs that touch the area you're about to work in" is only obeyable through an index --
-    the alternative is opening all sixteen -- which makes an unlisted ADR invisible in practice and
-    a row pointing at a renamed file worse than no row at all. Both directions, because both are the
-    same set comparison and the second is the one a rename produces.
+    the alternative is opening every record in the tree -- which makes an unlisted ADR invisible in
+    practice and a row pointing at a renamed file worse than no row at all. Both directions, because
+    both are the same set comparison and the second is the one a rename produces.
 
     **Both tables, because the index asks for both rows.** The by-number table carries filenames and
     the by-area table carries numbers, so a filename scan reaches only one of them -- and an ADR

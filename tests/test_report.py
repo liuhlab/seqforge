@@ -2612,6 +2612,60 @@ def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_r
     assert html == render_html(collect_report(own_workspace))
 
 
+def test_a_plate_sized_alert_stays_inside_the_budget_with_its_sample_cap_lifted(
+    own_workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """What holds the test above inside 500 KB is `_ALERT_MAX_SAMPLES`, not the budget it asserts.
+
+    The alert list truncates well short of a plate, so the block above weighs the same at 96 firing
+    samples as at a handful, and that budget stops being sensitive to what one alert row costs: a
+    mutation fattening each *rendered* row by ~6 KB — 96 of which would be half a megabyte of list —
+    went green through it, because only a handful of rows were ever rendered. The cap is right and
+    stays. What is wrong is that the page's headroom then rests on a constant nobody re-measures, and
+    raising it is a one-line change whose suite is green either way.
+
+    So the number asserted here is the **untruncated** one: what the page weighs with every sample
+    that fired spelled out, which is exactly what someone raising the cap is implicitly claiming is
+    affordable. Measured when this landed (2026-08-04) a 96-well page is ~269 KB truncated and
+    ~283 KB untruncated, against the same 500 KB budget — so this fires once an alert row costs about
+    2.4 KB, against the ~160 bytes one costs today. The ~6 KB row that escaped is comfortably red.
+
+    **The cap is lifted, never asserted.** A test spelling its value would restate the constant and
+    catch nothing; the property is a relationship between a row's cost and the page's budget, and it
+    is held from both ends — the shipped page must genuinely truncate here (or the two renders are
+    the same page and this measures nothing), and the lifted one must still fit.
+    """
+    from seqforge.report import panels
+
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
+    _land_multi_feature_bundles(
+        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+
+    # One collection, two renders: the cap is a rendering decision, so the alert this measures is
+    # byte-identical on both sides and the only thing that moves is how much of it reaches the page.
+    report = collect_report(own_workspace)
+    truncated = _alert_block(render_html(report))
+    assert truncated, "the plate must raise an alert, or there is no list here to truncate"
+    assert sum(well in truncated for well in plate) < len(plate), (
+        "the cap must bind on a plate, or the render below is the same page measured twice"
+    )
+
+    monkeypatch.setattr(panels, "_ALERT_MAX_SAMPLES", len(plate))
+    html = render_html(report)
+
+    assert all(well in _alert_block(html) for well in plate), (
+        "every firing sample must reach the block once the cap is lifted, or something else is "
+        "bounding this list and the size below is not the untruncated one"
+    )
+    assert len(html.encode()) < 500_000, (
+        "a plate with every firing sample spelled out breaks the 500 KB budget — an alert row has "
+        "grown to where _ALERT_MAX_SAMPLES, not the budget, is what keeps the page inside it"
+    )
+
+
 # -- the gene model and the strand: attribution across two artifacts ---------------------------------
 #
 # The second rule's own seam. The threshold work is held to literal values in `tests/test_workflows.py`;
