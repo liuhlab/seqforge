@@ -791,10 +791,10 @@ _STRAND_FLIP: dict[str, str] = {"Forward": "Reverse", "Reverse": "Forward"}
 def _resolve_strand(ctx: _DecisionContext) -> DecisionRef | None:
     """Which strand the counter was told the cDNA read sits on — read out of the **composed config**.
 
-    The one decision here that is not in either manifest. ``soloStrand`` is a KB **backend param**:
-    the parse half, byte-decided, owned by the chemistry spec and never instructable (``docs/adr/
-    0011``), and ``compose`` emits it into ``config.yaml``. So it is read from
-    :attr:`PlanView.config`, which is that config verbatim, and the label says so — a reader told to
+    The one decision here that is in neither manifest. ``soloStrand`` is a KB **backend param**: the
+    parse half, byte-decided, owned by the chemistry spec and never instructable — ADR 0011 is the
+    record — and ``compose`` emits it into ``config.yaml``. So it is read from
+    :attr:`PlanView.config`, which is that config verbatim, and the label says so: a reader told to
     edit their recipe's ``soloStrand`` would open ``processing.yaml`` and find nothing, and an alert
     that sends its reader to the wrong file is worse than one that names no file at all.
 
