@@ -407,8 +407,12 @@ def _sample_rows(
         else ""
     )
     # The whole first cell is the toggle — a big, easy click target — not just the little caret.
+    # `whitespace-nowrap` because this cell is one identifier: caret, id, accession. Row headers wrap
+    # by default, which is right where one carries a sentence (the Results table's per-row note) and
+    # wrong here — it put the caret on a line of its own above the id it belongs to.
     sample_cell = (
-        f'<th scope="row" class="sf-col-sticky basis-toggle" data-target="{esc(detail_id)}" '
+        f'<th scope="row" class="sf-col-sticky basis-toggle whitespace-nowrap" '
+        f'data-target="{esc(detail_id)}" '
         'role="button" tabindex="0" aria-expanded="false" aria-label="Show this sample\'s files">'
         '<span class="basis-caret" aria-hidden="true">▸</span>'
         f'<span class="basis-sid">{esc(sample.sample_id)}</span>{acc}</th>'
@@ -889,8 +893,8 @@ def _artifact_block(a: ArtifactEmbed) -> str:
         f'download="{esc(a.name)}" href="{href}">⭳ Download</a></div>'
     )
     view = (
-        '<details><summary class="cursor-pointer list-none px-3 py-2 text-sm text-accent">View'
-        '</summary><pre class="m-0 max-h-96 overflow-auto border-t border-line p-4 font-mono '
+        '<details><summary class="px-3 py-2 text-sm text-accent">View</summary>'
+        '<pre class="m-0 max-h-96 overflow-auto border-t border-line bg-sunk p-4 font-mono '
         f'text-xs">{esc(a.text)}</pre></details>'
     )
     return f'<div class="mb-3 rounded-lg border border-line last:mb-0">{head}{view}</div>'
@@ -1185,7 +1189,7 @@ def _stats_table(stats: PipelineStats) -> str:
         )
 
     table = (
-        '<div class="sf-scroll-x"><table class="grp-table w-full text-sm tabular-nums">'
+        '<div class="sf-scroll-x"><table class="w-full text-sm tabular-nums">'
         '<thead><tr><th scope="col" rowspan="2" class="sf-col-sticky align-bottom">Sample</th>'
         f"{band_row}</tr><tr>{head_row}</tr></thead><tbody>{rows}</tbody></table></div>"
     )

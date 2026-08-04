@@ -7,38 +7,35 @@ carries them into the wheel automatically — no `force-include` needed
 
 | file | what it is | shipped? |
 |---|---|---|
-| `report.css` | first-party, hand-written — the page's styling and its reset | yes, inlined at render |
 | `report.tw.css` | **built artifact** — Tailwind CSS v4.3.3, purged and minified, plus this repo's token/component layer | yes, inlined at render |
 | `report.src.css` | the **input** to that build: Tailwind's parts + the first-party layers | yes (source of record) |
 | `report.js` | first-party, hand-written | yes, inlined at render |
 
-`report.css` and `report.js` are kept as real files rather than Python string literals so they get
-syntax highlighting and linting, and are inlined at render via `importlib.resources`.
+`report.js` is kept as a real file rather than a Python string literal so it gets syntax highlighting
+and linting, and is inlined at render via `importlib.resources`. So is `report.src.css`, which no
+Python reads: a wheel that carried a built stylesheet without the file it was compiled from could not
+be rebuilt.
 
-Both stylesheets go into the page, in the order `render._STYLESHEETS` names: the vendored build
-first, the hand-written sheet last. Tailwind emits everything inside real CSS cascade layers, and
-unlayered CSS outranks every layer whatever the source order — so `report.css`, which is entirely
-unlayered, wins every overlap on the cascade alone. Putting it second means it also wins on source
-order, which is what decides the small *unlayered* remainder Tailwind emits (`@property`
-registrations today). Two arguments agreeing beats one of them silently mattering.
-
-That argument covers `report.css`'s **class** rules completely — a migrated element stops wearing the
-class and the rule stops matching, which is what lets one tab be redesigned at a time and reviewed on
-its own. It does not cover the three bare-**element** rules that sheet also carries (`table`,
-`th, td`, `th`), which no amount of removing classes escapes: `th, td { text-align: left }` beats a
-`text-right` utility on a metric cell, and `th { z-index: 1 }` beats the sticky column's. So
-`report.src.css` ends in one deliberately *unlayered* block — five declarations, scoped to the
-Results table by `.grp-table` — which wins on **specificity** rather than on source order, since
-`report.css` is inlined second and would take a tie. It is a bridge, its own comment says so, and
-`test_the_results_table_bridge_lasts_exactly_as_long_as_the_sheet_it_bridges` goes red in the commit
-that stops inlining the hand-written sheet.
+There used to be a second sheet. `report.css` was 559 hand-written lines and it was the page's whole
+styling and its reset; it was inlined *beside* the build for the length of the redesign, and it won
+every overlap on one mechanical fact — Tailwind emits everything inside real CSS cascade layers, and
+unlayered CSS outranks every layer whatever the source order. That is what let the design system
+arrive without moving a pixel and then take the page over one element at a time: a migrated element
+stopped wearing its old class, the old rule stopped matching, and the utilities beside it took
+effect immediately. It has no callers left and is deleted. An expand–contract that never contracts is
+two systems.
 
 ## Tailwind IS vendored, as a built file
 
-Third-party: **Tailwind CSS v4.3.3** (MIT). It is not linked, not fetched and not reimplemented —
-`report.tw.css` is the real compiler's output for this page's class set, and it carries Tailwind's
-MIT banner comment at the top. Nothing third-party *executes*: it is a stylesheet, and the page still
-ships no diagram engine and no charting library (see below).
+**The page ships no third-party _runtime_** — no charting library, no diagram engine, no script
+fetched when it opens — and `test_report_makes_no_external_network_reference` is what keeps that
+true. It does ship third-party **CSS**, and that is the claim this file exists to make precisely.
+
+Vendored: **Tailwind CSS v4.3.3**, MIT-licensed (© Tailwind Labs, Inc.; the licence text travels with
+the npm package, and the built file carries Tailwind's MIT banner comment at the top). It is not
+linked, not fetched and not reimplemented — `report.tw.css` is the real compiler's output for this
+page's class set, pinned to that exact version and checked in. Nothing about it executes: it is a
+stylesheet.
 
 A Tailwind **Play CDN** `<script src="https://cdn.tailwindcss.com">` was never an option and must
 never be added. These pages are opened from `file://`, where an external stylesheet or script
@@ -56,10 +53,15 @@ npx @tailwindcss/cli -i report.src.css -o report.tw.css --minify
 rm -rf node_modules package-lock.json     # nothing from npm belongs in this repo
 ```
 
+Verified from a clean checkout of this repo: `npm install` writes `node_modules/` here, the CLI
+reads `report.src.css` and writes `report.tw.css`, and the `rm` leaves the tree exactly as `git
+status` found it — the only changed file is the built stylesheet, and it is byte-identical to the
+one checked in when the source has not moved.
+
 `--no-save` and the `rm` are the point: node is a *build-time* tool for one generated file, not a
 dependency of `seqforge`. There is no `package.json`, no lockfile and no node in `pyproject.toml`,
-because a Python package that needs npm to install would be a much worse trade than a checked-in 3 KB
-stylesheet.
+because a Python package that needs npm to install would be a much worse trade than a checked-in
+25 KB stylesheet. Nothing in CI runs this, which is why the two drift guards below exist.
 
 Pinned to `4.3.3` and not `latest` on purpose, and to the same version as `evals/assets/`: the
 version is the only thing that makes the artifact reproducible, "whatever npm served that day" is not
@@ -67,9 +69,10 @@ a provenance, and two builds on two versions is not one system.
 
 Three things about the build are worth knowing before editing it:
 
-- Tailwind's parts are imported **individually** (`tailwindcss/theme.css`, `tailwindcss/utilities.css`)
-  rather than as `@import "tailwindcss"`, because that is the documented way to leave one of them out
-  — and one of them *is* left out. See "Preflight is sequenced" below.
+- Tailwind's parts are imported **individually** (`tailwindcss/theme.css`,
+  `tailwindcss/preflight.css`, `tailwindcss/utilities.css`) rather than as `@import "tailwindcss"`,
+  because that is the documented way to leave one of them out — and one of them *was* left out for
+  the length of the redesign. See "Preflight was sequenced" below.
 - `source(none)` on the utilities import plus explicit `@source` lines for `../panels.py`,
   `../render.py` and `./report.js` disables automatic source detection, so the purge depends on those
   three files and **not** on the directory the build ran from. Without it the output changes with
@@ -97,28 +100,33 @@ What is deliberately **not** shared is either page's `@layer components`: a lab-
 dataset and a CI grading report change for unrelated reasons, and coupling their component
 vocabularies would make every redesign of one a review of the other.
 
-### Preflight is sequenced, not dropped
+### Preflight was sequenced, not dropped
 
-`tailwindcss/preflight.css` is **not** imported yet. Tailwind's cascade-layer argument — unlayered
-beats layered, so the hand-written sheet wins — holds for every property that sheet *sets*. Preflight
-is the part where it does not: a reset reaches bare element selectors `report.css` never mentions,
-and there the layered rule beats only the UA stylesheet and wins. Measured against today's page,
-importing it while `report.css` is still inlined would:
+`tailwindcss/preflight.css` is imported, and it is the page's only reset. It was held back for the
+length of the redesign, deliberately. Tailwind's cascade-layer argument — unlayered beats layered, so
+the hand-written sheet won — held for every property that sheet *set*; Preflight is the part where it
+did not, because a reset reaches bare element selectors `report.css` never mentioned, and there the
+layered rule beats only the UA stylesheet and wins. Measured against the page as it then was,
+importing it alongside would have:
 
-| Preflight rule | what moves |
+| Preflight rule | what moved |
 |---|---|
-| `h1,h2,h3,h4 { font-weight: inherit }` | every heading unbolds — `.hero h1`, `.panel > h2`, `.family-focus h3`, `.detail-body h4` all set a size and inherit their weight from the UA |
-| `ol,ul,menu { list-style: none }` | `ul.pipeline-notes` loses its bullets |
-| `* { margin: 0 }` | `p.empty`, `p.notice` and `.hero p.organism` lose the UA paragraph margins they rely on |
-| `button { font: inherit }` | `#theme-toggle.icon-btn` swaps the UA control font for the body font |
+| `h1..h6 { font-weight: inherit }` | every heading unbolds — each set a size and inherited its weight from the UA |
+| `ol,ul,menu { list-style: none }` | the pipeline notes lose their bullets |
+| `*,::before,::after { margin: 0; padding: 0 }` | every fallback paragraph loses the UA margins it relied on |
+| `button { font: inherit }` | `#theme-toggle` swaps the UA control font for the body font |
 | `b,strong { font-weight: bolder }` | a `<b>` inside a 600-weight parent goes to 900 rather than 700 |
 
-The page already has a reset — `report.css` sets `* { box-sizing: border-box }` and zeroes the
-margins it cares about — and two resets on one page is one too many. So Preflight arrives with the
-commit that deletes the hand-written sheet, which is the commit that is allowed to change the page.
+Two resets on one page is one too many, so it arrived in the commit that deleted the other one —
+which is also the only commit that was allowed to change the page. Each of the five was then a
+decision to make rather than a thing to survive, and each is made explicitly: a heading states its
+own size and weight, a list states its own markers, and `report.src.css`'s `@layer base` states what
+a reset does not decide (the page's colour, its typeface, and that a horizontal overflow belongs to a
+`.sf-scroll-x` and never to the body).
+
 `test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves` is the mechanism rather than this
-paragraph: it goes red the moment `report.css` stops being inlined, and its failure message is the
-one line to add.
+paragraph. It is a biconditional and it still fires in both directions: drop the import on a rebuild
+and it goes red with the line to add, re-inline a second reset and it goes red for the other reason.
 
 ### What stops it rotting
 
@@ -128,8 +136,10 @@ not a rule someone has to remember:
 
 - `test_every_class_the_page_uses_has_a_rule_in_a_stylesheet` collects every literal class the page
   can carry — the rendered page plus the `@source` modules, so a branch the fixture never reaches is
-  checked too — and fails if any of them has a rule in *neither* stylesheet (catches a **new utility
-  in `panels.py`** that was never built).
+  checked too — and fails if any of them has no rule in the built stylesheet (catches a **new utility
+  in `panels.py`** that was never built). It looked in a *union* of two sheets while the hand-written
+  one was still inlined, which is a weaker claim; with one sheet left it is as strong as it reads,
+  and it is also what now catches a dead class — a name with a rule nowhere.
 - `test_the_built_stylesheet_carries_every_component_its_source_declares` fails if a selector in the
   `@layer components` block of the source is absent from the built file (catches a **new component in
   `report.src.css`** that was never built).

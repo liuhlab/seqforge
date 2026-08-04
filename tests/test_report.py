@@ -150,7 +150,12 @@ def test_samples_render_as_a_metadata_table(workspace: Path) -> None:
     """The per-sample card list is gone: samples are one scrolling table with an expandable drawer."""
     html = render_html(collect_report(workspace))
     assert 'class="sf-scroll-x"' in html  # the region that scrolls, so the page never does
-    assert 'class="sf-col-sticky basis-toggle"' in html  # the pinned identifier, and the control
+    # The pinned identifier and the drawer's control are one cell. Matched as two classes on one
+    # element rather than as a whole `class="…"` string: a third utility beside them is the pane's
+    # business, and a test that pins the attribute verbatim fails on a spacing change.
+    row_head = re.search(r'<th scope="row" class="([^"]*)"', html)
+    assert row_head is not None
+    assert {"sf-col-sticky", "basis-toggle"} <= set(row_head.group(1).split())
     assert 'class="basis-caret"' in html  # the expand caret
     assert '<tr id="detail-0-0" hidden>' in html  # the files drawer, closed
 
@@ -269,87 +274,6 @@ def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: P
     inside = page[page.index(band) : page.index("<main")]
     assert "<header" in inside and "<nav>" in inside
     assert "sticky" not in inside.replace(band, "", 1), "only the band sticks; neither child does"
-
-
-def test_the_migrated_shell_wears_no_class_the_old_stylesheet_would_still_win_with(
-    workspace: Path,
-) -> None:
-    """The shell's elements left the hand-written sheet, and left it *entirely*.
-
-    ``report.css`` is inlined and unlayered, so it outranks every Tailwind layer whatever the source
-    order: an element that keeps its old class keeps its old styling and the utilities beside it do
-    nothing. Leaving one on "as a fallback" is therefore not a fallback, it is an override that
-    silently wins — which is why this asserts absence from the markup rather than presence of the
-    new classes, and why each name below is checked to still HAVE a rule in that sheet. A dead class
-    would make this test pass for the wrong reason on the day #220 deletes the file.
-    """
-    page = render_html(collect_report(workspace))
-    worn = _body_classes(page)
-    hand_written = (_ASSETS / "report.css").read_text()
-
-    migrated = [
-        "top", "top-row", "brand", "spark", "title-dim", "top-spacer",  # the header
-        "verdict", "dot", "icon-btn", "assay-switch",                   # its controls
-        "tabs", "tabs-row",                                             # the tab bar
-        "panel", "foot",                                                # the panel and the footer
-    ]  # fmt: skip
-    assert not _classes_with_no_rule(set(migrated), [hand_written]), (
-        "every name here must still be a live rule in report.css, or this test proves nothing"
-    )
-    assert not (worn & set(migrated)), (
-        f"the shell still wears the old sheet's classes: {sorted(worn & set(migrated))} — "
-        "unlayered CSS beats every utility, so those elements are not migrated at all"
-    )
-
-
-#: What the Overview, Flow and Pipeline panes were built out of before the redesign. Each is still a
-#: live rule in `report.css`, which is unlayered and therefore beats every Tailwind utility — so an
-#: element that keeps one of these is not migrated at all, whatever utilities sit beside it.
-#: `report.css` itself is #220's and nothing here deletes from it.
-#:
-#: Names still worn by a pane this ticket does NOT own (`tbl-wrap`, `basis-dot`, `notice`, `empty`)
-#: are absent on purpose, and the guard is scoped per pane for the same reason: Samples, Evidence
-#: and Results migrate on their own tickets, and a page-wide assertion here would either fail on
-#: their markup or quietly claim credit for it.
-_OLD_NARRATIVE_CLASSES: dict[str, list[str]] = {
-    "overview": [
-        "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
-        "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
-        "genstats", "hint", "meter", "meter-line",
-    ],
-    "flow": [
-        "flow-strip", "flow-step", "fs-num", "fs-title", "fs-desc", "fs-note", "fs-arrow",
-        "kind-guess", "kind-measured", "kind-done", "kind-blocked", "kind-ask", "legend", "sw",
-    ],
-    "pipeline": [
-        "stage-flow", "stage", "stage-icon", "stage-arrow", "tbl-wrap", "recipe-row", "rk", "rv",
-        "who", "basis-dot", "artifact", "artifact-head", "sz", "dl-btn", "code", "sub",
-    ],
-}  # fmt: skip
-
-
-def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_with(
-    workspace: Path,
-) -> None:
-    """Q9, for the three narrative panes: migrating an element means *deleting* its old class.
-
-    Same argument as the shell's guard above and the same discriminator: every name is asserted to
-    still HAVE a rule in the hand-written sheet, so this cannot pass for the wrong reason on the day
-    that file is deleted. Absence from the markup is what is checked, because a leftover class is not
-    a fallback — it is an override that silently wins, and the redesign beside it does nothing.
-    """
-    page = render_html(collect_report(workspace))
-    hand_written = (_ASSETS / "report.css").read_text()
-
-    for tab, names in _OLD_NARRATIVE_CLASSES.items():
-        assert not _classes_with_no_rule(set(names), [hand_written]), (
-            f"every {tab} name must still be a live rule in report.css, or this proves nothing"
-        )
-        worn = _body_classes(_pane(page, tab)) & set(names)
-        assert not worn, (
-            f"the {tab} pane still wears the old sheet's classes: {sorted(worn)} — "
-            "unlayered CSS beats every utility, so those elements are not migrated at all"
-        )
 
 
 def test_the_three_roles_every_pane_needed_are_drawn_by_one_component_each(
@@ -558,7 +482,7 @@ def test_flow_renders_as_reflowing_html_cards_not_a_scaled_diagram(workspace: Pa
 
     asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
     assert "mermaid.min.js" not in asset_names
-    assert {"report.css", "report.js"} <= asset_names
+    assert {"report.tw.css", "report.js"} <= asset_names
 
 
 def test_every_flow_step_kind_the_narrative_can_emit_has_a_declared_card() -> None:
@@ -1020,7 +944,11 @@ def test_both_grids_scroll_in_their_own_region_with_the_row_identifier_pinned() 
     assert samples.count('class="sf-scroll-x"') == 1
     # one sticky column: the header cell plus one per sample row, and nothing else
     assert samples.count("sf-col-sticky") == 3
-    assert 'class="sf-col-sticky basis-toggle"' in samples
+    # …and that column is also the drawer's control, matched as two classes on one element rather
+    # than as a whole `class="…"` string a third utility would falsify.
+    row_head = re.search(r'<th scope="row" class="([^"]*)"', samples)
+    assert row_head is not None
+    assert {"sf-col-sticky", "basis-toggle"} <= set(row_head.group(1).split())
 
     evidence = _pane(page, "evidence")
     assert evidence.count("sf-scroll-x") == 2  # the winner's grid and its one sibling
@@ -1066,36 +994,6 @@ def test_the_losing_kits_stay_collapsed_and_keep_a_reason_a_human_can_read() -> 
     assert "<summary" in evidence and "some reads don&#x27;t fit this variant" in evidence
     assert 'style="--mx-w:61%"' in evidence  # the score, as a length as well as a number
     assert "read 1 is 28 bp; this kit needs 20" in evidence  # the ruled-out family's own words
-
-
-def test_the_two_grids_wear_no_class_the_old_stylesheet_would_still_win_with() -> None:
-    """Samples and Evidence left the hand-written sheet, and left it *entirely*.
-
-    ``report.css`` is inlined and unlayered, so it outranks every Tailwind layer whatever the source
-    order: an element that keeps its old class keeps its old styling and every utility beside it does
-    nothing. Leaving one on "as a fallback" is an override that silently wins. Asserted as absence
-    from the markup, with each name checked to still HAVE a rule in that sheet — otherwise this would
-    pass for the wrong reason on the day #220 deletes the file.
-    """
-    worn = _body_classes(_rich_page())
-    hand_written = (_ASSETS / "report.css").read_text()
-
-    migrated = [
-        "legend-basis", "basis-dot", "samples", "col-sample", "attr-cell",  # the samples grid
-        "withheld", "sample-toggle", "row-toggle", "detail-row", "detail-body",
-        "file-list", "rstruct", "acc", "tbl-wrap", "tbl-sticky", "num",
-        "evidence", "verdict-strip", "win-chip", "vs-note", "family-focus",  # the evidence view
-        "fam-note", "matrix-card", "is-winner", "matrix", "mrole", "cell",
-        "forbidden", "sibling", "mini-bar", "why", "ruled-out",
-        "ruled-list", "ruled-foot", "reason",
-    ]  # fmt: skip
-    assert not _classes_with_no_rule(set(migrated), [hand_written]), (
-        "every name here must still be a live rule in report.css, or this test proves nothing"
-    )
-    assert not (worn & set(migrated)), (
-        f"the grids still wear the old sheet's classes: {sorted(worn & set(migrated))} — "
-        "unlayered CSS beats every utility, so those elements are not migrated at all"
-    )
 
 
 def test_the_two_grids_keep_the_pages_standing_guarantees() -> None:
@@ -1361,7 +1259,7 @@ def test_a_finished_pipelines_metrics_are_joined_in_and_the_results_tab_appears(
     html = render_html(collect_report(own_workspace))
     assert ">Results</button>" in html  # the tab is offered, because there is something behind it
     assert "97.2%" in html  # the graded valid-barcode rate, formatted by the code that owns it
-    assert '<table class="grp-table' in html  # one row per sample, one column per metric
+    assert '<div class="sf-scroll-x"><table' in html  # one row per sample, one column per metric
     assert "<svg" in html and "<polyline" in html  # hand-built inline SVG, no library, no network
 
 
@@ -1778,30 +1676,6 @@ def test_a_partial_run_still_renders_what_landed_and_says_how_much_did(own_works
     assert pane.count('<th scope="row"') == 2  # what landed is there, in full
 
 
-def test_the_results_table_bridge_lasts_exactly_as_long_as_the_sheet_it_bridges() -> None:
-    """The one unlayered block in the build input, and the mechanism that ends it.
-
-    `report.css` is unlayered, so it outranks every Tailwind layer — which is the design for its
-    CLASS rules, since a migrated element simply stops wearing the class. Its three bare-ELEMENT
-    rules (`table`, `th, td`, `th`) cannot be escaped that way: `text-align: left` beats the
-    `text-right` utility on every metric cell, and `z-index: 1` leaves the sticky sample header at
-    the same stacking level as the headers scrolling past it. So five declarations are restated
-    unlayered and scoped to this table, and this test is what stops them outliving their reason.
-    """
-    from seqforge.report import render
-
-    source = (_ASSETS / "report.src.css").read_text()
-    bridged = ".grp-table" in source
-
-    assert bridged == ("report.css" in render._STYLESHEETS), (
-        "delete the `grp-table` bridge at the foot of report.src.css, drop the class from the "
-        "table in panels.py, and rebuild — the unlayered sheet it works around is gone"
-        if bridged
-        else "the Results table needs the bridge while report.css is inlined: its bare `th, td` "
-        "rule is unlayered and beats every utility on the page"
-    )
-
-
 # -- the vendored stylesheet's drift guards ---------------------------------------------------------
 #
 # `report.tw.css` is Tailwind's output, and Tailwind purges: it contains only what was literally
@@ -1876,21 +1750,18 @@ def _classes_with_no_rule(classes: set[str], sheets: list[str]) -> list[str]:
 
 
 def test_every_class_the_page_uses_has_a_rule_in_a_stylesheet(own_workspace: Path) -> None:
-    """Guard one: nothing the page can wear is unstyled in BOTH sheets.
+    """Guard one: nothing the page can wear is unstyled.
 
     Adding ``class="mt-8"`` to a fragment and not rebuilding is silent — the page renders and one
     rule is absent. This collects every literal class the page can carry (the rendered page with the
     heaviest tab on, plus the `@source` modules, so a branch this fixture never reaches is still
-    checked) and fails if any of them has a rule in neither stylesheet.
+    checked) and fails if any of them has no rule in the built stylesheet.
 
-    Why "either sheet" is not a way of passing for free. During the expand step the hand-written
-    `report.css` supplies nearly every rule, so this guard's Tailwind half would be satisfied by an
-    EMPTY build — three things keep it honest anyway. `assert used` refuses an empty page. Guard two
-    asserts the built artifact really does carry what its source declares, so the build cannot be
-    empty. And `test_the_two_drift_guards_fire_on_a_drifted_input_and_stay_silent_on_a_clean_one`
-    exercises this exact matcher against a class present in neither sheet and requires it to fail.
-    As #217–#219 move rules out of `report.css` and into utilities, the union narrows to the built
-    file on its own — the guard does not need editing for that to happen.
+    It used to take a *union* of two sheets, because a hand-written one was inlined beside the build
+    while the page moved onto it — and a union is a weak guard: an empty build would have satisfied
+    it. That sheet is gone, so the union is one file and the guard is now exactly as strong as it
+    reads. It also subsumes the three per-pane guards that were deleted with it: a class left on an
+    element because "the old sheet still styles it" now has a rule nowhere, and lands here by name.
     """
     _finish_a_starsolo_pipeline(own_workspace)
     page = render_html(collect_report(own_workspace))
@@ -1900,12 +1771,12 @@ def test_every_class_the_page_uses_has_a_rule_in_a_stylesheet(own_workspace: Pat
     )
     assert len(used) > 50, "the page and its fragments really do carry classes"
 
-    sheets = [(_ASSETS / name).read_text() for name in ("report.tw.css", "report.css")]
-    missing = set(_classes_with_no_rule(used, sheets))
+    sheet = (_ASSETS / "report.tw.css").read_text()
+    missing = set(_classes_with_no_rule(used, [sheet]))
 
     unexpected = sorted(missing - set(_UNSTYLED_HOOKS))
     assert not unexpected, (
-        f"classes with no rule in either stylesheet: {unexpected} — rebuild report.tw.css "
+        f"classes with no rule in the stylesheet: {unexpected} — rebuild report.tw.css "
         "(see assets/VENDOR.md), or declare the class in _UNSTYLED_HOOKS if it is a bare hook"
     )
     # The other direction, so the exception list cannot rot into a hiding place: a hook that has
@@ -1978,17 +1849,19 @@ def test_the_two_drift_guards_fire_on_a_drifted_input_and_stay_silent_on_a_clean
 def test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves() -> None:
     """The page carries ONE reset, and which one is a function of which sheets are inlined.
 
-    `report.css` is the reset today: it sets `box-sizing` globally and zeroes the margins it cares
-    about, and it is unlayered, so it outranks every Tailwind layer. Preflight is a second reset,
-    and it reaches bare element selectors the hand-written sheet never mentions — where the layer
-    argument does not protect anything. Measured on this page, importing it while `report.css` is
-    still inlined would unbold every heading (`h1..h4 { font-weight: inherit }`), take the bullets
-    off `ul.pipeline-notes`, drop the UA paragraph margins `p.empty`/`p.notice`/`.organism` rely on,
-    and reface `#theme-toggle` with the body font.
+    `report.css` was the reset: it set `box-sizing` globally and zeroed the margins it cared about,
+    and it was unlayered, so it outranked every Tailwind layer. Preflight is a second reset, and it
+    reaches bare element selectors that sheet never mentioned — the one part of the build the layer
+    argument would not have protected. Importing it alongside would have unbolded every heading,
+    taken the bullets off the pipeline notes, dropped the UA paragraph margins the notices relied on,
+    and refaced `#theme-toggle` with the body font.
 
-    So it is sequenced, not dropped — and sequenced by a mechanism rather than by a note someone has
-    to remember. This test goes red in exactly one commit: the one that stops inlining `report.css`.
-    Its instruction to that commit is in the failure message.
+    So it was sequenced rather than dropped, by a mechanism rather than by a note someone had to
+    remember: neither state is one this repo can be left in, and the biconditional is what says so
+    in both directions. The pair has now swapped — no hand-written sheet, Preflight on — and the
+    live half is the one that fires on a rebuild that drops the import, with the line to add in its
+    message. The other half stays because re-inlining a second reset is exactly what a well-meaning
+    revert would do.
     """
     from seqforge.report import render
 

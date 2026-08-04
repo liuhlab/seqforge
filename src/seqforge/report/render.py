@@ -1,7 +1,7 @@
 """Assemble one :class:`ProjectReport` into a single self-contained HTML string.
 
 The shell: one sticky band holding the header and the tab bar, one assay section per assay, a footer,
-and — inlined at the end — the page's stylesheets and its JS, and nothing else. All are read from the
+and — inlined at the end — the page's stylesheet and its JS, and nothing else. Both are read from the
 package via ``importlib.resources`` and embedded, so the output makes zero network requests and opens
 on a double-click. No templating engine: the fragments come from ``panels.py`` and are concatenated
 here.
@@ -12,13 +12,12 @@ a number no code could check and every change to the header's contents could fal
 no such number in it. Four elements and only four carry ``sf-page``, the one reading column: the
 header row, the tab row, ``<main>`` and the footer.
 
-Two stylesheets go in, in a deliberate order (see ``_STYLESHEETS``): the vendored Tailwind build
-first, the hand-written sheet second. Tailwind emits everything inside real cascade layers and
-unlayered CSS outranks every layer whatever the source order, so the hand-written sheet already wins
-every overlap on the strength of the cascade alone; putting it second means it also wins on source
-order, which is what decides the small unlayered remainder Tailwind emits (``@property``
-registrations today, keyframes tomorrow). Two arguments agreeing beats one of them silently
-mattering.
+**One stylesheet** (``_STYLESHEETS``), and the tuple stays a tuple because an ``@layer`` statement
+has to precede the other rules of *its* stylesheet — one ``<style>`` element per sheet keeps that
+true however many there are. There were two: a 559-line hand-written sheet was inlined beside the
+vendored build while the page moved onto it a tab at a time, and it won every overlap on the
+strength of being unlayered. It has no callers left, so it is gone; an expand–contract that never
+contracts is two systems.
 
 **No third-party runtime executes in the page**, and the two things that would have needed one are
 hand-built instead: the Flow tab is plain HTML cards, and the Results tab's knee plots are inline SVG
@@ -44,11 +43,11 @@ _VERDICT_LABEL = {
     "question": "Needs a human",
 }
 
-#: The page's stylesheets, in cascade order — vendored build first, hand-written sheet last, so the
-#: unlayered sheet wins on source order as well as on layer rank. Each becomes its own ``<style>``:
-#: an ``@layer`` statement has to precede the other rules of ITS stylesheet, and one element per
-#: sheet keeps that true without depending on how they were concatenated.
-_STYLESHEETS = ("report.tw.css", "report.css")
+#: The page's stylesheets. One, now that the hand-written sheet has no callers — but each still
+#: becomes its own ``<style>``: an ``@layer`` statement has to precede the other rules of ITS
+#: stylesheet, and one element per sheet keeps that true without depending on how they were
+#: concatenated.
+_STYLESHEETS = ("report.tw.css",)
 
 
 def _asset(name: str) -> str:
