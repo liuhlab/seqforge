@@ -12,7 +12,7 @@ import ast
 import json
 import re
 import shutil
-from html import unescape
+from html import escape, unescape
 from pathlib import Path
 from typing import get_args
 
@@ -143,41 +143,16 @@ def test_report_locates_the_persisted_evidence_matrix(workspace: Path) -> None:
     assay = collect_report(workspace).assays[0]
     assert assay.matrices, "the persisted matrix should have been located by the scan-join"
     assert any(m.is_winner for m in assay.matrices)
-    assert 'class="matrix"' in render_html(collect_report(workspace))
+    assert 'class="mx-cell' in render_html(collect_report(workspace))
 
 
 def test_samples_render_as_a_metadata_table(workspace: Path) -> None:
-    """The per-sample card list is gone: samples are one table with an expandable detail row."""
+    """The per-sample card list is gone: samples are one scrolling table with an expandable drawer."""
     html = render_html(collect_report(workspace))
-    assert 'class="samples"' in html  # the metadata table, not a card per sample
-    assert "row-toggle" in html  # the expand control
-    assert 'class="detail-row"' in html  # the files/quotes drawer
-
-
-def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> None:
-    """A metadata cell carries its provenance as ``data-*`` on a keyboard-reachable button, so the
-    script can pin a selectable, copyable popover. It must NOT fall back to a native ``title=`` a
-    reader can neither select nor copy. Tested on the helper directly (the headless bulk fixture has
-    no sample attributes, so it renders no such cells)."""
-    from seqforge.report.model import AttributeView, EvidenceRef
-    from seqforge.report.panels import _attr_cell
-
-    attr = AttributeView(
-        key="tissue",
-        value="Motor neurons",
-        basis="asserted",
-        rung=2,
-        evidence=[
-            EvidenceRef(
-                raw="assert-1", kind="assertion", quote="motor neurons", document="paper", page=3
-            )
-        ],
-    )
-    html = _attr_cell(attr)
-    assert 'role="button"' in html and 'tabindex="0"' in html
-    assert 'data-basis="' in html and 'data-quote="motor neurons"' in html
-    assert 'data-source="paper p.3"' in html
-    assert "title=" not in html  # no transient native tooltip on the value cell
+    assert 'class="sf-scroll-x"' in html  # the region that scrolls, so the page never does
+    assert 'class="sf-col-sticky basis-toggle"' in html  # the pinned identifier, and the control
+    assert 'class="basis-caret"' in html  # the expand caret
+    assert '<tr id="detail-0-0" hidden>' in html  # the files drawer, closed
 
 
 def test_pipeline_artifacts_are_embedded_not_linked(workspace: Path) -> None:
@@ -198,9 +173,13 @@ def test_evidence_collapses_ruled_out_families_with_human_reasons(workspace: Pat
     report = collect_report(workspace)
     assay = report.assays[0]
     assert assay.ruled_out, "other families should be scored and ruled out"
+    html = render_html(report)
     for r in assay.ruled_out:
         assert "=" not in r.reason, f"raw scorer diagnostic leaked onto the page: {r.reason!r}"
-    assert 'class="ruled-list"' in render_html(report)
+        # The reason itself, on the page — not a class name that a rewrite could keep while the
+        # sentence it was supposed to carry quietly stopped rendering.
+        assert escape(r.reason, quote=True) in html
+        assert escape(r.tech, quote=True) in html
 
 
 def test_report_degrades_when_the_matrix_cache_is_absent(own_workspace: Path) -> None:
@@ -439,9 +418,13 @@ def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges
     assert len(verdicts) == 2, "the compile verdict is the header pill and its Overview restatement"
     assert set(verdicts) == {"sf-verdict sf-v-compiled"}, verdicts
 
-    states = re.findall(r'class="(pipeline-state [^"]*)"', page)
-    assert states == ["pipeline-state lvl-bad"], (
-        "the run state is its own third state, not the pill"
+    # The run state is found by the component that draws it, not by a tint: `lvl-bad` is also on
+    # every failing metric cell, so keying off the tint would find eighteen elements and prove
+    # nothing about the badge.
+    states = re.findall(r'class="([^"]*\blvl-state\b[^"]*)"', page)
+    assert len(states) == 1, "one run-state badge on the page, for the one pipeline that ran"
+    assert "lvl-bad" in states[0].split(), (
+        f"a pipeline that wrote nothing readable is the third state, tinted bad: {states[0]}"
     )
     assert not (set(states[0].split()) & set(verdicts[0].split())), (
         "the two badges share a class, so a reader cannot tell which question is being answered"
@@ -638,14 +621,18 @@ def test_both_basis_phrasings_cover_the_closed_basis_set() -> None:
     itself and notices nothing.
     """
     from seqforge.models.base import Basis
-    from seqforge.report.panels import _BASIS_PHRASE, _WHO_PHRASE
+    from seqforge.report.panels import _BASIS_LEGEND, _BASIS_PHRASE, _WHO_PHRASE
 
     members = set(get_args(Basis))
     assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
 
     assert set(_BASIS_PHRASE) == members, "the 'how we know' map lost a basis"
     assert set(_WHO_PHRASE) == members, "the 'who decided' map lost a basis"
+    # Three now: the Samples legend says the same four bases in three or four words under a mark,
+    # and a basis missing from it ships a mark whose key does not name it.
+    assert set(_BASIS_LEGEND) == members, "the Samples legend lost a basis"
     assert all(v for v in _BASIS_PHRASE.values()) and all(v for v in _WHO_PHRASE.values())
+    assert all(v for v in _BASIS_LEGEND.values())
     # Kept separate on purpose: one answers how we know, the other who decided.
     assert _BASIS_PHRASE != _WHO_PHRASE
 
@@ -736,6 +723,341 @@ def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
     assert not (defined - referenced), (
         f"dead private helper(s) in seqforge/report: {sorted(defined - referenced)}"
     )
+
+
+# -- the two dense grids: the sample-metadata table and the evidence matrix ------------------------
+#
+# The headless bulk fixture resolves one sample with no attributes and a matrix with no forbidden
+# gate, so it cannot exercise a provenance mark, a withheld value or a ruled-out cell — the branches
+# these two views exist for. So this section builds a display model that has all of them and renders
+# the WHOLE PAGE from it. `render_html(report)` in, HTML out: a panel function's return value is not
+# the page, and the one test here that used to reach below that seam is the reason to say so.
+
+
+def _rich_assay() -> AssayReport:
+    """One assay whose Samples and Evidence tabs are actually full.
+
+    Deliberately a hand-built display model and not a workspace: every branch below is reachable only
+    from data no headless run produces (an assertion with a quote, a resolver that withheld a value, a
+    scored candidate whose gate forbade a read). It is still the production renderer that turns it
+    into a page — this fixture replaces the *collector*, never the seam under test.
+    """
+    from seqforge.models.base import Basis
+    from seqforge.report.model import (
+        AssayLabelView,
+        AttributeView,
+        ChemistryDecision,
+        ConclusionView,
+        ElementView,
+        EvidenceRef,
+        FileView,
+        MatrixCellView,
+        MatrixRoleRow,
+        MatrixView,
+        ReadView,
+        RuledOut,
+        SampleView,
+    )
+
+    quote = "daf-2(e1370) animals were grown at 20 °C and harvested at the L4 stage."
+    # One attribute per basis, read out of the Literal so a fifth one lands in this fixture — and
+    # therefore on the rendered page — the day it is added, rather than being quietly untested.
+    attributes = [
+        AttributeView(
+            key=f"trait_{basis}",
+            value=f"value carried by {basis}",
+            basis=basis,
+            rung=2,
+            evidence=[
+                EvidenceRef(
+                    raw="assert-1", kind="assertion", quote=quote, document="lee-et-al-2023", page=3
+                )
+            ],
+        )
+        for basis in get_args(Basis)
+    ]
+    attributes.append(
+        AttributeView(key="treatment", value="", basis="asserted", rung=1, withheld=True)
+    )
+    attributes.append(
+        AttributeView(
+            key="source_name",
+            value="whole animal, mixed-stage population harvested 48 h after the L1 "
+            "synchronisation step described in the supplementary methods, washed in M9",
+            basis="asserted",
+            rung=2,
+            evidence=[EvidenceRef(raw="SAMN12345678", kind="accession", accession="SAMN12345678")],
+        )
+    )
+
+    def cells(
+        a: float, b: float, *, forbidden: bool = False, absent: bool = False
+    ) -> list[MatrixCellView]:
+        second = MatrixCellView(status="scored", value=b)
+        if forbidden:
+            second = MatrixCellView(status="forbidden", reason=_FORBIDDEN_REASON)
+        elif absent:
+            second = MatrixCellView(status="scored", value=None)
+        return [MatrixCellView(status="scored", value=a), second]
+
+    def matrix(tech: str, score: float, **kw: bool) -> MatrixView:
+        return MatrixView(
+            tech=tech,
+            is_winner=bool(kw.pop("winner", False)),
+            score=score,
+            file_labels=["SRR0001_R1.fastq.gz", "SRR0001_R2.fastq.gz"],
+            roles=[
+                MatrixRoleRow(role=role, cells=cells(hi, lo, **kw))
+                for role, hi, lo in (("barcode", 0.96, 0.02), ("cdna", 0.03, 0.91))
+            ],
+        )
+
+    return AssayReport(
+        organism_taxid=6239,
+        organism_name="Caenorhabditis elegans",
+        chemistry=ChemistryDecision(
+            value=["10x-3p-gex-v3"],
+            assay_labels=[
+                AssayLabelView(
+                    chemistry="10x-3p-gex-v3", curie="EFO:0009922", name="Chromium 3' v3"
+                )
+            ],
+            basis="observed",
+            confidence=0.94,
+            rung=3,
+            modality="rna",
+            n_files=2,
+        ),
+        reads=[
+            ReadView(
+                read_id="R1",
+                strand="+",
+                min_len=28,
+                max_len=28,
+                elements=[ElementView(role="cb", region_type="barcode", start=0, length=16)],
+            )
+        ],
+        files=[
+            FileView(
+                basename="SRR0001_R1.fastq.gz",
+                read_id="R1",
+                sha256="0" * 64,
+                size_bytes=1,
+                uri="file://SRR0001_R1.fastq.gz",
+            )
+        ],
+        samples=[
+            SampleView(
+                sample_id="SRS0001",
+                accession="SAMN00001",
+                n_files=1,
+                file_names=["SRR0001_R1.fastq.gz"],
+                attributes=attributes,
+            ),
+            SampleView(sample_id="SRS0002", n_files=0),  # every attribute absent: the `—` cells
+        ],
+        matrices=[
+            matrix("10x-3p-gex-v3", 0.94, winner=True, absent=True),
+            matrix("10x-3p-gex-v2", 0.61, forbidden=True),
+        ],
+        ruled_out=[
+            RuledOut(
+                tech="drop-seq", family="drop-seq", reason="read 1 is 28 bp; this kit needs 20"
+            )
+        ],
+        conclusion=ConclusionView(
+            kind="compiled", exit_code=0, headline="Compiled", detail="a Snakefile is ready"
+        ),
+    )
+
+
+#: Quoted verbatim by the forbidden-cell test, so "the reason reached the page" is checked against the
+#: sentence and not against the fact that *something* rendered.
+_FORBIDDEN_REASON = "read 2 is 91 bp and this kit's barcode block needs a fixed 28 bp read"
+
+
+def _rich_page() -> str:
+    from seqforge.report.model import ProjectReport
+
+    return render_html(
+        ProjectReport(
+            workspace_name="PRJNA1027859",
+            report_version="0.0.0",
+            assays=[_rich_assay()],
+        )
+    )
+
+
+def test_every_basis_the_manifest_can_carry_reaches_the_page_as_its_own_mark() -> None:
+    """Provenance is one centrally declared layer, and the key names every member of it.
+
+    Read out of ``Basis`` rather than restated: a fifth basis must break here — on the legend that
+    says what a mark means — instead of shipping an unexplained mark onto a page. And each member has
+    to appear TWICE, once in the legend and once on a cell, because a legend entry with no mark
+    beside any value is a key to a language the page does not speak.
+    """
+    from seqforge.models.base import Basis
+
+    page = _rich_page().split("</style>")[-1]
+
+    for basis in get_args(Basis):
+        assert page.count(f"basis-mark basis-{basis}") >= 2, (
+            f"{basis} is missing from the legend or from the grid"
+        )
+    # …and the legend's own words, so a mark is never offered without a phrase for it.
+    from seqforge.report.panels import _BASIS_LEGEND
+
+    for label in _BASIS_LEGEND.values():
+        assert f">{label}</span>" in page
+
+
+def test_a_withheld_attribute_renders_as_withheld_and_an_unmentioned_one_renders_as_absent() -> (
+    None
+):
+    """Two different silences, and the page must not spell them the same way.
+
+    ``withheld`` is a real answer — two equally trusted sources disagreed, so the resolver recorded
+    nothing rather than guess — and it is shown as a value. An attribute nobody ever mentioned is a
+    gap. Collapsing the first into the second would turn a decision the compiler made on purpose into
+    an absence the reader would read as missing data.
+    """
+    page = _rich_page().split("</style>")[-1]
+
+    assert '<span class="basis-v basis-withheld">— withheld</span>' in page
+    assert 'data-value="withheld"' in page  # …and it says so in the popover too
+    assert '<td class="basis-cell text-faint">—</td>' in page  # the gap: a dash, no provenance
+    # The gap is the one cell with nothing to say, and the script decides that from the DATA rather
+    # than from a styling class -- so it must be the branch that carries no `data-key`.
+    assert '<td class="basis-cell text-faint">—</td>'.replace("—", "—") in page
+    for cell in re.findall(r'<td class="basis-cell[^"]*"[^>]*>', page):
+        assert ("data-key=" in cell) != ("text-faint" in cell)
+
+
+def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> None:
+    """A metadata cell carries its provenance as ``data-*`` on a keyboard-reachable button, so the
+    script can pin a selectable, copyable popover — never a native ``title=`` a reader can neither
+    select nor copy, and which never appears at all on touch.
+
+    Asserted at the render seam and against the script together: the markup alone cannot show that
+    anything reads those attributes, and the script alone cannot show that anything emits them.
+    """
+    page = _rich_page().split("</style>")[-1]
+    script = (_ASSETS / "report.js").read_text()
+
+    cell = re.search(r'<td class="basis-cell[^"]*"[^>]*data-key="trait_asserted"[^>]*>', page)
+    assert cell, "the asserted attribute did not render as a provenance cell"
+    assert 'role="button"' in cell.group(0) and 'tabindex="0"' in cell.group(0)
+    assert "data-basis=" in cell.group(0) and "data-quote=" in cell.group(0)
+    assert "data-source=" in cell.group(0)
+    assert "title=" not in cell.group(0)  # no transient native tooltip on the value cell
+
+    # The script's end of the same contract: it selects these cells, it PINS (a click handler, not a
+    # mouseover), it offers Copy, and Escape closes it.
+    assert ".basis-cell" in script
+    assert 'copyBtn.textContent = "Copy"' in script
+    assert 'e.key === "Escape"' in script
+    assert "mouseover" not in script and "mouseenter" not in script
+
+
+def test_both_grids_scroll_in_their_own_region_with_the_row_identifier_pinned() -> None:
+    """A wide dataset must scroll inside the table, never sideways in the page body.
+
+    Both grids use the shell's own primitives rather than a second mechanism each, and only ONE column
+    is sticky — the row identifier. A frozen block of columns is the whole screen at a narrow viewport,
+    which is the width every one of these views has to stay readable at.
+    """
+    page = _rich_page()
+
+    samples = _pane(page, "samples")
+    assert samples.count('class="sf-scroll-x"') == 1
+    # one sticky column: the header cell plus one per sample row, and nothing else
+    assert samples.count("sf-col-sticky") == 3
+    assert 'class="sf-col-sticky basis-toggle"' in samples
+
+    evidence = _pane(page, "evidence")
+    assert evidence.count("sf-scroll-x") == 2  # the winner's grid and its one sibling
+    # …and the matrix's region drops the border and the radius rather than drawing a second box
+    # inside the card that already has one.
+    assert 'class="sf-scroll-x rounded-none border-0"' in evidence
+
+
+def test_every_matrix_cell_renders_the_status_it_was_tagged_with() -> None:
+    """Scored, forbidden, absent — three states, three renderings, and none of them is blank.
+
+    A forbidden cell used to be an empty ``<td>`` whose ✕ was drawn by the stylesheet and whose reason
+    was a ``title=``; a cell that was scored but carried no number fell down the same branch and was
+    labelled forbidden, which is a different claim. So: the glyph is in the markup, the reason is real
+    text on the same pinnable popover the Samples grid uses, and "nobody scored this" says so.
+    """
+    page = _rich_page().split("</style>")[-1]
+
+    assert re.search(r'<td class="mx-cell mx-scored" style="background:[^"]+">0\.96</td>', page)
+    forbidden = re.search(r'<td class="mx-cell mx-forbidden"[^>]*>(.*?)</td>', page)
+    assert forbidden and forbidden.group(1) == "✕", "the ✕ must be markup, not a ::after"
+    assert escape(_FORBIDDEN_REASON, quote=True) in page
+    absent = re.search(r'<td class="mx-cell mx-absent"[^>]*>(.*?)</td>', page)
+    assert absent and absent.group(1) == "not scored"
+
+    # No cell of any status is empty, and none of them shows a sentinel instead of a word.
+    assert not re.findall(r'<td class="mx-cell[^"]*"[^>]*>\s*</td>', page)
+    for status in ("mx-forbidden", "mx-absent"):
+        assert page.count(f'class="mx-cell {status}"') >= 1
+
+
+def test_the_losing_kits_stay_collapsed_and_keep_a_reason_a_human_can_read() -> None:
+    """One grid for the winner; every sibling is a bar, a score and a sentence behind a disclosure.
+
+    Past two grids the reader is comparing two near-identical tables cell by cell, which is the thing
+    the family focus exists to prevent. The reason has to survive the collapse — a row that says only
+    "0.61" has told the reader nothing about why 0.61 lost.
+    """
+    evidence = _pane(_rich_page(), "evidence")
+
+    assert evidence.count('<figure class="sf-card') == 1, "exactly one kit gets the full grid"
+    assert evidence.count('<details class="mx-sib">') == 1
+    assert "<summary" in evidence and "some reads don&#x27;t fit this variant" in evidence
+    assert 'style="--mx-w:61%"' in evidence  # the score, as a length as well as a number
+    assert "read 1 is 28 bp; this kit needs 20" in evidence  # the ruled-out family's own words
+
+
+def test_the_two_grids_wear_no_class_the_old_stylesheet_would_still_win_with() -> None:
+    """Samples and Evidence left the hand-written sheet, and left it *entirely*.
+
+    ``report.css`` is inlined and unlayered, so it outranks every Tailwind layer whatever the source
+    order: an element that keeps its old class keeps its old styling and every utility beside it does
+    nothing. Leaving one on "as a fallback" is an override that silently wins. Asserted as absence
+    from the markup, with each name checked to still HAVE a rule in that sheet — otherwise this would
+    pass for the wrong reason on the day #220 deletes the file.
+    """
+    worn = _body_classes(_rich_page())
+    hand_written = (_ASSETS / "report.css").read_text()
+
+    migrated = [
+        "legend-basis", "basis-dot", "samples", "col-sample", "attr-cell",  # the samples grid
+        "withheld", "sample-toggle", "row-toggle", "detail-row", "detail-body",
+        "file-list", "rstruct", "acc", "tbl-wrap", "tbl-sticky", "num",
+        "evidence", "verdict-strip", "win-chip", "vs-note", "family-focus",  # the evidence view
+        "fam-note", "matrix-card", "is-winner", "matrix", "mrole", "cell",
+        "forbidden", "sibling", "mini-bar", "why", "ruled-out",
+        "ruled-list", "ruled-foot", "reason",
+    ]  # fmt: skip
+    assert not _classes_with_no_rule(set(migrated), [hand_written]), (
+        "every name here must still be a live rule in report.css, or this test proves nothing"
+    )
+    assert not (worn & set(migrated)), (
+        f"the grids still wear the old sheet's classes: {sorted(worn & set(migrated))} — "
+        "unlayered CSS beats every utility, so those elements are not migrated at all"
+    )
+
+
+def test_the_two_grids_keep_the_pages_standing_guarantees() -> None:
+    """Self-contained, no external reference, inside the budget, byte-deterministic — with both grids
+    full, which is the shape neither the bulk fixture nor any other test in this file renders."""
+    html = _rich_page()
+
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert len(html.encode()) < 500_000
+    assert html == _rich_page()
 
 
 # -- modality-aware rendering (ATAC / fragments) --------------------------------------------------
@@ -1458,7 +1780,6 @@ _CLASS_BEARING_SOURCES = (
 #: so the list cannot quietly become the place unstyled classes go to hide.
 _UNSTYLED_HOOKS = {
     "assay": "<section class='assay' data-assay=N> — the pane the assay switcher shows and hides",
-    "siblings": "the wrapper round the ruled-out drawers; `details.sibling` carries the style",
 }
 
 
