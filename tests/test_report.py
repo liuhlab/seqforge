@@ -26,7 +26,7 @@ from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport
-from seqforge.workflows.metrics import PipelineStats
+from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
 
 runner = CliRunner()
 
@@ -1984,6 +1984,51 @@ def test_every_severity_the_page_can_draw_wears_a_verdict_the_palette_already_ha
     assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_PHRASE)
     assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_FLAG)
     assert _SEVERITY_LEVEL["likely"] == "bad" and _SEVERITY_LEVEL["possible"] == "warn"
+
+
+def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no_heading(
+    own_workspace: Path,
+) -> None:
+    """The two card branches this ticket's one rule cannot reach, proven before the next one needs them.
+
+    `change_to` is filled only where the alternative is genuinely enumerable — a role assignment has
+    one swap, a chemistry call has a KB's worth — so the chemistry rule leaves it empty and the
+    markup that renders it would otherwise ship unexercised. And an alert whose decisions all failed
+    to resolve must draw no "Points at" heading at all: a heading over an empty list is the same lie
+    as a field name with no value beside it.
+
+    Built as models and rendered through `render_html`, the way the Samples and Evidence tabs are
+    driven: the assertion is still made against the page, and the input is a shape a rule is entitled
+    to produce rather than one this fixture can be made to produce.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    report = collect_report(own_workspace)
+    swapped = Alert(
+        id="demo.enumerable",
+        title="The two reads look the wrong way round",
+        severity="possible",
+        scope="isolated",
+        samples=["S1"],
+        n_samples=2,
+        measured=["S1 measured something"],
+        implicates=[
+            DecisionRef(
+                decision="read_roles",
+                label="read roles (manifest `library.files[].read_id`)",
+                value="R1 = a.fastq.gz, R2 = b.fastq.gz",
+                change_to="R1 = b.fastq.gz, R2 = a.fastq.gz",
+            )
+        ],
+        remedy="swap them and compose again",
+    )
+    nameless = swapped.model_copy(update={"id": "demo.nameless", "implicates": []})
+    assay = report.assays[0].model_copy(update={"alerts": [swapped, nameless]})
+
+    block = _alert_block(render_html(report.model_copy(update={"assays": [assay]})))
+
+    assert block.count("demo.") == 2, "both cards render, or one branch is asserted twice"
+    assert "the alternative is <b>R1 = b.fastq.gz, R2 = a.fastq.gz</b>" in block
+    assert block.count("Points at") == 1, "the alert that resolved nothing draws no heading"
 
 
 def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_workspace: Path) -> None:
