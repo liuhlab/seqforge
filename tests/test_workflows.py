@@ -36,12 +36,15 @@ from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
+    QC_SUFFIX,
     FragmentsError,
     build_fragments_qc,
     fragments_suffixes,
     write_fragments,
     write_fragments_qc,
 )
+from seqforge.workflows.fragments import metrics as fragments_metrics
+from seqforge.workflows.fragments import read_metrics as read_fragments_metrics
 from seqforge.workflows.h5ad import (
     SOLO_FEATURE_OUTPUT,
     STAR_BAM,
@@ -55,7 +58,13 @@ from seqforge.workflows.h5ad import (
     write_h5ad,
 )
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
-from seqforge.workflows.metrics import MAX_KNEE_POINTS, Metric, SampleStats, knee_points
+from seqforge.workflows.metrics import (
+    MAX_KNEE_POINTS,
+    Metric,
+    SampleStats,
+    fmt_int,
+    knee_points,
+)
 from seqforge.workflows.qc import QcError, build_qc_bundle, write_qc_bundle
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
@@ -748,6 +757,10 @@ def test_fragments_suffixes_are_the_three_deliverables_in_build_order() -> None:
         ".fragments.tsv.gz.tbi",
         ".fragments.qc.json.gz",
     ]
+    # The one literal in this file the rule and the pipeline-stats registry both resolve to. Pinned
+    # here so the constant has a spelling somewhere, and imported everywhere else so a rename shows
+    # up as this test failing rather than as a report that quietly finds no artifact.
+    assert fragments_suffixes()[-1] == QC_SUFFIX
 
 
 # -- QC (pure Python) -------------------------------------------------------
@@ -1402,7 +1415,7 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
 
 
 # ================================================================================================
-# metrics/stats/qc — reading a finished pipeline back
+# metrics/stats/qc/fragments — reading a finished pipeline back
 # ================================================================================================
 #
 # What ``seqforge report`` sees once the composed Snakefile has run. Three gates matter here and they
@@ -1558,8 +1571,11 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     module without a reader is a build-time defect, so it is caught here rather than by a report that
     renders an empty results section and looks like a pipeline that has not started.
 
-    `MODULES_WITHOUT_STATS` is non-empty today and that is the point rather than an embarrassment:
-    the single-cell-only rollout is what exercises the list for exactly the purpose it exists for.
+    `MODULES_WITHOUT_STATS` is still non-empty and that is the point rather than an embarrassment:
+    the partial rollout is what exercises the list for exactly the purpose it exists for. Both halves
+    are asserted by NAME and not merely by size, because "one module is silent" is not the claim —
+    which module is silent is, and a list that shrinks must shrink because an adapter landed rather
+    than because a name was quietly dropped from the guard.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -1567,7 +1583,8 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     assert set(modules_with_stats()) | MODULES_WITHOUT_STATS == set(list_modules())
     # And `MODULES_WITHOUT_STATS` is the OTHER half: a module may only be silent by saying so.
     assert not (set(modules_with_stats()) & MODULES_WITHOUT_STATS)
-    assert MODULES_WITHOUT_STATS == {"map/star", "map/chromap"}
+    assert set(modules_with_stats()) == {"map/starsolo", "map/chromap"}
+    assert MODULES_WITHOUT_STATS == {"map/star"}
 
 
 def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
@@ -1631,6 +1648,50 @@ def test_the_bundle_the_writer_produces_is_the_one_the_reader_looks_up(tmp_path:
     assert "Gene" in sample.note
 
 
+def test_the_fragments_summary_the_writer_produces_is_the_one_the_reader_looks_up(
+    tmp_path: Path,
+) -> None:
+    """The chromap half of the same contract: `write_fragments_qc` writes, `fragments.metrics` reads.
+
+    Driven through the real writer *and* through the registry, because those are two claims and both
+    fail silently. `FragmentsQC.to_dict` decides the payload keys, so a rename there costs a row here
+    instead of a column on the page; and `read_pipeline_stats` finds the file by the filename the
+    registry holds, so a suffix that drifts from `fragments_suffixes` renders as a pipeline that
+    looks like it never ran.
+
+    The ATAC column set is genuinely smaller than STARsolo's — chromap's summary carries no
+    whitelist-match rate, so there is no ATAC "valid barcodes" — and that is a property of the
+    artifact, not an omission. Asserted as a SET, so a reader inventing a metric the writer never
+    wrote fails here too.
+    """
+    results = tmp_path / "results"
+    raw = tmp_path / "fragments.raw.tsv"
+    raw.write_text(_RAW)
+    out = write_fragments_qc(raw, results / "s1" / f"s1{QC_SUFFIX}", sample="s1", assembly="mm10")
+
+    stats = read_pipeline_stats("map/chromap", results, ["s1"])
+
+    assert stats is not None and stats.complete
+    sample = stats.samples[0]
+    got = _by_key(sample)
+    assert set(got) == {
+        "reads",
+        "fragments",
+        "barcodes",
+        "reads_per_fragment",
+        "mean_fragments_per_barcode",
+        "max_fragments_per_barcode",
+    }
+    assert got["reads"].value == 6  # 3 + 1 + 2 read pairs behind the three fragments
+    assert got["fragments"].value == 3
+    assert got["barcodes"].value == 2  # AAA, CCC -- barcodes seen, NOT cells
+    assert got["reads_per_fragment"].value == pytest.approx(2.0)
+    assert sample.knee == []  # chromap keeps no per-barcode vector, so there is no knee to draw
+    # And the registry dispatched to this module's own reader rather than to some other adapter that
+    # happened to survive the same bytes -- one artifact, one owner.
+    assert read_fragments_metrics(out, "s1").metrics == sample.metrics
+
+
 # -- grading, on real values ------------------------------------------------
 
 
@@ -1679,16 +1740,54 @@ def test_a_percent_string_and_a_bare_fraction_arrive_on_the_same_scale() -> None
     assert "unmapped_too_short" not in got
 
 
+def _reads_per_fragment(tenths: int) -> Metric:
+    """The graded ratio at `tenths/10` read pairs per fragment, built by the real adapter."""
+    payload = {"n_fragments": 10, "total_reads": tenths}
+    return _by_key(fragments_metrics(payload, "s1"))["reads_per_fragment"]
+
+
+def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart() -> None:
+    """`reads / fragment` is graded at 2.0 and 4.0, so its display has to resolve a tenth.
+
+    This is what `ratio` exists for beside `count`, and the fragments adapter is its first caller:
+    an integer display rounds a graded ratio past its own bar, and the colour then contradicts the
+    number sitting next to it. 1.9 is `ok` where 2.1 is `warn`, and 3.9 is `warn` where 4.1 is `bad`;
+    under `count`'s formatter each pair collapses to ONE string — "2" and "4" — appearing in the
+    table in two different colours, which a reader can only read as a rendering bug.
+
+    One decimal is what these two bars need, and the claim is exactly that and no more: a step the
+    metric can meaningfully take across a bar is visible on the page. No finite precision can promise
+    that no two differently-graded values ever share a string, because values arbitrarily close to a
+    bar exist on both sides of it — at a tenth the pair that still collapses has to agree with the
+    bar to within 0.05, which is 2.5% of it rather than the 25% an integer would allow.
+    """
+    below_ok, above_ok = _reads_per_fragment(19), _reads_per_fragment(21)
+    below_warn, above_warn = _reads_per_fragment(39), _reads_per_fragment(41)
+
+    assert (below_ok.level, above_ok.level) == ("ok", "warn")
+    assert (below_warn.level, above_warn.level) == ("warn", "bad")
+    assert (below_ok.display, above_ok.display) == ("1.9", "2.1")
+    assert (below_warn.display, above_warn.display) == ("3.9", "4.1")
+    # The counterfactual, and the reason this metric is not built with `count`.
+    assert fmt_int(below_ok.value) == fmt_int(above_ok.value) == "2"
+    assert fmt_int(below_warn.value) == fmt_int(above_warn.value) == "4"
+
+
 # -- absent degrades to absent ----------------------------------------------
 
 
 def test_a_key_the_artifact_does_not_carry_becomes_an_absent_metric_never_a_zero() -> None:
     """A metric the tool never wrote must not be rendered as 0.0 — that is a number a reader acts on.
 
-    This is the whole reason `fraction`/`count` return `Optional`, and it is what makes an old
-    `WORKFLOW_VERSION`'s bundle render FEWER rows rather than wrong ones. The contrast is the point:
-    an absent key yields no metric, while a zero the writer really wrote is data and stays — and it
-    is still graded, so a genuine zero goes red rather than quietly reading as "no threshold".
+    This is the whole reason `fraction`/`count`/`ratio` return `Optional`, and it is what makes an
+    old `WORKFLOW_VERSION`'s artifact render FEWER rows rather than wrong ones. The contrast is the
+    point: an absent key yields no metric, while a zero the writer really wrote is data and stays —
+    and it is still graded, so a genuine zero goes red rather than quietly reading as "no threshold".
+
+    Both adapters, because the rule is the seam's and not one tool's, and because chromap's summary
+    has the case STARsolo's does not: a DERIVED number whose inputs are present and whose divisor is
+    zero. That one is absent for a second reason on top of the first — there is no answer to divide,
+    and neither `0.0` nor `inf` may cross the JSON seam pretending there is.
     """
     thin = starsolo_metrics({"summary": {"Gene": {"Number of Reads": 1000}}}, "S1")
     assert set(_by_key(thin)) == {"reads"}
@@ -1700,6 +1799,19 @@ def test_a_key_the_artifact_does_not_carry_becomes_an_absent_metric_never_a_zero
     assert set(got) == {"reads", "valid_barcodes"}
     assert got["valid_barcodes"].value == 0.0
     assert got["valid_barcodes"].level == "bad"
+
+    partial = fragments_metrics({"n_fragments": 10, "total_reads": 20}, "s1")
+    assert set(_by_key(partial)) == {"reads", "fragments", "reads_per_fragment"}
+
+    # A pipeline that produced no fragments: the counts are real zeros and stay, graded, while both
+    # derived ratios would divide by zero and are therefore absent rather than 0.0 or inf.
+    empty = fragments_metrics(
+        {"n_fragments": 0, "n_barcodes": 0, "total_reads": 0, "max_fragments_per_barcode": 0}, "s1"
+    )
+    got = _by_key(empty)
+    assert set(got) == {"reads", "fragments", "barcodes", "max_fragments_per_barcode"}
+    assert got["fragments"].value == 0.0
+    assert got["fragments"].level == "bad"  # a real zero is still graded
 
 
 # -- read_pipeline_stats ----------------------------------------------------

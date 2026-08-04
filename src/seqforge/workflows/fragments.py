@@ -18,6 +18,14 @@ fragments`` keeps the finalize step visible to compose's wiring gate.
 ``bgzip``/``tabix`` are htslib binaries, so unlike the h5ad step this one runs inside the pinned
 ``align-dna`` container — the same rule that has chromap. The QC summary, by contrast, is pure Python
 over the fragments text, so it (like ``qc_bundle``) needs no container.
+
+This file also **reads** that summary back, for ``seqforge report``: :func:`metrics` and
+:func:`read_metrics` at the bottom are ``map/chromap``'s entry in the pipeline-stats registry. They
+live here and not in ``stats.py`` because :meth:`FragmentsQC.to_dict` above decides the keys, and a
+lookup a package away from the thing that names them drifts in the one direction nothing catches —
+the writer renames a key, the reader keeps asking for the old one, and the page silently loses a
+column. Here, one file changes or one file breaks. The metrics it produces speak about **fragments**:
+there is no count matrix in an ATAC library and the page must not imply one.
 """
 
 from __future__ import annotations
@@ -26,9 +34,15 @@ import gzip
 import json
 import shutil
 import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import IO
+from typing import IO, Any
+
+# Aliased: `build_fragments_qc` below binds a local `count` (a fragments column), and a helper that
+# silently means something else inside one function is how a wrong number gets written.
+from .metrics import Metric, SampleStats, ratio
+from .metrics import count as count_metric
 
 
 class FragmentsError(RuntimeError):
@@ -46,7 +60,15 @@ RAW_FRAGMENTS = "fragments.raw.tsv"
 #: ``h5ad_suffixes`` keeps for STARsolo.
 _FRAGMENTS_SUFFIX = ".fragments.tsv.gz"
 _TABIX_SUFFIX = ".fragments.tsv.gz.tbi"
-_QC_SUFFIX = ".fragments.qc.json.gz"
+
+#: Public, unlike its two siblings above, because it has a reader as well as a writer: the
+#: pipeline-stats registry finds one sample's summary by this name. A private constant would have
+#: meant the registry spelling the suffix again, and that copy is the one that fails *silently* — a
+#: report that finds nothing looks exactly like a pipeline that never ran, so nothing raises and
+#: nobody is told. ``fragments_qc``'s literal in ``chromap.smk`` is still a second owner of the
+#: string; adopting this constant there means editing a shipped module, which bumps
+#: ``WORKFLOW_VERSION`` and invalidates every ``run_id``, so it is deliberately its own change (#212).
+QC_SUFFIX = ".fragments.qc.json.gz"
 
 
 def fragments_suffixes() -> list[str]:
@@ -56,7 +78,7 @@ def fragments_suffixes() -> list[str]:
     :func:`write_fragments` (which produces the first two) — the STARsolo ``h5ad_suffixes`` contract,
     for fragments.
     """
-    return [_FRAGMENTS_SUFFIX, _TABIX_SUFFIX, _QC_SUFFIX]
+    return [_FRAGMENTS_SUFFIX, _TABIX_SUFFIX, QC_SUFFIX]
 
 
 @dataclass(frozen=True)
@@ -186,12 +208,138 @@ def write_fragments_qc(fragments: Path, out: Path, *, sample: str, assembly: str
     return out
 
 
+# ---- reading the summary back -------------------------------------------------------------------
+#
+# The reader sits beside the writer for the same reason it does in `qc.py`: `FragmentsQC.to_dict`
+# above decides the keys, and everything below looks them up. One file changes, or one file breaks.
+
+
+def _number(payload: Mapping[str, Any], key: str) -> float | None:
+    """One summary value as a number, or ``None`` so the metric is absent rather than a zero.
+
+    Narrower than `qc._as_number`, and deliberately: this artifact is written by `to_dict` above from
+    typed fields, so there are no percent strings to cross and nothing to coerce. A string here means
+    the payload is not one of ours, which is a reason to drop the metric, not to parse harder.
+    """
+    value = payload.get(key)
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value)
+
+
+def metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
+    """A ``<sample>.fragments.qc.json.gz`` payload -> normalised metrics for one finished sample.
+
+    **Pure**, like ``qc.metrics`` — a dict in, a :class:`~seqforge.workflows.metrics.SampleStats` out,
+    no filesystem — so the thresholds below are testable against a literal dict.
+
+    The ATAC column set is genuinely smaller than STARsolo's, and that is a property of the artifact
+    rather than an omission here: chromap's summary carries no whitelist-match rate, so there is no
+    ATAC equivalent of "valid barcodes" — the metric that catches a wrong chemistry call on the RNA
+    side. Nothing below invents one. A column set that varies by module is exactly what
+    :class:`~seqforge.workflows.metrics.PipelineStats` was shaped to carry.
+    """
+    n_fragments = _number(payload, "n_fragments")
+    n_barcodes = _number(payload, "n_barcodes")
+    total_reads = _number(payload, "total_reads")
+
+    # Read pairs per retained fragment — a PCR-duplication proxy, the one derived number the summary
+    # supports. Guarded rather than assumed: a run that produced no fragments would divide by zero.
+    per_fragment = (
+        total_reads / n_fragments
+        if total_reads is not None and n_fragments is not None and n_fragments > 0
+        else None
+    )
+    mean_per_barcode = (
+        n_fragments / n_barcodes
+        if n_fragments is not None and n_barcodes is not None and n_barcodes > 0
+        else None
+    )
+
+    built: list[Metric | None] = [
+        count_metric(
+            "reads",
+            "Read pairs",
+            total_reads,
+            hint="Read pairs supporting the fragments chromap kept.",
+            headline=True,
+        ),
+        count_metric(
+            "fragments",
+            "Fragments",
+            n_fragments,
+            ok=1e6,
+            warn=1e5,
+            hint="Tn5 insertion pairs in the final fragments file — the ATAC deliverable's size.",
+            headline=True,
+        ),
+        count_metric(
+            "barcodes",
+            "Barcodes seen",
+            n_barcodes,
+            exact=True,
+            hint="Distinct barcodes with at least one fragment. This is NOT a cell count — no cell "
+            "calling has happened yet, so background barcodes are included.",
+            headline=True,
+        ),
+        # `ratio` and not `count`, and that is the whole reason `ratio` exists: this is the one
+        # derived number here carrying a bar, its bars are 2.0 and 4.0, and an integer display would
+        # show 1.9 (ok) and 2.1 (warn) both as "2" and 3.9 (warn) and 4.1 (bad) both as "4" — one
+        # string, two colours, which reads as a rendering bug rather than as a threshold.
+        ratio(
+            "reads_per_fragment",
+            "Reads / fragment",
+            per_fragment,
+            ok=2.0,
+            warn=4.0,
+            higher_is_better=False,
+            hint="Duplication proxy: how many read pairs collapsed into each retained fragment. A "
+            "high value means the library was sequenced past its complexity.",
+            headline=True,
+        ),
+        ratio(
+            "mean_fragments_per_barcode",
+            "Mean fragments / barcode",
+            mean_per_barcode,
+            hint="Averaged over every barcode seen, including background — read it as a spread "
+            "indicator, not as per-cell depth.",
+        ),
+        count_metric(
+            "max_fragments_per_barcode",
+            "Busiest barcode",
+            _number(payload, "max_fragments_per_barcode"),
+            exact=True,
+            hint="Fragments in the single busiest barcode.",
+        ),
+    ]
+    # No knee: chromap's summary keeps the per-barcode spread as two numbers rather than the whole
+    # vector, so there is no curve to draw and an empty list says so rather than a flat line at zero.
+    return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
+
+
+def read_metrics(path: Path, sample: str) -> SampleStats:
+    """Load one ``<sample>.fragments.qc.json.gz`` and normalise it.
+
+    The thin half of the adapter, mirroring ``qc.read_metrics``: the loading lives here so the
+    registry hands over a path and gets metrics back, and the judgement lives in :func:`metrics`,
+    which needs no file to test. Raises ``OSError``/``ValueError`` if the bytes are unusable.
+    """
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{path} is not a fragments QC object")
+    return metrics(payload, sample)
+
+
 __all__ = [
+    "QC_SUFFIX",
     "FragmentsError",
     "FragmentsQC",
     "RAW_FRAGMENTS",
     "build_fragments_qc",
     "fragments_suffixes",
+    "metrics",
+    "read_metrics",
     "write_fragments",
     "write_fragments_qc",
 ]

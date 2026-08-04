@@ -5,9 +5,15 @@ Snakefile has run, what is on disk gains a per-sample QC artifact, and this modu
 gets at it — for **any** **Workflow module**, without the report ever learning what STARsolo is.
 
 The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to turn it into the shared
-:class:`~seqforge.workflows.metrics.SampleStats`. Today one module is wired::
+:class:`~seqforge.workflows.metrics.SampleStats`. Two modules are wired::
 
-    map/starsolo   <sample>.qc.json.gz   gzipped JSON, written by `rule qc_bundle`
+    map/starsolo   <sample>.qc.json.gz             gzipped JSON, written by `rule qc_bundle`
+    map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
+
+Two artifacts, two vocabularies, and no shared column set — the ATAC summary has no whitelist-match
+rate and no per-barcode vector, so an scATAC page speaks about fragments and never about cells. That
+divergence is the seam earning its keep: it is expressed as two adapters rather than as a widening
+union of optional fields on one.
 
 **The spec carries a filename, not a suffix**, and that is a decision rather than an accident. A
 ``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and the next
@@ -31,6 +37,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import MODULES
+from .fragments import QC_SUFFIX as _FRAGMENTS_QC_SUFFIX
+from .fragments import read_metrics as _read_fragments
 from .metrics import PipelineStats, SampleStats
 from .qc import QC_SUFFIX as _STARSOLO_QC_SUFFIX
 from .qc import read_metrics as _read_starsolo
@@ -54,23 +62,27 @@ class StatsSpec:
 #: Every artifact name here is **imported, never spelled**. A suffix written in the rule that produces
 #: it and again in the reader that finds it is two owners of one fact, and the reader's copy is the one
 #: that fails silently: a report that finds nothing looks exactly like a pipeline that never ran, so
-#: nothing raises and nobody is told. ``qc_bundle``'s literal in ``starsolo.smk`` is the one remaining
-#: second owner — closing it means editing a shipped module, which would bump ``WORKFLOW_VERSION`` and
-#: invalidate every ``run_id`` for a rename that changes no behaviour. The constant is here for the
-#: next edit to that file to adopt.
+#: nothing raises and nobody is told. The shipped ``.smk`` files are the two remaining second owners —
+#: ``qc_bundle`` in ``starsolo.smk`` and ``fragments_qc`` in ``chromap.smk`` both restate their output
+#: suffix — and closing that means editing a shipped module, which would bump ``WORKFLOW_VERSION`` and
+#: invalidate every ``run_id`` for a rename that changes no behaviour. Both constants are exported for
+#: the next edit to those files to adopt (#212).
 _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(artifact=f"{{sample}}{_STARSOLO_QC_SUFFIX}", read=_read_starsolo),
+    "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
 }
 
 #: Registered modules that deliberately report nothing **yet**. This is the half of the drift guard
 #: that lets a module say "not yet" out loud instead of being silently absent from :data:`_SPECS` and
-#: silently missing from every report — and the single-cell-only rollout is what exercises it for
-#: exactly that purpose. Each entry names the ticket that lands its adapter, so a name here is a debt
-#: with an address rather than an open question:
+#: silently missing from every report. Each entry names the ticket that lands its adapter, so a name
+#: here is a debt with an address rather than an open question:
 #:
-#:   ``map/star``     bulk — reports from STAR's own ``Log.final.out``, no bundle in between (#211)
-#:   ``map/chromap``  scATAC — reports from the fragments QC summary ``fragments.py`` writes (#210)
-MODULES_WITHOUT_STATS: frozenset[str] = frozenset({"map/star", "map/chromap"})
+#:   ``map/star``  bulk — reports from STAR's own ``Log.final.out``, no bundle in between (#211)
+#:
+#: It shrinks as adapters land and is expected to reach empty, which is not a reason to delete it: an
+#: empty list is what the guard compares a newly registered module against, and the cost of keeping it
+#: is one frozenset against a fourth aligner that reports nothing with nothing saying so.
+MODULES_WITHOUT_STATS: frozenset[str] = frozenset({"map/star"})
 
 #: What the reader will survive from one sample's artifact: bad **bytes**. Caught per sample, so one
 #: corrupt file costs its own row and not the whole pipeline.
