@@ -96,6 +96,16 @@ class SampleStats(_Frozen):
     knee: list[tuple[int, int]] = Field(default_factory=list)
     #: Context the adapter wants carried up — e.g. which ``soloFeatures`` feature these came from.
     note: str = ""
+    #: Feature -> the share of the library that feature assigned to a gene, when the tool counted the
+    #: same library more than one way. **Deliberately one number per feature and not a second metric
+    #: table**: the table above is what a reader looks at, and a per-feature copy of twelve metrics
+    #: would double it to say something no reader asked for. What a rule needs is the DISAGREEMENT
+    #: between two ways of counting, and that is this one row.
+    #:
+    #: Empty for every tool that counts one way, which is most of them and is the common STARsolo
+    #: case too. Absent is absent: a feature that produced no such row is missing from the mapping
+    #: rather than carried as a zero, so "counted nothing" and "was not counted" stay distinguishable.
+    feature_reads_in_genes: dict[str, float] = Field(default_factory=dict)
 
 
 # ---- the cross-check ----------------------------------------------------------------------------
@@ -125,8 +135,10 @@ Scope = Literal["systematic", "isolated"]
 #: ``chemistry`` is the manifest's ``library.chemistry`` equivalence class; ``read_roles`` is which
 #: file was handed over as which read (``library.files[].read_id``). Both are decisions this compiler
 #: made and recorded, which is the entire premise: a bad number is only actionable once the thing that
-#: produced it is named.
-Decision = Literal["chemistry", "read_roles"]
+#: produced it is named. ``solo_features`` is the recipe's ``processing.quantification.features`` — an
+#: ORDERED list whose element 0 is the matrix everything downstream reads, which is what makes "you
+#: are counting the wrong feature" a decision a reader can act on rather than an observation.
+Decision = Literal["chemistry", "read_roles", "solo_features"]
 
 #: How each severity reads in words. Total over the literal — the same exhaustiveness shape
 #: :data:`Level` and :data:`MetricGroup` already carry, so a third severity breaks a test instead of

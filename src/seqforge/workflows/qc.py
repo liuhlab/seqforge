@@ -21,7 +21,7 @@ import gzip
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 from ..models.processing import SoloFeature
 from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
@@ -219,6 +219,32 @@ _FEATURE_PREFERENCE: tuple[str, ...] = (
 #: it sorted first yields zero metrics *and* a note claiming they were "counted from the SJ feature"
 #: — a caption for a table that is not there, which is worse than the empty table alone.
 _NO_CELL_SUMMARY: frozenset[str] = frozenset({"SJ", "Velocyto"})
+
+
+#: The one ``Summary.csv`` row a feature comparison is made on: the share of the library that feature
+#: assigned to a gene. The same row the headline ``reads_in_genes`` metric reports for the ONE feature
+#: :func:`_pick_feature` selected, so the number compared across features and the number shown for one
+#: of them are the same measurement rather than two that could drift into meaning different things.
+#: ``test_carrying_per_feature_counts_moves_no_value_the_metrics_table_already_showed`` asserts the
+#: two agree on the headline feature, which is what holds that shut.
+_READS_IN_GENES_ROW = "Reads Mapped to {f}: Unique {f}"
+
+#: Which ``soloFeatures`` feature is THE exonic count. STARsolo's own name for it, and the reason the
+#: comparison below has a fixed left-hand side: every other cell-level feature in the vocabulary
+#: counts something *broader* than exons, so the gap always has one direction.
+_EXONIC_FEATURE = "Gene"
+
+
+def _countable_features() -> frozenset[str]:
+    """Every ``SoloFeature`` that carries the cell-level rows these numbers come from.
+
+    Derived from the aligner's own closed vocabulary minus :data:`_NO_CELL_SUMMARY`, rather than from
+    a list of names typed out here. A seventh feature is a new STARsolo release, and the failure a
+    hand-written list produces is the silent one: it would keep passing while the new feature quietly
+    fell out of every comparison. A complement fails the other way — a new feature enters the
+    comparison — and of the two, being asked about a feature beats never being told about it.
+    """
+    return frozenset(get_args(SoloFeature)) - _NO_CELL_SUMMARY
 
 
 def _pick_feature(summary: Mapping[str, Any]) -> str | None:
@@ -469,12 +495,24 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
         if isinstance(raw, list):
             vector = [int(v) for v in raw if isinstance(v, int | float)]
 
+    # Every feature the run counted, on the one row a feature comparison is made on. The bundle has
+    # carried every feature's `Summary.csv` since the first one ever written — the table above shows
+    # ONE of them because `_pick_feature` selects, and this is the rest of what was already on disk,
+    # carried up narrow. Nothing in the writer changed to make it available, so no artifact grew and
+    # no `run_id` was invalidated; what was missing was a reader that looked at more than one column.
+    per_feature = {
+        feat: value
+        for feat in sorted(set(summary) & _countable_features())
+        if (value := _summary_get(summary, feat, _READS_IN_GENES_ROW)) is not None
+    }
+
     note = f"counted from the {feature} feature" if feature else ""
     return SampleStats(
         sample_id=sample,
         metrics=solo + alignment,
         knee=knee_points(vector),
         note=note,
+        feature_reads_in_genes=per_feature,
     )
 
 
@@ -593,7 +631,79 @@ def chemistry_rule(sample: SampleStats) -> list[Finding]:
     ]
 
 
+#: How much of the library may be intronic-only before the rule speaks. **30 points, and the argument
+#: is that ordinary biology lives under it**: a whole-cell 10x library carries a real intronic
+#: fraction, commonly ten to twenty points, so a bar at 0.20 would fire on healthy runs — and a rule
+#: that fires on a healthy run is worse than a rule that does not exist. A nuclear prep runs far
+#: higher: the failure in #215 measured 0.407, which clears this with margin.
+#:
+#: Severity is ``possible`` and not ``likely``, and that is the other half of the bar. Counting
+#: exonically **can be deliberate** — an exonic count is the right answer for plenty of whole-cell
+#: work — so the claim this rule is entitled to make is "you are probably counting the wrong feature",
+#: never "this run is wrong". Move the number only on evidence, and put the evidence in the commit.
+INTRONIC_ONLY_READ_SHARE = 0.30
+
+
+def solo_features_rule(sample: SampleStats) -> list[Finding]:
+    """A large exonic-versus-full-length gap -> the primary counted feature looks like the wrong one.
+
+    The measurement is a subtraction between two ways STAR counted the same library:
+    ``reads_in_genes(GeneFull*) - reads_in_genes(Gene)``. Both numbers are shares of the whole
+    library, so their difference is the share of the whole library that is **intronic-only** — reads
+    landing inside a gene body and outside every exon, which a nuclear prep produces in bulk and an
+    exonic count discards. That is the number #215 quotes, and it was 40.7% of a library.
+
+    Compared against the largest full-length count rather than an average of them, because an average
+    reports a number no feature produced. Silent when the run counted one way — there is no gap to
+    measure, and that is most runs: ``soloFeatures`` is frequently just ``Gene``. Silent too when the
+    full-length count is the *smaller* one, which is not a thing this rule has a story for.
+
+    **The gap measures the library, not the recipe.** A nuclear library with ``GeneFull`` already
+    first still shows it, so the alert names the decision and lets a reader see the order they set —
+    which is half of why the severity is ``possible``. The remedy is a REORDER and never a
+    replacement: :class:`~seqforge.models.processing.SoloQuant` rules that a prep fact may only
+    reorder the feature list, since compute is spent once and dropping a feature is the only
+    irreversible act available. A remedy contradicting a validator in this repo is worse than none.
+    """
+    counted = sample.feature_reads_in_genes
+    exonic = counted.get(_EXONIC_FEATURE)
+    # The vocabulary decides what counts as a full-length feature, here as well as in the reader that
+    # filled the mapping: the rule states the comparison, so the rule is where it has to hold. `SJ`
+    # and `Velocyto` are out by `_NO_CELL_SUMMARY` — neither has the cell-level rows this subtracts.
+    full_length = {
+        f: v for f, v in counted.items() if f in _countable_features() - {_EXONIC_FEATURE}
+    }
+    if exonic is None or not full_length:
+        return []
+    feature, value = max(full_length.items(), key=lambda item: (item[1], item[0]))
+    gap = value - exonic
+    if gap < INTRONIC_ONLY_READ_SHARE:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.intronic-reads-uncounted",
+            sample_id=sample.sample_id,
+            title="Most of what this library gained from introns is not in the counted matrix",
+            severity="possible",
+            measured=(
+                f"{fmt_pct(gap)} of the library is intronic-only "
+                f"({feature}: {fmt_pct(value)} of reads in a gene, "
+                f"{_EXONIC_FEATURE}: {fmt_pct(exonic)}); "
+                f"this rule fires at {fmt_pct(INTRONIC_ONLY_READ_SHARE)}"
+            ),
+            implicates=["solo_features"],
+            remedy=(
+                f"If these are nuclei, put {feature} first in the recipe's counting features — "
+                f"element 0 is the matrix everything downstream reads. Keep {_EXONIC_FEATURE} in "
+                "the list: a prep fact may reorder the features, never shorten them. Nothing here "
+                "changes your recipe."
+            ),
+        )
+    ]
+
+
 __all__ = [
+    "INTRONIC_ONLY_READ_SHARE",
     "NEAR_ZERO_VALID_BARCODES",
     "QC_SUFFIX",
     "QcError",
@@ -603,5 +713,6 @@ __all__ = [
     "metrics",
     "read_metrics",
     "read_star_log",
+    "solo_features_rule",
     "write_qc_bundle",
 ]

@@ -750,6 +750,37 @@ def _resolve_read_roles(ctx: _DecisionContext) -> DecisionRef | None:
     )
 
 
+def _resolve_solo_features(ctx: _DecisionContext) -> DecisionRef | None:
+    """Which features the recipe counts, in the order that decides which matrix is THE matrix.
+
+    Order is the whole content of this decision. ``SoloQuant`` is an ordered list with no aligner-side
+    referent — STARsolo writes one ``Solo.out/<Feature>/`` per entry whatever the order — so what the
+    list buys is a deterministic answer to "which matrix does everything downstream read", and
+    ``compose`` projects it out to the config's ``primary_feature``. An alert saying "you are counting
+    the wrong feature" is therefore only actionable once the reader can see which one is first, so the
+    value spells the list out and names element 0 rather than summarising it.
+
+    Read from the recipe and not from the composed config, because the recipe is the artifact the
+    reader edits; ``primary_feature`` is what that edit produces. A recipe that counts with anything
+    other than STARsolo has no such list, and resolves to ``None`` rather than to a paraphrase of a
+    different field — a decision the workspace cannot answer for is dropped, never rendered empty.
+
+    No ``change_to``: the alternative is a reorder, and where several ``GeneFull*`` variants were
+    counted, which one to promote is a choice between them rather than the single swap that field is
+    for. The remedy sentence carries it, and a wrong concrete suggestion is worse than none.
+    """
+    if ctx.proc is None:
+        return None
+    quant = ctx.proc.processing.quantification.value
+    if quant.kind != "solo" or not quant.features:
+        return None
+    return DecisionRef(
+        decision="solo_features",
+        label="counted features (recipe `processing.quantification.features`)",
+        value=f"{', '.join(quant.features)} — {quant.features[0]} is the primary matrix",
+    )
+
+
 #: Every :data:`~seqforge.workflows.metrics.Decision` a rule can name, and how to read what the
 #: workspace currently says it is. Total over the literal, and an exhaustiveness test derived from
 #: ``get_args`` holds it that way: a member added without teaching this table to read its value would
@@ -760,6 +791,7 @@ def _resolve_read_roles(ctx: _DecisionContext) -> DecisionRef | None:
 _DECISION_RESOLVERS: dict[Decision, Callable[[_DecisionContext], DecisionRef | None]] = {
     "chemistry": _resolve_chemistry,
     "read_roles": _resolve_read_roles,
+    "solo_features": _resolve_solo_features,
 }
 
 

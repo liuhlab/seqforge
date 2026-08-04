@@ -73,11 +73,13 @@ from seqforge.workflows.metrics import (
     knee_points,
 )
 from seqforge.workflows.qc import (
+    INTRONIC_ONLY_READ_SHARE,
     NEAR_ZERO_VALID_BARCODES,
     QcError,
     build_qc_bundle,
     chemistry_rule,
     read_star_log,
+    solo_features_rule,
     write_qc_bundle,
 )
 from seqforge.workflows.qc import metrics as starsolo_metrics
@@ -2346,3 +2348,253 @@ def test_every_severity_an_alert_can_carry_says_what_it_means_in_words() -> None
     """
     assert set(get_args(Severity)) == set(SEVERITY_PHRASE)
     assert all(SEVERITY_PHRASE[s] for s in get_args(Severity))
+
+
+# ================================================================================================
+# per-feature counts, and the nuclear-library rule they make measurable
+# ================================================================================================
+#
+# `build_qc_bundle` has always written one `Summary.csv` per `soloFeatures` feature, so the exonic
+# versus full-length gap has been on disk since the first bundle ever produced. What hid it was the
+# READER: `_pick_feature` selects one feature and reports its numbers. So nothing below changes the
+# writer, no `.smk` file and no `WORKFLOW_VERSION` — the per-sample artifact does not grow by a byte,
+# and the only thing that grows is a narrow per-feature mapping on `SampleStats`.
+#
+# The constraint that binds all of it: every value the metrics table showed before must be identical
+# after. Carrying more is not licence to change what is already carried.
+
+
+def _multi_feature_run(
+    tmp_path: Path, summaries: dict[str, dict[str, object]]
+) -> tuple[Path, Path]:
+    """A STAR output tree with one real `Summary.csv` per feature — the multi-feature bundle.
+
+    `_finished_star_run` writes exactly one feature, which is enough for every test above and useless
+    here: the whole signal this section is about is the DISAGREEMENT between two features, and a
+    fixture carrying one of them can only prove there is none.
+    """
+    features: list[SoloFeature] = list(summaries)  # type: ignore[arg-type]
+    solo, run_dir = _fake_run(tmp_path, features)
+    for feature, rows in summaries.items():
+        _write(solo / feature / "Summary.csv", "".join(f"{k},{v}\n" for k, v in rows.items()))
+    _write(run_dir / "Log.final.out", "".join(f"    {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
+    return solo, run_dir
+
+
+#: The nuclear library from #215, as STAR wrote it: 30.1% of reads land in an exon and 70.8% land
+#: anywhere in the gene body. The 40.7-point difference is the share of the whole library that is
+#: intronic-only, and it was invisible on the page because only one of the two columns was ever read.
+_NUCLEAR_GENE: dict[str, object] = {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.301}
+_NUCLEAR_GENEFULL: dict[str, object] = {
+    **_HEALTHY_SUMMARY,
+    "Reads Mapped to GeneFull: Unique GeneFull": 0.708,
+}
+
+
+def test_the_bundle_always_carried_every_feature_and_the_reader_now_carries_the_counts_up(
+    tmp_path: Path,
+) -> None:
+    """Per-feature counts reach `SampleStats` out of the bundle the real writer produced.
+
+    Through `write_qc_bundle` rather than a literal dict, for the reason its neighbour above gives:
+    the writer decides which `Summary.csv` lands under which key, and a hand-written dict cannot
+    catch a rename there. `SJ` is written and must NOT come back — it has a `Summary.csv` with no
+    cell-level rows in it, which is exactly what `_NO_CELL_SUMMARY` already names.
+    """
+    solo, run_dir = _multi_feature_run(
+        tmp_path,
+        {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL, "SJ": {"Number of Reads": 1}},
+    )
+    out = write_qc_bundle(
+        solo, run_dir, ["Gene", "GeneFull", "SJ"], tmp_path / "S1.qc.json.gz", sample="S1"
+    )
+
+    sample = read_starsolo_metrics(out, "S1")
+
+    assert sample.feature_reads_in_genes == {"Gene": 0.301, "GeneFull": 0.708}
+    assert "SJ" not in sample.feature_reads_in_genes
+    # The measurement behind "any growth in the per-sample artifact is bounded": there is NONE. The
+    # writer emitted every feature's `Summary.csv` before this ticket and emits exactly the same keys
+    # after it, so the bytes on disk did not move and no `run_id` was invalidated. Asserted as a set,
+    # so a writer that started emitting a per-feature block to serve this reader goes red here rather
+    # than quietly costing every already-compiled dataset a reprocess.
+    with gzip.open(out, "rt", encoding="utf-8") as fh:
+        written = json.load(fh)
+    assert set(written) == {
+        "sample",
+        "assembly",
+        "soloFeatures",
+        "barcodes_stats",
+        "summary",
+        "features_stats",
+        "umi_per_cell",
+        "default_filtered_barcodes",
+        "log_final",
+        "log_out",
+        "log_progress",
+        "splice_junctions",
+    }
+
+
+def test_carrying_per_feature_counts_moves_no_value_the_metrics_table_already_showed(
+    tmp_path: Path,
+) -> None:
+    """The hard criterion, asserted rather than assumed: the table is identical either way.
+
+    Two bundles from the real writer over the SAME `Gene` summary, one of them carrying a second
+    feature whose numbers disagree by 40 points. Same keys, same values, same order, same note — the
+    headline metrics still come from `_pick_feature` and `_FEATURE_PREFERENCE` did not move. Reverse
+    that preference and this goes red on every value at once, which is what makes it a test rather
+    than a restatement of the implementation.
+
+    The note is asserted too, because "which feature the headline numbers come from is still stated"
+    is its own acceptance criterion, and a silent feature swap would satisfy a metric comparison on a
+    page that had stopped saying so.
+    """
+    one, one_run = _multi_feature_run(tmp_path / "one", {"Gene": _NUCLEAR_GENE})
+    two, two_run = _multi_feature_run(
+        tmp_path / "two", {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL}
+    )
+    single = read_starsolo_metrics(
+        write_qc_bundle(one, one_run, ["Gene"], tmp_path / "one.qc.json.gz", sample="S1"), "S1"
+    )
+    multi = read_starsolo_metrics(
+        write_qc_bundle(
+            two, two_run, ["Gene", "GeneFull"], tmp_path / "two.qc.json.gz", sample="S1"
+        ),
+        "S1",
+    )
+
+    assert [m.key for m in multi.metrics] == [m.key for m in single.metrics]
+    assert multi.metrics == single.metrics
+    assert set(_by_key(multi)) == _FULL_SOLO_METRICS
+    assert multi.note == single.note == "counted from the Gene feature"
+    # The exonic number is what the table shows, though the bundle also carries the other one.
+    assert _by_key(multi)["reads_in_genes"].value == pytest.approx(0.301)
+    # ...and the number the table does NOT show is the one that made the rule possible.
+    assert multi.feature_reads_in_genes["GeneFull"] == pytest.approx(0.708)
+    # The mapping and the metric read the SAME `Summary.csv` row, spelled in two places (the metric
+    # definition is another ticket's in this PR). If they ever stop meaning the same measurement, a
+    # rule comparing features would be subtracting a different number from the one on the page.
+    assert multi.feature_reads_in_genes["Gene"] == _by_key(multi)["reads_in_genes"].value
+
+
+def _gap(**per_feature: float) -> list[Finding]:
+    """Drive the rule with literal per-feature counts. Pure — no filesystem, no bundle."""
+    return solo_features_rule(SampleStats(sample_id="S1", feature_reads_in_genes=per_feature))
+
+
+def test_the_nuclear_library_rule_fires_on_the_gap_measured_in_215() -> None:
+    """40.7 points of the library are intronic-only, and the primary matrix throws them away.
+
+    What the rule adds over the two numbers is the DECISION: `soloFeatures` is an ordered list and
+    element 0 is the matrix everything downstream reads, so the reader's lever is which feature comes
+    first. Severity is `possible` and not `likely` — counting exonically can be deliberate, so this
+    says "you are probably counting the wrong feature", never "this run is wrong".
+    """
+    findings = _gap(Gene=0.301, GeneFull=0.708)
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.intronic-reads-uncounted"
+    assert found.severity == "possible"
+    assert found.implicates == ["solo_features"]
+    assert found.sample_id == "S1"
+    assert "40.7%" in found.measured  # the gap it fired on, in the reader's units
+    assert "GeneFull" in found.measured and "Gene" in found.measured
+    # The remedy may only REORDER the list: `SoloQuant` rules that dropping a feature is the one
+    # irreversible act available, so a remedy saying "replace Gene" would contradict a validator in
+    # this same repo -- which is worse than no remedy.
+    assert "first" in found.remedy
+    assert "replace" not in found.remedy.lower() and "drop" not in found.remedy.lower()
+
+
+def test_a_pipeline_that_counted_one_feature_has_no_gap_to_measure_and_never_fires() -> None:
+    """The common case — `soloFeatures` is frequently just `Gene` — and it must report normally.
+
+    Silence here is by construction rather than by a special case: the measurement is a DIFFERENCE
+    between two features, and one feature is not two. Both directions are asserted, because a rule
+    that read a missing exonic count as zero would fire on every `GeneFull`-only pipeline and claim
+    the whole library was intronic.
+    """
+    assert _gap(Gene=0.301) == []
+    assert _gap(GeneFull=0.708) == []
+    assert _gap() == []
+    assert solo_features_rule(SampleStats(sample_id="S1")) == []
+
+
+def test_the_intronic_gap_an_ordinary_whole_cell_library_carries_stays_silent() -> None:
+    """A whole-cell library carries a real intronic fraction, and a rule that fires on it is noise.
+
+    Commonly ten to twenty points of the library, which is why the bar is not at 0.20: a rule that
+    fires on a healthy run is worse than a rule that does not exist.
+    """
+    assert _gap(Gene=0.641902, GeneFull=0.7712) == []  # ~13 points, ordinary biology
+    assert _gap(Gene=0.60, GeneFull=0.55) == []  # full-length counted LESS: not a claim to make
+
+
+def test_the_nuclear_library_rules_boundary_is_the_one_threshold_it_declares() -> None:
+    """At the bar exactly it fires, a hair under it does not — `>=`, and the number is written once.
+
+    30 points clears an ordinary whole-cell intronic fraction with room, and the measured failure was
+    40.7. Between the two there is no library this rule would rather stay quiet about.
+    """
+    assert len(_gap(Gene=0.30, GeneFull=0.30 + INTRONIC_ONLY_READ_SHARE)) == 1
+    assert _gap(Gene=0.30, GeneFull=0.30 + INTRONIC_ONLY_READ_SHARE - 1e-9) == []
+
+
+def test_the_full_length_features_the_rule_compares_come_from_the_aligners_own_vocabulary() -> None:
+    """Derived from `SoloFeature`, so a seventh feature cannot silently fall out of the comparison.
+
+    Every member of STARsolo's closed vocabulary that carries a cell-level summary is either THE
+    exonic count or something broader than it, so the set is a complement over that vocabulary rather
+    than three names typed out. `SJ` and `Velocyto` are excluded by `_NO_CELL_SUMMARY`, the constant
+    the reader already uses for exactly this — one owner of "which features have cell-level rows".
+    """
+    from seqforge.workflows.qc import _NO_CELL_SUMMARY
+
+    countable = set(get_args(SoloFeature)) - _NO_CELL_SUMMARY
+    assert countable - {"Gene"}, "the vocabulary must carry something broader than exons"
+
+    # Every full-length member of the vocabulary, one at a time: each is enough on its own.
+    for feature in sorted(countable - {"Gene"}):
+        assert len(_gap(**{"Gene": 0.30, feature: 0.65})) == 1, feature
+    # And neither of the two that have no cell-level rows can contribute a gap.
+    for feature in sorted(_NO_CELL_SUMMARY):
+        assert _gap(**{"Gene": 0.30, feature: 0.99}) == []
+
+
+def test_the_rule_takes_the_largest_gap_when_several_full_length_features_were_counted() -> None:
+    """One alert per sample, reporting the widest disagreement the run actually measured.
+
+    Counting three ways is legal and cheap, and averaging them would report a number no feature
+    produced. The largest is the one that says how much of the library the primary matrix is missing.
+    """
+    (found,) = _gap(Gene=0.301, GeneFull_Ex50pAS=0.52, GeneFull=0.708)
+
+    assert "40.7%" in found.measured and "GeneFull:" in found.measured
+
+
+def test_the_feature_gap_rule_reaches_the_pipeline_through_the_registry(tmp_path: Path) -> None:
+    """A rule that is written and never registered fires in its own unit test and on nothing else.
+
+    Driven through `read_pipeline_stats` over real bytes, like its sibling above: the wiring is the
+    claim. `map/starsolo` now declares two rules, and one guard covers both.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    results = tmp_path / "results"
+    _landed(
+        results,
+        "s1",
+        {"sample": "s1", "summary": {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL}},
+    )
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
+        ("s1", "starsolo.intronic-reads-uncounted")
+    ]
+    assert solo_features_rule in stats_registry._SPECS["map/starsolo"].checks

@@ -1943,6 +1943,13 @@ def test_every_decision_an_alert_can_name_is_resolvable_to_a_value(own_workspace
     cannot ship as a field name with nothing beside it), and the resolvers must actually answer
     against a real workspace — a table full of functions that all return `None` would satisfy the
     first half and render nothing.
+
+    The context is built to be ANSWERABLE, which is a third claim and it is deliberate: a resolver
+    that returned a value for a workspace that cannot hold one would be inventing it, so the fixture
+    is made to hold one rather than the resolver made to guess. The shared workspace compiles a bulk
+    recipe and `solo_features` is a STARsolo-only decision, so the recipe's counting decision is
+    swapped for the one a STARsolo pipeline carries — the same class of edit
+    `_finish_a_starsolo_pipeline` already makes to the module on disk, one artifact up.
     """
     from seqforge.report.collect import _DECISION_RESOLVERS, _DecisionContext
     from seqforge.workflows.metrics import Decision
@@ -1952,11 +1959,21 @@ def test_every_decision_an_alert_can_name_is_resolvable_to_a_value(own_workspace
     assert set(_DECISION_RESOLVERS) == members, "a decision with no resolver renders as a bare name"
 
     from seqforge.models.dataset import DatasetManifest
+    from seqforge.models.processing import ProcessingManifest, SoloQuant
 
     manifest = DatasetManifest.model_validate(
         yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
     )
-    ctx = _DecisionContext(manifest=manifest, proc=None, plan=None)
+    proc = ProcessingManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "processing.yaml").read_text())
+    )
+    counting = proc.processing.quantification.model_copy(
+        update={"value": SoloQuant(features=["Gene", "GeneFull"])}
+    )
+    proc = proc.model_copy(
+        update={"processing": proc.processing.model_copy(update={"quantification": counting})}
+    )
+    ctx = _DecisionContext(manifest=manifest, proc=proc, plan=None)
     for decision, resolve in _DECISION_RESOLVERS.items():
         ref = resolve(ctx)
         assert ref is not None and ref.decision == decision
@@ -2300,3 +2317,166 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
     assert not re.search(r'<th[^>]*role="button"', pane), (
         "a column header announcing itself as a button is no longer a column header"
     )
+
+
+# -- the nuclear-library rule: counting one library two ways -----------------------------------------
+#
+# The rule itself is pure and is held to literal values in `tests/test_workflows.py`. What is under
+# test here is the join: a recipe that counts more than one way, an artifact that carries both counts
+# (it always did), and a page that names which feature is currently primary. Everything visual is
+# asserted against `render_html`.
+
+#: The library from #215, as STAR counted it twice: 30.1% of reads land in an exon, 70.8% land
+#: anywhere in the gene body. Two `Summary.csv` blocks in one bundle, which is what the writer has
+#: always produced for a recipe with two features in it.
+_EXONIC_SUMMARY: dict[str, object] = {**_QC_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.301}
+_FULL_LENGTH_SUMMARY: dict[str, object] = {
+    **_QC_SUMMARY,
+    "Reads Mapped to GeneFull: Unique GeneFull": 0.708,
+}
+
+
+def _count_with(ws: Path, features: list[str]) -> None:
+    """Rewrite the workspace's recipe so it counts with STARsolo over `features`, in that order.
+
+    Through the model rather than by poking yaml keys, so the shape on disk is whatever
+    `ProcessingManifest` says it is and this helper cannot encode a layout that has moved. The shared
+    fixture compiles a BULK recipe and `solo_features` is a STARsolo-only decision — the same class of
+    on-disk edit `_finish_a_starsolo_pipeline` makes to the module, one artifact up.
+    """
+    from seqforge.models.processing import ProcessingManifest, SoloQuant
+
+    path = ws / "seqforge" / "processing.yaml"
+    proc = ProcessingManifest.model_validate(yaml.safe_load(path.read_text()))
+    counting = proc.processing.quantification.model_copy(
+        update={"value": SoloQuant(features=features)}  # type: ignore[arg-type]
+    )
+    proc = proc.model_copy(
+        update={"processing": proc.processing.model_copy(update={"quantification": counting})}
+    )
+    path.write_text(yaml.safe_dump(proc.model_dump(mode="json"), sort_keys=True))
+
+
+def _land_multi_feature_bundles(
+    ws: Path, samples: list[str], summary: dict[str, dict[str, object]]
+) -> None:
+    """One QC bundle per sample carrying `summary` verbatim as its per-feature `Summary.csv` block.
+
+    `_finish_a_starsolo_pipeline` writes exactly one feature, which is enough for every test above and
+    useless here: the whole signal is the DISAGREEMENT between two of them.
+    """
+    import gzip
+
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    for smk in pipeline.directory.glob("*.smk"):
+        smk.rename(smk.with_name("starsolo.smk"))
+    config = pipeline.config
+    config["samples"] = sorted(samples)
+    pipeline.config_path.write_text(yaml.safe_dump(config, sort_keys=True))
+
+    for sample in samples:
+        out = pipeline.directory / str(config.get("outdir") or "results") / sample
+        out.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out / f"{sample}.qc.json.gz", "wt", encoding="utf-8") as fh:
+            json.dump(
+                {
+                    "sample": sample,
+                    "summary": summary,
+                    "log_final": _STAR_FINAL_LOG,
+                    "umi_per_cell": {"Gene": [4213, 980, 310, 44, 9, 1]},
+                },
+                fh,
+            )
+
+
+def test_a_nuclear_library_counted_exonically_becomes_a_claim_about_the_recipe(
+    own_workspace: Path,
+) -> None:
+    """The gap the artifact always carried, joined to the ordered list that decides which matrix wins.
+
+    The recipe's features are read back off disk rather than restated here: a test that spelled
+    `Gene, GeneFull` would keep passing against a collector that had stopped reading the recipe at
+    all. What the page must carry is the whole chain — the claim, the non-colour mark, the two numbers
+    it fired on, which feature is currently primary, the reorder remedy, and the stable id.
+    """
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+    _land_multi_feature_bundles(
+        own_workspace, samples, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+    recipe = yaml.safe_load((own_workspace / "seqforge" / "processing.yaml").read_text())
+    features = recipe["processing"]["quantification"]["value"]["features"]
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+    block = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert alert.id == "starsolo.intronic-reads-uncounted"
+    assert alert.severity == "possible"
+    (ref,) = alert.implicates
+    assert ref.decision == "solo_features"
+    assert "processing.quantification.features" in ref.label
+    for feature in features:
+        assert feature in ref.value
+    assert f"{features[0]} is the primary matrix" in ref.value
+    assert ref.change_to is None, "a reorder among several full-length features is not one swap"
+
+    assert "40.7%" in block and "70.8%" in block and "30.1%" in block
+    assert '<span class="lvl-flag" role="img" aria-label="worth a look">!' in block
+    assert "put GeneFull first" in block
+    assert "starsolo.intronic-reads-uncounted" in block
+
+
+def test_a_pipeline_that_counted_one_feature_reports_normally_and_raises_no_alert(
+    own_workspace: Path,
+) -> None:
+    """The common case — `soloFeatures` is frequently just `Gene` — and it must cost nothing.
+
+    A recipe that counts one way has no second column to disagree with, so there is no gap to measure
+    and the page renders as it always did: no alert block at all, the metrics table intact, and the
+    feature the headline numbers came from still named on the row it belongs to. That last one is its
+    own acceptance criterion, and it is the thing a reader needs in order to judge the numbers.
+    """
+    _count_with(own_workspace, ["Gene"])
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+    _land_multi_feature_bundles(own_workspace, samples, {"Gene": _EXONIC_SUMMARY})
+
+    assay = collect_report(own_workspace).assays[0]
+    page = render_html(collect_report(own_workspace))
+    pane = _pane(page, "results")
+
+    assert assay.pipeline_stats is not None and assay.pipeline_stats.complete
+    assert assay.pipeline_stats.findings == [] and assay.alerts == []
+    assert _alert_block(page) == ""
+    assert "counted from the Gene feature" in pane
+    assert "Reads in genes" in pane, "the table must still render, or this asserts nothing"
+
+
+def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_run(
+    own_workspace: Path,
+) -> None:
+    """The size criterion, measured on a plate rather than argued — and there is nothing to bound.
+
+    The per-sample artifact does not grow AT ALL: `build_qc_bundle` has written every feature's
+    `Summary.csv` since the first bundle ever produced, so this ticket changed no writer, no `.smk`
+    and no `WORKFLOW_VERSION`. What grows is one narrow mapping in memory. So the honest form of "any
+    growth is bounded and does not push the page past its budget" is to render 96 wells with the rule
+    firing on every one of them and measure, with the other three standing guarantees re-proved on the
+    same page: an alert whose sample list is 96 ids long is exactly where a page bloats.
+    """
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
+    _land_multi_feature_bundles(
+        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+
+    html = render_html(collect_report(own_workspace))
+    block = _alert_block(html)
+
+    assert len(plate) == 96
+    assert "every sample that finished (96 of 96)" in block
+    assert len(html.encode()) < 500_000
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert html == render_html(collect_report(own_workspace))
