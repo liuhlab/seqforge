@@ -276,6 +276,8 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
     names a dependency the wheel does not carry is worse than none: it is what a reader checks a size
     budget against, and it would have sent the next person looking for an asset that is not there.
     """
+    from importlib.resources import files
+
     from seqforge.report import render
 
     result = runner.invoke(app, ["report", "--help"])
@@ -285,8 +287,15 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
     assert "mermaid" not in result.stdout.lower()
 
     doc = (render.__doc__ or "").lower()
-    assert "no third-party runtime" in doc  # the renderer says what it ships
-    assert "vendored" not in doc  # and never that it inlines a bundle it does not have
+    assert "no third-party runtime" in doc  # the renderer says what it executes
+    # The word `vendored` was banned here as a proxy for "does not claim a bundle it lacks". The
+    # page now really does vendor one thing -- a built Tailwind stylesheet -- so assert the rule the
+    # proxy stood for instead: every sheet the renderer inlines is a file the package ships. (The
+    # docstring may still NAME mermaid; it names it as the bundle that was removed, which is the
+    # history a reader needs. `--help`, above, is where the ban belongs -- that one is a promise.)
+    assets = files("seqforge.report") / "assets"
+    missing = [name for name in render._STYLESHEETS if not (assets / name).is_file()]
+    assert not missing, f"the renderer inlines assets the wheel does not carry: {missing}"
 
 
 # -- the display helpers ---------------------------------------------------------------------------

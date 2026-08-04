@@ -1,0 +1,120 @@
+/* seqforge report — the Tailwind INPUT. The file that ships is the built `report.tw.css`.
+ *
+ *   npm install --no-save tailwindcss@4.3.3 @tailwindcss/cli@4.3.3
+ *   npx @tailwindcss/cli -i report.src.css -o report.tw.css --minify
+ *
+ * Run it from this directory. See VENDOR.md — and `test_every_class_the_page_uses_has_a_rule_in_a_
+ * stylesheet` fails the build if this was edited and not rebuilt.
+ *
+ * Three layers, deliberately separate:
+ *
+ *   1. TOKENS live in `../../assets/sf-tokens.css` and are SHARED with `seqforge eval report`.
+ *      Theming goes through custom properties, never through `dark:` utilities, because the page
+ *      must honour BOTH `prefers-color-scheme` AND the `data-theme` attribute `report.js` stamps on
+ *      <html> — in both directions. A token fix lands once for both pages.
+ *   2. COMPONENTS (below) are first-party and are NOT shared with the eval report: a lab-notebook
+ *      view of a dataset and a CI grading report change for unrelated reasons.
+ *   3. Tailwind's utilities do layout, spacing and type in `panels.py` / `render.py`.
+ *
+ * ── WHY PREFLIGHT IS NOT IMPORTED YET ──────────────────────────────────────────────────────────
+ * Tailwind emits everything inside real cascade layers, and unlayered CSS outranks every layer
+ * whatever the source order — which is exactly why this stylesheet can arrive beside the 559-line
+ * hand-written `report.css` without changing a pixel. That argument holds for every property the
+ * old sheet SETS. Preflight is the part where it does not: a reset reaches bare element selectors
+ * that the old sheet never mentions, and there the layered rule beats only the UA sheet and wins.
+ *
+ * Measured against today's page, importing `tailwindcss/preflight.css` would change five things:
+ *
+ *   `h1,h2,h3,h4 { font-weight: inherit }`  every heading on the page unbolds — `.hero h1`,
+ *                                           `.panel > h2`, `.family-focus h3`, `.detail-body h4`
+ *                                           all set a size and inherit their weight from the UA
+ *   `ol,ul,menu { list-style: none }`        `ul.pipeline-notes` loses its bullets
+ *   `* { margin: 0 }`                        `p.empty`, `p.notice` and `.hero p.organism` lose the
+ *                                           UA paragraph margins they were relying on
+ *   `button { font: inherit }`               `#theme-toggle.icon-btn` swaps the UA control font for
+ *                                           the body font
+ *   `b,strong { font-weight: bolder }`       a `<b>` inside a 600-weight parent goes to 900
+ *
+ * The page already HAS a reset (`report.css` sets `* { box-sizing: border-box }` and zeroes the
+ * margins it cares about), and two resets on one page is one too many. So Preflight is sequenced,
+ * not dropped: it arrives in the same commit that deletes the hand-written sheet, which is the
+ * commit that is allowed to change the page. `test_preflight_arrives_exactly_when_the_hand_written
+ * _sheet_leaves` in `tests/test_report.py` is the mechanism — it goes red the moment `report.css`
+ * is deleted, and tells that commit to add the one line below.
+ * ───────────────────────────────────────────────────────────────────────────────────────────────
+ */
+
+/* The layer ORDER is declared here rather than inherited from `@import "tailwindcss"`, because
+ * importing Tailwind's parts by hand is the documented way to leave one of them out. To turn
+ * Preflight on, add `@import "tailwindcss/preflight.css" layer(base);` between the two below. */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+/* `source(none)` above plus these explicit lines disable automatic source detection, so the purge
+ * depends on THESE files and not on the directory the build ran from. Without it the output changes
+ * with your shell's `cwd`. All three carry class names: `panels.py` every fragment, `render.py` the
+ * page shell, `report.js` the popover it builds at runtime. `flow.py` is deliberately absent — it
+ * returns narrative data, and its `StepKind` reaches the page as `kind-{...}` written in
+ * `panels.py`. If a class literal ever lands in it, the drift guard is what says so. */
+@source "../panels.py";
+@source "../render.py";
+@source "./report.js";
+
+/* The shared token layer: the `--sf-*` scales, both theme blocks, and the `dark` variant. Bundled
+ * in at build time, so the built stylesheet stays one self-contained file. */
+@import "../../assets/sf-tokens.css";
+
+/* The few tokens that are worth having as utilities too (`text-dim`, `bg-surface`, …). They resolve
+ * through the runtime custom properties, so a theme switch moves them with everything else. Same
+ * block as the eval report's, deliberately: one product, one scale. */
+@theme {
+  --color-ink: var(--sf-ink);
+  --color-dim: var(--sf-dim);
+  --color-faint: var(--sf-faint);
+  --color-line: var(--sf-line);
+  --color-surface: var(--sf-surface);
+  --color-accent: var(--sf-accent);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* A first-party component earns its place for exactly two reasons, and you must be able to name
+ * which: (1) THE CLASS NAME IS COMPUTED — the purge sees only literal strings, so `f"lvl-{level}"`
+ * is invisible to it and every computed class must be declared here; (2) it is a genuine repeated
+ * composition, used in three or more places. Anything else is utilities. Writing a component to
+ * avoid typing six utilities once is how a design system becomes a second stylesheet.
+ *
+ * Prefixes are owned, so that parallel work on the redesign cannot collide:
+ *
+ *   sf-*              shell primitives (here) — the reading column, the surface, the scroll region
+ *   lvl-*  grp-*      metric verdict and metric group band
+ *   basis-*  mx-*     provenance basis, evidence-matrix cell status
+ *   stage-*  flow-*   stage diagram and flow cards
+ *   pop-*             the pinnable popover
+ *
+ * Everything below is INERT while `report.css` is still inlined beside this file: these rules are
+ * layered and the hand-written sheet is not, so it wins every overlap. That is the expand step. */
+@layer components {
+  /* The one reading column. `.top-row`, `.tabs-row`, `main` and `footer` each re-derive it today
+   * from `--measure`; it is one measurement, not four. */
+  .sf-page {
+    @apply mx-auto w-full max-w-6xl px-6;
+  }
+
+  /* The page's one box: a quiet surface separated by a hairline, never by a shadow stack. Six
+   * things are this shape today — the panel, the table wrapper, the matrix card, the artifact, the
+   * knee figure and the sibling drawer. */
+  .sf-card {
+    @apply rounded-xl border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+  }
+
+  /* Wide content scrolls HERE, in its own region, so the page body never scrolls sideways. */
+  .sf-scroll-x {
+    @apply overflow-x-auto;
+    overscroll-behavior-x: contain;
+  }
+}

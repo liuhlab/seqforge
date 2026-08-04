@@ -1,17 +1,27 @@
 """Assemble one :class:`ProjectReport` into a single self-contained HTML string.
 
 The shell: a sticky header with the verdict, the tab bar, one assay section per assay, a footer, and —
-inlined at the end — the report's own CSS and JS, and nothing else. Both are read from the package via
-``importlib.resources`` and embedded, so the output makes zero network requests and opens on a
-double-click. No templating engine: the fragments come from ``panels.py`` and are concatenated here.
+inlined at the end — the page's stylesheets and its JS, and nothing else. All are read from the
+package via ``importlib.resources`` and embedded, so the output makes zero network requests and opens
+on a double-click. No templating engine: the fragments come from ``panels.py`` and are concatenated
+here.
 
-**There is no third-party runtime in the page**, and the two things that would have needed one are
+Two stylesheets go in, in a deliberate order (see ``_STYLESHEETS``): the vendored Tailwind build
+first, the hand-written sheet second. Tailwind emits everything inside real cascade layers and
+unlayered CSS outranks every layer whatever the source order, so the hand-written sheet already wins
+every overlap on the strength of the cascade alone; putting it second means it also wins on source
+order, which is what decides the small unlayered remainder Tailwind emits (``@property``
+registrations today, keyframes tomorrow). Two arguments agreeing beats one of them silently
+mattering.
+
+**No third-party runtime executes in the page**, and the two things that would have needed one are
 hand-built instead: the Flow tab is plain HTML cards, and the Results tab's knee plots are inline SVG
 (``panels._knee_figure``). The Flow tab did inline a ~2.5 MB Mermaid bundle, and it was dropped
 because a scaled SVG cannot reflow — its text shrank to nothing on a wide dataset — which took a
 rendered page from ~2.6 MB to a few tens of KB. A charting library would cost the same order again
 and arrive, as they do, as a CDN ``<script src>`` that quietly makes an "offline" page need the
-network. ``report/assets/VENDOR.md`` is the long form.
+network. ``report/assets/VENDOR.md`` is the long form, including what the Tailwind build is and how
+to rebuild it.
 """
 
 from __future__ import annotations
@@ -27,6 +37,12 @@ _VERDICT_LABEL = {
     "blocker": "Blocked",
     "question": "Needs a human",
 }
+
+#: The page's stylesheets, in cascade order — vendored build first, hand-written sheet last, so the
+#: unlayered sheet wins on source order as well as on layer rank. Each becomes its own ``<style>``:
+#: an ``@layer`` statement has to precede the other rules of ITS stylesheet, and one element per
+#: sheet keeps that true without depending on how they were concatenated.
+_STYLESHEETS = ("report.tw.css", "report.css")
 
 
 def _asset(name: str) -> str:
@@ -54,7 +70,7 @@ def _project_verdict(report: ProjectReport) -> tuple[str, str]:
 
 def render_html(report: ProjectReport) -> str:
     """Render ``report`` to one complete, self-contained HTML document."""
-    css = _asset("report.css")
+    styles = "\n".join(f"<style>{_asset(name)}</style>" for name in _STYLESHEETS)
     report_js = _script_guard(_asset("report.js"))
 
     verdict_kind, verdict_label = _project_verdict(report)
@@ -86,7 +102,7 @@ def render_html(report: ProjectReport) -> str:
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>seqforge report — {esc(report.workspace_name)}</title>\n"
-        f"<style>{css}</style>\n"
+        f"{styles}\n"
         "</head>\n<body>\n"
         f"{header}\n{tab_bar(report)}\n"
         f"<main>{sections}</main>\n"
