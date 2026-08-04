@@ -103,3 +103,25 @@ failure with no tolerable rate, and severity has to be legible as form and not o
 layer moved out, one `sf-tokens.css`. They do **not** share a component layer: one is a lab-notebook
 view of a dataset, the other a CI grading report, and merging their components would couple two pages
 that change for unrelated reasons.
+
+### Sharing the Python shell was considered and declined
+
+Beyond the tokens, the two pages still duplicate `esc`, `_asset` and `_script_guard`, and assert
+"self-contained, no external reference, inside budget" in two tests rather than one. Extracting a
+shared shell module was proposed and **rejected on measurement**: what remains is about eight lines
+across three pure functions, because the half that mattered — the theme tokens, the theme toggle, and
+the `data-theme`-beats-`prefers-color-scheme`-in-both-directions contract — already moved into
+`sf-tokens.css`. That was where drift was dangerous, and it is gone. Eight lines is not worth a new
+coupling point between two pages this file has just finished arguing should stay decoupled.
+
+Two things would change the answer, and neither holds today:
+
+- **A third page.** The self-containment guard is the durable asset here, and stating an invariant once
+  so a new page cannot ship without it beats restating it. With two pages and none planned, that is a
+  hypothetical.
+- **`_script_guard` diverging.** It is what stops embedded JS closing its own `<script>` tag, so it is
+  correctness-critical rather than cosmetic. It is byte-identical in both, with the same argued
+  docstring. If it ever is not, extract *it* — alone — and do not wait for a third page.
+
+`esc` and `_asset` are two lines each and can stay duplicated indefinitely; nothing silently breaks if
+they drift, and PR 1 already removed the one behavioural divergence they had.
