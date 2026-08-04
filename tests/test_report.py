@@ -308,6 +308,74 @@ def test_the_migrated_shell_wears_no_class_the_old_stylesheet_would_still_win_wi
     )
 
 
+#: What the Overview, Flow and Pipeline panes were built out of before the redesign. Each is still a
+#: live rule in `report.css`, which is unlayered and therefore beats every Tailwind utility — so an
+#: element that keeps one of these is not migrated at all, whatever utilities sit beside it. The list
+#: grows as each pane lands; `report.css` itself is #220's and nothing here deletes from it.
+_OLD_NARRATIVE_CLASSES = [
+    "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
+    "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
+    "genstats", "hint", "meter", "meter-line",                              # the Overview
+]  # fmt: skip
+
+
+def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_with(
+    workspace: Path,
+) -> None:
+    """Q9, for the three narrative panes: migrating an element means *deleting* its old class.
+
+    Same argument as the shell's guard above and the same discriminator: every name is asserted to
+    still HAVE a rule in the hand-written sheet, so this cannot pass for the wrong reason on the day
+    that file is deleted. Absence from the markup is what is checked, because a leftover class is not
+    a fallback — it is an override that silently wins, and the redesign beside it does nothing.
+    """
+    worn = _body_classes(render_html(collect_report(workspace)))
+    hand_written = (_ASSETS / "report.css").read_text()
+
+    assert not _classes_with_no_rule(set(_OLD_NARRATIVE_CLASSES), [hand_written]), (
+        "every name here must still be a live rule in report.css, or this test proves nothing"
+    )
+    assert not (worn & set(_OLD_NARRATIVE_CLASSES)), (
+        "a narrative pane still wears the old sheet's classes: "
+        f"{sorted(worn & set(_OLD_NARRATIVE_CLASSES))}"
+    )
+
+
+def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges(
+    own_workspace: Path,
+) -> None:
+    """One badge says the compiler produced a Snakefile; the other says that Snakefile finished.
+
+    They are shown on the same page and they disagree exactly when it matters — here, a workspace
+    that compiled cleanly and whose pipeline then wrote nothing readable. So the page is rendered in
+    that state and both are read off it: the verdict is the header pill's own component, restated on
+    the Overview so the shape a reader learned up top means the same thing twice; the run state is a
+    different component entirely. Asserted as *disjoint class sets* rather than as two names, because
+    the failure this guards is one of them drifting into the other's clothes.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+    for sample in pipeline.samples:
+        (pipeline.results_dir / sample / f"{sample}.qc.json.gz").write_bytes(b"not gzip at all")
+
+    page = render_html(collect_report(own_workspace)).split("</style>")[-1]
+
+    verdicts = re.findall(r'class="(sf-verdict [^"]*)"', page)
+    assert len(verdicts) == 2, "the compile verdict is the header pill and its Overview restatement"
+    assert set(verdicts) == {"sf-verdict sf-v-compiled"}, verdicts
+
+    states = re.findall(r'class="(pipeline-state [^"]*)"', page)
+    assert states == ["pipeline-state lvl-bad"], (
+        "the run state is its own third state, not the pill"
+    )
+    assert not (set(states[0].split()) & set(verdicts[0].split())), (
+        "the two badges share a class, so a reader cannot tell which question is being answered"
+    )
+
+
 def test_the_shell_still_carries_every_hook_the_script_selects_on(workspace: Path) -> None:
     """The class names ``report.js`` selects on are a contract, and renaming one fails silently.
 
@@ -884,7 +952,6 @@ _CLASS_BEARING_SOURCES = (
 #: so the list cannot quietly become the place unstyled classes go to hide.
 _UNSTYLED_HOOKS = {
     "assay": "<section class='assay' data-assay=N> — the pane the assay switcher shows and hides",
-    "genstats-conf": "the confidence <div> inside .genstats, styled by `.genstats > div`",
     "siblings": "the wrapper round the ruled-out drawers; `details.sibling` carries the style",
     "kgrid": "<g class='kgrid'> in a knee plot, whose `<line class='kg'>` children are styled",
 }

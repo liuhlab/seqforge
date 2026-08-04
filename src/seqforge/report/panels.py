@@ -89,13 +89,11 @@ _WHO_PHRASE: dict[str, str] = {
     "user_confirmed": "you specified",
 }
 
-#: A verdict glyph for the restated hero card.
-_VERDICT_GLYPH: dict[str, str] = {
-    "compiled": "✓",
-    "ir_ready": "•",
-    "blocker": "✗",
-    "question": "?",
-}
+#: The sub-heading type role, written once because it is worn by an eyebrow, a section label and every
+#: tile key — the same role in eight places, and eight chances to type one of them differently. A bare
+#: constant rather than a component: Tailwind's extractor reads this file as text and finds these
+#: tokens wherever they sit, and a component named ``sub-h`` would belong to the shell, not here.
+_SUB_H = "text-xs font-bold tracking-[0.07em] text-faint uppercase"
 
 
 # ---- helpers ------------------------------------------------------------------------------------
@@ -167,73 +165,121 @@ def overview_pane(assay: AssayReport) -> str:
     )
     org_html = f"<em>{esc(organism)}</em>" if organism_name else esc(organism)
 
-    # chemistry, spelled human-first with the code as a quiet chip
+    # chemistry, spelled human-first with the code as a quiet chip. The kit's name is the page's
+    # second-biggest fact, so it is given weight and a hairline — never a hue: the colour law reserves
+    # colour for exceptions, and the winning kit is the norm.
     chem_name = chem.assay_labels[0].name if chem.assay_labels and chem.assay_labels[0].name else ""
     chem_id = chem.value[0] if chem.value else ""
     chem_line = ""
     if chem_id:
-        name_html = f'<span class="chem-name">{esc(chem_name)}</span>' if chem_name else ""
+        name_html = (
+            f'<span class="rounded border border-line px-2 py-0.5 text-sm font-bold">'
+            f"{esc(chem_name)}</span>"
+            if chem_name
+            else ""
+        )
         more = (
-            f'<span class="chem-plus">+{len(chem.value) - 1} equivalent</span>'
+            f'<span class="text-xs text-faint">+{len(chem.value) - 1} equivalent</span>'
             if len(chem.value) > 1
             else ""
         )
         chem_line = (
-            f'<div class="chem-line">{name_html}'
-            f'<code class="chem-id">{esc(chem_id)}</code>{more}</div>'
+            '<div class="mt-3 flex flex-wrap items-center gap-2">'
+            f'{name_html}<code class="font-mono text-xs text-dim">{esc(chem_id)}</code>{more}</div>'
         )
 
     eyebrow = " · ".join(x for x in (study_acc, center) if x)
-    c = assay.conclusion
-    verdict_card = (
-        f'<div class="verdict-card {esc(c.kind)}">'
-        f'<span class="vc-icon">{esc(_VERDICT_GLYPH.get(c.kind, "•"))}</span>'
-        f"<div><strong>{esc(c.headline)}</strong><span>{esc(c.detail)}</span></div></div>"
-    )
     hero = (
-        '<div class="hero"><div class="h-main">'
-        + (f'<div class="eyebrow">{esc(eyebrow)}</div>' if eyebrow else "")
-        + f"<h1>{esc(title)}</h1>"
-        + f'<p class="organism">{org_html} · {esc(_assay_kind(assay))}</p>'
+        '<div class="flex flex-wrap items-start gap-6">'
+        '<div class="min-w-0 flex-1 basis-80">'
+        + (f'<div class="mb-2 {_SUB_H}">{esc(eyebrow)}</div>' if eyebrow else "")
+        + f'<h1 class="mt-0 mb-2 text-2xl font-bold tracking-tight">{esc(title)}</h1>'
+        + f'<p class="m-0 text-dim">{org_html} · {esc(_assay_kind(assay))}</p>'
         + chem_line
         + "</div>"
-        + verdict_card
+        + _verdict_card(assay)
         + "</div>"
     )
 
-    # abstract — first-class, shown by default (only when a record actually carried one)
+    # abstract — first-class, shown by default (only when a record actually carried one). Capped at
+    # 70ch because a 1080px-wide paragraph is not a paragraph anyone finishes.
     if study and study.abstract:
         abstract = (
-            '<section class="abstract"><div class="section-label">About this study</div>'
-            f'<p class="abstract-body">{esc(study.abstract)}</p></section>'
+            f'<div class="mt-6 border-t border-line pt-6"><div class="mb-2 {_SUB_H}">'
+            "About this study</div>"
+            '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
+            f"{esc(study.abstract)}</p></div>"
         )
     else:
         abstract = ""
 
-    # general-statistics strip — jargon-free, with a confidence meter
-    conf = chem.confidence
-    if conf is not None:
-        pct = round(max(0.0, min(1.0, conf)) * 100)
-        conf_dd = (
-            f'<dd><span class="meter-line"><span class="meter">'
-            f'<span style="width:{pct}%"></span></span> {conf:.2f}</span></dd>'
-        )
-    else:
-        conf_dd = '<dd class="sm">n/a</dd>'
-    genstats = (
-        '<dl class="genstats">'
-        f"<div><dt>Samples</dt><dd>{assay.n_samples}</dd></div>"
-        f"<div><dt>FASTQ files</dt><dd>{assay.n_files}</dd></div>"
-        f'<div><dt>Kit</dt><dd class="sm">{esc(chem_name or chem_id or "—")}</dd></div>'
-        f'<div><dt>Organism</dt><dd class="sm">{org_html}</dd></div>'
-        '<div class="genstats-conf"><dt>Confidence '
-        '<span class="hint" title="How strongly the files’ own bytes point to this kit '
-        '— 1.00 means certain.">i</span></dt>'
-        f"{conf_dd}</div>"
-        "</dl>"
+    tiles = (
+        '<dl class="mt-6 mb-0 grid grid-cols-2 gap-3 border-t border-line pt-6 '
+        'sm:grid-cols-3 lg:grid-cols-5">'
+        + _tile("Samples", str(assay.n_samples))
+        + _tile("FASTQ files", str(assay.n_files))
+        + _tile("Kit", esc(chem_name or chem_id or "—"), numeric=False)
+        + _tile("Organism", org_html, numeric=False)
+        + _confidence_tile(chem.confidence)
+        + "</dl>"
     )
 
-    return _panel("Overview", hero + abstract + genstats)
+    return _panel("Overview", hero + abstract + tiles)
+
+
+def _verdict_card(assay: AssayReport) -> str:
+    """The compile verdict, restated in the header pill's own badge — and never in the run state's.
+
+    Deliberately the *same* component as the header's (``sf-verdict``/``sf-v-{kind}``): this and the
+    pill answer one question — did the compiler produce a Snakefile — so they are one badge shown
+    twice, and a reader who learns the shape up top reads it again here for free. What must never
+    look like either is the Results tab's pipeline-run state (``.pipeline-state``): a left-ruled,
+    tinted banner answering "did that Snakefile *finish*", which disagrees with this exactly when it
+    matters. Two facts, two forms — the word in the badge, not a glyph, is the non-colour channel.
+    """
+    c = assay.conclusion
+    return (
+        '<div class="w-full shrink-0 rounded-lg border border-line p-4 sm:w-72">'
+        f'<span class="sf-verdict sf-v-{esc(c.kind)}">'
+        '<span class="size-2 rounded-full bg-current"></span>'
+        f"{esc(c.headline)}</span>"
+        f'<p class="mt-3 mb-0 text-sm text-dim">{esc(c.detail)}</p></div>'
+    )
+
+
+def _tile(key: str, value_html: str, *, numeric: bool = True) -> str:
+    """One headline figure. ``value_html`` is pre-escaped — ``Organism`` carries an ``<em>``."""
+    size = "text-2xl tabular-nums" if numeric else "text-lg"
+    return (
+        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">{esc(key)}</dt>'
+        f'<dd class="mt-2 mb-0 ms-0 {size} font-bold tracking-tight">{value_html}</dd></div>'
+    )
+
+
+def _confidence_tile(conf: float | None) -> str:
+    """How strongly the bytes point at the winning kit: a single-ink bar and the number beside it.
+
+    The bar is drawn in the text ink, not in the accent and not in a verdict hue. 0.94 is not a pass
+    and 0.61 is not a failure — the Evidence tab is where that judgement lives — so a green bar here
+    would be the page asserting a verdict it has not made.
+    """
+    if conf is None:
+        value = '<dd class="mt-2 mb-0 ms-0 text-lg font-bold text-faint">n/a</dd>'
+    else:
+        pct = round(max(0.0, min(1.0, conf)) * 100)
+        value = (
+            '<dd class="mt-2 mb-0 ms-0 flex items-center gap-2 text-2xl font-bold '
+            'tracking-tight tabular-nums">'
+            '<span class="inline-block h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-line">'
+            f'<span class="block h-full rounded-full bg-dim" style="width:{pct}%"></span></span>'
+            f"{conf:.2f}</dd>"
+        )
+    return (
+        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">Confidence '
+        '<span class="cursor-help text-faint" title="How strongly the files’ own bytes point to '
+        'this kit — 1.00 means certain.">ⓘ</span></dt>'
+        f"{value}</div>"
+    )
 
 
 # ---- flow ---------------------------------------------------------------------------------------
