@@ -372,6 +372,46 @@ def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_wit
         )
 
 
+def test_a_refused_compile_paints_the_two_places_a_reader_looks_and_nothing_else(
+    workspace: Path,
+) -> None:
+    """The exception path, rendered — which the headless fixture, being a clean compile, never is.
+
+    Everything the Flow tab's redesign decided is on this branch: `guess`, `measured` and `done` are
+    the norm and carry no tint, and only the card that is asking for a human is painted. A page that
+    is never rendered in that state proves the untinted half and nothing else, so the conclusion is
+    swapped on a real collected report and the whole page re-rendered — still `render_html` in, HTML
+    out, and every value below still comes from production rather than from a hand-built view.
+    """
+    report = collect_report(workspace)
+    assay = report.assays[0]
+    refused = assay.model_copy(
+        update={
+            "conclusion": assay.conclusion.model_copy(
+                update={
+                    "kind": "blocker",
+                    "exit_code": 2,
+                    "headline": "Blocked",
+                    "detail": "a persisted refusal: the read layout matched no known kit",
+                }
+            )
+        }
+    )
+    page = render_html(report.model_copy(update={"assays": [refused]}))
+
+    # the verdict is one badge in two places, and on this branch it is the tinted member
+    assert (
+        re.findall(r'class="(sf-verdict [^"]*)"', page.split("</style>")[-1])
+        == ["sf-verdict sf-v-blocker"] * 2
+    )
+
+    kinds = re.findall(r'<li class="flow-([a-z]+)"', _pane(page, "flow"))
+    assert kinds == [s.kind for s in flow_steps(refused)]
+    assert kinds[-1] == "blocked", "a refusal must end the narrative on the card that says so"
+    assert set(kinds[:-1]) <= {"guess", "measured"}, kinds
+    assert kinds.count("blocked") == 1, "exactly one card is painted, and it is the last one"
+
+
 def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges(
     own_workspace: Path,
 ) -> None:
