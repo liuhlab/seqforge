@@ -2009,6 +2009,32 @@ def test_one_unreadable_artifact_costs_its_own_row_and_not_the_whole_pipeline(
         assert any(broken in note for note in stats.notes), (broken, stats.notes)
 
 
+def test_a_caption_a_sample_carries_never_lands_in_the_could_not_be_read_list(
+    tmp_path: Path,
+) -> None:
+    """`notes` is one kind of thing: an artifact nobody could parse. Captions stay on their sample.
+
+    Both used to be folded into `notes`, which left the reader matching note strings back against
+    `SampleStats.note` to tell them apart. That match is invisible coupling across a package seam —
+    reword a caption in an adapter and it silently stops matching, so a caption reappears in the place
+    a reader looks for failures. Landing a readable sample beside a corrupt one is what separates the
+    two: the corrupt one must be named here, and the readable one's caption must not be, however the
+    caption is worded.
+    """
+    results = tmp_path / "results"
+    _landed(results, "S1", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+    _write(results / "S2" / "S2.qc.json.gz", "not gzip at all")
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2"])
+
+    assert stats is not None
+    carried = [s.note for s in stats.samples if s.note]
+    assert carried, "this test is vacuous unless the readable sample actually carries a caption"
+    assert any("S2" in note for note in stats.notes), stats.notes
+    for note in carried:
+        assert note not in stats.notes, (note, stats.notes)
+
+
 def test_a_pipeline_whose_every_artifact_is_corrupt_does_not_read_as_never_run(
     tmp_path: Path,
 ) -> None:

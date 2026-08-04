@@ -1015,6 +1015,34 @@ def test_the_losing_kits_stay_collapsed_and_keep_a_reason_a_human_can_read() -> 
     assert "read 1 is 28 bp; this kit needs 20" in evidence  # the ruled-out family's own words
 
 
+def test_the_evidence_body_is_as_wide_as_its_panel_and_the_measure_stays_on_the_prose() -> None:
+    """A reading measure belongs on prose, stated in ``ch`` — never as a pixel cap on a column of grids.
+
+    This body sat in a 768px column inside a 1112px panel, so ~340px of it was gutter on a page whose
+    every other panel runs the full width: a difference that reads as a rendering bug rather than as
+    anyone's decision. It was also not doing a measure's job. The only paragraph on the tab is the
+    panel's lead sentence, which ``.sf-panel-sub`` already holds to 82ch — narrower than the cap was,
+    and *outside* it; what the cap narrowed was a bordered verdict strip, the role x file grid that
+    starts scrolling the moment it is denied width, and the score bars a reader compares by length.
+
+    Both halves are asserted and neither is enough alone. A ``max-w-*`` back on this body is the
+    defect returning, and a stylesheet that had simply lost its prose measure would let the first
+    half pass while the page had stopped capping a line of text anywhere.
+    """
+    evidence = _pane(_rich_page(), "evidence")
+
+    capped = sorted(c for c in _body_classes(evidence) if c.startswith("max-w-"))
+    assert not capped, f"the evidence body is capped inside its own panel again: {capped}"
+    assert 'class="sf-panel-sub"' in evidence, (
+        "the pane's one paragraph — which is what a measure is for"
+    )
+
+    built = (_ASSETS / "report.tw.css").read_text()
+    assert re.search(r"\.sf-panel-sub\{[^}]*max-width:\s*\d+ch", built), (
+        "the prose measure is gone, so 'the cap moved to where the prose is' describes no page"
+    )
+
+
 def test_the_two_grids_keep_the_pages_standing_guarantees() -> None:
     """Self-contained, no external reference, inside the budget, byte-deterministic — with both grids
     full, which is the shape neither the bulk fixture nor any other test in this file renders."""
@@ -1662,6 +1690,142 @@ def test_the_sample_column_is_the_only_one_that_stays_put(own_workspace: Path) -
     # One header cell plus one row header per sample, and not one metric cell among them.
     assert pane.count("sf-col-sticky") == 1 + 3
     assert not re.findall(r"<td[^>]*sf-col-sticky", pane)
+
+
+def _land_bundles_counted_off(results: Path, features: dict[str, str]) -> PipelineStats:
+    """One bundle per sample, each counted off the feature named for it, read back by the adapter.
+
+    `_land_bundles` writes every sample off `Gene`, which is one note for the whole run — the case a
+    single shared footnote would happen to get right. The case the page has to survive is the other
+    one: samples counted off DIFFERENT features, where one line under the table would silently claim
+    all of them were counted the same way.
+    """
+    import gzip
+
+    from seqforge.workflows.stats import read_pipeline_stats
+
+    for sample, feature in features.items():
+        out = results / sample / f"{sample}.qc.json.gz"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out, "wt", encoding="utf-8") as fh:
+            json.dump({"sample": sample, "summary": {feature: _QC_SUMMARY}}, fh)
+    stats = read_pipeline_stats("map/starsolo", results, sorted(features))
+    assert stats is not None
+    return stats
+
+
+def _counting_block(pane: str) -> str:
+    """The block under the metrics table that says what its numbers were read off, or `""`."""
+    marker = "Where these numbers came from"
+    return pane[pane.index(marker) :].split("</div>")[0] if marker in pane else ""
+
+
+def test_the_pinned_identifier_column_carries_the_identifier_and_nothing_else(
+    own_workspace: Path,
+) -> None:
+    """The sticky column is one identifier wide because one identifier is all it holds.
+
+    A per-sample note used to render inside that `<th>`, and a sentence in a column sized to a sample
+    id wrapped to three lines: the column collapsed to about 115px and every row it touched grew,
+    tinted verdict cell included. A `min-width` floor was tried and reverted on measurement — past
+    7rem the table is forced to scroll sideways and the verdict cell is the first thing cut, which
+    trades a cosmetic problem for a functional one. So the note left the column instead.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles_counted_off(results, {"S1": "Gene", "S2": "GeneFull", "S3": "Gene"})
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
+
+    ids = re.findall(r'<th scope="row" class="sf-col-sticky">(.*?)</th>', pane)
+    assert ids == [sample.sample_id for sample in stats.samples], (
+        "the row header holds the identifier and nothing else — no nested markup, no sentence"
+    )
+    # And the note was not simply deleted, which is how this could pass while being wrong.
+    assert "counted from the Gene feature" in pane
+    assert "counted from the GeneFull feature" in pane
+
+
+def test_two_ways_of_counting_stay_two_claims_naming_the_samples_that_carry_each(
+    own_workspace: Path,
+) -> None:
+    """Attribution survives the move: one line per distinct note, and each names who it holds for.
+
+    A single footnote for the table is the obvious way to get the sentence out of the sticky column,
+    and it is the one thing that may not happen — two samples can be counted off different features,
+    and one line would claim all of them were counted the same way. Grouping says exactly as much as
+    the data supports and no more.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles_counted_off(results, {"S1": "Gene", "S2": "GeneFull", "S3": "Gene"})
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
+    lines = re.findall(r"<li[^>]*>(.*?)</li>", _counting_block(pane))
+
+    assert len(lines) == 2, lines
+    (gene,) = [line for line in lines if "counted from the Gene feature" in line]
+    (full,) = [line for line in lines if "counted from the GeneFull feature" in line]
+    assert "S1, S3" in gene and "S2" not in gene
+    assert "S2" in full and "S1" not in full and "S3" not in full
+    # Said ONCE on the tab, in the one place that can say who it holds for: the run-state block above
+    # the table used to print the same sentences with no samples attached to them.
+    assert pane.count("counted from the GeneFull feature") == 1
+    # A footnote, not a caption: the legend is read before the numbers because it says how a tint
+    # grades, and this is read after one of them surprises you.
+    assert pane.index("<table") < pane.index("Where these numbers came from")
+
+
+def test_a_note_a_whole_plate_shares_is_one_line_and_a_lone_sample_is_still_named(
+    own_workspace: Path,
+) -> None:
+    """Where the data does support "counted the same way", the page says so in words.
+
+    Ninety-six ids under a table that already lists ninety-six ids is the wall this block exists to
+    avoid, and printing them would make it grow with the plate instead of with the number of ways the
+    run was counted — every id appears at most once across the whole block, which is what keeps it off
+    the page's size budget. The other direction is asserted on the same rule: a run with one sample
+    names it, because "all 1 samples" is a sentence about a plate written for a single well.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    plate = {f"{row}{col:02d}": "Gene" for row in "ABCDEFGH" for col in range(1, 13)}
+    stats = _land_bundles_counted_off(results, plate)
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
+    block = _counting_block(pane)
+
+    assert len(plate) == 96
+    (line,) = re.findall(r"<li[^>]*>(.*?)</li>", block)
+    assert "counted from the Gene feature" in line and f"all {len(plate)} samples" in line
+    assert not [well for well in plate if well in block], "the block reads the plate back at itself"
+    assert '<th scope="row" class="sf-col-sticky">A01</th>' in pane, "the ids are in the table"
+
+    _finish_a_starsolo_pipeline(own_workspace)
+    lone = _counting_block(_pane(render_html(collect_report(own_workspace)), "results"))
+    assert "counted from the Gene feature" in lone and "all 1 samples" not in lone
+
+
+def test_on_a_partial_run_all_ranges_over_the_rows_shown_and_says_so(
+    own_workspace: Path,
+) -> None:
+    """ "all N samples" counts the rows under it, not the plate the config contracted.
+
+    A caption can only speak for an artifact somebody read, so N is the parsed samples — which on a
+    partial run is narrower than the banner directly above ("2 of 5 samples finished"). Two numbers a
+    reader has to reconcile is one too many, so the word *shown* does the reconciling. The complete
+    case must NOT carry it: there is nothing to disambiguate when every contracted sample landed, and
+    a qualifier that never comes off is noise.
+    """
+    from seqforge.workflows.stats import read_pipeline_stats
+
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    _land_bundles_counted_off(results, {"S1": "Gene", "S2": "Gene"})
+    partial = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3", "S4", "S5"])
+    assert partial is not None and (partial.n_found, partial.n_expected) == (2, 5)
+
+    block = _counting_block(_pane(_render_with_stats(own_workspace, partial), "results"))
+    assert "all 2 samples shown" in block, block
+    assert "all 5 samples" not in block, "N is the rows read, never the plate contracted"
+
+    whole = read_pipeline_stats("map/starsolo", results, ["S1", "S2"])
+    assert whole is not None and whole.complete
+    done = _counting_block(_pane(_render_with_stats(own_workspace, whole), "results"))
+    assert "all 2 samples" in done and "shown" not in done
 
 
 def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Path) -> None:
@@ -2474,6 +2638,60 @@ def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_r
     assert len(html.encode()) < 500_000
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert html == render_html(collect_report(own_workspace))
+
+
+def test_a_plate_sized_alert_stays_inside_the_budget_with_its_sample_cap_lifted(
+    own_workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """What holds the test above inside 500 KB is `_ALERT_MAX_SAMPLES`, not the budget it asserts.
+
+    The alert list truncates well short of a plate, so the block above weighs the same at 96 firing
+    samples as at a handful, and that budget stops being sensitive to what one alert row costs: a
+    mutation fattening each *rendered* row by ~6 KB — 96 of which would be half a megabyte of list —
+    went green through it, because only a handful of rows were ever rendered. The cap is right and
+    stays. What is wrong is that the page's headroom then rests on a constant nobody re-measures, and
+    raising it is a one-line change whose suite is green either way.
+
+    So the number asserted here is the **untruncated** one: what the page weighs with every sample
+    that fired spelled out, which is exactly what someone raising the cap is implicitly claiming is
+    affordable. Measured when this landed (2026-08-04) a 96-well page is ~269 KB truncated and
+    ~283 KB untruncated, against the same 500 KB budget — so this fires once an alert row costs about
+    2.4 KB, against the ~160 bytes one costs today. The ~6 KB row that escaped is comfortably red.
+
+    **The cap is lifted, never asserted.** A test spelling its value would restate the constant and
+    catch nothing; the property is a relationship between a row's cost and the page's budget, and it
+    is held from both ends — the shipped page must genuinely truncate here (or the two renders are
+    the same page and this measures nothing), and the lifted one must still fit.
+    """
+    from seqforge.report import panels
+
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
+    _land_multi_feature_bundles(
+        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+
+    # One collection, two renders: the cap is a rendering decision, so the alert this measures is
+    # byte-identical on both sides and the only thing that moves is how much of it reaches the page.
+    report = collect_report(own_workspace)
+    truncated = _alert_block(render_html(report))
+    assert truncated, "the plate must raise an alert, or there is no list here to truncate"
+    assert sum(well in truncated for well in plate) < len(plate), (
+        "the cap must bind on a plate, or the render below is the same page measured twice"
+    )
+
+    monkeypatch.setattr(panels, "_ALERT_MAX_SAMPLES", len(plate))
+    html = render_html(report)
+
+    assert all(well in _alert_block(html) for well in plate), (
+        "every firing sample must reach the block once the cap is lifted, or something else is "
+        "bounding this list and the size below is not the untruncated one"
+    )
+    assert len(html.encode()) < 500_000, (
+        "a plate with every firing sample spelled out breaks the 500 KB budget — an alert row has "
+        "grown to where _ALERT_MAX_SAMPLES, not the budget, is what keeps the page inside it"
+    )
 
 
 # -- the gene model and the strand: attribution across two artifacts ---------------------------------

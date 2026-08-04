@@ -325,6 +325,10 @@ class PipelineStats(_Frozen):
     #: ``(key, label)`` in display order — the General-Statistics column set for this module. A union
     #: across samples, so a sample missing one metric leaves a gap rather than dropping the column.
     columns: list[tuple[str, str]] = Field(default_factory=list)
+    #: Only what could not be **read** — one line per sample whose artifact was there and unparseable.
+    #: A sample that parsed keeps its own caption on :attr:`SampleStats.note`, and deliberately does
+    #: not appear here: folding both kinds into one ``list[str]`` made a reader match strings back
+    #: against the samples to tell them apart, which a reworded caption would silently break.
     notes: list[str] = Field(default_factory=list)
     #: What the module's cross-checks said about the samples above — **here and not on**
     #: :class:`SampleStats`. That carries what the artifact SAID; a finding is a judgement about a
