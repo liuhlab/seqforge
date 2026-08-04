@@ -60,16 +60,32 @@ from seqforge.workflows.h5ad import (
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 from seqforge.workflows.metrics import (
     MAX_KNEE_POINTS,
+    SEVERITY_PHRASE,
+    Decision,
+    DecisionRef,
+    Finding,
     Metric,
     SampleStats,
+    Severity,
     fmt_int,
+    fraction,
+    gather_alerts,
     knee_points,
 )
-from seqforge.workflows.qc import QcError, build_qc_bundle, read_star_log, write_qc_bundle
+from seqforge.workflows.qc import (
+    NEAR_ZERO_VALID_BARCODES,
+    QcError,
+    build_qc_bundle,
+    chemistry_rule,
+    read_star_log,
+    write_qc_bundle,
+)
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
 from seqforge.workflows.stats import (
+    MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
+    modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
 )
@@ -1617,6 +1633,102 @@ def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
         stats_registry._check_registry()
 
 
+def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_not() -> None:
+    """The stats guard again, one level in — and a module is silent only by saying so.
+
+    A module that neither declares rules nor declares it has none is absent from every diagnosis, and
+    a page that names no decision is indistinguishable from a page whose run was fine. Both halves are
+    asserted BY NAME rather than by size, for the reason the stats guard gives: a list that shrinks
+    must shrink because a rule landed, not because a name was quietly dropped from the guard.
+
+    `map/chromap` and `map/star` are the shipped silence, and it is an argument rather than a backlog:
+    a fragments summary has no whitelist-match rate to reason about, and bulk has no barcode at all.
+    A module with no defensible rule declaring that it has none is a supported answer.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    stats_registry._check_registry()
+    assert set(modules_with_cross_checks()) | MODULES_WITHOUT_CROSS_CHECKS == set(
+        modules_with_stats()
+    )
+    assert not (set(modules_with_cross_checks()) & MODULES_WITHOUT_CROSS_CHECKS)
+    assert set(modules_with_cross_checks()) == {"map/starsolo"}
+    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star"}
+
+
+def _stub_reader(path: Path, sample: str) -> SampleStats:
+    """A reader the guard tests can hang a synthetic spec off. Never called; only registered."""
+    return SampleStats(sample_id=sample)
+
+
+def test_the_cross_check_guard_can_actually_catch_drift_in_both_directions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A guard nobody has seen fail is a guard that may not be looking — for the second guard too.
+
+    Both directions are live, and they are the two ways a maintainer gets this wrong: registering a
+    reader and forgetting the rules (the fourth aligner), and adding a rule to a module that is still
+    listed as having none (the day chromap earns one). `_SPECS` and the silence list are rebound
+    rather than mutated, so the real registries are never touched.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    silent_spec = stats_registry.StatsSpec(artifact="x", read=_stub_reader)
+    monkeypatch.setattr(
+        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": silent_spec}, raising=True
+    )
+    monkeypatch.setattr(
+        stats_registry,
+        "MODULES_WITHOUT_CROSS_CHECKS",
+        MODULES_WITHOUT_CROSS_CHECKS - {"map/star"},
+        raising=True,
+    )
+    with pytest.raises(AssertionError, match="map/star.*declare no cross-checks"):
+        stats_registry._check_registry()
+
+    monkeypatch.undo()
+    checked = stats_registry.StatsSpec(artifact="x", read=_stub_reader, checks=(chemistry_rule,))
+    monkeypatch.setattr(
+        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": checked}, raising=True
+    )
+    with pytest.raises(AssertionError, match="both declare cross-checks"):
+        stats_registry._check_registry()
+
+
+def test_the_modules_findings_land_on_the_pipeline_and_never_on_the_sample(tmp_path: Path) -> None:
+    """The registry runs the rules, and R4 decides where the answers go.
+
+    `SampleStats` is what the artifact SAID; a finding is a judgement about a decision, so they are
+    two envelopes and the finding rides on the pipeline. That is also what makes scope answerable at
+    all: "did this fire on every sample" is a fact about the run, not about any one sample.
+
+    Driven through `read_pipeline_stats` over real bytes rather than by calling the rule, because the
+    wiring is the claim: a rule that is written and never registered fires in its own unit test and
+    on nothing else.
+    """
+    results = tmp_path / "results"
+    broken = {**_HEALTHY_SUMMARY, "Reads With Valid Barcodes": 0.000762759}
+    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": broken}})
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [f.sample_id for f in stats.findings] == ["s1"]
+    assert stats.findings[0].alert_id == "starsolo.valid-barcodes-near-zero"
+    assert not any(hasattr(s, "findings") for s in stats.samples), (
+        "a finding is a judgement, and SampleStats carries what the artifact said"
+    )
+    # And the module that measures no barcode at all reports the same metrics it always did, with
+    # nothing to say about them -- silence declared, not silence by omission.
+    log = tmp_path / "bulk" / "s1" / "Log.final.out"
+    log.parent.mkdir(parents=True)
+    log.write_text("".join(f"    {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
+    bulk = read_pipeline_stats("map/star", tmp_path / "bulk", ["s1"])
+    assert bulk is not None
+    assert bulk.samples[0].metrics and bulk.findings == []
+
+
 # -- the writer/reader round trip -------------------------------------------
 
 
@@ -2075,3 +2187,162 @@ def test_which_feature_the_headline_metrics_come_from_never_depends_on_dict_orde
 
     assert forward.note == backward.note
     assert forward.metrics == backward.metrics
+
+
+# ================================================================================================
+# cross-checks — which decision does a bad number implicate?
+# ================================================================================================
+#
+# The compiler holds both halves — what it decided, and what came back — and joins them here. A rule
+# is a pure function over ONE sample's metrics, so every test below drives it with literal values and
+# asserts the alert or asserts silence. No filesystem, no composed pipeline, no rendered page.
+#
+# The bar every one of these has to clear: **a rule that fires on a healthy run is worse than a rule
+# that does not exist.** So each has a value that must fire, a value that must not, and the boundary.
+
+
+def _fire(rule: Callable[[SampleStats], list[Finding]], **metrics: float) -> list[Finding]:
+    """Drive one rule with literal metric values, through the builders production uses.
+
+    Through `fraction()` rather than by constructing `Metric` directly, because a rule reads
+    `metric.value` and the builders are what decide what lands there — a test that hand-builds the
+    metric can agree with a rule that reads the wrong scale.
+    """
+    built = [fraction(key, key, value, group="barcode") for key, value in metrics.items()]
+    return rule(SampleStats(sample_id="S1", metrics=[m for m in built if m is not None]))
+
+
+def test_the_chemistry_rule_fires_on_the_real_run_that_had_the_wrong_read_as_the_barcode() -> None:
+    """0.076% valid barcodes, verbatim from the run in #215 — and the whole reason this layer exists.
+
+    What the rule must produce is not "bad": the metric already says bad, and a reader who does not
+    know STARsolo reads that as a bad library. It must name the two DECISIONS that produce this
+    number — which kit was called, and which file was handed over as the barcode read — because those
+    are the only two things a reader can act on, and the compiler made both.
+    """
+    findings = _fire(chemistry_rule, **{"valid_barcodes": 0.000762759})
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.valid-barcodes-near-zero"
+    assert found.severity == "likely"
+    assert set(found.implicates) == {"chemistry", "read_roles"}
+    assert "0.1%" in found.measured  # the value it fired on, in the reader's units
+    assert found.sample_id == "S1"
+
+
+def test_the_chemistry_rule_stays_silent_on_a_healthy_run() -> None:
+    """An alert that fires on a good run is noise, and noise is how every alert stops being read."""
+    assert _fire(chemistry_rule, **{"valid_barcodes": 0.972113}) == []
+
+
+def test_the_chemistry_rules_boundary_is_the_one_threshold_it_declares() -> None:
+    """Below 1% no real library exists; at or above it the number is bad but the cause is not decided.
+
+    A merely poor barcode rate — a degraded barcode read, a contaminated library, a related-but-wrong
+    kit — is already tinted `bad` by the metric's own threshold, and the rule deliberately does not
+    claim it: between 1% and the metric's 50% bar there is more than one explanation, so naming one
+    decision would be a guess wearing a diagnosis.
+    """
+    assert _fire(chemistry_rule, **{"valid_barcodes": NEAR_ZERO_VALID_BARCODES}) == []
+    assert len(_fire(chemistry_rule, **{"valid_barcodes": NEAR_ZERO_VALID_BARCODES - 1e-9})) == 1
+    # Well inside "bad" by the metric's own grading, and still not this rule's claim to make.
+    assert _fire(chemistry_rule, **{"valid_barcodes": 0.31}) == []
+
+
+def test_a_module_that_never_measured_a_barcode_is_not_a_module_with_zero_barcodes() -> None:
+    """An absent metric is absent, never a zero — the same rule the metric table already lives by.
+
+    Bulk STAR has no barcode at all, and reading "no valid-barcode rate" as "a valid-barcode rate of
+    zero" would fire the loudest alert this system has on every bulk run ever compiled.
+    """
+    assert _fire(chemistry_rule, **{"uniquely_mapped": 0.91}) == []
+    assert chemistry_rule(SampleStats(sample_id="S1")) == []
+
+
+# -- from findings to alerts ------------------------------------------------
+
+
+def _found(sample: str, alert_id: str = "a", **kw: object) -> Finding:
+    return Finding(
+        alert_id=alert_id,
+        sample_id=sample,
+        title=kw.pop("title", "something looks wrong"),  # type: ignore[arg-type]
+        severity=kw.pop("severity", "likely"),  # type: ignore[arg-type]
+        measured=f"{sample} measured something",
+        implicates=kw.pop("implicates", ["chemistry"]),  # type: ignore[arg-type]
+        remedy="change something",
+    )
+
+
+def _resolves(decision: Decision) -> DecisionRef | None:
+    return DecisionRef(decision=decision, label=decision, value="whatever it is set to")
+
+
+def test_an_alert_firing_on_every_sample_is_a_different_claim_from_one_firing_on_a_well() -> None:
+    """Systematic points at a decision; isolated points at a sample. The shape must say which.
+
+    The distinction is the difference between "recompose this dataset" and "look at well B7", and a
+    reader cannot draw it from a list of sample ids: on a 96-well plate, 96 ids and 94 ids look the
+    same. So it is computed against what LANDED, and carried.
+    """
+    every = gather_alerts(
+        [_found("S1"), _found("S2"), _found("S3")], n_samples=3, resolve=_resolves
+    )
+    some = gather_alerts([_found("S1")], n_samples=3, resolve=_resolves)
+
+    assert [a.scope for a in every] == ["systematic"]
+    assert [a.scope for a in some] == ["isolated"]
+    assert every[0].samples == ["S1", "S2", "S3"] and every[0].n_samples == 3
+    assert some[0].samples == ["S1"] and some[0].n_samples == 3
+    # And what each sample measured survives the grouping, in sample order — an alert that collapsed
+    # three samples to one number would have thrown away the evidence for its own claim.
+    assert every[0].measured == [
+        "S1 measured something",
+        "S2 measured something",
+        "S3 measured something",
+    ]
+
+
+def test_an_alert_names_the_decision_with_the_value_the_recipe_currently_carries() -> None:
+    """ "Your chemistry call looks wrong" is only actionable once it says what the call currently IS.
+
+    The rule cannot know that — it is pure over metrics — so attribution is injected. A decision the
+    workspace cannot answer for (a manifest that was never composed) is dropped rather than rendered
+    as an empty row, because a field name with no value beside it reads as a value of nothing.
+    """
+    alerts = gather_alerts([_found("S1")], n_samples=1, resolve=_resolves)
+    assert [d.decision for d in alerts[0].implicates] == ["chemistry"]
+    assert alerts[0].implicates[0].value == "whatever it is set to"
+
+    unresolvable = gather_alerts([_found("S1")], n_samples=1, resolve=lambda _d: None)
+    assert unresolvable[0].implicates == []
+
+
+def test_alerts_come_back_in_one_total_order_however_the_findings_arrived() -> None:
+    """The page is byte-deterministic, so two renders of one workspace must order alerts identically.
+
+    Severity first — a reader triages the loudest — then the stable id, which is total because two
+    findings sharing an id are one alert by construction.
+    """
+    findings = [
+        _found("S2", "z-check", severity="possible"),
+        _found("S1", "a-check"),
+        _found("S1", "z-check", severity="possible"),
+    ]
+    forward = gather_alerts(findings, n_samples=2, resolve=_resolves)
+    backward = gather_alerts(list(reversed(findings)), n_samples=2, resolve=_resolves)
+
+    assert [a.id for a in forward] == ["a-check", "z-check"]
+    assert forward == backward
+
+
+def test_every_severity_an_alert_can_carry_says_what_it_means_in_words() -> None:
+    """A closed set, guarded from its own `Literal` — a third severity must break this, never render.
+
+    The same exhaustiveness shape `Basis`, `Level` and `MetricGroup` already use: derived with
+    `get_args` rather than hand-listed, so adding a member and forgetting its phrase goes red here
+    instead of shipping a badge whose word is a raw token.
+    """
+    assert set(get_args(Severity)) == set(SEVERITY_PHRASE)
+    assert all(SEVERITY_PHRASE[s] for s in get_args(Severity))
