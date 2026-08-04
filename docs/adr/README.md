@@ -29,10 +29,10 @@ Numbers only; the table below carries the links.
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
 | `src/seqforge/kb/` | 0011, 0012, 0020, 0022 |
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012 |
-| `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014 |
+| `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021 |
-| `src/seqforge/workflows/` | 0015, 0022 |
+| `src/seqforge/workflows/` | 0015, 0022, 0023 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
 | every Python file in the tree — what type-checks it, and what your editor shows | 0017 |
@@ -63,3 +63,4 @@ Numbers only; the table below carries the links.
 | [0020](0020-a-family-term-narrows-it-does-not-conflict.md) | A family term narrows; it does not conflict | One one-directional matcher answers what a chemistry string NAMES; a value naming no node asserts nothing, and an ancestor of the observed leaf is agreement | `kb/match.py`, `resolve/escalate.py`, `resolve/confuse.py`, `harvest/verify.py` |
 | [0021](0021-one-deposit-is-one-source-at-every-layer.md) | One deposit is one source, at every layer | The slot a submitter typed outranks a model's reading of that same deposit, and a span byte-equal to a typed column is not prose to read | `resolve/records.py`, `harvest/normalize.py`, `harvest/verify.py`, `harvest/plan.py` |
 | [0022](0022-three-owners-for-an-aligner-param.md) | An aligner param has three owners, not two | The KB says how to parse, the recipe what to count, and the module carries every flag whose value varies with nothing — as a literal | `workflows/map/`, `kb/specs/`, `compose/params.py` |
+| [0023](0023-star-memory-escalates-on-retry.md) | STAR's memory escalates on retry, and a job that still does not fit fails loudly | `mem_gb` is the FIRST attempt's request, every cap STAR is handed derives from the escalated one, and exhausting the retries is a legible refusal rather than a bigger default for everyone | `workflows/memory.py`, `workflows/map/starsolo.smk`, `models/processing.py` |

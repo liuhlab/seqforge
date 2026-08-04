@@ -14,8 +14,11 @@ import csv
 # seqforge's own helpers, imported rather than restated. `h5ad_suffixes` decides both what the
 # packaging rule DECLARES below and what `seqforge io h5ad` WRITES, so the two cannot drift; a rule
 # that declared its outputs separately from the code producing them would be two sources of truth for
-# one fact, which is the bug this repo keeps finding. The import is the same assumption
-# `rule genome_index` already makes of `genome`: the env running snakemake is the env that has them.
+# one fact, which is the bug this repo keeps finding. `memory` is the same move applied to the
+# arithmetic that sizes this module's one expensive rule: a Snakefile is not importable, so a
+# constant and a closure living here could never be unit-tested, only run. Both imports make the same
+# assumption `rule genome_index` already makes of `genome`: the env running snakemake is the env that
+# has them.
 from seqforge.workflows.h5ad import (
     STAR_BAM,
     STAR_LOG_FILES,
@@ -24,6 +27,7 @@ from seqforge.workflows.h5ad import (
     solo_raw_files,
     solo_stats_files,
 )
+from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 
 
 def _load_units(path):
@@ -131,57 +135,6 @@ def adapter_sequence():
     return f"--soloAdapterSequence {value}" if value is not None else ""
 
 
-#: Floor for STAR's BAM sort budget, in MiB. A job whose whole memory request is smaller than this is
-#: not going to align anything anyway, so the floor costs nothing real and keeps the arithmetic below
-#: from handing STAR a value smaller than a trivial sort needs.
-_MIN_BAM_SORT_RAM_MB = 1024
-
-#: What share of the job's memory the coordinate sort may claim: THREE QUARTERS, leaving a quarter for
-#: the genome index, the aligner's own working set and the OS. Deliberately the same 3/4 the
-#: `samtools sort` this replaced was given, because it is the same job against the same budget.
-#:
-#: Measured before it was chosen, on GSE208154/SAMN29720279 L001 in the pinned image, because the
-#: shape of this number is not obvious: `--limitBAMsortRAM` is a CAP, not an allocation. STAR reports
-#: "Max memory needed for sorting" and then refuses if that exceeds the cap; it allocates the need,
-#: never the cap. So a generous cap costs a small run nothing, and a tight one only converts runs that
-#: would have fit into FATALs.
-#:
-#: | records | max memory STAR needed |
-#: | --- | --- |
-#: | 1,999,909 | 394 MB |
-#: | 9,844,534 | 1,590 MB |
-#:
-#: Linear, at **~160 bytes per alignment record**, and NOT reducible by binning: `--outBAMsortingBinsN`
-#: 200 gave the identical figure and 1000 gave a slightly larger one, so the obvious remedy for
-#: STAR's "not enough memory for BAM sorting" does not work here. A tight cap FATALs outright rather
-#: than spilling — verified by passing 200 MB against a run needing 394 MB.
-_BAM_SORT_RAM_NUMERATOR, _BAM_SORT_RAM_DENOMINATOR = 3, 4
-
-
-def bam_sort_ram():
-    """``--limitBAMsortRAM``, in BYTES, derived from the job's own memory budget.
-
-    Not optional, and not a tuning knob: STAR's default of ``0`` means *"reuse the genome
-    allocation"*, so the sort budget silently becomes a function of how big the genome happens to be.
-    On a large genome that over-commits; on a small one (the yeast index `kb e2e` runs against) it is
-    too small and STAR FATALs. Neither failure has anything to do with how much memory the job was
-    actually given, which is the number that should decide this -- so we pass it.
-
-    **Sizing the job is the caller's business, and it is not free.** At ~160 B/record (measured
-    above), a 215M-read sample lands near 32 GB of sort RAM -- more than `mem_gb`'s default of 32
-    leaves after the genome. That is a real cost of putting CB/UB in the CRAM, since STAR emits them
-    only in the sorted BAM, and it is the recipe's `resources.mem_gb` that answers it. The failure is
-    at least legible: STAR names the number it needed and exits, rather than producing a short BAM.
-
-    STAR takes bytes; `config["mem_mb"]` is MiB, and that unit crossing is the whole reason this is a
-    named function rather than an expression in the shell block.
-    """
-    share = config["mem_mb"] * _BAM_SORT_RAM_NUMERATOR // _BAM_SORT_RAM_DENOMINATOR
-    # The floor may not exceed the budget itself: on a job smaller than the floor, claiming more than
-    # the whole request would trade STAR's legible refusal for the scheduler's OOM kill.
-    return min(config["mem_mb"], max(_MIN_BAM_SORT_RAM_MB, share)) * 1024 * 1024
-
-
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
 # file-by-file, and that is the point. `starsolo_count` used to declare
 # `directory(f"{OUTDIR}/{{sample}}/Solo.out")`, under which STAR writing three of five features and
@@ -282,6 +235,16 @@ rule starsolo_count:
     be output in the sorted BAM"), so the sort is the price of the barcode. It is also a refund: the
     finalize rule no longer re-sorts, and the resulting CRAM measured 12% SMALLER than the
     barcode-less one it replaces.
+
+    **The memory request ESCALATES with the attempt, and STAR's sort cap escalates with it** (#205).
+    STARsolo holds allocations `--limitBAMsortRAM` does not bound -- chiefly `readInfo`, at 16 bytes
+    times every input read -- so a large sample used to be OOM-killed by the scheduler rather than
+    refused by STAR, dying with a signal and no number. `retries:` plus a `mem_mb` that is a function
+    of `attempt` gives such a sample two more tries at 2x and 3x, while attempt 1 stays byte-identical
+    to what a normal sample was always given. A sample that exhausts the retries FAILS, loudly and
+    deliberately: at that point the answer is a recipe with a bigger `resources.mem_gb`, chosen by
+    someone who looked at the sample, not a third blind doubling. The arithmetic and the measurements
+    behind it live in `workflows/memory.py`.
     """
     input:
         cdna=lambda wc: fastqs(wc.sample, config["read_files_in"]["cdna"]),
@@ -307,17 +270,33 @@ rule starsolo_count:
     # and it is the user's call -- they submit, we do not.
     container: config["container"]
     threads: config["threads"]
-    # Declared so the scheduler gates on it AND so the coordinate sort gets a real budget instead of
-    # inheriting the genome's (see `bam_sort_ram`). It moved here from `solo_to_cram`, which is where
-    # the sort used to happen; the memory is now spent in the rule that does the sorting.
+    # `retries:` and `resources:` are ONE mechanism, which is why they are read together. Declaring
+    # `mem_mb` gates the scheduler AND gives the coordinate sort a real budget instead of the
+    # genome's (see `bam_sort_ram`); it moved here from `solo_to_cram`, which is where the sort used
+    # to happen, so the memory is spent in the rule that does the sorting. What is new (#205) is that
+    # the request is a function of snakemake's 1-based `attempt`: attempt 1 is `config["mem_mb"]`
+    # exactly, so nothing changes for a sample that fits, and a sample killed for overrunning it gets
+    # 2x and then 3x rather than failing identically twice. `config["mem_mb"]` still appears here as
+    # a literal subscript on purpose -- `workflows/__init__.py::keys_read_by` SCANS this source to
+    # compute `required_config`, and a key the scanner cannot see is a key the composer is not
+    # obliged to emit, i.e. a KeyError on a compute node long after compose exited 0.
+    retries: STARSOLO_RETRIES
     resources:
-        mem_mb=config["mem_mb"],
+        mem_mb=lambda wildcards, attempt: escalated_mem_mb(config["mem_mb"], attempt),
     params:
         solo=SOLO,
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
         adapter=adapter_sequence(),
-        sort_ram=bam_sort_ram(),
+        # THE SORT CAP FOLLOWS THE ESCALATED REQUEST, and that is the whole fix. `resources` is
+        # passed to a param callable by snakemake's `Rule.expand_params`, which evaluates such
+        # callables lazily for exactly this case, after `Rule.expand_resources` has resolved
+        # `mem_mb` for this attempt. Before #205 this was `bam_sort_ram()` reading `config["mem_mb"]`
+        # -- a parse-time constant, which could not have followed anything even had a retry existed
+        # to follow. A cap pinned to attempt 1 would be worse than no retry at all: attempt 2 would
+        # buy scheduler memory that STAR was still forbidden to sort in, and fail for the reason
+        # attempt 1 had already recorded.
+        sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
         # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
@@ -329,17 +308,46 @@ rule starsolo_count:
         # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
         # for a chemistry that does not declare it -- an empty token is a valid line continuation.
         #
-        # THE FIVE HARDCODED FLAGS BELOW ARE LITERALS ON PURPOSE (#198). They are the documented
-        # "CellRanger >=4 equivalent" set (Kaminow, Yunusov & Dobin 2021); without them we emit
-        # STARsolo-DEFAULT counts, which are not comparable to published CellRanger matrices -- a real
-        # problem for a corpus whose point is comparability. None of them varies by chemistry, so none
-        # of them belongs to the KB, and a literal is the only rendering that says so: the params gate
-        # requires the emitted key set to be EXACTLY union(KB keys, processing keys) and
-        # `required_config` is COMPUTED from this source, so a `params.solo[clipAdapterType]` subscript
-        # would silently oblige all 11 starsolo specs to declare a value that is the same in all 11.
-        # `--outSAMtype` has always been hardcoded here for the same reason. Verified against the
-        # STAR 2.7.11b binary that every one is accepted for CB_UMI_Simple AND CB_UMI_Complex -- this
-        # is the class of change that passes a 10x-only suite and breaks the four Complex specs.
+        # EXACTLY FIVE OF THE LITERALS BELOW ARE THE CELLRANGER-PARITY SET (#198) -- `--clipAdapterType
+        # CellRanger4`, `--outFilterScoreMin 30`, `--soloUMIfiltering MultiGeneUMI_CR`,
+        # `--soloUMIdedup 1MM_CR` and `--soloCellFilter EmptyDrops_CR`, and no others. They are the
+        # documented "CellRanger >=4 equivalent" set (Kaminow, Yunusov & Dobin 2021); without them we
+        # emit STARsolo-DEFAULT counts, which are not comparable to published CellRanger matrices -- a
+        # real problem for a corpus whose point is comparability. The SAM/BAM write-path literals at
+        # the bottom of the block (`--outSAMtype`, `--limitBAMsortRAM`, `--outSAMattributes`,
+        # `--outSAMmultNmax`) are hardcoded for the same OWNERSHIP reason and are NOT part of that
+        # set: they shape the alignment we retain, not the counts, and naming them as CellRanger
+        # parity would be a claim nobody measured.
+        #
+        # The shared reason is ADR-0022's: none of these varies by chemistry, so none belongs to the
+        # KB, and a literal is the only rendering that says so -- the params gate requires the emitted
+        # key set to be EXACTLY union(KB keys, processing keys), and `required_config` is COMPUTED
+        # from this source, so a `params.solo[clipAdapterType]` subscript would silently oblige all 11
+        # starsolo specs to declare a value that is the same in all 11. `--outSAMtype` has always been
+        # hardcoded here for the same reason. Verified against the STAR 2.7.11b binary that every one
+        # is accepted for CB_UMI_Simple AND CB_UMI_Complex -- this is the class of change that passes
+        # a 10x-only suite and breaks the four Complex specs.
+        #
+        # `--outSAMmultNmax 1` is the newest of the write-path literals (#205), and it earns its own
+        # paragraph because it is the only one that changes WHICH RECORDS come out rather than what
+        # each record carries or where it goes. STAR emits every alignment of a multi-mapping
+        # read and coordinate-sorts them all; `seqforge io cram` then discards the secondaries with
+        # `-F 0x100`. On the measured sample that was 198.8M records sorted against 162.9M retained --
+        # ~18% of the sort spent producing bytes the very next rule deletes, paid in both the sort
+        # budget above and in wall-clock. `nTrOutWrite = min(P.outSAMmultNmax, nTrOutSAM)` writes only
+        # the top-scoring alignment, and that is exactly the record the CRAM filter keeps: STAR
+        # documents that with `outSAMmultNmax != -1` the top-scoring alignment is output first, and
+        # the default `--outSAMprimaryFlag OneBestScore` makes that same alignment the primary. The
+        # counts are untouched -- verified against the STAR source that the flag appears ONLY in the
+        # SAM/BAM write path and the alignment-ordering code, and in NO Solo counting file -- and the
+        # name is real, verified against the pinned 2.7.11b binary (a bogus parameter name FATALs with
+        # "unrecognized parameter name"; this one does not). So: free memory, free wall-clock, CRAM
+        # byte-identical. Per ADR-0022 its value varies with NOTHING -- not the chemistry, not the
+        # user's intent, there is one correct value for every dataset seqforge will ever compile --
+        # which is precisely what makes it the module's to hardcode rather than the KB's or the
+        # recipe's. `-F 0x100` STAYS in `cram.py`, and do not "clean it up": it is now a cheap
+        # invariant rather than a load-bearing filter, and an invariant is not deleted for the crime
+        # of having stopped firing.
         #
         # `--soloMultiMappers` is deliberately ABSENT (it stays `Unique`): 87% of the multi-gene signal
         # on the measured library was the tandem rDNA array, EM splits identical copies evenly and
@@ -367,6 +375,7 @@ rule starsolo_count:
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
              --limitBAMsortRAM {params.sort_ram} \
+             --outSAMmultNmax 1 \
              --outSAMattributes NH HI AS nM CB UB
         """
 

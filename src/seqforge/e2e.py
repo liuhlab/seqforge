@@ -765,10 +765,11 @@ def run_composed(
       ships is measuring the wrong thing. The *sort* is load-bearing rather than tidy — STAR writes
       `CB`/`UB` into no output but the coordinate-sorted BAM, so it is what lets the retained CRAM
       carry a barcode at all — and it costs more wall-clock and more RAM than `Unsorted`. That is why
-      the module also passes `--limitBAMsortRAM` from `config["mem_mb"]`: STAR's default of `0` means
-      "reuse the genome allocation", and on a genome as small as this gate's yeast index there is not
-      enough of it to sort in, so STAR FATALs instead of spilling. On a 12 Mb fixture the extra
-      wall-clock is still noise.
+      the module also passes `--limitBAMsortRAM`, derived from the job's escalated `mem_mb` resource
+      rather than from `config["mem_mb"]` directly: STAR's default of `0` means "reuse the genome
+      allocation", and on a genome as small as this gate's yeast index there is not enough of it to
+      sort in, so STAR FATALs instead of spilling. On a 12 Mb fixture the extra wall-clock is still
+      noise.
     - **The `genome_index` rule now executes**, resolving the index through liulab-genome exactly as a
       real run does (`get_star_index`, a pure lookup), instead of the test handing STAR a path it
       found itself. seqforge never builds the index, so it must be prebuilt for this assembly +

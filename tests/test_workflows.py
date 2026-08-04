@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 from collections.abc import Callable
+from itertools import pairwise
 from pathlib import Path
 from typing import get_args
 
@@ -28,7 +29,7 @@ import anndata as ad
 import pytest
 from scipy.sparse import csr_matrix
 
-from conftest import SrcTrees, _build, _processing, _src_root
+from conftest import SrcTrees, _build, _processing, _rule_blocks, _src_root
 from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.processing import RuntimeEnv, SoloFeature
@@ -53,6 +54,7 @@ from seqforge.workflows.h5ad import (
     solo_stats_files,
     write_h5ad,
 )
+from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 from seqforge.workflows.qc import QcError, build_qc_bundle, write_qc_bundle
 
 # ================================================================================================
@@ -1103,3 +1105,193 @@ def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
 
     assert MODULES["map/starsolo"].aligner == "starsolo"
     assert MODULES["map/star"].aligner == "star"
+
+
+# ================================================================================================
+# memory — what `starsolo_count` asks the scheduler for, and how much of it STAR may sort in
+# ================================================================================================
+#
+# Two numbers that only mean anything together (`workflows/memory.py`), and one rule that has to keep
+# them together across a retry. The arithmetic is unit-tested here because it finally can be: it used
+# to be a constant and a closure INSIDE `starsolo.smk`, and a Snakefile is not importable, so the
+# expression deciding whether a two-billion-read sample lived or died was only ever exercised by
+# running STAR against a two-billion-read sample.
+#
+# What is NOT covered, anywhere, is that the escalation happens on a real retry: a dry run renders
+# attempt 1 and only attempt 1, and this suite owns no scheduler and no sample large enough to fail
+# one. So the split below is deliberate — the arithmetic as functions, and the WIRING as source shape.
+
+
+#: The `config["mem_mb"]` the composer emits for a default recipe: ``ResourceHints.mem_gb`` (48) x
+#: 1024. Written as the product so the connection to the recipe field stays readable, and used as the
+#: base here rather than a round toy number because this arithmetic is scale-sensitive — a floor and a
+#: cap-on-the-floor both live inside it, and neither is exercised the way a real job exercises it by a
+#: base of 100.
+_DEFAULT_MEM_MB = 48 * 1024
+
+
+def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
+    """The composed value `bam_sort_ram(escalated_mem_mb(base, attempt))` — the pair, not each half.
+
+    This is the arithmetic behind the defect #205 removed, and the defect is a *product* of the two
+    functions rather than a fault in either: a rule that escalates its memory request while handing
+    STAR a cap computed from the static `config["mem_mb"]` looks like it retried, spends the queue
+    time of a retry, and then refuses in exactly the place attempt 1 refused, because the sort was
+    never allowed to grow with the job around it. So what is asserted is the composition, evaluated
+    across the attempts the rule can actually reach, and it must be STRICTLY increasing — a claim
+    neither function makes on its own and neither can be inspected for.
+
+    **Attempt 1 returning the request unchanged is an acceptance criterion, not an implementation
+    detail.** Nearly every sample in a ~10^4-dataset corpus fits in the default request; making all of
+    them more expensive to schedule in order to rescue the handful that do not is the outcome #205
+    rejected, and `escalated_mem_mb(m, 1) == m` is the whole of what "a first attempt sized as today
+    still succeeds on a normal sample" means in code.
+
+    **The numbers are absolute because a test comparing these outputs only to each other would not
+    catch the unit bug.** Monotonicity survives deleting the `* 1024 * 1024`; so does "attempt 2 is
+    twice attempt 1"; so does any relation between two returns of the same function. STAR takes
+    **bytes** and `mem_mb` is MiB, so a cap handed over in MiB is ~10^6 times too small, and STAR
+    then FATALs on *every* sample instead of on a large one — the same flag, a different bug, and a
+    green suite. Only an absolute value crosses that boundary, so absolute values are what is written.
+
+    The retry count is pinned rather than parameterised away, and that is the point of importing it:
+    `STARSOLO_RETRIES` and the linear multiplier are ONE fact (`workflows/memory.py` says so), so the
+    worst case anybody reasoning about the queue actually needs is their product. Raising the count
+    without restating what the last attempt is now given should go red here.
+    """
+    # Attempt 1 is today's request, byte for byte, at the shipped default and at any other size.
+    assert escalated_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
+    assert escalated_mem_mb(4096, 1) == 4096
+
+    # snakemake's `attempt` is 1-based, so N retries means N+1 attempts.
+    budgets = [
+        bam_sort_ram(escalated_mem_mb(_DEFAULT_MEM_MB, attempt))
+        for attempt in range(1, STARSOLO_RETRIES + 2)
+    ]
+    assert all(later > earlier for earlier, later in pairwise(budgets)), (
+        f"the sort cap does not rise with the attempt, so a retry buys scheduler memory STAR is "
+        f"still forbidden to sort in: {budgets}"
+    )
+
+    # Two retries, so three attempts, and 3/4 of 48 / 96 / 144 GiB IN BYTES. Read as GiB: 36, 72,
+    # 108. Had the MiB->byte conversion been dropped, the first of these would read 36864.
+    assert STARSOLO_RETRIES == 2, "the shipped retry count moved; restate the last attempt's budget"
+    assert budgets == [38_654_705_664, 77_309_411_328, 115_964_116_992]
+
+    # A job whose whole request is under the 1024 MiB floor gets the WHOLE REQUEST, not the floor.
+    # The floor may not exceed the budget itself: authorising STAR to sort in more memory than the
+    # job was granted trades STAR's legible refusal ("this is how many bytes I needed") for the
+    # scheduler's OOM kill, which is the one failure mode #205 exists to remove.
+    assert bam_sort_ram(512) == 536_870_912  # 512 MiB, the whole request, not 1024
+    # ...and just above the floor the floor still binds: 3/4 of 1200 MiB is 900, under it.
+    assert bam_sort_ram(1200) == 1_073_741_824  # 1024 MiB, the floor
+
+
+def test_the_star_rule_escalates_its_memory_on_retry() -> None:
+    """The WIRING, read off the shipped `.smk`: a structural check standing in for a behavioural one.
+
+    Nothing in this repository can run the behavioural version. A `snakemake -n` renders attempt 1 and
+    only attempt 1, and the suite owns no scheduler, no cluster and no sample large enough to fail
+    one — so "the second attempt really is granted 2x, and STAR really is handed 2x the cap" is not a
+    fact any gate here establishes. What is establishable is that the rule is *shaped* so it can
+    happen, which is what this reads: a `retries:` directive, a `mem_mb` that is a function of
+    `attempt` rather than a constant the retry re-submits unchanged, and a sort cap that is a function
+    of what this attempt was granted.
+
+    **The last of those is the load-bearing one, and it is invisible to every other gate.** Before
+    #205 the cap read `config["mem_mb"]` and was therefore a parse-time constant. Nothing else in the
+    suite can tell the two apart: the params gate only ever inspects the emitted config; `keys_read_by`
+    is content either way, because the rule legitimately subscripts `config["mem_mb"]` one directive
+    higher up; and the compose dry run cannot help, since on attempt 1 the escalated value and the
+    config value are EQUAL — the argv is byte-identical under both the fix and the bug. A cap pinned
+    to attempt 1 is worse than no retry at all: attempt 2 buys scheduler memory STAR is still
+    forbidden to sort in, spends a second multi-hour queue slot, and fails for the reason attempt 1
+    already recorded.
+
+    `retries:` naming the imported constant rather than a literal `2` is asserted for the reason
+    `workflows/memory.py` gives for the constant existing: the retry count and the linear multiplier
+    are one fact, and split across two files the count gets raised by someone who never reads the
+    multiplier.
+    """
+    body = _rule_blocks(get_module("map/starsolo").snakefile)["starsolo_count"]
+
+    retries = re.search(r"^\s+retries:\s*(\S+)\s*$", body, re.M)
+    assert retries, (
+        "`starsolo_count` declares no `retries:`, so a killed job is never re-run at all"
+    )
+    assert retries.group(1) == "STARSOLO_RETRIES", (
+        "the retry count is a literal in the Snakefile, so it can now disagree with the escalation "
+        "rule it is half of; declare it as `workflows/memory.STARSOLO_RETRIES`"
+    )
+    assert STARSOLO_RETRIES >= 1, "a retry count of 0 makes the escalation unreachable"
+
+    request = re.search(r"^\s+mem_mb=(.*)$", body, re.M)
+    assert request, "`starsolo_count` requests no `mem_mb`, so the scheduler gates nothing"
+    assert request.group(1).startswith("lambda") and "attempt" in request.group(1), (
+        f"`mem_mb` is not a function of `attempt`, so every retry re-submits the request that was "
+        f"already killed: {request.group(1)}"
+    )
+
+    cap = re.search(r"^\s+sort_ram=(.*)$", body, re.M)
+    assert cap, "`starsolo_count` computes no sort budget; STAR's default 0 reuses the genome's"
+    assert "resources.mem_mb" in cap.group(1), (
+        f"the sort cap does not read this attempt's granted memory: {cap.group(1)}"
+    )
+    assert "config[" not in cap.group(1), (
+        f"the sort cap is derived from the config, which is attempt 1's number forever — the retry "
+        f"then raises the ceiling and leaves the floor: {cap.group(1)}"
+    )
+    # ...and the param that follows the attempt is the one STAR is actually handed. A `sort_ram`
+    # computed correctly and never passed would satisfy every assertion above.
+    assert "--limitBAMsortRAM {params.sort_ram}" in body
+
+
+#: A memory budget handed to STAR: `--limitBAMsortRAM <x>`, `--limitGenomeGenerateRAM <x>`, ... STAR
+#: ships eight `--limit*` knobs and the RAM-denominated ones are the class this rule is about.
+_LIMIT_RAM_FLAG = re.compile(r"--limit\w*RAM\s+(\S+)")
+
+
+def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
+    """The same claim as the test above, generalised: no module may cap an aligner from the CONFIG.
+
+    `test_the_star_rule_escalates_its_memory_on_retry` names one rule in one module, which is the
+    right shape for the regression that actually happened and the wrong shape for the next one. In a
+    rule that declares `retries`, `config["mem_mb"]` is the *first attempt's* number and nothing else;
+    the live figure is `resources.mem_mb`. That is a property of every RAM budget any module hands an
+    aligner, not a fact about `starsolo_count` — and whoever adds the second one will be reading the
+    neighbouring `--limit*` line, not this file.
+
+    So the sweep is over every registered module and finds the flags by shape, exactly as
+    `test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe` sweeps for STAR
+    itself. A module carrying no such flag passes vacuously and should; what may not pass silently is
+    the sweep finding NO flag anywhere, so the anchor at the end is the assertion that keeps this
+    from being green about nothing — today `starsolo.smk` is the only module that hands one over.
+
+    Comments are stripped before scanning, the same lesson `keys_read_by` learned the hard way: the
+    shell block's own prose names `--limitBAMsortRAM` while explaining which literals are the
+    module's to own, and a scanner that reads prose as code cries wolf and then gets deleted.
+    """
+    seen: list[str] = []
+    for name in list_modules():
+        for rule, raw in _rule_blocks(get_module(name).snakefile).items():
+            body = "\n".join(line.split("#")[0] for line in raw.splitlines())
+            for argument in _LIMIT_RAM_FLAG.findall(body):
+                seen.append(f"{name}:{rule}")
+                param = re.fullmatch(r"\{params\.(\w+)\}", argument)
+                assert param, (
+                    f"{name}:{rule} passes a RAM budget of {argument!r}. It has to come from a "
+                    f"`params:` callable over `resources`, which is the only expression evaluated "
+                    f"per ATTEMPT; anything else is fixed when the Snakefile is parsed"
+                )
+                binding = re.search(rf"^\s+{param.group(1)}=(.*)$", body, re.M)
+                assert binding, f"{name}:{rule} passes {argument} but binds no such param"
+                assert "resources." in binding.group(1) and "config[" not in binding.group(1), (
+                    f"{name}:{rule} caps the aligner from the config rather than from the memory "
+                    f"THIS attempt was granted, so a retry raises the request and leaves the cap "
+                    f"where the first attempt died: {binding.group(1)}"
+                )
+    assert seen, (
+        "no shipped module hands an aligner a `--limit*RAM` budget, so this sweep is looking at the "
+        "wrong place — `starsolo_count` must pass one (STAR's default of 0 means 'reuse the genome "
+        "allocation', which is too small on a small genome and FATALs)"
+    )
