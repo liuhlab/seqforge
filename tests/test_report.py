@@ -352,6 +352,54 @@ def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_wit
         )
 
 
+def test_the_three_roles_every_pane_needed_are_drawn_by_one_component_each(
+    workspace: Path,
+) -> None:
+    """A section label, "there is nothing here", and "this section is absent, and why".
+
+    Every pane needs all three and none of them owns any of them, so each was invented once per pane:
+    the label as two Python constants — the second silently shadowing the first, since both were named
+    ``_SUB_H`` at module scope — plus one spelled-out ``<h4>``; the notice as ``.notice`` plus two
+    hand-typed boxes; the gap as ``.empty`` plus one. Three roles, eight spellings, and the only thing
+    keeping them looking alike was that three agents happened to pick similar utilities.
+
+    So the assertion is *one class per role, on every pane that plays it*, made against a page
+    rendered in the states that produce them — an assay with no samples, no scored comparison, no
+    artifacts and no pipeline results, which is the branch a clean fixture never reaches. The
+    negative half is what makes it a guard rather than a description: none of the old spellings may
+    come back, and no element may hand-spell the label's letter-spacing again.
+    """
+    report = collect_report(workspace)
+    assay = report.assays[0]
+    bare = assay.model_copy(
+        update={
+            "samples": [],
+            "matrices": [],
+            "ruled_out": [],
+            "artifacts": [],
+            "pipeline_stats": None,
+        }
+    )
+    page = render_html(report.model_copy(update={"assays": [bare]}))
+
+    for tab in ("samples", "pipeline"):
+        assert "sf-empty" in _body_classes(_pane(page, tab)), (
+            f"{tab} says nothing is here its own way"
+        )
+    for tab in ("evidence", "results"):
+        assert "sf-notice" in _body_classes(_pane(page, tab)), (
+            f"{tab} explains an absence its own way"
+        )
+    assert "sf-sub-h" in _body_classes(_pane(page, "overview"))
+
+    worn = _body_classes(page)
+    assert not (worn & {"notice", "empty"}), "an old spelling of a role that now has a component"
+    assert "tracking-[0.07em]" not in worn, (
+        "the section label is being hand-spelled again — it is `sf-sub-h`, and the point of a "
+        "component is that the eighth site cannot drift from the first seven"
+    )
+
+
 def test_a_refused_compile_paints_the_two_places_a_reader_looks_and_nothing_else(
     workspace: Path,
 ) -> None:

@@ -147,6 +147,36 @@
     max-width: 82ch;
   }
 
+  /* ---- three roles every pane needed and none of them owned -------------------------------------
+   * A section label, a sentence where a section would be, and a sentence where a value would be.
+   * Each was invented three times over — the label as two different Python constants and one
+   * spelled-out `<h4>`, the notice as `.notice` plus two hand-typed boxes, the gap as `.empty` plus
+   * one — which is three chances for the same role to read differently on three tabs. Component by
+   * the second rule (a repeated composition, and these are the most repeated on the page), and in
+   * the shell's prefix because no pane can own something all six of them say.
+   *
+   * `margin: 0` on all three is stated rather than inherited from a reset: the caller supplies the
+   * spacing that belongs to where it sits, and a role that carried its own would fight it. */
+  .sf-sub-h {
+    @apply m-0 text-xs font-bold uppercase;
+    letter-spacing: 0.07em;
+    color: var(--sf-faint);
+  }
+  /* Says why a section is not here — an older cache, a recipe that was never written, a pipeline
+   * that has not run. A hairline box and the quiet ink, never a tint: none of these is a fault, and
+   * colour on this page means "this is wrong". */
+  .sf-notice {
+    @apply m-0 rounded-lg border p-4 text-sm;
+    border-color: var(--sf-line);
+    color: var(--sf-dim);
+  }
+  /* Says a value is not here. Italic and quiet, with no box at all — it sits *inside* a section that
+   * already has one. */
+  .sf-empty {
+    @apply m-0 py-2 text-sm italic;
+    color: var(--sf-dim);
+  }
+
   /* ---- tables -----------------------------------------------------------------------------------
    * Wide content scrolls HERE, in its own region, so the page body never scrolls sideways. The cell
    * padding is stated once, on the region, rather than per table: `px-3 py-2` is the value on every

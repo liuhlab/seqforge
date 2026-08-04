@@ -102,13 +102,6 @@ _WHO_PHRASE: dict[str, str] = {
     "user_confirmed": "you specified",
 }
 
-#: The sub-heading type role, written once because it is worn by an eyebrow, a section label and every
-#: tile key — the same role in eight places, and eight chances to type one of them differently. A bare
-#: constant rather than a component: Tailwind's extractor reads this file as text and finds these
-#: tokens wherever they sit, and a component named ``sub-h`` would belong to the shell, not here.
-_SUB_H = "text-xs font-bold tracking-[0.07em] text-faint uppercase"
-
-
 # ---- helpers ------------------------------------------------------------------------------------
 
 
@@ -140,17 +133,21 @@ def _human_size(n: int) -> str:
     return f"{n} B"
 
 
-def _panel(title: str, body: str, *, sub: str = "", cls: str = "") -> str:
+def _panel(title: str, body: str, *, sub: str = "") -> str:
     """The one box every tab composes into: a title, an optional lead sentence, and a body.
 
     A ``<section>`` and not a ``<div>``, because six panes of unlabelled ``div``s is what a screen
     reader currently gets and the heading is right there to name each one. The panel carries the
     page's only shadow (``.sf-panel``); everything nested inside it is flat and separated by a
     hairline, since a second shadow inside a box that already has one reads as a bug.
+
+    Every panel is the same box. There used to be a ``cls`` hook for a caller that wanted a narrower
+    one, and its last user went with the Evidence tab's redesign: a panel narrower than the panel
+    above it is the loudest way a page reads as two products, and the reading cap belongs on the
+    column *inside* the box.
     """
     sub_html = f'<p class="sf-panel-sub">{esc(sub)}</p>' if sub else ""
-    klass = f"sf-panel {cls}".strip()
-    return f'<section class="{klass}"><h2 class="sf-panel-h">{esc(title)}</h2>{sub_html}{body}</section>'
+    return f'<section class="sf-panel"><h2 class="sf-panel-h">{esc(title)}</h2>{sub_html}{body}</section>'
 
 
 # ---- overview -----------------------------------------------------------------------------------
@@ -205,7 +202,7 @@ def overview_pane(assay: AssayReport) -> str:
     hero = (
         '<div class="flex flex-wrap items-start gap-6">'
         '<div class="min-w-0 flex-1 basis-80">'
-        + (f'<div class="mb-2 {_SUB_H}">{esc(eyebrow)}</div>' if eyebrow else "")
+        + (f'<div class="sf-sub-h mb-2">{esc(eyebrow)}</div>' if eyebrow else "")
         + f'<h1 class="mt-0 mb-2 text-2xl font-bold tracking-tight">{esc(title)}</h1>'
         + f'<p class="m-0 text-dim">{org_html} · {esc(_assay_kind(assay))}</p>'
         + chem_line
@@ -218,7 +215,7 @@ def overview_pane(assay: AssayReport) -> str:
     # 70ch because a 1080px-wide paragraph is not a paragraph anyone finishes.
     if study and study.abstract:
         abstract = (
-            f'<div class="mt-6 border-t border-line pt-6"><div class="mb-2 {_SUB_H}">'
+            '<div class="mt-6 border-t border-line pt-6"><div class="sf-sub-h mb-2">'
             "About this study</div>"
             '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
             f"{esc(study.abstract)}</p></div>"
@@ -264,7 +261,7 @@ def _tile(key: str, value_html: str, *, numeric: bool = True) -> str:
     """One headline figure. ``value_html`` is pre-escaped — ``Organism`` carries an ``<em>``."""
     size = "text-2xl tabular-nums" if numeric else "text-lg"
     return (
-        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">{esc(key)}</dt>'
+        f'<div class="rounded-lg border border-line p-3"><dt class="sf-sub-h">{esc(key)}</dt>'
         f'<dd class="mt-2 mb-0 ms-0 {size} font-bold tracking-tight">{value_html}</dd></div>'
     )
 
@@ -288,7 +285,7 @@ def _confidence_tile(conf: float | None) -> str:
             f"{conf:.2f}</dd>"
         )
     return (
-        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">Confidence '
+        '<div class="rounded-lg border border-line p-3"><dt class="sf-sub-h">Confidence '
         '<span class="cursor-help text-faint" title="How strongly the files’ own bytes point to '
         'this kit — 1.00 means certain.">ⓘ</span></dt>'
         f"{value}</div>"
@@ -363,7 +360,7 @@ def _basis_legend() -> str:
 
 def samples_pane(assay: AssayReport, index: int) -> str:
     if not assay.samples:
-        return _panel("Samples", '<p class="empty">no samples resolved for this assay.</p>')
+        return _panel("Samples", '<p class="sf-empty">no samples resolved for this assay.</p>')
 
     columns = assay.attribute_columns
     read_map = {r.read_id: _read_structure(r) for r in assay.reads}
@@ -531,15 +528,9 @@ def _read_structure(read: ReadView) -> str:
 def _sample_detail(sample: SampleView, read_map: dict[str, str], file_read: dict[str, str]) -> str:
     # Just the files + their read structure. The per-attribute quotes used to be repeated here, but the
     # click popover already carries each value's source and quote, so a second copy was pure redundancy.
-    # `.sub-h` type is spelled out rather than left to the UA: Preflight is not imported yet, so a
-    # bare <h4> is bold-and-small today and would become inherit-weight the day it is — and a heading
-    # that changes size when a reset lands was never really styled.
-    head = (
-        '<h4 class="mt-0 mb-2 text-xs font-bold tracking-[0.07em] text-faint uppercase">'
-        "FASTQ files &amp; read structure</h4>"
-    )
+    head = '<h4 class="sf-sub-h mb-2">FASTQ files &amp; read structure</h4>'
     if not sample.file_names:
-        return f'<div class="border-l-2 border-line py-1 pl-4">{head}<p class="empty">none listed</p></div>'
+        return f'<div class="border-l-2 border-line py-1 pl-4">{head}<p class="sf-empty">none listed</p></div>'
     items = ""
     for name in sample.file_names:
         role_id = file_read.get(name)
@@ -560,12 +551,6 @@ def _sample_detail(sample: SampleView, read_map: dict[str, str], file_read: dict
 
 
 # ---- evidence -----------------------------------------------------------------------------------
-
-
-#: A sub-section heading inside a panel. Never a second ``.sf-panel-h``: one panel, one h2, and the
-#: sections under it are a quieter register. Spelled out rather than left to the UA — see the note in
-#: :func:`_sample_detail` — so the day Preflight lands nothing on this page moves.
-_SUB_H = "mt-0 mb-3 text-xs font-bold tracking-[0.07em] text-faint uppercase"
 
 
 def evidence_pane(assay: AssayReport) -> str:
@@ -597,14 +582,14 @@ def evidence_pane(assay: AssayReport) -> str:
         focus = ""
         if winner_card or siblings:
             focus = (
-                f'<section class="mb-6"><h3 class="{_SUB_H}">The winning kit — and its close '
+                '<section class="mb-6"><h3 class="sf-sub-h mb-3">The winning kit — and its close '
                 f"variants</h3>{winner_card}{siblings}</section>"
             )
         body = verdict_strip + focus + _ruled_out(assay)
     else:
         body = (
             verdict_strip
-            + '<p class="notice">The scored side-by-side comparison was <b>not persisted</b> for '
+            + '<p class="sf-notice">The scored side-by-side comparison was <b>not persisted</b> for '
             "this workspace (an older cache, or a resumed run). The winning kit above still holds — "
             "it is recorded in the manifest.</p>"
         )
@@ -745,7 +730,7 @@ def _ruled_out(assay: AssayReport) -> str:
     )
     return (
         '<section class="mt-6 border-t border-line pt-5">'
-        f'<h3 class="{_SUB_H}">Other kits considered — ruled out by the reads</h3>'
+        '<h3 class="sf-sub-h mb-3">Other kits considered — ruled out by the reads</h3>'
         f'<ul class="m-0 list-none p-0 text-sm">{items}</ul>'
         '<p class="mt-3 mb-0 text-xs text-faint italic">Scoring every kit that could plausibly fit '
         "and rejecting the wrong ones is the check doing its job — not noise.</p></section>"
@@ -760,7 +745,7 @@ def pipeline_pane(assay: AssayReport) -> str:
     if plan is None:
         return _panel(
             "Pipeline",
-            '<p class="m-0 rounded-lg border border-line p-4 text-sm text-dim">No processing recipe '
+            '<p class="sf-notice">No processing recipe '
             "has been composed for this assay yet — it resolved to a validated manifest but was not "
             "planned.</p>",
         )
@@ -873,8 +858,7 @@ def _artifacts_panel(assay: AssayReport) -> str:
     if not assay.artifacts:
         return _panel(
             "Files",
-            '<p class="m-0 py-2 text-sm text-dim italic">no text artifacts found on disk for this '
-            "assay.</p>",
+            '<p class="sf-empty">no text artifacts found on disk for this assay.</p>',
         )
     blocks = "".join(_artifact_block(a) for a in assay.artifacts)
     return _panel(
@@ -1008,7 +992,7 @@ def results_pane(assay: AssayReport) -> str:
     if stats is None:
         return _panel(
             "Results",
-            '<p class="my-0 rounded-lg border border-line px-4 py-3 text-sm text-dim">This assay\'s '
+            '<p class="sf-notice">This assay\'s '
             "pipeline has <b>not been run yet</b> — no per-sample QC artifact has been written for "
             "it. Submit the composed Snakefile from the Pipeline tab; this section fills itself in "
             "from what that pipeline writes, and nothing here is computed by "
