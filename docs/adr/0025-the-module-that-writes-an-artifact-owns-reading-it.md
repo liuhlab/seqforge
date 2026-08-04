@@ -151,5 +151,15 @@ names that log** and then reports off it anyway, so a future edit that re-derive
   *about* is a property of its artifact rather than of this seam — chromap's summary carries no
   whitelist-match rate and STAR's log knows nothing about cells — and the column set differing per
   module is what `PipelineStats` was shaped to carry.
+- **The sibling list ships non-empty, and it is the same argument.** `MODULES_WITHOUT_CROSS_CHECKS` —
+  the registry's other half, added with the **Alert** rules
+  ([0026](0026-alerts-are-advisory-and-non-mutating.md)) — holds `map/chromap` and `map/star`, and is
+  not waiting to empty: chromap's summary carries no whitelist-match rate and no gene assignment, and
+  bulk STAR has no barcode and no cell, so neither has a cross-check rule anyone could defend. That
+  is not a disagreement with the bullet above. What is decided here is that a module *declares*
+  rather than falls through; whether it declares "not yet" — which empties as adapters land — or
+  "nothing defensible", which does not, is a fact about the tool and not about the seam.
+  `test_every_registered_workflow_module_either_cross_checks_or_says_it_does_not`
+  (`tests/test_workflows.py`) is the same guard, one level in.
 - Nothing here is enforced about the *thresholds*. That a bar is defensible is a review obligation and
   a corpus question; what is mechanised is only that an undefensible one is declared as such.
