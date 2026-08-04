@@ -5,23 +5,25 @@ Snakefile has run, what is on disk gains a per-sample QC artifact, and this modu
 gets at it — for **any** **Workflow module**, without the report ever learning what STARsolo is.
 
 The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to turn it into the shared
-:class:`~seqforge.workflows.metrics.SampleStats`. Two modules are wired::
+:class:`~seqforge.workflows.metrics.SampleStats`. Every shipped module is wired::
 
     map/starsolo   <sample>.qc.json.gz             gzipped JSON, written by `rule qc_bundle`
     map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
+    map/star       Log.final.out                   plain text, written by STAR itself
 
-Two artifacts, two vocabularies, and no shared column set — the ATAC summary has no whitelist-match
-rate and no per-barcode vector, so an scATAC page speaks about fragments and never about cells. That
-divergence is the seam earning its keep: it is expressed as two adapters rather than as a widening
-union of optional fields on one.
+Three artifacts, three vocabularies, and no shared column set — the ATAC summary has no
+whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
+about cells, and a bulk page speaks about mapping and never about barcodes. That divergence is the
+seam earning its keep: it is expressed as three adapters rather than as a widening union of optional
+fields on one.
 
-**The spec carries a filename, not a suffix**, and that is a decision rather than an accident. A
-``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and the next
-adapter is not one: ``map/star`` has no QC bundle rule at all, but STAR always writes
-``Log.final.out`` into the sample directory and nothing in ``star.smk`` declares or deletes it, so
-the bulk pipeline can report with no new rule, no ``WORKFLOW_VERSION`` bump, and therefore no
-``run_id`` invalidation and no reprocessing. A suffix convention would have made that impossible to
-express and the artifact would have been re-derived instead.
+**The spec carries a filename, not a suffix**, and the third row above is what that bought. A
+``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and ``map/star``
+has no QC bundle rule at all: STAR writes ``Log.final.out`` into the sample directory unasked, it
+carries no sample name, and nothing in ``star.smk`` declares or deletes it. So bulk reports with no
+new rule, no ``WORKFLOW_VERSION`` bump, and therefore no ``run_id`` invalidation and no reprocessing
+of anything already compiled. Under a suffix convention that artifact would have been inexpressible
+and re-derived by a rule instead, at the cost of recompiling every dataset.
 
 A fourth aligner adds one dict entry and one ``(Path, str) -> SampleStats`` function. It does not
 touch ``report/``, and it cannot be forgotten: :data:`MODULES_WITHOUT_STATS` is an explicit list, and
@@ -39,9 +41,11 @@ from pathlib import Path
 from . import MODULES
 from .fragments import QC_SUFFIX as _FRAGMENTS_QC_SUFFIX
 from .fragments import read_metrics as _read_fragments
+from .h5ad import STAR_FINAL_LOG
 from .metrics import PipelineStats, SampleStats
 from .qc import QC_SUFFIX as _STARSOLO_QC_SUFFIX
 from .qc import read_metrics as _read_starsolo
+from .qc import read_star_log as _read_star_log
 
 
 @dataclass(frozen=True)
@@ -66,23 +70,27 @@ class StatsSpec:
 #: ``qc_bundle`` in ``starsolo.smk`` and ``fragments_qc`` in ``chromap.smk`` both restate their output
 #: suffix — and closing that means editing a shipped module, which would bump ``WORKFLOW_VERSION`` and
 #: invalidate every ``run_id`` for a rename that changes no behaviour. Both constants are exported for
-#: the next edit to those files to adopt (#212).
+#: the next edit to those files to adopt (#212). ``map/star`` has no such second owner and never will:
+#: no rule names :data:`~seqforge.workflows.h5ad.STAR_FINAL_LOG`, because STAR writes it whether or not
+#: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
 _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(artifact=f"{{sample}}{_STARSOLO_QC_SUFFIX}", read=_read_starsolo),
     "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
+    "map/star": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
 }
 
-#: Registered modules that deliberately report nothing **yet**. This is the half of the drift guard
-#: that lets a module say "not yet" out loud instead of being silently absent from :data:`_SPECS` and
-#: silently missing from every report. Each entry names the ticket that lands its adapter, so a name
-#: here is a debt with an address rather than an open question:
+#: Registered modules that deliberately report nothing **yet** — the half of the drift guard that lets
+#: a module say "not yet" out loud instead of being silently absent from :data:`_SPECS` and silently
+#: missing from every report.
 #:
-#:   ``map/star``  bulk — reports from STAR's own ``Log.final.out``, no bundle in between (#211)
-#:
-#: It shrinks as adapters land and is expected to reach empty, which is not a reason to delete it: an
-#: empty list is what the guard compares a newly registered module against, and the cost of keeping it
-#: is one frozenset against a fourth aligner that reports nothing with nothing saying so.
-MODULES_WITHOUT_STATS: frozenset[str] = frozenset({"map/star"})
+#: **It is empty, and that is the shipped state rather than a stub.** Every registered module reports;
+#: the list did its job while the rollout was partial (``map/chromap`` and then ``map/star`` each sat
+#: here naming the ticket that landed its adapter) and emptying is what success looks like. Deleting it
+#: now would delete the mechanism along with its backlog: an empty frozenset is precisely what
+#: :func:`_check_registry` compares a newly registered module against, so a fourth aligner that reports
+#: nothing goes red on the day it is registered instead of shipping a page that is silently blank. The
+#: standing cost of keeping it is one set difference.
+MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 
 #: What the reader will survive from one sample's artifact: bad **bytes**. Caught per sample, so one
 #: corrupt file costs its own row and not the whole pipeline.
@@ -109,9 +117,9 @@ def read_pipeline_stats(
     rather than by parsing a snakemake log. That also makes a **partial** pipeline a first-class
     answer: the samples that landed are reported, and ``n_found``/``n_expected`` says how much did.
 
-    ``None`` means "render no results section": a module with no adapter, a pipeline that has not
-    started, or a results directory that is not there. The distinction does not reach the page,
-    because for a reader all three are the same fact — there is nothing on disk to read yet.
+    ``None`` means "render no results section": a module this build has no adapter for, a pipeline
+    that has not started, or a results directory that is not there. The distinction does not reach the
+    page, because for a reader all three are the same fact — there is nothing on disk to read yet.
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():

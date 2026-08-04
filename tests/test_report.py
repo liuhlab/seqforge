@@ -387,6 +387,11 @@ def test_a_workspace_that_was_only_compiled_renders_the_page_it_always_did(works
     The reader is not offered a door into an empty room, and the tab's *presence* becomes the signal
     that something here has results. A compiled-but-not-run workspace must render exactly the page it
     rendered before this section existed.
+
+    This fixture is bulk, and `map/star` **does** report — so the `None` below is the absence of a
+    results directory and not the absence of an adapter. That distinction is the whole reason to say
+    it here: while the rollout was partial this test could have passed on an unregistered module and
+    proved nothing about an empty room.
     """
     assay = collect_report(workspace).assays[0]
 

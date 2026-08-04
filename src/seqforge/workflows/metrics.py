@@ -7,11 +7,12 @@ looks right. The verdict is domain knowledge — "valid barcodes below 0.5 means
 the barcode read role is wrong" is a fact about STARsolo, not a rendering choice — so it is decided
 by the code that knows the tool, and the renderer only picks a colour for it.
 
-This module is a **leaf**: it imports nothing else from ``workflows``. That is what lets ``qc.py`` —
-the module that WRITES the artifact — also own the function that reads it, without a cycle through
-the registry in ``stats.py`` that dispatches to it, and the same will hold for ``fragments.py`` and
-for bulk STAR when their adapters land. Who writes a format owns how to read it; a bundle key and its
-lookup then change in one file, or fail in one file.
+This module is a **leaf**: it imports nothing else from ``workflows``. That is what lets ``qc.py`` and
+``fragments.py`` — the modules that WRITE those artifacts — each also own the function that reads one
+back, without a cycle through the registry in ``stats.py`` that dispatches to them. Bulk needs no
+third writer at all: STAR's own ``Log.final.out`` has no seqforge rule behind it, so its adapter is
+two of ``qc.py``'s existing functions composed. Who writes a format owns how to read it; a bundle key
+and its lookup then change in one file, or fail in one file.
 
 Nothing here reads a file. The adapters do their own loading (a gzipped JSON, a text log), and each
 keeps a **pure** ``Mapping -> SampleStats`` function underneath so its metric table can be tested

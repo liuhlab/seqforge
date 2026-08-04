@@ -44,9 +44,12 @@ The vocabulary being a leaf is what lets the adapter live beside the writer with
 imports `metrics`, `stats.py` imports both, and nothing points back. A bundle key and the lookup that
 resolves it then change in one file, or fail in one file.
 
-`MODULES_WITHOUT_STATS` is **not** an empty formality. It ships holding `map/star` and `map/chromap`,
-because the seam landed with the single-cell adapter alone — which is precisely the case it exists
-for: a module says "not yet" out loud instead of being silently absent from every report.
+`MODULES_WITHOUT_STATS` is **not** an empty formality, and it did its work before it was empty. The
+seam landed with the single-cell adapter alone, so `map/chromap` and `map/star` each sat on the list
+naming the ticket that would land its adapter; both have, and the list now ships empty. That is the
+list succeeding, not the list becoming redundant — an empty frozenset is exactly what the guard
+compares a newly registered module against, so a module still says "not yet" out loud instead of
+being silently absent from every report.
 
 Two rules the adapters keep. **A metric with no defensible threshold is ungraded** (`level="none"`)
 rather than given an invented bar — an estimated cell count means nothing without knowing what was
@@ -90,10 +93,10 @@ either given a reader or named as reporting none, and a test goes red on the day
 `{sample}.<suffix>` is the shorter convention and it covers the two artifacts seqforge's own rules
 write. It cannot express the third: `map/star` has no QC bundle rule at all, and reports from
 `Log.final.out` — a file STAR writes unasked, which carries no sample name and which nothing in
-`star.smk` declares or deletes. Reading it as-is means the bulk pipeline can report with **no new
-rule**, hence no `WORKFLOW_VERSION` bump, hence no `run_id` invalidation and no reprocessing of
-anything already compiled. A suffix convention would have made that inexpressible and the artifact
-would have been re-derived by a rule instead, at the cost of recompiling every dataset.
+`star.smk` declares or deletes. Reading it as it lies is what let the bulk pipeline start reporting
+with **no new rule**, hence no `WORKFLOW_VERSION` bump, hence no `run_id` invalidation and no
+reprocessing of anything already compiled. A suffix convention would have made that inexpressible and
+the artifact would have been re-derived by a rule instead, at the cost of recompiling every dataset.
 
 ## So in code
 
@@ -115,7 +118,10 @@ writer rather than a literal, so a renamed bundle key costs a row here instead o
 column on the page; `test_a_bug_in_a_metric_table_is_raised_and_not_filed_as_a_corrupt_artifact` and
 `test_one_unreadable_artifact_costs_its_own_row_and_not_the_whole_pipeline` hold the two halves of
 what the reader may swallow apart. `test_a_key_the_artifact_does_not_carry_becomes_an_absent_metric_never_a_zero`
-holds the absence rule.
+holds the absence rule. `test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between`
+holds the filename-not-suffix section above: it asserts that **no rule in the shipped `star.smk`
+names that log** and then reports off it anyway, so a future edit that re-derives the artifact by rule
+— reintroducing the `WORKFLOW_VERSION` bump this avoided — goes red rather than passing quietly.
 
 ## Consequences
 
@@ -130,8 +136,10 @@ holds the absence rule.
   ([0005](0005-run-id-is-the-pairing.md)) is invalidated and nothing already compiled is reprocessed.
   `QC_SUFFIX` is public for the shipped `.smk` to adopt on its next edit; until then the module is
   still a second owner of that string, which is a known and deliberately deferred gap.
-- The single-cell rollout leaves two modules on `MODULES_WITHOUT_STATS`, each carrying the ticket that
-  lands it. That is the list working, not the list failing — but it is also a page that says less for
-  a bulk or ATAC dataset than for a single-cell one, and that asymmetry is visible to users now.
+- `MODULES_WITHOUT_STATS` is now **empty**: every shipped module reports, so no dataset gets a page
+  that says less because nobody had written its adapter yet. What a bulk or ATAC page still says less
+  *about* is a property of its artifact rather than of this seam — chromap's summary carries no
+  whitelist-match rate and STAR's log knows nothing about cells — and the column set differing per
+  module is what `PipelineStats` was shaped to carry.
 - Nothing here is enforced about the *thresholds*. That a bar is defensible is a review obligation and
   a corpus question; what is mechanised is only that an undefensible one is declared as such.

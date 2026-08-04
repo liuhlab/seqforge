@@ -65,7 +65,7 @@ from seqforge.workflows.metrics import (
     fmt_int,
     knee_points,
 )
-from seqforge.workflows.qc import QcError, build_qc_bundle, write_qc_bundle
+from seqforge.workflows.qc import QcError, build_qc_bundle, read_star_log, write_qc_bundle
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
 from seqforge.workflows.stats import (
@@ -1571,11 +1571,12 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     module without a reader is a build-time defect, so it is caught here rather than by a report that
     renders an empty results section and looks like a pipeline that has not started.
 
-    `MODULES_WITHOUT_STATS` is still non-empty and that is the point rather than an embarrassment:
-    the partial rollout is what exercises the list for exactly the purpose it exists for. Both halves
-    are asserted by NAME and not merely by size, because "one module is silent" is not the claim —
-    which module is silent is, and a list that shrinks must shrink because an adapter landed rather
-    than because a name was quietly dropped from the guard.
+    `MODULES_WITHOUT_STATS` is now EMPTY — every shipped module reports — and both halves are still
+    asserted by NAME rather than by size. "Some module is silent" was never the claim; which module is
+    is, and a list that shrinks must shrink because an adapter landed rather than because a name was
+    quietly dropped from the guard. Empty is also why the list must survive: it is what the guard
+    compares a newly registered module against, so deleting it would delete the mechanism along with
+    its backlog.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -1583,8 +1584,8 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     assert set(modules_with_stats()) | MODULES_WITHOUT_STATS == set(list_modules())
     # And `MODULES_WITHOUT_STATS` is the OTHER half: a module may only be silent by saying so.
     assert not (set(modules_with_stats()) & MODULES_WITHOUT_STATS)
-    assert set(modules_with_stats()) == {"map/starsolo", "map/chromap"}
-    assert MODULES_WITHOUT_STATS == {"map/star"}
+    assert set(modules_with_stats()) == {"map/starsolo", "map/chromap", "map/star"}
+    assert MODULES_WITHOUT_STATS == frozenset()
 
 
 def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
@@ -1822,16 +1823,20 @@ def test_read_pipeline_stats_returns_none_when_there_is_nothing_to_render(tmp_pa
 
     `None` and not an empty `PipelineStats`: an empty one renders a results section that says a
     pipeline produced nothing, which is a claim about the pipeline rather than about what is on disk.
-    A module that is registered but deliberately not reporting yet takes the same branch, which is
-    what lets `MODULES_WITHOUT_STATS` be a declaration rather than a special case.
+    The unknown-module branch is the same one a name in `MODULES_WITHOUT_STATS` would take, which is
+    what lets that list be a declaration rather than a special case in the collector; it is empty
+    today, and this is the branch that would carry its next entry.
     """
     results = tmp_path / "results"
     _landed(results, "S1", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
 
     assert read_pipeline_stats("map/nonesuch", results, ["S1"]) is None
-    assert read_pipeline_stats("map/star", results, ["S1"]) is None  # registered, not reporting yet
     assert read_pipeline_stats("map/starsolo", tmp_path / "never-ran", ["S1"]) is None
     assert read_pipeline_stats("map/starsolo", results, ["S9"]) is None
+    # A registered module whose OWN artifact is absent: `map/star` asks for `Log.final.out` and does
+    # not read the STARsolo bundle lying beside it, however readable those bytes are. One artifact,
+    # one owner — the registry dispatches on the module, never on whatever the sample directory holds.
+    assert read_pipeline_stats("map/star", results, ["S1"]) is None
 
 
 def test_a_partial_pipeline_reports_what_landed_and_says_how_much_did(tmp_path: Path) -> None:
@@ -1938,6 +1943,51 @@ def test_a_metric_one_sample_lacks_leaves_a_gap_rather_than_dropping_the_column(
     assert len(keys) == len(set(keys))
     assert set(_by_key(stats.samples[0])) == {"reads", "saturation"}  # S1 keeps its gaps
     assert all(label for _, label in stats.columns)  # a column a human cannot name is not a column
+
+
+def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
+    tmp_path: Path,
+) -> None:
+    """`map/star` reports with no rule in between, which is why a `StatsSpec` carries a FILENAME.
+
+    STAR writes `Log.final.out` unasked, and no rule in the shipped `star.smk` declares, consumes or
+    deletes it — asserted here rather than assumed, because that absence is the entire claim. So bulk
+    reports with no `.smk` edit, hence no `WORKFLOW_VERSION` bump, hence no `run_id` invalidated and
+    nothing already compiled reprocessed. A `{sample}.<suffix>` convention could not have expressed
+    this artifact at all: it carries no sample name and no rule of ours names it.
+
+    The filename is spelled out below rather than imported from `h5ad`, deliberately. A test reading
+    the same constant the registry reads could only prove the two agree with each other; what has to
+    hold is that both agree with what STAR itself writes, and only a literal states that separately.
+    """
+    blocks = _rule_blocks(get_module("map/star").snakefile)
+    assert blocks, "the shipped bulk module should have rules to look at"
+    assert not [name for name, body in blocks.items() if "Log.final.out" in body]
+
+    results = tmp_path / "results"
+    _write(
+        results / "S1" / "Log.final.out", "".join(f"  {k} |\t{v}\n" for k, v in _BROKEN_LOG.items())
+    )
+
+    stats = read_pipeline_stats("map/star", results, ["S1"])
+
+    assert stats is not None and stats.complete
+    sample = stats.samples[0]
+    # Bulk has no barcodes, no cells and no knee, so the adapter is the alignment half and nothing
+    # else -- `input_reads` included, which STARsolo drops only because its own "Reads" repeats it.
+    assert set(_by_key(sample)) == {
+        "input_reads",
+        "uniquely_mapped",
+        "multi_loci",
+        "too_many_loci",
+        "unmapped_too_short",
+    }
+    assert sample.knee == []
+    assert sample.note == ""  # no feature was chosen, so there is no feature to caption
+    # And the grading crosses the same scale: "25.94%" read as 25.94 would sit above a 0.60 bar.
+    assert _levels(sample)["uniquely_mapped"] == "bad"
+    # One implementation of "what STAR's alignment log says", reached by both pipelines through it.
+    assert read_star_log(results / "S1" / "Log.final.out", "S1").metrics == sample.metrics
 
 
 # -- the knee vector --------------------------------------------------------

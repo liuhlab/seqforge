@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models.processing import SoloFeature
-from .h5ad import _gene_axis, _stackable
+from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
 from .metrics import Metric, SampleStats, count, fraction, knee_points
 
 #: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than
@@ -141,7 +141,7 @@ def build_qc_bundle(
             feat: _read_lines(solo_dir / feat / "filtered" / "barcodes.tsv")
             for feat in _gene_axis(features)
         },
-        "log_final": _parse_log_final(_read(run_dir / "Log.final.out")),
+        "log_final": _parse_log_final(_read(run_dir / STAR_FINAL_LOG)),
         "log_out": _read(run_dir / "Log.out"),
         "log_progress": _read(run_dir / "Log.progress.out"),
         "splice_junctions": _parse_sj(_read(run_dir / "SJ.out.tab")),
@@ -254,9 +254,9 @@ def alignment_metrics(log_final: Mapping[str, Any]) -> list[Metric]:
 
     Split out of :func:`metrics` rather than inlined into it because "what STAR's alignment log says"
     is not a STARsolo fact: the bundle folds that log in verbatim, and the bulk module writes the very
-    same file with no bundle around it. One implementation, so a threshold cannot be tightened for one
-    pipeline and left behind in the other. Bulk's adapter — the two lines that parse a file and call
-    this — is #211's; nothing here waits on it.
+    same file with no bundle around it. It has two callers for exactly that reason — :func:`metrics`,
+    which reads it out of the bundle, and :func:`read_star_log`, which reads it straight off disk — so
+    a threshold cannot be tightened for one pipeline and left behind in the other.
 
     The thresholds are deliberately loose. Unique-mapping rate varies with genome quality, read
     length and rRNA content far more than with anything seqforge decided, so these are set to catch
@@ -473,6 +473,33 @@ def read_metrics(path: Path, sample: str) -> SampleStats:
     return metrics(bundle, sample)
 
 
+def read_star_log(path: Path, sample: str) -> SampleStats:
+    """``map/star``'s adapter: STAR's own ``Log.final.out``, with no bundle in between.
+
+    Here rather than in ``stats.py`` because this file already owns both halves of "what STAR's
+    alignment log says" — :func:`_parse_log_final` puts that log into the bundle and
+    :func:`alignment_metrics` reads it back out — and the bulk pipeline wants exactly those two
+    composed. Bulk has no barcodes, no cells and no knee vector, so there is nothing else to add: the
+    adapter is one line, and that is the point rather than an omission.
+
+    The alternative was a ``qc_bundle``-shaped rule for ``map/star``, which would have given both
+    pipelines one artifact shape to read. It was rejected because STAR writes this file unasked and
+    nothing in ``star.smk`` declares or deletes it: reading it as it lies means bulk reports with no
+    rule change, hence no ``WORKFLOW_VERSION`` bump, hence no ``run_id`` invalidation and no
+    reprocessing of anything already compiled. That is what a
+    :class:`~seqforge.workflows.stats.StatsSpec` carrying a *filename* rather than a suffix buys, and
+    this is the artifact it was shaped for.
+
+    Raises ``OSError``/``ValueError`` if the bytes are unusable, like both siblings above, so one bad
+    file costs its own row and not the whole pipeline. Far less can go wrong here than with a gzipped
+    JSON, and deliberately so: a text log a killed job truncated mid-write still parses, and the
+    metrics its missing lines would have carried are simply absent rather than a row of zeros.
+    """
+    return SampleStats(
+        sample_id=sample, metrics=alignment_metrics(_parse_log_final(path.read_text()))
+    )
+
+
 __all__ = [
     "QC_SUFFIX",
     "QcError",
@@ -480,5 +507,6 @@ __all__ = [
     "build_qc_bundle",
     "metrics",
     "read_metrics",
+    "read_star_log",
     "write_qc_bundle",
 ]
