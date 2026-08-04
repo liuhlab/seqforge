@@ -256,7 +256,9 @@ Everything probe reports about one file — composition, segmentation, distinct 
 grammar, integrity — and **no roles**. Deterministic, LLM-free, network-free, cached by content
 address (`docs/agents/models.md`).
 _Avoid_: probe result, profile, QC report, fingerprint (a fingerprint package ships **Slice**s); and
-an Observation never "identifies" anything, it reports
+never a **Metric** — an Observation is read from the bytes *before* anything ran, a metric is what the
+finished pipeline reported *after*, and both are measurements about sequencing data; also, an
+Observation never "identifies" anything, it reports
 
 **Hypothesis**:
 A span-verified assertion handed to `score` as a selector for which onlist to test first and as a
@@ -411,6 +413,19 @@ One word for both, because the directory is where the execution's outputs land, 
 every question about either (`docs/adr/0024`).
 _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
 its execution; also build, job, workflow run
+
+**Metric**:
+One number a finished **Compiled pipeline** wrote, carried with the words a human reads it by, which
+stage it speaks about (input, barcode, alignment, counts, duplication, cells), and a **level** —
+`ok`, `warn`, `bad`, or `none` where no bar is defensible, which is a verdict and not a missing value.
+The module that wrote the artifact decides the level, so the page picks a colour and never a threshold
+(`docs/adr/0025`); a number the artifact does not carry is absent, never a zero. One sample's metrics
+are its *sample stats* and one execution's are its *pipeline stats* — **pipeline**, because a **Run**
+is one sequencing run and `run_id` names a pairing, and three senses of one word is how a reader stops
+knowing which of them a field carries.
+_Avoid_: stat, QC number, score (a score is what the resolver computes over candidates), grade (that
+is the act of assigning a level); and never an **Observation** — that is read from the bytes *before*
+anything ran, a metric is what the finished pipeline reported *after*
 
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it
