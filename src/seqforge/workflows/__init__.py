@@ -26,9 +26,13 @@ if TYPE_CHECKING:
 #: follows the escalated request (#205). The rule declares `retries: STARSOLO_RETRIES` (2) and
 #: `resources: mem_mb=escalated_mem_mb(config["mem_mb"], attempt)`, LINEAR — attempt 1 asks for
 #: exactly what the recipe asked for, and the third and last attempt gets 3x. `--limitBAMsortRAM` is
-#: derived from that escalated `resources.mem_mb` instead of from `config["mem_mb"]`, so the sort
-#: budget rises with the request rather than staying pinned to attempt 1 while the job around it
-#: triples. MEASURED, and the reason 3/4 of the request was never the whole story: `--limitBAMsortRAM`
+#: a SECOND `resources:` entry over the same `attempt` (`bam_sort_ram_bytes`) instead of a constant
+#: fraction of `config["mem_mb"]`, so the sort budget rises with the request rather than staying
+#: pinned to attempt 1 while the job around it triples. A `resources:` entry and not a `params:` one,
+#: measured rather than assumed: `Job.attempt`'s setter clears `_resources` and not `_params`, so a
+#: params callable — even one taking `resources`, which snakemake does pass — is expanded once and
+#: reused by every retry (traced 750/750/750 against 750/1500/2250 for the same arithmetic as a
+#: resource). MEASURED, and the reason 3/4 of the request was never the whole story: `--limitBAMsortRAM`
 #: bounds the coordinate sort and nothing else, while STARsolo also holds `readInfo` — 16 B x every
 #: INPUT read, `resize(nReadsInput)` over a `{uint64 cb; uint32 umi;}` struct — which none of STAR's
 #: eight `--limit*` knobs covers, and there is no `--limitSoloRAM` to add. 215M reads is 3.4 GB of it;
@@ -44,9 +48,18 @@ if TYPE_CHECKING:
 #: sample, ~18% of the sort spent on records nothing keeps. `nTrOutWrite = min(P.outSAMmultNmax,
 #: nTrOutSAM)` writes only the top-scoring alignment, which is exactly the primary that survives that
 #: filter; read off the STAR source, the parameter appears in the SAM/BAM write path and the
-#: alignment-ordering code and in NO Solo counting file, so the counts are unaffected and the retained
-#: CRAM is byte-identical. `-F 0x100` stays in `cram.py` as a cheap invariant rather than a
-#: load-bearing filter. The sort arithmetic left the `.smk` for `workflows/memory.py`
+#: alignment-ordering code and in NO Solo counting file, so THE COUNTS ARE UNAFFECTED. The retained
+#: CRAM is **not** byte-identical, and #205's claim that it was is wrong: for a read with `NH > 1`,
+#: `outSAMmultNmax != -1` makes `ReadAlign_multMapSelect.cpp` partition `trMult` so top-scoring
+#: alignments come first and then mark `trMult[0]` primary instead of `trBest`, and `HI` is an
+#: OUTPUT-ORDER index (`iTrOut + outSAMattrIHstart`, `ReadAlign_alignBAM.cpp`). So a multimapper's
+#: retained record always carries `HI:i:1` now, and where several loci tie on score it may be a
+#: different one of them — `trBest` breaks the tie on the shorter `gLength`, the partition takes the
+#: first in window order. Both are top-scoring, so this is a change of tie-break and not of quality;
+#: `NH` still counts every locus (it is computed from `nTrOutSAM`, not the truncated write count), and
+#: a uniquely-mapping read is untouched. The version bump already obliges reprocessing, which is what
+#: makes a changed CRAM affordable here. `-F 0x100` stays in `cram.py` as a cheap invariant rather
+#: than a load-bearing filter. The sort arithmetic left the `.smk` for `workflows/memory.py`
 #: (`STARSOLO_RETRIES`, `escalated_mem_mb`, `bam_sort_ram`), where it is importable and unit-tested
 #: instead of being a lambda only a real retry ever renders. No new config key — `mem_mb` is the same
 #: key it always was, read now as the FIRST attempt's request. The bump invalidates

@@ -274,29 +274,39 @@ rule starsolo_count:
     # `mem_mb` gates the scheduler AND gives the coordinate sort a real budget instead of the
     # genome's (see `bam_sort_ram`); it moved here from `solo_to_cram`, which is where the sort used
     # to happen, so the memory is spent in the rule that does the sorting. What is new (#205) is that
-    # the request is a function of snakemake's 1-based `attempt`: attempt 1 is `config["mem_mb"]`
+    # BOTH numbers are functions of snakemake's 1-based `attempt`: attempt 1 is `config["mem_mb"]`
     # exactly, so nothing changes for a sample that fits, and a sample killed for overrunning it gets
     # 2x and then 3x rather than failing identically twice. `config["mem_mb"]` still appears here as
     # a literal subscript on purpose -- `workflows/__init__.py::keys_read_by` SCANS this source to
     # compute `required_config`, and a key the scanner cannot see is a key the composer is not
     # obliged to emit, i.e. a KeyError on a compute node long after compose exited 0.
+    #
+    # THE SORT CAP IS A `resources:` ENTRY, NOT A `params:` ONE, and that is not a style choice --
+    # it is the only construct snakemake re-evaluates per attempt. MEASURED against the pinned
+    # 9.23.1, because the plausible version of this is wrong: `Job.attempt`'s setter (`jobs.py`)
+    # clears `self._resources` and NOT `self._params`, and `reset_params_and_resources()` is
+    # one-shot behind `_params_and_resources_resetted`. So a `params:` callable -- even one taking
+    # `resources`, which snakemake does pass -- is expanded once, on attempt 1, and every retry
+    # reuses that value verbatim. A three-attempt run of exactly that shape traced
+    # `mem=1000 cap=750 / mem=2000 cap=750 / mem=3000 cap=750`: the request escalates and the cap
+    # does not. That is worse than no retry at all -- attempt 2 buys scheduler memory STAR is still
+    # forbidden to sort in, spends a second multi-hour queue slot, and fails for the reason attempt
+    # 1 already recorded. As a resource the same run traces 750 / 1500 / 2250.
+    #
+    # The name carries its unit (`_bytes`) because it is the one number here that is not MiB: STAR
+    # takes `--limitBAMsortRAM` in bytes, and a resource is a bare integer with nowhere else to say
+    # so. It is a custom resource, so nothing constrains it unless a `--resources` flag names it.
     retries: STARSOLO_RETRIES
     resources:
         mem_mb=lambda wildcards, attempt: escalated_mem_mb(config["mem_mb"], attempt),
+        bam_sort_ram_bytes=lambda wildcards, attempt: bam_sort_ram(
+            escalated_mem_mb(config["mem_mb"], attempt)
+        ),
     params:
         solo=SOLO,
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
         adapter=adapter_sequence(),
-        # THE SORT CAP FOLLOWS THE ESCALATED REQUEST, and that is the whole fix. `resources` is
-        # passed to a param callable by snakemake's `Rule.expand_params`, which evaluates such
-        # callables lazily for exactly this case, after `Rule.expand_resources` has resolved
-        # `mem_mb` for this attempt. Before #205 this was `bam_sort_ram()` reading `config["mem_mb"]`
-        # -- a parse-time constant, which could not have followed anything even had a retry existed
-        # to follow. A cap pinned to attempt 1 would be worse than no retry at all: attempt 2 would
-        # buy scheduler memory that STAR was still forbidden to sort in, and fail for the reason
-        # attempt 1 had already recorded.
-        sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
         # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
@@ -335,14 +345,25 @@ rule starsolo_count:
         # `-F 0x100`. On the measured sample that was 198.8M records sorted against 162.9M retained --
         # ~18% of the sort spent producing bytes the very next rule deletes, paid in both the sort
         # budget above and in wall-clock. `nTrOutWrite = min(P.outSAMmultNmax, nTrOutSAM)` writes only
-        # the top-scoring alignment, and that is exactly the record the CRAM filter keeps: STAR
-        # documents that with `outSAMmultNmax != -1` the top-scoring alignment is output first, and
-        # the default `--outSAMprimaryFlag OneBestScore` makes that same alignment the primary. The
-        # counts are untouched -- verified against the STAR source that the flag appears ONLY in the
-        # SAM/BAM write path and the alignment-ordering code, and in NO Solo counting file -- and the
-        # name is real, verified against the pinned 2.7.11b binary (a bogus parameter name FATALs with
-        # "unrecognized parameter name"; this one does not). So: free memory, free wall-clock, CRAM
-        # byte-identical. Per ADR-0022 its value varies with NOTHING -- not the chemistry, not the
+        # a top-scoring alignment, which is the record the CRAM filter keeps.
+        #
+        # THE COUNTS ARE UNTOUCHED AND THE CRAM IS NOT BYTE-IDENTICAL, which is the opposite of what
+        # #205 claimed and was checked against the STAR 2.7.11b source rather than its manual. Counts:
+        # the flag appears ONLY in the SAM/BAM write path and the alignment-ordering code, in NO Solo
+        # counting file; `SoloFeature_addBAMtags` keys CB/UB on the read index alone and the gene
+        # assignment is an order-independent set union. The CRAM: for a read with `NH > 1`,
+        # `outSAMmultNmax != -1` is itself the trigger in `ReadAlign_multMapSelect.cpp` for
+        # partitioning `trMult` so max-score alignments come first AND for marking `trMult[0]` primary
+        # instead of `trBest` -- and `HI` is an OUTPUT-ORDER index (`iTrOut + outSAMattrIHstart`,
+        # `ReadAlign_alignBAM.cpp`), so a multimapper's retained record now always carries `HI:i:1`.
+        # Where several loci tie on score it can also be a DIFFERENT one of them: `trBest` breaks the
+        # tie on the shorter genomic span (`gLength`), the partition takes the first in window order.
+        # Both are top-scoring, so this changes the tie-break and not the quality; `NH` still counts
+        # every locus (computed from `nTrOutSAM`, not from the truncated write count) and a uniquely
+        # mapping read is bit-for-bit untouched. It is affordable precisely because the
+        # `WORKFLOW_VERSION` bump already obliges reprocessing. The name is real, verified against the
+        # pinned 2.7.11b binary (a bogus parameter name FATALs with "unrecognized parameter name";
+        # this one does not). Per ADR-0022 its value varies with NOTHING -- not the chemistry, not the
         # user's intent, there is one correct value for every dataset seqforge will ever compile --
         # which is precisely what makes it the module's to hardcode rather than the KB's or the
         # recipe's. `-F 0x100` STAYS in `cram.py`, and do not "clean it up": it is now a cheap
@@ -374,7 +395,7 @@ rule starsolo_count:
              --soloCellFilter EmptyDrops_CR \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
-             --limitBAMsortRAM {params.sort_ram} \
+             --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              --outSAMmultNmax 1 \
              --outSAMattributes NH HI AS nM CB UB
         """

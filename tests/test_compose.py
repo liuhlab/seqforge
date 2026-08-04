@@ -34,7 +34,6 @@ from seqforge.io import OnlistRegistry
 from seqforge.models.processing import ProcessingManifest
 from seqforge.resolve.confuse import canonical_backend
 from seqforge.workflows import get_module, keys_read_by, list_modules
-from seqforge.workflows.memory import bam_sort_ram
 
 
 def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
@@ -380,21 +379,26 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     # read and coordinate-sorts them all, and `seqforge io cram` then drops the secondaries with
     # `-F 0x100`: 198.8M records sorted against 162.9M retained on the measured sample, ~18% of the
     # sort spent producing bytes the very next rule deletes. `nTrOutWrite = min(P.outSAMmultNmax,
-    # nTrOutSAM)` writes exactly the top-scoring alignment, which is the record that filter keeps, so
-    # the retained CRAM is unchanged and both the sort budget and the wall-clock are cheaper. Like the
-    # CellRanger set above it is a module literal, and argv is the only place a module literal is
-    # visible at all.
+    # nTrOutSAM)` writes exactly one top-scoring alignment, which is the record that filter keeps, so
+    # both the sort budget and the wall-clock are cheaper. The counts are unaffected; the CRAM is NOT
+    # byte-identical for a multimapper (`HI`, and which of several tied loci is retained) — ADR-0023
+    # carries the source lines. Like the CellRanger set above it is a module literal, and argv is the
+    # only place a module literal is visible at all.
     assert "--outSAMmultNmax 1" in planned
 
-    # The sort budget, to the byte, because the wiring is what only a real `snakemake -n` can prove:
-    # `sort_ram` is a params callable over `resources`, evaluated after snakemake has resolved this
-    # attempt's `mem_mb`, so a construct snakemake declines to hand `resources` fails the plan rather
-    # than rendering. The exact value is what says the number STAR receives came through that path and
-    # is 3/4 of what the job was granted; the loose `\d+` it replaces matched a fall-back constant,
-    # a mis-scaled MiB figure and STAR's own default equally well.
-    mem_mb = yaml.safe_load((tmp_path / result.config_path).read_text())["mem_mb"]
-    assert isinstance(mem_mb, int)
-    assert f"--limitBAMsortRAM {bam_sort_ram(mem_mb)}" in planned, (
+    # The sort budget, to the byte. Both numbers are LITERALS rather than a call to `bam_sort_ram`:
+    # recomputing an expectation with the shipped formula cannot fail (`docs/agents/testing.md`,
+    # "Adding a test"), and it would agree with a wrong formula as readily as a right one. 48 GiB is
+    # `ResourceHints.mem_gb`'s default, so 49152 MiB is what the composer emits and 36 GiB — 3/4 of
+    # it, in BYTES — is what STAR must be handed. The exactness is what proves the wiring: the number
+    # is produced by a real `snakemake -n` resolving a `resources:` callable, and the `\d+` this
+    # replaced matched a fall-back constant, a mis-scaled MiB figure and STAR's own default equally
+    # well. What argv cannot show is that the cap FOLLOWS the attempt, since attempt 1 is the only one
+    # a dry run renders — `test_a_snakemake_retry_re_expands_a_resource_and_never_a_param` and
+    # `test_the_star_rule_escalates_its_memory_on_retry` (`tests/test_workflows.py`) own that half.
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["mem_mb"] == 48 * 1024, "the default memory request moved; restate the cap below"
+    assert "--limitBAMsortRAM 38654705664" in planned, (
         "STAR's default of 0 means 'reuse the genome allocation', which is too small on a small "
         "genome and FATALs; the module must pass 3/4 of the memory THIS attempt was granted. "
         f"Planned: {[ln for ln in planned.splitlines() if 'limitBAMsortRAM' in ln]}"

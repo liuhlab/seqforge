@@ -42,8 +42,19 @@ samples that actually failed pay for the headroom, once each.
 ``--limitBAMsortRAM`` pinned to attempt 1's ``config["mem_mb"]`` would let attempt 2 buy scheduler
 memory that STAR was still forbidden to sort in — the retry would raise the ceiling and leave the
 floor, and the second attempt would fail the same way for a reason the first attempt had already
-recorded. So ``starsolo.smk`` derives ``params.sort_ram`` from ``resources.mem_mb`` rather than from
-the config value: the retry raises the scheduler request and STAR's cap **together**.
+recorded. So the retry raises the scheduler request and STAR's cap **together**.
+
+**And the cap is a `resources:` entry rather than a `params:` one, which is the part that is easy to
+get wrong.** Snakemake hands `resources` to a `params:` callable, so
+``sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb)`` reads correctly, plans
+correctly, and is broken: ``Job.attempt``'s setter clears ``self._resources`` and **not**
+``self._params``, and ``reset_params_and_resources()`` is one-shot behind a
+``_params_and_resources_resetted`` flag. The params expansion therefore happens once, on attempt 1,
+and every retry reuses it. Traced on the pinned snakemake 9.23.1 over three attempts of exactly that
+shape — ``mem=1000 cap=750`` / ``mem=2000 cap=750`` / ``mem=3000 cap=750`` — against ``750`` /
+``1500`` / ``2250`` for the same arithmetic declared as a resource. Only a ``resources:`` entry taking
+``attempt`` re-evaluates, so that is what ``starsolo.smk`` declares
+(``bam_sort_ram_bytes``, named for the unit STAR wants).
 
 **A sample that exhausts the retries fails.** That is the accepted outcome of #205, not a bug to
 engineer around, and it is the honest end of the escalation: at some point the answer is a recipe
@@ -135,10 +146,12 @@ def bam_sort_ram(mem_mb: int) -> int:
     actually given, which is the number that should decide this -- so we pass it.
 
     **The argument is the ESCALATED request, never the static config value.** ``starsolo.smk`` calls
-    this with ``resources.mem_mb`` — the value :func:`escalated_mem_mb` produced for this attempt —
-    precisely so that a retry raises the scheduler request and STAR's cap together. Before #205 this
-    read ``config["mem_mb"]`` directly and was therefore a parse-time constant, which is to say it
-    could not have followed anything even if a retry had existed to follow.
+    this inside a ``resources:`` callable over ``attempt``, on the value :func:`escalated_mem_mb`
+    produced for that attempt, precisely so that a retry raises the scheduler request and STAR's cap
+    together — and as a *resource* rather than a *param*, for the memoization reason this module's
+    header sets out. Before #205 this read ``config["mem_mb"]`` directly and was therefore a
+    parse-time constant, which is to say it could not have followed anything even if a retry had
+    existed to follow.
 
     **Sizing the job is the caller's business, and it is not free.** At ~160 B/record (measured
     above), a 215M-read sample lands near 32 GB of sort RAM. `mem_gb`'s default was 32 when that was

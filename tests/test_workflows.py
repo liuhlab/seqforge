@@ -1188,24 +1188,28 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
 
 
 def test_the_star_rule_escalates_its_memory_on_retry() -> None:
-    """The WIRING, read off the shipped `.smk`: a structural check standing in for a behavioural one.
+    """The WIRING, read off the shipped `.smk`: a `retries:`, and TWO numbers that follow `attempt`.
 
-    Nothing in this repository can run the behavioural version. A `snakemake -n` renders attempt 1 and
-    only attempt 1, and the suite owns no scheduler, no cluster and no sample large enough to fail
-    one — so "the second attempt really is granted 2x, and STAR really is handed 2x the cap" is not a
-    fact any gate here establishes. What is establishable is that the rule is *shaped* so it can
-    happen, which is what this reads: a `retries:` directive, a `mem_mb` that is a function of
-    `attempt` rather than a constant the retry re-submits unchanged, and a sort cap that is a function
-    of what this attempt was granted.
+    What this reads is that the rule is *shaped* so the escalation can happen: a `retries:` directive,
+    a `mem_mb` that is a function of `attempt` rather than a constant the retry re-submits unchanged,
+    and a sort cap that is a second function of `attempt` — declared as a **resource**, because that
+    is the only construct snakemake re-expands per attempt. `test_a_snakemake_retry_re_expands_a
+    _resource_and_never_a_param` is the behavioural half; this is the half that names the rule.
 
-    **The last of those is the load-bearing one, and it is invisible to every other gate.** Before
-    #205 the cap read `config["mem_mb"]` and was therefore a parse-time constant. Nothing else in the
-    suite can tell the two apart: the params gate only ever inspects the emitted config; `keys_read_by`
-    is content either way, because the rule legitimately subscripts `config["mem_mb"]` one directive
-    higher up; and the compose dry run cannot help, since on attempt 1 the escalated value and the
-    config value are EQUAL — the argv is byte-identical under both the fix and the bug. A cap pinned
-    to attempt 1 is worse than no retry at all: attempt 2 buys scheduler memory STAR is still
-    forbidden to sort in, spends a second multi-hour queue slot, and fails for the reason attempt 1
+    **The cap is the load-bearing assertion, and it is invisible to every other gate.** Before #205 it
+    read `config["mem_mb"]` and was a parse-time constant. Nothing else in the suite can tell the two
+    apart: the params gate only ever inspects the emitted config; `keys_read_by` is content either
+    way, because the rule legitimately subscripts `config["mem_mb"]` on the line above; and the
+    compose dry run cannot help, because on attempt 1 the escalated value and the config value are
+    EQUAL — the argv is byte-identical under the fix and under the bug alike.
+
+    **`params:` is rejected here, and that is a real bug this test caught rather than a stylistic
+    preference.** The first implementation of #205 was `sort_ram=lambda wildcards, resources:
+    bam_sort_ram(resources.mem_mb)`, which reads correctly, plans correctly, passes a dry run, and is
+    wrong: snakemake memoizes `Job._params`, and `Job.attempt`'s setter clears `_resources` and not
+    `_params`. So the cap was expanded once, on attempt 1, and every retry reused it — a job that
+    asks for 3x and then refuses to sort in more than 1x's worth. A cap pinned that way is worse than
+    no retry at all: it spends a second multi-hour queue slot to fail for the reason attempt 1 had
     already recorded.
 
     `retries:` naming the imported constant rather than a literal `2` is asserted for the reason
@@ -1232,22 +1236,113 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
         f"already killed: {request.group(1)}"
     )
 
-    cap = re.search(r"^\s+sort_ram=(.*)$", body, re.M)
+    # The cap STAR is handed, and the `resources:` block it must be declared in. Both halves matter:
+    # a `params:` entry of the identical text would satisfy the `attempt` check and still freeze.
+    cap = re.search(r"^\s+bam_sort_ram_bytes=(.*?)^\s{4}\w+:", body, re.M | re.S)
     assert cap, "`starsolo_count` computes no sort budget; STAR's default 0 reuses the genome's"
-    assert "resources.mem_mb" in cap.group(1), (
-        f"the sort cap does not read this attempt's granted memory: {cap.group(1)}"
+    assert "attempt" in cap.group(1) and "config[" in cap.group(1), (
+        f"the sort cap is not a function of `attempt` over the config's base request: {cap.group(1)}"
     )
-    assert "config[" not in cap.group(1), (
-        f"the sort cap is derived from the config, which is attempt 1's number forever — the retry "
-        f"then raises the ceiling and leaves the floor: {cap.group(1)}"
+    directives = re.findall(r"^\s{4}(\w+):", body, re.M)
+    assert directives.index("resources") < directives.index("params"), (
+        "the directive order moved; the assertion below reads the block between `resources:` and "
+        "`params:` and needs rewriting"
     )
-    # ...and the param that follows the attempt is the one STAR is actually handed. A `sort_ram`
-    # computed correctly and never passed would satisfy every assertion above.
-    assert "--limitBAMsortRAM {params.sort_ram}" in body
+    resources_block = body.split("\n    resources:")[1].split("\n    params:")[0]
+    assert "bam_sort_ram_bytes=" in resources_block, (
+        "the sort cap is not a `resources:` entry. Snakemake memoizes `Job._params` and clears only "
+        "`_resources` when `attempt` advances, so a `params:` callable is expanded on attempt 1 and "
+        "reused verbatim by every retry — the request escalates and the cap does not"
+    )
+    # ...and the resource that follows the attempt is the one STAR is actually handed. A cap computed
+    # correctly and never passed would satisfy every assertion above.
+    assert "--limitBAMsortRAM {resources.bam_sort_ram_bytes}" in body
 
 
-#: A memory budget handed to STAR: `--limitBAMsortRAM <x>`, `--limitGenomeGenerateRAM <x>`, ... STAR
-#: ships eight `--limit*` knobs and the RAM-denominated ones are the class this rule is about.
+#: A three-attempt workflow in eleven lines: one rule that always fails, with `retries: 2`, declaring
+#: the same escalation shape `starsolo_count` does — a `mem_mb` over `attempt`, a derived cap as a
+#: RESOURCE and the identical arithmetic as a PARAM — and appending both to a trace on every attempt.
+#: Synthetic on purpose: this is a test of snakemake's semantics, not of our module, so it must not
+#: need a genome, an aligner, or a sample large enough to run out of memory.
+_RETRY_PROBE = """
+def cap(mem_mb):
+    return mem_mb * 3 // 4
+
+rule all:
+    input: "out.txt"
+
+rule x:
+    output: "out.txt"
+    retries: 2
+    resources:
+        mem_mb=lambda wildcards, attempt: 1000 * attempt,
+        cap_resource=lambda wildcards, attempt: cap(1000 * attempt),
+    params:
+        cap_param=lambda wildcards, resources: cap(resources.mem_mb),
+    shell:
+        "echo {resources.mem_mb} {resources.cap_resource} {params.cap_param} >> trace.txt; false"
+"""
+
+
+@pytest.mark.external
+@pytest.mark.skipif(shutil.which("snakemake") is None, reason="snakemake not on PATH")
+def test_a_snakemake_retry_re_expands_a_resource_and_never_a_param(tmp_path: Path) -> None:
+    """The behavioural half of the escalation, and the gate that caught #205's first implementation.
+
+    The claim `starsolo_count` rests on is a claim about SNAKEMAKE, not about seqforge: that a value
+    declared over `attempt` is recomputed on every retry. The first implementation assumed that held
+    for `params:` as well as `resources:` — `sort_ram=lambda wildcards, resources:
+    bam_sort_ram(resources.mem_mb)` — which reads correctly, plans correctly, passes `snakemake -n`,
+    and silently freezes: `Job.attempt`'s setter clears `self._resources` and NOT `self._params`, and
+    `reset_params_and_resources()` is one-shot behind a `_params_and_resources_resetted` flag. Every
+    structural test in this file was green on that wiring, because the shape was right and only the
+    semantics were wrong. Nothing short of a real retry distinguishes them.
+
+    So this runs one, over a synthetic eleven-line workflow rather than our module: a rule that always
+    fails, `retries: 2`, and the two constructs declared SIDE BY SIDE over identical arithmetic, so
+    the trace is a controlled comparison rather than two runs to compare by hand. Three attempts, and
+    the assertion is that the resource tracks the request while the param does not — a red test if
+    snakemake ever memoized resources too (our escalation would silently stop), and equally a red test
+    if it stopped memoizing params (the docstrings and the ADR would then be arguing for a workaround
+    nobody needs any more). Both directions are worth knowing, which is why the param column is
+    asserted rather than merely omitted.
+
+    Deliberately not a test of `starsolo_count` itself: that rule needs a genome index, an aligner and
+    a sample big enough to exhaust memory before it can be made to fail three times, none of which
+    this suite owns (ADR-0002 — the ladder is a rule, and this is the cheapest thing that can go red).
+    `test_the_star_rule_escalates_its_memory_on_retry` is what ties the proven construct to the rule.
+    """
+    (tmp_path / "Snakefile").write_text(_RETRY_PROBE)
+
+    proc = subprocess.run(
+        ["snakemake", "-d", str(tmp_path), "-s", str(tmp_path / "Snakefile"), "--cores", "1"],
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert proc.returncode != 0, "the probe rule must fail on every attempt, or nothing retried"
+
+    trace = [ln.split() for ln in (tmp_path / "trace.txt").read_text().splitlines() if ln]
+    assert len(trace) == 3, f"expected 3 attempts (retries: 2), got {len(trace)}: {trace}"
+
+    requests = [int(mem) for mem, _, _ in trace]
+    assert requests == [1000, 2000, 3000], (
+        f"a `resources:` callable over `attempt` did not escalate, so `mem_mb` never grows and the "
+        f"whole of #205 is inert: {requests}"
+    )
+    assert [int(res) for _, res, _ in trace] == [750, 1500, 2250], (
+        "the cap declared as a RESOURCE did not track the escalated request — the construct "
+        "`starsolo_count` relies on has changed behaviour, and the sort budget is now frozen"
+    )
+    assert [int(par) for _, _, par in trace] == [750, 750, 750], (
+        "a `params:` callable over `resources` is no longer memoized across attempts. That is the "
+        "trap #205 fell into; if snakemake has fixed it, `starsolo.smk` and ADR-0023 are arguing "
+        "for a workaround that is no longer needed and should say so"
+    )
+
+
+#: A memory budget handed to an aligner: `--limitBAMsortRAM <x>`, `--limitGenomeGenerateRAM <x>`, ...
+#: STAR ships eight `--limit*` knobs and the RAM-denominated ones are the class this rule is about.
 _LIMIT_RAM_FLAG = re.compile(r"--limit\w*RAM\s+(\S+)")
 
 
@@ -1256,10 +1351,10 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
 
     `test_the_star_rule_escalates_its_memory_on_retry` names one rule in one module, which is the
     right shape for the regression that actually happened and the wrong shape for the next one. In a
-    rule that declares `retries`, `config["mem_mb"]` is the *first attempt's* number and nothing else;
-    the live figure is `resources.mem_mb`. That is a property of every RAM budget any module hands an
-    aligner, not a fact about `starsolo_count` — and whoever adds the second one will be reading the
-    neighbouring `--limit*` line, not this file.
+    rule that declares `retries`, `config["mem_mb"]` is the *first attempt's* number and nothing else,
+    and only a `resources:` entry is re-expanded per attempt. That is a property of every RAM budget
+    any module hands an aligner, not a fact about `starsolo_count` — and whoever adds the second one
+    will be reading the neighbouring `--limit*` line, not this file.
 
     So the sweep is over every registered module and finds the flags by shape, exactly as
     `test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe` sweeps for STAR
@@ -1277,18 +1372,19 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
             body = "\n".join(line.split("#")[0] for line in raw.splitlines())
             for argument in _LIMIT_RAM_FLAG.findall(body):
                 seen.append(f"{name}:{rule}")
-                param = re.fullmatch(r"\{params\.(\w+)\}", argument)
-                assert param, (
+                resource = re.fullmatch(r"\{resources\.(\w+)\}", argument)
+                assert resource, (
                     f"{name}:{rule} passes a RAM budget of {argument!r}. It has to come from a "
-                    f"`params:` callable over `resources`, which is the only expression evaluated "
-                    f"per ATTEMPT; anything else is fixed when the Snakefile is parsed"
+                    f"`resources:` callable over `attempt`, which is the only expression snakemake "
+                    f"re-expands per attempt — a `params:` one is memoized at attempt 1, and a "
+                    f"literal is fixed when the Snakefile is parsed"
                 )
-                binding = re.search(rf"^\s+{param.group(1)}=(.*)$", body, re.M)
-                assert binding, f"{name}:{rule} passes {argument} but binds no such param"
-                assert "resources." in binding.group(1) and "config[" not in binding.group(1), (
-                    f"{name}:{rule} caps the aligner from the config rather than from the memory "
-                    f"THIS attempt was granted, so a retry raises the request and leaves the cap "
-                    f"where the first attempt died: {binding.group(1)}"
+                binding = re.search(rf"^\s+{resource.group(1)}=(.*)$", body, re.M)
+                assert binding, f"{name}:{rule} passes {argument} but declares no such resource"
+                assert "attempt" in binding.group(1), (
+                    f"{name}:{rule} caps the aligner with a number that does not move with the "
+                    f"attempt, so a retry raises the request and leaves the cap where the first "
+                    f"attempt died: {binding.group(1)}"
                 )
     assert seen, (
         "no shipped module hands an aligner a `--limit*RAM` budget, so this sweep is looking at the "

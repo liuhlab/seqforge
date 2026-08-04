@@ -62,9 +62,10 @@ Three attempts (`retries: STARSOLO_RETRIES`, which is 2), and the escalation is 
 exponential**. Linear because attempt 1 must ask for exactly what the recipe asked for — a version
 bump that silently changed what a first run requests would make every existing `mem_gb` mean
 something new — and because a ceiling of 3× is a number an operator can predict from the recipe
-instead of one they have to compute. `--limitBAMsortRAM` follows `resources.mem_mb` rather than
-`config["mem_mb"]`, so the retry that was granted three times the memory actually gets to use it; the
-alternative is a job that asks for 144 GB and then refuses to sort in more than 36.
+instead of one they have to compute. Both columns are `resources:` entries over `attempt`, not one
+resource and one derived param, so the retry that was granted three times the memory actually gets to
+use it; the alternative is a job that asks for 144 GB and then refuses to sort in more than 36. The
+`params:`-shaped version of that second column is a trap and is argued at **So in code**.
 
 The arithmetic — `STARSOLO_RETRIES`, `escalated_mem_mb(mem_mb, attempt)`, `bam_sort_ram(mem_mb)` —
 lives in `src/seqforge/workflows/memory.py`, importable and unit-tested, rather than inline in the
@@ -75,12 +76,38 @@ And **`--outSAMmultNmax 1`**, which is not part of the escalation but was found 
 measurement and pays back a slice of it. STAR wrote *every* alignment of a multi-mapping read into
 the BAM and sorted them all; `workflows/cram.py` then discarded the secondaries with `-F 0x100`. On
 the measured sample that is 198.8M records sorted to retain 162.9M — **~18% of the sort spent on
-records nothing keeps**. `nTrOutWrite = min(P.outSAMmultNmax, nTrOutSAM)` writes only the
-top-scoring alignment, which is exactly the primary that survives the CRAM filter. Verified against
-the STAR source that the parameter appears **only** in the SAM/BAM write path and the
-alignment-ordering code, and in no Solo counting file, so the matrices are unaffected; and verified
-against the pinned STAR 2.7.11b binary that the name is recognised. Free memory, free wall-clock, and
-a byte-identical CRAM.
+records nothing keeps**. `nTrOutWrite = min(P.outSAMmultNmax, nTrOutSAM)` writes only a top-scoring
+alignment, which is the record that survives the CRAM filter. Verified against the STAR 2.7.11b
+source that the parameter appears **only** in the SAM/BAM write path and the alignment-ordering code,
+and in no Solo counting file, so the matrices are unaffected; and against the pinned binary that the
+name is recognised.
+
+**The retained CRAM is not byte-identical, and #205 was wrong to say it was.** For a uniquely-mapping
+read it is bit-for-bit unchanged; for a read with `NH > 1`, two things move, and `--outSAMmultNmax`
+is itself the trigger for both:
+
+```cpp
+// ReadAlign_multMapSelect.cpp — the condition is the flag, not the multimapper order
+if (P.outMultimapperOrder.random || P.outSAMmultNmax != (uint) -1 ) {   // partition trMult
+    ...
+} else if (P.outMultimapperOrder.random || P.outSAMmultNmax != (uint) -1) {
+    trMult[0]->primaryFlag=true;   // ...instead of trBest->primaryFlag=true
+```
+
+- **`HI` changes.** It is an output-order index — `iTrOut + P.outSAMattrIHstart` in
+  `ReadAlign_alignBAM.cpp`, where `iTrOut` is the write loop's counter — so the retained record now
+  always carries `HI:i:1` rather than its position in the unordered list.
+- **Which alignment is retained can change.** `trBest` is chosen with a tie-break on the shorter
+  genomic span (`trAll[iW1][0]->gLength < trBest->gLength`, `ReadAlign_stitchPieces.cpp`); the
+  partition above takes the first equal-scoring alignment in window order. Both are top-scoring, so
+  this is a change of tie-break rather than of quality — but for a read tying across loci of
+  different span (a spliced gene against a processed pseudogene) the POS, CIGAR, `AS` and `nM` differ.
+
+`NH` is unaffected: it is computed from `nTrOutSAM`, the full locus count, not from the truncated
+write count. So is every count matrix — `SoloFeature_addBAMtags` keys `CB`/`UB` on the read index
+alone, and the gene assignment is an order-independent set union. This is affordable because the
+`WORKFLOW_VERSION` bump already obliges reprocessing; it would not have been, silently, under a
+version that claimed nothing had changed.
 
 ## Why not size every job for the worst sample
 
@@ -173,32 +200,43 @@ and the fix is a one-line override in one recipe.
 
 ## So in code
 
-**A memory cap STAR is given must derive from the job's escalated request, never from
-`config["mem_mb"]` directly.** In a rule that declares `retries`, `config["mem_mb"]` is the *first
-attempt's* number and nothing else; the live figure is `resources.mem_mb`, which is why the sort
-budget is computed in a `params:` lambda that takes `resources` (`sort_ram=lambda wildcards,
-resources: bam_sort_ram(resources.mem_mb)`) and not one that closes over `config`. The bug shape to
-watch for is a rule that escalates its request and then keeps handing the aligner attempt 1's cap —
-it looks like it retried, it consumed the queue time of a retry, and it refuses in exactly the same
-place. Put the arithmetic in `workflows/memory.py` and call it; do not re-derive a fraction of a
-memory request inside a shell block, where nothing can import it and no unit test can reach it.
+**A memory cap an aligner is given must be a `resources:` entry over `attempt` — never a `params:`
+one, and never `config["mem_mb"]` directly.** In a rule that declares `retries`, `config["mem_mb"]`
+is the *first attempt's* number and nothing else. The bug shape to watch for is a rule that escalates
+its request and then keeps handing the aligner attempt 1's cap: it looks like it retried, it consumed
+the queue time of a retry, and it refuses in exactly the same place. Put the arithmetic in
+`workflows/memory.py` and call it; do not re-derive a fraction of a memory request inside a shell
+block, where nothing can import it and no unit test can reach it.
 
-**Enforced by.** `test_the_sort_budget_follows_the_escalated_memory_request` and
-`test_the_star_rule_escalates_its_memory_on_retry` (`tests/test_workflows.py`);
+**The `params:` half of that imperative is not fastidiousness — it is the bug this record's own first
+implementation shipped.** Snakemake does hand `resources` to a `params:` callable, so
+`sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb)` reads correctly, plans
+correctly, passes a dry run, and freezes: `Job.attempt`'s setter clears `self._resources` and **not**
+`self._params`, and `reset_params_and_resources()` is one-shot behind a
+`_params_and_resources_resetted` flag, so the params expansion happens once, on attempt 1, and every
+retry reuses it. Traced over three attempts on the pinned snakemake 9.23.1:
+`mem=1000 cap=750` / `mem=2000 cap=750` / `mem=3000 cap=750` as a param, against `750` / `1500` /
+`2250` for the identical arithmetic as a resource. Every structural check in the suite was green on
+the frozen version, because the shape was right and only the semantics were wrong.
+
+**Enforced by.** `test_a_snakemake_retry_re_expands_a_resource_and_never_a_param`,
+`test_the_star_rule_escalates_its_memory_on_retry`,
+`test_the_module_never_computes_a_star_memory_cap_from_the_config` and
+`test_the_sort_budget_follows_the_escalated_memory_request` (`tests/test_workflows.py`);
 `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives`
-(`tests/test_compose.py`), which reads the module's literals out of the rendered argv and is
-therefore where `--outSAMmultNmax 1` is visible at all.
+(`tests/test_compose.py`).
 
-**What is not enforced: that the escalation happens on a real retry.** Nothing in this repository can
-prove it. A dry run renders attempt 1 and only attempt 1, and the suite owns no cluster, no
-scheduler and no sample large enough to fail one — so the gates above cover the *arithmetic*
-(`escalated_mem_mb` and `bam_sort_ram` as functions) and the *wiring* (that the rule declares
-`retries`, and that the sort budget is a function of `resources` rather than of `config`). The
-escalation itself is covered structurally: if snakemake's `attempt` semantics changed, or the
-`resources` callable stopped being invoked per attempt, every test here would stay green. Noticing
-that would take a real failing run on a real scheduler, with the granted `mem_mb` and the emitted
-`--limitBAMsortRAM` read out of attempt 2's log and compared — an integration test against
-infrastructure this repo deliberately does not own.
+**What is not enforced: that `starsolo_count` itself escalates on a real retry.** The *construct* it
+relies on is proven — `test_a_snakemake_retry_re_expands_a_resource_and_never_a_param` runs a real
+three-attempt snakemake over a synthetic eleven-line workflow and reads the trace, which is what makes
+"a `resources:` callable is re-expanded and a `params:` one is not" a measured fact rather than a
+reading of snakemake's source. What no gate here covers is that rule, with that aligner, on a sample
+large enough to fail: it would need a genome index, STAR, a scheduler, and a sample big enough to
+exhaust memory three times over, none of which this suite owns. So the coverage is the arithmetic
+(`escalated_mem_mb` and `bam_sort_ram` as functions), the construct (a real retry, synthetically), and
+the wiring that binds the two to the rule (its source shape). A regression would have to be something
+that leaves all three green — a STAR that stops honouring `--limitBAMsortRAM`, say — and noticing it
+would take the granted `mem_mb` and the emitted cap read out of attempt 2's log on a real cluster.
 
 ## Consequences
 
@@ -227,3 +265,8 @@ infrastructure this repo deliberately does not own.
   amended in place to say so. `--outSAMmultNmax` varies with nothing — there is no dataset for which
   writing alignments the CRAM step then deletes is correct — so it is the module's, and it is
   invisible to the params gate for the same reason every literal there is.
+- **A multimapper's retained record changes, so a re-run CRAM will not diff clean against an old
+  one.** `HI` becomes `1`, and where loci tie on score the retained alignment may be a different one
+  of them (see the Decision). Unique reads and all counts are unchanged. Anyone comparing a
+  `2026.8.2` CRAM against a `2026.8.1` one should compare on `(read name, NH)` and on the matrices,
+  not on bytes — and should not read a difference there as a defect.
