@@ -6,6 +6,12 @@
 
 import csv
 
+# seqforge's own helper, imported rather than restated — the same contract starsolo.smk and
+# chromap.smk state at greater length. `ordered_fastqs` decides the order every mate of one sample is
+# handed to the aligner in, and all three modules must agree on it exactly: a Snakefile is not
+# importable, so three copies of that rule could only ever be checked by running three pipelines.
+from seqforge.workflows.units import ordered_fastqs
+
 
 def _load_units(path):
     with open(path, newline="") as fh:
@@ -19,18 +25,18 @@ ASSEMBLY = config["genome"]["assembly"]
 
 
 def fastqs(sample, role):
-    # Ordered by the units.tsv `run` column so a pooled sample's two mates pair correctly (STAR
-    # desyncs otherwise). `run` is seqforge's own run grouping -- no filename parsing here.
-    us = [u for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
-    return [u["path"] for u in sorted(us, key=lambda u: (u["run"], u["path"]))]
+    # `ordered_fastqs` owns the order and the argument for it; the two other mapping modules read the
+    # same one. Bulk mates are symmetric, so a mispairing here does not even desync the record lengths
+    # -- STAR maps mate1 of lane 1 against mate2 of lane 2 and reports a plausible, wrong rate.
+    return ordered_fastqs(UNITS, sample, role)
 
 
 def readfilesin(sample, *roles):
     """Render STAR ``--readFilesIn`` for one sample: each role (a mate) is its FASTQs **comma-joined**,
     and the mates are space-separated -- ``mate1_run1,mate1_run2 mate2_run1,mate2_run2``.
 
-    A sample pooled across N sequencing runs passes every run's file for a mate as one comma-list, in
-    matching run order for every mate (``fastqs`` preserves units.tsv order). This is STAR's own
+    A sample pooled across N sequencing runs (or across one run's lanes) passes every such file for a
+    mate as one comma-list, in the single order ``fastqs`` imposes on both mates alike. This is STAR's
     multi-file syntax; joining with spaces instead makes STAR read the extra files as extra mates and
     crash. A single-run sample renders one file per mate, so this generalises to any run count."""
     return " ".join(",".join(fastqs(sample, role)) for role in roles)

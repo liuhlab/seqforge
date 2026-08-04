@@ -394,7 +394,7 @@ def discover_cases(cases_dir: Path | None = None) -> list[Case]:
     """Every case under ``cases_dir``, at any nesting depth, sorted by path.
 
     A case *is* a directory that holds an ``expected.yaml``; the directories above it are purpose
-    groups (``spec/``, ``prose/``, ``steering/``, ``refusal/``, ``real/``) that organise the corpus for
+    groups (``spec/``, ``prose/``, ``steering/``, ``refusal/``, ``grouping/``, ``real/``) that organise the corpus for
     a reader without changing a case's identity — a case's id stays its own leaf-directory name, so a
     group is a filing decision, not part of the case. Finding cases by their ``expected.yaml`` rather
     than by ``iterdir`` is what lets the layout be grouped or flat (the benchmark tier is flat) and the

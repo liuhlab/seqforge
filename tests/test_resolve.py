@@ -677,8 +677,10 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
 
     assert run_key("SRR28716558_1.fastq.gz") == "SRR28716558"
     assert run_key("SRR28716558_2.fastq.gz") == "SRR28716558"
-    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses
-    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1_L001"
+    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses. The
+    # lane goes with it -- a run spans its lanes (ADR-0027) -- but the `_S<n>` sample sheet entry
+    # stays, and `test_the_lanes_of_one_library_are_one_run` holds that pair of rules.
+    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1"
     assert run_key("s_R1.fastq.gz") == "s"
     # `--include-technical` dumps _1.._4; a _3 that failed to match would become its own bogus run
     assert run_key("SRR1_3.fastq.gz") == "SRR1"
@@ -711,6 +713,122 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
     )
     assert set(joined) == {"SRR36109512", "SRR36109513"}
     assert all(len(v) == 2 for v in joined.values())
+
+
+def test_the_lanes_of_one_library_are_one_run() -> None:
+    """A run spans every lane it was loaded into (`docs/adr/0027`), so the lane token is stripped.
+
+    Retaining it made a four-lane library four runs, and with no archive record a run IS the sample
+    identity -- so four samples at a quarter depth each, at exit 0 (#263).
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
+    assert run_key("cell_42_S1_L002_R1_001.fastq.gz") == "cell_42_S1"
+
+    fused = group_runs(
+        [
+            f"cell_42_S1_L00{lane}_{read}_001.fastq.gz"
+            for lane in (1, 2, 3, 4)
+            for read in ("R1", "R2")
+        ]
+    )
+    assert list(fused) == ["cell_42_S1"]
+    assert len(fused["cell_42_S1"]) == 8
+
+
+def test_the_sample_sheet_entry_is_never_stripped_with_the_lane() -> None:
+    """`_S<n>` stays: it is the one token separating two libraries on one flowcell (ADR-0027).
+
+    Stripping it would merge them, and a merge yields one plausible matrix that nobody notices --
+    the failure direction a grouping rule may never take. A library resequenced under a second
+    sample sheet is two runs of one sample here, and only a record may rejoin them.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
+    assert run_key("cell_42_S3_L001_R1_001.fastq.gz") == "cell_42_S3"
+
+    split = group_runs(
+        [
+            "cell_42_S1_L001_R1_001.fastq.gz",
+            "cell_42_S1_L002_R1_001.fastq.gz",
+            "cell_42_S3_L001_R1_001.fastq.gz",
+            "cell_42_S3_L002_R1_001.fastq.gz",
+        ]
+    )
+    assert list(split) == ["cell_42_S1", "cell_42_S3"]
+
+
+def test_a_lane_is_three_digits_because_bcl2fastq_pads() -> None:
+    """Only a padded three-digit token is a lane, because `L<n>` is not a lane-only namespace.
+
+    `XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz` -- 15 files on the benchmark tier -- spells the
+    worm's larval stage `L2` in the same name it spells a lane `L004`. All 250 real lane tokens in
+    the tier are three digits because bcl2fastq pads; a larval stage does not (ADR-0027). `_L\\d+`
+    fuses the stages wherever the mate strip leaves one trailing, which is the second case here.
+    """
+    from seqforge.resolve import run_key
+
+    assert run_key("XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz") == "XQTL_F4_N2PTM299_L2_1_S2"
+    # a two-digit token is not a lane wherever it sits, trailing included
+    assert run_key("worm_L2_R1_001.fastq.gz") == "worm_L2"
+    assert run_key("worm_L0001_R1_001.fastq.gz") == "worm_L0001"
+
+
+def test_a_name_that_is_only_a_lane_keeps_it() -> None:
+    """The floor: a strip that would leave nothing keeps the name (ADR-0027).
+
+    An empty run key is not a run -- every such file would collapse into one group.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("L001_R1_001.fastq.gz") == "L001"
+    assert run_key("L001.fastq.gz") == "L001"
+    assert list(group_runs(["L001_R1_001.fastq.gz", "L002_R1_001.fastq.gz"])) == ["L001", "L002"]
+
+
+def test_the_lanes_of_a_single_end_library_are_one_run_too() -> None:
+    """No mate token to strip first, so the lane is trailing on the bare stem. It still comes off.
+
+    A single-end library split four ways is the same quarter-depth failure as a paired one.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001.fastq.gz") == "cell_42_S1"
+    assert list(group_runs([f"cell_42_S1_L00{lane}.fastq.gz" for lane in (1, 2)])) == ["cell_42_S1"]
+
+
+def test_the_lane_survives_as_data_from_the_same_token_the_run_key_dropped() -> None:
+    """`lane_of` reads the lane the key stopped carrying, so one function owns what a lane IS.
+
+    A second parse would be a second notion of a lane, free to disagree with the grouping. The
+    accession branch is the case that forces the helper to stand on its own: GSE310378 puts lanes
+    INSIDE one accession (`SRR36109512_..._S1_L005`), where `run_key` never reaches the lane token
+    but the file still came from one (ADR-0027).
+    """
+    from seqforge.resolve import lane_of, run_key
+
+    assert lane_of("cell_42_S1_L001_R1_001.fastq.gz") == "L001"
+    assert lane_of("cell_42_S1_L002_R2_001.fastq.gz") == "L002"
+    assert lane_of("cell_42_S1_L001.fastq.gz") == "L001"
+    assert lane_of("SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz") == "L005"
+
+    # no lane in the name -- and the same notion of a lane as the strip, so a larval stage is none
+    assert lane_of("reads.fastq.gz") == ""
+    assert lane_of("SRR28716558_1.fastq.gz") == ""
+    assert lane_of("worm_L2_R1_001.fastq.gz") == ""
+
+    # the two functions never disagree: a reported lane is one the key does not carry
+    for name in (
+        "cell_42_S1_L001_R1_001.fastq.gz",
+        "cell_42_S1_L001.fastq.gz",
+        "worm_L2_R1_001.fastq.gz",
+        "L001_R1_001.fastq.gz",
+        "reads.fastq.gz",
+    ):
+        lane = lane_of(name)
+        assert not lane or lane not in run_key(name), name
 
 
 def test_resolving_six_runs_as_one_library_drops_ten_of_twelve_files(tmp_path: Path) -> None:

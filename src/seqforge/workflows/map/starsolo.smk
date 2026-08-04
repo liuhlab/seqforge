@@ -33,6 +33,7 @@ from seqforge.workflows.h5ad import (
 )
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 from seqforge.workflows.qc import QC_SUFFIX
+from seqforge.workflows.units import ordered_fastqs
 
 
 def _load_units(path):
@@ -51,23 +52,21 @@ PRIMARY = config["primary_feature"]
 
 
 def fastqs(sample, role):
-    # Ordered by the units.tsv `run` column so a pooled sample's mates pair correctly: STAR reads
-    # --readFilesIn mate-by-mate and desyncs (FATAL: "quality string length is not equal to sequence
-    # length") if cDNA run K is joined with barcode run J. `run` is seqforge's own run grouping, so
-    # run N of one mate lines up with run N of the other -- no filename parsing here.
-    us = [u for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
-    return [u["path"] for u in sorted(us, key=lambda u: (u["run"], u["path"]))]
+    # `ordered_fastqs` owns the order and the argument for it; the two other mapping modules read the
+    # same one. Mismatched RUNS do FATAL here ("quality string length is not equal to sequence
+    # length") -- mismatched LANES are the silent half, and are why the order is not `path` alone.
+    return ordered_fastqs(UNITS, sample, role)
 
 
 def readfilesin(sample, *roles):
     """Render STAR ``--readFilesIn`` for one sample: each role (a mate) is its FASTQs **comma-joined**,
     and the mates are space-separated -- ``cdna1,cdna2 barcode1,barcode2``.
 
-    A sample pooled across N sequencing runs passes every run's file for a mate as one comma-list, in
-    matching run order for every mate (``fastqs`` preserves units.tsv order, which lists a sample's
-    runs in one order). This is STAR's own multi-file syntax; joining with spaces instead -- the old
-    bug -- makes STAR read the extra files as extra mates and crash. A single-run sample renders one
-    file per mate, exactly as before, so this generalises to any run count with no special case."""
+    A sample pooled across N sequencing runs (or across one run's lanes) passes every such file for a
+    mate as one comma-list, in the single order ``fastqs`` imposes on every mate alike. This is STAR's
+    own multi-file syntax; joining with spaces instead -- the old bug -- makes STAR read the extra
+    files as extra mates and crash. A single-run sample renders one file per mate, exactly as before,
+    so this generalises to any run and lane count with no special case."""
     return " ".join(",".join(fastqs(sample, role)) for role in roles)
 
 
@@ -314,7 +313,7 @@ rule starsolo_count:
         adapter=adapter_sequence(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
-        # runs comma-joined, so a sample pooled across runs maps in one STAR pass. See readfilesin().
+        # runs and lanes comma-joined, so a pooled sample maps in one STAR pass. See readfilesin().
         reads=lambda wc: readfilesin(
             wc.sample, config["read_files_in"]["cdna"], config["read_files_in"]["barcode"]
         ),

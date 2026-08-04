@@ -22,6 +22,14 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.4 — `units.tsv` gains a `lane` column and `fastqs` orders a sample's files by
+#: `(run, lane, path)` (#263, ADR-0027). A run is now lane-blind, so a four-lane library is ONE run
+#: and the `run` column no longer orders anything within it — lexical path order silently took over
+#: the job of pairing the mates, and it holds for bcl2fastq names only by where the read token
+#: happens to sit. That failure is invisible: both comma-lists still carry equal read counts, so STAR
+#: completes and writes a matrix pairing one lane's barcodes with another lane's cDNA. The column
+#: restores the ordering to a fact. The value comes from `resolve.group.lane_of`, the same token the
+#: run key dropped, so the module still parses no filename.
 #: 2026.8.3 — the two barcoded modules IMPORT the QC artifact suffix they used to spell (#212).
 #: **Behaviour is unchanged: only the suffix's ownership moved.** `rule all` and `rule qc_bundle` in
 #: starsolo.smk, and `rule fragments_qc` in chromap.smk, declared `.qc.json.gz` / `.fragments.qc.json.gz`
@@ -148,7 +156,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.3"
+WORKFLOW_VERSION = "2026.8.4"
 
 _MODULE_DIR = Path(__file__).parent
 

@@ -23,7 +23,7 @@ Numbers only; the table below carries the links.
 | area | ADRs |
 | --- | --- |
 | `src/seqforge/cli/` | 0013, 0018 |
-| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024 |
+| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
@@ -32,8 +32,8 @@ Numbers only; the table below carries the links.
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
-| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021 |
-| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026 |
+| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027 |
+| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
@@ -69,3 +69,4 @@ Numbers only; the table below carries the links.
 | [0024](0024-one-owner-for-the-compiled-pipeline.md) | The compiled pipeline directory has one owner, and it sits above the composer | `workspace.py` names the directory and does no I/O; a top-level `pipeline.py` names the three files and answers which module ran, the config, the samples and where the outputs are — the composer writes through it and every other consumer reads through it | `pipeline.py`, `workspace.py`, `compose/`, `report/collect.py`, `e2e.py` |
 | [0025](0025-the-module-that-writes-an-artifact-owns-reading-it.md) | The module that writes a QC artifact owns reading it, and a registry names who does not | A leaf metrics vocabulary, one adapter beside each writer, and a `StatsSpec` registry whose `MODULES_WITHOUT_STATS` half makes "reports nothing" a declaration rather than a silent fall-through | `workflows/metrics.py`, `workflows/stats.py`, `workflows/qc.py`, `report/` |
 | [0026](0026-alerts-are-advisory-and-non-mutating.md) | An alert is advisory — the first backward edge writes nothing and changes no exit code | Post-run evidence names the decision it implicates and the value currently set; it rewrites neither artifact, raises no exit code and produces no refusal — the user decides whether to recompose | `workflows/metrics.py`, `workflows/stats.py`, `report/collect.py`, `report/panels.py` |
+| [0027](0027-a-run-spans-its-lanes.md) | A run spans its lanes, and filenames group no further | `run_key` strips `_L` + exactly three digits and nothing else — never `_S<n>`, never conditioned on the directory — and the lane survives in `units.tsv` to order a run's files identically for every mate | `resolve/group.py`, `compose/core.py`, `workflows/units.py`, `workflows/map/` |

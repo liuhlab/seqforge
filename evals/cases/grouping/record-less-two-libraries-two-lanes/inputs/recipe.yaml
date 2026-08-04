@@ -1,0 +1,33 @@
+# Two libraries on one flowcell, two lanes each, and NO archive record — the deposit shape #263
+# compiled as four samples. The files are named the way bcl2fastq names them,
+# `<name>_S<n>_L<lane>_<read>_001.fastq.gz`, after GSE126954's `Murray_b01_S1_L001_R1_001.fastq.gz`
+# (14 libraries x 4 lanes); the two libraries carry different `_S<n>`, because that token is the
+# sample-sheet entry and is the one thing separating them (ADR-0027).
+#
+# WHY THE BYTES ARE STAGED AND NOT RECIPED. A `spec` recipe deposits ONE library under ONE run
+# (`SIM_<mate>.fastq.gz`) and enforces it — `evals/case.py::_materialize_spec` raises when a spec's
+# files group into more than one run, because a case built from one KB spec IS one library. There is
+# no knob for a deposit layout, so four lanes of two libraries cannot be written here yet. Until
+# `SpecRecipe` grows one, the layout lives in
+# `tests/test_evals.py::test_a_record_less_multi_lane_deposit_stays_two_samples`, which generates
+# `spec/bulk-pe-bytes-only`'s own bytes four times, deposits them under the names above, points
+# $SEQFORGE_CASE_TWO_LIBRARIES_TWO_LANES at the directory and runs THIS case through `run_case`.
+# The ground truth stays here, where a case's ground truth belongs.
+#
+# So the corpus pass SKIPS this case (the root is unset for everyone who is not that test) and the
+# test runs it hermetically on every commit. Read the skip as "staged elsewhere", never as untested.
+#
+# WHY BULK, and it is the same argument `_two_bulk_runs` makes one test up: a `local` case gets no
+# registry, so it resolves against the shipped whitelists exactly as `manifest fill` does — and a
+# barcoded spec's synthetic barcodes miss every real one, which would turn a grouping case into a
+# question about its own fixture's onlist. Bulk needs no whitelist. The bug is in the filename path
+# and is chemistry-blind, so the cheapest chemistry that decides from bytes alone is the right one.
+generate:
+  kind: local
+  # Set by the test named above, and by nothing else. A per-case variable rather than one global
+  # root, for the reason `real/PRJNA1027859` gives: there will be more cases with staged roots.
+  root_env: SEQFORGE_CASE_TWO_LIBRARIES_TWO_LANES
+  glob: "*.fastq.gz"
+
+# No `hypothesis:`. Nothing here is steered — the bytes name the chemistry and the FILENAMES name
+# the samples, and the filenames are the whole subject.

@@ -88,7 +88,8 @@ _Avoid_: checksum, file hash, digest — all three imply the whole file was read
 **Library**:
 One sequencing library — the physical construct the reads came out of, and what the byte resolver
 identifies. Its **Chemistry** is the only `Evidenced` field describing it; assay, read layout and
-per-file roles all follow from that single decision (`docs/adr/0006`).
+per-file roles all follow from that single decision (`docs/adr/0006`). An **Archive record**'s
+experiment level names one, which is why several runs sit under one — a library sequenced twice.
 _Avoid_: dataset (a dataset is the files you were handed), experiment, prep; `assay` is the same
 answer in EFO's vocabulary, not a second fact
 
@@ -99,10 +100,18 @@ _Avoid_: specimen; and never use "sample" for a head. `StreamSample`/`probe_samp
 are legacy spellings of the byte sense, being retired.
 
 **Run**:
-One sequencing run — the grouping `resolve/group.py` derives from filenames. With no archive record,
-that grouping *is* the sample identity.
-_Avoid_: lane, experiment (both are narrower archive concepts); and never for the execution of a
-composed Snakefile, which is a **Compiled pipeline**
+One sequencing run — one **Library** on one pass of a sequencer, spanning every **Lane** it was
+loaded into. The grouping `resolve/group.py` derives from filenames. With no archive record that
+grouping is *taken as* the sample identity, which is exact for lanes and wrong for a library
+sequenced more than once: nothing in a filename rejoins two batches (`docs/adr/0027`).
+_Avoid_: lane (narrower, and its own term); experiment (the archive's level, which is a **Library**);
+and never for the execution of a composed Snakefile, which is a **Compiled pipeline**
+
+**Lane**:
+One physical lane of a flowcell, written into a filename by bcl2fastq as `_L001`. Always *inside* a
+**Run** and never one itself — the same library in four lanes is one run, one library, one sample.
+Retained only to order a run's files identically for every mate.
+_Avoid_: run; and never a **Sample**, which is what reading it as one produced (`docs/adr/0027`)
 
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
