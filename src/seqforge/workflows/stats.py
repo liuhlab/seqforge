@@ -53,6 +53,7 @@ from .qc import QC_SUFFIX as _STARSOLO_QC_SUFFIX
 from .qc import chemistry_rule as _starsolo_chemistry_rule
 from .qc import read_metrics as _read_starsolo
 from .qc import read_star_log as _read_star_log
+from .qc import solo_features_rule as _starsolo_solo_features_rule
 
 #: One cross-check rule: one sample's metrics in, zero or more :class:`Finding` out. Pure by
 #: signature — there is no path, no manifest and no writer in it — which is what makes a threshold
@@ -99,7 +100,7 @@ _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(
         artifact=f"{{sample}}{_STARSOLO_QC_SUFFIX}",
         read=_read_starsolo,
-        checks=(_starsolo_chemistry_rule,),
+        checks=(_starsolo_chemistry_rule, _starsolo_solo_features_rule),
     ),
     "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
     "map/star": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
