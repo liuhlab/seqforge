@@ -303,3 +303,197 @@
     border-color: var(--sf-accent);
   }
 }
+
+/* ── the two dense grids: the sample-metadata table and the evidence matrix ────────────────────────
+ *
+ * Two views, one vocabulary. Both are wide grids of cells whose meaning depends on where the cell's
+ * value came from, and the ink below is the only colour either of them spends.
+ *
+ * WHY THIS HUE, AND WHY ONE OF IT. The verdict palette owns red (OKLCh h≈29), amber (h≈81) and green
+ * (h≈157); the accent owns indigo (h≈277). On this page colour means "this is an exception", so a
+ * provenance hue landing in any of those arcs would be read as one. Four provenance hues were tried
+ * first and rejected by measurement, not by taste: after the four reserved arcs there is not 4×40° of
+ * hue left, and every four-hue set that does fit collapses under protanopia — magenta and blue are
+ * the same colour to a protanope, which is what a fourth hue would have to be.
+ *
+ * So there is ONE ink, in the cool arc nothing else uses, plus the page's own grey. CIEDE2000 against
+ * Machado-2009 dichromat simulations, light theme on #ffffff, ink #0e7490 (h 223, 5.4:1):
+ *
+ *     vs ok     #167a4b   ΔE 29.8 normal · 31.4 protan · 30.2 deutan · 5.1 tritan
+ *     vs warn   #a97a00   ΔE 45.5 · 42.0 · 47.7 · 45.4
+ *     vs crit   #b42318   ΔE 54.3 · 37.7 · 43.2 · 55.5
+ *     vs accent #4338ca   ΔE 23.9 · 14.8 · 12.5 · 15.6
+ *
+ * and dark theme on #161c24, ink #2fa0bd (h 219, 5.6:1): 39.6/41.3/41.7/7.1 against ok, and
+ * 23.2/11.7/12.7/14.6 against the accent. The one soft number is cyan against green for a TRITANOPE
+ * (~0.01% of people), and it is soft where it costs least: green is a verdict, so it appears on the
+ * header pill and in the Results table and never as a mark beside one of these.
+ *
+ * WHICH LEAVES FORM TO CARRY THE REST, which is the same argument `_LEVEL_FLAG` already makes for
+ * `!`/`!!` on the Results tab: a filled disc, an open ring, a square and a dash tell four bases apart
+ * in a printout, in greyscale, and to a reader who sees no colour at all. The hue is then free to say
+ * one thing only — cyan means "this came from the bytes or from a source", which is also exactly what
+ * a high cell in the evidence matrix means, which is why the matrix's heat ramp is the same ink and
+ * not a second scale. */
+@layer components {
+  :root {
+    --basis-ink: #0e7490;
+    --basis-quiet: var(--sf-dim);
+    --mx-heat: #7cc4d8;
+  }
+  /* Both dark selectors, for the reason the token layer gives: the attribute has to win in BOTH
+   * directions, which a bare media query cannot do. */
+  :root[data-theme="dark"] {
+    --basis-ink: #2fa0bd;
+    --mx-heat: #2b6b80;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --basis-ink: #2fa0bd;
+      --mx-heat: #2b6b80;
+    }
+  }
+
+  /* ---- the provenance mark ----------------------------------------------------------------------
+   * `basis-{basis}` is computed from the manifest's `Basis`, so every member is declared here — and
+   * the box is one size whatever the form, so the legend row and the table cell align the same way. */
+  .basis-mark {
+    @apply relative inline-block shrink-0 align-middle;
+    width: 10px;
+    height: 10px;
+  }
+  .basis-observed {
+    background: var(--basis-ink);
+    border-radius: 50%;
+  }
+  .basis-asserted {
+    border: 2px solid var(--basis-ink);
+    border-radius: 50%;
+  }
+  .basis-user_confirmed {
+    background: var(--basis-ink);
+    border-radius: 2px;
+  }
+  /* A rule, not a shape: nobody said this, we filled it in. Drawn as a child so the mark keeps the
+   * same 10px box as the other three and nothing in a row of them sits half a pixel off. */
+  .basis-inferred::before {
+    content: "";
+    position: absolute;
+    inset: 4px 0 auto;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--basis-quiet);
+  }
+
+  /* ---- the sample-metadata grid -----------------------------------------------------------------
+   * The min-width is what makes the region scroll instead of the page: it is the point at which a
+   * column stops being readable, stated once for every attribute column rather than per column. The
+   * max-width is the other half — one 600-character value must not set the width of the table. */
+  .basis-cell {
+    @apply align-top;
+    min-width: 9.5rem;
+    max-width: 15rem;
+  }
+  /* Two lines and an ellipsis. The full text is one click away in the popover, which is the whole
+   * reason a value is allowed to be clamped at all. */
+  .basis-v {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .basis-withheld {
+    color: var(--sf-warn);
+    font-style: italic;
+  }
+  .basis-cell[role="button"] {
+    @apply cursor-pointer;
+  }
+  .basis-cell[role="button"]:hover .basis-v {
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+  }
+  .basis-cell[aria-expanded="true"] {
+    background: var(--sf-accent-weak);
+  }
+
+  /* The row identifier doubles as the drawer's control, so the hover feedback lives on its children:
+   * the cell is a <th> and the sticky column's own background is what says "this column does not
+   * scroll", which a hover fill would fight. */
+  .basis-toggle {
+    @apply cursor-pointer;
+  }
+  .basis-sid {
+    @apply font-bold;
+    color: var(--sf-ink);
+  }
+  .basis-caret {
+    @apply mr-1 inline-grid size-5 place-items-center rounded align-middle font-mono text-xs;
+    color: var(--sf-faint);
+  }
+  .basis-toggle:hover .basis-caret {
+    color: var(--sf-accent);
+    background: var(--sf-accent-weak);
+  }
+  .basis-toggle:hover .basis-sid {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---- the evidence matrix ----------------------------------------------------------------------
+   * `mx-{status}` is the cell's tagged state, and all three render something: a number on a wash of
+   * the shared ink, a ✕, or the words "not scored". None of them is blank and none of them is a
+   * sentinel — a cell that says nothing is a cell a reader has to guess about. */
+  .mx-cell {
+    @apply text-center text-xs tabular-nums;
+  }
+  .mx-scored {
+    color: var(--sf-ink);
+  }
+  .mx-forbidden,
+  .mx-absent {
+    @apply cursor-pointer;
+    color: var(--sf-faint);
+  }
+  .mx-forbidden:hover,
+  .mx-absent:hover {
+    color: var(--sf-ink);
+  }
+
+  /* One grid for the winner; every sibling collapses to this bar, so the reader compares heights
+   * instead of reading two identical grids. Single ink — a gradient across two hues would make the
+   * bar's colour look like it meant something separate from its length. */
+  .mx-bar {
+    @apply relative h-1.5 flex-1 overflow-hidden rounded-full;
+    min-width: 3.75rem;
+    background: var(--sf-surface-2);
+  }
+  .mx-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--mx-w);
+    background: var(--mx-heat);
+  }
+  .mx-sib {
+    @apply mb-2 rounded-lg border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+  }
+  /* The default disclosure triangle is removed in both spellings — `list-style` for everything
+   * current, the -webkit pseudo-element for Safari — because the row already opens on click and two
+   * affordances for one action read as a bug. */
+  .mx-sib > summary {
+    @apply cursor-pointer;
+    list-style: none;
+  }
+  .mx-sib > summary::-webkit-details-marker {
+    display: none;
+  }
+  .mx-sib[open] > summary {
+    border-bottom: 1px solid var(--sf-line);
+  }
+}
