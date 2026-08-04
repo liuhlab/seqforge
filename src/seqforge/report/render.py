@@ -1,10 +1,17 @@
 """Assemble one :class:`ProjectReport` into a single self-contained HTML string.
 
 The shell: a sticky header with the verdict, the tab bar, one assay section per assay, a footer, and —
-inlined at the end — the vendored Mermaid bundle plus the report's own CSS/JS. Every asset is read from
-the package via ``importlib.resources`` and embedded, so the output makes zero network requests and
-opens on a double-click. No templating engine: the fragments come from ``panels.py`` and are
-concatenated here.
+inlined at the end — the report's own CSS and JS, and nothing else. Both are read from the package via
+``importlib.resources`` and embedded, so the output makes zero network requests and opens on a
+double-click. No templating engine: the fragments come from ``panels.py`` and are concatenated here.
+
+**There is no third-party runtime in the page**, and the two things that would have needed one are
+hand-built instead: the Flow tab is plain HTML cards, and the Results tab's knee plots are inline SVG
+(``panels._knee_figure``). The Flow tab did inline a ~2.5 MB Mermaid bundle, and it was dropped
+because a scaled SVG cannot reflow — its text shrank to nothing on a wide dataset — which took a
+rendered page from ~2.6 MB to a few tens of KB. A charting library would cost the same order again
+and arrive, as they do, as a CDN ``<script src>`` that quietly makes an "offline" page need the
+network. ``report/assets/VENDOR.md`` is the long form.
 """
 
 from __future__ import annotations

@@ -50,11 +50,13 @@ def report_cmd(
 ) -> None:
     """Write one self-contained HTML report of the workspace's compile; print a JSON summary.
 
-    The page inlines every asset (styles, script, the Mermaid flow-chart engine) so it opens on a
-    double-click with no network. Missing artifacts degrade gracefully — the chemistry decision lives
-    in the manifest, so the page always renders — and every richer panel appears iff its artifact is
-    found. That includes the pipeline's own results: once the composed Snakefile has run, its
-    per-sample QC artifacts are joined in as well, and a partial pipeline reports what landed.
+    The page inlines every asset it has — one stylesheet and one script — so it opens on a
+    double-click with no network. There is no diagram or charting engine to inline: the flow is plain
+    HTML cards and the knee plots are hand-built inline SVG, which is what keeps a rendered page in
+    the tens of KB. Missing artifacts degrade gracefully — the chemistry decision lives in the
+    manifest, so the page always renders — and every richer panel appears iff its artifact is found.
+    That includes the pipeline's own results: once the composed Snakefile has run, its per-sample QC
+    artifacts are joined in as well, and a partial pipeline reports what landed.
 
     ``--results`` is a machine fact, like ``--fastq-dir`` and ``--sif-dir``: it says where this
     machine put the outputs, and it cannot change anything the page says the compiler decided.

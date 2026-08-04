@@ -63,12 +63,30 @@ _TABS: list[tuple[str, str]] = [
     ("results", "Results"),
 ]
 
-#: How each provenance basis reads to someone who has never seen the manifest vocabulary.
+#: How each provenance basis reads to someone who has never seen the manifest vocabulary — the
+#: **how we know** voice, for a *dataset* field, where that is the question ``basis`` answers.
 _BASIS_PHRASE: dict[str, str] = {
     "observed": "measured directly from your files",
     "asserted": "stated in the records or paper",
     "inferred": "inferred from the surrounding context",
     "user_confirmed": "confirmed by you",
+}
+
+#: The same four bases in the **who decided** voice, for a *recipe* field. Two maps, and they stay
+#: two: on a dataset field ``basis`` answers how we know, on a recipe it answers who decided, and the
+#: "Processing choices" table's third column is headed *who decided*. Merged, that column would read
+#: "inferred from the surrounding context" as an answer to "who", which is not an answer at all.
+#:
+#: Each entry is the recipe ladder's own actor: a policy default is us, a flag or an instruction
+#: document is you, reference prose is the paper. ``observed`` has no writer on a recipe today and is
+#: still here, because a map that is total over the ``Basis`` literal cannot render a raw token — and
+#: an exhaustiveness test over both maps derives the members from that literal, so a fifth basis goes
+#: red here rather than shipping ``user confirmed`` onto a page.
+_WHO_PHRASE: dict[str, str] = {
+    "observed": "the files themselves",
+    "asserted": "the records / paper",
+    "inferred": "our default",
+    "user_confirmed": "you specified",
 }
 
 #: A verdict glyph for the restated hero card.
@@ -84,7 +102,18 @@ _VERDICT_GLYPH: dict[str, str] = {
 
 
 def esc(value: object) -> str:
-    return escape(str(value), quote=True)
+    """Escape one value for HTML text or an attribute — and render a missing one as **nothing**.
+
+    The display model is optional-heavy (a study's centre, an element's ``onlist_ref``, a sample's
+    note), so ``None`` reaches here routinely. ``str(None)`` puts the five-letter English word
+    ``None`` on the page, which a reader cannot tell apart from a value that was genuinely recorded —
+    the one failure this page must never have. Guarding at every call site was the alternative and is
+    the same fix written thirty times, each of which can be forgotten once. The eval report's sibling
+    escaper (``evals/report.py``) has always mapped ``None`` to empty; this is that, here.
+
+    Only ``None`` is blanked. ``0`` and ``False`` are answers, and a falsey test would erase them.
+    """
+    return escape("" if value is None else str(value), quote=True)
 
 
 def _basis_phrase(basis: str) -> str:
@@ -104,13 +133,6 @@ def _panel(title: str, body: str, *, sub: str = "", cls: str = "") -> str:
     sub_html = f'<p class="sub">{esc(sub)}</p>' if sub else ""
     klass = f"panel {cls}".strip()
     return f'<div class="{klass}"><h2>{esc(title)}</h2>{sub_html}{body}</div>'
-
-
-def _kv_rows(rows: list[tuple[str, str]]) -> str:
-    if not rows:
-        return '<p class="empty">nothing recorded</p>'
-    body = "".join(f"<tr><td>{esc(k)}</td><td>{v}</td></tr>" for k, v in rows)
-    return f'<div class="tbl-wrap"><table class="kv"><tbody>{body}</tbody></table></div>'
 
 
 # ---- overview -----------------------------------------------------------------------------------
@@ -629,6 +651,14 @@ def _recipe_panel(plan: PlanView) -> str:
 
 
 def _who(field: DecisionField) -> str:
+    """Who decided this recipe field: its evidence token when there is one, its basis otherwise.
+
+    The token is the sharper answer — it distinguishes a policy rule from a flag from a quoted paper,
+    which the basis alone cannot — so it wins; the basis is the fallback for a field carrying no
+    evidence. That fallback was an inline three-entry dict missing ``user_confirmed``, which is the
+    basis a recipe almost always carries, so the commonest answer in this column rendered as the raw
+    token "user confirmed" beside "our default" and "you specified".
+    """
     for ref in field.evidence:
         if ref.kind == "policy":
             return "our default"
@@ -638,11 +668,7 @@ def _who(field: DecisionField) -> str:
             return "from the paper / records"
         if ref.kind == "accession":
             return "from the records"
-    return {
-        "observed": "measured from the files",
-        "asserted": "from the records",
-        "inferred": "inferred",
-    }.get(field.basis, field.basis.replace("_", " "))
+    return _WHO_PHRASE.get(field.basis, field.basis.replace("_", " "))
 
 
 def _artifacts_panel(assay: AssayReport) -> str:

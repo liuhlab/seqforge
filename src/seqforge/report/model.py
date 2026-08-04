@@ -204,9 +204,23 @@ class PlanView(_View):
     ``config.yaml``: the report never types STARsolo's fields, it shows whatever the composer emitted.
     The ``*_rel`` paths are workspace-relative links to the deliverables, or ``None`` when this assay
     reached the IR but was never composed.
+
+    ``quantification_kind`` is the one exception to "everything here is a display string", and it
+    exists because the stage diagram has to *branch*. It used to branch on the caption in ``fields``
+    — a string the collector had rendered a few lines earlier — so rewording "atac: fragments…" would
+    have silently reverted an ATAC dataset's diagram to "align with STAR, count reads per gene", with
+    no test failing and nothing on the page admitting it. Carrying the recipe's own discriminator
+    makes the caption cosmetic again.
+
+    Carried as ``str`` rather than as the ``Literal`` the recipe declares, deliberately: this is a
+    *view*, built from an already-validated manifest, and a fifth quantification family must render
+    (through the fallback branch) rather than raise a validation error inside a page whose whole
+    contract is to degrade instead of failing. The closed set is enforced where it is decided, in
+    ``models/processing.py``.
     """
 
     fields: list[DecisionField] = Field(default_factory=list)
+    quantification_kind: str | None = None
     resources: list[tuple[str, str]] = Field(default_factory=list)
     primary_feature: str | None = None
     config: list[tuple[str, str]] = Field(default_factory=list)

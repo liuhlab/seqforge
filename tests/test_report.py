@@ -8,12 +8,15 @@ the collector degrades honestly when a piece is missing rather than crashing or 
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import shutil
 from pathlib import Path
+from typing import get_args
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from conftest import write_fastq_gz
@@ -21,6 +24,7 @@ from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
+from seqforge.report.model import AssayReport
 
 runner = CliRunner()
 
@@ -264,40 +268,187 @@ def test_flow_renders_as_html_cards_not_a_scaled_diagram(workspace: Path) -> Non
     assert {"report.css", "report.js"} <= asset_names
 
 
+def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
+    """The verb's ``--help`` and the renderer's docstring still promised the removed diagram engine.
+
+    Dropping Mermaid cut a rendered page from ~2.6 MB to tens of KB — the single largest thing ever
+    true about this page — and both prose sites went on describing the bundle as inlined. Prose that
+    names a dependency the wheel does not carry is worse than none: it is what a reader checks a size
+    budget against, and it would have sent the next person looking for an asset that is not there.
+    """
+    from seqforge.report import render
+
+    result = runner.invoke(app, ["report", "--help"])
+
+    assert result.exit_code == 0, result.stdout
+    # `--help` is a promise about the page a user is about to get, not a history of it.
+    assert "mermaid" not in result.stdout.lower()
+
+    doc = (render.__doc__ or "").lower()
+    assert "no third-party runtime" in doc  # the renderer says what it ships
+    assert "vendored" not in doc  # and never that it inlines a bundle it does not have
+
+
+# -- the display helpers ---------------------------------------------------------------------------
+
+
+def test_the_escaper_renders_a_missing_value_as_empty_not_the_word_none() -> None:
+    """An absent optional field must reach the page as nothing, never as the literal word ``None``.
+
+    The display model is full of optionals (a study centre, a read's ``onlist_ref``, a metric's
+    display), so ``esc`` is called on ``None`` routinely — and ``str(None)`` renders a five-letter
+    English word a reader cannot tell apart from a value that was actually recorded. The eval
+    report's sibling escaper has always mapped ``None`` to the empty string; this one did not, and
+    two escapers in one repo disagreeing about the same case is the drift worth closing.
+    """
+    from seqforge.evals.report import esc as eval_esc
+    from seqforge.report.panels import esc
+
+    assert esc(None) == ""
+    assert esc(None) == eval_esc(None)
+    # …and it is still an escaper: quoting stays on, so a value can never close an attribute.
+    assert esc('<b>&"') == "&lt;b&gt;&amp;&quot;"
+    assert esc(0) == "0" and esc(False) == "False"  # only None is blank, not every falsey value
+
+
+def test_the_who_decided_column_answers_for_every_basis_in_the_who_voice() -> None:
+    """``user_confirmed`` is the basis a **Recipe** almost always carries, and it was the one missing.
+
+    On a dataset field ``basis`` answers *how we know*; on a recipe it answers *who decided*, which is
+    why there are two phrasings and why merging them would be wrong. The ``who`` fallback held three
+    entries and none of them was the user, so a flag-set or instruction-set recipe field rendered the
+    raw token ``user confirmed`` in a column whose other answers are "our default" and "you specified".
+    """
+    from seqforge.report.model import DecisionField
+    from seqforge.report.panels import _who
+
+    chosen = DecisionField(label="genome", value="ce11 / WS298", basis="user_confirmed", rung=0)
+
+    assert _who(chosen) == "you specified"
+    assert "_" not in _who(chosen)  # never a raw underscore-stripped token
+
+
+def test_both_basis_phrasings_cover_the_closed_basis_set() -> None:
+    """Two maps, and they are correct to be two — but each must be total over ``Basis``.
+
+    The member set is read out of the ``Literal`` itself rather than restated here: a fifth basis
+    then breaks this test on the day it is added, which is the only way either map gets completed
+    before a page renders a raw token. Restating the four would make this a test that agrees with
+    itself and notices nothing.
+    """
+    from seqforge.models.base import Basis
+    from seqforge.report.panels import _BASIS_PHRASE, _WHO_PHRASE
+
+    members = set(get_args(Basis))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+
+    assert set(_BASIS_PHRASE) == members, "the 'how we know' map lost a basis"
+    assert set(_WHO_PHRASE) == members, "the 'who decided' map lost a basis"
+    assert all(v for v in _BASIS_PHRASE.values()) and all(v for v in _WHO_PHRASE.values())
+    # Kept separate on purpose: one answers how we know, the other who decided.
+    assert _BASIS_PHRASE != _WHO_PHRASE
+
+
+def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
+    """A helper whose only occurrence in the tree is its own ``def`` is dead weight that reads as live.
+
+    Checked by mechanism rather than by eye, because the eye is what missed it: an AST walk over the
+    package for every module-level ``def _name``, against every name loaded anywhere in the package
+    **or in this test file** — a helper only a test drives is a seam under test, not dead code.
+    """
+    import seqforge.report
+
+    package = Path(seqforge.report.__file__).parent
+    sources = sorted(package.glob("*.py")) + [Path(__file__)]
+
+    defined: set[str] = set()
+    referenced: set[str] = set()
+    for path in sources:
+        tree = ast.parse(path.read_text())
+        if path.parent == package:
+            defined |= {
+                node.name
+                for node in tree.body
+                if isinstance(node, ast.FunctionDef) and node.name.startswith("_")
+            }
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                referenced.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                referenced.add(node.attr)
+            elif isinstance(node, ast.alias):
+                referenced.add(node.name.rsplit(".", 1)[-1])
+
+    assert defined, "the walk should have found the package's helpers at all"
+    assert not (defined - referenced), (
+        f"dead private helper(s) in seqforge/report: {sorted(defined - referenced)}"
+    )
+
+
 # -- modality-aware rendering (ATAC / fragments) --------------------------------------------------
 
 
-def test_pipeline_stages_render_fragments_not_gene_counts_for_atac() -> None:
-    """An ATAC recipe's stage diagram must show chromap + fragments, never the RNA "count genes"
-    language — the report reads the quantification family off the recipe, so an `atac:` quant flips it."""
-    from seqforge.report.collect import _pipeline_stages
-    from seqforge.report.model import DecisionField, PlanView
+def _retarget_the_recipe(ws: Path, quantification: dict[str, object]) -> None:
+    """Rewrite the composed recipe's quantification *value* in place, leaving everything else alone.
 
-    atac_plan = PlanView(
-        fields=[
-            DecisionField(
-                label="quantification",
-                value="atac: fragments (fragments.tsv.gz)",
-                basis="inferred",
-                rung=3,
-            )
-        ]
-    )
-    stages = _pipeline_stages(atac_plan)
-    blob = " ".join(f"{s.title} {s.detail}" for s in stages).lower()
+    The shared fixture is bulk, because bulk is the branch CI can run headless; standing up a real
+    chromap compile would need a second KB spec and an onlist registry for the sake of one branch.
+    What the stage diagram reads is the recipe on disk, so swapping that one ``Evidenced`` value is
+    the entire ATAC input — and it then arrives at the diagram through ``collect_report``, i.e.
+    through the production ``_plan``, which is the whole point of doing it here rather than by
+    hand-building a ``PlanView``.
+    """
+    path = ws / "seqforge" / "processing.yaml"
+    doc = yaml.safe_load(path.read_text())
+    doc["processing"]["quantification"]["value"] = quantification
+    path.write_text(yaml.safe_dump(doc, sort_keys=True))
+
+
+def _stage_blob(assay: AssayReport) -> str:
+    """The stage diagram's whole rendered wording, lowercased — what a biologist would read."""
+    return " ".join(f"{s.title} {s.detail}" for s in assay.pipeline_stages).lower()
+
+
+def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_workspace: Path) -> None:
+    """An ATAC recipe renders chromap + fragments, and the axis is the recipe's typed kind.
+
+    This was checked against a hand-built ``PlanView`` whose ``value=`` was the production display
+    string copied into the fixture, which is a test that can only ever agree with itself: reword the
+    caption in ``_plan`` and the diagram silently reverts to the RNA branch with nothing failing —
+    on an ATAC dataset, where "count reads per gene" is not a cosmetic error. So the plan view
+    arrives from ``collect_report`` here, and the caption is then reworded on the way into the
+    diagram to prove it is not what the branch reads.
+    """
+    from seqforge.report.collect import _pipeline_stages
+
+    _retarget_the_recipe(own_workspace, {"kind": "atac"})
+    assay = collect_report(own_workspace).assays[0]
+    plan = assay.plan
+    assert plan is not None
+    assert plan.quantification_kind == "atac"  # the typed family, carried; not the caption
+
+    blob = _stage_blob(assay)
     assert "fragment" in blob
     assert "chromap" in blob
     assert "count genes" not in blob  # the RNA phrasing must not leak into an ATAC run
 
-    # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
-    solo_plan = PlanView(
-        fields=[
-            DecisionField(
-                label="quantification", value="solo: Gene, GeneFull", basis="inferred", rung=3
-            )
-        ]
+    reworded = plan.model_copy(
+        update={
+            "fields": [
+                f.model_copy(update={"value": "open-chromatin fragments"})
+                if f.label == "quantification"
+                else f
+                for f in plan.fields
+            ]
+        }
     )
-    solo_blob = " ".join(f"{s.title} {s.detail}" for s in _pipeline_stages(solo_plan)).lower()
+    assert _pipeline_stages(reworded) == assay.pipeline_stages
+
+    # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
+    _retarget_the_recipe(own_workspace, {"kind": "solo", "features": ["Gene", "GeneFull"]})
+    solo = collect_report(own_workspace).assays[0]
+    assert solo.plan is not None and solo.plan.quantification_kind == "solo"
+    solo_blob = _stage_blob(solo)
     assert "count" in solo_blob and "starsolo" in solo_blob
 
 
@@ -447,6 +598,71 @@ def test_the_report_verb_passes_the_results_flag_through_and_summarises_the_pipe
         "samples_finished": len(samples),
         "samples_expected": len(samples),
     }
+
+
+#: One `Log.final.out`, as STAR itself writes it — the artifact `map/star` reports from. Bulk needs no
+#: renamed module and no QC bundle, which is what makes it the cheap way to hand the chained `run`
+#: verb a *finished* pipeline. The numbers are a healthy run; what is under test is the flag, not the
+#: grading, which `tests/test_workflows.py` holds to real STAR values.
+_STAR_FINAL_LOG: dict[str, object] = {
+    "Number of input reads": 1_000_000,
+    "Uniquely mapped reads %": "91.20%",
+    "% of reads mapped to multiple loci": "4.10%",
+    "% of reads mapped to too many loci": "0.30%",
+    "% of reads unmapped: too short": "3.90%",
+}
+
+
+def _finish_a_bulk_pipeline(ws: Path, *, outdir: str) -> list[str]:
+    """Land STAR's own final log per contracted sample under ``<pipeline>/<outdir>/``."""
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    samples = pipeline.samples
+    assert samples, "the composed config should carry its own sample list"
+    for sample in samples:
+        out = pipeline.directory / outdir / sample / "Log.final.out"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text("".join(f"  {k} |\t{v}\n" for k, v in _STAR_FINAL_LOG.items()))
+    return samples
+
+
+def test_the_run_verb_carries_the_results_flag_so_a_relocated_pipeline_reads_as_run(
+    own_workspace: Path,
+) -> None:
+    """`run` renders the page at the end of a compile, and it must be able to say the pipeline ran.
+
+    It already carries the rest of the machine-fact family — `--fastq-dir`, `--sif-dir` — and this is
+    the same kind of fact: where *this machine* put the outputs. Without it a re-run after a pipeline
+    relocated by `snakemake --directory` re-rendered the page with the claim that the pipeline has
+    not been run, which is a false statement on the one section whose whole job is saying what
+    happened.
+    """
+    samples = _finish_a_bulk_pipeline(own_workspace, outdir="elsewhere")
+
+    result = runner.invoke(
+        app,
+        [
+            "run", str(own_workspace / "s_R1.fastq.gz"), str(own_workspace / "s_R2.fastq.gz"),
+            "--organism", "559292",
+            "--assembly", "sacCer3",
+            "--annotation", "ensembl",
+            "--no-llm",
+            "--fastq-dir", str(own_workspace),
+            "-C", str(own_workspace),
+            "--results", "elsewhere",
+        ],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    html = (own_workspace / "seqforge" / "report.html").read_text()
+    assert "not been run yet" not in html  # the false claim this flag exists to stop
+    assert ">Results</button>" in html  # the tab is offered, because the pipeline did finish
+
+    stats = collect_report(own_workspace, results_dir=Path("elsewhere")).assays[0].pipeline_stats
+    assert stats is not None and stats.module == "map/star"
+    assert stats.n_found == len(samples) == stats.n_expected
 
 
 def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_workspace: Path) -> None:

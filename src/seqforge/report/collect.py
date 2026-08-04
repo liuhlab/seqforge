@@ -445,13 +445,19 @@ def _artifacts(base: Path, pipeline: CompiledPipeline | None) -> list[ArtifactEm
 def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
     """A small, human-readable "what will run, in order" — derived from the recipe, not the Snakefile.
 
-    Branches on the counting family (single-cell STARsolo vs bulk STAR) so it stays modality-general,
-    and reads as plain English for a biologist rather than a rule graph.
+    Branches on the recipe's **typed** counting family (``solo`` / ``atac`` / bulk) so it stays
+    modality-general, and reads as plain English for a biologist rather than a rule graph.
+
+    It used to branch on ``quantification``'s rendered caption — ``value.startswith("solo")`` over a
+    string :func:`_plan` had produced twenty lines above — which made a display decision load-bearing
+    for a correctness one. Rewording that caption would have reverted an ATAC dataset to "align with
+    STAR, count reads per gene" with nothing failing. :func:`_plan` already branches on ``quant.kind``
+    correctly, so this reads the same axis, carried on the view rather than re-derived, which keeps
+    the signature a plan view in and stages out.
     """
     if plan is None:
         return []
-    quant = next((f.value for f in plan.fields if f.label == "quantification"), "")
-    if quant.startswith("solo"):
+    if plan.quantification_kind == "solo":
         return [
             PipelineStage(
                 key="onlist",
@@ -469,10 +475,9 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
                 detail="write the results as an .h5ad file, ready to open in Scanpy/Seurat",
             ),
         ]
-    if quant.startswith("atac"):
-        # scATAC via chromap: the deliverable is a fragments file, not a count matrix. A defensive stub
-        # so an ATAC workspace does not render as "STAR / count genes per gene" (the full fragments
-        # wording is PR-E).
+    if plan.quantification_kind == "atac":
+        # scATAC via chromap: the deliverable is a fragments file, not a count matrix, so an ATAC
+        # workspace must not render as "STAR / count reads per gene".
         return [
             PipelineStage(
                 key="onlist",
@@ -570,6 +575,7 @@ def _plan(
 
     return PlanView(
         fields=fields,
+        quantification_kind=quant.kind,
         resources=resources,
         primary_feature=primary_feature,
         config=config_kv,
