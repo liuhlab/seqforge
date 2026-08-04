@@ -25,7 +25,7 @@ from typing import Any
 
 from ..models.processing import SoloFeature
 from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
-from .metrics import Metric, SampleStats, count, fraction, knee_points
+from .metrics import Finding, Metric, SampleStats, count, fmt_pct, fraction, knee_points
 
 #: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than in
 #: ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of restating it
@@ -518,10 +518,87 @@ def read_star_log(path: Path, sample: str) -> SampleStats:
     )
 
 
+# ---- the cross-check ----------------------------------------------------------------------------
+#
+# A rule here, and not in the renderer, for the same reason the reader is here: "a valid barcode" is
+# a STARsolo fact, and a renderer that knew what one was would be the `module == "map/starsolo"`
+# branch the per-module registry exists to prevent. It is registered on this module's `StatsSpec`,
+# under the same drift guard, so a fourth aligner declares its own rules or says out loud it has none.
+#
+# Pure, and over ONE sample's metrics: a threshold is then testable against literal values with no
+# filesystem, which is the only way a bar like the one below can be argued rather than asserted.
+
+
+#: Below this share of whitelist-matching reads, the rule fires. **1%, and the argument is that no
+#: real barcoded library lives under it**: even a badly degraded barcode read on the right kit matches
+#: percent-scale, so a rate this low is a whitelist that does not belong to these reads at all — which
+#: is a decision (which kit, or which file is the barcode read), not a library.
+#:
+#: At or above it the rule is deliberately silent, and that silence is the design. Between 1% and the
+#: metric's own 50% bar there is more than one explanation — a degraded barcode read, a contaminated
+#: library, a related-but-wrong kit — so naming one decision would be a guess wearing a diagnosis. The
+#: number is still bad there, and the metric's own `bad` tint already says so; what the alert adds is
+#: a claim about *cause*, and it is only made where the cause is decided.
+NEAR_ZERO_VALID_BARCODES = 0.01
+
+
+def _metric_value(sample: SampleStats, key: str) -> float | None:
+    """One metric's raw number, or ``None`` when the adapter never wrote it.
+
+    Absent is absent and never a zero — the rule the metric table already lives by, and here it is the
+    difference between silence and the loudest alert this system has. Bulk STAR measures no barcode at
+    all, so reading "no valid-barcode rate" as "a valid-barcode rate of zero" would fire on every bulk
+    run ever compiled.
+    """
+    for metric in sample.metrics:
+        if metric.key == key:
+            return metric.value
+    return None
+
+
+def chemistry_rule(sample: SampleStats) -> list[Finding]:
+    """Near-zero valid barcodes -> the chemistry call, or the barcode read's role, looks wrong.
+
+    What this adds over the metric is not "bad" — the metric already says bad, and a reader who does
+    not know STARsolo reads that as a bad library. It names the two **decisions** that produce the
+    number: which kit was called, and which FASTQ was handed over as the barcode read. Those are the
+    only two things a reader can act on, and the compiler made both.
+
+    Both are implicated rather than one, because the metric cannot separate them: a whitelist that
+    matches nothing looks identical whether the wrong list was chosen or the right list was read
+    against the cDNA. Picking one would be a guess, and an alert that guesses is an alert that gets
+    ignored the first time it is wrong.
+    """
+    value = _metric_value(sample, "valid_barcodes")
+    if value is None or value >= NEAR_ZERO_VALID_BARCODES:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.valid-barcodes-near-zero",
+            sample_id=sample.sample_id,
+            title="Almost no read carries a barcode this kit's whitelist knows",
+            severity="likely",
+            measured=(
+                f"{fmt_pct(value)} of reads matched the whitelist "
+                f"(this rule fires below {fmt_pct(NEAR_ZERO_VALID_BARCODES)}); "
+                "a real library of this kit matches the great majority"
+            ),
+            implicates=["chemistry", "read_roles"],
+            remedy=(
+                "Check which kit this library really is, and which FASTQ was handed over as the "
+                "barcode read. If either is wrong, correct it and compose again — nothing here "
+                "changes your manifest."
+            ),
+        )
+    ]
+
+
 __all__ = [
+    "NEAR_ZERO_VALID_BARCODES",
     "QC_SUFFIX",
     "QcError",
     "alignment_metrics",
+    "chemistry_rule",
     "build_qc_bundle",
     "metrics",
     "read_metrics",
