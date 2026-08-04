@@ -28,7 +28,7 @@ from seqforge import models as m
 from seqforge.compose import core
 from seqforge.io import DEFAULT_REGISTRY, OnlistRegistry, PackedOnlist
 from seqforge.kb.generate import write_fastq_gz as write_reproducible_fastq_gz
-from seqforge.kb.schema import HasSegment, Read, Spec
+from seqforge.kb.schema import HasSegment, MotifPresent, Read, Spec
 from seqforge.manifest import (
     ExperimentInputs,
     exit_code_for_report,
@@ -677,8 +677,10 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
 
     assert run_key("SRR28716558_1.fastq.gz") == "SRR28716558"
     assert run_key("SRR28716558_2.fastq.gz") == "SRR28716558"
-    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses
-    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1_L001"
+    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses. The
+    # lane goes with it -- a run spans its lanes (ADR-0027) -- but the `_S<n>` sample sheet entry
+    # stays, and `test_the_lanes_of_one_library_are_one_run` holds that pair of rules.
+    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1"
     assert run_key("s_R1.fastq.gz") == "s"
     # `--include-technical` dumps _1.._4; a _3 that failed to match would become its own bogus run
     assert run_key("SRR1_3.fastq.gz") == "SRR1"
@@ -711,6 +713,122 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
     )
     assert set(joined) == {"SRR36109512", "SRR36109513"}
     assert all(len(v) == 2 for v in joined.values())
+
+
+def test_the_lanes_of_one_library_are_one_run() -> None:
+    """A run spans every lane it was loaded into (`docs/adr/0027`), so the lane token is stripped.
+
+    Retaining it made a four-lane library four runs, and with no archive record a run IS the sample
+    identity -- so four samples at a quarter depth each, at exit 0 (#263).
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
+    assert run_key("cell_42_S1_L002_R1_001.fastq.gz") == "cell_42_S1"
+
+    fused = group_runs(
+        [
+            f"cell_42_S1_L00{lane}_{read}_001.fastq.gz"
+            for lane in (1, 2, 3, 4)
+            for read in ("R1", "R2")
+        ]
+    )
+    assert list(fused) == ["cell_42_S1"]
+    assert len(fused["cell_42_S1"]) == 8
+
+
+def test_the_sample_sheet_entry_is_never_stripped_with_the_lane() -> None:
+    """`_S<n>` stays: it is the one token separating two libraries on one flowcell (ADR-0027).
+
+    Stripping it would merge them, and a merge yields one plausible matrix that nobody notices --
+    the failure direction a grouping rule may never take. A library resequenced under a second
+    sample sheet is two runs of one sample here, and only a record may rejoin them.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
+    assert run_key("cell_42_S3_L001_R1_001.fastq.gz") == "cell_42_S3"
+
+    split = group_runs(
+        [
+            "cell_42_S1_L001_R1_001.fastq.gz",
+            "cell_42_S1_L002_R1_001.fastq.gz",
+            "cell_42_S3_L001_R1_001.fastq.gz",
+            "cell_42_S3_L002_R1_001.fastq.gz",
+        ]
+    )
+    assert list(split) == ["cell_42_S1", "cell_42_S3"]
+
+
+def test_a_lane_is_three_digits_because_bcl2fastq_pads() -> None:
+    """Only a padded three-digit token is a lane, because `L<n>` is not a lane-only namespace.
+
+    `XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz` -- 15 files on the benchmark tier -- spells the
+    worm's larval stage `L2` in the same name it spells a lane `L004`. All 250 real lane tokens in
+    the tier are three digits because bcl2fastq pads; a larval stage does not (ADR-0027). `_L\\d+`
+    fuses the stages wherever the mate strip leaves one trailing, which is the second case here.
+    """
+    from seqforge.resolve import run_key
+
+    assert run_key("XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz") == "XQTL_F4_N2PTM299_L2_1_S2"
+    # a two-digit token is not a lane wherever it sits, trailing included
+    assert run_key("worm_L2_R1_001.fastq.gz") == "worm_L2"
+    assert run_key("worm_L0001_R1_001.fastq.gz") == "worm_L0001"
+
+
+def test_a_name_that_is_only_a_lane_keeps_it() -> None:
+    """The floor: a strip that would leave nothing keeps the name (ADR-0027).
+
+    An empty run key is not a run -- every such file would collapse into one group.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("L001_R1_001.fastq.gz") == "L001"
+    assert run_key("L001.fastq.gz") == "L001"
+    assert list(group_runs(["L001_R1_001.fastq.gz", "L002_R1_001.fastq.gz"])) == ["L001", "L002"]
+
+
+def test_the_lanes_of_a_single_end_library_are_one_run_too() -> None:
+    """No mate token to strip first, so the lane is trailing on the bare stem. It still comes off.
+
+    A single-end library split four ways is the same quarter-depth failure as a paired one.
+    """
+    from seqforge.resolve import group_runs, run_key
+
+    assert run_key("cell_42_S1_L001.fastq.gz") == "cell_42_S1"
+    assert list(group_runs([f"cell_42_S1_L00{lane}.fastq.gz" for lane in (1, 2)])) == ["cell_42_S1"]
+
+
+def test_the_lane_survives_as_data_from_the_same_token_the_run_key_dropped() -> None:
+    """`lane_of` reads the lane the key stopped carrying, so one function owns what a lane IS.
+
+    A second parse would be a second notion of a lane, free to disagree with the grouping. The
+    accession branch is the case that forces the helper to stand on its own: GSE310378 puts lanes
+    INSIDE one accession (`SRR36109512_..._S1_L005`), where `run_key` never reaches the lane token
+    but the file still came from one (ADR-0027).
+    """
+    from seqforge.resolve import lane_of, run_key
+
+    assert lane_of("cell_42_S1_L001_R1_001.fastq.gz") == "L001"
+    assert lane_of("cell_42_S1_L002_R2_001.fastq.gz") == "L002"
+    assert lane_of("cell_42_S1_L001.fastq.gz") == "L001"
+    assert lane_of("SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz") == "L005"
+
+    # no lane in the name -- and the same notion of a lane as the strip, so a larval stage is none
+    assert lane_of("reads.fastq.gz") == ""
+    assert lane_of("SRR28716558_1.fastq.gz") == ""
+    assert lane_of("worm_L2_R1_001.fastq.gz") == ""
+
+    # the two functions never disagree: a reported lane is one the key does not carry
+    for name in (
+        "cell_42_S1_L001_R1_001.fastq.gz",
+        "cell_42_S1_L001.fastq.gz",
+        "worm_L2_R1_001.fastq.gz",
+        "L001_R1_001.fastq.gz",
+        "reads.fastq.gz",
+    ):
+        lane = lane_of(name)
+        assert not lane or lane not in run_key(name), name
 
 
 def test_resolving_six_runs_as_one_library_drops_ten_of_twelve_files(tmp_path: Path) -> None:
@@ -1105,6 +1223,200 @@ def test_the_anchored_onlist_hit_drops_a_frame_the_sequencer_never_called(tmp_pa
 
     assert hit.n_tested == clean.n_tested - blanked, "the blanked frames are coverage, not misses"
     assert hit.hit_rate == 1.0, "every frame that WAS called still came out of this very pool"
+
+
+# ================================================================================================
+# motif_present — an uncalled base is not a substitution
+# ================================================================================================
+#
+# The same coverage policy the two onlist paths above already share, one test over. `motif_rate` was
+# never brought along: an `N` failed the IUPAC membership check like any wrong base, so it ate the
+# `max_mismatch` budget, and the read stayed in the denominator no matter how much of the searched
+# span the sequencer never called. A dark cycle inside the window therefore read as "this library
+# does not carry the motif" — the run measured instead of the library.
+#
+# The policy has two halves, and they are NOT the same:
+#
+# - An uncalled base costs nothing where the motif CONSTRAINS nothing. `GTGANNNNNNNNNGACA` asks about
+#   8 of its 17 positions; a dark cycle under one of the nine `N`s was never evidence either way.
+# - Where it does constrain, what the loss costs depends on what the search DECLARES. `read_start` /
+#   `read_end` / a closed `window` name where the motif is, so their candidate positions are one claim
+#   staggered, not independent chances — an uncalled base at any of their constrained offsets leaves
+#   the read unable to answer, and it leaves `n_tested`. `anywhere`, and a `window` left open at the
+#   end, declare nothing: each position is its own chance, and the read leaves `n_tested` only when
+#   none of them survives.
+#
+# Only an UNCALLED base moves a read out of the denominator. A read the declared window does not fit
+# is a length fact, already gated elsewhere, and stays a miss.
+
+_DARK_CYCLE = 12  # under GTGA for most candidate phases: a cycle the Enhanced motif does constrain
+_DONT_CARE_CYCLE = (
+    18  # inside the CLS2 9-mer at EVERY candidate phase: a cycle it asks nothing about
+)
+
+
+def _enhanced_motif_gate() -> tuple[MotifPresent, Read, Spec]:
+    """The shipped GTGA/GACA `requires` entry, its read and its spec — never a hand-built copy.
+
+    A literal here would be a second spelling of a KB value and would keep passing after the shipped
+    one moved. The cycles the tests darken are checked against `search_start`/`search_end` and the
+    motif's own don't-care run, for the same reason.
+    """
+    spec = kb.load_spec("bd-rhapsody-wta-enhanced-v1")
+    bc = next(r for r in spec.reads if r.id == "bc")
+    return next(t for t in spec.signature.requires if isinstance(t, MotifPresent)), bc, spec
+
+
+def _darken(seqs: list[str], cycle: int, which: range | None = None) -> list[str]:
+    """Blank one cycle of the reads at ``which`` (all of them by default), lengths untouched."""
+    hit = set(range(len(seqs)) if which is None else which)
+    return [s[:cycle] + "N" + s[cycle + 1 :] if i in hit else s for i, s in enumerate(seqs)]
+
+
+def _rate_of(wp: WindowProbe, gate: MotifPresent) -> float | None:
+    """The shipped gate's own rate, its every parameter taken off the gate rather than restated."""
+    return wp.motif_rate(
+        gate.motif,
+        where=gate.where,
+        search_start=gate.search_start,
+        search_end=gate.search_end,
+        max_mismatch=gate.max_mismatch,
+    )
+
+
+def test_a_dark_cycle_across_the_motif_window_abstains_rather_than_failing_the_gate(
+    tmp_path: Path,
+) -> None:
+    """A cycle the sequencer never called cannot refuse a spec: nothing measurable is left to fail on.
+
+    The gate is a `requires` at a majority threshold, so before this the whole Enhanced family went
+    invalid on a run artifact — every read carried the added mismatch, the budget of 2 was gone, the
+    rate collapsed under `min_rate`, and a real BD Rhapsody dataset either fell to a lower candidate
+    or refused. Only FAIL forbids a cell, so ABSTAIN is what "we could not look" has to be.
+    """
+    wp, _, _ = _enhanced_bc_probe(tmp_path)
+    gate, bc, spec = _enhanced_motif_gate()
+    assert gate.search_start is not None and gate.search_end is not None
+    assert gate.search_start <= _DARK_CYCLE <= gate.search_end + len(gate.motif) - 1
+
+    clean = evaluate(gate, bc, wp, spec, DEFAULT_REGISTRY)
+    assert clean.outcome == Outcome.PASS, "the fixture must clear the shipped gate, or this is moot"
+
+    dark = WindowProbe(observation=wp.observation, seqs=_darken(wp.seqs, _DARK_CYCLE))
+    ev = evaluate(gate, bc, dark, spec, DEFAULT_REGISTRY)
+    assert ev.outcome == Outcome.ABSTAIN, "a run artifact must never FAIL, and so forbid, the spec"
+
+
+def test_the_motif_rate_is_measured_over_the_reads_that_were_actually_called(
+    tmp_path: Path,
+) -> None:
+    """Darkening HALF the framed reads costs coverage, not rate — and the gate still passes.
+
+    The arithmetic is the whole point and every term is derivable from the fixture: 200 of 240 reads
+    carry the frame. Blank the searched span in every other framed read and 100 framed + 40 frameless
+    stay callable, so the rate is 100/140 = 0.71 and clears the shipped 0.5. Counting the blanked
+    reads as misses instead gives 100/240 = 0.42, which does not — a majority gate flipped by a run
+    artifact. Both differ from the undarkened 200/240, so neither can pass by accident.
+    """
+    wp, _, _ = _enhanced_bc_probe(tmp_path)
+    gate, bc, spec = _enhanced_motif_gate()
+
+    blanked = range(0, _N_STAGGERED, 2)  # framed reads only: the frameless 40 stay readable misses
+    dark = WindowProbe(observation=wp.observation, seqs=_darken(wp.seqs, _DARK_CYCLE, blanked))
+    rate = _rate_of(dark, gate)
+    framed_and_called = _N_STAGGERED // 2
+    assert rate == pytest.approx(framed_and_called / (framed_and_called + _N_FRAMELESS))
+    assert rate != pytest.approx(framed_and_called / (_N_STAGGERED + _N_FRAMELESS))
+    assert evaluate(gate, bc, dark, spec, DEFAULT_REGISTRY).outcome == Outcome.PASS
+
+
+def test_a_dark_cycle_the_motif_asks_nothing_about_costs_the_read_nothing(tmp_path: Path) -> None:
+    """A cycle under a don't-care code is not evidence, so blanking it must not cost coverage either.
+
+    The over-correction this guards against is the tempting one: mask the whole motif width, and a
+    dark cycle in the Enhanced bead's 9 bp cell label — which `GTGANNNNNNNNNGACA` accepts any base at
+    — throws away a read still showing GTGA and GACA intact. Coverage would collapse to nothing and
+    the gate would abstain on a read it could have answered with. The rate is unmoved instead.
+    """
+    wp, _, _ = _enhanced_bc_probe(tmp_path)
+    gate, bc, spec = _enhanced_motif_gate()
+    assert gate.search_start is not None and gate.search_end is not None
+    phases = range(gate.search_start, gate.search_end + 1)
+    assert all(gate.motif[_DONT_CARE_CYCLE - p] == "N" for p in phases), "must be don't-care at ALL"
+
+    dark = WindowProbe(observation=wp.observation, seqs=_darken(wp.seqs, _DONT_CARE_CYCLE))
+    assert (
+        _rate_of(dark, gate)
+        == _rate_of(wp, gate)
+        == pytest.approx(_N_STAGGERED / (_N_STAGGERED + _N_FRAMELESS))
+    )
+    assert evaluate(gate, bc, dark, spec, DEFAULT_REGISTRY).outcome == Outcome.PASS
+
+
+_MOTIF = "GTGACGT"  # 7 bp, no ambiguity code: every position is a base the read must carry
+
+
+def test_an_uncalled_base_is_evidence_for_nothing_under_an_unbounded_search(
+    tmp_path: Path,
+) -> None:
+    """`anywhere`: an uncalled position is skipped, never scored — neither a match nor a mismatch.
+
+    Three reads, each pinning one arm. The clean one matches. The dark one holds the motif at its one
+    near-window with a single base blanked: scoring the `N` as a substitution admitted it within the
+    tolerance, which reports a window nobody read as carrying the motif — so it is a non-match now,
+    and it stays TESTED because its other positions were called. The all-dark read has no callable
+    position at all and leaves the denominator, exactly as a read too short to hold the motif does.
+    """
+    pad = "AAAA"
+    clean = pad + _MOTIF + pad
+    dark = pad + _MOTIF[:5] + "N" + _MOTIF[6:] + pad
+    unreadable = "N" * len(clean)
+    wp = _probe_of(tmp_path, [clean, dark, unreadable], "motif_anywhere")
+
+    # 1 match over the 2 reads that had a callable window; the all-N read is lost coverage. Scoring
+    # the N as a substitution gives 2/3 instead — a rate the run moved, not the library.
+    assert wp.motif_rate(_MOTIF, where="anywhere", max_mismatch=1) == pytest.approx(1 / 2)
+
+    assert _probe_of(tmp_path, [unreadable], "motif_all_dark").motif_rate(_MOTIF) is None
+
+
+def test_a_read_the_declared_window_does_not_fit_is_a_miss_not_lost_coverage(
+    tmp_path: Path,
+) -> None:
+    """Length is not coverage. Only an UNCALLED base leaves the denominator.
+
+    A read long enough to hold the motif but too short to reach the declared window offers no
+    candidate position — and that is a fact about the read's layout, gated on length elsewhere,
+    which must keep counting as "this is not that chemistry" rather than quietly vanishing into
+    lost coverage and abstaining the gate away.
+    """
+    short = "ACGT" * 3  # 12 bp: holds the 7 bp motif, reaches no position in [8, 13]
+    assert len(short) >= len(_MOTIF)
+    wp = _probe_of(tmp_path, [short] * 4, "motif_window_unreachable")
+
+    rate = wp.motif_rate(_MOTIF, where="window", search_start=8, search_end=13, max_mismatch=0)
+    assert rate == 0.0, "a read that cannot reach the window is a miss, not lost coverage"
+
+
+def test_a_window_left_open_at_the_end_declares_no_span_and_is_charged_per_position(
+    tmp_path: Path,
+) -> None:
+    """An unclosed `window` runs to the end of the read, so it cannot be one claim staggered.
+
+    Charging the whole read for any uncalled base past `search_start` would make a lone `N` in a
+    150 bp tail cost the read entirely — the `anywhere` over-correction wearing a different `where`.
+    A closed window is the opposite case and is charged whole, which is what the same read shows when
+    the end is pinned just past the motif.
+    """
+    lo = 4
+    seq = "AAAA" + _MOTIF + "AAAA" + "N" + "AAAA"  # the motif at `lo`, called; one dark cycle after
+    dark_cycle = len(seq) - 5
+    assert seq[dark_cycle] == "N" and dark_cycle > lo + len(_MOTIF)
+    wp = _probe_of(tmp_path, [seq], "motif_open_window")
+
+    assert wp.motif_rate(_MOTIF, where="window", search_start=lo) == 1.0
+    closed = wp.motif_rate(_MOTIF, where="window", search_start=lo, search_end=dark_cycle)
+    assert closed is None, "a closed span reaching the dark cycle is charged whole"
 
 
 # ================================================================================================

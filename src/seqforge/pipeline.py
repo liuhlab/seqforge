@@ -102,7 +102,7 @@ class CompiledPipeline:
 
     @property
     def units_path(self) -> Path:
-        """The units table — one row per (sample, **Run**, read role, file)."""
+        """The units table — one row per (sample, **Run**, **Lane**, read role, file)."""
         return self.directory / UNITS_TSV_NAME
 
     @property

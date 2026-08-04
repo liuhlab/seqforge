@@ -48,7 +48,7 @@ from ..models.processing import (
 )
 from ..models.resolve import ComposeResult, ModuleSelection
 from ..pipeline import CONFIG_NAME, DEFAULT_OUTDIR, UNITS_TSV_NAME, CompiledPipeline
-from ..resolve.group import run_key
+from ..resolve.group import lane_of, run_key
 from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
 from ..workspace import pipeline_dir, readable
 from .params import (
@@ -490,13 +490,22 @@ def _resolve_uri(uri: str, fastq_dir: str | Path | None) -> str:
 
 
 def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> list[dict[str, str]]:
-    """One row per (sample, run, read role, file). Falls back to a single implicit sample.
+    """One row per (sample, run, lane, read role, file). Falls back to a single implicit sample.
 
     ``run`` is which sequencing run a file came from, from the SAME `resolve.group.run_key` that
     grouped the dataset into runs during resolution. Recording it here is what lets the mapping module
     pair a pooled sample's mates by run: STAR reads `--readFilesIn` mate-by-mate and desyncs if cDNA of
     run K is joined with barcodes of run J, and `sample.file_uris` gives no order guarantee. Deriving
     the run once, in the one function that owns the notion, keeps the workflow from re-parsing names.
+
+    ``lane`` is the rest of that guarantee, and it exists because the run key stopped carrying it. A
+    run spans its lanes (ADR-0027), so a four-lane library is ONE run and ``run`` no longer separates
+    its eight files — leaving the mates' order to the lexical path sort, which holds for bcl2fastq
+    names by the coincidence of where the read token sits and fails SILENTLY when it does not: the two
+    comma-lists still hold equal read counts, so STAR completes and writes a matrix pairing one lane's
+    barcodes with another lane's cDNA. `resolve.group.lane_of` reads the same token `run_key` removed,
+    so the column and the grouping cannot disagree; an unlaned name yields ``""``, which sorts before
+    every lane and orders identically for every mate.
     """
     by_uri = {f.uri: f for f in manifest.library.files}
     rows: list[dict[str, str]] = []
@@ -508,6 +517,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
                     {
                         "sample_id": "sample1",
                         "run": run_key(f.uri),
+                        "lane": lane_of(f.uri),
                         "read_id": f.read_id,
                         "path": _resolve_uri(f.uri, fastq_dir),
                     }
@@ -522,6 +532,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
                 {
                     "sample_id": sample.sample_id,
                     "run": run_key(item.uri),
+                    "lane": lane_of(item.uri),
                     "read_id": item.read_id,
                     "path": _resolve_uri(item.uri, fastq_dir),
                 }
@@ -530,7 +541,7 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
 
 
 def _units_tsv(rows: list[dict[str, str]]) -> str:
-    header = ["sample_id", "run", "read_id", "path"]
+    header = ["sample_id", "run", "lane", "read_id", "path"]
     lines = ["\t".join(header)]
     lines += ["\t".join(r[h] for h in header) for r in rows]
     return "\n".join(lines) + "\n"

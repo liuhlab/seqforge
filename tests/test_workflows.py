@@ -2830,3 +2830,36 @@ def test_the_gene_model_rule_yields_to_the_feature_that_counted_the_same_reads_f
     assert [f.alert_id for f in gene_model_rule(only_exonic)] == [
         "starsolo.reads-mapped-but-not-counted"
     ]
+
+
+def test_every_mate_of_one_sample_is_ordered_the_same_way() -> None:
+    """The ordering all three mapping modules import, and the reason it is not `path` alone.
+
+    Every aligner seqforge composes reads its mates in lockstep, so mate A's file list and mate B's
+    must agree file-for-file. Since a run went lane-blind (`docs/adr/0027`) a multi-lane library is
+    ONE run, so `run` ties across every file and only `lane` still separates them.
+
+    The rows below are the shape that makes this load-bearing: the barcode filenames sort AGAINST
+    lane order while the cDNA filenames sort with it, which is what a `(run, path)` sort would get
+    wrong. Real bcl2fastq names happen to sort correctly, which is exactly why these are not real
+    bcl2fastq names -- the guarantee must come from the column, not from a naming coincidence.
+    """
+    from seqforge.workflows.units import ordered_fastqs
+
+    units = [
+        {"sample_id": "s1", "run": "lib_S1", "lane": "L002", "read_id": "R2", "path": "d_cdna.fq"},
+        {"sample_id": "s1", "run": "lib_S1", "lane": "L001", "read_id": "R2", "path": "c_cdna.fq"},
+        {"sample_id": "s1", "run": "lib_S1", "lane": "L002", "read_id": "R1", "path": "a_bc.fq"},
+        {"sample_id": "s1", "run": "lib_S1", "lane": "L001", "read_id": "R1", "path": "z_bc.fq"},
+        {"sample_id": "s2", "run": "other_S2", "lane": "L001", "read_id": "R1", "path": "x_bc.fq"},
+    ]
+
+    cdna = ordered_fastqs(units, "s1", "R2")
+    barcode = ordered_fastqs(units, "s1", "R1")
+    assert cdna == ["c_cdna.fq", "d_cdna.fq"]  # L001, L002
+    assert barcode == ["z_bc.fq", "a_bc.fq"]  # L001, L002 -- NOT lexical
+    assert [u["lane"] for u in units if u["path"] in cdna] == ["L002", "L001"]
+
+    # The other sample's file never leaks in, and an absent role is empty rather than an error.
+    assert ordered_fastqs(units, "s1", "I1") == []
+    assert ordered_fastqs(units, "s2", "R1") == ["x_bc.fq"]
