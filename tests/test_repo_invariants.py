@@ -750,3 +750,78 @@ def test_the_test_environment_pins_its_thread_pools() -> None:
     # One of three: the failure a single-variable declaration would leave behind, silently, since the
     # two BLAS names each win over the generic one in the library that reads them.
     assert _unpinned({"OMP_NUM_THREADS": "1"}) == ["MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"]
+
+
+#: What `npm install` drops in an asset directory. The rebuild procedure in both `VENDOR.md`s ends by
+#: deleting the first two, and that is still the design -- node is a build-time tool for one generated
+#: file and nothing from npm is a deliverable here. But a `rm` at the end of a procedure only runs if
+#: the procedure finishes, and a Ctrl-C, a failed resolve, or a reader who stops after the install
+#: step all leave the tree behind, inside the package source, where `packages = ["src/seqforge"]`
+#: would carry it into the wheel.
+_NPM_LEAVINGS = ("node_modules", "package-lock.json", "package.json")
+
+
+@pytest.mark.repo
+def test_no_npm_artifact_is_tracked_and_none_could_become_tracked() -> None:
+    """Node stays a build-time tool, held shut from both ends.
+
+    The two halves answer different failures and neither implies the other. **Nothing tracked** is the
+    state that matters: an `npm` tree committed into `src/seqforge/` ships in the wheel. **Nothing
+    ignorable** is what stops that state being reached, since the way it would happen is a broad
+    `git add` during a half-finished rebuild rather than a deliberate commit.
+
+    The ignore half is asked of *git*, never of a copy of git's patterns -- the same choice
+    `test_nothing_tracked_escapes_the_type_checker` makes, and for the same reason: a second copy of
+    a matcher agrees with the original right up until it does not.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=_REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    committed = sorted(
+        path
+        for path in tracked.split("\0")
+        if path and any(part in _NPM_LEAVINGS for part in path.split("/"))
+    )
+    assert not committed, (
+        f"npm artifacts are committed: {committed}.\n"
+        f"They ship inside `src/seqforge/`, so they reach the wheel. Delete them and finish the "
+        f"rebuild procedure in the relevant `assets/VENDOR.md`, which ends by removing them."
+    )
+
+    # Every directory a documented build runs in, and every name that build drops there. Spelled out
+    # rather than globbed: a THIRD vendored stylesheet is exactly the case this should be made to
+    # think about, and a glob over today's tree would silently welcome it.
+    #
+    # `node_modules` is queried as a file INSIDE it, which is both what git can answer and what the
+    # failure actually looks like. `git add` never adds a directory -- it adds the files under one --
+    # and `git check-ignore` cannot apply a directory-only pattern (`node_modules/`) to a path that
+    # does not exist on disk, so asking about the bare directory name would pass or fail depending on
+    # whether someone happened to have a build lying around.
+    build_dirs = ("src/seqforge/report/assets", "src/seqforge/evals/assets")
+    would_land = [
+        f"{d}/{name}"
+        for d in build_dirs
+        for name in ("node_modules/tailwindcss/package.json", "package-lock.json", "package.json")
+    ]
+    assert _not_gitignored(would_land) == [], (
+        f"a half-finished `npm install` would leave sweepable files: {_not_gitignored(would_land)}.\n"
+        f"Add them to .gitignore -- the `rm` ending the rebuild procedure only runs if the build does."
+    )
+
+    # ...and the guard discriminates, in the direction that actually costs something. An ignore rule
+    # wide enough to swallow the build INPUTS would hide the source of record from git while every
+    # assertion above still passed, so the sources are asserted visible by the same predicate.
+    sources = [
+        "src/seqforge/report/assets/report.src.css",
+        "src/seqforge/report/assets/report.tw.css",
+        "src/seqforge/evals/assets/eval-report.src.css",
+        "src/seqforge/assets/sf-tokens.css",
+    ]
+    assert _not_gitignored(sources) == sorted(sources), (
+        "the npm ignore patterns are wide enough to hide a build input -- the vendored stylesheet's "
+        "own source of record would stop being tracked, silently."
+    )
