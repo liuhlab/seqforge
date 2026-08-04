@@ -126,7 +126,14 @@ Scope = Literal["systematic", "isolated"]
 #: file was handed over as which read (``library.files[].read_id``). Both are decisions this compiler
 #: made and recorded, which is the entire premise: a bad number is only actionable once the thing that
 #: produced it is named.
-Decision = Literal["chemistry", "read_roles"]
+#:
+#: ``annotation`` is the recipe's ``processing.genome`` — the registered gene model reads are counted
+#: against. ``strand`` is the odd one and is deliberately kept in the same set anyway: it is **not** a
+#: recipe field but a KB **backend param** (``soloStrand``), byte-decided and owned by the chemistry
+#: spec, which ``compose`` emits into the config — see ``docs/adr/0011``. A reader can still act on
+#: it, which is the only membership test this literal has; where they act is what the resolver's label
+#: has to say, because a reader sent to edit a ``soloStrand`` in their recipe will not find one.
+Decision = Literal["chemistry", "read_roles", "annotation", "strand"]
 
 #: How each severity reads in words. Total over the literal — the same exhaustiveness shape
 #: :data:`Level` and :data:`MetricGroup` already carry, so a third severity breaks a test instead of
