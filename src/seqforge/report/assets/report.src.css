@@ -191,18 +191,31 @@
     @apply w-full;
     border-collapse: collapse;
   }
-  .sf-scroll-x th {
-    @apply px-3 py-2 text-left text-xs font-bold uppercase;
+  .sf-scroll-x th,
+  .sf-scroll-x td {
+    @apply px-3 py-2 text-left;
+    border-bottom: 1px solid var(--sf-line);
+  }
+  .sf-scroll-x td {
+    @apply align-top;
+  }
+  /* `thead th`, never a bare `th`. A `<th scope="row">` is a row IDENTIFIER — a sample id, a read
+   * role — and it is the only word in its row a reader navigates by; the small-caps, faint, 12px
+   * register that says "this labels a column" says the opposite about it. All three grids on this
+   * page use one, and each had worked around the bare selector locally with a pile of undo
+   * utilities. Two selectors is the fix; five overrides in three files was the symptom. */
+  .sf-scroll-x thead th {
+    @apply text-xs font-bold uppercase;
     letter-spacing: 0.05em;
     color: var(--sf-faint);
     background: var(--sf-surface-2);
-    border-bottom: 1px solid var(--sf-line);
     white-space: nowrap;
   }
-  .sf-scroll-x td {
-    @apply px-3 py-2 text-left align-top;
-    border-bottom: 1px solid var(--sf-line);
+  .sf-scroll-x tbody th {
+    @apply align-top font-semibold;
+    color: var(--sf-ink);
   }
+  .sf-scroll-x tbody tr:last-child th,
   .sf-scroll-x tbody tr:last-child td {
     border-bottom: 0;
   }
@@ -621,10 +634,6 @@
   .basis-toggle {
     @apply cursor-pointer;
   }
-  .basis-sid {
-    @apply font-bold;
-    color: var(--sf-ink);
-  }
   .basis-caret {
     @apply mr-1 inline-grid size-5 place-items-center rounded align-middle font-mono text-xs;
     color: var(--sf-faint);
@@ -633,6 +642,10 @@
     color: var(--sf-accent);
     background: var(--sf-accent-weak);
   }
+  /* `.basis-sid` is the hover target and nothing else: it used to restate the row identifier's
+   * weight and ink to undo what a bare `.sf-scroll-x th` did to it, and `thead th` above is where
+   * that decision moved to. Underlining the id alone rather than the whole cell is the point —
+   * the accession beside it is not part of what you are about to open. */
   .basis-toggle:hover .basis-sid {
     text-decoration: underline;
     text-underline-offset: 2px;

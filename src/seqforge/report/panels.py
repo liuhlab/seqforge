@@ -1176,10 +1176,12 @@ def _stats_table(stats: PipelineStats) -> str:
             if sample.note
             else ""
         )
+        # Nothing but the sticky column. The seven undo-utilities that used to sit here — left, ink,
+        # 14px, normal case, normal tracking, wrapping — were all arguing with a `.sf-scroll-x th`
+        # that meant to style column heads; that rule now says `thead`.
         rows += (
-            '<tr><th scope="row" class="sf-col-sticky bg-surface align-top text-left text-sm '
-            'font-semibold tracking-normal whitespace-normal normal-case text-ink">'
-            f"{esc(sample.sample_id)}{note}</th>{cells}</tr>"
+            f'<tr><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}{note}</th>'
+            f"{cells}</tr>"
         )
 
     table = (
