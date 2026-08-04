@@ -6,13 +6,15 @@
  * Run it from this directory. See VENDOR.md — and `test_every_class_the_page_uses_has_a_rule`
  * fails the build if this was edited and not rebuilt.
  *
- * Two layers, deliberately separate:
+ * Three layers, deliberately separate:
  *
- *   1. TOKENS + COMPONENTS (below) are first-party. Theming goes through custom properties, never
- *      through `dark:` utilities, because the page must honour BOTH `prefers-color-scheme` AND a
- *      `data-theme` attribute a host stamps on <html> — in both directions. One token block per
- *      theme means every component gets that for free instead of each one re-deciding.
- *   2. Tailwind's utilities do layout, spacing and type in `report.py`.
+ *   1. TOKENS live in `../../assets/sf-tokens.css` and are SHARED with `seqforge report`. Theming
+ *      goes through custom properties, never through `dark:` utilities, because the page must
+ *      honour BOTH `prefers-color-scheme` AND a `data-theme` attribute a host stamps on <html> — in
+ *      both directions. A token fix lands once for both pages instead of twice, differently.
+ *   2. COMPONENTS (below) are first-party and are NOT shared: a CI grading report and a
+ *      lab-notebook view of a dataset change for unrelated reasons.
+ *   3. Tailwind's utilities do layout, spacing and type in `report.py`.
  *
  * Semantic colour is separate from the accent hue on purpose: the accent (indigo) is chrome and
  * means nothing, while ok/warn/critical are the verdict. If a reader has to ask whether a coloured
@@ -26,10 +28,9 @@
 @source "../report.py";
 @source "./eval-report.html";
 
-/* Tailwind's stock `dark:` keys off `prefers-color-scheme` alone, which would ignore the host's
- * theme toggle. Nothing below needs it — the tokens do the work — but defining it here means a
- * maintainer who reaches for `dark:` later gets the right behaviour instead of a subtle bug. */
-@custom-variant dark (&:where(:root[data-theme="dark"], :root[data-theme="dark"] *));
+/* The shared token layer: the `--sf-*` scales, both theme blocks, and the `dark` variant. Bundled
+ * in at build time, so the built stylesheet stays one self-contained file. */
+@import "../../assets/sf-tokens.css";
 
 /* The few tokens that are worth having as utilities too (`text-dim`, `bg-surface`, …). They resolve
  * through the runtime custom properties, so a theme switch moves them with everything else. */
@@ -45,97 +46,6 @@
 }
 
 @layer base {
-  :root {
-    color-scheme: light dark;
-
-    --sf-bg: #f6f8fb;
-    --sf-surface: #ffffff;
-    --sf-surface-2: #f1f4f8;
-    --sf-sunk: #f8fafc;
-    --sf-ink: #14181f;
-    --sf-dim: #59626f;
-    --sf-faint: #8a93a0;
-    --sf-line: #e2e6ec;
-    --sf-line-strong: #cbd2db;
-
-    /* accent = chrome. It is never a verdict, and no severity is allowed to borrow it. */
-    --sf-accent: #4338ca;
-    --sf-accent-weak: #eef0fe;
-
-    /* verdict semantics */
-    --sf-ok: #167a4b;
-    --sf-ok-weak: #e7f5ee;
-    --sf-warn: #8a5a00;
-    --sf-warn-weak: #fdf3e2;
-    --sf-crit: #b42318;
-    --sf-crit-weak: #fdecea;
-    --sf-neutral: #5b6472;
-    --sf-neutral-weak: #eef0f4;
-
-    /* `false_accept` is not a worse shade of critical, it is the failure with no tolerable rate.
-     * It gets a FILLED treatment where everything else is an outline, so severity is legible as
-     * form and not only as hue. */
-    --sf-poison-bg: #b42318;
-    --sf-poison-fg: #ffffff;
-
-    --sf-shadow: 0 1px 2px rgb(16 30 45 / 0.05), 0 1px 3px rgb(16 30 45 / 0.06);
-  }
-
-  /* One dark block, referenced twice: the media query for a host with no toggle, and the explicit
-   * attribute for one that has. The attribute selector wins in BOTH directions — `data-theme=light`
-   * on a dark OS must actually go light, which a bare media query cannot do. */
-  :root[data-theme="dark"] {
-    --sf-bg: #0f1319;
-    --sf-surface: #161c24;
-    --sf-surface-2: #1e2630;
-    --sf-sunk: #121821;
-    --sf-ink: #e7edf3;
-    --sf-dim: #98a3b1;
-    --sf-faint: #6b7783;
-    --sf-line: #28323d;
-    --sf-line-strong: #3a4650;
-    --sf-accent: #a5b4fc;
-    --sf-accent-weak: #1c2140;
-    --sf-ok: #3fb950;
-    --sf-ok-weak: #102619;
-    --sf-warn: #d9a441;
-    --sf-warn-weak: #2b2010;
-    --sf-crit: #f85149;
-    --sf-crit-weak: #33191a;
-    --sf-neutral: #98a3b1;
-    --sf-neutral-weak: #1e242c;
-    --sf-poison-bg: #f85149;
-    --sf-poison-fg: #17191c;
-    --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --sf-bg: #0f1319;
-      --sf-surface: #161c24;
-      --sf-surface-2: #1e2630;
-      --sf-sunk: #121821;
-      --sf-ink: #e7edf3;
-      --sf-dim: #98a3b1;
-      --sf-faint: #6b7783;
-      --sf-line: #28323d;
-      --sf-line-strong: #3a4650;
-      --sf-accent: #a5b4fc;
-      --sf-accent-weak: #1c2140;
-      --sf-ok: #3fb950;
-      --sf-ok-weak: #102619;
-      --sf-warn: #d9a441;
-      --sf-warn-weak: #2b2010;
-      --sf-crit: #f85149;
-      --sf-crit-weak: #33191a;
-      --sf-neutral: #98a3b1;
-      --sf-neutral-weak: #1e242c;
-      --sf-poison-bg: #f85149;
-      --sf-poison-fg: #17191c;
-      --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-    }
-  }
-
   html {
     /* Every horizontal overflow belongs to a .scroll-x, never to the page. */
     overflow-x: hidden;

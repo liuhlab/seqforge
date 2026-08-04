@@ -10,6 +10,8 @@ is a specific and silent-ish failure:
   - `kb/specs/*/spec.yaml`   -> the KB is empty and nothing resolves
   - `report/assets/*`        -> `seqforge report` renders an unstyled page
   - `evals/assets/*`         -> `seqforge eval report` renders an unstyled page
+  - `assets/sf-tokens.css`   -> the shared token layer both build inputs import is not source of
+                                record any more, so a rebuild from the wheel produces a themeless page
 
 It also pins the packaging arrangement: `packages = ["src/seqforge"]` already carries them, and a
 `force-include` on top would be a hard build error rather than a duplicate. Both directions are
@@ -48,11 +50,17 @@ def _check(names: list[str]) -> list[str]:
         failures.append("the workflow modules (workflows/map/*.smk) are missing")
     if sum(n.endswith("spec.yaml") for n in names) < 5:
         failures.append("the KB specs (kb/specs/*/spec.yaml) are missing")
-    if not (
-        any(n.endswith("report/assets/report.css") for n in names)
-        and any(n.endswith("report/assets/report.js") for n in names)
+    # The BUILT stylesheet and the script: `render._STYLESHEETS` inlines the first and the page
+    # embeds the second, so a wheel missing either renders an unstyled or an inert page.
+    if not all(
+        any(n.endswith(f"report/assets/{f}") for n in names) for f in ("report.tw.css", "report.js")
     ):
         failures.append("the report's inlined CSS/JS assets are missing -> report renders unstyled")
+    # Not inlined by anything, and shipped anyway: it is the source of record for BOTH build inputs,
+    # and a wheel that carries the built stylesheets without the file they were compiled from cannot
+    # be rebuilt from.
+    if not any(n.endswith("seqforge/assets/sf-tokens.css") for n in names):
+        failures.append("the shared token layer (assets/sf-tokens.css) is missing")
     # The BUILT stylesheet, not its `.src.css` input: the input needs npm to become CSS, so shipping
     # only that would put an unstyled page in the wheel while every source-tree test stayed green.
     if not all(

@@ -28,6 +28,9 @@ workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only
             h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout).
             metrics.py is the leaf metric vocabulary, stats.py the per-module reader registry, and
             each adapter lives beside the writer whose format it reads (ADR-0025)
+assets/     NOT a package — the one design-token layer (`sf-tokens.css`) that BOTH report pages'
+            Tailwind inputs import. A build input, never read at runtime; it ships as the source of
+            record. Neutral home because neither report owns it (report/assets/VENDOR.md)
 hooks/      PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` — policy as mechanism
 cli.py      a single typer module (root app + sub-typers). JSON by default
 e2e.py      ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11), which RUN THE

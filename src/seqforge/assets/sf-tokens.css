@@ -1,0 +1,137 @@
+/* seqforge design tokens — the ONE token layer, imported by both reports' Tailwind inputs.
+ *
+ *   src/seqforge/evals/assets/eval-report.src.css   (`seqforge eval report`)
+ *   src/seqforge/report/assets/report.src.css       (`seqforge report`)
+ *
+ * This file is a BUILD INPUT. No Python reads it at runtime — it reaches a page only by having been
+ * compiled into that page's stylesheet — but it ships in the wheel as the source of record, the same
+ * way each `.src.css` does. Editing it means rebuilding BOTH stylesheets (see either VENDOR.md); the
+ * per-report drift guards fail the build if you edit one and forget the other.
+ *
+ * Why a shared layer at all: the two pages are one product. A token fix — a contrast pair that fails
+ * for a deuteranope, a surface that is too bright at night — should land once, not twice and slightly
+ * differently. What is deliberately NOT shared is the `@layer components` of either page: a
+ * lab-notebook view of a dataset and a CI grading report change for unrelated reasons, and coupling
+ * their component vocabularies would make every redesign of one a review of the other.
+ *
+ * Two things this layer settles for every component that reads it:
+ *
+ *   1. THEMING IS TOKENS, NEVER `dark:` UTILITIES. A page has to honour BOTH `prefers-color-scheme`
+ *      AND a `data-theme` attribute a host stamps on <html>, with the attribute winning in BOTH
+ *      directions — `data-theme="light"` on a dark OS must actually go light, which a bare media
+ *      query cannot do. One token block per theme means every component gets that for free instead
+ *      of re-deciding it.
+ *   2. THE ACCENT IS CHROME AND MEANS NOTHING. `ok`/`warn`/`crit` are the verdict, in a different hue
+ *      family. If a reader has to ask whether a coloured thing is a brand element or a failure, the
+ *      colour has stopped carrying information.
+ */
+
+/* Tailwind's stock `dark:` keys off `prefers-color-scheme` alone, which would ignore the host's
+ * theme toggle. Nothing below needs it — the tokens do the work — but defining it here means a
+ * maintainer who reaches for `dark:` later gets the right behaviour instead of a subtle bug. */
+@custom-variant dark (&:where(:root[data-theme="dark"], :root[data-theme="dark"] *));
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+
+    --sf-bg: #f6f8fb;
+    --sf-surface: #ffffff;
+    --sf-surface-2: #f1f4f8;
+    --sf-sunk: #f8fafc;
+    --sf-ink: #14181f;
+    --sf-dim: #59626f;
+    --sf-faint: #8a93a0;
+    --sf-line: #e2e6ec;
+    --sf-line-strong: #cbd2db;
+
+    /* accent = chrome. It is never a verdict, and no severity is allowed to borrow it. */
+    --sf-accent: #4338ca;
+    --sf-accent-weak: #eef0fe;
+
+    /* Verdict semantics. `warn` and `crit` are the pair a reader has to tell apart, so the pair is
+     * MEASURED rather than eyeballed — ΔE against the surface each is drawn on, once for normal
+     * colour vision and once through a deuteranope simulation:
+     *
+     *   light  #8a5a00 vs #b42318 on #ffffff   CVD ΔE  0.3   normal ΔE 12.8   FAILS both gates
+     *   light  #a97a00 vs #b42318 on #ffffff   CVD ΔE 10.6   normal ΔE 18.1   passes
+     *   dark   #d9a441 vs #f85149 on #161c24   CVD ΔE  8.2   normal ΔE 18.4   passes, no margin
+     *   dark   #e8b14a vs #f85149 on #161c24   CVD ΔE 12.4   normal ΔE 20.8   comfortable
+     *
+     * The first row is what shipped: to a deuteranope the old amber and the red were the SAME
+     * COLOUR. Both warns are re-stepped to the passing values, and both reports get the fix from
+     * this one file. It is also why every graded thing on either page carries a NON-COLOUR mark
+     * beside its tint — a hue pair can pass a gate and still be lost to a greyscale printout. */
+    --sf-ok: #167a4b;
+    --sf-ok-weak: #e7f5ee;
+    --sf-warn: #a97a00;
+    --sf-warn-weak: #fdf3e2;
+    --sf-crit: #b42318;
+    --sf-crit-weak: #fdecea;
+    --sf-neutral: #5b6472;
+    --sf-neutral-weak: #eef0f4;
+
+    /* `false_accept` is not a worse shade of critical, it is the failure with no tolerable rate.
+     * It gets a FILLED treatment where everything else is an outline, so severity is legible as
+     * form and not only as hue. */
+    --sf-poison-bg: #b42318;
+    --sf-poison-fg: #ffffff;
+
+    --sf-shadow: 0 1px 2px rgb(16 30 45 / 0.05), 0 1px 3px rgb(16 30 45 / 0.06);
+  }
+
+  /* One dark block, referenced twice: the media query for a host with no toggle, and the explicit
+   * attribute for one that has. The attribute selector wins in BOTH directions — `data-theme=light`
+   * on a dark OS must actually go light, which a bare media query cannot do. */
+  :root[data-theme="dark"] {
+    --sf-bg: #0f1319;
+    --sf-surface: #161c24;
+    --sf-surface-2: #1e2630;
+    --sf-sunk: #121821;
+    --sf-ink: #e7edf3;
+    --sf-dim: #98a3b1;
+    --sf-faint: #6b7783;
+    --sf-line: #28323d;
+    --sf-line-strong: #3a4650;
+    --sf-accent: #a5b4fc;
+    --sf-accent-weak: #1c2140;
+    --sf-ok: #3fb950;
+    --sf-ok-weak: #102619;
+    --sf-warn: #e8b14a;
+    --sf-warn-weak: #2b2010;
+    --sf-crit: #f85149;
+    --sf-crit-weak: #33191a;
+    --sf-neutral: #98a3b1;
+    --sf-neutral-weak: #1e242c;
+    --sf-poison-bg: #f85149;
+    --sf-poison-fg: #17191c;
+    --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --sf-bg: #0f1319;
+      --sf-surface: #161c24;
+      --sf-surface-2: #1e2630;
+      --sf-sunk: #121821;
+      --sf-ink: #e7edf3;
+      --sf-dim: #98a3b1;
+      --sf-faint: #6b7783;
+      --sf-line: #28323d;
+      --sf-line-strong: #3a4650;
+      --sf-accent: #a5b4fc;
+      --sf-accent-weak: #1c2140;
+      --sf-ok: #3fb950;
+      --sf-ok-weak: #102619;
+      --sf-warn: #e8b14a;
+      --sf-warn-weak: #2b2010;
+      --sf-crit: #f85149;
+      --sf-crit-weak: #33191a;
+      --sf-neutral: #98a3b1;
+      --sf-neutral-weak: #1e242c;
+      --sf-poison-bg: #f85149;
+      --sf-poison-fg: #17191c;
+      --sf-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    }
+  }
+}

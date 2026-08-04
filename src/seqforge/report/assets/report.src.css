@@ -1,0 +1,733 @@
+/* seqforge report — the Tailwind INPUT. The file that ships is the built `report.tw.css`.
+ *
+ *   npm install --no-save tailwindcss@4.3.3 @tailwindcss/cli@4.3.3
+ *   npx @tailwindcss/cli -i report.src.css -o report.tw.css --minify
+ *
+ * Run it from this directory. See VENDOR.md — and `test_every_class_the_page_uses_has_a_rule_in_a_
+ * stylesheet` fails the build if this was edited and not rebuilt.
+ *
+ * Three layers, deliberately separate:
+ *
+ *   1. TOKENS live in `../../assets/sf-tokens.css` and are SHARED with `seqforge eval report`.
+ *      Theming goes through custom properties, never through `dark:` utilities, because the page
+ *      must honour BOTH `prefers-color-scheme` AND the `data-theme` attribute `report.js` stamps on
+ *      <html> — in both directions. A token fix lands once for both pages.
+ *   2. COMPONENTS (below) are first-party and are NOT shared with the eval report: a lab-notebook
+ *      view of a dataset and a CI grading report change for unrelated reasons.
+ *   3. Tailwind's utilities do layout, spacing and type in `panels.py` / `render.py`.
+ *
+ * ── THE PAGE'S ONE RESET ───────────────────────────────────────────────────────────────────────
+ * This file is the whole stylesheet now. It used to be inlined beside a 559-line hand-written
+ * `report.css` that was entirely unlayered — and unlayered CSS outranks every cascade layer whatever
+ * the source order, which is what let the design system arrive without moving a pixel and then take
+ * each tab over one element at a time, as its old class was deleted from the markup.
+ *
+ * Preflight was held back for the same length of time and for one reason: it is a reset, the old
+ * sheet was also a reset (`* { box-sizing: border-box }` plus the margins it cared about), and two
+ * resets on one page is one too many. A reset reaches bare element selectors — `h1`, `ul`, `button`,
+ * `b` — that the old sheet never mentioned, so it is the one part of the build the layer argument
+ * would NOT have protected. It arrives here, in the commit that deleted the sheet it would have
+ * fought, and `test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves` holds the pair
+ * together in both directions: neither one alone is a state this repo can be left in.
+ *
+ * What that means for anything written from here on: Preflight zeroes every margin and padding,
+ * unbolds `h1`–`h6` to `font-weight: inherit`, and takes the markers off `ul`/`ol`. So a heading
+ * states its own size and weight, a list states its own bullets, and nothing on this page inherits
+ * type from a user-agent stylesheet. `@layer base` below is the small remainder that a reset does
+ * not decide — what colour the page is, what it is set in, and where a horizontal overflow may
+ * happen.
+ * ───────────────────────────────────────────────────────────────────────────────────────────────
+ */
+
+/* The layer ORDER is declared here rather than inherited from `@import "tailwindcss"`, because
+ * importing Tailwind's parts by hand is the documented way to leave one of them out — which is how
+ * Preflight stayed out until the commit that could afford it. */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+/* `source(none)` above plus these explicit lines disable automatic source detection, so the purge
+ * depends on THESE files and not on the directory the build ran from. Without it the output changes
+ * with your shell's `cwd`. All three carry class names: `panels.py` every fragment, `render.py` the
+ * page shell, `report.js` the popover it builds at runtime. `flow.py` is deliberately absent — it
+ * returns narrative data, and its `StepKind` reaches the page as `kind-{...}` written in
+ * `panels.py`. If a class literal ever lands in it, the drift guard is what says so. */
+@source "../panels.py";
+@source "../render.py";
+@source "./report.js";
+
+/* The shared token layer: the `--sf-*` scales, both theme blocks, and the `dark` variant. Bundled
+ * in at build time, so the built stylesheet stays one self-contained file. */
+@import "../../assets/sf-tokens.css";
+
+/* The few tokens that are worth having as utilities too (`text-dim`, `bg-surface`, …). They resolve
+ * through the runtime custom properties, so a theme switch moves them with everything else. Same
+ * block as the eval report's, deliberately: one product, one scale.
+ *
+ * An alpha modifier on one of these (`bg-surface/90`) works, but its emitted FALLBACK is the flat
+ * colour: Tailwind puts the real `color-mix` behind `@supports (color: color-mix(…))` and cannot
+ * compute a static fallback for a value it only knows as `var(--sf-surface)`. Reading the built
+ * file, that first line looks like the modifier was dropped. It was not. */
+@theme {
+  --color-ink: var(--sf-ink);
+  --color-dim: var(--sf-dim);
+  --color-faint: var(--sf-faint);
+  --color-line: var(--sf-line);
+  --color-surface: var(--sf-surface);
+  /* The sunk surface, for the one thing on the page that is machine text rather than prose: the
+   * embedded Snakefile. `--sf-sunk` was in the token layer from the start with no utility mapped
+   * to it, so the artifact `<pre>` sat on the panel's own surface and read as one more paragraph. */
+  --color-sunk: var(--sf-sunk);
+  --color-accent: var(--sf-accent);
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* What a reset does not decide: what colour the page is, what it is set in, and where a horizontal
+ * overflow is allowed to happen. Same block as the eval report's `@layer base`, and for the same
+ * reason the `@theme` above matches it — two pages that are one product.
+ *
+ * `code` gets a family and no SIZE. The deleted sheet set `code { font-size: 0.9em }`, which was
+ * unlayered and therefore beat the `text-xs` a migrated fragment had already written beside it — so
+ * every inline code span on the page was 0.9em of its parent whatever its markup said. Preflight's
+ * `font-size: 1em` is left standing instead: an element that wants to be smaller says `text-xs` and
+ * gets it, and one that says nothing reads at the size of the sentence it sits in. */
+@layer base {
+  html {
+    /* Every horizontal overflow belongs to a `.sf-scroll-x`, never to the page. */
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--sf-bg);
+    color: var(--sf-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.58;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+    overflow-wrap: anywhere;
+  }
+
+  /* The page opens a `<details>` in three places and wants a caret in none of them: the row already
+   * carries its own affordance, and two for one action read as a bug. `list-style` covers everything
+   * current, the `-webkit` pseudo-element covers Safari — which no test on a Linux box can catch, so
+   * it is written here rather than discovered by a reader on a Mac. */
+  summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Preflight does not touch focus rings, and the UA's are inconsistent across the controls this
+   * page uses (a `<button>`, a `<select>`, and several `role="button"` spans). One ring, in the
+   * accent, because "where is my keyboard" is exactly the job chrome colour is for. */
+  :focus-visible {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* A first-party component earns its place for exactly two reasons, and you must be able to name
+ * which: (1) THE CLASS NAME IS COMPUTED — the purge sees only literal strings, so `f"lvl-{level}"`
+ * is invisible to it and every computed class must be declared here; (2) it is a genuine repeated
+ * composition, used in three or more places. Anything else is utilities. Writing a component to
+ * avoid typing six utilities once is how a design system becomes a second stylesheet.
+ *
+ * Prefixes are owned, so that parallel work on the redesign cannot collide:
+ *
+ *   sf-*              shell primitives (here) — the frame, the panel, the scroll region, the popover
+ *   lvl-*  grp-*      metric verdict and metric group band
+ *   basis-*  mx-*     provenance basis, evidence-matrix cell status
+ *   smp-*             the sample grid's own row furniture
+ *   flow-*            flow cards
+ *
+ * `basis-*` means the **Basis** of CONTEXT.md — observed / asserted / inferred / user_confirmed —
+ * and nothing else. The sample grid's expander, its caret and its row identifier were `basis-*` for
+ * a while because they live in the same table, which put a defined domain term on a chevron. They
+ * are `smp-*`; a reader who greps `basis` should find provenance and only provenance.
+ *
+ * The stage diagram claimed `stage-*` during the redesign and never spent it: nothing about a stage
+ * box is computed, so it is utilities in `panels.py` like every other composition. The prefix is
+ * listed nowhere because an owned-but-unused prefix reads as a rule someone forgot to follow.
+ *
+ * Two groups below are deliberately outside that scheme, and for one reason: `report.js` names them.
+ * `.tab`/`.pane` are what the script selects and toggles, and `prov-pop`/`pp-*` are what it builds at
+ * runtime — renaming either would cost a simultaneous edit to a file the shell does not own, for no
+ * reader-visible gain. */
+@layer components {
+  /* ---- the page frame ---------------------------------------------------------------------------
+   * The one reading column, on exactly four elements: the header row, the tab row, `main` and the
+   * footer. Each of those re-derived it from `--measure` before; it is one measurement, not four,
+   * and `px-5` is the same step as the panel's own padding so the two insets are one rhythm. */
+  .sf-page {
+    @apply mx-auto w-full max-w-6xl px-5;
+  }
+
+  /* The page's one box: a quiet surface separated by a hairline, never by a shadow stack. Five
+   * things are this shape — the table wrapper, the matrix card, the artifact, the knee figure and
+   * the sibling drawer. The panel below is this plus the page's only shadow. */
+  .sf-card {
+    @apply rounded-xl border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+  }
+
+  /* Every tab is one or more of these (`panels._panel`), and it carries the ONLY shadow on the page:
+   * inside a box that already has one, a second reads as a bug, so everything nested in a panel is
+   * flat and separated by a hairline instead. `mb-5` is why three panels stack correctly with no
+   * wrapper and no gap rule around them. */
+  .sf-panel {
+    @apply mb-5 rounded-xl border p-5;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+    box-shadow: var(--sf-shadow);
+  }
+  /* Only the BOTTOM margin is stated. Both of these carried an `mt-0` while the hand-written sheet
+   * was still the page's reset and a bare `<h2>`/`<p>` arrived with the UA margin on it; Preflight
+   * zeroes every margin now, so the top half had stopped meaning anything and a utility that does
+   * nothing is a claim that something needed doing. */
+  .sf-panel-h {
+    @apply mb-1 text-lg font-bold;
+    letter-spacing: -0.01em;
+  }
+  .sf-panel-sub {
+    @apply mb-4 text-sm;
+    color: var(--sf-dim);
+    max-width: 82ch;
+  }
+
+  /* ---- three roles every pane needed and none of them owned -------------------------------------
+   * A section label, a sentence where a section would be, and a sentence where a value would be.
+   * Each was invented three times over — the label as two different Python constants and one
+   * spelled-out `<h4>`, the notice as `.notice` plus two hand-typed boxes, the gap as `.empty` plus
+   * one — which is three chances for the same role to read differently on three tabs. Component by
+   * the second rule (a repeated composition, and these are the most repeated on the page), and in
+   * the shell's prefix because no pane can own something all six of them say.
+   *
+   * `margin: 0` on all three is stated rather than inherited from a reset: the caller supplies the
+   * spacing that belongs to where it sits, and a role that carried its own would fight it. */
+  .sf-sub-h {
+    @apply m-0 text-xs font-bold uppercase;
+    letter-spacing: 0.07em;
+    color: var(--sf-faint);
+  }
+  /* Says why a section is not here — an older cache, a recipe that was never written, a pipeline
+   * that has not run. A hairline box and the quiet ink, never a tint: none of these is a fault, and
+   * colour on this page means "this is wrong". */
+  .sf-notice {
+    @apply m-0 rounded-lg border p-4 text-sm;
+    border-color: var(--sf-line);
+    color: var(--sf-dim);
+  }
+  /* Says a value is not here. Italic and quiet, with no box at all — it sits *inside* a section that
+   * already has one. */
+  .sf-empty {
+    @apply m-0 py-2 text-sm italic;
+    color: var(--sf-dim);
+  }
+
+  /* ---- tables -----------------------------------------------------------------------------------
+   * Wide content scrolls HERE, in its own region, so the page body never scrolls sideways. The cell
+   * padding is stated once, on the region, rather than per table: `px-3 py-2` is the value on every
+   * table this page renders, and a table that set its own would be the second rhythm. */
+  .sf-scroll-x {
+    @apply overflow-x-auto rounded-lg border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+    overscroll-behavior-x: contain;
+  }
+  .sf-scroll-x table {
+    @apply w-full;
+    border-collapse: collapse;
+  }
+  .sf-scroll-x th,
+  .sf-scroll-x td {
+    @apply px-3 py-2 text-left;
+    border-bottom: 1px solid var(--sf-line);
+  }
+  .sf-scroll-x td {
+    @apply align-top;
+  }
+  /* `thead th`, never a bare `th`. A `<th scope="row">` is a row IDENTIFIER — a sample id, a read
+   * role — and it is the only word in its row a reader navigates by; the small-caps, faint, 12px
+   * register that says "this labels a column" says the opposite about it. All three grids on this
+   * page use one, and each had worked around the bare selector locally with a pile of undo
+   * utilities. Two selectors is the fix; five overrides in three files was the symptom. */
+  .sf-scroll-x thead th {
+    @apply text-xs font-bold uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sf-faint);
+    background: var(--sf-surface-2);
+    white-space: nowrap;
+  }
+  .sf-scroll-x tbody th {
+    @apply align-top font-semibold;
+    color: var(--sf-ink);
+  }
+  .sf-scroll-x tbody tr:last-child th,
+  .sf-scroll-x tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  /* ONE sticky column, and it is the row's identifier — never a frozen block of headline columns,
+   * which at a narrow viewport is the entire screen. It needs an opaque background of its own,
+   * because what scrolls under it would otherwise show through. */
+  .sf-col-sticky {
+    @apply sticky left-0 z-[2];
+    background: var(--sf-surface);
+    border-right: 1px solid var(--sf-line);
+  }
+  .sf-scroll-x thead .sf-col-sticky {
+    @apply z-[3];
+    background: var(--sf-surface-2);
+  }
+
+  /* ---- the header's two chrome controls ---------------------------------------------------------
+   * A form control is the last place a UA stylesheet still sets the font, so `font-family: inherit`
+   * is stated rather than left to a reset that has not arrived. Both are chrome: neither ever
+   * carries a verdict colour. */
+  .sf-icon-btn,
+  .sf-select {
+    @apply cursor-pointer rounded-lg border text-sm;
+    border-color: var(--sf-line);
+    background: var(--sf-surface-2);
+    color: var(--sf-ink);
+    font-family: inherit;
+  }
+  .sf-icon-btn {
+    @apply grid size-9 shrink-0 place-items-center;
+  }
+  .sf-select {
+    @apply px-2 py-1;
+  }
+  .sf-icon-btn:hover,
+  .sf-select:hover {
+    border-color: var(--sf-line-strong);
+  }
+
+  /* ---- the project verdict pill -----------------------------------------------------------------
+   * `sf-v-{kind}` is computed from the conclusion, so it is a declared component rather than a
+   * utility. Only the two exceptions are tinted: "compiled" and "manifest ready" are the norm and
+   * get an outline and a coloured dot, because a page whose good news is as loud as its bad news
+   * has stopped using colour to say anything. */
+  .sf-verdict {
+    @apply inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold;
+    color: var(--sf-v-fg);
+    border-color: var(--sf-v-fg);
+    background: var(--sf-v-bg);
+  }
+  .sf-v-compiled  { --sf-v-fg: var(--sf-ok);      --sf-v-bg: transparent; }
+  .sf-v-ir_ready  { --sf-v-fg: var(--sf-neutral); --sf-v-bg: transparent; }
+  .sf-v-blocker   { --sf-v-fg: var(--sf-crit);    --sf-v-bg: var(--sf-crit-weak); }
+  .sf-v-question  { --sf-v-fg: var(--sf-warn);    --sf-v-bg: var(--sf-warn-weak); }
+
+  /* ---- the Flow tab's narrative cards ------------------------------------------------------------
+   * One class per card, computed from `flow.StepKind` — the purge cannot see `flow-{kind}`, and this
+   * is also where the decision belongs, because the decision IS which kinds get colour.
+   *
+   * Four of the five used to paint a saturated fill with white text (teal, slate, red, orange), so a
+   * clean compile arrived as a wall of colour and the one card that meant "stop and read me" was the
+   * same weight as the four that meant "this went fine". Under the colour law that is exactly
+   * backwards: `guess`, `measured` and `done` are the NORM and get no tint at all — a hairline, the
+   * page surface, and the ordinal badge as their only ornament. Only `blocked` and `ask` are painted,
+   * in the two verdict hues the rest of the page already uses, so a tinted card on this tab means the
+   * same thing a tinted cell means on Results.
+   *
+   * All five are listed rather than only the two that paint: a member with no rule is a card with no
+   * border, and `test_every_flow_step_kind_...` reads the members out of the Literal so a sixth kind
+   * fails here instead of shipping. The two custom properties are what make the norm's "no tint"
+   * a written decision rather than an omission. */
+  .flow-guess,
+  .flow-measured,
+  .flow-done,
+  .flow-blocked,
+  .flow-ask {
+    @apply rounded-lg border p-4;
+    border-color: var(--flow-line);
+    background: var(--flow-bg);
+  }
+  .flow-guess,
+  .flow-measured,
+  .flow-done {
+    --flow-line: var(--sf-line);
+    --flow-bg: transparent;
+  }
+  .flow-blocked {
+    --flow-line: var(--sf-crit);
+    --flow-bg: var(--sf-crit-weak);
+  }
+  .flow-ask {
+    --flow-line: var(--sf-warn);
+    --flow-bg: var(--sf-warn-weak);
+  }
+
+  /* ---- the shell's frozen JS hooks ---------------------------------------------------------------
+   * `report.js` toggles `.active` on `.tab` and `.pane`, so neither state can be a utility in the
+   * markup — there is no markup for the toggled one. They keep the names the script selects on
+   * (`report.js:49-55`; renaming one is a silent break, and that file is #218's) and are declared
+   * here instead. The accent is chrome, and "which tab am I on" is the correct job for chrome. */
+  .tab {
+    @apply cursor-pointer px-4 py-3 text-sm font-semibold;
+    color: var(--sf-dim);
+    background: transparent;
+    font-family: inherit;
+    white-space: nowrap;
+    border: 0;
+    border-bottom: 2px solid transparent;
+  }
+  .tab:hover {
+    color: var(--sf-ink);
+  }
+  .tab.active {
+    color: var(--sf-accent);
+    border-bottom-color: var(--sf-accent);
+  }
+  .pane {
+    display: none;
+  }
+  .pane.active {
+    display: block;
+  }
+
+  /* ---- the provenance popover --------------------------------------------------------------------
+   * `report.js:156-179` builds these six at RUNTIME, so they appear in no rendered page: the purge
+   * cannot see them — which is exactly why they are components — and neither can the class-coverage
+   * guard, so the source→built guard is the one that covers them. The names are the script's and
+   * move only with it. It floats over a scrolling table, so it is the one thing besides the panel
+   * allowed a shadow, and a heavier one, because that is what says it is above the page. */
+  .prov-pop {
+    @apply fixed z-50 rounded-lg border px-4 py-3 text-sm;
+    min-width: 200px;
+    max-width: 360px;
+    border-color: var(--sf-line-strong);
+    background: var(--sf-surface);
+    color: var(--sf-ink);
+    box-shadow: 0 8px 24px rgb(16 30 45 / 0.16), 0 2px 8px rgb(16 30 45 / 0.1);
+    line-height: 1.5;
+    user-select: text;
+  }
+  .pp-head {
+    @apply font-bold;
+    margin: 0 0 2px;
+  }
+  .pp-basis {
+    @apply text-xs;
+    color: var(--sf-dim);
+  }
+  /* A quote is a sentence, not a token: set apart by a rule rather than by a chip's background. */
+  .pp-quote {
+    @apply pl-3 italic;
+    margin: 8px 0 0;
+    border-left: 2px solid var(--sf-line-strong);
+    color: var(--sf-ink);
+  }
+  .pp-bar {
+    @apply mt-3 flex justify-end;
+  }
+  .pp-copy {
+    @apply cursor-pointer rounded border px-3 py-0.5 text-xs;
+    border-color: var(--sf-line-strong);
+    background: var(--sf-surface-2);
+    color: var(--sf-accent);
+    font-family: inherit;
+  }
+  .pp-copy:hover {
+    border-color: var(--sf-accent);
+  }
+
+  /* ---- the metric verdict (Results) --------------------------------------------------------------
+   * `lvl-{level}` is computed from `Level`, so the four below are components by the first rule and
+   * not by choice. They set two custom properties and nothing else; what READS them is one of the
+   * four shapes underneath, so the same verdict can be a tinted cell, a coloured mark, a left rule
+   * or a legend swatch without any of them re-deciding the palette.
+   *
+   * COLOUR MARKS EXCEPTIONS. `ok` and `none` are byte-identical on purpose — a metric that is fine
+   * must look no different from one nobody could set a defensible bar for, or the page implies a
+   * judgement it never made — and neither carries a tint: not a pale green, nothing. Two tinted
+   * hues on the whole tab is what makes either of them mean "this number is wrong". Category and
+   * group structure is drawn with a rule and a label and never borrows a third hue. */
+  .lvl-ok,
+  .lvl-none {
+    --lv-ink: var(--sf-dim);
+    --lv-bg: transparent;
+  }
+  .lvl-warn {
+    --lv-ink: var(--sf-warn);
+    --lv-bg: var(--sf-warn-weak);
+  }
+  .lvl-bad {
+    --lv-ink: var(--sf-crit);
+    --lv-bg: var(--sf-crit-weak);
+  }
+
+  /* A graded number. The tint is the cell's background and the digits stay ink: a coloured digit on
+   * a coloured field is the same fact twice, and it is the reading that suffers. */
+  .lvl-cell {
+    background: var(--lv-bg);
+  }
+  /* The `!`/`!!` beside a graded value, and the ✓/◐/✗ on the run-state block. NOT garnish: the warn
+   * and critical hues were 0.3 ΔE apart to a deuteranope before this PR re-stepped them (see
+   * `assets/sf-tokens.css`), and even a passing pair is gone in a greyscale printout. */
+  .lvl-flag {
+    color: var(--lv-ink);
+    font-weight: 700;
+  }
+  /* Did the PIPELINE finish — a left rule and, for the two exceptions, a fill. */
+  .lvl-state {
+    background: var(--lv-bg);
+    border-left: 3px solid var(--lv-ink);
+  }
+  /* The legend swatch, which has to look like the cell it explains: a tint for the two that are
+   * tinted and a bare hairline square for the two that are not. */
+  .lvl-chip {
+    @apply inline-grid h-5 min-w-5 place-items-center rounded text-xs font-bold;
+    background: var(--lv-bg);
+    color: var(--lv-ink);
+    border: 1px solid var(--sf-line);
+  }
+
+  /* ---- the metric-table fold (Results) ------------------------------------------------------------
+   * ONE control for the whole table, not one per band, and it is a checkbox and its label: a
+   * `<details>` cannot wrap a subset of a row's `<td>`s, two tables would duplicate every headline
+   * column, and `report.js` is another ticket's file. These are components for the second reason —
+   * no utility can express "hide when a checkbox elsewhere in this subtree is unchecked", and
+   * Tailwind's `peer-checked:` reaches siblings only, never a `<td>` five levels down.
+   *
+   * `:has()` rather than an `id`/`for` pair on purpose: every assay's Results pane is in the DOM at
+   * once, so a duplicate id would make one assay's label toggle another assay's table, and an id
+   * unique per assay would have to be derived from something this pane is not handed. Where `:has()`
+   * is unsupported neither rule ever matches and every column is shown — wide, never broken.
+   *
+   * There is no `display` in the shown direction: a `<td>` that is not hidden keeps `table-cell`,
+   * which is the one value no utility would have got right. */
+  .grp-scope:not(:has(.grp-fold:checked)) .grp-extra {
+    display: none;
+  }
+  .grp-scope:has(.grp-fold:checked) .grp-folded {
+    display: none;
+  }
+  /* The checkbox is `sr-only`, so focus lands on something invisible; the ring has to be drawn on
+   * its label instead, which is a state no utility can reach either. */
+  .grp-btn:has(.grp-fold:focus-visible) {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* The handle on a metric's column header that opens its hint in the shared popover. A component
+   * because `report.js` selects on the name, so it cannot become six utilities — and it was the last
+   * rule the hand-written sheet still supplied to an otherwise-migrated tab: the Results ticket
+   * could restyle everything around it and not this, because an unlayered `.metric-head` beat
+   * anything it wrote.
+   *
+   * A dotted underline rather than a colour. The header is not a verdict, and a tinted one on this
+   * tab would read as one. */
+  .metric-head {
+    @apply cursor-pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--sf-line-strong);
+  }
+  .metric-head:hover,
+  .metric-head[aria-expanded="true"] {
+    color: var(--sf-accent);
+    text-decoration-color: var(--sf-accent);
+  }
+}
+
+/* ── the two dense grids: the sample-metadata table and the evidence matrix ────────────────────────
+ *
+ * Two views, one vocabulary. Both are wide grids of cells whose meaning depends on where the cell's
+ * value came from, and the ink below is the only colour either of them spends.
+ *
+ * WHY THIS HUE, AND WHY ONE OF IT. The verdict palette owns red (OKLCh h≈29), amber (h≈81) and green
+ * (h≈157); the accent owns indigo (h≈277). On this page colour means "this is an exception", so a
+ * provenance hue landing in any of those arcs would be read as one. Four provenance hues were tried
+ * first and rejected by measurement, not by taste: after the four reserved arcs there is not 4×40° of
+ * hue left, and every four-hue set that does fit collapses under protanopia — magenta and blue are
+ * the same colour to a protanope, which is what a fourth hue would have to be.
+ *
+ * So there is ONE ink, in the cool arc nothing else uses, plus the page's own grey. CIEDE2000 against
+ * Machado-2009 dichromat simulations, light theme on #ffffff, ink #0e7490 (h 223, 5.4:1):
+ *
+ *     vs ok     #167a4b   ΔE 29.8 normal · 31.4 protan · 30.2 deutan · 5.1 tritan
+ *     vs warn   #a97a00   ΔE 45.5 · 42.0 · 47.7 · 45.4
+ *     vs crit   #b42318   ΔE 54.3 · 37.7 · 43.2 · 55.5
+ *     vs accent #4338ca   ΔE 23.9 · 14.8 · 12.5 · 15.6
+ *
+ * and dark theme on #161c24, ink #2fa0bd (h 219, 5.6:1): 39.6/41.3/41.7/7.1 against ok, and
+ * 23.2/11.7/12.7/14.6 against the accent. The one soft number is cyan against green for a TRITANOPE
+ * (~0.01% of people), and it is soft where it costs least: green is a verdict, so it appears on the
+ * header pill and in the Results table and never as a mark beside one of these.
+ *
+ * WHICH LEAVES FORM TO CARRY THE REST, which is the same argument `_LEVEL_FLAG` already makes for
+ * `!`/`!!` on the Results tab: a filled disc, an open ring, a square and a dash tell four bases apart
+ * in a printout, in greyscale, and to a reader who sees no colour at all. The hue is then free to say
+ * one thing only — cyan means "this came from the bytes or from a source", which is also exactly what
+ * a high cell in the evidence matrix means, which is why the matrix's heat ramp is the same ink and
+ * not a second scale. */
+@layer components {
+  :root {
+    --basis-ink: #0e7490;
+    --basis-quiet: var(--sf-dim);
+    --mx-heat: #7cc4d8;
+  }
+  /* Both dark selectors, for the reason the token layer gives: the attribute has to win in BOTH
+   * directions, which a bare media query cannot do. */
+  :root[data-theme="dark"] {
+    --basis-ink: #2fa0bd;
+    --mx-heat: #2b6b80;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --basis-ink: #2fa0bd;
+      --mx-heat: #2b6b80;
+    }
+  }
+
+  /* ---- the provenance mark ----------------------------------------------------------------------
+   * `basis-{basis}` is computed from the manifest's `Basis`, so every member is declared here — and
+   * the box is one size whatever the form, so the legend row and the table cell align the same way. */
+  .basis-mark {
+    @apply relative inline-block shrink-0 align-middle;
+    width: 10px;
+    height: 10px;
+  }
+  .basis-observed {
+    background: var(--basis-ink);
+    border-radius: 50%;
+  }
+  .basis-asserted {
+    border: 2px solid var(--basis-ink);
+    border-radius: 50%;
+  }
+  .basis-user_confirmed {
+    background: var(--basis-ink);
+    border-radius: 2px;
+  }
+  /* A rule, not a shape: nobody said this, we filled it in. Drawn as a child so the mark keeps the
+   * same 10px box as the other three and nothing in a row of them sits half a pixel off. */
+  .basis-inferred::before {
+    content: "";
+    position: absolute;
+    inset: 4px 0 auto;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--basis-quiet);
+  }
+
+  /* ---- the sample-metadata grid -----------------------------------------------------------------
+   * The min-width is what makes the region scroll instead of the page: it is the point at which a
+   * column stops being readable, stated once for every attribute column rather than per column. The
+   * max-width is the other half — one 600-character value must not set the width of the table. */
+  .basis-cell {
+    @apply align-top;
+    min-width: 9.5rem;
+    max-width: 15rem;
+  }
+  /* Two lines and an ellipsis. The full text is one click away in the popover, which is the whole
+   * reason a value is allowed to be clamped at all. */
+  .basis-v {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .basis-withheld {
+    color: var(--sf-warn);
+    font-style: italic;
+  }
+  .basis-cell[role="button"] {
+    @apply cursor-pointer;
+  }
+  .basis-cell[role="button"]:hover .basis-v {
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+  }
+  .basis-cell[aria-expanded="true"] {
+    background: var(--sf-accent-weak);
+  }
+
+  /* The row identifier doubles as the drawer's control, so the hover feedback lives on its children:
+   * the cell is a <th> and the sticky column's own background is what says "this column does not
+   * scroll", which a hover fill would fight. */
+  .smp-toggle {
+    @apply cursor-pointer;
+  }
+  .smp-caret {
+    @apply mr-1 inline-grid size-5 place-items-center rounded align-middle font-mono text-xs;
+    color: var(--sf-faint);
+  }
+  .smp-toggle:hover .smp-caret {
+    color: var(--sf-accent);
+    background: var(--sf-accent-weak);
+  }
+  /* `.smp-sid` is the hover target and nothing else: it used to restate the row identifier's
+   * weight and ink to undo what a bare `.sf-scroll-x th` did to it, and `thead th` above is where
+   * that decision moved to. Underlining the id alone rather than the whole cell is the point —
+   * the accession beside it is not part of what you are about to open. */
+  .smp-toggle:hover .smp-sid {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---- the evidence matrix ----------------------------------------------------------------------
+   * `mx-{status}` is the cell's tagged state, and all three render something: a number on a wash of
+   * the shared ink, a ✕, or the words "not scored". None of them is blank and none of them is a
+   * sentinel — a cell that says nothing is a cell a reader has to guess about. */
+  .mx-cell {
+    @apply text-center text-xs tabular-nums;
+  }
+  .mx-scored {
+    color: var(--sf-ink);
+  }
+  .mx-forbidden,
+  .mx-absent {
+    @apply cursor-pointer;
+    color: var(--sf-faint);
+  }
+  .mx-forbidden:hover,
+  .mx-absent:hover {
+    color: var(--sf-ink);
+  }
+
+  /* One grid for the winner; every sibling collapses to this bar, so the reader compares heights
+   * instead of reading two identical grids. Single ink — a gradient across two hues would make the
+   * bar's colour look like it meant something separate from its length. */
+  .mx-bar {
+    @apply relative h-1.5 flex-1 overflow-hidden rounded-full;
+    min-width: 3.75rem;
+    background: var(--sf-surface-2);
+  }
+  .mx-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--mx-w);
+    background: var(--mx-heat);
+  }
+  .mx-sib {
+    @apply mb-2 rounded-lg border;
+    border-color: var(--sf-line);
+    background: var(--sf-surface);
+  }
+  /* The disclosure triangle and the pointer cursor come from the base layer's `summary` rule now —
+   * this page opens a `<details>` in three places and wants a caret in none of them, which is one
+   * decision and not three. */
+  .mx-sib[open] > summary {
+    border-bottom: 1px solid var(--sf-line);
+  }
+}

@@ -9,7 +9,7 @@ it).
 |---|---|---|
 | `eval-report.html` | the page **template** — doctype, head, header chrome, section order, `{{SLOT}}` markers | yes, filled at render |
 | `eval-report.css` | **built artifact** — Tailwind CSS v4.3.3, purged and minified, plus this repo's token/component layer | yes, inlined at render |
-| `eval-report.src.css` | the **input** to that build: `@import "tailwindcss"` + the first-party layers | yes (source of record) |
+| `eval-report.src.css` | the **input** to that build: `@import "tailwindcss"` + the shared tokens + the first-party components | yes (source of record) |
 | `eval-report.js` | first-party, hand-written | yes, inlined at render |
 
 The template is filled by `_fill` in `../report.py` — one regex pass over `{{SLOT}}` markers, no
@@ -79,9 +79,16 @@ to honour both `prefers-color-scheme` *and* a `data-theme` attribute that a host
 on `<html>`, with the attribute winning in **both** directions (`data-theme="light"` on a dark OS must
 actually go light — a bare media query cannot do that). That is one token block per theme in
 `@layer base`, and every component then reads `var(--sf-*)`. Tailwind's stock `dark:` variant keys off
-the media query alone and would quietly ignore the toggle, so `eval-report.src.css` redefines it via
-`@custom-variant` — a maintainer who reaches for `dark:` later gets the right behaviour instead of a
-bug that only shows up on someone else's laptop.
+the media query alone and would quietly ignore the toggle, so it is redefined via `@custom-variant` —
+a maintainer who reaches for `dark:` later gets the right behaviour instead of a bug that only shows
+up on someone else's laptop.
+
+Those token blocks and that variant live in **`../../assets/sf-tokens.css`**, not here:
+`eval-report.src.css` imports them, and so does `report/assets/report.src.css`. Tailwind bundles the
+import at build time, so this page still ships as one self-contained stylesheet, while a token fix —
+a contrast pair that fails for a deuteranope, a surface too bright at night — lands once instead of
+twice and slightly differently. Editing that file means rebuilding **both** stylesheets; each page's
+drift guards fail if you rebuild one and forget the other.
 
 Semantic colour is deliberately a different hue family from the accent: the accent (indigo) is chrome
 and means nothing, `ok`/`warn`/`critical` are the verdict. And `false_accept` gets a *filled* pill
@@ -90,8 +97,9 @@ failure with no tolerable rate, and severity has to be legible as form and not o
 
 ## Relationship to `report/assets/`
 
-`seqforge report` (the workspace reader) has **no** third-party runtime at all — see
+`seqforge report` (the workspace reader) runs the same Tailwind build against its own input — see
 `../../report/assets/VENDOR.md`. The two modules share a convention (assets as real files, inlined via
-`importlib.resources`, no templating engine, `_script_guard` around embedded JS) but not a stylesheet:
-one is a lab-notebook view of a dataset, the other a CI grading report, and merging their CSS would
-couple two pages that change for unrelated reasons.
+`importlib.resources`, no templating engine, `_script_guard` around embedded JS) and, since the token
+layer moved out, one `sf-tokens.css`. They do **not** share a component layer: one is a lab-notebook
+view of a dataset, the other a CI grading report, and merging their components would couple two pages
+that change for unrelated reasons.

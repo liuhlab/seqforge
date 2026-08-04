@@ -53,6 +53,20 @@ sbatch/
 /Aligned.sortedByCoord.out.bam
 /Solo.out/
 
+# npm's leavings from the vendored Tailwind builds. `report/assets/VENDOR.md` ends its rebuild with
+# `rm -rf node_modules package-lock.json`, and that is still the point -- node is a build-time tool
+# and nothing from npm is a deliverable here. But the `rm` only runs if the build RUNS TO COMPLETION:
+# a Ctrl-C, a failed resolve, or reading the procedure and stopping after the install all leave a
+# ~50 MB tree sitting in the package source, where a broad `git add` can sweep it into the wheel.
+# The whole family is listed rather than the one name that got caught, per the STAR block above.
+#
+# Deliberately UNANCHORED, unlike `/seqforge/`: there the leading slash is load-bearing because an
+# unanchored match would swallow `src/seqforge/`. Here there is nothing in the tree these names could
+# collide with, and the builds run in two different asset directories with a third always possible.
+node_modules/
+package-lock.json
+package.json
+
 # Agent worktrees. Claude Code puts an isolated checkout here, INSIDE the repo, so every root-level
 # tool walks into it: ruff lints another session's half-finished file and fails your gate, and
 # `ruff format .` / `--fix` rewrites their working tree from under them. Ignoring it fixes both
