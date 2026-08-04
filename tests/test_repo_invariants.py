@@ -1,6 +1,6 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Six families live here, and none of them composes anything:
+Seven families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
@@ -16,6 +16,9 @@ Six families live here, and none of them composes anything:
 - **The test loop declares what it needs.** What the suite requires of its environment is declared
   in the project configuration rather than remembered by whoever types the command — and the
   declaration is checked where it has to land, in the running process.
+- **The gate reports what it ran.** The pre-PR gate's own runner is exercised as a runner: a step
+  that fails has to reach a non-zero exit and a printed verdict, and an interrupted gate has to
+  leave nothing of itself running.
 
 The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
@@ -25,7 +28,10 @@ from __future__ import annotations
 import ast
 import os
 import re
+import shutil
+import signal
 import subprocess
+import time
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
@@ -825,3 +831,254 @@ def test_no_npm_artifact_is_tracked_and_none_could_become_tracked() -> None:
         "the npm ignore patterns are wide enough to hide a build input -- the vendored stylesheet's "
         "own source of record would stop being tracked, silently."
     )
+
+
+#: The pre-PR gate's runner. Nothing used to exercise it, and for as long as that was true it ran on
+#: macOS having verified nothing and exited 0 -- a gate that errors loudly is recoverable, one that
+#: says "ok" is not.
+_GATE = _REPO / "scripts" / "check.sh"
+
+#: A stand-in for `pixi`, placed first on PATH. The gate spawns `pixi run --no-progress <task>`, so
+#: this answers as a task does and the RUNNER is what gets exercised rather than the four real steps
+#: it normally drives. Four lines of output because the gate tails three from a green step and prints
+#: a red one whole, which is a difference a test can see.
+#:
+#: `linger` backgrounds a GRANDCHILD and waits on it, because what a real step costs is not the
+#: `pixi` process but the pytest run underneath it -- the orphans that were observed were pytest's.
+_FAKE_PIXI = """#!/bin/sh
+task=$3
+echo "$task said one"
+echo "$task said two"
+echo "$task said three"
+echo "$task said four"
+case "$task" in
+    boom) exit 7 ;;
+    linger*)
+        sleep 120 &
+        echo $! >"$GATE_TEST_PIDS/$task.pid"
+        wait
+        ;;
+esac
+exit 0
+"""
+
+
+def _bash_interpreters() -> list[str]:
+    """Every distinct bash on this box — the gate's failure was a bash-version failure.
+
+    macOS ships 3.2 as ``/bin/bash`` and that is the one the gate silently no-opped under; a Linux
+    runner has only its own bash 5, where the same script is fine. Asking the box rather than naming
+    versions means the macOS case appears wherever a macOS box runs the suite and nowhere else.
+    """
+    seen: dict[str, str] = {}
+    for path in (shutil.which("bash"), "/bin/bash"):
+        if path and Path(path).exists():
+            seen.setdefault(str(Path(path).resolve()), path)
+    return sorted(seen.values())
+
+
+def _gate_env(bin_dir: Path, tmpdir: Path, pid_dir: Path) -> dict[str, str]:
+    """The environment a gate run gets: the fake `pixi` first on PATH, and a private ``TMPDIR``.
+
+    ``TMPDIR`` is redirected so ``mktemp -d`` lands somewhere the test owns and "the gate cleaned up
+    after itself" becomes a question about an empty directory.
+    """
+    env = dict(os.environ)
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
+    env["TMPDIR"] = str(tmpdir)
+    env["GATE_TEST_PIDS"] = str(pid_dir)
+    return env
+
+
+def _fake_pixi_dir(tmp_path: Path) -> Path:
+    """A directory holding nothing but an executable `pixi` that answers as a task would."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shim = bin_dir / "pixi"
+    shim.write_text(_FAKE_PIXI, encoding="utf-8")
+    shim.chmod(0o755)
+    return bin_dir
+
+
+def _alive(pid: int) -> bool:
+    """Whether ``pid`` still exists. A signal we may not send is still a process that is running."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+@pytest.mark.repo
+@pytest.mark.parametrize("bash", _bash_interpreters())
+def test_the_gate_exits_non_zero_and_says_which_step_failed(bash: str, tmp_path: Path) -> None:
+    """The pre-PR gate is a gate, and this is the test that says so.
+
+    It went years with nothing exercising the runner itself, and under bash 3.2 -- what macOS ships
+    as ``/bin/bash``, and what the maintainer's own gate runs on -- it declared an associative array
+    the shell does not have, tripped ``set -u`` on the first verdict it tried to record, and exited
+    **0** having collected nothing, printed no per-step verdict and no gate line. A gate that fails
+    open is worse than no gate, because the green is believed.
+
+    So the assertions are the three things a caller reads: the exit code, the per-step verdict, and
+    the summary line. Checking only that a green run stays green would have passed throughout.
+
+    Every bash on the box gets a case. The bug was invisible on bash 5 and fatal on bash 3.2, so a
+    single interpreter is exactly the coverage that let it through.
+    """
+    bin_dir = _fake_pixi_dir(tmp_path)
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    pid_dir = tmp_path / "pids"
+    pid_dir.mkdir()
+    env = _gate_env(bin_dir, tmpdir, pid_dir)
+
+    red = subprocess.run(
+        [bash, str(_GATE), "alpha", "boom", "gamma"],
+        cwd=_REPO,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    out = red.stdout + red.stderr
+
+    assert red.returncode != 0, (
+        f"the gate reported success with a failing step. stdout+stderr:\n{out}\n"
+        f"A gate that exits 0 having verified nothing is the failure this test exists for."
+    )
+    for verdict in ("=== alpha: ok ===", "=== boom: FAILED ===", "=== gamma: ok ==="):
+        assert verdict in out, f"the gate printed no verdict for {verdict!r}. Output:\n{out}"
+    assert "=== gate: alpha=ok boom=FAILED gamma=ok " in out, (
+        f"the gate printed no summary line. Output:\n{out}"
+    )
+
+    # A green step's output is noise and a red one's is the whole point, so the shim says four lines
+    # and only the failing step's first line survives the tail.
+    assert "boom said one" in out, f"a failed step's output was truncated. Output:\n{out}"
+    assert "alpha said one" not in out, f"a green step's output was printed whole. Output:\n{out}"
+    assert "alpha said four" in out, f"a green step's tail is missing. Output:\n{out}"
+
+    # ...and the gate discriminates: the same runner over steps that all pass is green, so the
+    # non-zero above is the failing step and not the runner refusing everything.
+    green = subprocess.run(
+        [bash, str(_GATE), "alpha", "gamma"],
+        cwd=_REPO,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert green.returncode == 0, f"the gate failed an all-green run:\n{green.stdout}{green.stderr}"
+    assert "=== gate: alpha=ok gamma=ok " in green.stdout
+
+
+@pytest.mark.repo
+@pytest.mark.parametrize("bash", _bash_interpreters())
+def test_an_interrupted_gate_leaves_no_step_running(bash: str, tmp_path: Path) -> None:
+    """Whatever ends the gate, it takes its steps with it and its scratch directory goes last.
+
+    The steps are background children writing into a ``mktemp -d``, and the cleanup used to delete
+    that directory without touching them: when the runner died early it left four live test runs
+    writing at a path that no longer existed, and they had to be killed by hand. A signal is the same
+    hole reached the ordinary way -- Ctrl-C on a gate you have decided not to wait for.
+
+    The process that must die is a **grandchild**. The gate's own child is `pixi`; the cost is the
+    pytest run underneath it, which survives its parent unless the whole group is taken down.
+
+    The scratch directory is asserted gone in the same breath, because "cleaned up" and "left nothing
+    running" are the same property seen from two ends: a deleted directory with a live writer still
+    pointed at it is the exact state that was observed.
+    """
+    bin_dir = _fake_pixi_dir(tmp_path)
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    pid_dir = tmp_path / "pids"
+    pid_dir.mkdir()
+
+    proc = subprocess.Popen(
+        [bash, str(_GATE), "linger-a", "linger-b"],
+        cwd=_REPO,
+        env=_gate_env(bin_dir, tmpdir, pid_dir),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    grandchildren: list[int] = []
+    try:
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and len(list(pid_dir.glob("*.pid"))) < 2:
+            time.sleep(0.05)
+        grandchildren = [int(p.read_text().strip()) for p in sorted(pid_dir.glob("*.pid"))]
+        assert len(grandchildren) == 2, (
+            f"the gate did not start both steps; got {grandchildren}. The rest of this test says "
+            f"nothing unless there is something running to leave behind."
+        )
+
+        proc.send_signal(signal.SIGINT)
+        proc.communicate(timeout=60)
+
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline and any(_alive(pid) for pid in grandchildren):
+            time.sleep(0.05)
+        survivors = [pid for pid in grandchildren if _alive(pid)]
+        assert not survivors, (
+            f"the gate exited leaving {survivors} running. Those are the orphaned test runs: the "
+            f"cleanup has to take the steps' process groups down, not only the `pixi` processes."
+        )
+    finally:
+        for pid in grandchildren:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
+        if proc.poll() is None:
+            proc.kill()
+            proc.communicate()
+
+    assert not list(tmpdir.iterdir()), (
+        f"the gate left its scratch directory behind: {[p.name for p in tmpdir.iterdir()]}."
+    )
+
+
+#: Constructs bash 4 introduced. Not an exhaustive list of what 3.2 lacks -- the parametrized runs
+#: above are the real guard, and on a macOS box they go red on any of these the moment it is
+#: reached. This one fires on a Linux runner too, where the gate's own steps are never in doubt but
+#: nobody's `bash` can notice, and it names the construct that actually caused the silent no-op.
+_BASH_4_ONLY = (
+    re.compile(r"^\s*(declare|local|typeset)\s+-[A-Za-z]*A"),
+    re.compile(r"^\s*(mapfile|readarray)\b"),
+)
+
+
+@pytest.mark.repo
+def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
+    """The gate must RUN on bash 3.2, not merely refuse loudly there.
+
+    macOS ships 3.2 as ``/bin/bash`` and that is where the maintainer works, so a version guard would
+    only relocate the outage. What broke was `declare -A`: an associative array in a script whose
+    ordered step list already indexes everything it needs, and whose failure to declare one was
+    invisible because ``set -e`` is deliberately absent -- the runner has to collect *every* step's
+    status before it reports, so it cannot abort on the first thing that goes wrong.
+
+    Nothing here needs a map. The steps arrive as an ordered list and every verdict is read back in
+    that order, so a plain indexed array parallel to it carries the same information on every shell.
+    """
+    offenders = [
+        line
+        for line in _GATE.read_text(encoding="utf-8").splitlines()
+        if any(pattern.search(line) for pattern in _BASH_4_ONLY)
+    ]
+    assert not offenders, (
+        f"the gate runner uses bash 4 syntax macOS's /bin/bash does not have: {offenders}.\n"
+        f"On bash 3.2 this does not abort the script -- there is no `set -e` and there must not be, "
+        f"so it runs on and fails somewhere that looks like success. The step list is ordered; index "
+        f"a parallel array by position instead."
+    )
+
+    # ...and the guard discriminates, on the line this was actually reported for.
+    assert [line for line in ["declare -A status"] if _BASH_4_ONLY[0].search(line)]

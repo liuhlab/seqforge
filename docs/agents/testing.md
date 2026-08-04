@@ -35,9 +35,19 @@ should be told to climb.
 Nothing about a one-line change is learned by running the whole suite that a targeted run does not
 tell you in a fraction of the time.
 
-**Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs
-`pixi run check` on every push. Running it again locally re-proves what CI is already proving and
-tells you nothing new. Read the run.
+**Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs the
+gate's four steps on every push — as separate jobs invoking `lint`, `fmt-check`, `typecheck` and
+`test` directly, never through `scripts/check.sh`. Running them again locally re-proves what CI is
+already proving and tells you nothing new. Read the run.
+
+**The runner itself is tested, because it can fail in ways no step can.** `pixi run check` is a
+script, and on macOS's bash 3.2 it declared an associative array that shell does not have, collected
+no step's status, printed no verdict and no gate line, and **exited 0** — green, having verified
+nothing, on the one host CI does not cover (#241). So `tests/test_repo_invariants.py` drives it as a
+runner, under every bash on the box: a failing step must reach a non-zero exit with its verdict
+printed, and an interrupted gate must leave no step running. `set -e` stays out of that script — it
+has to collect *every* step's status before it reports — so nothing in it may rely on the shell
+aborting.
 
 ## Which file tests the module you edited
 

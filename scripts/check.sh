@@ -24,45 +24,75 @@
 # when `check` was parallelised, measured 19.1s against a parallel `check`'s 17.1s -- the cheap rung
 # costing MORE than the expensive one -- and running it here too showed it saved nothing at all.
 # It was deleted; the ladder now has three rungs.
-set -uo pipefail
+#
+# Nothing here may use an associative array. macOS ships bash 3.2 as /bin/bash and 3.2 has none, so
+# `declare -A status` failed there -- and `set -e` is deliberately absent below, because the runner
+# must collect EVERY step's status before it reports, so the failed declaration did not stop the
+# script. It ran on into the collect loop, where bash evaluated the subscript arithmetically, `set -u`
+# tripped on the unset name, and the shell exited 0 having verified nothing and printed no verdict.
+# The gate reported green on every macOS host. Nothing needed a map: STEPS is an ordered list and the
+# verdicts are only ever read back in STEPS order, so a plain indexed array parallel to it says
+# everything, on every shell.
+#
+# `-m` puts each step in its OWN process group, which is what makes the cleanup below able to reach
+# past `pixi` to the pytest run underneath it.
+set -muo pipefail
 
 STEPS=("$@")
 [ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh <task>..." >&2; exit 2; }
 
 out=$(mktemp -d)
-trap 'rm -rf "$out"' EXIT
+# Kill, then delete -- in that order, and never one without the other. The steps write into $out, so
+# removing it while any of them is alive leaves live processes writing at a path that is gone; that
+# is what an early death used to do, and the orphaned pytest runs had to be killed by hand. Each
+# leftover job is a process-group leader, so the negated pid takes its children with it.
+cleanup() {
+    local leftover
+    leftover=$(jobs -p)
+    # shellcheck disable=SC2086  # jobs -p emits one bare pid per line, and none may be quoted as one
+    for pgid in $leftover; do kill -- "-$pgid" 2>/dev/null; done
+    wait 2>/dev/null
+    rm -rf "$out"
+}
+trap cleanup EXIT
+# A signal kills the shell without running the EXIT trap, so turn the two that reach an abandoned
+# gate into an ordinary exit. Ctrl-C used to leave the whole gate running behind it.
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 start=$SECONDS
+pids=()
 for step in "${STEPS[@]}"; do
     # shellcheck disable=SC2086  # each step is a single bare task name, never a word-split command
     pixi run --no-progress $step >"$out/$step.log" 2>&1 &
-    echo $! >"$out/$step.pid"
+    pids+=("$!")
 done
 
 rc=0
-declare -A status
-for step in "${STEPS[@]}"; do
-    if wait "$(cat "$out/$step.pid")"; then
-        status[$step]="ok"
+# Indexed by position, parallel to STEPS -- see the note above on why this is not a map.
+status=()
+for i in "${!STEPS[@]}"; do
+    if wait "${pids[$i]}"; then
+        status[$i]="ok"
     else
-        status[$step]="FAILED"
+        status[$i]="FAILED"
         rc=1
     fi
 done
 
-for step in "${STEPS[@]}"; do
-    printf '\n\033[1m=== %s: %s ===\033[0m\n' "$step" "${status[$step]}"
+for i in "${!STEPS[@]}"; do
+    printf '\n\033[1m=== %s: %s ===\033[0m\n' "${STEPS[$i]}" "${status[$i]}"
     # A green step's output is noise; a red one's is the whole point.
-    if [ "${status[$step]}" = "ok" ]; then
-        tail -n 3 "$out/$step.log"
+    if [ "${status[$i]}" = "ok" ]; then
+        tail -n 3 "$out/${STEPS[$i]}.log"
     else
-        cat "$out/$step.log"
+        cat "$out/${STEPS[$i]}.log"
     fi
 done
 
 # Labelled "gate", not "check": the same runner serves rung 2 and rung 3, and the per-step verdicts
 # below already say which rung ran.
 printf '\n\033[1m=== gate: '
-for step in "${STEPS[@]}"; do printf '%s=%s ' "$step" "${status[$step]}"; done
+for i in "${!STEPS[@]}"; do printf '%s=%s ' "${STEPS[$i]}" "${status[$i]}"; done
 printf 'in %ss ===\033[0m\n' "$((SECONDS - start))"
 exit "$rc"
