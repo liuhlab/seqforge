@@ -4,7 +4,10 @@ Date: 2026-08-02
 
 ## Status
 
-Accepted.
+Accepted. **Amended by [0028](0028-specificity-not-verbosity-ranks-a-chemistry-match.md)** on the
+tie-break: ranking by alias token count measures verbosity, not specificity, so a phrase that only
+describes a run outranked a chemistry's own name. The match direction and the family/conflict rule
+below are unchanged.
 
 ## Context
 
@@ -44,7 +47,7 @@ as a disagreement will report one against the family's own leaf.
 
 | | |
 | --- | --- |
-| **Match** | `resolve_chemistry(value) -> Spec \| None`: a node matches when one of its curated forms is **carried by** the value (substring, or all of the form's significant tokens present). `alias ⊆ needle` only. Tie-break: most alias tokens matched, then lowest id. |
+| **Match** | `resolve_chemistry(value) -> Spec \| None`: a node matches when one of its curated forms is **carried by** the value (substring, or all of the form's significant tokens present). `alias ⊆ needle` only. Tie-break: most alias tokens matched, then lowest id — **restated by [0028](0028-specificity-not-verbosity-ranks-a-chemistry-match.md)**, which puts a naming form above a describing one before the count and entailment between two tied forms after it. |
 | **Reject** | a `library.chemistry` draft whose value resolves to `None` is refused `chemistry_names_no_kb_node`. The value must name a chemistry; the KB is what "a chemistry" means. |
 | **Conflict** | `observed ∉ subtree(asserted)`. A family term that narrows to the leaf the bytes decided is **satisfied** by it — nothing was discarded, so nothing is surfaced. |
 
@@ -111,7 +114,9 @@ strength. A change here is a change to a cached verdict, so it bumps `RESOLVE_VE
 - **The dict-order hazard is gone with it.** The old last pass returned the first match in KB
   iteration order, so `WTA` named `bd-rhapsody-wta` only because that directory sorts first — adding
   a spec could silently re-point an unrelated dataset's `run_id`. Scoring every candidate and
-  breaking the tie on `(alias tokens, id)` makes the answer a property of the strings.
+  breaking the tie on `(alias tokens, id)` makes the answer a property of the strings. [0028](0028-specificity-not-verbosity-ranks-a-chemistry-match.md)
+  keeps that property while replacing the count itself: every component it adds reads only the two
+  strings, so no component can move with what else the KB happens to hold.
 - **Both operator doors are closed by the same change.** `manifest fill --chemistry` (confidence 1.0)
   and `resolve score --assert-chemistry` never pass through `verify_drafts`, so a rejection there
   would have left them open; the matcher and the narrowing predicate sit below all three channels.
