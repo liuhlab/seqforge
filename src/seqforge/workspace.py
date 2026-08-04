@@ -47,6 +47,17 @@ DOCUMENTS_DIRNAME = "documents"  #: under records/ — the bytes a span citation
 LOGS_DIRNAME = "logs"
 CACHE_DIRNAME = "cache"
 
+#: The compiled pipelines, top-level beside the manifest: one `pipeline/<recipe>-<run_id[:12]>/` per
+#: compiled pairing. Named here at last. Six comments in this file already called it a peer of the
+#: subtrees above while the literal itself lived in the composer and was re-spelled in the report, in
+#: the compose gates and in the ground-truth harness — the one module whose entire job is spelling
+#: these names once was the one place the name was not.
+#:
+#: This names the DIRECTORY and stops there. What is *inside* one — the wrapper, the config, the
+#: units table, the copied module, and which of them says what — belongs to `seqforge.pipeline`, which
+#: opens it. Naming a directory and reading one are separable jobs, and nothing in this file does I/O.
+PIPELINE_DIRNAME = "pipeline"
+
 #: The eval harness's own output, top-level beside `pipeline/`: one directory per run holding
 #: `report.json` and `transcripts/<case>.jsonl`. Evals were the one part of seqforge that wrote
 #: nothing at all — every case ran in a temporary directory that was deleted and the whole result
@@ -104,6 +115,21 @@ def cache_dir(workspace: str | Path = ".") -> Path:
     return state_dir(workspace, CACHE_DIRNAME)
 
 
+def pipeline_dir(workspace: str | Path = ".", *parts: str, subdir: str | None = None) -> Path:
+    """``seqforge/[<subdir>/]pipeline/<parts...>`` — where a compiled pairing lands.
+
+    ``subdir`` is the per-assay root a heterogeneous project compiles into, one assay per
+    subdirectory; a flat single-assay workspace leaves it ``None`` and gets ``seqforge/pipeline/``.
+    It is keyword-only because it sits *above* the subtree while ``parts`` sit under it, and a caller
+    who passed both positionally would be one argument order away from ``pipeline/<assay>/``.
+
+    Creates nothing and reads nothing — a caller that writes, mkdirs; a caller that reads uses
+    :class:`seqforge.pipeline.CompiledPipeline`.
+    """
+    root = (subdir,) if subdir else ()
+    return state_dir(workspace, *root, PIPELINE_DIRNAME, *parts)
+
+
 def fingerprint_dir(workspace: str | Path = ".") -> Path:
     """``seqforge/fingerprint/`` — portable dataset slices (a deliverable, not cache).
 
@@ -159,6 +185,7 @@ __all__ = [
     "DOCUMENTS_DIRNAME",
     "LOGS_DIRNAME",
     "CACHE_DIRNAME",
+    "PIPELINE_DIRNAME",
     "FINGERPRINT_DIRNAME",
     "EVAL_DIRNAME",
     "EVAL_REPORT_FILENAME",
@@ -169,6 +196,7 @@ __all__ = [
     "documents_dir",
     "logs_dir",
     "cache_dir",
+    "pipeline_dir",
     "fingerprint_dir",
     "eval_dir",
     "report_html_path",

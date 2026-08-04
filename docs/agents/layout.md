@@ -19,7 +19,11 @@ io/         remote peek + probe-remote (fingerprint a URL, no download), ENA/SRA
             pooch-cached onlists. archive.py TRANSCRIBES the four record levels (decides nothing).
             attributes.py = NCBI's 960 BioSample names; efo.py = EFO labels. Both ship as GENERATED
             data with a refresh verb
-workspace.py the one place `seqforge/` is spelled, and the one place a readable-name-plus-hash lives
+workspace.py the one place `seqforge/` is spelled, and the one place a readable-name-plus-hash lives.
+            It names DIRECTORIES and does no I/O
+pipeline.py what is INSIDE one compiled pipeline directory: the three filenames, and the reader that
+            answers which module ran, the config, the contracted samples, the results dir and the
+            per-sample join. Top-level because the composer writes and everyone else reads (ADR-0024)
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
             h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout)
 hooks/      PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` — policy as mechanism

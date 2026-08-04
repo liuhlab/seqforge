@@ -18,7 +18,10 @@ and everything else sorts into one of three subtrees:
 
 Compiled output lives under `pipeline/<recipe>-<run_id[:12]>/` — `config.yaml`, `units.tsv`,
 `Snakefile`, `processing.lock.yaml`, and a **copy of the hand-written module** the wrapper imports
-locally. Keyed by the **run**, because one dataset compiled two ways is two runs
+locally. `workspace.py` names that subtree like every other one; what is *inside* a run directory
+belongs to [`pipeline.py`](../../src/seqforge/pipeline.py), which the composer writes through and the
+report, the gates and the ground-truth harness read through
+([ADR-0024](../adr/0024-one-owner-for-the-compiled-pipeline.md)). Keyed by the **run**, because one dataset compiled two ways is two runs
 ([ADR-0005](../adr/0005-run-id-is-the-pairing.md)). The module is copied in rather than referenced by
 package path so that a run directory still reads and reproduces after it is moved off the composing
 machine.

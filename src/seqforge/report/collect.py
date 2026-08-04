@@ -24,6 +24,7 @@ import yaml
 
 from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
+from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
 from ..project import discover_assays
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
@@ -129,9 +130,9 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         if proc_path.is_file()
         else None
     )
-    pipeline_dir = _find_pipeline(base)
-    plan = _plan(ws, proc, pipeline_dir, assertions, doc_index) if proc is not None else None
-    conclusion = _conclusion(has_manifest=True, snakefile=pipeline_dir is not None)
+    pipeline = CompiledPipeline.discover(ws, subdir=subdir)
+    plan = _plan(ws, proc, pipeline, assertions, doc_index) if proc is not None else None
+    conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
     samples = _samples(manifest, assertions, doc_index)
     matrices, ruled_out = _matrices(ws, manifest)
@@ -158,7 +159,7 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         plan=plan,
         matrices=matrices,
         ruled_out=ruled_out,
-        artifacts=_artifacts(base, pipeline_dir),
+        artifacts=_artifacts(base, pipeline),
         pipeline_stages=_pipeline_stages(plan),
         conclusion=conclusion,
         provenance=[
@@ -386,32 +387,28 @@ def _abstract(records: dict[str, Any]) -> str | None:
 # ---- plan / pipeline ----------------------------------------------------------------------------
 
 
-def _find_pipeline(base: Path) -> Path | None:
-    """The composed pipeline dir for this assay (the one holding a ``Snakefile``), or ``None``."""
-    snakefiles = sorted((base / "pipeline").glob("*/Snakefile"))
-    return snakefiles[0].parent if snakefiles else None
-
-
 #: Don't inline an artifact bigger than this — a runaway units.tsv shouldn't bloat the page. The
 #: composed text artifacts are all a few KB; anything past this is summarized, not embedded.
 _MAX_EMBED_BYTES = 256 * 1024
 
 
-def _artifacts(base: Path, pipeline_dir: Path | None) -> list[ArtifactEmbed]:
+def _artifacts(base: Path, pipeline: CompiledPipeline | None) -> list[ArtifactEmbed]:
     """The workspace's text artifacts, carried *into* the page so relative links can't break.
 
     Read verbatim and embedded (the panel offers a ``data:`` URI download + an inline view). Skips a
-    file over :data:`_MAX_EMBED_BYTES` so the page stays small.
+    file over :data:`_MAX_EMBED_BYTES` so the page stays small. Each compiled artifact is *labelled*
+    with the same name it is *read* under, so the page can never offer a download named for a file
+    the composer stopped writing.
     """
     specs: list[tuple[str, Path, str]] = [
         ("manifest.yaml", base / "manifest.yaml", "text/yaml"),
         ("processing.yaml", base / "processing.yaml", "text/yaml"),
     ]
-    if pipeline_dir is not None:
+    if pipeline is not None:
         specs += [
-            ("Snakefile", pipeline_dir / "Snakefile", "text/plain"),
-            ("config.yaml", pipeline_dir / "config.yaml", "text/yaml"),
-            ("units.tsv", pipeline_dir / "units.tsv", "text/tab-separated-values"),
+            (SNAKEFILE_NAME, pipeline.snakefile, "text/plain"),
+            (CONFIG_NAME, pipeline.config_path, "text/yaml"),
+            (UNITS_TSV_NAME, pipeline.units_path, "text/tab-separated-values"),
         ]
     out: list[ArtifactEmbed] = []
     for name, path, mime in specs:
@@ -493,7 +490,7 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
 def _plan(
     ws: Path,
     proc: ProcessingManifest,
-    pipeline_dir: Path | None,
+    pipeline: CompiledPipeline | None,
     assertions: dict[str, dict[str, Any]],
     doc_index: dict[str, str],
 ) -> PlanView:
@@ -542,17 +539,17 @@ def _plan(
     primary_feature: str | None = None
     snakefile_rel = config_rel = units_rel = None
     pipeline_name: str | None = None
-    if pipeline_dir is not None:
-        pipeline_name = pipeline_dir.name
-        cfg_path = pipeline_dir / "config.yaml"
-        if cfg_path.is_file():
-            cfg = yaml.safe_load(cfg_path.read_text())
-            if isinstance(cfg, dict):
-                primary_feature = _as_str_or_none(cfg.get("primary_feature"))
-                config_kv = _flatten(cfg)
-        snakefile_rel = _rel(ws, pipeline_dir / "Snakefile")
-        config_rel = _rel(ws, cfg_path)
-        units_rel = _rel(ws, pipeline_dir / "units.tsv")
+    if pipeline is not None:
+        pipeline_name = pipeline.directory.name
+        # An absent or unreadable config reads as an empty one, so the "never composed" and "composed
+        # but the config will not parse" degradations are one branch here and are decided once, by
+        # the module that owns the file, rather than by a guard per reader.
+        config = pipeline.config
+        primary_feature = _as_str_or_none(config.get("primary_feature"))
+        config_kv = _flatten(config)
+        snakefile_rel = _rel(ws, pipeline.snakefile)
+        config_rel = _rel(ws, pipeline.config_path)
+        units_rel = _rel(ws, pipeline.units_path)
 
     return PlanView(
         fields=fields,

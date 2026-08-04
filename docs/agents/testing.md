@@ -52,6 +52,7 @@ Test files mirror packages, so rung 1 has an answer:
 | `kb/` | `tests/test_kb.py` |
 | `manifest/` (fill, hash, validate, policy/precedence) | `tests/test_manifest.py` |
 | `compose/` (plan, config, units, gates, params_gate) | `tests/test_compose.py` |
+| `pipeline.py` (the compiled pipeline directory's one owner) | `tests/test_pipeline.py` |
 | `workflows/` (registry + `.smk` source; h5ad, qc, cram, fragments) | `tests/test_workflows.py` |
 | tree-wide R10 AST guards (read `src/`, never compose) | `tests/test_repo_invariants.py` |
 | `harvest/` | `tests/test_harvest.py`, `tests/test_extract.py` |

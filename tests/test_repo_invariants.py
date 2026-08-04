@@ -1,12 +1,14 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Four families live here, and none of them composes anything:
+Five families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
   ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards.
 - **Prose that stays true.** No comment points at a governing document by number, because a number
   is a mutable label: renumber the document and the comment lies, silently, forever.
+- **One owner for a compiled pipeline's layout.** No module outside the two that own those names
+  joins the pipeline directory, the wrapper, the config or the units table into a path of its own.
 - **Nothing tracked escapes the type checker.** The declared mypy scope covers every committed
   Python file, and every path the exclusion list hides is already gitignored.
 - **The test loop declares what it needs.** What the suite requires of its environment is declared
@@ -30,6 +32,8 @@ from typing import Any
 import pytest
 
 from conftest import SrcTrees, _src_root
+from seqforge.pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME
+from seqforge.workspace import PIPELINE_DIRNAME
 
 #: Names owned upstream by `liulab-genome`. seqforge may CALL them; defining one here means we have
 #: started reimplementing the package whose whole job this is.
@@ -313,6 +317,105 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
     assert not _points_by_number('a run alias ("N2_wild_type", "daf-2 R3")')
     assert not _points_by_number("the canonical geometry is a 16 bp barcode read (R2)")
     assert not _points_by_number(f'{{"file": "{_numbered(9)}"}}')  # quoted -> a fixture's read id
+
+
+#: The names that make up a compiled pipeline directory, taken from the two modules that own them —
+#: never re-typed here. `workspace.py` names the subtree and `pipeline.py` names the three files it
+#: holds, so a rename moves this guard with it rather than leaving it policing a name nothing writes.
+_PIPELINE_LAYOUT_NAMES = frozenset({PIPELINE_DIRNAME, SNAKEFILE_NAME, CONFIG_NAME, UNITS_TSV_NAME})
+
+#: The two files allowed to spell them, and the split is the decision: one names the DIRECTORY beside
+#: every other subtree it names, the other names what is inside one and opens it.
+_PIPELINE_LAYOUT_OWNERS = frozenset({"workspace.py", "pipeline.py"})
+
+
+def _joins_a_path(node: ast.AST) -> list[ast.Constant]:
+    """The string literals ``node`` puts somewhere a path or a filename constant is made.
+
+    Three positions, and they are the three the five hand-spellings actually used: an operand of
+    ``/``, an argument to a call (``glob("*/Snakefile")``, ``Path(d, "units.tsv")``), and the whole
+    right-hand side of an assignment — the last because a private ``_SNAKEFILE_NAME = "Snakefile"``
+    is precisely the shape this decision removed from the composer, and a guard that could not see it
+    come back would be guarding the symptom.
+    """
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return [side for side in (node.left, node.right) if isinstance(side, ast.Constant)]
+    if isinstance(node, ast.Call):
+        args = [*node.args, *(kw.value for kw in node.keywords)]
+        return [arg for arg in args if isinstance(arg, ast.Constant)]
+    if isinstance(node, ast.Assign | ast.AnnAssign) and isinstance(node.value, ast.Constant):
+        return [node.value]
+    return []
+
+
+def _spells_the_pipeline_layout(tree: ast.AST) -> list[str]:
+    """Where this module builds a path out of a name the compiled-pipeline owners own.
+
+    The exact predicate ``test_only_the_compiled_pipeline_owner_spells_its_layout`` applies to every
+    module in the src tree, shared with its discriminator so what is proven to fire is the real
+    thing.
+
+    **Segments, not substrings**, so ``"*/Snakefile"`` is caught and a sentence that merely mentions
+    the config is not. **Path positions, not every literal**, and that narrowing is the difference
+    between a guard that survives and one that gets deleted: ``pipeline`` is also an ordinary English
+    word, and it is legitimately a tab id on the report page and a key in the project index. Neither
+    is a path, neither would be fixed by importing a directory name, and a check that demanded they
+    change would be crying wolf on its second day.
+    """
+    found: list[str] = []
+    for node in ast.walk(tree):
+        for literal in _joins_a_path(node):
+            value = literal.value
+            if isinstance(value, str) and _PIPELINE_LAYOUT_NAMES & set(value.split("/")):
+                found.append(f"{literal.lineno}: {value!r}")
+    return sorted(found)
+
+
+@pytest.mark.xdist_group("src-trees")
+def test_only_the_compiled_pipeline_owner_spells_its_layout(src_trees: SrcTrees) -> None:
+    """One owner for the compiled pipeline directory, as a mechanism rather than a habit.
+
+    Its layout used to be spelled by hand in five modules — the composer that writes it, the report
+    collector, the project index, the compose gates and the ground-truth harness — and two of them
+    had grown independently written copies of the same derivation over it. Five copies of a string
+    is five chances for one to be stale, and the copy nobody executes is the one that is wrong; this
+    repo has already paid that twice, on a STAR command line and on how to resolve a genome index.
+
+    So the check is the sixth consumer's problem, not the reviewer's: join one of these names into a
+    path anywhere else in the tree and this goes red naming the file and the line. The fix is always
+    the same shape — ask ``CompiledPipeline`` for the path, or ``workspace.pipeline_dir`` for the
+    subtree — and it is in the message, because a guard that only says "no" gets worked around.
+    """
+    offenders = {
+        py.name: found
+        for py, tree in src_trees.items()
+        if py.name not in _PIPELINE_LAYOUT_OWNERS and (found := _spells_the_pipeline_layout(tree))
+    }
+    assert not offenders, (
+        "a module outside the compiled-pipeline owners spells its layout:\n"
+        + "\n".join(f"  {name} {line}" for name, lines in offenders.items() for line in lines)
+        + "\nAsk `seqforge.pipeline.CompiledPipeline` for a file inside a run directory, and "
+        "`seqforge.workspace.pipeline_dir` for the subtree. One owner is the point: a second "
+        "spelling is a second thing to keep in step, and nothing tells you when it stops being."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicate: it must fire on every shape the
+    # five hand-spellings took, and stay silent on the two places the same word is a word. A guard
+    # nobody proved fires is a guard that always allows.
+    def fires(source: str) -> bool:
+        return bool(_spells_the_pipeline_layout(ast.parse(source)))
+
+    assert fires('snakefiles = sorted((base / "pipeline").glob("*/Snakefile"))')  # the report's
+    assert fires('config = yaml.safe_load((rundir / "config.yaml").read_text())')  # the harness's
+    assert fires('subprocess.run(["snakemake", "-s", str(scratch / "Snakefile")])')  # the gate's
+    assert fires('_SNAKEFILE_NAME = "Snakefile"')  # the composer's private constant
+    assert fires('units = Path(directory, "units.tsv")')  # a call that builds a path
+    assert fires('state_dir(workspace, "pipeline", readable(name, rid))')  # the composer's join
+
+    assert not fires('"""The composed config.yaml, beside the Snakefile."""')  # prose
+    assert not fires('portable = k in ("manifest", "snakefile", "pipeline")')  # a key, not a path
+    assert not fires('_TABS = [("overview", "Overview"), ("pipeline", "Pipeline")]')  # a tab id
+    assert not fires('log.info("no config.yaml here yet")')  # a sentence in a call
 
 
 _REPO = Path(__file__).resolve().parent.parent

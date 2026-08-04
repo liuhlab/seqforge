@@ -29,6 +29,8 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..pipeline import CompiledPipeline
+
 if TYPE_CHECKING:  # pragma: no cover
     from .core import ComposePlan
 
@@ -45,7 +47,8 @@ def _replica(pipeline_dir: Path, plan: ComposePlan) -> Path:
     zero-byte stand-ins: it validates *wiring*, not data.
 
     **The stand-ins go in a throwaway copy, and that is the whole point of this function.** They used
-    to be touched straight into the run directory, at `pipeline_dir / row["path"]`, and never removed.
+    to be touched straight into the run directory itself, at each unit's `row["path"]`, and never
+    removed.
     That was invisible only because `snakemake` was in no dependency table, so this gate never ran. The
     moment it did, the run directory would contain zero-byte files named exactly like the FASTQs, STAR
     would read them, and the pipeline would emit an empty matrix and **exit 0** — a silent, plausible,
@@ -80,9 +83,14 @@ def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> str:
     if not have("snakemake"):
         return "skip"
     scratch = _replica(pipeline_dir, plan)
+    # A copy of a pipeline directory is a pipeline directory, so the wrapper is located through the
+    # module that owns that layout. This gate spelled the name itself, which made it one of five
+    # places that had to agree on what the composer writes — and the only one whose job is to prove
+    # the composer's output runs.
+    wrapper = CompiledPipeline(scratch).snakefile
     try:
         proc = subprocess.run(
-            ["snakemake", "-d", str(scratch), "-s", str(scratch / "Snakefile"), "-n", "-p"],
+            ["snakemake", "-d", str(scratch), "-s", str(wrapper), "-n", "-p"],
             capture_output=True,
             text=True,
             timeout=300,
