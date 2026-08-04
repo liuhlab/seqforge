@@ -94,6 +94,13 @@ def report_cmd(
                     "samples_finished": a.pipeline_stats.n_found,
                     "samples_expected": a.pipeline_stats.n_expected,
                 },
+                # Which decision the pipeline's own numbers make look wrong, beside the numbers and
+                # never folded into the exit code above: an alert is advisory, and a finding that
+                # exists only inside an HTML document is not machine-accessible. Dumped whole rather
+                # than summarised — the stable `id` is what a consumer suppresses or tracks a
+                # recurring alert by, and the rest is what it would otherwise have to parse out of
+                # the page. An empty list is the healthy answer, and the common one.
+                "alerts": [alert.model_dump(mode="json") for alert in a.alerts],
             }
             for a in report.assays
         ],
