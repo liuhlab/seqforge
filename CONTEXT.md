@@ -365,18 +365,14 @@ is dissolved, not asked (`docs/adr/0012`).
 _Avoid_: prompt, query, clarification, ask
 
 **Alert**:
-Post-run evidence contradicting a decision the compiler has already made and already hashed: a
-threshold comparison over the **Metric**s a finished **Compiled pipeline** wrote, naming the manifest
-or recipe decision it implicates and the value that decision currently carries. It fires either on
-every sample that landed or on some, and the two are different claims — the first implicates the
-decision, the second one well. The only thing in this compiler that points *backwards* along its own
-pipeline, and advisory by construction: it rewrites neither artifact, changes no exit code, and turns
-no successful compile into a refusal (`docs/adr/0026`).
-_Avoid_: **Conflict** — that is disagreement among the *inputs*, settled before a manifest exists,
-and an alert is not a late one; **Warning** and **Blocker** — both are compile-time verdicts an exit
-code carries, and an alert reaches a reader through the page and the report verb's JSON instead;
-**Question** — that is asked *before* deciding, and an alert arrives after and asks nothing; also
-issue, diagnostic, QC failure, recommendation
+Post-run evidence contradicting a decision already made and already hashed — a threshold comparison
+over the **Metric**s a finished **Compiled pipeline** wrote, naming the decision it implicates and
+the value that decision currently carries. The compiler's one backward edge, and advisory by
+construction (`docs/adr/0026`). Firing on every landed sample and firing on one are different
+claims: the first implicates the decision, the second one well.
+_Avoid_: **Conflict**, **Warning**, **Blocker**, **Question** — all four are compile-time, decided
+before or while a manifest exists and carried by an exit code, and an alert is none of them arriving
+late; also issue, diagnostic, QC failure, recommendation
 
 ### Artifacts
 
@@ -415,17 +411,14 @@ _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the p
 its execution; also build, job, workflow run
 
 **Metric**:
-One number a finished **Compiled pipeline** wrote, carried with the words a human reads it by, which
-stage it speaks about (input, barcode, alignment, counts, duplication, cells), and a **level** —
-`ok`, `warn`, `bad`, or `none` where no bar is defensible, which is a verdict and not a missing value.
-The module that wrote the artifact decides the level, so the page picks a colour and never a threshold
-(`docs/adr/0025`); a number the artifact does not carry is absent, never a zero. One sample's metrics
-are its *sample stats* and one execution's are its *pipeline stats* — **pipeline**, because a **Run**
-is one sequencing run and `run_id` names a pairing, and three senses of one word is how a reader stops
-knowing which of them a field carries.
-_Avoid_: stat, QC number, score (a score is what the resolver computes over candidates), grade (that
-is the act of assigning a level); and never an **Observation** — that is read from the bytes *before*
-anything ran, a metric is what the finished pipeline reported *after*
+One number a finished **Compiled pipeline** wrote, with the words a human reads it by, the stage it
+speaks about, and a **level** — `ok`/`warn`/`bad`, or `none` where no bar is defensible, which is a
+verdict and not a missing value. The module that wrote the artifact decides the level
+(`docs/adr/0025`, `workflows/metrics.py`); a number the artifact does not carry is absent, never a
+zero. One sample's are its *sample stats*, one execution's its *pipeline stats*.
+_Avoid_: stat, QC number, score (what the resolver computes over candidates), grade (the act of
+assigning a level); and never an **Observation** — that is read from the bytes *before* anything ran,
+a metric is what the finished pipeline reported *after*
 
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it

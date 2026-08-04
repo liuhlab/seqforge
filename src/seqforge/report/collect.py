@@ -687,7 +687,7 @@ class _DecisionContext(NamedTuple):
     """Everything a resolver may read: the dataset, the recipe, and the composed view of it.
 
     One argument rather than three positional ones so that adding a resolver — the whole shape of the
-    next two tickets — is a function and a dict entry, never a signature change rippling through
+    two rules that followed it — is a function and a dict entry, never a signature change rippling through
     every sibling. ``proc`` and ``plan`` are optional because an assay can reach the IR and never be
     composed, and a resolver that cannot answer returns ``None`` rather than inventing a value.
     """
@@ -854,8 +854,9 @@ def _resolve_strand(ctx: _DecisionContext) -> DecisionRef | None:
 #: ``get_args`` holds it that way: a member added without teaching this table to read its value would
 #: render as a field name with nothing beside it, which reads as a value of nothing.
 #:
-#: A dict and not a chain of ``if``s for the reason the stats registry is one: the next two rules add
-#: an entry here and a function above, and neither touches the grouping, the ordering or the page.
+#: A dict and not a chain of ``if``s for the reason the stats registry is one: the two rules that
+#: followed the first each added an entry here and a function above, and neither touched the
+#: grouping, the ordering or the page. Five members, and each one a decision a reader can act on.
 _DECISION_RESOLVERS: dict[Decision, Callable[[_DecisionContext], DecisionRef | None]] = {
     "chemistry": _resolve_chemistry,
     "read_roles": _resolve_read_roles,

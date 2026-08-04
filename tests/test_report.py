@@ -2000,7 +2000,7 @@ def test_every_severity_the_page_can_draw_wears_a_verdict_the_palette_already_ha
 def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no_heading(
     own_workspace: Path,
 ) -> None:
-    """The two card branches this ticket's one rule cannot reach, proven before the next one needs them.
+    """Two card branches proven before a rule reached them — `change_to` now has one, a heading none.
 
     `change_to` is filled only where the alternative is genuinely enumerable — a role assignment has
     one swap, a chemistry call has a KB's worth — so the chemistry rule leaves it empty and the
@@ -2672,8 +2672,8 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
 ) -> None:
     """Self-contained, no external reference, inside the budget, byte-deterministic — with this alert.
 
-    Asserted again for the second rule rather than assumed off the first: this is the card that
-    carries a `change_to` line, and it is the only alert markup no shipped rule reached until now.
+    Asserted again for this rule rather than assumed off the others: this is the card that carries a
+    `change_to` line, which no other shipped rule fills.
     """
     _finish_a_starsolo_pipeline_over(
         own_workspace, {"S1": _UNCOUNTED_GENES, "S2": _QC_SUMMARY, "S3": _UNCOUNTED_GENES}
