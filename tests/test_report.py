@@ -1128,7 +1128,7 @@ def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_reg
     )
 
 
-def test_the_three_narrative_views_stay_readable_at_a_narrow_viewport(workspace: Path) -> None:
+def test_every_tab_the_page_offers_stays_readable_at_a_narrow_viewport(workspace: Path) -> None:
     """A phone is a real reader, and this is what the page can promise one without a browser.
 
     Two mechanical properties, over the rendered panes: nothing sets a width in pixels (a fixed width
@@ -1140,7 +1140,14 @@ def test_the_three_narrative_views_stay_readable_at_a_narrow_viewport(workspace:
     page = render_html(collect_report(workspace))
     grids = 0
 
-    for tab in ("overview", "flow", "pipeline"):
+    # Every tab the page actually offers, read off its own tab bar rather than hand-listed. Three
+    # tabs were named here while three others were migrated by other tickets, so half the page was
+    # exempt from the promise; deriving the list means a seventh tab is in scope the day it renders,
+    # and a tab the page declines to show (Results, with no pipeline behind it) is not demanded.
+    tabs = re.findall(r'<button class="tab[^"]*" data-tab="(\w+)"', page)
+    assert set(tabs) >= {"overview", "flow", "samples", "evidence", "pipeline"}, tabs
+
+    for tab in tabs:
         pane = _pane(page, tab)
         # An absolute width, in a style or as an arbitrary utility. `max-width` is exempt: it only
         # ever narrows, which is the opposite failure, and the abstract's 70ch cap is deliberate.
@@ -1885,4 +1892,51 @@ def test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves() -> None:
         if hand_written_is_inlined is False
         else "report.src.css must not import tailwindcss/preflight.css while report.css is inlined "
         "— two resets on one page, and the second one moves headings, lists and paragraphs"
+    )
+
+
+def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
+    own_workspace: Path,
+) -> None:
+    """ "A metric's meaning stays reachable from its column header rather than repeated in every cell."
+
+    The criterion has two halves and only the second is about the page looking right. **Reachable**
+    is the accessibility half: every hint the adapter wrote reaches a reader, through the same pinned
+    popover the samples grid uses, off a control that is keyboard-reachable. **Once** is the budget
+    half: the hint is byte-identical down its whole column, so a 96-sample table would pay for it
+    ninety-six times — ~300 KB of the page's 500 KB, and the one thing on this tab that could break
+    the budget on its own.
+
+    Both are read off the rendered page, and both are counted rather than spot-checked: this
+    criterion was implemented and shipped with no test at all, so `_metric_head` could have dropped
+    its `hint` argument entirely and the suite would have stayed green.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    page = render_html(collect_report(own_workspace))
+    pane = _pane(page, "results")
+
+    heads = re.findall(r'<span class="metric-head"([^>]*)>', pane)
+    assert len(heads) >= 5, f"the metrics table's headers carry no hint at all: {len(heads)}"
+
+    for attrs in heads:
+        assert 'role="button"' in attrs and 'tabindex="0"' in attrs, (
+            f"a hint that only a mouse can open is not reachable: {attrs}"
+        )
+        basis = re.search(r'data-basis="([^"]*)"', attrs)
+        assert basis and len(basis.group(1)) > 20, f"the header carries no sentence: {attrs}"
+
+    # ...and stored ONCE. Every hint appears exactly as many times as there are column headers
+    # carrying it — never once per cell. Asserted over the real sentences the adapter wrote, so a
+    # renderer that started repeating them per row fails here rather than in a size budget later.
+    for attrs in heads:
+        sentence = re.search(r'data-basis="([^"]*)"', attrs).group(1)  # type: ignore[union-attr]
+        assert pane.count(sentence) == 1, (
+            f"a hint is repeated {pane.count(sentence)} times; it belongs to the column, not the cell"
+        )
+
+    # The `role="button"` sits on a span INSIDE the `<th>`, never on the `<th>`: a column header that
+    # announces itself as a button has stopped being a column header, and screen-reader table
+    # navigation is what a wide metrics table needs most.
+    assert not re.search(r'<th[^>]*role="button"', pane), (
+        "a column header announcing itself as a button is no longer a column header"
     )
