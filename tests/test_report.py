@@ -2431,6 +2431,62 @@ def test_the_strand_offers_an_alternative_only_where_the_alternative_is_one_valu
     assert "the alternative is" not in block
 
 
+def test_a_workspace_that_was_never_composed_answers_for_neither_new_decision(
+    own_workspace: Path,
+) -> None:
+    """An assay can reach the IR and never be composed, and then neither decision has a value to read.
+
+    The recipe is not there, and neither is the config it would have produced. Both resolve to `None`
+    rather than to a plausible-looking default, and `gather_alerts` drops the row — a field name with
+    no value beside it reads as a value of nothing.
+
+    This is the case the exhaustiveness test above cannot cover, because that one needs a context
+    that answers. Asserted here from the other side, with both directions in one test so a resolver
+    that had stopped reading its artifact entirely would fail the second half.
+    """
+    from seqforge.models.dataset import DatasetManifest
+    from seqforge.report.collect import _DecisionContext, _resolve_annotation, _resolve_strand
+
+    manifest = DatasetManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    )
+    bare = _DecisionContext(manifest=manifest, proc=None, plan=None)
+
+    assert _resolve_annotation(bare) is None and _resolve_strand(bare) is None
+
+    full = _decision_context(own_workspace, manifest)
+    assert _resolve_annotation(full) is not None and _resolve_strand(full) is not None
+
+
+def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspace: Path) -> None:
+    """`annotation_name` is `None` for an index built from the FASTA alone, and "sacCer3 / None" is
+    a value a reader would try to act on.
+
+    So the ref is dropped rather than rendered. The rule that names this decision cannot fire on such
+    a pipeline anyway — no GTF, no `Summary.csv` gene rows, no `reads_in_genes` — which makes this the
+    same fact arriving from the other side rather than a second guard, and it is asserted here
+    because nothing else in this file composes a chromap recipe.
+    """
+    from seqforge.models.dataset import DatasetManifest
+    from seqforge.report.collect import _resolve_annotation
+
+    manifest = DatasetManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    )
+    ctx = _decision_context(own_workspace, manifest)
+    assert ctx.proc is not None and _resolve_annotation(ctx) is not None
+
+    evidenced = ctx.proc.processing.genome
+    no_gtf = evidenced.model_copy(
+        update={"value": evidenced.value.model_copy(update={"annotation_name": None})}
+    )
+    stripped = ctx.proc.model_copy(
+        update={"processing": ctx.proc.processing.model_copy(update={"genome": no_gtf})}
+    )
+
+    assert _resolve_annotation(ctx._replace(proc=stripped)) is None
+
+
 def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_rendered(
     own_workspace: Path,
 ) -> None:
