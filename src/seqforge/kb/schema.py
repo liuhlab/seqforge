@@ -169,11 +169,17 @@ class OnlistHitRate(_Seg):
     offset_scan: int = Field(default=2, ge=0, le=32)
 
 
+#: Where a motif is looked for. Named, rather than spelled inline, because the resolver switches on
+#: it: a fifth place added here must fail loudly at the site that classifies it, not fall through to
+#: "scan the whole read" — the shape that was a live defect in the whitelist scan.
+MotifWhere = Literal["read_start", "read_end", "anywhere", "window"]
+
+
 class MotifPresent(_Forbid):
     test: Literal["motif_present"]
     read: str
     motif: str
-    where: Literal["read_start", "read_end", "anywhere", "window"] = "anywhere"
+    where: MotifWhere = "anywhere"
     search_start: int | None = None
     search_end: int | None = None
     max_mismatch: int = 1

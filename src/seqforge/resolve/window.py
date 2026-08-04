@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
 from ..io.onlist import _STRANDS_SCANNED, pack_barcode, revcomp
 from ..kb.anchor import element_bases, resolve_windows
-from ..kb.schema import Read
+from ..kb.schema import MotifWhere, Read
 from ..models.observation import CycleComposition, Observation
 from ..probe import signals as sig  # module-qualified: `distinct_ratio` is also a method below
 
@@ -23,6 +23,11 @@ _IUPAC = {
     "R": "AG", "Y": "CT", "S": "GC", "W": "AT", "K": "GT", "M": "AC",
     "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG", "N": "ACGT",
 }  # fmt: skip
+
+#: The bases a sequencer calls, read off the table above rather than spelled a second time: `N` is
+#: the IUPAC code for "any of them", so its expansion IS the called alphabet. Same predicate the
+#: onlist paths apply through `pack_barcode`, which returns `None` on anything outside it.
+_CALLED = frozenset(_IUPAC["N"])
 
 
 @dataclass(frozen=True)
@@ -166,59 +171,134 @@ class WindowProbe:
         self,
         motif: str,
         *,
-        where: str = "anywhere",
+        where: MotifWhere = "anywhere",
         search_start: int | None = None,
         search_end: int | None = None,
         max_mismatch: int = 1,
     ) -> float | None:
-        """Fraction of reads matching an IUPAC ``motif`` (<= ``max_mismatch``) in the search window."""
+        """Fraction of reads matching an IUPAC ``motif`` (<= ``max_mismatch``) in the search window.
+
+        **An uncalled base is not a substitution** — the policy the two onlist paths above already
+        share, arrived at here late. A base the sequencer never called is evidence neither for the
+        motif nor against it, so a position whose window holds one is skipped rather than scored, and
+        a read with nothing left to score leaves the denominator instead of diluting the rate.
+        Before this an ``N`` failed the IUPAC membership test like any wrong base: it ate the
+        ``max_mismatch`` budget on every read at once, and the rate reported the run rather than the
+        library. At a majority ``requires`` threshold that is enough for a dark cycle to take a whole
+        family of specs out of the running.
+
+        **It costs nothing where the motif asks nothing.** Only the offsets a motif *constrains* can
+        be lost; a cycle under an ``N`` was never evidence, so blanking it leaves the read whole.
+
+        **What it costs elsewhere depends on what the search DECLARES.** ``read_start`` / ``read_end``
+        / a closed ``window`` name where the motif is, so their candidate positions are one claim
+        staggered rather than independent chances: an uncalled base at a constrained offset of *any*
+        of them leaves the read unable to answer, and it leaves ``tested`` whole. ``anywhere`` — and a
+        ``window`` left open at the end, which runs just as far — declares nothing, so each position
+        is its own chance, only the positions it reaches are lost, and the read leaves ``tested`` only
+        when none of them survives.
+
+        A read the declared window does not *fit* is a different fact — a length one, gated on length
+        elsewhere — and stays a miss. Only an uncalled base costs coverage.
+
+        ``None`` when no read could be measured at all, which a caller must read as "cannot see"
+        rather than "absent". The loss itself is reported by ``Observation.coverage``, which is why
+        this returns a bare rate and does not carry its own denominator.
+        """
         m = len(motif)
         if m == 0:
             return None
+        constrained = _constrained_offsets(motif)
         tested = 0
         matched = 0
         for seq in self.seqs:
             if len(seq) < m:
                 continue
+            starts, bounded = _search_positions(seq, m, where, search_start, search_end)
+            called = _called_starts(seq, starts, constrained)
+            if starts and (not called or (bounded and len(called) < len(starts))):
+                continue  # never called where the motif was looked for: coverage, not a miss
             tested += 1
-            if self._read_has_motif(seq, motif, where, search_start, search_end, max_mismatch):
+            if any(
+                _motif_matches(seq[p : p + m], motif, constrained, max_mismatch) for p in called
+            ):
                 matched += 1
         if tested == 0:
             return None
         return matched / tested
 
-    @staticmethod
-    def _read_has_motif(
-        seq: str,
-        motif: str,
-        where: str,
-        search_start: int | None,
-        search_end: int | None,
-        max_mismatch: int,
-    ) -> bool:
-        m = len(motif)
-        if where == "read_start":
-            starts = [0]
-        elif where == "read_end":
-            starts = [len(seq) - m]
-        elif where == "window":
-            lo = search_start or 0
-            hi = search_end if search_end is not None else len(seq) - m
-            starts = list(range(lo, hi + 1))
-        else:  # anywhere
-            starts = list(range(0, len(seq) - m + 1))
-        for pos in starts:
-            if pos < 0 or pos + m > len(seq):
-                continue
-            if _motif_matches(seq[pos : pos + m], motif, max_mismatch):
-                return True
-        return False
+
+def _constrained_offsets(motif: str) -> tuple[int, ...]:
+    """The offsets in ``motif`` that constrain the read — every code but a fully ambiguous one.
+
+    ``N`` accepts all four bases, so a cycle under one is not evidence and was never going to be: it
+    cannot mismatch, and a base nobody called there costs nothing. The shipped Enhanced motif is
+    ``GTGANNNNNNNNNGACA``, nine of whose seventeen positions are exactly that — masking the whole
+    width instead would let a dark cycle in the cell-label block throw away a read still showing both
+    linkers intact.
+    """
+    return tuple(j for j, code in enumerate(motif) if len(_IUPAC.get(code, code)) < len(_CALLED))
 
 
-def _motif_matches(window: str, motif: str, max_mismatch: int) -> bool:
+def _search_positions(
+    seq: str, m: int, where: MotifWhere, search_start: int | None, search_end: int | None
+) -> tuple[list[int], bool]:
+    """Where a motif of width ``m`` could start in ``seq``, and whether those positions are ONE claim.
+
+    ``where`` is classified **here and nowhere else**. Two sites reading the same field and disagreeing
+    about a value neither recognises is the shape that was a live defect in the whitelist scan; a
+    single classification cannot drift from itself.
+
+    Positions the read is too short to hold are dropped, so what comes back is what the read could
+    actually be asked. An empty list means the read cannot carry the motif where it was looked for —
+    a fact about its layout, not about the run.
+
+    ``bounded`` is whether the search **declared a finite span**. ``read_start`` and ``read_end`` name
+    one position and ``window`` names both its ends, so their positions are one claim staggered rather
+    than independent chances. A ``window`` left open at the end has declared no span at all — it runs
+    to wherever the read stops, exactly as ``anywhere`` does — so it is not one claim either.
+    """
+    lo = (search_start or 0) if where == "window" else 0
+    if where == "read_start":
+        return _fitting([0], m, len(seq)), True
+    if where == "read_end":
+        return _fitting([len(seq) - m], m, len(seq)), True
+    if where == "window" and search_end is not None:
+        return _fitting(list(range(lo, search_end + 1)), m, len(seq)), True
+    return _fitting(list(range(lo, len(seq) - m + 1)), m, len(seq)), False
+
+
+def _fitting(starts: list[int], m: int, n: int) -> list[int]:
+    return [p for p in starts if p >= 0 and p + m <= n]
+
+
+def _called_starts(seq: str, starts: list[int], constrained: tuple[int, ...]) -> list[int]:
+    """Those of ``starts`` whose window the sequencer called at every offset the motif constrains.
+
+    Scanning the read for uncalled bases once, rather than every window at every position, is what
+    keeps an unbounded search affordable: the common case is a read with none, which costs one pass
+    and hands ``starts`` back untouched.
+    """
+    uncalled = [i for i, base in enumerate(seq) if base not in _CALLED]
+    if not uncalled:
+        return starts
+    offsets = set(constrained)
+    return [p for p in starts if all(i - p not in offsets for i in uncalled)]
+
+
+def _motif_matches(
+    window: str, motif: str, constrained: tuple[int, ...], max_mismatch: int
+) -> bool:
+    """Does ``window`` carry ``motif`` within ``max_mismatch`` substitutions?
+
+    Only the offsets the motif **constrains** are scored, and every base at one of them was called —
+    the caller drops the windows that were not. So a base outside its IUPAC code is a substitution
+    and nothing else. That is the invariant to keep: an uncalled base re-entering here as a mismatch,
+    at a position the motif never asked about, is the defect this no longer has to defend against.
+    """
     mism = 0
-    for base, code in zip(window, motif, strict=True):
-        if base not in _IUPAC.get(code, code):
+    for j in constrained:
+        if window[j] not in _IUPAC.get(motif[j], motif[j]):
             mism += 1
             if mism > max_mismatch:
                 return False

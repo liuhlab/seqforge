@@ -98,14 +98,26 @@ from __future__ import annotations
 #: PROBE_VERSION bump (2026.8.1, which adds the share this reads) moves `dataset_id` as well, but
 #: that is a probe fact: the resolver's own stamp is what states that the resolver's verdict is stale,
 #: and a reader of this log must not have to cross-reference another module's to learn it.
-#: 2026.8.1 — a run is LANE-BLIND: `run_key` strips a trailing `_L\d{3}` once the mate token is off,
+#: 2026.8.4 — `motif_present` adopts the coverage policy `2026.7.16` gave the two onlist paths: an
+#: uncalled base is not a substitution, so it no longer eats the `max_mismatch` budget, and a read
+#: never called where the motif was looked for leaves `n_tested` instead of diluting the rate (#255).
+#: Only the offsets a motif CONSTRAINS can be lost — a cycle under an `N` was never evidence — and
+#: what a loss costs depends on what the search declares: `read_start`/`read_end`/a closed `window`
+#: name where the motif is, so an uncalled base at any of their constrained offsets costs the whole
+#: read; `anywhere`, and a `window` left open at the end, declare nothing and cost only the positions
+#: they reach. This MUST re-key for the reason 2026.7.15/.16/.17/.18 did — the
+#: defect it fixes is a cached REFUSAL. The gate is a `requires` at a majority threshold on all three
+#: shipped BD Rhapsody Enhanced specs, so one dark cycle in barcode-read cycles 8-29 invalidated the
+#: whole family at once, and such a dataset would keep being served that verdict out of the cache
+#: while this landed green.
+#: 2026.8.5 — a run is LANE-BLIND: `run_key` strips a trailing `_L\d{3}` once the mate token is off,
 #: so the four lanes of one library are one run (#263, ADR-0027). This MUST re-key, and for the
-#: reason 2026.7.15/.16/.17 did — what sits in caches is a wrong GROUPING, and with no archive record
+#: reason 2026.7.15/.16/.17 and 2026.8.4 did — what sits in caches is a wrong GROUPING, and with no archive record
 #: a run IS the sample identity, so a four-lane library is cached as four samples at a quarter depth
 #: each: self-consistent, `validate` clean, exit 0. Nothing refuses it and nothing would notice.
 #: `dataset_hash` moves with it for record-less multi-lane data, which is the point — a pin to the
 #: four-sample manifest refuses rather than resolving to a different dataset than it was written for.
-RESOLVE_VERSION = "2026.8.1"
+RESOLVE_VERSION = "2026.8.5"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
