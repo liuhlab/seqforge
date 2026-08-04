@@ -962,7 +962,7 @@ def test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves() -> None:
     preflight_is_built = "text-size-adjust" in built
 
     assert preflight_is_built != hand_written_is_inlined, (
-        "add `@import \"tailwindcss/preflight.css\" layer(base);` to report.src.css and rebuild"
+        'add `@import "tailwindcss/preflight.css" layer(base);` to report.src.css and rebuild'
         if hand_written_is_inlined is False
         else "report.src.css must not import tailwindcss/preflight.css while report.css is inlined "
         "— two resets on one page, and the second one moves headings, lists and paragraphs"
