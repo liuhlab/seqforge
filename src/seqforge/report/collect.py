@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
@@ -28,7 +29,7 @@ from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
 from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
 from ..project import discover_assays
-from ..workflows.metrics import PipelineStats
+from ..workflows.metrics import Alert, Decision, DecisionRef, PipelineStats, gather_alerts
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
     ArtifactEmbed,
@@ -151,6 +152,7 @@ def _collect_assay(
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
     samples = _samples(manifest, assertions, doc_index)
+    stats = _pipeline_stats(pipeline, manifest, results_dir)
     matrices, ruled_out = _matrices(ws, manifest)
     has_prose = any(
         ref.kind == "assertion" and ref.quote
@@ -178,7 +180,8 @@ def _collect_assay(
         artifacts=_artifacts(base, pipeline),
         pipeline_stages=_pipeline_stages(plan),
         conclusion=conclusion,
-        pipeline_stats=_pipeline_stats(pipeline, manifest, results_dir),
+        pipeline_stats=stats,
+        alerts=_alerts(stats, manifest, proc, plan),
         provenance=[
             ("dataset_hash", manifest.provenance.dataset_hash),
             ("kb_version", manifest.provenance.kb_version),
@@ -666,6 +669,126 @@ def _pipeline_stats(
         return read_pipeline_stats(module, where, samples)
     except OSError:
         return None
+
+
+# ---- attribution: which decision does a bad number implicate? ------------------------------------
+#
+# The rules are pure over one sample's metrics, so a `Finding` can name a decision and can never say
+# what that decision is currently SET to. This is where the other half is in hand — the manifest, the
+# recipe and the composed config are all already open here — so this is where the join happens, and
+# it is the only place in the system that knows both what a `Decision` means and what a manifest is.
+#
+# Nothing here writes. Every function below reads an already-validated artifact and returns a display
+# string; there is no path, no `open(..., "w")` and no exit code in this section, which is what makes
+# "an alert never rewrites the manifest or the recipe" a property of the code rather than a promise.
+
+
+class _DecisionContext(NamedTuple):
+    """Everything a resolver may read: the dataset, the recipe, and the composed view of it.
+
+    One argument rather than three positional ones so that adding a resolver — the whole shape of the
+    next two tickets — is a function and a dict entry, never a signature change rippling through
+    every sibling. ``proc`` and ``plan`` are optional because an assay can reach the IR and never be
+    composed, and a resolver that cannot answer returns ``None`` rather than inventing a value.
+    """
+
+    manifest: DatasetManifest
+    proc: ProcessingManifest | None
+    plan: PlanView | None
+
+
+#: How many file→role pairs a ``read_roles`` value spells out before it summarises. A dataset of two
+#: FASTQs wants the mapping written out — it is the answer — and one of two hundred wants a count: a
+#: 200-item string in a one-line field is not a value a reader reads, it is a value they scroll past.
+_MAX_ROLE_FILES = 4
+
+
+def _resolve_chemistry(ctx: _DecisionContext) -> DecisionRef | None:
+    """The chemistry call, as the Overview badge already shows it — the winner plus its equivalents.
+
+    Named in the manifest's own vocabulary (``library.chemistry``) because the next thing a reader
+    does with an alert is open that file and look for that field, and a label that paraphrased it
+    would leave them searching.
+    """
+    values = list(ctx.manifest.library.chemistry.value)
+    if not values:
+        return None
+    equivalents = f" (+{len(values) - 1} equivalent)" if len(values) > 1 else ""
+    return DecisionRef(
+        decision="chemistry",
+        label="chemistry (manifest `library.chemistry`)",
+        value=f"{values[0]}{equivalents}",
+    )
+
+
+def _resolve_read_roles(ctx: _DecisionContext) -> DecisionRef | None:
+    """Which file was handed over as which read — the other half of the same joint optimization.
+
+    ``read_id`` and ``chemistry`` come out of one decision (``Candidate`` is
+    ``(technology, score, role_assignment)`` and the score scores the pair), which is exactly why an
+    alert about a whitelist that matches nothing implicates both: the metric cannot tell a wrong list
+    from the right list read against the wrong file.
+
+    Sorted by basename, like the files table, so two renders of one workspace agree; a file with no
+    role is left out, because "unassigned" is a state ``validate`` already surfaces and repeating it
+    inside an alert about barcodes would point at the wrong artifact.
+    """
+    assigned = [
+        (f.basename, f.read_id)
+        for f in sorted(ctx.manifest.library.files, key=lambda f: f.basename)
+    ]
+    pairs = [(name, role) for name, role in assigned if role]
+    if not pairs:
+        return None
+    shown = ", ".join(f"{role} = {name}" for name, role in pairs[:_MAX_ROLE_FILES])
+    if len(pairs) > _MAX_ROLE_FILES:
+        shown += f", and {len(pairs) - _MAX_ROLE_FILES} more"
+    return DecisionRef(
+        decision="read_roles",
+        label="read roles (manifest `library.files[].read_id`)",
+        value=shown,
+    )
+
+
+#: Every :data:`~seqforge.workflows.metrics.Decision` a rule can name, and how to read what the
+#: workspace currently says it is. Total over the literal, and an exhaustiveness test derived from
+#: ``get_args`` holds it that way: a member added without teaching this table to read its value would
+#: render as a field name with nothing beside it, which reads as a value of nothing.
+#:
+#: A dict and not a chain of ``if``s for the reason the stats registry is one: the next two rules add
+#: an entry here and a function above, and neither touches the grouping, the ordering or the page.
+_DECISION_RESOLVERS: dict[Decision, Callable[[_DecisionContext], DecisionRef | None]] = {
+    "chemistry": _resolve_chemistry,
+    "read_roles": _resolve_read_roles,
+}
+
+
+def _alerts(
+    stats: PipelineStats | None,
+    manifest: DatasetManifest,
+    proc: ProcessingManifest | None,
+    plan: PlanView | None,
+) -> list[Alert]:
+    """The module's findings, grouped and attributed. Empty is the healthy answer and the common one.
+
+    ``n_found`` and never ``n_expected``: a rule that fired on both of the two samples that finished
+    has fired on every sample there is to fire on, and a partial run must produce alerts rather than
+    wait for a full plate.
+
+    A resolver that raises would take down a page whose whole contract is to degrade, so an
+    unresolvable decision is dropped by :func:`~seqforge.workflows.metrics.gather_alerts` and a
+    missing one is dropped here. Neither is a silent failure the reader can act on wrongly: what is
+    dropped is a row that would have carried a field name and no value.
+    """
+    if stats is None or not stats.findings:
+        return []
+    ctx = _DecisionContext(manifest=manifest, proc=proc, plan=plan)
+
+    def resolve(decision: Decision) -> DecisionRef | None:
+        resolver = _DECISION_RESOLVERS.get(decision)
+        return resolver(ctx) if resolver is not None else None
+
+    return gather_alerts(stats.findings, n_samples=stats.n_found, resolve=resolve)
 
 
 # ---- evidence matrix ----------------------------------------------------------------------------

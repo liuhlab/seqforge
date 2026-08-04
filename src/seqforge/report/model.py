@@ -20,7 +20,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..workflows.metrics import PipelineStats
+from ..workflows.metrics import Alert, PipelineStats
 
 
 class _View(BaseModel):
@@ -312,6 +312,12 @@ class AssayReport(_View):
     #: envelopes. Merged, a page would say "Compiled" over a pipeline that mapped nothing, and a
     #: reader would have no way left to ask which of the two it was being told about.
     pipeline_stats: PipelineStats | None = None
+    #: Which decision the finished pipeline's numbers make look wrong — attributed, so each one
+    #: carries the value the workspace currently has. **Advisory and empty on a healthy run**: seeing
+    #: one has to mean something, so there is no "no alerts" state to render. Beside `pipeline_stats`
+    #: and not inside it for the reason that one is beside `conclusion`: the stats are what the
+    #: pipeline reported, an alert is a judgement about a decision, and one judgement is one envelope.
+    alerts: list[Alert] = Field(default_factory=list)
     provenance: list[tuple[str, str]] = Field(default_factory=list)
     #: True iff archive records were joined (sample facts have a declared source).
     has_records: bool = False
@@ -369,9 +375,12 @@ class ProjectReport(_View):
 
 
 __all__ = [
-    # Re-exported, not defined here. It is the type of a public field on `AssayReport`, so it is part
-    # of this tree's surface whoever defines it — and it is defined beside the code that WRITES the
-    # artifacts it describes, because who writes a format owns how to read it.
+    # Re-exported, not defined here. Both are the type of a public field on `AssayReport`, so they
+    # are part of this tree's surface whoever defines them — and they are defined beside the code
+    # that WRITES the artifacts they describe, because who writes a format owns how to read it. For
+    # `Alert` that argument is one step longer and lands in the same place: a rule that produces one
+    # is a fact about an aligner, so the shape belongs where the rules are.
+    "Alert",
     "PipelineStats",
     "EvidenceRef",
     "AttributeView",
