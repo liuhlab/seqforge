@@ -310,7 +310,10 @@ def _eval_motif(test: MotifPresent, wp: WindowProbe) -> Evaluation:
         max_mismatch=test.max_mismatch,
     )
     if rate is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "no reads long enough")
+        # Two causes, one verdict: no read reached the motif's width, or none was called where the
+        # motif was looked for. Naming only the first was a lie a dark cycle told — and either way
+        # the probe could not see, which never gates.
+        return Evaluation(Outcome.ABSTAIN, 0.0, "no read could carry the motif (short or uncalled)")
     outcome = Outcome.PASS if rate >= test.min_rate else Outcome.FAIL
     return Evaluation(outcome, _clip(rate / max(test.min_rate, 1e-9)), f"motif_rate={rate:.2f}")
 

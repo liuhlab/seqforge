@@ -98,7 +98,19 @@ from __future__ import annotations
 #: PROBE_VERSION bump (2026.8.1, which adds the share this reads) moves `dataset_id` as well, but
 #: that is a probe fact: the resolver's own stamp is what states that the resolver's verdict is stale,
 #: and a reader of this log must not have to cross-reference another module's to learn it.
-RESOLVE_VERSION = "2026.7.18"
+#: 2026.8.4 — `motif_present` adopts the coverage policy `2026.7.16` gave the two onlist paths: an
+#: uncalled base is not a substitution, so it no longer eats the `max_mismatch` budget, and a read
+#: never called where the motif was looked for leaves `n_tested` instead of diluting the rate (#255).
+#: Only the offsets a motif CONSTRAINS can be lost — a cycle under an `N` was never evidence — and
+#: what a loss costs depends on what the search declares: `read_start`/`read_end`/a closed `window`
+#: name where the motif is, so an uncalled base at any of their constrained offsets costs the whole
+#: read; `anywhere`, and a `window` left open at the end, declare nothing and cost only the positions
+#: they reach. This MUST re-key for the reason 2026.7.15/.16/.17/.18 did — the
+#: defect it fixes is a cached REFUSAL. The gate is a `requires` at a majority threshold on all three
+#: shipped BD Rhapsody Enhanced specs, so one dark cycle in barcode-read cycles 8-29 invalidated the
+#: whole family at once, and such a dataset would keep being served that verdict out of the cache
+#: while this landed green.
+RESOLVE_VERSION = "2026.8.4"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
