@@ -60,16 +60,38 @@ from seqforge.workflows.h5ad import (
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 from seqforge.workflows.metrics import (
     MAX_KNEE_POINTS,
+    SEVERITY_PHRASE,
+    Decision,
+    DecisionRef,
+    Finding,
     Metric,
     SampleStats,
+    Severity,
     fmt_int,
+    fraction,
+    gather_alerts,
+    grade,
     knee_points,
 )
-from seqforge.workflows.qc import QcError, build_qc_bundle, read_star_log, write_qc_bundle
+from seqforge.workflows.qc import (
+    HEALTHY_GENOME_MAPPING,
+    INTRONIC_ONLY_READ_SHARE,
+    NEAR_ZERO_VALID_BARCODES,
+    POOR_GENE_ASSIGNMENT,
+    QcError,
+    build_qc_bundle,
+    chemistry_rule,
+    gene_model_rule,
+    read_star_log,
+    solo_features_rule,
+    write_qc_bundle,
+)
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
 from seqforge.workflows.stats import (
+    MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
+    modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
 )
@@ -1617,6 +1639,102 @@ def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
         stats_registry._check_registry()
 
 
+def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_not() -> None:
+    """The stats guard again, one level in — and a module is silent only by saying so.
+
+    A module that neither declares rules nor declares it has none is absent from every diagnosis, and
+    a page that names no decision is indistinguishable from a page whose run was fine. Both halves are
+    asserted BY NAME rather than by size, for the reason the stats guard gives: a list that shrinks
+    must shrink because a rule landed, not because a name was quietly dropped from the guard.
+
+    `map/chromap` and `map/star` are the shipped silence, and it is an argument rather than a backlog:
+    a fragments summary has no whitelist-match rate to reason about, and bulk has no barcode at all.
+    A module with no defensible rule declaring that it has none is a supported answer.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    stats_registry._check_registry()
+    assert set(modules_with_cross_checks()) | MODULES_WITHOUT_CROSS_CHECKS == set(
+        modules_with_stats()
+    )
+    assert not (set(modules_with_cross_checks()) & MODULES_WITHOUT_CROSS_CHECKS)
+    assert set(modules_with_cross_checks()) == {"map/starsolo"}
+    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star"}
+
+
+def _stub_reader(path: Path, sample: str) -> SampleStats:
+    """A reader the guard tests can hang a synthetic spec off. Never called; only registered."""
+    return SampleStats(sample_id=sample)
+
+
+def test_the_cross_check_guard_can_actually_catch_drift_in_both_directions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A guard nobody has seen fail is a guard that may not be looking — for the second guard too.
+
+    Both directions are live, and they are the two ways a maintainer gets this wrong: registering a
+    reader and forgetting the rules (the fourth aligner), and adding a rule to a module that is still
+    listed as having none (the day chromap earns one). `_SPECS` and the silence list are rebound
+    rather than mutated, so the real registries are never touched.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    silent_spec = stats_registry.StatsSpec(artifact="x", read=_stub_reader)
+    monkeypatch.setattr(
+        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": silent_spec}, raising=True
+    )
+    monkeypatch.setattr(
+        stats_registry,
+        "MODULES_WITHOUT_CROSS_CHECKS",
+        MODULES_WITHOUT_CROSS_CHECKS - {"map/star"},
+        raising=True,
+    )
+    with pytest.raises(AssertionError, match="map/star.*declare no cross-checks"):
+        stats_registry._check_registry()
+
+    monkeypatch.undo()
+    checked = stats_registry.StatsSpec(artifact="x", read=_stub_reader, checks=(chemistry_rule,))
+    monkeypatch.setattr(
+        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": checked}, raising=True
+    )
+    with pytest.raises(AssertionError, match="both declare cross-checks"):
+        stats_registry._check_registry()
+
+
+def test_the_modules_findings_land_on_the_pipeline_and_never_on_the_sample(tmp_path: Path) -> None:
+    """The registry runs the rules, and one-judgement-one-envelope decides where the answers go.
+
+    `SampleStats` is what the artifact SAID; a finding is a judgement about a decision, so they are
+    two envelopes and the finding rides on the pipeline. That is also what makes scope answerable at
+    all: "did this fire on every sample" is a fact about the run, not about any one sample.
+
+    Driven through `read_pipeline_stats` over real bytes rather than by calling the rule, because the
+    wiring is the claim: a rule that is written and never registered fires in its own unit test and
+    on nothing else.
+    """
+    results = tmp_path / "results"
+    broken = {**_HEALTHY_SUMMARY, "Reads With Valid Barcodes": 0.000762759}
+    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": broken}})
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [f.sample_id for f in stats.findings] == ["s1"]
+    assert stats.findings[0].alert_id == "starsolo.valid-barcodes-near-zero"
+    assert not any(hasattr(s, "findings") for s in stats.samples), (
+        "a finding is a judgement, and SampleStats carries what the artifact said"
+    )
+    # And the module that measures no barcode at all reports the same metrics it always did, with
+    # nothing to say about them -- silence declared, not silence by omission.
+    log = tmp_path / "bulk" / "s1" / "Log.final.out"
+    log.parent.mkdir(parents=True)
+    log.write_text("".join(f"    {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
+    bulk = read_pipeline_stats("map/star", tmp_path / "bulk", ["s1"])
+    assert bulk is not None
+    assert bulk.samples[0].metrics and bulk.findings == []
+
+
 # -- the writer/reader round trip -------------------------------------------
 
 
@@ -2075,3 +2193,614 @@ def test_which_feature_the_headline_metrics_come_from_never_depends_on_dict_orde
 
     assert forward.note == backward.note
     assert forward.metrics == backward.metrics
+
+
+# ================================================================================================
+# cross-checks — which decision does a bad number implicate?
+# ================================================================================================
+#
+# The compiler holds both halves — what it decided, and what came back — and joins them here. A rule
+# is a pure function over ONE sample's metrics, so every test below drives it with literal values and
+# asserts the alert or asserts silence. No filesystem, no composed pipeline, no rendered page.
+#
+# The bar every one of these has to clear: **a rule that fires on a healthy run is worse than a rule
+# that does not exist.** So each has a value that must fire, a value that must not, and the boundary.
+
+
+def _fire(rule: Callable[[SampleStats], list[Finding]], **metrics: float) -> list[Finding]:
+    """Drive one rule with literal metric values, through the builders production uses.
+
+    Through `fraction()` rather than by constructing `Metric` directly, because a rule reads
+    `metric.value` and the builders are what decide what lands there — a test that hand-builds the
+    metric can agree with a rule that reads the wrong scale.
+    """
+    built = [fraction(key, key, value, group="barcode") for key, value in metrics.items()]
+    return rule(SampleStats(sample_id="S1", metrics=[m for m in built if m is not None]))
+
+
+def test_the_chemistry_rule_fires_on_the_real_run_that_had_the_wrong_read_as_the_barcode() -> None:
+    """0.076% valid barcodes, verbatim from the run in #215 — and the whole reason this layer exists.
+
+    What the rule must produce is not "bad": the metric already says bad, and a reader who does not
+    know STARsolo reads that as a bad library. It must name the two DECISIONS that produce this
+    number — which kit was called, and which file was handed over as the barcode read — because those
+    are the only two things a reader can act on, and the compiler made both.
+    """
+    findings = _fire(chemistry_rule, **{"valid_barcodes": 0.000762759})
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.valid-barcodes-near-zero"
+    assert found.severity == "likely"
+    assert set(found.implicates) == {"chemistry", "read_roles"}
+    assert "0.1%" in found.measured  # the value it fired on, in the reader's units
+    assert found.sample_id == "S1"
+
+
+def test_the_chemistry_rule_stays_silent_on_a_healthy_run() -> None:
+    """An alert that fires on a good run is noise, and noise is how every alert stops being read."""
+    assert _fire(chemistry_rule, **{"valid_barcodes": 0.972113}) == []
+
+
+def test_the_chemistry_rules_boundary_is_the_one_threshold_it_declares() -> None:
+    """Below 1% no real library exists; at or above it the number is bad but the cause is not decided.
+
+    A merely poor barcode rate — a degraded barcode read, a contaminated library, a related-but-wrong
+    kit — is already tinted `bad` by the metric's own threshold, and the rule deliberately does not
+    claim it: between 1% and the metric's 50% bar there is more than one explanation, so naming one
+    decision would be a guess wearing a diagnosis.
+    """
+    assert _fire(chemistry_rule, **{"valid_barcodes": NEAR_ZERO_VALID_BARCODES}) == []
+    assert len(_fire(chemistry_rule, **{"valid_barcodes": NEAR_ZERO_VALID_BARCODES - 1e-9})) == 1
+    # Well inside "bad" by the metric's own grading, and still not this rule's claim to make.
+    assert _fire(chemistry_rule, **{"valid_barcodes": 0.31}) == []
+
+
+def test_a_module_that_never_measured_a_barcode_is_not_a_module_with_zero_barcodes() -> None:
+    """An absent metric is absent, never a zero — the same rule the metric table already lives by.
+
+    Bulk STAR has no barcode at all, and reading "no valid-barcode rate" as "a valid-barcode rate of
+    zero" would fire the loudest alert this system has on every bulk run ever compiled.
+    """
+    assert _fire(chemistry_rule, **{"uniquely_mapped": 0.91}) == []
+    assert chemistry_rule(SampleStats(sample_id="S1")) == []
+
+
+# -- from findings to alerts ------------------------------------------------
+
+
+def _found(sample: str, alert_id: str = "a", **kw: object) -> Finding:
+    return Finding(
+        alert_id=alert_id,
+        sample_id=sample,
+        title=kw.pop("title", "something looks wrong"),  # type: ignore[arg-type]
+        severity=kw.pop("severity", "likely"),  # type: ignore[arg-type]
+        measured=f"{sample} measured something",
+        implicates=kw.pop("implicates", ["chemistry"]),  # type: ignore[arg-type]
+        remedy="change something",
+    )
+
+
+def _resolves(decision: Decision) -> DecisionRef | None:
+    return DecisionRef(decision=decision, label=decision, value="whatever it is set to")
+
+
+def test_an_alert_firing_on_every_sample_is_a_different_claim_from_one_firing_on_a_well() -> None:
+    """Systematic points at a decision; isolated points at a sample. The shape must say which.
+
+    The distinction is the difference between "recompose this dataset" and "look at well B7", and a
+    reader cannot draw it from a list of sample ids: on a 96-well plate, 96 ids and 94 ids look the
+    same. So it is computed against what LANDED, and carried.
+    """
+    every = gather_alerts(
+        [_found("S1"), _found("S2"), _found("S3")], n_samples=3, resolve=_resolves
+    )
+    some = gather_alerts([_found("S1")], n_samples=3, resolve=_resolves)
+
+    assert [a.scope for a in every] == ["systematic"]
+    assert [a.scope for a in some] == ["isolated"]
+    assert every[0].samples == ["S1", "S2", "S3"] and every[0].n_samples == 3
+    assert some[0].samples == ["S1"] and some[0].n_samples == 3
+    # And what each sample measured survives the grouping, in sample order — an alert that collapsed
+    # three samples to one number would have thrown away the evidence for its own claim.
+    assert every[0].measured == [
+        "S1 measured something",
+        "S2 measured something",
+        "S3 measured something",
+    ]
+
+
+def test_an_alert_names_the_decision_with_the_value_the_recipe_currently_carries() -> None:
+    """ "Your chemistry call looks wrong" is only actionable once it says what the call currently IS.
+
+    The rule cannot know that — it is pure over metrics — so attribution is injected. A decision the
+    workspace cannot answer for (a manifest that was never composed) is dropped rather than rendered
+    as an empty row, because a field name with no value beside it reads as a value of nothing.
+    """
+    alerts = gather_alerts([_found("S1")], n_samples=1, resolve=_resolves)
+    assert [d.decision for d in alerts[0].implicates] == ["chemistry"]
+    assert alerts[0].implicates[0].value == "whatever it is set to"
+
+    unresolvable = gather_alerts([_found("S1")], n_samples=1, resolve=lambda _d: None)
+    assert unresolvable[0].implicates == []
+
+
+def test_alerts_come_back_in_one_total_order_however_the_findings_arrived() -> None:
+    """The page is byte-deterministic, so two renders of one workspace must order alerts identically.
+
+    Severity first — a reader triages the loudest — then the stable id, which is total because two
+    findings sharing an id are one alert by construction.
+    """
+    findings = [
+        _found("S2", "z-check", severity="possible"),
+        _found("S1", "a-check"),
+        _found("S1", "z-check", severity="possible"),
+    ]
+    forward = gather_alerts(findings, n_samples=2, resolve=_resolves)
+    backward = gather_alerts(list(reversed(findings)), n_samples=2, resolve=_resolves)
+
+    assert [a.id for a in forward] == ["a-check", "z-check"]
+    assert forward == backward
+
+
+def test_every_severity_an_alert_can_carry_says_what_it_means_in_words() -> None:
+    """A closed set, guarded from its own `Literal` — a third severity must break this, never render.
+
+    The same exhaustiveness shape `Basis`, `Level` and `MetricGroup` already use: derived with
+    `get_args` rather than hand-listed, so adding a member and forgetting its phrase goes red here
+    instead of shipping a badge whose word is a raw token.
+    """
+    assert set(get_args(Severity)) == set(SEVERITY_PHRASE)
+    assert all(SEVERITY_PHRASE[s] for s in get_args(Severity))
+
+
+# ================================================================================================
+# per-feature counts, and the nuclear-library rule they make measurable
+# ================================================================================================
+#
+# `build_qc_bundle` has always written one `Summary.csv` per `soloFeatures` feature, so the exonic
+# versus full-length gap has been on disk since the first bundle ever produced. What hid it was the
+# READER: `_pick_feature` selects one feature and reports its numbers. So nothing below changes the
+# writer, no `.smk` file and no `WORKFLOW_VERSION` — the per-sample artifact does not grow by a byte,
+# and the only thing that grows is a narrow per-feature mapping on `SampleStats`.
+#
+# The constraint that binds all of it: every value the metrics table showed before must be identical
+# after. Carrying more is not licence to change what is already carried.
+
+
+def _multi_feature_run(
+    tmp_path: Path, summaries: dict[str, dict[str, object]]
+) -> tuple[Path, Path]:
+    """A STAR output tree with one real `Summary.csv` per feature — the multi-feature bundle.
+
+    `_finished_star_run` writes exactly one feature, which is enough for every test above and useless
+    here: the whole signal this section is about is the DISAGREEMENT between two features, and a
+    fixture carrying one of them can only prove there is none.
+    """
+    features: list[SoloFeature] = list(summaries)  # type: ignore[arg-type]
+    solo, run_dir = _fake_run(tmp_path, features)
+    for feature, rows in summaries.items():
+        _write(solo / feature / "Summary.csv", "".join(f"{k},{v}\n" for k, v in rows.items()))
+    _write(run_dir / "Log.final.out", "".join(f"    {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
+    return solo, run_dir
+
+
+#: The nuclear library from #215, as STAR wrote it: 30.1% of reads land in an exon and 70.8% land
+#: anywhere in the gene body. The 40.7-point difference is the share of the whole library that is
+#: intronic-only, and it was invisible on the page because only one of the two columns was ever read.
+_NUCLEAR_GENE: dict[str, object] = {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.301}
+_NUCLEAR_GENEFULL: dict[str, object] = {
+    **_HEALTHY_SUMMARY,
+    "Reads Mapped to GeneFull: Unique GeneFull": 0.708,
+}
+
+
+def test_the_bundle_always_carried_every_feature_and_the_reader_now_carries_the_counts_up(
+    tmp_path: Path,
+) -> None:
+    """Per-feature counts reach `SampleStats` out of the bundle the real writer produced.
+
+    Through `write_qc_bundle` rather than a literal dict, for the reason its neighbour above gives:
+    the writer decides which `Summary.csv` lands under which key, and a hand-written dict cannot
+    catch a rename there. `SJ` is written and must NOT come back — it has a `Summary.csv` with no
+    cell-level rows in it, which is exactly what `_NO_CELL_SUMMARY` already names.
+    """
+    solo, run_dir = _multi_feature_run(
+        tmp_path,
+        {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL, "SJ": {"Number of Reads": 1}},
+    )
+    out = write_qc_bundle(
+        solo, run_dir, ["Gene", "GeneFull", "SJ"], tmp_path / "S1.qc.json.gz", sample="S1"
+    )
+
+    sample = read_starsolo_metrics(out, "S1")
+
+    assert sample.feature_reads_in_genes == {"Gene": 0.301, "GeneFull": 0.708}
+    assert "SJ" not in sample.feature_reads_in_genes
+    # The measurement behind "any growth in the per-sample artifact is bounded": there is NONE. The
+    # writer emitted every feature's `Summary.csv` before this ticket and emits exactly the same keys
+    # after it, so the bytes on disk did not move and no `run_id` was invalidated. Asserted as a set,
+    # so a writer that started emitting a per-feature block to serve this reader goes red here rather
+    # than quietly costing every already-compiled dataset a reprocess.
+    with gzip.open(out, "rt", encoding="utf-8") as fh:
+        written = json.load(fh)
+    assert set(written) == {
+        "sample",
+        "assembly",
+        "soloFeatures",
+        "barcodes_stats",
+        "summary",
+        "features_stats",
+        "umi_per_cell",
+        "default_filtered_barcodes",
+        "log_final",
+        "log_out",
+        "log_progress",
+        "splice_junctions",
+    }
+
+
+def test_carrying_per_feature_counts_moves_no_value_the_metrics_table_already_showed(
+    tmp_path: Path,
+) -> None:
+    """The hard criterion, asserted rather than assumed: the table is identical either way.
+
+    Two bundles from the real writer over the SAME `Gene` summary, one of them carrying a second
+    feature whose numbers disagree by 40 points. Same keys, same values, same order, same note — the
+    headline metrics still come from `_pick_feature` and `_FEATURE_PREFERENCE` did not move. Reverse
+    that preference and this goes red on every value at once, which is what makes it a test rather
+    than a restatement of the implementation.
+
+    The note is asserted too, because "which feature the headline numbers come from is still stated"
+    is its own acceptance criterion, and a silent feature swap would satisfy a metric comparison on a
+    page that had stopped saying so.
+    """
+    one, one_run = _multi_feature_run(tmp_path / "one", {"Gene": _NUCLEAR_GENE})
+    two, two_run = _multi_feature_run(
+        tmp_path / "two", {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL}
+    )
+    single = read_starsolo_metrics(
+        write_qc_bundle(one, one_run, ["Gene"], tmp_path / "one.qc.json.gz", sample="S1"), "S1"
+    )
+    multi = read_starsolo_metrics(
+        write_qc_bundle(
+            two, two_run, ["Gene", "GeneFull"], tmp_path / "two.qc.json.gz", sample="S1"
+        ),
+        "S1",
+    )
+
+    assert [m.key for m in multi.metrics] == [m.key for m in single.metrics]
+    assert multi.metrics == single.metrics
+    assert set(_by_key(multi)) == _FULL_SOLO_METRICS
+    assert multi.note == single.note == "counted from the Gene feature"
+    # The exonic number is what the table shows, though the bundle also carries the other one.
+    assert _by_key(multi)["reads_in_genes"].value == pytest.approx(0.301)
+    # ...and the number the table does NOT show is the one that made the rule possible.
+    assert multi.feature_reads_in_genes["GeneFull"] == pytest.approx(0.708)
+    # The mapping and the metric read the SAME `Summary.csv` row, spelled in two places (the metric
+    # definition is another ticket's in this PR). If they ever stop meaning the same measurement, a
+    # rule comparing features would be subtracting a different number from the one on the page.
+    assert multi.feature_reads_in_genes["Gene"] == _by_key(multi)["reads_in_genes"].value
+
+
+def _gap(**per_feature: float) -> list[Finding]:
+    """Drive the rule with literal per-feature counts. Pure — no filesystem, no bundle."""
+    return solo_features_rule(SampleStats(sample_id="S1", feature_reads_in_genes=per_feature))
+
+
+def test_the_nuclear_library_rule_fires_on_the_gap_measured_in_215() -> None:
+    """40.7 points of the library are intronic-only, and the primary matrix throws them away.
+
+    What the rule adds over the two numbers is the DECISION: `soloFeatures` is an ordered list and
+    element 0 is the matrix everything downstream reads, so the reader's lever is which feature comes
+    first. Severity is `possible` and not `likely` — counting exonically can be deliberate, so this
+    says "you are probably counting the wrong feature", never "this run is wrong".
+    """
+    findings = _gap(Gene=0.301, GeneFull=0.708)
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.intronic-reads-uncounted"
+    assert found.severity == "possible"
+    assert found.implicates == ["solo_features"]
+    assert found.sample_id == "S1"
+    assert "40.7%" in found.measured  # the gap it fired on, in the reader's units
+    assert "GeneFull" in found.measured and "Gene" in found.measured
+    # The remedy may only REORDER the list: `SoloQuant` rules that dropping a feature is the one
+    # irreversible act available, so a remedy saying "replace Gene" would contradict a validator in
+    # this same repo -- which is worse than no remedy.
+    assert "first" in found.remedy
+    assert "replace" not in found.remedy.lower() and "drop" not in found.remedy.lower()
+
+
+def test_a_pipeline_that_counted_one_feature_has_no_gap_to_measure_and_never_fires() -> None:
+    """The common case — `soloFeatures` is frequently just `Gene` — and it must report normally.
+
+    Silence here is by construction rather than by a special case: the measurement is a DIFFERENCE
+    between two features, and one feature is not two. Both directions are asserted, because a rule
+    that read a missing exonic count as zero would fire on every `GeneFull`-only pipeline and claim
+    the whole library was intronic.
+    """
+    assert _gap(Gene=0.301) == []
+    assert _gap(GeneFull=0.708) == []
+    assert _gap() == []
+    assert solo_features_rule(SampleStats(sample_id="S1")) == []
+
+
+def test_the_intronic_gap_an_ordinary_whole_cell_library_carries_stays_silent() -> None:
+    """A whole-cell library carries a real intronic fraction, and a rule that fires on it is noise.
+
+    Commonly ten to twenty points of the library, which is why the bar is not at 0.20: a rule that
+    fires on a healthy run is worse than a rule that does not exist.
+    """
+    assert _gap(Gene=0.641902, GeneFull=0.7712) == []  # ~13 points, ordinary biology
+    assert _gap(Gene=0.60, GeneFull=0.55) == []  # full-length counted LESS: not a claim to make
+
+
+def test_the_nuclear_library_rules_boundary_is_the_one_threshold_it_declares() -> None:
+    """At the bar exactly it fires, a hair under it does not — `>=`, and the number is written once.
+
+    30 points clears an ordinary whole-cell intronic fraction with room, and the measured failure was
+    40.7. Between the two there is no library this rule would rather stay quiet about.
+    """
+    assert len(_gap(Gene=0.30, GeneFull=0.30 + INTRONIC_ONLY_READ_SHARE)) == 1
+    assert _gap(Gene=0.30, GeneFull=0.30 + INTRONIC_ONLY_READ_SHARE - 1e-9) == []
+
+
+def test_the_full_length_features_the_rule_compares_come_from_the_aligners_own_vocabulary() -> None:
+    """Derived from `SoloFeature`, so a seventh feature cannot silently fall out of the comparison.
+
+    Every member of STARsolo's closed vocabulary that carries a cell-level summary is either THE
+    exonic count or something broader than it, so the set is a complement over that vocabulary rather
+    than three names typed out. `SJ` and `Velocyto` are excluded by `_NO_CELL_SUMMARY`, the constant
+    the reader already uses for exactly this — one owner of "which features have cell-level rows".
+    """
+    from seqforge.workflows.qc import _NO_CELL_SUMMARY
+
+    countable = set(get_args(SoloFeature)) - _NO_CELL_SUMMARY
+    assert countable - {"Gene"}, "the vocabulary must carry something broader than exons"
+
+    # Every full-length member of the vocabulary, one at a time: each is enough on its own.
+    for feature in sorted(countable - {"Gene"}):
+        assert len(_gap(**{"Gene": 0.30, feature: 0.65})) == 1, feature
+    # And neither of the two that have no cell-level rows can contribute a gap.
+    for feature in sorted(_NO_CELL_SUMMARY):
+        assert _gap(**{"Gene": 0.30, feature: 0.99}) == []
+
+
+def test_the_rule_takes_the_largest_gap_when_several_full_length_features_were_counted() -> None:
+    """One alert per sample, reporting the widest disagreement the run actually measured.
+
+    Counting three ways is legal and cheap, and averaging them would report a number no feature
+    produced. The largest is the one that says how much of the library the primary matrix is missing.
+    """
+    (found,) = _gap(Gene=0.301, GeneFull_Ex50pAS=0.52, GeneFull=0.708)
+
+    assert "40.7%" in found.measured and "GeneFull:" in found.measured
+
+
+def test_the_feature_gap_rule_reaches_the_pipeline_through_the_registry(tmp_path: Path) -> None:
+    """A rule that is written and never registered fires in its own unit test and on nothing else.
+
+    Driven through `read_pipeline_stats` over real bytes, like its sibling above: the wiring is the
+    claim. `map/starsolo` declares three rules, and each one has a guard of its own here.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    results = tmp_path / "results"
+    _landed(
+        results,
+        "s1",
+        {"sample": "s1", "summary": {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL}},
+    )
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
+        ("s1", "starsolo.intronic-reads-uncounted")
+    ]
+    assert solo_features_rule in stats_registry._SPECS["map/starsolo"].checks
+
+
+# -- the gene model, and the strand -----------------------------------------
+#
+# The second rule on the same rails, and the one whose SILENCE is half its specification: it reads
+# two numbers that already exist, and speaks only where their combination decides a cause.
+
+
+def test_the_gene_model_rule_fires_when_the_reads_map_and_the_genes_do_not() -> None:
+    """Mapping healthy, counting near-empty — the reads found the genome and the genome had no genes.
+
+    That combination is not a bad library, and it is precisely the one a reader who does not know
+    STARsolo cannot read: both numbers look like alignment and only one of them is. What the rule
+    adds is the two DECISIONS that produce it — which GTF was registered, and which strand the
+    counter was told this kit's cDNA read sits on — because those are the only two things a reader
+    can act on, and the compiler made both.
+    """
+    findings = _fire(gene_model_rule, reads_in_genome=0.884221, reads_in_genes=0.031)
+
+    assert len(findings) == 1
+    (found,) = findings
+    assert found.alert_id == "starsolo.reads-mapped-but-not-counted"
+    assert found.severity == "likely"
+    assert set(found.implicates) == {"annotation", "strand"}
+    # Both values it fired on, in the reader's units — the evidence for its own claim.
+    assert "88.4%" in found.measured and "3.1%" in found.measured
+    assert found.sample_id == "S1"
+
+
+def test_the_gene_model_rule_stays_silent_when_both_numbers_are_healthy() -> None:
+    """An alert that fires on a good run is noise, and noise is how every alert stops being read."""
+    assert _fire(gene_model_rule, reads_in_genome=0.884221, reads_in_genes=0.641902) == []
+
+
+def test_the_gene_model_rule_stays_silent_on_the_run_whose_barcode_read_was_wrong() -> None:
+    """Both numbers poor is a MAPPING problem, and this rule is not entitled to claim it.
+
+    `_BROKEN_SUMMARY` is the real run that had the cDNA read handed to STAR as the barcode: 25.9% of
+    reads mapped uniquely and essentially none reached a gene. That run belongs to the chemistry
+    rule, and a page firing two contradictory diagnoses at one run is worse than either alone.
+
+    So both directions are asserted rather than the silence alone: a build where this rule had been
+    wired to the wrong comparison goes red on the first line, and a build where the fixture had
+    stopped raising anything at all goes red on the second.
+    """
+    broken = starsolo_metrics(_bundle(_BROKEN_SUMMARY, _BROKEN_LOG), "broken")
+
+    assert gene_model_rule(broken) == []
+    assert len(chemistry_rule(broken)) == 1, (
+        "the fixture must still raise the chemistry alert, or this asserts silence about nothing"
+    )
+
+
+def test_the_gene_model_rules_boundaries_are_the_two_bars_it_reuses() -> None:
+    """Two numbers this file already argues elsewhere, reused rather than invented a third time.
+
+    `0.60` is the bar `uniquely_mapped` uses for "the genome is the right genome", and this rule's
+    precondition is exactly "mapping is not the problem"; `0.15` is `reads_in_genes`'s own `bad`
+    boundary, so the rule fires precisely where the page already tints that cell red. Two different
+    numbers for one claim is how they drift apart, so each bar is asserted AT its value and one step
+    off it.
+    """
+    poor = POOR_GENE_ASSIGNMENT - 1e-9
+    at_bar = _fire(gene_model_rule, reads_in_genome=HEALTHY_GENOME_MAPPING, reads_in_genes=poor)
+    below = _fire(
+        gene_model_rule, reads_in_genome=HEALTHY_GENOME_MAPPING - 1e-9, reads_in_genes=poor
+    )
+    assert len(at_bar) == 1 and below == []
+
+    healthy = HEALTHY_GENOME_MAPPING
+    assert (
+        _fire(gene_model_rule, reads_in_genome=healthy, reads_in_genes=POOR_GENE_ASSIGNMENT) == []
+    )
+    assert len(_fire(gene_model_rule, reads_in_genome=healthy, reads_in_genes=poor)) == 1
+
+
+def test_an_index_that_carries_no_gene_model_leaves_this_rule_nothing_to_read() -> None:
+    """ "A pipeline whose aligner index carries no gene model never triggers it" — by construction.
+
+    `GenomeRef.annotation_name` is `None` exactly when there is no GTF, and with no GTF STAR writes
+    no gene rows into `Summary.csv` at all, so `reads_in_genes` is simply not a metric. The rule
+    needs no annotation parameter to know that: it needs the number to be absent, which it is.
+    Driving it with the metric missing is therefore the honest test of the claim — a rule handed the
+    name of the annotation would be testing a different sentence, and would stop being pure over one
+    sample's metrics.
+
+    Both halves, because either number alone is half a comparison, and an absent metric is absent and
+    never a zero. That is also what keeps every bulk run silent: bulk measures no gene assignment.
+    """
+    assert _fire(gene_model_rule, reads_in_genome=0.91) == []
+    assert _fire(gene_model_rule, reads_in_genes=0.02) == []
+    assert gene_model_rule(SampleStats(sample_id="S1")) == []
+
+
+def test_the_gene_model_rule_is_registered_and_not_merely_written(tmp_path: Path) -> None:
+    """A rule that is written and never registered fires in its own unit test and on nothing else.
+
+    Driven through `read_pipeline_stats` over real bytes, exactly as the chemistry rule's wiring is:
+    what is asserted here is the entry on `map/starsolo`'s `StatsSpec`, not the function above it.
+    The healthy second sample is the discriminator — a rule wired to fire unconditionally would name
+    it too.
+    """
+    results = tmp_path / "results"
+    uncounted = {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.021}
+    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": uncounted}})
+    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
+
+    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
+
+    assert stats is not None
+    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
+        ("s1", "starsolo.reads-mapped-but-not-counted")
+    ]
+
+
+# -- what the review found: two rules that fired on runs they had no claim on ------------------
+
+
+def test_the_gene_assignment_bar_is_one_number_the_metric_and_the_rule_both_read() -> None:
+    """The rule claims to fire where the page already tints red. This is what makes that true.
+
+    Both docstrings said the rule reuses `reads_in_genes`' own `warn` floor, and both were *copied
+    literals* — regrading the metric would have left the rule behind, silently, with the comment still
+    claiming otherwise. A remembered rule is the thing this repo replaces with a mechanism, so the
+    constant is now passed to `fraction()` and read by the rule, and this asserts they are one number
+    rather than two that currently agree.
+    """
+    graded = _by_key(starsolo_metrics(_bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG), "S1"))[
+        "reads_in_genes"
+    ]
+
+    # The metric's own boundary, recovered from its behaviour rather than from its source: `warn` is
+    # the value at which it stops grading `bad`.
+    assert grade(POOR_GENE_ASSIGNMENT, ok=0.30, warn=POOR_GENE_ASSIGNMENT) == "warn"
+    assert grade(POOR_GENE_ASSIGNMENT - 1e-9, ok=0.30, warn=POOR_GENE_ASSIGNMENT) == "bad"
+    assert graded.level == "ok"  # and the healthy fixture is nowhere near it
+
+    # The rule fires exactly below that boundary and not at it -- the two ends of one number.
+    assert _fire(gene_model_rule, reads_in_genome=0.9, reads_in_genes=POOR_GENE_ASSIGNMENT) == []
+    assert (
+        len(_fire(gene_model_rule, reads_in_genome=0.9, reads_in_genes=POOR_GENE_ASSIGNMENT - 1e-9))
+        == 1
+    )
+
+
+def test_a_nuclear_library_already_counted_full_length_is_not_told_to_do_what_it_did() -> None:
+    """The gap survives the fix, so measuring it is not enough to speak about it.
+
+    A nuclear prep still has intronic reads after `GeneFull` is made primary — the measurement is a
+    fact about the library, not about the recipe. Firing on it anyway raised "you are counting the
+    wrong feature" at a reader counting the right one, with a remedy telling them to reorder a list
+    they had already reordered. `primary_feature` is what separates "counting exonically" from
+    "counting exonically BY MISTAKE", and the claim is about the matrix, not about the biology.
+    """
+    gap = {"Gene": 0.301, "GeneFull": 0.708}
+    counted_wrong = SampleStats(sample_id="s", feature_reads_in_genes=gap, primary_feature="Gene")
+    counted_right = SampleStats(
+        sample_id="s", feature_reads_in_genes=gap, primary_feature="GeneFull"
+    )
+
+    assert [f.alert_id for f in solo_features_rule(counted_wrong)] == [
+        "starsolo.intronic-reads-uncounted"
+    ]
+    assert solo_features_rule(counted_right) == []
+    # A bundle written before the field was carried says nothing about the recipe, so the rule keeps
+    # its old behaviour rather than going silent on every archived run.
+    assert len(solo_features_rule(SampleStats(sample_id="s", feature_reads_in_genes=gap))) == 1
+
+
+def test_the_gene_model_rule_yields_to_the_feature_that_counted_the_same_reads_fine() -> None:
+    """One run, two rules, and only one of them has a claim — the louder one had it wrong.
+
+    The headline `reads_in_genes` comes from whichever feature `_pick_feature` selected, which is
+    `Gene` wherever it exists. So a nuclear library counted exonically shows healthy mapping beside a
+    poor exonic count and looks *exactly* like a wrong annotation. It is not one, and the bundle
+    already proves it: a `GeneFull` count in the same artifact shows the reads did land in genes. The
+    rule that fires must be the one naming the feature, not the one naming the annotation.
+    """
+    nuclear = SampleStats(
+        sample_id="s",
+        metrics=[
+            m
+            for m in (
+                fraction("reads_in_genome", "g", 0.85, group="alignment"),
+                fraction("reads_in_genes", "c", 0.08, group="counts"),
+            )
+            if m is not None
+        ],
+        feature_reads_in_genes={"Gene": 0.08, "GeneFull": 0.62},
+        primary_feature="Gene",
+    )
+
+    assert gene_model_rule(nuclear) == []
+    assert [f.alert_id for f in solo_features_rule(nuclear)] == [
+        "starsolo.intronic-reads-uncounted"
+    ]
+
+    # And it still fires when NO other feature counted them: then the annotation really is suspect.
+    only_exonic = nuclear.model_copy(update={"feature_reads_in_genes": {"Gene": 0.08}})
+    assert [f.alert_id for f in gene_model_rule(only_exonic)] == [
+        "starsolo.reads-mapped-but-not-counted"
+    ]

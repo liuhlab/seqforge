@@ -14,7 +14,7 @@ import re
 import shutil
 from html import escape, unescape
 from pathlib import Path
-from typing import get_args
+from typing import TYPE_CHECKING, get_args
 
 import pytest
 import yaml
@@ -26,7 +26,11 @@ from seqforge.cli import app
 from seqforge.report import collect_report, render_html
 from seqforge.report.flow import flow_steps
 from seqforge.report.model import AssayReport
-from seqforge.workflows.metrics import PipelineStats
+from seqforge.workflows.metrics import Alert, DecisionRef, PipelineStats
+
+if TYPE_CHECKING:  # the resolver seam is private, and only its type is wanted at module scope
+    from seqforge.models.dataset import DatasetManifest
+    from seqforge.report.collect import _DecisionContext
 
 runner = CliRunner()
 
@@ -1221,12 +1225,18 @@ _STAR_FINAL_LOG: dict[str, object] = {
 }
 
 
-def _finish_a_starsolo_pipeline(ws: Path, *, outdir: str = "results") -> list[str]:
+def _finish_a_starsolo_pipeline(
+    ws: Path, *, outdir: str = "results", summary: dict[str, object] | None = None
+) -> list[str]:
     """Make the workspace's compiled pipeline look like a finished single-cell one. Returns its samples.
 
     Two edits, both to what is *on disk* rather than to any seqforge decision: the copied module
     becomes `starsolo.smk` (so the owner reports `map/starsolo`), and one QC bundle lands per sample
     the composed config contracted for.
+
+    `summary` swaps the `Summary.csv` block those bundles carry, which is how a caller lands a run
+    with a real problem in it — the cross-check tests need a rate that fires a rule, and it has to
+    reach them through the production reader rather than through a hand-built `PipelineStats`.
     """
     import gzip
 
@@ -1246,7 +1256,7 @@ def _finish_a_starsolo_pipeline(ws: Path, *, outdir: str = "results") -> list[st
             json.dump(
                 {
                     "sample": sample,
-                    "summary": {"Gene": _QC_SUMMARY},
+                    "summary": {"Gene": _QC_SUMMARY if summary is None else summary},
                     # Folded in verbatim by `qc_bundle`, and the only source of the alignment metrics
                     # — without it a starsolo page has no Alignment band at all.
                     "log_final": _STAR_FINAL_LOG,
@@ -1693,6 +1703,367 @@ def test_a_partial_run_still_renders_what_landed_and_says_how_much_did(own_works
     assert pane.count('<th scope="row"') == 2  # what landed is there, in full
 
 
+# -- the cross-check: which decision does a bad number implicate? -----------------------------------
+#
+# The rules themselves are pure and are held to literal values in `tests/test_workflows.py`. What is
+# under test here is the other three seams: the collector attributing a finding to the value the
+# workspace currently carries, the page drawing it beside the numbers that produced it, and the verb
+# handing it to a machine. Everything visual is asserted against `render_html`.
+
+#: The same finished run with #215's real barcode rate in it — 0.076% valid barcodes, which is not a
+#: bad library but a whitelist that does not belong to these reads.
+_BROKEN_BARCODES: dict[str, object] = {**_QC_SUMMARY, "Reads With Valid Barcodes": 0.000762759}
+
+
+def _finish_a_starsolo_pipeline_over(ws: Path, summaries: dict[str, dict[str, object]]) -> None:
+    """Make the composed pipeline look like a finished MULTI-sample starsolo run.
+
+    The shared fixture compiles exactly one sample, and scope is a claim about how many samples fired
+    out of how many landed — a distinction one sample cannot draw. So the composed config's own
+    `samples` list is rewritten and one bundle lands per name. Both edits are to what is *on disk*,
+    the counts still come from the artifact the pipeline was handed rather than from a listing, and
+    nothing the compiler decided is touched.
+    """
+    import gzip
+
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    for smk in pipeline.directory.glob("*.smk"):
+        smk.rename(smk.with_name("starsolo.smk"))
+    config = pipeline.config
+    config["samples"] = sorted(summaries)
+    pipeline.config_path.write_text(yaml.safe_dump(config, sort_keys=True))
+
+    for sample, summary in summaries.items():
+        out = pipeline.directory / str(config.get("outdir") or "results") / sample
+        out.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out / f"{sample}.qc.json.gz", "wt", encoding="utf-8") as fh:
+            json.dump({"sample": sample, "summary": {"Gene": summary}}, fh)
+
+
+def _alert_block(html: str) -> str:
+    """The Results tab's alert block as the page renders it, or `""` when there is none."""
+    pane = _pane(html, "results")
+    marker = "What looks wrong"
+    if marker not in pane:
+        return ""
+    return pane[pane.index(marker) : pane.index("How each number reads")]
+
+
+def test_a_healthy_run_produces_no_alerts_and_renders_no_alert_block_at_all(
+    own_workspace: Path,
+) -> None:
+    """Seeing an alert has to mean something, so a good run renders nothing — not an empty section.
+
+    "No alerts" printed on every page is a heading a reader learns to skip, and the day one appears
+    it appears in a place their eye has already been trained to pass over. The absence is the signal.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+
+    assay = collect_report(own_workspace).assays[0]
+    page = render_html(collect_report(own_workspace))
+
+    assert assay.pipeline_stats is not None and assay.pipeline_stats.complete
+    assert assay.pipeline_stats.findings == [] and assay.alerts == []
+    assert _alert_block(page) == ""
+    assert "lvl-state" in _pane(page, "results"), (
+        "the run-state block still renders, or this asserts nothing about the alert block"
+    )
+
+
+def test_an_alert_names_the_decision_and_the_value_the_workspace_currently_carries(
+    own_workspace: Path,
+) -> None:
+    """Attribution, at the seam that owns it: the collector already holds the manifest and the recipe.
+
+    "Your chemistry call looks wrong" is only actionable once it says what the call currently IS, and
+    a rule cannot know that — it is pure over metrics. So the expected values are read out of the
+    manifest on disk rather than restated here: a test that spelled `bulk-rnaseq-pe` would keep
+    passing against a collector that had stopped reading the manifest at all.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_BROKEN_BARCODES)
+    manifest = yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    chemistry = manifest["library"]["chemistry"]["value"][0]
+    roles = {f["basename"]: f["read_id"] for f in manifest["library"]["files"]}
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+
+    assert alert.id == "starsolo.valid-barcodes-near-zero"
+    assert alert.severity == "likely" and alert.scope == "systematic"
+    named = {ref.decision: ref for ref in alert.implicates}
+    assert set(named) == {"chemistry", "read_roles"}
+    assert "library.chemistry" in named["chemistry"].label
+    assert named["chemistry"].value.startswith(chemistry)
+    assert "library.files" in named["read_roles"].label
+    for basename, read_id in roles.items():
+        assert f"{read_id} = {basename}" in named["read_roles"].value
+
+
+def test_an_alert_renders_beside_the_numbers_that_produced_it_and_nowhere_else(
+    own_workspace: Path,
+) -> None:
+    """The claim and its evidence are one scroll apart, and the reader can check one against the other.
+
+    Between the pipeline's own state and the legend that says how the numbers below grade: an alert is
+    a claim ABOUT that table, so it leads it. Everything asserted here is read off the rendered page —
+    including that the alert reaches no other tab, since a decision-shaped claim would look at home on
+    Pipeline and would then be a second place the same fact lives.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_BROKEN_BARCODES)
+    page = render_html(collect_report(own_workspace))
+    pane = _pane(page, "results")
+    block = _alert_block(page)
+
+    assert block, "the broken fixture must raise one, or this test asserts about an absent section"
+    assert pane.index("lvl-state") < pane.index("What looks wrong") < pane.index("<table")
+    assert pane.index("What looks wrong") < pane.index("How each number reads")
+    # The claim, the mark that survives a greyscale printout, the values, the remedy, and the id a
+    # machine consumer tracks it by — all of it on the page, none of it colour-only.
+    assert "Almost no read carries a barcode" in block
+    assert '<span class="lvl-flag" role="img" aria-label="this run is probably wrong">!!' in block
+    assert "0.1%" in block and "matched the whitelist" in block
+    assert "Check which kit this library really is" in block
+    assert "starsolo.valid-barcodes-near-zero" in block
+    assert "What looks wrong" not in _pane(page, "pipeline") + _pane(page, "overview")
+
+
+def test_a_systematic_alert_and_an_isolated_one_are_two_different_claims_on_the_page(
+    own_workspace: Path,
+) -> None:
+    """Systematic points at a decision; isolated points at a well, and the page must say which.
+
+    A reader cannot draw that from a list of sample ids — on a plate, 96 ids and 94 ids look the same
+    — so the count of how many fired out of how many LANDED is written in words. Driven twice over
+    one workspace so the two renders differ only in which bundles are broken.
+    """
+    _finish_a_starsolo_pipeline_over(
+        own_workspace, {"S1": _BROKEN_BARCODES, "S2": _BROKEN_BARCODES, "S3": _BROKEN_BARCODES}
+    )
+    every = _alert_block(render_html(collect_report(own_workspace)))
+
+    _finish_a_starsolo_pipeline_over(
+        own_workspace, {"S1": _BROKEN_BARCODES, "S2": _QC_SUMMARY, "S3": _QC_SUMMARY}
+    )
+    one = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert "every sample that finished (3 of 3)" in every
+    assert "1 of 3 samples that finished" in one
+    # And the per-sample evidence survives the grouping: an alert that collapsed three samples to one
+    # number would have thrown away the evidence for its own claim.
+    assert every.count("<li>") > one.count("<li>")
+    for sample in ("S1", "S2", "S3"):
+        assert sample in every
+    assert "S2" not in one and "S3" not in one
+
+
+def test_a_partial_run_still_raises_the_alert_it_would_have_raised_complete(
+    own_workspace: Path,
+) -> None:
+    """Nobody should wait for a full plate to learn the chemistry call was wrong.
+
+    Scope is computed against what LANDED and never against what was contracted, so two of three
+    samples that both fired is *systematic* — every sample there was to fire on did. The contracted
+    count is still on the page, one block up, where it says how much of the run finished.
+    """
+    _finish_a_starsolo_pipeline_over(
+        own_workspace, {"S1": _BROKEN_BARCODES, "S2": _BROKEN_BARCODES}
+    )
+    pipeline_dir = next((own_workspace / "seqforge" / "pipeline").iterdir())
+    config = yaml.safe_load((pipeline_dir / "config.yaml").read_text())
+    config["samples"] = ["S1", "S2", "S3"]
+    (pipeline_dir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+
+    page = render_html(collect_report(own_workspace))
+    pane = _pane(page, "results")
+
+    assert "2 of 3 samples finished" in pane  # the run state, unchanged
+    assert "every sample that finished (2 of 2)" in _alert_block(page)
+
+
+def test_alerts_reach_the_report_verbs_machine_output_with_their_stable_ids(
+    own_workspace: Path,
+) -> None:
+    """A finding that exists only inside an HTML document is not machine-accessible, and the CLI is
+    this project's interface.
+
+    Beside `pipeline_stats` and never folded into `exit`: an alert is advisory, so a consumer reads
+    "the compile succeeded" and "these decisions look wrong" as two answers. The stable id is what
+    lets one be suppressed or tracked across runs, so it is asserted by name.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_BROKEN_BARCODES)
+
+    result = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+
+    assert result.exit_code == 0, result.stdout
+    conclusion = json.loads(result.stdout)["conclusion"][0]
+    assert conclusion["exit"] == 0 and conclusion["kind"] == "compiled"
+    (alert,) = conclusion["alerts"]
+    assert alert["id"] == "starsolo.valid-barcodes-near-zero"
+    assert alert["severity"] == "likely" and alert["scope"] == "systematic"
+    assert alert["samples"] and len(alert["measured"]) == len(alert["samples"])
+    assert {d["decision"] for d in alert["implicates"]} == {"chemistry", "read_roles"}
+    assert all(d["value"] for d in alert["implicates"])
+
+
+def test_an_alert_never_rewrites_the_manifest_or_the_recipe(own_workspace: Path) -> None:
+    """The whole path over one workspace, twice — and the two artifacts come back byte-identical.
+
+    This is the compiler's first backward edge, and the constraint that makes it safe is that it is
+    advisory: the dataset manifest is immutable and content-addressed, and a pairing's identity is
+    hashed at compile time, so evidence arriving after that may inform the user and may not silently
+    move either artifact. That must be a test rather than a promise.
+
+    The discriminator is the second half: the same run, the same verb, and the only difference is a
+    barcode rate that raises an alert. Bytes identical, exit code identical, conclusion identical —
+    with an alert on the page that was not there before. Without that half this would pass on a build
+    where the cross-check never ran at all.
+    """
+    seqforge_dir = own_workspace / "seqforge"
+    before = {p: p.read_bytes() for p in (seqforge_dir / "manifest.yaml", seqforge_dir / "processing.yaml")}  # fmt: skip
+
+    _finish_a_starsolo_pipeline(own_workspace)
+    healthy = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+    healthy_conclusion = json.loads(healthy.stdout)["conclusion"][0]
+
+    _finish_a_starsolo_pipeline(own_workspace, summary=_BROKEN_BARCODES)
+    alerted = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+    alerted_conclusion = json.loads(alerted.stdout)["conclusion"][0]
+
+    assert healthy_conclusion["alerts"] == [] and alerted_conclusion["alerts"], (
+        "the two runs must differ in exactly the thing under test, or nothing here discriminates"
+    )
+    assert alerted.exit_code == healthy.exit_code == 0
+    assert alerted_conclusion["exit"] == healthy_conclusion["exit"]
+    assert alerted_conclusion["kind"] == healthy_conclusion["kind"]
+    assert {p: p.read_bytes() for p in before} == before
+
+
+def test_every_decision_an_alert_can_name_is_resolvable_to_a_value(own_workspace: Path) -> None:
+    """`Decision` is a closed set, guarded from its own `Literal` — a member with no resolver is mute.
+
+    Two halves, and neither is enough. The table must be total over the literal (so #222's `strand`
+    cannot ship as a field name with nothing beside it), and the resolvers must actually answer
+    against a real workspace — a table full of functions that all return `None` would satisfy the
+    first half and render nothing.
+
+    The context is built to be ANSWERABLE, which is a third claim and it is deliberate: a resolver
+    that returned a value for a workspace that cannot hold one would be inventing it, so the fixture
+    is made to hold one rather than the resolver made to guess. The shared workspace compiles a bulk
+    recipe and `solo_features` is a STARsolo-only decision, so the recipe's counting decision is
+    swapped for the one a STARsolo pipeline carries — the same class of edit
+    `_finish_a_starsolo_pipeline` already makes to the module on disk, one artifact up.
+    """
+    from seqforge.report.collect import _DECISION_RESOLVERS
+    from seqforge.workflows.metrics import Decision
+
+    members = set(get_args(Decision))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+    assert set(_DECISION_RESOLVERS) == members, "a decision with no resolver renders as a bare name"
+
+    from seqforge.models.dataset import DatasetManifest
+
+    manifest = DatasetManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    )
+    ctx = _decision_context(own_workspace, manifest)
+    for decision, resolve in _DECISION_RESOLVERS.items():
+        ref = resolve(ctx)
+        assert ref is not None and ref.decision == decision
+        assert ref.label and ref.value, f"{decision} resolved to a label with no value beside it"
+
+
+def test_every_severity_the_page_can_draw_wears_a_verdict_the_palette_already_had() -> None:
+    """The third closed set this page renders, and PR 3's colour budget is zero.
+
+    An alert is an exception by construction — it exists only because something looks wrong — so it
+    wears the verdict pair rather than a third hue, and the mark that survives colour-blindness comes
+    from the same table the metric cells use. Derived from the `Literal` for the reason `Basis` and
+    `Level` are: a restatement here would be a test that agrees with itself.
+    """
+    from seqforge.report.panels import _LEVEL_FLAG, _LEVEL_PHRASE, _SEVERITY_LEVEL
+    from seqforge.workflows.metrics import SEVERITY_PHRASE, Severity
+
+    members = set(get_args(Severity))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+
+    assert set(_SEVERITY_LEVEL) == members, "a severity with no verdict class renders untinted"
+    assert set(SEVERITY_PHRASE) == members
+    # No new hue and no new mark: every verdict an alert wears is one the metrics table already
+    # wears, and every one of them carries a non-colour flag.
+    assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_PHRASE)
+    assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_FLAG)
+    assert _SEVERITY_LEVEL["likely"] == "bad" and _SEVERITY_LEVEL["possible"] == "warn"
+
+
+def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no_heading(
+    own_workspace: Path,
+) -> None:
+    """Two card branches proven before a rule reached them — `change_to` now has one, a heading none.
+
+    `change_to` is filled only where the alternative is genuinely enumerable — a role assignment has
+    one swap, a chemistry call has a KB's worth — so the chemistry rule leaves it empty and the
+    markup that renders it would otherwise ship unexercised. And an alert whose decisions all failed
+    to resolve must draw no "Points at" heading at all: a heading over an empty list is the same lie
+    as a field name with no value beside it.
+
+    Built as models and rendered through `render_html`, the way the Samples and Evidence tabs are
+    driven: the assertion is still made against the page, and the input is a shape a rule is entitled
+    to produce rather than one this fixture can be made to produce.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    report = collect_report(own_workspace)
+    swapped = Alert(
+        id="demo.enumerable",
+        title="The two reads look the wrong way round",
+        severity="possible",
+        scope="isolated",
+        samples=["S1"],
+        n_samples=2,
+        measured=["S1 measured something"],
+        implicates=[
+            DecisionRef(
+                decision="read_roles",
+                label="read roles (manifest `library.files[].read_id`)",
+                value="R1 = a.fastq.gz, R2 = b.fastq.gz",
+                change_to="R1 = b.fastq.gz, R2 = a.fastq.gz",
+            )
+        ],
+        remedy="swap them and compose again",
+    )
+    nameless = swapped.model_copy(update={"id": "demo.nameless", "implicates": []})
+    assay = report.assays[0].model_copy(update={"alerts": [swapped, nameless]})
+
+    block = _alert_block(render_html(report.model_copy(update={"assays": [assay]})))
+
+    assert block.count("demo.") == 2, "both cards render, or one branch is asserted twice"
+    assert "the alternative is <b>R1 = b.fastq.gz, R2 = a.fastq.gz</b>" in block
+    assert block.count("Points at") == 1, "the alert that resolved nothing draws no heading"
+
+
+def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_workspace: Path) -> None:
+    """Self-contained, no external reference, inside the budget, byte-deterministic — with alerts on.
+
+    The four are asserted elsewhere against a page that has no alert block, which would leave exactly
+    the new markup unchecked for the failures they exist to catch. Determinism is the one that bites
+    here: alerts are grouped out of a dict, and a grouping that leaked iteration order would render a
+    different page on a second read of the same workspace.
+    """
+    _finish_a_starsolo_pipeline_over(
+        own_workspace, {"S1": _BROKEN_BARCODES, "S2": _QC_SUMMARY, "S3": _BROKEN_BARCODES}
+    )
+
+    html = render_html(collect_report(own_workspace))
+
+    assert _alert_block(html), (
+        "the fixture must raise one, or the guarantees are re-proved unchanged"
+    )
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert len(html.encode()) < 500_000
+    assert html == render_html(collect_report(own_workspace))
+
+
 # -- the vendored stylesheet's drift guards ---------------------------------------------------------
 #
 # `report.tw.css` is Tailwind's output, and Tailwind purges: it contains only what was literally
@@ -1940,3 +2311,382 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
     assert not re.search(r'<th[^>]*role="button"', pane), (
         "a column header announcing itself as a button is no longer a column header"
     )
+
+
+# -- the nuclear-library rule: counting one library two ways -----------------------------------------
+#
+# The rule itself is pure and is held to literal values in `tests/test_workflows.py`. What is under
+# test here is the join: a recipe that counts more than one way, an artifact that carries both counts
+# (it always did), and a page that names which feature is currently primary. Everything visual is
+# asserted against `render_html`.
+
+#: The library from #215, as STAR counted it twice: 30.1% of reads land in an exon, 70.8% land
+#: anywhere in the gene body. Two `Summary.csv` blocks in one bundle, which is what the writer has
+#: always produced for a recipe with two features in it.
+_EXONIC_SUMMARY: dict[str, object] = {**_QC_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.301}
+_FULL_LENGTH_SUMMARY: dict[str, object] = {
+    **_QC_SUMMARY,
+    "Reads Mapped to GeneFull: Unique GeneFull": 0.708,
+}
+
+
+def _count_with(ws: Path, features: list[str]) -> None:
+    """Rewrite the workspace's recipe so it counts with STARsolo over `features`, in that order.
+
+    Through the model rather than by poking yaml keys, so the shape on disk is whatever
+    `ProcessingManifest` says it is and this helper cannot encode a layout that has moved. The shared
+    fixture compiles a BULK recipe and `solo_features` is a STARsolo-only decision — the same class of
+    on-disk edit `_finish_a_starsolo_pipeline` makes to the module, one artifact up.
+    """
+    from seqforge.models.processing import ProcessingManifest, SoloQuant
+
+    path = ws / "seqforge" / "processing.yaml"
+    proc = ProcessingManifest.model_validate(yaml.safe_load(path.read_text()))
+    counting = proc.processing.quantification.model_copy(
+        update={"value": SoloQuant(features=features)}  # type: ignore[arg-type]
+    )
+    proc = proc.model_copy(
+        update={"processing": proc.processing.model_copy(update={"quantification": counting})}
+    )
+    path.write_text(yaml.safe_dump(proc.model_dump(mode="json"), sort_keys=True))
+
+
+def _land_multi_feature_bundles(
+    ws: Path, samples: list[str], summary: dict[str, dict[str, object]]
+) -> None:
+    """One QC bundle per sample carrying `summary` verbatim as its per-feature `Summary.csv` block.
+
+    `_finish_a_starsolo_pipeline` writes exactly one feature, which is enough for every test above and
+    useless here: the whole signal is the DISAGREEMENT between two of them.
+    """
+    import gzip
+
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    for smk in pipeline.directory.glob("*.smk"):
+        smk.rename(smk.with_name("starsolo.smk"))
+    config = pipeline.config
+    config["samples"] = sorted(samples)
+    pipeline.config_path.write_text(yaml.safe_dump(config, sort_keys=True))
+
+    for sample in samples:
+        out = pipeline.directory / str(config.get("outdir") or "results") / sample
+        out.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out / f"{sample}.qc.json.gz", "wt", encoding="utf-8") as fh:
+            json.dump(
+                {
+                    "sample": sample,
+                    "summary": summary,
+                    "log_final": _STAR_FINAL_LOG,
+                    "umi_per_cell": {"Gene": [4213, 980, 310, 44, 9, 1]},
+                },
+                fh,
+            )
+
+
+def test_a_nuclear_library_counted_exonically_becomes_a_claim_about_the_recipe(
+    own_workspace: Path,
+) -> None:
+    """The gap the artifact always carried, joined to the ordered list that decides which matrix wins.
+
+    The recipe's features are read back off disk rather than restated here: a test that spelled
+    `Gene, GeneFull` would keep passing against a collector that had stopped reading the recipe at
+    all. What the page must carry is the whole chain — the claim, the non-colour mark, the two numbers
+    it fired on, which feature is currently primary, the reorder remedy, and the stable id.
+    """
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+    _land_multi_feature_bundles(
+        own_workspace, samples, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+    recipe = yaml.safe_load((own_workspace / "seqforge" / "processing.yaml").read_text())
+    features = recipe["processing"]["quantification"]["value"]["features"]
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+    block = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert alert.id == "starsolo.intronic-reads-uncounted"
+    assert alert.severity == "possible"
+    (ref,) = alert.implicates
+    assert ref.decision == "solo_features"
+    assert "processing.quantification.features" in ref.label
+    for feature in features:
+        assert feature in ref.value
+    assert f"{features[0]} is the primary matrix" in ref.value
+    assert ref.change_to is None, "a reorder among several full-length features is not one swap"
+
+    assert "40.7%" in block and "70.8%" in block and "30.1%" in block
+    assert '<span class="lvl-flag" role="img" aria-label="worth a look">!' in block
+    assert "put GeneFull first" in block
+    assert "starsolo.intronic-reads-uncounted" in block
+
+
+def test_a_pipeline_that_counted_one_feature_reports_normally_and_raises_no_alert(
+    own_workspace: Path,
+) -> None:
+    """The common case — `soloFeatures` is frequently just `Gene` — and it must cost nothing.
+
+    A recipe that counts one way has no second column to disagree with, so there is no gap to measure
+    and the page renders as it always did: no alert block at all, the metrics table intact, and the
+    feature the headline numbers came from still named on the row it belongs to. That last one is its
+    own acceptance criterion, and it is the thing a reader needs in order to judge the numbers.
+    """
+    _count_with(own_workspace, ["Gene"])
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+    _land_multi_feature_bundles(own_workspace, samples, {"Gene": _EXONIC_SUMMARY})
+
+    assay = collect_report(own_workspace).assays[0]
+    page = render_html(collect_report(own_workspace))
+    pane = _pane(page, "results")
+
+    assert assay.pipeline_stats is not None and assay.pipeline_stats.complete
+    assert assay.pipeline_stats.findings == [] and assay.alerts == []
+    assert _alert_block(page) == ""
+    assert "counted from the Gene feature" in pane
+    assert "Reads in genes" in pane, "the table must still render, or this asserts nothing"
+
+
+def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_run(
+    own_workspace: Path,
+) -> None:
+    """The size criterion, measured on a plate rather than argued — and there is nothing to bound.
+
+    The per-sample artifact does not grow AT ALL: `build_qc_bundle` has written every feature's
+    `Summary.csv` since the first bundle ever produced, so this ticket changed no writer, no `.smk`
+    and no `WORKFLOW_VERSION`. What grows is one narrow mapping in memory. So the honest form of "any
+    growth is bounded and does not push the page past its budget" is to render 96 wells with the rule
+    firing on every one of them and measure, with the other three standing guarantees re-proved on the
+    same page: an alert whose sample list is 96 ids long is exactly where a page bloats.
+    """
+    _count_with(own_workspace, ["Gene", "GeneFull"])
+    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
+    _land_multi_feature_bundles(
+        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
+    )
+
+    html = render_html(collect_report(own_workspace))
+    block = _alert_block(html)
+
+    assert len(plate) == 96
+    assert "every sample that finished (96 of 96)" in block
+    assert len(html.encode()) < 500_000
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert html == render_html(collect_report(own_workspace))
+
+
+# -- the gene model and the strand: attribution across two artifacts ---------------------------------
+#
+# The second rule's own seam. The threshold work is held to literal values in `tests/test_workflows.py`;
+# what is under test here is that its two decisions resolve to what the workspace currently carries —
+# one out of the recipe, one out of the COMPOSED CONFIG, which is a place no other decision reads from
+# — and that all of it reaches the rendered page.
+
+#: The same finished run with its gene model missed: mapping is healthy (81.2%) and almost nothing was
+#: assigned to a gene. Not a bad library — a GTF or a strand that does not belong to these reads.
+_UNCOUNTED_GENES: dict[str, object] = {**_QC_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.021}
+
+
+def _write_a_strand_into_the_composed_config(ws: Path, strand: str) -> None:
+    """Put a `soloStrand` where `compose` puts one, so a decision-under-test has a value to read.
+
+    The shared fixture compiles a BULK pipeline — the branch CI can run headless — so its config
+    carries a `bulk` param block and no strand at all. `compose` writes the KB's backend params under
+    the block key the module itself declares (`param_block_key`), which for `map/starsolo` is `solo`,
+    so this is that block written on disk. Like every other edit these fixtures make it touches only
+    what is on disk; nothing the compiler decided moves.
+    """
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    config = pipeline.config
+    solo = config.get("solo")
+    config["solo"] = {**(solo if isinstance(solo, dict) else {}), "soloStrand": strand}
+    pipeline.config_path.write_text(yaml.safe_dump(config, sort_keys=True))
+
+
+def _decision_context(ws: Path, manifest: DatasetManifest) -> _DecisionContext:
+    """Everything a resolver may read, out of a real workspace rather than out of three `None`s.
+
+    Three of the five decisions live outside the dataset manifest — two in the recipe, one in the
+    composed config — so a context of nulls would let their resolvers return `None` and still satisfy
+    an exhaustiveness check over the `Literal`, which is the half that test says is not enough.
+
+    Two things are written in, because the shared fixture compiles a **bulk** pipeline and carries
+    neither: a strand, and a counting section with features in it. Both are the same class of on-disk
+    edit `_finish_a_starsolo_pipeline` already makes to the module one artifact up — they make the
+    workspace *answerable*, not the resolver answer. That a workspace which never composed one
+    **drops** the ref rather than drawing an empty row is the neighbouring tests' claim, not this
+    one's.
+    """
+    from seqforge.models.processing import ProcessingManifest, SoloQuant
+    from seqforge.report.collect import _DecisionContext
+
+    _write_a_strand_into_the_composed_config(ws, "Forward")
+    plan = collect_report(ws).assays[0].plan
+    assert plan is not None, "the fixture workspace should already carry a recipe"
+    proc = ProcessingManifest.model_validate(
+        yaml.safe_load((ws / "seqforge" / "processing.yaml").read_text())
+    )
+    counting = proc.processing.quantification.model_copy(
+        update={"value": SoloQuant(features=["Gene", "GeneFull"])}
+    )
+    proc = proc.model_copy(
+        update={"processing": proc.processing.model_copy(update={"quantification": counting})}
+    )
+    return _DecisionContext(manifest=manifest, proc=proc, plan=plan)
+
+
+def test_the_gene_model_alert_names_the_annotation_and_the_strand_it_could_be_flipped_to(
+    own_workspace: Path,
+) -> None:
+    """The two decisions this rule points at, resolved out of the two artifacts that hold them.
+
+    The annotation is a recipe field and the strand is not — it is a KB backend param the composer
+    emitted — so they are read from different places and the labels have to say which, or a reader
+    goes looking for a `soloStrand` in a recipe that has never had one. Both expected values are read
+    back off disk rather than restated here: a test that spelled `sacCer3` would keep passing against
+    a collector that had stopped reading the recipe at all.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_UNCOUNTED_GENES)
+    _write_a_strand_into_the_composed_config(own_workspace, "Forward")
+    proc = yaml.safe_load((own_workspace / "seqforge" / "processing.yaml").read_text())
+    genome = proc["processing"]["genome"]["value"]
+    expected = f"{genome['assembly']} / {genome['annotation_name']}"
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+    block = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert alert.id == "starsolo.reads-mapped-but-not-counted"
+    refs = {d.decision: d for d in alert.implicates}
+    assert set(refs) == {"annotation", "strand"}
+    assert refs["annotation"].value == expected and "processing.genome" in refs["annotation"].label
+    assert refs["strand"].value == "Forward" and refs["strand"].change_to == "Reverse"
+    # ...and the label says where it lives, because it does not live in the recipe.
+    assert "soloStrand" in refs["strand"].label and "not a recipe field" in refs["strand"].label
+
+    assert f"currently <b>{expected}</b>" in block
+    assert "currently <b>Forward</b>; the alternative is <b>Reverse</b>" in block
+
+
+def test_a_strand_this_workspace_never_composed_is_dropped_rather_than_drawn_empty(
+    own_workspace: Path,
+) -> None:
+    """A decision the workspace cannot answer for is dropped, never rendered as a field with no value.
+
+    The fixture's config is a bulk one and carries no `soloStrand`, which is the honest version of
+    that case rather than a mocked absence. The annotation still resolves, so what is asserted is one
+    ref dropping out of a card that otherwise attributes — not a card that failed to attribute at all.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_UNCOUNTED_GENES)
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+    block = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert [d.decision for d in alert.implicates] == ["annotation"]
+    assert "soloStrand" not in block
+    assert "Points at" in block, "the heading survives, or the discriminator is the whole card"
+
+
+def test_the_strand_offers_an_alternative_only_where_the_alternative_is_one_value(
+    own_workspace: Path,
+) -> None:
+    """`--soloStrand` also takes `Unstranded`, and from there "the alternative" is two values, not one.
+
+    `change_to` is filled only where the alternative is genuinely enumerable, so an unstranded config
+    still says what the strand IS and offers no flip: a wrong concrete suggestion is worse than none,
+    and this is the branch where a blind `Forward`/`Reverse` flip would invent one.
+    """
+    _finish_a_starsolo_pipeline(own_workspace, summary=_UNCOUNTED_GENES)
+    _write_a_strand_into_the_composed_config(own_workspace, "Unstranded")
+
+    (alert,) = collect_report(own_workspace).assays[0].alerts
+    (strand,) = [d for d in alert.implicates if d.decision == "strand"]
+    block = _alert_block(render_html(collect_report(own_workspace)))
+
+    assert strand.value == "Unstranded" and strand.change_to is None
+    assert "currently <b>Unstranded</b>" in block
+    assert "the alternative is" not in block
+
+
+def test_a_workspace_that_was_never_composed_answers_for_neither_new_decision(
+    own_workspace: Path,
+) -> None:
+    """An assay can reach the IR and never be composed, and then neither decision has a value to read.
+
+    The recipe is not there, and neither is the config it would have produced. Both resolve to `None`
+    rather than to a plausible-looking default, and `gather_alerts` drops the row — a field name with
+    no value beside it reads as a value of nothing.
+
+    This is the case the exhaustiveness test above cannot cover, because that one needs a context
+    that answers. Asserted here from the other side, with both directions in one test so a resolver
+    that had stopped reading its artifact entirely would fail the second half.
+    """
+    from seqforge.models.dataset import DatasetManifest
+    from seqforge.report.collect import _DecisionContext, _resolve_annotation, _resolve_strand
+
+    manifest = DatasetManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    )
+    bare = _DecisionContext(manifest=manifest, proc=None, plan=None)
+
+    assert _resolve_annotation(bare) is None and _resolve_strand(bare) is None
+
+    full = _decision_context(own_workspace, manifest)
+    assert _resolve_annotation(full) is not None and _resolve_strand(full) is not None
+
+
+def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspace: Path) -> None:
+    """`annotation_name` is `None` for an index built from the FASTA alone, and "sacCer3 / None" is
+    a value a reader would try to act on.
+
+    So the ref is dropped rather than rendered. The rule that names this decision cannot fire on such
+    a pipeline anyway — no GTF, no `Summary.csv` gene rows, no `reads_in_genes` — which makes this the
+    same fact arriving from the other side rather than a second guard, and it is asserted here
+    because nothing else in this file composes a chromap recipe.
+    """
+    from seqforge.models.dataset import DatasetManifest
+    from seqforge.report.collect import _resolve_annotation
+
+    manifest = DatasetManifest.model_validate(
+        yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
+    )
+    ctx = _decision_context(own_workspace, manifest)
+    assert ctx.proc is not None and _resolve_annotation(ctx) is not None
+
+    evidenced = ctx.proc.processing.genome
+    no_gtf = evidenced.model_copy(
+        update={"value": evidenced.value.model_copy(update={"annotation_name": None})}
+    )
+    stripped = ctx.proc.model_copy(
+        update={"processing": ctx.proc.processing.model_copy(update={"genome": no_gtf})}
+    )
+
+    assert _resolve_annotation(ctx._replace(proc=stripped)) is None
+
+
+def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_rendered(
+    own_workspace: Path,
+) -> None:
+    """Self-contained, no external reference, inside the budget, byte-deterministic — with this alert.
+
+    Asserted again for this rule rather than assumed off the others: this is the card that carries a
+    `change_to` line, which no other shipped rule fills.
+    """
+    _finish_a_starsolo_pipeline_over(
+        own_workspace, {"S1": _UNCOUNTED_GENES, "S2": _QC_SUMMARY, "S3": _UNCOUNTED_GENES}
+    )
+    _write_a_strand_into_the_composed_config(own_workspace, "Forward")
+
+    html = render_html(collect_report(own_workspace))
+    block = _alert_block(html)
+
+    assert "starsolo.reads-mapped-but-not-counted" in block, (
+        "the fixture must raise this rule, or the guarantees are re-proved unchanged"
+    )
+    assert "the alternative is <b>Reverse</b>" in block
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert len(html.encode()) < 500_000
+    assert html == render_html(collect_report(own_workspace))

@@ -19,7 +19,16 @@ import re
 from html import escape
 from math import ceil, log10
 
-from ..workflows.metrics import Metric, MetricGroup, PipelineStats, SampleStats
+from ..workflows.metrics import (
+    SEVERITY_PHRASE,
+    Alert,
+    Level,
+    Metric,
+    MetricGroup,
+    PipelineStats,
+    SampleStats,
+    Severity,
+)
 from .flow import FlowStep, flow_steps
 from .model import (
     ArtifactEmbed,
@@ -991,6 +1000,10 @@ def results_pane(assay: AssayReport) -> str:
     **The table leads, always.** Sample-by-metric was always a grid, and it used to sit one
     disclosure below a wall of per-sample tiles — so the view that answers the reader's first
     question ("how do my samples compare?") was the one view they had to ask for.
+
+    The one thing that leads it is an **alert**, when there is one: it is a claim about the numbers
+    in that table, so it sits directly under the run state and directly above the legend that says
+    how those numbers grade. On a healthy run there is nothing there at all.
     """
     stats = assay.pipeline_stats
     if stats is None:
@@ -1019,7 +1032,8 @@ def results_pane(assay: AssayReport) -> str:
             "and what a bad value would mean."
         )
 
-    return _panel("Results", _pipeline_state(stats) + body, sub=sub) + _knee_panel(stats)
+    head = _pipeline_state(stats) + _alerts_block(assay.alerts)
+    return _panel("Results", head + body, sub=sub) + _knee_panel(stats)
 
 
 def _pipeline_state(stats: PipelineStats) -> str:
@@ -1062,6 +1076,99 @@ def _pipeline_state(stats: PipelineStats) -> str:
         return state
     notes = "".join(f"<li>{esc(n)}</li>" for n in stats.notes)
     return f'{state}<ul class="mt-0 mb-4 list-disc pl-5 text-xs text-dim">{notes}</ul>'
+
+
+# ---- the cross-check's alerts -------------------------------------------------------------------
+
+#: Which verdict a severity wears, and the whole reason this PR adds **no hue, no token and no
+#: component**. An alert exists only because something looks wrong, so it is an exception by
+#: construction — the verdict palette is not being borrowed for a second meaning here, it is being
+#: used for its own, and ``lvl-state`` already draws exactly this shape for the run-state block.
+#:
+#: Total over :data:`~seqforge.workflows.metrics.Severity`, and an exhaustiveness test derived from
+#: ``get_args`` holds it there: a third severity would otherwise render an untinted, unmarked box
+#: whose only difference from the two real ones is that nobody can see it.
+_SEVERITY_LEVEL: dict[Severity, Level] = {"likely": "bad", "possible": "warn"}
+
+#: How many firing samples an alert spells out before it summarises the rest. The count is already
+#: stated in words above the list ("14 of 96"), so what the list adds is the *shape of the numbers* —
+#: enough rows to judge the claim rather than trust it. Ninety-six of them would be a wall, and a
+#: wall inside a box whose job is to be read first is the fastest way to stop being read.
+_ALERT_MAX_SAMPLES = 6
+
+
+def _alerts_block(alerts: list[Alert]) -> str:
+    """Every alert this assay's cross-checks raised, directly under the pipeline's own state.
+
+    Here, on Results, and nowhere else: an alert is a claim about the numbers in the table below it,
+    and a reader has to be able to check the claim against the evidence without navigating away. It
+    is above the table rather than beside a cell because the claim is about a *decision*, and the
+    decision is not in any one column.
+
+    **A healthy run renders nothing at all** — not an empty block, not "no alerts". Seeing one has to
+    mean something, and a section that is present on every page is a section the eye stops reading.
+    """
+    if not alerts:
+        return ""
+    return (
+        '<div class="mb-4"><h3 class="sf-sub-h mb-2">What looks wrong — and which decision it '
+        f"points at</h3>{''.join(_alert_card(a) for a in alerts)}</div>"
+    )
+
+
+def _alert_card(alert: Alert) -> str:
+    """One alert: the claim, who it fired on with their numbers, the decisions, and what to change.
+
+    The severity mark (``!``/``!!``) carries the same grade as the tint, for the reason every graded
+    cell on this tab carries one: a hue is invisible to a colour-blind reader and gone in a greyscale
+    printout, and this box is the one thing on the page that must never be missed.
+
+    The **stable id is on the page**, quietly, in the last line. A reader who wants to suppress or
+    track one across runs needs to be able to read it off — it is the identifier the JSON payload
+    carries, and a page that showed only the sentence would leave them grepping for prose.
+    """
+    level = _SEVERITY_LEVEL[alert.severity]
+    scope = (
+        f"every sample that finished ({alert.n_samples} of {alert.n_samples})"
+        if alert.scope == "systematic"
+        else f"{len(alert.samples)} of {alert.n_samples} samples that finished"
+    )
+    # `strict=True` because the pairing is guaranteed upstream: `Alert` refuses to exist with the two
+    # lists out of step, so there is nothing here to be lenient about. `strict=False` would have this
+    # renderer silently absorb a defect the model already makes unconstructable.
+    shown = list(zip(alert.samples, alert.measured, strict=True))[:_ALERT_MAX_SAMPLES]
+    measured = "".join(
+        f'<li><span class="font-mono">{esc(sample)}</span> — {esc(text)}</li>'
+        for sample, text in shown
+    )
+    if len(alert.samples) > len(shown):
+        measured += f"<li>and {len(alert.samples) - len(shown)} more, measured the same way</li>"
+
+    # Dropped entirely when nothing resolved, rather than rendered as a heading over an empty list:
+    # a field name with no value beside it reads as a value of nothing.
+    points = "".join(
+        f"<li>{esc(ref.label)} — currently <b>{esc(ref.value)}</b>"
+        + (f"; the alternative is <b>{esc(ref.change_to)}</b>" if ref.change_to else "")
+        + "</li>"
+        for ref in alert.implicates
+    )
+    implicates = (
+        '<div class="sf-sub-h mt-3 mb-1">Points at</div>'
+        f'<ul class="mt-0 mb-0 list-disc pl-5 text-xs">{points}</ul>'
+        if points
+        else ""
+    )
+    return (
+        f'<div class="lvl-{level} lvl-state mb-3 flex items-start gap-3 rounded-lg py-3 pr-4 pl-3 '
+        f'text-sm last:mb-0"><span class="lvl-flag" role="img" '
+        f'aria-label="{esc(SEVERITY_PHRASE[alert.severity])}">{esc(_LEVEL_FLAG[level])}</span><div>'
+        f'<div class="flex flex-wrap items-baseline gap-2"><b>{esc(alert.title)}</b>'
+        f'<span class="text-xs text-dim">{esc(SEVERITY_PHRASE[alert.severity])} · {esc(scope)}'
+        "</span></div>"
+        f'<ul class="mt-1 mb-0 list-disc pl-5 text-xs text-dim">{measured}</ul>'
+        f'{implicates}<div class="mt-2 text-xs">{esc(alert.remedy)}</div>'
+        f'<div class="mt-1 font-mono text-xs text-faint">{esc(alert.id)}</div></div></div>'
+    )
 
 
 #: The level legend, once per table. It is what makes the per-cell mark and the tint mean something,

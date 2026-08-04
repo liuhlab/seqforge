@@ -21,11 +21,11 @@ import gzip
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 from ..models.processing import SoloFeature
 from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
-from .metrics import Metric, SampleStats, count, fraction, knee_points
+from .metrics import Finding, Metric, SampleStats, count, fmt_pct, fraction, knee_points
 
 #: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than in
 #: ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of restating it
@@ -221,6 +221,58 @@ _FEATURE_PREFERENCE: tuple[str, ...] = (
 _NO_CELL_SUMMARY: frozenset[str] = frozenset({"SJ", "Velocyto"})
 
 
+#: The one ``Summary.csv`` row a feature comparison is made on: the share of the library that feature
+#: assigned to a gene. The same row the headline ``reads_in_genes`` metric reports for the ONE feature
+#: :func:`_pick_feature` selected, so the number compared across features and the number shown for one
+#: of them are the same measurement rather than two that could drift into meaning different things.
+#: ``test_carrying_per_feature_counts_moves_no_value_the_metrics_table_already_showed`` asserts the
+#: two agree on the headline feature, which is what holds that shut.
+_READS_IN_GENES_ROW = "Reads Mapped to {f}: Unique {f}"
+
+#: Below this share of reads assigned to a gene, gene assignment is poor. Declared **here**, above the
+#: metric table, because it has two readers and they must not drift: it is ``reads_in_genes``' own
+#: ``warn`` floor — the boundary below which the page tints that cell red — and it is the bar
+#: :func:`gene_model_rule` fires under, so the rule speaks exactly where the tint already is and adds
+#: the diagnosis a tint cannot carry. One name, passed to :func:`fraction` and read by the rule, so
+#: tightening the metric moves the rule **by construction** rather than by anyone remembering to.
+#:
+#: The silence above it is the design, as with the barcode bar. Between this and the metric's 30%
+#: ``ok`` bar a low gene rate has ordinary explanations — an intron-rich prep, a sparse annotation, a
+#: degraded library — and none of them is a decision this compiler made.
+POOR_GENE_ASSIGNMENT = 0.15
+
+#: At or above this share of reads mapped uniquely to the genome, mapping is **not** the problem —
+#: :func:`gene_model_rule`'s precondition rather than a grade of its own, which is why it is not
+#: passed to any :func:`fraction` call: ``reads_in_genome`` is deliberately ungraded, a hint with no
+#: threshold, because a unique-mapping rate varies with genome quality and rRNA content far more than
+#: with anything seqforge decided.
+#:
+#: Set at ``uniquely_mapped``'s ``ok`` bar and for the same reason — that value is where "the reads
+#: found the right genome" starts being true — but it is deliberately **not** wired to it. They are
+#: two different measurements: ``uniquely_mapped`` is STAR's own ``Log.final.out`` percentage over
+#: input reads, and this is STARsolo's ``Summary.csv`` share, whose denominator is what STARsolo
+#: processed. Sharing a number is not sharing a definition, and a constant wired across that gap
+#: would silently move this rule the day someone regraded a metric it does not read.
+HEALTHY_GENOME_MAPPING = 0.60
+
+#: Which ``soloFeatures`` feature is THE exonic count. STARsolo's own name for it, and the reason the
+#: comparison below has a fixed left-hand side: every other cell-level feature in the vocabulary
+#: counts something *broader* than exons, so the gap always has one direction.
+_EXONIC_FEATURE = "Gene"
+
+
+def _countable_features() -> frozenset[str]:
+    """Every ``SoloFeature`` that carries the cell-level rows these numbers come from.
+
+    Derived from the aligner's own closed vocabulary minus :data:`_NO_CELL_SUMMARY`, rather than from
+    a list of names typed out here. A seventh feature is a new STARsolo release, and the failure a
+    hand-written list produces is the silent one: it would keep passing while the new feature quietly
+    fell out of every comparison. A complement fails the other way — a new feature enters the
+    comparison — and of the two, being asked about a feature beats never being told about it.
+    """
+    return frozenset(get_args(SoloFeature)) - _NO_CELL_SUMMARY
+
+
 def _pick_feature(summary: Mapping[str, Any]) -> str | None:
     """The feature whose ``Summary.csv`` the headline metrics come from, or ``None`` if there is none."""
     for feature in _FEATURE_PREFERENCE:
@@ -362,10 +414,10 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
             fraction(
                 "reads_in_genes",
                 "Reads in genes",
-                _summary_get(summary, feature, "Reads Mapped to {f}: Unique {f}"),
+                _summary_get(summary, feature, _READS_IN_GENES_ROW),
                 group="counts",
                 ok=0.30,
-                warn=0.15,
+                warn=POOR_GENE_ASSIGNMENT,
                 hint="Share of reads assigned to an annotated gene. High genome mapping with low "
                 "gene mapping points at the wrong annotation (GTF) or the wrong strand setting.",
                 headline=True,
@@ -469,12 +521,32 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
         if isinstance(raw, list):
             vector = [int(v) for v in raw if isinstance(v, int | float)]
 
+    # Every feature the run counted, on the one row a feature comparison is made on. The bundle has
+    # carried every feature's `Summary.csv` since the first one ever written — the table above shows
+    # ONE of them because `_pick_feature` selects, and this is the rest of what was already on disk,
+    # carried up narrow. Nothing in the writer changed to make it available, so no artifact grew and
+    # no `run_id` was invalidated; what was missing was a reader that looked at more than one column.
+    per_feature = {
+        feat: value
+        for feat in sorted(set(summary) & _countable_features())
+        if (value := _summary_get(summary, feat, _READS_IN_GENES_ROW)) is not None
+    }
+
+    # Which feature the RECIPE counts first, straight off `soloFeatures` — the ordered list
+    # `build_qc_bundle` has always written. Element 0 is what `compose` projects to the config's
+    # `primary_feature`, so this is the recipe's own intent rather than the reader's preference, and
+    # it is what lets a rule tell "counting exonically" from "counting exonically BY MISTAKE".
+    declared = bundle.get("soloFeatures")
+    primary = str(declared[0]) if isinstance(declared, list) and declared else ""
+
     note = f"counted from the {feature} feature" if feature else ""
     return SampleStats(
         sample_id=sample,
         metrics=solo + alignment,
         knee=knee_points(vector),
         note=note,
+        feature_reads_in_genes=per_feature,
+        primary_feature=primary,
     )
 
 
@@ -518,13 +590,248 @@ def read_star_log(path: Path, sample: str) -> SampleStats:
     )
 
 
+# ---- the cross-check ----------------------------------------------------------------------------
+#
+# A rule here, and not in the renderer, for the same reason the reader is here: "a valid barcode" is
+# a STARsolo fact, and a renderer that knew what one was would be the `module == "map/starsolo"`
+# branch the per-module registry exists to prevent. It is registered on this module's `StatsSpec`,
+# under the same drift guard, so a fourth aligner declares its own rules or says out loud it has none.
+#
+# Pure, and over ONE sample's metrics: a threshold is then testable against literal values with no
+# filesystem, which is the only way a bar like the one below can be argued rather than asserted.
+
+
+#: Below this share of whitelist-matching reads, the rule fires. **1%, and the argument is that no
+#: real barcoded library lives under it**: even a badly degraded barcode read on the right kit matches
+#: percent-scale, so a rate this low is a whitelist that does not belong to these reads at all — which
+#: is a decision (which kit, or which file is the barcode read), not a library.
+#:
+#: At or above it the rule is deliberately silent, and that silence is the design. Between 1% and the
+#: metric's own 50% bar there is more than one explanation — a degraded barcode read, a contaminated
+#: library, a related-but-wrong kit — so naming one decision would be a guess wearing a diagnosis. The
+#: number is still bad there, and the metric's own `bad` tint already says so; what the alert adds is
+#: a claim about *cause*, and it is only made where the cause is decided.
+NEAR_ZERO_VALID_BARCODES = 0.01
+
+
+def _metric_value(sample: SampleStats, key: str) -> float | None:
+    """One metric's raw number, or ``None`` when the adapter never wrote it.
+
+    Absent is absent and never a zero — the rule the metric table already lives by, and here it is the
+    difference between silence and the loudest alert this system has. Bulk STAR measures no barcode at
+    all, so reading "no valid-barcode rate" as "a valid-barcode rate of zero" would fire on every bulk
+    run ever compiled.
+    """
+    for metric in sample.metrics:
+        if metric.key == key:
+            return metric.value
+    return None
+
+
+def chemistry_rule(sample: SampleStats) -> list[Finding]:
+    """Near-zero valid barcodes -> the chemistry call, or the barcode read's role, looks wrong.
+
+    What this adds over the metric is not "bad" — the metric already says bad, and a reader who does
+    not know STARsolo reads that as a bad library. It names the two **decisions** that produce the
+    number: which kit was called, and which FASTQ was handed over as the barcode read. Those are the
+    only two things a reader can act on, and the compiler made both.
+
+    Both are implicated rather than one, because the metric cannot separate them: a whitelist that
+    matches nothing looks identical whether the wrong list was chosen or the right list was read
+    against the cDNA. Picking one would be a guess, and an alert that guesses is an alert that gets
+    ignored the first time it is wrong.
+    """
+    value = _metric_value(sample, "valid_barcodes")
+    if value is None or value >= NEAR_ZERO_VALID_BARCODES:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.valid-barcodes-near-zero",
+            sample_id=sample.sample_id,
+            title="Almost no read carries a barcode this kit's whitelist knows",
+            severity="likely",
+            measured=(
+                f"{fmt_pct(value)} of reads matched the whitelist "
+                f"(this rule fires below {fmt_pct(NEAR_ZERO_VALID_BARCODES)}); "
+                "a real library of this kit matches the great majority"
+            ),
+            implicates=["chemistry", "read_roles"],
+            remedy=(
+                "Check which kit this library really is, and which FASTQ was handed over as the "
+                "barcode read. If either is wrong, correct it and compose again — nothing here "
+                "changes your manifest."
+            ),
+        )
+    ]
+
+
+#: How much of the library may be intronic-only before the rule speaks. **30 points, and the argument
+#: is that ordinary biology lives under it**: a whole-cell 10x library carries a real intronic
+#: fraction, commonly ten to twenty points, so a bar at 0.20 would fire on healthy runs — and a rule
+#: that fires on a healthy run is worse than a rule that does not exist. A nuclear prep runs far
+#: higher: the failure in #215 measured 0.407, which clears this with margin.
+#:
+#: Severity is ``possible`` and not ``likely``, and that is the other half of the bar. Counting
+#: exonically **can be deliberate** — an exonic count is the right answer for plenty of whole-cell
+#: work — so the claim this rule is entitled to make is "you are probably counting the wrong feature",
+#: never "this run is wrong". Move the number only on evidence, and put the evidence in the commit.
+INTRONIC_ONLY_READ_SHARE = 0.30
+
+
+def solo_features_rule(sample: SampleStats) -> list[Finding]:
+    """A large exonic-versus-full-length gap -> the primary counted feature looks like the wrong one.
+
+    The measurement is a subtraction between two ways STAR counted the same library:
+    ``reads_in_genes(GeneFull*) - reads_in_genes(Gene)``. Both numbers are shares of the whole
+    library, so their difference is the share of the whole library that is **intronic-only** — reads
+    landing inside a gene body and outside every exon, which a nuclear prep produces in bulk and an
+    exonic count discards. That is the number #215 quotes, and it was 40.7% of a library.
+
+    Compared against the largest full-length count rather than an average of them, because an average
+    reports a number no feature produced. Silent when the run counted one way — there is no gap to
+    measure, and that is most runs: ``soloFeatures`` is frequently just ``Gene``. Silent too when the
+    full-length count is the *smaller* one, which is not a thing this rule has a story for.
+
+    **Silent when the recipe already counts a full-length feature first.** The gap is a fact about the
+    library and it survives the fix — a nuclear prep still has intronic reads once ``GeneFull`` is
+    primary — so firing on the measurement alone would raise "you are counting the wrong feature" at a
+    reader who is counting the right one, with a remedy telling them to do what they have already
+    done. That is the firing-on-a-healthy-run failure that makes a rule worse than no rule, and it is
+    why :attr:`~seqforge.workflows.metrics.SampleStats.primary_feature` is carried: the claim is not
+    "this library is nuclear", it is "the matrix everything downstream reads is missing most of it".
+
+    The remedy is a REORDER and never a replacement:
+    :class:`~seqforge.models.processing.SoloQuant` rules that a prep fact may only reorder the feature
+    list, since compute is spent once and dropping a feature is the only irreversible act available.
+    A remedy contradicting a validator in this repo is worse than none.
+    """
+    counted = sample.feature_reads_in_genes
+    exonic = counted.get(_EXONIC_FEATURE)
+    if sample.primary_feature and sample.primary_feature != _EXONIC_FEATURE:
+        return []
+    # The vocabulary decides what counts as a full-length feature, here as well as in the reader that
+    # filled the mapping: the rule states the comparison, so the rule is where it has to hold. `SJ`
+    # and `Velocyto` are out by `_NO_CELL_SUMMARY` — neither has the cell-level rows this subtracts.
+    full_length = {
+        f: v for f, v in counted.items() if f in _countable_features() - {_EXONIC_FEATURE}
+    }
+    if exonic is None or not full_length:
+        return []
+    feature, value = max(full_length.items(), key=lambda item: (item[1], item[0]))
+    gap = value - exonic
+    if gap < INTRONIC_ONLY_READ_SHARE:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.intronic-reads-uncounted",
+            sample_id=sample.sample_id,
+            title="Most of what this library gained from introns is not in the counted matrix",
+            severity="possible",
+            measured=(
+                f"{fmt_pct(gap)} of the library is intronic-only "
+                f"({feature}: {fmt_pct(value)} of reads in a gene, "
+                f"{_EXONIC_FEATURE}: {fmt_pct(exonic)}); "
+                f"this rule fires at {fmt_pct(INTRONIC_ONLY_READ_SHARE)}"
+            ),
+            implicates=["solo_features"],
+            remedy=(
+                f"If these are nuclei, put {feature} first in the recipe's counting features — "
+                f"element 0 is the matrix everything downstream reads. Keep {_EXONIC_FEATURE} in "
+                "the list: a prep fact may reorder the features, never shorten them. Nothing here "
+                "changes your recipe."
+            ),
+        )
+    ]
+
+
+def gene_model_rule(sample: SampleStats) -> list[Finding]:
+    """Reads landing on the genome and not in genes -> the gene model, or the strand, looks wrong.
+
+    Two numbers the bundle already carries, read *against each other*: ``reads_in_genome`` (STARsolo's
+    ``Reads Mapped to Genome: Unique``) and ``reads_in_genes`` (``Reads Mapped to Gene: Unique
+    Gene``). Neither alone decides anything — the first is a hint with no threshold at all and the
+    second is already graded — and it is the **gap** between them that is diagnostic: reads that found
+    their locus and then found no feature there were counted against the wrong gene model, or counted
+    on the wrong strand. A reader who has not run STARsolo has no way to see that in two adjacent
+    percentages, which is exactly what this layer is for.
+
+    **Silent when both are poor, and that is half the specification.** A run where little maps and
+    little counts has a mapping problem — the wrong assembly, the wrong species, the wrong read handed
+    over as the barcode — and claiming an annotation failure there would be a second, contradictory
+    diagnosis on a page that already carries the right one. A page that fires two contradictory alerts
+    at one run is worse than either alone.
+
+    **Silent when either number is absent**, which is what makes "a pipeline whose aligner index
+    carries no gene model never triggers it" true by construction rather than by a special case:
+    :attr:`~seqforge.models.processing.GenomeRef.annotation_name` is ``None`` exactly when there is no
+    GTF, and with no GTF STAR writes no gene rows into ``Summary.csv``, so ``reads_in_genes`` is
+    simply not there. The rule is deliberately **not** handed the annotation's name: it is pure over
+    one sample's metrics, and a parameter would buy a special case where absence already answers.
+
+    **Silent when another feature counted the same reads fine.** The headline ``reads_in_genes`` is
+    read off whichever feature :func:`_pick_feature` selected — ``Gene``, the exonic one, wherever it
+    exists — so a nuclear library counted exonically shows healthy mapping beside a poor exonic count
+    and looks exactly like a wrong annotation from these two numbers alone. It is not one: a
+    ``GeneFull*`` count in the same bundle proves the reads DID land in genes and the gene model is
+    fine. Firing here would put a ``likely`` alert naming the annotation and the strand over a run
+    whose real problem is which feature is primary — the louder alert pointing at the wrong decision,
+    beside the quieter one pointing at the right decision. That is the contradiction the paragraph
+    above refuses in the both-poor case, arriving from the other side.
+
+    Both decisions are implicated rather than one, for the reason the chemistry rule implicates two:
+    the metric cannot separate them. An inverted ``soloStrand`` and a GTF for the wrong assembly
+    produce the same two percentages, so picking one would be a guess wearing a diagnosis.
+    """
+    genome = _metric_value(sample, "reads_in_genome")
+    genes = _metric_value(sample, "reads_in_genes")
+    if genome is None or genes is None:
+        return []
+    if genome < HEALTHY_GENOME_MAPPING or genes >= POOR_GENE_ASSIGNMENT:
+        return []
+    counted_elsewhere = max(
+        (v for f, v in sample.feature_reads_in_genes.items() if f != _EXONIC_FEATURE), default=None
+    )
+    if counted_elsewhere is not None and counted_elsewhere >= POOR_GENE_ASSIGNMENT:
+        return []
+    return [
+        Finding(
+            alert_id="starsolo.reads-mapped-but-not-counted",
+            sample_id=sample.sample_id,
+            title="Reads land on the genome but hardly any land in a gene",
+            severity="likely",
+            measured=(
+                f"{fmt_pct(genome)} of reads mapped uniquely to the genome, and only "
+                f"{fmt_pct(genes)} of them were assigned to a gene (this rule fires at or above "
+                f"{fmt_pct(HEALTHY_GENOME_MAPPING)} mapped with under "
+                f"{fmt_pct(POOR_GENE_ASSIGNMENT)} counted); the aligner found the genome, so the "
+                "gap is in what the reads were counted against"
+            ),
+            implicates=["annotation", "strand"],
+            remedy=(
+                "Check that the registered annotation is the gene model for this assembly, and that "
+                "the strand matches how this kit's cDNA read is oriented. The annotation is a "
+                "recipe field; the strand is a KB backend param, so it belongs to the chemistry "
+                "spec and not to your recipe. Correct either and compose again — nothing here "
+                "changes your manifest."
+            ),
+        )
+    ]
+
+
 __all__ = [
+    "HEALTHY_GENOME_MAPPING",
+    "INTRONIC_ONLY_READ_SHARE",
+    "NEAR_ZERO_VALID_BARCODES",
+    "POOR_GENE_ASSIGNMENT",
     "QC_SUFFIX",
     "QcError",
     "alignment_metrics",
+    "chemistry_rule",
     "build_qc_bundle",
+    "gene_model_rule",
     "metrics",
     "read_metrics",
     "read_star_log",
+    "solo_features_rule",
     "write_qc_bundle",
 ]

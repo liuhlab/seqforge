@@ -23,15 +23,21 @@ this project is one *sequencing* run — the ``run`` column of the units table t
 and ``run_id`` is the identity of a (dataset, recipe) pairing. Three senses of one word is how a
 reader ends up unsure which of them a field carries, so the execution sense takes the pipeline name
 everywhere.
+
+It also carries the **cross-check** vocabulary — :class:`Finding`, :class:`Alert` — for the same
+reason it carries :class:`Metric`: a rule that reads a metric back and says *which decision looks
+wrong* is a fact about a specific aligner, so the shapes are shared here and the rules are written
+beside the module that owns the format. The renderer never learns what a valid barcode is; it is
+handed alerts and draws them.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from math import exp, log
-from typing import Literal
+from typing import Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 #: How a metric reads against its own thresholds. ``none`` is not a missing value — it is a value with
 #: **no defensible threshold** (an estimated cell count means nothing without knowing what was loaded),
@@ -90,6 +96,216 @@ class SampleStats(_Frozen):
     knee: list[tuple[int, int]] = Field(default_factory=list)
     #: Context the adapter wants carried up — e.g. which ``soloFeatures`` feature these came from.
     note: str = ""
+    #: Feature -> the share of the library that feature assigned to a gene, when the tool counted the
+    #: same library more than one way. **Deliberately one number per feature and not a second metric
+    #: table**: the table above is what a reader looks at, and a per-feature copy of twelve metrics
+    #: would double it to say something no reader asked for. What a rule needs is the DISAGREEMENT
+    #: between two ways of counting, and that is this one row.
+    #:
+    #: Empty for every tool that counts one way, which is most of them and is the common STARsolo
+    #: case too. Absent is absent: a feature that produced no such row is missing from the mapping
+    #: rather than carried as a zero, so "counted nothing" and "was not counted" stay distinguishable.
+    feature_reads_in_genes: dict[str, float] = Field(default_factory=dict)
+    #: Which feature the RECIPE counts first — element 0 of ``soloFeatures``, the matrix everything
+    #: downstream reads. Not the same question as :attr:`note`'s, which says which feature the page's
+    #: numbers were *read* from: the reader picks by its own preference, the recipe picks by intent,
+    #: and a rule about whether the right thing is being counted needs the second.
+    #:
+    #: Carried so the rules can stay **pure** and still not fire on a run that is already configured
+    #: correctly. Without it a nuclear library counted with ``GeneFull`` first still raises "you are
+    #: counting the wrong feature", and tells the reader to do what they have already done — which is
+    #: the firing-on-a-healthy-run failure that makes a rule worse than no rule. Empty for a tool with
+    #: no such concept, and for a bundle written before it was carried.
+    primary_feature: str = ""
+
+
+# ---- the cross-check ----------------------------------------------------------------------------
+#
+# A metric says a number is bad. A cross-check says WHICH DECISION looks wrong — the compiler holds
+# both halves (what it decided, and what came back) and this is where they join. Everything below is
+# advisory by construction: there is no writer here, nothing returns an exit code, and the shapes
+# carry no path to a manifest. A rule can only ever produce one of these.
+
+
+#: How loudly a rule speaks. ``likely`` is "this run is probably wrong", ``possible`` is "worth a
+#: look" — and the two are the whole scale, because a third grade is a grade nobody can act on
+#: differently. **Declaration order is severity order**: :func:`gather_alerts` reads the rank out of
+#: this literal rather than off a second hand-written table, so worst-first is written once.
+Severity = Literal["likely", "possible"]
+
+#: Whether an alert fired on every sample that LANDED, or on some of them. It is the difference
+#: between "recompose this dataset" and "look at well B7", and a reader cannot draw it from a list of
+#: sample ids — on a 96-well plate, 96 ids and 94 ids look the same. So it is computed and carried.
+Scope = Literal["systematic", "isolated"]
+
+#: Which decision an alert points at. Closed, and it grows **one rule at a time**: every member is
+#: resolved to the value the workspace currently carries by ``report/collect.py``, and an
+#: exhaustiveness test over ``get_args`` holds that shut — a member with no rule behind it and no
+#: resolver in front of it would render as a field name a reader cannot act on.
+#:
+#: ``chemistry`` is the manifest's ``library.chemistry`` equivalence class; ``read_roles`` is which
+#: file was handed over as which read (``library.files[].read_id``). Both are decisions this compiler
+#: made and recorded, which is the entire premise: a bad number is only actionable once the thing that
+#: produced it is named.
+#:
+#: ``annotation`` is the recipe's ``processing.genome`` — the registered gene model reads are counted
+#: against. ``strand`` is the odd one and is deliberately kept in the same set anyway: it is **not** a
+#: recipe field but a KB **backend param** (``soloStrand``), byte-decided and owned by the chemistry
+#: spec, which ``compose`` emits into the config — see ``docs/adr/0011``. A reader can still act on
+#: it, which is the only membership test this literal has; where they act is what the resolver's label
+#: has to say, because a reader sent to edit a ``soloStrand`` in their recipe will not find one.
+#: ``solo_features`` is the recipe's ``processing.quantification.features`` — an ORDERED list whose
+#: element 0 is the matrix everything downstream reads, which is what makes "you are counting the
+#: wrong feature" a decision a reader can act on rather than an observation.
+Decision = Literal["chemistry", "read_roles", "annotation", "strand", "solo_features"]
+
+#: How each severity reads in words. Total over the literal — the same exhaustiveness shape
+#: :data:`Level` and :data:`MetricGroup` already carry, so a third severity breaks a test instead of
+#: rendering a badge whose word is a raw token.
+SEVERITY_PHRASE: dict[Severity, str] = {
+    "likely": "this run is probably wrong",
+    "possible": "worth a look",
+}
+
+#: Severity -> its place in the triage order, read out of the literal's own declaration order. A
+#: second hand-written table would be a second owner of "which is worse", and the one that drifts is
+#: the one nothing reads at import.
+_SEVERITY_RANK: dict[Severity, int] = {s: i for i, s in enumerate(get_args(Severity))}
+
+
+class Finding(_Frozen):
+    """One rule's verdict on ONE sample. Pure, and **not yet attributed**.
+
+    A rule is a function over one sample's metrics, so this is everything such a function can honestly
+    say: what fired, on whom, what the numbers were, and which decisions could produce them. What
+    those decisions are currently *set to* is not knowable here — that needs a manifest and a recipe,
+    which this module deliberately cannot see — so it is added later, by the collector, and the two
+    halves meet in :func:`gather_alerts`.
+    """
+
+    #: Stable and dotted, ``<module-word>.<what-fired>``. Stable is the load-bearing word: it is what
+    #: an automated consumer suppresses or tracks a recurring alert by, so it is a key and never a
+    #: sentence, and it survives a reworded title.
+    alert_id: str
+    sample_id: str
+    #: The claim, one short sentence. Identical across every sample a rule fires on — it is the
+    #: rule's statement, not this sample's.
+    title: str
+    severity: Severity
+    #: What was measured, **with this sample's values in it**. The one field that varies across a
+    #: group, and the reason an alert can be judged rather than trusted.
+    measured: str
+    implicates: list[Decision]
+    #: What a reader might change. Identical across samples, like ``title``: a remedy that varied by
+    #: sample would be a diagnosis this layer is not entitled to make.
+    remedy: str
+
+
+class DecisionRef(_Frozen):
+    """A decision an alert points at, resolved to what the workspace currently says.
+
+    ``label`` speaks the manifest's and the recipe's own vocabulary (``chemistry (manifest
+    library.chemistry)``) because the next thing a reader does is open that file and look for that
+    field. ``change_to`` is filled only where the alternative is genuinely enumerable — a strand
+    setting has exactly one other value, a chemistry call has a KB's worth — and stays ``None``
+    otherwise rather than guessing, since a wrong concrete suggestion is worse than none.
+    """
+
+    decision: Decision
+    label: str
+    value: str
+    change_to: str | None = None
+
+
+class Alert(_Frozen):
+    """A :class:`Finding` grouped over the samples it fired on, and attributed.
+
+    ``n_samples`` is how many samples LANDED, carried beside the list that fired so the page can say
+    "3 of 12" and never a bare list of ids. ``measured`` is per firing sample, in the same order as
+    ``samples``: collapsing three samples to one number would throw away the evidence for the alert's
+    own claim.
+    """
+
+    id: str
+    title: str
+    severity: Severity
+    scope: Scope
+    samples: list[str]
+    n_samples: int
+    measured: list[str]
+    implicates: list[DecisionRef]
+    remedy: str
+
+    @model_validator(mode="after")
+    def _one_measurement_per_firing_sample(self) -> Alert:
+        """The pairing the docstring above promises, enforced where the object is built.
+
+        The renderer walks ``samples`` and ``measured`` together. Left to a prose invariant, a
+        mismatch shows up there as a ``zip`` quietly dropping the tail — an alert that names four
+        samples and shows three measurements, with nothing failing and no way to tell which sample
+        lost its evidence. Refusing to construct one is the mechanism; asking every caller to keep
+        two lists in step is the rule it replaces.
+        """
+        if len(self.samples) != len(self.measured):
+            raise ValueError(
+                f"alert {self.id!r} fired on {len(self.samples)} sample(s) but carries "
+                f"{len(self.measured)} measurement(s); every firing sample keeps its own evidence"
+            )
+        return self
+
+
+def gather_alerts(
+    findings: Sequence[Finding],
+    *,
+    n_samples: int,
+    resolve: Callable[[Decision], DecisionRef | None],
+) -> list[Alert]:
+    """Group per-sample findings into alerts, attribute each one, and put them in one total order.
+
+    **Pure, and shared; ``resolve`` is injected.** That is the whole seam: the grouping and the
+    ordering are one implementation whatever module produced the findings, and the only thing that
+    knows what a manifest is stays in ``report/collect.py``. A decision that workspace cannot answer
+    for — a manifest field a stripped install cannot read — is **dropped**, not rendered as an empty
+    row, because a field name with no value beside it reads as a value of nothing.
+
+    ``n_samples`` is what LANDED (``PipelineStats.n_found``) and never what was contracted: a partial
+    run must still produce alerts, and a rule that fired on both of the two samples that finished has
+    fired on every sample there is to fire on.
+
+    Two orders, and both are total. Samples inside a group sort by id, and alerts sort by severity
+    then by id — a reader triages the loudest first, and an id is total because two findings sharing
+    one are the same alert by construction. Sorting rather than keeping arrival order is what makes
+    two renders of one workspace byte-identical however the findings reached here.
+
+    ``title``, ``severity``, ``implicates`` and ``remedy`` are identical across a group by
+    construction — one rule writes them and they do not vary by sample. Where a rule breaks that, the
+    first finding in sample order wins; that is a tie-break, not a merge, and a rule whose claim
+    changes per sample is a rule that wanted two ids.
+    """
+    grouped: dict[str, list[Finding]] = {}
+    for finding in findings:
+        grouped.setdefault(finding.alert_id, []).append(finding)
+
+    alerts: list[Alert] = []
+    for alert_id, group in grouped.items():
+        ordered = sorted(group, key=lambda f: f.sample_id)
+        head = ordered[0]
+        fired = {f.sample_id for f in ordered}
+        refs = [resolve(d) for d in dict.fromkeys(head.implicates)]
+        alerts.append(
+            Alert(
+                id=alert_id,
+                title=head.title,
+                severity=head.severity,
+                scope="systematic" if n_samples > 0 and len(fired) >= n_samples else "isolated",
+                samples=[f.sample_id for f in ordered],
+                n_samples=n_samples,
+                measured=[f.measured for f in ordered],
+                implicates=[r for r in refs if r is not None],
+                remedy=head.remedy,
+            )
+        )
+    return sorted(alerts, key=lambda a: (_SEVERITY_RANK[a.severity], a.id))
 
 
 class PipelineStats(_Frozen):
@@ -110,6 +326,11 @@ class PipelineStats(_Frozen):
     #: across samples, so a sample missing one metric leaves a gap rather than dropping the column.
     columns: list[tuple[str, str]] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    #: What the module's cross-checks said about the samples above — **here and not on**
+    #: :class:`SampleStats`. That carries what the artifact SAID; a finding is a judgement about a
+    #: decision, and one judgement is one envelope. It also makes the scope question
+    #: answerable: "did this fire on every sample" is a fact about the pipeline, not about a sample.
+    findings: list[Finding] = Field(default_factory=list)
 
     @property
     def complete(self) -> bool:
@@ -298,13 +519,21 @@ def knee_points(
 
 
 __all__ = [
+    "Alert",
+    "Decision",
+    "DecisionRef",
+    "Finding",
     "Level",
     "Metric",
     "MetricGroup",
+    "SEVERITY_PHRASE",
     "SampleStats",
+    "Scope",
+    "Severity",
     "PipelineStats",
     "MAX_KNEE_POINTS",
     "count",
+    "gather_alerts",
     "fmt_count",
     "fmt_int",
     "fmt_pct",
