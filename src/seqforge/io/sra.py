@@ -41,8 +41,11 @@ from ..probe.core import WholeFile
 from ..probe.streaming import Budget, FastqHead, Record
 from .remote import (
     _MAX_RETRIES,
+    ReadStat,
     RemoteError,
+    RunStatistics,
     _uri_basename,
+    dropped_reads,
     fastq_targets_meta,
     resolve_accession,
     retry_delay,
@@ -154,6 +157,28 @@ def _observe_records(
     return build_observation(FastqHead.read(BytesIO(gz), budget), file)
 
 
+def _streamed_read_table(
+    run_accession: str, preview: Any, mates: Sequence[int], spot_count: int
+) -> RunStatistics:
+    """SRA's per-read table for a run, read off the stream instead of fetched.
+
+    ``run_new`` answers for one run per request, so asking it about every run of a study is one
+    round-trip per run — the pre-pass that made a 1440-experiment plate deposit unaffordable to even
+    refuse. A stream taken *with technical reads* already carries what that table says: one entry per
+    within-spot index, at the length that index actually came back. So the mirror-faithfulness
+    question :func:`~seqforge.io.remote.dropped_reads` answers is answered here, from bytes already
+    in hand, and the endpoint is never called on this path.
+    """
+    return RunStatistics(
+        accession=run_accession,
+        n_reads=len(mates),
+        reads=[
+            ReadStat(index=index, average_length=preview.read_lengths[index], count=spot_count)
+            for index in mates
+        ],
+    )
+
+
 def probe_sra(
     run: dict[str, Any],
     *,
@@ -188,15 +213,21 @@ def probe_sra(
             f"{run_accession}: streamed no reads (empty run, or the run is unavailable)."
         )
 
+    # Whole-run spot count for the synthetic address / size proxy — N-invariant when ENA reports it;
+    # the preview count is a last-resort fallback (then the SRA address is only as stable as N).
+    spot_count = int(run.get("read_count") or 0) or preview.n_spots_returned
+
     ena_targets = fastq_targets_meta(run)
+    # A faithful mirror is a file per streamed mate AND no bases the archive lost on the way out. The
+    # second half arrives on the run row when a caller already paid for it; when nobody did, the
+    # stream answers it for free rather than costing a request per run.
     verified = (
         bool(ena_targets)
         and len(ena_targets) == len(mates)
         and not run.get("technical_read_dropped")
+        and dropped_reads(run, _streamed_read_table(run_accession, preview, mates, spot_count))
+        is None
     )
-    # Whole-run spot count for the synthetic address / size proxy — N-invariant when ENA reports it;
-    # the preview count is a last-resort fallback (then the SRA address is only as stable as N).
-    spot_count = int(run.get("read_count") or 0) or preview.n_spots_returned
 
     probes: list[SraMateProbe] = []
     for pos, index in enumerate(mates):
@@ -225,39 +256,72 @@ def probe_sra(
     return probes
 
 
-def resolve_single_experiment_runs(accession: str) -> tuple[str, list[dict[str, Any]]]:
-    """Resolve an accession to the runs of exactly one experiment, refusing loudly if it spans more.
+#: How many experiments a refusal names before it summarises the rest. A plate deposit has thousands
+#: of SRX, and an error string that prints all of them is not an error string anybody reads.
+_REFUSAL_LISTING_LIMIT = 8
 
-    A fingerprint package is one library. A run (``SRR``) or experiment (``SRX``) resolves to a single
-    experiment and passes; a project/series that mixes experiments — like GSE283483's bulk RNA +
-    Multiome GEX + Multiome ATAC — is a refusal that lists the ``SRX`` to pick from, because collapsing
-    three modalities into one package is exactly the mistake this guards against.
+
+def _experiment_listing(by_srx: dict[str, list[dict[str, Any]]]) -> str:
+    """``SRX (n runs); …`` for a refusal, summarised past :data:`_REFUSAL_LISTING_LIMIT`."""
+    items = sorted(by_srx.items())
+    shown = "; ".join(
+        f"{srx} ({len(rs)} run{'s' if len(rs) != 1 else ''})"
+        for srx, rs in items[:_REFUSAL_LISTING_LIMIT]
+    )
+    remaining = len(items) - _REFUSAL_LISTING_LIMIT
+    return f"{shown}; and {remaining} more" if remaining > 0 else shown
+
+
+def resolve_package_runs(accession: str, *, multi_experiment: bool = False) -> list[dict[str, Any]]:
+    """Resolve an accession to the runs one fingerprint package will hold.
+
+    **One package is one library, and that is still the default.** A run (``SRR``) or experiment
+    (``SRX``) resolves to a single experiment and passes; a project/series that mixes experiments —
+    like GSE283483's bulk RNA + Multiome GEX + Multiome ATAC — is refused with the ``SRX`` to pick
+    from, because collapsing three modalities into one package is exactly the mistake this guards
+    against.
+
+    ``multi_experiment`` is the caller *asserting* that the spanned experiments are nonetheless one
+    library, and nothing the data says relaxes the guard on its own. A plate deposit is the case that
+    needs it: every cell is its own ``SRX``, so PRJNA853582's 1440 experiments are one plate-based
+    library, and no single-``SRX`` package can express the many-cell shape a benchmark case exists to
+    exercise. The package format never was the limit — a package already spans several ``fastq/``
+    subtrees — only this resolver was.
+
+    The inventory is fetched **alone** (``check_reads=False``). The per-read table costs one request
+    per run, and nothing on this path reads it: grouping needs ``experiment_accession`` only, and the
+    mirror-faithfulness question it used to answer is answered from the stream in :func:`probe_sra`.
+    Checking it here meant a 1440-run study spent 1440 round-trips to reach a refusal.
     """
-    result = resolve_accession(accession, check_reads=True)
+    result = resolve_accession(accession, check_reads=False)
     runs: list[dict[str, Any]] = result["runs"]
     by_srx: dict[str, list[dict[str, Any]]] = {}
     for run in runs:
         srx = (run.get("experiment_accession") or "").strip() or "?"
         by_srx.setdefault(srx, []).append(run)
-    if len(by_srx) > 1:
-        listing = "; ".join(
-            f"{srx} ({len(rs)} run{'s' if len(rs) != 1 else ''})"
-            for srx, rs in sorted(by_srx.items())
-        )
+    if len(by_srx) > 1 and not multi_experiment:
         raise RemoteError(
             f"{accession} spans {len(by_srx)} experiments — a fingerprint package is one library. "
-            f"Re-run --accession with a single experiment (SRX) or run (SRR). Experiments: {listing}"
+            "Re-run --accession with a single experiment (SRX) or run (SRR), or pass "
+            "--multi-experiment to assert that these experiments ARE one library (a plate deposit "
+            f"gives every cell its own SRX). Experiments: {_experiment_listing(by_srx)}"
         )
-    return next(iter(by_srx)), runs
+    return runs
 
 
 def _slug_for(runs: Sequence[dict[str, Any]], name: str | None) -> str:
-    """A human slug for the package: the caller's ``--name``, else the shared SRX, else a run acc."""
+    """A human slug for the package: the caller's ``--name``, else the shared SRX, else the shared
+    study, else a run acc."""
     if name:
         return name
     srxs = {(r.get("experiment_accession") or "").strip() for r in runs} - {""}
     if len(srxs) == 1:
         return next(iter(srxs))
+    # A multi-experiment package has no one SRX to be named after; the study every run came from is
+    # the next thing they share, and it is what a plate deposit's package should say it is.
+    studies = {(r.get("study_accession") or "").strip() for r in runs} - {""}
+    if len(studies) == 1:
+        return next(iter(studies))
     accs = [(r.get("run_accession") or "").strip() for r in runs if r.get("run_accession")]
     return accs[0] if len(accs) == 1 else "dataset"
 
@@ -319,5 +383,5 @@ __all__ = [
     "SraMateProbe",
     "build_fingerprint_sra",
     "probe_sra",
-    "resolve_single_experiment_runs",
+    "resolve_package_runs",
 ]
