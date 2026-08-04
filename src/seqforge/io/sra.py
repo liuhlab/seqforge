@@ -159,8 +159,8 @@ def _observe_records(
 
 def _streamed_read_table(
     run_accession: str, preview: Any, mates: Sequence[int], spot_count: int
-) -> RunStatistics:
-    """SRA's per-read table for a run, read off the stream instead of fetched.
+) -> RunStatistics | None:
+    """SRA's per-read table for a run, read off the stream instead of fetched — or ``None``.
 
     ``run_new`` answers for one run per request, so asking it about every run of a study is one
     round-trip per run — the pre-pass that made a 1440-experiment plate deposit unaffordable to even
@@ -168,13 +168,26 @@ def _streamed_read_table(
     within-spot index, at the length that index actually came back. So the mirror-faithfulness
     question :func:`~seqforge.io.remote.dropped_reads` answers is answered here, from bytes already
     in hand, and the endpoint is never called on this path.
+
+    ``None`` is **cannot tell**, and it is not the same answer as *agrees*. The table this stands in
+    for carries a per-read *average*, and the only length a stream hands over for free is the *mode*
+    — the two coincide exactly where an index came back one length for every spot. Trim a run before
+    submission and the mode sits at the untrimmed peak while ENA's published average follows the real
+    bases, so summing modes accuses a mirror that lost nothing. Where any index varies there is no
+    average in hand, and abstaining is what the comparison promises.
     """
+    averages: list[int] = []
+    for index in mates:
+        lengths = {len(rec.seq) for rec in preview.reads[index]}
+        if len(lengths) != 1:
+            return None
+        averages.append(lengths.pop())
     return RunStatistics(
         accession=run_accession,
         n_reads=len(mates),
         reads=[
-            ReadStat(index=index, average_length=preview.read_lengths[index], count=spot_count)
-            for index in mates
+            ReadStat(index=index, average_length=length, count=spot_count)
+            for index, length in zip(mates, averages, strict=True)
         ],
     )
 
@@ -220,13 +233,14 @@ def probe_sra(
     ena_targets = fastq_targets_meta(run)
     # A faithful mirror is a file per streamed mate AND no bases the archive lost on the way out. The
     # second half arrives on the run row when a caller already paid for it; when nobody did, the
-    # stream answers it for free rather than costing a request per run.
+    # stream answers it for free rather than costing a request per run — or declines to, when its
+    # lengths vary and it holds no average to answer with, which is an abstain and not an accusation.
+    table = _streamed_read_table(run_accession, preview, mates, spot_count)
     verified = (
         bool(ena_targets)
         and len(ena_targets) == len(mates)
         and not run.get("technical_read_dropped")
-        and dropped_reads(run, _streamed_read_table(run_accession, preview, mates, spot_count))
-        is None
+        and (table is None or dropped_reads(run, table) is None)
     )
 
     probes: list[SraMateProbe] = []

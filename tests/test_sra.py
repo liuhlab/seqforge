@@ -71,6 +71,24 @@ def _preview(acc: str, geometry: dict[int, int], *, n: int = 50) -> _Preview:
     return _Preview(reads=reads, read_lengths=dict(geometry), n_spots_returned=n)
 
 
+#: How much shorter a trimmed record comes back than its mate's untrimmed peak.
+_TRIM = 20
+
+
+def _trimmed_preview(acc: str, geometry: dict[int, int], *, short: int, n: int = 50) -> _Preview:
+    """A variable-length preview: ``short`` of the ``n`` spots came back trimmed at every mate.
+
+    The trimmed records stay a minority, so ``read_lengths`` is still ``geometry[index]`` — a mode
+    sitting at the untrimmed peak while the real average sits below it. That gap is the shape of any
+    run quality- or adapter-trimmed before submission.
+    """
+    reads = {
+        index: _mate(acc, index, length, n - short) + _mate(acc, index, length - _TRIM, short)
+        for index, length in geometry.items()
+    }
+    return _Preview(reads=reads, read_lengths=dict(geometry), n_spots_returned=n)
+
+
 @dataclass
 class _FakeStream:
     """Stand-in for ``labdata.stream_run_reads``; returns a canned preview and records call args."""
@@ -249,6 +267,65 @@ def test_probe_sra_sees_a_lossy_mirror_in_the_stream_it_already_took(
     assert mates[0].observation.file.sha256 == content_key_from_sra(
         SRR, 1, spot_count=1000, read_length=28
     )
+    assert calls == []
+
+
+def test_the_streamed_read_table_answers_only_where_a_mode_is_an_average() -> None:
+    """The table is a per-read average where the stream holds one, and ``None`` where it does not.
+
+    ``preview.read_lengths`` is a MODE. Where every record at an index came back the same length that
+    mode is also that index's average and the table can be built from it; where the lengths vary,
+    nothing in hand is an average, so there is no table and the caller has to abstain. "Cannot tell"
+    and "agrees" are different answers and this is where they part.
+    """
+    fixed = _preview(SRR, {1: 28, 2: 94})
+    table = sra._streamed_read_table(SRR, fixed, fixed.read_indexes(), 1000)
+    assert table is not None
+    assert [(r.index, r.average_length) for r in table.reads] == [(1, 28), (2, 94)]
+
+    trimmed = _trimmed_preview(SRR, {1: 150, 2: 150}, short=10)
+    assert sra._streamed_read_table(SRR, trimmed, trimmed.read_indexes(), 1000) is None
+
+
+def test_probe_sra_keeps_the_ena_identity_when_the_stream_shows_variable_read_lengths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A trimmed run that was mirrored faithfully must not be accused of dropping a read.
+
+    Summing modes against ENA's ``base_count / read_count`` compares a peak to an average: a 2x150
+    run trimmed to a mean of 140 per read streams as 150 + 150 = 300 while ENA published 280 bases
+    per spot, so a mirror that lost nothing looks lossy. The accusation would be silent — the run
+    would just lose its ENA-adopted address for the synthetic one and move the dataset hash — so the
+    comparison abstains instead, which is what it promises and costs no request either way.
+    """
+    _patch_stream(monkeypatch, _FakeStream(_trimmed_preview(SRR, {1: 150, 2: 150}, short=10)))
+    calls: list[str] = []
+    monkeypatch.setattr(remote, "run_statistics", calls.append)
+
+    mates = sra.probe_sra(_ena_run(base_count="280000"), n_reads=50)
+
+    assert all(m.ena_verified for m in mates)
+    assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
+    assert calls == []
+
+
+def test_probe_sra_adopts_the_ena_identity_when_fixed_length_reads_agree_with_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fixed-length reads still reach the comparison, and 28 + 94 against 122 published agrees.
+
+    The abstain above is "cannot tell", not "agrees": where every record at an index came back one
+    length, that length is the average, the comparison runs, and this mirror published every base the
+    stream holds.
+    """
+    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
+    calls: list[str] = []
+    monkeypatch.setattr(remote, "run_statistics", calls.append)
+
+    mates = sra.probe_sra(_ena_run(base_count="122000"), n_reads=50)
+
+    assert all(m.ena_verified for m in mates)
+    assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
     assert calls == []
 
 
