@@ -15,13 +15,25 @@ slot into ``panels.py`` as one more fragment without changing the shell.
 from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when the report's layout or projection changes. Not folded into any
-#: content-addressed cache key — the report is a rebuildable view, not an input to anything.
+#: content-addressed cache key — the report is a rebuildable view, not an input to anything. It is
+#: stamped in the footer, which is the whole reason it is worth bumping: a page found on a shared
+#: drive months later has to be able to say which design drew it.
+#:
+#: 2026.8.1 — **the design system**. The 559-line hand-written stylesheet is gone; the page is drawn
+#: by a vendored, purged Tailwind build over the token layer it now shares with ``seqforge eval
+#: report``, plus one small first-party component layer. Colour marks exceptions only — a metric
+#: that is within range, a step that went fine and a number nobody could set a bar for all carry no
+#: tint, and the two hues that remain are a measured contrast pair rather than an eyeballed one.
+#: Results leads with one sample-by-metric table behind a single fold instead of a wall of per-sample
+#: tiles; Samples and Evidence share one grid vocabulary; Flow and Pipeline are hairline cards. Every
+#: panel is the same box in the same column, and the page is ~26 % smaller.
+#:
 #: 2026.8.0 — a **Results** tab: a completeness strip for the pipeline itself (distinct from the
 #: header's compile verdict — "we produced a Snakefile" and "that Snakefile finished" are two facts),
 #: a General-Statistics table tinted by each metric's own verdict, a per-sample headline strip, and
 #: hand-built inline-SVG knee plots. The tab is omitted from the strip entirely when no assay has
 #: results, so a compiled-but-not-yet-run workspace renders exactly the page it rendered before.
-REPORT_VERSION = "2026.8.0"
+REPORT_VERSION = "2026.8.1"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402

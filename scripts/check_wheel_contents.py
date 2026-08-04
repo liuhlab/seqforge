@@ -50,11 +50,10 @@ def _check(names: list[str]) -> list[str]:
         failures.append("the workflow modules (workflows/map/*.smk) are missing")
     if sum(n.endswith("spec.yaml") for n in names) < 5:
         failures.append("the KB specs (kb/specs/*/spec.yaml) are missing")
-    # Both stylesheets: `render._STYLESHEETS` inlines the pair, and a wheel carrying only one of them
-    # renders a page missing whatever the other supplied.
+    # The BUILT stylesheet and the script: `render._STYLESHEETS` inlines the first and the page
+    # embeds the second, so a wheel missing either renders an unstyled or an inert page.
     if not all(
-        any(n.endswith(f"report/assets/{f}") for n in names)
-        for f in ("report.css", "report.tw.css", "report.js")
+        any(n.endswith(f"report/assets/{f}") for n in names) for f in ("report.tw.css", "report.js")
     ):
         failures.append("the report's inlined CSS/JS assets are missing -> report renders unstyled")
     # Not inlined by anything, and shipped anyway: it is the source of record for BOTH build inputs,
