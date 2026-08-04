@@ -16,7 +16,11 @@ import csv
 # that declared its outputs separately from the code producing them would be two sources of truth for
 # one fact, which is the bug this repo keeps finding. `memory` is the same move applied to the
 # arithmetic that sizes this module's one expensive rule: a Snakefile is not importable, so a
-# constant and a closure living here could never be unit-tested, only run. Both imports make the same
+# constant and a closure living here could never be unit-tested, only run. `QC_SUFFIX` is that same
+# rule applied to the last name this file used to spell for itself, and it is the one where drift
+# would be SILENT: `workflows/qc.py` writes that bundle and now reads it back for the report, so a
+# rename here would leave the rule producing a file the reader stops finding -- and a report that
+# finds nothing looks exactly like a pipeline that has not run. All three imports make the same
 # assumption `rule genome_index` already makes of `genome`: the env running snakemake is the env that
 # has them.
 from seqforge.workflows.h5ad import (
@@ -28,6 +32,7 @@ from seqforge.workflows.h5ad import (
     solo_stats_files,
 )
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
+from seqforge.workflows.qc import QC_SUFFIX
 
 
 def _load_units(path):
@@ -163,7 +168,7 @@ rule all:
         # stats bundle per sample. The raw matrices, filtered tree, stats, logs, and BAM they are
         # built from are all `temp()` and gone by the time these land.
         expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
-        expand(f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz", sample=SAMPLES),
+        expand(f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}", sample=SAMPLES),
 
 
 rule onlist:
@@ -479,7 +484,7 @@ rule qc_bundle:
         filtered=rules.starsolo_count.output.filtered,
         logs=rules.starsolo_count.output.logs,
     output:
-        f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz",
+        f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
     params:
         solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
         run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",

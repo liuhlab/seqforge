@@ -27,13 +27,14 @@ from ..models.processing import SoloFeature
 from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
 from .metrics import Metric, SampleStats, count, fraction, knee_points
 
-#: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than
-#: only in ``starsolo.smk`` so the post-run reader consumes the name instead of restating it — the
-#: same discipline ``h5ad_suffixes`` keeps for the deliverables, and for the same reason: a suffix
-#: spelled in the rule and again in the reader is two owners, and the reader's copy fails silently
-#: (a report that finds nothing looks exactly like a pipeline that has not run). The shipped module
-#: is still the second owner; adopting this constant there means editing a ``.smk``, which bumps
-#: ``WORKFLOW_VERSION`` and invalidates every ``run_id``, so it is deliberately its own change (#212).
+#: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than in
+#: ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of restating it
+#: — the same discipline ``h5ad_suffixes`` keeps for the deliverables, and for the same reason: a
+#: suffix spelled in the rule and again in the reader is two owners, and the reader's copy fails
+#: silently (a report that finds nothing looks exactly like a pipeline that has not run). The shipped
+#: module imports it as of ``WORKFLOW_VERSION`` 2026.8.3, which is why this is public and why it is
+#: worth keeping public: adopting it there cost a version bump and an invalidated ``run_id`` for a
+#: change that altered no behaviour, and a repo-wide check now refuses the literal's return.
 QC_SUFFIX = ".qc.json.gz"
 
 

@@ -132,10 +132,20 @@ names that log** and then reports off it anyway, so a future edit that re-derive
   `CompiledPipeline` ([0024](0024-one-owner-for-the-compiled-pipeline.md)), never by globbing the
   results tree — a listing can say what landed and can never say what is missing, so a partial
   **Compiled pipeline** read that way is indistinguishable from a complete one.
-- `WORKFLOW_VERSION` is untouched. Nothing here changes a rule, so no `run_id`
+- `WORKFLOW_VERSION` is untouched **by this record**. Nothing here changes a rule, so no `run_id`
   ([0005](0005-run-id-is-the-pairing.md)) is invalidated and nothing already compiled is reprocessed.
-  `QC_SUFFIX` is public for the shipped `.smk` to adopt on its next edit; until then the module is
-  still a second owner of that string, which is a known and deliberately deferred gap.
+  `QC_SUFFIX` went public for the shipped `.smk` to adopt, which it since has: `starsolo.smk` and
+  `chromap.smk` now import the constant from the module that writes the artifact, at
+  `WORKFLOW_VERSION` 2026.8.3 (#212) — a separate change, because adopting it means editing a shipped
+  module, and that invalidates every `run_id` for a rename that alters no behaviour. The deferral is
+  therefore closed rather than standing, and it closed as a mechanism:
+  `test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns`
+  (`tests/test_repo_invariants.py`) fails on any shipped `.smk` carrying a suffix its Python owner
+  publishes, and carries a fire/silent discriminator so it cannot rot into a no-op. The scope it
+  draws is *published* constants: `__all__` is where a module offers a name for someone else to use,
+  so a private suffix reached only through a function like `fragments_suffixes` is out — the guard
+  demands only what an owner has made importable, and widening it would be one module deciding
+  another's export surface.
 - `MODULES_WITHOUT_STATS` is now **empty**: every shipped module reports, so no dataset gets a page
   that says less because nobody had written its adapter yet. What a bulk or ATAC page still says less
   *about* is a property of its artifact rather than of this seam — chromap's summary carries no

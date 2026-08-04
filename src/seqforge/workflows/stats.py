@@ -66,11 +66,13 @@ class StatsSpec:
 #: Every artifact name here is **imported, never spelled**. A suffix written in the rule that produces
 #: it and again in the reader that finds it is two owners of one fact, and the reader's copy is the one
 #: that fails silently: a report that finds nothing looks exactly like a pipeline that never ran, so
-#: nothing raises and nobody is told. The shipped ``.smk`` files are the two remaining second owners —
-#: ``qc_bundle`` in ``starsolo.smk`` and ``fragments_qc`` in ``chromap.smk`` both restate their output
-#: suffix — and closing that means editing a shipped module, which would bump ``WORKFLOW_VERSION`` and
-#: invalidate every ``run_id`` for a rename that changes no behaviour. Both constants are exported for
-#: the next edit to those files to adopt (#212). ``map/star`` has no such second owner and never will:
+#: nothing raises and nobody is told. The shipped ``.smk`` files import them too, as of
+#: ``WORKFLOW_VERSION`` 2026.8.3 — ``rule qc_bundle`` in ``starsolo.smk`` and ``rule fragments_qc`` in
+#: ``chromap.smk`` each read the same constant this file does, so the rule, the writer and the reader
+#: are one owner rather than three. A repo-wide check keeps it that way
+#: (``test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns``), which matters because the
+#: cost of closing it was real: editing a shipped module invalidates every ``run_id``, so it is not a
+#: rename anyone would repeat casually. ``map/star`` has no such second owner and never will:
 #: no rule names :data:`~seqforge.workflows.h5ad.STAR_FINAL_LOG`, because STAR writes it whether or not
 #: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
 _SPECS: dict[str, StatsSpec] = {

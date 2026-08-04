@@ -22,6 +22,22 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.3 — the two barcoded modules IMPORT the QC artifact suffix they used to spell (#212).
+#: **Behaviour is unchanged: only the suffix's ownership moved.** `rule all` and `rule qc_bundle` in
+#: starsolo.smk, and `rule fragments_qc` in chromap.smk, declared `.qc.json.gz` / `.fragments.qc.json.gz`
+#: as literals; they now read `{QC_SUFFIX}` from `workflows/qc.py` and `workflows/fragments.py`, the
+#: modules that WRITE those artifacts. Every declared output resolves to the byte-identical filename
+#: — verified by diffing the whole `snakemake -n -p` plan for a composed 10x v3 and a composed 10x
+#: Multiome ATAC pipeline across the change — so no rule, no shell command, no config key and no
+#: emitted config value differs. The bump is therefore deliberate rather than incidental: editing a
+#: shipped module invalidates `run_id = H(dataset | processing | kb | workflow)` whatever the edit
+#: was, and a dataset already composed recomposes into a fresh directory with empty results and
+#: re-runs. Paying it now is the cheap moment — 2026.8.2 landed days ago and already invalidated
+#: everything — and paying it at all is the point: those constants went public with a reader beside
+#: the writer, and "adopt them on the next edit for a real reason" is a rule somebody has to
+#: remember. A repo-wide check now fails on any shipped `.smk` carrying a suffix its Python owner
+#: publishes, so the second spelling cannot come back
+#: (`tests/test_repo_invariants.py::test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns`).
 #: 2026.8.2 — `starsolo_count` asks for more memory on a retry, and every memory cap STAR is handed
 #: follows the escalated request (#205). The rule declares `retries: STARSOLO_RETRIES` (2) and
 #: `resources: mem_mb=escalated_mem_mb(config["mem_mb"], attempt)`, LINEAR — attempt 1 asks for
@@ -132,7 +148,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.2"
+WORKFLOW_VERSION = "2026.8.3"
 
 _MODULE_DIR = Path(__file__).parent
 

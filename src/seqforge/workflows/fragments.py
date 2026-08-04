@@ -65,9 +65,10 @@ _TABIX_SUFFIX = ".fragments.tsv.gz.tbi"
 #: pipeline-stats registry finds one sample's summary by this name. A private constant would have
 #: meant the registry spelling the suffix again, and that copy is the one that fails *silently* — a
 #: report that finds nothing looks exactly like a pipeline that never ran, so nothing raises and
-#: nobody is told. ``fragments_qc``'s literal in ``chromap.smk`` is still a second owner of the
-#: string; adopting this constant there means editing a shipped module, which bumps
-#: ``WORKFLOW_VERSION`` and invalidates every ``run_id``, so it is deliberately its own change (#212).
+#: nobody is told. ``rule fragments_qc`` in ``chromap.smk`` imports it as of ``WORKFLOW_VERSION``
+#: 2026.8.3, so the rule that declares the file, the function that writes it and the reader that
+#: finds it are one owner. That adoption cost a version bump and an invalidated ``run_id`` for a
+#: change that altered no behaviour, and a repo-wide check now refuses the literal's return.
 QC_SUFFIX = ".fragments.qc.json.gz"
 
 

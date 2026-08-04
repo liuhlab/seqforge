@@ -1,6 +1,6 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Five families live here, and none of them composes anything:
+Six families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
@@ -9,6 +9,8 @@ Five families live here, and none of them composes anything:
   is a mutable label: renumber the document and the comment lies, silently, forever.
 - **One owner for a compiled pipeline's layout.** No module outside the two that own those names
   joins the pipeline directory, the wrapper, the config or the units table into a path of its own.
+- **One owner for an artifact's name.** No shipped Snakemake module spells an artifact suffix that
+  a Python module in ``workflows`` already publishes for it to import.
 - **Nothing tracked escapes the type checker.** The declared mypy scope covers every committed
   Python file, and every path the exclusion list hides is already gitignored.
 - **The test loop declares what it needs.** What the suite requires of its environment is declared
@@ -416,6 +418,124 @@ def test_only_the_compiled_pipeline_owner_spells_its_layout(src_trees: SrcTrees)
     assert not fires('portable = k in ("manifest", "snakefile", "pipeline")')  # a key, not a path
     assert not fires('_TABS = [("overview", "Overview"), ("pipeline", "Pipeline")]')  # a tab id
     assert not fires('log.info("no config.yaml here yet")')  # a sentence in a call
+
+
+def _published_artifact_suffixes() -> dict[str, str]:
+    """Every filename suffix a ``workflows`` Python module OWNS and PUBLISHES — ``owner -> suffix``.
+
+    **Discovered, not listed.** A hardcoded pair would be a third copy of the very strings this
+    guard exists to stop copying, and it would police exactly the two artifacts somebody remembered
+    on the day it was written. Read off the package instead: a name is in scope when its module
+    exports it (it is in ``__all__``), it is spelled ``*_SUFFIX``, and its value is a filename
+    suffix. A fourth aligner's module that publishes one is covered the moment it does.
+
+    **Published is the line, and it is the owner's line to draw, not this guard's.** ``__all__`` is
+    where a module says "this name is for someone else to use"; a private ``_FRAGMENTS_SUFFIX`` is a
+    module's internal spelling, offered to a rule only through a function like ``fragments_suffixes``
+    — so demanding a `.smk` import it would be this file deciding another module's export surface.
+    Publishing one is therefore what puts it in scope, which is the same act as making it importable.
+    """
+    import importlib
+    import pkgutil
+
+    from seqforge import workflows
+
+    found: dict[str, str] = {}
+    names = [workflows.__name__] + [
+        f"{workflows.__name__}.{info.name}" for info in pkgutil.iter_modules(workflows.__path__)
+    ]
+    for dotted in names:
+        module = importlib.import_module(dotted)
+        for name in getattr(module, "__all__", ()):
+            value = getattr(module, name, None)
+            if name.endswith("_SUFFIX") and isinstance(value, str) and value.startswith("."):
+                found[f"{dotted.rsplit('.', 1)[-1]}.{name}"] = value
+    return found
+
+
+def _restates_a_published_suffix(source: str, suffixes: Mapping[str, str]) -> list[str]:
+    """Where this Snakemake source spells a suffix a Python module already publishes.
+
+    The exact predicate ``test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns``
+    applies to every shipped ``.smk``, shared with its discriminator so what is proven to fire is the
+    real thing.
+
+    ``#`` comments are stripped first, for the reason ``keys_read_by`` strips them: these modules
+    carry long prose headers about what they write, and a check that fires on a sentence describing
+    the artifact is a check somebody deletes. The longest matching owner wins, so a line carrying
+    ``.fragments.qc.json.gz`` is reported against the module that writes *that* and not also against
+    the shorter suffix it happens to contain.
+    """
+    by_length = sorted(suffixes.items(), key=lambda kv: len(kv[1]), reverse=True)
+    found: list[str] = []
+    for i, line in enumerate(source.splitlines(), start=1):
+        code = line.split("#")[0]
+        for owner, suffix in by_length:
+            if suffix in code:
+                found.append(f"{i}: {suffix!r} is {owner}'s -- {code.strip()[:72]}")
+                break
+    return found
+
+
+def test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns() -> None:
+    """A rule declares the artifact name the code writing it owns, by importing it.
+
+    A ``.smk`` that spells its output suffix and a Python module that spells the same suffix are two
+    sources of truth for one fact, and the pair fails in the direction nothing catches: rename it in
+    one place and the rule keeps producing a file the reader stops finding, which on a report page is
+    byte-identical to a pipeline that has not run. Nothing raises and nobody is told.
+
+    The mechanism was already there — both shipped modules import helpers from their own package at
+    parse time, and ``h5ad_suffixes`` / ``fragments_suffixes`` have always decided what a rule
+    declares. What was missing was the forcing function: three suffixes stayed hand-spelled because
+    adopting the constant meant editing a shipped module, which bumps ``WORKFLOW_VERSION`` and
+    invalidates every ``run_id``, and "do it on the next edit for a real reason" is a rule somebody
+    has to remember. This is the check that remembers instead.
+
+    Scanning the source text rather than parsing it is deliberate: a ``.smk`` is Snakemake, not
+    Python, so ``ast.parse`` refuses it outright and there is no tree to walk.
+    """
+    suffixes = _published_artifact_suffixes()
+    assert {"qc.QC_SUFFIX", "fragments.QC_SUFFIX"} <= set(suffixes), (
+        f"the two QC artifact suffixes are no longer discovered as published constants "
+        f"({sorted(suffixes)}); this guard would then police nothing while still passing"
+    )
+
+    shipped = sorted(_src_root().rglob("*.smk"))
+    assert shipped, "no shipped .smk was found -- this guard would pass over an empty tree"
+
+    offenders = {
+        smk.name: found
+        for smk in shipped
+        if (found := _restates_a_published_suffix(smk.read_text(encoding="utf-8"), suffixes))
+    }
+    assert not offenders, (
+        "a shipped Snakemake module restates a suffix its writer already owns:\n"
+        + "\n".join(f"  {name} {line}" for name, lines in offenders.items() for line in lines)
+        + "\nImport the constant from the module that writes the artifact, the way these files "
+        "already import their other helpers, and remember that editing a shipped module means "
+        "bumping WORKFLOW_VERSION. One owner is the point: the second spelling is the one that "
+        "goes stale in silence, because a reader finding nothing looks exactly like a pipeline "
+        "that never ran."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicate against the REAL discovered set:
+    # it must fire on each of the three hand-spellings this check removed, and stay silent on the
+    # import that replaced them, on prose in a comment, and on a filename no module publishes. The
+    # firing cases spell the suffix out, which is the whole point of a discriminator — a case built
+    # from the same constant the guard reads could only ever prove the two agree with each other.
+    def fires(source: str) -> bool:
+        return bool(_restates_a_published_suffix(source, suffixes))
+
+    assert fires('        expand(f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz", sample=SAMPLES),')
+    assert fires('        f"{OUTDIR}/{{sample}}/{{sample}}.qc.json.gz",')
+    assert fires('        f"{OUTDIR}/{{sample}}/{{sample}}.fragments.qc.json.gz",')
+
+    assert not fires('        f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",')  # the fix itself
+    assert not fires(
+        "    # one gzipped .qc.json.gz per sample, then temp() drops the rest"
+    )  # prose
+    assert not fires('        temp("onlists/{name}.txt"),')  # a name no module publishes
 
 
 _REPO = Path(__file__).resolve().parent.parent
