@@ -152,8 +152,9 @@ def _panel(title: str, body: str, *, sub: str = "") -> str:
 
     Every panel is the same box. There used to be a ``cls`` hook for a caller that wanted a narrower
     one, and its last user went with the Evidence tab's redesign: a panel narrower than the panel
-    above it is the loudest way a page reads as two products, and the reading cap belongs on the
-    column *inside* the box.
+    above it is the loudest way a page reads as two products. The measure that outlived it is
+    ``.sf-panel-sub``'s own ``max-width: 82ch``, stated in ``ch``, on the prose, by the component that
+    owns the prose — never as a pixel cap on a column that holds a grid.
     """
     sub_html = f'<p class="sf-panel-sub">{esc(sub)}</p>' if sub else ""
     return f'<section class="sf-panel"><h2 class="sf-panel-h">{esc(title)}</h2>{sub_html}{body}</section>'
@@ -416,9 +417,10 @@ def _sample_rows(
         else ""
     )
     # The whole first cell is the toggle — a big, easy click target — not just the little caret.
-    # `whitespace-nowrap` because this cell is one identifier: caret, id, accession. Row headers wrap
-    # by default, which is right where one carries a sentence (the Results table's per-row note) and
-    # wrong here — it put the caret on a line of its own above the id it belongs to.
+    # `whitespace-nowrap` because this cell is three tokens of one identifier — caret, id, accession —
+    # and a row header wraps by default: without it the caret took a line of its own above the id it
+    # belongs to. Neither sticky column on this page carries a sentence any more (see
+    # `_counting_notes`), so wrapping there has nothing left to be right about.
     sample_cell = (
         f'<th scope="row" class="sf-col-sticky smp-toggle whitespace-nowrap" '
         f'data-target="{esc(detail_id)}" '
@@ -607,11 +609,16 @@ def evidence_pane(assay: AssayReport) -> str:
             "it is recorded in the manifest.</p>"
         )
 
-    # The reading cap sits on the column INSIDE the panel, not on the panel: a panel narrower than the
-    # panel above it is the loudest way a page reads as two products.
+    # No width cap on the body: this pane is as wide as every other panel on the page. The 768px
+    # column it used to sit in was meant as a reading measure and was never doing that job — the only
+    # paragraph on this tab is the lead sentence below, which `.sf-panel-sub` already holds to 82ch,
+    # narrower than the cap was and outside it. What the cap actually narrowed was a bordered verdict
+    # strip, a role x file grid that starts scrolling as soon as it is denied width, and the score
+    # bars a reader compares by LENGTH — and it left ~300px of gutter that reads as a layout bug
+    # rather than as anyone's decision.
     return _panel(
         "How the chemistry was decided",
-        f'<div class="max-w-3xl">{body}</div>',
+        body,
         sub="Every kit whose read layout could plausibly fit was scored against your actual reads. "
         "One family fit; the rest were ruled out by the sequence itself.",
     )
@@ -1072,9 +1079,16 @@ def _pipeline_state(stats: PipelineStats) -> str:
         f'text-sm"><span class="lvl-flag" aria-hidden="true">{icon}</span>'
         f"<span>{text}</span></div>"
     )
-    if not stats.notes:
+    # Only what could not be READ. ``read_pipeline_stats`` folds two kinds of note into one list: an
+    # artifact nobody could parse, and the caption a sample that WAS parsed carries. The second kind
+    # prints under the table now, with the samples it holds for (:func:`_counting_notes`), so printing
+    # it here as well would be one fact twice — once attributed and once not, with the weaker of the
+    # two sitting where a reader looks for failures.
+    carried = {sample.note for sample in stats.samples if sample.note}
+    unread = [note for note in stats.notes if note not in carried]
+    if not unread:
         return state
-    notes = "".join(f"<li>{esc(n)}</li>" for n in stats.notes)
+    notes = "".join(f"<li>{esc(n)}</li>" for n in unread)
     return f'{state}<ul class="mt-0 mb-4 list-disc pl-5 text-xs text-dim">{notes}</ul>'
 
 
@@ -1280,19 +1294,13 @@ def _stats_table(stats: PipelineStats) -> str:
             for _group, columns in bands
             for key, _label, headline, _hint in columns
         )
-        # Per row, not once for the table: two samples can be counted off different features, and a
-        # single footnote would silently claim they were counted the same way.
-        note = (
-            f'<span class="block text-xs italic text-faint">{esc(sample.note)}</span>'
-            if sample.note
-            else ""
-        )
-        # Nothing but the sticky column. The seven undo-utilities that used to sit here — left, ink,
-        # 14px, normal case, normal tracking, wrapping — were all arguing with a `.sf-scroll-x th`
-        # that meant to style column heads; that rule now says `thead`.
+        # Nothing but the sticky column, and nothing in the sticky column but the identifier. The
+        # seven undo-utilities that used to sit here — left, ink, 14px, normal case, normal tracking,
+        # wrapping — were all arguing with a `.sf-scroll-x th` that meant to style column heads; that
+        # rule now says `thead`. The per-sample note that used to ride beside the id is
+        # `_counting_notes`, under the table.
         rows += (
-            f'<tr><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}{note}</th>'
-            f"{cells}</tr>"
+            f'<tr><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}</th>{cells}</tr>'
         )
 
     table = (
@@ -1301,7 +1309,7 @@ def _stats_table(stats: PipelineStats) -> str:
         f"{band_row}</tr><tr>{head_row}</tr></thead><tbody>{rows}</tbody></table></div>"
     )
     if not folds:
-        return _LEVEL_LEGEND + table
+        return _LEVEL_LEGEND + table + _counting_notes(stats)
     control = (
         '<label class="grp-btn mt-3 inline-flex cursor-pointer items-center gap-2 text-sm '
         'font-semibold text-accent"><input type="checkbox" class="grp-fold sr-only">'
@@ -1309,7 +1317,55 @@ def _stats_table(stats: PipelineStats) -> str:
         f'metrics</span><span class="grp-extra"><span aria-hidden="true">▾ </span>Show the '
         f"{n_headline} headline metrics</span></label>"
     )
-    return f'{_LEVEL_LEGEND}<div class="grp-scope">{table}{control}</div>'
+    return f'{_LEVEL_LEGEND}<div class="grp-scope">{table}{control}</div>{_counting_notes(stats)}'
+
+
+def _counting_notes(stats: PipelineStats) -> str:
+    """What the numbers above were read off — under the table, grouped by the samples that share it.
+
+    This used to ride inside the sticky ``<th>``, beside the sample id, which is where it did its
+    damage: a note the length of a sentence wrapped to three lines, took the identifier column down to
+    about 115px and inflated every row it touched, tinted verdict cells included. A ``min-width``
+    floor was tried and **reverted on measurement** — past 7rem the table is forced to scroll sideways
+    and the verdict cell is the first thing cut, so the floor bought a cosmetic fix with a functional
+    one. The identifier column carries the identifier; this carries the rest.
+
+    **Still per note, and still never one footnote for the table**: two samples can be counted off
+    different features, and a single line would silently claim they were counted the same way. So it
+    is one line per DISTINCT note, naming the samples that hold it — the attribution is the half worth
+    keeping, the wrapping is the half that was not. Lines run in first-seen order, which is the order
+    the table's own rows introduce them. A note every sample shares says so in words instead of
+    reading the whole plate back, and that is also the one case where "counted the same way" is a
+    claim the data actually supports.
+
+    Below the table where the legend is above it, because the two are read at different moments: a
+    legend says how a tint grades and is wanted before the numbers, this is wanted after one of them
+    surprises you. Each sample id appears at most once across the whole block, so it grows with the
+    table it sits under and can never be the thing that pushes the page past its size budget.
+    """
+    groups: dict[str, list[str]] = {}
+    for sample in stats.samples:
+        if sample.note:
+            groups.setdefault(sample.note, []).append(sample.sample_id)
+    if not groups:
+        return ""
+
+    n_samples = len(stats.samples)
+    items = ""
+    for note, ids in groups.items():
+        # "all N samples" only where N is more than one: on a run with a single well, "all 1 samples"
+        # is a sentence about a plate, and the id it declines to print is one word long.
+        every = n_samples > 1 and len(ids) == n_samples
+        who = f"all {n_samples} samples" if every else ", ".join(ids)
+        items += (
+            f'<li class="mt-1"><span class="italic">{esc(note)}</span> — '
+            f'<span class="font-mono">{esc(who)}</span></li>'
+        )
+    return (
+        '<div class="mt-3 text-xs text-faint">'
+        '<h3 class="sf-sub-h mb-1">Where these numbers came from</h3>'
+        f'<ul class="m-0 list-none p-0">{items}</ul></div>'
+    )
 
 
 def _band_cell(group: MetricGroup, span: int, cls: str) -> str:
