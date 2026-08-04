@@ -93,6 +93,11 @@ _ACCESSION_KINDS: tuple[tuple[str, str], ...] = (
 
 _SRP_IN_SOFT = re.compile(r"term=([EDSR]RP\d+)")
 _SUPERSERIES_OF = re.compile(r"^!Series_relation = SuperSeries of: (GSE\d+)", re.MULTILINE)
+#: Anchored on the relation line, not on the bare accession: a GEO record carries other URLs
+#: (`!Series_supplementary_file`), and only this line declares where the raw data was deposited.
+_BIOPROJECT_IN_SOFT = re.compile(
+    r"^!Series_relation = BioProject:\s*\S*/(PRJ[A-Z]{2}\d+)", re.MULTILINE
+)
 
 _DEFAULT_TIMEOUT = 30
 
@@ -181,13 +186,38 @@ def parse_soft_superseries(soft: str) -> list[str]:
     return sorted(set(_SUPERSERIES_OF.findall(soft)))
 
 
+def parse_soft_bioproject(soft: str) -> list[str]:
+    """BioProject accessions declared in a GEO SOFT record.
+
+    The only route to a SubSeries' runs: its brief record declares no SRA study and has no sub-series
+    to walk, so this URL is the only thing in it that points at raw data (#238).
+    """
+    return sorted(set(_BIOPROJECT_IN_SOFT.findall(soft)))
+
+
 def geo_soft(accession: str) -> str:
     """Fetch a brief GEO SOFT record."""
     return _get(GEO_ACC, {"acc": accession, "targ": "self", "form": "text", "view": "brief"})
 
 
 def geo_to_studies(accession: str, *, _depth: int = 0) -> list[str]:
-    """GSE -> SRP list, recursing through SuperSeries (which otherwise resolve to nothing)."""
+    """GSE -> the accessions ENA can expand into the runs of THAT GEO accession.
+
+    **A GEO accession resolves to the runs of that accession.** That is a decision, not something
+    stumbled into (#238), and it is what orders the three declarations a record can carry:
+
+    1. a plain series names its study outright (``SRA: …term=SRP…``);
+    2. a SuperSeries owns no runs of its own, so it recurses down to its sub-series — eutils and
+       runinfo both return zero for one, silently;
+    3. a SubSeries declares neither. Its brief record carries only ``SubSeries of:`` and a BioProject
+       URL, so that BioProject is followed. Walking *up* to the SuperSeries and back down would
+       return the sibling sub-series' runs as well, which is not the accession that was asked for:
+       GSE207085's own BioProject is PRJNA853582 (1440 runs), its siblings' are PRJNA853580 and
+       PRJNA853581.
+
+    The BioProject is tried last for the same reason: a SuperSeries declares an umbrella one spanning
+    every sub-series, so preferring it would answer with the union whichever member was named.
+    """
     if _depth > 3:
         raise RemoteError(f"{accession}: SuperSeries nesting too deep; refusing to recurse further")
     soft = geo_soft(accession)
@@ -195,15 +225,18 @@ def geo_to_studies(accession: str, *, _depth: int = 0) -> list[str]:
     if studies:
         return studies
     subs = parse_soft_superseries(soft)
-    if not subs:
-        raise RemoteError(
-            f"{accession}: no SRA study in the GEO record. It may be a SuperSeries with no declared "
-            "sub-series, unreleased (status=hup), or carry no raw data."
-        )
-    found: list[str] = []
-    for sub in subs:
-        found.extend(geo_to_studies(sub, _depth=_depth + 1))
-    return sorted(set(found))
+    if subs:
+        found: list[str] = []
+        for sub in subs:
+            found.extend(geo_to_studies(sub, _depth=_depth + 1))
+        return sorted(set(found))
+    projects = parse_soft_bioproject(soft)
+    if projects:
+        return projects
+    raise RemoteError(
+        f"{accession}: no SRA study, sub-series or BioProject in the GEO record. It may be "
+        "unreleased (status=hup), or carry no raw data."
+    )
 
 
 def parse_filereport(tsv: str) -> list[dict[str, str]]:
@@ -453,9 +486,10 @@ def _annotate(run: dict[str, str]) -> dict[str, Any]:
 def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, Any]:
     """Expand any accession into runs + declared metadata + a dropped-technical-read verdict.
 
-    GEO is resolved to SRP first (ENA rejects GSE outright), recursing through SuperSeries. This
-    reports declared facts and abstains loudly; it never guesses a chemistry — that is resolve's job,
-    from bytes.
+    GEO is resolved to something ENA accepts first (it rejects GSE outright) — a study, its
+    sub-series' studies, or the declared BioProject, whichever the record carries; `studies` reports
+    which. This reports declared facts and abstains loudly; it never guesses a chemistry — that is
+    resolve's job, from bytes.
     """
     acc = accession.strip()
     kind = classify_accession(acc)
