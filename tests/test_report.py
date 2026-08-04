@@ -761,3 +761,209 @@ def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_worksp
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
+
+
+# -- the vendored stylesheet's drift guards ---------------------------------------------------------
+#
+# `report.tw.css` is Tailwind's output, and Tailwind purges: it contains only what was literally
+# present in the sources it was pointed at when the build ran. Editing `panels.py` or
+# `report.src.css` and forgetting to rebuild is therefore a SILENT failure — the page keeps
+# rendering and one rule is quietly absent — and the build needs npm, so CI cannot just re-run it.
+# Two guards close that from both ends, and `test_the_two_drift_guards_fire_...` proves each one's
+# matcher actually rejects a drifted input rather than only accepting today's.
+
+_ASSETS = Path(__file__).resolve().parents[1] / "src/seqforge/report/assets"
+
+#: The modules the purge is pointed at (`@source` in `report.src.css`), which is also where the
+#: guard below must look: a class is invisible to Tailwind and to us for exactly the same reasons.
+_CLASS_BEARING_SOURCES = (
+    Path(__file__).resolve().parents[1] / "src/seqforge/report/panels.py",
+    Path(__file__).resolve().parents[1] / "src/seqforge/report/render.py",
+    _ASSETS / "report.js",
+)
+
+#: Classes the page carries that deliberately have NO rule in either stylesheet: structural hooks a
+#: script or a reader selects on, and one SVG group whose children are what gets styled. They are
+#: named because the guard cannot tell a hook from drift by looking, and an undeclared exception is
+#: a hole. The guard asserts this set in both directions — give one of them a rule and it says so,
+#: so the list cannot quietly become the place unstyled classes go to hide.
+_UNSTYLED_HOOKS = {
+    "assay": "<section class='assay' data-assay=N> — the pane the assay switcher shows and hides",
+    "genstats-conf": "the confidence <div> inside .genstats, styled by `.genstats > div`",
+    "siblings": "the wrapper round the ruled-out drawers; `details.sibling` carries the style",
+    "kgrid": "<g class='kgrid'> in a knee plot, whose `<line class='kg'>` children are styled",
+}
+
+
+def _literal_classes(*texts: str) -> set[str]:
+    """Every LITERAL class name in `texts` — a rendered page, or a module the purge reads.
+
+    A token carrying an f-string hole (``lvl-{esc(m.level)}``, ``tab{" active" if …}``) is dropped,
+    because it is not a literal — which is the whole reason a computed class has to be a declared
+    component instead of a utility. Both quote styles are read: a fragment nested inside a
+    double-quoted Python string writes ``class='x'``, and a guard that only saw ``class="x"`` would
+    quietly stop checking exactly those. ``className =`` is read too, for the popover `report.js`
+    builds at runtime.
+    """
+    found: set[str] = set()
+    for text in texts:
+        for group in re.findall(r"""class(?:Name)?\s*=\s*["']([^"'\n]*)["']""", text):
+            found |= {c for c in group.split() if "{" not in c and "}" not in c}
+    return found
+
+
+def _declared_components(src_css: str) -> set[str]:
+    """The class selectors the ``@layer components`` block of a build input declares.
+
+    Comments are stripped first, so a prefix named in prose (``lvl-*`` is #217's) is not mistaken
+    for a component this file declares.
+    """
+    source = re.sub(r"/\*.*?\*/", "", src_css, flags=re.S)
+    return set(re.findall(r"\.([a-zA-Z][\w-]*)", source[source.index("@layer components") :]))
+
+
+def _classes_with_no_rule(classes: set[str], sheets: list[str]) -> list[str]:
+    """Those of `classes` that NONE of `sheets` writes a rule for.
+
+    Tailwind escapes `:` `/` `.` and friends in its selectors, so `md:grid-cols-2` is emitted as
+    `.md\\:grid-cols-2`; the substitution below reproduces that before matching. The trailing
+    `(?![\\w-])` is what stops `.sf-card` from satisfying `sf-card-2`.
+    """
+    return sorted(
+        c
+        for c in classes
+        if not any(
+            re.search(r"\." + re.escape(re.sub(r"([:/.\[\]()%,])", r"\\\1", c)) + r"(?![\w-])", s)
+            for s in sheets
+        )
+    )
+
+
+def test_every_class_the_page_uses_has_a_rule_in_a_stylesheet(own_workspace: Path) -> None:
+    """Guard one: nothing the page can wear is unstyled in BOTH sheets.
+
+    Adding ``class="mt-8"`` to a fragment and not rebuilding is silent — the page renders and one
+    rule is absent. This collects every literal class the page can carry (the rendered page with the
+    heaviest tab on, plus the `@source` modules, so a branch this fixture never reaches is still
+    checked) and fails if any of them has a rule in neither stylesheet.
+
+    Why "either sheet" is not a way of passing for free. During the expand step the hand-written
+    `report.css` supplies nearly every rule, so this guard's Tailwind half would be satisfied by an
+    EMPTY build — three things keep it honest anyway. `assert used` refuses an empty page. Guard two
+    asserts the built artifact really does carry what its source declares, so the build cannot be
+    empty. And `test_the_two_drift_guards_fire_on_a_drifted_input_and_stay_silent_on_a_clean_one`
+    exercises this exact matcher against a class present in neither sheet and requires it to fail.
+    As #217–#219 move rules out of `report.css` and into utilities, the union narrows to the built
+    file on its own — the guard does not need editing for that to happen.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    page = render_html(collect_report(own_workspace))
+
+    used = _literal_classes(
+        page.split("</style>")[-1], *(p.read_text() for p in _CLASS_BEARING_SOURCES)
+    )
+    assert len(used) > 50, "the page and its fragments really do carry classes"
+
+    sheets = [(_ASSETS / name).read_text() for name in ("report.tw.css", "report.css")]
+    missing = set(_classes_with_no_rule(used, sheets))
+
+    unexpected = sorted(missing - set(_UNSTYLED_HOOKS))
+    assert not unexpected, (
+        f"classes with no rule in either stylesheet: {unexpected} — rebuild report.tw.css "
+        "(see assets/VENDOR.md), or declare the class in _UNSTYLED_HOOKS if it is a bare hook"
+    )
+    # The other direction, so the exception list cannot rot into a hiding place: a hook that has
+    # since acquired a rule is no longer an exception and must leave the list.
+    styled = sorted(set(_UNSTYLED_HOOKS) - missing)
+    assert not styled, f"these now have a rule and are not hooks any more: {styled}"
+
+
+def test_the_built_stylesheet_carries_every_component_its_source_declares() -> None:
+    """Guard two, from the CSS side: the built artifact is not behind its own input.
+
+    The guard above catches a new class in `panels.py`; this one catches a new component in
+    `report.src.css` that was edited and never compiled. Together they mean the built file cannot
+    silently fall behind either of its inputs — which matters because the build needs npm and so
+    cannot run in CI.
+    """
+    declared = _declared_components((_ASSETS / "report.src.css").read_text())
+    assert {"sf-page", "sf-card", "sf-scroll-x"} <= declared, (
+        "the source really does declare the shell components this asserts about"
+    )
+
+    built = (_ASSETS / "report.tw.css").read_text()
+    missing = _classes_with_no_rule(declared, [built])
+    assert not missing, (
+        f"declared in report.src.css but absent from report.tw.css: {missing} — "
+        "rebuild it (see assets/VENDOR.md)"
+    )
+
+
+def test_the_two_drift_guards_fire_on_a_drifted_input_and_stay_silent_on_a_clean_one() -> None:
+    """The discriminator. A guard that only ever passes is the rule it was supposed to replace.
+
+    Both guards above are one matcher over two inputs, so this drives that matcher directly: a
+    synthetic clean input must come back empty, and a synthetic drifted one must come back naming
+    exactly what drifted. Nothing here reads a real asset, so it keeps discriminating whatever the
+    checked-in stylesheets happen to contain.
+    """
+    clean = ".sf-card{border:1px solid}.tab{color:red}"
+
+    # Guard one's matcher: silent on a class that has a rule, loud on one that does not.
+    assert _classes_with_no_rule({"sf-card", "tab"}, [clean]) == []
+    assert _classes_with_no_rule({"sf-card", "mt-8"}, [clean]) == ["mt-8"]
+    # The union is a real union — a rule in EITHER sheet satisfies it, which is the whole reason
+    # the report's guard differs from the eval report's.
+    assert _classes_with_no_rule({"mt-8"}, [clean, ".mt-8{margin-top:2rem}"]) == []
+    # ...and a prefix is not a match, or every `sf-*` class would pass on the strength of `.sf-card`.
+    assert _classes_with_no_rule({"sf-card-2"}, [clean]) == ["sf-card-2"]
+    # Tailwind's escaped selectors are matched as Tailwind writes them.
+    assert _classes_with_no_rule({"md:flex"}, [r".md\:flex{display:flex}"]) == []
+
+    # Guard two's matcher: a component the source declares and the build does not carry.
+    src = "@layer components {\n  .sf-page { color: red }\n  .sf-new { color: blue }\n}"
+    assert _declared_components(src) == {"sf-page", "sf-new"}
+    assert _classes_with_no_rule(_declared_components(src), [".sf-page{color:red}"]) == ["sf-new"]
+    assert _classes_with_no_rule(_declared_components(src), [".sf-page{}.sf-new{}"]) == []
+    # A selector written in prose is not a declaration — otherwise the prefix table in the source's
+    # header comment would enrol #217's components into this file's.
+    assert _declared_components("/* .lvl-ok is #217's */\n@layer components{.sf-page{}}") == {
+        "sf-page"
+    }
+
+    # And the extractor the first guard feeds on: literals in, f-string holes out.
+    assert _literal_classes('<td class="metric-cell lvl-{esc(m.level)}">') == {"metric-cell"}
+    assert _literal_classes("<span class='basis-dot'>", 'x.className = "pp-copy"') == {
+        "basis-dot",
+        "pp-copy",
+    }
+
+
+def test_preflight_arrives_exactly_when_the_hand_written_sheet_leaves() -> None:
+    """The page carries ONE reset, and which one is a function of which sheets are inlined.
+
+    `report.css` is the reset today: it sets `box-sizing` globally and zeroes the margins it cares
+    about, and it is unlayered, so it outranks every Tailwind layer. Preflight is a second reset,
+    and it reaches bare element selectors the hand-written sheet never mentions — where the layer
+    argument does not protect anything. Measured on this page, importing it while `report.css` is
+    still inlined would unbold every heading (`h1..h4 { font-weight: inherit }`), take the bullets
+    off `ul.pipeline-notes`, drop the UA paragraph margins `p.empty`/`p.notice`/`.organism` rely on,
+    and reface `#theme-toggle` with the body font.
+
+    So it is sequenced, not dropped — and sequenced by a mechanism rather than by a note someone has
+    to remember. This test goes red in exactly one commit: the one that stops inlining `report.css`.
+    Its instruction to that commit is in the failure message.
+    """
+    from seqforge.report import render
+
+    hand_written_is_inlined = "report.css" in render._STYLESHEETS
+    built = (_ASSETS / "report.tw.css").read_text()
+    # `-webkit-text-size-adjust` is emitted by Preflight and by nothing else Tailwind ships.
+    preflight_is_built = "text-size-adjust" in built
+
+    assert preflight_is_built != hand_written_is_inlined, (
+        "add `@import \"tailwindcss/preflight.css\" layer(base);` to report.src.css and rebuild"
+        if hand_written_is_inlined is False
+        else "report.src.css must not import tailwindcss/preflight.css while report.css is inlined "
+        "— two resets on one page, and the second one moves headings, lists and paragraphs"
+    )
