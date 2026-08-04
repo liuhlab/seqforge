@@ -148,15 +148,22 @@
  *   sf-*              shell primitives (here) — the frame, the panel, the scroll region, the popover
  *   lvl-*  grp-*      metric verdict and metric group band
  *   basis-*  mx-*     provenance basis, evidence-matrix cell status
- *   stage-*  flow-*   stage diagram and flow cards
+ *   smp-*             the sample grid's own row furniture
+ *   flow-*            flow cards
+ *
+ * `basis-*` means the **Basis** of CONTEXT.md — observed / asserted / inferred / user_confirmed —
+ * and nothing else. The sample grid's expander, its caret and its row identifier were `basis-*` for
+ * a while because they live in the same table, which put a defined domain term on a chevron. They
+ * are `smp-*`; a reader who greps `basis` should find provenance and only provenance.
+ *
+ * The stage diagram claimed `stage-*` during the redesign and never spent it: nothing about a stage
+ * box is computed, so it is utilities in `panels.py` like every other composition. The prefix is
+ * listed nowhere because an owned-but-unused prefix reads as a rule someone forgot to follow.
  *
  * Two groups below are deliberately outside that scheme, and for one reason: `report.js` names them.
  * `.tab`/`.pane` are what the script selects and toggles, and `prov-pop`/`pp-*` are what it builds at
  * runtime — renaming either would cost a simultaneous edit to a file the shell does not own, for no
- * reader-visible gain.
- *
- * Everything below is INERT while `report.css` is still inlined beside this file: these rules are
- * layered and the hand-written sheet is not, so it wins every overlap. That is the expand step. */
+ * reader-visible gain. */
 @layer components {
   /* ---- the page frame ---------------------------------------------------------------------------
    * The one reading column, on exactly four elements: the header row, the tab row, `main` and the
@@ -185,16 +192,16 @@
     background: var(--sf-surface);
     box-shadow: var(--sf-shadow);
   }
-  /* `mt-0` is doing real work, twice. Preflight is not imported yet (see the header above), so a
-   * bare `<h2>`/`<p>` still carries the UA margin and the panel's heading would hang off the top of
-   * its own box; and stating both margins here means this markup renders identically on the day
-   * Preflight does arrive, rather than shifting again. */
+  /* Only the BOTTOM margin is stated. Both of these carried an `mt-0` while the hand-written sheet
+   * was still the page's reset and a bare `<h2>`/`<p>` arrived with the UA margin on it; Preflight
+   * zeroes every margin now, so the top half had stopped meaning anything and a utility that does
+   * nothing is a claim that something needed doing. */
   .sf-panel-h {
-    @apply mt-0 mb-1 text-lg font-bold;
+    @apply mb-1 text-lg font-bold;
     letter-spacing: -0.01em;
   }
   .sf-panel-sub {
-    @apply mt-0 mb-4 text-sm;
+    @apply mb-4 text-sm;
     color: var(--sf-dim);
     max-width: 82ch;
   }
@@ -657,22 +664,22 @@
   /* The row identifier doubles as the drawer's control, so the hover feedback lives on its children:
    * the cell is a <th> and the sticky column's own background is what says "this column does not
    * scroll", which a hover fill would fight. */
-  .basis-toggle {
+  .smp-toggle {
     @apply cursor-pointer;
   }
-  .basis-caret {
+  .smp-caret {
     @apply mr-1 inline-grid size-5 place-items-center rounded align-middle font-mono text-xs;
     color: var(--sf-faint);
   }
-  .basis-toggle:hover .basis-caret {
+  .smp-toggle:hover .smp-caret {
     color: var(--sf-accent);
     background: var(--sf-accent-weak);
   }
-  /* `.basis-sid` is the hover target and nothing else: it used to restate the row identifier's
+  /* `.smp-sid` is the hover target and nothing else: it used to restate the row identifier's
    * weight and ink to undo what a bare `.sf-scroll-x th` did to it, and `thead th` above is where
    * that decision moved to. Underlining the id alone rather than the whole cell is the point —
    * the accession beside it is not part of what you are about to open. */
-  .basis-toggle:hover .basis-sid {
+  .smp-toggle:hover .smp-sid {
     text-decoration: underline;
     text-underline-offset: 2px;
   }

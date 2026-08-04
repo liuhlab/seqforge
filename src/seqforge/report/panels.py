@@ -411,11 +411,11 @@ def _sample_rows(
     # by default, which is right where one carries a sentence (the Results table's per-row note) and
     # wrong here — it put the caret on a line of its own above the id it belongs to.
     sample_cell = (
-        f'<th scope="row" class="sf-col-sticky basis-toggle whitespace-nowrap" '
+        f'<th scope="row" class="sf-col-sticky smp-toggle whitespace-nowrap" '
         f'data-target="{esc(detail_id)}" '
         'role="button" tabindex="0" aria-expanded="false" aria-label="Show this sample\'s files">'
-        '<span class="basis-caret" aria-hidden="true">▸</span>'
-        f'<span class="basis-sid">{esc(sample.sample_id)}</span>{acc}</th>'
+        '<span class="smp-caret" aria-hidden="true">▸</span>'
+        f'<span class="smp-sid">{esc(sample.sample_id)}</span>{acc}</th>'
     )
 
     cells = "".join(_attr_cell(by_key.get(k)) for k in columns)

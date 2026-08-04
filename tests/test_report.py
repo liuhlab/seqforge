@@ -30,11 +30,16 @@ from seqforge.workflows.metrics import PipelineStats
 
 runner = CliRunner()
 
-#: Every test here reads one `seqforge run` (2.2s). xdist's default `load` scheduler spreads them
-#: across workers and each worker rebuilds `_bulk_workspace` — 16 tests cost 4.05s of CPU on one
-#: worker and 20.60s on eight, for identical proof. `xdist_group` pins the module to a single worker
-#: under `--dist=loadgroup`, so the build happens once. Correct here because the run dominates the
-#: tests: nothing below is slow enough to want its own core.
+#: Most tests here read one `seqforge run`. xdist's default `load` scheduler spreads them across
+#: workers and each worker rebuilds `_bulk_workspace`, so the build is paid once per worker for
+#: identical proof — measured at eight workers it cost roughly five times the CPU of one.
+#: `xdist_group` pins the module to a single worker under `--dist=loadgroup`, so it happens once.
+#: Correct here because the run dominates: nothing below is slow enough to want its own core.
+#:
+#: The ratio is quoted and the seconds are not, per `docs/agents/testing.md` — this module has since
+#: grown past three times the size that measurement was taken at, and a stale absolute is worse than
+#: no number because it is still trusted. Re-measure before changing the grouping, not before
+#: reading this.
 pytestmark = pytest.mark.xdist_group("report-workspace")
 
 
@@ -155,8 +160,8 @@ def test_samples_render_as_a_metadata_table(workspace: Path) -> None:
     # business, and a test that pins the attribute verbatim fails on a spacing change.
     row_head = re.search(r'<th scope="row" class="([^"]*)"', html)
     assert row_head is not None
-    assert {"sf-col-sticky", "basis-toggle"} <= set(row_head.group(1).split())
-    assert 'class="basis-caret"' in html  # the expand caret
+    assert {"sf-col-sticky", "smp-toggle"} <= set(row_head.group(1).split())
+    assert 'class="smp-caret"' in html  # the expand caret
     assert '<tr id="detail-0-0" hidden>' in html  # the files drawer, closed
 
 
@@ -251,8 +256,10 @@ def _pane(html: str, tab: str) -> str:
     body = html.split("</style>")[-1]
     start = body.index(f'data-tab="{tab}">', body.index("<main"))
     rest = body[start:]
-    end = rest.find('<div class="pane" data-tab=')
-    return rest if end < 0 else rest[:end]
+    # Bounded by whichever comes first: the next pane, or the footer for the last one. Without the
+    # footer bound, a claim about the last tab could be satisfied by the page's own version string.
+    ends = [i for i in (rest.find('<div class="pane" data-tab='), rest.find("<footer")) if i >= 0]
+    return rest[: min(ends)] if ends else rest
 
 
 def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: Path) -> None:
@@ -641,7 +648,6 @@ def test_the_level_legend_names_every_verdict_the_page_can_render(own_workspace:
     here. Every visual claim belongs at the render seam, which is the criterion this PR added and the
     defect PR 1 shipped under.
     """
-    from seqforge.report.panels import _LEVEL_PHRASE
     from seqforge.workflows.metrics import Level
 
     _finish_a_starsolo_pipeline(own_workspace)
@@ -654,8 +660,17 @@ def test_the_level_legend_names_every_verdict_the_page_can_render(own_workspace:
     named = {level: (mark, words) for level, mark, words in entries}
 
     assert set(named) == set(get_args(Level)), "a verdict the page can render is missing its key"
-    for level, (mark, words) in named.items():
-        assert words == _LEVEL_PHRASE[level].split(" — ")[0]
+    # Spelled out, not `_LEVEL_PHRASE[level].split(" — ")[0]`. That is the legend's OWN formula, and
+    # a test that recomputes the expected value the way production computes it agrees with any
+    # rewording, including a wrong one — it would pass on a legend that read "far outside the
+    # expected range" for `ok`. These are the four sentences a reader is owed.
+    assert {level: words for level, (_mark, words) in named.items()} == {
+        "ok": "within the expected range",
+        "warn": "outside the expected range",
+        "bad": "far outside the expected range",
+        "none": "no defensible threshold exists for this number",
+    }
+    for level, (mark, _words) in named.items():
         # The mark is what survives colour-blindness and a greyscale printout, so the key has to
         # show it — and has to show its ABSENCE for the two verdicts that deliberately carry none.
         assert mark == {"warn": "!", "bad": "!!"}.get(level, "")
@@ -948,7 +963,7 @@ def test_both_grids_scroll_in_their_own_region_with_the_row_identifier_pinned() 
     # than as a whole `class="…"` string a third utility would falsify.
     row_head = re.search(r'<th scope="row" class="([^"]*)"', samples)
     assert row_head is not None
-    assert {"sf-col-sticky", "basis-toggle"} <= set(row_head.group(1).split())
+    assert {"sf-col-sticky", "smp-toggle"} <= set(row_head.group(1).split())
 
     evidence = _pane(page, "evidence")
     assert evidence.count("sf-scroll-x") == 2  # the winner's grid and its one sibling
@@ -1300,7 +1315,7 @@ def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
     # the fold control rather than on the removed `<details>`, because the removed one can never come
     # back and a guard that can only pass is the rule it replaced -- `grp-fold` DOES render on the
     # healthy page two tests up, so its absence here is a fact about this branch.
-    pane = _results_pane(html)
+    pane = _pane(html, "results")
     assert "grp-fold" not in pane
     assert "<table" not in pane
 
@@ -1450,11 +1465,6 @@ def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_worksp
 # diagram) and it is why this section exists in this shape.
 
 
-def _results_pane(html: str) -> str:
-    """Just the Results pane of a rendered page — it is the last one, and the footer ends it."""
-    return html.split('<div class="pane" data-tab="results">')[-1].split("<footer")[0]
-
-
 def _render_with_stats(workspace: Path, stats: PipelineStats) -> str:
     """The real page, with the first assay's pipeline stats swapped for `stats`.
 
@@ -1495,7 +1505,7 @@ def test_the_table_leads_and_sits_behind_no_disclosure(own_workspace: Path) -> N
     threshold are gone; what is asserted here is the consequence a reader can see.
     """
     _finish_a_starsolo_pipeline(own_workspace)
-    pane = _results_pane(render_html(collect_report(own_workspace)))
+    pane = _pane(render_html(collect_report(own_workspace)), "results")
 
     assert "<table" in pane, "the metrics table is the section"
     assert "<details" not in pane, "nothing on this tab is behind a disclosure widget"
@@ -1514,7 +1524,7 @@ def test_only_the_two_exceptional_verdicts_are_tinted(own_workspace: Path) -> No
     that read one and not the other would pass on a page whose `ok` cells were pale green.
     """
     _finish_a_starsolo_pipeline(own_workspace)
-    pane = _results_pane(render_html(collect_report(own_workspace)))
+    pane = _pane(render_html(collect_report(own_workspace)), "results")
 
     graded = re.findall(r'<td class="lvl-(\w+) lvl-cell', pane)
     assert set(graded) == {"ok", "warn", "bad", "none"}, (
@@ -1549,7 +1559,7 @@ def test_a_verdict_is_legible_with_the_colour_taken_away(own_workspace: Path) ->
     same as marking none.
     """
     _finish_a_starsolo_pipeline(own_workspace)
-    pane = _results_pane(render_html(collect_report(own_workspace)))
+    pane = _pane(render_html(collect_report(own_workspace)), "results")
 
     cells = re.findall(r'<td class="lvl-(\w+) lvl-cell[^>]*>(.*?)</td>', pane)
     assert cells
@@ -1578,7 +1588,7 @@ def test_every_metric_group_reaches_the_page_as_a_labelled_band(own_workspace: P
     assert set(_GROUP_LABEL) == members, "a group with no band label renders as a KeyError"
 
     _finish_a_starsolo_pipeline(own_workspace)
-    pane = _results_pane(render_html(collect_report(own_workspace)))
+    pane = _pane(render_html(collect_report(own_workspace)), "results")
 
     # `map/starsolo` is the module that emits every group, which is what makes it the one to assert
     # exhaustiveness against; a bulk or ATAC page correctly renders fewer bands.
@@ -1599,7 +1609,7 @@ def test_the_fold_engages_on_the_module_that_needs_it_and_on_no_other(own_worksp
     dataset used to change shape while its pipeline was still running.
     """
     _finish_a_starsolo_pipeline(own_workspace)
-    solo = _results_pane(render_html(collect_report(own_workspace)))
+    solo = _pane(render_html(collect_report(own_workspace)), "results")
 
     assert "grp-fold" in solo
     headline = re.findall(r'<td class="lvl-\w+ lvl-cell text-right whitespace-nowrap">', solo)
@@ -1612,7 +1622,7 @@ def test_the_fold_engages_on_the_module_that_needs_it_and_on_no_other(own_worksp
 def test_a_bulk_module_shows_every_column_and_offers_no_disclosure(own_workspace: Path) -> None:
     """Five columns is not a spreadsheet, so there is nothing to fold and no control to say so."""
     _finish_a_bulk_pipeline(own_workspace, outdir="results")
-    pane = _results_pane(render_html(collect_report(own_workspace)))
+    pane = _pane(render_html(collect_report(own_workspace)), "results")
 
     assert "<table" in pane
     assert "grp-fold" not in pane, "a disclosure over five columns is a click for nothing"
@@ -1629,7 +1639,7 @@ def test_the_sample_column_is_the_only_one_that_stays_put(own_workspace: Path) -
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY, "S3": _QC_SUMMARY})
-    pane = _results_pane(_render_with_stats(own_workspace, stats))
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
     assert 'class="sf-scroll-x"' in pane  # the wide table has its own scroll region
     # One header cell plus one row header per sample, and not one metric cell among them.
@@ -1647,7 +1657,7 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     thin: dict[str, object] = {"Number of Reads": 10, "Sequencing Saturation": 0.5}
     stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
-    pane = _results_pane(_render_with_stats(own_workspace, stats))
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
     rows = re.findall(r"<tr><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
     assert len(rows) == 2
@@ -1669,7 +1679,7 @@ def test_a_partial_run_still_renders_what_landed_and_says_how_much_did(own_works
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY})
     partial = stats.model_copy(update={"n_expected": 3})
-    pane = _results_pane(_render_with_stats(own_workspace, partial))
+    pane = _pane(_render_with_stats(own_workspace, partial), "results")
 
     assert "2 of 3 samples finished" in pane
     assert 'class="lvl-warn lvl-state' in pane  # a partial run is one of the two tinted states

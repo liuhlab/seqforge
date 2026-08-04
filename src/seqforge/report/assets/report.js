@@ -75,7 +75,7 @@
   // ---- sample row expand/collapse ---------------------------------------------------------------
   // The whole first cell is the target (a big, easy click area), not just the little caret.
   function initRowToggles() {
-    document.querySelectorAll(".basis-toggle").forEach(function (cell) {
+    document.querySelectorAll(".smp-toggle").forEach(function (cell) {
       function toggle() {
         var target = document.getElementById(cell.getAttribute("data-target"));
         if (!target) return;
@@ -83,7 +83,7 @@
         if (open) target.removeAttribute("hidden");
         else target.setAttribute("hidden", "");
         cell.setAttribute("aria-expanded", open ? "true" : "false");
-        var caret = cell.querySelector(".basis-caret");
+        var caret = cell.querySelector(".smp-caret");
         if (caret) caret.textContent = open ? "▾" : "▸";
       }
       cell.addEventListener("click", toggle);
