@@ -11,7 +11,7 @@ without a byte of network.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import pytest
@@ -152,6 +152,95 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
         attr.value for sample in samples for attr in sample.attributes if attr.name == "strain"
     }
     assert {"CQ757", "CQ758"} <= strains
+
+
+# ------------------------------------------------------------ a study bigger than one efetch batch
+
+_STUDY = (
+    '<STUDY center_name="BioProject" alias="PRJNA9999999" accession="SRP999999">'
+    "<IDENTIFIERS><PRIMARY_ID>SRP999999</PRIMARY_ID>"
+    '<EXTERNAL_ID namespace="BioProject">PRJNA9999999</EXTERNAL_ID></IDENTIFIERS>'
+    "<DESCRIPTOR><STUDY_TITLE>A study of more runs than fit in one request</STUDY_TITLE>"
+    "</DESCRIPTOR></STUDY>"
+)
+
+
+def _package_set(pairs: Sequence[tuple[str, str]]) -> str:
+    """``efetch db=sra`` XML for (experiment, biosample) pairs, every package restating the STUDY.
+
+    Restating it is the archive's own shape — a package is the whole chain above one experiment — and
+    it is why a fetch that pages sees the same study once per page.
+    """
+    packages = "".join(
+        f'<EXPERIMENT_PACKAGE><EXPERIMENT accession="{exp}"><TITLE>{exp}</TITLE></EXPERIMENT>'
+        f"{_STUDY}"
+        f'<SAMPLE accession="SRS{exp[3:]}" alias="{sample} nuclei"><IDENTIFIERS>'
+        f'<EXTERNAL_ID namespace="BioSample">{sample}</EXTERNAL_ID></IDENTIFIERS>'
+        "<SAMPLE_NAME><TAXON_ID>6239</TAXON_ID></SAMPLE_NAME></SAMPLE>"
+        f'<RUN_SET><RUN accession="SRR{exp[3:]}"/></RUN_SET></EXPERIMENT_PACKAGE>'
+        for exp, sample in pairs
+    )
+    return f"<EXPERIMENT_PACKAGE_SET>{packages}</EXPERIMENT_PACKAGE_SET>"
+
+
+def _paged_archive(
+    monkeypatch: pytest.MonkeyPatch, pairs: Sequence[tuple[str, str]]
+) -> list[tuple[str, list[str]]]:
+    """Serve ``pairs`` as an archive that answers exactly the ids each request asks for.
+
+    Returns the call log, so a test can see how many pages the fetch actually took. The biosample and
+    bioproject replies are empty on purpose: they only ever *add* attributes, and this is about how
+    many records come back.
+    """
+    _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment(exp) for exp, _ in pairs])
+    calls: list[tuple[str, list[str]]] = []
+
+    def fake_efetch(db: str, ids: list[str], **params: str) -> str:
+        calls.append((db, list(ids)))
+        if db != "sra":
+            return "<RecordSet/>"
+        asked = set(ids)
+        return _package_set([p for p in pairs if p[0] in asked])
+
+    monkeypatch.setattr(archive, "_efetch", fake_efetch)
+    return calls
+
+
+def test_a_study_too_large_for_one_efetch_holds_exactly_one_project_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every page restates the study, so deduplicating within a page leaves one project record per
+    page (#239). SRP383998's 1440 runs came back with the project 15 times, which is exactly its page
+    count — a defect no study small enough for a single request can show.
+    """
+    pairs = [(f"SRX{i:07d}", f"SAMN{i:07d}") for i in range(2 * archive._BATCH + 50)]
+    calls = _paged_archive(monkeypatch, pairs)
+
+    record_set = archive.fetch_records("PRJNA9999999")
+
+    assert [db for db, _ in calls].count("sra") == 3, "the fixture must span more than one page"
+    assert [r.accession for r in record_set.at("project")] == ["PRJNA9999999"]
+    seen = {(r.level, r.accession) for r in record_set.records}
+    assert len(seen) == len(record_set.records)  # and no level duplicates across pages either
+    assert len(record_set.at("experiment")) == len(record_set.at("run")) == len(pairs)
+
+
+def test_a_sample_whose_experiments_straddle_a_page_boundary_is_one_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sample repeats in every page holding one of its experiments, and pages split on experiment
+    count, so a sample with several experiments lands in two of them. The duplicate reaches the
+    biosample request too, where it spends an id slot on an attribute set already asked for.
+    """
+    per_sample = 60  # so SAMN0000001's experiments (60-119) fall either side of the 100 boundary
+    pairs = [(f"SRX{i:07d}", f"SAMN{i // per_sample:07d}") for i in range(2 * archive._BATCH + 50)]
+    calls = _paged_archive(monkeypatch, pairs)
+
+    record_set = archive.fetch_records("PRJNA9999999")
+
+    assert [r.accession for r in record_set.at("sample")] == [f"SAMN{i:07d}" for i in range(5)]
+    asked = [ids for db, ids in calls if db == "biosample"]
+    assert asked and all(len(ids) == len(set(ids)) for ids in asked)
 
 
 def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
