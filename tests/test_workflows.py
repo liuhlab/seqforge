@@ -36,12 +36,15 @@ from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
+    QC_SUFFIX,
     FragmentsError,
     build_fragments_qc,
     fragments_suffixes,
     write_fragments,
     write_fragments_qc,
 )
+from seqforge.workflows.fragments import metrics as fragments_metrics
+from seqforge.workflows.fragments import read_metrics as read_fragments_metrics
 from seqforge.workflows.h5ad import (
     SOLO_FEATURE_OUTPUT,
     STAR_BAM,
@@ -55,7 +58,21 @@ from seqforge.workflows.h5ad import (
     write_h5ad,
 )
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
-from seqforge.workflows.qc import QcError, build_qc_bundle, write_qc_bundle
+from seqforge.workflows.metrics import (
+    MAX_KNEE_POINTS,
+    Metric,
+    SampleStats,
+    fmt_int,
+    knee_points,
+)
+from seqforge.workflows.qc import QcError, build_qc_bundle, read_star_log, write_qc_bundle
+from seqforge.workflows.qc import metrics as starsolo_metrics
+from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
+from seqforge.workflows.stats import (
+    MODULES_WITHOUT_STATS,
+    modules_with_stats,
+    read_pipeline_stats,
+)
 
 # ================================================================================================
 # h5ad — packaging Solo.out as the deliverable
@@ -740,6 +757,10 @@ def test_fragments_suffixes_are_the_three_deliverables_in_build_order() -> None:
         ".fragments.tsv.gz.tbi",
         ".fragments.qc.json.gz",
     ]
+    # The one literal in this file the rule and the pipeline-stats registry both resolve to. Pinned
+    # here so the constant has a spelling somewhere, and imported everywhere else so a rename shows
+    # up as this test failing rather than as a report that quietly finds no artifact.
+    assert fragments_suffixes()[-1] == QC_SUFFIX
 
 
 # -- QC (pure Python) -------------------------------------------------------
@@ -1391,3 +1412,666 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
         "wrong place — `starsolo_count` must pass one (STAR's default of 0 means 'reuse the genome "
         "allocation', which is too small on a small genome and FATALs)"
     )
+
+
+# ================================================================================================
+# metrics/stats/qc/fragments — reading a finished pipeline back
+# ================================================================================================
+#
+# What ``seqforge report`` sees once the composed Snakefile has run. Three gates matter here and they
+# are all silent failures:
+#
+#   * a fourth aligner is registered and reports NOTHING, because nobody added a reader;
+#   * the writer renames a bundle key, the reader keeps looking up the old one, and the page quietly
+#     loses a metric with nothing red;
+#   * a value the tool never wrote is rendered as ``0.0`` — a number a reader will act on.
+#
+# The grading cases below are taken verbatim from a real STARsolo run that mapped the wrong read as
+# the barcode. Telling that run apart from a healthy one is the entire point of the layer.
+
+
+_HEALTHY_SUMMARY: dict[str, object] = {
+    "Number of Reads": 412331205,
+    "Reads With Valid Barcodes": 0.972113,
+    "Sequencing Saturation": 0.6431,
+    "Q30 Bases in CB+UMI": 0.966122,
+    "Q30 Bases in RNA read": 0.94553,
+    "Reads Mapped to Genome: Unique": 0.884221,
+    "Reads Mapped to Gene: Unique Gene": 0.641902,
+    "Estimated Number of Cells": 8842,
+    "Fraction of Unique Reads in Cells": 0.8712,
+    "Median UMI per Cell": 4213,
+    "Median Gene per Cell": 1922,
+    "Total Gene Detected": 21044,
+}
+
+_HEALTHY_LOG: dict[str, object] = {
+    "Number of input reads": 412331205,
+    "Uniquely mapped reads %": "88.42%",
+    "% of reads mapped to multiple loci": "6.31%",
+    "% of reads mapped to too many loci": "0.42%",
+    "% of reads unmapped: too short": "3.90%",
+}
+
+#: A real STARsolo run in which the cDNA read was handed to STAR as the barcode read. Every value is
+#: verbatim from its `Summary.csv` / `Log.final.out`; the four that must go red are the ones a human
+#: used to catch by eye, and the reason this layer exists.
+_BROKEN_SUMMARY: dict[str, object] = {
+    "Number of Reads": 207946411,
+    "Reads With Valid Barcodes": 0.000762759,
+    "Sequencing Saturation": 0.0,
+    "Q30 Bases in CB+UMI": 0.966122,
+    "Q30 Bases in RNA read": 0.94553,
+    "Reads Mapped to Genome: Unique": 0.259409,
+    "Reads Mapped to Gene: Unique Gene": 1.68649e-05,
+    "Estimated Number of Cells": 3,
+    "Fraction of Unique Reads in Cells": 0.0016,
+    "Median UMI per Cell": 2,
+    "Median Gene per Cell": 2,
+    "Total Gene Detected": 47,
+}
+
+_BROKEN_LOG: dict[str, object] = {
+    "Number of input reads": 207946411,
+    "Uniquely mapped reads %": "25.94%",
+    "% of reads mapped to multiple loci": "5.30%",
+    "% of reads mapped to too many loci": "10.90%",
+    "% of reads unmapped: too short": "57.80%",
+}
+
+#: The four that separate the broken run above from the healthy one. Two come from `Summary.csv` as
+#: bare fractions and two from `Log.final.out` as percent STRINGS, which is why the scale crossing has
+#: a test of its own: a `"25.94%"` read as 25.94 grades `ok` against a 0.60 bar.
+_CATCHES_A_BROKEN_RUN = (
+    "valid_barcodes",
+    "reads_in_genes",
+    "uniquely_mapped",
+    "unmapped_too_short",
+)
+
+#: Every metric a complete STARsolo bundle yields. Asserted as a SET, because that is the writer ->
+#: reader contract: rename a key in `build_qc_bundle` and the lookup in `qc.metrics` stops resolving,
+#: which costs a row here rather than failing anywhere. `input_reads` is absent on purpose — STARsolo's
+#: own "reads" already reports it, and two columns of one number read as two facts.
+_FULL_SOLO_METRICS = {
+    "reads",
+    "valid_barcodes",
+    "reads_in_genes",
+    "reads_in_genome",
+    "cells",
+    "reads_in_cells",
+    "median_umi",
+    "median_genes",
+    "genes_detected",
+    "saturation",
+    "q30_cb_umi",
+    "q30_rna",
+    "uniquely_mapped",
+    "multi_loci",
+    "too_many_loci",
+    "unmapped_too_short",
+}
+
+
+def _by_key(sample: SampleStats) -> dict[str, Metric]:
+    return {m.key: m for m in sample.metrics}
+
+
+def _levels(sample: SampleStats) -> dict[str, str]:
+    return {m.key: m.level for m in sample.metrics}
+
+
+def _bundle(summary: dict[str, object], log_final: dict[str, object]) -> dict[str, object]:
+    """One bundle payload as a literal — the pure seam, with no file and no writer in the way.
+
+    Shaped like what `build_qc_bundle` writes, which a literal cannot itself prove; that claim belongs
+    to `test_the_bundle_the_writer_produces_is_the_one_the_reader_looks_up`, which goes through the
+    real writer. Everything here is about judgement — thresholds, scales, absence — not about IO.
+    """
+    return {
+        "sample": "S1",
+        "summary": {"Gene": summary},
+        "log_final": log_final,
+        "umi_per_cell": {"Gene": [50, 30, 10]},
+    }
+
+
+def _finished_star_run(
+    tmp_path: Path, *, summary: dict[str, object], log_final: dict[str, object]
+) -> tuple[Path, Path]:
+    """A STAR output tree carrying STAR's REAL `Summary.csv` / `Log.final.out` labels.
+
+    `_fake_run` writes a two-row summary and a made-up log key, which is enough for the bundle-shape
+    tests above and useless here: the reader looks rows up by STAR's exact label, so a fixture that
+    invents labels can only ever prove the reader finds nothing.
+    """
+    solo, run_dir = _fake_run(tmp_path, ["Gene"])
+    _write(solo / "Gene" / "Summary.csv", "".join(f"{k},{v}\n" for k, v in summary.items()))
+    _write(run_dir / "Log.final.out", "".join(f"    {k} |\t{v}\n" for k, v in log_final.items()))
+    return solo, run_dir
+
+
+def _landed(results: Path, sample: str, bundle: object) -> Path:
+    """Put one sample's STARsolo QC artifact where `read_pipeline_stats` looks for it."""
+    path = results / sample / f"{sample}.qc.json.gz"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        json.dump(bundle, fh)
+    return path
+
+
+# -- the registry drift guard -----------------------------------------------
+
+
+def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -> None:
+    """A fourth aligner must not land and silently report nothing on every page.
+
+    This is the mechanism that replaces a `module == "map/starsolo"` branch in the collector — the
+    same silent fall-through `read_layout_kind` and `param_block` exist to prevent. Registering a
+    module without a reader is a build-time defect, so it is caught here rather than by a report that
+    renders an empty results section and looks like a pipeline that has not started.
+
+    `MODULES_WITHOUT_STATS` is now EMPTY — every shipped module reports — and both halves are still
+    asserted by NAME rather than by size. "Some module is silent" was never the claim; which module is
+    is, and a list that shrinks must shrink because an adapter landed rather than because a name was
+    quietly dropped from the guard. Empty is also why the list must survive: it is what the guard
+    compares a newly registered module against, so deleting it would delete the mechanism along with
+    its backlog.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    stats_registry._check_registry()
+    assert set(modules_with_stats()) | MODULES_WITHOUT_STATS == set(list_modules())
+    # And `MODULES_WITHOUT_STATS` is the OTHER half: a module may only be silent by saying so.
+    assert not (set(modules_with_stats()) & MODULES_WITHOUT_STATS)
+    assert set(modules_with_stats()) == {"map/starsolo", "map/chromap", "map/star"}
+    assert MODULES_WITHOUT_STATS == frozenset()
+
+
+def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A guard nobody has seen fail is a guard that may not be looking.
+
+    Both directions are live: a module registered with no reader (the fourth aligner) and a reader
+    registered for a module that no longer exists (a renamed module leaving a stale spec behind).
+    `MODULES` and `_SPECS` are rebound rather than mutated, so the real registries are never touched.
+    """
+    from seqforge.workflows import MODULES
+    from seqforge.workflows import stats as stats_registry
+
+    monkeypatch.setattr(
+        stats_registry, "MODULES", {**MODULES, "map/fourth": MODULES["map/star"]}, raising=True
+    )
+    with pytest.raises(AssertionError, match="map/fourth"):
+        stats_registry._check_registry()
+
+    monkeypatch.undo()
+    monkeypatch.setattr(
+        stats_registry,
+        "_SPECS",
+        {**stats_registry._SPECS, "map/ghost": stats_registry._SPECS["map/starsolo"]},
+        raising=True,
+    )
+    with pytest.raises(AssertionError, match="unknown module"):
+        stats_registry._check_registry()
+
+
+# -- the writer/reader round trip -------------------------------------------
+
+
+def test_the_bundle_the_writer_produces_is_the_one_the_reader_looks_up(tmp_path: Path) -> None:
+    """`build_qc_bundle` decides the keys and `qc.metrics` looks them up — through the real writer.
+
+    They live in one file precisely so they cannot drift, and this is what holds that shut. A test
+    that hands `qc.metrics` a hand-written dict cannot catch a rename in the writer: the reader would
+    keep resolving against the test's own dict while the page silently lost a column.
+    """
+    features: list[SoloFeature] = ["Gene"]
+    solo, run_dir = _finished_star_run(tmp_path, summary=_HEALTHY_SUMMARY, log_final=_HEALTHY_LOG)
+    out = write_qc_bundle(
+        solo, run_dir, features, tmp_path / "S1.qc.json.gz", sample="S1", assembly="ce11"
+    )
+
+    sample = read_starsolo_metrics(out, "S1")
+
+    assert set(_by_key(sample)) == _FULL_SOLO_METRICS
+    got = _by_key(sample)
+    assert got["reads"].value == 412331205
+    assert got["valid_barcodes"].value == pytest.approx(0.972113)
+    assert got["cells"].value == 8842
+    assert got["uniquely_mapped"].value == pytest.approx(0.8842)  # "88.42%" from the text log
+    assert all(m.level == "ok" for m in sample.metrics if m.key in _CATCHES_A_BROKEN_RUN)
+    # The knee comes from UMIperCellSorted.txt, which only the writer knows the location of.
+    assert sample.knee == [(1, 50), (2, 30), (3, 10)]
+    # Which feature the headline numbers came from is stated, never implied: Gene and GeneFull
+    # disagree by design, so a page that does not name the feature is showing an unlabelled number.
+    assert "Gene" in sample.note
+
+
+def test_the_fragments_summary_the_writer_produces_is_the_one_the_reader_looks_up(
+    tmp_path: Path,
+) -> None:
+    """The chromap half of the same contract: `write_fragments_qc` writes, `fragments.metrics` reads.
+
+    Driven through the real writer *and* through the registry, because those are two claims and both
+    fail silently. `FragmentsQC.to_dict` decides the payload keys, so a rename there costs a row here
+    instead of a column on the page; and `read_pipeline_stats` finds the file by the filename the
+    registry holds, so a suffix that drifts from `fragments_suffixes` renders as a pipeline that
+    looks like it never ran.
+
+    The ATAC column set is genuinely smaller than STARsolo's — chromap's summary carries no
+    whitelist-match rate, so there is no ATAC "valid barcodes" — and that is a property of the
+    artifact, not an omission. Asserted as a SET, so a reader inventing a metric the writer never
+    wrote fails here too.
+    """
+    results = tmp_path / "results"
+    raw = tmp_path / "fragments.raw.tsv"
+    raw.write_text(_RAW)
+    out = write_fragments_qc(raw, results / "s1" / f"s1{QC_SUFFIX}", sample="s1", assembly="mm10")
+
+    stats = read_pipeline_stats("map/chromap", results, ["s1"])
+
+    assert stats is not None and stats.complete
+    sample = stats.samples[0]
+    got = _by_key(sample)
+    assert set(got) == {
+        "reads",
+        "fragments",
+        "barcodes",
+        "reads_per_fragment",
+        "mean_fragments_per_barcode",
+        "max_fragments_per_barcode",
+    }
+    assert got["reads"].value == 6  # 3 + 1 + 2 read pairs behind the three fragments
+    assert got["fragments"].value == 3
+    assert got["barcodes"].value == 2  # AAA, CCC -- barcodes seen, NOT cells
+    assert got["reads_per_fragment"].value == pytest.approx(2.0)
+    assert sample.knee == []  # chromap keeps no per-barcode vector, so there is no knee to draw
+    # And the registry dispatched to this module's own reader rather than to some other adapter that
+    # happened to survive the same bytes -- one artifact, one owner.
+    assert read_fragments_metrics(out, "s1").metrics == sample.metrics
+
+
+# -- grading, on real values ------------------------------------------------
+
+
+def test_the_broken_run_grades_bad_on_exactly_the_metrics_a_human_caught_it_by() -> None:
+    """The whole point of the layer: telling a wrong-barcode-read run from a healthy one.
+
+    The four values are verbatim from a run that handed STAR the cDNA read as the barcode. Both
+    conventions are represented — `Summary.csv` fractions and `Log.final.out` percent strings — so a
+    threshold applied to an unconverted `"25.94%"` (which reads as 25.94, comfortably above a 0.60
+    bar) grades `ok` here and the test goes red.
+    """
+    broken = _levels(starsolo_metrics(_bundle(_BROKEN_SUMMARY, _BROKEN_LOG), "broken"))
+    healthy = _levels(starsolo_metrics(_bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG), "healthy"))
+
+    assert [broken[k] for k in _CATCHES_A_BROKEN_RUN] == ["bad"] * 4
+    assert [healthy[k] for k in _CATCHES_A_BROKEN_RUN] == ["ok"] * 4
+    # A bar tight enough to flag ordinary biology is a bar that gets ignored: nothing in the healthy
+    # run may be red, or the four above stop meaning anything.
+    assert "bad" not in healthy.values()
+
+
+def test_a_percent_string_and_a_bare_fraction_arrive_on_the_same_scale() -> None:
+    """`Log.final.out` writes `"95.50%"`, `Summary.csv` writes `0.955`, and one threshold means one
+    thing only if both land as a fraction.
+
+    `_coerce` deliberately leaves the percent form a string — the bundle is a lossless archive and
+    nothing there should be reshaped into a number it is not — which puts the whole burden of the
+    crossing on the reader. An unparseable value takes the other branch: absent, never zero.
+    """
+    sample = starsolo_metrics(
+        {
+            "summary": {"Gene": {"Reads Mapped to Genome: Unique": 0.9550}},
+            "log_final": {
+                "Uniquely mapped reads %": "95.50%",
+                "% of reads unmapped: too short": "N/A",
+            },
+        },
+        "S1",
+    )
+    got = _by_key(sample)
+
+    assert got["uniquely_mapped"].value == pytest.approx(got["reads_in_genome"].value)
+    assert got["uniquely_mapped"].value == pytest.approx(0.955)
+    assert got["uniquely_mapped"].display == "95.5%"
+    assert got["uniquely_mapped"].level == "ok"
+    assert "unmapped_too_short" not in got
+
+
+def _reads_per_fragment(tenths: int) -> Metric:
+    """The graded ratio at `tenths/10` read pairs per fragment, built by the real adapter."""
+    payload = {"n_fragments": 10, "total_reads": tenths}
+    return _by_key(fragments_metrics(payload, "s1"))["reads_per_fragment"]
+
+
+def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart() -> None:
+    """`reads / fragment` is graded at 2.0 and 4.0, so its display has to resolve a tenth.
+
+    This is what `ratio` exists for beside `count`, and the fragments adapter is its first caller:
+    an integer display rounds a graded ratio past its own bar, and the colour then contradicts the
+    number sitting next to it. 1.9 is `ok` where 2.1 is `warn`, and 3.9 is `warn` where 4.1 is `bad`;
+    under `count`'s formatter each pair collapses to ONE string — "2" and "4" — appearing in the
+    table in two different colours, which a reader can only read as a rendering bug.
+
+    One decimal is what these two bars need, and the claim is exactly that and no more: a step the
+    metric can meaningfully take across a bar is visible on the page. No finite precision can promise
+    that no two differently-graded values ever share a string, because values arbitrarily close to a
+    bar exist on both sides of it — at a tenth the pair that still collapses has to agree with the
+    bar to within 0.05, which is 2.5% of it rather than the 25% an integer would allow.
+    """
+    below_ok, above_ok = _reads_per_fragment(19), _reads_per_fragment(21)
+    below_warn, above_warn = _reads_per_fragment(39), _reads_per_fragment(41)
+
+    assert (below_ok.level, above_ok.level) == ("ok", "warn")
+    assert (below_warn.level, above_warn.level) == ("warn", "bad")
+    assert (below_ok.display, above_ok.display) == ("1.9", "2.1")
+    assert (below_warn.display, above_warn.display) == ("3.9", "4.1")
+    # The counterfactual, and the reason this metric is not built with `count`.
+    assert fmt_int(below_ok.value) == fmt_int(above_ok.value) == "2"
+    assert fmt_int(below_warn.value) == fmt_int(above_warn.value) == "4"
+
+
+# -- absent degrades to absent ----------------------------------------------
+
+
+def test_a_key_the_artifact_does_not_carry_becomes_an_absent_metric_never_a_zero() -> None:
+    """A metric the tool never wrote must not be rendered as 0.0 — that is a number a reader acts on.
+
+    This is the whole reason `fraction`/`count`/`ratio` return `Optional`, and it is what makes an
+    old `WORKFLOW_VERSION`'s artifact render FEWER rows rather than wrong ones. The contrast is the
+    point: an absent key yields no metric, while a zero the writer really wrote is data and stays —
+    and it is still graded, so a genuine zero goes red rather than quietly reading as "no threshold".
+
+    Both adapters, because the rule is the seam's and not one tool's, and because chromap's summary
+    has the case STARsolo's does not: a DERIVED number whose inputs are present and whose divisor is
+    zero. That one is absent for a second reason on top of the first — there is no answer to divide,
+    and neither `0.0` nor `inf` may cross the JSON seam pretending there is.
+    """
+    thin = starsolo_metrics({"summary": {"Gene": {"Number of Reads": 1000}}}, "S1")
+    assert set(_by_key(thin)) == {"reads"}
+
+    written_zero = starsolo_metrics(
+        {"summary": {"Gene": {"Number of Reads": 1000, "Reads With Valid Barcodes": 0.0}}}, "S1"
+    )
+    got = _by_key(written_zero)
+    assert set(got) == {"reads", "valid_barcodes"}
+    assert got["valid_barcodes"].value == 0.0
+    assert got["valid_barcodes"].level == "bad"
+
+    partial = fragments_metrics({"n_fragments": 10, "total_reads": 20}, "s1")
+    assert set(_by_key(partial)) == {"reads", "fragments", "reads_per_fragment"}
+
+    # A pipeline that produced no fragments: the counts are real zeros and stay, graded, while both
+    # derived ratios would divide by zero and are therefore absent rather than 0.0 or inf.
+    empty = fragments_metrics(
+        {"n_fragments": 0, "n_barcodes": 0, "total_reads": 0, "max_fragments_per_barcode": 0}, "s1"
+    )
+    got = _by_key(empty)
+    assert set(got) == {"reads", "fragments", "barcodes", "max_fragments_per_barcode"}
+    assert got["fragments"].value == 0.0
+    assert got["fragments"].level == "bad"  # a real zero is still graded
+
+
+# -- read_pipeline_stats ----------------------------------------------------
+
+
+def test_read_pipeline_stats_returns_none_when_there_is_nothing_to_render(tmp_path: Path) -> None:
+    """Unknown module, absent results dir, nothing landed yet — for a reader all three are one fact.
+
+    `None` and not an empty `PipelineStats`: an empty one renders a results section that says a
+    pipeline produced nothing, which is a claim about the pipeline rather than about what is on disk.
+    The unknown-module branch is the same one a name in `MODULES_WITHOUT_STATS` would take, which is
+    what lets that list be a declaration rather than a special case in the collector; it is empty
+    today, and this is the branch that would carry its next entry.
+    """
+    results = tmp_path / "results"
+    _landed(results, "S1", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+
+    assert read_pipeline_stats("map/nonesuch", results, ["S1"]) is None
+    assert read_pipeline_stats("map/starsolo", tmp_path / "never-ran", ["S1"]) is None
+    assert read_pipeline_stats("map/starsolo", results, ["S9"]) is None
+    # A registered module whose OWN artifact is absent: `map/star` asks for `Log.final.out` and does
+    # not read the STARsolo bundle lying beside it, however readable those bytes are. One artifact,
+    # one owner — the registry dispatches on the module, never on whatever the sample directory holds.
+    assert read_pipeline_stats("map/star", results, ["S1"]) is None
+
+
+def test_a_partial_pipeline_reports_what_landed_and_says_how_much_did(tmp_path: Path) -> None:
+    """Half a pipeline is a first-class answer, because half is what a preempted cluster leaves.
+
+    `n_expected` comes from the composed config's own sample list — the artifact the pipeline
+    consumed — so "did it finish" is answered by the files it was contracted to produce and not by
+    parsing a snakemake log.
+    """
+    results = tmp_path / "results"
+    for sample in ("S1", "S2"):
+        _landed(results, sample, _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3"])
+
+    assert stats is not None
+    assert (stats.n_found, stats.n_expected) == (2, 3)
+    assert not stats.complete
+    assert [s.sample_id for s in stats.samples] == ["S1", "S2"]
+    # The counts, and NOT a "2 of 3 samples" sentence beside them. The reader renders the numbers, so
+    # a note repeating them in words put one fact on the page twice — a heading and its own small
+    # print. `notes` carries what the counts cannot say; how to phrase a count is the view's job.
+    assert not any("of 3" in note for note in stats.notes), stats.notes
+
+
+def test_one_unreadable_artifact_costs_its_own_row_and_not_the_whole_pipeline(
+    tmp_path: Path,
+) -> None:
+    """A truncated bundle is what a killed job or a full disk leaves behind, and it must cost one row.
+
+    All three corruptions arrive as different exception types — a half-written gzip stream ends in
+    `EOFError`, a file that is not gzip at all in `BadGzipFile`, valid gzip holding half a JSON object
+    in `JSONDecodeError` — and a reader that survives only the ones it happened to think of takes the
+    whole report down for the samples that are perfectly fine.
+    """
+    results = tmp_path / "results"
+    _landed(results, "S1", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+    _landed(results, "S5", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+    whole = (results / "S1" / "S1.qc.json.gz").read_bytes()
+    _write(results / "S2" / "S2.qc.json.gz", "")  # placeholder so the parent dir exists
+    (results / "S2" / "S2.qc.json.gz").write_bytes(whole[: len(whole) // 2])  # killed mid-write
+    _write(results / "S3" / "S3.qc.json.gz", "not gzip at all")
+    (results / "S4" / "S4.qc.json.gz").parent.mkdir(parents=True, exist_ok=True)
+    (results / "S4" / "S4.qc.json.gz").write_bytes(gzip.compress(b'{"summary": {"Gene"'))
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3", "S4", "S5"])
+
+    assert stats is not None
+    assert [s.sample_id for s in stats.samples] == ["S1", "S5"]
+    assert stats.n_found == 2
+    for broken in ("S2", "S3", "S4"):
+        assert any(broken in note for note in stats.notes), (broken, stats.notes)
+
+
+def test_a_pipeline_whose_every_artifact_is_corrupt_does_not_read_as_never_run(
+    tmp_path: Path,
+) -> None:
+    """Nothing readable is not the same fact as nothing written, and the page must not conflate them.
+
+    `read_pipeline_stats` returned `None` whenever no sample parsed, and `None` is what the renderer
+    turns into "this assay's pipeline has not been run yet". So the one run that most needs saying —
+    it ran, it wrote, and every byte of it is unparseable — rendered as the run that never happened,
+    and each per-sample failure the reader had already named was dropped on the way out. The
+    partial-run test above cannot catch it: it always leaves two good samples behind.
+
+    `None` is reserved for a results tree with nothing in it at all, which is checked here too, since
+    a fix that returned stats for *both* cases would trade this defect for its mirror image.
+    """
+    results = tmp_path / "results"
+    _write(results / "S1" / "S1.qc.json.gz", "not gzip at all")
+    (results / "S2").mkdir(parents=True, exist_ok=True)
+    (results / "S2" / "S2.qc.json.gz").write_bytes(gzip.compress(b'{"summary": {"Gene"'))
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3"])
+
+    assert stats is not None
+    assert stats.samples == []
+    assert (stats.n_found, stats.n_expected) == (0, 3)
+    assert not stats.complete
+    for broken in ("S1", "S2"):
+        assert any(broken in note for note in stats.notes), (broken, stats.notes)
+    # S3 never landed, so it is missing rather than broken — an absent file is not a failure to read.
+    assert not any("S3" in note for note in stats.notes)
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert read_pipeline_stats("map/starsolo", empty, ["S1"]) is None
+
+
+def test_a_bug_in_a_metric_table_is_raised_and_not_filed_as_a_corrupt_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bad bytes are tolerated; bad CODE is not, and the `except` must not do both jobs.
+
+    `KeyError`/`TypeError` are what a mistake in a metric table raises, and catching them alongside
+    the corruption cases turned a logic error into a per-sample note reading "its QC artifact could
+    not be read" — the report stayed green, the page silently dropped a sample, and the defect was in
+    seqforge rather than on disk. The artifact here is perfectly good; only the reader is broken.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    results = tmp_path / "results"
+    _landed(results, "S1", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+
+    def buggy(path: Path, sample: str) -> SampleStats:
+        raise KeyError("a metric table asked for a key it never wrote")
+
+    spec = stats_registry._SPECS["map/starsolo"]
+    monkeypatch.setattr(
+        stats_registry,
+        "_SPECS",
+        {"map/starsolo": stats_registry.StatsSpec(artifact=spec.artifact, read=buggy)},
+        raising=True,
+    )
+
+    with pytest.raises(KeyError, match="never wrote"):
+        read_pipeline_stats("map/starsolo", results, ["S1"])
+
+
+def test_a_metric_one_sample_lacks_leaves_a_gap_rather_than_dropping_the_column(
+    tmp_path: Path,
+) -> None:
+    """The column set is a first-seen-order UNION, so one thin sample cannot blank a column for all.
+
+    An intersection would mean a single sample whose STAR run wrote no `Summary.csv` row silently
+    deletes that metric from every other sample's row too — the whole pipeline degraded to its worst
+    member, with nothing saying so.
+    """
+    results = tmp_path / "results"
+    _landed(results, "S1", _bundle({"Number of Reads": 10, "Sequencing Saturation": 0.5}, {}))
+    _landed(results, "S2", _bundle(_HEALTHY_SUMMARY, _HEALTHY_LOG))
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2"])
+
+    assert stats is not None
+    keys = [k for k, _ in stats.columns]
+    assert keys[:2] == ["reads", "saturation"]  # first-seen order, from the thin sample
+    assert set(keys) == _FULL_SOLO_METRICS  # everything the full sample added is still a column
+    assert len(keys) == len(set(keys))
+    assert set(_by_key(stats.samples[0])) == {"reads", "saturation"}  # S1 keeps its gaps
+    assert all(label for _, label in stats.columns)  # a column a human cannot name is not a column
+
+
+def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
+    tmp_path: Path,
+) -> None:
+    """`map/star` reports with no rule in between, which is why a `StatsSpec` carries a FILENAME.
+
+    STAR writes `Log.final.out` unasked, and no rule in the shipped `star.smk` declares, consumes or
+    deletes it — asserted here rather than assumed, because that absence is the entire claim. So bulk
+    reports with no `.smk` edit, hence no `WORKFLOW_VERSION` bump, hence no `run_id` invalidated and
+    nothing already compiled reprocessed. A `{sample}.<suffix>` convention could not have expressed
+    this artifact at all: it carries no sample name and no rule of ours names it.
+
+    The filename is spelled out below rather than imported from `h5ad`, deliberately. A test reading
+    the same constant the registry reads could only prove the two agree with each other; what has to
+    hold is that both agree with what STAR itself writes, and only a literal states that separately.
+    """
+    blocks = _rule_blocks(get_module("map/star").snakefile)
+    assert blocks, "the shipped bulk module should have rules to look at"
+    assert not [name for name, body in blocks.items() if "Log.final.out" in body]
+
+    results = tmp_path / "results"
+    _write(
+        results / "S1" / "Log.final.out", "".join(f"  {k} |\t{v}\n" for k, v in _BROKEN_LOG.items())
+    )
+
+    stats = read_pipeline_stats("map/star", results, ["S1"])
+
+    assert stats is not None and stats.complete
+    sample = stats.samples[0]
+    # Bulk has no barcodes, no cells and no knee, so the adapter is the alignment half and nothing
+    # else -- `input_reads` included, which STARsolo drops only because its own "Reads" repeats it.
+    assert set(_by_key(sample)) == {
+        "input_reads",
+        "uniquely_mapped",
+        "multi_loci",
+        "too_many_loci",
+        "unmapped_too_short",
+    }
+    assert sample.knee == []
+    assert sample.note == ""  # no feature was chosen, so there is no feature to caption
+    # And the grading crosses the same scale: "25.94%" read as 25.94 would sit above a 0.60 bar.
+    assert _levels(sample)["uniquely_mapped"] == "bad"
+    # One implementation of "what STAR's alignment log says", reached by both pipelines through it.
+    assert read_star_log(results / "S1" / "Log.final.out", "S1").metrics == sample.metrics
+
+
+# -- the knee vector --------------------------------------------------------
+
+
+def test_the_knee_vector_is_capped_and_log_spaced_so_the_page_stays_in_budget() -> None:
+    """One integer per whitelist barcode (~6.8M on 10x v3) against a 500 KB self-contained page.
+
+    Log-spaced and not uniform because the plot is read on log axes: uniform sampling spends almost
+    every point on the flat tail and draws the knee — the one feature anybody looks at — as two
+    pixels. The middle POINT therefore sits near sqrt(n) in rank, not at n/2.
+    """
+    vector = list(range(50_000, 0, -1))
+
+    points = knee_points(vector)
+    ranks = [r for r, _ in points]
+
+    assert len(points) <= MAX_KNEE_POINTS
+    assert ranks[0] == 1 and ranks[-1] == len(vector)  # the curve's extent is exact
+    assert ranks == sorted(set(ranks))
+    assert all(value == vector[rank - 1] for rank, value in points)  # sampled, never interpolated
+    assert ranks[len(ranks) // 2] < len(vector) // 10
+
+
+def test_a_short_or_empty_knee_vector_passes_through_untouched() -> None:
+    """Nothing to thin: a small sample keeps every point, and no vector at all is not a point at zero."""
+    assert knee_points([]) == []
+    assert knee_points([9, 4, 1]) == [(1, 9), (2, 4), (3, 1)]
+    assert len(knee_points(list(range(MAX_KNEE_POINTS, 0, -1)))) == MAX_KNEE_POINTS
+
+
+# -- determinism ------------------------------------------------------------
+
+
+def test_which_feature_the_headline_metrics_come_from_never_depends_on_dict_order() -> None:
+    """Two bundles carrying the same features must report the same numbers, whatever order they arrive.
+
+    STAR writes one `Summary.csv` per `soloFeatures` entry and they disagree BY DESIGN (`Gene` is
+    exonic, `GeneFull*` counts introns too), so picking whichever the dict yielded first would make
+    the reported number a function of JSON key order — a page that changes without the pipeline
+    changing.
+    """
+    preferred = {"GeneFull": {"Number of Reads": 1}, "Gene": {"Number of Reads": 2}}
+    assert [m.value for m in starsolo_metrics({"summary": preferred}, "S1").metrics] == [2.0]
+
+    # Neither is in the preference list, so the tie is broken by sorting rather than by insertion.
+    unranked: dict[str, object] = {"Velocyto": {"Number of Reads": 5}, "SJ": {"Number of Reads": 9}}
+    forward = starsolo_metrics({"summary": dict(unranked)}, "S1")
+    backward = starsolo_metrics({"summary": dict(reversed(list(unranked.items())))}, "S1")
+
+    assert forward.note == backward.note
+    assert forward.metrics == backward.metrics

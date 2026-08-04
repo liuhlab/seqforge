@@ -3,8 +3,10 @@
 This is where all the graceful degradation lives. The manifest is the one required artifact (the
 chemistry decision it carries is what makes the page always render); everything else — the harvested
 assertions behind a sample quote, the archive records behind a study abstract, the persisted evidence
-matrix, the composed pipeline — is joined in if present and simply omitted if not. Nothing here
-decides anything: it reads what the deterministic verbs already wrote and flattens it for a human.
+matrix, the composed pipeline, and the per-sample QC artifacts a *finished* pipeline left behind — is
+joined in if present and simply omitted if not. Nothing here decides anything: it reads what the
+deterministic verbs already wrote (and, for the results, what the user's own snakemake wrote) and
+flattens it for a human.
 
 The one non-obvious join is the evidence matrix. It is persisted per **run** under a cache key that
 folds in tool versions the manifest never stores, so the report never recomputes that key — it scans
@@ -24,7 +26,9 @@ import yaml
 
 from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
+from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
 from ..project import discover_assays
+from ..workflows.metrics import PipelineStats
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
     ArtifactEmbed,
@@ -75,10 +79,19 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _MAX_MATRIX_TECHS = 6
 
 
-def collect_report(workspace: str | Path, *, generated_at: str | None = None) -> ProjectReport:
+def collect_report(
+    workspace: str | Path,
+    *,
+    generated_at: str | None = None,
+    results_dir: Path | None = None,
+) -> ProjectReport:
     """Project a workspace into a :class:`ProjectReport` (one :class:`AssayReport` per assay).
 
     ``generated_at`` is threaded through verbatim (a caller may pin it for byte-deterministic output).
+    ``results_dir`` says where a finished pipeline's per-sample outputs are; ``None`` derives it from
+    the composed config's ``outdir``, which is what a pipeline started in its own directory used. Both
+    are caller-supplied *machine* facts, and neither can change what the page says the compiler
+    decided.
     Raises :class:`FileNotFoundError` only when there is genuinely nothing to report — no manifest and
     no draft anywhere under ``seqforge/``.
     """
@@ -95,7 +108,9 @@ def collect_report(workspace: str | Path, *, generated_at: str | None = None) ->
                 f"`seqforge run` (or at least `manifest fill`) first."
             )
     else:
-        assays = [_collect_assay(ws, subdir, mpath) for subdir, mpath in assays_on_disk]
+        assays = [
+            _collect_assay(ws, subdir, mpath, results_dir) for subdir, mpath in assays_on_disk
+        ]
 
     return ProjectReport(
         workspace_name=_workspace_name(ws),
@@ -115,7 +130,9 @@ def _workspace_name(ws: Path) -> str:
 # ---- one assay ----------------------------------------------------------------------------------
 
 
-def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayReport:
+def _collect_assay(
+    ws: Path, subdir: str | None, manifest_path: Path, results_dir: Path | None = None
+) -> AssayReport:
     manifest = DatasetManifest.model_validate(yaml.safe_load(manifest_path.read_text()))
     base = manifest_path.parent
 
@@ -129,9 +146,9 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         if proc_path.is_file()
         else None
     )
-    pipeline_dir = _find_pipeline(base)
-    plan = _plan(ws, proc, pipeline_dir, assertions, doc_index) if proc is not None else None
-    conclusion = _conclusion(has_manifest=True, snakefile=pipeline_dir is not None)
+    pipeline = CompiledPipeline.discover(ws, subdir=subdir)
+    plan = _plan(ws, proc, pipeline, assertions, doc_index) if proc is not None else None
+    conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
     samples = _samples(manifest, assertions, doc_index)
     matrices, ruled_out = _matrices(ws, manifest)
@@ -158,9 +175,10 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         plan=plan,
         matrices=matrices,
         ruled_out=ruled_out,
-        artifacts=_artifacts(base, pipeline_dir),
+        artifacts=_artifacts(base, pipeline),
         pipeline_stages=_pipeline_stages(plan),
         conclusion=conclusion,
+        pipeline_stats=_pipeline_stats(pipeline, manifest, results_dir),
         provenance=[
             ("dataset_hash", manifest.provenance.dataset_hash),
             ("kb_version", manifest.provenance.kb_version),
@@ -386,32 +404,28 @@ def _abstract(records: dict[str, Any]) -> str | None:
 # ---- plan / pipeline ----------------------------------------------------------------------------
 
 
-def _find_pipeline(base: Path) -> Path | None:
-    """The composed pipeline dir for this assay (the one holding a ``Snakefile``), or ``None``."""
-    snakefiles = sorted((base / "pipeline").glob("*/Snakefile"))
-    return snakefiles[0].parent if snakefiles else None
-
-
 #: Don't inline an artifact bigger than this — a runaway units.tsv shouldn't bloat the page. The
 #: composed text artifacts are all a few KB; anything past this is summarized, not embedded.
 _MAX_EMBED_BYTES = 256 * 1024
 
 
-def _artifacts(base: Path, pipeline_dir: Path | None) -> list[ArtifactEmbed]:
+def _artifacts(base: Path, pipeline: CompiledPipeline | None) -> list[ArtifactEmbed]:
     """The workspace's text artifacts, carried *into* the page so relative links can't break.
 
     Read verbatim and embedded (the panel offers a ``data:`` URI download + an inline view). Skips a
-    file over :data:`_MAX_EMBED_BYTES` so the page stays small.
+    file over :data:`_MAX_EMBED_BYTES` so the page stays small. Each compiled artifact is *labelled*
+    with the same name it is *read* under, so the page can never offer a download named for a file
+    the composer stopped writing.
     """
     specs: list[tuple[str, Path, str]] = [
         ("manifest.yaml", base / "manifest.yaml", "text/yaml"),
         ("processing.yaml", base / "processing.yaml", "text/yaml"),
     ]
-    if pipeline_dir is not None:
+    if pipeline is not None:
         specs += [
-            ("Snakefile", pipeline_dir / "Snakefile", "text/plain"),
-            ("config.yaml", pipeline_dir / "config.yaml", "text/yaml"),
-            ("units.tsv", pipeline_dir / "units.tsv", "text/tab-separated-values"),
+            (SNAKEFILE_NAME, pipeline.snakefile, "text/plain"),
+            (CONFIG_NAME, pipeline.config_path, "text/yaml"),
+            (UNITS_TSV_NAME, pipeline.units_path, "text/tab-separated-values"),
         ]
     out: list[ArtifactEmbed] = []
     for name, path, mime in specs:
@@ -431,13 +445,19 @@ def _artifacts(base: Path, pipeline_dir: Path | None) -> list[ArtifactEmbed]:
 def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
     """A small, human-readable "what will run, in order" — derived from the recipe, not the Snakefile.
 
-    Branches on the counting family (single-cell STARsolo vs bulk STAR) so it stays modality-general,
-    and reads as plain English for a biologist rather than a rule graph.
+    Branches on the recipe's **typed** counting family (``solo`` / ``atac`` / bulk) so it stays
+    modality-general, and reads as plain English for a biologist rather than a rule graph.
+
+    It used to branch on ``quantification``'s rendered caption — ``value.startswith("solo")`` over a
+    string :func:`_plan` had produced twenty lines above — which made a display decision load-bearing
+    for a correctness one. Rewording that caption would have reverted an ATAC dataset to "align with
+    STAR, count reads per gene" with nothing failing. :func:`_plan` already branches on ``quant.kind``
+    correctly, so this reads the same axis, carried on the view rather than re-derived, which keeps
+    the signature a plan view in and stages out.
     """
     if plan is None:
         return []
-    quant = next((f.value for f in plan.fields if f.label == "quantification"), "")
-    if quant.startswith("solo"):
+    if plan.quantification_kind == "solo":
         return [
             PipelineStage(
                 key="onlist",
@@ -455,10 +475,9 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
                 detail="write the results as an .h5ad file, ready to open in Scanpy/Seurat",
             ),
         ]
-    if quant.startswith("atac"):
-        # scATAC via chromap: the deliverable is a fragments file, not a count matrix. A defensive stub
-        # so an ATAC workspace does not render as "STAR / count genes per gene" (the full fragments
-        # wording is PR-E).
+    if plan.quantification_kind == "atac":
+        # scATAC via chromap: the deliverable is a fragments file, not a count matrix, so an ATAC
+        # workspace must not render as "STAR / count reads per gene".
         return [
             PipelineStage(
                 key="onlist",
@@ -493,7 +512,7 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
 def _plan(
     ws: Path,
     proc: ProcessingManifest,
-    pipeline_dir: Path | None,
+    pipeline: CompiledPipeline | None,
     assertions: dict[str, dict[str, Any]],
     doc_index: dict[str, str],
 ) -> PlanView:
@@ -542,20 +561,21 @@ def _plan(
     primary_feature: str | None = None
     snakefile_rel = config_rel = units_rel = None
     pipeline_name: str | None = None
-    if pipeline_dir is not None:
-        pipeline_name = pipeline_dir.name
-        cfg_path = pipeline_dir / "config.yaml"
-        if cfg_path.is_file():
-            cfg = yaml.safe_load(cfg_path.read_text())
-            if isinstance(cfg, dict):
-                primary_feature = _as_str_or_none(cfg.get("primary_feature"))
-                config_kv = _flatten(cfg)
-        snakefile_rel = _rel(ws, pipeline_dir / "Snakefile")
-        config_rel = _rel(ws, cfg_path)
-        units_rel = _rel(ws, pipeline_dir / "units.tsv")
+    if pipeline is not None:
+        pipeline_name = pipeline.directory.name
+        # An absent or unreadable config reads as an empty one, so the "never composed" and "composed
+        # but the config will not parse" degradations are one branch here and are decided once, by
+        # the module that owns the file, rather than by a guard per reader.
+        config = pipeline.config
+        primary_feature = _as_str_or_none(config.get("primary_feature"))
+        config_kv = _flatten(config)
+        snakefile_rel = _rel(ws, pipeline.snakefile)
+        config_rel = _rel(ws, pipeline.config_path)
+        units_rel = _rel(ws, pipeline.units_path)
 
     return PlanView(
         fields=fields,
+        quantification_kind=quant.kind,
         resources=resources,
         primary_feature=primary_feature,
         config=config_kv,
@@ -598,6 +618,54 @@ def _flatten(obj: Any, prefix: str = "") -> list[tuple[str, str]]:
     else:
         rows.append((prefix.rstrip("."), str(obj)))
     return rows
+
+
+# ---- the finished pipeline ----------------------------------------------------------------------
+
+
+def _pipeline_stats(
+    pipeline: CompiledPipeline | None,
+    manifest: DatasetManifest,
+    results_dir: Path | None,
+) -> PipelineStats | None:
+    """The finished pipeline's per-sample metrics, or ``None`` when there is nothing on disk to read.
+
+    Three facts, and all three are :class:`~seqforge.pipeline.CompiledPipeline`'s to answer rather
+    than this module's to re-derive: WHICH module ran, WHERE its outputs went, and WHICH samples it
+    was contracted to produce. That last one comes from the config the pipeline itself consumed and
+    never from a listing of the results tree, which is what makes a *partial* pipeline legible — a
+    listing can only say what finished, never what is missing.
+
+    ``results_dir`` overrides the second: a pipeline run with ``snakemake --directory`` put its
+    outputs somewhere this workspace cannot know, and that is a machine fact, so it arrives as a flag
+    rather than as a search. It is joined onto the pipeline directory exactly as ``outdir`` is, which
+    leaves an absolute override untouched.
+
+    The manifest's sample ids are the fallback for a config written before ``samples`` existed. They
+    agree by construction (the composer derives one from the other), so this is a compatibility path
+    and not a second opinion — and it lives here rather than on the owner because the owner
+    deliberately does not know what a manifest is.
+
+    Every step degrades to ``None``: an uncomposed workspace, a module with no adapter, a pipeline
+    that has not started. All of them are the same fact for a reader — there is no results section —
+    and none is a reason to fail a report of what the compiler decided.
+    """
+    if pipeline is None:
+        return None
+    module = pipeline.module
+    if module is None:
+        return None
+    samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
+    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
+    # Imported here and not at module scope: `stats` reaches its adapter through `qc` -> `h5ad`,
+    # which imports scipy — ~0.3 s measured — and `cli/__init__` imports this module to register the
+    # verb, so at module scope every `seqforge` invocation would pay it to register `report`.
+    from ..workflows.stats import read_pipeline_stats
+
+    try:
+        return read_pipeline_stats(module, where, samples)
+    except OSError:
+        return None
 
 
 # ---- evidence matrix ----------------------------------------------------------------------------

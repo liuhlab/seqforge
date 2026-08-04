@@ -323,6 +323,16 @@ def run_cmd(
         help="Directory of prebuilt liulab-runtime images (liulab-runtime_<env>.sif).",
     ),
     outdir: str = typer.Option("results", help="Pipeline output directory (written into config)."),
+    results: Path | None = typer.Option(
+        None,
+        "--results",
+        help="Where a PREVIOUS run of this pipeline already put its per-sample outputs, for the "
+        "report at the end. Default: the composed config's `outdir`, under the pipeline dir — which "
+        "is where a pipeline started there put them. This is the escape hatch for a pipeline run "
+        "with `snakemake --directory`; a relative value is joined onto the pipeline dir, so pass an "
+        "absolute path if it lives elsewhere. Not `--outdir`, which is written INTO the config and "
+        "tells the pipeline where to write.",
+    ),
     offline: bool = typer.Option(False, "--offline", help="Never reach the network."),
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
@@ -521,11 +531,16 @@ def run_cmd(
     # Best-effort: drop a single-file HTML glance report beside the artifacts, so a headless run leaves
     # a human-readable summary on disk. The report is a VIEW, never a gate — a render failure must not
     # fail a compile that otherwise succeeded, so every error is swallowed into the stage summary.
+    #
+    # `--results` is threaded through here for the same reason `--fastq-dir` and `--sif-dir` are
+    # accepted at all: it is a fact about THIS MACHINE, and it can change nothing the page says the
+    # compiler decided. Without it, re-running `run` over a pipeline relocated by `snakemake
+    # --directory` re-rendered the page claiming the pipeline had never been run.
     try:
         from ..report import collect_report, render_html
         from ..workspace import report_html_path
 
-        report_model = collect_report(workspace)
+        report_model = collect_report(workspace, results_dir=results)
         html_path = report_html_path(workspace)
         html_path.parent.mkdir(parents=True, exist_ok=True)
         html_path.write_text(render_html(report_model), encoding="utf-8")

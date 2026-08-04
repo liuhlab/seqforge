@@ -60,6 +60,7 @@ from .manifest import (
 from .models.dataset import DatasetManifest, SampleGroup
 from .models.evidenced import EvidencedTaxid
 from .models.processing import ProcessingManifest
+from .pipeline import CompiledPipeline
 from .probe import probe_file
 from .resolve import resolve_dataset
 
@@ -791,12 +792,18 @@ def run_composed(
         # what the real run is about to prove.
         run_wiring_gate=False,
     )
-    rundir = (workspace / result.snakefile_path).parent
+    # The compiled directory is read through its owner rather than re-derived here. This function
+    # used to carry its own copy of that derivation — where the config is, which samples the run was
+    # contracted to produce, where the outputs land — beside the report collector's independently
+    # written copy of the same three steps. The gate that proves the compiler's output must not be
+    # asking a *second* implementation where that output is.
+    pipeline = CompiledPipeline((workspace / result.snakefile_path).parent)
+    rundir = pipeline.directory
     if config_patch:
-        config = yaml.safe_load((rundir / "config.yaml").read_text())
+        config = pipeline.config
         for block, entries in config_patch.items():
             config[block].update(entries)
-        (rundir / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+        pipeline.config_path.write_text(yaml.safe_dump(config, sort_keys=True))
 
     # The module invokes a bare `STAR`, as it must: a module may not carry a machine's path.
     # `assets.star_bin` is this host's answer, so put its directory on PATH for the child rather than
@@ -809,7 +816,7 @@ def run_composed(
         [
             "snakemake",
             "-s",
-            str(rundir / "Snakefile"),
+            str(pipeline.snakefile),
             "-d",
             str(rundir),
             "--cores",
@@ -825,9 +832,8 @@ def run_composed(
     if code != 0:
         raise E2EUnavailable(f"the composed pipeline failed ({code}): {err_tail}")
 
-    config = yaml.safe_load((rundir / "config.yaml").read_text())
-    sample = str(config["samples"][0])
-    star_prefix = rundir / str(config["outdir"]) / sample
+    sample = pipeline.samples[0]
+    star_prefix = pipeline.sample_dir(sample)
     # The h5ad, not the Solo.out that fed it: this is the file the pipeline exists to make, so it is
     # the file the ground-truth assertion has to open. `star_prefix` still comes back for `Log.final.out`
     # — STAR's own mapping stats are the reconciliation term, not a count we are testing.

@@ -17,7 +17,9 @@ from __future__ import annotations
 import base64
 import re
 from html import escape
+from math import ceil, log10
 
+from ..workflows.metrics import Metric, PipelineStats, SampleStats
 from .flow import FlowStep, flow_steps
 from .model import (
     ArtifactEmbed,
@@ -47,20 +49,44 @@ _ROLE_NAME: dict[str, str] = {
     "index": "sample index",
 }
 
+#: Results goes LAST, after Pipeline. Two reasons, both about not moving what a reader already knows:
+#: the tabs read as the compiler's own order in time (what the data is → how we read it → what we will
+#: run → what came out), and appending leaves every existing tab at the index a returning reader's
+#: cursor already learned. Inserting Results earlier — where its importance might argue it belongs —
+#: would shift Evidence and Pipeline sideways on every page, including the pages that have no results.
 _TABS: list[tuple[str, str]] = [
     ("overview", "Overview"),
     ("flow", "Flow"),
     ("samples", "Samples"),
     ("evidence", "Evidence"),
     ("pipeline", "Pipeline"),
+    ("results", "Results"),
 ]
 
-#: How each provenance basis reads to someone who has never seen the manifest vocabulary.
+#: How each provenance basis reads to someone who has never seen the manifest vocabulary — the
+#: **how we know** voice, for a *dataset* field, where that is the question ``basis`` answers.
 _BASIS_PHRASE: dict[str, str] = {
     "observed": "measured directly from your files",
     "asserted": "stated in the records or paper",
     "inferred": "inferred from the surrounding context",
     "user_confirmed": "confirmed by you",
+}
+
+#: The same four bases in the **who decided** voice, for a *recipe* field. Two maps, and they stay
+#: two: on a dataset field ``basis`` answers how we know, on a recipe it answers who decided, and the
+#: "Processing choices" table's third column is headed *who decided*. Merged, that column would read
+#: "inferred from the surrounding context" as an answer to "who", which is not an answer at all.
+#:
+#: Each entry is the recipe ladder's own actor: a policy default is us, a flag or an instruction
+#: document is you, reference prose is the paper. ``observed`` has no writer on a recipe today and is
+#: still here, because a map that is total over the ``Basis`` literal cannot render a raw token — and
+#: an exhaustiveness test over both maps derives the members from that literal, so a fifth basis goes
+#: red here rather than shipping ``user confirmed`` onto a page.
+_WHO_PHRASE: dict[str, str] = {
+    "observed": "the files themselves",
+    "asserted": "the records / paper",
+    "inferred": "our default",
+    "user_confirmed": "you specified",
 }
 
 #: A verdict glyph for the restated hero card.
@@ -76,7 +102,18 @@ _VERDICT_GLYPH: dict[str, str] = {
 
 
 def esc(value: object) -> str:
-    return escape(str(value), quote=True)
+    """Escape one value for HTML text or an attribute — and render a missing one as **nothing**.
+
+    The display model is optional-heavy (a study's centre, an element's ``onlist_ref``, a sample's
+    note), so ``None`` reaches here routinely. ``str(None)`` puts the five-letter English word
+    ``None`` on the page, which a reader cannot tell apart from a value that was genuinely recorded —
+    the one failure this page must never have. Guarding at every call site was the alternative and is
+    the same fix written thirty times, each of which can be forgotten once. The eval report's sibling
+    escaper (``evals/report.py``) has always mapped ``None`` to empty; this is that, here.
+
+    Only ``None`` is blanked. ``0`` and ``False`` are answers, and a falsey test would erase them.
+    """
+    return escape("" if value is None else str(value), quote=True)
 
 
 def _basis_phrase(basis: str) -> str:
@@ -96,13 +133,6 @@ def _panel(title: str, body: str, *, sub: str = "", cls: str = "") -> str:
     sub_html = f'<p class="sub">{esc(sub)}</p>' if sub else ""
     klass = f"panel {cls}".strip()
     return f'<div class="{klass}"><h2>{esc(title)}</h2>{sub_html}{body}</div>'
-
-
-def _kv_rows(rows: list[tuple[str, str]]) -> str:
-    if not rows:
-        return '<p class="empty">nothing recorded</p>'
-    body = "".join(f"<tr><td>{esc(k)}</td><td>{v}</td></tr>" for k, v in rows)
-    return f'<div class="tbl-wrap"><table class="kv"><tbody>{body}</tbody></table></div>'
 
 
 # ---- overview -----------------------------------------------------------------------------------
@@ -621,6 +651,14 @@ def _recipe_panel(plan: PlanView) -> str:
 
 
 def _who(field: DecisionField) -> str:
+    """Who decided this recipe field: its evidence token when there is one, its basis otherwise.
+
+    The token is the sharper answer — it distinguishes a policy rule from a flag from a quoted paper,
+    which the basis alone cannot — so it wins; the basis is the fallback for a field carrying no
+    evidence. That fallback was an inline three-entry dict missing ``user_confirmed``, which is the
+    basis a recipe almost always carries, so the commonest answer in this column rendered as the raw
+    token "user confirmed" beside "our default" and "you specified".
+    """
     for ref in field.evidence:
         if ref.kind == "policy":
             return "our default"
@@ -630,11 +668,7 @@ def _who(field: DecisionField) -> str:
             return "from the paper / records"
         if ref.kind == "accession":
             return "from the records"
-    return {
-        "observed": "measured from the files",
-        "asserted": "from the records",
-        "inferred": "inferred",
-    }.get(field.basis, field.basis.replace("_", " "))
+    return _WHO_PHRASE.get(field.basis, field.basis.replace("_", " "))
 
 
 def _artifacts_panel(assay: AssayReport) -> str:
@@ -666,6 +700,337 @@ def _artifact_block(a: ArtifactEmbed) -> str:
     return f'<div class="artifact">{head}{view}</div>'
 
 
+# ---- results ------------------------------------------------------------------------------------
+
+#: How the four :data:`~seqforge.workflows.metrics.Level` verdicts read in words, and the mark that
+#: carries each one **without colour** — a tint is invisible to a colour-blind reader and gone in a
+#: printout, so a graded cell is marked as well as tinted and the legend spells both out. ``ok`` and
+#: ``none`` get no mark on purpose: marking the majority of cells is the same as marking none of them.
+_LEVEL_PHRASE: dict[str, str] = {
+    "ok": "within the expected range",
+    "warn": "outside the expected range — worth a look",
+    "bad": "far outside the expected range",
+    "none": "no defensible threshold exists for this number — reported as-is",
+}
+_LEVEL_FLAG: dict[str, str] = {"warn": "!", "bad": "!!"}
+
+
+def _level_mark(level: str) -> str:
+    """The non-colour mark for a graded value, carrying its verdict as an accessible name."""
+    flag = _LEVEL_FLAG.get(level)
+    if not flag:
+        return ""
+    return (
+        f'<span class="lvl-flag" role="img" aria-label="{esc(_LEVEL_PHRASE[level])}">{flag}</span>'
+    )
+
+
+#: Above this many samples the per-sample headline strip stops being a glance and becomes a wall, and
+#: the General-Statistics table — one row per sample, one scannable column per metric — *is* the
+#: glance. So the two swap primacy here: strips lead for a handful, the table leads for a plate.
+_STRIP_MAX_SAMPLES = 6
+
+#: How many knee panels reach the page. Each is ~3.5 KB of polyline (200 points, capped upstream by
+#: ``knee_points``) and the whole report has a 500 KB budget, so an unbounded per-sample plot is the
+#: one thing on this tab that can blow it — a 96-well plate would spend 340 KB drawing curves nobody
+#: compares by eye past the first two dozen. Truncation is stated on the page, never silent.
+_KNEE_MAX_FIGURES = 24
+
+#: The knee figure's drawing box in SVG user units. The page never sets a pixel width — the CSS grid
+#: sizes each figure and the ``viewBox`` scales it — but the aspect and the label margins are fixed
+#: here so every small multiple has identical geometry and the panels compare by eye.
+_KNEE_W, _KNEE_H = 320.0, 190.0
+#: The right margin is wide enough for HALF the last x tick label ("100K"), because that label is
+#: centred on the last gridline and the browser clips an ``<svg>``'s overflow by default.
+_KNEE_L, _KNEE_R, _KNEE_T, _KNEE_B = 42.0, 16.0, 10.0, 34.0
+
+
+def results_pane(assay: AssayReport) -> str:
+    """What the composed pipeline actually produced — or an honest note that it has not run.
+
+    Every assay gets one of these even when there is nothing to show, so switching tabs in a
+    multi-assay report never lands on a section that silently does not exist for assay 2.
+    """
+    stats = assay.pipeline_stats
+    if stats is None:
+        return _panel(
+            "Results",
+            '<p class="notice">This assay\'s pipeline has <b>not been run yet</b> — no per-sample QC '
+            "artifact has been written for it. Submit the composed Snakefile from the Pipeline tab; "
+            "this section fills itself in from what that pipeline writes, and nothing here is "
+            'computed by <span class="mono">seqforge report</span> itself.</p>',
+        )
+
+    lead_with_strips = len(stats.samples) <= _STRIP_MAX_SAMPLES
+    if not stats.samples:
+        # Every artifact that landed was unreadable, so the state block's notes ARE the section. A
+        # `<details>` around a table with no columns is a disclosure widget promising numbers that do
+        # not exist, which reads as a rendering bug rather than as the honest account it would be —
+        # and the caption may not invite a click on a number for the same reason.
+        body = ""
+        sub = (
+            f"{stats.module} wrote a QC artifact for every sample below and none of them could be "
+            "read. The pipeline ran; what it produced is unparseable."
+        )
+    else:
+        strips = "".join(_headline_strip(s) for s in stats.samples) if lead_with_strips else ""
+        table = _stats_table(stats)
+        if lead_with_strips:
+            # The table is the same numbers one level down, so it folds away rather than repeating
+            # the strip immediately below it.
+            body = strips + (
+                '<details class="stats-details"><summary>All metrics, as a table</summary>'
+                f"{table}</details>"
+            )
+        else:
+            body = table
+        sub = (
+            f"Read back from the finished pipeline's own QC artifacts by {stats.module}. Click any "
+            "number for what it measures and what a bad value would mean."
+        )
+
+    return _panel("Results", _pipeline_state(stats) + body, sub=sub) + _knee_panel(stats)
+
+
+def _pipeline_state(stats: PipelineStats) -> str:
+    """Did the *pipeline* finish — deliberately not the header's compile verdict, and never as it.
+
+    The pill up top answers "did the compiler produce a Snakefile". This answers "did that Snakefile
+    finish", and the two disagree exactly when it matters: a workspace stays ``compiled`` and green
+    while three of twenty samples are still missing. One badge for both facts is how that goes unseen.
+
+    Three states, not two. Nothing readable at all is its own — it is reached only when artifacts
+    landed and every one of them was corrupt, so "what landed is below" would point at an empty
+    section, and a partial-run tint would understate a pipeline that produced nothing usable.
+    """
+    if stats.complete:
+        state = (
+            '<div class="pipeline-state lvl-ok"><span class="ps-icon" aria-hidden="true">✓</span>'
+            f"<span>all {stats.n_found} sample(s) finished</span></div>"
+        )
+    elif stats.n_found == 0:
+        state = (
+            '<div class="pipeline-state lvl-bad"><span class="ps-icon" aria-hidden="true">✗</span>'
+            f"<span><b>No readable result for any of the {stats.n_expected} contracted samples.</b> "
+            "The artifacts below were written and could not be parsed.</span></div>"
+        )
+    else:
+        state = (
+            '<div class="pipeline-state lvl-warn"><span class="ps-icon" aria-hidden="true">◐</span>'
+            f"<span><b>{stats.n_found} of {stats.n_expected} samples finished.</b> What landed is "
+            "below; the rest were contracted by the composed config and have not been written.</span>"
+            "</div>"
+        )
+    if not stats.notes:
+        return state
+    notes = "".join(f"<li>{esc(n)}</li>" for n in stats.notes)
+    return f'{state}<ul class="pipeline-notes">{notes}</ul>'
+
+
+def _headline_strip(sample: SampleStats) -> str:
+    """One sample's ``headline`` metrics as tiles — the at-a-glance read, before any table."""
+    heads = [m for m in sample.metrics if m.headline]
+    if not heads:
+        return ""
+    tiles = "".join(
+        f'<div class="hl lvl-{esc(m.level)}"><span class="k">{esc(m.label)}</span>'
+        f'<span class="v">{esc(m.display)}{_level_mark(m.level)}</span></div>'
+        for m in heads
+    )
+    note = f'<span class="hs-note">{esc(sample.note)}</span>' if sample.note else ""
+    return (
+        '<section class="hstrip"><div class="hs-head">'
+        f'<b class="sid">{esc(sample.sample_id)}</b>{note}</div>'
+        f'<div class="hl-row">{tiles}</div></section>'
+    )
+
+
+#: The level legend, once per table. It is what makes the per-cell mark and the tint mean something,
+#: and it is the reason neither has to be repeated as prose in every cell.
+_LEVEL_LEGEND = (
+    '<div class="legend-level">How each number reads against its own thresholds:'
+    + "".join(
+        f'<span class="lvl-{key}"><span class="lvl-chip">{_LEVEL_FLAG.get(key, "")}</span>'
+        f"{escape(phrase.split(' — ')[0])}</span>"
+        # Over the map, not over a hand-listed tuple: a fifth verdict would otherwise be graded by an
+        # adapter, tinted by the stylesheet and silently absent from the key that says what the tint
+        # means. Insertion order IS the display order, which is why the map is written worst-last.
+        for key, phrase in _LEVEL_PHRASE.items()
+    )
+    + "</div>"
+)
+
+
+def _stats_table(stats: PipelineStats) -> str:
+    """The General-Statistics table: rows are samples, columns are ``columns``, in that order.
+
+    The column set is a union across samples, so the lookup is by key and a sample that never reported
+    one leaves that cell blank. Never a zero: a zero here is a number a reader would act on, and the
+    tool did not write it.
+
+    The hint hangs off the **column header**, not the cell, for two reasons that agree. It describes
+    the metric and is byte-identical down the whole column, so per cell it is a lie about where the
+    information lives; and repeating a ~200-character sentence in every cell of a 96-sample × 15-metric
+    table is ~300 KB against a 500 KB page budget — the one thing on this tab that could break it.
+    """
+    head = "".join(_metric_head(key, label, stats) for key, label in stats.columns)
+    rows = ""
+    for sample in stats.samples:
+        by_key = {m.key: m for m in sample.metrics}
+        cells = "".join(_metric_cell(by_key.get(key)) for key, _label in stats.columns)
+        # Per row, not once for the table: two samples can be counted off different features, and a
+        # single footnote would silently claim they were counted the same way.
+        note = f'<span class="row-note">{esc(sample.note)}</span>' if sample.note else ""
+        rows += (
+            '<tr><th scope="row" class="col-sample">'
+            f'<span class="sid">{esc(sample.sample_id)}</span>{note}</th>{cells}</tr>'
+        )
+    return (
+        f'{_LEVEL_LEGEND}<div class="tbl-wrap tbl-sticky"><table class="genstats-table">'
+        f'<thead><tr><th scope="col" class="col-sample">Sample</th>{head}</tr></thead>'
+        f"<tbody>{rows}</tbody></table></div>"
+    )
+
+
+def _metric_head(key: str, label: str, stats: PipelineStats) -> str:
+    """A column header that reaches its metric's ``hint`` through the samples table's own popover.
+
+    Not a native ``title=``: a hint is a whole sentence of domain knowledge ("a near-zero valid-barcode
+    rate means the wrong kit was identified") that a reader wants to select, copy and paste into an
+    email — which a transient tooltip can be neither, and which never appears at all on touch. Sharing
+    the popover costs one selector in ``report.js`` and gives both tables one behaviour.
+
+    ``role="button"`` sits on a span *inside* the ``<th>``, never on the ``<th>``: a column header that
+    announces itself as a button has stopped being a column header, and screen-reader table navigation
+    is the thing a wide metrics table needs most.
+    """
+    hint = next((m.hint for s in stats.samples for m in s.metrics if m.key == key and m.hint), "")
+    if not hint:
+        return f'<th scope="col">{esc(label)}</th>'
+    return (
+        f'<th scope="col"><span class="metric-head" role="button" tabindex="0" '
+        f'data-key="{esc(label)}" data-value="" data-basis="{esc(hint)}" '
+        f'data-source="" data-quote="">{esc(label)}</span></th>'
+    )
+
+
+def _metric_cell(metric: Metric | None) -> str:
+    """One graded number: the formatted value, tinted by its verdict and marked when it is off.
+
+    Deliberately lean — no ``data-*``, no handler. What a reader needs *per cell* is the number and
+    whether it is off; what the metric MEANS is one click away on the column header, where it is
+    stored once instead of once per sample.
+    """
+    if metric is None:
+        return '<td class="metric-cell empty">—</td>'
+    return (
+        f'<td class="metric-cell lvl-{esc(metric.level)}">'
+        f'<span class="v">{esc(metric.display)}</span>{_level_mark(metric.level)}</td>'
+    )
+
+
+def _knee_panel(stats: PipelineStats) -> str:
+    """Barcode-rank curves as **small multiples over one shared axis range**, not an overlay.
+
+    An overlay needs one distinguishable colour per sample plus a legend, and past about six series a
+    legend stops being a key and becomes a lookup table — the reader is matching hues instead of
+    reading curves. Small multiples tile instead, and the thing that makes them comparable is that
+    every panel is drawn on the same log domain, computed once across the whole pipeline here.
+    """
+    kneed = [s for s in stats.samples if s.knee]
+    if not kneed:
+        return ""
+    shown = kneed[:_KNEE_MAX_FIGURES]
+    # ceil() to the enclosing decade so the gridlines land on the panel edge, and max(1.0, …) so a
+    # degenerate one-barcode vector cannot divide by zero.
+    x_max = max(1.0, ceil(log10(max(r for s in shown for r, _v in s.knee))))
+    y_max = max(1.0, ceil(log10(max((v for s in shown for _r, v in s.knee if v >= 1), default=1))))
+    figures = "".join(_knee_figure(s, x_max, y_max) for s in shown)
+    if not figures:
+        return ""
+    trunc = (
+        f" Showing {len(shown)} of {len(kneed)} samples — the page has a size budget, and two dozen "
+        "panels is already past what anyone compares by eye."
+        if len(shown) < len(kneed)
+        else ""
+    )
+    return _panel(
+        "Barcode rank ('knee') plot",
+        f'<div class="knee-grid">{figures}</div>',
+        sub="Every barcode ranked by how many molecules it captured, on log axes. A real cell "
+        "population shows a plateau and then a cliff — the cliff is where cells stop and empty "
+        f"droplets start. All panels share one axis range, so they compare directly.{trunc}",
+    )
+
+
+def _knee_figure(sample: SampleStats, x_max: float, y_max: float) -> str:
+    """One sample's curve as hand-built inline SVG — no plotting library, so no network request.
+
+    ``<title>`` rather than ``aria-labelledby`` on purpose: an id would have to be unique across every
+    figure on the page, and a generated id is one more thing that has to stay deterministic across two
+    renders for the byte-identity test to hold.
+    """
+    points = [(r, v) for r, v in sample.knee if r >= 1 and v >= 1]
+    if not points:
+        return ""
+    plot_w = _KNEE_W - _KNEE_L - _KNEE_R
+    plot_h = _KNEE_H - _KNEE_T - _KNEE_B
+    base = _KNEE_T + plot_h
+
+    def px(rank: int) -> float:
+        return _KNEE_L + (log10(rank) / x_max) * plot_w
+
+    def py(value: int) -> float:
+        return base - (log10(value) / y_max) * plot_h
+
+    grid, ticks = "", ""
+    for e in range(int(x_max) + 1):
+        x = px(10**e)
+        grid += f'<line class="kg" x1="{x:.1f}" y1="{_KNEE_T:.1f}" x2="{x:.1f}" y2="{base:.1f}"/>'
+        ticks += (
+            f'<text class="kt" x="{x:.1f}" y="{base + 12:.1f}" text-anchor="middle">'
+            f"{_decade(e)}</text>"
+        )
+    for e in range(int(y_max) + 1):
+        y = py(10**e)
+        grid += (
+            f'<line class="kg" x1="{_KNEE_L:.1f}" y1="{y:.1f}" '
+            f'x2="{_KNEE_L + plot_w:.1f}" y2="{y:.1f}"/>'
+        )
+        ticks += (
+            f'<text class="kt" x="{_KNEE_L - 5:.1f}" y="{y + 3:.1f}" text-anchor="end">'
+            f"{_decade(e)}</text>"
+        )
+    poly = " ".join(f"{px(r):.1f},{py(v):.1f}" for r, v in points)
+    mid_y = _KNEE_T + plot_h / 2
+    return (
+        f'<figure class="knee"><svg class="knee-svg" viewBox="0 0 {_KNEE_W:.0f} {_KNEE_H:.0f}" '
+        f'role="img" preserveAspectRatio="xMidYMid meet">'
+        f"<title>{esc(sample.sample_id)}: barcodes ranked by molecule count, log-log</title>"
+        f'<g class="kgrid">{grid}</g>'
+        f'<polyline class="kline" points="{poly}"/>'
+        f'<line class="kaxis" x1="{_KNEE_L:.1f}" y1="{_KNEE_T:.1f}" '
+        f'x2="{_KNEE_L:.1f}" y2="{base:.1f}"/>'
+        f'<line class="kaxis" x1="{_KNEE_L:.1f}" y1="{base:.1f}" '
+        f'x2="{_KNEE_L + plot_w:.1f}" y2="{base:.1f}"/>'
+        f"{ticks}"
+        f'<text class="kax" x="{_KNEE_L + plot_w / 2:.1f}" y="{_KNEE_H - 4:.1f}" '
+        'text-anchor="middle">barcodes, ranked</text>'
+        f'<text class="kax" x="11" y="{mid_y:.1f}" text-anchor="middle" '
+        f'transform="rotate(-90 11 {mid_y:.1f})">molecules</text>'
+        f'</svg><figcaption class="sid">{esc(sample.sample_id)}</figcaption></figure>'
+    )
+
+
+def _decade(exponent: int) -> str:
+    """``10**exponent`` as a tick label a human reads: 1, 10, 100, 1K, 10K, 1M."""
+    if exponent >= 6:
+        return f"{10 ** (exponent - 6)}M"
+    if exponent >= 3:
+        return f"{10 ** (exponent - 3)}K"
+    return str(10**exponent)
+
+
 # ---- assay section + tab bar --------------------------------------------------------------------
 
 
@@ -676,6 +1041,7 @@ def assay_section(assay: AssayReport, index: int) -> str:
         ("samples", samples_pane(assay, index)),
         ("evidence", evidence_pane(assay)),
         ("pipeline", pipeline_pane(assay)),
+        ("results", results_pane(assay)),
     ]
     body = "".join(
         f'<div class="pane{" active" if name == "overview" else ""}" data-tab="{name}">{html}</div>'
@@ -684,10 +1050,19 @@ def assay_section(assay: AssayReport, index: int) -> str:
     return f'<section class="assay" data-assay="{index}">{body}</section>'
 
 
-def tab_bar() -> str:
+def tab_bar(report: ProjectReport) -> str:
+    """The tab strip, minus any tab this report has nothing behind.
+
+    Results is dropped entirely when no assay has pipeline stats, rather than rendered as a tab
+    leading to "not run yet". A workspace that has only been compiled then renders exactly the page it
+    rendered before this tab existed — the reader is never offered a door into an empty room, and the
+    tab's presence becomes the signal that *something* here has results.
+    """
+    has_results = any(a.pipeline_stats is not None for a in report.assays)
     tabs = "".join(
         f'<button class="tab{" active" if key == "overview" else ""}" data-tab="{key}">{esc(label)}</button>'
         for key, label in _TABS
+        if key != "results" or has_results
     )
     return f'<nav class="tabs"><div class="tabs-row">{tabs}</div></nav>'
 

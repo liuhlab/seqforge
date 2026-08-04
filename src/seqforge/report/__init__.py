@@ -16,7 +16,12 @@ from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when the report's layout or projection changes. Not folded into any
 #: content-addressed cache key — the report is a rebuildable view, not an input to anything.
-REPORT_VERSION = "2026.7.2"
+#: 2026.8.0 — a **Results** tab: a completeness strip for the pipeline itself (distinct from the
+#: header's compile verdict — "we produced a Snakefile" and "that Snakefile finished" are two facts),
+#: a General-Statistics table tinted by each metric's own verdict, a per-sample headline strip, and
+#: hand-built inline-SVG knee plots. The tab is omitted from the strip entirely when no assay has
+#: results, so a compiled-but-not-yet-run workspace renders exactly the page it rendered before.
+REPORT_VERSION = "2026.8.0"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402

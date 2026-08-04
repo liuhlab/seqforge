@@ -157,11 +157,21 @@ def _gene_axis(features: Sequence[SoloFeature]) -> list[SoloFeature]:
     return [f for f in features if SOLO_FEATURE_OUTPUT[f].axis == "gene"]
 
 
+#: STAR's end-of-run summary — mapping rates, splice counts, the unmapped breakdown. Its own constant
+#: because **no rule of ours declares it and three readers name it**: STAR emits it unasked on every
+#: ``alignReads`` run, and it is then reached for by :data:`STAR_LOG_FILES` below (which declares the
+#: stats bundle's inputs), by ``qc.build_qc_bundle`` (which folds it in under ``log_final``), and by
+#: the pipeline-stats registry — for which it is the WHOLE artifact ``map/star`` reports from, since
+#: bulk has no QC bundle rule and nothing in ``star.smk`` declares or deletes this file. Three
+#: spellings of one filename is the drift this repo keeps finding: one owner, three readers, and a
+#: rename that reaches every one of them or fails at import instead of silently at runtime.
+STAR_FINAL_LOG = "Log.final.out"
+
 #: STAR's per-run log/table files, written beside ``Solo.out`` at ``{OUTDIR}/{sample}/`` (not per
 #: feature). The alignment (:data:`STAR_BAM`) is deliberately **not** here: it is the CRAM rule's
 #: input, declared on its own, while these four are the stats bundle's. All are written by every
 #: ``alignReads`` run.
-STAR_LOG_FILES: tuple[str, ...] = ("Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab")
+STAR_LOG_FILES: tuple[str, ...] = (STAR_FINAL_LOG, "Log.out", "Log.progress.out", "SJ.out.tab")
 
 #: The coordinate-sorted alignment STAR writes under ``{OUTDIR}/{sample}/``. Its own constant because
 #: exactly one rule (``solo_to_cram``) consumes it, and the file naming has to come from somewhere.
@@ -456,6 +466,7 @@ __all__ = [
     "SoloFeatureOutput",
     "SOLO_FEATURE_OUTPUT",
     "STAR_BAM",
+    "STAR_FINAL_LOG",
     "STAR_LOG_FILES",
     "h5ad_suffixes",
     "raw_files",

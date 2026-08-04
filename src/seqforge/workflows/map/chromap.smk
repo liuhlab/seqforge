@@ -18,9 +18,13 @@ import csv
 
 # seqforge's own helpers, imported rather than restated — same contract as starsolo.smk importing from
 # `h5ad`: `fragments_suffixes` decides both what the finalize rules DECLARE below and (via the
-# `seqforge io fragments*` verbs) what gets written, so the two cannot drift. The import is the same
+# `seqforge io fragments*` verbs) what gets written, so the two cannot drift. `QC_SUFFIX` is the last
+# member of that list `rule fragments_qc` used to spell for itself, and it is the one whose drift is
+# SILENT: `workflows/fragments.py` writes that summary and now reads it back for the report, so a
+# rename on one side alone leaves the rule producing a file the reader stops finding — and a report
+# that finds nothing looks exactly like a pipeline that has not run. The import is the same
 # assumption `rule genome_index` makes of `genome`: the env running snakemake is the env that has them.
-from seqforge.workflows.fragments import RAW_FRAGMENTS, fragments_suffixes
+from seqforge.workflows.fragments import QC_SUFFIX, RAW_FRAGMENTS, fragments_suffixes
 
 
 def _load_units(path):
@@ -180,7 +184,7 @@ rule fragments_qc:
     input:
         gz=rules.fragments_finalize.output.gz,
     output:
-        f"{OUTDIR}/{{sample}}/{{sample}}.fragments.qc.json.gz",
+        f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
     params:
         assembly=ASSEMBLY,
     shell:
