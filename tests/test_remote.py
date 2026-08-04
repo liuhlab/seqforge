@@ -312,6 +312,27 @@ def test_parse_filereport_reads_rows_and_treats_a_header_only_tsv_as_empty() -> 
     assert parse_filereport("") == []
 
 
+def test_the_filereport_asks_ena_for_the_library_construction_protocol(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ENA's answer to SRA's `LIBRARY_CONSTRUCTION_PROTOCOL`, and the only ENA field that carries a
+    submitter's prose about how the library was built. A deposit that states its chemistry there and
+    leaves the design description empty is invisible to every field we used to request (#237)."""
+    captured: dict[str, dict[str, str] | None] = {}
+
+    def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
+        captured["params"] = params
+        return "library_construction_protocol\nprocessed by Smart-Seq3 protocol\n"
+
+    monkeypatch.setattr(remote, "_get", fake_get)
+
+    rows = remote.ena_filereport("SRP383998")
+    params = captured["params"]
+    assert params is not None
+    assert "library_construction_protocol" in params["fields"].split(",")
+    assert "Smart-Seq3" in rows[0]["library_construction_protocol"]
+
+
 #: ``(run, expected)`` for ``fastq_urls``: it splits ``fastq_ftp`` on ``;``, prepends the ``https://``
 #: scheme, and sorts (ENA does not guarantee order). An absent or empty field is a meaningful "no
 #: fastq" — the 10x case, where ENA generates none for a cellranger BAM / a BAM with CB tags — not a

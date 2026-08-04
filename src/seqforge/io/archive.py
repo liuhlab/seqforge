@@ -5,13 +5,13 @@ This is a **transcriber**, not a resolver. It turns an accession into
 It decides nothing, harmonizes only where NCBI itself harmonized, and never touches a byte of FASTQ.
 What the records *mean* is :mod:`seqforge.resolve.records`'s job.
 
-**Why this had to exist at all.** ``io/remote.py`` already asks ENA for 24 fields, and none of them
-told us anything per-sample: ``experiment_title`` and ``sample_title`` are byte-identical across all
-six runs of the pilot ("Model organism or animal sample from Caenorhabditis elegans"), the fields
-that *do* discriminate (``sample_alias``, ``library_name``, ``run_alias``) were never requested, and
-the BioSample attributes that carry ``strain``/``tissue``/``sex``/``dev_stage`` were fetched by zero
-lines of code anywhere in the repo. "We already have this and throw it away" was the comfortable
-assumption, and it was false.
+**Why this had to exist at all.** ``io/remote.py`` already asks ENA for a couple of dozen fields, and
+none of them told us anything per-sample: ``experiment_title`` and ``sample_title`` are
+byte-identical across all six runs of the pilot ("Model organism or animal sample from Caenorhabditis
+elegans"), the fields that *do* discriminate (``sample_alias``, ``library_name``, ``run_alias``) were
+never requested, and the BioSample attributes that carry ``strain``/``tissue``/``sex``/``dev_stage``
+were fetched by zero lines of code anywhere in the repo. "We already have this and throw it away" was
+the comfortable assumption, and it was false.
 
 **Three calls, and each earns its place:**
 
@@ -188,7 +188,12 @@ def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
                         *_taxonomy(_text(sample, "SAMPLE_NAME/TAXON_ID")),
                         *_sample_attributes(sample),
                     ],
-                    free_text=_free("sample_alias", sample.get("alias")),
+                    free_text=[
+                        # the alias is the archive's id for the material; the title is what the
+                        # submitter called it, and it is often the only human-readable subject here.
+                        *_free("sample_title", _text(sample, "TITLE")),
+                        *_free("sample_alias", sample.get("alias")),
+                    ],
                 )
 
         experiment = pkg.find("EXPERIMENT")
@@ -218,6 +223,14 @@ def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
                     # the protocol paragraph: where "Single Cell 3 v3.1 Reagent Kits ... 28+94 nt
                     # pair-end reads" lives. The one piece of prose that describes the chemistry.
                     *_free("design_description", _text(design, "DESIGN_DESCRIPTION")),
+                    # and its sibling, which a submitter may fill in instead: SRP383998 leaves the
+                    # design description empty and names "Smart-Seq3" only here. Prose, kept as
+                    # prose — a typed slot would hand a version to the resolver with no span to
+                    # check it against, and free text is exactly what harvest exists to read.
+                    *_free(
+                        "library_construction_protocol",
+                        _text(lib, "LIBRARY_CONSTRUCTION_PROTOCOL"),
+                    ),
                 ],
             )
 
