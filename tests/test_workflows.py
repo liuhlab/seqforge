@@ -1891,6 +1891,41 @@ def test_one_unreadable_artifact_costs_its_own_row_and_not_the_whole_pipeline(
         assert any(broken in note for note in stats.notes), (broken, stats.notes)
 
 
+def test_a_pipeline_whose_every_artifact_is_corrupt_does_not_read_as_never_run(
+    tmp_path: Path,
+) -> None:
+    """Nothing readable is not the same fact as nothing written, and the page must not conflate them.
+
+    `read_pipeline_stats` returned `None` whenever no sample parsed, and `None` is what the renderer
+    turns into "this assay's pipeline has not been run yet". So the one run that most needs saying —
+    it ran, it wrote, and every byte of it is unparseable — rendered as the run that never happened,
+    and each per-sample failure the reader had already named was dropped on the way out. The
+    partial-run test above cannot catch it: it always leaves two good samples behind.
+
+    `None` is reserved for a results tree with nothing in it at all, which is checked here too, since
+    a fix that returned stats for *both* cases would trade this defect for its mirror image.
+    """
+    results = tmp_path / "results"
+    _write(results / "S1" / "S1.qc.json.gz", "not gzip at all")
+    (results / "S2").mkdir(parents=True, exist_ok=True)
+    (results / "S2" / "S2.qc.json.gz").write_bytes(gzip.compress(b'{"summary": {"Gene"'))
+
+    stats = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3"])
+
+    assert stats is not None
+    assert stats.samples == []
+    assert (stats.n_found, stats.n_expected) == (0, 3)
+    assert not stats.complete
+    for broken in ("S1", "S2"):
+        assert any(broken in note for note in stats.notes), (broken, stats.notes)
+    # S3 never landed, so it is missing rather than broken — an absent file is not a failure to read.
+    assert not any("S3" in note for note in stats.notes)
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert read_pipeline_stats("map/starsolo", empty, ["S1"]) is None
+
+
 def test_a_bug_in_a_metric_table_is_raised_and_not_filed_as_a_corrupt_artifact(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

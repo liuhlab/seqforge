@@ -349,6 +349,42 @@ def test_both_basis_phrasings_cover_the_closed_basis_set() -> None:
     assert _BASIS_PHRASE != _WHO_PHRASE
 
 
+def test_the_level_phrasing_covers_the_closed_verdict_set() -> None:
+    """``Level`` is the second closed set this page renders, and it had the defect ``Basis`` just lost.
+
+    ``_level_mark`` indexes ``_LEVEL_PHRASE`` directly, so a fifth verdict is a ``KeyError`` raised
+    mid-render rather than a missing phrase — and the legend hand-listed its four keys, so a verdict
+    could be added, graded by an adapter, tinted by the stylesheet and still never appear in the key
+    that says what the tint means. Read out of the ``Literal`` for the same reason as ``Basis``: a
+    restatement here would be a test that agrees with itself.
+    """
+    from seqforge.report.panels import _LEVEL_FLAG, _LEVEL_PHRASE
+    from seqforge.workflows.metrics import Level
+
+    members = set(get_args(Level))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+
+    assert set(_LEVEL_PHRASE) == members, "a verdict with no phrase renders as a KeyError"
+    assert all(v for v in _LEVEL_PHRASE.values())
+    # The flags are deliberately partial -- marking the majority of cells is the same as marking
+    # none of them -- but every flag must still name a real verdict.
+    assert set(_LEVEL_FLAG) <= members
+
+
+def test_the_level_legend_names_every_verdict_the_page_can_render() -> None:
+    """The legend is what makes a tint and a mark mean anything, so a verdict missing from it is mute.
+
+    Rendered rather than introspected: the legend is a module-level string built once at import, and
+    the failure this guards is a key present in the map but absent from the built HTML.
+    """
+    from seqforge.report.panels import _LEVEL_LEGEND, _LEVEL_PHRASE
+    from seqforge.workflows.metrics import Level
+
+    for level in get_args(Level):
+        assert f'class="lvl-{level}"' in _LEVEL_LEGEND, f"{level} is graded but never explained"
+        assert _LEVEL_PHRASE[level].split(" — ")[0] in _LEVEL_LEGEND
+
+
 def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
     """A helper whose only occurrence in the tree is its own ``def`` is dead weight that reads as live.
 
@@ -456,9 +492,10 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
 #
 # The page's fourth join, and the only one whose artifact seqforge did not write: once the user
 # submits the composed Snakefile, its per-sample QC bundles land beside it and the report reads them.
-# The bulk fixture composes `map/star`, which is registered as not-yet-reporting, so these tests swap
-# the copied `.smk` for the single-cell one — `CompiledPipeline.module` reads the module off the file
-# that is *present*, which is exactly the seam being exercised.
+# The shared fixture composes `map/star`, so these tests swap the copied `.smk` for the single-cell
+# one to exercise the richer adapter — `CompiledPipeline.module` reads the module off the file that is
+# *present*, which is exactly the seam being exercised. (Both modules report; every registered module
+# does. The swap buys the barcode and knee metrics bulk has no vector for, not reporting at all.)
 
 #: One STARsolo `Summary.csv`, as `qc_bundle` folds it into the artifact. Small on purpose: what is
 #: under test here is the JOIN — does the collector find the file, name the module and count the
@@ -530,6 +567,42 @@ def test_a_finished_pipelines_metrics_are_joined_in_and_the_results_tab_appears(
     assert "97.2%" in html  # the graded valid-barcode rate, formatted by the code that owns it
     assert 'class="genstats-table"' in html
     assert 'class="knee-svg"' in html  # hand-built inline SVG, no plotting library and no network
+
+
+def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
+    own_workspace: Path,
+) -> None:
+    """The page's one job is saying what happened, and this is the case it used to get exactly wrong.
+
+    Every artifact landing corrupt collapsed to `None` in the reader, and `None` is the renderer's
+    "has not been run yet" sentence — so a pipeline that ran, burned a night of cluster time and wrote
+    unparseable bytes was reported as a pipeline that never started, with the per-sample failures the
+    reader had already named thrown away. That is the same false-claim shape the relocation flag
+    exists to prevent, on the same page, and nothing was failing.
+    """
+    from seqforge.pipeline import CompiledPipeline
+
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+    for sample in samples:
+        (pipeline.results_dir / sample / f"{sample}.qc.json.gz").write_bytes(b"not gzip at all")
+
+    assay = collect_report(own_workspace).assays[0]
+
+    assert assay.pipeline_stats is not None, "a run that wrote garbage is not a run that never ran"
+    assert assay.pipeline_stats.n_found == 0
+    assert assay.pipeline_stats.n_expected == len(samples)
+    assert len(assay.pipeline_stats.notes) == len(samples)
+
+    html = render_html(collect_report(own_workspace))
+    assert ">Results</button>" in html
+    assert "not been run yet" not in html
+    assert "No readable result" in html
+    for sample in samples:  # which sample, and what kind of failure -- not just a count
+        assert f"{sample}: its QC artifact could not be read (BadGzipFile)" in html
+    # No disclosure widget promising a table that has no columns behind it.
+    assert 'class="stats-details"' not in html
 
 
 def test_a_workspace_that_was_only_compiled_renders_the_page_it_always_did(workspace: Path) -> None:

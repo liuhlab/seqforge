@@ -122,6 +122,10 @@ def read_pipeline_stats(
     ``None`` means "render no results section": a module this build has no adapter for, a pipeline
     that has not started, or a results directory that is not there. The distinction does not reach the
     page, because for a reader all three are the same fact — there is nothing on disk to read yet.
+
+    A pipeline whose artifacts all landed **unreadable** is emphatically not that fact, and returns
+    stats carrying no samples and every failure named. It ran; what it wrote cannot be parsed, which
+    is the one thing a reader most needs told and the exact opposite of "not run yet".
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
@@ -138,7 +142,12 @@ def read_pipeline_stats(
         except _UNREADABLE as exc:
             notes.append(f"{sample}: its QC artifact could not be read ({type(exc).__name__})")
 
-    if not found:
+    # Nothing found AND nothing unreadable is the only "there is nothing on disk" case. Nothing found
+    # WITH notes is a pipeline that ran and wrote bytes nobody can parse — and returning `None` for it
+    # put the page's "has not been run yet" sentence over a run that had, dropping the per-sample
+    # failures on the floor at exactly the moment they were the whole story. A corrupt artifact is
+    # meant to cost its own row; when every artifact is corrupt it must not cost the section.
+    if not found and not notes:
         return None
 
     # First-seen order across samples, so the column set is the adapter's declared order and a sample

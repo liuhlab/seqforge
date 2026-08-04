@@ -4,8 +4,8 @@
 wrapper a user submits, the config that wrapper reads, the units table it iterates, and a copy of the
 hand-written **Workflow module** carrying the rules. Everything downstream of that has to ask the
 same small questions of the directory — where is the Snakefile, what did the composer decide, which
-**Workflow module** is going to run, which samples was the run contracted to produce, and where do
-its outputs land.
+**Workflow module** is going to run, which samples the pipeline was contracted to produce, and where
+do its outputs land.
 
 Five modules used to answer them by hand: the composer that writes the directory, the report
 collector, the project index, the compose gates and the ground-truth harness. Two of those had grown
@@ -49,9 +49,9 @@ SNAKEFILE_NAME = "Snakefile"
 CONFIG_NAME = "config.yaml"
 UNITS_TSV_NAME = "units.tsv"
 
-#: Where a run puts its per-sample outputs when nobody says otherwise: what ``compose`` writes into
-#: ``config["outdir"]`` absent a flag, and what a reader falls back to for a config written before
-#: that key existed. Both ends of one name, so the fallback cannot drift away from the default it is
+#: Where a pipeline puts its per-sample outputs when nobody says otherwise: what ``compose`` writes
+#: into ``config["outdir"]`` absent a flag, and what a reader falls back to for a config written
+#: before that key existed. Both ends of one name, so the fallback cannot drift from the default it
 #: standing in for — and a wrong guess here would cost an unfound results directory, never a wrong
 #: one, because the samples are then simply not there.
 DEFAULT_OUTDIR = "results"
@@ -92,7 +92,7 @@ class CompiledPipeline:
 
     @property
     def snakefile(self) -> Path:
-        """The run wrapper — **the deliverable**, the file a user submits."""
+        """The pipeline wrapper — **the deliverable**, the file a user submits."""
         return self.directory / SNAKEFILE_NAME
 
     @property
@@ -143,11 +143,11 @@ class CompiledPipeline:
 
     @property
     def samples(self) -> list[str]:
-        """The sample ids this run was **contracted** to produce, in the order the config carries.
+        """The sample ids this pipeline was **contracted** to produce, in the order the config carries.
 
-        From the config — the artifact the run itself was handed — and never from a listing of the
+        From the config — the artifact the pipeline itself was handed — and never from a listing of the
         results tree. That is the whole point: a listing can say what finished and can never say what
-        is missing, so a partial run read that way is indistinguishable from a complete one. The
+        is missing, so a partial pipeline read that way is indistinguishable from a complete one. The
         manifest is not consulted here either; a caller who wants the manifest's sample ids as a
         fallback for a config predating the key has the manifest and this does not.
         """
@@ -156,10 +156,10 @@ class CompiledPipeline:
 
     @property
     def results_dir(self) -> Path:
-        """Where the run wrote its per-sample outputs: the config's ``outdir``, joined onto here.
+        """Where the pipeline wrote its per-sample outputs: the config's ``outdir``, joined onto here.
 
         Relative in the config because the wrapper's own instructions have the user run from inside
-        this directory; joining an absolute value leaves it untouched, which is what a relocated run
+        this directory; joining an absolute value leaves it untouched, which is what a relocated pipeline
         needs.
         """
         return self.directory / str(self.config.get("outdir") or DEFAULT_OUTDIR)

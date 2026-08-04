@@ -96,6 +96,13 @@ class PipelineStats(_Frozen):
 
     @property
     def complete(self) -> bool:
+        """Every contracted sample landed and parsed — the only state the page tints green.
+
+        ``n_expected > 0`` is load-bearing: a config carrying no sample list at all would otherwise
+        satisfy ``0 == 0`` and report a pipeline that produced nothing as one that finished
+        everything. Vacuous truth is the wrong answer for a badge whose whole job is saying whether
+        the work is done.
+        """
         return self.n_expected > 0 and self.n_found == self.n_expected
 
 

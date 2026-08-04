@@ -762,24 +762,34 @@ def results_pane(assay: AssayReport) -> str:
         )
 
     lead_with_strips = len(stats.samples) <= _STRIP_MAX_SAMPLES
-    strips = "".join(_headline_strip(s) for s in stats.samples) if lead_with_strips else ""
-    table = _stats_table(stats)
-    if lead_with_strips:
-        # The table is the same numbers one level down, so it folds away rather than repeating the
-        # strip immediately below it.
-        body = strips + (
-            '<details class="stats-details"><summary>All metrics, as a table</summary>'
-            f"{table}</details>"
+    if not stats.samples:
+        # Every artifact that landed was unreadable, so the state block's notes ARE the section. A
+        # `<details>` around a table with no columns is a disclosure widget promising numbers that do
+        # not exist, which reads as a rendering bug rather than as the honest account it would be —
+        # and the caption may not invite a click on a number for the same reason.
+        body = ""
+        sub = (
+            f"{stats.module} wrote a QC artifact for every sample below and none of them could be "
+            "read. The pipeline ran; what it produced is unparseable."
         )
     else:
-        body = table
+        strips = "".join(_headline_strip(s) for s in stats.samples) if lead_with_strips else ""
+        table = _stats_table(stats)
+        if lead_with_strips:
+            # The table is the same numbers one level down, so it folds away rather than repeating
+            # the strip immediately below it.
+            body = strips + (
+                '<details class="stats-details"><summary>All metrics, as a table</summary>'
+                f"{table}</details>"
+            )
+        else:
+            body = table
+        sub = (
+            f"Read back from the finished pipeline's own QC artifacts by {stats.module}. Click any "
+            "number for what it measures and what a bad value would mean."
+        )
 
-    return _panel(
-        "Results",
-        _pipeline_state(stats) + body,
-        sub=f"Read back from the finished pipeline's own QC artifacts by {stats.module}. Click any "
-        "number for what it measures and what a bad value would mean.",
-    ) + _knee_panel(stats)
+    return _panel("Results", _pipeline_state(stats) + body, sub=sub) + _knee_panel(stats)
 
 
 def _pipeline_state(stats: PipelineStats) -> str:
@@ -788,11 +798,21 @@ def _pipeline_state(stats: PipelineStats) -> str:
     The pill up top answers "did the compiler produce a Snakefile". This answers "did that Snakefile
     finish", and the two disagree exactly when it matters: a workspace stays ``compiled`` and green
     while three of twenty samples are still missing. One badge for both facts is how that goes unseen.
+
+    Three states, not two. Nothing readable at all is its own — it is reached only when artifacts
+    landed and every one of them was corrupt, so "what landed is below" would point at an empty
+    section, and a partial-run tint would understate a pipeline that produced nothing usable.
     """
     if stats.complete:
         state = (
             '<div class="pipeline-state lvl-ok"><span class="ps-icon" aria-hidden="true">✓</span>'
             f"<span>all {stats.n_found} sample(s) finished</span></div>"
+        )
+    elif stats.n_found == 0:
+        state = (
+            '<div class="pipeline-state lvl-bad"><span class="ps-icon" aria-hidden="true">✗</span>'
+            f"<span><b>No readable result for any of the {stats.n_expected} contracted samples.</b> "
+            "The artifacts below were written and could not be parsed.</span></div>"
         )
     else:
         state = (
@@ -831,8 +851,11 @@ _LEVEL_LEGEND = (
     '<div class="legend-level">How each number reads against its own thresholds:'
     + "".join(
         f'<span class="lvl-{key}"><span class="lvl-chip">{_LEVEL_FLAG.get(key, "")}</span>'
-        f"{escape(_LEVEL_PHRASE[key].split(' — ')[0])}</span>"
-        for key in ("ok", "warn", "bad", "none")
+        f"{escape(phrase.split(' — ')[0])}</span>"
+        # Over the map, not over a hand-listed tuple: a fifth verdict would otherwise be graded by an
+        # adapter, tinted by the stylesheet and silently absent from the key that says what the tint
+        # means. Insertion order IS the display order, which is why the map is written worst-last.
+        for key, phrase in _LEVEL_PHRASE.items()
     )
     + "</div>"
 )

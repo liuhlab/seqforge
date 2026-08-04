@@ -59,16 +59,18 @@ def test_the_owner_answers_every_question_a_composed_directory_can_be_asked(
     # 2. which Workflow module ran, off the .smk copied in beside the wrapper
     assert pipeline.module == result.modules[0].name == "map/starsolo"
 
-    # 3. the config, as the composer wrote it
-    assert pipeline.config == yaml.safe_load(pipeline.config_path.read_text())
+    # 3. the config, as the composer wrote it. Checked against the manifest the composer was handed,
+    #    never by re-reading the file with `.config`'s own body -- that cannot fail.
     assert pipeline.config["chemistry"] == list(manifest.library.chemistry.value)
 
-    # 4. the samples the run is contracted to produce -- the manifest's, via the config it was handed
+    # 4. the samples the pipeline is contracted to produce -- the manifest's, via the config
     assert pipeline.samples == [s.sample_id for s in manifest.experiment.samples]
 
-    # 5. where the outputs land, and where one sample's land
-    assert pipeline.results_dir == pipeline.directory / DEFAULT_OUTDIR
-    assert pipeline.sample_dir("s1") == pipeline.directory / DEFAULT_OUTDIR / "s1"
+    # 5. where the outputs land, and where one sample's land. The subdirectory is spelled out rather
+    #    than taken from `DEFAULT_OUTDIR`, because `results/` is a name a user reads off their own
+    #    disk: renaming the constant should cost a red test, not pass silently on both sides.
+    assert pipeline.results_dir == pipeline.directory / "results"
+    assert pipeline.sample_dir("s1") == pipeline.directory / "results" / "s1"
 
 
 def test_which_module_ran_is_inverted_out_of_the_registry_rather_than_matched_by_name(
@@ -101,6 +103,10 @@ def test_a_directory_missing_its_config_still_answers_every_question(tmp_path: P
     page that reports it must still render. Each degradation is asserted separately because they
     arrive by different routes and only the first is obvious.
     """
+    # The one place the constant is bound to the literal the rest of this file spells, so renaming it
+    # costs exactly one red line here rather than passing silently on both sides of every assertion.
+    assert DEFAULT_OUTDIR == "results"
+
     empty = tmp_path / "empty"
     empty.mkdir()
     bare = CompiledPipeline(empty)
@@ -108,8 +114,11 @@ def test_a_directory_missing_its_config_still_answers_every_question(tmp_path: P
     assert bare.samples == []
     assert bare.module is None
     # No config means no `outdir`, so the results directory falls back rather than becoming the
-    # pipeline directory itself -- which would make every stray file in it look like a result.
-    assert bare.results_dir == empty / DEFAULT_OUTDIR
+    # pipeline directory itself -- which would make every stray file in it look like a result. The
+    # name is spelled out, not read off `DEFAULT_OUTDIR`: the fallback and the composer's default
+    # have to be the same string, and a test that reads the constant proves only that it equals
+    # itself.
+    assert bare.results_dir == empty / "results"
 
     unparseable = tmp_path / "unparseable"
     unparseable.mkdir()

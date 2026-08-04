@@ -20,8 +20,8 @@ writer owns is a name every reader re-invents.
 
 Two of the five had gone further and grown **independently written implementations of the same
 three-step derivation**: which **Workflow module** ran (invert the `.smk` the composer copied in),
-which samples the run was contracted to produce (the config's own list, never a listing of the
-results tree), and where its outputs went (the config's `outdir`, joined onto the run directory).
+which samples the pipeline was contracted to produce (the config's own list, never a listing of the
+results tree), and where its outputs went (the config's `outdir`, joined onto that directory).
 Two implementations of one derivation do not disagree until they do, and this repo has already paid
 for that shape twice — a STAR command line rendered by hand in a module and in a test that could not
 see each other, and two renderings of *"how do I get an index"*. Both times the copy nobody executed
@@ -57,11 +57,11 @@ It is the smaller change and it is what the six comments ask for, so it is the o
 first. It removes one hand-spelled string and leaves the two copies of the derivation exactly where
 they were — and the derivation is the part that can be *wrong* rather than merely stale, because its
 three steps encode judgements: that the module is read off the `.smk` and not off a name, and that
-"which samples" comes from the artifact the run consumed and not from a listing of what finished. A
-listing can say what landed; it can never say what is missing, so a partial run read that way is
-indistinguishable from a complete one. Two copies of that reasoning is two chances to lose it, and
-`workspace.py` cannot hold either copy without doing I/O — which would cost it the one property that
-makes it safe to import from anywhere.
+"which samples" comes from the artifact the pipeline consumed and not from a listing of what
+finished. A listing can say what landed; it can never say what is missing, so a partial pipeline read
+that way is indistinguishable from a complete one. Two copies of that reasoning is two chances to
+lose it, and `workspace.py` cannot hold either copy without doing I/O — which would cost it the one
+property that makes it safe to import from anywhere.
 
 ## Why not the reader inside the composer
 
@@ -76,9 +76,10 @@ obliges a reader to import `compose`.
 ## So in code
 
 **Never join `pipeline`, `Snakefile`, `config.yaml` or `units.tsv` into a path outside the two owners
-— ask `CompiledPipeline` for a file inside a run directory and `workspace.pipeline_dir` for the
-subtree.** That includes a private constant of your own: `_SNAKEFILE_NAME = "Snakefile"` is the exact
-shape this record removed from the composer, and re-introducing it is how the fifth consumer became
+— ask `CompiledPipeline` for a file inside a compiled pipeline directory, and
+`workspace.pipeline_dir` for the subtree.** That includes a private constant of your own:
+`_SNAKEFILE_NAME = "Snakefile"` is the exact shape this record removed from the composer, and
+re-introducing it is how the fifth consumer became
 five. Which **Workflow module** ran is inverted out of the registry, so a fourth module is answered
 for on the day it is registered; a name-to-module table would simply be missing it, would answer
 nothing, and nothing would fail to say so.
