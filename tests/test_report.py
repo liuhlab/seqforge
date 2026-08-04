@@ -299,3 +299,162 @@ def test_pipeline_stages_render_fragments_not_gene_counts_for_atac() -> None:
     )
     solo_blob = " ".join(f"{s.title} {s.detail}" for s in _pipeline_stages(solo_plan)).lower()
     assert "count" in solo_blob and "starsolo" in solo_blob
+
+
+# -- the finished pipeline (the Results tab) -------------------------------------------------------
+#
+# The page's fourth join, and the only one whose artifact seqforge did not write: once the user
+# submits the composed Snakefile, its per-sample QC bundles land beside it and the report reads them.
+# The bulk fixture composes `map/star`, which is registered as not-yet-reporting, so these tests swap
+# the copied `.smk` for the single-cell one — `CompiledPipeline.module` reads the module off the file
+# that is *present*, which is exactly the seam being exercised.
+
+#: One STARsolo `Summary.csv`, as `qc_bundle` folds it into the artifact. Small on purpose: what is
+#: under test here is the JOIN — does the collector find the file, name the module and count the
+#: samples — and the metric table itself is held to real STARsolo values in `tests/test_workflows.py`.
+_QC_SUMMARY: dict[str, object] = {
+    "Number of Reads": 412331205,
+    "Reads With Valid Barcodes": 0.972113,
+    "Estimated Number of Cells": 8842,
+    "Reads Mapped to Gene: Unique Gene": 0.641902,
+}
+
+
+def _finish_a_starsolo_pipeline(ws: Path, *, outdir: str = "results") -> list[str]:
+    """Make the workspace's compiled pipeline look like a finished single-cell one. Returns its samples.
+
+    Two edits, both to what is *on disk* rather than to any seqforge decision: the copied module
+    becomes `starsolo.smk` (so the owner reports `map/starsolo`), and one QC bundle lands per sample
+    the composed config contracted for.
+    """
+    import gzip
+
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    for smk in pipeline.directory.glob("*.smk"):
+        smk.rename(smk.with_name("starsolo.smk"))
+
+    samples = pipeline.samples
+    assert samples, "the composed config should carry its own sample list"
+    for sample in samples:
+        out = pipeline.directory / outdir / sample / f"{sample}.qc.json.gz"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(out, "wt", encoding="utf-8") as fh:
+            json.dump(
+                {
+                    "sample": sample,
+                    "summary": {"Gene": _QC_SUMMARY},
+                    # A per-barcode vector, so the knee figures are drawn rather than skipped: they
+                    # are the only code on this page that emits SVG, and the size and byte-identity
+                    # guarantees below are worth nothing against a page that never drew one.
+                    "umi_per_cell": {"Gene": [4213, 980, 310, 44, 9, 1]},
+                },
+                fh,
+            )
+    return samples
+
+
+def test_a_finished_pipelines_metrics_are_joined_in_and_the_results_tab_appears(
+    own_workspace: Path,
+) -> None:
+    """The join, end to end: an artifact on disk becomes a graded row on the page.
+
+    Every fact comes from the compiled pipeline's own owner — which module ran, where the outputs are,
+    which samples were contracted — so this also holds that the collector asks rather than re-derives.
+    """
+    samples = _finish_a_starsolo_pipeline(own_workspace)
+
+    assay = collect_report(own_workspace).assays[0]
+
+    assert assay.pipeline_stats is not None
+    assert assay.pipeline_stats.module == "map/starsolo"
+    assert assay.pipeline_stats.n_found == len(samples) == assay.pipeline_stats.n_expected
+    assert assay.pipeline_stats.complete
+    assert "valid_barcodes" in {k for k, _ in assay.pipeline_stats.columns}
+
+    html = render_html(collect_report(own_workspace))
+    assert ">Results</button>" in html  # the tab is offered, because there is something behind it
+    assert "97.2%" in html  # the graded valid-barcode rate, formatted by the code that owns it
+    assert 'class="genstats-table"' in html
+    assert 'class="knee-svg"' in html  # hand-built inline SVG, no plotting library and no network
+
+
+def test_a_workspace_that_was_only_compiled_renders_the_page_it_always_did(workspace: Path) -> None:
+    """No pipeline output, no Results tab — never a tab leading to "not run yet".
+
+    The reader is not offered a door into an empty room, and the tab's *presence* becomes the signal
+    that something here has results. A compiled-but-not-run workspace must render exactly the page it
+    rendered before this section existed.
+    """
+    assay = collect_report(workspace).assays[0]
+
+    assert assay.pipeline_stats is None
+    assert ">Results</button>" not in render_html(collect_report(workspace))
+
+
+def test_a_relocated_pipeline_is_found_only_through_the_results_flag(own_workspace: Path) -> None:
+    """`snakemake --directory` puts the outputs somewhere the workspace cannot know.
+
+    That is a machine fact, so it arrives as a flag rather than as a search: without it the collector
+    looks where the composed config said and correctly finds nothing. The value is joined onto the
+    pipeline directory exactly as `outdir` is, so an absolute path is left untouched.
+    """
+    from seqforge.pipeline import CompiledPipeline
+
+    _finish_a_starsolo_pipeline(own_workspace, outdir="elsewhere")
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+
+    assert collect_report(own_workspace).assays[0].pipeline_stats is None
+    relative = collect_report(own_workspace, results_dir=Path("elsewhere")).assays[0]
+    absolute = collect_report(
+        own_workspace, results_dir=(pipeline.directory / "elsewhere").resolve()
+    ).assays[0]
+
+    assert relative.pipeline_stats is not None and relative.pipeline_stats.complete
+    assert absolute.pipeline_stats is not None
+    assert absolute.pipeline_stats == relative.pipeline_stats
+
+
+def test_the_report_verb_passes_the_results_flag_through_and_summarises_the_pipeline(
+    own_workspace: Path,
+) -> None:
+    """The CLI's own seam: `--results` reaches the collector, and stdout carries how the run went.
+
+    `pipeline_stats` sits BESIDE `kind`/`exit` in the JSON summary and is never folded into them —
+    "the compiler succeeded" and "the pipeline succeeded" are two judgements, and a machine consumer
+    that could only read one of them would have no way left to ask which it was being told.
+    """
+    samples = _finish_a_starsolo_pipeline(own_workspace, outdir="elsewhere")
+
+    result = runner.invoke(
+        app,
+        ["report", "-C", str(own_workspace), "--no-timestamp", "--results", "elsewhere"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    conclusion = json.loads(result.stdout)["conclusion"][0]
+    assert conclusion["kind"] == "compiled"  # the COMPILE verdict, untouched
+    assert conclusion["pipeline_stats"] == {
+        "module": "map/starsolo",
+        "samples_finished": len(samples),
+        "samples_expected": len(samples),
+    }
+
+
+def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_workspace: Path) -> None:
+    """Self-contained, inside the size budget, byte-deterministic — re-proved with the heaviest tab on.
+
+    Results is the one section that draws: hand-built inline SVG per sample, plus a metrics table.
+    The three properties above are asserted elsewhere against a page that has none of that, which
+    would leave exactly the new drawing code unchecked for the failures they exist to catch.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+
+    html = render_html(collect_report(own_workspace))
+
+    assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
+    assert len(html.encode()) < 500_000
+    assert html == render_html(collect_report(own_workspace))

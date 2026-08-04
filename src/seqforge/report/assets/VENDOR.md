@@ -12,7 +12,14 @@ literals so they get real syntax highlighting and linting, and are inlined at re
 
 ## No third-party runtime
 
-The report has **no vendored third-party engine**. The Flow tab used to render a Mermaid diagram
+The report has **no vendored third-party engine**, and no charting library either. The Results tab's
+knee plots are hand-built inline SVG (`panels._knee_figure`): a `<polyline>` over log-log axes drawn
+from at most 200 points per sample, styled by the classes in `report.css` so they follow the theme
+toggle like everything else. That is a few KB per sample against the ~1 MB a plotting bundle would
+cost, and it keeps the promise below intact — a chart engine is exactly the kind of asset that
+arrives as a CDN `<script src>` and quietly makes the page need the network.
+
+The Flow tab used to render a Mermaid diagram
 (a ~2.5 MB inlined bundle), but a scaled SVG cannot reflow — its text shrank to nothing on wide
 datasets — so the flow is now plain HTML cards that wrap responsively via CSS. Dropping Mermaid cut a
 rendered page from ~2.6 MB to a few tens of KB. A strict "no external network references" test

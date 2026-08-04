@@ -3,8 +3,10 @@
 This is where all the graceful degradation lives. The manifest is the one required artifact (the
 chemistry decision it carries is what makes the page always render); everything else — the harvested
 assertions behind a sample quote, the archive records behind a study abstract, the persisted evidence
-matrix, the composed pipeline — is joined in if present and simply omitted if not. Nothing here
-decides anything: it reads what the deterministic verbs already wrote and flattens it for a human.
+matrix, the composed pipeline, and the per-sample QC artifacts a *finished* pipeline left behind — is
+joined in if present and simply omitted if not. Nothing here decides anything: it reads what the
+deterministic verbs already wrote (and, for the results, what the user's own snakemake wrote) and
+flattens it for a human.
 
 The one non-obvious join is the evidence matrix. It is persisted per **run** under a cache key that
 folds in tool versions the manifest never stores, so the report never recomputes that key — it scans
@@ -26,6 +28,7 @@ from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
 from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
 from ..project import discover_assays
+from ..workflows.metrics import PipelineStats
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
     ArtifactEmbed,
@@ -76,10 +79,19 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _MAX_MATRIX_TECHS = 6
 
 
-def collect_report(workspace: str | Path, *, generated_at: str | None = None) -> ProjectReport:
+def collect_report(
+    workspace: str | Path,
+    *,
+    generated_at: str | None = None,
+    results_dir: Path | None = None,
+) -> ProjectReport:
     """Project a workspace into a :class:`ProjectReport` (one :class:`AssayReport` per assay).
 
     ``generated_at`` is threaded through verbatim (a caller may pin it for byte-deterministic output).
+    ``results_dir`` says where a finished pipeline's per-sample outputs are; ``None`` derives it from
+    the composed config's ``outdir``, which is what a pipeline started in its own directory used. Both
+    are caller-supplied *machine* facts, and neither can change what the page says the compiler
+    decided.
     Raises :class:`FileNotFoundError` only when there is genuinely nothing to report — no manifest and
     no draft anywhere under ``seqforge/``.
     """
@@ -96,7 +108,9 @@ def collect_report(workspace: str | Path, *, generated_at: str | None = None) ->
                 f"`seqforge run` (or at least `manifest fill`) first."
             )
     else:
-        assays = [_collect_assay(ws, subdir, mpath) for subdir, mpath in assays_on_disk]
+        assays = [
+            _collect_assay(ws, subdir, mpath, results_dir) for subdir, mpath in assays_on_disk
+        ]
 
     return ProjectReport(
         workspace_name=_workspace_name(ws),
@@ -116,7 +130,9 @@ def _workspace_name(ws: Path) -> str:
 # ---- one assay ----------------------------------------------------------------------------------
 
 
-def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayReport:
+def _collect_assay(
+    ws: Path, subdir: str | None, manifest_path: Path, results_dir: Path | None = None
+) -> AssayReport:
     manifest = DatasetManifest.model_validate(yaml.safe_load(manifest_path.read_text()))
     base = manifest_path.parent
 
@@ -162,6 +178,7 @@ def _collect_assay(ws: Path, subdir: str | None, manifest_path: Path) -> AssayRe
         artifacts=_artifacts(base, pipeline),
         pipeline_stages=_pipeline_stages(plan),
         conclusion=conclusion,
+        pipeline_stats=_pipeline_stats(pipeline, manifest, results_dir),
         provenance=[
             ("dataset_hash", manifest.provenance.dataset_hash),
             ("kb_version", manifest.provenance.kb_version),
@@ -595,6 +612,54 @@ def _flatten(obj: Any, prefix: str = "") -> list[tuple[str, str]]:
     else:
         rows.append((prefix.rstrip("."), str(obj)))
     return rows
+
+
+# ---- the finished pipeline ----------------------------------------------------------------------
+
+
+def _pipeline_stats(
+    pipeline: CompiledPipeline | None,
+    manifest: DatasetManifest,
+    results_dir: Path | None,
+) -> PipelineStats | None:
+    """The finished pipeline's per-sample metrics, or ``None`` when there is nothing on disk to read.
+
+    Three facts, and all three are :class:`~seqforge.pipeline.CompiledPipeline`'s to answer rather
+    than this module's to re-derive: WHICH module ran, WHERE its outputs went, and WHICH samples it
+    was contracted to produce. That last one comes from the config the pipeline itself consumed and
+    never from a listing of the results tree, which is what makes a *partial* pipeline legible — a
+    listing can only say what finished, never what is missing.
+
+    ``results_dir`` overrides the second: a pipeline run with ``snakemake --directory`` put its
+    outputs somewhere this workspace cannot know, and that is a machine fact, so it arrives as a flag
+    rather than as a search. It is joined onto the pipeline directory exactly as ``outdir`` is, which
+    leaves an absolute override untouched.
+
+    The manifest's sample ids are the fallback for a config written before ``samples`` existed. They
+    agree by construction (the composer derives one from the other), so this is a compatibility path
+    and not a second opinion — and it lives here rather than on the owner because the owner
+    deliberately does not know what a manifest is.
+
+    Every step degrades to ``None``: an uncomposed workspace, a module with no adapter, a pipeline
+    that has not started. All of them are the same fact for a reader — there is no results section —
+    and none is a reason to fail a report of what the compiler decided.
+    """
+    if pipeline is None:
+        return None
+    module = pipeline.module
+    if module is None:
+        return None
+    samples = pipeline.samples or [s.sample_id for s in manifest.experiment.samples]
+    where = pipeline.directory / results_dir if results_dir is not None else pipeline.results_dir
+    # Imported here and not at module scope: `stats` reaches its adapter through `qc` -> `h5ad`,
+    # which imports scipy — ~0.3 s measured — and `cli/__init__` imports this module to register the
+    # verb, so at module scope every `seqforge` invocation would pay it to register `report`.
+    from ..workflows.stats import read_pipeline_stats
+
+    try:
+        return read_pipeline_stats(module, where, samples)
+    except OSError:
+        return None
 
 
 # ---- evidence matrix ----------------------------------------------------------------------------

@@ -26,6 +26,13 @@ report, the gates and the ground-truth harness read through
 package path so that a run directory still reads and reproduces after it is moved off the composing
 machine.
 
+**What the pipeline itself writes lands under that directory too**, at the config's `outdir`
+(`results/` by default), one subdirectory per sample. seqforge does not write a byte of it — the user
+submits the Snakefile — but `seqforge report` reads it back: each **Workflow module** declares which
+artifact name to look for and how to parse it
+([ADR-0025](../adr/0025-the-module-that-writes-an-artifact-owns-reading-it.md)), and `report
+--results` relocates the search for a pipeline run with `snakemake --directory`.
+
 `eval/` is the fourth top-level thing, beside `pipeline/`, `fingerprint/` and `report.html`, and it is
 there because evals were the one part of seqforge that honoured none of this: every case ran in a
 temporary directory that was deleted and the whole result rode on stdout, which left a

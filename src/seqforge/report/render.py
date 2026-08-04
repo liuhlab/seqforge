@@ -81,7 +81,7 @@ def render_html(report: ProjectReport) -> str:
         f"<title>seqforge report — {esc(report.workspace_name)}</title>\n"
         f"<style>{css}</style>\n"
         "</head>\n<body>\n"
-        f"{header}\n{tab_bar()}\n"
+        f"{header}\n{tab_bar(report)}\n"
         f"<main>{sections}</main>\n"
         f"{footer}\n"
         f"<script>{report_js}</script>\n"

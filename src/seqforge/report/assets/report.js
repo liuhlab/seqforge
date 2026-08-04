@@ -97,6 +97,12 @@
   // A native title="" tooltip is transient and can't be selected or copied. Instead, a click pins a
   // small card next to the cell with the provenance as real, selectable text plus a Copy button. It
   // lives at the top of <body> (position:fixed) so the samples table's horizontal scroll never clips it.
+  // Results-tab metric COLUMN HEADERS opt into the same popover (.metric-head): a metric's hint is a
+  // sentence of domain knowledge worth selecting and copying, and one behaviour for both tables beats
+  // a second mechanism that behaves almost the same. The header, not the cell — the hint describes the
+  // metric, so it is stored once per column instead of once per sample.
+  var CELL_SEL = ".attr-cell, .metric-head";
+
   function initProvPopover() {
     var pop = null;
     var openCell = null;
@@ -193,7 +199,7 @@
     }
 
     function cellOf(node) {
-      return node && node.closest ? node.closest(".attr-cell") : null;
+      return node && node.closest ? node.closest(CELL_SEL) : null;
     }
 
     document.addEventListener("click", function (e) {
@@ -211,7 +217,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") { close(); return; }
       var active = document.activeElement;
-      if ((e.key === "Enter" || e.key === " ") && active && active.classList && active.classList.contains("attr-cell") && !active.classList.contains("empty")) {
+      if ((e.key === "Enter" || e.key === " ") && active && active.matches && active.matches(CELL_SEL) && !active.classList.contains("empty")) {
         e.preventDefault();
         if (active === openCell) close();
         else openFor(active);

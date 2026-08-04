@@ -8,7 +8,10 @@ Everything here is a *view*: it flattens the manifest's ``Evidenced`` envelopes 
 ``(value, basis, confidence, rung, evidence)`` and resolves each evidence token to something a human
 can read (a quote, an accession, a policy rule). It is deliberately modality-general — read roles,
 quantification, and the composed config are carried as generic shapes, never STARsolo-typed fields —
-so a future non-STAR pipeline renders through the same tree unchanged.
+so a future non-STAR pipeline renders through the same tree unchanged. The one shape defined
+elsewhere, :class:`~seqforge.workflows.metrics.PipelineStats`, keeps that property: it carries its own
+column set, so a chromap fragments summary and a STARsolo bundle both arrive as one list of graded
+metrics and neither tool's vocabulary is typed here either.
 """
 
 from __future__ import annotations
@@ -16,6 +19,8 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from ..workflows.metrics import PipelineStats
 
 
 class _View(BaseModel):
@@ -287,6 +292,12 @@ class AssayReport(_View):
     artifacts: list[ArtifactEmbed] = Field(default_factory=list)
     pipeline_stages: list[PipelineStage] = Field(default_factory=list)
     conclusion: ConclusionView
+    #: The finished pipeline's per-sample metrics, or None when it has not run (or not finished a
+    #: single sample). Deliberately NOT folded into `conclusion`: that carries how the COMPILE ended,
+    #: and "the compiler succeeded" and "the pipeline succeeded" are two judgements, which means two
+    #: envelopes. Merged, a page would say "Compiled" over a pipeline that mapped nothing, and a
+    #: reader would have no way left to ask which of the two it was being told about.
+    pipeline_stats: PipelineStats | None = None
     provenance: list[tuple[str, str]] = Field(default_factory=list)
     #: True iff archive records were joined (sample facts have a declared source).
     has_records: bool = False
@@ -344,6 +355,10 @@ class ProjectReport(_View):
 
 
 __all__ = [
+    # Re-exported, not defined here. It is the type of a public field on `AssayReport`, so it is part
+    # of this tree's surface whoever defines it — and it is defined beside the code that WRITES the
+    # artifacts it describes, because who writes a format owns how to read it.
+    "PipelineStats",
     "EvidenceRef",
     "AttributeView",
     "SampleView",
