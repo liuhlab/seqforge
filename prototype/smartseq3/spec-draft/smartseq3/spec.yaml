@@ -1,0 +1,96 @@
+# DRAFT — NOT A KB ENTRY. Lives under prototype/, deliberately outside src/seqforge/kb/specs/, so
+# nothing loads it but the measurement harness beside it. wayfinder #234 / map #225 forbids production
+# code; this file exists to be SCORED, so the maintainer can read numbers instead of a proposal.
+#
+# Read structure pinned by #226 (four independent primary sources + the peer-reviewed Methods' verbatim
+# TSO oligo `5'-biotin-AGAGACAGATTGCGCAATGNNNNNNNNrGrGrG-3'`): tag 1-11, 8 bp UMI 12-19, GGG 20-22,
+# cDNA from 23, FIXED offset. 0-based half-open here.
+#
+# THREE THINGS IN THIS FILE ARE UNRESOLVED AND MARKED. See the ticket comment.
+#   (a) `backend` is a PLACEHOLDER. #229 chose umite and no `map/umite` module exists, so this declares
+#       `map/star` with empty params — which makes `backend_identical(smartseq3, bulk-rnaseq-pe)` TRUE
+#       and would force the CI biconditional to label the pair `processing_equivalent` (record both,
+#       ask nothing). That label is wrong and the placeholder is why.
+#   (b) `confusable_with.distinguishable_by` cannot say "the bytes". `Mechanism` is
+#       [none|onlist|metadata|alignment|user]; only the DERIVED `Decidable` type has `reads`.
+#   (c) `min_rate` is the one tuned number. Measured floor discussion in the ticket comment.
+
+schema_version: 1
+
+identity:
+  id: smartseq3
+  version: hagemann-jensen-2020
+  name: "Smart-seq3 (plate-based; the cell barcode is the FILE, not a read)"
+  aliases: ["Smart-seq3", "SMART-seq3", "Smartseq3", "SMARTseq3", "Smart-seq3xpress"]
+  assay_ontology: ["EFO:0022488"]   # live-checked in #226 against OLS4 (EFO snapshot 2026-08-03)
+  modality: rna
+
+reads:
+  # R1 of the TAGGED population. The untagged population of the same file is byte-identical to bulk
+  # cDNA (#226, citable) — which is why every test below is a PROPORTION over reads, never a per-cycle
+  # purity, and why the layout describes the minority that carries the structure.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: fixed, name: tso_tag, start: 0, end: 11, sequence: "ATTGCGCAATG", seqspec_region_type: custom_primer}
+      - {type: umi, name: umi, start: 11, end: 19, seqspec_region_type: umi}
+      - {type: fixed, name: tso_ggg, start: 19, end: 22, sequence: "GGG", seqspec_region_type: custom_primer}
+      - {type: cdna, name: cdna_r1, start: 22, end: null, seqspec_region_type: cdna}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: neg
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna_r2, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists: {}   # there is no whitelist: the cell barcode is the FILE (#225 constraint 1)
+
+signature:
+  requires:
+    # THE WHOLE SEPARATION, in one existing evaluator. `where: read_start` makes this a POSITIONAL
+    # test — it looks at offset 0 and nowhere else — which is why `min_rate` can sit two orders of
+    # magnitude below the observed positives without admitting anything.
+    #   measured rate at offset 0, mm<=2, 2000-read slices:
+    #     ten GSE207085 cells, R1  39.6% - 67.6%     (lowest published library, #226: 6.9%)
+    #     the same ten cells,  R2   0.00% -  0.15%
+    #     GSE283483-bulk R1/R2      0.00% /  0.05%
+    # NO `has_segment: constant` here: it is majority-gated and two of ten cells measure 0.40/0.42,
+    # so it would split one plate across two chemistries at exit 0 (#230's warning, reproduced).
+    # NO `read_count` gate: 50 bp and 75 bp SINGLE-END Smart-seq3 is published and first-class.
+    # Note the two-read `reads` block above already imposes an implicit 2-file demand through
+    # injectivity, so SE is refused by the LAYOUT, not by a test. That is a real gap, not a nit.
+    - {test: motif_present, read: R1, motif: "ATTGCGCAATG", where: read_start, max_mismatch: 2, min_rate: 0.02}
+  supports:
+    - when: {test: motif_present, read: R1, motif: "ATTGCGCAATG", where: read_start, max_mismatch: 2, min_rate: 0.02}
+      weight: 3.0
+    - when: {test: has_segment, read: R1, element: umi, kind: random}
+      weight: 1.0
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 25, expect: high}
+      weight: 2.0
+  excludes: []
+
+backend:
+  module: map/star        # (a) PLACEHOLDER — see the header. The real target is #229's umite module.
+  params: {}
+
+parent: null
+node_kind: leaf
+
+confusable_with:
+  - id: bulk-rnaseq-pe
+    relationship: processing_divergent
+    distinguishable_by: [metadata]   # (b) the honest answer is "reads", which the vocabulary lacks
+    note: >
+      One-directional acceptance, computed not assumed: smartseq3 REJECTS bulk reads at rung 0
+      (bulk's R1 carries the tag at offset 0 in 0.00% of reads against a 2% floor), but the generic
+      paired-end fallback accepts smartseq3's pair on read-count and length alone, so
+      `rung02_separable(smartseq3, bulk-rnaseq-pe)` is False and the edge must be declared. Downstream
+      the two are maximally divergent — bulk gene counts with every PCR duplicate counted once per read,
+      and 22 bp of tag+UMI+GGG prepended to every 5' read, versus a UMI-deduplicated tagged/internal
+      split. The mechanism list says `metadata` only because `Mechanism` has no word for "the bytes".

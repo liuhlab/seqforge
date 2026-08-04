@@ -1,0 +1,486 @@
+{
+ "63": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.65075
+   ],
+   "second": [
+    "10x-5p-gex-v3",
+    0.427324
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.766792
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.65075
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.766792
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.65075
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "207": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.66725
+   ],
+   "second": [
+    "10x-5p-gex-v3",
+    0.424136
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.803344
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.66725
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.803344
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.66725
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "538": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.61075
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.398781
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.756141
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.61075
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.756141
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.61075
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "804": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.90775
+   ],
+   "second": [
+    "10x-multiome-gex",
+    0.512838
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.935031
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.90775
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.935031
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.90775
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "867": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.6065
+   ],
+   "second": [
+    "10x-gemx-3p-v4",
+    0.421534
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.745151
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.6065
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.745151
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.6065
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "939": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.88475
+   ],
+   "second": [
+    "10x-gemx-3p-v4",
+    0.502411
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.91599
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.88475
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.91599
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.88475
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "1146": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.60925
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.394854
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.762302
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.60925
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.762302
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.60925
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "1291": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.855166
+   ],
+   "second": [
+    "10x-gemx-3p-v4",
+    0.562976
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.855166
+   ],
+   "second": [
+    "smartseq3",
+    0.844415
+   ],
+   "rung": 7,
+   "questions": 1,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.855166
+   ],
+   "second": [
+    "smartseq3",
+    0.844415
+   ],
+   "rung": 7,
+   "questions": 1,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "1356": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.89875
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.511055
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.928995
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.89875
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.928995
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.89875
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "1419": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.84775
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.516969
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "smartseq3",
+    0.904974
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.84775
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "smartseq3",
+    0.904974
+   ],
+   "second": [
+    "bulk-rnaseq-pe",
+    0.84775
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ },
+ "BULK": {
+  "stock": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.96125
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.552314
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-R": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.96125
+   ],
+   "second": [
+    "10x-3p-gex-v3",
+    0.552314
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  },
+  "draft-S": {
+   "top": [
+    "bulk-rnaseq-pe",
+    0.96125
+   ],
+   "second": [
+    "smartseq3",
+    0.600453
+   ],
+   "rung": 2,
+   "questions": 0,
+   "conflicts": 0,
+   "blockers": 0
+  }
+ }
+}

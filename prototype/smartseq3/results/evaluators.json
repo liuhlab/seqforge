@@ -1,0 +1,2130 @@
+{
+ "motif@start mm2 min.50": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.791,
+   "detail": "motif_rate=0.40"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.003,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.002,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.59"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.68"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.002,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.67"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.001,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.002,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.57"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0022,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1419-R1": {
+   "outcome": "fail",
+   "score": 0.841,
+   "detail": "motif_rate=0.42"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.001,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.001,
+   "detail": "motif_rate=0.00"
+  }
+ },
+ "motif@start mm2 min.05": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.40"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.03,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.59"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.68"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.67"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.57"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0222,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.42"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  }
+ },
+ "motif@start mm2 min.01": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.40"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.15,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.1,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.59"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.68"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.1,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.67"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.05,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.1,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.57"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.111,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.42"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.05,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.05,
+   "detail": "motif_rate=0.00"
+  }
+ },
+ "motif@start mm0 min.05": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.38"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.59"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.57"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.58"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.66"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.46"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.55"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0222,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.41"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  }
+ },
+ "motif anywhere mm2 .05": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.43"
+  },
+  "ss3-63-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.30"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.66"
+  },
+  "ss3-207-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.38"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-538-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.52"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-804-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.07"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.69"
+  },
+  "ss3-867-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.55"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.69"
+  },
+  "ss3-939-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.12"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.66"
+  },
+  "ss3-1146-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.53"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-1291-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.20"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.63"
+  },
+  "ss3-1356-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.08"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.47"
+  },
+  "ss3-1419-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.19"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.27,
+   "detail": "motif_rate=0.01"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.46,
+   "detail": "motif_rate=0.02"
+  }
+ },
+ "motif window[0,0] mm2 .05": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.40"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.62"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.03,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.60"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.59"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.68"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.67"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.02,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.57"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0222,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.61"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "motif_rate=0.42"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "motif_rate=0.00"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.01,
+   "detail": "motif_rate=0.00"
+  }
+ },
+ "has_segment const 0-11": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.79,
+   "detail": "consensus_rate=0.40 min=0.5 mismatch<=1"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.62 min=0.5 mismatch<=1"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.59 min=0.5 mismatch<=1"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.59 min=0.5 mismatch<=1"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.67 min=0.5 mismatch<=1"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.67 min=0.5 mismatch<=1"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.60 min=0.5 mismatch<=1"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.57 min=0.5 mismatch<=1"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.61 min=0.5 mismatch<=1"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "ss3-1419-R1": {
+   "outcome": "fail",
+   "score": 0.839,
+   "detail": "consensus_rate=0.42 min=0.5 mismatch<=1"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.002,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=1"
+  }
+ },
+ "has_segment const 0-22": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.003,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-207-R1": {
+   "outcome": "fail",
+   "score": 0.009,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-538-R1": {
+   "outcome": "fail",
+   "score": 0.004,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-804-R1": {
+   "outcome": "fail",
+   "score": 0.027,
+   "detail": "consensus_rate=0.01 min=0.5 mismatch<=2"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-867-R1": {
+   "outcome": "fail",
+   "score": 0.005,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-939-R1": {
+   "outcome": "fail",
+   "score": 0.047,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=2"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-1146-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-1291-R1": {
+   "outcome": "fail",
+   "score": 0.0511,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=2"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-1356-R1": {
+   "outcome": "fail",
+   "score": 0.033,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=2"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "ss3-1419-R1": {
+   "outcome": "fail",
+   "score": 0.033,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=2"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.0,
+   "detail": "consensus_rate=0.00 min=0.5 mismatch<=2"
+  }
+ },
+ "has_segment const 19-22 (GGG)": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.614,
+   "detail": "consensus_rate=0.31 min=0.5 mismatch<=0"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.011,
+   "detail": "consensus_rate=0.01 min=0.5 mismatch<=0"
+  },
+  "ss3-207-R1": {
+   "outcome": "fail",
+   "score": 0.736,
+   "detail": "consensus_rate=0.37 min=0.5 mismatch<=0"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.022,
+   "detail": "consensus_rate=0.01 min=0.5 mismatch<=0"
+  },
+  "ss3-538-R1": {
+   "outcome": "fail",
+   "score": 0.626,
+   "detail": "consensus_rate=0.31 min=0.5 mismatch<=0"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.074,
+   "detail": "consensus_rate=0.04 min=0.5 mismatch<=0"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.55 min=0.5 mismatch<=0"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.067,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=0"
+  },
+  "ss3-867-R1": {
+   "outcome": "fail",
+   "score": 0.786,
+   "detail": "consensus_rate=0.39 min=0.5 mismatch<=0"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.036,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=0"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.63 min=0.5 mismatch<=0"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.063,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=0"
+  },
+  "ss3-1146-R1": {
+   "outcome": "fail",
+   "score": 0.645,
+   "detail": "consensus_rate=0.32 min=0.5 mismatch<=0"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.053,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=0"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.50 min=0.5 mismatch<=0"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.0333,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=0"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "consensus_rate=0.58 min=0.5 mismatch<=0"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.045,
+   "detail": "consensus_rate=0.02 min=0.5 mismatch<=0"
+  },
+  "ss3-1419-R1": {
+   "outcome": "fail",
+   "score": 0.761,
+   "detail": "consensus_rate=0.38 min=0.5 mismatch<=0"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.063,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=0"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.064,
+   "detail": "consensus_rate=0.03 min=0.5 mismatch<=0"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.025,
+   "detail": "consensus_rate=0.01 min=0.5 mismatch<=0"
+  }
+ },
+ "has_segment random 11-19 (UMI)": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 0.4783,
+   "detail": "mean_maxfrac=0.41"
+  },
+  "ss3-63-R2": {
+   "outcome": "pass",
+   "score": 0.8006,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 0.8488,
+   "detail": "mean_maxfrac=0.30"
+  },
+  "ss3-207-R2": {
+   "outcome": "pass",
+   "score": 0.7881,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 0.7231,
+   "detail": "mean_maxfrac=0.33"
+  },
+  "ss3-538-R2": {
+   "outcome": "pass",
+   "score": 0.7117,
+   "detail": "mean_maxfrac=0.34"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 0.7863,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-804-R2": {
+   "outcome": "pass",
+   "score": 0.891,
+   "detail": "mean_maxfrac=0.28"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 0.8152,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-867-R2": {
+   "outcome": "pass",
+   "score": 0.7133,
+   "detail": "mean_maxfrac=0.34"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 0.7179,
+   "detail": "mean_maxfrac=0.33"
+  },
+  "ss3-939-R2": {
+   "outcome": "pass",
+   "score": 0.8877,
+   "detail": "mean_maxfrac=0.28"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 0.7204,
+   "detail": "mean_maxfrac=0.33"
+  },
+  "ss3-1146-R2": {
+   "outcome": "pass",
+   "score": 0.8069,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 0.7808,
+   "detail": "mean_maxfrac=0.32"
+  },
+  "ss3-1291-R2": {
+   "outcome": "pass",
+   "score": 0.7632,
+   "detail": "mean_maxfrac=0.32"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 0.774,
+   "detail": "mean_maxfrac=0.32"
+  },
+  "ss3-1356-R2": {
+   "outcome": "pass",
+   "score": 0.8963,
+   "detail": "mean_maxfrac=0.28"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 0.8098,
+   "detail": "mean_maxfrac=0.31"
+  },
+  "ss3-1419-R2": {
+   "outcome": "pass",
+   "score": 0.8875,
+   "detail": "mean_maxfrac=0.28"
+  },
+  "BULK-R1": {
+   "outcome": "pass",
+   "score": 0.8756,
+   "detail": "mean_maxfrac=0.29"
+  },
+  "BULK-R2": {
+   "outcome": "pass",
+   "score": 0.8979,
+   "detail": "mean_maxfrac=0.28"
+  }
+ },
+ "base_comp G 19-22 >=0.8": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.5112,
+   "detail": "G=0.41"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.2771,
+   "detail": "G=0.22"
+  },
+  "ss3-207-R1": {
+   "outcome": "fail",
+   "score": 0.5883,
+   "detail": "G=0.47"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.2633,
+   "detail": "G=0.21"
+  },
+  "ss3-538-R1": {
+   "outcome": "fail",
+   "score": 0.5227,
+   "detail": "G=0.42"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.2523,
+   "detail": "G=0.20"
+  },
+  "ss3-804-R1": {
+   "outcome": "fail",
+   "score": 0.824,
+   "detail": "G=0.66"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.2946,
+   "detail": "G=0.24"
+  },
+  "ss3-867-R1": {
+   "outcome": "fail",
+   "score": 0.6119,
+   "detail": "G=0.49"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.2804,
+   "detail": "G=0.22"
+  },
+  "ss3-939-R1": {
+   "outcome": "fail",
+   "score": 0.9006,
+   "detail": "G=0.72"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.3071,
+   "detail": "G=0.25"
+  },
+  "ss3-1146-R1": {
+   "outcome": "fail",
+   "score": 0.5215,
+   "detail": "G=0.42"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.2681,
+   "detail": "G=0.21"
+  },
+  "ss3-1291-R1": {
+   "outcome": "fail",
+   "score": 0.7862,
+   "detail": "G=0.63"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.3011,
+   "detail": "G=0.24"
+  },
+  "ss3-1356-R1": {
+   "outcome": "fail",
+   "score": 0.8471,
+   "detail": "G=0.68"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.3112,
+   "detail": "G=0.25"
+  },
+  "ss3-1419-R1": {
+   "outcome": "fail",
+   "score": 0.6462,
+   "detail": "G=0.52"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.3017,
+   "detail": "G=0.24"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.3021,
+   "detail": "G=0.24"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.3294,
+   "detail": "G=0.26"
+  }
+ },
+ "base_comp G 19-22 >=0.5": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.818,
+   "detail": "G=0.41"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.4433,
+   "detail": "G=0.22"
+  },
+  "ss3-207-R1": {
+   "outcome": "fail",
+   "score": 0.9413,
+   "detail": "G=0.47"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.4213,
+   "detail": "G=0.21"
+  },
+  "ss3-538-R1": {
+   "outcome": "fail",
+   "score": 0.8363,
+   "detail": "G=0.42"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.4037,
+   "detail": "G=0.20"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "G=0.66"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.4713,
+   "detail": "G=0.24"
+  },
+  "ss3-867-R1": {
+   "outcome": "fail",
+   "score": 0.979,
+   "detail": "G=0.49"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.4487,
+   "detail": "G=0.22"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "G=0.72"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.4913,
+   "detail": "G=0.25"
+  },
+  "ss3-1146-R1": {
+   "outcome": "fail",
+   "score": 0.8343,
+   "detail": "G=0.42"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.429,
+   "detail": "G=0.21"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "G=0.63"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.4817,
+   "detail": "G=0.24"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "G=0.68"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.498,
+   "detail": "G=0.25"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "G=0.52"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.4827,
+   "detail": "G=0.24"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.4833,
+   "detail": "G=0.24"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.527,
+   "detail": "G=0.26"
+  }
+ },
+ "base_comp A 0-1 >=0.5": {
+  "ss3-63-R1": {
+   "outcome": "fail",
+   "score": 0.992,
+   "detail": "A=0.50"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.331,
+   "detail": "A=0.17"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.77"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.327,
+   "detail": "A=0.16"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.81"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.401,
+   "detail": "A=0.20"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.67"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.32,
+   "detail": "A=0.16"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.84"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.375,
+   "detail": "A=0.19"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.74"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.332,
+   "detail": "A=0.17"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.75"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.349,
+   "detail": "A=0.17"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.65"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.3108,
+   "detail": "A=0.16"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.68"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.334,
+   "detail": "A=0.17"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "A=0.55"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.351,
+   "detail": "A=0.18"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.218,
+   "detail": "A=0.11"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.197,
+   "detail": "A=0.10"
+  }
+ },
+ "base_comp T 1-3 >=0.5": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.55"
+  },
+  "ss3-63-R2": {
+   "outcome": "fail",
+   "score": 0.7575,
+   "detail": "T=0.38"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.79"
+  },
+  "ss3-207-R2": {
+   "outcome": "fail",
+   "score": 0.725,
+   "detail": "T=0.36"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.81"
+  },
+  "ss3-538-R2": {
+   "outcome": "fail",
+   "score": 0.6935,
+   "detail": "T=0.35"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.74"
+  },
+  "ss3-804-R2": {
+   "outcome": "fail",
+   "score": 0.678,
+   "detail": "T=0.34"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.83"
+  },
+  "ss3-867-R2": {
+   "outcome": "fail",
+   "score": 0.7385,
+   "detail": "T=0.37"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.79"
+  },
+  "ss3-939-R2": {
+   "outcome": "fail",
+   "score": 0.6515,
+   "detail": "T=0.33"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.77"
+  },
+  "ss3-1146-R2": {
+   "outcome": "fail",
+   "score": 0.7095,
+   "detail": "T=0.35"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.72"
+  },
+  "ss3-1291-R2": {
+   "outcome": "fail",
+   "score": 0.8213,
+   "detail": "T=0.41"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.75"
+  },
+  "ss3-1356-R2": {
+   "outcome": "fail",
+   "score": 0.6745,
+   "detail": "T=0.34"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.62"
+  },
+  "ss3-1419-R2": {
+   "outcome": "fail",
+   "score": 0.667,
+   "detail": "T=0.33"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.581,
+   "detail": "T=0.29"
+  },
+  "BULK-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "T=0.65"
+  }
+ },
+ "distinct 0-11 low": {
+  "ss3-63-R1": {
+   "outcome": "abstain",
+   "score": 0.6865,
+   "detail": "distinct_ratio=0.314 expect=low"
+  },
+  "ss3-63-R2": {
+   "outcome": "abstain",
+   "score": 0.362,
+   "detail": "distinct_ratio=0.638 expect=low"
+  },
+  "ss3-207-R1": {
+   "outcome": "abstain",
+   "score": 0.7555,
+   "detail": "distinct_ratio=0.244 expect=low"
+  },
+  "ss3-207-R2": {
+   "outcome": "abstain",
+   "score": 0.3825,
+   "detail": "distinct_ratio=0.618 expect=low"
+  },
+  "ss3-538-R1": {
+   "outcome": "abstain",
+   "score": 0.7955,
+   "detail": "distinct_ratio=0.204 expect=low"
+  },
+  "ss3-538-R2": {
+   "outcome": "abstain",
+   "score": 0.447,
+   "detail": "distinct_ratio=0.553 expect=low"
+  },
+  "ss3-804-R1": {
+   "outcome": "abstain",
+   "score": 0.633,
+   "detail": "distinct_ratio=0.367 expect=low"
+  },
+  "ss3-804-R2": {
+   "outcome": "abstain",
+   "score": 0.103,
+   "detail": "distinct_ratio=0.897 expect=low"
+  },
+  "ss3-867-R1": {
+   "outcome": "abstain",
+   "score": 0.8185,
+   "detail": "distinct_ratio=0.181 expect=low"
+  },
+  "ss3-867-R2": {
+   "outcome": "abstain",
+   "score": 0.4905,
+   "detail": "distinct_ratio=0.509 expect=low"
+  },
+  "ss3-939-R1": {
+   "outcome": "abstain",
+   "score": 0.716,
+   "detail": "distinct_ratio=0.284 expect=low"
+  },
+  "ss3-939-R2": {
+   "outcome": "abstain",
+   "score": 0.124,
+   "detail": "distinct_ratio=0.876 expect=low"
+  },
+  "ss3-1146-R1": {
+   "outcome": "abstain",
+   "score": 0.7545,
+   "detail": "distinct_ratio=0.245 expect=low"
+  },
+  "ss3-1146-R2": {
+   "outcome": "abstain",
+   "score": 0.4355,
+   "detail": "distinct_ratio=0.565 expect=low"
+  },
+  "ss3-1291-R1": {
+   "outcome": "abstain",
+   "score": 0.5893,
+   "detail": "distinct_ratio=0.411 expect=low"
+  },
+  "ss3-1291-R2": {
+   "outcome": "abstain",
+   "score": 0.3041,
+   "detail": "distinct_ratio=0.696 expect=low"
+  },
+  "ss3-1356-R1": {
+   "outcome": "abstain",
+   "score": 0.654,
+   "detail": "distinct_ratio=0.346 expect=low"
+  },
+  "ss3-1356-R2": {
+   "outcome": "abstain",
+   "score": 0.1095,
+   "detail": "distinct_ratio=0.890 expect=low"
+  },
+  "ss3-1419-R1": {
+   "outcome": "abstain",
+   "score": 0.521,
+   "detail": "distinct_ratio=0.479 expect=low"
+  },
+  "ss3-1419-R2": {
+   "outcome": "abstain",
+   "score": 0.1655,
+   "detail": "distinct_ratio=0.835 expect=low"
+  },
+  "BULK-R1": {
+   "outcome": "abstain",
+   "score": 0.067,
+   "detail": "distinct_ratio=0.933 expect=low"
+  },
+  "BULK-R2": {
+   "outcome": "abstain",
+   "score": 0.027,
+   "detail": "distinct_ratio=0.973 expect=low"
+  }
+ },
+ "distinct 11-19 high": {
+  "ss3-63-R1": {
+   "outcome": "abstain",
+   "score": 0.61,
+   "detail": "distinct_ratio=0.610 expect=high"
+  },
+  "ss3-63-R2": {
+   "outcome": "abstain",
+   "score": 0.583,
+   "detail": "distinct_ratio=0.583 expect=high"
+  },
+  "ss3-207-R1": {
+   "outcome": "abstain",
+   "score": 0.6595,
+   "detail": "distinct_ratio=0.659 expect=high"
+  },
+  "ss3-207-R2": {
+   "outcome": "abstain",
+   "score": 0.517,
+   "detail": "distinct_ratio=0.517 expect=high"
+  },
+  "ss3-538-R1": {
+   "outcome": "abstain",
+   "score": 0.611,
+   "detail": "distinct_ratio=0.611 expect=high"
+  },
+  "ss3-538-R2": {
+   "outcome": "abstain",
+   "score": 0.401,
+   "detail": "distinct_ratio=0.401 expect=high"
+  },
+  "ss3-804-R1": {
+   "outcome": "abstain",
+   "score": 0.8635,
+   "detail": "distinct_ratio=0.864 expect=high"
+  },
+  "ss3-804-R2": {
+   "outcome": "abstain",
+   "score": 0.8625,
+   "detail": "distinct_ratio=0.863 expect=high"
+  },
+  "ss3-867-R1": {
+   "outcome": "abstain",
+   "score": 0.655,
+   "detail": "distinct_ratio=0.655 expect=high"
+  },
+  "ss3-867-R2": {
+   "outcome": "abstain",
+   "score": 0.3745,
+   "detail": "distinct_ratio=0.374 expect=high"
+  },
+  "ss3-939-R1": {
+   "outcome": "abstain",
+   "score": 0.8405,
+   "detail": "distinct_ratio=0.841 expect=high"
+  },
+  "ss3-939-R2": {
+   "outcome": "abstain",
+   "score": 0.846,
+   "detail": "distinct_ratio=0.846 expect=high"
+  },
+  "ss3-1146-R1": {
+   "outcome": "abstain",
+   "score": 0.599,
+   "detail": "distinct_ratio=0.599 expect=high"
+  },
+  "ss3-1146-R2": {
+   "outcome": "abstain",
+   "score": 0.474,
+   "detail": "distinct_ratio=0.474 expect=high"
+  },
+  "ss3-1291-R1": {
+   "outcome": "abstain",
+   "score": 0.9534,
+   "detail": "distinct_ratio=0.953 expect=high"
+  },
+  "ss3-1291-R2": {
+   "outcome": "abstain",
+   "score": 0.6482,
+   "detail": "distinct_ratio=0.648 expect=high"
+  },
+  "ss3-1356-R1": {
+   "outcome": "abstain",
+   "score": 0.8595,
+   "detail": "distinct_ratio=0.860 expect=high"
+  },
+  "ss3-1356-R2": {
+   "outcome": "abstain",
+   "score": 0.86,
+   "detail": "distinct_ratio=0.860 expect=high"
+  },
+  "ss3-1419-R1": {
+   "outcome": "abstain",
+   "score": 0.8115,
+   "detail": "distinct_ratio=0.811 expect=high"
+  },
+  "ss3-1419-R2": {
+   "outcome": "abstain",
+   "score": 0.8025,
+   "detail": "distinct_ratio=0.802 expect=high"
+  },
+  "BULK-R1": {
+   "outcome": "abstain",
+   "score": 0.866,
+   "detail": "distinct_ratio=0.866 expect=high"
+  },
+  "BULK-R2": {
+   "outcome": "abstain",
+   "score": 0.9,
+   "detail": "distinct_ratio=0.900 expect=high"
+  }
+ },
+ "distinct 0-25 high (bulk's own)": {
+  "ss3-63-R1": {
+   "outcome": "abstain",
+   "score": 0.6375,
+   "detail": "distinct_ratio=0.637 expect=high"
+  },
+  "ss3-63-R2": {
+   "outcome": "abstain",
+   "score": 0.654,
+   "detail": "distinct_ratio=0.654 expect=high"
+  },
+  "ss3-207-R1": {
+   "outcome": "abstain",
+   "score": 0.69,
+   "detail": "distinct_ratio=0.690 expect=high"
+  },
+  "ss3-207-R2": {
+   "outcome": "abstain",
+   "score": 0.6345,
+   "detail": "distinct_ratio=0.634 expect=high"
+  },
+  "ss3-538-R1": {
+   "outcome": "abstain",
+   "score": 0.64,
+   "detail": "distinct_ratio=0.640 expect=high"
+  },
+  "ss3-538-R2": {
+   "outcome": "abstain",
+   "score": 0.5715,
+   "detail": "distinct_ratio=0.572 expect=high"
+  },
+  "ss3-804-R1": {
+   "outcome": "abstain",
+   "score": 0.892,
+   "detail": "distinct_ratio=0.892 expect=high"
+  },
+  "ss3-804-R2": {
+   "outcome": "abstain",
+   "score": 0.9135,
+   "detail": "distinct_ratio=0.913 expect=high"
+  },
+  "ss3-867-R1": {
+   "outcome": "abstain",
+   "score": 0.6765,
+   "detail": "distinct_ratio=0.676 expect=high"
+  },
+  "ss3-867-R2": {
+   "outcome": "abstain",
+   "score": 0.5265,
+   "detail": "distinct_ratio=0.526 expect=high"
+  },
+  "ss3-939-R1": {
+   "outcome": "abstain",
+   "score": 0.867,
+   "detail": "distinct_ratio=0.867 expect=high"
+  },
+  "ss3-939-R2": {
+   "outcome": "abstain",
+   "score": 0.8925,
+   "detail": "distinct_ratio=0.892 expect=high"
+  },
+  "ss3-1146-R1": {
+   "outcome": "abstain",
+   "score": 0.624,
+   "detail": "distinct_ratio=0.624 expect=high"
+  },
+  "ss3-1146-R2": {
+   "outcome": "abstain",
+   "score": 0.5845,
+   "detail": "distinct_ratio=0.585 expect=high"
+  },
+  "ss3-1291-R1": {
+   "outcome": "abstain",
+   "score": 0.9667,
+   "detail": "distinct_ratio=0.967 expect=high"
+  },
+  "ss3-1291-R2": {
+   "outcome": "abstain",
+   "score": 0.7336,
+   "detail": "distinct_ratio=0.734 expect=high"
+  },
+  "ss3-1356-R1": {
+   "outcome": "abstain",
+   "score": 0.883,
+   "detail": "distinct_ratio=0.883 expect=high"
+  },
+  "ss3-1356-R2": {
+   "outcome": "abstain",
+   "score": 0.9045,
+   "detail": "distinct_ratio=0.904 expect=high"
+  },
+  "ss3-1419-R1": {
+   "outcome": "abstain",
+   "score": 0.838,
+   "detail": "distinct_ratio=0.838 expect=high"
+  },
+  "ss3-1419-R2": {
+   "outcome": "abstain",
+   "score": 0.8475,
+   "detail": "distinct_ratio=0.848 expect=high"
+  },
+  "BULK-R1": {
+   "outcome": "abstain",
+   "score": 0.9405,
+   "detail": "distinct_ratio=0.941 expect=high"
+  },
+  "BULK-R2": {
+   "outcome": "abstain",
+   "score": 0.982,
+   "detail": "distinct_ratio=0.982 expect=high"
+  }
+ },
+ "segment_length 151": {
+  "ss3-63-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-63-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-207-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-207-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-538-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-538-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-804-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-804-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-867-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-867-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-939-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-939-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1146-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1146-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1291-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1291-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1356-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1356-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1419-R1": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "ss3-1419-R2": {
+   "outcome": "pass",
+   "score": 1.0,
+   "detail": "mode=151 vs 151\u00b10"
+  },
+  "BULK-R1": {
+   "outcome": "fail",
+   "score": 0.9338,
+   "detail": "mode=150 vs 151\u00b10"
+  },
+  "BULK-R2": {
+   "outcome": "fail",
+   "score": 0.9338,
+   "detail": "mode=150 vs 151\u00b10"
+  }
+ },
+ "header_index present": {
+  "ss3-63-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-63-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-207-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-207-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-538-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-538-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-804-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-804-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-867-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-867-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-939-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-939-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1146-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1146-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1291-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1291-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1356-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1356-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1419-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "ss3-1419-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "BULK-R1": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  },
+  "BULK-R2": {
+   "outcome": "abstain",
+   "score": 0.0,
+   "detail": "SRA-normalized header (index stripped)"
+  }
+ }
+}
