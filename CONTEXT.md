@@ -256,7 +256,9 @@ Everything probe reports about one file — composition, segmentation, distinct 
 grammar, integrity — and **no roles**. Deterministic, LLM-free, network-free, cached by content
 address (`docs/agents/models.md`).
 _Avoid_: probe result, profile, QC report, fingerprint (a fingerprint package ships **Slice**s); and
-an Observation never "identifies" anything, it reports
+never a **Metric** — an Observation is read from the bytes *before* anything ran, a metric is what the
+finished pipeline reported *after*, and both are measurements about sequencing data; also, an
+Observation never "identifies" anything, it reports
 
 **Hypothesis**:
 A span-verified assertion handed to `score` as a selector for which onlist to test first and as a
@@ -345,19 +347,36 @@ _Avoid_: error, failure, hard warning; severity is the type, never a field to br
 A non-blocking advisory, exit 0 — what the metadata resolver emits once it has *decided* a
 sample-attribute disagreement, including deciding to leave it null (`docs/adr/0010`).
 _Avoid_: soft error, minor blocker, notice; spelled `ValidationWarning` in code so it never shadows
-the builtin
+the builtin. Not every non-blocking advisory is one — evidence a *finished pipeline* raises against a
+decision already compiled is an **Alert**, which no exit code carries at all
 
 **Conflict**:
 A surfaced disagreement between two or more positions on one field, each with its own basis. An
 `observed`↔`asserted` one is never auto-picked: it blocks at exit 4 until a human confirms
 (`docs/adr/0010`).
-_Avoid_: mismatch, discrepancy, error, disagreement (unqualified)
+_Avoid_: mismatch, discrepancy, error, disagreement (unqualified); and never for a finished
+pipeline's numbers disagreeing with a decision already hashed — nothing arbitrates that, so it is an
+**Alert** and not a Conflict raised late
 
 **Question**:
 An ambiguity code has already narrowed to a closed list of options, addressed to a human at exit 4.
 Asked only where the answers are exclusive — an ambiguity whose every answer we can afford to emit
 is dissolved, not asked (`docs/adr/0012`).
 _Avoid_: prompt, query, clarification, ask
+
+**Alert**:
+Post-run evidence contradicting a decision the compiler has already made and already hashed: a
+threshold comparison over the **Metric**s a finished **Compiled pipeline** wrote, naming the manifest
+or recipe decision it implicates and the value that decision currently carries. It fires either on
+every sample that landed or on some, and the two are different claims — the first implicates the
+decision, the second one well. The only thing in this compiler that points *backwards* along its own
+pipeline, and advisory by construction: it rewrites neither artifact, changes no exit code, and turns
+no successful compile into a refusal (`docs/adr/0026`).
+_Avoid_: **Conflict** — that is disagreement among the *inputs*, settled before a manifest exists,
+and an alert is not a late one; **Warning** and **Blocker** — both are compile-time verdicts an exit
+code carries, and an alert reaches a reader through the page and the report verb's JSON instead;
+**Question** — that is asked *before* deciding, and an alert arrives after and asks nothing; also
+issue, diagnostic, QC failure, recommendation
 
 ### Artifacts
 
@@ -394,6 +413,19 @@ One word for both, because the directory is where the execution's outputs land, 
 every question about either (`docs/adr/0024`).
 _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
 its execution; also build, job, workflow run
+
+**Metric**:
+One number a finished **Compiled pipeline** wrote, carried with the words a human reads it by, which
+stage it speaks about (input, barcode, alignment, counts, duplication, cells), and a **level** —
+`ok`, `warn`, `bad`, or `none` where no bar is defensible, which is a verdict and not a missing value.
+The module that wrote the artifact decides the level, so the page picks a colour and never a threshold
+(`docs/adr/0025`); a number the artifact does not carry is absent, never a zero. One sample's metrics
+are its *sample stats* and one execution's are its *pipeline stats* — **pipeline**, because a **Run**
+is one sequencing run and `run_id` names a pairing, and three senses of one word is how a reader stops
+knowing which of them a field carries.
+_Avoid_: stat, QC number, score (a score is what the resolver computes over candidates), grade (that
+is the act of assigning a level); and never an **Observation** — that is read from the bytes *before*
+anything ran, a metric is what the finished pipeline reported *after*
 
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it
