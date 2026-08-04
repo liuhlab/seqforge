@@ -42,9 +42,17 @@ from __future__ import annotations
 import os
 import re
 import time
+from collections.abc import Iterable
+from typing import get_args
 from xml.etree import ElementTree
 
-from ..models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordAttribute
+from ..models.records import (
+    ArchiveRecord,
+    ArchiveRecordSet,
+    FreeText,
+    RecordAttribute,
+    RecordLevel,
+)
 from .attributes import harmonize
 from .remote import _MAX_RETRIES, RemoteError, _get, retry_delay
 
@@ -61,6 +69,10 @@ EUTILS_EFETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 #: How many ids to put in one efetch. NCBI asks for POST above ~200; we stay well under and page.
 _BATCH = 100
+
+#: Hierarchy order, read off the level vocabulary itself rather than restated — a second copy of
+#: those four words is a copy that can drift from the one the models enforce.
+_LEVELS: tuple[str, ...] = get_args(RecordLevel)
 
 SOURCE = "ncbi-sra+biosample"
 
@@ -99,13 +111,30 @@ def _free(label: str, text: str | None) -> list[FreeText]:
     return [FreeText(label=label, text=cleaned)] if cleaned else []
 
 
+def one_record_per_accession(records: Iterable[ArchiveRecord]) -> list[ArchiveRecord]:
+    """One record per level and accession, in hierarchy order, first occurrence winning.
+
+    The archive's own shape is what produces the repeats: a package restates the whole chain above
+    its experiment, so a study reappears in every package and a sample in every package under it.
+    Two packages describing one study describe it identically, so the first is the answer and a
+    "merge" would be inventing a reconciliation problem the archive does not have.
+
+    This owns the returned order too — grouped by level, sorted by accession inside a group — so a
+    record set reads the same however many requests it took to fetch.
+    """
+    kept: dict[tuple[str, str], ArchiveRecord] = {}
+    for record in records:
+        kept.setdefault((record.level, record.accession), record)
+    return sorted(kept.values(), key=lambda r: (_LEVELS.index(r.level), r.accession))
+
+
 def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
     """``efetch db=sra`` XML -> project/sample/experiment/run records.
 
-    One ``EXPERIMENT_PACKAGE`` carries the whole chain for one experiment, so the same STUDY and the
-    same SAMPLE appear in several packages. They are de-duplicated by accession here rather than
-    merged later: two packages describing one study describe it identically, and a "merge" would be
-    inventing a reconciliation problem that the archive does not have.
+    De-duplicated by accession (:func:`one_record_per_accession`) rather than merged later. This
+    reply is one page of a larger fetch whenever the study has more experiments than fit in a
+    request, and a page can only see itself — so :func:`fetch_records` dedups again once the pages
+    are assembled, and that later pass is the one a repeated study record survives to.
 
     A sample record is keyed by its **BioSample** accession when the record declares one, because
     that is the id that survives leaving SRA. The experiment's ``parent`` is rewritten to match,
@@ -204,12 +233,9 @@ def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
                 filenames=_original_filenames(run),
             )
 
-    return [
-        *sorted(projects.values(), key=lambda r: r.accession),
-        *sorted(samples.values(), key=lambda r: r.accession),
-        *sorted(experiments.values(), key=lambda r: r.accession),
-        *sorted(runs.values(), key=lambda r: r.accession),
-    ]
+    return one_record_per_accession(
+        [*projects.values(), *samples.values(), *experiments.values(), *runs.values()]
+    )
 
 
 def _original_filenames(run: ElementTree.Element) -> list[str]:
@@ -408,6 +434,12 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
     packages: list[ArchiveRecord] = []
     for i in range(0, len(experiments), _BATCH):
         packages.extend(parse_sra_package_set(_efetch("sra", experiments[i : i + _BATCH])))
+    # Only here does the whole record set exist. Every request carries the study above the experiments
+    # it asked for, and a sample above every experiment of its own, so a study repeats once per
+    # request and a sample repeats in each request holding one of its experiments; the per-reply dedup
+    # cannot see either. Deduplicating before the two enrichment fetches below also keeps a repeated
+    # sample from spending a second id slot on attributes already being asked for.
+    packages = one_record_per_accession(packages)
 
     biosamples = [
         r.accession for r in packages if r.level == "sample" and r.accession.startswith("SAM")
@@ -444,6 +476,7 @@ __all__ = [
     "EUTILS_EFETCH",
     "SOURCE",
     "fetch_records",
+    "one_record_per_accession",
     "parse_sra_package_set",
     "parse_biosample_set",
     "parse_bioproject_set",
