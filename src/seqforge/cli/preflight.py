@@ -30,8 +30,16 @@ def preflight_cmd(
         "--accession",
         help="Build the package from an SRA run/experiment (SRR/SRX) by STREAMING the first --reads "
         "spots straight from the .sra — no FASTQ downloaded. A project/series that mixes experiments "
-        "(e.g. a GSE with bulk + multiome) is refused with the list of SRX to pick from. Mutually "
-        "exclusive with the FASTQ arguments.",
+        "(e.g. a GSE with bulk + multiome) is refused with the list of SRX to pick from, unless "
+        "--multi-experiment says they are one library. Mutually exclusive with the FASTQ arguments.",
+    ),
+    multi_experiment: bool = typer.Option(
+        False,
+        "--multi-experiment",
+        help="Assert that the accession's several experiments ARE one library, and package all of "
+        "them. For a plate-based deposit, where every cell is its own SRX and no single-SRX package "
+        "can express the dataset. Without it a multi-experiment accession is refused, which is what "
+        "keeps a series mixing modalities (bulk + multiome GEX + ATAC) out of one package.",
     ),
     reads: int = typer.Option(
         DEFAULT_MAX_READS,
@@ -95,12 +103,11 @@ def preflight_cmd(
     try:
         if accession:
             from ..io.remote import RemoteError
-            from ..io.sra import build_fingerprint_sra, resolve_single_experiment_runs
+            from ..io.sra import build_fingerprint_sra, resolve_package_runs
 
             try:
-                _srx, runs = resolve_single_experiment_runs(accession)
                 result = build_fingerprint_sra(
-                    runs,
+                    resolve_package_runs(accession, multi_experiment=multi_experiment),
                     workspace=workspace,
                     reads=reads,
                     max_bytes=max_bytes,

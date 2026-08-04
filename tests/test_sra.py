@@ -18,7 +18,7 @@ from typer.testing import CliRunner
 
 from seqforge.cli import app
 from seqforge.fingerprint.load import load_fingerprint, probed_from_fingerprint
-from seqforge.io import sra
+from seqforge.io import remote, sra
 from seqforge.io.remote import RemoteError, fastq_targets_meta
 from seqforge.probe import content_key_from_md5, content_key_from_sra
 
@@ -108,6 +108,23 @@ def _ena_run(**overrides: object) -> dict[str, object]:
     }
     base.update(overrides)
     return base
+
+
+#: PRJNA853582 (GSE207085), the plate deposit that motivated the multi-experiment package: 1440 cells,
+#: every one of them its own SRX under one study.
+PLATE_STUDY = "PRJNA853582"
+PLATE_EXPERIMENTS = 1440
+PLATE_SRP = "SRP853582"
+
+
+def _plate_run(i: int) -> dict[str, str]:
+    """One cell of a plate deposit: its own SRX, no ENA mirror, sharing the study with every other."""
+    return {
+        "run_accession": f"SRR{i:07d}",
+        "experiment_accession": f"SRX{i:07d}",
+        "study_accession": PLATE_SRP,
+        "read_count": "1000",
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -211,6 +228,30 @@ def test_probe_sra_falls_back_to_a_synthetic_address_when_a_technical_read_was_d
     assert mates[0].basename == f"{SRR}_1.fastq.gz"
 
 
+def test_probe_sra_sees_a_lossy_mirror_in_the_stream_it_already_took(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ENA lists a file per mate, but published fewer bases per spot than the ``.sra`` holds.
+
+    That verdict used to arrive on the run row from a per-run NCBI call the resolver made for every
+    run in the study. The stream is taken with technical reads included, so it already carries the
+    per-read table the call would have returned — the address stays honest and costs no request.
+    """
+    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
+    calls: list[str] = []
+    monkeypatch.setattr(remote, "run_statistics", calls.append)
+    # 122 bases per spot streamed, 94 published: the barcode read never reached the mirror.
+    run = _ena_run(base_count="94000")
+
+    mates = sra.probe_sra(run, n_reads=50)
+
+    assert not any(m.ena_verified for m in mates)
+    assert mates[0].observation.file.sha256 == content_key_from_sra(
+        SRR, 1, spot_count=1000, read_length=28
+    )
+    assert calls == []
+
+
 def test_probe_sra_falls_back_when_ena_never_mirrored_the_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -279,11 +320,11 @@ def test_probe_sra_refuses_with_a_remote_error(
 
 
 # --------------------------------------------------------------------------- #
-# resolve_single_experiment_runs — the one-library guard
+# resolve_package_runs — the one-library guard and its opt-in
 # --------------------------------------------------------------------------- #
 
 
-def test_resolve_single_experiment_returns_the_runs_of_one_experiment(
+def test_resolve_package_runs_returns_the_runs_of_one_experiment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -296,14 +337,17 @@ def test_resolve_single_experiment_returns_the_runs_of_one_experiment(
             ]
         },
     )
-    srx, runs = sra.resolve_single_experiment_runs(SRX)
-    assert srx == SRX
-    assert len(runs) == 2
+    assert len(sra.resolve_package_runs(SRX)) == 2
 
 
-def test_resolve_single_experiment_refuses_a_multi_experiment_accession(
+def test_resolve_package_runs_refuses_a_multi_experiment_accession_and_names_the_opt_in(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The default stays a refusal, and it now tells the caller the opt-in exists.
+
+    A refusal that does not name the flag leaves the caller believing the shape is unbuildable, which
+    is how GSE207085 came to be packaged as ten one-cell fixtures.
+    """
     monkeypatch.setattr(
         sra,
         "resolve_accession",
@@ -315,8 +359,56 @@ def test_resolve_single_experiment_refuses_a_multi_experiment_accession(
             ]
         },
     )
-    with pytest.raises(RemoteError, match="spans 3 experiments"):
-        sra.resolve_single_experiment_runs("GSE283483")
+    with pytest.raises(RemoteError, match="spans 3 experiments") as excinfo:
+        sra.resolve_package_runs("GSE283483")
+    assert "--multi-experiment" in str(excinfo.value)
+
+
+@pytest.fixture
+def stats_calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Count every per-run NCBI stats request the plate study provokes, ENA's inventory stubbed.
+
+    The endpoint serves ONE run per request — a comma-joined or repeated ``acc`` answers for a single
+    accession — so there is no batch to fall back on, and the only thing that keeps a 1440-run study
+    affordable is not making the call at all. The count is the property; asserting it is what stops
+    the pre-pass creeping back.
+    """
+    calls: list[str] = []
+
+    def _counted(accession: str) -> remote.RunStatistics:
+        calls.append(accession)
+        return remote.RunStatistics(accession=accession)
+
+    monkeypatch.setattr(remote, "run_statistics", _counted)
+    monkeypatch.setattr(
+        remote,
+        "ena_filereport",
+        lambda acc, **kwargs: [_plate_run(i) for i in range(PLATE_EXPERIMENTS)],
+    )
+    return calls
+
+
+def test_resolving_a_plate_deposit_costs_no_per_run_stats_call(stats_calls: list[str]) -> None:
+    """Both the refusal and the opt-in resolve the 1440-run study without one per-run round-trip."""
+    with pytest.raises(RemoteError, match=f"spans {PLATE_EXPERIMENTS} experiments"):
+        sra.resolve_package_runs(PLATE_STUDY)
+    assert stats_calls == []
+
+    runs = sra.resolve_package_runs(PLATE_STUDY, multi_experiment=True)
+    assert [r["experiment_accession"] for r in runs] == [
+        f"SRX{i:07d}" for i in range(PLATE_EXPERIMENTS)
+    ]
+    assert stats_calls == []
+
+
+def test_a_plate_deposit_refusal_summarises_its_experiments(stats_calls: list[str]) -> None:
+    """1440 SRX in an error string is not an error string anybody reads, so the listing is capped."""
+    with pytest.raises(RemoteError) as excinfo:
+        sra.resolve_package_runs(PLATE_STUDY)
+    message = str(excinfo.value)
+    assert "SRX0000000 (1 run)" in message
+    assert f"and {PLATE_EXPERIMENTS - 8} more" in message
+    assert len(message) < 600
 
 
 # --------------------------------------------------------------------------- #
@@ -429,3 +521,45 @@ def test_preflight_accession_refuses_a_multi_experiment_series(
     result = runner.invoke(app, ["preflight", "--accession", "GSE283483", "-C", str(tmp_path)])
     assert result.exit_code == 1
     assert "spans 2 experiments" in result.output
+    assert "--multi-experiment" in result.output
+
+
+def test_preflight_accession_packages_every_experiment_when_the_caller_opts_in(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A plate deposit is buildable as ONE package: two cells, two SRX, four sliced mates in it.
+
+    The package the guard used to make unbuildable — and the shape a many-cell benchmark case needs,
+    since ten one-cell packages prove nothing about the sample explosion.
+    """
+    monkeypatch.setattr(
+        sra,
+        "resolve_accession",
+        lambda acc, check_reads=True: {"runs": [_plate_run(0), _plate_run(1)]},
+    )
+    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
+
+    result = runner.invoke(
+        app,
+        [
+            "preflight",
+            "--accession",
+            PLATE_STUDY,
+            "--multi-experiment",
+            "--reads",
+            "50",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    import json
+
+    payload = json.loads(result.stdout)
+    assert payload["n_files"] == 4
+    assert {f["basename"] for f in payload["files"]} == {
+        f"SRR{i:07d}_{index}.fastq.gz" for i in (0, 1) for index in (1, 2)
+    }
+    # No one SRX names a package spanning two of them, so the shared study does.
+    assert Path(payload["package"]).name.startswith(f"{PLATE_SRP}-")

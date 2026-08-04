@@ -201,6 +201,17 @@ the two extra cycles the submitter's run had. It is the first hermetic case anyw
 over-length admission path, which until now only real datasets in the networked tier exercised, and it
 needed one new recipe knob (`over_length`) to be expressible at all.
 
+**One package is one library, and `--multi-experiment` is the caller saying two experiments are one.**
+The default refusal is what keeps a series mixing modalities — GSE283483's bulk RNA + Multiome GEX +
+Multiome ATAC — out of a single package, and it stays. But a plate deposit puts every cell in its own
+`SRX` (PRJNA853582 is 1440 of them), so under the default no such dataset can enter the corpus at all:
+GSE207085 had to be packaged as ten one-cell fixtures, each proving nothing about the many-cell case.
+The flag is an assertion by the caller and never an inference from the data (#242). Chemistries that
+differ across the spanned experiments are **not** a problem downstream: `resolve_runs` resolves each
+run on its own bytes and `by_chemistry` partitions them into assays, which is the same shape
+GSE229022's heterogeneous compile already exercises. What blocks is a *sample* whose files span
+chemistries, and that check is unchanged.
+
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for
 copyright and its figures until the figure pipeline improves — the reads and pins are untouched, so
