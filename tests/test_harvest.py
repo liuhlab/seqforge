@@ -247,6 +247,24 @@ def test_entailment_rejects_a_different_version() -> None:
     assert not entails("Chromium Single Cell 3' v2 kit", "library.chemistry", "10x-3p-gex-v3")
 
 
+def test_entailment_accepts_a_form_that_only_describes_the_run() -> None:
+    """A `descriptive_alias` is demoted in RANKING, and must stay whole here (#266).
+
+    The two questions share `curated_forms` deliberately, and they are not the same question. Ranking
+    asks *which node does this value name*, where "paired-end RNA-seq" must lose to any chemistry the
+    value also names. Entailment asks *does this quote support a value already established to be
+    `bulk-rnaseq-pe`* — and there it does, because the node is no longer in doubt. Dropping the
+    descriptive forms from `curated_forms` to fix the first question would silently answer the second
+    one differently, which is the drift the shared list exists to prevent.
+    """
+    assert entails(
+        "Illumina PE RNA-seq libraries were prepared", "library.chemistry", "bulk-rnaseq-pe"
+    )
+    assert entails("paired-end RNA-seq of whole embryos", "library.chemistry", "bulk-rnaseq-pe")
+    # ...and demotion is not deletion in the other direction either: a named form still entails
+    assert entails("a bulk RNA-seq library", "library.chemistry", "bulk-rnaseq-pe")
+
+
 def test_entailment_plain_value_substring() -> None:
     assert entails(
         "The organism was Caenorhabditis elegans.", "experiment.organism", "Caenorhabditis elegans"

@@ -295,7 +295,15 @@ class Identity(_Forbid):
     id: str
     version: str
     name: str
+    #: Spellings that NAME this node: writing one is a claim that any text carrying it IS this
+    #: chemistry, and it outranks every ``descriptive_alias`` on every other node.
     aliases: list[str] = Field(default_factory=list)
+    #: Spellings that only DESCRIBE how a library was run — "paired-end RNA-seq" is true of a bulk
+    #: library and equally true of a SPLiT-seq one. They still reach this node (an archive describing
+    #: a real bulk record that way must resolve, #184), but they lose to any form that names one, so
+    #: they name it only when nothing else is named (#266). A form belongs here when you can picture
+    #: a *different* chemistry's record carrying it truthfully.
+    descriptive_aliases: list[str] = Field(default_factory=list)
     assay_ontology: list[str] = Field(default_factory=list)
     modality: Literal["rna", "atac", "multi"] = "rna"
 

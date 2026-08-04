@@ -1005,6 +1005,52 @@ def test_a_leaf_alias_outranks_the_family_alias_it_contains() -> None:
     assert _resolved_id("10x-3p-gex-v3.1") == "10x-3p-gex-v3.1"  # not the v3 prefix inside it
 
 
+#: Values carrying BOTH a chemistry's own name and a phrase that only describes the sequencing
+#: format. Measured against the shipped KB in #266: every one of them resolved to `bulk-rnaseq-pe`.
+_NAMED_AND_DESCRIBED: list[tuple[str, str]] = [
+    ("SPLiT-seq", "splitseq"),  # the control: the name alone always worked
+    ("SPLiT-seq paired-end RNA-seq", "splitseq"),
+    ("10x 3' v3 paired-end RNA-seq", "10x-3p-gex-v3"),
+    ("BD Rhapsody paired-end RNA-seq", "bd-rhapsody-wta"),
+    ("SPLiT-seq, polyA RNA-seq PE", "splitseq"),
+    ("single cell RNA-seq (SPLiT-seq), Illumina PE RNA-seq", "splitseq"),
+]
+
+
+@pytest.mark.parametrize(("value", "expected"), _NAMED_AND_DESCRIBED)
+def test_a_phrase_that_only_describes_the_format_never_outranks_a_chemistrys_own_name(
+    value: str, expected: str
+) -> None:
+    """A value that both names an assay and describes how it was run names the ASSAY (#266).
+
+    "SPLiT-seq paired-end RNA-seq" says *a SPLiT-seq library, sequenced paired-end*: one clause names
+    the chemistry, the other describes the run. Ranking a matched form by its significant-token count
+    read that backwards — "paired-end RNA-seq" is four tokens against `SPLiT-seq`'s two, so the
+    wordier DESCRIPTION beat the NAME and all five of these landed on `bulk-rnaseq-pe`. Verbosity is
+    not specificity, and the tree cannot settle it either: `bulk-rnaseq-pe` and `splitseq` are both
+    root leaves, so neither is the other's ancestor. Which forms only describe is a fact about the
+    entry, so the entry declares it (`identity.descriptive_aliases`).
+    """
+    assert _resolved_id(value) == expected
+
+
+def test_a_descriptive_phrase_still_names_the_bulk_entry_when_nothing_else_is_named() -> None:
+    """The other half of #266: a demotion, not a deletion.
+
+    A `descriptive_alias` still reaches its node — it just loses to any form that NAMES one. Dropping
+    the four phrases instead would refuse a real bulk record that describes itself the only way an
+    archive ever does, which is the over-strictness #184 measured and rejected. `bulk RNA-seq` names
+    the chemistry rather than describing a format, so it stays a first-class alias and wins alone.
+    """
+    assert _resolved_id("Illumina PE RNA-seq") == "bulk-rnaseq-pe"
+    assert _resolved_id("polyA RNA-seq PE") == "bulk-rnaseq-pe"
+    assert _resolved_id("RNA-seq PE") == "bulk-rnaseq-pe"
+    assert _resolved_id("bulk RNA-seq") == "bulk-rnaseq-pe"
+    assert (
+        kb.resolve_chemistry("RNA-seq") is None
+    )  # ...and a bare strategy word still names nothing
+
+
 def test_a_real_kit_name_resolves_where_a_strict_alias_table_would_refuse() -> None:
     """Why the repair is entailment and not exact-alias matching (measured in #184).
 
@@ -1037,3 +1083,103 @@ def test_chemistry_matching_does_not_depend_on_the_order_specs_were_loaded_in() 
         if forward is not None and backward is not None:
             assert forward.identity.id == backward.identity.id, value
     assert _resolved_id("Rhapsody Enhanced") == "bd-rhapsody-wta-enhanced"
+
+
+#: Every string in the KB's OWN vocabulary whose resolution #266 moves, and what it moves to.
+#: Measured, not guessed: 121 single strings (every curated form of every shipped spec, plus the
+#: issue's own values) resolved before and after, and these ten differ. The other 111 are unchanged.
+_MOVED_BY_266: list[tuple[str, str, str]] = [
+    # 1. the defect itself — a described format stops outranking a named chemistry
+    ("SPLiT-seq paired-end RNA-seq", "bulk-rnaseq-pe", "splitseq"),
+    ("10x 3' v3 paired-end RNA-seq", "bulk-rnaseq-pe", "10x-3p-gex-v3"),
+    ("BD Rhapsody paired-end RNA-seq", "bulk-rnaseq-pe", "bd-rhapsody-wta"),
+    # 2. a versioned family alias now reaches the leaf that declares it. `SC3Pv2` carries `SC3P` and
+    #    scores one significant token either way, so the lower id took it and the FAMILY won — the
+    #    reverse of this module's own stated rule, and unreachable by the alias's own owner.
+    ("SC3Pv2", "10x-3p-gex", "10x-3p-gex-v2"),
+    ("SC3Pv3", "10x-3p-gex", "10x-3p-gex-v3"),
+    ("SC3Pv4", "10x-3p-gex", "10x-gemx-3p-v4"),
+    ("SC5Pv1", "10x-5p-gex", "10x-5p-gex-v2"),  # the v2 entry declares both, "also covers v1"
+    ("SC5Pv2", "10x-5p-gex", "10x-5p-gex-v2"),
+    ("SC5Pv3", "10x-5p-gex", "10x-5p-gex-v3"),
+    # 3. the one that was a wrong answer rather than a vague one: the GEX arm's own verbatim name
+    #    resolved to the ATAC arm, because the ATAC name's tokens are a subset of the GEX name's and
+    #    `10x-multiome-atac` sorts first. ATAC and GEX are different pipelines.
+    (
+        "10x Chromium Single Cell Multiome ATAC + Gene Expression (GEX arm)",
+        "10x-multiome-atac",
+        "10x-multiome-gex",
+    ),
+]
+
+
+@pytest.mark.parametrize(("value", "was", "now"), _MOVED_BY_266)
+def test_the_strings_this_rule_moves_are_pinned_where_it_moved_them(
+    value: str, was: str, now: str
+) -> None:
+    """A resolution that moves silently is the hazard; a resolution that moves PINNED is the fix.
+
+    The chemistry folds into `run_id`, so any change to this ranking re-points datasets — which is
+    why the module docstring argues about load order at all, and why "the corpus grades are
+    unchanged" is not the whole bar. The benchmark tier's digest is byte-identical across this change
+    (#231), and it could not have caught these: no shipped case carries any of these strings. So they
+    are enumerated from a measured sweep instead, and every one is a node the value names better.
+    """
+    assert was != now  # non-vacuous: each row is a real move, not a restatement
+    assert _resolved_id(value) == now
+
+
+def test_a_tie_between_two_names_is_not_broken_by_which_one_is_longer() -> None:
+    """The #266 tie-break must not re-open #266's own defect one class up.
+
+    "10x 3' v3, bulk RNA-seq" names two chemistries, so component 1 cannot separate them and both
+    matched forms carry three significant tokens. Settling that on the longer string hands it to
+    "bulk RNA-seq" (12 characters) over "10x 3' v3" (9) — verbosity beating a name again, which is
+    the defect, not the fix. Length is only ever evidence when one form is contained in the other,
+    and these two share nothing; a form that says strictly more than another wins, and forms that
+    say different things fall through to the id.
+    """
+    assert _resolved_id("10x 3' v3, bulk RNA-seq") == "10x-3p-gex-v3"
+    assert _resolved_id("10x 5' v3, bulk RNA-seq") == "10x-5p-gex-v3"
+
+
+def _named_pool(*names: tuple[str, str]) -> dict[str, Spec]:
+    """A pool of ``(tech_id, name)`` nodes carrying no aliases — only their own spelling matches.
+
+    Built off a shipped spec, so the reads and signature are a real entry's rather than a stub; the
+    matcher reads nothing but ``identity`` either way. ``model_copy`` does not re-run validation, so
+    this is a shaped object and not a claim that the KB would accept these two as specs.
+    """
+    base = kb.load_all_specs()["bulk-rnaseq-pe"]
+    return {
+        tech_id: base.model_copy(
+            update={
+                "identity": base.identity.model_copy(
+                    update={"id": tech_id, "name": name, "aliases": [], "descriptive_aliases": []}
+                )
+            }
+        )
+        for tech_id, name in names
+    }
+
+
+def test_the_longer_matched_name_breaks_a_tie_not_the_alphabetically_lower_id() -> None:
+    """A node has to be reachable by its own name, whatever it sorts next to (#266).
+
+    `tokens()` reads "Smart-seq3xpress" as `['smart', 'seq3xpress']`, so a `Smart-seq3` node matches
+    it as a plain substring and scores the same two significant tokens the xpress node's own name
+    does. Breaking that tie on the lower id made the xpress entry unreachable by the only string that
+    unambiguously names it — and no alias repairs it, because "Smart-seq3 xpress" is not carried by
+    the concatenated spelling at all (`{'smart','seq3','xpress'}` ⊄ `{'smart','seq3xpress'}`).
+
+    The longer matched FORM wins instead: still a property of the two strings, so it cannot move with
+    the order the KB loaded in. A synthetic pool, because SMART-seq3 has no shipped entry yet — #257
+    scoped it to Hagemann-Jensen 2020 and left xpress a future sibling.
+    """
+    pool = _named_pool(("smartseq3", "Smart-seq3"), ("smartseq3xpress", "Smart-seq3xpress"))
+    assert kb.resolve_chemistry_id("Smart-seq3xpress", pool) == "smartseq3xpress"
+    assert (
+        kb.resolve_chemistry_id("Smart-seq3", pool) == "smartseq3"
+    )  # ...and the shorter still its
+    reversed_pool = dict(reversed(list(pool.items())))
+    assert kb.resolve_chemistry_id("Smart-seq3xpress", reversed_pool) == "smartseq3xpress"

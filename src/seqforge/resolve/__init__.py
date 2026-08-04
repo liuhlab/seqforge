@@ -98,7 +98,12 @@ from __future__ import annotations
 #: PROBE_VERSION bump (2026.8.1, which adds the share this reads) moves `dataset_id` as well, but
 #: that is a probe fact: the resolver's own stamp is what states that the resolver's verdict is stale,
 #: and a reader of this log must not have to cross-reference another module's to learn it.
-RESOLVE_VERSION = "2026.7.18"
+#: 2026.8.1 — chemistry matching ranks by specificity, not by an alias's token count (#266,
+#: [ADR-0028]). ADR-0020 states the obligation this discharges: the tie-break is part of the verdict,
+#: so a change to it is a change to a cached one. The stale entries are the dangerous direction —
+#: a dataset whose metadata said "SPLiT-seq paired-end RNA-seq" is cached as `bulk-rnaseq-pe` at
+#: exit 0, a confident wrong answer that would keep being served while this landed green.
+RESOLVE_VERSION = "2026.8.1"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

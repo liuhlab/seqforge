@@ -4,7 +4,10 @@ identity:
   id: bulk-rnaseq-pe
   version: illumina-pe
   name: "Bulk Illumina paired-end RNA-seq (no cell barcode)"
-  aliases: ["bulk RNA-seq", "paired-end RNA-seq", "Illumina PE RNA-seq", "polyA RNA-seq PE", "RNA-seq PE"]
+  aliases: ["bulk RNA-seq"]                # NAMES this chemistry: no single-cell record says it
+  # ...and these only DESCRIBE a run. A SPLiT-seq or 10x record carries any of them truthfully, so
+  # they name this entry only when the value names no other (#266).
+  descriptive_aliases: ["paired-end RNA-seq", "Illumina PE RNA-seq", "polyA RNA-seq PE", "RNA-seq PE"]
   assay_ontology: ["EFO:0008896"]        # "RNA-Seq" (generic bulk) — verified against live EFO (EBI OLS)
   modality: rna
 

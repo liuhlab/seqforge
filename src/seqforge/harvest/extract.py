@@ -74,7 +74,14 @@ from .providers import (
 #: so a plan whose documents all differ in what is asked of them sends exactly what it sent before —
 #: and the version moves anyway, because one code state is one extractor, and a `prompt_version` that
 #: depended on how a particular plan happened to group would be unusable as provenance.
-EXTRACT_PROMPT_VERSION = "2026.7.5"
+#: 2026.8.1 — `bulk-rnaseq-pe`'s four format-describing aliases moved to `descriptive_aliases` (#266),
+#: so the KB block no longer offers the model "paired-end RNA-seq" as a spelling of that id. The
+#: prompt only ever listed `identity.aliases`, so this is a byte change to the cached prefix and a
+#: narrowing of what the model is taught to name; `verify` still ACCEPTS those forms (they stay in
+#: `curated_forms`), so nothing the model can now draft is rejected for vocabulary it was never shown.
+#: The model is not stranded on a descriptively-worded bulk record either: the id and the entry's
+#: name ("Bulk Illumina paired-end RNA-seq (no cell barcode)") are both still in the block.
+EXTRACT_PROMPT_VERSION = "2026.8.1"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -196,8 +203,11 @@ def build_kb_context(specs: dict[str, Spec]) -> str:
     Deterministic and frozen — sorted, no timestamps, no per-request ids — because prefix caching (
     explicit on Anthropic, automatic on DeepSeek) is a byte-prefix match and any change invalidates
     it. This is the alias knowledge that lets the model map a paper's "Chromium Single Cell 3' v3"
-    onto the id `10x-3p-gex-v3`; `verify` then checks the same aliases from the same KB, so
-    extraction and verification cannot disagree about vocabulary.
+    onto the id `10x-3p-gex-v3`; `verify` then checks the same KB, so extraction and verification
+    cannot disagree about vocabulary. Only the NAMING aliases are listed — a `descriptive_alias`
+    ("paired-end RNA-seq") is a phrase any chemistry's record carries truthfully, and offering it here
+    as a spelling of `bulk-rnaseq-pe` would invite exactly the draft #266 stopped code from believing.
+    `verify` accepts them anyway, so the asymmetry can only ever accept a draft, never reject one.
     """
     lines = ["Knowledge-base technologies (use these ids for library.chemistry):", ""]
     for tech_id in sorted(specs):

@@ -56,7 +56,12 @@ from .schema import Spec
 #: compose and an illegal one is a named refusal rather than a FATAL on a compute node.
 #: Every dataset gets a new run_id: the KB version is one of its four inputs. The reprocessing that
 #: costs is accepted — the alternative is a corpus whose barcode correction nobody can state.
-KB_VERSION = "2026.8.1"
+#: 2026.8.2 — `identity.descriptive_aliases` (#266), and `bulk-rnaseq-pe`'s four format-describing
+#: aliases moved into it. The KB's own vocabulary changed, so this re-keys even though no read layout
+#: did: ten strings in that vocabulary resolve to a different node than they did
+#: (`_MOVED_BY_266`, `tests/test_kb.py`), and a `run_id` that did not move would be claiming a
+#: chemistry decision the current KB no longer makes.
+KB_VERSION = "2026.8.2"
 
 __all__ = [
     "KB_VERSION",

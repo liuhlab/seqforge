@@ -25,11 +25,24 @@ leaf chemistries.
 **`identity.aliases` is load-bearing, and it is read in one direction.**
 [`kb/match.py`](../../src/seqforge/kb/match.py) is the only place a prose chemistry string becomes a
 node: an alias matches when the *value carries it* (substring, or all of its significant tokens), and
-the tie goes to the most alias tokens matched. So writing an alias is writing a claim that any text
-carrying it is this chemistry — `10x 3'` on the family and `10x 3' v3` on the leaf is the pattern, and
-a bare generic word (`WTA`, `RNA-seq`) is one you must not add, because it would name a whole field of
-assays. A value that carries no alias resolves to nothing, which is the honest answer and a refusal
-downstream ([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md)).
+ranking is by specificity ([ADR-0028](../adr/0028-specificity-not-verbosity-ranks-a-chemistry-match.md))
+— a naming form beats a describing one, then most alias tokens matched, then a form that entails a
+tied rival. So writing an alias is writing a claim that any text carrying it is this chemistry —
+`10x 3'` on the family and `10x 3' v3` on the leaf is the pattern, and a bare generic word (`WTA`,
+`RNA-seq`) is one you must not add, because it would name a whole field of assays. A value that
+carries no alias resolves to nothing, which is the honest answer and a refusal downstream
+([ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md)).
+
+**`identity.descriptive_aliases` is for a phrase that only describes the run.** The test is whether a
+*different* chemistry's record could carry it truthfully: "paired-end RNA-seq" is as true of a
+SPLiT-seq library as of a bulk one, so on `bulk-rnaseq-pe` it goes here, while "bulk RNA-seq" — which
+no single-cell record says — stays an alias. A descriptive form still reaches its node when the value
+names no other, so an archive describing a real bulk record the only way it knows still resolves; it
+simply loses to any form that names a chemistry. Ranking by token count alone made the wordier
+*description* win, so `SPLiT-seq paired-end RNA-seq` resolved to `bulk-rnaseq-pe` (#266). Both lists
+are surface forms for [span verification](../../src/seqforge/harvest/verify.py) — the demotion is in
+the ranking only — but **only `aliases` is shown to the extraction model**, so do not put a spelling
+here that the model needs in order to name the node at all.
 
 ## The schema decisions a field list cannot show
 
