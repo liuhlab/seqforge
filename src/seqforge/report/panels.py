@@ -286,33 +286,44 @@ def _confidence_tile(conf: float | None) -> str:
 
 
 def flow_pane(assay: AssayReport) -> str:
-    steps = flow_steps(assay)
-    cards = "".join(_flow_card(s, i) for i, s in enumerate(steps))
-    legend = (
-        '<div class="legend">'
-        '<span><span class="sw" style="background:#eceff1;border:1px solid #90a4ae"></span>a guess to check</span>'
-        '<span><span class="sw" style="background:#00695c"></span>measured / decided</span>'
-        '<span><span class="sw" style="background:#37474f"></span>the deliverable</span>'
-        '<span><span class="sw" style="background:#bf360c"></span>needs a human</span>'
-        "</div>"
-    )
+    """The narrative, as cards that reflow — a grid whose column count follows the viewport.
+
+    Reflowing is the whole reason this tab is HTML and not a diagram: a scaled SVG cannot, and its
+    text shrank to nothing on a wide dataset (``render.py``, ``VENDOR.md``). So the layout is a plain
+    CSS grid and the ordinal badge carries the sequence. The absolutely-positioned arrow that used to
+    sit in the gutter is gone: it was already wrong on every wrapped row, and pointing at a card that
+    is somewhere else is worse than not pointing.
+
+    There is no legend any more. It named four saturated fills that no longer exist, and what is left
+    needs none — a card is tinted only when it is asking for a human, and it says so in words.
+    """
+    cards = "".join(_flow_card(s, i) for i, s in enumerate(flow_steps(assay)))
     return _panel(
         "How seqforge read this dataset",
-        f'<ol class="flow-strip">{cards}</ol>{legend}',
+        f'<ol class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">{cards}</ol>',
         sub="Read the steps in order: the guess we started from, what your files actually contain, and "
         "how it ends. Every step is decided from the sequence itself, not from what the paper claimed.",
     )
 
 
 def _flow_card(step: FlowStep, index: int) -> str:
-    desc = "<br>".join(esc(d) for d in step.desc if d)
-    note = f'<div class="fs-note">{esc(step.note)}</div>' if step.note else ""
-    arrow = '<div class="fs-arrow" aria-hidden="true">→</div>'
+    """One step. ``flow-{kind}`` is computed from :data:`~seqforge.report.flow.StepKind`, so all five
+    members are declared components — and only two of them paint anything.
+
+    ``desc`` joins on a **space**, not on ``<br>``. Its lines are sentence fragments written to read
+    as one sentence ("…and measure read" + "lengths and which short barcodes repeat"); the break was
+    there to steer a fixed-width strip's wrapping, and inside a card that reflows it is a hard break
+    landing wherever the author happened to split the string.
+    """
+    desc = " ".join(esc(d) for d in step.desc if d)
+    note = f'<p class="mt-2 mb-0 text-xs text-dim italic">{esc(step.note)}</p>' if step.note else ""
     return (
-        f'<li class="flow-step kind-{esc(step.kind)}">'
-        f'<span class="fs-num" aria-hidden="true">{index + 1}</span>'
-        f'<div class="fs-title">{esc(step.title)}</div>'
-        f'<div class="fs-desc">{desc}</div>{note}{arrow}</li>'
+        f'<li class="flow-{esc(step.kind)}">'
+        '<div class="mb-2 flex items-start gap-2">'
+        '<span class="inline-grid size-5 shrink-0 place-items-center rounded-full border '
+        f'border-line text-xs font-bold text-dim" aria-hidden="true">{index + 1}</span>'
+        f'<span class="text-sm leading-5 font-bold">{esc(step.title)}</span></div>'
+        f'<p class="m-0 text-sm">{desc}</p>{note}</li>'
     )
 
 

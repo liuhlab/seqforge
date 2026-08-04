@@ -316,6 +316,9 @@ _OLD_NARRATIVE_CLASSES = [
     "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
     "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
     "genstats", "hint", "meter", "meter-line",                              # the Overview
+    "flow-strip", "flow-step", "fs-num", "fs-title", "fs-desc", "fs-note", "fs-arrow",
+    "kind-guess", "kind-measured", "kind-done", "kind-blocked", "kind-ask",
+    "legend", "sw",                                                         # the Flow tab
 ]  # fmt: skip
 
 
@@ -403,9 +406,27 @@ def test_collect_raises_only_when_there_is_nothing_to_report(tmp_path: Path) -> 
         collect_report(tmp_path)
 
 
+def _pane(html: str, tab: str) -> str:
+    """One tab's rendered markup, cut out of the page — the seam every visual assertion belongs at.
+
+    Sliced on the `data-tab` hook rather than on a class the redesign is free to change, and bounded
+    by the next pane's opening tag so a claim about one tab cannot be satisfied by another's markup.
+    """
+    body = html.split("</style>")[-1]
+    start = body.index(f'data-tab="{tab}">', body.index("<main"))
+    rest = body[start:]
+    end = rest.find('<div class="pane" data-tab=')
+    return rest if end < 0 else rest[:end]
+
+
 def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
     """The Flow narrative is a list of typed steps carrying this dataset's real values, ending on a
-    ``done`` step for a clean compile — and the winning chemistry id survives into the rendered page."""
+    ``done`` step for a clean compile — and the winning chemistry id survives into the rendered page.
+
+    The card classes are checked against what ``flow_steps`` actually emitted rather than against a
+    restated list: the kind is what decides whether a card is tinted, so a test that named the kinds
+    itself would keep passing while the page painted the wrong ones.
+    """
     assay = collect_report(workspace).assays[0]
     steps = flow_steps(assay)
     assert (
@@ -413,22 +434,74 @@ def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
     )  # compiled -> the deliverable, not blocked/needs-a-human
     blob = " ".join(s.title + " " + " ".join(s.desc) + " " + s.note for s in steps)
     assert assay.chemistry.value[0] in blob  # the real chemistry id, not a placeholder
-    html = render_html(collect_report(workspace))
-    assert 'class="flow-strip"' in html and assay.chemistry.value[0] in html
+
+    pane = _pane(render_html(collect_report(workspace)), "flow")
+    assert assay.chemistry.value[0] in pane
+    assert re.findall(r'<li class="flow-([a-z]+)"', pane) == [s.kind for s in steps]
 
 
-def test_flow_renders_as_html_cards_not_a_scaled_diagram(workspace: Path) -> None:
-    """No mermaid: the flow is plain HTML cards (readable at any width), so the page ships no diagram
-    engine and no ``text/x-mermaid`` block, and the packaged assets no longer include the bundle."""
+def test_flow_renders_as_reflowing_html_cards_not_a_scaled_diagram(workspace: Path) -> None:
+    """The property that made Mermaid leave, asserted as a property and not as a class name.
+
+    A scaled SVG cannot reflow — its text shrank to nothing on a wide dataset, and dropping it took a
+    page from ~2.6 MB to tens of KB. So the flow must be a container whose *column count follows the
+    viewport*, holding one element per narrative step, with no drawing surface and no fixed width
+    anywhere in the pane. Each of those is checked; asserting a class name would only have proved the
+    markup was renamed.
+    """
     from importlib.resources import files
 
     html = render_html(collect_report(workspace))
-    assert 'class="flow-strip"' in html and 'class="flow-step' in html
+    pane = _pane(html, "flow")
+
+    grid = re.search(r'<ol class="([^"]*)"', pane)
+    assert grid is not None, "the steps are a list"
+    classes = grid.group(1).split()
+    assert "grid" in classes
+    assert {c for c in classes if re.fullmatch(r"(sm|md|lg|xl):grid-cols-\d+", c)}, (
+        f"the flow does not reflow — its column count is fixed at every width: {classes}"
+    )
+    assert len(re.findall(r"<li class=", pane)) == len(
+        flow_steps(collect_report(workspace).assays[0])
+    )
+
+    assert "<svg" not in pane and "viewBox" not in pane  # nothing is drawn, so nothing can scale
+    assert not re.search(r"(?:width|min-width|max-width)\s*:\s*\d", pane)
     assert "text/x-mermaid" not in html and "globalThis.mermaid" not in html
 
     asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
     assert "mermaid.min.js" not in asset_names
     assert {"report.css", "report.js"} <= asset_names
+
+
+def test_every_flow_step_kind_the_narrative_can_emit_has_a_declared_card() -> None:
+    """``StepKind`` is closed, ``flow-{kind}`` is computed, and the purge sees neither.
+
+    So a sixth kind would be added to ``flow.py``, rendered by ``panels.py`` and styled by nothing —
+    a card with no border on the tab whose whole job is to be read at a glance. The members are read
+    out of the ``Literal`` for the same reason ``Basis`` and ``Level`` are: a restated list is a test
+    that agrees with itself. The colour split is asserted too, because it is the decision this ticket
+    made: only the two kinds that ask for a human are painted.
+    """
+    from seqforge.report.flow import StepKind
+
+    src = (_ASSETS / "report.src.css").read_text()
+    declared = _declared_components(src)
+    members = set(get_args(StepKind))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+
+    assert {f"flow-{k}" for k in members} <= declared, "a step kind renders as an unstyled card"
+    assert not _classes_with_no_rule(
+        {f"flow-{k}" for k in members}, [(_ASSETS / "report.tw.css").read_text()]
+    )
+
+    body = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    painted = {
+        k for k in members if re.search(rf"\.flow-{k}\s*\{{[^}}]*--flow-bg:\s*var\(--sf-\w", body)
+    }
+    assert painted == {"blocked", "ask"}, (
+        f"colour marks exceptions: the norm must carry no tint, but {sorted(painted)} do"
+    )
 
 
 def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
