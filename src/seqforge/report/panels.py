@@ -89,13 +89,11 @@ _WHO_PHRASE: dict[str, str] = {
     "user_confirmed": "you specified",
 }
 
-#: A verdict glyph for the restated hero card.
-_VERDICT_GLYPH: dict[str, str] = {
-    "compiled": "✓",
-    "ir_ready": "•",
-    "blocker": "✗",
-    "question": "?",
-}
+#: The sub-heading type role, written once because it is worn by an eyebrow, a section label and every
+#: tile key — the same role in eight places, and eight chances to type one of them differently. A bare
+#: constant rather than a component: Tailwind's extractor reads this file as text and finds these
+#: tokens wherever they sit, and a component named ``sub-h`` would belong to the shell, not here.
+_SUB_H = "text-xs font-bold tracking-[0.07em] text-faint uppercase"
 
 
 # ---- helpers ------------------------------------------------------------------------------------
@@ -167,106 +165,165 @@ def overview_pane(assay: AssayReport) -> str:
     )
     org_html = f"<em>{esc(organism)}</em>" if organism_name else esc(organism)
 
-    # chemistry, spelled human-first with the code as a quiet chip
+    # chemistry, spelled human-first with the code as a quiet chip. The kit's name is the page's
+    # second-biggest fact, so it is given weight and a hairline — never a hue: the colour law reserves
+    # colour for exceptions, and the winning kit is the norm.
     chem_name = chem.assay_labels[0].name if chem.assay_labels and chem.assay_labels[0].name else ""
     chem_id = chem.value[0] if chem.value else ""
     chem_line = ""
     if chem_id:
-        name_html = f'<span class="chem-name">{esc(chem_name)}</span>' if chem_name else ""
+        name_html = (
+            f'<span class="rounded border border-line px-2 py-0.5 text-sm font-bold">'
+            f"{esc(chem_name)}</span>"
+            if chem_name
+            else ""
+        )
         more = (
-            f'<span class="chem-plus">+{len(chem.value) - 1} equivalent</span>'
+            f'<span class="text-xs text-faint">+{len(chem.value) - 1} equivalent</span>'
             if len(chem.value) > 1
             else ""
         )
         chem_line = (
-            f'<div class="chem-line">{name_html}'
-            f'<code class="chem-id">{esc(chem_id)}</code>{more}</div>'
+            '<div class="mt-3 flex flex-wrap items-center gap-2">'
+            f'{name_html}<code class="font-mono text-xs text-dim">{esc(chem_id)}</code>{more}</div>'
         )
 
     eyebrow = " · ".join(x for x in (study_acc, center) if x)
-    c = assay.conclusion
-    verdict_card = (
-        f'<div class="verdict-card {esc(c.kind)}">'
-        f'<span class="vc-icon">{esc(_VERDICT_GLYPH.get(c.kind, "•"))}</span>'
-        f"<div><strong>{esc(c.headline)}</strong><span>{esc(c.detail)}</span></div></div>"
-    )
     hero = (
-        '<div class="hero"><div class="h-main">'
-        + (f'<div class="eyebrow">{esc(eyebrow)}</div>' if eyebrow else "")
-        + f"<h1>{esc(title)}</h1>"
-        + f'<p class="organism">{org_html} · {esc(_assay_kind(assay))}</p>'
+        '<div class="flex flex-wrap items-start gap-6">'
+        '<div class="min-w-0 flex-1 basis-80">'
+        + (f'<div class="mb-2 {_SUB_H}">{esc(eyebrow)}</div>' if eyebrow else "")
+        + f'<h1 class="mt-0 mb-2 text-2xl font-bold tracking-tight">{esc(title)}</h1>'
+        + f'<p class="m-0 text-dim">{org_html} · {esc(_assay_kind(assay))}</p>'
         + chem_line
         + "</div>"
-        + verdict_card
+        + _verdict_card(assay)
         + "</div>"
     )
 
-    # abstract — first-class, shown by default (only when a record actually carried one)
+    # abstract — first-class, shown by default (only when a record actually carried one). Capped at
+    # 70ch because a 1080px-wide paragraph is not a paragraph anyone finishes.
     if study and study.abstract:
         abstract = (
-            '<section class="abstract"><div class="section-label">About this study</div>'
-            f'<p class="abstract-body">{esc(study.abstract)}</p></section>'
+            f'<div class="mt-6 border-t border-line pt-6"><div class="mb-2 {_SUB_H}">'
+            "About this study</div>"
+            '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
+            f"{esc(study.abstract)}</p></div>"
         )
     else:
         abstract = ""
 
-    # general-statistics strip — jargon-free, with a confidence meter
-    conf = chem.confidence
-    if conf is not None:
-        pct = round(max(0.0, min(1.0, conf)) * 100)
-        conf_dd = (
-            f'<dd><span class="meter-line"><span class="meter">'
-            f'<span style="width:{pct}%"></span></span> {conf:.2f}</span></dd>'
-        )
-    else:
-        conf_dd = '<dd class="sm">n/a</dd>'
-    genstats = (
-        '<dl class="genstats">'
-        f"<div><dt>Samples</dt><dd>{assay.n_samples}</dd></div>"
-        f"<div><dt>FASTQ files</dt><dd>{assay.n_files}</dd></div>"
-        f'<div><dt>Kit</dt><dd class="sm">{esc(chem_name or chem_id or "—")}</dd></div>'
-        f'<div><dt>Organism</dt><dd class="sm">{org_html}</dd></div>'
-        '<div class="genstats-conf"><dt>Confidence '
-        '<span class="hint" title="How strongly the files’ own bytes point to this kit '
-        '— 1.00 means certain.">i</span></dt>'
-        f"{conf_dd}</div>"
-        "</dl>"
+    tiles = (
+        '<dl class="mt-6 mb-0 grid grid-cols-2 gap-3 border-t border-line pt-6 '
+        'sm:grid-cols-3 lg:grid-cols-5">'
+        + _tile("Samples", str(assay.n_samples))
+        + _tile("FASTQ files", str(assay.n_files))
+        + _tile("Kit", esc(chem_name or chem_id or "—"), numeric=False)
+        + _tile("Organism", org_html, numeric=False)
+        + _confidence_tile(chem.confidence)
+        + "</dl>"
     )
 
-    return _panel("Overview", hero + abstract + genstats)
+    return _panel("Overview", hero + abstract + tiles)
+
+
+def _verdict_card(assay: AssayReport) -> str:
+    """The compile verdict, restated in the header pill's own badge — and never in the run state's.
+
+    Deliberately the *same* component as the header's (``sf-verdict``/``sf-v-{kind}``): this and the
+    pill answer one question — did the compiler produce a Snakefile — so they are one badge shown
+    twice, and a reader who learns the shape up top reads it again here for free. What must never
+    look like either is the Results tab's pipeline-run state (``.pipeline-state``): a left-ruled,
+    tinted banner answering "did that Snakefile *finish*", which disagrees with this exactly when it
+    matters. Two facts, two forms — the word in the badge, not a glyph, is the non-colour channel.
+    """
+    c = assay.conclusion
+    return (
+        '<div class="w-full shrink-0 rounded-lg border border-line p-4 sm:w-72">'
+        f'<span class="sf-verdict sf-v-{esc(c.kind)}">'
+        '<span class="size-2 rounded-full bg-current"></span>'
+        f"{esc(c.headline)}</span>"
+        f'<p class="mt-3 mb-0 text-sm text-dim">{esc(c.detail)}</p></div>'
+    )
+
+
+def _tile(key: str, value_html: str, *, numeric: bool = True) -> str:
+    """One headline figure. ``value_html`` is pre-escaped — ``Organism`` carries an ``<em>``."""
+    size = "text-2xl tabular-nums" if numeric else "text-lg"
+    return (
+        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">{esc(key)}</dt>'
+        f'<dd class="mt-2 mb-0 ms-0 {size} font-bold tracking-tight">{value_html}</dd></div>'
+    )
+
+
+def _confidence_tile(conf: float | None) -> str:
+    """How strongly the bytes point at the winning kit: a single-ink bar and the number beside it.
+
+    The bar is drawn in the text ink, not in the accent and not in a verdict hue. 0.94 is not a pass
+    and 0.61 is not a failure — the Evidence tab is where that judgement lives — so a green bar here
+    would be the page asserting a verdict it has not made.
+    """
+    if conf is None:
+        value = '<dd class="mt-2 mb-0 ms-0 text-lg font-bold text-faint">n/a</dd>'
+    else:
+        pct = round(max(0.0, min(1.0, conf)) * 100)
+        value = (
+            '<dd class="mt-2 mb-0 ms-0 flex items-center gap-2 text-2xl font-bold '
+            'tracking-tight tabular-nums">'
+            '<span class="inline-block h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-line">'
+            f'<span class="block h-full rounded-full bg-dim" style="width:{pct}%"></span></span>'
+            f"{conf:.2f}</dd>"
+        )
+    return (
+        f'<div class="rounded-lg border border-line p-3"><dt class="{_SUB_H}">Confidence '
+        '<span class="cursor-help text-faint" title="How strongly the files’ own bytes point to '
+        'this kit — 1.00 means certain.">ⓘ</span></dt>'
+        f"{value}</div>"
+    )
 
 
 # ---- flow ---------------------------------------------------------------------------------------
 
 
 def flow_pane(assay: AssayReport) -> str:
-    steps = flow_steps(assay)
-    cards = "".join(_flow_card(s, i) for i, s in enumerate(steps))
-    legend = (
-        '<div class="legend">'
-        '<span><span class="sw" style="background:#eceff1;border:1px solid #90a4ae"></span>a guess to check</span>'
-        '<span><span class="sw" style="background:#00695c"></span>measured / decided</span>'
-        '<span><span class="sw" style="background:#37474f"></span>the deliverable</span>'
-        '<span><span class="sw" style="background:#bf360c"></span>needs a human</span>'
-        "</div>"
-    )
+    """The narrative, as cards that reflow — a grid whose column count follows the viewport.
+
+    Reflowing is the whole reason this tab is HTML and not a diagram: a scaled SVG cannot, and its
+    text shrank to nothing on a wide dataset (``render.py``, ``VENDOR.md``). So the layout is a plain
+    CSS grid and the ordinal badge carries the sequence. The absolutely-positioned arrow that used to
+    sit in the gutter is gone: it was already wrong on every wrapped row, and pointing at a card that
+    is somewhere else is worse than not pointing.
+
+    There is no legend any more. It named four saturated fills that no longer exist, and what is left
+    needs none — a card is tinted only when it is asking for a human, and it says so in words.
+    """
+    cards = "".join(_flow_card(s, i) for i, s in enumerate(flow_steps(assay)))
     return _panel(
         "How seqforge read this dataset",
-        f'<ol class="flow-strip">{cards}</ol>{legend}',
+        f'<ol class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">{cards}</ol>',
         sub="Read the steps in order: the guess we started from, what your files actually contain, and "
         "how it ends. Every step is decided from the sequence itself, not from what the paper claimed.",
     )
 
 
 def _flow_card(step: FlowStep, index: int) -> str:
-    desc = "<br>".join(esc(d) for d in step.desc if d)
-    note = f'<div class="fs-note">{esc(step.note)}</div>' if step.note else ""
-    arrow = '<div class="fs-arrow" aria-hidden="true">→</div>'
+    """One step. ``flow-{kind}`` is computed from :data:`~seqforge.report.flow.StepKind`, so all five
+    members are declared components — and only two of them paint anything.
+
+    ``desc`` joins on a **space**, not on ``<br>``. Its lines are sentence fragments written to read
+    as one sentence ("…and measure read" + "lengths and which short barcodes repeat"); the break was
+    there to steer a fixed-width strip's wrapping, and inside a card that reflows it is a hard break
+    landing wherever the author happened to split the string.
+    """
+    desc = " ".join(esc(d) for d in step.desc if d)
+    note = f'<p class="mt-2 mb-0 text-xs text-dim italic">{esc(step.note)}</p>' if step.note else ""
     return (
-        f'<li class="flow-step kind-{esc(step.kind)}">'
-        f'<span class="fs-num" aria-hidden="true">{index + 1}</span>'
-        f'<div class="fs-title">{esc(step.title)}</div>'
-        f'<div class="fs-desc">{desc}</div>{note}{arrow}</li>'
+        f'<li class="flow-{esc(step.kind)}">'
+        '<div class="mb-2 flex items-start gap-2">'
+        '<span class="inline-grid size-5 shrink-0 place-items-center rounded-full border '
+        f'border-line text-xs font-bold text-dim" aria-hidden="true">{index + 1}</span>'
+        f'<span class="text-sm leading-5 font-bold">{esc(step.title)}</span></div>'
+        f'<p class="m-0 text-sm">{desc}</p>{note}</li>'
     )
 
 
@@ -574,21 +631,15 @@ def _ruled_out(assay: AssayReport) -> str:
 
 # ---- pipeline -----------------------------------------------------------------------------------
 
-_STAGE_ICON: dict[str, str] = {
-    "onlist": "⛬",
-    "align": "⧉",
-    "count": "▦",
-    "package": "▦",
-}
-
 
 def pipeline_pane(assay: AssayReport) -> str:
     plan = assay.plan
     if plan is None:
         return _panel(
             "Pipeline",
-            '<p class="notice">No processing recipe has been composed for this assay yet — it '
-            "resolved to a validated manifest but was not planned.</p>",
+            '<p class="m-0 rounded-lg border border-line p-4 text-sm text-dim">No processing recipe '
+            "has been composed for this assay yet — it resolved to a validated manifest but was not "
+            "planned.</p>",
         )
 
     stages_panel = _stages_panel(assay)
@@ -598,14 +649,19 @@ def pipeline_pane(assay: AssayReport) -> str:
 
 
 def _stages_panel(assay: AssayReport) -> str:
+    """What will run, in order — as boxes that share the width rather than a strip with arrows.
+
+    The arrows were `<div>`s *between* the boxes in a wrapping flex row, so on any width where the
+    row wrapped one of them ended a line pointing at nothing. The ordinal carries the order instead,
+    exactly as the Flow tab's cards do: one ornament vocabulary for "these happen in this sequence",
+    used twice, rather than two. It also retires `_STAGE_ICON`, which drew `count` and `package` with
+    the same glyph — two boxes claiming to be the same kind of step.
+    """
     stages = assay.pipeline_stages
     if not stages:
         return ""
     first_sample = assay.samples[0].sample_id if assay.samples else "each sample"
-    boxes: list[str] = []
-    for st in stages:
-        boxes.append(_stage_box(st))
-    strip = '<div class="stage-arrow">→</div>'.join(boxes)
+    boxes = "".join(_stage_box(st, i) for i, st in enumerate(stages))
     # The deliverable depends on the modality: scATAC ends in a fragments file, not a count matrix.
     deliverable = (
         "a tabix-indexed fragments file (fragments.tsv.gz)"
@@ -614,41 +670,53 @@ def _stages_panel(assay: AssayReport) -> str:
     )
     return _panel(
         "What the pipeline will run",
-        f'<div class="stage-flow">{strip}</div>',
+        f'<ol class="m-0 flex list-none flex-wrap gap-3 p-0">{boxes}</ol>',
         sub=f"The same stages run for every sample — shown here for {first_sample}. Running the "
         f"composed Snakefile below ends in {deliverable}.",
     )
 
 
-def _stage_box(stage: PipelineStage) -> str:
-    icon = _STAGE_ICON.get(stage.key, "•")
+def _stage_box(stage: PipelineStage, index: int) -> str:
+    """One stage. ``flex-1 basis-48`` is why two stages fill the row and four quarter it, and why a
+    narrow viewport stacks them instead of scrolling."""
     return (
-        f'<div class="stage"><div class="stage-icon">{esc(icon)}</div>'
-        f"<b>{esc(stage.title)}</b><span>{esc(stage.detail)}</span></div>"
+        '<li class="flex-1 basis-48 rounded-lg border border-line p-4">'
+        '<span class="inline-grid size-5 place-items-center rounded-full border border-line '
+        f'text-xs font-bold text-dim" aria-hidden="true">{index + 1}</span>'
+        f'<b class="mt-2 mb-1 block text-sm font-bold">{esc(stage.title)}</b>'
+        f'<span class="block text-xs text-dim">{esc(stage.detail)}</span></li>'
     )
 
 
 def _recipe_panel(plan: PlanView) -> str:
+    """The recipe, one row per decision, with *who decided* as a plain phrase and nothing else.
+
+    The phrase used to be preceded by a basis-coloured dot, and the two could disagree: :func:`_who`
+    prefers the field's evidence token over its basis, so a field with ``basis="inferred"`` and a
+    ``cli:`` token rendered "you specified" beside the grey dot that means inferred. A hue that
+    restates a phrase adds nothing when it agrees and lies when it does not — and four provenance
+    hues on a tab that otherwise carries none is exactly what the colour law calls noise. The dot
+    stays where it earns its place: the Samples table, where the phrase is not shown.
+    """
     rows = ""
     for f in plan.fields:
         rows += (
-            f'<tr class="recipe-row"><td class="rk">{esc(f.label)}</td>'
-            f'<td class="rv">{esc(f.value)}</td>'
-            f'<td><span class="who"><span class="basis-dot bd-{esc(f.basis)}"></span>'
-            f"{esc(_who(f))}</span></td></tr>"
+            f'<tr><td class="whitespace-nowrap text-dim">{esc(f.label)}</td>'
+            f'<td class="font-semibold">{esc(f.value)}</td>'
+            f'<td class="text-dim">{esc(_who(f))}</td></tr>'
         )
     table = (
-        '<div class="tbl-wrap"><table><thead><tr><th>choice</th><th>value</th>'
+        '<div class="sf-scroll-x"><table class="text-sm"><thead><tr><th>choice</th><th>value</th>'
         f"<th>who decided</th></tr></thead><tbody>{rows}</tbody></table></div>"
     )
     if plan.primary_feature:
         table += (
-            f'<p class="sub" style="margin-top:10px">Main count matrix: '
-            f"<b>{esc(plan.primary_feature)}</b></p>"
+            '<p class="mt-3 mb-0 text-sm">Main count matrix: '
+            f'<b class="font-bold">{esc(plan.primary_feature)}</b></p>'
         )
     res = ", ".join(f"{esc(k)} {esc(v)}" for k, v in plan.resources)
     if res:
-        table += f'<p class="sub" style="margin-top:6px">Requested resources: {res}.</p>'
+        table += f'<p class="mt-2 mb-0 text-sm text-dim">Requested resources: {res}.</p>'
     return _panel(
         "Processing choices",
         table,
@@ -682,7 +750,8 @@ def _artifacts_panel(assay: AssayReport) -> str:
     if not assay.artifacts:
         return _panel(
             "Files",
-            '<p class="empty">no text artifacts found on disk for this assay.</p>',
+            '<p class="m-0 py-2 text-sm text-dim italic">no text artifacts found on disk for this '
+            "assay.</p>",
         )
     blocks = "".join(_artifact_block(a) for a in assay.artifacts)
     return _panel(
@@ -694,17 +763,30 @@ def _artifacts_panel(assay: AssayReport) -> str:
 
 
 def _artifact_block(a: ArtifactEmbed) -> str:
+    """One compiled artifact, carried *in* the page rather than linked out of it.
+
+    The download is a ``data:`` URI of the artifact's own bytes: a relative ``href`` to
+    ``pipeline/.../Snakefile`` breaks the moment the HTML is moved off the workspace, which is the
+    whole point of a one-file report (``model.ArtifactEmbed``). The inline view scrolls inside its
+    own box — capped, so a 2000-line Snakefile cannot turn this panel into the page.
+    """
     n_lines = a.text.count("\n") + (1 if a.text and not a.text.endswith("\n") else 0)
     b64 = base64.b64encode(a.text.encode()).decode()
     href = f"data:{a.mime};base64,{b64}"
     head = (
-        '<div class="artifact-head">'
-        f"<code>{esc(a.name)}</code>"
-        f'<span class="sz">{n_lines} lines · {esc(_human_size(a.size_bytes))}</span>'
-        f'<a class="dl-btn" download="{esc(a.name)}" href="{href}">⭳ Download</a></div>'
+        '<div class="flex flex-wrap items-center gap-3 border-b border-line px-3 py-2">'
+        f'<code class="font-mono text-xs font-bold">{esc(a.name)}</code>'
+        f'<span class="text-xs text-dim tabular-nums">{n_lines} lines · '
+        f"{esc(_human_size(a.size_bytes))}</span>"
+        '<a class="ms-auto rounded border border-line px-3 py-1 text-xs font-semibold text-accent" '
+        f'download="{esc(a.name)}" href="{href}">⭳ Download</a></div>'
     )
-    view = f'<details><summary>View</summary><pre class="code">{esc(a.text)}</pre></details>'
-    return f'<div class="artifact">{head}{view}</div>'
+    view = (
+        '<details><summary class="cursor-pointer list-none px-3 py-2 text-sm text-accent">View'
+        '</summary><pre class="m-0 max-h-96 overflow-auto border-t border-line p-4 font-mono '
+        f'text-xs">{esc(a.text)}</pre></details>'
+    )
+    return f'<div class="mb-3 rounded-lg border border-line last:mb-0">{head}{view}</div>'
 
 
 # ---- results ------------------------------------------------------------------------------------

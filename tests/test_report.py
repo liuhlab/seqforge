@@ -12,6 +12,7 @@ import ast
 import json
 import re
 import shutil
+from html import unescape
 from pathlib import Path
 from typing import get_args
 
@@ -257,6 +258,19 @@ def _body_classes(html: str) -> set[str]:
     }
 
 
+def _pane(html: str, tab: str) -> str:
+    """One tab's rendered markup, cut out of the page — the seam every visual assertion belongs at.
+
+    Sliced on the `data-tab` hook rather than on a class the redesign is free to change, and bounded
+    by the next pane's opening tag so a claim about one tab cannot be satisfied by another's markup.
+    """
+    body = html.split("</style>")[-1]
+    start = body.index(f'data-tab="{tab}">', body.index("<main"))
+    rest = body[start:]
+    end = rest.find('<div class="pane" data-tab=')
+    return rest if end < 0 else rest[:end]
+
+
 def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: Path) -> None:
     """Four elements share the reading column, and the two sticky ones became one.
 
@@ -309,6 +323,131 @@ def test_the_migrated_shell_wears_no_class_the_old_stylesheet_would_still_win_wi
     )
 
 
+#: What the Overview, Flow and Pipeline panes were built out of before the redesign. Each is still a
+#: live rule in `report.css`, which is unlayered and therefore beats every Tailwind utility — so an
+#: element that keeps one of these is not migrated at all, whatever utilities sit beside it.
+#: `report.css` itself is #220's and nothing here deletes from it.
+#:
+#: Names still worn by a pane this ticket does NOT own (`tbl-wrap`, `basis-dot`, `notice`, `empty`)
+#: are absent on purpose, and the guard is scoped per pane for the same reason: Samples, Evidence
+#: and Results migrate on their own tickets, and a page-wide assertion here would either fail on
+#: their markup or quietly claim credit for it.
+_OLD_NARRATIVE_CLASSES: dict[str, list[str]] = {
+    "overview": [
+        "hero", "h-main", "eyebrow", "organism", "chem-line", "chem-name", "chem-id", "chem-plus",
+        "verdict-card", "vc-icon", "abstract", "abstract-body", "section-label",
+        "genstats", "hint", "meter", "meter-line",
+    ],
+    "flow": [
+        "flow-strip", "flow-step", "fs-num", "fs-title", "fs-desc", "fs-note", "fs-arrow",
+        "kind-guess", "kind-measured", "kind-done", "kind-blocked", "kind-ask", "legend", "sw",
+    ],
+    "pipeline": [
+        "stage-flow", "stage", "stage-icon", "stage-arrow", "tbl-wrap", "recipe-row", "rk", "rv",
+        "who", "basis-dot", "artifact", "artifact-head", "sz", "dl-btn", "code", "sub",
+    ],
+}  # fmt: skip
+
+
+def test_the_narrative_tabs_wear_no_class_the_old_stylesheet_would_still_win_with(
+    workspace: Path,
+) -> None:
+    """Q9, for the three narrative panes: migrating an element means *deleting* its old class.
+
+    Same argument as the shell's guard above and the same discriminator: every name is asserted to
+    still HAVE a rule in the hand-written sheet, so this cannot pass for the wrong reason on the day
+    that file is deleted. Absence from the markup is what is checked, because a leftover class is not
+    a fallback — it is an override that silently wins, and the redesign beside it does nothing.
+    """
+    page = render_html(collect_report(workspace))
+    hand_written = (_ASSETS / "report.css").read_text()
+
+    for tab, names in _OLD_NARRATIVE_CLASSES.items():
+        assert not _classes_with_no_rule(set(names), [hand_written]), (
+            f"every {tab} name must still be a live rule in report.css, or this proves nothing"
+        )
+        worn = _body_classes(_pane(page, tab)) & set(names)
+        assert not worn, (
+            f"the {tab} pane still wears the old sheet's classes: {sorted(worn)} — "
+            "unlayered CSS beats every utility, so those elements are not migrated at all"
+        )
+
+
+def test_a_refused_compile_paints_the_two_places_a_reader_looks_and_nothing_else(
+    workspace: Path,
+) -> None:
+    """The exception path, rendered — which the headless fixture, being a clean compile, never is.
+
+    Everything the Flow tab's redesign decided is on this branch: `guess`, `measured` and `done` are
+    the norm and carry no tint, and only the card that is asking for a human is painted. A page that
+    is never rendered in that state proves the untinted half and nothing else, so the conclusion is
+    swapped on a real collected report and the whole page re-rendered — still `render_html` in, HTML
+    out, and every value below still comes from production rather than from a hand-built view.
+    """
+    report = collect_report(workspace)
+    assay = report.assays[0]
+    refused = assay.model_copy(
+        update={
+            "conclusion": assay.conclusion.model_copy(
+                update={
+                    "kind": "blocker",
+                    "exit_code": 2,
+                    "headline": "Blocked",
+                    "detail": "a persisted refusal: the read layout matched no known kit",
+                }
+            )
+        }
+    )
+    page = render_html(report.model_copy(update={"assays": [refused]}))
+
+    # the verdict is one badge in two places, and on this branch it is the tinted member
+    assert (
+        re.findall(r'class="(sf-verdict [^"]*)"', page.split("</style>")[-1])
+        == ["sf-verdict sf-v-blocker"] * 2
+    )
+
+    kinds = re.findall(r'<li class="flow-([a-z]+)"', _pane(page, "flow"))
+    assert kinds == [s.kind for s in flow_steps(refused)]
+    assert kinds[-1] == "blocked", "a refusal must end the narrative on the card that says so"
+    assert set(kinds[:-1]) <= {"guess", "measured"}, kinds
+    assert kinds.count("blocked") == 1, "exactly one card is painted, and it is the last one"
+
+
+def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges(
+    own_workspace: Path,
+) -> None:
+    """One badge says the compiler produced a Snakefile; the other says that Snakefile finished.
+
+    They are shown on the same page and they disagree exactly when it matters — here, a workspace
+    that compiled cleanly and whose pipeline then wrote nothing readable. So the page is rendered in
+    that state and both are read off it: the verdict is the header pill's own component, restated on
+    the Overview so the shape a reader learned up top means the same thing twice; the run state is a
+    different component entirely. Asserted as *disjoint class sets* rather than as two names, because
+    the failure this guards is one of them drifting into the other's clothes.
+    """
+    _finish_a_starsolo_pipeline(own_workspace)
+    from seqforge.pipeline import CompiledPipeline
+
+    pipeline = CompiledPipeline.discover(own_workspace)
+    assert pipeline is not None
+    for sample in pipeline.samples:
+        (pipeline.results_dir / sample / f"{sample}.qc.json.gz").write_bytes(b"not gzip at all")
+
+    page = render_html(collect_report(own_workspace)).split("</style>")[-1]
+
+    verdicts = re.findall(r'class="(sf-verdict [^"]*)"', page)
+    assert len(verdicts) == 2, "the compile verdict is the header pill and its Overview restatement"
+    assert set(verdicts) == {"sf-verdict sf-v-compiled"}, verdicts
+
+    states = re.findall(r'class="(pipeline-state [^"]*)"', page)
+    assert states == ["pipeline-state lvl-bad"], (
+        "the run state is its own third state, not the pill"
+    )
+    assert not (set(states[0].split()) & set(verdicts[0].split())), (
+        "the two badges share a class, so a reader cannot tell which question is being answered"
+    )
+
+
 def test_the_shell_still_carries_every_hook_the_script_selects_on(workspace: Path) -> None:
     """The class names ``report.js`` selects on are a contract, and renaming one fails silently.
 
@@ -338,7 +477,12 @@ def test_collect_raises_only_when_there_is_nothing_to_report(tmp_path: Path) -> 
 
 def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
     """The Flow narrative is a list of typed steps carrying this dataset's real values, ending on a
-    ``done`` step for a clean compile — and the winning chemistry id survives into the rendered page."""
+    ``done`` step for a clean compile — and the winning chemistry id survives into the rendered page.
+
+    The card classes are checked against what ``flow_steps`` actually emitted rather than against a
+    restated list: the kind is what decides whether a card is tinted, so a test that named the kinds
+    itself would keep passing while the page painted the wrong ones.
+    """
     assay = collect_report(workspace).assays[0]
     steps = flow_steps(assay)
     assert (
@@ -346,22 +490,74 @@ def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
     )  # compiled -> the deliverable, not blocked/needs-a-human
     blob = " ".join(s.title + " " + " ".join(s.desc) + " " + s.note for s in steps)
     assert assay.chemistry.value[0] in blob  # the real chemistry id, not a placeholder
-    html = render_html(collect_report(workspace))
-    assert 'class="flow-strip"' in html and assay.chemistry.value[0] in html
+
+    pane = _pane(render_html(collect_report(workspace)), "flow")
+    assert assay.chemistry.value[0] in pane
+    assert re.findall(r'<li class="flow-([a-z]+)"', pane) == [s.kind for s in steps]
 
 
-def test_flow_renders_as_html_cards_not_a_scaled_diagram(workspace: Path) -> None:
-    """No mermaid: the flow is plain HTML cards (readable at any width), so the page ships no diagram
-    engine and no ``text/x-mermaid`` block, and the packaged assets no longer include the bundle."""
+def test_flow_renders_as_reflowing_html_cards_not_a_scaled_diagram(workspace: Path) -> None:
+    """The property that made Mermaid leave, asserted as a property and not as a class name.
+
+    A scaled SVG cannot reflow — its text shrank to nothing on a wide dataset, and dropping it took a
+    page from ~2.6 MB to tens of KB. So the flow must be a container whose *column count follows the
+    viewport*, holding one element per narrative step, with no drawing surface and no fixed width
+    anywhere in the pane. Each of those is checked; asserting a class name would only have proved the
+    markup was renamed.
+    """
     from importlib.resources import files
 
     html = render_html(collect_report(workspace))
-    assert 'class="flow-strip"' in html and 'class="flow-step' in html
+    pane = _pane(html, "flow")
+
+    grid = re.search(r'<ol class="([^"]*)"', pane)
+    assert grid is not None, "the steps are a list"
+    classes = grid.group(1).split()
+    assert "grid" in classes
+    assert {c for c in classes if re.fullmatch(r"(sm|md|lg|xl):grid-cols-\d+", c)}, (
+        f"the flow does not reflow — its column count is fixed at every width: {classes}"
+    )
+    assert len(re.findall(r"<li class=", pane)) == len(
+        flow_steps(collect_report(workspace).assays[0])
+    )
+
+    assert "<svg" not in pane and "viewBox" not in pane  # nothing is drawn, so nothing can scale
+    assert not re.search(r"(?:width|min-width|max-width)\s*:\s*\d", pane)
     assert "text/x-mermaid" not in html and "globalThis.mermaid" not in html
 
     asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
     assert "mermaid.min.js" not in asset_names
     assert {"report.css", "report.js"} <= asset_names
+
+
+def test_every_flow_step_kind_the_narrative_can_emit_has_a_declared_card() -> None:
+    """``StepKind`` is closed, ``flow-{kind}`` is computed, and the purge sees neither.
+
+    So a sixth kind would be added to ``flow.py``, rendered by ``panels.py`` and styled by nothing —
+    a card with no border on the tab whose whole job is to be read at a glance. The members are read
+    out of the ``Literal`` for the same reason ``Basis`` and ``Level`` are: a restated list is a test
+    that agrees with itself. The colour split is asserted too, because it is the decision this ticket
+    made: only the two kinds that ask for a human are painted.
+    """
+    from seqforge.report.flow import StepKind
+
+    src = (_ASSETS / "report.src.css").read_text()
+    declared = _declared_components(src)
+    members = set(get_args(StepKind))
+    assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
+
+    assert {f"flow-{k}" for k in members} <= declared, "a step kind renders as an unstyled card"
+    assert not _classes_with_no_rule(
+        {f"flow-{k}" for k in members}, [(_ASSETS / "report.tw.css").read_text()]
+    )
+
+    body = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    painted = {
+        k for k in members if re.search(rf"\.flow-{k}\s*\{{[^}}]*--flow-bg:\s*var\(--sf-\w", body)
+    }
+    assert painted == {"blocked", "ask"}, (
+        f"colour marks exceptions: the norm must carry no tint, but {sorted(painted)} do"
+    )
 
 
 def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
@@ -561,9 +757,21 @@ def _retarget_the_recipe(ws: Path, quantification: dict[str, object]) -> None:
     path.write_text(yaml.safe_dump(doc, sort_keys=True))
 
 
-def _stage_blob(assay: AssayReport) -> str:
-    """The stage diagram's whole rendered wording, lowercased — what a biologist would read."""
-    return " ".join(f"{s.title} {s.detail}" for s in assay.pipeline_stages).lower()
+def _rendered_stage_diagram(ws: Path) -> tuple[AssayReport, str]:
+    """The assay, and its stage diagram as the *page* shows it — lowercased, tags stripped.
+
+    Read off `render_html` and not off `assay.pipeline_stages`, because "the diagram renders the RNA
+    wording on an ATAC dataset" is a claim about the page. The expectation still comes from
+    production (the `AssayReport` returned alongside), which is the half of PR 1's lesson that is
+    easy to lose while fixing the other half.
+    """
+    assay = collect_report(ws).assays[0]
+    pane = _pane(render_html(collect_report(ws)), "pipeline")
+    diagram = pane[pane.index("What the pipeline will run") : pane.index("Processing choices")]
+    # Unescaped, because the page escapes what production wrote: `Align & call fragments` reaches
+    # the DOM as `&amp;`, and a comparison against production's own string must read what a browser
+    # reads, not what the serialiser emitted.
+    return assay, unescape(re.sub(r"<[^>]+>", " ", diagram)).lower()
 
 
 def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_workspace: Path) -> None:
@@ -573,21 +781,23 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
     string copied into the fixture, which is a test that can only ever agree with itself: reword the
     caption in ``_plan`` and the diagram silently reverts to the RNA branch with nothing failing —
     on an ATAC dataset, where "count reads per gene" is not a cosmetic error. So the plan view
-    arrives from ``collect_report`` here, and the caption is then reworded on the way into the
-    diagram to prove it is not what the branch reads.
+    arrives from ``collect_report`` here, the wording is read back off the rendered page, and the
+    caption is then reworded on the way into the diagram to prove it is not what the branch reads.
     """
     from seqforge.report.collect import _pipeline_stages
 
     _retarget_the_recipe(own_workspace, {"kind": "atac"})
-    assay = collect_report(own_workspace).assays[0]
+    assay, blob = _rendered_stage_diagram(own_workspace)
     plan = assay.plan
     assert plan is not None
     assert plan.quantification_kind == "atac"  # the typed family, carried; not the caption
 
-    blob = _stage_blob(assay)
     assert "fragment" in blob
     assert "chromap" in blob
     assert "count genes" not in blob  # the RNA phrasing must not leak into an ATAC run
+    # Every stage production built reached the page, in order — the diagram is not a subset of it.
+    for stage in assay.pipeline_stages:
+        assert stage.title.lower() in blob and stage.detail.lower() in blob
 
     reworded = plan.model_copy(
         update={
@@ -603,10 +813,72 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
 
     # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
     _retarget_the_recipe(own_workspace, {"kind": "solo", "features": ["Gene", "GeneFull"]})
-    solo = collect_report(own_workspace).assays[0]
+    solo, solo_blob = _rendered_stage_diagram(own_workspace)
     assert solo.plan is not None and solo.plan.quantification_kind == "solo"
-    solo_blob = _stage_blob(solo)
     assert "count" in solo_blob and "starsolo" in solo_blob
+
+
+def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_region(
+    workspace: Path,
+) -> None:
+    """The two properties this tab must not lose at any viewport width.
+
+    A compiled artifact rides in the page as ``data:`` bytes — a relative link breaks the moment the
+    HTML moves off the workspace — and every wide thing on the tab (the recipe table, an artifact's
+    inline text) scrolls inside its own box, so the page body never scrolls sideways and the tab is
+    readable on a phone. Both are read off the rendered pane.
+    """
+    pane = _pane(render_html(collect_report(workspace)), "pipeline")
+
+    assert 'download="Snakefile"' in pane and "data:text/plain;base64," in pane
+    assert not re.search(r'href="(?!data:)[^"]*(?:Snakefile|\.yaml|\.tsv)"', pane), (
+        "an artifact is linked out of the page instead of embedded in it"
+    )
+
+    tables = re.findall(r"<table[^>]*>", pane)
+    assert tables and len(tables) == pane.count('<div class="sf-scroll-x"><table'), (
+        "the recipe table can widen the page instead of scrolling inside its own region"
+    )
+    pres = re.findall(r"<pre[^>]*>", pane)
+    assert pres and all("overflow-auto" in tag for tag in pres), (
+        f"an artifact's inline text is not its own scroll region: {pres}"
+    )
+
+
+def test_the_three_narrative_views_stay_readable_at_a_narrow_viewport(workspace: Path) -> None:
+    """A phone is a real reader, and this is what the page can promise one without a browser.
+
+    Two mechanical properties, over the rendered panes: nothing sets a width in pixels (a fixed width
+    is the one thing a narrow viewport cannot recover from), and every multi-column container starts
+    at one or two columns and *adds* columns as the viewport grows, rather than starting wide and
+    hoping. The wide things that genuinely cannot reflow — the recipe table, an artifact's text —
+    are held to their own scroll region by the test above, so the page body never scrolls sideways.
+    """
+    page = render_html(collect_report(workspace))
+    grids = 0
+
+    for tab in ("overview", "flow", "pipeline"):
+        pane = _pane(page, tab)
+        # An absolute width, in a style or as an arbitrary utility. `max-width` is exempt: it only
+        # ever narrows, which is the opposite failure, and the abstract's 70ch cap is deliberate.
+        assert not re.search(r"(?<!max-)(?:min-)?width\s*:\s*\d+\s*(?:px|pt|in|cm|mm)", pane), tab
+        assert not re.search(r"(?<!max-)\b(?:min-)?w-\[\d", pane), (
+            f"{tab} pins a width as a utility"
+        )
+
+        for classes in re.findall(r'class="([^"]*)"', pane):
+            tokens = classes.split()
+            if "grid" not in tokens:
+                continue
+            grids += 1
+            base = [t for t in tokens if re.fullmatch(r"grid-cols-\d+", t)]
+            assert not base or base == ["grid-cols-2"], (
+                f"{tab} starts at {base} columns before any breakpoint: {classes}"
+            )
+            assert [t for t in tokens if re.fullmatch(r"(sm|md|lg|xl):grid-cols-\d+", t)], (
+                f"{tab} has a grid whose column count never changes with the viewport: {classes}"
+            )
+    assert grids >= 2, "no multi-column container was found at all, so nothing above was checked"
 
 
 # -- the finished pipeline (the Results tab) -------------------------------------------------------
@@ -1186,7 +1458,6 @@ _CLASS_BEARING_SOURCES = (
 #: so the list cannot quietly become the place unstyled classes go to hide.
 _UNSTYLED_HOOKS = {
     "assay": "<section class='assay' data-assay=N> — the pane the assay switcher shows and hides",
-    "genstats-conf": "the confidence <div> inside .genstats, styled by `.genstats > div`",
     "siblings": "the wrapper round the ruled-out drawers; `details.sibling` carries the style",
 }
 

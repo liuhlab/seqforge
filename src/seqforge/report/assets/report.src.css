@@ -229,6 +229,46 @@
   .sf-v-blocker   { --sf-v-fg: var(--sf-crit);    --sf-v-bg: var(--sf-crit-weak); }
   .sf-v-question  { --sf-v-fg: var(--sf-warn);    --sf-v-bg: var(--sf-warn-weak); }
 
+  /* ---- the Flow tab's narrative cards ------------------------------------------------------------
+   * One class per card, computed from `flow.StepKind` — the purge cannot see `flow-{kind}`, and this
+   * is also where the decision belongs, because the decision IS which kinds get colour.
+   *
+   * Four of the five used to paint a saturated fill with white text (teal, slate, red, orange), so a
+   * clean compile arrived as a wall of colour and the one card that meant "stop and read me" was the
+   * same weight as the four that meant "this went fine". Under the colour law that is exactly
+   * backwards: `guess`, `measured` and `done` are the NORM and get no tint at all — a hairline, the
+   * page surface, and the ordinal badge as their only ornament. Only `blocked` and `ask` are painted,
+   * in the two verdict hues the rest of the page already uses, so a tinted card on this tab means the
+   * same thing a tinted cell means on Results.
+   *
+   * All five are listed rather than only the two that paint: a member with no rule is a card with no
+   * border, and `test_every_flow_step_kind_...` reads the members out of the Literal so a sixth kind
+   * fails here instead of shipping. The two custom properties are what make the norm's "no tint"
+   * a written decision rather than an omission. */
+  .flow-guess,
+  .flow-measured,
+  .flow-done,
+  .flow-blocked,
+  .flow-ask {
+    @apply rounded-lg border p-4;
+    border-color: var(--flow-line);
+    background: var(--flow-bg);
+  }
+  .flow-guess,
+  .flow-measured,
+  .flow-done {
+    --flow-line: var(--sf-line);
+    --flow-bg: transparent;
+  }
+  .flow-blocked {
+    --flow-line: var(--sf-crit);
+    --flow-bg: var(--sf-crit-weak);
+  }
+  .flow-ask {
+    --flow-line: var(--sf-warn);
+    --flow-bg: var(--sf-warn-weak);
+  }
+
   /* ---- the shell's frozen JS hooks ---------------------------------------------------------------
    * `report.js` toggles `.active` on `.tab` and `.pane`, so neither state can be a utility in the
    * markup — there is no markup for the toggled one. They keep the names the script selects on
