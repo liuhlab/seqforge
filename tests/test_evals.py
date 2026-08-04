@@ -499,8 +499,10 @@ def test_the_corpus_is_well_formed() -> None:
        harness that has forgotten how to refuse.
     2. Every case sits under one named purpose group — `spec` (one per KB leaf), `prose` (needs
        harvest), `steering` (a hypothesis meets the bytes), `refusal` (must block), `real` (real
-       local data). Grouping is a filing decision, but pinning it means a stray case dropped at the
-       top level, or a sixth ad-hoc group, turns red instead of quietly re-messing the directory.
+       local data), `grouping` (which sample each file is, from its NAME — the deposit shape #263
+       compiled wrong). Grouping is a filing decision, but pinning it means a stray case dropped at
+       the top level, or a seventh ad-hoc group, turns red instead of quietly re-messing the
+       directory.
     3. Every case says what it is for. A case whose intent is not written down cannot be maintained
        when it fails.
     4. No case ships FASTQ bytes. Inputs are recipes; a committed FASTQ means a case stopped
@@ -508,7 +510,7 @@ def test_the_corpus_is_well_formed() -> None:
     """
     base = default_cases_dir()
     cases = discover_cases()
-    groups = {"spec", "prose", "steering", "refusal", "real"}
+    groups = {"spec", "prose", "steering", "refusal", "real", "grouping"}
 
     assert len(cases) >= 7
     assert {c.expected.outcome for c in cases} == {"decide", "refuse", "ask"}, (
@@ -1162,7 +1164,7 @@ def _two_chemistry_case_over(data: Path, tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def _harness_decisions(
-    case: Case, provider: _StubProvider, monkeypatch: pytest.MonkeyPatch
+    case: Case, provider: _StubProvider | None, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[CaseRun, DatasetResolution, MetadataResolution]:
     """`run_case` in full, plus the two resolutions it reached: `(run, dataset resolve, metadata)`.
 
@@ -1171,6 +1173,10 @@ def _harness_decisions(
     `seqforge eval run` takes. The byte spy sits on `reduce_dataset` rather than on `resolve_runs`,
     because the dataset-level verdict is what the harness grades and what the front door renders;
     the run-by-run resolve underneath it is the same function on both paths and never diverged.
+
+    ``provider=None`` is a `--no-llm` run, for a case whose subject is the bytes and the filenames.
+    It costs one resolve rather than two: a caller that wants both the GRADE and the sample -> files
+    map has to see the same pass produce them, or it is asserting over a second run of the compiler.
     """
     from seqforge.evals import run as run_module
     from seqforge.resolve import reduce_dataset as real_reduce
@@ -1188,7 +1194,7 @@ def _harness_decisions(
 
     monkeypatch.setattr(run_module, "reduce_dataset", _reduce)
     monkeypatch.setattr(run_module, "resolve_metadata", _metadata)
-    run = run_case(case, llm=True, provider=provider)
+    run = run_case(case, llm=provider is not None, provider=provider)
     return run, seen["resolve"], seen["metadata"]
 
 
@@ -1381,6 +1387,131 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
     # manifest pins to, so "the same manifest" has to mean the same identity a later compose
     # resolves against, not merely two files that happen to serialize alike.
     assert dataset_content_hash(harness) == dataset_content_hash(front_door)
+
+
+# --------------------------------------------------------------------------------------------
+# the record-less multi-lane deposit — a run spans its lanes (#263, ADR-0027)
+# --------------------------------------------------------------------------------------------
+
+#: The case this section stages, and the variable its `local` recipe reads. The ground truth lives in
+#: `evals/cases/grouping/record-less-two-libraries-two-lanes/`; only the LAYOUT lives here, because a
+#: `spec` recipe deposits one library under one run by construction and has no knob for a deposit.
+LANE_CASE_ID = "record-less-two-libraries-two-lanes"
+LANE_ROOT_ENV = "SEQFORGE_CASE_TWO_LIBRARIES_TWO_LANES"
+
+#: `(library, sample-sheet entry, lane) -> reads`, deposited as `<name>_S<n>_L<lane>_<read>_001`.
+#: Two libraries on one flowcell, two lanes each — GSE126954's shape
+#: (`Murray_b01_S1_L001_R1_001.fastq.gz`, 14 libraries x 4 lanes), which is plain bcl2fastq and the
+#: commonest deposit there is. The two libraries carry DIFFERENT `_S<n>`: that token is the
+#: sample-sheet entry, it is the one thing separating them, and ADR-0027 never strips it.
+#:
+#: **The depths differ per lane because two lanes must be different BYTES.** Identical reads
+#: content-address to identical shas, and a manifest keyed by sha would hold four files where eight
+#: were handed to it — the same trap `_two_bulk_runs` names. Same seed, so both lanes draw from one
+#: read stream, as one library sequenced twice does.
+#:
+#: **They stay inside 400–500 because a real lane carries its sibling's cycle count and a generated
+#: one does not.** `kb/generate.py` draws each cDNA read's length uniformly in [60, 91], so a file's
+#: MODAL length is a lottery over a wide band, while `index_tagged_roles` re-seats a surplus lane
+#: file onto its role only within `_LANE_LEN_TOL` (3 bp) of that role's representative. A depth
+#: outside this band leaves one of the eight files with no role at all — silent data loss, and
+#: nothing whatever to do with grouping. Measured every 20 reads across 300–1600: 400–500 is a band
+#: over which both reads' modes hold still (66 / 65), and 380 and 560 are two of the places they jump.
+LANE_DEPTHS = {
+    ("SIM_b01", "S1", "L001"): 500,
+    ("SIM_b01", "S1", "L002"): 460,
+    ("SIM_b02", "S2", "L001"): 440,
+    ("SIM_b02", "S2", "L002"): 420,
+}
+
+
+def _two_libraries_two_lanes(tmp_path: Path) -> Path:
+    """`bulk-pe-bytes-only`'s own bytes, deposited the way bcl2fastq deposits a two-lane run.
+
+    **Bulk, for the reason `_two_bulk_runs` gives.** A `local` case is handed no registry, so it
+    resolves against the SHIPPED whitelists exactly as `manifest fill` does — and a barcoded spec's
+    synthetic barcodes, drawn from pools this fixture would have to register itself, miss every real
+    one. That would turn a grouping case into a question about its own fixture's onlist. The bug is
+    in the filename path and is chemistry-blind, so the chemistry that needs no whitelist is right.
+
+    Only the run stem moves: the mate token the generator wrote (`SIM_R1` -> `_R1_001`) is carried
+    through untouched, so `resolve.group_runs` and `resolve.engine._read_designation` read the same
+    token off this deposit that they read off a submitter's file.
+    """
+    import dataclasses
+
+    case = next(c for c in discover_cases() if c.id == "bulk-pe-bytes-only")
+    data = tmp_path / "flowcell"
+    data.mkdir(parents=True, exist_ok=True)
+    for (library, entry, lane), depth in LANE_DEPTHS.items():
+        generate = case.recipe.generate.model_copy(update={"n": depth})
+        built = materialize(
+            dataclasses.replace(case, recipe=case.recipe.model_copy(update={"generate": generate})),
+            tmp_path / f"gen-{library}-{lane}",
+        )
+        for path in built.paths:
+            mate = path.name.removeprefix(f"{SIM_RUN}_").split(".", 1)[0]
+            path.rename(data / f"{library}_{entry}_{lane}_{mate}_001.fastq.gz")
+    return data
+
+
+def test_a_record_less_multi_lane_deposit_stays_two_samples(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two libraries x two lanes, no record: TWO samples, not four and not one (#263, ADR-0027).
+
+    **The corpus could not see this and that is why the case exists.** The ci tier is record-less
+    but every case is one library under one run — `_materialize_spec` enforces it. The benchmark
+    tier has the lane tokens and every lane-tokened case ships a `records.json`, so the join lands
+    at the SAMPLE level, above the run, and the filename path never runs. #263 lived in the gap:
+    `run_key` kept the lane, so a four-lane library became four runs, and with no record the run
+    grouping IS the sample identity — four `<sample>.h5ad` at a quarter depth each, every file
+    assigned, `validate` clean, exit 0.
+
+    **The count is asserted here rather than in `expected.yaml` because it is not expressible
+    there.** `Expected.fields` reaches `library.*`, `rung` and `experiment.*`, and a record-less
+    dataset with no prose has no sample ATTRIBUTE — `experiment.samples.*.<attr>` is the empty list
+    at two samples and at four alike. So the case's own expectation is graded by `run_case` (the
+    chemistry, the exit code, the whole harness path) and the sample count is read off the SAME
+    pass's spies. One pass, or this would be asserting over a second run of the compiler.
+
+    **Both failure directions.** Four is the split #263 shipped; one is the merge ADR-0027 forbids,
+    where `_S<n>` is stripped and two libraries on one flowcell become one plausible matrix nobody
+    notices. A rule may fail toward the first and never toward the second, so both are pinned.
+    """
+    from seqforge.resolve.group import group_runs, lane_of, run_key
+
+    data = _two_libraries_two_lanes(tmp_path)
+    paths = sorted(data.glob("*.fastq.gz"))
+    monkeypatch.setenv(LANE_ROOT_ENV, str(data))
+    case = next(c for c in discover_cases() if c.id == LANE_CASE_ID)
+
+    # The fixture really is multi-lane, asserted before anything is concluded from it. `(run_key,
+    # lane)` is the key #263 grouped by, one token at a time: four of those is what makes "two runs"
+    # below a claim rather than a description of a deposit that never had a lane in it.
+    assert len(paths) == 8
+    assert {lane_of(p) for p in paths} == {"L001", "L002"}
+    assert len({(run_key(p), lane_of(p)) for p in paths}) == 4
+    assert sorted(group_runs(paths)) == ["SIM_b01_S1", "SIM_b02_S2"]
+
+    run, out, metadata = _harness_decisions(case, None, monkeypatch)
+    assert run.skipped is None, run.skipped
+    assert run.grade.ok, run.to_json()
+
+    assert [s.sample_id for s in metadata.samples] == ["SIM_b01_S1", "SIM_b02_S2"], (
+        "a record-less four-lane deposit is one sample per library; four is #263 and one is the "
+        "merge ADR-0027 forbids"
+    )
+    assert [len(s.file_shas) for s in metadata.samples] == [4, 4], "a sample keeps both its lanes"
+    # Every file, once. A sample holding a lane twice, or the eight collapsing to four, would leave
+    # the counts above intact and the depth wrong — which is the failure #263 was, expressed in shas.
+    assert len({sha for s in metadata.samples for sha in s.file_shas}) == len(paths)
+    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq-pe"]
+    # A fused run assigns roles across its lanes (`index_tagged_roles`), and a file with no role is
+    # dropped by `_units` at exit 0 — the same silent-loss class one level down.
+    assert len(out.role_of_sha()) == len(paths), (
+        "a lane lost its role and would be dropped silently"
+    )
 
 
 # --------------------------------------------------------------------------------------------

@@ -114,9 +114,10 @@ its `expected.yaml` at any depth, so groups never change a case's identity):
 | `prose/` | the **harvest / LLM** path — extract a stated fact, stay silent on an unstated one |
 | `steering/` | a metadata **hypothesis meets the bytes** — overridden (→ decide) or surfaced as a conflict (→ ask) |
 | `refusal/` | negatives that must **block**, with the right blocker code |
+| `grouping/` | which files are **one run**, and so one sample, from names alone — the record-less deposit shapes (ADR-0027) |
 | `real/` | a **real local dataset**, resolved from an env var (data out of git) — the pilot's pre-registration |
 
-`test_the_corpus_is_well_formed` enforces this, so a stray top-level case or an ad-hoc sixth group
+`test_the_corpus_is_well_formed` enforces this, so a stray top-level case or an ad-hoc seventh group
 turns red rather than quietly re-messing the directory. The same test asks the corpus's three other
 layout questions off the same walk: every outcome class is covered, every case has a description, and
 no case ships FASTQ bytes.

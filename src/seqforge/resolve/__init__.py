@@ -98,7 +98,14 @@ from __future__ import annotations
 #: PROBE_VERSION bump (2026.8.1, which adds the share this reads) moves `dataset_id` as well, but
 #: that is a probe fact: the resolver's own stamp is what states that the resolver's verdict is stale,
 #: and a reader of this log must not have to cross-reference another module's to learn it.
-RESOLVE_VERSION = "2026.7.18"
+#: 2026.8.1 — a run is LANE-BLIND: `run_key` strips a trailing `_L\d{3}` once the mate token is off,
+#: so the four lanes of one library are one run (#263, ADR-0027). This MUST re-key, and for the
+#: reason 2026.7.15/.16/.17 did — what sits in caches is a wrong GROUPING, and with no archive record
+#: a run IS the sample identity, so a four-lane library is cached as four samples at a quarter depth
+#: each: self-consistent, `validate` clean, exit 0. Nothing refuses it and nothing would notice.
+#: `dataset_hash` moves with it for record-less multi-lane data, which is the point — a pin to the
+#: four-sample manifest refuses rather than resolving to a different dataset than it was written for.
+RESOLVE_VERSION = "2026.8.1"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
@@ -114,7 +121,7 @@ from .engine import (  # noqa: E402
     resolve_runs,
     role_of_sha_for,
 )
-from .group import group_runs, run_key  # noqa: E402
+from .group import group_runs, lane_of, run_key  # noqa: E402
 from .scoring import Cell, TechEvaluation, build_tech_evaluation  # noqa: E402
 from .window import WindowProbe  # noqa: E402
 
@@ -130,6 +137,7 @@ __all__ = [
     "role_of_sha_for",
     "group_runs",
     "run_key",
+    "lane_of",
     "Hypothesis",
     "chemistry_hypothesis",
     "exit_code_for",

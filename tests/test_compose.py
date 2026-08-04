@@ -72,7 +72,7 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
     assert not (pipeline_dir / config["solo"]["soloCBwhitelist"]).exists()
 
     units = (tmp_path / result.units_path).read_text().splitlines()
-    assert units[0].split("\t") == ["sample_id", "run", "read_id", "path"]
+    assert units[0].split("\t") == ["sample_id", "run", "lane", "read_id", "path"]
     assert len(units) == 3  # header + 2 reads
 
 
@@ -145,20 +145,47 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
 
 
 def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> None:
-    """units.tsv carries a ``run`` column, from the same `run_key` that grouped the dataset.
+    """units.tsv carries ``run`` and ``lane``, from the two functions in `resolve.group` that own them.
 
-    Recording the run is what lets the mapping module pair a pooled sample's mates without re-parsing
-    filenames. The value must be `resolve.group.run_key`, not a second notion of "run" -- one function
-    owns it.
+    Recording both is what lets the mapping module order a pooled sample's files without re-parsing
+    filenames. The values must be `run_key` and `lane_of`, not a second notion of either -- one
+    function owns each, so the column can never disagree with the grouping that formed the sample.
     """
     from seqforge.compose.core import _units
-    from seqforge.resolve.group import run_key
+    from seqforge.resolve.group import lane_of, run_key
 
     manifest, reg = built_v3
     rows = _units(manifest)
-    assert rows and all(set(r) >= {"sample_id", "run", "read_id", "path"} for r in rows)
+    assert rows and all(set(r) >= {"sample_id", "run", "lane", "read_id", "path"} for r in rows)
     for r in rows:
         assert r["run"] == run_key(r["path"])
+        assert r["lane"] == lane_of(r["path"])
+
+    # The lane is worth a column only where it is the ONLY thing left distinguishing two files of one
+    # mate, which is the four-lane library ADR-0027 fused into one run -- and which the fixture's own
+    # `s_R1`/`s_R2` names (no lane token, so `lane == ""` above) cannot show. Rename its files to what
+    # bcl2fastq writes and the run must collapse to one while the lanes stay two.
+    laned = manifest.model_copy(deep=True)
+    files = [
+        f.model_copy(update={"uri": f"cell_42_S1_{lane}_{f.read_id}_001.fastq.gz"})
+        for lane in ("L001", "L002")
+        for f in manifest.library.files
+    ]
+    laned.library.files = files
+    laned.experiment.samples[0].file_uris = [f.uri for f in files]
+    rows = _units(laned)
+    assert {r["run"] for r in rows} == {"cell_42_S1"}
+    assert {(r["read_id"], r["lane"]) for r in rows} == {
+        (read_id, lane) for read_id in ("R1", "R2") for lane in ("L001", "L002")
+    }
+
+    # ...and the same for the implicit single sample. `_units` has two loops, and the fallback one is
+    # what a dataset with no `experiment.samples` compiles through -- a column present on one branch
+    # only is a KeyError in the mapping module, on the datasets nobody has a record for.
+    laned.experiment.samples = []
+    assert {(r["read_id"], r["lane"]) for r in _units(laned)} == {
+        (read_id, lane) for read_id in ("R1", "R2") for lane in ("L001", "L002")
+    }
 
 
 def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
@@ -185,23 +212,25 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
 
     units_path = pipeline_dir / "units.tsv"
     header = units_path.read_text().splitlines()[0].split("\t")
-    assert header == ["sample_id", "run", "read_id", "path"]
+    assert header == ["sample_id", "run", "lane", "read_id", "path"]
     sid = units_path.read_text().splitlines()[1].split("\t")[0]
     # run -> {role -> filename}; filename order is the REVERSE of run order, so a filename sort would
-    # mispair. read_files_in is cdna=R2, barcode=R1.
+    # mispair. read_files_in is cdna=R2, barcode=R1. The lane is EMPTY here: these are two runs, and a
+    # name with no lane token is what `lane_of` reports as `""` -- so this case still asserts that the
+    # run column alone decides, with the lane contributing no order.
     f = {
         "r1": {"R1": "z_bc.fastq.gz", "R2": "z_cdna.fastq.gz"},
         "r2": {"R1": "a_bc.fastq.gz", "R2": "a_cdna.fastq.gz"},
     }
     # rows deliberately SCRAMBLED across mates
     rows = [
-        [sid, "r2", "R2", f["r2"]["R2"]],
-        [sid, "r1", "R1", f["r1"]["R1"]],
-        [sid, "r2", "R1", f["r2"]["R1"]],
-        [sid, "r1", "R2", f["r1"]["R2"]],
+        [sid, "r2", "", "R2", f["r2"]["R2"]],
+        [sid, "r1", "", "R1", f["r1"]["R1"]],
+        [sid, "r2", "", "R1", f["r2"]["R1"]],
+        [sid, "r1", "", "R2", f["r1"]["R2"]],
     ]
     units_path.write_text("\n".join("\t".join(r) for r in [header, *rows]) + "\n")
-    for _sid, _run, _rid, path in rows:  # `snakemake -n` needs its source inputs to exist
+    for *_, path in rows:  # `snakemake -n` needs its source inputs to exist
         (pipeline_dir / path).touch()
 
     # no `plan=`: the whole point is the units.tsv this test just wrote, so it dry-runs the directory
@@ -212,6 +241,58 @@ def test_a_sample_pooled_across_runs_pairs_and_comma_joins_readfilesin(
     expected = f"--readFilesIn {f['r1']['R2']},{f['r2']['R2']} {f['r1']['R1']},{f['r2']['R1']}"
     assert expected in out, (
         f"mates must comma-join and pair by the run column; got: "
+        f"{[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
+    )
+
+
+def test_a_sample_pooled_across_lanes_pairs_readfilesin_by_the_lane_column(
+    built_v3: Built, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """A multi-LANE sample is one run (ADR-0027), so the ``lane`` column is what pairs its mates.
+
+    The sibling above cannot express this case. Since the run key went lane-blind, a four-lane library
+    is a SINGLE run: ``run`` ties for all eight files and the sort falls through to ``path``. Real
+    bcl2fastq names survive that by coincidence -- `..._L001_R1_001` and `..._L001_R2_001` put the
+    lane ahead of the mate token, so both mates sort into the same lane order -- and that coincidence
+    is precisely why the fixture does NOT use them: it is what would keep a lane-blind sort looking
+    green. Here the cDNA names sort in lane order and the barcode names sort against it, so a
+    ``(run, path)`` sort hands STAR L001's cDNA with L002's barcodes.
+
+    Worth a spawn because that mispairing is SILENT, unlike the run-order one above: the two
+    comma-lists still hold equal read counts, so STAR neither desyncs nor FATALs -- it exits 0 having
+    written a matrix that pairs one lane's barcodes with another lane's cDNA.
+    """
+    manifest, reg = built_v3
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    units_path = pipeline_dir / "units.tsv"
+    header = units_path.read_text().splitlines()[0].split("\t")
+    sid = units_path.read_text().splitlines()[1].split("\t")[0]
+    # lane -> {role -> filename}, ONE run. cdna (R2) sorts lexically in lane order, barcode (R1)
+    # sorts against it, so only a lane-aware sort agrees with itself across the two mates.
+    f = {
+        "L001": {"R1": "z_bc.fastq.gz", "R2": "b_cdna.fastq.gz"},
+        "L002": {"R1": "a_bc.fastq.gz", "R2": "c_cdna.fastq.gz"},
+    }
+    # rows deliberately SCRAMBLED across mates; written through the header, so a column added later
+    # cannot silently shift these values into the wrong field
+    rows = [
+        {"sample_id": sid, "run": "r1", "lane": lane, "read_id": role, "path": f[lane][role]}
+        for lane, role in (("L002", "R2"), ("L001", "R1"), ("L002", "R1"), ("L001", "R2"))
+    ]
+    lines = ["\t".join(header)] + ["\t".join(r[h] for h in header) for r in rows]
+    units_path.write_text("\n".join(lines) + "\n")
+    for r in rows:  # `snakemake -n` needs its source inputs to exist
+        (pipeline_dir / r["path"]).touch()
+
+    out = dry_run(pipeline_dir)
+
+    expected = (
+        f"--readFilesIn {f['L001']['R2']},{f['L002']['R2']} {f['L001']['R1']},{f['L002']['R1']}"
+    )
+    assert expected in out, (
+        f"one run's mates must be ordered by the lane column; got: "
         f"{[ln for ln in out.splitlines() if 'readFilesIn' in ln]}"
     )
 

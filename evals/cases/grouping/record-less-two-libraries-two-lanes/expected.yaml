@@ -1,0 +1,43 @@
+outcome: decide
+description: >-
+  RECORD-LESS AND MULTI-LANE — the one shape neither eval tier held, and the one #263 compiled wrong.
+  Two libraries, two lanes each, eight files, no `records.json`: it must resolve to TWO samples.
+
+  WHAT #263 WAS. `run_key` stripped the mate token and kept the lane, so `x_S1_L001_R1_001` and
+  `x_S1_L002_R1_001` keyed to two different runs — and with no archive record the run grouping IS the
+  sample identity (ADR-0010, "no archive is the normal case"). A four-lane library therefore compiled
+  as four samples at a quarter depth each, four `<sample>.h5ad`, self-consistent, every file assigned
+  a role, `validate` clean, exit 0. Nothing refused, which is the point: it is the failure class
+  `resolve/group.py` was written to prevent, one level up. ADR-0027 makes a run lane-blind.
+
+  WHY NEITHER TIER COULD SEE IT, because that is what this case is filling and it should not have to
+  be rediscovered. Every ci case that runs hermetically is record-less — `real/PRJNA1027859` is the
+  only one carrying a `records.json` and it skips without its out-of-git root — but every one of them
+  is a single library deposited under a single run, because a `spec` recipe deposits one library under
+  `SIM_<mate>.fastq.gz` and enforces that it groups into exactly one run. The benchmark tier has all
+  250 of the corpus's real lane tokens — eight cases carry one and four of those (GSE126954,
+  GSE229022, GSE256266, GSE310378) hold a run spanning two lanes or more — and every one of the eight
+  ships a committed `records.json`, so the join lands at the SAMPLE level, above the run, and the
+  filename path never runs at all. The corpus hole was the exact shape of the bug.
+
+  BOTH FAILURE DIRECTIONS, which is why it is two libraries and not one. Four samples is the split
+  #263 shipped; one sample is the merge ADR-0027 forbids — `_S<n>` is the sample-sheet entry and the
+  only token separating two libraries on one flowcell, so a key that stripped it would fuse
+  `SIM_b01_S1` and `SIM_b02_S2` into a single plausible matrix nobody would notice. The asymmetry is
+  the reason a grouping rule may fail toward the first and never toward the second, and a case that
+  pinned only the split would leave the expensive direction unguarded.
+
+  THE SAMPLE COUNT IS ASSERTED IN `tests/test_evals.py`, NOT IN `fields:` BELOW, and the reason is
+  worth stating rather than looking like an omission. `Expected.fields` reaches `library.*`, `rung`
+  and `experiment.*`; a record-less dataset with no prose has no sample ATTRIBUTE at all, so
+  `experiment.samples.*.<attr>` is the empty list whether the compiler found two samples or four.
+  The field surface cannot tell the bug from the fix. So
+  `test_a_record_less_multi_lane_deposit_stays_two_samples`
+  runs this case through `run_case` — everything below is graded by the harness, on the real deposit
+  — and then asserts, over the same pass's two resolutions, the count that grades nowhere: two
+  samples, four files each, eight distinct shas, every one of them still carrying a role.
+
+  `library.chemistry` is here anyway and is not decoration: it is what makes the run a decision rather
+  than a refusal, so a grouping claim is being made about a dataset the compiler actually compiled.
+fields:
+  library.chemistry: bulk-rnaseq-pe

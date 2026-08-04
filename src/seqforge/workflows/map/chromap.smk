@@ -25,6 +25,7 @@ import csv
 # that finds nothing looks exactly like a pipeline that has not run. The import is the same
 # assumption `rule genome_index` makes of `genome`: the env running snakemake is the env that has them.
 from seqforge.workflows.fragments import QC_SUFFIX, RAW_FRAGMENTS, fragments_suffixes
+from seqforge.workflows.units import ordered_fastqs
 
 
 def _load_units(path):
@@ -40,11 +41,10 @@ CHROMAP = config["chromap"]
 
 
 def fastqs(sample, role):
-    # Ordered by the units.tsv `run` column so a pooled sample's mates pair correctly, exactly as
-    # starsolo.smk's `fastqs` does: chromap reads -1/-2/-b mate-by-mate and desyncs if genomic run K is
-    # joined with barcode run J. `run` is seqforge's own run grouping — no filename parsing here.
-    us = [u for u in UNITS if u["sample_id"] == sample and u["read_id"] == role]
-    return [u["path"] for u in sorted(us, key=lambda u: (u["run"], u["path"]))]
+    # `ordered_fastqs` owns the order and the argument for it; the two STAR modules read the same one.
+    # Here BOTH halves are silent — chromap reads -1/-2/-b in lockstep, and a mispairing just gives a
+    # fragment the barcode of a read it did not come from, leaving a plausible fragments.tsv.gz.
+    return ordered_fastqs(UNITS, sample, role)
 
 
 def commajoin(sample, role):
