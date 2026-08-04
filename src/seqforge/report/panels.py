@@ -130,9 +130,16 @@ def _human_size(n: int) -> str:
 
 
 def _panel(title: str, body: str, *, sub: str = "", cls: str = "") -> str:
-    sub_html = f'<p class="sub">{esc(sub)}</p>' if sub else ""
-    klass = f"panel {cls}".strip()
-    return f'<div class="{klass}"><h2>{esc(title)}</h2>{sub_html}{body}</div>'
+    """The one box every tab composes into: a title, an optional lead sentence, and a body.
+
+    A ``<section>`` and not a ``<div>``, because six panes of unlabelled ``div``s is what a screen
+    reader currently gets and the heading is right there to name each one. The panel carries the
+    page's only shadow (``.sf-panel``); everything nested inside it is flat and separated by a
+    hairline, since a second shadow inside a box that already has one reads as a bug.
+    """
+    sub_html = f'<p class="sf-panel-sub">{esc(sub)}</p>' if sub else ""
+    klass = f"sf-panel {cls}".strip()
+    return f'<section class="{klass}"><h2 class="sf-panel-h">{esc(title)}</h2>{sub_html}{body}</section>'
 
 
 # ---- overview -----------------------------------------------------------------------------------
@@ -1035,6 +1042,14 @@ def _decade(exponent: int) -> str:
 
 
 def assay_section(assay: AssayReport, index: int) -> str:
+    """One assay's six panes, of which the script shows one.
+
+    ``assay``, ``pane`` and ``active`` are not styling classes and must not become utilities:
+    ``report.js`` selects on the first two and toggles the third, and there is no markup for a
+    toggled state to hang a utility off. ``.pane``/``.pane.active`` are declared components for that
+    reason, and the section's own visibility is an inline ``style`` the script writes — which is also
+    why swapping it for ``hidden`` would break it, an inline style beating any class.
+    """
     panes = [
         ("overview", overview_pane(assay)),
         ("flow", flow_pane(assay)),
@@ -1064,7 +1079,9 @@ def tab_bar(report: ProjectReport) -> str:
         for key, label in _TABS
         if key != "results" or has_results
     )
-    return f'<nav class="tabs"><div class="tabs-row">{tabs}</div></nav>'
+    # `overflow-x-auto` on the strip and not on the page: at a narrow viewport the tabs scroll
+    # sideways, which is the one horizontal scroll this page is allowed to have.
+    return f'<nav><div class="sf-page flex gap-1 overflow-x-auto">{tabs}</div></nav>'
 
 
 def assay_switcher(report: ProjectReport) -> str:
@@ -1075,8 +1092,10 @@ def assay_switcher(report: ProjectReport) -> str:
         for i, a in enumerate(report.assays)
     )
     return (
-        '<div class="assay-switch"><label for="assay-select" class="title-dim">assay</label>'
-        f'<select id="assay-select">{opts}</select></div>'
+        '<div class="flex shrink-0 items-center gap-2">'
+        '<label for="assay-select" class="text-xs font-bold uppercase tracking-[0.07em] text-faint">'
+        "assay</label>"
+        f'<select id="assay-select" class="sf-select">{opts}</select></div>'
     )
 
 

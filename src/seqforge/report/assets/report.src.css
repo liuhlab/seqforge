@@ -68,7 +68,12 @@
 
 /* The few tokens that are worth having as utilities too (`text-dim`, `bg-surface`, …). They resolve
  * through the runtime custom properties, so a theme switch moves them with everything else. Same
- * block as the eval report's, deliberately: one product, one scale. */
+ * block as the eval report's, deliberately: one product, one scale.
+ *
+ * An alpha modifier on one of these (`bg-surface/90`) works, but its emitted FALLBACK is the flat
+ * colour: Tailwind puts the real `color-mix` behind `@supports (color: color-mix(…))` and cannot
+ * compute a static fallback for a value it only knows as `var(--sf-surface)`. Reading the built
+ * file, that first line looks like the modifier was dropped. It was not. */
 @theme {
   --color-ink: var(--sf-ink);
   --color-dim: var(--sf-dim);

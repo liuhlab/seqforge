@@ -235,6 +235,101 @@ def test_report_handles_a_multi_assay_layout(own_workspace: Path) -> None:
     assert 'id="assay-select"' in render_html(report)
 
 
+# -- the page shell ---------------------------------------------------------------------------------
+#
+# The frame every tab composes into: the header, the tab bar, `<main>`, the footer and `_panel`.
+# Asserted at the render seam and nowhere else — a panel function's return value is not the page, and
+# PR 1's cautionary tale is a test named for a defect that passed while encoding it.
+
+
+def _body_classes(html: str) -> set[str]:
+    """Every class token the rendered BODY carries — the stylesheets are cut off first.
+
+    Both quote styles, because a fragment nested inside a double-quoted Python string writes
+    ``class='x'`` and a check that only saw ``class="x"`` would quietly stop checking those.
+    """
+    body = html.split("</style>")[-1]
+    return {
+        token
+        for group in re.findall(r"""class\s*=\s*["']([^"'\n]*)["']""", body)
+        for token in group.split()
+    }
+
+
+def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: Path) -> None:
+    """Four elements share the reading column, and the two sticky ones became one.
+
+    The width was restated by ``header.top``, ``.tabs-row``, ``main`` and ``footer.foot``, each from
+    ``--measure`` — one measurement written four times, which is three chances to change it in three
+    places. And the tab bar stuck at a hardcoded ``top: 56px``, a number that had to equal the
+    header's *rendered* height: nothing could check it and any change to what the header holds
+    falsified it. Wrapping both in one sticky element deletes the number rather than re-tuning it.
+    """
+    page = render_html(collect_report(workspace)).split("</style>")[-1]
+
+    # the header row, the tab row, <main> and the footer — and nothing else
+    assert page.count('class="sf-page') == 4
+
+    band = '<div class="sticky top-0'
+    assert page.count(band) == 1, "one sticky element, not a header and a tab bar racing each other"
+    inside = page[page.index(band) : page.index("<main")]
+    assert "<header" in inside and "<nav>" in inside
+    assert "sticky" not in inside.replace(band, "", 1), "only the band sticks; neither child does"
+
+
+def test_the_migrated_shell_wears_no_class_the_old_stylesheet_would_still_win_with(
+    workspace: Path,
+) -> None:
+    """The shell's elements left the hand-written sheet, and left it *entirely*.
+
+    ``report.css`` is inlined and unlayered, so it outranks every Tailwind layer whatever the source
+    order: an element that keeps its old class keeps its old styling and the utilities beside it do
+    nothing. Leaving one on "as a fallback" is therefore not a fallback, it is an override that
+    silently wins — which is why this asserts absence from the markup rather than presence of the
+    new classes, and why each name below is checked to still HAVE a rule in that sheet. A dead class
+    would make this test pass for the wrong reason on the day #220 deletes the file.
+    """
+    page = render_html(collect_report(workspace))
+    worn = _body_classes(page)
+    hand_written = (_ASSETS / "report.css").read_text()
+
+    migrated = [
+        "top", "top-row", "brand", "spark", "title-dim", "top-spacer",  # the header
+        "verdict", "dot", "icon-btn", "assay-switch",                   # its controls
+        "tabs", "tabs-row",                                             # the tab bar
+        "panel", "foot",                                                # the panel and the footer
+    ]  # fmt: skip
+    assert not _classes_with_no_rule(set(migrated), [hand_written]), (
+        "every name here must still be a live rule in report.css, or this test proves nothing"
+    )
+    assert not (worn & set(migrated)), (
+        f"the shell still wears the old sheet's classes: {sorted(worn & set(migrated))} — "
+        "unlayered CSS beats every utility, so those elements are not migrated at all"
+    )
+
+
+def test_the_shell_still_carries_every_hook_the_script_selects_on(workspace: Path) -> None:
+    """The class names ``report.js`` selects on are a contract, and renaming one fails silently.
+
+    Nothing about the page's *appearance* changes when ``.tab`` becomes ``.sf-tab`` — the tabs simply
+    stop switching, and every visual assertion in this file keeps passing. So both ends are asserted
+    here: the selector is still in the script, and the page still renders something it matches.
+    (``#assay-select`` renders only for a multi-assay workspace; it is held by
+    ``test_report_handles_a_multi_assay_layout``.)
+    """
+    script = (_ASSETS / "report.js").read_text()
+    page = render_html(collect_report(workspace)).split("</style>")[-1]
+
+    for selector, in_the_page in (
+        ('"section.assay"', '<section class="assay" data-assay="0">'),
+        ('".pane"', '<div class="pane active" data-tab="overview">'),
+        ('".tab"', '<button class="tab active" data-tab="overview">'),
+        ('"theme-toggle"', 'id="theme-toggle"'),
+    ):
+        assert selector in script, f"report.js no longer selects on {selector}"
+        assert in_the_page in page, f"nothing in the page answers report.js's {selector}"
+
+
 def test_collect_raises_only_when_there_is_nothing_to_report(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         collect_report(tmp_path)
