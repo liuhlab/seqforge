@@ -71,11 +71,17 @@ SDL_RETRIEVE = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
 
 #: What to ask ENA for. NB ENA has NO per-read-length field at all — only `read_count` (spots) and
 #: `base_count` (total). That absence is the whole reason NCBI_RUN_NEW is needed.
+#:
+#: `library_construction_protocol` is ENA's name for SRA's `LIBRARY_CONSTRUCTION_PROTOCOL`, and the
+#: only field here that carries a submitter's prose about how the library was built — a deposit that
+#: states its chemistry there and nowhere else was invisible to every other field on this list (#237).
+#: There is no ENA equivalent of `design_description` at the `read_run` result at all.
 ENA_FIELDS = (
     "run_accession,experiment_accession,study_accession,sample_accession,scientific_name,tax_id,"
     "instrument_platform,instrument_model,library_strategy,library_source,library_selection,"
-    "library_layout,read_count,base_count,fastq_ftp,fastq_md5,fastq_bytes,submitted_ftp,"
-    "submitted_bytes,submitted_format,sra_ftp,experiment_title,sample_title,first_public"
+    "library_layout,library_construction_protocol,read_count,base_count,fastq_ftp,fastq_md5,"
+    "fastq_bytes,submitted_ftp,submitted_bytes,submitted_format,sra_ftp,experiment_title,"
+    "sample_title,first_public"
 )
 
 #: Patterns lifted from ENA's own HTTP 400 response bodies, so they match what the API accepts.

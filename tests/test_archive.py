@@ -18,6 +18,7 @@ import pytest
 
 from seqforge.io import archive
 from seqforge.io.remote import RemoteError
+from seqforge.models.records import ArchiveRecord
 
 FIXTURES = Path(__file__).parent / "fixtures" / "archive"
 
@@ -241,6 +242,58 @@ def test_a_sample_whose_experiments_straddle_a_page_boundary_is_one_record(
     assert [r.accession for r in record_set.at("sample")] == [f"SAMN{i:07d}" for i in range(5)]
     asked = [ids for db, ids in calls if db == "biosample"]
     assert asked and all(len(ids) == len(set(ids)) for ids in asked)
+
+
+# ------------------------------------------------------------ what the package states in prose
+
+
+@pytest.fixture(scope="module")
+def nasal_package() -> list[ArchiveRecord]:
+    """SRP383998, exactly as NCBI served it. Its `DESIGN_DESCRIPTION` is empty and the chemistry is
+    stated only in `LIBRARY_CONSTRUCTION_PROTOCOL` — the deposit shape that measured #237."""
+    return archive.parse_sra_package_set((FIXTURES / "SRP383998.sra.xml").read_text())
+
+
+def _experiment(records: list[ArchiveRecord]) -> ArchiveRecord:
+    experiments = [r for r in records if r.level == "experiment"]
+    assert len(experiments) == 1
+    return experiments[0]
+
+
+def test_the_construction_protocol_reaches_the_experiment_record(
+    nasal_package: list[ArchiveRecord],
+) -> None:
+    """The chemistry is in the protocol paragraph and nowhere else, so a parser that reads only
+    `DESIGN_DESCRIPTION` throws the version away: the record's own prose says "Smart-Seq3" and
+    everything we kept said "SmartSeq", which resolves to no KB node at all."""
+    experiment = _experiment(nasal_package)
+    assert experiment.text("design_description") is None  # the deposit left it empty
+    protocol = experiment.text("library_construction_protocol")
+    assert protocol is not None, "the one field stating the chemistry never reached the record"
+    assert "Smart-Seq3" in protocol
+
+
+def test_the_construction_protocol_arrives_as_prose_and_not_as_a_typed_slot(
+    nasal_package: list[ArchiveRecord],
+) -> None:
+    """It is free text a submitter wrote, so it belongs in the half a model reads and a span check
+    verifies. A typed attribute would hand the value straight to the resolver with nothing to grep
+    back against, and the filing columns beside it stay typed precisely because they are not prose."""
+    experiment = _experiment(nasal_package)
+    assert "library_construction_protocol" not in {a.name for a in experiment.attributes}
+    assert not any("Smart-Seq3" in a.value for a in experiment.attributes)
+    assert {"library_strategy", "library_source", "library_selection"} <= {
+        a.name for a in experiment.attributes
+    }
+
+
+def test_the_samples_own_title_reaches_the_record(nasal_package: list[ArchiveRecord]) -> None:
+    """`SAMPLE/TITLE` is what the submitter called the material; the alias beside it is the archive's
+    id for it. Keeping only the alias leaves a sample document that names no subject a human would
+    recognise."""
+    samples = [r for r in nasal_package if r.level == "sample"]
+    assert [s.text("sample_title") for s in samples] == ["nasal_prox1_270"]
+    assert [s.text("sample_alias") for s in samples] == ["GSM6277169"]
 
 
 def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(
