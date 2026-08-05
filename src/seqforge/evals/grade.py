@@ -297,9 +297,21 @@ def _extract_experiment_field(path: str, metadata: MetadataResolution | None) ->
     - ``experiment.samples.*.<attr>`` — the attribute across EVERY sample, sorted. This is what a
       pre-registration usually wants: "tissue=Neurons" was never a claim about one of the six.
     - ``experiment.organism`` / ``experiment.study.<field>``.
+    - ``experiment.n_samples`` — how many samples the dataset resolved into.
+
+    **The count is here because for a record-less dataset it is the ONLY sample claim there is.**
+    Every attribute path above reads `sample.attributes`, which comes from records and prose; a
+    deposit with neither has none, so `experiment.samples.*.<attr>` is the empty list whether the
+    compiler found two samples or four — and #263 shipped a four-lane library compiled as four
+    quarter-depth samples, at exit 0, past exactly that blind spot. Grouping was therefore assertable
+    in `tests/` and ungradeable in the corpus. It is a count and not a list of ids on purpose: an id
+    is `run_key`'s output, so pinning ids would pin the naming convention a case happens to use
+    alongside the number of samples it produced, and only the second is the claim.
     """
     if metadata is None:
         return None
+    if path == "experiment.n_samples":
+        return len(metadata.samples)
     if path == "experiment.organism":
         return metadata.organism.value if metadata.organism is not None else None
     if path.startswith("experiment.study."):
