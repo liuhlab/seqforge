@@ -276,8 +276,9 @@ Conflict (`docs/agents/resolve.md`).
 _Avoid_: hint, expectation, guess, prior (the filename prior is a different thing)
 
 **Candidate**:
-One technology scored against the bytes, carried with the role assignment that scored it, the rung
-that settled each field, and any equivalence members. Ranked, never merged.
+One technology scored against the bytes, carried with the **Read set** and role assignment that
+scored it, the rung that settled each field, and any equivalence members. Ranked, never merged — one
+per **Spec**, so a chemistry never competes with itself.
 _Avoid_: match, hit, prediction, best guess
 
 **Role**:
@@ -285,9 +286,18 @@ What a read *is* within a chemistry — a KB spec's read id (`R1`, `bc`, `cdna`)
 spec names, never a filename claim: `_1/_2` is a weak prior that can only break an exact byte-tie.
 _Avoid_: read type, mate, file kind, R1/R2 as identity
 
+**Read set**:
+One complete set of a **Spec**'s roles that a **Role assignment** may fill. A spec declares a maximal
+set and may name subsets of it, so a chemistry covers the paired-end and single-end configurations its
+protocol publishes as one entry rather than two (`docs/adr/0029`). A subset of read ids, never a
+second declaration of a read.
+_Avoid_: configuration (a config is what `compose` emits), layout (a layout is the KB's declared
+structure), mode, variant, flavour; and never for how many files a deposit happens to hold
+
 **Role assignment**:
-The injective map from a spec's roles to the dataset's files that scored best. Half of one decision,
-the other half being **Chemistry** — which is why only chemistry carries an envelope
+The injective map from a **Read set**'s roles to the dataset's files that scored best — *total* over
+that set, so an unfilled role is an invalid assignment and never a tolerated gap. Half of one
+decision, the other half being **Chemistry** — which is why only chemistry carries an envelope
 (`docs/adr/0006`).
 _Avoid_: mapping, pairing, demultiplexing, layout (a layout is the KB's declared structure)
 
