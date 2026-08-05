@@ -1,0 +1,70 @@
+# Real benchmark dataset, run from its byte-light fingerprint package on the public HF repo.
+# Pulled anonymously (pooch-cached, no token) only by the opt-in benchmark job; unreachable => skip,
+# and a 404 => absent, which the report names as a gap in the corpus rather than as a network blip.
+#
+# GSE207085 / PRJNA853582 / SRP383998 — 1440 FACS-sorted murine nasal Prox1+ cells, one SMART-seq3
+# library per cell. THE CELL BARCODE IS THE FILE: demultiplexing happened at the bench, so the
+# deposit is strictly 1:1:1:1 — 1440 runs, 1440 SRX, 1440 BioSamples — and every cell is its own
+# experiment. This package holds 96 of them under ONE `--multi-experiment` assertion, which is the
+# caller saying those 96 experiments are one library (#242). Ten one-cell packages were the earlier
+# fixture and they exercise the sample explosion not at all.
+#
+# ---- THE SELECTION RULE, AND WHY IT IS DELIBERATELY NOT A CLEVER ONE ---------------------------
+#   sort the 1440 runs SRP383998 resolves to by `run_accession` ascending, take the first 96.
+# It is executable: `./build-package.sh <workspace>` beside this file IS the rule, wrapping the two
+# functions `preflight --accession --multi-experiment` itself calls. The verb takes one accession and
+# packages every run under it, so "96 of 1440" cannot be said on the command line and the one line
+# between the two calls is the whole selection.
+#
+# It reads exactly one archive-declared field and nothing measured. That is deliberate and it is the
+# decision (#258): the byte separation this dataset exists to test has now been measured, so
+# selection COULD become purposive and must not. A plate picked to contain a starved cell is a
+# designed test wearing a real dataset's clothes, and a drop that fires only because we chose the
+# cell that makes it fire measures our selection. The designed behaviours belong to the hermetic
+# tier, where a cell can be starved by construction.
+#
+# The sort is load-bearing rather than tidy: ENA's filereport does NOT return these rows in accession
+# order, so "the first 96 ENA hands back" is not reproducible. The rule yields the contiguous block
+# SRR19884905-SRR19885000 = 96 runs / 96 SRX / 96 BioSamples, whose declared cell numbers run
+# `nasal_prox1_1375` DOWN to `nasal_prox1_942` — accession order runs against the submitter's own
+# numbering, which is the evidence that the rule tracks nothing the submitter arranged.
+#
+# ---- WHY `-n 2000` WHERE THE REST OF THE TIER USES 20000 ---------------------------------------
+# Because 96 cells multiply it. At 20000 this package would be ~315 MB (96 x ~3.3 MB); at 2000 it is
+# 31,220,154 B over 192 slices and 383,878 records, built 2026-08-04. 2000 is `DEFAULT_MAX_READS` —
+# exactly what resolve reads — so the package still reproduces the full manifest hash. THE LIMIT IS THE
+# OTHER HALF OF THAT CHOICE: if the probe budget is ever raised above 2000, this package cannot serve
+# the larger budget and must be rebuilt. These cells are also shallow (median 68,908 spots), so 20000
+# would have been a third of each whole library rather than a head slice of it.
+#
+# One selected cell holds fewer spots than the budget: SRR19884916 declares 1,939 reads, so its two
+# slices carry 1,939 records rather than 2,000. It is above `smartseq3`'s proposed
+# `min_input_reads: 1000`, so no cell in this package is a starved well — see expected.yaml.
+#
+# ---- THE TRANSCRIPT IS 289 RECORDS, NOT 96, AND THAT IS THE POINT OF IT ------------------------
+# `records.json` is narrowed to what this package's slices can join to and is 294 KB — the largest in
+# the corpus by a factor of seven (GSE126954's is 42.9 KB for 70 records). The projection that said
+# "~96 records is ~60 KB" counted cells; a plate deposit gives every cell its own sample AND its own
+# experiment AND its own run, so 96 cells are 1 + 96 + 96 + 96 = 289 records at ~1 KB each. Nothing
+# is pruned: 96 experiment records carrying the SAME 240-character LIBRARY_CONSTRUCTION_PROTOCOL is
+# exactly the near-identical-record shape harvest's collapse exists for, and this is the only real
+# instance of it anywhere in either tier.
+#
+# No `hypothesis:`. SMART-seq3 is reachable from the R1 bytes (the 11 bp TSO tag at read start), and
+# handing the resolver the chemistry in prose would defeat the one thing this case exists to test.
+# Every experiment record does declare it — LIBRARY_CONSTRUCTION_PROTOCOL says "FACS sorted nasal
+# Prox1+ cells were processed by Smart-Seq3 protocol" — so the metadata rung is available as a
+# fallback the case deliberately does not spend.
+#
+# Rebuild with (~51 min wall, ~0.8 GB streamed, nothing kept on disk):
+#   ./build-package.sh <dir>
+# BUDGET FOR THE STALLS RATHER THAN FOR THE AVERAGE. A single cell costs ~10 s (measured twice), so
+# 96 should be ~16 min; the real build took ~51 min because two runs stalled for several minutes each
+# with the remote read making no progress, and `_stream_run`'s own retry-with-backoff is what carried
+# them. There is no resume on this path — a killed build restarts at cell one.
+# Publish with: seqforge io publish-package <the .fingerprint.tar.gz>   (--dry-run first: the URL it
+# prints must match the `hf:` key below, because the build's content-addressed filename is not the
+# corpus key).
+generate:
+  kind: fingerprint
+  hf: packages/GSE207085-nasal-prox1-96cells.fingerprint.tar.gz
