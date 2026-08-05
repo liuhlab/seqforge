@@ -64,7 +64,11 @@ here that the model needs in order to name the node at all.
   or any set (length feasibility, recognition); nothing in the type system asks for you.
 - **An `Element` has exactly one coherent addressing mode** — a fixed `[start, end)` XOR an `anchor`
   (a floating element) XOR `min_len`/`max_len` — enforced by a model validator. `linker` and `fixed`
-  elements require a `sequence`, and an open `end: null` is allowed only for `cdna` and `gdna`.
+  elements require a `sequence`, and an open `end: null` is allowed only for `cdna` and `gdna`. An
+  element carrying **both** a `sequence` and a fixed window declares one width twice, so the two must
+  agree: `len(sequence) == end - start` or it is refused at load (#332). A floating linker declares a
+  literal and no window on purpose — one width, nothing to contradict — so the rule is conditioned on
+  all three fields being present.
 - **The `signature` tests are a closed set, identical to the scorer's evaluators**
   ([`resolve.md`](resolve.md)). `requires` are hard AND-gates and may not use a distinct ratio, which
   is depth-dependent; `supports` are additive positive evidence, and this is where an onlist test and
@@ -376,8 +380,11 @@ generated reads and compared base for base against what the spec says, over a fi
 over a recovered anchor frame alike, which is what closes SPLiT-seq and both BD Rhapsody Enhanced
 entries with one check. What can genuinely fail is the two derivations of *where* the sequence goes
 disagreeing — the generator concatenates elements in order, the check cuts the declared coordinates,
-and nothing validates that a `sequence`'s length matches its own window, so a typo'd linker shifts
-everything after it and lands here. On the anchored path the claim is weaker by construction (the
+so a window at odds with its literal's place in that chain shifts everything after it and lands here.
+One route no longer arrives: `len(sequence) != end - start` is refused at **load** by
+`Element._addressable` (#332). It used to surface here as a mystery on some *later* element, and only
+on an entry carrying a fixture to run the round-trip against at all — a width is a precondition of
+addressing the element, whereas a position is what this check is for. On the anchored path the claim is weaker by construction (the
 frame is found *by* matching the linker), which is why the demonstration that the check can fail picks
 a fixed-coordinate element.
 

@@ -107,6 +107,13 @@ demotion to ranking alone.
 - **The benchmark tier could not have caught any of them.** Its grade digest is byte-identical across
   this change (#231, `247a9354…`), because no shipped case carries these strings. A green corpus is
   not evidence that a matcher change is inert, and the sweep is what stands in for that.
+  **That hex is #231's dated baseline and no longer reproduces** (#332): `questions_asked` became a
+  dict where the 2026-07 baseline hashed a scalar, so the report's *shape* moved under the constant
+  while every grade it was protecting stayed put. What this bullet claims is a before/after
+  **equality** taken on one tree, and that equality held — only the constant is dead, so this is an
+  annotation and not a retraction. It is deliberately **not** replaced with a live hex:
+  `src/seqforge/evals/digest.py` (#287) is the authority, and its own rule is to re-take the number
+  on the tree you are about to change, which a value pasted into a closed record can never be.
 - `KB_VERSION` and `RESOLVE_VERSION` both re-key, so every dataset takes a new `run_id`. The stale
   direction is the dangerous one: a cached `bulk-rnaseq` at exit 0 is a confident wrong answer.
 - `EXTRACT_PROMPT_VERSION` moves too — the KB block the model reads lists only naming aliases now, so
