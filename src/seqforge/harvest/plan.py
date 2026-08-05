@@ -34,6 +34,11 @@ prefix and the ~1.3 KB ask are byte-identical per request, so three archive reco
 characters cost ~9.4 K input tokens as three requests, >95 % of it prompt, paid three times over three
 round trips (#190). :func:`batch_documents` is where that stops, and it is the only thing here that
 decides how many requests a plan is.
+
+**How many share one is a function of that same ask.** A request's width is an output budget divided
+by what the ask can cost (:func:`batch_width`), so the two-field question travels wide and the
+nine-attribute one does not. It used to be one number for both, and the narrow ask paid the wide
+ask's price on every dataset since batching landed.
 """
 
 from __future__ import annotations
@@ -48,7 +53,13 @@ from typing import TYPE_CHECKING
 
 from ..models.assertion import ExtractionPlanReport, PlannedDocument
 from ..models.records import ArchiveRecord, ArchiveRecordSet
-from .extract import ExtractionOutcome, ExtractUnavailable, extract_batch, extract_drafts
+from .extract import (
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    ExtractionOutcome,
+    ExtractUnavailable,
+    extract_batch,
+    extract_drafts,
+)
 from .fields import DocScope, fields_for
 from .meter import CHARS_PER_TOKEN
 from .normalize import (
@@ -89,15 +100,93 @@ _SLOTS = threading.Semaphore(MAX_IN_FLIGHT)
 #: the text a quote is greppable against, which is the one thing this pipeline may not do.
 MAX_BATCH_CHARS = 24_000
 
-#: The most documents one request may carry, however little they weigh. The character budget alone
-#: does not bound this — a plan of one-line run aliases is exactly the case batching exists for, and
-#: 24 K characters of them is hundreds of documents in one request.
+#: The output tokens one request may spend, reasoning included — the budget every width here is
+#: divided out of. What it is *not* is a provider ceiling, and that distinction is the whole reason
+#: the number is allowed to be round.
 #:
-#: Two reasons for a second, tighter cap. The response half is bounded by ``max_tokens`` per REQUEST
-#: and not per document, and a one-line alias can still support nine sample-attribute claims, so what
-#: bounds the output is the document count rather than the input size. And a batch-level failure
-#: costs a re-ask of every member: eight is a round trip lost, several hundred is a wave.
-MAX_BATCH_DOCUMENTS = 8
+#: **Measured, not read off a docs page.** Both V4 models were probed with a deliberate over-ask — a
+#: ``drafts`` array of 600 objects, ~37 K output tokens, more than the budget can hold — so that what
+#: stopped generation was the cap rather than the model deciding it was done. Both honoured
+#: ``max_tokens`` to the token: ``finish_reason: length``, ``completion_tokens: 32000``, and none of
+#: the silent clamp at 8192 or 16384 that would have made every width below a fiction. Both publish a
+#: 384 K maximum output, so this sits ~12x under what the provider would allow.
+#:
+#: **It is priced below that maximum on purpose, and the reason is blast radius rather than the
+#: ceiling being where it is.** A batch-level failure costs a re-ask of every member — the second
+#: reason this module ever gave for a count cap, and the one that SURVIVES width becoming a function
+#: of the ask, because the ``max_tokens`` reason does not. Held here, a dropped request re-asks at
+#: most one budget's worth of drafts *whatever* the ask was, which is the honest unit: a count cap
+#: was only ever a proxy for this, and a proxy calibrated against one ask. A 32 K-output request is
+#: also a long request — 158 s and 247 s on the two successful measured calls, with a third attempt
+#: dying at 181 s on a transient connection error the shipped retry covers — so widening this
+#: multiplies both the wall clock and what one drop costs, for drafts that are almost never emitted.
+#:
+#: **And a second, independent reason to keep it well under the ceiling: it is what the Ceiling
+#: overshoots by.** :class:`~seqforge.harvest.meter.TokenMeter` reserves the INPUT half of a request
+#: and declines to reserve ``max_tokens`` outright, on the stated grounds that "the cap is several
+#: times a real extraction's output" and reserving it would refuse runs that would have fitted. Its
+#: own docstring concedes the consequence: during the first wave, before any exchange has banked, the
+#: unreserved remainder is the output of every request in flight. Raising the per-request cap from
+#: 8 000 to ~31 690 widens that window by ~4x. That trade is still the right one — but the multiple
+#: moved, so anyone tightening a Ceiling should read this number rather than the old literal.
+#:
+#: If a provider ever does refuse an output ceiling this size, the fallback is a count cap PER ASK
+#: WIDTH — 8 for the nine-field ask, 36 for the two-field one — rather than the single cap that used
+#: to be here. The measurement says it is not needed.
+BATCH_OUTPUT_BUDGET = 32_000
+
+#: Reserved off the top of :data:`BATCH_OUTPUT_BUDGET` before any draft is budgeted for. Reasoning
+#: tokens bill against the same ``max_tokens``, so a budget that assumed the whole ceiling reached the
+#: drafts would be spending tokens the model had already taken.
+#:
+#: **Fixed, not a proportion, because the overhead is closer to constant than proportional** —
+#: measured at 589 of 32 000 on a wide ask (1.8 %) and 70 of 114 on a trivial one (61 %). A
+#: proportional reserve is negligible exactly where reasoning is negligible and negligible exactly
+#: where it dominates, which leaves the *narrowest* asks — the ones deriving width from the ask
+#: exists to un-throttle — the place the estimate is worst. That is backwards, and it is the failure
+#: this constant exists to prevent.
+#:
+#: 1 000 rather than the 589 that was measured, because two calls are not a distribution. Being wrong
+#: in the other direction costs a truncated response, which is a re-ask of the whole batch.
+#:
+#: **Calibrated on the one provider that was measured, and it is not a bound on every provider.**
+#: On DeepSeek V4 there is nothing to bound: how much a V4 reasons is baked into ``-flash`` versus
+#: ``-pro`` and the API takes no toggle. But :class:`~seqforge.harvest.providers.AnthropicProvider`
+#: sends ``thinking={"type": "adaptive"}``, which is a toggle, and adaptive thinking bills against
+#: this same ``max_tokens`` with no bound we set — so a reasoning-heavy turn there can spend past this
+#: reserve. ADR-0009 makes the provider pluggable, so state the limit rather than imply generality.
+#: What it costs when it happens is a truncated response, which is a batch-level failure
+#: :func:`extract_planned` already re-asks one document at a time without losing a claim.
+REASONING_HEADROOM_TOKENS = 1_000
+
+#: What one draft costs to serialise, in output tokens — the rate a width is metered at.
+#:
+#: **The measured rate, carried unrounded, and that is the whole discipline here.** One draft under
+#: the strict schema is 251 characters — 64 of them the echoed ``doc_sha256`` — which is ~62 tokens at
+#: the meter's rule of thumb (:data:`CHARS_PER_TOKEN`). The same 62 is what makes the two numbers this
+#: change exists to reconcile: the nine-field ask costs 558 tokens per document and the two-field ask
+#: 124, so a fixed ``max_tokens`` of 8 000 had room for 14 of the former and **64** of the latter
+#: against a cap of 8.
+#:
+#: **Rounding it down to 60 is the one thing this must not do**, and it was tried. 60 recovers the
+#: width 57 that #233 decision 1 quotes — but decision 1 computed 57 as ``32000 / 558`` with **no
+#: reserve at all**, before #282 required one. So shaving the rate hands straight back the headroom
+#: :data:`REASONING_HEADROOM_TOKENS` had just taken, and the reserve becomes decorative. It is worse
+#: than decorative: at width 57 the worst case is ``57 x 558 = 31 806`` output tokens against the
+#: ``31 780`` such a request would ask for, so the batch overruns before reasoning has spent a token.
+#: A constant chosen to match a projection, against a derivation that projection predates.
+#:
+#: Carried at 62 the width falls out at 55, and the two constants divide the labour honestly: this one
+#: is the measurement, and the headroom absorbs the approximation. The cost is ~80 requests on the
+#: 1440-record deposit where the projection said ~78 — inside #282's "~78", and correct by derivation
+#: rather than by agreeing with a number computed under different assumptions.
+#:
+#: The rate still multiplies a WORST case — every asked field answered by every document — that the
+#: prompt's own instruction 5 ("an empty ``drafts`` list is a CORRECT and common answer") says is
+#: rare; and an overrun is a truncated response, which is a batch-level failure
+#: :func:`extract_planned` already re-asks one document at a time without losing a claim. Nothing here
+#: promises a draft fits in 62 tokens.
+PER_DRAFT_TOKENS = 62
 
 
 @dataclass(frozen=True)
@@ -237,6 +326,68 @@ def plan_extraction(
     )
 
 
+def batch_width(fields: Sequence[str]) -> int:
+    """The most documents one request may carry, given what that request will ask them.
+
+    ``(BATCH_OUTPUT_BUDGET - REASONING_HEADROOM_TOKENS) / (n_asked x PER_DRAFT_TOKENS)``, over the
+    ask itself — which is already :func:`batch_documents`' group key, so nothing new has to be
+    decided to know a batch's width.
+
+    **This was one number for every ask, and that is the defect.** A fixed cap of eight was
+    worst-case-tuned against the widest (nine-field) ask and then applied to the narrowest
+    (two-field), where the same fixed ``max_tokens`` had room for 64 — so every narrow-ask batch has
+    been throttled ~8x on every dataset since batching landed. The saving is not the argument.
+    ``8`` and ``8000`` were two constants that only made sense together and were never tuned against
+    each other; either alone was defensible and jointly they left the narrow ask throttled forever.
+    Deriving one from the other is what stops that recurring.
+
+    Rejected: **raise the cap from 8 to 14**, which is worst-case-exact against a fixed 8 000 output
+    ceiling and arithmetically correct. It leaves the two-field ask 4.5x under-batched, and it
+    re-creates precisely the coupling above — a second pair of numbers, hand-fitted to one ask, that
+    the next change to either would silently invalidate.
+
+    Two bounds this deliberately does not have. There is no absolute count cap beside it: the budget
+    bounds a dropped request's cost in OUTPUT TOKENS, uniformly across asks, which is what a count cap
+    was approximating (see :data:`BATCH_OUTPUT_BUDGET`). And there is no input term:
+    :data:`MAX_BATCH_CHARS` is the input bound and still binds first for anything long — the
+    experiment-scope ask comes out at 250 here and hits the character budget at ~55.
+
+    Never below one, and total on an empty ask. A ``project`` document is asked nothing and is never
+    planned (:func:`_worth_asking` drops it), but this is a public function over arbitrary documents
+    and a divisor of zero is not a width — an empty ask is charged as one field rather than special-
+    cased, because a request that can produce no draft is bounded by its characters alone anyway.
+    """
+    per_document = max(1, len(fields)) * PER_DRAFT_TOKENS
+    return max(1, (BATCH_OUTPUT_BUDGET - REASONING_HEADROOM_TOKENS) // per_document)
+
+
+def batch_max_tokens(fields: Sequence[str], n_documents: int) -> int:
+    """The output ceiling one request asks for: the reasoning headroom, plus what its drafts can cost.
+
+    The inverse of :func:`batch_width`, and it has to be — a width derived from a budget that the
+    request then never asked for would be a plan for a request nobody sends. So the same three
+    constants appear on both sides, and a full-width batch asks for very nearly the whole budget.
+
+    Bounded at both ends, and both ends are load-bearing:
+
+    - never above :data:`BATCH_OUTPUT_BUDGET`, which is what makes the budget a bound on a REQUEST
+      and not merely on a width. Unreachable from :func:`batch_documents`, whose widths are derived
+      from that budget; a caller batching by hand still cannot ask for more than one was priced at.
+    - never below :data:`~seqforge.harvest.extract.DEFAULT_MAX_OUTPUT_TOKENS`, the ceiling every
+      extraction has been made under until now. A width-one request already renders byte-identically
+      to a pre-batching one (:func:`~seqforge.harvest.extract._batch_user_content`), and the floor
+      extends that to the parameters: one document asks for exactly what it asked for before, so
+      nothing this change does can truncate a document that used to fit. That matters most on the
+      path with the least to gain — :func:`extract_planned`'s per-document fallback, which exists to
+      recover a batch that failed and would be no fallback at all if it could fail by truncation
+      where the batch did not.
+    """
+    drafts = n_documents * len(fields) * PER_DRAFT_TOKENS
+    return min(
+        BATCH_OUTPUT_BUDGET, max(DEFAULT_MAX_OUTPUT_TOKENS, REASONING_HEADROOM_TOKENS + drafts)
+    )
+
+
 def batch_documents(documents: Sequence[NormalizedDoc]) -> tuple[tuple[int, ...], ...]:
     """Plan-ordered document indices, grouped into the requests they will be sent as.
 
@@ -249,14 +400,19 @@ def batch_documents(documents: Sequence[NormalizedDoc]) -> tuple[tuple[int, ...]
     requests to ask one question. Safety is not what this decides — ``verify_drafts`` refuses an
     off-scope field whatever was asked.
 
-    Two caps bound a request (:data:`MAX_BATCH_CHARS`, :data:`MAX_BATCH_DOCUMENTS`), and a batch also
-    never holds one document's sha256 twice: the model routes its drafts by that sha, and two members
-    it cannot tell apart is a question with no answer. A document that alone exceeds the character
-    budget is its own request rather than being split.
+    Two caps bound a request and they bound different halves of it. :data:`MAX_BATCH_CHARS` bounds
+    the INPUT, and it still binds first for anything long. :func:`batch_width` bounds the OUTPUT, and
+    it is a function of that same group key — the ask decides both who may share a request and how
+    many may, which is the one thing that keeps the width from being a constant tuned against a
+    different ask than the one being sent. A batch also never holds one document's sha256 twice: the
+    model routes its drafts by that sha, and two members it cannot tell apart is a question with no
+    answer. A document that alone exceeds the character budget is its own request rather than being
+    split.
 
     Batches come back ordered by their first member and each is ascending, so a plan's requests are a
     deterministic function of the plan — the same documents produce the same requests on a laptop and
-    on a 48-core node.
+    on a 48-core node. Nothing here reads a core count, a clock or an environment:
+    :data:`MAX_IN_FLIGHT` sizes the POOL that carries these batches, never the batches themselves.
     """
     open_batches: dict[tuple[str, ...], list[int]] = {}
     open_chars: dict[tuple[str, ...], int] = {}
@@ -266,7 +422,7 @@ def batch_documents(documents: Sequence[NormalizedDoc]) -> tuple[tuple[int, ...]
         key = fields_for(doc.scope, doc.role)
         current = open_batches.get(key)
         if current is not None and (
-            len(current) >= MAX_BATCH_DOCUMENTS
+            len(current) >= batch_width(key)
             or open_chars[key] + len(doc.text) > MAX_BATCH_CHARS
             or any(documents[j].doc_sha256 == doc.doc_sha256 for j in current)
         ):
@@ -301,11 +457,18 @@ def extract_planned(
     processes would only add IPC. :data:`_SLOTS` is what the provider actually sees, because a caller
     may already be inside a pool of its own.
 
+    **Each request asks for the output ceiling its own batch was priced at**
+    (:func:`batch_max_tokens`), rather than the ceiling being pinned per call site. A width divided
+    out of a budget the sender then never asked for would leave every full batch truncating at a
+    number nobody chose. It is a pure function of the batch's ask and its width — both plan-time — so
+    the dry run and the paid run cannot disagree about it.
+
     **A batch-level failure falls back to per-document calls, immediately.** Unbatched, a failed
-    request costs one document; batched it could cost eight, which would make "half a batch is worse
-    than none" worse rather than better. So batching may never lose more documents than not batching
-    would have: worst case one extra round trip, best case most of the per-request prompt overhead
-    gone. Three properties make that a guarantee rather than a hope —
+    request costs one document; batched it could cost the whole batch — 55 of them at the
+    nine-attribute ask — which would make "half a batch is worse than none" worse rather than better.
+    So batching may never lose more documents than not batching would have: worst case one extra
+    round trip, best case most of the per-request prompt overhead gone. Three properties make that a
+    guarantee rather than a hope —
 
     - the fallback re-asks through a request shape that has never been batched (one document, and the
       echoed sha discarded), so it cannot fail for the reason the batch did;
@@ -332,11 +495,16 @@ def extract_planned(
     """
 
     def _alone(doc: NormalizedDoc) -> ExtractionOutcome:
-        """One document, one request — what an unbatched run does, and what a fallback retries as."""
+        """One document, one request — what an unbatched run does, and what a fallback retries as.
+
+        Priced at width one off this document's own ask, so the fallback is a coherent request rather
+        than one carrying whatever ceiling the batch it is recovering from happened to ask for.
+        """
+        max_tokens = batch_max_tokens(plan.asked(doc), 1)
         if not partial:
-            return extract_drafts(doc, specs, provider=provider, model=model)
+            return extract_drafts(doc, specs, provider=provider, model=model, max_tokens=max_tokens)
         try:
-            return extract_drafts(doc, specs, provider=provider, model=model)
+            return extract_drafts(doc, specs, provider=provider, model=model, max_tokens=max_tokens)
         except ExtractUnavailable as exc:
             return ExtractionOutcome.unanswered(
                 provider=provider.name,
@@ -350,7 +518,13 @@ def extract_planned(
             if len(docs) == 1:
                 return [_alone(docs[0])]
             try:
-                return extract_batch(docs, specs, provider=provider, model=model)
+                return extract_batch(
+                    docs,
+                    specs,
+                    provider=provider,
+                    model=model,
+                    max_tokens=batch_max_tokens(plan.asked(docs[0]), len(docs)),
+                )
             except ExtractUnavailable:
                 # The whole of the decision: this batch is unusable, so ask its documents one at a
                 # time. The failure itself is not reported — every document is about to be asked
@@ -455,12 +629,16 @@ def _deduplicated(documents: Sequence[NormalizedDoc]) -> list[NormalizedDoc]:
 
 
 __all__ = [
+    "BATCH_OUTPUT_BUDGET",
     "CHARS_PER_TOKEN",
     "MAX_BATCH_CHARS",
-    "MAX_BATCH_DOCUMENTS",
     "MAX_IN_FLIGHT",
+    "PER_DRAFT_TOKENS",
+    "REASONING_HEADROOM_TOKENS",
     "ExtractionPlan",
     "batch_documents",
+    "batch_max_tokens",
+    "batch_width",
     "extract_planned",
     "plan_extraction",
 ]
