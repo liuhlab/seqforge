@@ -113,6 +113,7 @@ _GENOME_API = {
     "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered
+    "get_gtf_path",  # io umi-count: the registered GTF, beside the database gffutils built from it
 }
 
 

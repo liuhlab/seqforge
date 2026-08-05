@@ -11790,6 +11790,7 @@ packages:
   - openpyxl>=3.1
   - anndata>=0.10
   - pysam>=0.22
+  - gffutils>=0.13
   - anthropic>=0.40
   - openai>=1.40
   requires_python: '>=3.12'
