@@ -272,9 +272,14 @@ files each, which a file-level mark cannot express at all:
 | `enormous-fastq` | the 128 MB-decompressed FASTQ | 3 tests in `test_probe.py` |
 | `kb-probes` | every KB spec's reads, probed | 3 in `test_kb.py` + 3 in `test_resolve.py` |
 | `src-trees` | `src/seqforge` parsed | 1 each in `test_repo_invariants.py`, `test_workflows.py`, `test_cli.py`, `test_probe.py` |
+| `composed-plate` | a 96-cell `smartseq3` plate, composed and dry-run | 4 in `test_compose.py` |
 
 In each of these the build dominates its readers outright — the `enormous-fastq` write costs tens of
 times what the three probes it enables do — which is what makes the trade obvious without a sweep.
+`composed-plate` is the same shape, measured (2026-08-04): the `snakemake -n -p` behind it is ~1.9s
+and the three plan-reading tests are ~0.02s each, so ungrouped the suite paid the spawn **three**
+times and grouped it pays it once. The fourth member is the small-N end-to-end, which skips wherever
+STAR is absent and therefore costs the group nothing in CI.
 
 `--durations=0 | grep setup` is how you check this landed: one setup line per fixture, not one per
 worker that happened to draw a consumer.
@@ -399,8 +404,8 @@ about the surfaces that consume them, where the reader cannot see the document y
   `tests/test_<the-issue-i-am-fixing>.py`.
 - Shared setup belongs in `tests/conftest.py`. It owns the one FASTQ writer, the synthetic onlist
   registry, the fake range server, the `snakemake` dry run, and the session-scoped immutable products:
-  the `10x-3p-gex-v3` / `bulk-rnaseq` / `splitseq` datasets, the per-spec `kb_probes` sweep, and the
-  `src_trees` AST parse.
+  the `10x-3p-gex-v3` / `bulk-rnaseq` / `splitseq` datasets, the per-spec `kb_probes` sweep, the
+  `src_trees` AST parse, and the composed-and-planned `composed_plate`.
 - **What may be shared is immutable products only.** A manifest, a registry, a directory nothing
   writes into. Never a workspace a test writes into: `seqforge/cache/` makes resume implicit (R5), so
   a shared workspace lets a later test collect a cached `Observation` and pass for the wrong reason.

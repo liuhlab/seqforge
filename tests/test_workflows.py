@@ -32,7 +32,15 @@ import pytest
 import yaml
 from scipy.sparse import csr_matrix
 
-from conftest import DryRun, SrcTrees, _build, _processing, _rule_blocks, _src_root
+from conftest import (
+    DryRun,
+    SrcTrees,
+    _build,
+    _processing,
+    _rule_blocks,
+    _src_root,
+    count_matrix,
+)
 from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
@@ -145,14 +153,10 @@ def _layer_names(adata: ad.AnnData) -> set[str]:
 def _counts(adata: ad.AnnData, layer: str | None = None) -> csr_matrix:
     """One count matrix, narrowed to what an ``.mtx`` round-tripped through anndata actually is.
 
-    ``X`` and ``layers[...]`` are declared as a union of array protocols — a dense array, a lazy
-    on-disk dataset, ``None`` — so a bare ``[i, j]`` on either reads through something that may not
-    be a matrix at all. Packaging writes sparse, so a dense or absent one is a regression this says
-    out loud rather than an index error three lines later.
+    The narrowing itself moved to ``conftest.count_matrix`` when the plate gate needed the same one;
+    this is the name the rest of this file already calls.
     """
-    matrix = adata.X if layer is None else adata.layers[layer]
-    assert isinstance(matrix, csr_matrix), f"expected a sparse count matrix, got {type(matrix)}"
-    return matrix
+    return count_matrix(adata, layer)
 
 
 GENES = ["ENSG01", "ENSG02", "ENSG03"]

@@ -10,7 +10,10 @@ The shared build helpers (``built_v3``, ``_build``, ``_processing`` …) live in
 
 from __future__ import annotations
 
+import random
 import re
+import shutil
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
@@ -18,17 +21,21 @@ import pytest
 import yaml
 
 from conftest import (
+    PLATE_CELL_COUNT,
     Built,
+    ComposedPlate,
     DryRun,
     SynthDataset,
     _build,
     _processing,
     _rule_blocks,
     _src_root,
+    count_matrix,
     declare_read_floor,
     one_run_each,
     plate_of,
     solo_block,
+    write_fastq_gz,
 )
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
@@ -40,7 +47,8 @@ from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ComposeResult
 from seqforge.pipeline import EXCLUSIONS_NAME
 from seqforge.resolve.confuse import canonical_backend
-from seqforge.workflows import get_module, keys_read_by, list_modules
+from seqforge.workflows import PLATE_H5AD, get_module, keys_read_by, list_modules
+from seqforge.workflows.umite.extract import TagGeometry
 
 
 def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
@@ -1049,6 +1057,547 @@ def test_a_plate_geometry_that_contradicts_the_observed_reads_is_refused(
     status, problems = params_gate(contradicted, processing, spec, config)  # type: ignore[arg-type]
     assert status == "fail"
     assert any("derived from the observed read layout" in p for p in problems), problems
+
+
+# ---- the plate gate: the shipped chemistry, planned, and then run at small N ---------------------
+#
+# Everything above drives a synthetic chemistry that names `map/star-umi`, because the module landed
+# before any entry could name it. These drive the SHIPPED `smartseq3` entry, which is a different
+# claim: that a plate deposit a user would actually resolve onto compiles, plans and runs.
+#
+# Three parts, and they share ONE `snakemake -n -p` (the `composed_plate` fixture):
+#
+#   wiring  -- the plan reaches every rule, including the shared load with its defensive removal,
+#              and 96 cells' wildcards all resolve.
+#   params  -- the extractor is handed the TAGGED mate, by role, and the geometry it is handed is
+#              the published one. This is the load-bearing part: the failure it catches is a rule
+#              wired to the plain mate, which finds no tag in any read, writes a uBAM with no `UB`
+#              anywhere, and finishes on an empty matrix at exit 0.
+#   e2e     -- eight cells, a tiny synthetic reference, and the composed pipeline's OWN rendered
+#              command lines executed against reads whose every count is known by construction.
+#
+# `--lint` is deliberately not part of the wiring half. It was in the shipped wiring gate and was
+# removed on measurement: it is red on every rule this repo ships, for a missing `log:` directive and
+# for "mixed rules and functions in same snakefile" -- style opinions, not wiring facts. Adding it
+# back here would make this gate red for a correct pipeline, which is how a gate comes to be ignored.
+#
+# THE STRAND-SENSITIVITY CLAUSE HAS NO ANALOGUE HERE, AND ITS ABSENCE IS RECORDED RATHER THAN LEFT
+# TO BE NOTICED. Every other end-to-end gate in this repo asserts that inverting the counter's strand
+# setting moves the answer, which is what proves the shipped setting was a decision rather than a
+# default nobody looked at. This counter is UNSTRANDED and has no knob: it builds its feature index
+# unstranded for tagged and internal reads alike, the chemistry's backend params are empty, and the
+# published reference configuration for this assay is unstranded too. There is no value to invert, so
+# there is no experiment to run -- and a gate that quietly carried one clause fewer than its
+# siblings would read as an oversight rather than as the finding it is.
+
+
+def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
+    """``(sample_id, read_id) -> path``, straight off the emitted units table.
+
+    The read ids come from the composer's own grouping rather than from a filename convention this
+    file re-invents: which file is the tagged one is a claim the composer makes, and a test that
+    guessed it from the name could not catch the composer getting it wrong.
+    """
+    import csv
+
+    with (pipeline_dir / "units.tsv").open(newline="") as fh:
+        return {
+            (row["sample_id"], row["read_id"]): row["path"]
+            for row in csv.DictReader(fh, delimiter="\t")
+        }
+
+
+def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
+    """``rule -> wildcard value -> the shell command snakemake rendered for it``.
+
+    `-p` is what makes this readable at all: without it a dry run never formats a `shell:` block, so
+    a param the command dereferences and the config does not carry plans clean and dies on a compute
+    node. A rule with no wildcards is keyed under the empty string.
+    """
+    jobs: dict[str, dict[str, str]] = {}
+    rule = wildcard = None
+    lines = plan_text.splitlines()
+    for i, line in enumerate(lines):
+        if match := re.match(r"^rule (\w+):$", line):
+            rule, wildcard = match.group(1), ""
+        elif match := re.match(r"^\s+wildcards: sample=(\S+)$", line):
+            wildcard = match.group(1)
+        elif line.rstrip() == "Shell command:" and rule is not None:
+            body: list[str] = []
+            for following in lines[i + 1 :]:
+                if not following.strip():
+                    break
+                body.append(following)
+            jobs.setdefault(rule, {})[wildcard or ""] = "\n".join(body)
+    return jobs
+
+
+@pytest.mark.xdist_group("composed-plate")
+def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
+    composed_plate: ComposedPlate,
+) -> None:
+    """Part one: the plan a real plate deposit produces, at a cell count a plate actually has.
+
+    Four claims a dry run is the only thing that can make. That the plan REACHES every rule, so no
+    rule is unreachable from `rule all`. That the per-cell chain expands once per cell while the
+    fan-in stays ONE job — the ratio is this module's whole shape, and a per-cell counter followed
+    by a merge would read as 96 here. That every cell's deliverable is demanded by NAME, since a
+    rule whose output is a folder is satisfied by a folder, which is how a counting job that wrote
+    three cells of 1440 exits 0. And that the shared index is loaded once and attached 96 times,
+    which is the arithmetic the whole module exists for.
+    """
+    plan_text = composed_plate.plan_text
+    assert (composed_plate.pipeline_dir / "star-umi.smk").is_file(), (
+        "compose copied no plate module beside its wrapper"
+    )
+
+    for rule, jobs in (
+        ("genome_index", 1),
+        ("load_genome", 1),
+        ("umi_extract", PLATE_CELL_COUNT),
+        ("star_umi_map", PLATE_CELL_COUNT),
+        ("umi_to_cram", PLATE_CELL_COUNT),
+        ("umi_count", 1),
+    ):
+        assert re.search(rf"^{rule}\s+{jobs}\s*$", plan_text, re.M), (
+            f"the plan does not schedule `{rule}` exactly {jobs} time(s)"
+        )
+
+    # Every cell's wildcard resolves, not merely the first — an expansion that dropped cells would
+    # still plan a coherent DAG over the ones it kept.
+    outdir = composed_plate.config["outdir"]
+    assert f"{outdir}/{PLATE_H5AD}" in plan_text
+    missing = [c for c in composed_plate.cells if f"{outdir}/{c}/{c}.cram" not in plan_text]
+    assert not missing, f"{len(missing)} cells never reached a CRAM target: {missing[:5]}"
+
+    # The shared-index contract, rendered rather than merely written: the load marks any stale
+    # segment for destruction before loading, and every mapping job ATTACHES instead of loading.
+    rendered = _rendered_shell(plan_text)
+    load = rendered["load_genome"][""]
+    assert "--genomeLoad Remove" in load and "--genomeLoad LoadAndExit" in load
+    assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
+    maps = rendered["star_umi_map"]
+    assert len(maps) == PLATE_CELL_COUNT
+    assert all("--genomeLoad LoadAndKeep" in cmd for cmd in maps.values())
+
+    # ...and the release runs on BOTH paths. A dry run fires no handler and this suite owns no
+    # scheduler to kill a job on, so the two handlers are read off the module compose EMITTED —
+    # which is a different file from the one in `src/`, and the one this pipeline would actually run.
+    emitted = (composed_plate.pipeline_dir / "star-umi.smk").read_text()
+    for handler in ("onsuccess:", "onerror:"):
+        body = emitted.split(handler, 1)[1] if handler in emitted else ""
+        assert body, f"the emitted module carries no `{handler}` handler"
+        assert "--genomeLoad Remove" in body.split("\n\n", 1)[0]
+
+
+@pytest.mark.xdist_group("composed-plate")
+def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_plain_one(
+    composed_plate: ComposedPlate,
+) -> None:
+    """Part two, the half a dry run can see: which FILE the extractor is actually handed.
+
+    The config-level claim — that `read_files_in` is `{umi_cdna, cdna}` chosen by role and not by
+    the order the layout lists them — is already pinned against a synthetic chemistry above. What
+    this adds is the rest of the journey: role -> read id -> the units table -> the argument a
+    rendered command line carries, for every cell. Nothing between compose and the extractor may
+    quietly re-pair them, and the failure if something does is a full run at 0% UMI yield and exit 0.
+    """
+    geometry = TagGeometry.parse(str(composed_plate.config["umi"]["read_structure"]))  # type: ignore[index]
+    roles = composed_plate.config["read_files_in"]
+    assert isinstance(roles, dict)
+    assert roles["umi_cdna"] == geometry.read_id, (
+        "the read the extractor is pointed at and the read the geometry describes are not the same"
+    )
+
+    # The tagged read is the one the LAYOUT says carries a UMI, so "tagged" is read off the element
+    # model rather than off a read id that happens to be spelled R1.
+    layout = composed_plate.manifest.library.read_layout
+    tagged = [r.read_id for r in layout.reads if any(e.role == "UMI" for e in r.elements)]
+    assert tagged == [geometry.read_id], (
+        f"the layout's tagged read is {tagged}, not {geometry.read_id}"
+    )
+
+    units = _units_by_read(composed_plate.pipeline_dir)
+    extractions = _rendered_shell(composed_plate.plan_text)["umi_extract"]
+    assert len(extractions) == PLATE_CELL_COUNT
+    for cell, command in extractions.items():
+        argv = re.search(r"--r1 (\S+) --r2 (\S+)", command)
+        assert argv, f"the extractor's rendered command names no mates:\n{command}"
+        assert argv.group(1) == units[cell, roles["umi_cdna"]]
+        assert argv.group(2) == units[cell, roles["cdna"]]
+        assert f"--read-id {geometry.read_id}" in command
+        # ...and the plain mate is nowhere near `--r1`, which is the swap that exits 0.
+        assert argv.group(1) != units[cell, roles["cdna"]]
+
+
+@pytest.mark.xdist_group("composed-plate")
+def test_the_composed_plate_derives_the_offsets_the_protocol_published(
+    composed_plate: ComposedPlate,
+) -> None:
+    """Part two, the half that catches an offset off by one — and nothing else can.
+
+    The chemistry declares no geometry at all: its backend params are empty and every knob is
+    derived from the element coordinates, so there is no declared number for a KB review to read
+    and disagree with. That is what makes the emitted offsets worth asserting against the numbers
+    the assay's own authors published rather than against the elements they were derived from —
+    a test that re-derived them from the same coordinates could not fail.
+
+    The published configuration for this assay states, in ONE-BASED inclusive coordinates: the tag
+    `ATTGCGCAATG` at 1-11, the UMI at 12-19, and cDNA from 23. The three bases between are the `GGG`
+    the template-switch oligo ends on. Everything below converts what compose emitted into those
+    coordinates and compares.
+    """
+    spec = kb.load_spec("smartseq3")
+    assert spec.require_backend().params == {}, (
+        "a plate chemistry that declares a parse key has taken ownership of a derived one"
+    )
+    assert param_block_key(spec) == "umi"
+    assert param_owners(spec, composed_plate.processing) == {"read_structure": "derived"}
+
+    umi = composed_plate.config["umi"]
+    assert isinstance(umi, dict)
+    assert set(umi) == {"read_structure"}, "the whole extraction geometry is ONE key, or it is six"
+    geometry = TagGeometry.parse(str(umi["read_structure"]))
+
+    def one_based(offset: int) -> int:
+        """A 0-based half-open start, as the protocol's own inclusive coordinate."""
+        return geometry.anchor_start + offset + 1
+
+    assert geometry.anchor == "ATTGCGCAATG"
+    assert (one_based(0), one_based(len(geometry.anchor) - 1)) == (1, 11)
+    assert (
+        one_based(geometry.umi_offset),
+        one_based(geometry.umi_offset + geometry.umi_length - 1),
+    ) == (12, 19)
+    assert (
+        one_based(geometry.trailing_offset),
+        one_based(geometry.trailing_offset + len(geometry.trailing) - 1),
+    ) == (20, 22)
+    assert geometry.trailing == "GGG"
+    assert one_based(geometry.cdna_offset) == 23
+    # ...and the rendered value is what the rule actually hands over, not a value this test rebuilt.
+    assert f"--geometry {geometry.render()}" in composed_plate.plan_text
+
+
+# ---- part three: eight cells, a tiny reference, and the pipeline's OWN rendered commands ---------
+#
+# The synthetic annotation and BAM in `test_workflows.py` are the better proof of the counting RULE:
+# every fragment's fate is known by construction there, with no aligner in the way. What a hand-made
+# BAM cannot catch is compose deriving a cDNA start of 23 where the protocol says 22, because a
+# hand-made BAM starts after the geometry has already been applied. This run starts before it — the
+# reads below are built from the PUBLISHED protocol and cut with the COMPOSED geometry, so the two
+# have to agree or the alignment lands one base off its injected position.
+#
+# No species: the reference is 24 kb of seeded random sequence with three genes written over it. A
+# real-genome slice would bake one assembly and one annotation into this repo for a claim that has
+# nothing to do with either.
+
+#: The tag the protocol publishes, spelled out here rather than read from the chemistry. This file's
+#: whole reason for building reads by hand is that a read built from the emitted geometry is
+#: self-consistent with a wrong emitted geometry.
+_SS3_TAG, _SS3_TRAILING, _SS3_UMI_LEN = "ATTGCGCAATG", "GGG", 8
+
+_E2E_CELLS = 8
+_E2E_CONTIG_LEN = 24_000
+_E2E_SEED = 295
+_E2E_FRAGMENT, _E2E_READ_LEN = 200, 50
+
+#: 1-based inclusive, as a GTF states them: one long exon each, far enough apart that no 200 bp
+#: fragment placed inside one can reach another. Ambiguity has its own coverage against the
+#: synthetic BAM; mixing it in here would make the loss clause unreadable.
+_E2E_GENES = (("GENE_A", 2001, 3500), ("GENE_B", 8001, 9500), ("GENE_C", 14001, 15500))
+
+#: A 400 bp block of GENE_A's exon, copied verbatim to a stretch no gene covers (0-based, half-open
+#: for the source). A fragment falling entirely inside it aligns to two loci, so the ALIGNER tags it
+#: `NH:i:2` — which is the only way to obtain a real multimapper rather than to assert one into a
+#: BAM this file wrote.
+_E2E_DUP_SRC, _E2E_DUP_DST = (2400, 2800), 20_000
+
+#: Where each cell's fragments start, 0-based. Everything under `_E2E_UNIQUE` is a distinct UMI in
+#: one gene's exon and clear of the duplicated block.
+_E2E_UNIQUE: dict[str, tuple[int, ...]] = {
+    "GENE_A": (2900, 2950, 3000, 3050, 3100, 3150),
+    "GENE_B": (8100, 8200, 8300, 8400, 8500),
+    "GENE_C": (14100, 14200, 14300, 14400),
+}
+#: Inside the duplicated block, so both mates land there and the aligner reports two loci.
+_E2E_MULTIMAPPER_STARTS = (2450, 2500)
+#: No tag at all — the untagged population is 32-68% of a real library of this chemistry. They must
+#: reach the READ matrices and leave the UMI matrix alone.
+_E2E_UNTAGGED_STARTS = (9000, 9100)
+#: One more GENE_A fragment carrying a UMI already used, so the count is distinct UMIs and not reads.
+_E2E_REPEATED_UMI_START = 3200
+
+#: What the cells above must come to, per cell, in the primary (exonic UMI) matrix.
+_E2E_TRUTH_PER_CELL = {gene: len(starts) for gene, starts in _E2E_UNIQUE.items()}
+
+
+def _e2e_umis(n: int) -> list[str]:
+    """``n`` UMIs pairwise further apart than the corrector's Hamming-1 merge can reach.
+
+    Random 8-mers would occasionally land one error apart, and the corrector would then absorb the
+    rarer of the two into the commoner — a real and correct behaviour that would show up here as an
+    unexplained loss and indict the pipeline for the fixture's carelessness.
+    """
+    rng = random.Random(_E2E_SEED)
+    pool: list[str] = []
+    while len(pool) < n:
+        umi = "".join(rng.choice("ACGT") for _ in range(_SS3_UMI_LEN))
+        if all(sum(a != b for a, b in zip(umi, other, strict=True)) > 2 for other in pool):
+            pool.append(umi)
+    return pool
+
+
+def _e2e_contig() -> str:
+    """24 kb of seeded random sequence, with one 400 bp block appearing twice."""
+    rng = random.Random(_E2E_SEED)
+    bases = [rng.choice("ACGT") for _ in range(_E2E_CONTIG_LEN)]
+    bases[_E2E_DUP_DST : _E2E_DUP_DST + (_E2E_DUP_SRC[1] - _E2E_DUP_SRC[0])] = bases[
+        _E2E_DUP_SRC[0] : _E2E_DUP_SRC[1]
+    ]
+    return "".join(bases)
+
+
+def _revcomp(seq: str) -> str:
+    """The reverse complement, so the second mate maps in the orientation a pair maps in."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
+def _e2e_pair(contig: str, start: int, umi: str | None) -> tuple[str, str]:
+    """One fragment as the two reads a sequencer would have written for it.
+
+    The tagged read is assembled from the PROTOCOL's own pieces — tag, UMI, trailing motif, cDNA —
+    and never from the geometry under test, which is what leaves the composed offsets somewhere to
+    be wrong.
+    """
+    cdna = contig[start : start + _E2E_READ_LEN]
+    mate = _revcomp(contig[start + _E2E_FRAGMENT - _E2E_READ_LEN : start + _E2E_FRAGMENT])
+    if umi is None:
+        return cdna, mate
+    return _SS3_TAG + umi + _SS3_TRAILING + cdna, mate
+
+
+def _e2e_cell(contig: str) -> tuple[list[str], list[str], list[int]]:
+    """One cell's two FASTQ read lists, and the reference positions its tagged reads were cut to."""
+    umis = _e2e_umis(sum(len(s) for s in _E2E_UNIQUE.values()) + len(_E2E_MULTIMAPPER_STARTS))
+    placed: list[tuple[int, str | None]] = []
+    for starts in _E2E_UNIQUE.values():
+        placed += [(start, umis.pop()) for start in starts]
+    first_gene_umi = placed[0][1]
+    placed.append((_E2E_REPEATED_UMI_START, first_gene_umi))
+    placed += [(start, umis.pop()) for start in _E2E_MULTIMAPPER_STARTS]
+    placed += [(start, None) for start in _E2E_UNTAGGED_STARTS]
+
+    r1, r2 = [], []
+    for start, umi in placed:
+        tagged, mate = _e2e_pair(contig, start, umi)
+        r1.append(tagged)
+        r2.append(mate)
+    return r1, r2, [start for start, umi in placed if umi is not None]
+
+
+def _e2e_annotation(directory: Path) -> Path:
+    """The three-gene GTF, built into the database liulab-genome would have built from it.
+
+    The flags mirror the registrar's — inference disabled because a real annotation declares its own
+    `gene` rows — so what the counter opens here is the same kind of object it opens on a cluster.
+    """
+    import gffutils
+
+    lines = []
+    for gene, start, end in _E2E_GENES:
+        lines.append(
+            f'chr1\tsynthetic\tgene\t{start}\t{end}\t.\t+\t.\tgene_id "{gene}"; gene_name "{gene.lower()}";'
+        )
+        lines.append(
+            f'chr1\tsynthetic\texon\t{start}\t{end}\t.\t+\t.\tgene_id "{gene}"; transcript_id "{gene}.1";'
+        )
+    gtf = directory / "synthetic.gtf"
+    gtf.write_text("\n".join(lines) + "\n")
+    db = directory / "synthetic.db"
+    built = gffutils.create_db(
+        str(gtf),
+        str(db),
+        keep_order=True,
+        merge_strategy="create_unique",
+        sort_attribute_values=True,
+        disable_infer_genes=True,
+        disable_infer_transcripts=True,
+    )
+    built.conn.close()
+    return db
+
+
+def _e2e_shell(command: str, work: Path) -> None:
+    """Run one of the pipeline's OWN rendered shell blocks, in ``work``, and refuse on a failure.
+
+    `shell=True` deliberately: what is being executed is a `shell:` block, line continuations,
+    comments, `|| true` and all, exactly as snakemake would hand it to `/bin/bash`. Re-tokenising it
+    into an argv would be this file writing a second command line, which is the one thing an
+    end-to-end gate over a composed pipeline must not do.
+    """
+    proc = subprocess.run(  # noqa: S602
+        command, shell=True, cwd=work, capture_output=True, text=True, executable="/bin/bash"
+    )
+    assert proc.returncode == 0, (
+        f"{command}\n--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
+    )
+
+
+@pytest.mark.external
+@pytest.mark.xdist_group("composed-plate")
+def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts(
+    composed_plate: ComposedPlate, tmp_path: Path
+) -> None:
+    """Eight cells, start to finish, through the command lines compose actually emitted.
+
+    Five clauses, and each is here because something specific would otherwise be silent:
+
+    * **no spurious pair** — a count in a cell/gene nothing was injected into is fabrication, and
+      fabrication is the failure a corpus cannot recover from.
+    * **no inflated count** — the untagged reads and the multimappers are both built to be excluded,
+      so either leaking into the primary matrix shows up here and nowhere else.
+    * **unexplained loss at most 2%** — a pipeline that drops reads quietly is a pipeline whose
+      matrices are plausible and small.
+    * **determinism** — count the same plate twice and the bytes must be identical. It earns its
+      place for a sharp reason: the engine this counter was ported from resolved a read with several
+      primary alignments by an unseeded random choice, and that default was found live in it.
+    * **multimappers reported, not inferred** — the mapping rule writes ONE alignment per read, so a
+      counter that inferred multimapping from how many records a read produced would report zero of
+      them and fold every one into a gene. This counter reads `NH`, and the clause below turns that
+      claim into a measurement by checking the aligner's own tag against what the object reports.
+
+    The uBAM assertions are the part that owns the derived geometry, and they are the reason this
+    run starts from FASTQ rather than from a BAM somebody wrote. The reads are assembled from the
+    published protocol and cut with the composed offsets, so a cDNA start one base off its published
+    value leaves the uBAM carrying 49 genomic bases beginning one base late — which is checked here
+    against the contig those bases were taken from, before an aligner has had a chance to absorb it
+    into a soft clip and finish at exit 0. A hand-made BAM begins after that cut has happened.
+    """
+    import anndata as ad
+    import pysam
+
+    from seqforge.workflows.umite.count import PRIMARY_MATRIX, write_umi_counts
+
+    star, samtools = shutil.which("STAR"), shutil.which("samtools")
+    if star is None or samtools is None:
+        pytest.skip("needs STAR and samtools on PATH (liulab-runtime's align-rna env)")
+
+    rendered = _rendered_shell(composed_plate.plan_text)
+    cells = sorted(rendered["star_umi_map"])[:_E2E_CELLS]
+    units = _units_by_read(composed_plate.pipeline_dir)
+    roles = composed_plate.config["read_files_in"]
+    assert isinstance(roles, dict)
+
+    work = tmp_path / "run"
+    work.mkdir()
+    contig = _e2e_contig()
+    (work / "genome.fa").write_text(f">chr1\n{contig}\n")
+    index = Path(str(composed_plate.config["outdir"])) / "index"
+    (work / index).mkdir(parents=True)
+    genome_dir = re.search(r"--genomeDir (\S+)", rendered["load_genome"][""])
+    assert genome_dir, "the load rule renders no --genomeDir to build an index at"
+    subprocess.run(
+        [star, "--runMode", "genomeGenerate", "--genomeDir", genome_dir.group(1),
+         "--genomeFastaFiles", "genome.fa", "--genomeSAindexNbases", "6",
+         "--outFileNamePrefix", str(work / "gg_")],
+        check=True, capture_output=True, cwd=work,
+    )  # fmt: skip
+
+    truth: dict[tuple[str, str], int] = {}
+    injected_starts: dict[str, list[int]] = {}
+    for cell in cells:
+        r1, r2, starts = _e2e_cell(contig)
+        write_fastq_gz(work / units[cell, roles["umi_cdna"]], r1, prefix=f"{cell}:read")
+        write_fastq_gz(work / units[cell, roles["cdna"]], r2, prefix=f"{cell}:read")
+        injected_starts[cell] = starts
+        for gene, count in _E2E_TRUTH_PER_CELL.items():
+            truth[cell, gene] = count
+
+    try:
+        _e2e_shell(rendered["load_genome"][""], work)
+        for cell in cells:
+            _e2e_shell(rendered["umi_extract"][cell], work)
+            # The uBAM is where the derived geometry becomes bases. Every tagged read must carry the
+            # UMI that was injected into it and exactly the 50 genomic bases it was built from — one
+            # base of slack either way is a cDNA start that is not the published one.
+            ubam = work / re.search(r"--out (\S+)", rendered["umi_extract"][cell]).group(1)  # type: ignore[union-attr]
+            with pysam.AlignmentFile(str(ubam), "rb", check_sq=False) as unaligned:
+                tagged = [
+                    record
+                    for record in unaligned.fetch(until_eof=True)
+                    if record.is_read1 and record.has_tag("UB")
+                ]
+            assert len(tagged) == len(injected_starts[cell])
+            assert {str(r.query_sequence) for r in tagged} == {
+                contig[start : start + _E2E_READ_LEN] for start in injected_starts[cell]
+            }, "the extractor cut cDNA at an offset the protocol does not publish"
+            _e2e_shell(rendered["star_umi_map"][cell], work)
+    finally:
+        subprocess.run(
+            [star, "--genomeDir", genome_dir.group(1), "--genomeLoad", "Remove",
+             "--outFileNamePrefix", str(work / "unload_")],
+            capture_output=True, cwd=work,
+        )  # fmt: skip
+
+    bams = {
+        cell: work
+        / re.search(r"--outFileNamePrefix (\S+)", rendered["star_umi_map"][cell]).group(1)  # type: ignore[union-attr]
+        / "Aligned.sortedByCoord.out.bam"
+        for cell in cells
+    }
+    # The aligner's own answer, before the counter has read anything: with one alignment written per
+    # read, `NH` is the ONLY surviving evidence that a read had somewhere else to go.
+    multimapped: dict[str, int] = {}
+    for cell, bam in bams.items():
+        with pysam.AlignmentFile(str(bam), "rb") as aligned:
+            names = {
+                str(r.query_name) for r in aligned.fetch(until_eof=True) if int(r.get_tag("NH")) > 1
+            }
+        multimapped[cell] = len(names)
+    assert all(n == len(_E2E_MULTIMAPPER_STARTS) for n in multimapped.values()), multimapped
+    assert sum(multimapped.values()) > 0, (
+        "nothing in this plate aligned to two loci, so the multimapper clause measured nothing — "
+        "the duplicated block the fixture writes into the contig is what makes it a measurement"
+    )
+
+    db = _e2e_annotation(tmp_path)
+    plate = [(cell, bams[cell]) for cell in cells]
+    first = write_umi_counts(plate, db, tmp_path / "first.h5ad")
+    second = write_umi_counts(plate, db, tmp_path / "second.h5ad")
+    assert first.read_bytes() == second.read_bytes(), (
+        "counting the same plate twice moved the bytes"
+    )
+
+    adata = ad.read_h5ad(first)
+    matrix = count_matrix(adata).toarray()
+    observed = {
+        (str(cell), str(gene)): int(matrix[i, j])
+        for i, cell in enumerate(adata.obs_names)
+        for j, gene in enumerate(adata.var_names)
+        if matrix[i, j]
+    }
+    assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+
+    spurious = {key: n for key, n in observed.items() if key not in truth}
+    inflated = {key: (n, truth[key]) for key, n in observed.items() if n > truth.get(key, 0)}
+    recovered = sum(min(n, truth.get(key, 0)) for key, n in observed.items())
+    assert spurious == {}, (
+        f"counts appeared in cell/gene pairs nothing was injected into: {spurious}"
+    )
+    assert inflated == {}, f"counts exceeded what was injected (observed, injected): {inflated}"
+    loss = 1 - recovered / sum(truth.values())
+    assert loss <= 0.02, f"{loss:.1%} of injected UMIs never reached the matrix"
+
+    # The multimapper clause, closed: the aligner said `NH > 1` for two reads a cell, the object
+    # reports exactly those two, and none of them was folded into GENE_A's exon on the way.
+    assert dict(zip(adata.obs_names, adata.obs["multimapping"], strict=True)) == {
+        cell: multimapped[cell] for cell in cells
+    }
+    # ...and the untagged pairs landed in the READ matrix instead of inflating the UMI one.
+    reads = count_matrix(adata, "read_exon").toarray()
+    gene_b = adata.var_names.get_loc("GENE_B")
+    assert {int(reads[i, gene_b]) for i in range(len(cells))} == {len(_E2E_UNTAGGED_STARTS)}
 
 
 def test_two_processing_manifests_do_not_overwrite_each_other(
