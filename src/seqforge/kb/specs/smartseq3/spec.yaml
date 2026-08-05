@@ -58,6 +58,38 @@ reads:
     elements:
       - {type: cdna, name: cdna_r2, start: 0, end: null, seqspec_region_type: cdna}
 
+# The other two sequencing configurations this same protocol publishes. The peer-reviewed Methods name
+# all three verbatim -- "75-bp single end, 50-bp single end or 150-bp paired end" -- and this entry
+# expressed the third only, so two of the three refused at exit 3 (#257, #267). A SUBSET of the ids
+# above, never a re-declaration: R1's element coordinates are written ONCE, so the single-end and
+# paired-end configurations of one chemistry cannot drift apart and there is no second entry to keep in
+# sync (ADR-0029).
+#
+# R1 and not R2, and here that is structural rather than conventional. R1 is the TAGGED read -- it
+# carries `tso_tag` + `umi` + `tso_ggg` + `cdna_r1`, i.e. every element that says Smart-seq3 -- so it is
+# the read that survives alone and the one the extractor works entirely within (ADR-0033). R2 is plain
+# cDNA, indistinguishable from bulk (its support below is byte-identical to `bulk-rnaseq`'s own), so an
+# `se` set over R2 would declare a configuration this entry could not recognize.
+#
+# BOTH directions were measured before this set was declared, because a plate has NEITHER of the two
+# things that protect a barcoded leaf from the generic fallback: no onlist to hit, and on a one-file
+# deposit no orphan to charge. What they established (ADR-0033; figures, method and the three depths in
+# `docs/research/smartseq3-single-end-configuration.md`, 2026-08-05):
+#   PAIRED deposit -- the maximal set wins, by exactly the `λ/|R|` orphan penalty the one-role subset
+#     pays for the mate it declined to explain. Depth-invariant, because it is not evidence. So a
+#     paired deposit does not silently lose R2, and the winning score is the one this entry already
+#     had, which is why the bump re-keys `run_id` and regenerates no stored manifest.
+#   SINGLE-END deposit -- a NEAR-tie with `bulk-rnaseq`, whose exact margin is DEPTH-DEPENDENT (an
+#     exact tie on a truncated slice, +0.000999 on every read). Quote no margin here without its
+#     depth, and do NOT call the tie structural: only its being inside `_THETA` (0.02) survives both.
+# That tie band is the DESIGNED outcome, not a defect: it routes to the `confusable_with: bulk-rnaseq`
+# edge this file already declares `processing_divergent` / `distinguishable_by: [metadata]`, so it
+# becomes a Question at exit 4, which is recoverable. Do NOT reach for the signature to win it
+# outright -- #257 measured that every additional R1 support here is a strict liability (see
+# `supports` below).
+read_sets:
+  se: [R1]
+
 onlists: {}   # no whitelist exists: the cell barcode is the FILE (`identity.sample_is_cell`).
 
 signature:
@@ -77,9 +109,12 @@ signature:
     # PROTOCOL PARAMETER (#226: the peer-reviewed Fig 1c titles it "Effect of tagmentation conditions
     # on the fraction of UMI-containing reads"), 6.9-70.5% across five libraries. A majority gate would
     # refuse the authors' own reference data and split one plate across two chemistries at exit 0.
-    # NO read-count gate: how many reads a spec has is DECLARED by `reads` and never asserted by a
-    # test. 50/75 bp SINGLE-END SS3 is published and first-class, and it refuses here via the two-read
-    # LAYOUT rather than via a gate -- a pre-existing gap shared with `bulk-rnaseq`, tracked at #267.
+    # NO read-count gate: how many reads a spec has is DECLARED by `reads` and its subsets, never
+    # asserted by a test (`read_count` left the signature vocabulary in KB 2026.8.4). The published
+    # 50/75 bp SINGLE-END configuration is the `se` read set above, and this gate still reaches it
+    # because it addresses R1 -- a read in EVERY set. That is ADR-0029's universality rule, enforced at
+    # LOAD: a `requires` test a set cannot reach is inapplicable there, so it would silently stop
+    # gating for exactly the configuration this entry just gained.
     - {test: motif_present, read: R1, motif: "ATTGCGCAATG", where: read_start, max_mismatch: 2, min_rate: 0.02}
   supports:
     # ONE per read, and the weights are INERT: `_score_cell` normalizes within a read

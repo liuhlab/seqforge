@@ -12,9 +12,16 @@
 # samples, so a failed counting job re-runs only itself: every per-cell BAM is on disk.
 #
 # The read->role placement arrives via `config["read_files_in"]`, whose `umi_tagged` shape is
-# `{umi_cdna, cdna}` chosen by ROLE. Role and not order, and that is this module's sharpest edge: the
-# two mates are NOT symmetric — one opens with tag + UMI + motif — so handing the plain one to the
-# extractor tags nothing and finishes with an empty matrix at exit 0.
+# `umi_cdna` and — only where the protocol was sequenced paired — `cdna`, chosen by ROLE. Role and
+# not order, and that is this module's sharpest edge: the two reads are NOT symmetric — one opens
+# with tag + UMI + motif — so handing the plain one to the extractor tags nothing and finishes with
+# an empty matrix at exit 0.
+#
+# The mate is an ADDITION and never half of the operation (ADR-0033): the tag lives entirely within
+# the tagged read, and the mate only inherits the resulting `UB` onto a record emitted alongside.
+# Take it away and nothing about the extraction changes — only the uBAM's record count. So the
+# layout's ONE fact, whether it carries a mate, is where both branches below come from and the only
+# place it is stated: the rendered `--r2`, and the aligner's `SAM SE` / `SAM PE`.
 #
 # Every knob the extraction needs arrives as ONE derived value, `config["umi"]["read_structure"]`,
 # computed by compose from the element coordinates. This module's parse namespace is EMPTY: there is
@@ -79,22 +86,56 @@ def tagged_role():
 
 
 def mate_role():
-    """The plain cDNA mate's role, or a refusal naming what is missing.
+    """The plain cDNA mate's role, or `None` where this layout carries only the tagged read.
 
     Read with `.get`, not a subscript, and the difference is the whole mechanism: `keys_read_by`
     scans this source to decide what compose owes every dataset composed against this module, so a
-    subscript would oblige a single-end plate to emit a key its layout does not have. The layout
-    kind admits ONE read structurally so that a single-end plate needs a wider extractor rather than
-    a fifth kind -- and until that extractor exists, this rule says so out loud instead of rendering
-    `--r2` with nothing after it.
+    subscript would oblige a single-end plate to emit a key its layout does not have -- and the
+    params gate, which refuses a key no owner declares, would then refuse the very layout the
+    optional mate exists to serve. A change that widens what a module ACCEPTS must not widen what it
+    DEMANDS.
+
+    `None` is an answer and not a gap. It used to raise, on the reading that pairing is the
+    operation and one read a degenerate case of it; ADR-0033 calls that backwards -- the single-end
+    form is the base case and the mate the addition -- so there is no refusal left here to place.
+    The layout is also the only statement of the fact: a `paired:` key beside it would be the same
+    thing said twice, and owed by every plate.
     """
-    role = READ_FILES_IN.get("cdna")
-    if role is None:
-        raise ValueError(
-            "this layout carries only the tagged read. The extractor pairs two FASTQs positionally "
-            "and has no single-end form yet, so there is nothing to hand it as the mate."
-        )
-    return role
+    return READ_FILES_IN.get("cdna")
+
+
+def mate_fastqs(sample):
+    """This cell's mate FASTQs, or an EMPTY LIST where the layout has no mate.
+
+    A declared input of NO files rather than a missing one -- the line star.smk draws for its second
+    bulk mate, for the same reason: snakemake takes an empty list happily, while a name resolving to
+    nothing still claims a mate is there.
+
+    **This is the module's single statement of whether this cell has a mate, and BOTH branches read
+    it** -- the `--r2` the extractor is handed, and the `--readFilesType` the aligner is given. It is
+    per SAMPLE and not per dataset because that is the granularity a staged list has, and because the
+    one state that pulls the two apart is per sample: a `cdna` role declared for the layout that
+    stages no file for THIS cell. Rendering one branch off the role and the other off the files is
+    what would let the extractor write an unpaired uBAM and the aligner still be told `SAM PE`.
+    """
+    role = mate_role()
+    return [] if role is None else fastqs(sample, role)
+
+
+def read_files_type(sample):
+    """STAR's `--readFilesType`: `SAM PE` over interleaved pairs, `SAM SE` over one record a read.
+
+    Derived per SAMPLE from `mate_fastqs`, which is the SAME list the `--r2` argument is rendered
+    from, and that shared source is the whole point of the signature. Reading `mate_role()` here
+    instead looks equivalent and is not: a `cdna` role that stages no file for this cell renders no
+    `--r2`, so the extractor writes an unpaired uBAM while the aligner is still told `SAM PE`.
+    Measured against STAR 2.7.11b in the `align-rna` image (2026-08-05): `FATAL ERROR in input BAM
+    file: the consecutive lines in paired-end BAM have different read IDs`, **exit 104** -- a crash
+    rather than a wrong number, which is what makes this derivation load-bearing instead of a tidier
+    spelling of a literal. Two derivations of one fact is how a module comes to contradict itself for
+    exactly one dataset shape, and the shape here is the one this module was just widened to run.
+    """
+    return "SAM PE" if mate_fastqs(sample) else "SAM SE"
 
 
 rule all:
@@ -188,7 +229,7 @@ rule load_genome:
 
 
 rule umi_extract:
-    """Lift one cell's UMI out of the tagged mate and write the pair as a uBAM carrying `UB:Z:`.
+    """Lift one cell's UMI out of the tagged read and write the uBAM that carries it as `UB:Z:`.
 
     A `shell:` calling a seqforge verb rather than a `run:` block: `snakemake -n -p` renders every
     shell block while planning and cannot see inside a `run:`, so only a verb is visible to compose's
@@ -202,10 +243,15 @@ rule umi_extract:
     `--geometry` is one DERIVED value, and `--read-id` is the tagged role compose chose by role. The
     verb refuses if the two disagree, which turns a rule wired to the wrong mate into exit 3 instead
     of a uBAM with no UMI anywhere.
+
+    **`--r2` is RENDERED, not written**, because a `shell:` block is a static string and this is the
+    only place a branch can reach it. The verb's mate is nullable, so a layout without one passes no
+    such option at all rather than the option with nothing after it -- and the argument is built
+    from `input.mate`, so the list snakemake staged is the list the command names.
     """
     input:
         tagged=lambda wc: fastqs(wc.sample, tagged_role()),
-        mate=lambda wc: fastqs(wc.sample, mate_role()),
+        mate=lambda wc: mate_fastqs(wc.sample),
     output:
         # Consumed by exactly one rule (the mapping below), so snakemake deletes it the moment that
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
@@ -216,9 +262,11 @@ rule umi_extract:
         # and width, the motif that closes the tag, and where cDNA begins. Nothing declares it.
         structure=UMI["read_structure"],
         read_id=lambda wc: tagged_role(),
+        # The mate's whole contribution to the command line: `--r2 <path>`, or nothing whatever.
+        mate_arg=lambda wc, input: f"--r2 {input.mate}" if input.mate else "",
     shell:
         r"""
-        seqforge io umi-extract --r1 {input.tagged} --r2 {input.mate} \
+        seqforge io umi-extract --r1 {input.tagged} {params.mate_arg} \
              --geometry {params.structure} --read-id {params.read_id} \
              --sample {wildcards.sample} --out {output.ubam}
         """
@@ -230,12 +278,17 @@ rule star_umi_map:
     One cell per job. Batching cells into one STAR invocation was left off the table deliberately: it
     coarsens retry granularity, and no measurement demands it.
 
-    **The input is a uBAM, and the flags that read it are the format.** `--readFilesType SAM PE` with
-    `--readFilesCommand samtools view` is how STAR reads an alignment file as input, and
+    **The input is a uBAM, and the flags that read it are the format.** `--readFilesType SAM ...`
+    with `--readFilesCommand samtools view` is how STAR reads an alignment file as input, and
     `--readFilesSAMattrKeep All` pins a default the whole route depends on -- it is STAR's own
     default rather than an opt-in, and passing it says so rather than leaving the format resting on
     one unstated default. The `UB` tag then arrives in the output without ever being named in
     `--outSAMattributes`, which is the only way to get it there at all outside single-cell mode.
+
+    Its `PE`/`SE` half is the one part of that format DERIVED per dataset rather than a module
+    literal like the flags around it, and the uBAM is what it follows: two records a fragment or
+    one, exactly as the layout had a mate or did not. Unpaired records read as `SAM PE` crash, so
+    a stale literal here would be loud -- but only after the index loaded and the plate was queued.
 
     **ONE sort, and it is this one.** `--outSAMtype BAM SortedByCoordinate` serves both consumers:
     the CRAM converter and the counter each read this file. A second `samtools sort -n` to give the
@@ -272,6 +325,7 @@ rule star_umi_map:
         ),
     params:
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
+        read_files_type=lambda wc: read_files_type(wc.sample),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
@@ -283,7 +337,7 @@ rule star_umi_map:
         rm -rf {params.prefix}_STARtmp
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
              --genomeLoad LoadAndKeep \
-             --readFilesIn {input.ubam} --readFilesType SAM PE \
+             --readFilesIn {input.ubam} --readFilesType {params.read_files_type} \
              --readFilesCommand samtools view --readFilesSAMattrKeep All \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \

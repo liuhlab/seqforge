@@ -1020,13 +1020,26 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 _PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
 
 
-def _plate_run_dir(directory: Path, samples: Sequence[str]) -> dict[str, object]:
+def _plate_run_dir(
+    directory: Path, samples: Sequence[str], *, mate: bool | None = True
+) -> dict[str, object]:
     """Write a runnable plate pipeline directory by hand, and return the config it carries.
 
     Hand-written rather than composed, and the point is that it does not need a chemistry: a ``.smk``
     is configuration in, rules out, so its whole contract is the key set :func:`keys_read_by` scans
     off it. The caller asserts that this config covers exactly that set, which is what makes the plan
     below a proof about the module rather than about a fixture.
+
+    ``mate=False`` writes the OTHER sequencing configuration Smart-seq3's Methods publish — the
+    tagged read and nothing else (ADR-0033). One flag rather than a second copy of this function,
+    because the two directories differ in exactly the one fact the module branches on: whether the
+    layout places a ``cdna`` role, and therefore whether units.tsv carries an R2 row at all. Two
+    copies would be free to drift on the eight keys that are NOT the subject.
+
+    ``mate=None`` writes the INCOHERENT third state, which is neither configuration and is the only
+    one that can pull the module's two branches apart: the layout *declares* a ``cdna`` role while
+    units.tsv stages no file for it. It exists because the module used to render each branch from a
+    different fact, and this directory is what told the two apart.
     """
     module = get_module("map/star-umi")
     config: dict[str, object] = {
@@ -1034,14 +1047,16 @@ def _plate_run_dir(directory: Path, samples: Sequence[str]) -> dict[str, object]
         "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
         "mem_mb": 8 * 1024,
         "outdir": "results",
-        "read_files_in": {"umi_cdna": "R1", "cdna": "R2"},
+        "read_files_in": {"umi_cdna": "R1", "cdna": "R2"}
+        if mate is not False
+        else {"umi_cdna": "R1"},
         "threads": 4,
         "umi": {"read_structure": _PLATE_GEOMETRY},
         "units_tsv": "units.tsv",
     }
     rows = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
     for sample in samples:
-        for read_id in ("R1", "R2"):
+        for read_id in ("R1", "R2") if mate is True else ("R1",):
             path = f"fastq/{sample}_{read_id}.fastq.gz"
             (directory / "fastq").mkdir(parents=True, exist_ok=True)
             (directory / path).write_bytes(b"")
@@ -1102,6 +1117,99 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert "--genomeLoad LoadAndKeep" in plan
     # ...and the geometry the extractor is handed is the ONE derived value, not six numbers.
     assert f"--geometry {_PLATE_GEOMETRY}" in plan
+    # The paired half of what this layout decides, and its mirror is the test below. Both arguments
+    # are RENDERED from `read_files_in`, so the pair that says "paired" here has to be the pair that
+    # says "single" there — asserting only the single-end rendering would pass just as well against a
+    # module that had stopped emitting a mate at all.
+    assert re.search(r"--r1 \S+ --r2 \S+", plan), plan
+    assert "--readFilesType SAM PE" in plan
+
+
+def test_the_extractors_mate_and_the_aligners_read_type_come_from_one_fact(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """A `cdna` role declared but staging nothing renders NO `--r2` — so it must render `SAM SE` too.
+
+    The one state that can pull this module's two branches apart, and it is here because they were
+    briefly rendered from two different facts: `--r2` from the list snakemake staged, and
+    `--readFilesType` from whether the layout named a `cdna` role. Those agree on both sequencing
+    configurations the protocol publishes and disagree on exactly this one — a role declared for the
+    layout with no file behind it for this cell — where the extractor writes an unpaired uBAM while
+    the aligner is still told its input is paired.
+
+    **What made it worth a test is that it is SILENT.** `snakemake -n` planned that combination at
+    returncode 0, so compose's wiring gate passed it and the whole chain reported success; the
+    failure arrived later, in the user's hands, as STAR exit 104 — `FATAL ERROR in input BAM file:
+    the consecutive lines in paired-end BAM have different read IDs` (measured 2026-08-05 against the
+    `align-rna` image). That is precisely the shape ADR-0033 was written to delete, reappearing
+    inside the change that deleted it, which is why the guard is a test and not a comment.
+
+    Nothing composes this directory today — compose writes `read_files_in` and units.tsv together, so
+    the role and the rows cannot disagree. That is a guard by ABSENCE, and this tree's standing
+    judgement on those is that they are worth one test each.
+    """
+    _plate_run_dir(tmp_path, ["cell_a"], mate=None)
+    plan = dry_run(tmp_path)
+
+    assert not re.search(r"--r2\s+\S", plan), (
+        f"no file was staged, so nothing may follow `--r2`:\n{plan}"
+    )
+    assert "--readFilesType SAM SE" in plan, (
+        "the extractor was handed one FASTQ and wrote an unpaired uBAM, so the aligner must be told "
+        f"`SAM SE`; `SAM PE` over those records is STAR exit 104, not a wrong number:\n{plan}"
+    )
+    assert "SAM PE" not in plan, plan
+
+
+def test_the_plate_module_plans_a_single_end_run_and_hands_the_extractor_no_mate(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The same module, the same rules, over a layout that places only the tagged read.
+
+    This is the DAG the mate-role helper used to REFUSE to build. It raised rather than rendering
+    `--r2` with nothing after it, and a raise inside an input function lands as an
+    `InputFunctionException` at DAG construction — which the compose wiring gate turns into exit 3
+    with snakemake's reason discarded, and, on a machine with no snakemake at all, into a green
+    compose whose Snakefile dies wherever the user submits it. So the assertion has to be a PLAN and
+    not a rendered string read off the source: only building the DAG proves the refusal is gone.
+
+    Two renderings carry the layout, and both are derived from the single fact that
+    `read_files_in` places no `cdna` role (ADR-0033). The extractor is handed no `--r2`, because the
+    verb's mate is nullable and an option with nothing after it is a usage error; and the aligner is
+    handed `SAM SE`, because a `SAM PE` over a uBAM of unpaired records is a crash — the loud kind,
+    hours in, after the index has loaded and the plate has queued.
+
+    No `external` marker by hand: taking `dry_run` IS what marks this test, since the marker is
+    derived from the fixtures a test requests rather than written beside it.
+    """
+    module = get_module("map/star-umi")
+    config = _plate_run_dir(tmp_path, ["cell_a", "cell_b"], mate=False)
+
+    dotted = {
+        f"{key}.{sub}" if isinstance(value, dict) else key
+        for key, value in config.items()
+        for sub in (value if isinstance(value, dict) else [None])
+    }
+    # EXACT, with nothing subtracted, and that is the other half of the paired test's subtraction:
+    # this layout emits no `read_files_in.cdna` and the module demands none, so a subscript smuggled
+    # back into the mate helper would fail here rather than on a compute node.
+    assert set(module.required_config) == dotted
+
+    plan = dry_run(tmp_path)
+
+    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+        assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
+    # The shape does not follow the layout: still one extraction a cell and still ONE fan-in.
+    assert re.search(r"^umi_extract\s+2\s*$", plan, re.M), plan
+    assert re.search(r"^umi_count\s+1\s*$", plan, re.M), plan
+    # The tagged read is passed, and the mate contributes NOTHING to the command line — not an
+    # option, not an empty argument. `--r2` anywhere in the plan is the failure this test is for.
+    assert re.search(r"--r1 fastq/cell_a_R1\.fastq\.gz", plan), plan
+    assert "--r2" not in plan, plan
+    assert f"--geometry {_PLATE_GEOMETRY}" in plan
+    # ...and the aligner reads the uBAM as what the extractor actually wrote.
+    assert "--readFilesType SAM SE" in plan
+    assert "SAM PE" not in plan, plan
 
 
 def test_the_plate_modules_load_rule_cleans_up_on_both_paths() -> None:
@@ -3789,7 +3897,7 @@ def test_a_tagged_read_loses_exactly_the_structural_prefix_and_its_qualities_mov
     stats = extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
     read1, read2 = _records(tmp_path / "cell.bam")
 
-    assert (stats.pairs, stats.tagged, stats.untagged) == (1, 1, 0)
+    assert (stats.fragments, stats.tagged, stats.untagged) == (1, 1, 0)
     assert stats.offsets == {13: 1}
     assert read1.query_sequence == _CDNA
     qualities = read1.query_qualities
@@ -3921,6 +4029,145 @@ def test_a_truncated_input_is_refused_rather_than_extracted_up_to_the_cut(tmp_pa
 
     with pytest.raises(UmiExtractError, match="ends mid-record|not readable gzip"):
         extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+
+
+# ---- the same extraction with no mate beside it --------------------------------------------------
+#
+# The plate protocol publishes single-end sequencing configurations alongside the paired one, and the
+# tag operation is entirely WITHIN the tagged read: find the anchor, cut the UMI out, trim the span,
+# keep the rest. The mate contributes nothing to it and only inherits the resulting `UB` onto a
+# record emitted alongside. So these cases are not a reduced extractor -- they are the same one, with
+# the geometry parse, the anchor search, the bounded reader and both truncation verdicts shared
+# unchanged, branching only at the write.
+
+
+def test_a_single_end_plate_writes_one_unpaired_record_per_read(tmp_path: Path) -> None:
+    """One record per fragment, and not one of them flagged as half of a pair.
+
+    The flags are what make the uBAM self-describing, and the aligner reads them rather than being
+    told: a `SAM PE` invocation over records the writer marked PAIRED with no mate beside them is a
+    crash. So "unpaired" here has to be the ABSENCE of the paired bit -- flag `0x4` alone -- and not
+    a paired record whose partner was dropped, which is what a reduced pairing would have produced.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    reads = [(_tagged("ACGTACGT"), _CDNA), (_tagged("TTTTGGCC", offset=13), _CDNA), (_CDNA, _CDNA)]
+    r1, _ = _write_pair(tmp_path, reads)
+
+    stats = extract_umis(r1, None, tmp_path / "cell.bam", geometry, sample="cell")
+    records = _records(tmp_path / "cell.bam")
+
+    assert len(records) == len(reads)
+    assert not any(record.is_paired for record in records)
+    assert {record.flag for record in records} == {4}
+    # A fragment is one record here and two on a paired plate, which is why the count is not `pairs`.
+    assert (stats.fragments, stats.tagged, stats.untagged) == (3, 2, 1)
+    assert stats.offsets == {0: 1, 13: 1}
+    # The verb prints this object, so the rename is the only thing that may move in its key set.
+    assert set(stats.to_dict()) == {"sample", "fragments", "tagged", "untagged", "offsets"}
+
+
+def test_a_tagged_single_end_read_is_trimmed_from_its_anchor_and_carries_its_umi(
+    tmp_path: Path,
+) -> None:
+    """The trim is measured from where the anchor WAS found, mate or no mate.
+
+    The same claim the paired case makes, asserted again on the lone read because it is the whole
+    operation here: trimming a constant 22 would leave 13 bases of read-through and mosaic end on
+    the front of this read's cDNA, which aligns -- badly, and at exit 0. `UB` rides on the one
+    record, since there is no second record for it to be inherited by.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("ACGTACGT", offset=13)
+    r1 = tmp_path / "r1.fastq.gz"
+    _fastq(r1, [("@cell:0", seq, "+", _quals(seq))])
+
+    stats = extract_umis(r1, None, tmp_path / "cell.bam", geometry, sample="cell")
+    (record,) = _records(tmp_path / "cell.bam")
+
+    assert (stats.fragments, stats.tagged, stats.untagged) == (1, 1, 0)
+    assert stats.offsets == {13: 1}
+    assert record.query_sequence == _CDNA
+    qualities = record.query_qualities
+    assert qualities is not None, "a record whose sequence survived the trim without its qualities"
+    assert pysam.qualities_to_qualitystring(qualities) == _quals(seq)[13 + 22 :]
+    assert record.get_tag("UB") == "ACGTACGT"
+    assert record.get_tag("RG") == "cell"
+
+
+def test_an_untagged_single_end_read_keeps_every_base_and_still_names_its_cell(
+    tmp_path: Path,
+) -> None:
+    """Internal reads are a third to two thirds of a real library and are counted, not dropped.
+
+    `RG` is the half that must survive the mate's absence: on a plate the cell IS the file, so the
+    read group is the only thing on an untagged record that says which library it came from. A
+    record that lost it would be counted into the plate under no cell at all.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, _ = _write_pair(tmp_path, [(_CDNA, _CDNA)])
+
+    stats = extract_umis(r1, None, tmp_path / "cell.bam", geometry, sample="cell")
+    (record,) = _records(tmp_path / "cell.bam")
+
+    assert (stats.fragments, stats.tagged, stats.untagged) == (1, 0, 1)
+    assert record.query_sequence == _CDNA
+    assert not record.has_tag("UB")
+    assert record.get_tag("RG") == "cell"
+
+
+def test_the_mate_changes_nothing_about_what_is_extracted_from_the_tagged_read(
+    tmp_path: Path,
+) -> None:
+    """The same file, extracted with and without its mate, yields the same UMIs and the same bases.
+
+    This is the whole claim: the mate is an addition, not half of the operation, so taking it away
+    may move the record count out the other end and nothing else. The obvious reading -- that
+    single-end is a degenerate pairing -- wants a second code path that does less, and a second path
+    is exactly what would let these two answers drift apart while both still exit 0.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    reads = [(_tagged("ACGTACGT"), _CDNA), (_tagged("TTTTGGCC", offset=15), _CDNA), (_CDNA, _CDNA)]
+    r1, r2 = _write_pair(tmp_path, reads)
+
+    paired = extract_umis(r1, r2, tmp_path / "paired.bam", geometry, sample="cell")
+    alone = extract_umis(r1, None, tmp_path / "alone.bam", geometry, sample="cell")
+
+    def carried(records: list[pysam.AlignedSegment]) -> list[tuple[str | None, str | None]]:
+        return [
+            (record.query_sequence, str(record.get_tag("UB")) if record.has_tag("UB") else None)
+            for record in records
+        ]
+
+    tagged_half = [record for record in _records(tmp_path / "paired.bam") if record.is_read1]
+    assert carried(_records(tmp_path / "alone.bam")) == carried(tagged_half)
+    assert (alone.fragments, alone.tagged, alone.offsets) == (
+        paired.fragments,
+        paired.tagged,
+        paired.offsets,
+    )
+
+
+def test_a_single_end_input_is_gated_by_the_same_truncation_and_gzip_verdicts(
+    tmp_path: Path,
+) -> None:
+    """One bounded reader, one pair of verdicts, whether or not a mate is beside it.
+
+    A second code path for the lone read is a second place for the input gate to be forgotten, and
+    the forgetting is silent: a truncated upload extracts a cell that is quietly missing its tail,
+    and a file that is not gzip at all yields an empty BAM at exit 0. Both are asserted here so the
+    shared reader stays the one that decides.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, _ = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA)])
+    whole = r1.read_bytes()
+
+    r1.write_bytes(whole[: len(whole) - 12])
+    with pytest.raises(UmiExtractError, match="ends mid-record|not readable gzip"):
+        extract_umis(r1, None, tmp_path / "cut.bam", geometry, sample="cell")
+
+    r1.write_bytes(b"@cell:0\n" + _CDNA.encode() + b"\n+\n" + _quals(_CDNA).encode() + b"\n")
+    with pytest.raises(UmiExtractError, match="not readable gzip"):
+        extract_umis(r1, None, tmp_path / "plain.bam", geometry, sample="cell")
 
 
 @pytest.mark.xdist_group("src-trees")

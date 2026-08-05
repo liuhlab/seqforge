@@ -31,6 +31,25 @@ One sequencing read — a single record's sequence, as produced by the instrumen
 these.
 _Avoid_: using "read" for the act of reading bytes; say "a head" or "reading a head" instead
 
+**Tagged read**:
+A **Read** that opens with the protocol's tag — an anchor motif, a UMI, and a closing motif — and so
+carries the molecule's UMI. A *minority* population, and its fraction is a tunable protocol
+parameter rather than a constant (6.9–70.5% across the five libraries the plate chemistry's own
+authors published), so a majority gate over tagged reads refuses that chemistry's reference data.
+Whether a read is tagged is decided positionally, at offset 0: the same motif is abundant elsewhere
+in the same file and separates nothing.
+_Avoid_: UMI read; barcoded read — a barcode names a cell, a tag names a molecule; and never a
+layout id as a synonym (a spec may say the tag is *on* R1, but "R1" does not mean "tagged" — the two
+populations that share one file are both R1)
+
+**Internal read**:
+The complement of a **Tagged read** in the same file: a fragment from the interior of the molecule,
+carrying no tag and no UMI, trimmed of nothing, and byte-identical to bulk cDNA. A third to two
+thirds of a real library — counted, but never deduplicated by UMI, because it has none. **Internal**
+names where it came from, which is why it is the noun for the population; *untagged* is the per-read
+predicate a scan answers, and is what a count of them is called.
+_Avoid_: off-target, junk, discard — an internal read is data
+
 **Slice**:
 A head kept verbatim as records, so it can be written back out as a valid FASTQ. What a fingerprint
 package ships.

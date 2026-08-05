@@ -586,9 +586,10 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
                 "there is nothing for the extractor to lift out"
             )
         # The mate is optional, because the kind tolerates ONE read structurally — a single-end plate
-        # is a real published configuration and must not need a fifth layout kind to express. What it
-        # does need is an extractor that pairs one FASTQ, which is separate work; the module refuses
-        # loudly when the key is absent rather than this dispatch inventing a mate that is not there.
+        # is a real published configuration and must not need a fifth layout kind to express. The
+        # extractor now takes it as an ADDITION rather than as half of the operation (ADR-0033), so a
+        # placement carrying `umi_cdna` alone is one the module runs, not a promise it breaks at DAG
+        # time — and this dispatch still never invents a mate that is not there.
         mate = next(
             (
                 read
