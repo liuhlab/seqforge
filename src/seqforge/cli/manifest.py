@@ -26,7 +26,14 @@ from ..manifest import (
 )
 from ..models.assertion import Assertion
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
-from ..resolve import Cache, Hypothesis, chemistry_hypothesis, reduce_dataset, resolve_runs
+from ..resolve import (
+    Cache,
+    Hypothesis,
+    chemistry_hypothesis,
+    plate_chemistries,
+    reduce_dataset,
+    resolve_runs,
+)
 from ..workspace import legacy_state_dir, state_dir
 from ._common import _auto_cpus, _emit, _load_manifest, _resolve_organism, _StageOut
 from .root import manifest_app
@@ -303,6 +310,12 @@ def _fill_manifest_pipeline(
     # gate refuses, with which blockers and at which exit code; this asks the cheaper question the
     # reduction cannot ask for us — is the record join worth running at all? A dataset whose bytes
     # did not decide has never paid for one, and it must not start now.
+    #
+    # A PLATE is the one shape where "a run asked" and "the bytes did not decide" come apart: its
+    # sibling cells decided, and the cell gate cannot judge the asking one without the sample map its
+    # threshold sums over. So the join is also paid when the bytes NAMED a one-sample-is-one-cell
+    # chemistry — which no shipped spec declares, and which a deposit where no cell decided does not
+    # name either, so the widening reaches exactly the case that needs it and nothing else.
     metadata = (
         resolve_metadata(
             # Identity only: the metadata resolver is handed no probe signal and cannot read one.
@@ -311,12 +324,22 @@ def _fill_manifest_pipeline(
             assertions=parsed,
             subjects=subjects,
         )
-        if multi.exit_code() == 0
+        if multi.exit_code() == 0 or plate_chemistries(multi)
         else None
     )
-    # The four refusal gates, in one place, asked by the same function the eval harness asks
+    # The five refusal gates, in one place, asked by the same function the eval harness asks
     # (#196) — only their rendering below is the CLI's. What each gate means is on `reduce_dataset`.
     dataset = reduce_dataset(multi, metadata)
+    if dataset.abstained:
+        # A cell that inherited its plate's chemistry no longer asks anything, so its question must
+        # not survive in questions.md. The Stop hook rglobs that file and refuses to end a turn while
+        # any non-empty one exists — a channel the reduction has no say in, so a row left there
+        # refuses the plate a second time over a cell the reduction already admitted. Re-synced
+        # rather than deferred, so the write above stays where it is: it has to happen before the
+        # exit-code branch, and what abstained is not knowable until after the reduction.
+        _sync_questions(
+            state_dir(workspace), [r for r in multi.runs if r.run_id not in dataset.abstained]
+        )
     if dataset.refused_at == "run":
         return _StageOut(
             {
@@ -325,7 +348,7 @@ def _fill_manifest_pipeline(
             },
             dataset.exit_code,
         )
-    if dataset.refused_at in ("metadata", "sample"):
+    if dataset.refused_at in ("cell", "metadata", "sample"):
         return _StageOut(
             {"blockers": [b.model_dump(mode="json") for b in dataset.blockers]}, dataset.exit_code
         )
@@ -382,7 +405,21 @@ def _fill_manifest_pipeline(
         # Only the BYTE resolver's conflicts block; a metadata disagreement rides in as a warning.
         # A dataset-level provenance conflict (#51) rides in on every assay — it is about the whole
         # document, not one chemistry — so a wrong PDF blocks the manifest via validate's exit 4.
-        conflicts = [c for run in runs for c in run.output.result.conflicts] + prov_conflicts
+        #
+        # A cell that ABSTAINED contributes `dataset.conflicts` in place of its own: its bytes were
+        # not admitted as evidence, so a disagreement they raised must not block the fourteen hundred
+        # cells around it, and the resolved row the reduction wrote in its stead is what says it was
+        # admitted unconfirmed. The lists are identical wherever no plate is in play.
+        conflicts = (
+            [
+                c
+                for run in runs
+                if run.run_id not in dataset.abstained
+                for c in run.output.result.conflicts
+            ]
+            + dataset.conflicts
+            + prov_conflicts
+        )
         try:
             experiment = experiment_from_metadata(
                 resolution, obs, organism_taxid=organism_taxid, uris=file_uris
