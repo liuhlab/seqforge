@@ -18,7 +18,7 @@ from .loader import (
     runnable_spec_ids,
 )
 from .match import curated_forms, resolve_chemistry, resolve_chemistry_id
-from .roundtrip import run_roundtrip
+from .roundtrip import roundtrip_checks, run_roundtrip
 from .schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when spec semantics change. Folded into dataset candidate cache keys.
@@ -80,7 +80,30 @@ from .schema import Spec
 #: elements, signature, backend and all five confusable edges say what 2026.8.2 said; the only other
 #: files that changed are the two specs naming the edge back (`splitseq`, `bd-rhapsody-wta`), and they
 #: changed by the id alone.
-KB_VERSION = "2026.8.3"
+#: 2026.8.4 — `read_count` leaves the signature vocabulary: the model, the union member, the
+#: evaluator branch and one `requires` line from each of the 16 shipped specs. A test in a CLOSED
+#: vocabulary that returns `abstain / 0.0 / "not a per-cell test"` on every input is a knob that
+#: cannot fail, and it was worse than idle — `build_tech_evaluation` buckets a `requires` test by its
+#: `read`, and `read_count` has none, so it was dropped before it was even evaluated. Sitting in
+#: `requires` it READ as the gate demanding two files, and #234 spent a whole measurement finding out
+#: that the demand came from the READ LIST instead. Read sets (ADR-0029) make it doubly dead: a set's
+#: cardinality IS its length, so even a working version would restate the declaration beside it.
+#: Deleting it also retires a name collision this codebase should not carry: `read_count` meant role
+#: count in the KB and SPOT count in ENA run metadata (`io/remote.py`), and now means only the second.
+#: `bulk-rnaseq` and `10x-multiome-atac` are left with an EMPTY `requires`, and both are honest:
+#: bulk is the fallback and gated nothing before either, and ATAC's "three reads" was never a gate
+#: but the three reads it declares, against a total and injective role assignment.
+#: The evaluator's fall-through goes with it. `evaluate` now takes the `Test` union rather than
+#: `object` and ends in `typing.assert_never`, so the next word added to the DSL is a type error at
+#: the dispatch that forgot it rather than a silent abstention — `compose/core.py`'s `_read_files_in`
+#: is the same shape for the same reason.
+#: The bump costs a `run_id` and nothing else, and that was MEASURED rather than asserted, because
+#: the one thing reading cannot settle is whether an abstaining `requires` test feeds score
+#: normalization. It does not: `requires` is walked for FAIL alone, and `total_w` sums `supports`
+#: weights only. Re-inserting a read-less `requires` entry into every spec leaves all 256
+#: (spec x data) verdicts — score, rank, matrix, assignment, rung — byte-identical, and the suite is
+#: green with no expectation edited. That gate is the whole of why this shipped as its own change.
+KB_VERSION = "2026.8.4"
 
 __all__ = [
     "KB_VERSION",
@@ -98,4 +121,5 @@ __all__ = [
     "generate_reads",
     "build_pools",
     "run_roundtrip",
+    "roundtrip_checks",
 ]

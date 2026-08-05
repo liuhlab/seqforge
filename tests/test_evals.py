@@ -436,6 +436,33 @@ def test_a_sample_count_with_no_metadata_resolution_fails_rather_than_abstains()
     assert [c.actual for c in graded.fields] == [None]
 
 
+def test_a_provenance_read_count_cannot_be_pre_registered_in_a_case() -> None:
+    """The third of the three facts that say the read counts move nothing (ADR-0030).
+
+    `DatasetProvenance` carries a read count per file on every manifest now. The claim that goes with
+    it is that the number reaches no content hash, no `run_id` and no graded case record; the first
+    two are pinned in `tests/test_manifest.py`, and this is the third. Grading never sees a manifest
+    at all — `_extract_field` reads the resolve result through a literal ladder of supported paths
+    that ends in a sentinel — so an expectation naming a provenance path does not quietly read a
+    number, it fails and says the path is unsupported. Nothing a grade digest measures can pick the
+    counts up.
+    """
+    g = _grade({"outcome": "decide", "fields": {"provenance.estimated_reads": 600}}, _result(), 0)
+    check = next(c for c in g.fields if c.path == "provenance.estimated_reads")
+    assert check.actual == "<unsupported field provenance.estimated_reads>"
+    assert not check.ok
+    # ...and the record itself: seven keys, none of which is somewhere a count could ride in on.
+    assert set(g.to_json()) == {
+        "case",
+        "grade",
+        "expected",
+        "actual",
+        "fields",
+        "notes",
+        "missed_question",
+    }
+
+
 # --------------------------------------------------------------------------------------------
 # harvest grading: a verified-but-wrong assertion is a false accept
 # --------------------------------------------------------------------------------------------

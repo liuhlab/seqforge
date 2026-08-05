@@ -68,7 +68,6 @@ onlists:
 
 signature:
   requires:                      # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
-    - {test: read_count, roles: 2}
     # Identical to every other 28 bp entry's gate, by construction: this entry shares every structural
     # rung with the 3' cohort and the whitelist at rung 3 IS the separation, which is what
     # `distinguishable_by: [onlist]` claims below.

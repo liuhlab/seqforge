@@ -65,7 +65,6 @@ signature:
   # edge and turn a genuine tie into a silent guess dressed up as a decision. The tie is the truth; the
   # resolver is supposed to reach it and ask.
   requires:
-    - {test: read_count, roles: 2}
     # length 26 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced R1
     # (a 28 bp read is < 100 -> not over-length -> still FAILs the exact 26), and a 60-94 bp
     # cDNA/split-pool read stays exact-checked and rejected.

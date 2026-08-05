@@ -304,6 +304,49 @@ def distinct_ratio(bases: list[str]) -> float | None:
     return len(set(bases)) / len(bases)
 
 
+def modal_consensus(bases: list[str]) -> str | None:
+    """The column-wise most common base over already-cut reads; ``None`` when nothing was cut.
+
+    What :func:`consensus_match_rate` measures agreement *against*, returned rather than consumed. The
+    rate answers "do the reads agree here"; this answers "on WHAT" — and the second question had no
+    answer anywhere, which is why the round-trip could prove a spec's linker window was constant
+    without ever proving it held the sequence the spec declares.
+
+    Deliberately dumb in the same way as its neighbours: it counts what it is handed and decides
+    nothing about which reads contribute. A column no read reaches is all pad, and pad is not a base,
+    so it falls to ``A`` by argmax — harmless where every cut is the same width (a fixed column, or an
+    element cut at a resolved frame), which is every caller there is.
+    """
+    arr = _padded(bases)
+    if arr is None:
+        return None
+    return _consensus(arr).tobytes().decode("ascii")
+
+
+def _padded(bases: list[str]) -> np.ndarray | None:
+    """``bases`` as a right-padded ``(n, width)`` uint8 matrix; ``None`` when there is nothing to read.
+
+    0 is the pad sentinel -- never a base byte, so it never equals a consensus base and a read that
+    falls short of the column counts as a non-carrier rather than a partial match.
+    """
+    if not bases:
+        return None
+    width = max(len(b) for b in bases)
+    if width == 0:
+        return None
+    arr = np.zeros((len(bases), width), dtype=np.uint8)
+    for j, b in enumerate(bases):
+        raw = b.encode("ascii", "replace")
+        arr[j, : len(raw)] = np.frombuffer(raw, dtype=np.uint8)
+    return arr
+
+
+def _consensus(arr: np.ndarray) -> np.ndarray:
+    """The modal base of each column, as ASCII codes. One owner, because two callers now read it."""
+    counts = np.stack([(arr == ord(base)).sum(axis=0) for base in "ACGT"])
+    return np.frombuffer(b"ACGT", dtype=np.uint8)[counts.argmax(axis=0)]
+
+
 def consensus_match_rate(bases: list[str], max_mismatch: int) -> float | None:
     """The SHARE of already-cut reads within ``max_mismatch`` of the column-wise modal consensus.
 
@@ -338,20 +381,10 @@ def consensus_match_rate(bases: list[str], max_mismatch: int) -> float | None:
     cycle — one figure that covers every window anyone will ever cut, rather than a coverage number
     this function would have to invent a window to report.
     """
-    if not bases:
+    arr = _padded(bases)
+    if arr is None:
         return None
-    width = max(len(b) for b in bases)
-    if width == 0:
-        return None
-    # 0 is the pad sentinel -- never a base byte, so it never equals a consensus base and a read that
-    # falls short of the column counts as a non-carrier rather than a partial match.
-    arr = np.zeros((len(bases), width), dtype=np.uint8)
-    for j, b in enumerate(bases):
-        raw = b.encode("ascii", "replace")
-        arr[j, : len(raw)] = np.frombuffer(raw, dtype=np.uint8)
-    counts = np.stack([(arr == ord(base)).sum(axis=0) for base in "ACGT"])
-    consensus = np.frombuffer(b"ACGT", dtype=np.uint8)[counts.argmax(axis=0)]
-    mismatches = (arr != consensus).sum(axis=1)
+    mismatches = (arr != _consensus(arr)).sum(axis=1)
     return float((mismatches <= max_mismatch).mean())
 
 

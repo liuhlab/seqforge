@@ -16,8 +16,10 @@
 # ---- WHAT ACTUALLY SEPARATES GEM-X FROM 3' v3.1 IN THE BYTES -----------------------------------
 # Nothing structural. That is the finding, and it is worth stating plainly rather than discovering
 # again later. Every structural rung is identical BY CONSTRUCTION between `10x-gemx-3p-v4`,
-# `10x-3p-gex-v3` and `10x-3p-gex-v3.1`: `read_count roles:2`, `segment_length R1 length:28
-# tolerance:0`, `has_segment [0,16) random`, `has_segment [16,28) random`. SRA's own per-read table
+# `10x-3p-gex-v3` and `10x-3p-gex-v3.1`: `segment_length R1 length:28 tolerance:0`,
+# `has_segment [0,16) random`, `has_segment [16,28) random`. (A fourth, `read_count roles:2`, stood
+# in all three when this was written and was deleted from the vocabulary in #276 — it abstained on
+# every input, so it never separated anything here either.) SRA's own per-read table
 # for this run declares the same 28 bp R1 (stdev 0) + 90 bp cDNA layout the corpus already holds for
 # GSE229022, which resolves to v3/v3.1. So geometry cannot decide, and the WHITELIST at rung 3 is the
 # entire separation — precisely what the spec's `distinguishable_by: [onlist]` claims.
