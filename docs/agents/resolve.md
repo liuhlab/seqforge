@@ -44,13 +44,17 @@ where that removes the comparison outright. Withholding it from everyone is neit
 asked of nobody, so `confuse.without_rung3_evidence` takes it out of the signature, which is what
 finally makes `accepts_at_rungs_0_2`'s own "the verdict rests on geometry ... alone" true.
 
-**One residual is knowingly left, and it is the case #307 opened with.** With no whitelist obtainable,
-`bulk-rnaseq` still beats `splitseq`, the three BD beads and `10x-multiome-atac` outright on their own
-reads, outside θ, so nothing asks. The 28 bp 10x cohort is protected — bulk's 40 bp floor forces it
-onto `se`, which orphans the barcode read and re-anchors the tie band — but those five are not, and
-their declared edges do not reach them at that margin. It is not closed here because the obvious fix
-is the renormalization the paragraph above rejects; closing it needs a rung-aware comparison or a
-refusal, which is the shape `barcode_onlist_available` and escalate's F1b already reach for.
+**"But when is a whitelist ever unobtainable?" — almost never, and that is worth knowing before
+reading the paragraph above as urgent.** All fifteen lists ship pre-packed (3.0 MB; a sorted 2-bit
+barcode set is a twentieth of the vendor's `.txt.gz`), every onlist reference in all seventeen specs
+resolves from `DEFAULT_REGISTRY` with no network and no setup, and every production verb uses it.
+There used to be one door left — a recorded-debt pin letting a spec land before its whitelist was
+derived — and it is **gone** (#321):
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now demands the gap set be empty
+outright, so a chemistry that calls the onlist decisive cannot ship until its list does. The pin's own
+comment had promised such a spec merely over-asks; measured on real barcodes, `splitseq` with its
+lists withheld falls to 0.3300 against bulk's 0.7800, far outside θ, so nothing asks and the deposit
+compiles as bulk. That is not a deferral to record, so there is no longer a way to record it.
 
 | evaluator | what it does, and the decision inside it |
 |---|---|

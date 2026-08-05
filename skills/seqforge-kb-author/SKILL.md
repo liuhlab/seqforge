@@ -144,10 +144,16 @@ seqforge io onlist pack cls1.txt --name bd-rhapsody-cls1 --uri <authoritative-so
 ```
 
 `io onlist pack` is the ONLY writer of `src/seqforge/io/onlists/index.json`, so it cannot drift from the
-blobs beside it. Once a list ships, delete its entry from `UNSHIPPED_ONLIST_DEBT` in
-`tests/test_kb.py`. Get the sequences from
-an authoritative source and verify against a real dataset — never guess barcodes (a wrong whitelist
-exits 0 and emits a matrix that merely looks thin, the same failure shape as a wrong strand).
+blobs beside it. Get the sequences from an authoritative source and verify against a real dataset —
+never guess barcodes (a wrong whitelist exits 0 and emits a matrix that merely looks thin, the same
+failure shape as a wrong strand).
+
+**A spec that names the onlist decisive cannot land until its whitelist ships, and there is no way to
+defer it.** `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` goes red and stays red;
+the recorded-debt escape hatch it used to allow was deleted in #321, because deferring is not what it
+did. Measured, a chemistry whose whitelist is missing does not go unconfirmed and ask — it scores
+0.3300 against `bulk-rnaseq`'s 0.7800 on its own reads, far outside the tie band, so nothing asks and
+the deposit compiles to a bulk gene-count matrix at exit 0. Pack the list, or do not add the spec yet.
 
 ## Fixed-offset only — check before you author
 

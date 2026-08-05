@@ -88,35 +88,54 @@ benchmark case exercises a byte-silent support, so the runtime arithmetic change
 corpus. `RESOLVE_VERSION` moves anyway (2026.8.7 → 2026.8.8), because what changed is the *definition*
 of a cell.
 
-## Known residual: no whitelist installed, and bulk still wins
+## Not a residual: an unobtainable whitelist is not a state a user reaches
 
-**This is not fixed here, and it is the case #307 opened with.** With an empty registry and full
-signatures — a user offline, or one whose whitelists never materialized — the fallback still takes
-some single-cell libraries outright. §1 removes the handicap **only inside `confuse`**, the
-KB-authoring guard, never on the resolve path.
+**A first draft of this section claimed one, and it was wrong twice over.** It is kept, corrected,
+because the error is instructive: the numbers were real and measured what nobody asked.
 
-Which pairs are actually exposed is narrower than the scores suggest, because the orphan rule
-(`seats_a_file_the_fallback_dropped`) already re-anchors the tie band whenever the fallback wins on a
-**proper-subset** read set that drops the incumbent's barcode read:
+**There is no "user with no whitelists".** All fifteen lists ship pre-packed in
+`src/seqforge/io/onlists/` — 3.0 MB total, 522 kB for the 6 794 880-entry `3M-february-2018`, because
+a sorted 2-bit-packed barcode set compresses to a twentieth of the vendor's own `.txt.gz`. Every
+onlist reference in all seventeen shipped specs resolves from `DEFAULT_REGISTRY` with **zero gaps**;
+that registry is `offline=True` by default and needs no network; and every production CLI path
+(`manifest fill`, `compose`, `run`, `io`) uses it or `default_registry(...)`. `offline` governs only
+the fallback for a list we do **not** ship.
 
-| on the chemistry's own reads | bulk | bulk's set | incumbent | margin | orphan rule protects |
-|---|---:|---|---:|---:|---|
-| `splitseq` | 1.0000 | `full` | 0.5500 | +0.4500 | **no** |
-| `bd-rhapsody-wta` | 0.9875 | `full` | 0.5500 | +0.4375 | **no** |
-| `bd-rhapsody-wta-enhanced-v1` / `-v2` | 0.9975 | `full` | 0.5500 | +0.4475 | **no** |
-| `10x-multiome-atac` | 0.8800 | `full` | 0.7424 | +0.1376 | **no** |
-| `10x-3p-gex-v3` (the whole 28 bp cohort) | 0.7500 | `se` | 0.6594 | +0.0906 | yes — asks |
+**And the numbers were taken on the wrong fixture.** They came from `kb.generate_reads`, which draws
+*random* barcodes, so an onlist test there legitimately FAILs rather than going unconfirmed. On
+`splitseq`'s generated reads the chemistry scores 0.5657 with every list shipped and 0.5500 with its
+own three withheld — a 0.0157 difference. The "+0.45 margin against bulk" was the synthetic fixture,
+not whitelist availability, and reporting it as the latter is the mistake this paragraph exists to
+stop being repeated. §1's margins are unaffected: `confuse` scores every pair on that same fixture by
+design, with both sides treated alike, which is what the confusability contract has always measured.
 
-The 10x cohort is safe: bulk's 40 bp floor cannot seat a 28 bp barcode read, so it wins on `se`,
-orphans that read, and the resolver raises a divergent tie rather than deciding. The five exposed
-chemistries put their barcode read at 60–94 bp, which bulk's maximal set admits, so it explains every
-file and orphans nothing. **Their declared `confusable_with` edges do not rescue them either** — at
-+0.14 to +0.45 the incumbent is far outside θ and so never joins the tie set the edge would be
-consulted for. The deposit compiles to a bulk gene-count matrix at exit 0.
+Built from the barcodes we actually ship, the picture is the opposite:
 
-It is left because §2 is the reason the obvious fix cannot be applied there: the same renormalization
-that would rescue these three inverts the 10x cohort. Closing it needs a different instrument — the
-comparison has to become rung-aware, or a barcoded candidate with no obtainable whitelist has to
-refuse rather than lose, which is the shape `TechEvaluation.barcode_onlist_available` and escalate's
-F1b already reach for. That is a design change with its own blast radius, and it is tracked separately
-rather than smuggled in here.
+| `splitseq`'s own realistic reads | splitseq | bulk | outcome |
+|---|---:|---:|---|
+| all lists shipped | 0.7800 | 0.7800 | **exact tie** -> declared edge -> onlist decides -> `splitseq` |
+| `splitseq-round{1,2,3}` absent | **0.3300** | 0.7800 | bulk by +0.4500, outside θ — decides silently |
+
+## What IS real: an escape hatch that deferred nothing
+
+The bottom row was reachable only through `UNSHIPPED_ONLIST_DEBT` (`tests/test_kb.py`) — a pin
+permitting a spec to ship while its decisive whitelist did not, provided somebody wrote the gap down.
+It was **empty**, so nothing was ever in that state; the danger was the next author putting something
+there, because the comment beside it told them the failure was tolerable:
+
+> That failure was safe — *it over-asks, it does not answer wrongly* — which is exactly why it
+> survived unnoticed
+
+**Measured, it does not over-ask.** With its whitelist withheld `splitseq` falls to 0.3300 against
+bulk's 0.7800; at +0.45 it is far outside θ, so it never joins the tie set its own declared
+`confusable_with` edge would be consulted for, and the deposit compiles to a bulk gene-count matrix
+at exit 0. Over-asking is the safe failure the sentence promised; answering wrongly is the one the KB
+most fears, and it was the one on offer.
+
+**So the hatch was deleted rather than re-annotated** (#321).
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now asserts the gap set is empty
+unconditionally: ship the whitelist, or do not ship the spec. Correcting the note would have left a
+rule somebody has to remember, and the measurement above says what it would have been protecting is
+not a deferral at all — it is a wrong answer with a comment attached. `splitseq` is the precedent for
+paying the cost instead: its three lists were derived from the paper's own Supplementary Table S12
+before the spec was trusted to decide anything.
