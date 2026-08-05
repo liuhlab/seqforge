@@ -21,8 +21,10 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`kb_probes` — every KB spec's own reads, probed once
   (``(spec id, read set) -> [WindowProbe]``).
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
-* :data:`composed_plate` — one ``smartseq3`` plate, composed and planned once, for the three-part
-  plate gate. It spawns, so its NAME is in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
+* :data:`composed_plate` — one ``smartseq3`` plate, composed under the real wiring gate and planned
+  once, for the three-part plate gate; it carries both the gate's verdict and the plan text, because
+  the gate discards the text. :data:`composed_plate_se` is the same thing for the mate-less
+  placement. Both spawn, so both NAMES are in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 * :func:`pytest_cmdline_main` — a bare ``pytest`` runs the whole suite ACROSS CORES, because
@@ -183,10 +185,12 @@ _UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
 #: Fixture names that mean "this test spawns ``snakemake``" — which is what ``external`` is ABOUT.
 #: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
 #:
-#: ``composed_plate`` is here for the same reason ``dry_run`` is: it is a *product* of a
-#: ``snakemake -n -p``, and a fixture that spawns has to be visible to the marker whether the test
-#: reading it thinks of itself as a subprocess test or not.
-_SPAWNS_SNAKEMAKE = frozenset({"real_wiring_gate", "dry_run", "composed_plate"})
+#: ``composed_plate`` and its single-end sibling are here for the same reason ``dry_run`` is: each is
+#: a *product* of a ``snakemake -n -p``, and a fixture that spawns has to be visible to the marker
+#: whether the test reading it thinks of itself as a subprocess test or not.
+_SPAWNS_SNAKEMAKE = frozenset(
+    {"real_wiring_gate", "dry_run", "composed_plate", "composed_plate_se"}
+)
 
 
 @pytest.fixture(autouse=True)
@@ -539,6 +543,31 @@ def synth_smartseq3(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     return build_synth_dataset(tmp_path_factory.mktemp("synth-smartseq3"), "smartseq3")
 
 
+@pytest.fixture(scope="session")
+def synth_plate_se(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The plate shape sequenced SINGLE-END — one tagged FASTQ, resolved and filled.
+
+    Stands to :data:`synth_smartseq3` exactly as :data:`synth_bulk_se` stands to
+    :data:`synth_bulk_pe`, and for that fixture's reason: **one file handed to the RESOLVER**, never
+    a trimmed copy of the paired manifest. Every claim read off it — the winning read set, the
+    one-read layout, the mate-less placement — is then one the byte resolver actually made, which is
+    the difference between testing the composer's tolerance of a one-read layout and testing that a
+    single-end plate deposit compiles at all.
+
+    **The metadata assertion :func:`build_synth_dataset` supplies here is load-bearing rather than
+    decorative, and a test built on this fixture must assert the chemistry it got.** ``smartseq3``
+    declares ``distinguishable_by: [metadata]`` on its ``bulk-rnaseq`` edge, so ``spec.decidable_by``
+    is non-empty and a ``Hypothesis`` goes in. It has to: on a single file the two entries land inside
+    the tie band — measured through this very path, ``smartseq3/se`` 1.0100 against ``bulk-rnaseq/se``
+    1.0090, a margin of 0.0010 against ``_THETA`` = 0.02 — because each has exactly one firing support
+    on R1, ``_score_cell`` normalizes within a read, and with one file neither pays the orphan penalty
+    that decides every other row of the comparison (ADR-0035). Resolved with no hypothesis the same
+    deposit poses a Question at rung 7 instead of deciding, so it is the rung-0 claim that lands this
+    on the plate rather than on generic bulk — which would be a gene-count matrix for a plate library.
+    """
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-plate-se"), "smartseq3", keys=("R1",))
+
+
 # --------------------------------------------------------------------------- #
 # the compile half: the shared build helpers ``test_manifest.py`` and ``test_compose.py`` both read
 # --------------------------------------------------------------------------- #
@@ -629,9 +658,15 @@ def _processing(
 Plate = dict[str, dict[str, tuple[int, ...]]]
 
 
-def one_run_each(depths: dict[str, int]) -> Plate:
-    """The strictly 1:1 plate — one cell, one run, every file at the same depth. 170 of 190 real ones."""
-    return {cell: {"r": (n, n)} for cell, n in depths.items()}
+def one_run_each(depths: dict[str, int], *, files: int = 2) -> Plate:
+    """The strictly 1:1 plate — one cell, one run, every file at the same depth. 170 of 190 real ones.
+
+    ``files`` is how many FASTQs the layout carries, because :func:`plate_of` zips these depths
+    against the file template STRICTLY: a single-end deposit has one file per cell and a two-value
+    tuple would raise there rather than compose. It defaults to the paired shape every caller but the
+    single-end plate wants, so the number is stated only where it is not two.
+    """
+    return {cell: {"r": (n,) * files} for cell, n in depths.items()}
 
 
 def plate_of(
@@ -718,6 +753,14 @@ PLATE_CELL_COUNT = 96
 #: assertion about that.
 PLATE_CELL_DEPTH = 1200
 
+#: How many cells the SINGLE-END composed plate declares, and it is deliberately NOT
+#: :data:`PLATE_CELL_COUNT`. The wildcard expansion is a claim about scale and is made once, by the
+#: paired plate above; :data:`composed_plate_se` exists to be RUN, so it is sized to the run it
+#: serves. That matters here in a way it does not there: this fixture is built even when its only
+#: reader skips for want of STAR, so 96 cells of plan text would be a cost with no reader on every
+#: machine that has no aligner.
+PLATE_SE_CELL_COUNT = 8
+
 
 @dataclass(frozen=True)
 class ComposedPlate:
@@ -734,6 +777,13 @@ class ComposedPlate:
     #: The compiled pipeline directory: the wrapper, the copied ``.smk``, ``config.yaml``, ``units.tsv``.
     pipeline_dir: Path
     config: dict[str, object]
+    #: ``compose``'s OWN gate verdicts. :data:`composed_plate` takes them with the real
+    #: ``wiring_gate`` — the DAG builder's answer for the ``{umi_cdna, cdna}`` placement, which is the
+    #: half of ADR-0035's universal that plate is. :data:`composed_plate_se` carries ``"skip"`` here
+    #: deliberately, and says why: the mate-less verdict is already asserted twice by tests of its
+    #: own, and this fixture's plan below is that same DAG build with an exception in place of four
+    #: characters.
+    gate: dict[str, str]
     #: ``snakemake -n -p`` over that directory — the rendered plan, shell blocks and all.
     plan_text: str
     cells: tuple[str, ...]
@@ -752,6 +802,15 @@ def composed_plate(
     One ``snakemake -n -p`` serves every reader. A plan at this cell count is the most expensive
     single spawn in the suite, and paying it per assertion is exactly the waste that once put ~41 of
     them in a compose test file.
+
+    **It composes under the REAL wiring gate, and that second spawn is deliberate** (measured at
+    2.2s for the whole compose, against 2.1s for the plan below). ``wiring_gate`` returns a
+    four-character verdict while discarding the plan text, so the two cannot be one spawn — and the
+    verdict is what ADR-0035's universal is stated in. Both shapes ``_role_placement`` can emit for a
+    ``umi_tagged`` layout have to reach ``"pass"``: this fixture is the ``{umi_cdna, cdna}`` half, and
+    :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
+    here — a session fixture is built before the function-scoped autouse stub applies, and a verdict
+    of ``"skip"`` would fail its reader's assertion loudly rather than pass for the wrong reason.
     """
     import yaml
 
@@ -771,6 +830,62 @@ def composed_plate(
         processing,
         registry=dataset.registry,
         workspace=workdir / "ws",
+        run_wiring_gate=True,
+    )
+    pipeline_dir = (workdir / "ws" / result.snakefile_path).parent
+    config = yaml.safe_load((workdir / "ws" / result.config_path).read_text())
+    plan = compose_core.plan(manifest, processing, registry=dataset.registry)
+    return ComposedPlate(
+        manifest=manifest,
+        processing=processing,
+        registry=dataset.registry,
+        pipeline_dir=pipeline_dir,
+        config=config,
+        gate=dict(result.gate),
+        plan_text=snakemake_dry_run(pipeline_dir, plan),
+        cells=cells,
+    )
+
+
+@pytest.fixture(scope="session")
+def composed_plate_se(
+    tmp_path_factory: pytest.TempPathFactory, synth_plate_se: SynthDataset
+) -> ComposedPlate:
+    """The same plate sequenced SINGLE-END: the ``{umi_cdna}`` placement, composed and planned once.
+
+    Built exactly as :data:`composed_plate` is and off the same shipped chemistry, from
+    :data:`synth_plate_se` instead of :data:`synth_smartseq3` — so the two fixtures differ in the
+    DEPOSIT and in nothing else. One FASTQ a cell rather than two is the whole of what the mate-less
+    shape is, and ``_role_placement`` emits exactly these two, so the pair of fixtures is a case
+    analysis rather than two samples.
+
+    **It composes with the wiring gate OFF, and that is not the weaker claim it looks like.**
+    :func:`snakemake_dry_run` asserts its own return code, so a mate-less DAG that cannot be built
+    fails this fixture rather than one of its readers: it is the same subprocess ``wiring_gate``
+    runs, over the same replica, differing only in whether the answer comes back as four characters
+    or as an exception. The verdict itself is already taken twice on this exact placement — by
+    ``test_a_single_end_plate_deposit_compiles_end_to_end`` and, in the red direction, by
+    ``test_a_plate_the_dag_builder_cannot_plan_would_be_caught`` — and a third spawn for a field
+    nobody reads is the waste that once put ~41 of them in one compose test file.
+    """
+    import yaml
+
+    from seqforge.compose import compose
+
+    workdir = tmp_path_factory.mktemp("composed-plate-se")
+    dataset = synth_plate_se
+    cells = tuple(f"cell_{i:03d}" for i in range(PLATE_SE_CELL_COUNT))
+    manifest = plate_of(
+        dataset.manifest,
+        one_run_each(dict.fromkeys(cells, PLATE_CELL_DEPTH), files=1),
+        accession="PRJNA1027859",
+    )
+    processing = _processing(manifest)
+    result = compose(
+        manifest,
+        processing,
+        registry=dataset.registry,
+        workspace=workdir / "ws",
         run_wiring_gate=False,
     )
     pipeline_dir = (workdir / "ws" / result.snakefile_path).parent
@@ -782,6 +897,7 @@ def composed_plate(
         registry=dataset.registry,
         pipeline_dir=pipeline_dir,
         config=config,
+        gate=dict(result.gate),
         plan_text=snakemake_dry_run(pipeline_dir, plan),
         cells=cells,
     )

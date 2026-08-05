@@ -143,10 +143,19 @@ changes. `test_a_family_node_recognizes_its_children_and_no_one_else` holds reco
 recognition case per read set (given only the `se` files, the spec is recognized *and* the `se` set
 wins), a negative test for the `requires`-universality lint, and the re-derivation of bulk's five
 edges under the new predicate. Until the first two land, R8's "executable and self-testing" holds for
-the maximal set and not for the feature this record adds. The lint has **no instance in the shipped
-KB** — after `read_count` goes, bulk's `requires` is empty and no other spec declares a read set — so
-it ships as decoration unless its negative test is written, which is the standard
-`test_a_declared_twin_that_diverges_would_be_caught` already sets in this tree.
+the maximal set and not for the feature this record adds. The lint had **no instance in the shipped
+KB** when this was written — after `read_count` went, bulk's `requires` was empty and no other spec
+declared a read set — so it shipped as decoration until its negative test was written, which is the
+standard `test_a_declared_twin_that_diverges_would_be_caught` already sets in this tree.
+
+**Both of those have since changed, and this paragraph is left standing rather than deleted because
+the argument is still the one that holds.** The negative test exists
+(`test_a_requires_test_a_read_set_cannot_reach_fails_at_load_and_points_at_supports`), and
+[0035](0035-the-mate-is-an-addition-to-umi-extraction.md) gave the rule its first shipped instance —
+`smartseq3`'s `se` set, which *satisfies* it, since that entry's only `requires` test addresses R1 and
+R1 is in every set. The recognition case per read set exists too, in both directions
+(`test_the_plates_maximal_read_set_outranks_its_single_end_subset_on_a_paired_deposit` and
+`test_the_generic_single_end_set_does_not_outrank_the_plates_on_a_single_end_plate_deposit`).
 
 ## Consequences
 

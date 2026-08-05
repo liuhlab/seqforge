@@ -796,8 +796,10 @@ def io_umi_count(
 @io_app.command("umi-extract")
 def io_umi_extract(
     r1: Path = typer.Option(..., "--r1", help="The tagged read's FASTQ (gzipped)."),
-    r2: Path = typer.Option(
-        ..., "--r2", help="Its mate's FASTQ; paired by POSITION, never by name."
+    r2: Path | None = typer.Option(
+        None,
+        "--r2",
+        help="Its mate's FASTQ; paired by POSITION, never by name. Omitted for a single-end plate.",
     ),
     geometry: str = typer.Option(
         ...,
@@ -811,12 +813,21 @@ def io_umi_extract(
         "R1", "--read-id", help="Which layout read `--r1` is. Refused if the geometry disagrees."
     ),
 ) -> None:
-    """Lift a plate assay's UMI out of R1 and write the pair as a uBAM carrying `UB:Z:`.
+    """Lift a plate assay's UMI out of R1 and write it as a uBAM carrying `UB:Z:`.
 
     The per-cell half of the counting engine, and a verb rather than a `run:` block for the reason
     `io h5ad` is one: `snakemake -n -p` renders a `shell:` while planning and cannot see inside a
     `run:`, so only a verb is visible to compose's wiring gate. Needs no container — writing a BAM
     through a library is not aligning reads.
+
+    **`--r2` is optional, because the mate is an addition to the extraction rather than half of
+    it.** The tag is found, cut and trimmed entirely within `--r1`; a mate contributes nothing to
+    that and only inherits the resulting `UB` onto a record emitted alongside. So a protocol's
+    single-end configuration runs through this same verb — one unpaired record per fragment instead
+    of two interleaved ones, with the geometry, the `--read-id` refusal, the anchor search and the
+    truncation checks all shared — and the flags say which shape was written, which is what the
+    aligner's `SAM SE` / `SAM PE` argument is derived from. There is no second verb and no flag
+    saying whether the plate is paired: the file being absent IS the statement.
 
     **`--geometry` is a DERIVATION, not a knob, and it arrives as one value.** The anchor and its
     offset, the UMI's offset and length, the trailing motif and the cDNA start are all read off the

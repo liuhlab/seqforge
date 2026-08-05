@@ -1145,8 +1145,18 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     rule whose output is a folder is satisfied by a folder, which is how a counting job that wrote
     three cells of 1440 exits 0. And that the shared index is loaded once and attached 96 times,
     which is the arithmetic the whole module exists for.
+
+    It opens with compose's own `wiring` verdict, which is the same four characters
+    `test_a_single_end_plate_deposit_compiles_end_to_end` asserts for the other placement shape. The
+    claims below read a plan text this test spawned for itself; the verdict reads the gate `compose`
+    RAN, and a verdict is what ADR-0035's universal — "no path exists where `compose` exits 0 and the
+    module then raises" — is stated in. `_role_placement`'s `umi_tagged` branch emits exactly two
+    shapes, so the two assertions together are the whole case analysis rather than two samples of it.
     """
     plan_text = composed_plate.plan_text
+    assert composed_plate.gate["wiring"] == "pass", (
+        f"the `{{umi_cdna, cdna}}` placement did not reach the DAG builder: {composed_plate.gate}"
+    )
     assert (composed_plate.pipeline_dir / "star-umi.smk").is_file(), (
         "compose copied no plate module beside its wrapper"
     )
@@ -1601,6 +1611,315 @@ def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_c
     reads = count_matrix(adata, "read_exon").toarray()
     gene_b = adata.var_names.get_loc("GENE_B")
     assert {int(reads[i, gene_b]) for i in range(len(cells))} == {len(_E2E_UNTAGGED_STARTS)}
+
+
+# ---- the OTHER placement shape: a plate sequenced single-end, and a gate proved to be looking -----
+#
+# `_role_placement`'s `umi_tagged` branch emits exactly two shapes, `{umi_cdna, cdna}` and
+# `{umi_cdna}`, so ADR-0035's universal — "no path exists where `compose` exits 0 and the module then
+# raises" — is a FINITE case analysis. The paired plate above is the first shape; these are the
+# second, on the same shipped `smartseq3` entry, whose `read_sets: {se: [R1]}` is what makes the
+# mate-less placement reachable at all.
+#
+# `gate["wiring"] == "pass"` is the assertion that does the work in both, and nothing cheaper can
+# stand in for it: that gate IS `snakemake -n -p`, i.e. the DAG BUILDER, which is exactly where the
+# deleted raise used to land (`InputFunctionException … ValueError: this layout carries only the
+# tagged read`, measured at 7e2488f). The placement itself was always emittable — the composer has
+# been able to produce a mate-less one since it was written — so a config-level assertion proves only
+# that compose tolerated a one-read layout, never that the module can plan it.
+
+
+def test_a_single_end_plate_deposit_compiles_end_to_end(
+    synth_plate_se: SynthDataset, tmp_path: Path, real_wiring_gate: None
+) -> None:
+    """A plate sequenced single-end, from one FASTQ to a Snakefile: resolve -> fill -> compose -> plan.
+
+    The plate half of `test_a_single_end_bulk_deposit_compiles_end_to_end`, and every claim is one the
+    BYTE RESOLVER made rather than one a fixture trimmed: the deposit is a single file, so the
+    one-read layout, the one-file inventory and the `{umi_cdna}` placement all follow from the
+    resolver having selected `smartseq3`'s `se` read set.
+
+    **Asserting the chemistry is not scene-setting.** On one file `smartseq3/se` and `bulk-rnaseq/se`
+    score inside the tie band, so the metadata assertion the fixture supplies is what lands this on a
+    plate rather than on generic bulk — and generic bulk here is a gene-count matrix for a plate
+    library at exit 0, which `docs/agents/kb.md` ranks as the worst outcome available. See
+    :data:`conftest.synth_plate_se` for the measured margin.
+
+    **`gate["wiring"] == "pass"` is the point of the whole test.** Everything above it is text off
+    disk and would hold just as well of a composer that emitted a placement the module goes on to
+    raise over — which is precisely the state ADR-0035 removes, and the state the shipped `se` read
+    set would otherwise have unlocked. That gate spawns `snakemake -n -p`, so it is the DAG builder's
+    own answer to "can this pipeline be planned at all", taken over the mate-less shape. It is the
+    difference between "compose tolerated a one-read layout" and "the module can actually plan it".
+    """
+    manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
+    assert manifest.library.chemistry.value == ["smartseq3"]
+    assert [r.read_id for r in manifest.library.read_layout.reads] == ["R1"]
+    assert [f.read_id for f in manifest.library.files] == ["R1"]
+
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == "map/star-umi"
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["read_files_in"] == {"umi_cdna": "R1"}, "the mate-less placement was not emitted"
+    assert result.gate["params"] == "pass", result.params_preview["params_problems"]
+    assert result.gate["wiring"] == "pass", (
+        f"the mate-less placement never reached a runnable DAG: {result.gate}"
+    )
+    assert (tmp_path / result.snakefile_path).is_file()  # the deliverable a user submits
+
+    units = (tmp_path / result.units_path).read_text().splitlines()
+    assert units[0].split("\t") == ["sample_id", "run", "lane", "read_id", "path"]
+    assert len(units) == 1 + len(manifest.experiment.samples), (
+        f"one read per cell -> header + one row per cell; got {units}"
+    )
+    assert {row.split("\t")[3] for row in units[1:]} == {"R1"}
+
+
+def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
+    synth_plate_se: SynthDataset, tmp_path: Path, real_wiring_gate: None
+) -> None:
+    """Prove the wiring verdict above is LOOKING: break the plate, and it must go red.
+
+    A universal asserted only by a green verdict is a universal nobody has tested — and this one has
+    two ways to be green for the wrong reason. `wiring_gate` returns `"skip"` where `snakemake` is
+    absent, and conftest stubs it to the literal `"skip"` for every test that does not ask for the
+    real one, so `!= "fail"` or a truthiness check would hold on a machine that planned nothing at
+    all. Both assertions here are therefore for an EXACT verdict, in both directions.
+
+    The break is chosen to land where the deleted raise landed, and it does not depend on that raise:
+    the emitted config loses `read_files_in.umi_cdna`, so `tagged_role()` raises `KeyError` inside
+    `rule umi_extract`'s input function and snakemake reports `InputFunctionException … Building DAG
+    of jobs...` at exit 1 — the same class, at the same point, as the ADR's measurement at 7e2488f.
+    The mate-less half of that config is left exactly as compose emitted it, so what is under test is
+    the gate's reach and not the layout.
+    """
+    from seqforge.compose.gates import wiring_gate
+
+    manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path, run_wiring_gate=False)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+    p = plan(manifest, processing, registry=reg)
+    assert wiring_gate(pipeline_dir, p) == "pass", (
+        "the unbroken single-end plate must plan, or the red below says nothing"
+    )
+
+    config_path = pipeline_dir / "config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    del config["read_files_in"]["umi_cdna"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=True))
+    assert wiring_gate(pipeline_dir, p) == "fail", (
+        "a plate whose tagged read the module cannot name dies while the DAG is being built, and "
+        "the gate called it a pass"
+    )
+
+
+# ---- ...and those eight cells RUN, which is the leg ADR-0035 argued instead of measuring ---------
+#
+# Everything above this line stops at `snakemake -n`, and a plan is not a matrix. The record's own
+# standard is "measured, not read", and the one clause it does not meet is its own: "Nothing changes
+# in the counter. It already treats an unpaired record as its own fragment." Nothing in this suite
+# had ever executed STAR over a mate-less uBAM or run the counter over unpaired alignments, so that
+# sentence was an argument about two functions read side by side. Below it is a number.
+
+
+@pytest.mark.external
+@pytest.mark.xdist_group("composed-plate-se")
+def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_counts(
+    composed_plate_se: ComposedPlate, tmp_path: Path
+) -> None:
+    """Eight cells with NO mate anywhere, start to finish, through the commands compose emitted.
+
+    The sibling of `test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts`
+    over the other placement `_role_placement` can emit, and it reads the same fixture reads: same
+    contig, same UMIs, same injected positions, same truth table, with the mate simply not written.
+    That is the whole difference and it is the point — a difference in the answer is the mate's
+    absence and nothing else.
+
+    The silent failure it catches is the one no dry run can: a single-end plate that plans, aligns
+    and exits 0 on an EMPTY or HALVED primary matrix. The extractor writing a record that keeps the
+    PAIRED bit, the aligner reading unpaired records as pairs, or the counter's representative rule
+    dropping every fragment whose `is_read1` bit was never set — the first two are loud, the third is
+    a plausible small object, and only a run tells them apart.
+
+    **Where the paired sibling speaks about mate 2 this either drops the clause or asserts its
+    opposite, and which is which is recorded rather than left to be inferred:**
+
+    * `--r2` — ASSERTS THE OPPOSITE. The rendered extraction must carry no `--r2` at all, rather
+      than one with nothing after it: a `shell:` block is a static string, so an empty argument
+      would swallow the flag behind it and fail as a usage error at job time.
+    * the uBAM's `is_read1` filter — ASSERTS THE OPPOSITE. The paired run picks each fragment's
+      tagged record out by `is_read1`; here NOTHING may be flagged PAIRED and the file must hold one
+      record per fragment rather than two. `--readFilesType` is derived from exactly that, and a
+      record that kept PAIRED with no mate beside it reads back as a truncated pair: `FATAL ERROR in
+      input BAM file: the consecutive lines in paired-end BAM have different read IDs`, exit 104.
+    * `_e2e_pair`'s second return value — DROPPED. The mate is still built and then thrown away, so
+      both tests write their tagged FASTQ from the same call and neither can drift from the other.
+    * the `TLEN`-derived fragment span — DROPPED, with nothing put in its place. `_fragment_span`
+      falls back to an unpaired record's own footprint, which is 50 bases here rather than 200; the
+      genes are 1 500 bp and every injected start sits well inside one, so the assignment is
+      unchanged and the truth table is the paired one, unmodified.
+
+    **And one clause the paired run cannot make: the accounting CLOSES.** One read is one fragment
+    here, so every record that went in has to come out somewhere nameable — a distinct UMI in the
+    primary matrix, an internal read in `read_exon`, a multimapper, or the single repeated UMI that
+    collapses into the one it repeats. A pipeline that quietly counted half of a stream with no
+    halves still produces a matrix that passes every clause above; the sum is what says otherwise.
+    """
+    import anndata as ad
+    import pysam
+
+    from seqforge.workflows.umite.count import N_FRAGMENTS, PRIMARY_MATRIX, write_umi_counts
+
+    star, samtools = shutil.which("STAR"), shutil.which("samtools")
+    if star is None or samtools is None:
+        pytest.skip("needs STAR and samtools on PATH (liulab-runtime's align-rna env)")
+
+    rendered = _rendered_shell(composed_plate_se.plan_text)
+    cells = sorted(rendered["star_umi_map"])[:_E2E_CELLS]
+    units = _units_by_read(composed_plate_se.pipeline_dir)
+    roles = composed_plate_se.config["read_files_in"]
+    assert isinstance(roles, dict)
+    assert set(roles) == {"umi_cdna"}, f"this is the mate-less placement, and it carries {roles}"
+
+    work = tmp_path / "run"
+    work.mkdir()
+    contig = _e2e_contig()
+    (work / "genome.fa").write_text(f">chr1\n{contig}\n")
+    index = Path(str(composed_plate_se.config["outdir"])) / "index"
+    (work / index).mkdir(parents=True)
+    genome_dir = re.search(r"--genomeDir (\S+)", rendered["load_genome"][""])
+    assert genome_dir, "the load rule renders no --genomeDir to build an index at"
+    subprocess.run(
+        [star, "--runMode", "genomeGenerate", "--genomeDir", genome_dir.group(1),
+         "--genomeFastaFiles", "genome.fa", "--genomeSAindexNbases", "6",
+         "--outFileNamePrefix", str(work / "gg_")],
+        check=True, capture_output=True, cwd=work,
+    )  # fmt: skip
+
+    truth: dict[tuple[str, str], int] = {}
+    injected_starts: dict[str, list[int]] = {}
+    for cell in cells:
+        r1, _mate, starts = _e2e_cell(contig)
+        write_fastq_gz(work / units[cell, roles["umi_cdna"]], r1, prefix=f"{cell}:read")
+        injected_starts[cell] = starts
+        for gene, count in _E2E_TRUTH_PER_CELL.items():
+            truth[cell, gene] = count
+
+    # Asserted before the run rather than diagnosed after it: `SAM PE` over these records is exit
+    # 104 out of a container, which is a legible failure only if something says what it should have
+    # been. The value is derived per dataset (ADR-0035), so this is where the derivation is paid.
+    assert all("--readFilesType SAM SE" in rendered["star_umi_map"][cell] for cell in cells)
+
+    try:
+        _e2e_shell(rendered["load_genome"][""], work)
+        for cell in cells:
+            extraction = rendered["umi_extract"][cell]
+            assert re.search(r"--r1 (\S+)", extraction).group(1) == units[cell, roles["umi_cdna"]]  # type: ignore[union-attr]
+            assert "--r2" not in extraction, f"the mate-less rule renders a mate:\n{extraction}"
+            _e2e_shell(extraction, work)
+            # The uBAM is where the derived geometry becomes bases, and here it is also where the
+            # SHAPE is stated: one unpaired record per fragment, carrying the UMI injected into it
+            # and exactly the 50 genomic bases it was built from.
+            ubam = work / re.search(r"--out (\S+)", extraction).group(1)  # type: ignore[union-attr]
+            with pysam.AlignmentFile(str(ubam), "rb", check_sq=False) as unaligned:
+                records = list(unaligned.fetch(until_eof=True))
+            assert not any(r.is_paired for r in records), (
+                "a record flagged PAIRED with no mate beside it reads as a truncated pair, and the "
+                "aligner invocation is derived from these flags rather than told"
+            )
+            assert len(records) == len(injected_starts[cell]) + len(_E2E_UNTAGGED_STARTS), (
+                "one record per fragment, not two: the mate is the only thing that adds records"
+            )
+            tagged = [record for record in records if record.has_tag("UB")]
+            assert len(tagged) == len(injected_starts[cell])
+            assert {str(r.query_sequence) for r in tagged} == {
+                contig[start : start + _E2E_READ_LEN] for start in injected_starts[cell]
+            }, "the extractor cut cDNA at an offset the protocol does not publish"
+            _e2e_shell(rendered["star_umi_map"][cell], work)
+    finally:
+        subprocess.run(
+            [star, "--genomeDir", genome_dir.group(1), "--genomeLoad", "Remove",
+             "--outFileNamePrefix", str(work / "unload_")],
+            capture_output=True, cwd=work,
+        )  # fmt: skip
+
+    bams = {
+        cell: work
+        / re.search(r"--outFileNamePrefix (\S+)", rendered["star_umi_map"][cell]).group(1)  # type: ignore[union-attr]
+        / "Aligned.sortedByCoord.out.bam"
+        for cell in cells
+    }
+    # The aligner's own answer, before the counter has read anything. Two claims, and the second is
+    # this run's: `NH` is the only surviving evidence that a read had somewhere else to go, and the
+    # alignments come back UNPAIRED — which is what makes each of them its own fragment downstream
+    # instead of half of one the counter would then go looking for.
+    multimapped: dict[str, int] = {}
+    for cell, bam in bams.items():
+        with pysam.AlignmentFile(str(bam), "rb") as aligned:
+            alignments = list(aligned.fetch(until_eof=True))
+        assert not any(r.is_paired for r in alignments), (
+            f"{cell} came back from a `SAM SE` invocation carrying paired records"
+        )
+        multimapped[cell] = len({str(r.query_name) for r in alignments if int(r.get_tag("NH")) > 1})
+    assert all(n == len(_E2E_MULTIMAPPER_STARTS) for n in multimapped.values()), multimapped
+    assert sum(multimapped.values()) > 0, (
+        "nothing in this plate aligned to two loci, so the multimapper clause measured nothing — "
+        "the duplicated block the fixture writes into the contig is what makes it a measurement"
+    )
+
+    db = _e2e_annotation(tmp_path)
+    plate = [(cell, bams[cell]) for cell in cells]
+    first = write_umi_counts(plate, db, tmp_path / "first.h5ad")
+    second = write_umi_counts(plate, db, tmp_path / "second.h5ad")
+    assert first.read_bytes() == second.read_bytes(), (
+        "counting the same plate twice moved the bytes"
+    )
+
+    adata = ad.read_h5ad(first)
+    matrix = count_matrix(adata).toarray()
+    observed = {
+        (str(cell), str(gene)): int(matrix[i, j])
+        for i, cell in enumerate(adata.obs_names)
+        for j, gene in enumerate(adata.var_names)
+        if matrix[i, j]
+    }
+    assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+
+    spurious = {key: n for key, n in observed.items() if key not in truth}
+    inflated = {key: (n, truth[key]) for key, n in observed.items() if n > truth.get(key, 0)}
+    recovered = sum(min(n, truth.get(key, 0)) for key, n in observed.items())
+    assert spurious == {}, (
+        f"counts appeared in cell/gene pairs nothing was injected into: {spurious}"
+    )
+    assert inflated == {}, f"counts exceeded what was injected (observed, injected): {inflated}"
+    loss = 1 - recovered / sum(truth.values())
+    assert loss <= 0.02, f"{loss:.1%} of injected UMIs never reached the matrix"
+
+    # The multimapper clause, closed exactly as the paired run closes it.
+    assert dict(zip(adata.obs_names, adata.obs["multimapping"], strict=True)) == {
+        cell: multimapped[cell] for cell in cells
+    }
+    # ...and the untagged reads landed in the READ matrix instead of inflating the UMI one. Two
+    # fragments, which was two reads here and four there — the number is the same because the read
+    # matrices count FRAGMENTS, and that is the property the mate was never contributing to.
+    reads = count_matrix(adata, "read_exon").toarray()
+    gene_b = adata.var_names.get_loc("GENE_B")
+    assert {int(reads[i, gene_b]) for i in range(len(cells))} == {len(_E2E_UNTAGGED_STARTS)}
+
+    # The accounting, which only a mate-less run can state: one read in, one fragment counted.
+    fragments = {cell: len(injected_starts[cell]) + len(_E2E_UNTAGGED_STARTS) for cell in cells}
+    assert dict(zip(adata.obs_names, adata.obs[N_FRAGMENTS], strict=True)) == fragments
+    for i, cell in enumerate(adata.obs_names):
+        # Everything that went in, and the four places it may be: a distinct UMI, an internal read,
+        # a multimapper, and the ONE fragment at `_E2E_REPEATED_UMI_START` whose UMI its gene
+        # already carries, which is the only record allowed to disappear.
+        collapsed = 1
+        accounted = int(matrix[i].sum()) + int(reads[i].sum()) + multimapped[str(cell)] + collapsed
+        assert accounted == fragments[str(cell)], (
+            f"{cell}: {accounted} of {fragments[str(cell)]} reads reached a matrix, a fate or the "
+            f"UMI they repeat; the rest left no trace, which is what a halved plate looks like"
+        )
 
 
 def test_two_processing_manifests_do_not_overwrite_each_other(

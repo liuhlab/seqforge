@@ -1,9 +1,18 @@
-"""Lift the tagged-molecule UMI out of R1 and write the pair as an unaligned BAM carrying ``UB:Z:``.
+"""Lift the tagged-molecule UMI out of R1 and write it as an unaligned BAM carrying ``UB:Z:``.
 
-Per cell: read the two FASTQs, find the anchor in R1, cut the UMI out, trim the structural prefix,
+Per cell: read the tagged FASTQ, find the anchor in it, cut the UMI out, trim the structural prefix,
 and emit one uBAM the aligner reads back. Everything below was *run* on ten published GSE207085
 cells against the reference package while it was still installed (2026-08-04); none of it is
 inferred from documentation.
+
+**The mate is an addition, not half of the extraction, so it is optional.** The tag operation is
+entirely within one read — find the anchor, cut the UMI, trim ``span``, keep the rest — and the
+second FASTQ contributes nothing to it: it only *inherits* the resulting ``UB`` onto a record
+emitted alongside. Take it away and the operation is unchanged; only the record count out the other
+end moves, from two interleaved records per fragment to one. So the single-end form is the base case
+and the pairing is the addition, sharing the geometry, the anchor search, the bounded reader and
+both truncation verdicts — the only branch is at the write, and the flags say which shape came out
+so the uBAM stays self-describing (a ``SAM PE`` invocation over unpaired records is a crash).
 
 **The output is a uBAM, not FASTQ, and that was measured rather than chosen.** STAR refuses ``UB``
 in ``--outSAMattributes`` outside its single-cell mode (``FATAL INPUT ERROR: ... not allowed for
@@ -62,7 +71,8 @@ file is not aligning reads.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
+from contextlib import ExitStack, closing
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
@@ -88,6 +98,12 @@ TRAILING_MAX_MISMATCH = 1
 #: The same two values ``samtools import`` writes, because a uBAM's flags are not ours to invent.
 _FLAG_READ1 = 0x1 | 0x4 | 0x8 | 0x40
 _FLAG_READ2 = 0x1 | 0x4 | 0x8 | 0x80
+
+#: One unaligned read that is not half of anything: ``UNMAPPED`` and nothing else. Deliberately not
+#: ``_FLAG_READ1`` with the mate bits cleared — a record that keeps PAIRED with no mate beside it
+#: reads as a truncated pair to everything downstream, and the aligner invocation is derived from
+#: these flags rather than told, so they are the whole statement of which shape was written.
+_FLAG_UNPAIRED = 0x4
 
 #: The budget this module does not have. Spelled as a value rather than left implicit so that a
 #: reader who came here from the bounded-read rule sees the opt-out and its reason (the header
@@ -459,7 +475,10 @@ class ExtractStats:
     """What one cell's extraction did — the numbers a rule log and a QC page want."""
 
     sample: str
-    pairs: int
+    #: Input molecules, which is one record out on a single-end plate and two on a paired one. Not
+    #: ``pairs``: that name states the paired shape as though it were the only one, and the count it
+    #: names is a count of what came IN, which the mate's presence does not change.
+    fragments: int
     tagged: int
     #: How many tagged reads had their anchor at each offset. The reason the search is unanchored is
     #: a measured offset distribution, so a run that reports its own is a run that can be checked
@@ -469,13 +488,13 @@ class ExtractStats:
     @property
     def untagged(self) -> int:
         """Internal reads: no tag, no UMI, nothing trimmed. A third to two thirds of a real library."""
-        return self.pairs - self.tagged
+        return self.fragments - self.tagged
 
     def to_dict(self) -> dict[str, object]:
         """The JSON the verb prints. Offsets are string-keyed because JSON object keys are strings."""
         return {
             "sample": self.sample,
-            "pairs": self.pairs,
+            "fragments": self.fragments,
             "tagged": self.tagged,
             "untagged": self.untagged,
             "offsets": {str(k): self.offsets[k] for k in sorted(self.offsets)},
@@ -520,24 +539,49 @@ def _segment(
     return segment
 
 
+def _positionally_paired(
+    one: BoundedReader, two: BoundedReader, *, tagged_fastq: Path, mate_fastq: Path
+) -> Generator[tuple[Record, Record | None], None, None]:
+    """Record *n* of the tagged FASTQ with record *n* of its mate, or refuse.
+
+    Positional, as every other tool does, so the input contract stops depending on who produced the
+    FASTQ; files of unequal length are refused rather than zipped to the shorter one, because a pair
+    silently dropped off the end is a cell that counts low and says nothing.
+
+    A generator rather than a branch inside the loop, so the refusal cannot fire — or be forgotten —
+    on a run that has no mate to be unequal with. What it yields is the shape the single-end case
+    yields too, with ``None`` where the mate would be, which is what keeps one loop below.
+    """
+    for index, (rec1, rec2) in enumerate(zip_longest(one, two)):
+        if rec1 is None or rec2 is None:
+            short = mate_fastq if rec2 is None else tagged_fastq
+            raise UmiExtractError(
+                f"{short} runs out at record {index} while its mate does not; the two are "
+                f"paired by position, so a length disagreement is unpairable rather than "
+                f"truncatable"
+            )
+        yield rec1, rec2
+
+
 def extract_umis(
     tagged_fastq: Path,
-    mate_fastq: Path,
+    mate_fastq: Path | None,
     out: Path,
     geometry: TagGeometry,
     *,
     sample: str,
 ) -> ExtractStats:
-    """One cell's two FASTQs -> one uBAM carrying ``UB:Z:``. Returns what it did.
+    """One cell's FASTQ, and optionally its mate's -> one uBAM carrying ``UB:Z:``. Returns what it did.
 
-    ``tagged_fastq`` is the read the layout says carries the tag; ``mate_fastq`` is its partner, and
-    the two are paired **by position** — record *n* with record *n*, names never consulted. Files of
-    unequal length are refused rather than zipped to the shorter one, because a pair silently
-    dropped off the end is a cell that counts low and says nothing.
+    ``tagged_fastq`` is the read the layout says carries the tag. ``mate_fastq`` is its partner
+    **when there is one**: hand over ``None`` for a single-end plate and each fragment becomes one
+    unpaired record instead of two interleaved ones. Nothing else moves — the mate contributes
+    nothing to the extraction and only inherits the ``UB`` the tagged read produced, so the anchor
+    search, the trim and the UMI are the same values either way.
 
     A tagged read loses exactly ``geometry.span`` bases from where its anchor was found; its mate is
     untouched, and an untagged read keeps every base it arrived with. Deterministic end to end:
-    given the same two files this writes the same bytes.
+    given the same input this writes the same bytes.
 
     **It writes straight to ``out``, with no temp-and-rename.** A truncated input is only knowable
     once the read has finished, so a refusal can leave a partial BAM behind — and the tempting fix
@@ -548,21 +592,29 @@ def extract_umis(
     """
     out.parent.mkdir(parents=True, exist_ok=True)
     offsets: dict[int, int] = {}
-    pairs = tagged = 0
-    with open(tagged_fastq, "rb") as raw1, open(mate_fastq, "rb") as raw2:
-        one, two = BoundedReader(raw1, _UNBOUNDED), BoundedReader(raw2, _UNBOUNDED)
+    fragments = tagged = 0
+    with ExitStack() as open_files:
+        raw1 = open_files.enter_context(open(tagged_fastq, "rb"))
+        one = BoundedReader(raw1, _UNBOUNDED)
+        two: BoundedReader | None = None
+        # The base case: one read, one record, nothing beside it. The mate below replaces this
+        # stream rather than the loop that consumes it.
+        source: Generator[tuple[Record, Record | None], None, None] = ((rec, None) for rec in one)
+        if mate_fastq is not None:
+            raw2 = open_files.enter_context(open(mate_fastq, "rb"))
+            two = BoundedReader(raw2, _UNBOUNDED)
+            source = _positionally_paired(
+                one, two, tagged_fastq=tagged_fastq, mate_fastq=mate_fastq
+            )
+        # Closed BEFORE the files it reads through, which is what entering it last buys. A refusal
+        # leaves this loop mid-stream, and a reader generator finalised after its handle is already
+        # closed re-enters its own cleanup on a closed file — which surfaces as an unraisable
+        # exception at some later, unrelated moment instead of as the refusal that caused it.
+        stream = open_files.enter_context(closing(source))
         header = pysam.AlignmentHeader.from_dict(_header(sample))
         with pysam.AlignmentFile(str(out), "wb", header=header) as bam:
-            for index, (rec1, rec2) in enumerate(zip_longest(one, two)):
-                if rec1 is None or rec2 is None:
-                    short = mate_fastq if rec2 is None else tagged_fastq
-                    raise UmiExtractError(
-                        f"{short} runs out at record {index} while its mate does not; the two are "
-                        f"paired by position, so a length disagreement is unpairable rather than "
-                        f"truncatable"
-                    )
+            for index, (rec1, rec2) in enumerate(stream):
                 name, seq, qual = _decoded(rec1, path=tagged_fastq, index=index)
-                _, mate_seq, mate_qual = _decoded(rec2, path=mate_fastq, index=index)
                 qname = _query_name(name)
                 match = find_tag(seq, geometry)
                 if match is None:
@@ -572,20 +624,27 @@ def extract_umis(
                     kept_seq, kept_qual, umi = seq[cut:], qual[cut:], match.umi
                     offsets[match.start] = offsets.get(match.start, 0) + 1
                     tagged += 1
-                # Interleaved, tagged read first: the aligner reads this back as a paired stream and
-                # pairs adjacent records, so the two mates of a fragment must not be separated.
-                for flag, base, qc in (
-                    (_FLAG_READ1, kept_seq, kept_qual),
-                    (_FLAG_READ2, mate_seq, mate_qual),
-                ):
+                # The only branch the mate makes, and it is at the write: one unpaired record, or
+                # two interleaved with the tagged read first — the aligner reads a paired stream
+                # back by pairing adjacent records, so the two mates of a fragment must not be
+                # separated. Everything above this line ran on the tagged read alone.
+                written = [(_FLAG_UNPAIRED, kept_seq, kept_qual)]
+                if mate_fastq is not None and rec2 is not None:
+                    _, mate_seq, mate_qual = _decoded(rec2, path=mate_fastq, index=index)
+                    written = [
+                        (_FLAG_READ1, kept_seq, kept_qual),
+                        (_FLAG_READ2, mate_seq, mate_qual),
+                    ]
+                for flag, base, qc in written:
                     seg = _segment(
                         header, name=qname, seq=base, qual=qc, flag=flag, sample=sample, umi=umi
                     )
                     bam.write(seg)
-                pairs += 1
+                fragments += 1
         _checked(one, tagged_fastq)
-        _checked(two, mate_fastq)
-    return ExtractStats(sample=sample, pairs=pairs, tagged=tagged, offsets=offsets)
+        if two is not None and mate_fastq is not None:
+            _checked(two, mate_fastq)
+    return ExtractStats(sample=sample, fragments=fragments, tagged=tagged, offsets=offsets)
 
 
 __all__ = [

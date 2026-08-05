@@ -120,17 +120,19 @@ def test_a_read_set_may_not_be_empty() -> None:
 
 
 def test_a_requires_test_a_read_set_cannot_reach_fails_at_load_and_points_at_supports() -> None:
-    """The universality rule, proved by construction — it has **no instance in the shipped KB**.
+    """The universality rule, proved by construction — **no shipped spec violates it**.
 
     A `requires` test is a hard AND-gate; a test whose read is absent from the active set is
     *inapplicable* and enters neither the numerator nor its normalizer. So a gate addressed to a read
     only SOME sets carry is a gate that silently stops gating for the sets that lack it — the author
     almost certainly meant either a set-specific `supports`, or a read every set has.
 
-    After `read_count` left the vocabulary bulk's `requires` is empty and no other spec declares a
-    read set, so without this negative case the rule would ship as decoration. The positive control
-    is in the same test on purpose: the identical gate addressed to R1 — a read *every* set carries —
-    must load, or the rule would be rejecting universal gates too and nothing would notice.
+    Two entries declare a read set and neither can fire the refusal: after `read_count` left the
+    vocabulary `bulk-rnaseq`'s `requires` is empty, and `smartseq3` — the rule's first shipped instance
+    — SATISFIES it, its one anchored motif gate addressing R1, the read both of its sets carry. So
+    without this negative case the rule would still ship as decoration. The positive control is in the
+    same test on purpose: the identical gate addressed to R1 — a read *every* set carries — must load,
+    or the rule would be rejecting universal gates too and nothing would notice.
     """
     data = kb.load_spec("bulk-rnaseq").model_dump()
     assert data["read_sets"] == {"se": ["R1"]}, "the fixture is the shipped single-end set"
@@ -1327,6 +1329,112 @@ def test_the_single_end_set_does_not_outrank_a_single_cell_chemistry_on_its_own_
             f"fallback level with a real single-cell chemistry on its own data emits a bulk gene-count "
             f"matrix for a single-cell library at exit 0. Do not widen the tie band to fix this."
         )
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_plates_maximal_read_set_outranks_its_single_end_subset_on_a_paired_deposit(
+    kb_probes: KbProbes,
+) -> None:
+    """A paired-end plate deposit must not silently lose R2 to the subset that declines to explain it.
+
+    `smartseq3` publishes two configurations and declares `se: [R1]` for the second, so from this KB
+    version on EVERY plate deposit has two candidate read sets rather than one. The direction nobody
+    asked for is the subset winning on paired data: that is a whole mate dropped from the alignment at
+    exit 0, and — because `dataset_hash` is taken over the layout the winning set produces — it would
+    also REGENERATE every stored plate manifest rather than recompile it.
+
+    Measured on the entry's own synthetic pair, through `read_set_evaluations` and not through
+    `build_tech_evaluation`'s maximum, for the reason
+    `test_the_single_end_set_does_not_outrank_a_single_cell_chemistry_on_its_own_data` gives: a test
+    that reads only the winner cannot say WHICH set it measured.
+
+    **The maximal set wins by exactly `λ/|R|`** — the orphan penalty a one-role set pays for the one
+    file it left unassigned — so nothing had to be invented for it to win, and the margin does not
+    move with read depth, because it is not evidence. The winning value is also the score this entry
+    had BEFORE it declared a read set, which is what backs the version log's claim that this bump
+    re-keys `run_id` alone. Both figures, the three depths they were taken at, and the method:
+    `docs/research/smartseq3-single-end-configuration.md` (2026-08-05).
+    """
+    from seqforge.resolve.scoring import read_set_evaluations
+
+    specs = kb.load_all_specs()
+    plate = specs["smartseq3"]
+    assert plate.read_set_names() == ["full", "se"], (
+        "the plate declares exactly the two published sets"
+    )
+
+    wps = kb_probes["smartseq3", "full"]
+    assert len(wps) == 2, "the paired configuration is the two-file deposit"
+    evs = {e.read_set: e for e in read_set_evaluations(plate, wps, registry_for(plate))}
+    full, se = evs["full"], evs["se"]
+    assert full.valid and se.valid, "both sets must score a paired plate deposit"
+    assert full.value > se.value, (
+        f"smartseq3's single-end subset scores {se.value:.4f} against the maximal set's "
+        f"{full.value:.4f} on the entry's OWN PAIRED reads (margin {se.value - full.value:+.4f}). The "
+        f"subset winning a two-file deposit drops R2 from the alignment at exit 0 and moves the read "
+        f"layout, so every stored plate manifest is regenerated rather than recompiled. Fix the "
+        f"scoring, not this expectation."
+    )
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_generic_single_end_set_does_not_outrank_the_plates_on_a_single_end_plate_deposit(
+    kb_probes: KbProbes,
+) -> None:
+    """The plate's half of the read-set contest — and it is NOT symmetric with bulk's.
+
+    `test_the_single_end_set_does_not_outrank_a_single_cell_chemistry_on_its_own_data` measures the
+    generic entry losing to every barcoded leaf by ~0.22-0.25, and both halves of that margin are
+    unavailable here: a plate has no onlist to hit (its cell barcode is the FILE), and on a ONE-file
+    deposit neither set orphans anything, so nobody pays `λ/|R|`. ADR-0035 records that a near-tie is
+    therefore the expected result rather than a defect.
+
+    Scored on `smartseq3`'s own single-end deposit — the same reads as the paired one, narrowed to R1
+    by the fixture — through `read_set_evaluations` directly, for the reason the paired case gives.
+
+    **The near-tie is real and its exact margin is NOT — it moves with read depth, and this test
+    scores the depth where it is smallest.** `kb_probes` hands a scorer `seqs[:200]`, at which the two
+    entries tie EXACTLY; on every read, which is what the resolver scores a real deposit on, the plate
+    leads by +0.000999. Both readings are inside `_THETA`, which is the only claim that survives both.
+    The figures, the three depths, and why one support saturates while the other does not:
+    `docs/research/smartseq3-single-end-configuration.md` (2026-08-05).
+
+    **So the assertion is deliberately one-sided: bulk must not WIN, not that the plate must.** That
+    is what makes it depth-proof — it holds at both depths, where an assertion demanding an outright
+    plate win would pass on a deposit and fail on the very fixture that scores it here. Landing inside
+    `_THETA` routes to the `smartseq3` <-> `bulk-rnaseq` edge both entries declare
+    `processing_divergent` / `distinguishable_by: [metadata]` — a Question at exit 4, which is
+    recoverable and is the designed outcome. Asserting an outright plate win would pin this fixture's
+    read depth into a claim about the chemistry, and it would invite the one repair ADR-0035 forbids:
+    #257 measured every additional R1 support on this entry as a strict liability, so tuning the
+    signature to open a margin here trades real per-cell margins for a synthetic contest one.
+    """
+    from seqforge.resolve.escalate import _THETA
+    from seqforge.resolve.scoring import read_set_evaluations
+
+    specs = kb.load_all_specs()
+    plate, bulk = specs["smartseq3"], specs["bulk-rnaseq"]
+
+    wps = kb_probes["smartseq3", "se"]
+    assert len(wps) == 1, "the single-end configuration is the one-file deposit"
+    mine = next(
+        e for e in read_set_evaluations(plate, wps, registry_for(plate)) if e.read_set == "se"
+    )
+    theirs = next(
+        e for e in read_set_evaluations(bulk, wps, registry_for(bulk)) if e.read_set == "se"
+    )
+    assert mine.valid, "smartseq3 must score its own single-end reads, or the set is unreachable"
+    assert theirs.valid, (
+        "the generic fallback does reach this deposit — that is what makes it a contest"
+    )
+    assert theirs.value <= mine.value + _THETA, (
+        f"bulk's single-end read set scores {theirs.value:.4f} against smartseq3's {mine.value:.4f} on "
+        f"a SINGLE-END PLATE deposit (margin {theirs.value - mine.value:+.4f}), decisively above the "
+        f"tie band. There the resolver returns bulk and never reaches the [metadata] edge, so a plate "
+        f"library gets a bulk gene-count matrix at exit 0 — the plausible matrix, strictly worse than "
+        f"the refusal this read set was added to remove. Do not widen the tie band, and do not add an "
+        f"R1 support to open a margin (#257: every one of them is a strict liability)."
+    )
 
 
 @pytest.mark.xdist_group("kb-probes")
