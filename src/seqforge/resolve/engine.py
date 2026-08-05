@@ -9,7 +9,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, TypeVar
@@ -22,6 +22,7 @@ from ..kb.match import carries, resolve_chemistry
 from ..kb.schema import Spec
 from ..models.assertion import Assertion
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
+from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.dataset import INDEX_ROLE
 from ..models.observation import Observation
 from ..models.records import ArchiveRecord
@@ -33,8 +34,10 @@ from .cache import Cache, dataset_id, resume_key
 # The SAME predicate the cross-family guards ask ("does this chemistry have a barcode role?"), taken
 # rather than restated. The drop below exists to stop one of those guards firing on a hint it should
 # never have been offered, so if the two disagreed about what "bulk" means the drop would fail to
-# prevent the very conflict it is for.
-from .escalate import _barcode_read_id, escalate
+# prevent the very conflict it is for. `_THETA` is taken for that reason too: a cell abstains when
+# the plate's chemistry is in the TIE SET its own bytes left, and a tie set measured against a second
+# threshold would be a different tie set from the one the escalator asked its question about.
+from .escalate import _THETA, _barcode_read_id, escalate
 from .geometry import length_feasible
 from .scoring import TechEvaluation, build_tech_evaluation
 from .window import WindowProbe
@@ -532,19 +535,39 @@ class MultiRunOutput:
                 )
         return blockers
 
-    def exit_code(self) -> int:
+    def exit_code(self, *, excluding: Collection[str] = ()) -> int:
+        """The dataset's byte-gate exit code: 3 if the reduction itself blocked, else the max over
+        the runs — one run's blocker or one run's open question is the dataset's.
+
+        ``excluding`` drops named run ids from that max, and has exactly one caller: a plate whose
+        cell ABSTAINED (:data:`CellOutcome`). That cell's question was answered by inheritance and is
+        recorded as a resolved ``Conflict``, so leaving it in the max would refuse the whole plate at
+        exit 4 over a cell that no longer asks anything. It is a keyword on the existing method
+        rather than a second loop beside it so the two can never disagree about what a run's exit
+        code is.
+        """
         if self.blockers:
             return 3
-        return max((r.output.exit_code() for r in self.runs), default=0)
+        return max(
+            (r.output.exit_code() for r in self.runs if r.run_id not in excluding), default=0
+        )
 
 
-#: Which gate turned a dataset down, in the order :func:`reduce_dataset` asks them. ``run`` is a run
+#: Which gate turned a dataset down, in the order :func:`reduce_dataset` asks them. ``cell`` is one
+#: cell of a plate dissenting outright from the chemistry the plate resolved to; ``run`` is a run
 #: that did not resolve on its own bytes (or asked); ``metadata`` is the record join refusing;
 #: ``sample`` is one sample's files spanning two chemistries; ``assay`` is the defensive floor —
 #: nothing left to name an assay with, which the ``run`` gate has already caught in every case that
-#: reaches it. Named rather than inferred from the exit code, because three of the four are exit 3
+#: reaches it. Named rather than inferred from the exit code, because four of the five are exit 3
 #: and a caller rendering a refusal has to say which one.
-RefusalGate = Literal["run", "metadata", "sample", "assay"]
+RefusalGate = Literal["cell", "run", "metadata", "sample", "assay"]
+
+#: What one cell's own bytes said about the chemistry its plate resolved to, under a spec declaring
+#: ``identity.sample_is_cell``. Three outcomes, and the third is not a hedge: a cell that neither
+#: agrees nor dissents outright has ABSTAINED, and abstaining is a verdict about the cell rather than
+#: about the plate. There is deliberately no fourth — and no fifth judgement TYPE either, since an
+#: abstention rides the existing resolved-``Conflict`` channel (ADR-0006's ceiling of four).
+CellOutcome = Literal["conforms", "contradicts", "abstains"]
 
 
 def _distinct(items: Iterable[_ModelT]) -> list[_ModelT]:
@@ -563,6 +586,326 @@ def _distinct(items: Iterable[_ModelT]) -> list[_ModelT]:
             seen.add(key)
             out.append(item)
     return out
+
+
+def plate_chemistries(multi: MultiRunOutput, specs: dict[str, Spec] | None = None) -> list[str]:
+    """The ``identity.sample_is_cell`` chemistries this dataset's runs actually DECIDED.
+
+    Empty is the answer for all sixteen shipped specs and therefore for every dataset seqforge
+    compiles today, which is what makes :func:`_plate_gate` inert rather than merely cheap.
+
+    A run that ASKED names nothing here, however its candidate list is ordered: the plate's chemistry
+    is what its cells DECIDED, and a plate asserted only by cells that declined to answer would be a
+    chemistry the deposit inherits from nobody.
+
+    It is public because `manifest fill` has to ask it *before* it decides whether to pay for the
+    record join. That guard reads ``multi.exit_code() == 0`` — a dataset whose bytes did not decide
+    has never paid for a join — and a plate is the one shape where a run asking is not the same as
+    the bytes not deciding: the sibling cells decided, and the reduction cannot judge the asking one
+    without the sample map. Asking here keeps the widening exactly that narrow. A deposit where NO
+    cell decided names no plate, so it still pays nothing.
+    """
+    kb_specs = specs if specs is not None else load_all_specs()
+    return sorted(
+        {
+            run.winner
+            for run in multi.runs
+            if run.winner is not None
+            and not run.output.result.questions
+            and (spec := kb_specs.get(run.winner)) is not None
+            and spec.identity.sample_is_cell
+        }
+    )
+
+
+@dataclass(frozen=True)
+class _PlateGate:
+    """One plate's cells, each judged against the chemistry the plate itself resolved to.
+
+    **A conjunction, not a vote.** A single cell dissenting outright refuses the dataset, so no cell
+    is ever outvoted by its siblings and the gate creates no new authority over the bytes: every
+    verdict here is still the per-run verdict the byte resolver already reached. The consequence is
+    accepted deliberately — a deposit genuinely holding a plate *and* a separate bulk library now
+    refuses, which is the safe direction, and the remedy is to compile them separately.
+    """
+
+    #: The chemistry the plate resolved to — the one ``sample_is_cell`` id its cells decided.
+    chemistry: str
+    #: run id -> what that cell's bytes said. A run absent from this map was judged by no cell rule
+    #: (it asked about chemistries the plate is not among), and the ``run`` gate still owns it.
+    outcome: dict[str, CellOutcome]
+    #: One resolved ``Conflict`` per abstaining cell — admitted without byte confirmation.
+    conflicts: list[Conflict]
+    #: One ``Blocker`` per outright dissent.
+    blockers: list[Blocker]
+
+    @property
+    def abstained(self) -> frozenset[str]:
+        return frozenset(rid for rid, o in self.outcome.items() if o == "abstains")
+
+
+def _run_reads(run: RunResolution) -> int:
+    """A run's read count: the **minimum** over its files.
+
+    The minimum and not the sum or the mean, because a paired run's reads are FRAGMENTS — R1 and R2
+    are two views of the same molecule, so summing would report a 901-read cell as 1802 and clear a
+    1000-read floor on a cell that has 901 of anything. The minimum is what the shallowest file can
+    support, which is what the aligner will actually see.
+    """
+    return min((o.estimated_total_reads for o in run.output.observations), default=0)
+
+
+def _tie_set(result: ResolveResult) -> set[str]:
+    """The chemistries a run's bytes left within θ of its best — what the run was ASKED about.
+
+    Recomputed from the ranked candidates rather than carried on them: the escalator's tie is an
+    ordering fact about one evaluation, and the reduction is the first thing that needs it a second
+    time. ``equivalence_members`` are folded in because a benign twin recorded alongside a tie member
+    is the same byte-level claim under another name.
+    """
+    values = [c.score.value for c in result.candidates if c.score.value is not None]
+    if not values:
+        return set()
+    best = max(values)
+    return {
+        tech
+        for c in result.candidates
+        if c.score.value is not None and best - c.score.value <= _THETA
+        for tech in (c.technology, *c.equivalence_members)
+    }
+
+
+def _cell_of_run(multi: MultiRunOutput, sample_shas: dict[str, list[str]]) -> dict[str, str]:
+    """run id -> the id of the ``Sample`` (the CELL) it belongs to.
+
+    Inverted from the sample -> files map, which is the *join* the reduction already owns and
+    already materialises for its per-sample chemistry gate. Reading it does not cross ADR-0010: no
+    attribute the metadata resolver DECIDED is consulted, only which files it grouped together.
+
+    A run whose files no sample claims stands as its own cell. That is the honest fallback rather
+    than a refusal, because a dataset with no accession has no records to join and `group.py`'s
+    filename grouping IS the sample identity there — one run, one cell, which is the 1:1 plate.
+    """
+    sample_of_sha = {sha: sid for sid, shas in sample_shas.items() for sha in shas}
+    cell: dict[str, str] = {}
+    for run in multi.runs:
+        found = next(
+            (
+                sample_of_sha[o.file.sha256]
+                for o in run.output.observations
+                if o.file.sha256 in sample_of_sha
+            ),
+            None,
+        )
+        cell[run.run_id] = found if found is not None else run.run_id
+    return cell
+
+
+def _starved_cells(
+    multi: MultiRunOutput, cell_of_run: dict[str, str], floor: int | None
+) -> dict[str, int]:
+    """Cell id -> its read depth, for every cell that does not clear ``floor``. Empty when unset.
+
+    **The threshold gates the Sample, summed over its runs** — per-run count is the minimum over its
+    files (:func:`_run_reads`), per-cell is the sum over its runs. Gating the run instead would make
+    a floor of 1000 silently mean 500 on exactly the 10.5% of plates that are not 1:1, which is the
+    population the ``Sample`` wording of ``sample_is_cell`` exists for.
+    """
+    if floor is None:
+        return {}
+    depth: dict[str, int] = {}
+    for run in multi.runs:
+        cell = cell_of_run[run.run_id]
+        depth[cell] = depth.get(cell, 0) + _run_reads(run)
+    return {cell: n for cell, n in depth.items() if n < floor}
+
+
+def _inherited_conflict(run: RunResolution, plate: str, note: str) -> Conflict:
+    """A cell admitted to the plate **without byte confirmation**, recorded so it is not silent.
+
+    ``status="resolved"`` puts it on the existing auditable-but-non-blocking channel: it surfaces in
+    the report as "37 of 1440 cells were admitted without byte confirmation" and it moves no exit
+    code and no hash. Rejected: a fifth judgement type — four is a deliberate ceiling (ADR-0006), and
+    an inheritance is precisely a disagreement between two truths that code settled, which is what
+    the fourth already is.
+
+    The inherited position is ``inferred`` and not ``observed``: nothing was observed on THIS cell's
+    bytes that says ``plate``. Its rung is 1 — the identity prior (which files are one sample) is
+    what carried the answer across, not any measurement of these reads.
+    """
+    said = run.winner or "undecided"
+    top = next((c.score.value for c in run.output.result.candidates), None)
+    shas = sorted(o.file.sha256 for o in run.output.observations)
+    return Conflict(
+        id=f"conflict-cell-unconfirmed-{run.run_id}",
+        field="library.chemistry",
+        positions=[
+            ConflictPosition(value=plate, basis="inferred", evidence=shas, confidence=0.0),
+            ConflictPosition(
+                value=said,
+                basis="observed",
+                evidence=shas,
+                confidence=top if top is not None else 0.0,
+            ),
+        ],
+        kind="other",
+        decidable_by=["reads"],
+        status="resolved",
+        resolution=Resolution(
+            chosen_value=plate, basis="inferred", rung=1, decided_by="code", note=note
+        ),
+    )
+
+
+def _dissent_blocker(run: RunResolution, plate: str) -> Blocker:
+    """One cell deciding a DIFFERENT chemistry outright — the refusal that kills the silent split.
+
+    Without it, `by_chemistry` reads the difference as a legal partition into assays and the plate
+    compiles as two, at exit 0, each half a study. That reading is correct for a real multi-assay
+    project and catastrophic for a plate; ``sample_is_cell`` is the only thing that tells them apart.
+    """
+    return Blocker(
+        id=f"blk-cell-chemistry-{run.run_id}",
+        code=BlockerCode.UNRESOLVED_CONFLICT,
+        message=(
+            f"{plate} declares that one sample IS one cell, so every cell in this deposit is one "
+            f"library of one chemistry — but cell {run.run_id!r} resolves to {run.winner} on its own "
+            f"bytes, outright. A dissenting cell is not outvoted by its siblings: without this "
+            f"refusal the plate would partition into two assays and compile at exit 0."
+        ),
+        remedy=(
+            "If the deposit really does hold a plate AND a separate library, compile them "
+            "separately — one --fastq-dir each. If it does not, this cell's files are mis-grouped "
+            "or the wrong file was uploaded for it."
+        ),
+        subject=BlockerSubject(kind="dataset", ref=run.run_id),
+        evidence=sorted(o.file.sha256 for o in run.output.observations),
+    )
+
+
+def _plate_gate(
+    multi: MultiRunOutput, metadata: MetadataResolution | None, specs: dict[str, Spec]
+) -> _PlateGate | None:
+    """Judge every cell of a plate against the chemistry the plate resolved to, or ``None``.
+
+    ``None`` — no run decided a ``sample_is_cell`` chemistry — is the answer for every dataset the
+    sixteen shipped specs can describe, and it is what makes the whole gate inert rather than merely
+    cheap: :func:`reduce_dataset` then takes the byte-for-byte path it took before this existed.
+
+    Scoring is untouched and stays per run (ADR-0010 is not crossed either way): every verdict read
+    here is one a run already reached on its own bytes, and the only new thing is the sum, which
+    happens in the reduction after every run has independently resolved. **Nothing pools** — a
+    pooled winner's role assignment would map roles to the pool's pseudo-shas, leaving every real
+    file role-less, so pooling does not remove the per-cell pass, it removes the honest one.
+    """
+    plates = plate_chemistries(multi, specs)
+    if not plates:
+        return None
+    if metadata is None:
+        raise ValueError(
+            "reduce_dataset needs the metadata resolution for a dataset whose bytes named a "
+            f"one-sample-is-one-cell chemistry ({', '.join(plates)}): the admission threshold is "
+            "summed over a Sample's runs, and the sample -> files map is where that join lives"
+        )
+    if metadata.blockers:
+        # The join REFUSED, so the sample -> files map is not one anything may be summed over — a
+        # cell would be judged against a depth built from files nobody could place. Gate 2 refuses
+        # the dataset a few lines below; this gate has nothing trustworthy to say first.
+        return None
+    sample_shas = {s.sample_id: list(s.file_shas) for s in metadata.samples}
+    if len(plates) > 1:
+        # Two plate chemistries is every cell of each dissenting from the other, so there is no
+        # chemistry to inherit and nothing to arbitrate: naming one of them the plate's would be the
+        # vote this gate refuses to hold.
+        return _PlateGate(
+            chemistry=plates[0],
+            outcome={},
+            conflicts=[],
+            blockers=[
+                Blocker(
+                    id="blk-cell-chemistry-plates",
+                    code=BlockerCode.UNRESOLVED_CONFLICT,
+                    message=(
+                        f"this deposit's cells resolve to more than one chemistry that declares one "
+                        f"sample IS one cell ({', '.join(plates)}). Each is an outright dissent from "
+                        f"the other, so there is no plate chemistry to inherit."
+                    ),
+                    remedy="Compile each plate separately — one --fastq-dir each.",
+                    subject=BlockerSubject(kind="dataset", ref=plates[0]),
+                    evidence=plates,
+                ),
+            ],
+        )
+
+    plate = plates[0]
+    cell_of_run = _cell_of_run(multi, sample_shas)
+    starved = _starved_cells(multi, cell_of_run, specs[plate].min_input_reads)
+    floor = specs[plate].min_input_reads
+    outcome: dict[str, CellOutcome] = {}
+    conflicts: list[Conflict] = []
+    blockers: list[Blocker] = []
+    for run in multi.runs:
+        cell = cell_of_run[run.run_id]
+        if cell in starved:
+            # The threshold is asked FIRST, and that order is the whole point of having it: a starved
+            # cell that decided a different chemistry outright is the measured case (GSE207085's cell
+            # 1291 decides bulk on 901 reads, and is proved unwinnable by any weighting). Asked
+            # second, it would dissent and refuse the plate before its depth was ever consulted.
+            outcome[run.run_id] = "abstains"
+            conflicts.append(
+                _inherited_conflict(
+                    run,
+                    plate,
+                    f"cell {cell!r} carries {starved[cell]} reads, under {plate}'s "
+                    f"min_input_reads of {floor}: too few for its bytes to speak for it, so it "
+                    f"inherits the plate's chemistry rather than dissenting from it",
+                )
+            )
+        elif run.output.result.questions:
+            # A cell that ASKED did not decide anything, whatever leads its candidate list — so it is
+            # asked about abstention BEFORE conformance, or a run whose question happens to top out
+            # on the plate's chemistry would be counted as agreeing with an answer it declined to
+            # give. It inherits only when the plate's answer is already one of the things its own
+            # bytes said; a cell asking about a set the plate is not in has not abstained about THIS
+            # plate at all, so it is left out of the map and the `run` gate still refuses the dataset
+            # at exit 4 — a human, not this gate, decides what that one was.
+            if plate in _tie_set(run.output.result):
+                outcome[run.run_id] = "abstains"
+                conflicts.append(
+                    _inherited_conflict(
+                        run,
+                        plate,
+                        f"cell {cell!r} could not separate {plate} from the rest of its tie set, so "
+                        f"the plate's chemistry was already one of the answers its own bytes gave",
+                    )
+                )
+        elif run.winner == plate:
+            outcome[run.run_id] = "conforms"
+        elif run.winner is not None:
+            outcome[run.run_id] = "contradicts"
+            blockers.append(_dissent_blocker(run, plate))
+        # else: no candidate at all — the run's bytes named nothing, it carries its own Blocker, and
+        # the `run` gate refuses at exit 3. There is no chemistry here to conform to or dissent from.
+    return _PlateGate(chemistry=plate, outcome=outcome, conflicts=conflicts, blockers=blockers)
+
+
+def _plate_assays(
+    multi: MultiRunOutput, assays: dict[str, list[RunResolution]], gate: _PlateGate
+) -> dict[str, list[RunResolution]]:
+    """The partition with every abstaining cell moved into the plate's group — the "inherits" half.
+
+    Abstainers are APPENDED, so the group's first run is a conforming one wherever any cell conforms.
+    That matters: `manifest fill` builds the assay's manifest from ``runs[0].output.result``, and a
+    cell that abstained is precisely the one whose result must not name the assay's chemistry.
+    """
+    moved = {r.run_id for r in multi.runs if gate.outcome.get(r.run_id) == "abstains"}
+    out = {
+        tech: kept
+        for tech, runs in assays.items()
+        if (kept := [r for r in runs if r.run_id not in moved])
+    }
+    out[gate.chemistry] = out.get(gate.chemistry, []) + [r for r in multi.runs if r.run_id in moved]
+    return {tech: out[tech] for tech in sorted(out)}
 
 
 @dataclass(frozen=True)
@@ -586,17 +929,32 @@ class DatasetResolution:
     #: One group per **assay** — the samples sharing one chemistry. More than one group is a legal
     #: partition of a large project, not an error; empty means no run named a chemistry at all.
     assays: dict[str, list[RunResolution]]
-    #: The gate that turned this dataset down, or ``None`` when it got through all four.
+    #: The gate that turned this dataset down, or ``None`` when it got through all five.
     refused_at: RefusalGate | None
     #: The DATASET-level reasons behind ``refused_at``. A run's own blockers stay on that run — they
     #: are already in :attr:`result` and in the per-run payload a caller renders.
     blockers: list[Blocker]
     #: The uniform exit contract: 0 decide, 3 refuse, 4 ask.
     exit_code: int
+    #: DATASET-level conflicts the reduction itself raised. Today that is exactly one kind: a cell of
+    #: a plate admitted without byte confirmation, recorded ``resolved`` so it is auditable and
+    #: non-blocking. Empty for every dataset no shipped spec's ``sample_is_cell`` describes.
+    conflicts: list[Conflict] = field(default_factory=list)
+    #: Run ids whose own questions and blockers the reduction set aside, because the cell abstained
+    #: and inherited its plate's chemistry. Each one is answered by a row in :attr:`conflicts`, so
+    #: dropping it from the verdict loses no judgement — it moves it to the channel that records a
+    #: settled one.
+    abstained: frozenset[str] = frozenset()
 
     @property
     def observations(self) -> list[Observation]:
         return self.runs.observations
+
+    @property
+    def _judging_runs(self) -> list[RunResolution]:
+        """The runs whose surfaced judgements are still the dataset's. Every run, minus the cells
+        that abstained — identical to ``self.runs.runs`` wherever no plate is in play."""
+        return [r for r in self.runs.runs if r.run_id not in self.abstained]
 
     def role_of_sha(self) -> dict[str, str]:
         """The dataset-wide file-sha -> role map. A six-run dataset has six R1s; this is where they
@@ -622,36 +980,50 @@ class DatasetResolution:
         only the runs' blockers would be empty on exactly the two gates this reduction added: a
         consumer reading one result would see exit 3 and no code to name it by, which is the same
         unnameable refusal one run's-worth of conflicts would have been.
+
+        An ABSTAINING cell contributes none of the three and contributes :attr:`conflicts` instead.
+        Its question was answered by inheritance, and a question that has been answered must not
+        still be asked: carried through, one cell of fourteen hundred asking would refuse the whole
+        plate at exit 4 over a cell the reduction already admitted.
         """
         runs = next(iter(self.assays.values()), None) or self.runs.runs
         if not runs:
             raise ValueError(
                 "a dataset with no runs has no result — resolve_runs was given no files"
             )
+        judging = self._judging_runs
         return runs[0].output.result.model_copy(
             update={
                 "conflicts": _distinct(
-                    c for r in self.runs.runs for c in r.output.result.conflicts
+                    [c for r in judging for c in r.output.result.conflicts] + self.conflicts
                 ),
-                "questions": _distinct(
-                    q for r in self.runs.runs for q in r.output.result.questions
-                ),
+                "questions": _distinct(q for r in judging for q in r.output.result.questions),
                 "blockers": _distinct(
-                    [b for r in self.runs.runs for b in r.output.result.blockers] + self.blockers
+                    [b for r in judging for b in r.output.result.blockers] + self.blockers
                 ),
             }
         )
 
 
 def reduce_dataset(
-    multi: MultiRunOutput, metadata: MetadataResolution | None = None
+    multi: MultiRunOutput,
+    metadata: MetadataResolution | None = None,
+    *,
+    specs: dict[str, Spec] | None = None,
 ) -> DatasetResolution:
     """Reduce N independently-resolved runs + the metadata resolution to one dataset-level verdict.
 
-    Four gates, asked in this order, each of which is a refusal a caller renders its own way:
+    Five gates, asked in this order, each of which is a refusal a caller renders its own way:
 
+    0. **a cell of a plate dissented** — under a chemistry declaring ``identity.sample_is_cell``,
+       one cell deciding a *different* chemistry outright (:func:`_plate_gate`). Asked first because
+       a dissent is the strongest claim available about a plate and must not be masked by a sibling
+       cell's question; inert, and the four gates below are byte-for-byte what they were, wherever no
+       run decided a ``sample_is_cell`` chemistry — which is every dataset the sixteen shipped specs
+       can describe;
     1. **a run did not resolve** — ``multi.exit_code()`` is the max over the runs, so one run's
-       blocker (exit 3) or one run's open question (exit 4) is the dataset's;
+       blocker (exit 3) or one run's open question (exit 4) is the dataset's. An abstaining cell is
+       excluded from that max: it no longer asks anything, and what it inherited is recorded;
     2. **the record join refused** — a record whose runs do not match the files on disk;
     3. **a sample spans two chemistries** — the relocated "runs must agree" invariant, per-SAMPLE
        (:meth:`MultiRunOutput.sample_disagreements`). Across *different* samples a difference is a
@@ -659,24 +1031,44 @@ def reduce_dataset(
     4. **nothing named an assay** — the defensive floor. Every run whose bytes decided nothing
        carries its own blocker, so gate 1 has already caught this in practice.
 
-    ``metadata`` is read for exactly one thing: the sample -> files map gate 3 needs. No attribute
-    it resolved is consulted, and none may be — the two resolvers are not shown each other's input
-    (ADR-0010), and this is their join, not a channel between them.
+    Gates 0 and 3 read the SAME cross-sample difference and part on one declared fact. Across
+    different samples that difference is a legal partition into assays — correct for a real
+    multi-assay project, and catastrophic for a plate, where it splits one experiment in two at exit
+    0. ``sample_is_cell`` is the only thing that tells the two apart, which is why it is declared.
 
-    ``None`` means the caller has not run the join, which is legal only when gate 1 refuses first —
-    `manifest fill` has never paid for a record join over a dataset whose bytes did not decide, and
-    making this function the sole caller of it would have changed that. Reaching gate 2 without one
-    RAISES rather than proceeding: an empty resolution would sail through gate 3 (no samples, no
-    disagreements) and silently drop the per-sample invariant this reduction exists to apply.
+    ``metadata`` is read for exactly two things: the sample -> files map gate 3 needs, and the same
+    map summed into per-cell read depths for gate 0's threshold. No attribute it resolved is
+    consulted, and none may be — the two resolvers are not shown each other's input (ADR-0010), and
+    this is their join, not a channel between them.
+
+    ``None`` means the caller has not run the join, which is legal only when a gate that needs no
+    join refuses first — `manifest fill` has never paid for a record join over a dataset whose bytes
+    did not decide, and making this function the sole caller of it would have changed that. Reaching
+    gate 2 without one RAISES rather than proceeding: an empty resolution would sail through gate 3
+    (no samples, no disagreements) and silently drop the per-sample invariant this reduction exists
+    to apply. A dataset whose bytes named a plate raises at gate 0 for the same reason.
     """
     assays = multi.by_chemistry()
+    plate = _plate_gate(multi, metadata, specs if specs is not None else load_all_specs())
+    if plate is not None:
+        assays = _plate_assays(multi, assays, plate)
+    abstained = plate.abstained if plate is not None else frozenset()
+    inherited = plate.conflicts if plate is not None else []
 
     def _refused(gate: RefusalGate, blockers: list[Blocker], code: int) -> DatasetResolution:
         return DatasetResolution(
-            runs=multi, assays=assays, refused_at=gate, blockers=blockers, exit_code=code
+            runs=multi,
+            assays=assays,
+            refused_at=gate,
+            blockers=blockers,
+            exit_code=code,
+            conflicts=inherited,
+            abstained=abstained,
         )
 
-    if (code := multi.exit_code()) != 0:
+    if plate is not None and plate.blockers:
+        return _refused("cell", plate.blockers, 3)
+    if (code := multi.exit_code(excluding=abstained)) != 0:
         return _refused("run", list(multi.blockers), code)
     if metadata is None:
         raise ValueError(
@@ -690,7 +1082,15 @@ def reduce_dataset(
         return _refused("sample", sample_blockers, 3)
     if not assays:
         return _refused("assay", [], 3)
-    return DatasetResolution(runs=multi, assays=assays, refused_at=None, blockers=[], exit_code=0)
+    return DatasetResolution(
+        runs=multi,
+        assays=assays,
+        refused_at=None,
+        blockers=[],
+        exit_code=0,
+        conflicts=inherited,
+        abstained=abstained,
+    )
 
 
 def _resolve_one_run(

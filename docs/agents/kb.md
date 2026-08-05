@@ -64,6 +64,22 @@ here that the model needs in order to name the node at all.
   it drifted freely with nothing to notice. The derivation reproduces all five hand-typed values
   exactly, which is how you know it was only ever a comment. Two other fields died the same way; if
   you are about to add a field nothing reads, that is the pattern.
+- **`identity.sample_is_cell` says one `Sample` of this chemistry IS one cell** — demultiplexing
+  happened at the bench, so the cell barcode is the *file* and not a read. Declared and never
+  derived: `umi ∧ ¬barcode` is backwards for SMART-seq2 (neither, still one cell per file) and for
+  UMI-tagged bulk (a UMI, no barcode, one file per specimen), because the property is about *where*
+  demultiplexing happened and no byte reports that. It says `Sample` because 20 of 190 well-labelled
+  plate deposits are not strictly 1:1. Its sole consumer is `reduce_dataset`'s cell gate
+  ([`resolve.md`](resolve.md)); it never enters a manifest, so `dataset_hash` is untouched by
+  construction. Rejected: a three-value cell-axis field (two of its three values are derivable), and
+  any name built on "demultiplexed" — every Illumina run is sample-demultiplexed at bcl2fastq, so a
+  reader would tick that box for a droplet chemistry too.
+- **`Spec.min_input_reads` is an admission threshold, and it is top level for that reason** —
+  `identity` *names* the technology and a threshold names none. Summed over a `Sample`'s runs, never
+  per run. A number here must sit **under the probe budget**: below it the per-file count is exact
+  (the probe read to EOF), above it the count is an extrapolation that moves with `--max-reads`.
+  Both fields default off, so **zero shipped `spec.yaml` files declare either** — the regression bar
+  getting cheaper by construction rather than by measurement, pinned hermetically in `tests/test_kb.py`.
 - **`Spec._cross_refs` resolves everything by name**: every test's `read` and `element`, every
   `anchor.ref_element`, and every onlist alias, against the reads and elements block. A dangling name
   is a load-time failure, not a scoring-time surprise.

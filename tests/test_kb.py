@@ -6,11 +6,12 @@ import gzip
 from pathlib import Path
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from conftest import KbProbes, write_fastq_gz
 from seqforge import kb
-from seqforge.kb.schema import Spec
+from seqforge.kb.schema import Identity, Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
 
@@ -944,6 +945,55 @@ def test_a_spec_that_calls_onlists_decisive_can_actually_reach_one() -> None:
     )
 
 
+def test_no_shipped_spec_says_a_sample_is_a_cell_or_sets_a_read_floor() -> None:
+    """`sample_is_cell: False` / `min_input_reads: None` are the defaults, so ZERO spec.yaml files move.
+
+    That is the regression bar for the whole plate mechanism getting cheaper by construction rather
+    than by measurement: every shipped entry keeps the file it had, and the reduction's cell gate is
+    provably inert across the KB as it stands (`reduce_dataset`'s companion test asserts the other
+    half — that inert means the byte-for-byte old path).
+
+    Read off the FILES and not off the loaded model, because a default is exactly what a model read
+    cannot distinguish from a declaration. The two fields sit at different levels on purpose:
+    `identity` NAMES the technology, and an admission threshold names none, so `min_input_reads` is
+    top level.
+
+    `Spec` is deliberately absent from `SCHEMA_MODELS`, so neither field moves `schema export`. The
+    KB schema is Pydantic so that one executable validator also self-tests every entry — not because
+    anything on the wire or at the model seam consumes it; a spec.yaml is human-authored and
+    CI-validated, and no model writes one. What holds "the schema export is the schema" for the KB is
+    `kb lint` and the round-trip, and this assertion sits here so a reader looking for the golden
+    that did not move finds the reason rather than the absence.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+    from seqforge.models import SCHEMA_MODELS
+
+    assert "Spec" not in SCHEMA_MODELS
+    assert Spec.model_fields["min_input_reads"].default is None
+    assert Identity.model_fields["sample_is_cell"].default is False
+    for spec_id in kb.list_spec_ids():
+        raw = yaml.safe_load((SPECS_DIR / spec_id / "spec.yaml").read_text())
+        assert "min_input_reads" not in raw, spec_id
+        assert "sample_is_cell" not in raw["identity"], spec_id
+        spec = kb.load_spec(spec_id)
+        assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
+
+
+def test_a_read_floor_of_zero_is_a_gate_that_cannot_fire() -> None:
+    """`min_input_reads: 0` admits everything while reading as a threshold somebody chose.
+
+    `None` already says "admit everything" and says it once; a zero would be a second spelling of it
+    that looks like a decision, which is the shape a reviewer cannot check. So the schema refuses it
+    where the DSL is executed, exactly as it refuses a typo'd key.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    assert Spec.model_validate({**raw, "min_input_reads": 1000}).min_input_reads == 1000
+    with pytest.raises(ValidationError, match="min_input_reads"):
+        Spec.model_validate({**raw, "min_input_reads": 0})
+
+
 def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:
     """It was a hand-typed field on every spec, read by nothing, with a comment claiming CI computed it.
 
@@ -973,8 +1023,6 @@ def test_writing_a_decidable_by_into_a_spec_is_now_an_error() -> None:
     being silently ignored beside the property that replaced it — which is exactly how a
     hand-maintained contract comes back.
     """
-    import yaml
-
     from seqforge.kb.loader import SPECS_DIR
 
     raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
