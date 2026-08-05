@@ -129,12 +129,7 @@ def manifest_fill(
         # A --records file that is not a record set refuses the same way an unfetchable one does:
         # the facts you named cannot be used. It carries blockers rather than a sentence, because
         # every one of them names a line to edit — and a stack trace out of a YAML parser names none.
-        typer.echo(
-            json.dumps(
-                {"error": "records_invalid", **exc.report.model_dump(mode="json")}, indent=2
-            ),
-            err=True,
-        )
+        typer.echo(json.dumps(exc.envelope, indent=2), err=True)
         raise typer.Exit(3) from exc
 
     _emit(

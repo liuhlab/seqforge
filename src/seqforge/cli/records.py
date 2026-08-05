@@ -33,7 +33,7 @@ from typing import NoReturn
 import typer
 
 from ..manifest import exit_code_for_report
-from ..models.records import USER_SOURCE, ArchiveRecordSet, RecordLevel
+from ..models.records import ArchiveRecordSet, RecordLevel
 from ..models.resolve import RecordSetResult, RecordSetSummary, ValidationReport
 from ..recordset import RecordSetError, draft_record_set, load_record_set
 from .root import records_app
@@ -47,7 +47,7 @@ _LEVELS: tuple[RecordLevel, ...] = ("project", "sample", "experiment", "run")
 def _summarize(records: ArchiveRecordSet) -> RecordSetSummary:
     """Describe a loaded set in the terms its author wrote it in."""
     fused: dict[str, list[str]] = {}
-    if records.source == USER_SOURCE:
+    if records.declared_by_hand:
         claimed: dict[str, list[str]] = {}
         for run in records.at("run"):
             if run.parent is not None:

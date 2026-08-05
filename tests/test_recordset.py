@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -187,6 +188,62 @@ def test_a_duplicate_id_is_refused(tmp_path: Path) -> None:
 
     assert [b.id for b in caught.value.blockers] == ["blk-record-set-id"]
     assert "declared twice" in caught.value.blockers[0].message
+
+
+#: Each entry is a consumer of the id, not a taste: the tab and the newline are the `units.tsv`
+#: delimiters, `..` and the slash are path components under the results directory, the space and the
+#: semicolon are argument boundaries where the workflow interpolates `{sample}` unquoted, and the
+#: leading hyphen is an option to the commands it is passed to.
+_UNTYPEABLE_IDS = ["plate\t7", "plate\n7", "..", "../etc", "plates/7", "plate 7", "a;b", "-plate"]
+
+
+@pytest.mark.parametrize("ident", _UNTYPEABLE_IDS)
+def test_an_id_that_could_not_be_a_sample_id_is_refused(tmp_path: Path, ident: str) -> None:
+    """A hand-written id is a grouping key, and a grouping key becomes a filename.
+
+    A run with no sample above it is its own sample, so any id here can reach `ResolvedSample`,
+    which is a plain `str` — and from there a `units.tsv` cell, a results directory, an `.h5ad` stem
+    and an unquoted shell word. `accession` was made unrepresentable for a hand-written set by being
+    set to `None`; the grouping key was not, and it is the half that gets written to disk.
+
+    Refused HERE because here is where the human's input arrives, and because every layer below has
+    already stopped being able to: by the time a tab has split a units row the manifest is written,
+    content-addressed and permanent, and what fails is a workflow several stages away that names
+    none of this.
+    """
+    payload = _two_runs()
+    payload["records"][0]["id"] = ident
+    with pytest.raises(RecordSetError) as caught:
+        load_record_set(_write(tmp_path, payload))
+
+    (blocker,) = caught.value.blockers
+    assert blocker.id == "blk-record-set-id"
+    assert blocker.evidence == [ident], "the refusal names the string, not just the rule"
+    assert "letters, digits" in blocker.remedy, "and says what IS allowed"
+
+    # A rule the author has to apply themselves is a rule retyped wrong once, so the remedy carries
+    # a spelling to paste — and that spelling has to be one this loader accepts. A remedy refused by
+    # the thing that printed it is worse than no remedy at all, and nothing else would notice.
+    suggested = re.search(r"`([^`]+)` is the nearest", blocker.remedy)
+    assert suggested is not None, blocker.remedy
+    payload["records"][0]["id"] = suggested.group(1)
+    assert load_record_set(_write(tmp_path, payload, "fixed.yaml")).at("run")
+
+
+@pytest.mark.parametrize("ident", ["plateA_S1", "plate.7", "7plate", "a", "lib-01_S3.rep2"])
+def test_the_ids_a_human_would_actually_type_still_load(tmp_path: Path, ident: str) -> None:
+    """The other half of the rule, and the half an over-tight allowlist would break silently.
+
+    Every one of these is a name somebody would write on a tube, and `plateA_S1` in particular is
+    what `run_key` itself produces — so a rule that refused it would refuse the draft `records new`
+    writes over ordinary Illumina filenames, which is the one file this loader must never reject.
+    """
+    payload = _two_runs()
+    payload["records"][0]["id"] = ident
+    assert [r.accession for r in load_record_set(_write(tmp_path, payload)).records] == [
+        ident,
+        "plateA_S3",
+    ]
 
 
 def test_an_unknown_key_on_a_record_is_refused(tmp_path: Path) -> None:
@@ -541,3 +598,24 @@ def test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set(
 
     assert caught.value.blockers[0].id == "blk-record-set-no-fastq"
     assert caught.value.blockers[0].remedy
+
+
+def test_a_directory_whose_run_keys_could_not_be_sample_ids_refuses_too(tmp_path: Path) -> None:
+    """The same rule, held at the other end: what this verb writes must be what the loader takes.
+
+    A run key is a filename with its extension and its mate token taken off, so a directory of oddly
+    named reads yields ids the loader refuses — and `records new -o` reads its own draft back, so it
+    would report a directory it cannot draft for as "a bug in seqforge", which it is not. Refused
+    here instead, naming the runs, so "a draft always loads" holds by construction rather than by the
+    coincidence that most reads are named sanely.
+    """
+    directory = tmp_path / "odd"
+    _touch_fastqs(directory, ["-weird_S1_R1_001.fastq.gz", "-weird_S1_R2_001.fastq.gz"])
+
+    with pytest.raises(RecordSetError) as caught:
+        draft_record_set(directory)
+
+    (blocker,) = caught.value.blockers
+    assert blocker.id == "blk-record-set-id"
+    assert blocker.evidence == ["-weird_S1"], "the refusal names the run key, not the whole listing"
+    assert "Rename" in blocker.remedy

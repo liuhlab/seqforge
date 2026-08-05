@@ -423,7 +423,7 @@ def run_cmd(
     except RecordSetError as exc:
         # Same exit as an unfetchable record and for the same reason — the records you named cannot
         # be used — but carrying the blockers, since each one names a line of that file to edit.
-        stages["records"] = {"error": "records_invalid", **exc.report.model_dump(mode="json")}
+        stages["records"] = exc.envelope
         _run_finish(stages, 3)
     if records is not None:
         stages["records"] = {

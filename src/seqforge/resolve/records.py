@@ -102,13 +102,7 @@ from ..models.base import Basis
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.evidenced import EvidencedStr, EvidencedTaxid
 from ..models.observation import FileIdentity
-from ..models.records import (
-    USER_SOURCE,
-    ArchiveRecord,
-    ArchiveRecordSet,
-    RecordAttribute,
-    SubmittedFile,
-)
+from ..models.records import ArchiveRecord, ArchiveRecordSet, RecordAttribute, SubmittedFile
 from ..models.resolve import MetadataResolution, ProjectFacts, ResolvedSample
 from .group import run_key
 
@@ -271,7 +265,7 @@ def _join(
         return _join_by_filename(files), [], []
 
     runs = records.at("run")
-    declared_by_user = records.source == USER_SOURCE
+    declared_by_user = records.declared_by_hand
     by_accession = {r.accession: r for r in runs}
     # The submitted file itself and not just its name: the size on it is read below, and looking it
     # up a second time from the run would mean re-deciding which of that run's entries matched.
@@ -453,7 +447,7 @@ def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
     the two ways to close it.
     """
     declared = sorted({r.accession for r in records.at("run")})
-    user_written = records.source == USER_SOURCE
+    user_written = records.declared_by_hand
     # A hand-written set's `query` is not an accession — it defaults to the file's own stem — so it
     # is introduced as the name of a file rather than dropped where a reader expects one to be typed.
     named = f"the record set {records.query}" if user_written else records.query

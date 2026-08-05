@@ -66,10 +66,20 @@ Because the whole precedence table rests on their absence. Three further reasons
 2. **R2 has no way to check them.** Every `Assertion` quote must grep back *and* entail its value. A
    YAML attribute has no document to grep, so verification would be vacuous — the defect
    [0021](0021-one-deposit-is-one-source-at-every-layer.md) records under a different name.
-3. **The exclusion is self-enforcing downstream.** `_worth_asking` gates on `has_prose`, which is
-   `any(ft.text.strip() ...)`, so a set with no free text is invisible to harvest with no guard
-   written. `_project_facts` and `_organism` return `None` by paths that already exist. Structure-only
-   touches exactly one consumer: `_join`.
+3. **The exclusion needs no new *decision* downstream — though it did need one guard, and this file
+   was wrong about that.** `_worth_asking` gates on `has_prose`, which is `any(ft.text.strip() ...)`,
+   so a structure-only set renders no document and the plan comes back empty; nothing is asked
+   because there is nothing askable. What this record originally claimed follows — that such a set is
+   *"invisible to harvest with no guard written"* — did not. An empty plan was a state `harvest
+   extract` could not survive: with no documents the loop that builds the extractor never ran and the
+   verify step asserted on the `None` it was left holding, so the feature's primary use case ended in
+   a traceback, and `run` (which counts `--records` as prose, correctly) took the whole compile down
+   with it. **That is a plan-with-no-documents defect and not an attributes one** — an archive
+   transcript whose records carry no prose reached the identical state, and always had — and it is
+   now an empty extraction at exit 0, decided before a provider is resolved, writing the same empty
+   `assertions.json` a real run writes. `_project_facts` and `_organism` do return `None` by paths
+   that already exist. Structure-only touches exactly one consumer that had to *decide* anything new:
+   `_join`.
 
 A lab that does know its genotypes writes them in a README and harvests them. That path exists, and it
 keeps the span.
@@ -140,6 +150,16 @@ both, and they are written down here so the next reader does not re-derive them:
   rather than as anything a caller could act on. `_join` keeps neither for a declared sample, which
   is the no-attributes rule holding from the other side: a structure-only set leaves `_positions_for`
   nothing to read.
+- **And the grouping key itself is constrained, at the loader.** Making the accession `None` says
+  what the id is *not*; nothing said what it may be. A `source: user` id becomes `sample_id` — a
+  plain `str` — then a `units.tsv` cell, a results directory, an `.h5ad` stem and an unquoted shell
+  word, so a tab splits the units row, a `/` or a leading `.` moves the output out of the results
+  directory, and a leading `-` is read as an option. The rule is an **allowlist**, `[A-Za-z0-9]` then
+  any of letters, digits, `.`, `_`, `-`, refused with a `Blocker` carrying the nearest legal
+  spelling: the hazard is open-ended, so what protects the next consumer of a sample id is what this
+  admits and not which of today's it forbids. Only the hand-written dialect — an archive id is an
+  accession, already well formed, in a cache nobody can re-type. `records new` applies the same rule
+  to the run keys it derives, so "a draft always loads" holds by construction.
 
 ## So in code
 
@@ -160,6 +180,11 @@ this record exists for, against the identical set minus the attribute, which loa
 `test_a_dangling_parent_is_refused_by_the_id_it_names`,
 `test_a_run_parented_to_another_run_is_refused`, `test_a_duplicate_id_is_refused`,
 `test_an_unknown_key_on_a_record_is_refused`, `test_an_unknown_key_on_the_set_is_refused`,
+`test_an_id_that_could_not_be_a_sample_id_is_refused` (parametrized over the tab, the newline, `..`,
+a slash, a space, a `;` and a leading `-` — each one a consumer of the id rather than a taste — and
+asserting that the spelling the remedy suggests is one this same loader accepts) against
+`test_the_ids_a_human_would_actually_type_still_load`, which is the half an over-tight allowlist
+would break silently,
 `test_a_run_with_no_filenames_and_a_sample_with_them_are_both_refused`,
 `test_one_file_declared_by_two_runs_is_refused` and `test_every_refusal_names_something_to_type`.
 One loader over both dialects is `test_json_and_yaml_are_one_code_path`, with the archive spelling
@@ -188,8 +213,19 @@ declares no sample record at all. The comments it exists for are
 `test_the_draft_names_the_sample_sheet_pair_it_will_not_decide`,
 `test_the_draft_names_the_flowcell_pair_it_will_not_decide` and
 `test_an_unambiguous_draft_says_the_scan_ran_and_found_nothing`;
-`test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set` keeps a draft that would
-not load from being written.
+`test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set` and
+`test_a_directory_whose_run_keys_could_not_be_sample_ids_refuses_too` keep a draft that would not
+load from being written.
+
+The empty plan, in `tests/test_extract.py`: `test_a_structure_only_record_set_plans_nothing_and_asks_nobody`
+(no documents, no requests, no estimated tokens — and `extract_planned` over it returns an empty list
+against a provider that raises if touched). Where that lands is `tests/test_cli.py`:
+`test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash`, parametrized over both
+dialects because the archive one was never new, with the provider stubbed to refuse so that
+"resolved before" would fail; and
+`test_a_structure_only_records_compile_reaches_the_manifest_with_no_credential`, which drives
+`seqforge run` over a fusing set **without** `--no-llm` and no provider reachable, and asserts the
+compile reaches the Snakefile with all four files under one `lib01`.
 
 The verbs, in `tests/test_cli.py`:
 `test_records_is_a_top_level_group_and_io_records_is_left_where_it_was` (introspected off the live

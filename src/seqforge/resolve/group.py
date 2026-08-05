@@ -85,6 +85,21 @@ def _strip_ext(name: str) -> str:
     return name
 
 
+def is_fastq_name(name: str) -> bool:
+    """Does this basename look like a FASTQ this module can key?
+
+    The public face of :data:`_EXTS`, and it lives beside :func:`_strip_ext` because those two must
+    never disagree: a file admitted by one and not stripped by the other would be keyed by a name
+    still carrying its suffix, so it would form a run of its own and take its mate with it. Callers
+    that select files from a directory — the record-set draft is the one today — get the predicate
+    rather than the list, so the extension vocabulary stays owned by the module that acts on it.
+
+    A **name** and never a path, for the reason :func:`run_key` is: whether a file is a FASTQ is a
+    fact about what it is called, not about which directory it landed in, and nothing here opens it.
+    """
+    return name.lower().endswith(_EXTS)
+
+
 def _strip_lane(stem: str) -> tuple[str, str]:
     """`("cell_42_S1_L001")` -> `("cell_42_S1", "L001")`; no lane token -> `(stem, "")`."""
     match = _LANE.match(stem)

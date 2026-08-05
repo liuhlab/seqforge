@@ -1506,9 +1506,17 @@ def test_a_withheld_documents_subject_is_load_bearing_not_bookkeeping() -> None:
 # never a refusal; fired on a deposit that same note would report every ordinary run-to-BioSample
 # fusion, which is how a warning stops being read. And a set with no accession and no writer stamp
 # would otherwise be told to re-fetch from an archive it was never near.
+#
+# The hand-written fixture goes through the loader and the ARCHIVE one below does not, which is the
+# asymmetry rather than an oversight: the archive dialect IS the container model — the loader
+# validates it and nothing more — so a set built directly is byte-for-byte what a cache would load
+# as. Only the user dialect has rules living outside the model, and only there can a constructed
+# fixture say something the product refuses.
 
 
-def _user_record_set(*, sample_of: dict[str, str], query: str = "records.yaml") -> ArchiveRecordSet:
+def _user_record_set(
+    tmp_path: Path, *, sample_of: dict[str, str], query: str = "records.yaml"
+) -> ArchiveRecordSet:
     """A structure-only set: two runs of one library, and which sample each declares itself part of.
 
     `sample_of` maps a run id to the sample id it parents to, so one call builds both arrangements —
@@ -1517,30 +1525,39 @@ def _user_record_set(*, sample_of: dict[str, str], query: str = "records.yaml") 
     the precedence table's `asserted` means "a submitter typed this into a slot", so the container is
     widened by `source` alone (`docs/adr/0034`).
 
+    **Written as YAML and read back through the real loader**, never built as a model. The container
+    does not enforce the hand-written dialect — that is the whole reason `recordset.py` exists — so a
+    fixture constructing `ArchiveRecordSet(source="user", ...)` directly can express a set the
+    product refuses, and every test below would then be proved against a file nobody could ever hand
+    the CLI. It is the same argument `evals/case.py` settled for the corpus: an input validated more
+    weakly than the product validates it cannot pre-register what the product will do with it. Here
+    it is load-bearing twice over, because both properties under test are keyed on `source` and the
+    loader is what decides what a `source: user` set may say.
+
     The run ids are not the filenames' run keys, which is the realistic shape: a human names the runs
     whatever they call them and joins by `filenames`, so the fuse is visible only by asking what
     `run_key` would have said about the files that landed together.
     """
-    from seqforge.models.records import ArchiveRecord, SubmittedFile
+    import yaml
+
+    from seqforge.recordset import load_record_set
 
     files_of = {
-        "batch1": ("lib7_S1_L001_R1_001.fastq.gz", "lib7_S1_L001_R2_001.fastq.gz"),
-        "batch2": ("lib7_S3_L001_R1_001.fastq.gz", "lib7_S3_L001_R2_001.fastq.gz"),
+        "batch1": ["lib7_S1_L001_R1_001.fastq.gz", "lib7_S1_L001_R2_001.fastq.gz"],
+        "batch2": ["lib7_S3_L001_R1_001.fastq.gz", "lib7_S3_L001_R2_001.fastq.gz"],
     }
-    records = [
-        ArchiveRecord(level="sample", accession=sample)
-        for sample in sorted(set(sample_of.values()))
+    records: list[dict[str, object]] = [
+        {"level": "sample", "id": sample} for sample in sorted(set(sample_of.values()))
     ]
     records += [
-        ArchiveRecord(
-            level="run",
-            accession=run,
-            parent=sample_of[run],
-            submitted_files=[SubmittedFile(filename=name) for name in files_of[run]],
-        )
+        {"level": "run", "id": run, "parent": sample_of[run], "filenames": files_of[run]}
         for run in sorted(sample_of)
     ]
-    return ArchiveRecordSet(source="user", query=query, records=records)
+    # `query` is written out rather than left to default: the loader falls back to the file's own
+    # STEM, and the refusal below is asserted to print the name a human would recognise the file by.
+    path = tmp_path / "records.yaml"
+    path.write_text(yaml.safe_dump({"source": "user", "query": query, "records": records}))
+    return load_record_set(path)
 
 
 def _plate_files() -> list[FileIdentity]:
@@ -1554,7 +1571,9 @@ def _plate_files() -> list[FileIdentity]:
     return [_file(name, str(i).ljust(64, "7")) for i, name in enumerate(names)]
 
 
-def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared() -> None:
+def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared(
+    tmp_path: Path,
+) -> None:
     """The feature working, and the note that keeps it honest.
 
     `_S1` and `_S3` are one library sequenced twice, and nothing in either name says so — that is
@@ -1568,7 +1587,7 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     """
     out = resolve_metadata(
         files=_plate_files(),
-        records=_user_record_set(sample_of={"batch1": "lib7", "batch2": "lib7"}),
+        records=_user_record_set(tmp_path, sample_of={"batch1": "lib7", "batch2": "lib7"}),
     )
 
     assert out.blockers == [], "a declared fuse is never a refusal — it is the primary use case"
@@ -1593,7 +1612,7 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     assert note.subject.ref == f"{SAMPLE_FIELD_PREFIX}lib7"
 
 
-def test_the_safe_draft_grouping_says_nothing() -> None:
+def test_the_safe_draft_grouping_says_nothing(tmp_path: Path) -> None:
     """`records new` drafts one sample per run, so applying it unedited changes no grouping.
 
     That draft must therefore be silent: a note on it would fire on every set a human generated and
@@ -1602,7 +1621,7 @@ def test_the_safe_draft_grouping_says_nothing() -> None:
     """
     out = resolve_metadata(
         files=_plate_files(),
-        records=_user_record_set(sample_of={"batch1": "lib7_a", "batch2": "lib7_b"}),
+        records=_user_record_set(tmp_path, sample_of={"batch1": "lib7_a", "batch2": "lib7_b"}),
     )
 
     assert out.blockers == []
@@ -1643,13 +1662,15 @@ def test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent() -> None:
     assert out.warnings == [], f"an archive fusion is the normal case: {out.warnings}"
 
 
-def test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file() -> None:
+def test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file(
+    tmp_path: Path,
+) -> None:
     """Same refusal, correctly explained. A hand-written set has no accession and no writer stamp,
     so the stale-cache branch fires on every one of them and tells a human to re-fetch records from
     an archive that was never involved — a remedy that cannot be followed and does not describe the
     gap. What is missing is a line in a file they can open.
     """
-    records = _user_record_set(sample_of={"batch1": "lib7"})
+    records = _user_record_set(tmp_path, sample_of={"batch1": "lib7"})
     out = resolve_metadata(
         files=[*_plate_files(), _file("orphan_S9_L001_R1_001.fastq.gz", "9" * 64)],
         records=records,

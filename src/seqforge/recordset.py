@@ -8,15 +8,19 @@ scoring engine's import surface for what is a YAML parse.
 
 **Two dialects, one loader, no extension dispatch.** A record set arrives either as a cache
 ``seqforge io records`` wrote — JSON, four archive levels, attributes and prose — or as a file a human
-typed about data that never went near an archive. ``yaml.safe_load`` reads both, because YAML is a
+typed about data that never went near an archive. A safe YAML load reads both, because YAML is a
 superset of JSON, so ``.json`` and ``.yaml`` are one code path and renaming a file cannot change how
-it parses. What the two do not share is what they may *declare*, and ``source`` decides that:
+it parses. ``CSafeLoader`` rather than ``safe_load``, for the reason the KB's loader gives: same safe
+semantics, libyaml underneath. What the two do not share is what they may *declare*, and ``source`` decides that:
 
 - **anything but ``user``** is an archive transcript, validated exactly as it always was. Tolerant on
   purpose — those files are written by us and are already on disk, so tightening them here would
   refuse caches nobody can re-type.
 - **``user``** is structure and nothing else: ``level``, ``id``, ``parent``, ``filenames``. Every
-  other key is refused at parse, and ``attributes`` / ``free_text`` are refused loudest.
+  other key is refused at parse, and ``attributes`` / ``free_text`` are refused loudest. The one
+  *value* constrained here is the ``id``, because it is the only one that leaves as something other
+  than data: a hand-written id is a grouping key, and a grouping key becomes a filename
+  (:data:`_TYPEABLE_ID`).
 
 **Why that strictness is load-bearing and not tidiness.** The metadata resolver grants a record's
 typed slot the ``asserted`` basis, on one sentence: a record's typed slot for a sample is a
@@ -79,6 +83,37 @@ _USER_LEVELS = ("run", "sample")
 #: so the message can say *why* rather than "not one of four".
 _FACT_KEYS = ("attributes", "free_text")
 
+#: What a hand-written id may be made of: an ASCII letter or digit, then any of letters, digits, dot,
+#: underscore and hyphen. **Chosen from what consumes the id, not from taste**, and every clause below
+#: is a consumer rather than a preference.
+#:
+#: A user set's id is a GROUPING KEY, and a run with no sample above it is its own sample — so any id
+#: here can become a ``ResolvedSample.sample_id``, which is a plain ``str`` all the way down. From
+#: there it is written into a ``units.tsv`` cell, read back by the workflow as ``{sample}``, and used
+#: as **both** a results directory and a file stem (``<outdir>/<sample>/<sample>.h5ad``). Each of
+#: those is a way to be wrong that nothing downstream would catch:
+#:
+#: - a tab or a newline splits the units row it is written into, so the table silently gains a column
+#:   or a record;
+#: - a ``/`` makes one sample two path components, and ``.`` or ``..`` names the results directory's
+#:   own parent — a compile that writes outside where it said it would;
+#: - the workflow interpolates the wildcard into shell commands **unquoted**, so whitespace and shell
+#:   metacharacters become argument boundaries and operators;
+#: - a leading ``-`` is read as an option by the very commands it is passed to.
+#:
+#: An allowlist rather than a list of the characters above, because the failure is open-ended: the
+#: next consumer of a sample id inherits whatever this admits, and a denylist protects only against
+#: the consumers that already exist.
+#:
+#: **Deliberately no length bound.** The filesystem's limit is on the whole name, and the id is only
+#: part of it — the results directory is the caller's, and the suffix the workflow appends is the
+#: module's — so a number here would be a guess at a budget this module cannot see.
+#:
+#: Applied to a ``source: user`` set alone. An archive set's ids are accessions: already well formed,
+#: written by us into content-addressed caches nobody can re-type, and tightening them would refuse
+#: work that is finished.
+_TYPEABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
 #: What a fact-key refusal tells the author to do instead. One sentence, because there is one answer:
 #: the path that keeps a span already exists.
 _HARVEST_INSTEAD = (
@@ -112,6 +147,23 @@ class RecordSetError(ValueError):
         from .models.resolve import ValidationReport
 
         return ValidationReport(ok=False, blockers=self.blockers, conflicts=[])
+
+    @property
+    def envelope(self) -> dict[str, Any]:
+        """The refusal as the JSON object every stage prints — the tag, then the report inline.
+
+        ``manifest fill``, ``run`` and ``harvest extract`` each refuse a bad ``--records`` file, and
+        each had spelled this dict out by hand. Three copies of one wire shape is three chances for a
+        caller's ``error == "records_invalid"`` check to hold on two stages and not the third, and
+        the divergence would be invisible from here: nothing in this module fails when a caller
+        spells its own envelope differently. The exception already owns the report, so it owns the
+        object built from it too.
+
+        Not shared with ``records validate``, which is the one verb whose result IS the verdict: it
+        answers with a :class:`~seqforge.models.resolve.RecordSetResult` on stdout, because it was
+        asked for the report rather than stopped by it.
+        """
+        return {"error": "records_invalid", **self.report.model_dump(mode="json")}
 
 
 def load_record_set(path: Path) -> ArchiveRecordSet:
@@ -333,7 +385,7 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                     ),
                     remedy=(
                         f"Delete {_quoted(stray)}. If it was meant to say what the sample IS, "
-                        f"{_HARVEST_INSTEAD[0].lower()}{_HARVEST_INSTEAD[1:]}"
+                        f"{_spliced(_HARVEST_INSTEAD)}"
                     ),
                     evidence=stray,
                 )
@@ -375,27 +427,34 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                     ),
                 )
             )
-        elif ident in declared:
-            ok = False
-            blockers.append(
-                _refusal(
-                    "blk-record-set-id",
-                    kind="field",
-                    ref=f"{ref}.id",
-                    message=(
-                        f"`{ident}` is declared twice. An id is how `parent` reaches a record, so "
-                        f"two records answering to one id makes the level above ambiguous — and the "
-                        f"walk up from a run would stop at whichever came first."
-                    ),
-                    remedy=(
-                        f"Rename one of them. A run and the sample it belongs to need DIFFERENT ids: "
-                        f"if `{ident}` is the sample you want the matrix named after, give the run "
-                        f"its own id and point its `parent` at `{ident}`."
-                    ),
-                )
-            )
         else:
-            declared[ident] = str(level)
+            # Two independent refusals over one string, deliberately not an `elif` chain: an id can
+            # be both untypeable and a duplicate, and an author fixing one and then being refused
+            # for the other is the loop this module collects blockers to avoid.
+            if _TYPEABLE_ID.fullmatch(ident) is None:
+                ok = False
+                blockers.append(_untypeable_id(ref, ident))
+            if ident in declared:
+                ok = False
+                blockers.append(
+                    _refusal(
+                        "blk-record-set-id",
+                        kind="field",
+                        ref=f"{ref}.id",
+                        message=(
+                            f"`{ident}` is declared twice. An id is how `parent` reaches a record, "
+                            f"so two records answering to one id makes the level above ambiguous — "
+                            f"and the walk up from a run would stop at whichever came first."
+                        ),
+                        remedy=(
+                            f"Rename one of them. A run and the sample it belongs to need DIFFERENT "
+                            f"ids: if `{ident}` is the sample you want the matrix named after, give "
+                            f"the run its own id and point its `parent` at `{ident}`."
+                        ),
+                    )
+                )
+            else:
+                declared[ident] = str(level)
 
         named = ident if isinstance(ident, str) and ident.strip() else ref
 
@@ -567,6 +626,53 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
     )
 
 
+def _untypeable_id(ref: str, ident: str) -> Blocker:
+    """An id that cannot safely be a sample id, refused where the human's input arrives.
+
+    **Refused here and nowhere else**, because this is the one module whose job is refusing what must
+    not get through, and because every layer below has already stopped being able to. A ``source:
+    user`` id is a grouping key; a run parented to nothing is its own sample; so this string becomes a
+    ``ResolvedSample.sample_id``, which is a plain ``str``, then a ``units.tsv`` cell, then a
+    directory, a file stem and an unquoted shell word. By the time a tab has split a units row or a
+    ``/`` has made one sample two path components, the manifest is written, content-addressed and
+    permanent, and what fails is a workflow several stages away naming none of this.
+
+    The remedy carries the nearest legal spelling rather than only the rule. An author who must
+    derive their own replacement from a character class is an author who will retype it wrong once,
+    and this is a refusal they hit while typing the file rather than while reading a design doc.
+    """
+    return _refusal(
+        "blk-record-set-id",
+        kind="field",
+        ref=f"{ref}.id",
+        message=(
+            f"`{ident}` cannot be an id. In a `source: user` set an id is the grouping key — a run "
+            f"with no sample above it is its own sample — so it is written into `units.tsv`, and it "
+            f"becomes both the results directory and the name of the `.h5ad` inside it. A tab or a "
+            f"newline splits the units row; a `/` (or a leading `.`) makes one sample two path "
+            f"components; a space or a shell character is an argument boundary where the pipeline "
+            f"interpolates it; a leading `-` is read as an option."
+        ),
+        remedy=(
+            f"Use letters, digits, `.`, `_` and `-`, starting with a letter or a digit — "
+            f"`{_typeable_suggestion(ident)}` is the nearest spelling of what you typed. Change it "
+            f"on the record and on every `parent` naming it."
+        ),
+        evidence=[ident],
+    )
+
+
+def _typeable_suggestion(ident: str) -> str:
+    """The nearest id the rule admits: every refused character to ``_``, and a bad lead dropped.
+
+    A suggestion and never an application. Renaming a sample is the author's decision — the id is
+    what the matrix will be called and what the dataset is grouped by — and quietly rewriting it here
+    would move a grouping on their behalf, in the one file that exists so a human can decide it.
+    """
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "_", ident).lstrip("._-")
+    return cleaned or "sample1"
+
+
 def _refusal(
     blocker_id: str,
     *,
@@ -589,6 +695,17 @@ def _refusal(
 
 def _quoted(items: Sequence[str]) -> str:
     return ", ".join(f"`{i}`" for i in items)
+
+
+def _spliced(sentence: str) -> str:
+    """A standalone sentence, joined onto the end of another: its first letter lowered, nothing else.
+
+    :data:`_HARVEST_INSTEAD` opens one remedy and finishes another, and the only difference between
+    the two uses is the case of one character. Reaching into the constant by index at the call site
+    states a fact about that string's first byte in a place that cannot say why it is being stated —
+    and it silently stops being right the day the sentence is reworded to open with an acronym.
+    """
+    return sentence[:1].lower() + sentence[1:]
 
 
 # ================================================================================================
@@ -624,12 +741,15 @@ def draft_record_set(fastq_dir: Path) -> str:
     each candidate is named beside the record whose `parent` would resolve it, phrased as the question
     only the person who ran the sequencer can answer.
 
-    Raises :class:`RecordSetError` when the directory holds no FASTQ: a draft nothing can load is a
-    defect, and refusing here is cheaper than writing a file that fails at the next verb.
+    Raises :class:`RecordSetError` on the two directories it cannot draft a **loadable** set for —
+    one holding no FASTQ, and one whose run keys would not pass :data:`_TYPEABLE_ID`. A draft nothing
+    can load is a defect of ours rather than of the caller's data, and the caller is the one who would
+    be told so: ``records new -o`` reads its own output back and reports a failure there as a bug in
+    seqforge. Refusing here keeps that report honest and costs one pass over names already in hand.
     """
     # Local: reading a record set must not pay for importing the scoring engine, and the package
     # `__init__` behind `resolve.group` pulls the whole of it.
-    from .resolve.group import _EXTS, group_runs
+    from .resolve.group import group_runs, is_fastq_name
 
     if not fastq_dir.is_dir():
         raise RecordSetError(
@@ -644,11 +764,11 @@ def draft_record_set(fastq_dir: Path) -> str:
             ]
         )
     names = sorted(
+        # The predicate belongs to the module that STRIPS the extension: a file this filter admitted
+        # and `run_key` could not strip would be keyed by a name still carrying its suffix.
         entry.name
         for entry in fastq_dir.iterdir()
-        # The extension list belongs to the module that STRIPS it: a file this filter admitted and
-        # `run_key` could not strip would be keyed by a name still carrying its suffix.
-        if entry.is_file() and entry.name.lower().endswith(_EXTS)
+        if entry.is_file() and is_fastq_name(entry.name)
     )
     if not names:
         raise RecordSetError(
@@ -667,6 +787,36 @@ def draft_record_set(fastq_dir: Path) -> str:
         )
 
     groups = group_runs(names)
+    # A run key is a filename with its extension and its mate/lane tokens taken off, so a directory
+    # of oddly-named reads yields an id the loader above will not take — and the draft would then be
+    # written, read back by `records new -o`, and reported as a bug in seqforge, which is exactly
+    # what it is not. Refused here, naming the files, so the "a draft always loads" promise holds by
+    # construction rather than by the coincidence that most FASTQ are named sanely.
+    untypeable = sorted(key for key in groups if _TYPEABLE_ID.fullmatch(key) is None)
+    if untypeable:
+        raise RecordSetError(
+            [
+                _refusal(
+                    "blk-record-set-id",
+                    kind="file",
+                    ref=fastq_dir.name,
+                    message=(
+                        f"{len(untypeable)} of the runs in {fastq_dir} key to a name that cannot be "
+                        f"a sample id ({_quoted(untypeable[:6])}"
+                        f"{', ...' if len(untypeable) > 6 else ''}). With no record set above them "
+                        f"these runs ARE the samples, and a sample id becomes a `units.tsv` cell, a "
+                        f"results directory and the name of an `.h5ad`."
+                    ),
+                    remedy=(
+                        "Rename those files so the part before the mate token is letters, digits, "
+                        "`.`, `_` and `-`, starting with a letter or a digit — then re-run `records "
+                        "new`. The same names would compile with no record set at all, and break "
+                        "much later, where nothing names the file that caused it."
+                    ),
+                    evidence=untypeable,
+                )
+            ]
+        )
     notes = _candidate_notes(list(groups))
     query = fastq_dir.resolve().name or USER_SOURCE
 

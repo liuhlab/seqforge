@@ -1727,6 +1727,168 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
     }, "records ARE prose, so the stage exists and says why it did not run"
 
 
+@pytest.mark.parametrize("dialect", ["user", "archive"])
+def test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, dialect: str
+) -> None:
+    """The shape a record set is FOR, and it used to end in a bare `AssertionError`.
+
+    A `source: user` set declares which files compile together and never a fact, so it carries no
+    free text: the plan comes back with no documents, the loop that builds the extractor never runs,
+    and the verify step then asserted on the `None` it was left holding — a traceback out of a
+    compiler whose whole contract is that a refusal is an exit code with a remedy. Nor is it new to
+    the hand-written dialect, which is why this runs over both: an archive transcript whose records
+    happen to carry no prose has always reached the identical state.
+
+    Nothing was asked, so nothing failed: exit 0, and the same EMPTY artifact a real extraction
+    writes. The artifact is the load-bearing half — `manifest fill --assertions` and `processing new`
+    open that path rather than ask whether harvest had anything to say, so "no claims" and "no file"
+    have to be the same thing on disk.
+
+    **Decided before a provider is resolved**, which is what the tripwire asserts: a records-only
+    compile on a machine with no credential must not fail on a credential it never needed, and a
+    stage that resolved first would exit 1 with `no_provider` instead of 0 with nothing to say.
+    """
+    import seqforge.harvest as harvest_pkg
+    from seqforge.harvest import ProviderUnavailable
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
+
+    def _no_provider(_name: str | None = None) -> object:
+        raise ProviderUnavailable("no credential, and none should be wanted")
+
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
+
+    if dialect == "user":
+        records_path = tmp_path / "records.yaml"
+        records_path.write_text(
+            yaml.safe_dump(
+                {
+                    "source": "user",
+                    "query": "plateA",
+                    "records": [
+                        {"level": "sample", "id": "lib01"},
+                        {
+                            "level": "run",
+                            "id": "plateA_S1",
+                            "parent": "lib01",
+                            "filenames": ["plateA_S1_L001_R1_001.fastq.gz"],
+                        },
+                    ],
+                }
+            )
+        )
+    else:
+        records_path = tmp_path / "records.json"
+        records_path.write_text(
+            ArchiveRecordSet(
+                source="test",
+                query="PRJNA9",
+                records=[
+                    ArchiveRecord(level="sample", accession="SAMN1"),  # no free text anywhere
+                    ArchiveRecord(
+                        level="run",
+                        accession="SRR1",
+                        parent="SAMN1",
+                        submitted_files=[SubmittedFile(filename="SRR1_1.fastq.gz")],
+                    ),
+                ],
+            ).model_dump_json()
+        )
+
+    result = runner.invoke(
+        app, ["harvest", "extract", "--records", str(records_path), "-C", str(tmp_path)]
+    )
+
+    assert result.exit_code == 0, result.stdout + str(result.stderr or "")
+    payload = json.loads(result.stdout)
+    assert payload["n_drafts"] == payload["n_accepted"] == payload["n_stored"] == 0
+    assert payload["assertions"] == payload["conflicts"] == payload["rejected"] == []
+    assert "no_documents" in payload, "a row of zeros does not say WHY there was nothing to read"
+    stored = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
+    assert stored == {"instruction_docs": [], "document_subjects": [], "assertions": []}, (
+        "the same artifact a real run writes, empty — the next stage opens a path, not a payload"
+    )
+
+
+def test_a_structure_only_records_compile_reaches_the_manifest_with_no_credential(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The feature's primary use case, end to end, and without the caller knowing to pass a flag.
+
+    An in-house dataset has no accession and no paper: its whole metadata is the grouping a human
+    typed, which is exactly what a `source: user` record set is. `run` counts `--records` as prose
+    and enters the LLM stage for it — correctly, since an archive transcript IS prose — but a
+    hand-written set has none, so that stage found nothing to ask and used to take the whole compile
+    down with it. The dataset the record set exists for could not be compiled unless its author
+    happened to know to add `--no-llm`.
+
+    So this is driven WITHOUT `--no-llm`, with no provider reachable, and it must still reach
+    `manifest fill` and everything after it. And the fuse has to land: two runs the filenames kept
+    apart compile into one `lib01`, with the warning that says the grouping was declared.
+    """
+    import seqforge.harvest as harvest_pkg
+    from seqforge.harvest import ProviderUnavailable
+
+    def _no_provider(_name: str | None = None) -> object:
+        raise ProviderUnavailable("no credential, and none should be wanted")
+
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
+
+    spec = kb.load_spec("bulk-rnaseq")
+    # A seed per batch: two runs of one library are two different sets of reads, and identical bytes
+    # would be one content-addressed file claimed by two runs rather than the fuse under test.
+    for batch, seed in (("S1", 0), ("S3", 1)):
+        reads = kb.generate_reads(spec, n=600, seed=seed)
+        for mate in ("R1", "R2"):
+            write_fastq_gz(tmp_path / f"lib_{batch}_{mate}.fastq.gz", reads[mate])
+    records_path = tmp_path / "records.yaml"
+    records_path.write_text(
+        yaml.safe_dump(
+            {
+                "source": "user",
+                "query": "lib01",
+                "records": [
+                    {"level": "sample", "id": "lib01"},
+                    *(
+                        {
+                            "level": "run",
+                            "id": f"lib_{batch}",
+                            "parent": "lib01",
+                            "filenames": [f"lib_{batch}_R1.fastq.gz", f"lib_{batch}_R2.fastq.gz"],
+                        }
+                        for batch in ("S1", "S3")
+                    ),
+                ],
+            }
+        )
+    )
+
+    result = runner.invoke(
+        app,
+        ["run", *sorted(str(p) for p in tmp_path.glob("*.fastq.gz")),
+         "--organism", "559292", "--assembly", "sacCer3", "--annotation", "ensembl",
+         "--records", str(records_path), "--fastq-dir", str(tmp_path), "-C", str(tmp_path)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    summary = json.loads(result.stdout)
+    assert summary["ok"] is True
+    stages = summary["stages"]
+    assert "manifest" in stages, "the compile got past harvest, which is the whole point"
+    assert set(stages) == {"records", "harvest", "manifest", "processing", "compose", "project",
+                           "report"}  # fmt: skip
+    assert stages["harvest"]["n_stored"] == 0, "structure only: there was nothing to harvest"
+    assert "no_documents" in stages["harvest"], "and the summary says so rather than implying it"
+    assert (tmp_path / "seqforge" / "manifest.yaml").is_file()
+    assert (tmp_path / summary["snakefile"]).is_file()
+
+    units = ((tmp_path / summary["snakefile"]).parent / "units.tsv").read_text().splitlines()
+    assert {line.split("\t")[0] for line in units[1:] if line.strip()} == {"lib01"}, (
+        "the declared fuse is what compiles: four files, one matrix"
+    )
+    assert len([line for line in units[1:] if line.strip()]) == 4
+
+
 # ---------------------------------------------------------------------------------------------
 # The submitted-file transcript where a HUMAN meets it (ADR-0033). Four remedies now point at
 # `io records`, so what that verb prints is a contract: if the `sra-pub-src-*` URI does not come
