@@ -2163,6 +2163,185 @@ def test_a_fingerprint_recipe_needs_exactly_one_source() -> None:
 
 
 # --------------------------------------------------------------------------------------------------
+# The frozen-18 grade digest — the before/after instrument, and the case set it is scoped to
+#
+# #231 published a timing-free digest over the whole tier so that "no per-case grade moved" could be
+# checked by comparing one number instead of eyeballing eighteen rows. The recipe hashes `n_cases` AND
+# the whole per-case list, so equal-digest and add-a-case are incompatible instruments (#258). What
+# is tested here is that incompatibility, on purpose and from both ends: the frozen list still names
+# real cases, the corpus is already bigger than it, a nineteenth case genuinely does move the number,
+# and asking for a frozen-tier digest of a report that is not the frozen tier REFUSES.
+#
+# No digest VALUE is asserted anywhere. The published constant `247a9354…` stopped reproducing while
+# every grade it protected stayed put — `questions_asked` became a dict where the baseline hashed a
+# scalar — so a pinned constant is exactly the thing that rotted. These hold the property instead.
+# --------------------------------------------------------------------------------------------------
+
+
+def _digest_row(
+    case_id: str, *, grade: str = "correct", actual: str = "10x-3p-gex-v3"
+) -> dict[str, Any]:
+    """One graded per-case row, shaped as `CaseRun.to_json()` writes it."""
+    return {
+        "case": case_id,
+        "seconds": 7.25,
+        "llm_calls": 0,
+        "grade": grade,
+        "expected": "decide",
+        "actual": "decide",
+        "fields": [
+            {"path": "library.chemistry", "expected": "10x-3p-gex-v3", "actual": actual, "ok": True}
+        ],
+        "notes": [],
+        "missed_question": False,
+        "trials": 1,
+        "stability": 1.0,
+    }
+
+
+def _digest_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """A `report.json` around `rows`, with the aggregates `build_report` would have computed."""
+    n = len(rows)
+    accepts = sum(1 for r in rows if r.get("grade") == "false_accept")
+    return {
+        "n_cases": n,
+        "field_accuracy": 1.0,
+        "false_accept_rate": accepts / n if n else 0.0,
+        "false_refuse_rate": 0.0,
+        "questions_asked": {"total": 0.0, "per_case": 0.0, "missed": 0.0},
+        "cost": {"seconds": 7.25 * n, "wall_seconds": 91.4, "llm_calls": 0.0},
+        "per_case": rows,
+    }
+
+
+def test_every_case_the_frozen_digest_names_is_still_a_benchmark_case() -> None:
+    """The frozen list is dated data, so the one thing that can rot is a case being renamed away.
+
+    It is deliberately NOT derived from the directory — deriving it would make it grow with the
+    corpus, which is the whole thing it exists not to do. But a list nothing checks is a list that
+    can name a case that no longer exists, and then the digest is taken over a tier the maintainer
+    thinks is eighteen cases and is not. Checked against the tree rather than against git history:
+    a test that shells into `git log` is a test that fails on a shallow CI clone.
+    """
+    from seqforge.evals.digest import FROZEN_18
+
+    bench = _benchmark_tier_or_skip()
+    assert len(set(FROZEN_18)) == len(FROZEN_18) == 18, "the frozen EIGHTEEN, and each named once"
+    present = {c.id for c in discover_cases(bench)}
+    assert not set(FROZEN_18) - present, (
+        f"the frozen digest names cases the tier no longer holds: {sorted(set(FROZEN_18) - present)}"
+    )
+
+
+def test_the_plate_case_is_outside_the_frozen_digest_and_the_tier_is_bigger_than_it() -> None:
+    """The exclusion, asserted from the corpus's side — and asserted to be non-vacuous.
+
+    `GSE207085-nasal-prox1-96cells` is pre-registered and published RED (ADR-0018), so it moves
+    `false_accept_rate` off 0.0 by construction the moment it is graded. It is a nineteenth case, not
+    a nineteenth member of the bar, and this is where that is written down in something that runs.
+
+    The second assertion is what stops this passing vacuously: if the tier ever equalled the frozen
+    list again, `grade_digest` would still refuse nothing and this file would still be green.
+    """
+    from seqforge.evals.digest import FROZEN_18
+
+    bench = _benchmark_tier_or_skip()
+    present = {c.id for c in discover_cases(bench)}
+    assert present - set(FROZEN_18), (
+        "no case is outside the frozen bar — the exclusion tests nothing"
+    )
+    assert "GSE207085-nasal-prox1-96cells" in present, "the plate case is not in the tier"
+    assert "GSE207085-nasal-prox1-96cells" not in FROZEN_18
+
+
+def test_a_nineteenth_case_moves_the_digest_which_is_why_it_is_excluded() -> None:
+    """The premise of the whole exclusion, measured rather than asserted in a comment.
+
+    Two ways at once, because #231's recipe hashes both halves: the extra row lands in `per_case`,
+    and `n_cases` + `false_accept_rate` move underneath it. Widening the case list to admit the new
+    case is therefore NOT a way to keep the bar — it produces a number the pre-change baseline cannot
+    be compared against, which is what "incompatible instruments" means.
+    """
+    from seqforge.evals.digest import FROZEN_18, grade_digest
+
+    frozen = _digest_report([_digest_row(c) for c in FROZEN_18])
+    widened = list(FROZEN_18) + ["GSE207085-nasal-prox1-96cells"]
+    grown = _digest_report(
+        [_digest_row(c) for c in FROZEN_18]
+        + [_digest_row("GSE207085-nasal-prox1-96cells", grade="false_accept")]
+    )
+    assert grade_digest(frozen) != grade_digest(grown, cases=widened)
+
+
+def test_the_frozen_digest_refuses_a_report_that_is_not_the_frozen_tier() -> None:
+    """A filter would answer quietly and wrongly; the refusal names both directions of the mismatch.
+
+    Wrongly, because the four tier-wide rates in the hash were computed by `build_report` over every
+    case that ran — so dropping the extra ROWS leaves rates that are still the nineteen-case tier's,
+    and the digest would silently mix two populations. Recomputing them here instead would be a
+    second copy of `build_report`'s arithmetic, which is the failure mode this tree has already had
+    to fix three times.
+    """
+    from seqforge.evals.digest import FROZEN_18, NotTheFrozenTier, grade_digest
+
+    grown = _digest_report(
+        [_digest_row(c) for c in FROZEN_18] + [_digest_row("GSE207085-nasal-prox1-96cells")]
+    )
+    with pytest.raises(NotTheFrozenTier, match="GSE207085-nasal-prox1-96cells"):
+        grade_digest(grown)
+
+    short = _digest_report([_digest_row(c) for c in FROZEN_18[:-1]])
+    with pytest.raises(NotTheFrozenTier, match=FROZEN_18[-1]):
+        grade_digest(short)
+
+
+def test_the_digest_reads_every_graded_value_and_no_clock() -> None:
+    """What the instrument is sensitive to, from both sides — timing out, graded values in.
+
+    A digest that moved because a runner was busy would be abandoned within one release; a digest
+    blind to a graded value would report "nothing moved" while a chemistry changed. The `fields`
+    half is the one worth pinning explicitly: a case can keep its grade, its outcome and its notes
+    while the value it decided moves, and `field_accuracy` staying 1.0 through that is precisely the
+    case where the rates cannot tell you.
+    """
+    from seqforge.evals.digest import FROZEN_18, grade_digest
+
+    rows = [_digest_row(c) for c in FROZEN_18]
+    baseline = grade_digest(_digest_report(rows))
+
+    slower = _digest_report([{**r, "seconds": r["seconds"] * 3} for r in rows])
+    slower["cost"] = {**slower["cost"], "wall_seconds": 512.0, "seconds": 1.0}
+    assert grade_digest(slower) == baseline
+
+    moved = [*rows[:-1], _digest_row(FROZEN_18[-1], actual="bulk-rnaseq")]
+    assert grade_digest(_digest_report(moved)) != baseline
+
+    regraded = [*rows[:-1], _digest_row(FROZEN_18[-1], grade="false_accept")]
+    assert grade_digest(_digest_report(regraded)) != baseline
+
+
+def test_a_skipped_case_hashes_as_a_skip_rather_than_raising() -> None:
+    """A skipped row carries none of the graded keys, and that is a report, not a crash.
+
+    #231's snippet subscripts them directly and only worked because its baseline run skipped
+    nothing. A skip is excluded from every rate — correctly — but it is not the same measurement as
+    a run where the case was graded, so the two must not hash alike either.
+    """
+    from seqforge.evals.digest import FROZEN_18, grade_digest
+
+    rows = [_digest_row(c) for c in FROZEN_18]
+    absent = {
+        "case": FROZEN_18[0],
+        "seconds": 0.4,
+        "llm_calls": 0,
+        "skipped": "package not in the corpus",
+        "skip_kind": "absent",
+    }
+    skipped = _digest_report([absent, *rows[1:]])
+    assert grade_digest(skipped) != grade_digest(_digest_report(rows))
+
+
+# --------------------------------------------------------------------------------------------------
 # `seqforge eval plan` — what an --llm pass over a TIER costs, before any of it is paid
 #
 # `harvest extract --dry-run` priced one dataset. The decision it informs is taken over a corpus, and

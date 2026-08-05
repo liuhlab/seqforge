@@ -206,6 +206,7 @@ The default refusal is what keeps a series mixing modalities — GSE283483's bul
 Multiome ATAC — out of a single package, and it stays. But a plate deposit puts every cell in its own
 `SRX` (PRJNA853582 is 1440 of them), so under the default no such dataset can enter the corpus at all:
 GSE207085 had to be packaged as ten one-cell fixtures, each proving nothing about the many-cell case.
+It is now one 96-cell package instead — see "The nineteenth case is a plate" below.
 The flag is an assertion by the caller and never an inference from the data (#242). Chemistries that
 differ across the spanned experiments are **not** a problem downstream: `resolve_runs` resolves each
 run on its own bytes and `by_chemistry` partitions them into assays, which is the same shape
@@ -525,6 +526,73 @@ worse instrument than three single-trial runs on this tier: one document's abort
 whole case, so all three trials skip together and measure nothing. The exercise cost **552,381 input,
 151,800 output and 546,560 cache-read tokens**, which is the price of learning that a benchmark grade
 was a coin flip.
+
+### The nineteenth case is a plate, and the bar it is excluded from became code (2026-08-04, #287)
+
+`GSE207085-nasal-prox1-96cells` is the first case in either tier where **the cell barcode is the
+file**: 96 FACS-sorted murine nasal Prox1+ cells, one SMART-seq3 library each, demultiplexed at the
+bench. PRJNA853582 is strictly 1:1:1:1 — 1440 runs, 1440 `SRX`, 1440 BioSamples — so it enters under
+one `--multi-experiment` assertion and is the corpus's only many-experiment package. That is what it
+is for: 96 samples in one manifest exhibit the sample explosion, the plate-splitting hazard and the
+dud-well hazard that ten one-cell fixtures exercise not at all.
+
+**It is published red and the red is the measurement** (ADR-0018). Measured on ten cells of this same
+deposit (#230), seqforge decides the generic bulk chemistry at **exit 0, 0.899 against a 0.511
+runner-up**, nothing raised, and `compose` selects `map/star` — a bulk gene-count matrix for a
+single-cell experiment, most confident on the cleanest cells. `expected.yaml` says `smartseq3`
+anyway, committed before any run and before the entry it names exists.
+
+**Selection stays unselected, and that is the decision** (#258). The rule is *sort the 1440 runs
+by `run_accession` ascending, take the first 96*, and it ships as `build-package.sh` in the case
+directory rather than as a sentence, because the verb takes one accession and packages every run
+under it — "96 of 1440" cannot be said on the command line, and the one line between
+`resolve_package_runs` and `build_fingerprint_sra` **is** the selection. Two properties are worth
+keeping: the sort is load-bearing, since ENA's filereport does not return these rows in accession
+order; and the block it yields runs from `nasal_prox1_1375` **down** to `nasal_prox1_942`, so
+accession order runs against the submitter's own cell numbering — evidence that the rule tracks
+nothing the submitter arranged. Now that #234 is measured, selection *could* become purposive, and a
+plate picked to contain a starved cell would be a designed test wearing a real dataset's clothes. No
+cell in this draw is below `min_input_reads`, so the drop path is **not** covered here; it belongs to
+the hermetic tier, where a cell can be starved by construction.
+
+**`-n 2000`, against the tier's usual 20 000, and the limit is half the choice.** Ninety-six cells
+multiply the slice: **31,220,154 B over 192 slices and 383,878 records** at 2 000, against ~315 MB at
+20 000. 2 000 is `DEFAULT_MAX_READS`, so the package holds exactly what resolve reads and still
+reproduces the manifest hash — **and cannot serve a probe budget above 2 000 without being rebuilt.**
+These cells are shallow anyway (median 68,908 spots), so 20 000 would have been a third of each whole
+library rather than a head slice of it. Building it cost **~51 min** and ~0.8 GB streamed, none of it
+kept on disk — and budget for that number rather than for the ~16 min a 10 s-per-cell average
+predicts, because two runs stalled for minutes on a remote read making no progress and the shipped
+retry-with-backoff is what carried them. There is no resume: a killed build restarts at cell one.
+
+**The committed transcript is 289 records and 294 KB, and the projection that said 60 KB counted
+cells.** A plate deposit gives every cell its own BioSample *and* its own experiment *and* its own
+run, so 96 cells are `1 + 96 + 96 + 96` records at roughly a kilobyte each — seven times the previous
+largest (`GSE126954`, 42.9 KB for 70). Nothing is pruned, and the repetition is the point: 96
+experiment records carrying the *same* 240-character `LIBRARY_CONSTRUCTION_PROTOCOL` are the only
+real instance in either tier of the near-identical-record shape harvest's collapse exists for.
+
+**The frozen-18 grade digest is now [`evals/digest.py`](../../src/seqforge/evals/digest.py), and it
+refuses rather than filters.** #231's recipe — case count, four tier-wide rates, and the whole
+per-case list with every clock stripped — lived only as a copy-pasteable snippet in an issue comment,
+and prose in an issue cannot be run. Two things follow. The **exclusion**: the recipe hashes
+`n_cases` *and* the per-case list, so equal-digest and add-a-case are incompatible instruments, and a
+red nineteenth case moves `false_accept_rate` off 0.0 by construction. `FROZEN_18` is therefore dated
+**data** — the tier as it stood at #231's baseline `27ffd05` — and `grade_digest` raises on a report
+holding anything else, because silently dropping the extra rows would hash four rates `build_report`
+computed over nineteen cases, and recomputing them there would be a second copy of that arithmetic.
+And the **finding that argues for code at all**: re-run on 2026-08-04 (`main` @ `b5f2e85`, `--no-llm`,
+twice), the tier is 18/18 `correct` with every grade identical to #231's baseline, and the digest is
+`aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **not** the published
+`247a9354…`. Nothing regressed; `questions_asked` became a dict where the 2026-07 baseline hashed a
+scalar. The constant went stale silently while every grade it protected stayed put, which is why the
+module pins the case list and the recipe and **no test asserts a digest value**.
+
+**Quote a digest with its commit or do not quote it.** `247a9354…` is `27ffd05` and `aeff9af9…` is
+`b5f2e85`; the generic bulk entry's rename (#297) and `read_count` leaving the signature vocabulary
+(#299) have both landed since, and the first moves a graded `library.chemistry` string on
+`GSE283483-bulk` — a **pre-declared expected move**, which is the shape #258 asks every move to
+arrive in. Re-take the number on the tree you are about to change and diff it against that same tree.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 

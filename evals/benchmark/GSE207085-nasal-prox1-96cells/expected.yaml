@@ -1,0 +1,235 @@
+# PRE-REGISTERED 2026-08-04, from declared metadata only — written and committed BEFORE `resolve`
+# was pointed at a single byte of this package, and before any of the plate work (#278) exists in the
+# tree. Only a prediction can be wrong (ADR-0016).
+#
+# ================================================================================================
+# THIS CASE IS PUBLISHED RED, THE RED IS EXPECTED, AND THAT IS THE POINT (ADR-0018).
+#
+# It predicts a FIX, exactly as GSE110823 did on 2026-07-23. Grading it against what the code does
+# today would enshrine the defect as the specification. What the code does today, measured on ten
+# real cells of this deposit (#230): every one of them decides the generic bulk chemistry at
+# **exit 0, 0.899 against a 0.511 runner-up**, with zero conflicts, zero questions and zero
+# blockers, and `compose` selects `map/star`. Confidence is HIGHEST on the cleanest cells. That
+# pipeline counts every PCR duplicate as an observation, never strips the 22 bp tag+UMI+GGG prefix
+# from R1, and hands back a bulk gene-count matrix for a single-cell experiment. It is the
+# silent-plausible-wrong-answer failure class this compiler exists to prevent, reached from the
+# inside — which is why the corpus should hold it now rather than after it is fixed.
+#
+# So this case grades `false_accept` today: `outcome: decide` with a chemistry that disagrees is the
+# corpus-poisoning cell of the confusion matrix, and it is the honest grade. It moves the tier's
+# `false_accept_rate` off 0.0 by construction, which is precisely why the case is EXCLUDED FROM THE
+# FROZEN-18 GRADE DIGEST (`src/seqforge/evals/digest.py`, #258): that digest hashes the case
+# count and the whole per-case list, so equal-digest and add-a-case are incompatible instruments and
+# the bar is scoped to the eighteen cases that existed at #231's baseline.
+#
+# The wrong answer is spelled `bulk-rnaseq` rather than #230's `bulk-rnaseq-pe`: that entry was
+# renamed (#273) between the measurement and this file, and nothing about the measurement moved.
+# ================================================================================================
+#
+# ---- WHAT THIS CASE BUYS, AND WHY TEN ONE-CELL PACKAGES COULD NOT BUY IT -----------------------
+# `sample_is_cell` is a property of a PLATE, and a package holding one cell cannot exhibit it. This
+# is the corpus's only many-experiment package: 96 SRX under one `--multi-experiment` assertion,
+# 96 BioSamples, 96 samples in one manifest. Three behaviours are unobservable without it, and all
+# three are the ones #278 is about:
+#   * the sample explosion — `experiment.samples.*` is a 96-element multiset here and a 1- to
+#     8-element one everywhere else in the tier;
+#   * the plate splitting — under today's `reduce_dataset` one cell deciding a different chemistry
+#     reads as a legal partition into assays, so a plate can silently become two manifests at exit 0
+#     (#232, #253). `grade_case` reports the whole partition as `library.chemistry` when that
+#     happens, so the claim below fails LOUDLY and names both halves;
+#   * the dud well — empty and starved wells are designed into the plate format, and one cell that
+#     merely asks refuses the whole dataset today, because `MultiRunOutput.exit_code()` is a max
+#     over runs.
+# It is also the corpus's first pre-demultiplexed assay of any kind (the cell barcode is the FILE,
+# not a read), its first SMART-seq3 anything, and its first library where the archive's unit of
+# deposit is a cell rather than a specimen.
+#
+# ---- THE SELECTION RULE, RECORDED VERBATIM -----------------------------------------------------
+#   sort the 1440 runs SRP383998 resolves to by `run_accession` ascending, take the first 96.
+# Executable as `build-package.sh` beside this file. It reads one archive-declared field and nothing
+# measured — no read count, no tag fraction, no verdict. Selection stays unselected and that IS the
+# decision (#258): the byte separation was measured in #234, so selection could now become
+# purposive and must not. A plate picked to contain a starved cell is a designed test wearing a real
+# dataset's clothes, and a drop that fires only because we chose the cell that makes it fire
+# measures our selection. The designed behaviours go to the hermetic tier, where a cell can be
+# starved by construction at zero data cost, proving the rule rather than an instance.
+#
+# The rule yields SRR19884905-SRR19885000, whose declared cell numbers run `nasal_prox1_1375` DOWN
+# to `nasal_prox1_942`: accession order runs AGAINST the submitter's own numbering, which is the
+# evidence that the rule tracks nothing the submitter arranged.
+#
+# NO CELL IN THIS PACKAGE IS A STARVED WELL, and that is a fact about the draw rather than a choice.
+# Declared depths over the 96: min 1,939 spots, median 68,908, max 1,258,799; none below 1,000,
+# which is the `min_input_reads` #257 proposes for `smartseq3`. One cell (SRR19884916, 1,939 spots)
+# sits under the 2,000-read package budget, so its two slices carry 1,939 records rather than 2,000.
+# The drop path is therefore NOT exercised here and this case must never be read as covering it.
+#
+# ---- WHAT IS CLAIMED, AND THE ONE CLAIM THAT IS ABOUT THE EXPLOSION ----------------------------
+# Every sample attribute this deposit declares is CONSTANT across all 96 cells: cell_type,
+# source_name, strain and taxonomy_id take one value each. So no attribute discriminates between
+# cells, and the usual anti-shuffle argument for a `*` multiset does not apply — a shuffle of 96
+# identical values is invisible. The multiset is claimed anyway, and for its LENGTH: it is the only
+# assertion anywhere in either tier whose failure mode is "the plate collapsed" or "the plate split".
+# Ninety-six `FVB` is a deliberate ninety-six lines.
+#
+# `source_name` is NOT claimed: its value is "Nasal Prox1+ cells", a verbatim duplicate of
+# `cell_type`, and one string asserted twice is one claim, not two — the same pruning the 2026-07-31
+# review applied across the corpus. `study.center` is not claimed, consistent with that review.
+#
+# The two per-accession claims are the ends of the selected block (SAMN29399808 = nasal_prox1_1375 =
+# SRR19884905, the first; SAMN29400241 = nasal_prox1_942 = SRR19885000, the last), so a join that
+# silently narrows to a prefix or a suffix of the plate fails on one of them.
+#
+# ---- WHAT WOULD MAKE THIS GREEN ----------------------------------------------------------------
+# `resolve` naming `smartseq3` from the R1 bytes: the 11 bp TSO tag `ATTGCGCAATG` at read start, at
+# a tag fraction this deposit's own cells carry (#234 measured 39.6-67.6% over ten of them). The
+# archive states the chemistry in prose too — every experiment record's
+# LIBRARY_CONSTRUCTION_PROTOCOL reads "FACS sorted nasal Prox1+ cells were processed by Smart-Seq3
+# protocol (Hagemann-Jensen M et al., ... Nat Biotechnol 2020)" — but this case carries NO
+# `hypothesis:`, deliberately: the metadata rung is the fallback, and spending it here would test the
+# matcher instead of the bytes.
+#
+# IF THE BYTES DISAGREE WITH ANY LINE ABOVE, LEAVE IT STANDING AND REPORT THE GAP. `outcome` and
+# every `fields` claim below are the pre-registration; a benchmark case that reports a gap is worth
+# more than one edited to agree.
+outcome: decide
+description: >-
+  GSE207085 / PRJNA853582 / SRP383998 — 96 of the 1440 FACS-sorted murine nasal Prox1+ cells of Kim
+  et al.'s nasal-vasculature atlas, each cell its own SMART-seq3 library, packaged as ONE
+  `--multi-experiment` fingerprint. The corpus's first plate-based, pre-demultiplexed assay: the cell
+  barcode is the FILE, demultiplexing happened at the bench, and the archive's unit of deposit is a
+  cell rather than a specimen.
+
+  PUBLISHED RED, DELIBERATELY, AND PRE-REGISTERED BEFORE ANY RUN (ADR-0018). Measured on ten cells of
+  this same deposit, seqforge decides the generic bulk chemistry at exit 0, 0.899 against a 0.511
+  runner-up, with nothing raised — a bulk gene-count matrix for a single-cell experiment, at the
+  highest confidence on the cleanest cells. This file predicts the fix rather than recording the
+  defect, because grading it against today's behaviour would make the defect the specification.
+
+  It is the only many-experiment package in either tier, and that is what it is for: 96 SRX, 96
+  BioSamples and 96 samples in one manifest exhibit the sample explosion, the plate-splitting hazard
+  and the dud-well hazard that ten one-cell packages exercise not at all. The 96-element
+  `experiment.samples.*.strain` multiset is claimed for its LENGTH — every sample attribute this
+  deposit declares is constant across the cells, so nothing here discriminates between them, and what
+  the claim catches is a plate that collapsed to one sample or split into two manifests.
+
+  Selected on archive-declared facts only — the 96 lexicographically-lowest run accessions of the
+  1440, which is `build-package.sh` beside this file. Nothing measured enters the rule, and no cell
+  in the draw is below `min_input_reads`, so the starved-well path is NOT covered here and belongs to
+  the hermetic tier where a cell can be starved by construction.
+
+  EXCLUDED FROM THE FROZEN-18 GRADE DIGEST (`seqforge.evals.digest`): a red nineteenth case moves
+  `n_cases`, the per-case list and `false_accept_rate` at once, and equal-digest and add-a-case are
+  incompatible instruments.
+predicts:
+  seqforge: 2026.7.1
+  kb: 2026.8.3
+  workflow: 2026.8.5
+fields:
+  library.chemistry: smartseq3
+  experiment.organism: 10090
+  experiment.study.title: Three-dimensional morphologic and molecular atlases of murine nasal
+    vasculatures [Mouse_Nasal_SmartSeq]
+  # Ninety-six entries, and the count is the assertion. See the header: no sample attribute in this
+  # deposit varies across cells, so this multiset cannot catch a shuffled join — it catches a plate
+  # that stopped being 96 samples.
+  experiment.samples.*.strain:
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  - FVB
+  # The two ends of the selected block, so a join that narrows to a prefix or a suffix still fails.
+  experiment.samples.SAMN29399808.cell_type: Nasal Prox1+ cells
+  experiment.samples.SAMN29400241.cell_type: Nasal Prox1+ cells
