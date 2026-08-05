@@ -121,6 +121,20 @@ here that the model needs in order to name the node at all.
   `Assay`/`Read`/`Region` decomposition is adopted, so an export is a pure derivation rather than a
   translation. The *emitter* is unbuilt.
 
+**Two of those fields describe the deposit rather than the library, and that is a new category of
+claim.** Everything else a `spec.yaml` carries — reads, elements, onlists, the signature, the
+backend — says how the library was *built*, which is a fact about molecules that the round-trip can
+generate reads from and read back. `identity.sample_is_cell` says how the submitter *deposited* it
+and `Spec.min_input_reads` says how thin a unit of it may be admitted, and neither is a fact any
+generator can write into a read: that is what makes them R8-adjacent, and why what holds them is a
+load-time biconditional and two consumers reading them live rather than `kb roundtrip`. The property
+`sample_is_cell` declares has its own name — **pre-demultiplexed**, in
+[`CONTEXT.md`](../../CONTEXT.md) — because a field is the *declaration* of a property and not the
+property; and both fields are about the **deposit**, never the **download**, which is one word each
+in the glossary for the reason [`resolve.md`](resolve.md) gives beside the pooling decision. Argued
+once in [ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md), where the three halves —
+the declaration, compose acting on it, and neither touching the hash — are deliberately one record.
+
 ### What moved out of the backend
 
 CellRanger-parity knobs — `soloUMIdedup 1MM_CR`, `soloUMIfiltering MultiGeneUMI_CR`,

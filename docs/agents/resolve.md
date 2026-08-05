@@ -46,6 +46,23 @@ measure their agreement and every window in every dataset reads ~1.0, noise incl
 cannot fail is worse than one calibrated too tight. Real SPLiT-seq measures 0.85 / 0.73 against a
 majority bar; a window with no fixed sequence in it measures ~0.
 
+**The anchored tag gate does a whole chemistry's separation in one existing evaluator, and the
+anchor is the whole of it.** `smartseq3`'s `requires` is a single test — `motif_present` on R1 for
+the 11 bp TSO tag `ATTGCGCAATG`, `where: read_start`, `max_mismatch: 2`, `min_rate: 0.02` — and
+nothing else stands between a plate and the generic paired-end fallback. Measured at offset 0 over
+2 000-read slices, ten real `GSE207085` cells score **39.6–67.6 %** on R1 against **0.00–0.15 %** on
+their own R2 and 0.00 % / 0.05 % on a bulk control, so the floor sits 13× above the highest observed
+negative and 3.45× below the lowest published positive (6.9 %); the schema's own `0.50` default
+fails two of those ten. Take `where: read_start` away and the gate stops working, because the same
+tag appears *somewhere* in 8–20 % of the chemistry's own untagged mate and the Tn5 mosaic end turns
+up in 6.5–79.5 % of its R1 as read-through — a positional claim about a fixed-offset chemistry is
+evidence, the same motif unanchored is background, and the mosaic end is abundant but non-positional
+(≤ 0.75 % at offset 0), which is why an anchored test can leave `excludes` empty. And it is a
+**proportion over reads at a fixed offset, never a per-cycle purity or a majority gate**: the tagged
+fraction is a tunable protocol parameter (6.9–70.5 % across published libraries), so what the gate
+asserts is that a structured minority exists, and a majority bar would refuse the assay's own
+reference data.
+
 One trap worth naming: **a reverse-complement onlist hit means the barcode read is on the other
 strand, so supply the reverse-complemented whitelist file.** It does *not* flip the strand parameter,
 which is the KB's 3′-versus-5′ property and a different fact entirely.
@@ -323,6 +340,21 @@ winner's role assignment would map roles to the pool's pseudo-shas, leaving ever
 role-less, so pooling does not remove the per-cell pass, it removes the honest one. And `group.py`
 never learns what a cell is — merging two runs of one cell there re-introduces the
 global-role-assignment bug that module exists to prevent.
+
+**Any count over archive records is over the deposit, not the download.** Nothing consults such a
+count today, and that is the point: `sample_is_cell` is what replaced one. The predicate it replaced
+was `strict 1:1 ∧ n_samples > T`, and measured over 1 690 plate and 6 894 droplet/bulk deposits at
+deposit scope it has **no admissible `T`** — four hand-verified non-plates (two of them droplet) are
+strictly 1:1 with *more* samples than the 1 440-cell plate the threshold was written for, so a `T`
+that fires on the plate fires on all four and a `T` that spares them never fires on the plate. The
+131× margin that made it look safe was an artifact of an 18-deposit corpus holding no large
+strictly-1:1 bulk study, which is 11.3 % of the control pool
+([`docs/research/plate-deposit-cardinality.md`](../research/plate-deposit-cardinality.md),
+2026-08-04). The **scope** rule outlives the number, and it is recorded here because the pooling
+decision is the only place a count would ever be consulted: `resolve_runs` is handed the files that
+reached disk, so a count taken there answers "how many samples did I download" — and the corpus's own
+96-cell fingerprint package standing in for a 1 440-cell deposit would answer it wrong by a factor of
+15. **Deposit** and **Download** are two words in [`CONTEXT.md`](../../CONTEXT.md) for exactly this.
 
 **It lives beside the type it reduces, for `chemistry_hypothesis`'s reason.** `manifest fill` made
 this reduction inline and the eval harness that measures `manifest fill` skipped it entirely, calling

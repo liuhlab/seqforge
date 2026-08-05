@@ -36,12 +36,15 @@ The agent-facing material is layered, and each layer answers one question:
   it), `testing.md`, `toolchain.md`, `layout.md`, `state.md`, `models.md`, `kb.md`, `resolve.md`,
   `cli.md`, `eval-corpus.md`, and this file
 - **`docs/adr/`** — one decision per file: the alternatives, and why this one
+- **`docs/research/`** — one investigation per file: the measurement a decision was taken on, with
+  its method, its date, and what it could *not* establish. A note is written to be superseded, never
+  to be obeyed
 
 `CONTEXT.md` is none of them. It maps a domain term to its definition and names the synonyms to avoid —
 `manifest` vs `recipe`, `Observation` vs `Assertion`, `asserted` vs `inferred`, `run` vs `sample` vs
 `library`. Nothing else belongs in it.
 
-Before adding an entry, ask which of the three it is:
+Before adding an entry, ask which of the four it is:
 
 - a **rule** ("never read a whole FASTQ") → `AGENTS.md`, with its rationale in `docs/agents/rules.md`
 - **rationale for a decision** ("why the manifest is hashed and the recipe is not") → a new
@@ -49,6 +52,10 @@ Before adding an entry, ask which of the three it is:
   area works, it belongs in that area's `docs/agents/` page instead
 - a **term** ("a *run* is one sequencing run; the grouping `resolve/group.py` produces from filenames")
   → `CONTEXT.md`
+- a **measurement** ("6,894 control deposits, and here is the query that found them") →
+  `docs/research/`, dated, with its method beside it — and its *conclusion* folded into whichever
+  `docs/agents/` page consumes it, also dated, because a branch is deletable and a reader looking for
+  the reason will be reading the consuming page rather than hunting the evidence
 
 A term already argued at length in `docs/agents/` or an ADR is copied to `CONTEXT.md` as a one-line
 gloss with a pointer, never restated at length. Two prose definitions of one term is the failure mode
@@ -71,10 +78,13 @@ If your output contradicts an existing ADR, surface it explicitly rather than si
 > _Contradicts ADR-0001 (a head is joined to a whole file; there is no read-source seam) — but worth
 > reopening because…_
 
-## Neither tree is published
+## None of the three trees is published
 
-`docs/` is the mkdocs source for <https://liuhlab.github.io/seqforge/>, so `agents/` and `adr/` are
-listed in `exclude_docs` in `mkdocs.yml`. The site is the carefully-designed end-user layer; ADRs and
-the agent-facing reference carry open questions and dated measurements, and would read as settled
-guidance under a docs URL. Adding a file here does not publish it, and a new agent-facing tree
-under `docs/` should be added to `exclude_docs` too.
+`docs/` is the mkdocs source for <https://liuhlab.github.io/seqforge/>, so `agents/`, `adr/` and
+`research/` are all listed in `exclude_docs` in `mkdocs.yml`. The site is the carefully-designed
+end-user layer; ADRs and the agent-facing reference carry open questions and dated measurements, and
+would read as settled guidance under a docs URL. `research/` is the sharpest case of the same thing:
+a note ends in what it could not establish, which is exactly the part a reader arriving from a docs
+URL would skip. Adding a file here does not publish it, and a new agent-facing tree under `docs/`
+should be added to `exclude_docs` — and to `.markdownlint-cli2.yaml`'s `ignores`, which
+`test_everything_excluded_from_the_site_is_also_unlinted` holds to being the same list.

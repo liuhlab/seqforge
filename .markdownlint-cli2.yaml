@@ -30,13 +30,15 @@ globs:
 
 ignores:
   # The agent-facing reference layer (rules, testing, toolchain, layout, state, models, KB schema,
-  # scoring, the CLI contract, the eval corpus, the engineering-skill configuration) and the ADRs.
-  # Both trees are excluded from the site by mkdocs — agent-facing material must not read as settled
-  # guidance under a docs URL — so both are excluded here too, and they are not written to docs-page
-  # rules. `docs/adr/**` was deliberately listed before the directory existed: the first ADR must not
-  # be the commit that turns CI red.
+  # scoring, the CLI contract, the eval corpus, the engineering-skill configuration), the ADRs, and
+  # the research notes a decision was taken on. All three trees are excluded from the site by
+  # mkdocs — agent-facing material must not read as settled guidance under a docs URL — so all three
+  # are excluded here too, and they are not written to docs-page rules. `docs/adr/**` was
+  # deliberately listed before the directory existed: the first ADR must not be the commit that turns
+  # CI red.
   - "docs/agents/**"
   - "docs/adr/**"
+  - "docs/research/**"
   # The KB assay pages are one-line snippet-include wrappers (they pull in the canonical README next
   # to each spec.yaml); there is no prose of their own to lint. The README they include IS linted,
   # directly, via the specs glob above.
