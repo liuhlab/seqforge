@@ -47,11 +47,12 @@ from ..models.processing import (
     RuntimeEnv,
     SoloQuant,
 )
-from ..models.resolve import ComposeResult, ModuleSelection
+from ..models.resolve import ComposeResult, ModuleSelection, SampleAdmission
 from ..pipeline import CONFIG_NAME, DEFAULT_OUTDIR, UNITS_TSV_NAME, CompiledPipeline
 from ..resolve.group import lane_of, run_key
 from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
 from ..workspace import pipeline_dir, readable
+from .admission import Admission, admit, render_record
 from .params import (
     derived_params,
     find_read_with_role,
@@ -142,6 +143,10 @@ class ComposePlan:
     #: relative path -> the registry name `rule onlist` will build it from. NOT the barcodes:
     #: see `_resolve_token` and workflows/map/starsolo.smk for why compose does not write 111 MB.
     onlist_files: dict[str, list[str]]
+    #: What the loaded spec's read floor admitted, or `None` when it declares none. The verdict lives
+    #: here and never in the manifest: it is recomputed under whatever KB is loaded at compile time,
+    #: so moving the floor changes this pipeline and leaves the dataset's identity where it was.
+    admission: Admission | None = None
 
 
 def plan(
@@ -184,6 +189,15 @@ def plan(
     except KeyError as exc:
         raise ComposeError(str(exc)) from exc
 
+    # The live KB's admission floor, applied here and recorded nowhere in the manifest. `None` for
+    # every chemistry that declares no floor, which is all sixteen shipped entries.
+    admission = _admit(manifest, spec)
+    admitted = (
+        [s.sample_id for s in admission.admitted]
+        if admission is not None
+        else [s.sample_id for s in manifest.experiment.samples]
+    )
+
     onlist_files: dict[str, list[str]] = {}
     intent = processing.processing
     _check_env(intent.environment.value, module)
@@ -217,7 +231,10 @@ def plan(
         "mem_mb": intent.resources.mem_gb * 1024,
         "outdir": outdir,
         "read_files_in": _read_files_in(manifest, module),
-        "samples": [s.sample_id for s in manifest.experiment.samples],
+        # The POST-DROP list: the sample ids this pipeline is CONTRACTED to produce. A sample the
+        # admission floor excluded was never contracted — it was kept out before the contract was
+        # written — so listing it here would report it, forever, as a result that failed to arrive.
+        "samples": admitted,
         # Emitted by the composer like every other key. It used to be injected by the run wrapper at
         # parse time, and `required_config` documented that arrangement — but the wrapper was written
         # inside a gate that could not run, so the injector named by the contract did not exist and
@@ -237,11 +254,46 @@ def plan(
 
     return ComposePlan(
         config=config,
-        units=_units(manifest, fastq_dir),
+        units=_units(manifest, fastq_dir, admitted=frozenset(admitted)),
         module=ModuleSelection(name=module.name, version=module.version, env=module.env),
         spec=spec,
         onlist_files=onlist_files,
+        admission=admission,
     )
+
+
+def _admit(manifest: DatasetManifest, spec: Spec) -> Admission | None:
+    """The loaded spec's read floor, applied — and the two states in which it refuses instead.
+
+    Both refusals exist because the alternative is a silent one. A compile with every sample below the
+    floor would emit an empty ``rule all`` and exit 0, which is the silent-success failure class; and
+    a manifest that measured no read counts is not the same claim as a dataset of empty samples, so
+    reading one as the other would drop every sample at the moment the compiler looks most confident.
+    There is deliberately **no drop-rate gate** between them: a plate with 60% dud wells is real, and
+    a rate threshold needs a number nobody can defend. The count is reported, not gated.
+    """
+    admission = admit(manifest, spec)
+    if admission is None:
+        return None
+    if admission.unmeasured:
+        raise ComposeError(
+            f"{spec.identity.id} declares an admission floor of {admission.threshold} reads, but this "
+            f"manifest carries no read count for "
+            f"{', '.join(repr(s) for s in admission.unmeasured[:5])}"
+            f"{' and others' if len(admission.unmeasured) > 5 else ''}. It was written before "
+            f"per-file counts existed, and an unmeasured sample is not an empty one — reading it as "
+            f"zero reads would drop it silently. Re-run `seqforge manifest fill` over the same "
+            f"files: the counts land in provenance and the dataset hash does not move."
+        )
+    if not admission.admitted:
+        raise ComposeError(
+            f"{admission.summary}: every one is below the {admission.threshold}-read admission floor "
+            f"{spec.identity.id} declares (`min_input_reads`), so this pipeline would be contracted to produce "
+            f"nothing and would finish, empty, at exit 0. Deepest of them: "
+            f"{max(admission.excluded.values(), default=0)} reads. Either these files are not the "
+            f"library they are named for, or the sequencing run they came from failed."
+        )
+    return admission
 
 
 def _primary_feature(quant: Quantification) -> str | None:
@@ -370,6 +422,7 @@ def compose(
     (pipeline.directory / "processing.lock.yaml").write_text(
         yaml.safe_dump(bound.model_dump(mode="json"), sort_keys=True)
     )
+    admission = _write_exclusions(pipeline, p.admission, manifest, Path(workspace))
 
     from .gates import e2e_gate, wiring_gate
 
@@ -393,6 +446,50 @@ def compose(
         # pass/fail/skip is all either can return, and the model pins that.
         gate=gate,  # type: ignore[arg-type]
         params_preview=preview,
+        admission=admission,
+    )
+
+
+def _write_exclusions(
+    pipeline: CompiledPipeline,
+    admission: Admission | None,
+    manifest: DatasetManifest,
+    workspace: Path,
+) -> SampleAdmission | None:
+    """Write the exclusion record, and report what the floor did. ``None`` when no floor was applied.
+
+    The record is written only when something was actually excluded: a compile that lost nothing has
+    nothing to explain, and a file saying so in every run directory is noise on the datasets that are
+    fine. The machine-readable half is returned either way, so a caller can still tell a floor that
+    ran and admitted everything from one that was never declared.
+
+    **The record-less caveat is decided here**, because this is where both of its conditions are in
+    hand: at least one sample lost, and no sample anywhere in the deposit carrying an archive
+    accession. With no accession the sample axis came from filenames, so a cell sequenced across two
+    runs was gated as two half-cells — unfixable by construction, and therefore disclosed at the point
+    of loss rather than raised as a Blocker that would refuse every record-less plate with an empty
+    well, or as a fill-time warning that would fire on every record-less dataset before any drop
+    exists.
+    """
+    if admission is None:
+        return None
+    record_path: str | None = None
+    if admission.excluded:
+        pipeline.exclusions_path.write_text(
+            render_record(
+                admission,
+                chemistry=manifest.library.chemistry.value[0],
+                kb_version=manifest.provenance.kb_version,
+                filename_derived=all(s.accession is None for s in manifest.experiment.samples),
+            )
+        )
+        record_path = str(pipeline.exclusions_path.relative_to(workspace))
+    return SampleAdmission(
+        threshold=admission.threshold,
+        declared=admission.declared,
+        excluded=admission.excluded,
+        record_path=record_path,
+        summary=admission.summary,
     )
 
 
@@ -500,8 +597,17 @@ def _resolve_uri(uri: str, fastq_dir: str | Path | None) -> str:
     return str((Path(fastq_dir) / uri).resolve())
 
 
-def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> list[dict[str, str]]:
+def _units(
+    manifest: DatasetManifest,
+    fastq_dir: str | Path | None = None,
+    *,
+    admitted: frozenset[str] | None = None,
+) -> list[dict[str, str]]:
     """One row per (sample, run, lane, read role, file). Falls back to a single implicit sample.
+
+    ``admitted`` is the post-drop sample list — a sample the loaded spec's read floor excluded gets no
+    row, so the units table and ``config["samples"]`` say the same thing about what this pipeline
+    produces. ``None`` means no floor was applied and every sample stands, which is the shipped state.
 
     ``run`` is which sequencing run a file came from, from the SAME `resolve.group.run_key` that
     grouped the dataset into runs during resolution. Recording it here is what lets the mapping module
@@ -535,6 +641,8 @@ def _units(manifest: DatasetManifest, fastq_dir: str | Path | None = None) -> li
                 )
         return rows
     for sample in samples:
+        if admitted is not None and sample.sample_id not in admitted:
+            continue
         for uri in sample.file_uris:
             item = by_uri.get(uri)
             if item is None or item.read_id is None or item.read_id == INDEX_ROLE:

@@ -309,6 +309,12 @@ run would make a floor of 1000 silently mean 500 on exactly the plates that are 
 *before* the dissent, because a starved cell deciding the wrong chemistry outright is the measured
 case and would otherwise refuse the plate before its depth was consulted.
 
+Abstaining is where this half stops: the cell is admitted to the manifest, and it is `compose` that
+drops it from the pipeline, under whatever KB is loaded then and over the per-file counts in
+`provenance` — the same arithmetic, computed independently, because the manifest between the two
+stages records the measurement and never the verdict
+([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
+
 **None of this crosses [ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md).** A
 sample→files map is the *join* the reduction already owns for gate `sample`; summing read counts over
 it consults nothing the metadata resolver decided. Scoring stays per run and untouched — the sum

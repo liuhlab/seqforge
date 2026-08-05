@@ -77,7 +77,22 @@ whether or not anyone tells us the prep is nuclear — and the number now surviv
 counterfactual the fixture re-measures on every run. Do not "optimise" the default back down to Gene;
 `--quantify` narrowing warns for this reason.
 
+## The sample list is the POST-DROP list
+
+A chemistry may declare `min_input_reads`, a read depth a sample must reach to be analysed at all.
+Compose applies it under the **live** knowledge base — summing the per-file counts in the manifest's
+provenance, minimum within a run and sum across a sample's runs — and a sample below it is dropped
+from `config["samples"]` and from `units.tsv`, while **staying in the manifest**. Dropping it there
+would make the dataset's identity a function of a knowledge-base number.
+
+So when the emitted sample list is shorter than the manifest's, that is not data loss to investigate:
+read `excluded.md` in the run directory, which names each dropped sample, its exact read count, the
+threshold, and the totals. `ComposeResult.admission` carries the same facts as JSON, and is `null`
+for every chemistry declaring no floor — which today is all sixteen. Every sample below the floor is
+a **refusal**, because a pipeline contracted to produce nothing would otherwise finish, empty, at
+exit 0.
+
 ## Exit codes
 
-`0` composed; `3` a gate failed or the manifest was invalid (compose refuses to compile an invalid
-manifest — that refusal is the feature).
+`0` composed; `3` a gate failed, the manifest was invalid, or every sample fell below the chemistry's
+read floor (compose refuses to compile an invalid manifest — that refusal is the feature).

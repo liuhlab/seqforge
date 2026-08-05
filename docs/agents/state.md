@@ -18,7 +18,11 @@ and everything else sorts into one of three subtrees:
 
 Compiled output lives under `pipeline/<recipe>-<run_id[:12]>/` — `config.yaml`, `units.tsv`,
 `Snakefile`, `processing.lock.yaml`, and a **copy of the hand-written module** the wrapper imports
-locally. `workspace.py` names that subtree like every other one; what is *inside* a run directory
+locally. A sixth file, `excluded.md`, appears only when the chemistry declares a `min_input_reads`
+floor **and** a sample fell below it: it is what reconciles a sample list shorter than the manifest's
+with the dataset that still carries every one
+([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
+`workspace.py` names that subtree like every other one; what is *inside* a run directory
 belongs to [`pipeline.py`](../../src/seqforge/pipeline.py), which the composer writes through and the
 report, the gates and the ground-truth harness read through
 ([ADR-0024](../adr/0024-one-owner-for-the-compiled-pipeline.md)). Keyed by the **run**, because one dataset compiled two ways is two runs

@@ -181,6 +181,11 @@ object round-trips through JSON Schema. Two decisions worth stating:
   (arbitrating an ambiguity code already flagged). They are **modelled and unbuilt** — there is no
   verb. The response references a position by *index* and re-derives no values, which is the whole
   point: an arbiter that could restate a value would be an authority.
+- **`ComposeResult.admission`** is the read floor the live KB applied and the samples it kept out.
+  It is `None` for every chemistry declaring no `min_input_reads`, which is all sixteen shipped
+  entries. It lives on the compose *result* and in the pipeline directory, never in the manifest —
+  the measurement is the dataset's and the verdict is the run's
+  ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
 
 ## The LLM provider is pluggable
 

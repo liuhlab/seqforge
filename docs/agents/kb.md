@@ -100,6 +100,11 @@ here that the model needs in order to name the node at all.
   (the probe read to EOF), above it the count is an extrapolation that moves with `--max-reads`.
   Both fields default off, so **zero shipped `spec.yaml` files declare either** — the regression bar
   getting cheaper by construction rather than by measurement, pinned hermetically in `tests/test_kb.py`.
+  It has **two** consumers, and both read it live: the reduction, where a starved cell abstains and
+  inherits its plate's chemistry rather than dissenting ([`resolve.md`](resolve.md)), and `compose`,
+  which drops that cell from `config["samples"]` and `units.tsv` and writes an exclusion record
+  naming it. Editing the number therefore changes what compiles without changing what any dataset IS
+  ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
 - **`Spec._cross_refs` resolves everything by name**: every test's `read` and `element`, every
   `anchor.ref_element`, and every onlist alias, against the reads and elements block. A dangling name
   is a load-time failure, not a scoring-time surprise.
