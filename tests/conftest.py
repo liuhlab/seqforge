@@ -430,10 +430,16 @@ def build_synth_dataset(
     one of them. Supplying the rung-0 claim EXERCISES ``distinguishable_by: [metadata, alignment]``
     rather than working around it, and it is derived from ``spec.decidable_by``, never a hand list, so
     a future undecidable-from-bytes entry is covered because it says it is.
+
+    A chemistry that declares an ADMISSION FLOOR raises the depth rather than making every caller
+    know its number. A fixture shallower than the floor is not a thin dataset, it is one the composer
+    refuses outright — every cell dropped, nothing left to contract for — so a plate entry would be
+    unbuildable here for a reason that has nothing to do with what the test is about. ``600`` is what
+    every entry declaring no floor still gets, byte for byte.
     """
     spec = kb.load_spec(tech)
     reg = registry_for(spec)
-    reads = kb.generate_reads(spec, n=n, seed=seed)
+    reads = kb.generate_reads(spec, n=max(n, (spec.min_input_reads or 0) + 1), seed=seed)
     paths = []
     for k in keys or tuple(r.id for r in spec.reads):
         p = directory / f"s_{k}.fastq.gz"

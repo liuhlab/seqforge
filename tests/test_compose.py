@@ -1550,8 +1550,8 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
 #
 # The floor is declared by the spec and applied here, so every test below compiles ONE plate manifest
 # under a spec carrying `min_input_reads`. Where the claim is that the floor did it, the same plate is
-# compiled a second time under a spec declaring none — the control, and the state all sixteen shipped
-# entries are in.
+# compiled a second time under a spec declaring none — the control, and the state the sixteen
+# non-plate entries are in.
 
 #: The floor these tests declare — `smartseq3`'s real number, so the arithmetic below is the shipped one.
 _FLOOR = 1000
@@ -1734,17 +1734,22 @@ def test_the_drop_is_invisible_to_the_dataset_hash(
     assert dataset_content_hash(plate) == before == plate.provenance.dataset_hash
 
 
-def test_no_shipped_spec_declares_a_floor_so_the_composer_adds_no_step(
+def test_a_chemistry_that_declares_no_floor_makes_the_composer_add_no_step(
     built_v3: Built, tmp_path: Path
 ) -> None:
-    """The whole path is inert across the sixteen shipped entries: no gate, no record, no key.
+    """The whole path stays inert on the sixteen entries that declare none: no gate, no record, no key.
 
-    `min_input_reads` defaults to `None`, so every dataset seqforge compiles today takes the
-    byte-for-byte path it took before this existed — which is what makes the gate cheap to carry
-    rather than a step every compile pays for.
+    `min_input_reads` defaults to `None`, and only the plate chemistry departs from the default — so
+    every dataset seqforge compiles under any of the others takes the byte-for-byte path it took
+    before this existed, which is what makes the gate cheap to carry rather than a step every compile
+    pays for. The one entry that DOES declare a floor is exercised two tests up, against a plate.
     """
     manifest, reg = built_v3
-    assert all(spec.min_input_reads is None for spec in kb.load_all_specs().values())
+    declaring = {
+        sid for sid, spec in kb.load_all_specs().items() if spec.min_input_reads is not None
+    }
+    assert declaring == {"smartseq3"}
+    assert kb.load_spec(manifest.library.chemistry.value[0]).min_input_reads is None
 
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
 

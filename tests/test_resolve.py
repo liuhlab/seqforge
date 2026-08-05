@@ -1270,7 +1270,11 @@ def test_the_datasets_one_result_carries_every_runs_judgements_once(tmp_path: Pa
 # behaviour came from `sample_is_cell` and not from the fixture's shape, and it is the same fixture
 # `test_by_chemistry_partitions_the_runs_into_assays` reads as a legal two-assay project.
 
-_PLATE = "10x-3p-gex-v3"  # stands in for `smartseq3`, which is a separate ticket's entry
+# A stand-in, and it stays one now that `smartseq3` ships: every test below needs the SAME chemistry
+# with the bit OFF as its control, and the schema's biconditional makes that unsayable for the real
+# plate entry — `sample_is_cell: False` beside a fan-in module is refused at load. So the control can
+# only be built on a chemistry that does not declare the bit, and the bit is what is under test.
+_PLATE = "10x-3p-gex-v3"
 
 
 def _plate_specs(*, floor: int | None = None) -> dict[str, Spec]:
@@ -1328,16 +1332,19 @@ def _cells(multi: MultiRunOutput) -> MetadataResolution:
 
 
 def test_the_cell_gate_is_inert_when_no_chemistry_says_a_sample_is_a_cell(plate_multi: Any) -> None:
-    """The sixteen shipped specs take the path they took before this gate existed.
+    """A dataset of chemistries that declare nothing takes the path it took before this gate existed.
 
-    `sample_is_cell` defaults to False on every one of them, so a cross-sample chemistry difference
-    is read as a legal partition into assays and NOTHING here fires: no refusal, no inherited
-    conflict, no run set aside. This is the control every test below is measured against — with the
-    real KB the identical fixture is a clean two-assay project at exit 0.
+    `sample_is_cell` defaults to False, and only the plate entry departs from the default — so for a
+    deposit of any of the other sixteen a cross-sample chemistry difference is read as a legal
+    partition into assays and NOTHING here fires: no refusal, no inherited conflict, no run set
+    aside. This is the control every test below is measured against — with the real KB the identical
+    fixture is a clean two-assay project at exit 0.
     """
     resolution = reduce_dataset(plate_multi, _cells(plate_multi))
 
-    assert not any(s.identity.sample_is_cell for s in kb.load_all_specs().values())
+    declaring = {sid for sid, s in kb.load_all_specs().items() if s.identity.sample_is_cell}
+    assert declaring == {"smartseq3"}
+    assert not any(kb.load_spec(t).identity.sample_is_cell for t in (_PLATE, "bulk-rnaseq"))
     assert resolution.refused_at is None and resolution.exit_code == 0
     assert set(resolution.assays) == {_PLATE, "bulk-rnaseq"}
     assert resolution.conflicts == [] and resolution.abstained == frozenset()

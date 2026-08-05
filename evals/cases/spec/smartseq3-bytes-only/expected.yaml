@@ -1,0 +1,47 @@
+outcome: ask
+description: >-
+  The plate branch: one cell per FASTQ pair, no whitelist anywhere, and the whole separation carried
+  by a single ANCHORED motif — the 11 bp TSO tag at offset 0 of R1, at most 2 mismatches, over a 2%
+  floor. It is the only case whose winner declares that a Sample IS a cell, so it is where the corpus
+  exercises a chemistry compiling through the fan-in module at all.
+
+  It ASKS, and that is the pre-registration rather than a disappointment. The generic paired-end
+  fallback accepts this pair on read-count and length alone, and on SYNTHETIC reads every support
+  either entry has saturates — the generator draws cDNA uniformly at random, so bulk's two
+  distinct-ratio windows are perfect, and the tag motif puts smartseq3's R1 cell at its own maximum.
+  Two saturated entries tie, the pair is processing-divergent, and the honest answer at that point is
+  the question. What the case pins is that the question is the RIGHT one: the option set is exactly
+  this pair, and `decidable_by` comes back `[metadata]` — the mechanism both specs declare on the
+  edge, reachable only because the edge is declared at all. Undeclared it would fall through to
+  `[user]`, which is the resolver saying it has no idea rather than naming the rung that decides.
+  `fields` is checked on `ask` too, so the library still lands on `smartseq3` and both reads take the
+  roles the layout gives them, from structure and never from a filename.
+
+  WHAT THIS CASE DOES NOT PROVE, written down rather than left implicit. The inputs are generated
+  from this entry's own elements, so the gate is being shown reads it authored — circular by
+  construction, and the exact circularity that hid a real defect in another entry for the life of
+  that entry (a linker three published sources agreed on and the instrument did not). The
+  non-circular half is what is asserted above: that the gate admits its own chemistry, that the
+  fallback cannot beat it on those reads, and that the roles fall where the layout says.
+
+  Three things are held elsewhere, and none of them may be read off a green here. The generator
+  writes every element on every read, so this fixture's tag rate is 100% and says nothing about the
+  2% floor — the round-trip's two-sided floor test builds the minority population by diluting these
+  reads with the all-cDNA entry's and asserts PASS above the floor and FAIL below it. The tag being
+  ABSENT from real bulk (0.00% at offset 0, against 39.6-67.6% on ten published cells) is a claim
+  about real bytes. And so is the margin: on those ten cells smartseq3 clears the fallback by
+  +0.054 to +0.188, well past the tie band, because real bulk cDNA does not saturate a distinct-ratio
+  window the way uniform random bases do. Both stay measurements on a real plate.
+conflict:
+  # A Question, not a Conflict — nothing disagrees, the bytes tie — so the option set is what
+  # `positions` would be for the other shape. Naming only the field would be satisfied by any
+  # chemistry question at all; "which two chemistries are indistinguishable on these bytes" is the
+  # whole content of this case.
+  field: library.chemistry
+  options:
+  - bulk-rnaseq
+  - smartseq3
+fields:
+  library.chemistry: smartseq3
+  library.roles.R1: R1
+  library.roles.R2: R2

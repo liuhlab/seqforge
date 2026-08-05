@@ -154,12 +154,12 @@ pipeline and may not name a dataset.
 `test_compose_refuses_a_dataset_whose_every_cell_is_below_the_floor`,
 `test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it_as_empty`,
 `test_the_drop_is_invisible_to_the_dataset_hash` and
-`test_no_shipped_spec_declares_a_floor_so_the_composer_adds_no_step`;
+`test_a_chemistry_that_declares_no_floor_makes_the_composer_add_no_step`;
 `test_compose_says_on_the_human_stream_that_it_dropped_cells` (`tests/test_cli.py`) holds the
 reporting line and `test_the_exclusion_record_is_named_here_and_absent_when_nothing_was_excluded`
 (`tests/test_pipeline.py`) holds its place in the run directory. The declaration half, in
 `tests/test_kb.py`:
-`test_no_shipped_spec_says_a_sample_is_a_cell_or_sets_a_read_floor` and
+`test_only_the_plate_entry_says_a_sample_is_a_cell_and_it_is_the_one_that_sets_a_read_floor` and
 `test_a_read_floor_of_zero_is_a_gate_that_cannot_fire`. The reduction half, in `tests/test_resolve.py`:
 `test_the_cell_gate_is_inert_when_no_chemistry_says_a_sample_is_a_cell`,
 `test_a_cell_below_the_read_floor_abstains_rather_than_dissenting`,
@@ -168,11 +168,12 @@ reporting line and `test_the_exclusion_record_is_named_here_and_absent_when_noth
 
 ## Consequences
 
-- **The whole path is inert today.** `sample_is_cell` is `False` and `min_input_reads` is `None` on
-  all sixteen shipped entries, so every dataset seqforge compiles takes the byte-for-byte path it took
-  before this existed: no gate, no record, no config key. That is what makes the mechanism cheap to
-  carry, and it is also why it needs a written decision — nothing exercises it yet except the tests
-  built to.
+- **The path was inert when this was decided, and one entry now walks it.** `sample_is_cell` was
+  `False` and `min_input_reads` `None` on all sixteen entries shipped that day, so the mechanism cost
+  nothing to carry and needed a written decision precisely because nothing exercised it. `smartseq3`
+  is what it was built for and the first to declare both (`min_input_reads: 1000`, under the probe
+  budget so the count it is compared against is exact). Every other chemistry still takes the
+  byte-for-byte path it took before this existed: no gate, no record, no config key.
 - **`units.tsv` and the manifest may now disagree about what exists**, deliberately, and the
   exclusion record is the only thing that reconciles them. A reader of a pipeline directory who has
   not read this record will find a shorter sample list and no explanation unless that file is there —

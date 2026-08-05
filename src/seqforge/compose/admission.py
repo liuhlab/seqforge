@@ -17,8 +17,9 @@ Nothing here writes, refuses, or renders a path. :func:`admit` is a pure split o
 samples into three buckets and :func:`render_record` turns one into prose; the composer owns the
 refusals, because a compile with nothing left to produce is a fact about the compile.
 
-**Inert by default.** ``min_input_reads`` is ``None`` on all sixteen shipped specs, so :func:`admit`
-answers ``None`` and the composer takes the path it took before this module existed.
+**Inert by default.** ``min_input_reads`` is ``None`` on every shipped spec but the plate one, so on
+anything else :func:`admit` answers ``None`` and the composer takes the path it took before this
+module existed.
 """
 
 from __future__ import annotations
@@ -112,8 +113,8 @@ def sample_reads(manifest: DatasetManifest, sample: SampleGroup) -> int | None:
 def admit(manifest: DatasetManifest, spec: Spec) -> Admission | None:
     """Split ``manifest``'s samples on the read floor ``spec`` declares, or ``None`` when it declares none.
 
-    ``None`` is the answer for every dataset the sixteen shipped entries describe, and it is what makes
-    the whole path inert rather than merely cheap. A manifest with no samples at all also answers
+    ``None`` is the answer for every dataset the sixteen non-plate entries describe, and it is what
+    makes the whole path inert rather than merely cheap. A manifest with no samples at all also answers
     ``None``: the composer's implicit single-sample fallback has no id to exclude and no depth to
     attribute, so there is nothing here a floor could be about.
     """
