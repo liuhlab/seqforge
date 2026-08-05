@@ -143,7 +143,7 @@ from __future__ import annotations
 #: fix rather than an incomplete one: `distinct_ratio` abstains on EVERY input by design, so it can
 #: never be written into a `requires` and gate a spec away, while measuring on every input. Every
 #: support 10x-3p-gex-v3 declares abstains, so dropping on the outcome empties the normalizer and
-#: scores the chemistry 0.0 on the reads it generated. `Evaluation.applicable` carries it instead.
+#: scores the chemistry 0.0 on the reads it generated. `Evaluation.answerable` carries it instead.
 #: **A whitelist WE could not obtain is NOT that case and keeps its weight**, and that half is what
 #: keeps the fix from inverting the ranking: the bytes were willing, a rival spec whose list did
 #: materialize answered the same question, and renormalizing around this one makes the unverifiable
