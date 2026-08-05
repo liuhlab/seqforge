@@ -256,6 +256,16 @@ def fill_manifest(
         study=experiment.study,
     )
 
+    # Every observed file, on every manifest — never conditioned on what the loaded KB asks for, or
+    # a manifest's contents would depend on the day it was written (see `DatasetProvenance`). Built
+    # in content-hash order for the same reason `_build_files` sorts: the mapping is then byte-stable
+    # however the probe pool returned its observations, in serializations that sort keys and in the
+    # ones that do not.
+    estimated_reads = {
+        obs.file.sha256: obs.estimated_total_reads
+        for obs in sorted(observations, key=lambda o: o.file.sha256)
+    }
+
     draft = DatasetManifest(
         library=library,
         experiment=experiment_section,
@@ -263,15 +273,18 @@ def fill_manifest(
             dataset_hash="",
             kb_version=KB_VERSION,
             seqforge_version=seqforge_version,
+            estimated_reads=estimated_reads,
         ),
     )
-    # the hash covers only the two truth sections, so filling it in cannot perturb it
+    # the hash covers only the two truth sections, so filling it in cannot perturb it — and neither
+    # can the read counts, which is the whole reason they are down here rather than in `library`
     return draft.model_copy(
         update={
             "provenance": DatasetProvenance(
                 dataset_hash=dataset_content_hash(draft),
                 kb_version=KB_VERSION,
                 seqforge_version=seqforge_version,
+                estimated_reads=estimated_reads,
             )
         }
     )
