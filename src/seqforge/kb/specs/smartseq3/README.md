@@ -33,7 +33,7 @@ structural rather than conventional: R1 is the read carrying `tso_tag` + `umi` +
 cDNA indistinguishable from bulk.
 
 A single-end deposit runs the same pipeline. The extraction is entirely *within* the tagged read, so
-the mate is an addition rather than half of it (ADR-0033): the extractor takes one FASTQ, writes one
+the mate is an addition rather than half of it (ADR-0035): the extractor takes one FASTQ, writes one
 unpaired record per fragment, and the aligner is told `SAM SE` instead of `SAM PE`.
 
 ## How seqforge tells it apart from bulk

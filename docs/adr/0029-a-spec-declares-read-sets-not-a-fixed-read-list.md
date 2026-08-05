@@ -151,7 +151,7 @@ standard `test_a_declared_twin_that_diverges_would_be_caught` already sets in th
 **Both of those have since changed, and this paragraph is left standing rather than deleted because
 the argument is still the one that holds.** The negative test exists
 (`test_a_requires_test_a_read_set_cannot_reach_fails_at_load_and_points_at_supports`), and
-[0033](0033-the-mate-is-an-addition-to-umi-extraction.md) gave the rule its first shipped instance —
+[0035](0035-the-mate-is-an-addition-to-umi-extraction.md) gave the rule its first shipped instance —
 `smartseq3`'s `se` set, which *satisfies* it, since that entry's only `requires` test addresses R1 and
 R1 is in every set. The recognition case per read set exists too, in both directions
 (`test_the_plates_maximal_read_set_outranks_its_single_end_subset_on_a_paired_deposit` and

@@ -17,7 +17,7 @@
 # with tag + UMI + motif — so handing the plain one to the extractor tags nothing and finishes with
 # an empty matrix at exit 0.
 #
-# The mate is an ADDITION and never half of the operation (ADR-0033): the tag lives entirely within
+# The mate is an ADDITION and never half of the operation (ADR-0035): the tag lives entirely within
 # the tagged read, and the mate only inherits the resulting `UB` onto a record emitted alongside.
 # Take it away and nothing about the extraction changes — only the uBAM's record count. So the
 # layout's ONE fact, whether it carries a mate, is where both branches below come from and the only
@@ -96,7 +96,7 @@ def mate_role():
     DEMANDS.
 
     `None` is an answer and not a gap. It used to raise, on the reading that pairing is the
-    operation and one read a degenerate case of it; ADR-0033 calls that backwards -- the single-end
+    operation and one read a degenerate case of it; ADR-0035 calls that backwards -- the single-end
     form is the base case and the mate the addition -- so there is no refusal left here to place.
     The layout is also the only statement of the fact: a `paired:` key beside it would be the same
     thing said twice, and owed by every plate.

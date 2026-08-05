@@ -1,7 +1,7 @@
 # Smart-seq3's single-end configuration: the read-set contest, and the aligner argument under it
 
 Measured 2026-08-05 for [#267](https://github.com/liuhlab/seqforge/issues/267), decided in
-[ADR-0033](../adr/0033-the-mate-is-an-addition-to-umi-extraction.md). Two measurements, joined by one
+[ADR-0035](../adr/0035-the-mate-is-an-addition-to-umi-extraction.md). Two measurements, joined by one
 change rather than by a mechanism: what declaring `read_sets: {se: [R1]}` on the plate entry does to
 scoring, and what STAR does when the aligner argument that follows from it is wrong.
 
@@ -132,7 +132,7 @@ condition rather than a caveat, is `bulk-rnaseq/se` scoring *above* the plate by
 a bulk gene-count matrix for a plate library at exit 0, the plausible-matrix failure, strictly worse
 than the refusal the read set was added to remove.
 
-Reaching for the signature to open a margin here is the repair ADR-0033 forbids: #257 measured every
+Reaching for the signature to open a margin here is the repair ADR-0035 forbids: #257 measured every
 additional R1 support on this entry as a strict liability — the motif already saturates on every real
 cell, the trailing-`GGG` support goes negative on 4 of 10 published cells, and dropping the draft's
 two extra supports roughly doubled the thin per-cell margins. Trading measured per-cell margins for a

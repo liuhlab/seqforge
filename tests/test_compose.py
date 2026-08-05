@@ -1149,7 +1149,7 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     It opens with compose's own `wiring` verdict, which is the same four characters
     `test_a_single_end_plate_deposit_compiles_end_to_end` asserts for the other placement shape. The
     claims below read a plan text this test spawned for itself; the verdict reads the gate `compose`
-    RAN, and a verdict is what ADR-0033's universal — "no path exists where `compose` exits 0 and the
+    RAN, and a verdict is what ADR-0035's universal — "no path exists where `compose` exits 0 and the
     module then raises" — is stated in. `_role_placement`'s `umi_tagged` branch emits exactly two
     shapes, so the two assertions together are the whole case analysis rather than two samples of it.
     """
@@ -1616,7 +1616,7 @@ def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_c
 # ---- the OTHER placement shape: a plate sequenced single-end, and a gate proved to be looking -----
 #
 # `_role_placement`'s `umi_tagged` branch emits exactly two shapes, `{umi_cdna, cdna}` and
-# `{umi_cdna}`, so ADR-0033's universal — "no path exists where `compose` exits 0 and the module then
+# `{umi_cdna}`, so ADR-0035's universal — "no path exists where `compose` exits 0 and the module then
 # raises" — is a FINITE case analysis. The paired plate above is the first shape; these are the
 # second, on the same shipped `smartseq3` entry, whose `read_sets: {se: [R1]}` is what makes the
 # mate-less placement reachable at all.
@@ -1647,7 +1647,7 @@ def test_a_single_end_plate_deposit_compiles_end_to_end(
 
     **`gate["wiring"] == "pass"` is the point of the whole test.** Everything above it is text off
     disk and would hold just as well of a composer that emitted a placement the module goes on to
-    raise over — which is precisely the state ADR-0033 removes, and the state the shipped `se` read
+    raise over — which is precisely the state ADR-0035 removes, and the state the shipped `se` read
     set would otherwise have unlocked. That gate spawns `snakemake -n -p`, so it is the DAG builder's
     own answer to "can this pipeline be planned at all", taken over the mate-less shape. It is the
     difference between "compose tolerated a one-read layout" and "the module can actually plan it".
@@ -1714,7 +1714,7 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     )
 
 
-# ---- ...and those eight cells RUN, which is the leg ADR-0033 argued instead of measuring ---------
+# ---- ...and those eight cells RUN, which is the leg ADR-0035 argued instead of measuring ---------
 #
 # Everything above this line stops at `snakemake -n`, and a plan is not a matrix. The record's own
 # standard is "measured, not read", and the one clause it does not meet is its own: "Nothing changes
@@ -1808,7 +1808,7 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
 
     # Asserted before the run rather than diagnosed after it: `SAM PE` over these records is exit
     # 104 out of a container, which is a legible failure only if something says what it should have
-    # been. The value is derived per dataset (ADR-0033), so this is where the derivation is paid.
+    # been. The value is derived per dataset (ADR-0035), so this is where the derivation is paid.
     assert all("--readFilesType SAM SE" in rendered["star_umi_map"][cell] for cell in cells)
 
     try:

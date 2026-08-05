@@ -22,18 +22,18 @@ Numbers only; the table below carries the links.
 
 | area | ADRs |
 | --- | --- |
-| `src/seqforge/cli/` | 0013, 0018, 0031, 0033 |
-| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030, 0032, 0033 |
+| `src/seqforge/cli/` | 0013, 0018, 0031, 0035 |
+| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030, 0032, 0035 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021, 0028, 0030 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
-| `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029, 0032, 0033 |
+| `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029, 0032, 0035 |
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012, 0030 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023, 0030 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032 |
-| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0033 |
+| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018 |
 | `tests/`, and choosing which of them to run | 0002 |
@@ -75,4 +75,4 @@ Numbers only; the table below carries the links.
 | [0030](0030-a-measurement-lives-in-provenance.md) | A measurement the dataset's identity must exclude lives in provenance | Per-file read counts keyed by sha256, on every manifest and outside every hash; the threshold over them is applied at compose under the live KB and never frozen into the write-once manifest as a verdict | `models/dataset.py`, `manifest/fill.py`, `manifest/hash.py`, `compose/` |
 | [0031](0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md) | A collapsed citation is regenerable only from the record set, so harvest writes every member | Near-identical records fold onto one exemplar at plan time; a claim fans iff its quote touches no variant span, sample-scoped claims materialize per member so `_basis_for` is untouched, and every rendered member — sent or not — reaches `documents/` and `document_subjects` | `harvest/plan.py`, `harvest/normalize.py`, `cli/harvest.py`, `models/assertion.py`, `resolve/records.py` |
 | [0032](0032-a-spec-declares-the-shape-of-a-deposit.md) | A spec declares the shape of a deposit, and compose acts on that declaration without the manifest recording the outcome | `identity.sample_is_cell` and `min_input_reads` are declared, never derived; the floor is applied at every compile under the live KB, over the `Sample` (min within a run, sum across them), and the starved sample leaves `config["samples"]` and `units.tsv` for a written exclusion record while staying in the manifest, so moving the threshold never moves `dataset_hash` | `kb/schema.py`, `compose/admission.py`, `compose/core.py`, `pipeline.py`, `resolve/engine.py` |
-| [0033](0033-the-mate-is-an-addition-to-umi-extraction.md) | The mate is an addition to UMI extraction, not half of it | The tag operation is entirely within one read, so the single-end form is the base case and the pairing is the addition: one verb with a nullable mate, the module deriving both the mate argument and `SAM SE`/`SAM PE` from `read_files_in`, and no signature tuned to win a read-set contest | `workflows/umite/extract.py`, `workflows/map/star-umi.smk`, `cli/io.py`, `kb/specs/` |
+| [0035](0035-the-mate-is-an-addition-to-umi-extraction.md) | The mate is an addition to UMI extraction, not half of it | The tag operation is entirely within one read, so the single-end form is the base case and the pairing is the addition: one verb with a nullable mate, the module deriving both the mate argument and `SAM SE`/`SAM PE` from `read_files_in`, and no signature tuned to win a read-set contest | `workflows/umite/extract.py`, `workflows/map/star-umi.smk`, `cli/io.py`, `kb/specs/` |

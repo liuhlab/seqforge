@@ -561,7 +561,7 @@ def synth_plate_se(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     the tie band — measured through this very path, ``smartseq3/se`` 1.0100 against ``bulk-rnaseq/se``
     1.0090, a margin of 0.0010 against ``_THETA`` = 0.02 — because each has exactly one firing support
     on R1, ``_score_cell`` normalizes within a read, and with one file neither pays the orphan penalty
-    that decides every other row of the comparison (ADR-0033). Resolved with no hypothesis the same
+    that decides every other row of the comparison (ADR-0035). Resolved with no hypothesis the same
     deposit poses a Question at rung 7 instead of deciding, so it is the rung-0 claim that lands this
     on the plate rather than on generic bulk — which would be a gene-count matrix for a plate library.
     """
@@ -779,7 +779,7 @@ class ComposedPlate:
     config: dict[str, object]
     #: ``compose``'s OWN gate verdicts. :data:`composed_plate` takes them with the real
     #: ``wiring_gate`` — the DAG builder's answer for the ``{umi_cdna, cdna}`` placement, which is the
-    #: half of ADR-0033's universal that plate is. :data:`composed_plate_se` carries ``"skip"`` here
+    #: half of ADR-0035's universal that plate is. :data:`composed_plate_se` carries ``"skip"`` here
     #: deliberately, and says why: the mate-less verdict is already asserted twice by tests of its
     #: own, and this fixture's plan below is that same DAG build with an exception in place of four
     #: characters.
@@ -806,7 +806,7 @@ def composed_plate(
     **It composes under the REAL wiring gate, and that second spawn is deliberate** (measured at
     2.2s for the whole compose, against 2.1s for the plan below). ``wiring_gate`` returns a
     four-character verdict while discarding the plan text, so the two cannot be one spawn — and the
-    verdict is what ADR-0033's universal is stated in. Both shapes ``_role_placement`` can emit for a
+    verdict is what ADR-0035's universal is stated in. Both shapes ``_role_placement`` can emit for a
     ``umi_tagged`` layout have to reach ``"pass"``: this fixture is the ``{umi_cdna, cdna}`` half, and
     :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
     here — a session fixture is built before the function-scoped autouse stub applies, and a verdict

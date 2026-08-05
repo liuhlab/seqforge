@@ -1031,7 +1031,7 @@ def _plate_run_dir(
     below a proof about the module rather than about a fixture.
 
     ``mate=False`` writes the OTHER sequencing configuration Smart-seq3's Methods publish — the
-    tagged read and nothing else (ADR-0033). One flag rather than a second copy of this function,
+    tagged read and nothing else (ADR-0035). One flag rather than a second copy of this function,
     because the two directories differ in exactly the one fact the module branches on: whether the
     layout places a ``cdna`` role, and therefore whether units.tsv carries an R2 row at all. Two
     copies would be free to drift on the eight keys that are NOT the subject.
@@ -1141,7 +1141,7 @@ def test_the_extractors_mate_and_the_aligners_read_type_come_from_one_fact(
     returncode 0, so compose's wiring gate passed it and the whole chain reported success; the
     failure arrived later, in the user's hands, as STAR exit 104 — `FATAL ERROR in input BAM file:
     the consecutive lines in paired-end BAM have different read IDs` (measured 2026-08-05 against the
-    `align-rna` image). That is precisely the shape ADR-0033 was written to delete, reappearing
+    `align-rna` image). That is precisely the shape ADR-0035 was written to delete, reappearing
     inside the change that deleted it, which is why the guard is a test and not a comment.
 
     Nothing composes this directory today — compose writes `read_files_in` and units.tsv together, so
@@ -1174,7 +1174,7 @@ def test_the_plate_module_plans_a_single_end_run_and_hands_the_extractor_no_mate
     not a rendered string read off the source: only building the DAG proves the refusal is gone.
 
     Two renderings carry the layout, and both are derived from the single fact that
-    `read_files_in` places no `cdna` role (ADR-0033). The extractor is handed no `--r2`, because the
+    `read_files_in` places no `cdna` role (ADR-0035). The extractor is handed no `--r2`, because the
     verb's mate is nullable and an option with nothing after it is a usage error; and the aligner is
     handed `SAM SE`, because a `SAM PE` over a uBAM of unpaired records is a crash — the loud kind,
     hours in, after the index has loaded and the plate has queued.

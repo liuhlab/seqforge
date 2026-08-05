@@ -1386,7 +1386,7 @@ def test_the_generic_single_end_set_does_not_outrank_the_plates_on_a_single_end_
     `test_the_single_end_set_does_not_outrank_a_single_cell_chemistry_on_its_own_data` measures the
     generic entry losing to every barcoded leaf by ~0.22-0.25, and both halves of that margin are
     unavailable here: a plate has no onlist to hit (its cell barcode is the FILE), and on a ONE-file
-    deposit neither set orphans anything, so nobody pays `λ/|R|`. ADR-0033 records that a near-tie is
+    deposit neither set orphans anything, so nobody pays `λ/|R|`. ADR-0035 records that a near-tie is
     therefore the expected result rather than a defect.
 
     Scored on `smartseq3`'s own single-end deposit — the same reads as the paired one, narrowed to R1
@@ -1405,7 +1405,7 @@ def test_the_generic_single_end_set_does_not_outrank_the_plates_on_a_single_end_
     `_THETA` routes to the `smartseq3` <-> `bulk-rnaseq` edge both entries declare
     `processing_divergent` / `distinguishable_by: [metadata]` — a Question at exit 4, which is
     recoverable and is the designed outcome. Asserting an outright plate win would pin this fixture's
-    read depth into a claim about the chemistry, and it would invite the one repair ADR-0033 forbids:
+    read depth into a claim about the chemistry, and it would invite the one repair ADR-0035 forbids:
     #257 measured every additional R1 support on this entry as a strict liability, so tuning the
     signature to open a margin here trades real per-cell margins for a synthetic contest one.
     """

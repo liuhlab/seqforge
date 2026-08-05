@@ -132,7 +132,7 @@ from .schema import Spec
 #: Methods publish ("75-bp single end, 50-bp single end or 150-bp paired end"). 2026.8.5 built the
 #: mechanism and `bulk-rnaseq` was the only entry that could use it: the plate half could not follow,
 #: because `map/star-umi`'s mate-role helper RAISED rather than render an extraction with no mate.
-#: ADR-0033 removes that — the tag operation is entirely WITHIN the tagged read (find the anchor, cut
+#: ADR-0035 removes that — the tag operation is entirely WITHIN the tagged read (find the anchor, cut
 #: the UMI, trim `geometry.span`), so the single-end form is the base case and the mate is an addition
 #: that inherits the `UB`. This spec edit and the wider extractor are one change and not two: declaring
 #: the read set alone unlocks a `umi_tagged` placement that then dies at DAG construction, which turns

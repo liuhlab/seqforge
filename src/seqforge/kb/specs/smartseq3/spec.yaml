@@ -67,13 +67,13 @@ reads:
 #
 # R1 and not R2, and here that is structural rather than conventional. R1 is the TAGGED read -- it
 # carries `tso_tag` + `umi` + `tso_ggg` + `cdna_r1`, i.e. every element that says Smart-seq3 -- so it is
-# the read that survives alone and the one the extractor works entirely within (ADR-0033). R2 is plain
+# the read that survives alone and the one the extractor works entirely within (ADR-0035). R2 is plain
 # cDNA, indistinguishable from bulk (its support below is byte-identical to `bulk-rnaseq`'s own), so an
 # `se` set over R2 would declare a configuration this entry could not recognize.
 #
 # BOTH directions were measured before this set was declared, because a plate has NEITHER of the two
 # things that protect a barcoded leaf from the generic fallback: no onlist to hit, and on a one-file
-# deposit no orphan to charge. What they established (ADR-0033; figures, method and the three depths in
+# deposit no orphan to charge. What they established (ADR-0035; figures, method and the three depths in
 # `docs/research/smartseq3-single-end-configuration.md`, 2026-08-05):
 #   PAIRED deposit -- the maximal set wins, by exactly the `λ/|R|` orphan penalty the one-role subset
 #     pays for the mate it declined to explain. Depth-invariant, because it is not evidence. So a

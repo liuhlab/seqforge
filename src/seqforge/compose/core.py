@@ -587,7 +587,7 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
             )
         # The mate is optional, because the kind tolerates ONE read structurally — a single-end plate
         # is a real published configuration and must not need a fifth layout kind to express. The
-        # extractor now takes it as an ADDITION rather than as half of the operation (ADR-0033), so a
+        # extractor now takes it as an ADDITION rather than as half of the operation (ADR-0035), so a
         # placement carrying `umi_cdna` alone is one the module runs, not a promise it breaks at DAG
         # time — and this dispatch still never invents a mate that is not there.
         mate = next(
