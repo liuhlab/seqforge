@@ -65,6 +65,36 @@ class RecordAttribute(BaseModel):
     raw_name: str | None = None
 
 
+class SubmittedFile(BaseModel):
+    """One file the submitter uploaded, as the archive declares it (`docs/adr/0033`).
+
+    The unit is the file, not the name: an archive states the name, a hash, a size and a location on
+    one element, and they only mean anything together — a name with no hash and no location is what
+    we used to keep, and a hash with no location names bytes nobody can reach.
+
+    Archive-neutral on purpose. SRA spells this ``<SRAFile supertype="Original">`` with a
+    ``semantic_name``, a ``cluster`` and an ``<Alternatives access_type=...>`` child; ENA spells the
+    same four facts ``submitted_ftp``/``submitted_md5``/``submitted_bytes``; an in-house deposit has
+    no ``supertype`` at all. Modelling one archive's element would be that XML wearing a model's
+    clothes, and it could not accept the other two.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    filename: str
+    #: The **provider's** md5 over the bytes at ``uri`` — an address, adopted via
+    #: ``content_key_from_md5`` if those bytes are ever fetched. It is never computed here and never
+    #: compared against a file on disk: doing that means reading a FASTQ end to end, which the read
+    #: budget forbids — and #37 already removed one whole-file hash for that reason.
+    md5: str | None = None
+    #: What the archive says the upload weighed. It *checks* a join the filename already made and
+    #: never makes one, because matching on a size is a coincidence over a fact the archive supplied.
+    size_bytes: int | None = None
+    #: Where the submitter's own copy — never normalized, never regenerated — can be fetched. Carried
+    #: and printed; fetching it needs credentials and an egress budget, which is its own decision.
+    uri: str | None = None
+
+
 class ArchiveRecord(BaseModel):
     """One level of one archive record, as fetched. A transcript, not an interpretation."""
 
@@ -78,9 +108,14 @@ class ArchiveRecord(BaseModel):
     parent: str | None = None
     attributes: list[RecordAttribute] = Field(default_factory=list)
     free_text: list[FreeText] = Field(default_factory=list)
-    #: Filenames the archive says this record's data was submitted as. The only thing that can join a
-    #: record to a file whose name no longer contains the accession.
-    filenames: list[str] = Field(default_factory=list)
+    #: The files the archive says this record's data was submitted as. Their names are the only thing
+    #: that can join a record to a file whose name no longer contains the accession.
+    submitted_files: list[SubmittedFile] = Field(default_factory=list)
+
+    @property
+    def filenames(self) -> list[str]:
+        """The submitted names, derived. Stored nowhere, so it cannot disagree with the files."""
+        return [f.filename for f in self.submitted_files]
 
     def attribute(self, name: str) -> str | None:
         """The value of a harmonized attribute, or ``None``. Never raises — absence is normal."""
@@ -110,6 +145,13 @@ class ArchiveRecordSet(BaseModel):
     #: What was asked for. The accession a human typed.
     query: str
     records: list[ArchiveRecord] = Field(default_factory=list)
+    #: The ``IO_VERSION`` of the transcriber that wrote this set, stamped by
+    #: :func:`~seqforge.io.archive.fetch_records`. **Absent means the set predates submitted files**,
+    #: which a reader must not confuse with a deposit that publishes none — most publish none, so
+    #: empty is the normal case and could never be the signal by itself. Optional rather than
+    #: defaulted here because ``models`` may not import ``io``: the writer stamps it, and a set that
+    #: came off disk keeps whatever stamp it was written with.
+    io_version: str | None = None
 
     def at(self, level: RecordLevel) -> list[ArchiveRecord]:
         return [r for r in self.records if r.level == level]
@@ -140,6 +182,7 @@ __all__ = [
     "RecordLevel",
     "FreeText",
     "RecordAttribute",
+    "SubmittedFile",
     "ArchiveRecord",
     "ArchiveRecordSet",
 ]

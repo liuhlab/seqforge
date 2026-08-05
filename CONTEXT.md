@@ -149,6 +149,16 @@ taken here reports how much was fetched and never what the deposit is.
 _Avoid_: as a general synonym for dataset — it earns its keep only against **Deposit**; also fetch,
 pull, local copy, working set
 
+**Submitted file**:
+What a **Deposit** declares about one file the submitter uploaded — its name, the provider md5, its
+size, and where it can be fetched. The md5 is a **Content address** over the bytes at that location:
+adopted if they are ever fetched, and never computed against a file on disk, which R3 forbids
+(`docs/adr/0033`). Both SRA and ENA publish all four under this word.
+_Avoid_: original (one archive's spelling of `supertype`), checksum, digest, verify (all four imply
+the file was read); and never a **Whole file**, which is what a probe knows about a FASTQ it *did*
+read, nor a **Download**, which is what reached disk — a submitted file is what the deposit says
+exists, fetched or not
+
 ### Evidence
 
 **Evidenced**:

@@ -22,7 +22,7 @@ the comfortable assumption, and it was false.
    SuperSeries dataset while reporting success.
 2. NCBI's ``efetch db=sra`` returns one ``EXPERIMENT_PACKAGE`` per experiment, and a package is the
    whole hierarchy in one object: STUDY (title, abstract, centre), EXPERIMENT (the protocol prose),
-   SAMPLE (alias + attributes), RUN (accession, alias, original filenames). Everything but one thing.
+   SAMPLE (alias + attributes), RUN (accession, alias, submitted files). Everything but one thing.
 3. That one thing is ``harmonized_name``. The SRA package gives a sample attribute as the submitter
    typed it (``<TAG>dev_stage</TAG>``); ``efetch db=biosample`` gives NCBI's own harmonization of the
    same attribute (``harmonized_name="dev_stage"``). We want NCBI's, because the alternative is us
@@ -52,7 +52,9 @@ from ..models.records import (
     FreeText,
     RecordAttribute,
     RecordLevel,
+    SubmittedFile,
 )
+from . import IO_VERSION
 from .attributes import harmonize
 from .remote import _MAX_RETRIES, RemoteError, _get, retry_delay
 
@@ -243,7 +245,7 @@ def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
                 accession=run_id,
                 parent=exp_id,
                 free_text=_free("run_alias", run.get("alias")),
-                filenames=_original_filenames(run),
+                submitted_files=_submitted_files(run),
             )
 
     return one_record_per_accession(
@@ -251,19 +253,43 @@ def parse_sra_package_set(xml: str) -> list[ArchiveRecord]:
     )
 
 
-def _original_filenames(run: ElementTree.Element) -> list[str]:
-    """What the submitter's files were called, per the archive.
+def _submitted_files(run: ElementTree.Element) -> list[SubmittedFile]:
+    """What the submitter uploaded, per the archive: the name, the md5, the size and where it lives.
 
     ``supertype="Original"`` only: the other entries are SRA's own normalized ``.sra``/``.lite``
     products, which are not files anyone has on disk under that name. These matter because a
     downloaded dataset does not always carry the run accession in its filenames, and then the
     original name is the only thing left that can join a file to its sample.
+
+    The other three fields ride on the same element and are transcribed, not acted on: the md5
+    addresses the bytes at ``uri`` and is never computed over a local file (`docs/adr/0033`), and a
+    ``@size`` the archive spelled oddly is dropped rather than raised on, since a transcriber that
+    refuses a whole dataset over one unparsable attribute is worse than one that carries three facts
+    instead of four.
+
+    Sorted by name, one entry per name, exactly as the bare filename list was: a record set is
+    content-addressed and cached, so the order the archive happened to serve two entries in must not
+    reach it. A repeated name keeps its first entry, the rule :func:`one_record_per_accession`
+    applies one level up.
     """
-    out: list[str] = []
+    out: dict[str, SubmittedFile] = {}
     for f in run.findall(".//SRAFile"):
-        if f.get("supertype") == "Original" and f.get("filename"):
-            out.append(str(f.get("filename")))
-    return sorted(set(out))
+        name = f.get("filename")
+        if f.get("supertype") != "Original" or not name or name in out:
+            continue
+        size = f.get("size") or ""
+        # The FIRST `<Alternatives>` child, because the archive lists the mirrors it holds for this
+        # one file in its own order and the first is its own answer. Sorting them for "determinism"
+        # would re-rank them by URL scheme — picking `gs://` over `s3://` on a letter — which is us
+        # overriding a ranking the archive made, to no end: they address the same bytes.
+        alternative = f.find("Alternatives")
+        out[name] = SubmittedFile(
+            filename=name,
+            md5=f.get("md5"),
+            size_bytes=int(size) if size.isdigit() else None,
+            uri=alternative.get("url") if alternative is not None else None,
+        )
+    return [out[name] for name in sorted(out)]
 
 
 def _taxonomy(taxid: str) -> list[RecordAttribute]:
@@ -482,7 +508,10 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
             for r in packages
         ]
 
-    return ArchiveRecordSet(source=SOURCE, query=accession, records=packages)
+    # Stamped with the version that transcribed it, so a set read back later says how much of the
+    # archive we were asking for at the time: a run declaring no submitted files is a deposit that
+    # published none (most did) only if this transcriber wrote it.
+    return ArchiveRecordSet(source=SOURCE, query=accession, records=packages, io_version=IO_VERSION)
 
 
 __all__ = [

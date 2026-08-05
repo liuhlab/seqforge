@@ -36,7 +36,7 @@
           "text": "This study investigates the dynamics of thymic dendritic cells (DCs) under tumor-bearing conditions and the role of CCR9 in regulating thymic DC homeostasis. CD11c? thymic cells were enriched from wild-type (WT) and CCR9 knockout (CCR9 KO) mice subjected to different experimental treatments. Four experimental groups were analyzed: CCR9 WT mice treated with PBS for 2 weeks CCR9 WT mice bearing MC38 tumors for 2 weeks CCR9 WT mice bearing MC38 tumors for 3 weeks CCR9 KO mice bearing MC38 tumors for 3 weeks Overall design: This dataset contains single-cell RNA sequencing (scRNA-seq) data of thymic CD11c+ cells isolated from CCR9 wild-type (WT) and CCR9 knockout (KO) mice under different experimental conditions. Four samples are included: CCR9 WT mice treated with PBS for 2 weeks, CCR9 WT mice bearing MC38 tumors for 2 weeks, CCR9 WT mice bearing MC38 tumors for 3 weeks, and CCR9 KO mice bearing MC38 tumors for 3 weeks. After subcutaneous MC38 tumor implantation, CD11c+ cells were sorted from the thymus using BD FACS Aria III and subjected to droplet-based single-cell RNA sequencing using the Chromium Next GEM Single-Cell 5' Reagent Kit v2 (10x Genomics). Libraries were sequenced on a DNBSEQ platform (MGI). Sequencing data were processed using Cell Ranger v7.1.0 (10x Genomics) with the mouse reference (refdata-gex-mm10-2020-A)."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -122,7 +122,7 @@
           "text": "GSM9477514"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -168,7 +168,7 @@
           "text": "GSM9477514"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -181,9 +181,13 @@
           "text": "GSM9477514_r1"
         }
       ],
-      "filenames": [
-        "DK23269_03_S1_L001_R1_001.fastq.gz",
-        "DK23269_03_S1_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "DK23269_03_S1_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "DK23269_03_S1_L001_R2_001.fastq.gz"
+        }
       ]
     }
   ]

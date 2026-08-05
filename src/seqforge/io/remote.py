@@ -76,12 +76,18 @@ SDL_RETRIEVE = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
 #: only field here that carries a submitter's prose about how the library was built — a deposit that
 #: states its chemistry there and nowhere else was invisible to every other field on this list (#237).
 #: There is no ENA equivalent of `design_description` at the `read_run` result at all.
+#:
+#: The four `submitted_*` fields are one fact — ENA's spelling of what SRA publishes on
+#: `<SRAFile supertype="Original">` — and only three of them used to be asked for. It is an ADDRESS
+#: over the submitter's own upload, never a hash to check a local file against (`docs/adr/0033`), and
+#: for a run whose deposit was a cellranger BAM it is the only content-address there is: ENA
+#: generates no FASTQ for one, so `fastq_md5` comes back empty and the submitted file is all the data.
 ENA_FIELDS = (
     "run_accession,experiment_accession,study_accession,sample_accession,scientific_name,tax_id,"
     "instrument_platform,instrument_model,library_strategy,library_source,library_selection,"
     "library_layout,library_construction_protocol,read_count,base_count,fastq_ftp,fastq_md5,"
-    "fastq_bytes,submitted_ftp,submitted_bytes,submitted_format,sra_ftp,experiment_title,"
-    "sample_title,first_public"
+    "fastq_bytes,submitted_ftp,submitted_bytes,submitted_format,submitted_md5,sra_ftp,"
+    "experiment_title,sample_title,first_public"
 )
 
 #: Patterns lifted from ENA's own HTTP 400 response bodies, so they match what the API accepts.
@@ -449,16 +455,22 @@ def dropped_reads(run: dict[str, str], stats: RunStatistics) -> DroppedReads | N
 def technical_read_remedy(accession: str) -> str:
     """The operable remedy for a dropped technical read — a Blocker's remedy must be actionable.
 
-    ``fasterq-dump --include-technical`` is the real fix; SDL is a fallback. Originals
-    (``sra-pub-src-*``) are published for "select high value and newly-released studies" only, and
-    most runs return just ``type=sra`` — so naming SDL first would send people down a dead end.
+    ``fasterq-dump --include-technical`` is the real fix; the submitter's own upload is a fallback.
+    Originals (``sra-pub-src-*``) are published for "select high value and newly-released studies"
+    only, and most runs return just ``type=sra`` — so naming them first would send people down a dead
+    end.
+
+    Within that fallback the order is ``io records`` then SDL, because the archive record we already
+    fetched, parsed and cached names the bucket per run: sending a reader to a second API for a fact
+    on disk was never a remedy, it was a lead (`docs/adr/0033`).
     """
     return (
         "the technical read is still inside the .sra — fasterq-dump skips it BY DEFAULT. Re-fetch "
         f"with `fasterq-dump --include-technical --split-files {accession}` (ENA's generated FASTQ "
-        "omits it, so do not use that). Fallback only: the original submitted files may exist via "
-        f"the SRA Data Locator ({SDL_RETRIEVE}; omit `filetype` to request originals), but they are "
-        "published for select studies only."
+        f"omits it, so do not use that). Fallback: `seqforge io records {accession}` lists the "
+        "submitted originals the archive declares, each with its `sra-pub-src-*` URI. The SRA Data "
+        f"Locator ({SDL_RETRIEVE}; omit `filetype` to request originals) reaches the same files by "
+        "another route, and a deposit that published no originals has nothing in either."
     )
 
 

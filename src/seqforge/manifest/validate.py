@@ -13,7 +13,13 @@ the rule most expensive to get wrong, so it is enforced twice.
 
 from __future__ import annotations
 
-from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
+from ..models.blocker import (
+    MISSING_TECHNICAL_READ_REMEDY,
+    Blocker,
+    BlockerCode,
+    BlockerSubject,
+    ValidationWarning,
+)
 from ..models.conflict import Conflict
 from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import ProcessingManifest
@@ -137,10 +143,12 @@ def validate_manifest(
                     id=f"blk-unfilled-{role}",
                     code=BlockerCode.MISSING_TECHNICAL_READ,
                     message=f"the declared layout needs read {role!r}, but no file fills it.",
-                    remedy=(
-                        "Re-fetch with `fasterq-dump --include-technical`, or pull the original "
-                        "submitted files `sra-pub-src-*` via the SRA Data Locator / SDL API."
-                    ),
+                    # A validator holds a manifest and nothing else — no accession, no record set —
+                    # so the remedy names the verb that does hold one rather than the URI it would
+                    # print. That is the pointer `docs/adr/0033` asks for, and it is also all this
+                    # function could honestly carry: a manifest names no host and no absolute path,
+                    # so there is no local answer here to bake in even if we wanted one.
+                    remedy=MISSING_TECHNICAL_READ_REMEDY,
                     subject=BlockerSubject(kind="field", ref=f"library.read_layout.{role}"),
                 )
             )

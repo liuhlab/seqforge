@@ -37,6 +37,13 @@ It is a **transcriber**: it reports what the record declares and stops. What any
 `resolve`'s job — pass the result to `manifest fill --accession` (which fetches it for you) or
 `--records` (which reuses what you already fetched).
 
+It also carries `submitted_files` — one row per file the submitter uploaded, with the provider md5,
+the declared size and the `sra-pub-src-*` URI. **This is the only verb that prints that URI**, which
+is why five refusals elsewhere tell a reader to run it rather than naming a bucket to go hunting in.
+An empty list is the ordinary case rather than a failure: most deposits publish no originals. The md5
+is an address for those hosted bytes, never something to check a local file against — nothing in
+seqforge reads a FASTQ end to end.
+
 ## The most important thing this does
 
 **`fasterq-dump` skips technical reads by default.** So a 10x barcode read routinely vanishes from
@@ -51,8 +58,11 @@ comparing SRA's own per-read table to what ENA published. Real example (SRR91709
 - SRA: `nreads=3`, per-read `[50, 50, 10]`, `readTypes=TBT` (Technical/**B**iological/Technical)
 - → 60 bases/spot discarded, barcode read included. **Exit 4** — a human must re-fetch.
 
-The remedy is `fasterq-dump --include-technical --split-files ACC`, **not** ENA's generated FASTQ,
-and not the SRA Data Locator (originals exist for select studies only, so SDL usually dead-ends).
+The remedy is `fasterq-dump --include-technical --split-files ACC`, **not** ENA's generated FASTQ. If
+the read was stripped before upload, that dump cannot recover it either — then `seqforge io records
+ACC` lists the submitter's own uploads, each with the `sra-pub-src-*` URI the archive preserves it at.
+Reach for the SRA Data Locator only after that: it answers the same question by another route, and
+originals exist for select studies only, so it often dead-ends where the record set is definite.
 
 That NCBI and ENA disagree on `base_count` for the same run is not an error to reconcile — it is two
 truths about what the file contains, and the disagreement IS the signal.

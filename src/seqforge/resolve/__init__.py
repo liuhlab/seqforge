@@ -162,7 +162,14 @@ from __future__ import annotations
 #: `correct`, both re-taken on this tree. No cached verdict is known to be wrong, so nothing must
 #: re-key for correctness; the stamp moves because a reader of a cached candidate is entitled to know
 #: which arithmetic produced it. `dataset_hash` does not fold this stamp, so no stored manifest moves.
-RESOLVE_VERSION = "2026.8.8"
+#: 2026.8.9 — the metadata resolver reads the size an archive declares for a submitted file. Where a
+#: file was joined by that declared filename it *claims to be* that upload, so a size disagreement is
+#: new advisory output (a truncated download, or a different file renamed into place); a size never
+#: makes or breaks a join, and this stage still only warns (ADR-0010, ADR-0033). Unlike the entry
+#: above this one nothing about scoring moved, so no cached candidate is stale on its account; the
+#: stamp advances because the stage now emits a note it could not before. `dataset_hash` does not
+#: fold this stamp — no stored manifest moves, and nothing here reaches one.
+RESOLVE_VERSION = "2026.8.9"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

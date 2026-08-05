@@ -23,7 +23,7 @@
           "value": "2024-02-21"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -107,7 +107,7 @@
           "value": "none"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -187,7 +187,7 @@
           "value": "none"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -267,7 +267,7 @@
           "value": "none"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -347,7 +347,7 @@
           "value": "none"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -385,7 +385,7 @@
           "value": "Illumina HiSeq 2500"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -431,7 +431,7 @@
           "value": "Illumina HiSeq 2500"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -477,7 +477,7 @@
           "value": "Illumina HiSeq 2500"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -523,7 +523,7 @@
           "value": "Illumina HiSeq 2500"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -544,11 +544,19 @@
     {
       "accession": "SRR28034797",
       "attributes": [],
-      "filenames": [
-        "Him5_Male1_S1_L001_I1_001.fastq.gz",
-        "Him5_Male1_S1_L001_I2_001.fastq.gz",
-        "Him5_Male1_S1_L001_R1_001.fastq.gz",
-        "Him5_Male1_S1_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Him5_Male1_S1_L001_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L001_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -562,11 +570,19 @@
     {
       "accession": "SRR28034798",
       "attributes": [],
-      "filenames": [
-        "Him5_Male1_S1_L002_I1_001.fastq.gz",
-        "Him5_Male1_S1_L002_I2_001.fastq.gz",
-        "Him5_Male1_S1_L002_R1_001.fastq.gz",
-        "Him5_Male1_S1_L002_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Him5_Male1_S1_L002_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L002_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L002_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male1_S1_L002_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -580,11 +596,19 @@
     {
       "accession": "SRR28034799",
       "attributes": [],
-      "filenames": [
-        "Him5_Male2_S2_L001_I1_001.fastq.gz",
-        "Him5_Male2_S2_L001_I2_001.fastq.gz",
-        "Him5_Male2_S2_L001_R1_001.fastq.gz",
-        "Him5_Male2_S2_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Him5_Male2_S2_L001_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L001_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -598,11 +622,19 @@
     {
       "accession": "SRR28034800",
       "attributes": [],
-      "filenames": [
-        "Him5_Male2_S2_L002_I1_001.fastq.gz",
-        "Him5_Male2_S2_L002_I2_001.fastq.gz",
-        "Him5_Male2_S2_L002_R1_001.fastq.gz",
-        "Him5_Male2_S2_L002_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Him5_Male2_S2_L002_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L002_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L002_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Him5_Male2_S2_L002_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -616,11 +648,19 @@
     {
       "accession": "SRR34171858",
       "attributes": [],
-      "filenames": [
-        "D1Herm_3_S3_L001_I1_001.fastq.gz",
-        "D1Herm_3_S3_L001_I2_001.fastq.gz",
-        "D1Herm_3_S3_L001_R1_001.fastq.gz",
-        "D1Herm_3_S3_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "D1Herm_3_S3_L001_I1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L001_I2_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -634,11 +674,19 @@
     {
       "accession": "SRR34171859",
       "attributes": [],
-      "filenames": [
-        "D1Herm_3_S3_L002_I1_001.fastq.gz",
-        "D1Herm_3_S3_L002_I2_001.fastq.gz",
-        "D1Herm_3_S3_L002_R1_001.fastq.gz",
-        "D1Herm_3_S3_L002_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "D1Herm_3_S3_L002_I1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L002_I2_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L002_R1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_3_S3_L002_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -652,11 +700,19 @@
     {
       "accession": "SRR34171860",
       "attributes": [],
-      "filenames": [
-        "D1Herm_4_S4_L001_I1_001.fastq.gz",
-        "D1Herm_4_S4_L001_I2_001.fastq.gz",
-        "D1Herm_4_S4_L001_R1_001.fastq.gz",
-        "D1Herm_4_S4_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "D1Herm_4_S4_L001_I1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L001_I2_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -670,11 +726,19 @@
     {
       "accession": "SRR34171861",
       "attributes": [],
-      "filenames": [
-        "D1Herm_4_S4_L002_I1_001.fastq.gz",
-        "D1Herm_4_S4_L002_I2_001.fastq.gz",
-        "D1Herm_4_S4_L002_R1_001.fastq.gz",
-        "D1Herm_4_S4_L002_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "D1Herm_4_S4_L002_I1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L002_I2_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L002_R1_001.fastq.gz"
+        },
+        {
+          "filename": "D1Herm_4_S4_L002_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {

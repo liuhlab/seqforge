@@ -23,7 +23,7 @@
           "value": "2023-06-14"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -107,7 +107,7 @@
           "value": "Motor neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -187,7 +187,7 @@
           "value": "Motor neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -267,7 +267,7 @@
           "value": "Motor neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -347,7 +347,7 @@
           "value": "Motor neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -385,7 +385,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -431,7 +431,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -477,7 +477,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -523,7 +523,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -544,9 +544,13 @@
     {
       "accession": "SRR24923838",
       "attributes": [],
-      "filenames": [
-        "7309-ST-1_S1_L005_R1_001.fastq.gz",
-        "7309-ST-1_S1_L005_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "7309-ST-1_S1_L005_R1_001.fastq.gz"
+        },
+        {
+          "filename": "7309-ST-1_S1_L005_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -560,9 +564,13 @@
     {
       "accession": "SRR24923839",
       "attributes": [],
-      "filenames": [
-        "6973-ST-1_S1_L005_R1_001.fastq.gz",
-        "6973-ST-1_S1_L005_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "6973-ST-1_S1_L005_R1_001.fastq.gz"
+        },
+        {
+          "filename": "6973-ST-1_S1_L005_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -576,9 +584,13 @@
     {
       "accession": "SRR24923840",
       "attributes": [],
-      "filenames": [
-        "3853-ST-2_S331_L001_R1_001.fastq.gz",
-        "3853-ST-2_S331_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "3853-ST-2_S331_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "3853-ST-2_S331_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -592,9 +604,13 @@
     {
       "accession": "SRR24923841",
       "attributes": [],
-      "filenames": [
-        "3853-ST-1_S330_L001_R1_001.fastq.gz",
-        "3853-ST-1_S330_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "3853-ST-1_S330_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "3853-ST-1_S330_L001_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {

@@ -11,7 +11,11 @@ from", below. What they must never do is talk to each other — see "the line", 
 **The join is code's, at every level.** run -> experiment -> sample -> project comes out of the
 record, by accession; record-run -> file-on-disk comes out of the run accession in the filename or
 the original filenames the record declares. A language model is never asked which sample a file is,
-and never could be: it is not shown the files.
+and never could be: it is not shown the files. The archive also publishes a *size* beside each of
+those names, and it checks a join without ever making one (ADR-0033): a name is a fact the submitter
+typed and a size is two numbers agreeing, so joining on the second would lay a guess over the first.
+Where the name made the join, though, the file on disk is claiming to BE that submitted file, and a
+size that disagrees is worth saying out loud — as a warning, because this stage decides.
 
 **The subject is the document.** A claim cannot name a sample — ``AssertionDraft`` has ``field``,
 ``value``, ``span``, and nothing else, and it stays that way. Instead each record level is rendered
@@ -88,7 +92,7 @@ from ..models.base import Basis
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
 from ..models.evidenced import EvidencedStr, EvidencedTaxid
 from ..models.observation import FileIdentity
-from ..models.records import ArchiveRecord, ArchiveRecordSet, RecordAttribute
+from ..models.records import ArchiveRecord, ArchiveRecordSet, RecordAttribute, SubmittedFile
 from ..models.resolve import MetadataResolution, ProjectFacts, ResolvedSample
 from .group import run_key
 
@@ -178,7 +182,7 @@ def resolve_metadata(
     :func:`_the_line` for why it is worth keeping.
     """
     by_doc = {d.doc_sha256: d for d in subjects}
-    samples, blockers = _join(files, records)
+    samples, join_notes, blockers = _join(files, records)
     subject_to_sample = _subject_to_sample(records)
 
     verified = [a for a in assertions if a.span_verified and a.entailment_ok]
@@ -199,7 +203,10 @@ def resolve_metadata(
         if any(p.basis != "inferred" for p in found)
     )
     resolved: list[ResolvedSample] = []
-    warnings: list[ValidationWarning] = []
+    # The join's own notes lead, because they are about which file is which and everything below is
+    # about what a sample was — a reader who sees "this file does not weigh what the record says"
+    # wants it before the attribute it eventually flowed into, not after.
+    warnings: list[ValidationWarning] = list(join_notes)
     for sample in samples:
         positions = per_sample[sample.sample_id]
         attrs, sample_warnings = _decide(sample.sample_id, positions, sample_scoped_attrs)
@@ -236,29 +243,46 @@ class _Sample:
 
 def _join(
     files: Sequence[FileIdentity], records: ArchiveRecordSet | None
-) -> tuple[list[_Sample], list[Blocker]]:
-    """Files -> samples. The record when there is one, the filenames when there is not."""
+) -> tuple[list[_Sample], list[ValidationWarning], list[Blocker]]:
+    """Files -> samples. The record when there is one, the filenames when there is not.
+
+    Two ways in, and they are not interchangeable — which one matched is what decides whether the
+    archive's declared size has anything to say about the file (:func:`_size_disagreement`). Accession
+    first, because it is the archive's own identifier and a submitter's filename is only ever the
+    fallback for a file that no longer carries one.
+    """
     if records is None or not records.at("run"):
-        return _join_by_filename(files), []
+        return _join_by_filename(files), [], []
 
     runs = records.at("run")
     by_accession = {r.accession: r for r in runs}
-    by_filename: dict[str, ArchiveRecord] = {}
+    # The submitted file itself and not just its name: the size on it is read below, and looking it
+    # up a second time from the run would mean re-deciding which of that run's entries matched.
+    by_submitted_name: dict[str, tuple[ArchiveRecord, SubmittedFile]] = {}
     for declared in runs:
-        for name in declared.filenames:
-            by_filename[name] = declared
+        for submitted in declared.submitted_files:
+            by_submitted_name[submitted.filename] = (declared, submitted)
 
     grouped: dict[str, list[str]] = {}
     accession_of: dict[str, str | None] = {}
     record_of: dict[str, ArchiveRecord | None] = {}
     unclaimed: list[str] = []
+    notes: list[ValidationWarning] = []
 
     for f in files:
         basename = f.basename
-        run = by_accession.get(run_key(basename)) or by_filename.get(basename)
+        run = by_accession.get(run_key(basename))
         if run is None:
-            unclaimed.append(basename)
-            continue
+            claimed = by_submitted_name.get(basename)
+            if claimed is None:
+                unclaimed.append(basename)
+                continue
+            run, submitted = claimed
+            # ONLY here. A file wearing the name the submitter uploaded under is asserting it is that
+            # upload, so the archive's number about that upload is about this file too.
+            note = _size_disagreement(f, run, submitted)
+            if note is not None:
+                notes.append(note)
         sample = records.ancestor(run, "sample")
         # A run whose sample record is missing still has an identity — its own accession. Degraded,
         # and honest about it: the files are grouped correctly, we just cannot say what they are.
@@ -268,7 +292,7 @@ def _join(
         record_of[sample_id] = sample
 
     if unclaimed:
-        return [], [_join_blocker(unclaimed, records)]
+        return [], notes, [_join_blocker(unclaimed, records)]
 
     return (
         [
@@ -280,7 +304,45 @@ def _join(
             )
             for sid in sorted(grouped)
         ],
+        notes,
         [],
+    )
+
+
+def _size_disagreement(
+    file: FileIdentity, run: ArchiveRecord, submitted: SubmittedFile
+) -> ValidationWarning | None:
+    """The archive says that upload weighed X; this file weighs Y. A note, never anything else.
+
+    A `Warning` is the whole of what this may be, and both halves of that are decisions. It is not a
+    `Blocker` because ADR-0010 gives this resolver no refusal that is not a broken join — a compile
+    stopped over a byte count would be stopped over a fact no rule downstream reads. And it does not
+    touch the join, because the join was made by a name the submitter typed: withdrawing it on a size
+    would strand the file with no sample, which is the half-join :func:`_join_blocker` exists to
+    prevent, arrived at from the other side.
+
+    It comes from ``stat()`` and reads no FASTQ, which is why it is here at all: the md5 on the same
+    record element would answer the same question far better and costs every byte of the file to
+    check, so the read budget rules it out and the size catches most of what it would have caught for
+    nothing.
+
+    A recompression is the likeliest cause and is harmless; a truncated download is the one worth
+    catching; a different file that happens to share a common name (``sample1_R1.fastq.gz``) is the
+    one that would silently attach the wrong sample's facts. Nothing here can tell them apart, so the
+    message reports the two numbers and names all three rather than picking one.
+    """
+    if submitted.size_bytes is None or submitted.size_bytes == file.size_bytes:
+        return None
+    return ValidationWarning(
+        code="submitted_file_size_mismatch",
+        message=(
+            f"{file.basename}: joined to {run.accession} by the filename the record declares, but the "
+            f"archive says that submitted file is {submitted.size_bytes} bytes and this one is "
+            f"{file.size_bytes}. The join stands — the name is the submitter's own and a size does not "
+            f"get to unmake it — so this only says the copy on disk may be a recompression, a "
+            f"truncated download, or a different file that happens to share the name."
+        ),
+        subject=BlockerSubject(kind="file", ref=file.basename),
     )
 
 
@@ -301,24 +363,51 @@ def _join_by_filename(files: Sequence[FileIdentity]) -> list[_Sample]:
 
 
 def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
+    """Refuse the half-join, and say which of the two halves is actually missing.
+
+    A set with no ``io_version`` was transcribed before seqforge read submitted files at all, so its
+    second half is a question we did not ask rather than an answer the archive gave. Told the old way
+    — "they match none of the original filenames the record declares" — that reads as the archive's
+    fault and sends a reader to inspect a download that is very likely fine, when one command against
+    the cache is the fix. The distinction is the whole reason the stamp is on the set (ADR-0033):
+    *most* deposits publish no originals, so an empty list can never be the signal by itself.
+    """
     declared = sorted({r.accession for r in records.at("run")})
+    # The check-the-files remedy, which is the tail of both: even a re-fetch can only get you back
+    # to this question, so it is stated once rather than diverging between the two branches.
+    on_disk = (
+        "the files are not from this accession, or they were renamed after download: check the "
+        "accession, or re-fetch them with a tool that keeps the run accession in the filename "
+        "(`fasterq-dump --split-files` names them <RUN>_1.fastq.gz). To compile with no sample facts "
+        "at all, omit the accession — a dataset with no record is not an error."
+    )
+    if records.io_version is None:
+        why = (
+            "none of them by run accession, and this record set carries no writer stamp — it was "
+            "cached before seqforge transcribed the submitter's own filenames, so the other half of "
+            "the join is missing from the cache rather than from the archive: "
+        )
+        remedy = (
+            f"Re-fetch the records first — `seqforge io records {records.query}` rewrites the set "
+            f"with the names the submitter uploaded under, which is what places a file whose "
+            f"accession was renamed away. If it still refuses on the fresh set, then either "
+            f"{on_disk}"
+        )
+    else:
+        why = "none of them by run accession or by the original filenames the record declares: "
+        remedy = f"Either {on_disk}"
     return Blocker(
         id="blk-record-join-incomplete",
         code=BlockerCode.RECORD_JOIN_INCOMPLETE,
         message=(
             f"{records.query} declares {len(declared)} run(s) ({', '.join(declared[:6])}"
             f"{', ...' if len(declared) > 6 else ''}), and {len(unclaimed)} file(s) on disk match "
-            f"none of them by run accession or by the original filenames the record declares: "
+            f"{why}"
             f"{', '.join(sorted(unclaimed)[:6])}{', ...' if len(unclaimed) > 6 else ''}. Refusing to "
             f"half-join: the files it cannot place would silently get no sample facts, and a manifest "
             f"that is confident about some samples and quiet about others reads as one about all."
         ),
-        remedy=(
-            "Either the files are not from this accession, or they were renamed after download. "
-            "Check the accession, or re-fetch with a tool that keeps the run accession in the "
-            "filename (`fasterq-dump --split-files` names them <RUN>_1.fastq.gz). To compile with no "
-            "sample facts at all, omit the accession — a dataset with no record is not an error."
-        ),
+        remedy=remedy,
         subject=BlockerSubject(kind="dataset", ref="experiment.samples"),
         evidence=sorted(unclaimed),
     )

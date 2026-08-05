@@ -36,7 +36,7 @@
           "text": "Curiosity-driven interactions with novel cues in our environment represent a common behavioral trait across the animal kingdom. Exposure to a novel environment (NE) reshapes the brain via structural and functional changes in multiple brain areas, including the hippocampus. This experience-dependent circuit reorganization is thought to be driven in part by changes in gene expression. While substantial progress has been made in generating atlases of cell-type-specific gene expression and chromatin state, these datasets largely reflect conditions in naive animals, thereby missing transient gene expression programs induced by salient environmental stimuli. NE exposure, for example, has been shown to rapidly induce the expression of Fos and other immediate-early gene transcription factors (IEG TFs). However, the downstream IEG-driven genes (e.g. late response genes, LRGs) that serve to mediate NE-dependent circuit remodeling, as well as the genomic elements that drive the expression of these genes, remain largely unexplored. We employed a combination of single-nucleus multiomics and bulk RNA sequencing of the hippocampal DG, CA3, and CA1 regions to characterize the temporal evolution of cell-type-specific NE-driven gene expression and chromatin accessibility patterns downstream of IEG induction. We observe strong hippocampal regional specificity in excitatory neuron LRG programs, as well as diversity in the inhibitory neuron and non-neuronal transcriptional responses. LRGs were particularly enriched for secreted factors, where we observed cell type-specific expression of their receptors in our snRNA-seq data. These ligands and their cognate receptors represent promising candidates for future study to examine their region- and cell-type-specific effects on learning and memory. In addition, compared to a short exposure, prolonged exposure to NE caused more robust induction of late-response genes, suggesting that sustained environmental stimulation is more effective at triggering the long-lasting molecular changes that support memory formation. In addition, chromatin-level analyses revealed thousands of cell-type-specific changes in chromatin accessibility in response to NE exposure. Coordinated analysis of both chromatin accessibility and gene expression within individual cells revealed the Fos/AP-1 motif as a major predictor of neuronal cell-type-specific LRG expression, suggesting that AP-1 TFs play a regulatory role in NE-driven neuronal gene expression patterns. Together, these data provide a rich resource of hippocampal chromatin accessibility and gene expression profiles in response to novel experience, a physiological stimulus that affects learning and memory."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -104,7 +104,7 @@
           "text": "GSM9059634"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -150,7 +150,7 @@
           "text": "GSM9059634"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -163,10 +163,16 @@
           "text": "GSM9059634_r1"
         }
       ],
-      "filenames": [
-        "250220_snATAC_EE6h_03_bc1_R1_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc1_R2_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc1_R3_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "250220_snATAC_EE6h_03_bc1_R1_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc1_R2_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc1_R3_001.fastq.gz"
+        }
       ]
     },
     {
@@ -180,10 +186,16 @@
           "text": "GSM9059634_r2"
         }
       ],
-      "filenames": [
-        "250220_snATAC_EE6h_03_bc2_R1_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc2_R2_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc2_R3_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "250220_snATAC_EE6h_03_bc2_R1_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc2_R2_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc2_R3_001.fastq.gz"
+        }
       ]
     },
     {
@@ -197,10 +209,16 @@
           "text": "GSM9059634_r3"
         }
       ],
-      "filenames": [
-        "250220_snATAC_EE6h_03_bc3_R1_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc3_R2_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc3_R3_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "250220_snATAC_EE6h_03_bc3_R1_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc3_R2_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc3_R3_001.fastq.gz"
+        }
       ]
     },
     {
@@ -214,10 +232,16 @@
           "text": "GSM9059634_r4"
         }
       ],
-      "filenames": [
-        "250220_snATAC_EE6h_03_bc4_R1_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc4_R2_001.fastq.gz",
-        "250220_snATAC_EE6h_03_bc4_R3_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "250220_snATAC_EE6h_03_bc4_R1_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc4_R2_001.fastq.gz"
+        },
+        {
+          "filename": "250220_snATAC_EE6h_03_bc4_R3_001.fastq.gz"
+        }
       ]
     }
   ]

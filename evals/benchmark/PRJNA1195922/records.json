@@ -23,7 +23,7 @@
           "value": "2024-12-09"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -95,7 +95,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -163,7 +163,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -231,7 +231,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -299,7 +299,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -367,7 +367,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -435,7 +435,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -503,7 +503,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -571,7 +571,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -609,7 +609,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -659,7 +659,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -709,7 +709,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -759,7 +759,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -809,7 +809,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -859,7 +859,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -909,7 +909,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -959,7 +959,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -984,9 +984,13 @@
     {
       "accession": "SRR34146787",
       "attributes": [],
-      "filenames": [
-        "3063__snSeq_CQ760_M4_library-read-1.fastq.gz",
-        "3063__snSeq_CQ760_M4_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "3063__snSeq_CQ760_M4_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "3063__snSeq_CQ760_M4_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1000,9 +1004,13 @@
     {
       "accession": "SRR34146788",
       "attributes": [],
-      "filenames": [
-        "2823__KM_10_31_M1_library-read-1.fastq.gz",
-        "2823__KM_10_31_M1_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2823__KM_10_31_M1_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2823__KM_10_31_M1_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1016,9 +1024,13 @@
     {
       "accession": "SRR34146789",
       "attributes": [],
-      "filenames": [
-        "2724__KM_09_05_M2_library-read-1.fastq.gz",
-        "2724__KM_09_05_M2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2724__KM_09_05_M2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2724__KM_09_05_M2_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1032,9 +1044,13 @@
     {
       "accession": "SRR34146790",
       "attributes": [],
-      "filenames": [
-        "2724__KM_08_29_M1_library-read-1.fastq.gz",
-        "2724__KM_08_29_M1_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2724__KM_08_29_M1_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2724__KM_08_29_M1_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1048,9 +1064,13 @@
     {
       "accession": "SRR34146791",
       "attributes": [],
-      "filenames": [
-        "2823__KM_10_31_H1_library-read-1.fastq.gz",
-        "2823__KM_10_31_H1_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2823__KM_10_31_H1_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2823__KM_10_31_H1_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1064,9 +1084,13 @@
     {
       "accession": "SRR34146792",
       "attributes": [],
-      "filenames": [
-        "2724__KM_09_05_H2_library-read-1.fastq.gz",
-        "2724__KM_09_05_H2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2724__KM_09_05_H2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2724__KM_09_05_H2_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1080,9 +1104,13 @@
     {
       "accession": "SRR34146793",
       "attributes": [],
-      "filenames": [
-        "2724__KM_08_29_H1_library-read-1.fastq.gz",
-        "2724__KM_08_29_H1_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2724__KM_08_29_H1_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2724__KM_08_29_H1_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -1096,9 +1124,13 @@
     {
       "accession": "SRR34148065",
       "attributes": [],
-      "filenames": [
-        "3063__snSeq_CQ760_M5_library-read-1.fastq.gz",
-        "3063__snSeq_CQ760_M5_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "3063__snSeq_CQ760_M5_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "3063__snSeq_CQ760_M5_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {

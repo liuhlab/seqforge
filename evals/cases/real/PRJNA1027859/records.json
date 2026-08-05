@@ -36,7 +36,7 @@
           "text": "The invariant lineage of each of C. elegans 302 neurons is known, and most adult neurons have specific functions. Previously, we determined the transcriptome of C. elegans major tissues, including neurons. However, the transcripts that allow specific functions for each individual adult neuron, including each neurons complement of chemoreceptors, are unknown. The insulin-insulin-like growth factor signaling (IIS) pathway regulates many aspects of an organisms biological functions, including lifespan and memory ability. While whole-worm and tissue-specific transcriptomic analyses have identified IIS targets, a higher resolution single-cell approach is required to answer questions about individual neuronal changes that confer neuron-specific improvements. We used the deep neuronal resolution of single-nucleus RNA-sequencing to identify and characterize GPCRs that have specific functions in wild-type and daf-2 mutants in specific neurons."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -104,7 +104,7 @@
           "text": "single nucleus sequencing WT replicate 1"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -172,7 +172,7 @@
           "text": "single nucleus sequencing WT replicate 2"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -240,7 +240,7 @@
           "text": "single nucleus sequencing WT replicate 3"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -308,7 +308,7 @@
           "text": "single nucleus sequencing daf2 replicate 1"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -376,7 +376,7 @@
           "text": "single nucleus sequencing daf2 replicate 2"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -444,7 +444,7 @@
           "text": "single nucleus sequencing daf2 replicate 3"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -494,7 +494,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -544,7 +544,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -594,7 +594,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -644,7 +644,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -694,7 +694,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -744,7 +744,7 @@
           "text": "Single nuclei suspension samples were loaded to the 10X Genomics Chromium X system using the Single Cell 3 v3.1 Reagent Kits (10X Genomics Inc., CA) to generate and amplify cDNA. Up to 30,000 nuclei were loaded per 10X sample. The amplified cDNA samples were purified with Ampure XP magnetic beads (Beckman Coulter, CA), quantified by Qubit fluorometer (Invitrogen, CA), and examined on Bioanalyzer with High Sensitivity DNA chips (Agilent, CA) for size distribution. Illumina sequencing libraries were generated from the amplified cDNA samples using the Illumina Tagment DNA Enzyme and Buffer kit (Illumina, CA). These libraries were examined by Qubit and Bioanalyzer, then pooled at equal molar amount and sequenced on Illumina NovaSeq 6000 S Prime flowcells as 28+94 nt pair-end reads following the standard protocol. Raw sequencing reads were filtered by Illumina NovaSeq Control Software and only the Pass-Filter (PF) reads were used for further analysis."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -757,9 +757,13 @@
           "text": "2562__daf-2_R3_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2562__daf-2_R3_library-read-1.fastq.gz",
-        "2562__daf-2_R3_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2562__daf-2_R3_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2562__daf-2_R3_library-read-4.fastq.gz"
+        }
       ]
     },
     {
@@ -773,9 +777,13 @@
           "text": "2495__daf-2_R2_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2495__daf-2_R2_library-read-1.fastq.gz",
-        "2495__daf-2_R2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2495__daf-2_R2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2495__daf-2_R2_library-read-4.fastq.gz"
+        }
       ]
     },
     {
@@ -789,9 +797,13 @@
           "text": "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz",
-        "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz"
+        }
       ]
     },
     {
@@ -805,9 +817,13 @@
           "text": "2562__Wild-type_R3_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2562__Wild-type_R3_library-read-1.fastq.gz",
-        "2562__Wild-type_R3_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2562__Wild-type_R3_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2562__Wild-type_R3_library-read-4.fastq.gz"
+        }
       ]
     },
     {
@@ -821,9 +837,13 @@
           "text": "2495__wild-type_R2_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2495__wild-type_R2_library-read-1.fastq.gz",
-        "2495__wild-type_R2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2495__wild-type_R2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2495__wild-type_R2_library-read-4.fastq.gz"
+        }
       ]
     },
     {
@@ -837,9 +857,13 @@
           "text": "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz"
         }
       ],
-      "filenames": [
-        "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz",
-        "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz"
+        }
       ]
     }
   ]

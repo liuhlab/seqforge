@@ -2679,6 +2679,37 @@ def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
     assert "40" in blk.message and "28 bp" in blk.message, blk.message
 
 
+def test_both_remedies_for_a_missing_original_point_at_the_records_verb_not_a_second_api(
+    tmp_path: Path,
+) -> None:
+    """Naming the bucket is not an instruction; naming the command that prints its URI is.
+
+    Both blockers send a human back for the submitter's own upload, and the archive already told us
+    where each one lives — `seqforge io records <accession>` prints it from the record set the
+    records stage fetched and cached. The old fallback ("via the SRA Data Locator / SDL API") is one
+    route to those bytes and was written as the only one.
+
+    **What is asserted is the POINTER, and its absence of a value.** These builders take an
+    evaluation and a spec; threading an `ArchiveRecordSet` in to print the exact `s3://` URI would
+    buy a better sentence for the price of the split the compiler rests on — `score` decides from
+    bytes, records enter at `resolve_metadata` (ADR-0033). So neither remedy may carry a run
+    accession, and a signature that could accept one is the regression this pins.
+    """
+    from seqforge.resolve.escalate import _missing_technical_read
+
+    f1, f2 = _partly_trimmed_v3(tmp_path, at_mode=200, n=500)
+    pretrimmed = _pretrimmed_gate(f1, f2)[0].remedy
+    unfillable = _missing_technical_read("10x-3p-gex-v3").remedy
+
+    for remedy in (pretrimmed, unfillable):
+        assert "seqforge io records" in remedy, remedy
+        assert "sra-pub-src" in remedy, remedy  # still says WHICH files, not just where to look
+        assert "SRR" not in remedy, "a byte-side remedy points at the verb and carries no URI"
+    assert unfillable.index("io records") < unfillable.index("SDL"), (
+        "the record set we already hold comes first; SDL is one route to the same bytes"
+    )
+
+
 def test_a_single_read_a_base_short_in_a_two_thousand_read_head_does_not_block(
     tmp_path: Path,
 ) -> None:
@@ -3852,6 +3883,12 @@ def test_barcode_absent_refusal_abstains_when_a_sibling_barcoded_leaf_hits() -> 
     # nothing hit anywhere -> genuinely barcode-absent -> refuse
     blk = _barcodeless_seated_blocker(top, v2_spec, [top])
     assert blk is not None and blk.code == BlockerCode.BARCODE_READ_ABSENT
+    # The fifth remedy that used to send a reader to SDL for a file the record set already locates.
+    # It is pinned here rather than beside the other four because this is the test that already
+    # builds the blocker; what matters is that all five answer the same question the same way.
+    assert "seqforge io records" in blk.remedy, blk.remedy
+    assert "SDL" not in blk.remedy, "the verb we ship prints the URI; SDL is not the only route"
+    assert "SRR" not in blk.remedy, "a byte-side remedy points at the verb and carries no URI"
 
 
 # ================================================================================================

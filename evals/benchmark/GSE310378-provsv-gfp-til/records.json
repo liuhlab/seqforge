@@ -36,7 +36,7 @@
           "text": "If GEO accession GSE310378 has been cited in a publication, please notify us at geo@ncbi.nlm.nih.gov to initiate the public release of associated data."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -110,7 +110,7 @@
           "text": "GSM9294935"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -156,7 +156,7 @@
           "text": "GSM9294935"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -169,9 +169,13 @@
           "text": "GSM9294935_r5"
         }
       ],
-      "filenames": [
-        "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R1_001.fastq.gz",
-        "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "ProVSVGFP_25E67-L4_GT25-05408_CGAAGTATAC-CTCCAAGTTC_S2_L001_R2_001.fastq.gz"
+        }
       ]
     },
     {
@@ -185,9 +189,13 @@
           "text": "GSM9294935_r4"
         }
       ],
-      "filenames": [
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R1_001.fastq.gz",
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R1_001.fastq.gz"
+        },
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L008_R2_001.fastq.gz"
+        }
       ]
     },
     {
@@ -201,9 +209,13 @@
           "text": "GSM9294935_r3"
         }
       ],
-      "filenames": [
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R1_001.fastq.gz",
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R1_001.fastq.gz"
+        },
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L007_R2_001.fastq.gz"
+        }
       ]
     },
     {
@@ -217,9 +229,13 @@
           "text": "GSM9294935_r2"
         }
       ],
-      "filenames": [
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R1_001.fastq.gz",
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R1_001.fastq.gz"
+        },
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L006_R2_001.fastq.gz"
+        }
       ]
     },
     {
@@ -233,9 +249,13 @@
           "text": "GSM9294935_r1"
         }
       ],
-      "filenames": [
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R1_001.fastq.gz",
-        "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R1_001.fastq.gz"
+        },
+        {
+          "filename": "ProVSVGFP_25E67-L10_GT25-05402_CCGGAGGAAG-AACATCCGCA_S11_L005_R2_001.fastq.gz"
+        }
       ]
     }
   ]

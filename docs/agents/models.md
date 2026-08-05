@@ -112,9 +112,11 @@ closed set — read it from the enum, not from prose. Every Blocker carries an a
 `subject` that is a basename, a dotted path or a dataset id, never an absolute path.
 
 The remedy is meant to be *operable*, not decorative. The one to imitate is
-`MISSING_TECHNICAL_READ`'s: *"re-fetch with `fasterq-dump --include-technical`, or pull the original
-submitted files `sra-pub-src-*` via the SRA Data Locator."* A remedy that does not name a command is
-not finished.
+`MISSING_TECHNICAL_READ`'s: *"re-fetch with `fasterq-dump --include-technical`, or go back for the
+submitter's own upload: `seqforge io records <accession>` lists what the deposit declares, each file
+with its `sra-pub-src-*` URI."* A remedy that does not name a command is not finished — and where a
+verb we ship already prints the answer, naming a third-party API instead is a lead rather than an
+instruction ([ADR-0033](../adr/0033-a-submitted-file-is-a-transcript-entry-not-a-checksum.md)).
 
 ## `DatasetManifest` — two truths, one lifetime
 
