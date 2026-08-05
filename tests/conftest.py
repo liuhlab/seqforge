@@ -258,10 +258,14 @@ class DryRun(Protocol):
     ``Callable[...]`` cannot say so — spelling it ``Callable[..., str]`` erases both parameters and
     leaves the three call sites with no signature to check at all."""
 
-    def __call__(self, directory: Path, plan: ComposePlan | None = None) -> str: ...
+    def __call__(
+        self, directory: Path, plan: ComposePlan | None = None, *, refused: bool = False
+    ) -> str: ...
 
 
-def snakemake_dry_run(directory: Path, plan: ComposePlan | None = None) -> str:
+def snakemake_dry_run(
+    directory: Path, plan: ComposePlan | None = None, *, refused: bool = False
+) -> str:
     """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
 
     The one spawner. It is a module-level function rather than only a fixture body because two
@@ -273,6 +277,13 @@ def snakemake_dry_run(directory: Path, plan: ComposePlan | None = None) -> str:
     Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
     afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the
     caller left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
+
+    Pass ``refused=True`` for a directory a module is supposed to REFUSE to plan, and get the output
+    back to assert the reason on. The exit code is asserted either way and in both directions: a
+    module whose refusal quietly stopped firing would otherwise read as a passing test, which is the
+    failure mode a "the DAG cannot be built" assertion has if it only checks that a string is
+    absent. Snakemake reports an `InputFunctionException` on *stdout*, so the return value is what a
+    caller must match against, not `stderr`.
     """
     import shutil
     import subprocess
@@ -287,7 +298,10 @@ def snakemake_dry_run(directory: Path, plan: ComposePlan | None = None) -> str:
             text=True,
             timeout=300,
         )
-        assert proc.returncode == 0, proc.stderr
+        if refused:
+            assert proc.returncode != 0, f"this plan was supposed to be refused:\n{proc.stdout}"
+        else:
+            assert proc.returncode == 0, proc.stderr
         return proc.stdout + proc.stderr
     finally:
         if plan is not None:

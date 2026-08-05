@@ -64,10 +64,15 @@ class BoundedReader:
     is the reader's final position, taken when iteration finishes; the caller owns opening and closing
     ``fileobj``.
 
-    **A read the caller stopped may have no byte count at all** (:attr:`abandoned`). Nothing may read
-    ``compressed_bytes`` as a measurement without checking it — an abandoned read's count is *absent*,
-    and absent is spelled here as a flag beside a zero rather than as a zero, because a measured zero
-    is a real and different answer.
+    **A read the caller stopped may have no byte count at all** (:attr:`abandoned`). An abandoned
+    read's count is *absent*, spelled here as a flag beside a zero rather than as a zero, because a
+    measured zero is a real and different answer — so nothing may read ``compressed_bytes`` as a
+    measurement without checking it. The flag stays on the reader and is deliberately **not** carried
+    onto :class:`FastqHead`: :meth:`FastqHead.read` drives this iteration to completion itself and
+    returns nothing if it raises, so a head that exists always holds a measured count, and the one
+    consumer that treats a zero as a defined input (``core._estimate_reads``) never sees an absent
+    one. A future accumulator that stops early would owe that field; today none does, and a nullable
+    ``compressed_bytes`` on every observation would be a schema paying for it.
 
     Parameters
     ----------

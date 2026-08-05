@@ -816,10 +816,17 @@ def io_umi_extract(
         help="The read structure compose derived from the element model, e.g. "
         "`R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22`.",
     ),
-    sample: str = typer.Option(..., "--sample", help="Cell id; becomes the uBAM's read group."),
+    sample: str = typer.Option(
+        ...,
+        "--sample",
+        help="Cell id: which sample to resolve out of --units, and the uBAM's read group.",
+    ),
     out: Path = typer.Option(..., "--out", help="Output path for the unaligned BAM."),
     read_id: str = typer.Option(
-        "R1", "--read-id", help="Which layout read `--r1` is. Refused if the geometry disagrees."
+        "R1",
+        "--read-id",
+        help="Which layout read carries the tag. Refused if the geometry disagrees; it also "
+        "selects the tagged role out of --units.",
     ),
 ) -> None:
     """Lift a plate assay's UMI out of R1 and write it as a uBAM carrying `UB:Z:`.
@@ -856,9 +863,12 @@ def io_umi_extract(
     element coordinates by `compose` and rendered into a single config value — the same move
     chromap's `--read-format` makes, and the reason there is no `--anchor`, `--umi-length` or
     `--window` here for anyone to type. Nothing may declare it: the key is in the composer's derived
-    set, so a KB backend that states it is refused at load. `--read-id` says which layout read the
-    `--r1` file is and is checked against the read the geometry names, so a rule wired to hand over
-    the plain mate is refused instead of quietly extracting nothing.
+    set, so a KB backend that states it is refused at load. `--read-id` names the tagged read and is
+    checked against the read the geometry names. Under `--units` that check has become belt and
+    braces — the role selects the rows, so a wrong one finds no files rather than the wrong ones —
+    and it still earns its keep over `--r1`, where the tagged file is asserted by hand and handing
+    over the plain mate would otherwise extract nothing at exit 0. Deleting it is ADR-0036's
+    explicitly deferred question, not a tidy-up (ADR-0035 treats the refusal as load-bearing).
 
     Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a run whose mate was
     never deposited, a half-renamed FASTQ, a pair of unequal length, a truncated input.

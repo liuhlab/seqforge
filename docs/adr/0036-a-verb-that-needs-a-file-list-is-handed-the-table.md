@@ -168,6 +168,15 @@ themselves are held one level down, on the table:
 `test_a_sample_with_no_second_role_has_no_mate_and_one_with_two_is_refused`
 (`tests/test_workflows.py`).
 
+**And the divergence this record creates is refused rather than left to absence.** The verb reads
+its mate off units.tsv, where a role is a *column* and its elements are not; `map/star-umi` keeps
+reading `read_files_in["cdna"]`, which is compose's role-checked answer. Those part company on a
+layout whose second non-index read is not cDNA — the module renders `SAM SE` while the verb writes
+an interleaved paired uBAM, which STAR counts twice at exit 0. `mate_fastqs` compares the two and
+raises, so it is an `InputFunctionException` the wiring gate catches:
+`test_a_mate_the_module_will_not_stage_and_the_table_still_offers_is_refused_at_dag_time`
+(`tests/test_workflows.py`). No shipped chemistry reaches it, which is exactly why it is a check.
+
 **And the rendered command is EXECUTED rather than merely formatted**, by
 `test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_two_runs`
 (`tests/test_workflows.py`), which plans a two-run cell and runs the module's own `shell:` block. It

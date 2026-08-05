@@ -43,6 +43,7 @@ from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM
 from seqforge.workflows.memory import PLATE_RETRIES, bam_sort_ram, fan_in_mem_mb, per_cell_mem_mb
 from seqforge.workflows.units import load_units, ordered_fastqs
+from seqforge.workflows.units import mate_role as units_mate_role
 
 UNITS_TSV = config["units_tsv"]
 UNITS = load_units(UNITS_TSV)
@@ -102,35 +103,62 @@ def mate_role():
 
 
 def mate_fastqs(sample):
-    """This cell's mate FASTQs, or an EMPTY LIST where the layout has no mate.
+    """This cell's mate FASTQs, or an EMPTY LIST where the layout has no mate. CHECKED, not assumed.
 
     A declared input of NO files rather than a missing one -- the line star.smk draws for its second
     bulk mate, for the same reason: snakemake takes an empty list happily, while a name resolving to
     nothing still claims a mate is there.
 
-    **This is the module's single statement of whether this cell has a mate, and BOTH branches read
-    it** -- the `--r2` the extractor is handed, and the `--readFilesType` the aligner is given. It is
-    per SAMPLE and not per dataset because that is the granularity a staged list has, and because the
-    one state that pulls the two apart is per sample: a `cdna` role declared for the layout that
-    stages no file for THIS cell. Rendering one branch off the role and the other off the files is
-    what would let the extractor write an unpaired uBAM and the aligner still be told `SAM PE`.
+    **This is the module's single statement of whether this cell has a mate, and it is read by the
+    aligner's `--readFilesType` and by nothing else here** -- the extractor is handed units.tsv and
+    resolves its own (ADR-0036). It is per SAMPLE and not per dataset because that is the granularity
+    a staged list has, and because the one state that pulls the branches apart is per sample: a
+    `cdna` role declared for the layout that stages no file for THIS cell.
+
+    **So the extractor's mate and this one are two derivations of one fact, and the disagreement is
+    REFUSED here rather than left to absence.** This module reads `read_files_in["cdna"]`, which is
+    compose's ROLE-checked answer (the non-tagged read carrying a cDNA or gDNA element); the verb
+    reads units.tsv, where a role is a column and its elements are not. Those agree on every layout
+    compose emits today and part company on one that a future KB entry could reach: a second
+    non-index read the layout does NOT call cDNA. There the module stages nothing and renders
+    `SAM SE` while the verb finds one non-tagged role and writes an interleaved PAIRED uBAM -- which
+    STAR then reads one record at a time and counts twice, at exit 0. That is a wrong matrix and not
+    a crash, so it is the half of the divergence nothing downstream would notice.
+
+    `units.mate_role` is the verb's OWN derivation, called here to be compared against this one; a
+    raise inside an input function is an `InputFunctionException` at DAG construction, which is what
+    compose's wiring gate turns into a refusal before anything is submitted. It also raises for a
+    sample carrying two non-tagged roles, which is the same refusal the verb would reach at job time,
+    moved to where it is still cheap.
     """
     role = mate_role()
-    return [] if role is None else fastqs(sample, role)
+    staged = [] if role is None else fastqs(sample, role)
+    resolved = units_mate_role(UNITS, sample, tagged_role())
+    if resolved != (role if staged else None):
+        raise ValueError(
+            f"cell {sample} stages "
+            f"{'no mate' if not staged else f'{len(staged)} {role} file(s)'} for the extractor, "
+            f"while units.tsv offers it {resolved!r} as the read beside {tagged_role()}. The "
+            f"aligner is told `SAM PE`/`SAM SE` from what is staged and the extractor pairs from "
+            f"the table, so these must be the same answer: a mismatch writes a uBAM whose shape the "
+            f"aligner flag does not describe, and STAR miscounts it rather than refusing it"
+        )
+    return staged
 
 
 def read_files_type(sample):
     """STAR's `--readFilesType`: `SAM PE` over interleaved pairs, `SAM SE` over one record a read.
 
-    Derived per SAMPLE from `mate_fastqs`, which is the SAME list the `--r2` argument is rendered
-    from, and that shared source is the whole point of the signature. Reading `mate_role()` here
-    instead looks equivalent and is not: a `cdna` role that stages no file for this cell renders no
-    `--r2`, so the extractor writes an unpaired uBAM while the aligner is still told `SAM PE`.
-    Measured against STAR 2.7.11b in the `align-rna` image (2026-08-05): `FATAL ERROR in input BAM
-    file: the consecutive lines in paired-end BAM have different read IDs`, **exit 104** -- a crash
-    rather than a wrong number, which is what makes this derivation load-bearing instead of a tidier
-    spelling of a literal. Two derivations of one fact is how a module comes to contradict itself for
-    exactly one dataset shape, and the shape here is the one this module was just widened to run.
+    Derived per SAMPLE from `mate_fastqs`, which is the same list the extractor will resolve for
+    itself out of units.tsv -- checked equal there rather than assumed -- and that shared source is
+    the whole point of the signature. Reading `mate_role()` here instead looks equivalent and is
+    not: a `cdna` role that stages no file for this cell leaves the extractor with no mate to find,
+    so it writes an unpaired uBAM while the aligner is still told `SAM PE`. Measured against STAR
+    2.7.11b in the `align-rna` image (2026-08-05): `FATAL ERROR in input BAM file: the consecutive
+    lines in paired-end BAM have different read IDs`, **exit 104** -- a crash rather than a wrong
+    number, which is what makes this derivation load-bearing instead of a tidier spelling of a
+    literal. Two derivations of one fact is how a module comes to contradict itself for exactly one
+    dataset shape, and the shape here is the one this module was widened to run.
     """
     return "SAM PE" if mate_fastqs(sample) else "SAM SE"
 

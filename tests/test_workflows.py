@@ -1162,6 +1162,9 @@ def test_the_extractors_mate_and_the_aligners_read_type_come_from_one_fact(
     assert not re.search(r"--r1\b|--r2\b", plan), (
         f"no file belongs on this command line at all (ADR-0036):\n{plan}"
     )
+    # It PLANS, which is the assertion the extractor half turned into: the module stages no mate and
+    # units.tsv offers none, so `mate_fastqs`' agreement check passes rather than refusing.
+    assert "umi_extract" in plan, plan
     assert "--readFilesType SAM SE" in plan, (
         "the extractor was handed one FASTQ and wrote an unpaired uBAM, so the aligner must be told "
         f"`SAM SE`; `SAM PE` over those records is STAR exit 104, not a wrong number:\n{plan}"
@@ -1219,6 +1222,38 @@ def test_the_plate_module_plans_a_single_end_run_and_hands_the_extractor_no_mate
     # ...and the aligner reads the uBAM as what the extractor actually wrote.
     assert "--readFilesType SAM SE" in plan
     assert "SAM PE" not in plan, plan
+
+
+def test_a_mate_the_module_will_not_stage_and_the_table_still_offers_is_refused_at_dag_time(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The mirror of the test above, and the state ADR-0036 newly makes reachable.
+
+    The extractor stopped being handed its mate and started resolving it from units.tsv, where a
+    role is a COLUMN and its elements are not. This module keeps reading `read_files_in["cdna"]`,
+    which is compose's role-checked answer — the non-tagged read carrying a cDNA or gDNA element. A
+    layout whose second non-index read is neither leaves the two saying different things: nothing is
+    staged and the aligner is told `SAM SE`, while the verb finds one non-tagged role and writes an
+    interleaved PAIRED uBAM. STAR reads those one record at a time and counts every fragment twice,
+    **at exit 0** — a wrong matrix rather than a crash, which is the half nothing downstream notices.
+
+    No shipped chemistry reaches it (`smartseq3` has two reads and the second is plain cDNA), so
+    this is guarded by a CHECK rather than by absence — which is the shape #327 was filed about. The
+    refusal lands inside an input function, so it is an `InputFunctionException` at DAG construction:
+    exactly where compose's wiring gate is looking, and before anything is submitted.
+    """
+    _plate_run_dir(tmp_path, ["cell_a"], mate=False)  # the layout places NO `cdna` role
+    rows = (tmp_path / "units.tsv").read_text().rstrip("\n").splitlines()
+    path = "fastq/cell_a_R2.fastq.gz"
+    (tmp_path / path).write_bytes(b"")  # ... and a second role the table carries anyway
+    (tmp_path / "units.tsv").write_text(
+        "\n".join([*rows, "\t".join(("cell_a", "cell_a", "", "R2", path))]) + "\n"
+    )
+
+    refusal = dry_run(tmp_path, refused=True)
+
+    assert "InputFunctionException" in refusal, refusal
+    assert "must be the same answer" in refusal, refusal
 
 
 def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_two_runs(
