@@ -7,6 +7,7 @@ import random
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from conftest import SrcTrees, SynthDataset, real_cbs, write_fastq_gz
@@ -1315,3 +1316,148 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
     # the bytes a citation greps into are on disk under a name a human can read
     documents = tmp_path / "seqforge" / "records" / "documents"
     assert any(p.name.startswith("runs-SAMN1-") for p in documents.iterdir())
+
+
+# ---- io umi-extract: the per-cell half of the plate-assay counting engine -------------------------
+
+
+def _plate_manifest(path: Path) -> Path:
+    """A manifest whose R1 is a tagged-molecule layout: 11 bp tag, 8 bp UMI, `GGG`, cDNA at 22.
+
+    Only `library.read_layout` is under test; the rest is the least that validates. Written through
+    the models rather than as hand-typed YAML so a field rename breaks this loudly.
+    """
+    from seqforge.models.dataset import (
+        DatasetManifest,
+        DatasetProvenance,
+        ExperimentSection,
+        FileInventoryItem,
+        LibrarySection,
+        ReadDef,
+        ReadElement,
+        ReadLayout,
+    )
+    from seqforge.models.evidenced import (
+        EvidencedAccessionList,
+        EvidencedChemistrySet,
+        EvidencedTaxid,
+    )
+
+    tagged = ReadDef(
+        read_id="R1",
+        strand="pos",
+        min_len=40,
+        max_len=150,
+        elements=[
+            ReadElement(
+                role="linker",
+                region_type="custom_primer",
+                start=0,
+                length=11,
+                sequence="ATTGCGCAATG",
+            ),
+            ReadElement(role="UMI", region_type="umi", start=11, length=8),
+            ReadElement(role="linker", region_type="linker", start=19, length=3, sequence="GGG"),
+            ReadElement(role="cDNA", region_type="cdna", start=22),
+        ],
+    )
+    mate = ReadDef(
+        read_id="R2",
+        strand="neg",
+        min_len=40,
+        max_len=150,
+        elements=[ReadElement(role="cDNA", region_type="cdna", start=0)],
+    )
+    manifest = DatasetManifest(
+        library=LibrarySection(
+            chemistry=EvidencedChemistrySet(value=["smart-seq3"], basis="observed", rung=1),
+            read_layout=ReadLayout(modality="rna", reads=[tagged, mate]),
+            files=[
+                FileInventoryItem(
+                    uri="cell_R1.fastq.gz",
+                    basename="cell_R1.fastq.gz",
+                    sha256="0" * 64,
+                    size_bytes=1,
+                    read_id="R1",
+                )
+            ],
+        ),
+        experiment=ExperimentSection(
+            # The verb reads none of this; the model requires it, so it is the least that validates.
+            organism=EvidencedTaxid(value=10090, basis="asserted", rung=0),
+            accessions=EvidencedAccessionList(value=[], basis="inferred", rung=0),
+            samples=[],
+        ),
+        provenance=DatasetProvenance(
+            dataset_hash="0" * 64, kb_version="test", seqforge_version="test"
+        ),
+    )
+    path.write_text(yaml.safe_dump(manifest.model_dump(mode="json")))
+    return path
+
+
+def _plate_fastqs(tmp_path: Path) -> tuple[Path, Path]:
+    """One cell: two tagged reads (one of them at offset 13) and one internal read."""
+    tag, cdna = "ATTGCGCAATG", "GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCATTTGG"
+    r1 = [tag + "ACGTACGT" + "GGG" + cdna, "CTGTCTCTTATA" + tag + "TTTTGGCC" + "GGG" + cdna, cdna]
+    r1_path, r2_path = tmp_path / "cell_R1.fastq.gz", tmp_path / "cell_R2.fastq.gz"
+    write_fastq_gz(r1_path, r1, prefix="cell")
+    write_fastq_gz(r2_path, [cdna] * 3, prefix="cell")
+    return r1_path, r2_path
+
+
+def test_umi_extract_derives_its_geometry_and_offers_no_way_to_declare_it(tmp_path: Path) -> None:
+    """The verb marshals arguments and decides nothing: the anchor, the UMI's offset and length, the
+    trailing motif and the cDNA start all come out of the manifest's element model.
+
+    The second half of the assertion is the part that keeps it true. A `--anchor` flag would let a
+    caller hand the extractor a geometry that disagrees with what the bytes were decided to be —
+    the manifest says what the data IS, and there is nowhere else for a parse key to enter — so the
+    absence of one is checked against the live app rather than left to review.
+    """
+    manifest = _plate_manifest(tmp_path / "manifest.yaml")
+    r1, r2 = _plate_fastqs(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["io", "umi-extract", "--r1", str(r1), "--r2", str(r2), "--manifest", str(manifest),
+         "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    written = json.loads(result.stdout)
+    assert written["read_id"] == "R1"
+    assert (written["pairs"], written["tagged"], written["untagged"]) == (3, 2, 1)
+    # The offset histogram is how a run reports whether the unanchored search still earns its keep.
+    assert written["offsets"] == {"0": 1, "12": 1}
+    assert (tmp_path / "cell_42.bam").exists()
+
+    from typer.main import get_command
+
+    verb = get_command(app).commands["io"].commands["umi-extract"]  # type: ignore[attr-defined]
+    flags = {opt for param in verb.params for opt in param.opts}
+    assert flags & {"--manifest", "--read-id"}
+    assert not flags & {"--anchor", "--umi-offset", "--umi-length", "--trailing", "--window"}
+
+
+def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
+    tmp_path: Path,
+) -> None:
+    """Handed the read the layout says is NOT tagged, it exits 3 instead of finding no tags.
+
+    A composer that pairs the mates the wrong way round is the failure this catches, and it is not
+    hypothetical — a units ordering that silently paired one lane's barcodes with another lane's
+    cDNA is why `units.tsv` grew a lane column. Extracting from the wrong mate produces a uBAM with
+    no `UB` anywhere, an empty count matrix, and exit 0 all the way down.
+    """
+    manifest = _plate_manifest(tmp_path / "manifest.yaml")
+    r1, r2 = _plate_fastqs(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["io", "umi-extract", "--r1", str(r2), "--r2", str(r1), "--manifest", str(manifest),
+         "--read-id", "R2", "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
+    )  # fmt: skip
+
+    assert result.exit_code == 3
+    assert "this layout's UMI is on R1" in result.stderr
