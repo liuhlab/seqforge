@@ -22,7 +22,7 @@ Numbers only; the table below carries the links.
 
 | area | ADRs |
 | --- | --- |
-| `src/seqforge/cli/` | 0013, 0018, 0031, 0033, 0034, 0035 |
+| `src/seqforge/cli/` | 0013, 0018, 0031, 0033, 0034, 0035, 0036 |
 | `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030, 0032, 0035 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021, 0028, 0030 |
@@ -33,7 +33,7 @@ Numbers only; the table below carries the links.
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034 |
-| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035 |
+| `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035, 0036 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032 |
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018, 0034 |
@@ -79,3 +79,4 @@ Numbers only; the table below carries the links.
 | [0033](0033-a-submitted-file-is-a-transcript-entry-not-a-checksum.md) | A submitted file is a transcript entry, and its md5 is an address we never check | `ArchiveRecord` carries name, provider md5, size and URI per file the submitter uploaded; the md5 addresses hosted bytes and is never computed against a local file, the size checks a filename-made join and never creates one, and the URI is printed only where the record set is in hand | `models/records.py`, `io/archive.py`, `io/remote.py`, `resolve/records.py`, `resolve/escalate.py`, `manifest/validate.py`, `cli/io.py` |
 | [0034](0034-a-user-record-set-declares-structure-never-a-fact.md) | A user-written record set declares structure, never a fact | A `source: user` set carries `level`/`id`/`parent`/`filenames` and no attributes — which is what keeps `asserted` meaning an archive's typed slot; two levels (`run → sample`), and fusing runs the filenames separate warns rather than blocks | `recordset.py`, `cli/records.py`, `models/records.py`, `resolve/records.py`, `cli/manifest.py`, `cli/run.py`, `evals/case.py` |
 | [0035](0035-the-mate-is-an-addition-to-umi-extraction.md) | The mate is an addition to UMI extraction, not half of it | The tag operation is entirely within one read, so the single-end form is the base case and the pairing is the addition: one verb with a nullable mate, the module deriving both the mate argument and `SAM SE`/`SAM PE` from `read_files_in`, and no signature tuned to win a read-set contest | `workflows/umite/extract.py`, `workflows/map/star-umi.smk`, `cli/io.py`, `kb/specs/` |
+| [0036](0036-a-verb-that-needs-a-file-list-is-handed-the-table.md) | A verb that needs a file list is handed the table that states it | `io umi-extract` takes `--units` + `--sample` and resolves its own files through `ordered_fastqs`, so the pairing is stated by `run`/`lane` rather than inferred from two lists sorted in parallel — a repeated-path form survives for hand invocation, and the arity the wiring gate structurally cannot see stops existing rather than being tested for | `cli/io.py`, `workflows/units.py`, `workflows/umite/extract.py`, `workflows/map/star-umi.smk` |
