@@ -21,7 +21,40 @@ from "the signal is absent", and conflating them would reject every SRA-normaliz
 test alone.
 
 Gate semantics: a `requires` FAIL forbids the cell, an `excludes` PASS forbids the cell, and
-`supports` sum as `Σ weight · score` with weights summing to 1, so a finite cell lands in `[0,1]`.
+`supports` sum as `Σ weight · score` normalized by the weight actually consulted, so a finite cell
+lands in `[0,1]`.
+
+**A support the BYTES could not answer leaves the normalizer; one WE could not ask keeps its weight;
+and one withheld from EVERY spec leaves the signature** (#307). Three situations, and treating them
+alike fails in three different directions — all measured, with the numbers and the surviving residual
+in [`docs/research/support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md)
+(2026-08-05).
+
+`Evaluation.answerable` carries the first distinction and is deliberately *not* derived from
+`outcome`: `distinct_ratio` abstains on every input by design (it must never gate) while measuring on
+every input, so dropping supports on the gate outcome would empty the normalizer for most of the KB.
+A column no read reaches, or a header the archive stripped, leaves numerator and normalizer alike — no
+chemistry could have got an answer there, so dropping it advantages nobody, and keeping it marked a
+spec down for a question nobody could answer (the rule of #177, #255 and #277). A **whitelist that
+failed to materialize** is the opposite case and keeps its weight, because a rival spec whose list did
+materialize answered the same question and is paying for every imperfection in its hit rate.
+Renormalizing it away makes the unverifiable spec the cheaper one to satisfy, and it is the 10x cohort
+— siblings that declare byte-identical geometry and are separated by the whitelist and nothing else —
+where that removes the comparison outright. Withholding it from everyone is neither: the question is
+asked of nobody, so `confuse.without_rung3_evidence` takes it out of the signature, which is what
+finally makes `accepts_at_rungs_0_2`'s own "the verdict rests on geometry ... alone" true.
+
+**"But when is a whitelist ever unobtainable?" — almost never, and that is worth knowing before
+reading the paragraph above as urgent.** All fifteen lists ship pre-packed (3.0 MB; a sorted 2-bit
+barcode set is a twentieth of the vendor's `.txt.gz`), every onlist reference in all seventeen specs
+resolves from `DEFAULT_REGISTRY` with no network and no setup, and every production verb uses it.
+There used to be one door left — a recorded-debt pin letting a spec land before its whitelist was
+derived — and it is **gone** (#321):
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now demands the gap set be empty
+outright, so a chemistry that calls the onlist decisive cannot ship until its list does. The pin's own
+comment had promised such a spec merely over-asks; measured on real barcodes, `splitseq` with its
+lists withheld falls to 0.3300 against bulk's 0.7800, far outside θ, so nothing asks and the deposit
+compiles as bulk. That is not a deferral to record, so there is no longer a way to record it.
 
 | evaluator | what it does, and the decision inside it |
 |---|---|

@@ -133,12 +133,43 @@ from __future__ import annotations
 #: so CB/UMI are tags and no dump flag recovers them) is cached as a question whose offered answer is
 #: `bulk-rnaseq`, one human "yes" away from a gene-count matrix for a library nobody could barcode.
 #: `dataset_hash` does not fold this stamp, so no stored manifest moves.
-#: 2026.8.8 — the metadata resolver reads the size an archive declares for a submitted file. Where a
+#: 2026.8.8 — a `supports` test the DATA could not answer leaves the score NORMALIZER as well as its
+#: numerator (#307). `_score_cell` divided by every DECLARED weight, so an unevaluated test
+#: contributed `weight * 0.0` on top while keeping its whole weight underneath — a spec marked down
+#: for evidence nobody could check, which is the rule 2026.7.16 (#177) and 2026.8.4 (#255) already
+#: settled twice and #277 restated for read sets. `_global_support` had the same shape and takes the
+#: same rule.
+#: **The fact this needed is not the ABSTAIN outcome**, and reading it off the outcome is the wrong
+#: fix rather than an incomplete one: `distinct_ratio` abstains on EVERY input by design, so it can
+#: never be written into a `requires` and gate a spec away, while measuring on every input. Every
+#: support 10x-3p-gex-v3 declares abstains, so dropping on the outcome empties the normalizer and
+#: scores the chemistry 0.0 on the reads it generated. `Evaluation.answerable` carries it instead.
+#: **A whitelist WE could not obtain is NOT that case and keeps its weight**, and that half is what
+#: keeps the fix from inverting the ranking: the bytes were willing, a rival spec whose list did
+#: materialize answered the same question, and renormalizing around this one makes the unverifiable
+#: spec the cheaper to satisfy. **Withholding it from every spec at once is a third case and leaves
+#: the SIGNATURE**, not the normalizer (`confuse.without_rung3_evidence`) — the rung-0-2 world the
+#: confusability guard scores in, where weight is not declared evenly and every barcoded chemistry was
+#: therefore marked down against the one candidate that must never win by default, in proportion to
+#: how much whitelist evidence it had the honesty to declare. All three directions are measured, with
+#: the residual the third one leaves, in `docs/research/support-normalizer-asymmetry.md` (2026-08-05);
+#: bulk's six declared edges are re-derived in `tests/test_kb.py` against the danger direction rather
+#: than the arithmetic that handicap produced.
+#: This bump is the 2026.7.13 kind and NOT the 2026.7.15/.16/.17/.18 kind: what changed is the
+#: DEFINITION of a cell (the normalizer is the weight consulted, not the weight declared), while every
+#: graded value on the corpus stayed put — the frozen-18 grade digest is
+#: `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` before and after, 18/18
+#: `correct`, both re-taken on this tree. No cached verdict is known to be wrong, so nothing must
+#: re-key for correctness; the stamp moves because a reader of a cached candidate is entitled to know
+#: which arithmetic produced it. `dataset_hash` does not fold this stamp, so no stored manifest moves.
+#: 2026.8.9 — the metadata resolver reads the size an archive declares for a submitted file. Where a
 #: file was joined by that declared filename it *claims to be* that upload, so a size disagreement is
 #: new advisory output (a truncated download, or a different file renamed into place); a size never
-#: makes or breaks a join, and this stage still only warns (ADR-0010, ADR-0033). `dataset_hash` does
-#: not fold this stamp — no stored manifest moves, and none of this reaches one.
-RESOLVE_VERSION = "2026.8.8"
+#: makes or breaks a join, and this stage still only warns (ADR-0010, ADR-0033). Unlike the entry
+#: above this one nothing about scoring moved, so no cached candidate is stale on its account; the
+#: stamp advances because the stage now emits a note it could not before. `dataset_hash` does not
+#: fold this stamp — no stored manifest moves, and nothing here reaches one.
+RESOLVE_VERSION = "2026.8.9"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

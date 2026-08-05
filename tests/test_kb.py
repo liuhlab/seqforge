@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import kb
+from seqforge.io import OnlistRegistry
 from seqforge.kb.schema import Identity, MotifPresent, Read, Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
@@ -918,10 +919,11 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
 def test_every_confusable_target_is_a_technology_we_support() -> None:
     """A `confusable_with` edge must point at a spec that exists, not at one we mean to write.
 
-    This is the same defect `UNSHIPPED_ONLIST_DEBT` was built for, one level up, and it hid in the one
-    place that register does not look: that guard reads the onlists a spec's own ELEMENTS reference, so
-    it never sees a `distinguishable_by: [onlist]` claim about a *pair*. Four edges pointed at ids with
-    no spec directory — `10x-gemx-3p-v4` and `10x-5p-gex`, from both v3 and v3.1.
+    This is the same defect `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` was built
+    for, one level up, and it hid in the one place that guard does not look: it reads the onlists a
+    spec's own ELEMENTS reference, so it never sees a `distinguishable_by: [onlist]` claim about a
+    *pair*. Four edges pointed at ids with no spec directory — `10x-gemx-3p-v4` and `10x-5p-gex`, from
+    both v3 and v3.1.
 
     A dangling edge fails the way this repo's worst failures fail: quietly and safely. The resolver
     cannot score a spec that does not exist, so the divergent tie the edge describes never happens; a
@@ -975,23 +977,19 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
     to discriminate. The message this guard has always failed with names the danger as "the resolver
     would pick one and never ask", which is a claim about ORDER; the question it asks is now that one.
 
-    **The gate on that change: bulk's five declared edges re-derived under it**, since a stronger
-    guard that silently drops a true edge has traded noise for blindness. Every one survives, and
-    with room to spare — `bulk` on the other spec's own reads, both scored with the onlist withheld:
+    **The gate on that change: bulk's declared edges re-derived under it**, since a stronger guard
+    that silently drops a true edge has traded noise for blindness.
+    `test_bulks_declared_edges_still_derive_under_the_ordering_predicate` is where that happens and
+    where the measured margins are tabulated; they moved under #307, which took the withheld onlist
+    out of the rung-0-2 NORMALIZER as well as its numerator, and the barcoded incumbents recovered
+    the handicap that had been putting the fallback above them.
 
-    | edge | bulk | incumbent | margin |
-    |---|---|---|---|
-    | `splitseq`                    | 1.0000 | 0.5500 | +0.4500 |
-    | `bd-rhapsody-wta`             | 0.9875 | 0.5500 | +0.4375 |
-    | `bd-rhapsody-wta-enhanced-v1` | 0.9975 | 0.5500 | +0.4475 |
-    | `bd-rhapsody-wta-enhanced-v2` | 0.9975 | 0.5500 | +0.4475 |
-    | `10x-multiome-atac`           | 0.8800 | 0.7424 | +0.1376 |
-
-    Re-derive with `resolve.confuse.rung02_margin(specs['bulk-rnaseq'], specs[b], probes[b])`.
-    Across the whole shipped KB the two predicates in fact flag the identical pair set: every pair
-    that accepts at rungs 0-2 also outranks, because the rest are exact ties (margin 0.0000, the 10x
-    28 bp cohort and the two Enhanced beads) and a tie is not a separation. So no edge is gained or
-    lost here — the change is about the KB the next entry will make, not the one in the tree.
+    Across the whole shipped KB the two predicates flag ALMOST the identical pair set: every pair that
+    accepts at rungs 0-2 also outranks, except `bulk-rnaseq` -> `10x-multiome-atac`, where bulk
+    accepts the data but now ranks decisively below the chemistry on it. The rest are exact ties
+    (margin 0.0000, the 10x 28 bp cohort and the two Enhanced beads) and a tie is not a separation.
+    So no edge is gained here and the one that is no longer demanded is kept with its argument
+    recorded — the change is about the KB the next entry will make, not the one in the tree.
 
     **`geometry_could_accept` stays a sound skip**, unchanged, and the argument is a containment one
     rather than a new measurement: outranking REQUIRES a valid assignment, so the new predicate
@@ -1043,7 +1041,7 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
 
     An exemption nobody has watched fail is an exemption that may be swallowing everything, and this
     one sits inside the only CI error the confusability contract has. So the perturbation: **strip
-    `bulk-rnaseq`'s declared edges** in memory and re-ask the guard's question. Six of its pairs must
+    `bulk-rnaseq`'s declared edges** in memory and re-ask the guard's question. Five of its pairs must
     come back flagged — the ones where the fallback explains every file and the resolver really would
     pick it and never ask — and the 10x cohort must not, because there the fallback orphans the
     barcode read and the resolver asks.
@@ -1054,16 +1052,28 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
     maximal set seats both files and orphans nothing. `smartseq3` orphans nothing either and is the
     starkest instance of it — both of its files are long cDNA reads, one merely carrying a 22 bp
     structural prefix, so the fallback explains the pair completely and ties dead level.
-    `10x-multiome-atac` orphans its 24 bp barcode read — but from the MAXIMAL set, and the exemption
-    is scoped to a proper-subset read set, so a rule introduced by read sets cannot retire an edge
-    that predates them.
+
+    **`10x-multiome-atac` was the sixth and has left the set, and NOT via the exemption** (#307). It
+    still orphans its 24 bp barcode read from bulk's MAXIMAL set, so the exemption — scoped to a
+    proper-subset read set, so that a rule introduced by read sets cannot retire an edge predating
+    them — still does not fire on it, and that is asserted below rather than inferred. What changed is
+    the ordering: with the onlist out of the rung-0-2 signature the incumbent recovers to 0.9067
+    against bulk's 0.8800, so bulk is decisively BELOW and could not outrank it. A pair leaving this
+    set because the true chemistry now wins is the guard working, not the guard blinded — but the two
+    causes are indistinguishable from the set alone, which is why the exemption is pinned separately.
 
     Deleting a spec's edges is exactly how `test_a_declared_twin_that_diverges_would_be_caught` proves
     the benign-twin gate fires, and it is the same reason here: a guard that has never been seen to go
     red is a guard nobody knows is connected.
     """
-    from seqforge.resolve.confuse import could_outrank_at_rungs_0_2
+    from seqforge.resolve.confuse import (
+        could_outrank_at_rungs_0_2,
+        rung02_margin,
+        seats_a_file_the_fallback_dropped,
+        without_rung3_evidence,
+    )
     from seqforge.resolve.geometry import geometry_could_accept
+    from seqforge.resolve.scoring import build_tech_evaluation
 
     specs = kb.load_all_specs()
     undeclared_bulk = specs["bulk-rnaseq"].model_copy(update={"confusable_with": []})
@@ -1080,12 +1090,28 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
         "bd-rhapsody-wta",
         "bd-rhapsody-wta-enhanced-v1",
         "bd-rhapsody-wta-enhanced-v2",
-        "10x-multiome-atac",
         "smartseq3",
     }, (
-        f"an undeclared bulk must still be caught against the six leaves whose data it fully "
+        f"an undeclared bulk must still be caught against the five leaves whose data it fully "
         f"explains; got {sorted(flagged)}. Too few means the exemption is swallowing real danger, "
         f"too many means it stopped applying where the resolver genuinely asks."
+    )
+
+    # Multiome ATAC left on the ORDERING, not on the exemption — the two are indistinguishable from
+    # the set above, and only one of them would mean this guard had been blinded.
+    atac_probes = kb_probes["10x-multiome-atac", "full"]
+    registry = OnlistRegistry(offline=True)
+    fallback = build_tech_evaluation(without_rung3_evidence(undeclared_bulk), atac_probes, registry)
+    incumbent = build_tech_evaluation(
+        without_rung3_evidence(specs["10x-multiome-atac"]), atac_probes, registry
+    )
+    assert not seats_a_file_the_fallback_dropped(incumbent, fallback, specs["10x-multiome-atac"]), (
+        "the exemption must NOT be what excuses this pair — bulk orphans it from its maximal set"
+    )
+    margin = rung02_margin(undeclared_bulk, specs["10x-multiome-atac"], atac_probes)
+    assert margin is not None and margin < 0, (
+        f"...so the only honest reason it is unflagged is that bulk ranks below the chemistry on the "
+        f"chemistry's own reads; margin {margin}"
     )
 
 
@@ -1158,17 +1184,43 @@ def test_bulks_declared_edges_still_derive_under_the_ordering_predicate(
     (validity) predicate. So they are re-derived here, under the new one, as an executable gate
     rather than a sentence in a pull request.
 
-    **Each edge is re-derived against the claim it actually makes**, which is read off
-    `distinguishable_by` rather than assumed uniform:
+    **What the gate asserts is the DANGER DIRECTION, and #307 is why it is no longer two shapes.**
+    The edge exists to stop one thing: the resolver handing back a bulk gene-count matrix for a
+    single-cell library without asking. That happens when — and only when — bulk sits DECISIVELY
+    ABOVE the incumbent on the incumbent's own reads. So every edge, whatever mechanism it names, is
+    re-derived against `margin <= θ`, and a `[metadata]` edge additionally against `margin >= -θ`,
+    because that edge promises a mechanism only a tie ever reaches: outside the band in either
+    direction the resolver decides and never asks a human.
 
-    - An `[onlist]` edge says rung 3 decides, which presumes the cheap rungs do NOT — bulk is not
-      merely level with the incumbent there but ahead of it. Measured +0.1376 (Multiome ATAC, the
-      closest: two genomic mates ARE a bulk cDNA pair to this fallback) to +0.4500 (SPLiT-seq).
-    - The `[metadata]` edge says no rung below a human's answers it, and that is the opposite
-      arithmetic: bulk must be INSIDE the tie band, because above it bulk would simply win and never
-      ask, and the edge would be promising a mechanism nothing reaches for. `smartseq3` measures
-      exactly 0.0 — the fallback explains both of its files completely and every support either
-      entry has saturates on synthetic reads, so the pair is a dead heat the bytes cannot order.
+    **The five `[onlist]` edges used to be re-derived against the OPPOSITE arithmetic — `margin > θ`,
+    bulk ahead — and that reading was an artifact of the defect #307 fixed.** Withholding the onlist
+    at rungs 0-2 emptied the numerator of every `onlist_hit_rate` support but left its weight in the
+    normalizer, so each barcoded incumbent was marked down by however much whitelist evidence it had
+    the honesty to declare — 5 of 8 support weight for the 10x cohort, 9 of 10 for SPLiT-seq and the
+    BD beads — while bulk, which declares none, lost nothing. Bulk was not ahead of these chemistries
+    on the cheap probes; it was ahead of a handicap. With the onlist out of the signature at rungs 0-2
+    (`confuse.without_rung3_evidence`) the incumbents recover and the pairs stand level or the
+    incumbent leads, which is the honest relationship and still leaves the onlist as what SEPARATES
+    them — the claim the edge makes.
+
+    | edge | mechanism | bulk | incumbent | margin | was |
+    |---|---|---|---|---|---|
+    | `splitseq`                    | `[onlist]`   | 1.0000 | 1.0000 | +0.0000 | +0.4500 |
+    | `bd-rhapsody-wta`             | `[onlist]`   | 0.9875 | 1.0000 | -0.0125 | +0.4375 |
+    | `bd-rhapsody-wta-enhanced-v1` | `[onlist]`   | 0.9975 | 1.0000 | -0.0025 | +0.4475 |
+    | `bd-rhapsody-wta-enhanced-v2` | `[onlist]`   | 0.9975 | 1.0000 | -0.0025 | +0.4475 |
+    | `10x-multiome-atac`           | `[onlist]`   | 0.8800 | 0.9067 | -0.0267 | +0.1376 |
+    | `smartseq3`                   | `[metadata]` | 1.0100 | 1.0100 | +0.0000 | +0.0000 |
+
+    Re-derive with `resolve.confuse.rung02_margin(specs['bulk-rnaseq'], specs[b], probes[b])`.
+
+    **`10x-multiome-atac` is the one edge the under-declaration sweep would no longer DEMAND**, and it
+    is kept anyway. At -0.0267 bulk is decisively below, so `could_outrank_at_rungs_0_2` is now False
+    and an undeclared version of this pair would not be flagged. That is not the same as the edge
+    being false: the sweep measures one direction on synthetic reads with every whitelist withheld,
+    and the edge's actual claim — that a Multiome ATAC deposit's two genomic mates read as a bulk cDNA
+    pair, and the whitelist is what tells them apart — is about real data. Deleting it would trade a
+    declared danger for an undeclared one on the strength of a synthetic margin moving by 0.16.
 
     An edge that stops deriving is a discussion, not a deletion: the honest repairs are to tighten
     the fallback's gates or to write down why the pair separates now, and both are changes somebody
@@ -1192,20 +1244,31 @@ def test_bulks_declared_edges_still_derive_under_the_ordering_predicate(
             f"bulk-rnaseq scores nothing on {other!r}'s own reads, so it cannot be confusable with "
             f"it at all. Do not delete the edge to make this pass."
         )
-        assert could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other, "full"])
-        if mechanisms == ["onlist"]:
-            assert margin > _THETA, (
-                f"bulk-rnaseq -> {other!r} no longer derives: margin {margin} on {other!r}'s own "
-                f"reads at rungs 0-2. The edge says the ONLIST decides this pair, which presumes "
-                f"the cheap rungs do not. Do not delete the edge to make this pass."
-            )
-        else:
-            assert abs(margin) <= _THETA, (
+        assert margin <= _THETA, (
+            f"bulk-rnaseq -> {other!r} no longer derives: margin {margin:+.4f} on {other!r}'s own "
+            f"reads at rungs 0-2 puts the generic fallback DECISIVELY ABOVE the chemistry. There the "
+            f"resolver returns bulk and never reaches for {mechanisms}, which is the silent bulk "
+            f"answer this edge exists to stop. Do not delete the edge to make this pass."
+        )
+        if mechanisms != ["onlist"]:
+            assert margin >= -_THETA, (
                 f"bulk-rnaseq -> {other!r} declares {mechanisms}, i.e. that the cheap rungs cannot "
-                f"order this pair — but the margin on {other!r}'s own reads is {margin}, outside "
+                f"order this pair — but the margin on {other!r}'s own reads is {margin:+.4f}, below "
                 f"the tie band. Outside the band the resolver decides and never reaches for the "
                 f"mechanism this edge promises, so the declaration is the thing that is wrong."
             )
+    # The sweep's own predicate, per edge: inside the band it still holds, and the one edge that has
+    # left it is named rather than quietly dropped, so a THIRD one leaving goes red here.
+    outranked = {
+        other
+        for other in edges
+        if could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other, "full"])
+    }
+    assert outranked == set(edges) - {"10x-multiome-atac"}, (
+        f"the under-declaration sweep demands every bulk edge but `10x-multiome-atac`, whose margin "
+        f"of -0.0267 puts bulk decisively below it; got {sorted(outranked)}. An edge leaving this set "
+        f"is the sweep ceasing to require it, which needs the argument in this docstring extended."
+    )
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -1317,28 +1380,6 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 # ---------------------------------------------------------------- the mechanism must be able to fire
 
 
-#: KB entries whose declared onlists we do not ship, and which therefore CANNOT be resolved the way
-#: their own spec says they are. An exact pin, not a filter: this is a debt, and a debt you can forget
-#: is a debt you keep.
-#:
-#: **Empty, and it took shipping a whitelist to empty it.** `splitseq` sat here: it declared three
-#: barcode whitelists and said of the one technology it is confusable with "rung 3 decides it: the
-#: round1/2/3 whitelists hit", while the three we shipped were all 10x's. The three weight-3.0 onlist
-#: tests abstained and the mechanism the spec called decisive could never fire. That failure was safe
-#: — it over-asks, it does not answer wrongly — which is exactly why it survived unnoticed: nothing
-#: was red, and every test that appeared to prove SPLiT-seq works built a synthetic registry from the
-#: spec's own aliases, proving the spec agrees with itself.
-#:
-#: The barcodes now ship, derived from the paper's own Supplementary Table S12 rather than guessed;
-#: `test_the_splitseq_rounds_are_one_barcode_set` pins what that derivation found.
-#:
-#: Adding an entry here is legitimate; leaving one unrecorded is not. Do NOT close a future entry by
-#: guessing barcodes — a wrong whitelist does not fail loudly. STARsolo exits 0 and emits a matrix
-#: that merely looks like a thin dataset, and a plausible matrix is unrecoverable in a way a refusal
-#: never is.
-UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {}
-
-
 def test_the_splitseq_rounds_are_one_barcode_set() -> None:
     """SPLiT-seq reuses ONE 96 x 8 bp set across all three rounds — a KB fact, not a packing accident.
 
@@ -1384,28 +1425,90 @@ def test_a_spec_that_calls_onlists_decisive_can_actually_reach_one() -> None:
     """The gap this repo could not see: a KB entry declaring what the code cannot execute.
 
     Adding a technology really is one YAML file and zero Python — SPLiT-seq proves it. But a spec can
-    *declare* a mechanism that does not exist, and that fails SILENTLY: the tests abstain, resolve
-    over-asks, and nothing is red. This is the check that makes the declaration cost something.
+    *declare* a mechanism that does not exist, and that fails SILENTLY: the tests go unconfirmed,
+    nothing is red, and the chemistry loses. This is the check that makes the declaration cost
+    something.
+
+    **There is no debt list any more, and deleting it is the point** (#321). This assertion used to
+    compare against a recorded `UNSHIPPED_ONLIST_DEBT`, so a spec could land without its whitelist as
+    long as somebody wrote the gap down. The comment beside that pin told the next author the failure
+    was tolerable — "it over-asks, it does not answer wrongly" — and that was false. Measured on reads
+    built from the barcodes we now ship, `splitseq` with its three lists withheld scores **0.3300**
+    against `bulk-rnaseq`'s **0.7800** on its own data: its onlist supports carry 9 of its 10
+    barcode-role weight and keep that weight when unconfirmed, deliberately (#307), so at +0.45 the
+    chemistry sits far outside θ, never joins the tie set its own declared `confusable_with` edge
+    would be consulted for, and the deposit compiles to a bulk gene-count matrix at exit 0. With all
+    three shipped the same reads tie 0.7800/0.7800 and the edge routes the decision to the onlist,
+    which hits.
+
+    So the debt was never a deferral, it was a silently wrong answer with a note attached — and a note
+    is a rule somebody has to remember. Removing the escape hatch makes the right thing happen by
+    default: ship the whitelist, or do not ship the spec. `splitseq` is the precedent for paying that
+    cost rather than deferring it — its three lists were derived from the paper's own Supplementary
+    Table S12, and `test_the_splitseq_rounds_are_one_barcode_set` pins what the derivation found.
+
+    Do NOT close a future gap by guessing barcodes. A wrong whitelist does not fail loudly: STARsolo
+    exits 0 and emits a matrix that merely looks like a thin dataset, and a plausible matrix is
+    unrecoverable in a way a refusal never is.
     """
     from seqforge.io import DEFAULT_REGISTRY
 
+    gaps = _onlist_gaps(DEFAULT_REGISTRY)
+    assert gaps == {}, (
+        f"these specs call the onlist decisive and cannot reach one: {gaps}\n"
+        "A spec whose decisive whitelist does not ship LOSES SILENTLY to `bulk-rnaseq` — measured, "
+        "`splitseq` without its three lists scores 0.3300 against bulk's 0.7800 on its own reads, "
+        "far outside the tie band, so nothing asks and the deposit compiles as bulk at exit 0. It "
+        "does not over-ask; it answers wrongly.\n"
+        "Ship the whitelist (`seqforge io onlist pack`) or do not ship the spec. There is no safe "
+        "third option, and recording the gap instead of closing it was the one this test used to "
+        "allow (#321)."
+    )
+
+
+def _onlist_gaps(registry: OnlistRegistry) -> dict[str, list[str]]:
+    """spec id -> the decisive onlists ``registry`` cannot reach. Empty is the only legal answer."""
     gaps: dict[str, list[str]] = {}
     for spec_id in kb.list_spec_ids():
         spec = kb.load_spec(spec_id)
         if "onlist" not in spec.decidable_by:
             continue
-        missing = [n for n in _onlists_that_would_decide(spec) if not DEFAULT_REGISTRY.has(n)]
+        missing = [n for n in _onlists_that_would_decide(spec) if not registry.has(n)]
         if missing:
             gaps[spec_id] = missing
+    return gaps
 
-    assert gaps == UNSHIPPED_ONLIST_DEBT, (
-        "the KB's rung-3 claims no longer match what ships.\n"
-        f"  found:    {gaps}\n"
-        f"  recorded: {UNSHIPPED_ONLIST_DEBT}\n"
-        "If you shipped a whitelist, delete its entry from UNSHIPPED_ONLIST_DEBT. If you added a "
-        "spec that declares onlists we do not have, either ship them or record the debt here — but "
-        "do not leave it unrecorded: a spec whose decisive mechanism cannot fire looks exactly like "
-        "one that works, right up until a real dataset arrives."
+
+def test_the_unshipped_onlist_guard_can_actually_go_red() -> None:
+    """Prove the guard above fires, now that there is no way to record your way past it.
+
+    It has only ever been seen green, and a guard nobody has watched fail is a guard nobody knows is
+    connected — the same reason `test_the_orphan_exemption_is_not_a_blanket_one` and
+    `test_a_declared_twin_that_diverges_would_be_caught` perturb their subjects in memory. It matters
+    more here than it did before #321: the assertion used to compare against a recorded pin, so an
+    author who tripped it had a green-making edit available and would have found out the guard worked.
+    Now the only way past is to ship the list, and nobody will discover the wrong `decidable_by` by
+    accident.
+
+    Withhold SPLiT-seq's three rounds from an otherwise-complete registry — exactly the state the KB
+    was in before those lists were derived — and the guard must name that spec and those three lists,
+    and nothing else.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import shipped_entries
+
+    withheld = OnlistRegistry(offline=True)
+    for entry in shipped_entries():
+        if not entry.name.startswith("splitseq-"):
+            withheld.register(entry)
+    assert len(withheld.names()) == len(DEFAULT_REGISTRY.names()) - 3, (
+        "the perturbation must remove exactly SPLiT-seq's three rounds"
+    )
+
+    assert _onlist_gaps(withheld) == {
+        "splitseq": ["splitseq-round1", "splitseq-round2", "splitseq-round3"]
+    }, (
+        "the guard must name the spec AND the lists it cannot reach, or its message cannot be acted on"
     )
 
 

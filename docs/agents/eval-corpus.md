@@ -733,6 +733,27 @@ digest never calls harvest. The three-part instrument #233's batching change shi
 `eval plan` diff, a hermetic test on `batch_documents`, and a bounded recall probe — closes it for
 that change specifically. Closing it in general is separate work.
 
+### The support normalizer moved a definition and no grade (2026-08-05, #307)
+
+The scoring change that took an unanswered support out of the normalizer was **predicted to move the
+digest and did not**, which is the reverse of the usual pre-declaration and worth the row.
+
+| | |
+|---|---|
+| frozen 18, `--no-llm`, single trial, **before** | 18/18 `correct`, `false_accept_rate` 0.0, `false_refuse_rate` 0.0 |
+| frozen 18, **after** | 18/18 `correct`, same rates, same outcome mix |
+| frozen-18 grade digest, before **and** after | `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **byte-identical**, both re-taken on this tree (`main` @ `62a4f54`) |
+| whole tier, 19 cases | 19/19 `correct`, exit 0 |
+
+The issue predicted movement because it prescribed renormalizing an unobtainable whitelist at
+runtime; measuring that showed it inverts the 10x cohort's ranking, so the runtime rule kept the
+weight and the fix landed where the onlist is withheld from every spec at once. What remains at
+runtime — a support the *bytes* were silent about leaving the normalizer — no benchmark case
+exercises, which is why the digest holds. An unchanged digest across a deliberate semantic change is
+only informative because both ends were taken on the same tree; the measurement and the residual it
+leaves are in
+[`docs/research/support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md).
+
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
 **Nothing here is decided, and there is no third tier.**

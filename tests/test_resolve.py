@@ -28,7 +28,16 @@ from seqforge import models as m
 from seqforge.compose import core
 from seqforge.io import DEFAULT_REGISTRY, OnlistRegistry, PackedOnlist
 from seqforge.kb.generate import write_fastq_gz as write_reproducible_fastq_gz
-from seqforge.kb.schema import HasSegment, MotifPresent, Read, Spec
+from seqforge.kb.schema import (
+    DistinctRatio,
+    HasSegment,
+    HeaderIndex,
+    MotifPresent,
+    OnlistHitRate,
+    Read,
+    Spec,
+    Test,
+)
 from seqforge.manifest import (
     ExperimentInputs,
     exit_code_for_report,
@@ -61,7 +70,13 @@ from seqforge.resolve.geometry import (
     geometry_could_accept,
     length_feasible,
 )
-from seqforge.resolve.scoring import Cell, TechEvaluation, build_tech_evaluation
+from seqforge.resolve.scoring import (
+    Cell,
+    TechEvaluation,
+    _global_support,
+    _score_cell,
+    build_tech_evaluation,
+)
 from seqforge.resolve.window import WindowProbe
 
 # ================================================================================================
@@ -2151,6 +2166,255 @@ def test_real_splitseq_reads_resolve_to_splitseq() -> None:
     assert out.result.candidates[0].rung_resolved == {"chemistry": 3}
     assert out.exit_code() == 0
     assert not out.result.questions
+
+
+# ================================================================================================
+# a question nobody could answer leaves the normalizer; one WE could not ask keeps its weight (#307)
+# ================================================================================================
+#
+# `_score_cell` normalized by every DECLARED support weight, so a support that could not be evaluated
+# contributed `weight * 0.0` to the numerator while keeping its whole weight in the denominator — a
+# spec scored DOWN for evidence nobody was able to check, exactly as if the evidence had been checked
+# and come back negative. That is the rule #177 and #255 already settled twice (a dark cycle costs
+# `motif_present` coverage, not rate; an uncalled base is not a substitution) and #277 stated in so
+# many words for read sets: *a thing you could not measure leaves the denominator; it does not score
+# zero.*
+#
+# THE RULE HAS TWO SIDES, and #307 is only safe with both. A support leaves the normalizer when the
+# DATA could not answer it — no read reaching the column, a header the archive stripped — because then
+# no chemistry could have got an answer there and dropping it advantages nobody. A whitelist WE could
+# not obtain is the opposite: the question was answerable, and a rival spec whose list did materialize
+# answered it. Drop that one and the rival pays for every imperfection in its hit rate while this spec
+# pays nothing. Measured, on an over-length v3 library with only the 3M and ARC lists installed, the
+# whole 10x cohort then ties at 0.7819 on the geometry supports they all declare identically — above
+# `bulk-rnaseq` at 0.7500, and above the true chemistry whose whitelist HIT, last at 0.6083. So an
+# unobtainable onlist keeps its weight, and the case #307 measured — the list withheld from every spec
+# at once — is handled by taking it out of the SIGNATURE instead (`confuse.without_rung3_evidence`).
+#
+# THE OTHER TRAP, and it is why these tests are written against the shipped KB rather than a fixture:
+# the obvious reading of the rule — "drop the supports that ABSTAIN" — is wrong, and wrong in the
+# direction that looks right. `distinct_ratio` returns ABSTAIN on EVERY input by design, because it is
+# depth-dependent and must never be usable as a gate; its `score` is a real measurement all the same.
+# Every support 10x-3p-gex-v3 declares abstains, so dropping on the gate outcome empties the
+# normalizer and scores the chemistry 0.0 on its own reads. The fact the scorer needs is not "did this
+# test abstain" but "could these bytes have answered it", which is why `Evaluation.answerable`
+# exists as its own field and is not derived from `outcome`.
+
+_UNMEASURED = "10x-3p-gex-v3"  # 5 of its 8 R1 support weight is an onlist, withheld at rungs 0-2
+
+
+def _supports_of(spec: Spec, read_id: str) -> list[tuple[Any, float]]:
+    """The shipped `(test, weight)` supports addressed to one read — never a hand-built copy."""
+    return [
+        (s.when, s.weight)
+        for s in spec.signature.supports
+        if getattr(s.when, "read", None) == read_id
+    ]
+
+
+def _global_supports_of(spec: Spec) -> list[tuple[Any, float]]:
+    """The shipped READ-LESS supports — what `_evaluate_read_set` buckets into `global_sup`."""
+    return [
+        (s.when, s.weight) for s in spec.signature.supports if getattr(s.when, "read", None) is None
+    ]
+
+
+def test_a_support_the_data_could_not_answer_leaves_the_normalizer_it_never_entered(
+    kb_probes: KbProbes,
+) -> None:
+    """The core arithmetic: a support the bytes are silent about is dropped from BOTH sides.
+
+    Pinned on a `distinct_ratio` pointed past the end of the read, which is the shape
+    `_eval_distinct_ratio` already guards ("window unreadable") — the shipped test with its window
+    moved, so the weights and the surviving support are the KB's own. Leaving it in the denominator
+    halves a cell whose other support measured perfectly well, for a column no chemistry could have
+    read.
+
+    The assertion is the weighted mean over the supports that were MEASURED, computed from the
+    evaluator rather than restated, so it pins the normalizer and not the fixture's exact ratios; the
+    old arithmetic is named beside it so it cannot come back green.
+    """
+    spec = kb.load_spec(_UNMEASURED)
+    wp = next(p for p in kb_probes[_UNMEASURED, "full"] if p.mode_length == 28)
+    read = next(r for r in spec.reads if r.id == "R1")
+    registry = OnlistRegistry(offline=True)
+
+    measurable = next(
+        when for when, _ in _supports_of(spec, "R1") if isinstance(when, DistinctRatio)
+    )
+    unreadable = measurable.model_copy(update={"start": 400, "end": 480})
+    assert evaluate(measurable, read, wp, spec, registry).answerable
+    assert not evaluate(unreadable, read, wp, spec, registry).answerable, (
+        "no read is 480 bp long, so this column is one the DATA cannot answer"
+    )
+
+    supports: list[tuple[Test, float]] = [(measurable, 1.0), (unreadable, 3.0)]
+    cell, _ = _score_cell(read, wp, spec, registry, [], [], supports)
+    measured = evaluate(measurable, read, wp, spec, registry).score
+    assert cell.value == pytest.approx(measured)
+    assert cell.value != pytest.approx(measured / 4.0), (
+        "normalizing by every DECLARED weight is the defect, not the fix"
+    )
+
+
+def test_a_whitelist_we_could_not_obtain_keeps_its_weight(kb_probes: KbProbes) -> None:
+    """The other side of the rule, and the one that keeps the fix from inverting the ranking.
+
+    An onlist that is not registered, not materialized, or names an alias the spec does not define is
+    a spec we failed to CONFIRM — not a question the data refused. It must not leave the normalizer,
+    because a rival chemistry whose whitelist DID materialize is paying for every imperfection in its
+    hit rate, and renormalizing this one to the geometry supports alone hands it the higher score.
+    The 10x family is where that bites hardest: its siblings declare byte-identical geometry and are
+    separated by the whitelist and nothing else, so removing the whitelist from the comparison makes
+    them indistinguishable and floats every unverifiable one above the verified answer.
+
+    ABSTAIN is still the outcome — an unavailable list must never FAIL and so forbid a cell — which is
+    exactly why this fact could not be read off `outcome` and needed `answerable` to carry it.
+    """
+    spec = kb.load_spec(_UNMEASURED)
+    wp = next(p for p in kb_probes[_UNMEASURED, "full"] if p.mode_length == 28)
+    read = next(r for r in spec.reads if r.id == "R1")
+    onlist = next(when for when, _ in _supports_of(spec, "R1") if isinstance(when, OnlistHitRate))
+
+    ev = evaluate(onlist, read, wp, spec, OnlistRegistry(offline=True))
+    assert ev.outcome == Outcome.ABSTAIN, "an unavailable whitelist must never forbid a cell"
+    assert ev.score == 0.0
+    assert ev.answerable, "unconfirmed is not unreadable — the weight stays"
+
+    ratio = next(when for when, _ in _supports_of(spec, "R1") if isinstance(when, DistinctRatio))
+    supports: list[tuple[Test, float]] = [(onlist, 5.0), (ratio, 1.0)]
+    cell, _ = _score_cell(read, wp, spec, OnlistRegistry(offline=True), [], [], supports)
+    scored = evaluate(ratio, read, wp, spec, OnlistRegistry(offline=True)).score
+    assert cell.value == pytest.approx(scored / 6.0), "the withheld list keeps all 5 of its weight"
+    assert cell.value != pytest.approx(scored), "renormalizing here is what rewards blindness"
+
+
+def test_a_depth_dependent_support_abstains_by_design_and_still_counts(
+    kb_probes: KbProbes,
+) -> None:
+    """`distinct_ratio` ABSTAINs on every input, and it is measuring the whole time.
+
+    The guard on the wrong fix. Its abstention is not "the probe could not see this" — it is the
+    forced outcome that stops a depth-dependent statistic being written into a `requires` and gating a
+    spec away. Drop supports on the gate outcome and every one of this chemistry's supports goes,
+    every cell divides by an empty normalizer, and a chemistry scores 0.0 on the reads it generated.
+
+    So both halves are pinned here: the ratio abstains, and it is `answerable` and scores; and the
+    cell it feeds is a real number rather than the collapse.
+    """
+    spec = kb.load_spec(_UNMEASURED)
+    wp = next(p for p in kb_probes[_UNMEASURED, "full"] if p.mode_length == 28)
+    read = next(r for r in spec.reads if r.id == "R1")
+    supports = _supports_of(spec, "R1")
+    ratios = [(when, w) for when, w in supports if isinstance(when, DistinctRatio)]
+    assert ratios, "this role is meant to carry the depth-dependent supports"
+
+    for when, _w in ratios:
+        ev = evaluate(when, read, wp, spec, OnlistRegistry(offline=True))
+        assert ev.outcome == Outcome.ABSTAIN, "it must never be able to gate"
+        assert ev.answerable, "...and it measured all the same"
+
+    assert all(
+        evaluate(when, read, wp, spec, OnlistRegistry(offline=True)).outcome == Outcome.ABSTAIN
+        for when, _ in supports
+    ), "EVERY support here abstains — which is what makes the outcome useless as the discriminator"
+    cell, _ = _score_cell(read, wp, spec, OnlistRegistry(offline=True), [], [], supports)
+    assert cell.value > 0.0, "dropping on ABSTAIN would empty the normalizer and score this 0.0"
+
+
+def test_a_cell_with_nothing_left_to_average_has_no_evidence_and_scores_zero(
+    kb_probes: KbProbes,
+) -> None:
+    """When NO support could be measured, the cell is 0.0 — the same as a role that declared none.
+
+    The decision the arithmetic must not be left to make, and it goes the other way from the fix
+    above. Dropping the role from the tech score's `|R|` normalizer — the exact analogue of what
+    #277 does for a read outside the active set — rewards blindness: a spec that could measure
+    nothing would score the mean of its remaining roles and so beat a spec that measured and got 0.5.
+    An unmeasured support must not be counted AGAINST a spec (that is #307); it must not be counted
+    FOR one either.
+
+    0.0 is also not a new convention. A role declaring no supports at all already lands there
+    (`total_w == 0`), and both cases say the one thing: this role offers no positive evidence about
+    this file. What the fix removes is only the DILUTION of evidence that was measured.
+
+    No shipped spec reaches this — every role carries at least one support the bytes can answer — so
+    the case is held open by pointing every support at a column no read reaches, which is how it would
+    arrive.
+    """
+    spec = kb.load_spec(_UNMEASURED)
+    wp = next(p for p in kb_probes[_UNMEASURED, "full"] if p.mode_length == 28)
+    read = next(r for r in spec.reads if r.id == "R1")
+    registry = OnlistRegistry(offline=True)
+    ratio = next(when for when, _ in _supports_of(spec, "R1") if isinstance(when, DistinctRatio))
+    unreadable: list[tuple[Test, float]] = [
+        (ratio.model_copy(update={"start": 400, "end": 480}), 2.0),
+        (ratio.model_copy(update={"start": 500, "end": 560}), 1.0),
+    ]
+    assert not any(evaluate(when, read, wp, spec, registry).answerable for when, _ in unreadable)
+
+    cell, _ = _score_cell(read, wp, spec, registry, [], [], unreadable)
+    assert not cell.forbidden, "no evidence is not a refusal — only a gate can forbid a cell"
+    assert cell.value == 0.0
+
+    no_supports, _ = _score_cell(read, wp, spec, registry, [], [], [])
+    assert no_supports.value == cell.value, "declaring nothing and measuring nothing agree"
+
+
+def test_a_global_support_nobody_could_read_leaves_its_normalizer_too(kb_probes: KbProbes) -> None:
+    """`_global_support` has the same shape, so it gets the same rule.
+
+    The read-less supports (`header_index`) are normalized by their own declared total, and an SRA
+    normalized header — which is most deposits, and is how probe DETECTS the normalization — reads
+    nothing on any file. One declared support is all any shipped spec has, so today the mixed case has
+    no instance and the two arithmetics agree at 0.0; the defect is latent rather than absent, and a
+    second read-less support added to any signature would wake it.
+
+    A generated fixture's header is NOT SRA-normalized — it is a full Illumina header carrying no
+    index, so the shipped support FAILs on it, which is an answer ("we looked; there is none") and
+    stays in the normalizer. Rewriting the grammar flag is what puts the archive in the picture, and
+    it is one of the two things this test fabricates.
+
+    **The other is the second support itself.** The shipped KB has no signature declaring two
+    read-less supports, so the mixed case is built by handing `_global_support` a read-addressed
+    `distinct_ratio` in that position — a shape `build_tech_evaluation` never produces, and legible
+    only because this function takes its supports as an argument. What is being pinned is the
+    NORMALIZER's arithmetic over two entries, which does not care where the second one came from.
+
+    Pinned both ways: the all-unreadable case stays 0.0 (there is no bonus to award, and inventing one
+    would credit a spec for a header nobody read), and a mixed pair normalizes by the support that was
+    actually readable rather than halving it.
+    """
+    spec = kb.load_spec(_UNMEASURED)
+    reads = list(spec.reads)
+    registry = OnlistRegistry(offline=True)
+    header = next(when for when, _ in _global_supports_of(spec))
+    assert isinstance(header, HeaderIndex)
+
+    readable = kb_probes[_UNMEASURED, "full"]
+    assert all(evaluate(header, reads[0], wp, spec, registry).answerable for wp in readable), (
+        "a generated header is read, and reports no index — a FAIL, not a non-answer"
+    )
+    stripped = [_sra_normalized(wp) for wp in readable]
+    assert not any(evaluate(header, reads[0], wp, spec, registry).answerable for wp in stripped)
+    assert _global_support([(header, 0.2)], reads, stripped, spec, registry) == 0.0
+
+    # ...and the mixed case the shipped KB has no instance of: one unreadable support beside a
+    # readable one must not halve the readable one's score.
+    ratio = next(when for when, _ in _supports_of(spec, "R2") if isinstance(when, DistinctRatio))
+    r2 = [next(r for r in spec.reads if r.id == "R2")]
+    alone = _global_support([(ratio, 1.0)], r2, stripped, spec, registry)
+    assert alone > 0.0, "the fixture needs a support that actually reads something"
+    assert _global_support([(header, 1.0), (ratio, 1.0)], r2, stripped, spec, registry) == (
+        pytest.approx(alone)
+    )
+
+
+def _sra_normalized(wp: WindowProbe) -> WindowProbe:
+    """The same probe with its header flagged as an archive rewrite — the one fabrication above."""
+    grammar = wp.observation.read_name.model_copy(update={"sra_normalized": True})
+    observation = wp.observation.model_copy(update={"read_name": grammar})
+    return dataclasses.replace(wp, observation=observation)
 
 
 # ================================================================================================

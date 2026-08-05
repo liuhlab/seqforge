@@ -406,6 +406,31 @@ A declared pair of specs the cheap rungs cannot separate, naming the mechanism t
 it is mandatory — CI fails a pair that collides at rungs 0-2 in silence (`docs/agents/kb.md`).
 _Avoid_: ambiguous, similar, overlapping, competing
 
+**Answerable**:
+Whether *these bytes* could have answered a signature test at all. A test they were silent about —
+no read reaching the column, a header the archive stripped — leaves the support numerator **and its
+normalizer**, because no chemistry could have got an answer there, so dropping it advantages nobody
+(#307). Not readable off the `ABSTAIN` outcome, which `distinct_ratio` returns on every input by
+design so that a depth-dependent statistic can never gate.
+_Avoid_: inapplicable (that is the **Read set** rule below), unmeasured, missing, N/A
+
+**Unconfirmed**:
+A test the bytes *were* willing to answer and we could not ask — the whitelist was not registered or
+would not materialize. It keeps its full weight in the normalizer, because a rival spec whose list
+did materialize answered the same question and pays for every imperfection in its hit rate: a spec is
+never credited for evidence nobody was able to check. Distinct from **Answerable**, and the
+distinction is what stops the #307 fix inverting the ranking
+(`docs/research/support-normalizer-asymmetry.md`).
+_Avoid_: unavailable, failed, missing whitelist; "the onlist abstained" names the outcome and not
+this fact
+
+**Inapplicable**:
+Reserved for the **Read set** rule: a signature test addressed to a read the *active* set does not
+carry has no cell at all, so it enters neither the score numerator nor its normalizer
+(`docs/adr/0029`). The same arithmetic as an unanswerable test, reached from a different direction —
+one is a fact about the declaration, the other about the bytes.
+_Avoid_: using it for either of the two above
+
 **Processing-equivalent**:
 Two specs whose canonical backend params — onlists resolved, role placement included — are
 byte-equal: they parse reads identically (`docs/adr/0011`). A tie between them is recorded as an
