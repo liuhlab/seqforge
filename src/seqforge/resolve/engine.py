@@ -388,13 +388,16 @@ _NUMERIC_DESIGNATION = re.compile(r"[._](?:read[-_]?)?([1-4])(?:[._]\d{3})?$", r
 #: A surplus lane/flowcell file must also match its role representative's read length (a sanity guard
 #: beside the designation). Small on purpose: 10x roles sit far apart (index <= 20, barcode ~26-28,
 #: cDNA >= 50), so the tolerance admits a lane's minor length jitter without ever bridging two roles.
-_LANE_LEN_TOL = 3
+#: Public, with :func:`read_designation`, because ``manifest.validate`` reads both: the lane this
+#: tolerance leaves unseated is the one whose refusal it has to explain, and a copy of the number in
+#: that explanation would be a second one to keep true.
+LANE_LEN_TOL = 3
 
 #: Extensions stripped before reading the trailing designation token — longest first.
 _FASTQ_EXTS = (".fastq.gz", ".fq.gz", ".fastq.bz2", ".fastq.xz", ".fastq", ".fq", ".gz")
 
 
-def _read_designation(basename: str) -> str | None:
+def read_designation(basename: str) -> str | None:
     """The mate/read designation a filename declares — ``R1``/``R2``/``I1`` (Illumina) or ``1``/``2``/
     ``3`` (fasterq-dump), or ``None`` when it declares none.
 
@@ -444,7 +447,7 @@ def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -
     if winner.score.status == "scored":
         by_sha = {o.file.sha256: o for o in observations}
         rep = {
-            role: (by_sha[sha].read_length.mode, _read_designation(by_sha[sha].file.basename))
+            role: (by_sha[sha].read_length.mode, read_designation(by_sha[sha].file.basename))
             for role, sha in winner.role_assignment.assignment.items()
             if sha in by_sha
         }
@@ -456,13 +459,13 @@ def index_tagged_roles(winner: Candidate, observations: Iterable[Observation]) -
             if mode <= INDEX_MAX_LEN:
                 roles[sha] = INDEX_ROLE
                 continue
-            designation = _read_designation(obs.file.basename)
+            designation = read_designation(obs.file.basename)
             if designation is None:
                 continue
             matches = [
                 role
                 for role, (rmode, rdesig) in rep.items()
-                if rdesig == designation and abs(rmode - mode) <= _LANE_LEN_TOL
+                if rdesig == designation and abs(rmode - mode) <= LANE_LEN_TOL
             ]
             if len(matches) == 1:
                 roles[sha] = matches[0]

@@ -42,8 +42,10 @@ from seqforge.manifest import (
     validate_processing,
 )
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
-from seqforge.models.dataset import DatasetManifest, SampleGroup
+from seqforge.models.blocker import Blocker
+from seqforge.models.dataset import INDEX_ROLE, DatasetManifest, SampleGroup
 from seqforge.models.resolve import ResolveResult
+from seqforge.resolve.engine import read_designation
 from seqforge.workflows import WORKFLOW_VERSION
 
 
@@ -813,3 +815,88 @@ def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(built_v3: Buil
     assert "orphan.fastq.gz" in blocker.message
     assert blocker.remedy, "a Blocker with no way forward is a wall"
     assert exit_code_for_report(report) == 3
+
+
+def _with_file(
+    manifest: DatasetManifest, basename: str, *, read_id: str | None = None, sha: str = "f"
+) -> DatasetManifest:
+    """``manifest`` plus one more file, named ``basename`` and carrying ``read_id`` (default: none)."""
+    files = list(manifest.library.files)
+    files.append(
+        files[0].model_copy(
+            update={
+                "read_id": read_id,
+                "basename": basename,
+                "uri": basename,
+                "sha256": sha * 64,
+            }
+        )
+    )
+    return manifest.model_copy(
+        update={"library": manifest.library.model_copy(update={"files": files})}
+    )
+
+
+def _unassigned_blocker(manifest: DatasetManifest) -> Blocker:
+    report = validate_manifest(manifest)
+    assert not report.ok
+    return next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
+
+
+def test_the_unassigned_remedy_names_the_lane_sibling_it_could_not_re_seat(built_v3: Built) -> None:
+    """The surplus lane of a fused run must not be told to re-run `fill` or to delete itself.
+
+    The guard is right and stays — #270 checked that every path (`run`, `manifest fill`, standalone
+    `compose`) already refuses a roleless file. What was wrong is the **remedy**, for the one shape
+    ADR-0027 created: a run is lane-blind, so a four-lane library is ONE run of eight files, the
+    injective assignment fills each role once, and `index_tagged_roles` re-seats the surplus only
+    within `LANE_LEN_TOL` of its role's representative. A lane whose modal read length drifts
+    further gets no role and lands here — and every clause of the old text misfires for it. They are
+    not "several runs", they are one run deliberately; `manifest fill` is the thing that just ran; and
+    dropping the lane is the partial-depth loss #263 and ADR-0027 exist to refuse.
+    """
+    manifest, _ = built_v3
+    seated = next(f for f in manifest.library.files if f.read_id is not None)
+    designation = read_designation(seated.basename)
+    assert designation is not None, "the fixture must name its mates or this proves nothing"
+
+    surplus = f"s_L002_{designation}_001.fastq.gz"
+    remedy = _unassigned_blocker(_with_file(manifest, surplus)).remedy
+
+    assert seated.basename in remedy, "name the read it is a lane of"
+    assert designation in remedy
+    assert "read length" in remedy, "name why it was not re-seated"
+    # `docs/agents/models.md`: a remedy that does not name a command is not finished — and this one
+    # is the diagnosis itself, so it names both files rather than leaving them to be typed.
+    assert f"`seqforge probe {seated.basename} {surplus}`" in remedy
+    # The misdiagnosis is gone, and the two fixes it prescribed are named as the wrong ones rather
+    # than handed over: `fill` is what just ran, and the lane is depth this dataset would lose.
+    assert "several runs" not in remedy
+    assert "neither is the fix" in remedy
+    assert "`seqforge manifest fill` is what produced this refusal" in remedy
+    assert "dropping the file loses that depth" in remedy
+
+
+def test_the_unassigned_remedy_is_unchanged_for_a_file_that_is_nobody_s_lane(
+    built_v3: Built,
+) -> None:
+    """No layout role shares its designation => the old text is right, and keeps it.
+
+    Three ways to be nobody's lane. A file carrying no designation at all; one whose designation no
+    seated read shares; and — the one that decides where the INDEX_ROLE files go — a designation
+    shared only with an index-tagged read. That last is the important case: an index file is not a
+    representative `index_tagged_roles` ever compared a lane against, and a file designated `I1` that
+    is roleless anyway is by construction longer than the 20 bp gate that would have tagged it. It is
+    the cDNA-length stray the old text was written for, so it must keep the old text.
+    """
+    manifest, _ = built_v3
+    seated = _with_file(manifest, "s_L001_I1_001.fastq.gz", read_id=INDEX_ROLE, sha="e")
+
+    for basename in ("sample_barcodes.fastq.gz", "s_L002_I2_001.fastq.gz"):
+        remedy = _unassigned_blocker(_with_file(manifest, basename)).remedy
+        assert "several runs" in remedy, basename
+        assert "seqforge manifest fill" in remedy, basename
+
+    stray = _unassigned_blocker(_with_file(seated, "s_L002_I1_001.fastq.gz"))
+    assert "several runs" in stray.remedy, "an index read is nobody's representative"
+    assert stray.subject.ref == "s_L002_I1_001.fastq.gz"

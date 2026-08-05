@@ -144,6 +144,16 @@ One physical lane of a flowcell, written into a filename by bcl2fastq as `_L001`
 Retained only to order a run's files identically for every mate.
 _Avoid_: run; and never a **Sample**, which is what reading it as one produced (`docs/adr/0027`)
 
+**Read designation**:
+The mate a demultiplexed FASTQ declares **in its own name** — bcl2fastq's `R1`/`R2`/`I1`/`I2` token,
+or fasterq-dump's numeric `_1`/`_2`/`_3`. It carries no **Lane** and no flowcell id, which is exactly
+what lets the lanes and flowcells of one read fuse: it is the identity a surplus file shares with the
+file already seated in its role, and the only such signal a manifest still holds once the reads are
+behind it (`resolve/engine.read_designation`, `docs/adr/0027`).
+_Avoid_: mate (a paired-end sense with no room for `I1`); role or `read_id`, which is what a
+designation is matched *to* and is not — a role comes from the **Chemistry**'s read layout and this
+comes from the filename; lane token
+
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
 transcript, never an interpretation, and optional: most sequencing data never had an accession, and
