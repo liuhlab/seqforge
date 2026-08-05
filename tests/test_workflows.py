@@ -3231,6 +3231,31 @@ def test_both_mates_of_a_fragment_are_counted_once_and_the_mate_coordinates_stil
     assert spanning.umi_intron == {}
 
 
+def test_a_paired_record_flagged_as_neither_mate_refuses_instead_of_halving_the_cell(
+    tmp_path: Path,
+) -> None:
+    """One record stands for a fragment, so a record that will not say which mate it is stops the run.
+
+    Every count in the cell would otherwise simply be absent — at a plausible magnitude, with
+    nothing raised and nothing to compare against. STAR always sets one of the two flags; a BAM
+    where it did not is malformed, and this is what says so out loud.
+    """
+    import pysam
+
+    annotation = read_annotation(_annotation_db(tmp_path))
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    )
+    record = _segments(header, _Fragment("nameless_mate", "chr1", 120, 180))[0]
+    record.flag = 1 | 2  # PAIRED and proper, and neither READ1 nor READ2
+    bam = tmp_path / "malformed.bam"
+    with pysam.AlignmentFile(str(bam), "wb", header=header) as out:
+        out.write(record)
+
+    with pytest.raises(UmiCountError, match="neither first nor second mate"):
+        count_bam(bam, annotation)
+
+
 def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() -> None:
     """Hamming-1 with the count-ratio guard, as a rule about two numbers rather than about a BAM.
 

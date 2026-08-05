@@ -457,10 +457,20 @@ def count_bam(bam: Path, annotation: Annotation) -> CellCounts:
             for record in alignments.fetch(until_eof=True):
                 if record.is_secondary or record.is_supplementary:
                     continue
+                # A paired record that says it is neither mate cannot be assigned to a fragment,
+                # and the failure would be invisible: every count in the cell would simply be
+                # missing, at a plausible-looking magnitude, with nothing raised.
+                if record.is_paired and not (record.is_read1 or record.is_read2):
+                    raise UmiCountError(
+                        f"{bam} has a paired record ({record.query_name}) flagged as neither first "
+                        f"nor second mate, so nothing can say which of the two it is"
+                    )
                 if not _representative(record):
                     continue
                 counts.n_fragments += 1
                 _count_fragment(record, annotation, counts)
+    except UmiCountError:
+        raise
     except OSError as exc:
         raise UmiCountError(f"{bam} could not be read: {exc}") from exc
     return counts
