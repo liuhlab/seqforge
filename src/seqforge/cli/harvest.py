@@ -66,7 +66,12 @@ def harvest_normalize(
     outdir = documents_dir(workspace)
     outdir.mkdir(parents=True, exist_ok=True)
     rows = []
-    for doc, role in _roled(docs, instruction):
+    handed = _roled(docs, instruction)
+    if not handed:
+        # `normalize` has no second input: a document is genuinely the only thing it can be given.
+        typer.echo("give at least one document, or --instruction FILE", err=True)
+        raise typer.Exit(2)
+    for doc, role in handed:
         try:
             nd = normalize_document(doc, role=role, pdf_backend=backend)
         except (OSError, RuntimeError) as exc:
@@ -103,12 +108,19 @@ def _document_filename(doc: Any) -> str:
 
 
 def _roled(docs: list[Path] | None, instruction: list[Path] | None) -> list[tuple[Path, DocRole]]:
-    """Pair each document with the ROLE its flag assigned. Code owns role; a filename never does."""
+    """Pair each document with the ROLE its flag assigned. Code owns role; a filename never does.
+
+    It **pairs and does not refuse**, and that split is the fix to a real defect. The refusal used to
+    live here, so every caller inherited "a document is the only input harvest has" — which was true
+    when this was written and stopped being true when `--records` landed. `harvest extract --records
+    dump.json --dry-run` exited 2 before the planner was ever called, on a dataset that is nothing
+    but records: `plan_extraction` has always accepted `documents=()` with records, and that is
+    exactly how `evals/plan.py` calls it, for the eleven of eighteen benchmark packages that carry no
+    prose at all and whose whole bill is records. Each verb now states its own emptiness condition,
+    in the vocabulary of the flags it actually has.
+    """
     pairs: list[tuple[Path, DocRole]] = [(d, "reference") for d in (docs or [])]
     pairs += [(d, "instruction") for d in (instruction or [])]
-    if not pairs:
-        typer.echo("give at least one document, or --instruction FILE", err=True)
-        raise typer.Exit(2)
     return pairs
 
 
@@ -230,6 +242,7 @@ def _harvest_extract_pipeline(
         UnreadableDocument,
         build_system_prompt,
         extract_planned,
+        fan_claims,
         llm_schema,
         normalize_document,
         plan_extraction,
@@ -240,8 +253,16 @@ def _harvest_extract_pipeline(
     from ..models.records import ArchiveRecordSet
 
     specs = load_all_specs()
+    roled = _roled(docs, instruction)
+    if not roled and records_path is None:
+        # The genuinely empty case, and only that one. A records-only extraction is legal — most of
+        # the benchmark corpus is exactly that shape — so the guard fires on "nothing at all to read"
+        # rather than on "no document", which is what it used to mean by accident.
+        return _StageOut(
+            "give at least one document, --instruction FILE, or --records FILE", 2, err=True
+        )
     handed = []
-    for doc, role in _roled(docs, instruction):
+    for doc, role in roled:
         try:
             handed.append(normalize_document(doc, role=role, pdf_backend=pdf_backend))
         except UnreadableDocument as exc:
@@ -353,6 +374,14 @@ def _harvest_extract_pipeline(
 
     assert extractor is not None
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
+    # ...and only THEN fan. A claim is extended to the records the collapse folded away exactly when
+    # it has already survived every tripwire in `verify_drafts` — the field allowlist, the grep, the
+    # typed-column refusal and entailment — so a fan can never launder a claim past a check, and the
+    # per-member offsets are recomputed against each member's own text (`find_span`), never copied.
+    fan = fan_claims(report.assertions, plan)
+    # Every document the plan RENDERED, not only the ones it paid for: a fanned assertion cites a
+    # document that was never sent, so its subject must reach `resolve` and its bytes must reach disk.
+    every = plan.all_documents
     instruction_docs = frozenset(d.doc_sha256 for d in normalized if d.role == "instruction")
     # An OBJECT, not a bare list, and the `instruction_docs` key is the reason. Which documents were
     # authored FOR seqforge is what decides whether an assertion may touch `processing.*` --
@@ -363,31 +392,59 @@ def _harvest_extract_pipeline(
     # from. It is what lets `manifest fill` tell a sample's own alias (a declaration about that
     # sample) from a paper about six samples (an inference about each), and it too lived only in this
     # process's memory. Code owns both mappings because code chose both documents.
+    # It spans `plan.all_documents` rather than the send list because a fanned assertion cites a
+    # document nobody sent, and `resolve.records._basis_for` silently drops a claim whose document has
+    # no subject here -- which would make the collapse lossy in the one place it must not be.
     (logs / "assertions.json").write_text(
         json.dumps(
             {
                 "instruction_docs": sorted(instruction_docs),
                 "document_subjects": [
                     {"doc_sha256": d.doc_sha256, "scope": d.scope, "subject": d.subject}
-                    for d in sorted(normalized, key=lambda d: d.doc_sha256)
+                    for d in sorted(every, key=lambda d: d.doc_sha256)
                 ],
-                "assertions": [a.model_dump(mode="json") for a in report.assertions],
+                "assertions": [a.model_dump(mode="json") for a in fan.assertions],
             },
             indent=2,
         )
     )
     # The rendered documents, on disk, under readable names. A span citation is only checkable if the
     # exact text it was greppedded against still exists -- and for a record-derived document these
-    # bytes exist nowhere else, because we made them.
+    # bytes exist nowhere else, because we made them. A COLLAPSED member's bytes exist nowhere else
+    # either, and it is the one a fanned citation names, so it is written too (ADR-0030).
     docdir = documents_dir(workspace)
     docdir.mkdir(parents=True, exist_ok=True)
-    for nd in normalized:
+    for nd in every:
         (docdir / _document_filename(nd)).write_text(nd.text)
+    # Two counts, because they answer two questions and one cannot stand in for the other:
+    # `n_accepted` is how many DRAFTS survived the tripwire (its meaning since the flags existed, and
+    # a fan may not inflate it), `n_stored` is how many Assertions were written — larger exactly when
+    # a sample-scoped claim was materialized once per collapsed member.
     payload["n_accepted"] = report.n_accepted
+    payload["n_stored"] = len(fan.assertions)
     payload["n_rejected"] = len(report.rejected)
-    # what the user may act on: verified directives, projected onto the instructable surface
+    # How many records a claim was fanned to. At either count every claim is verified in the record it
+    # names, so N does not move the epistemics -- but "one assertion, 1440 members" is a very
+    # different thing for a human to audit than 1440 independent readings, and only this says which.
+    payload["fanned"] = [
+        {
+            "field": f.field,
+            "value": f.value,
+            "quote": f.quote,
+            "source_doc_sha256": f.source_doc_sha256,
+            "n_records": f.n_records,
+            "records": list(f.records),
+            "materialized": f.materialized,
+            "assertion_ids": list(f.assertion_ids),
+        }
+        for f in fan.fanned
+    ]
+    # what the user may act on: verified directives, projected onto the instructable surface. Fed the
+    # fanned list for one reason only -- that stdout, `assertions.json` and this projection are the
+    # same set of claims. It cannot change the answer: `processing.*` is askable of an --instruction
+    # document alone, which is dataset-scoped, has no record behind it and is therefore never folded.
     instructions, conflicts = instructions_from_assertions(
-        report.assertions, instruction_docs=instruction_docs
+        fan.assertions, instruction_docs=instruction_docs
     )
     payload["instructions"] = [
         {"field": i.field, "value": i.value, "basis": i.basis, "evidence": i.evidence}
@@ -395,7 +452,7 @@ def _harvest_extract_pipeline(
     ]
     payload["conflicts"] = [c.model_dump(mode="json") for c in conflicts]
     payload["rejected"] = report.rejected
-    payload["assertions"] = [a.model_dump(mode="json") for a in report.assertions]
+    payload["assertions"] = [a.model_dump(mode="json") for a in fan.assertions]
     # Exit 4 when the author must weigh in: two instructions disagreeing has no tiebreak, and a claim
     # that failed the span tripwire needs a human rather than a silent drop.
     code = 4 if (conflicts or report.rejected) else 0

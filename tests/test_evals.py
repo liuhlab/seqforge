@@ -3935,3 +3935,45 @@ def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: 
     assert from_workspace.exit_code == 0, from_workspace.output
     assert from_run_dir.exit_code == 0, from_run_dir.output
     assert (tmp_path / "a.html").read_text() == (tmp_path / "b.html").read_text()
+
+
+def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does() -> None:
+    """The harness must grade the stage the compiler runs, not one step of it.
+
+    A collapsed group sends ONE member's prose and reads the rest as their differences, so a claim
+    from that prose reaches the other members only through `fan_claims`. `_run_harvest` called
+    `verify_drafts` and stopped, which would under-report the compiler — the one direction a grade
+    must never be wrong in, since it makes the shipped path look worse than it is and invites
+    "fixing" something that works. It also returns subjects for `plan.all_documents`, because
+    `resolve` silently drops a fanned claim whose withheld document it cannot place.
+    """
+    import dataclasses
+
+    from seqforge.evals.run import _run_harvest
+    from seqforge.harvest import TokenMeter
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+
+    twins = ArchiveRecordSet(
+        source="test",
+        query="PRJNA9",
+        records=[
+            ArchiveRecord(
+                level="sample",
+                accession=accession,
+                free_text=[FreeText(label="sample_alias", text="Caenorhabditis elegans, day3")],
+            )
+            for accession in ("SAMN1", "SAMN22")
+        ],
+    )
+    case = dataclasses.replace(_trap_case(), records=twins, metadata_docs=[])
+    provider = _StubProvider([_draft("experiment.samples.age", "day3", "day3")])
+
+    _grade, _usage, accepted, subjects = _run_harvest(
+        case, [], meter=TokenMeter(provider), model=None
+    )
+
+    ages = [a for a in accepted if a.field == "experiment.samples.age"]
+    assert len(ages) == 2, "one document was sent; the claim holds of both records' bytes"
+    assert len({a.span.doc_sha256 for a in ages}) == 2, "and each cites the record it names"
+    placed = {s.doc_sha256 for s in subjects}
+    assert {a.span.doc_sha256 for a in ages} <= placed, "including the one nobody sent"

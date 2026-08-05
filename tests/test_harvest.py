@@ -882,3 +882,147 @@ def test_a_collapsed_run_document_marks_the_columns_its_members_typed() -> None:
     doc = next(d for d in plan_extraction(records=records).documents if d.scope == "run")
     assert [doc.text[d.start : d.end] for d in doc.declared] == ["RNA-Seq", "RNA-Seq"]
     assert len({d.start for d in doc.declared}) == 2, "each occurrence has its own offset"
+
+
+# ---------- the invariant: what a group of near-identical records shares, at TOKEN granularity ----
+# A second kind of mark, and it must never become the first. `DeclaredSpan` makes `verify` REFUSE a
+# quote; a `VariantSpan` decides whether a claim FANS. Conflate them and a fanned claim is silently
+# rejected, or a quote inside a column is fanned into records that never carried it.
+
+
+def test_the_invariant_is_computed_at_token_boundaries_and_age_3_never_fans_into_age_30() -> None:
+    """The hazard the whole granularity decision exists for, pinned.
+
+    At CHARACTER granularity ``3`` is a shared span between ``age: 3`` and ``age: 30``, so ``age = 3``
+    would fan into the record that says 30 and the leftover variant would be the single character
+    ``0`` — which no askable-content test would ever send. A wrong claim, silently, on the one record
+    that differed. At token granularity ``3`` and ``30`` are two whole tokens, the position varies,
+    and nothing about it is shared.
+    """
+    from seqforge.harvest import is_invariant_span, variant_spans, varying_token_indices
+
+    texts = ["sample S1\n\nage: 3", "sample S2\n\nage: 3", "sample S3\n\nage: 30"]
+
+    assert varying_token_indices(texts) == (1, 3), "the accession token and the age token"
+    marks = variant_spans(texts)
+    assert [(m.value, m.n_values) for m in marks] == [("S1", 3), ("3", 2)]
+    assert texts[0][marks[1].start : marks[1].end] == "3", (
+        "the WHOLE token, never a character slice"
+    )
+
+    doc = NormalizedDoc(
+        doc_sha256="d", normalized_sha256="d", text=texts[0], source_basename="s.txt",
+        variants=marks,
+    )  # fmt: skip
+    start = texts[0].index("age: 3")
+    assert not is_invariant_span(doc, start, start + len("age: 3")), "reaches into the variant"
+    assert is_invariant_span(doc, start, start + len("age:")), "the label alone is shared"
+
+
+def test_a_serial_name_holding_an_underscore_is_one_token_and_therefore_varies() -> None:
+    """`_is_token_char` counts `_`, so `nasal_prox1_270` is ONE token — the measured consequence being
+    that a serially-named deposit's sample documents do not collapse and every one of them is asked.
+
+    That is the design pricing itself, not a defect to fix. The rescue that was tried and rejected —
+    mask a digit run whose values across the group are exactly an enumeration `1..N` — works on a
+    plate and dies on `sample_1h ... sample_24h`, where the digit IS the data.
+    """
+    from seqforge.harvest import variant_spans
+
+    marks = variant_spans(["sample_title: nasal_prox1_270", "sample_title: nasal_prox1_271"])
+
+    assert [m.value for m in marks] == ["nasal_prox1_270"], "one token, not a shared 12-char prefix"
+    assert marks[0].end - marks[0].start == len("nasal_prox1_270")
+
+
+def test_a_digit_that_is_the_data_varies_exactly_as_a_word_does() -> None:
+    """`sample_1h` vs `sample_24h` is the case that killed the enumeration rescue, and the rule that
+    replaced it needs no test to tell it from a well index: both are whole tokens, both vary."""
+    from seqforge.harvest import varying_token_indices
+
+    plate = ["well A1", "well A2", "well A3"]
+    timecourse = ["dose sample_1h", "dose sample_6h", "dose sample_24h"]
+
+    assert varying_token_indices(plate) == (1,)
+    assert varying_token_indices(timecourse) == (1,), (
+        "no code-side test separates these, and none is"
+    )
+
+
+def test_texts_of_different_shapes_are_not_one_group_and_refuse_to_be_aligned() -> None:
+    """A skeleton is a whole-string equality key, deliberately: an edit-distance alignment would make
+    "near-identical" a threshold, and a threshold is a knob nobody can tune from bytes. A record whose
+    paragraph is shaped differently forms its own group and is asked on its own."""
+    from seqforge.harvest import token_skeleton, varying_token_indices
+
+    assert token_skeleton("age: 3") != token_skeleton("age = 3"), "punctuation is part of the shape"
+    assert token_skeleton("age: 3") != token_skeleton("age: 3 days"), "so is the token count"
+
+    with pytest.raises(ValueError, match="one skeleton"):
+        varying_token_indices(["age: 3", "age: 3 days"])
+
+
+def test_an_unmarked_document_carries_no_group_and_no_claim_of_one() -> None:
+    """Every document a human handed us, and every record read on its own. `is_invariant_span` is
+    vacuously true there, and the CALLER — never this predicate — is what knows there is nothing to
+    fan to."""
+    from seqforge.harvest import is_invariant_span, variant_spans
+
+    assert variant_spans(["one text only"]) == ()
+    doc = NormalizedDoc(doc_sha256="d", normalized_sha256="d", text="abc", source_basename="s.txt")
+    assert doc.variants == () and is_invariant_span(doc, 0, 3)
+
+
+def test_a_variant_document_keeps_the_accession_and_drops_the_labels() -> None:
+    """What a non-exemplar member is sent as: its distinctive bytes, and nothing it shares.
+
+    The accession leads because it *varies* and everything that varies is kept — no special case. It
+    earns that place twice over: a document's identity is its bytes, so two members that happen to
+    share a serial name would otherwise reduce to one `doc_sha256`, and `resolve` keys a document's
+    subject by that sha — one sample would silently inherit the other's claims.
+    """
+    from seqforge.harvest import variant_text, varying_token_indices
+
+    texts = [
+        f"sample SAMN{i}\n\nsample_title: nasal_prox1_{i}\n\nsample_alias: GSM627690{i}"
+        for i in (1, 2)
+    ]
+    varying = varying_token_indices(texts)
+
+    assert variant_text(texts[0], varying) == "SAMN1\n\nnasal_prox1_1\n\nGSM6276901"
+    assert variant_text(texts[0], varying) != variant_text(texts[1], varying)
+
+
+def test_adjacent_variants_keep_the_separator_the_record_wrote_between_them() -> None:
+    """Adjacency is the only syntax the group did NOT already read in the exemplar, so it is the only
+    syntax worth carrying — and a paragraph break between tokens that were apart is what stops the
+    join from inventing a phrase no record wrote (`genotype: WT` + `age: 72` must not read `WT 72`).
+    """
+    from seqforge.harvest import variant_text, varying_token_indices
+
+    titles = [f"experiment SRX{i}\n\ntitle: GSM{i}: nasal_prox1_{i}; Mus musculus" for i in (1, 2)]
+    genotypes = [f"sample SAMN{i}\n\ngenotype: {g}\n\nage: {a}" for i, (g, a) in
+                 enumerate([("WT", "72"), ("mut", "24")], start=1)]  # fmt: skip
+
+    assert variant_text(titles[0], varying_token_indices(titles)) == "SRX1\n\nGSM1: nasal_prox1_1"
+    assert variant_text(genotypes[0], varying_token_indices(genotypes)) == "SAMN1\n\nWT\n\n72"
+
+
+def test_a_variant_document_is_regenerable_from_the_record_set_and_only_from_it() -> None:
+    """ADR-0030's subject, made concrete. `render_record` promises a document is reproducible from one
+    record; this text is not — it needs the record set, because which tokens vary is a property of the
+    group. Same records in, same bytes out, forever; one record alone cannot produce it."""
+    from seqforge.harvest import variant_text, varying_token_indices
+
+    texts = [f"run SRR{i}\n\nrun_alias: N2_wild_type_r{i}" for i in (1, 2, 3)]
+    once = variant_text(texts[0], varying_token_indices(texts))
+
+    assert once == variant_text(texts[0], varying_token_indices(list(texts))), "deterministic"
+    assert varying_token_indices(texts[:1]) == (), "one record alone says nothing varies at all"
+    # ...and a DIFFERENT set gives a different reduction of the same record, which is exactly why the
+    # record set and not the record is the unit of reproducibility here.
+    assert once == "SRR1\n\nN2_wild_type_r1", "the whole alias is one token, so all of it varies"
+    strains = ["run SRR1\n\nrun_alias: N2 rep 1", "run SRR2\n\nrun_alias: daf2 rep 1"]
+    indices = ["run SRR1\n\nrun_alias: N2 rep 1", "run SRR2\n\nrun_alias: N2 rep 2"]
+    assert variant_text(strains[0], varying_token_indices(strains)) == "SRR1\n\nN2"
+    assert variant_text(indices[0], varying_token_indices(indices)) == "SRR1\n\n1"

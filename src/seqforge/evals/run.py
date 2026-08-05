@@ -40,6 +40,7 @@ from ..harvest import (
     LLMProvider,
     TokenMeter,
     extract_planned,
+    fan_claims,
     normalize_document,
     plan_extraction,
     resolve_provider,
@@ -715,7 +716,12 @@ def _run_harvest(
 
     assert extractor is not None  # docs is non-empty (checked by the caller via has_prose)
     report = verify_drafts(drafts, docs, extractor=extractor)
-    accepted: list[Assertion] = report.assertions
+    # ...and then fan, exactly as `harvest extract` does. A collapsed group sends ONE member's prose
+    # and reads the rest as their differences, so a claim from that prose reaches the other members
+    # only through `fan_claims` — grade without it and the harness measures a stage the shipped path
+    # does not run, which is the one way a grade can be wrong in the compiler's favour. Inert on a
+    # corpus whose records all differ; #283 is what made it stop being inert in general.
+    accepted: list[Assertion] = fan_claims(report.assertions, plan).assertions
     by_field = {a.field: a for a in accepted}
     rejected.extend(report.rejected)
 
@@ -753,8 +759,12 @@ def _run_harvest(
     # compiler's own `chemistry_hypothesis` — one reduction, both callers. This function used to
     # take `by_field["library.chemistry"]`, i.e. the LAST document to claim one, which is a
     # different answer from the compiler's on exactly the datasets where it matters.
+    # `plan.all_documents`, not the send list: a fanned claim cites a member the collapse folded away
+    # and never sent, and `resolve` DROPS a claim whose document it cannot place — silently. Grading
+    # against the send list alone would throw away exactly the claims fanning just produced.
     subjects = [
-        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject) for d in docs
+        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
+        for d in plan.all_documents
     ]
     return grade, usage, accepted, subjects
 

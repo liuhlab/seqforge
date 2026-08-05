@@ -1190,3 +1190,140 @@ def test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold() -> None
     for path, want in sorted(claims.items()):
         got = _extract_experiment_field(path, out)
         assert _equal(want, got), f"{path}: expected {want!r}, got {got!r}"
+
+
+# ================================================================================================
+# A fanned claim is an ordinary claim: `_basis_for` never learned this feature exists
+# ================================================================================================
+
+
+def _twin_sample_records() -> ArchiveRecordSet:
+    """Two samples whose documents differ ONLY in their accessions — the shape harvest collapses.
+
+    The runs carry filenames (that is the join to the files) and no prose, so the only documents in
+    the plan are the two sample records, and the only thing separating them is the accession our own
+    renderer put there.
+    """
+    from seqforge.models.records import ArchiveRecord, FreeText
+
+    records = [ArchiveRecord(level="project", accession="PRJNA1")]
+    for accession in ("SAMN1", "SAMN22"):
+        records += [
+            ArchiveRecord(
+                level="sample",
+                accession=accession,
+                parent="PRJNA1",
+                free_text=[FreeText(label="sample_alias", text="whole worm, day3")],
+            ),
+            ArchiveRecord(level="experiment", accession=f"SRX{accession}", parent=accession),
+            ArchiveRecord(
+                level="run",
+                accession=f"SRR{accession}",
+                parent=f"SRX{accession}",
+                filenames=[f"{accession}_1.fastq.gz"],
+            ),
+        ]
+    return ArchiveRecordSet(source="test", query="PRJNA1", records=records)
+
+
+def test_a_fanned_claim_resolves_as_asserted_against_the_sample_it_names() -> None:
+    """The reason the collapse materializes a claim per member instead of giving `Assertion` a subject
+    list: `resolve.records._basis_for` is **completely unchanged** by this feature.
+
+    A fanned assertion cites the withheld member's own document, whose ``subject`` is that member's
+    accession, so it maps home through the same ``subject_to_sample`` join a sample's own alias uses
+    and stays **asserted**. A subject list on the Assertion would have made a fanned claim
+    subject-less at this seam and degraded it to ``inferred`` — the basis that loses to the archive's
+    own slot and to any declaration.
+    """
+    from seqforge.harvest import fan_claims, plan_extraction, verify_drafts
+    from seqforge.models.assertion import AssertionDraft
+    from seqforge.resolve.records import _basis_for
+
+    records = _twin_sample_records()
+    plan = plan_extraction(records=records)
+    assert plan.n_documents == 1 and plan.n_records_collapsed == 1, "the collapse fired"
+
+    draft = AssertionDraft(
+        field=f"{SAMPLE_FIELD_PREFIX}age",
+        value="day3",
+        llm_confidence=0.9,
+        span=SourceSpan(doc_sha256=plan.documents[0].doc_sha256, quote="day3"),
+    )
+    verified = verify_drafts(
+        [draft],
+        list(plan.documents),
+        extractor=ExtractorProvenance(model_id="test", prompt_version="v1"),
+    )
+    assert verified.rejected == []
+    fan = fan_claims(verified.assertions, plan)
+    assert len(fan.assertions) == 2 and [f.n_records for f in fan.fanned] == [2]
+
+    files = [_file("SAMN1_1.fastq.gz", "a" * 64), _file("SAMN22_1.fastq.gz", "b" * 64)]
+    subjects = [
+        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
+        for d in plan.all_documents
+    ]
+    out = resolve_metadata(
+        files=files, records=records, assertions=fan.assertions, subjects=subjects
+    )
+
+    ages = {s.accession: s.attributes.get("age") for s in out.samples}
+    assert set(ages) == {"SAMN1", "SAMN22"}
+    for accession, age in ages.items():
+        assert age is not None, f"{accession} lost the claim its own bytes carry"
+        assert (age.value, age.basis) == ("day3", "asserted")
+
+    # ...and said directly, so a change to `_basis_for` breaks this rather than quietly weakening it.
+    from seqforge.resolve.records import _Sample
+
+    withheld = plan.collapsed[plan.documents[0].doc_sha256][0]
+    placed = DocumentSubject(
+        doc_sha256=withheld.doc_sha256, scope=withheld.scope, subject=withheld.subject
+    )
+    stub = _Sample(sample_id="SAMN22", accession="SAMN22", file_shas=[], record=None)
+    assert _basis_for(placed, stub, {"SAMN22": "SAMN22"}) == "asserted"
+
+
+def test_a_withheld_documents_subject_is_load_bearing_not_bookkeeping() -> None:
+    """Why `harvest extract` writes `plan.all_documents` into `document_subjects` and not the send list.
+
+    `_positions_for` drops a claim whose document it cannot place — *silently*, because a document code
+    did not place has no subject and may not name a sample. So a collapse that recorded only the
+    documents it paid for would fan a claim onto a record and then throw it away at the next stage,
+    which is the one failure this mechanism may not have.
+    """
+    from seqforge.harvest import fan_claims, plan_extraction, verify_drafts
+    from seqforge.models.assertion import AssertionDraft
+
+    records = _twin_sample_records()
+    plan = plan_extraction(records=records)
+    draft = AssertionDraft(
+        field=f"{SAMPLE_FIELD_PREFIX}age",
+        value="day3",
+        llm_confidence=0.9,
+        span=SourceSpan(doc_sha256=plan.documents[0].doc_sha256, quote="day3"),
+    )
+    fan = fan_claims(
+        verify_drafts(
+            [draft],
+            list(plan.documents),
+            extractor=ExtractorProvenance(model_id="test", prompt_version="v1"),
+        ).assertions,
+        plan,
+    )
+    files = [_file("SAMN1_1.fastq.gz", "a" * 64), _file("SAMN22_1.fastq.gz", "b" * 64)]
+
+    sent_only = [
+        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
+        for d in plan.documents
+    ]
+    out = resolve_metadata(
+        files=files, records=records, assertions=fan.assertions, subjects=sent_only
+    )
+
+    ages = {s.accession: s.attributes.get("age") for s in out.samples}
+    assert ages["SAMN1"] is not None, "the document that WAS sent still lands"
+    assert ages["SAMN22"] is None, (
+        "and the fanned one is dropped — which is what the write prevents"
+    )

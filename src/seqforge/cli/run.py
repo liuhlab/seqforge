@@ -415,10 +415,18 @@ def run_cmd(
         }
 
     # 2) Harvest — the one LLM stage. Skipped by --no-llm or when there is no prose to read.
+    #
+    # `records_file` counts as prose, and leaving it out was the same defect `_roled` carried one file
+    # over: a document was the only input harvest had when this was written, `--records` became a
+    # second one, and neither guard noticed. A records-only compile — the shape of most of the
+    # benchmark corpus, and of every deposit whose whole metadata is its archive record — silently
+    # skipped the one stage that could read it, so its manifest was short every fact a sample record
+    # declares in prose.
     assertions_path: Path | None = None
-    if no_llm and (doc or instruction):
+    has_prose_input = bool(doc or instruction or records_file)
+    if no_llm and has_prose_input:
         stages["harvest"] = {"skipped": "--no-llm: documents were not read"}
-    elif not no_llm and (doc or instruction):
+    elif not no_llm and has_prose_input:
         harvested = _harvest_extract_pipeline(
             docs=doc,
             instruction=instruction,

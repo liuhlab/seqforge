@@ -251,6 +251,20 @@ nothing else.
 _Avoid_: estimate, preview, dry run (that is the flag that prints one), schedule; and never for
 `compose`'s output, which is a Snakemake plan
 
+**Collapse**:
+Reading several archive records through one **Document**. Two of them ship and they are one word on
+purpose: the runs of one sample become one document, and near-identical records at one level fold
+onto one **exemplar** — the member whose full prose is sent, with the non-shared spans *marked*.
+Every other member is then one of two things: **reduced** (sent as its distinctive bytes alone,
+because the invariant was read once) or **withheld** (not sent at all, its difference being nothing
+but the accession we ourselves wrote). A claim from an exemplar **fans** to every member its quote is
+byte-identical in; a sample-scoped one is materialized once per member so it still names one sample.
+What a collapse never does is drop a byte. Argued once in
+[ADR-0030](docs/adr/0030-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
+_Avoid_: dedup (that is byte-equality, and it misses records that differ only in an accession),
+merge, cluster, summarize; and never for `reduce_dataset`'s partition into assays, which is a
+**Manifest** decision and not a document one
+
 **Transcript**:
 Every **Exchange** of one run, assembled: one system prompt plus N (document, response) pairs, since
 the prompt is byte-identical across a run. It is a file — stdout is the result object and a thousand

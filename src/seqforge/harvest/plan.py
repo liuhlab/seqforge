@@ -39,6 +39,22 @@ decides how many requests a plan is.
 by what the ask can cost (:func:`batch_width`), so the two-field question travels wide and the
 nine-attribute one does not. It used to be one number for both, and the narrow ask paid the wide
 ask's price on every dataset since batching landed.
+
+**Records that SAY the same thing are one ask, and the rest of them are their own difference.**
+``_deduplicated`` keys on the whole text, so 1440 sample records differing only in an accession —
+semantically identical, lexically distinct — slip past it entirely. :func:`_collapse_near_identical`
+is what sees them: one exemplar carries the group's prose in full with its variants MARKED, every
+other member is sent as its **distinctive bytes only**, and a member whose distinctive bytes are
+nothing but its own accession is not sent at all. :func:`fan_claims` then extends the exemplar's
+claims to every member whose own bytes carry the quote.
+
+The guarantee is **no unread byte**, never *no wrong claim* — the invariant is read once and every
+other member's difference is read, because a mechanism that reads the majority and silently skips the
+records that *differ* is anti-correlated with value. Measured on the 1440-record GSE207085 dump, and
+measured on top of the width rule above rather than instead of it: **786 906 characters over 80
+requests become 194 038 over 59**, ~375 K estimated input tokens becoming ~180 K. No record goes
+unread — every level carries a per-cell serial name (``nasal_prox1_270``, ``GSM6277169_r1``), so
+nothing is withheld and 1439 of each 1440 are asked their difference and nothing else.
 """
 
 from __future__ import annotations
@@ -46,12 +62,12 @@ from __future__ import annotations
 import hashlib
 import os
 import threading
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ..models.assertion import ExtractionPlanReport, PlannedDocument
+from ..models.assertion import Assertion, ExtractionPlanReport, PlannedDocument, SourceSpan
 from ..models.records import ArchiveRecord, ArchiveRecordSet
 from .extract import (
     DEFAULT_MAX_OUTPUT_TOKENS,
@@ -64,12 +80,22 @@ from .fields import DocScope, fields_for
 from .meter import CHARS_PER_TOKEN
 from .normalize import (
     NormalizedDoc,
+    VariantSpan,
     declared_spans,
     has_prose,
+    is_invariant_span,
     normalize_record,
     normalize_text,
+    page_for_offset,
     render_record,
+    token_skeleton,
+    token_spans,
+    token_values,
+    variant_spans,
+    variant_text,
+    varying_token_indices,
 )
+from .verify import find_span
 
 if TYPE_CHECKING:
     from ..kb.schema import Spec
@@ -188,6 +214,16 @@ REASONING_HEADROOM_TOKENS = 1_000
 #: promises a draft fits in 62 tokens.
 PER_DRAFT_TOKENS = 62
 
+#: The nine manifest paths whose subject is ONE sample. They decide the fan-out UNIT, and the field
+#: path is what says which (#233 decision 5): a sample-scoped claim is materialized once per member,
+#: each citing that member's own document, while a dataset-scoped one stays a single Assertion because
+#: ``chemistry_hypothesis`` reduces N identical claims to one regardless — what the grep buys there is
+#: the *proof of unanimity*, not a claim per record.
+#:
+#: Read out of :mod:`seqforge.harvest.fields` rather than spelled again here: a second list of the
+#: nine is a second vocabulary, and the two would drift the first time an attribute is added.
+_SAMPLE_SCOPED_FIELDS = frozenset(fields_for("sample", "reference"))
+
 
 @dataclass(frozen=True)
 class ExtractionPlan:
@@ -205,15 +241,51 @@ class ExtractionPlan:
     #: Archive records with prose that this plan reads. Records at a level with an empty ask
     #: (``project``) and records with no prose at all are not read, and are not counted here.
     n_records_read: int = 0
-    #: Records this plan folded away: read, but not costing an exchange of their own.
+    #: Records this plan folded away: read, but not costing a document of their own — the runs of one
+    #: sample, and a near-identical member whose only difference is the accession we ourselves wrote.
     n_records_collapsed: int = 0
+    #: Records sent as their DISTINCTIVE BYTES only: their difference costs a document, the invariant
+    #: they share does not. Counted apart from ``n_records_collapsed`` because they are not the same
+    #: fact — one is a record that cost nothing, the other a record that cost what it is worth.
+    n_records_reduced: int = 0
     #: The stable system prefix, in characters. It is byte-identical on every request — which is what
     #: makes prefix caching work — and it is therefore paid once **per document**, not once per run.
     system_prompt_chars: int = 0
+    #: Exemplar ``doc_sha256`` -> the near-identical documents whose bytes it stands for, which are
+    #: therefore **never sent**. They are still RENDERED, because rendering is free and because a
+    #: fanned Assertion *cites* one of them: a span citation is checkable only while the exact text
+    #: survives, so ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and
+    #: names them in ``document_subjects`` — without which ``resolve`` would drop every fanned claim
+    #: for having no subject (ADR-0030).
+    collapsed: dict[str, tuple[NormalizedDoc, ...]] = field(default_factory=dict)
 
     @property
     def n_documents(self) -> int:
         return len(self.documents)
+
+    @property
+    def all_documents(self) -> tuple[NormalizedDoc, ...]:
+        """Every document this plan RENDERED — the ones it sends, each followed by the ones it folded
+        onto it. What must reach disk, as against :attr:`documents`, which is what is paid for."""
+        out: list[NormalizedDoc] = []
+        for doc in self.documents:
+            out.append(doc)
+            out.extend(self.collapsed.get(doc.doc_sha256, ()))
+        return tuple(out)
+
+    def stands_for(self, doc: NormalizedDoc) -> tuple[str, ...]:
+        """Every archive record ``doc`` speaks for: its own, plus every near-identical record the
+        collapse folded onto it. The claim side of that number is what :func:`fan_claims` reports —
+        at either count every claim is verified in the record it names, so N does not move the
+        epistemics, but "one assertion, 1440 members" is a very different thing to audit than 1440
+        independent readings."""
+        own = self.members.get(doc.doc_sha256, ())
+        folded = tuple(
+            accession
+            for other in self.collapsed.get(doc.doc_sha256, ())
+            for accession in self.members.get(other.doc_sha256, ())
+        )
+        return own + folded
 
     @property
     def batches(self) -> tuple[tuple[int, ...], ...]:
@@ -263,6 +335,7 @@ class ExtractionPlan:
             n_requests=self.n_requests,
             n_records_read=self.n_records_read,
             n_records_collapsed=self.n_records_collapsed,
+            n_records_reduced=self.n_records_reduced,
             n_chars=self.n_chars,
             system_prompt_chars=self.system_prompt_chars,
             estimated_input_tokens=self.estimated_input_tokens,
@@ -275,7 +348,7 @@ class ExtractionPlan:
                     subject=d.subject,
                     n_chars=len(d.text),
                     fields=list(self.asked(d)),
-                    members=list(self.members.get(d.doc_sha256, ())),
+                    members=list(self.stands_for(d)),
                 )
                 for d in self.documents
             ],
@@ -296,6 +369,11 @@ def plan_extraction(
 
     ``system_prompt_chars`` is the stable prefix's length, for the cost estimate only. It is passed in
     rather than built here so that planning stays free of the KB load and of a provider's schema.
+
+    **The near-identical collapse happens HERE and never at send time.** This function's whole claim is
+    that the dry run is the same list the paid run sends rather than a projection of one; collapse in
+    ``extract_planned`` and both ``harvest extract --dry-run`` and ``eval plan`` report a bill nobody
+    pays, which is the one thing this module exists to prevent.
     """
     planned: list[NormalizedDoc] = list(documents)
     members: dict[str, tuple[str, ...]] = {}
@@ -317,12 +395,16 @@ def plan_extraction(
             planned.append(doc)
             members[doc.doc_sha256] = tuple(r.accession for r in group)
 
+    sent, collapsed, withheld, reduced = _collapse_near_identical(_deduplicated(planned), members)
+
     return ExtractionPlan(
-        documents=tuple(_deduplicated(planned)),
+        documents=tuple(sent),
         members=members,
         n_records_read=n_read,
-        n_records_collapsed=n_collapsed,
+        n_records_collapsed=n_collapsed + withheld,
+        n_records_reduced=reduced,
         system_prompt_chars=system_prompt_chars,
+        collapsed=collapsed,
     )
 
 
@@ -386,6 +468,157 @@ def batch_max_tokens(fields: Sequence[str], n_documents: int) -> int:
     return min(
         BATCH_OUTPUT_BUDGET, max(DEFAULT_MAX_OUTPUT_TOKENS, REASONING_HEADROOM_TOKENS + drafts)
     )
+
+
+def _collapse_near_identical(
+    documents: Sequence[NormalizedDoc], members: dict[str, tuple[str, ...]]
+) -> tuple[list[NormalizedDoc], dict[str, tuple[NormalizedDoc, ...]], int, int]:
+    """Fold records that say the same thing onto one exemplar, under **no unread byte**.
+
+    1440 sample records that differ only in an accession are semantically identical and *lexically
+    distinct*, so :func:`_deduplicated` — which keys on the whole text — misses them entirely. The
+    fold is three rules and no threshold:
+
+    - **Group** the record-derived documents by ``(scope, role, token_skeleton)``. One skeleton means
+      one punctuation and one token count, so the members differ only in what their tokens SAY. A
+      record whose paragraph is shaped differently simply forms its own group and is asked on its own.
+    - **Send** every other member as its **distinctive bytes only**
+      (:func:`~seqforge.harvest.normalize.variant_text`) — the invariant it shares was read once, in
+      the exemplar, and 1439 more copies of one paragraph is the bill this exists to stop.
+    - **Withhold** entirely the member whose distinctive tokens are *all* its own accession
+      (:func:`_nothing_to_ask`): its reduced document would say nothing but its own name.
+
+    Three outcomes, one per member, and the middle one is what delivers the guarantee rather than
+    merely claiming it: the invariant is read once and **every other member's distinctive bytes are
+    read**. No unread byte. It is also why a plate whose wells really do differ prices itself — a
+    record that says `day7` where 1439 say `day3` has `day7` in its variant document and is asked.
+
+    **Mark, never splice — and that governs the EXEMPLAR.** The document carrying the group's prose
+    is one member's own rendering with the variants marked, never a synthesised concatenation of
+    spans gathered from across the group: a model must read coherent prose, and a quote into a
+    stitched string could be checked against nothing. It was never a claim about the other members,
+    whose distinctive bytes are exactly what decision 3 says to ask.
+
+    **The exemplar is the first member that carries something askable**, so the invariant rides on a
+    document the plan was already sending; only where every member is nothing but its own accession
+    does the collapse spend a document of its own. Documents a human handed us are never grouped:
+    they have no record behind them, so there is no accession to recognize and nothing to fold onto.
+
+    Rejected, and it must not be re-proposed: **fan-out-only** — fan a claim to every record whose
+    bytes carry the quote and never send the others. It reads the majority and silently skips the
+    records that *differ*, and :mod:`seqforge.harvest.fields` records the pilot in which a run alias
+    was the only place a WT-vs-mutant contrast was written in plain words. A mechanism anti-correlated
+    with value is worse than one uniformly lossy.
+    """
+    groups: dict[tuple[str, str, tuple[str, ...]], list[int]] = {}
+    for i, doc in enumerate(documents):
+        if doc.doc_sha256 not in members:
+            continue  # a paper is not a record: no accession to recognize, nothing to fold onto
+        groups.setdefault((doc.scope, doc.role, token_skeleton(doc.text)), []).append(i)
+
+    stood_for: dict[int, tuple[NormalizedDoc, ...]] = {}
+    marks: dict[int, tuple[VariantSpan, ...]] = {}
+    #: member index -> the reduced document sent in its place, or ``None`` where it is withheld.
+    instead: dict[int, NormalizedDoc | None] = {}
+
+    for indices in groups.values():
+        if len(indices) < 2:
+            continue
+        texts = [documents[i].text for i in indices]
+        varying = varying_token_indices(texts)
+        if not varying:
+            continue  # byte-identical, which `_deduplicated` already handled
+        askable = [
+            not _nothing_to_ask(documents[i], members, token_values(documents[i].text), varying)
+            for i in indices
+        ]
+        lead = next((p for p, ok in enumerate(askable) if ok), 0)
+        exemplar = indices[lead]
+        others = tuple(documents[indices[p]] for p in range(len(indices)) if p != lead)
+        stood_for[exemplar] = others
+        marks[exemplar] = variant_spans([documents[exemplar].text, *(o.text for o in others)])
+        for p, i in enumerate(indices):
+            if p != lead:
+                instead[i] = _variant_document(documents[i], varying) if askable[p] else None
+
+    n_withheld = sum(len(members[documents[i].doc_sha256]) for i, r in instead.items() if r is None)
+    n_reduced = sum(
+        len(members[documents[i].doc_sha256]) for i, r in instead.items() if r is not None
+    )
+
+    sent: list[NormalizedDoc] = []
+    for i, doc in enumerate(documents):
+        if i in stood_for:
+            # The marks travel on a COPY, and `doc_sha256` is untouched by them: the bytes sent are
+            # still this record's own rendering, so the identity an Assertion cites is regenerable
+            # from that record alone. Only which claims may fan changes.
+            sent.append(replace(doc, variants=marks[i]))
+        elif i in instead:
+            reduced = instead[i]
+            if reduced is not None:
+                members[reduced.doc_sha256] = members[doc.doc_sha256]
+                sent.append(reduced)
+        else:
+            sent.append(doc)
+    folded = {documents[i].doc_sha256: others for i, others in stood_for.items()}
+    return sent, folded, n_withheld, n_reduced
+
+
+def _variant_document(doc: NormalizedDoc, varying: Sequence[int]) -> NormalizedDoc:
+    """One member's distinctive bytes, as its own document.
+
+    Its ``subject`` and ``scope`` are the record's, so a claim from it names that record and nothing
+    else — no marks, and nothing here ever fans, because there is no invariant in it to fan. The
+    ``-variant`` in the basename is not decoration: this text is NOT
+    :func:`~seqforge.harvest.normalize.render_record`'s output, and a reader who finds it beside the
+    full rendering must be able to tell which is which ([ADR-0030](docs/adr)).
+    """
+    text = variant_text(doc.text, varying)
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    return NormalizedDoc(
+        doc_sha256=digest,
+        normalized_sha256=digest,
+        text=text,
+        source_basename=f"{doc.scope}-{doc.subject}-variant.txt",
+        role=doc.role,
+        scope=doc.scope,
+        subject=doc.subject,
+        n_chars=len(text),
+        # No `declared` marks: a typed column that survived the reduction is a token that VARIES, and
+        # the reduction dropped the label that made it a column in the first place, so re-deriving
+        # them against a text no record wrote would be marking a coincidence.
+    )
+
+
+def _nothing_to_ask(
+    doc: NormalizedDoc,
+    members: dict[str, tuple[str, ...]],
+    values: Sequence[str],
+    varying: Sequence[int],
+) -> bool:
+    """Do this member's distinctive tokens carry nothing a model could be asked about?
+
+    Equivalently, and this is the sentence to keep: would its variant document
+    (:func:`~seqforge.harvest.normalize.variant_text`) say nothing but its own name? One predicate,
+    and it is the difference between *reduce* and *withhold*.
+
+    True only when every token that distinguishes it from its group is **its own accession** — the
+    record's identity, which is in the document because :func:`~seqforge.harvest.normalize.render_record`
+    put it there, not because a submitter wrote it. Code already owns that string, no permitted field
+    at a record scope can be entailed by it (:mod:`seqforge.harvest.fields` grants a record document
+    the nine sample attributes, or the chemistry and ``treatment``), and it is the one variant that is
+    provably not prose.
+
+    **Rejected: also exempting a token byte-equal to a typed column** (a
+    :class:`~seqforge.harvest.normalize.DeclaredSpan`), on the argument that ``verify`` refuses a quote
+    lying wholly inside one anyway. It does — but only *wholly* inside: a quote reaching past the
+    column survives on purpose, so ``treatment: DMSO`` is a real claim even where ``DMSO`` is also a
+    column, and only a *sample* record's columns are read by ``resolve_metadata`` in the first place.
+    Withholding on that test would lose a run's or an experiment's typed contrast entirely. The
+    accession is the only exemption that costs nothing.
+    """
+    accessions = frozenset(members.get(doc.doc_sha256, ()))
+    return all(values[k] in accessions for k in varying)
 
 
 def batch_documents(documents: Sequence[NormalizedDoc]) -> tuple[tuple[int, ...], ...]:
@@ -609,6 +842,244 @@ def _collapsed_run_document(owner: str, runs: Sequence[ArchiveRecord]) -> Normal
     )
 
 
+@dataclass(frozen=True)
+class FannedClaim:
+    """One verified claim whose quote proved byte-identical across the group it was read in.
+
+    The **claim** side of the collapse's legibility, and the thing ``PlannedDocument.members`` cannot
+    answer: that side says one document stood for 1440 records, this says *this value* holds of 1440
+    of them. At either count every claim is verified in the record it names, so N does not move the
+    epistemics — it moves what a human is being asked to audit.
+    """
+
+    #: Every stored Assertion this claim produced: one for a dataset-scoped field, one per member for
+    #: a sample-scoped one. The first is always the claim as the model made it.
+    assertion_ids: tuple[str, ...]
+    field: str
+    value: str
+    quote: str
+    #: The document the model actually read.
+    source_doc_sha256: str
+    #: Every archive record whose own bytes carry this quote.
+    records: tuple[str, ...]
+    #: Did the fan produce an Assertion per record (sample-scoped), or prove unanimity (dataset)?
+    materialized: bool
+
+    @property
+    def n_records(self) -> int:
+        return len(self.records)
+
+
+@dataclass(frozen=True)
+class FanReport:
+    """What survived verification, after a collapse's claims were fanned to the records they hold of."""
+
+    assertions: list[Assertion]
+    fanned: list[FannedClaim]
+
+
+def fan_claims(assertions: Sequence[Assertion], plan: ExtractionPlan) -> FanReport:
+    """Extend each verified claim to every record the collapse proved its quote greps into.
+
+    **A claim fans out iff its quote lies entirely inside spans byte-identical across the group**
+    (:func:`~seqforge.harvest.normalize.is_invariant_span`) — which greps into every member by
+    construction, so this replaces N model judgements with N byte comparisons. It is what keeps
+    ``chemistry_hypothesis``'s unanimity check ("agreement or nothing") from going vacuous under a
+    collapse: a record whose paragraph says something else has a different skeleton or a different
+    token, fails the grep, leaves the group, and gets its own ask.
+
+    **The unit follows field arity, and the field path already says which** (#233 decision 5):
+
+    - a **dataset-scoped** field (``library.chemistry``, ``library.prep_type``,
+      ``experiment.organism``, ``experiment.accessions``) stays ONE Assertion. ``chemistry_hypothesis``
+      reduces N identical claims to one regardless, so what the grep buys is the proof of unanimity,
+      not a claim per record.
+    - a **sample-scoped** field (the nine ``experiment.samples.*``) is **materialized once per
+      member**, each with that member's own ``doc_sha256`` and offsets recomputed by
+      :func:`~seqforge.harvest.verify.find_span` against that member's own text.
+
+    Materializing rather than growing ``Assertion`` a subject list is the whole reason
+    :func:`seqforge.resolve.records._basis_for` is untouched by this feature: a fanned claim cites a
+    document whose ``subject`` is one record, so it maps home through ``subject_to_sample`` exactly as
+    an unfanned one does and stays **asserted** rather than degrading to ``inferred``. No model
+    change, no ``schema export`` movement, and no downstream component learns a new concept.
+
+    Only the **exemplar's** claims fan. A second reading of byte-identical text is the same evidence,
+    and fanning two readings of it would manufacture a disagreement out of model variance rather than
+    out of bytes — which ``resolve_metadata`` would then report as a Conflict against nobody.
+    """
+    by_sha = {d.doc_sha256: d for d in plan.documents}
+    out: list[Assertion] = []
+    fanned: list[FannedClaim] = []
+
+    for n, claim in enumerate(assertions):
+        out.append(claim)
+        doc = by_sha.get(claim.span.doc_sha256)
+        group = plan.collapsed.get(claim.span.doc_sha256, ())
+        start, end = claim.span.char_start, claim.span.char_end
+        if doc is None or not group or start is None or end is None:
+            continue
+        if not is_invariant_span(doc, start, end):
+            continue  # the quote touches a place the members disagree: it speaks for this one only
+        materialize = claim.field in _SAMPLE_SCOPED_FIELDS
+        reached = list(plan.members.get(doc.doc_sha256, ()))
+        ids = [claim.id]
+        for other in group:
+            found = find_span(other.text, claim.span.quote)
+            if found is None:
+                # Unreachable while the invariant holds — and checked anyway, because "by
+                # construction" is exactly the phrase every silent fan-out defect hides behind.
+                continue
+            reached.extend(plan.members.get(other.doc_sha256, ()))
+            if not materialize:
+                continue
+            out.append(
+                Assertion(
+                    id=f"assert-{other.doc_sha256[:8]}-fan{n}",
+                    field=claim.field,
+                    value=claim.value,
+                    span=SourceSpan(
+                        doc_sha256=other.doc_sha256,
+                        quote=claim.span.quote,
+                        context=claim.span.context,
+                        # Recomputed against THIS member's text, never copied: an earlier variant of a
+                        # different length shifts every offset after it, so the exemplar's numbers
+                        # would point at the wrong characters in a document that carries the same
+                        # quote.
+                        char_start=found[0],
+                        char_end=found[1],
+                        page=page_for_offset(other.pages, found[0]),
+                    ),
+                    span_verified=True,
+                    entailment_ok=True,
+                    llm_confidence=claim.llm_confidence,
+                    extractor=claim.extractor,
+                )
+            )
+            ids.append(out[-1].id)
+        if len(reached) > len(plan.members.get(doc.doc_sha256, ())):
+            fanned.append(
+                FannedClaim(
+                    assertion_ids=tuple(ids),
+                    field=claim.field,
+                    value=claim.value,
+                    quote=claim.span.quote,
+                    source_doc_sha256=doc.doc_sha256,
+                    records=tuple(reached),
+                    materialized=materialize,
+                )
+            )
+    return FanReport(assertions=out, fanned=fanned)
+
+
+@dataclass(frozen=True)
+class RequestResidue:
+    """One request's share of the residue: how much of what it carries is ambiguous inside it.
+
+    Counted **per document, not per request**, and that is the whole difference between an instrument
+    and a number that looks like one. Count each distinct span once per REQUEST and the totals fall as
+    the batch widens — because there are fewer requests — which reads as the hazard shrinking when it
+    is doing the opposite. Per document, ``n_spans`` is fixed by the plan and only ``n_ambiguous``
+    moves, so the rate is monotone in width, which is the claim the measurement exists to test.
+    """
+
+    request: int
+    n_documents: int
+    #: Distinct quotable spans, summed over this request's documents.
+    n_spans: int
+    #: Of those, the ones that also occur in another document of the SAME request.
+    n_ambiguous: int
+
+
+@dataclass(frozen=True)
+class QuoteResidue:
+    """How often a quote in this plan could span-verify against the WRONG document of its request.
+
+    The failure this measures is not the collapse's: a batch puts several documents in one prompt and
+    the model routes each draft by echoing a ``doc_sha256``, so a quote occurring verbatim in two
+    members of the same request verifies either way and nothing downstream can tell. Widening a batch
+    can only make that residue larger, and a collapse changes which documents share a request — so the
+    number is worth having before the ``--llm`` probe rather than after it.
+
+    Deterministic: no model, no network, and a **lower bound**. A shorter quote is likelier to collide
+    than a longer one, so counting only spans of ``min_tokens`` whole tokens under-counts; the point is
+    the growth curve against ``width``, not the absolute rate.
+    """
+
+    #: The batch width measured. ``None`` = the plan's own batching.
+    width: int | None
+    min_tokens: int
+    n_requests: int
+    n_documents: int
+    n_spans: int
+    n_ambiguous: int
+    per_request: tuple[RequestResidue, ...]
+
+    @property
+    def rate(self) -> float:
+        return self.n_ambiguous / self.n_spans if self.n_spans else 0.0
+
+
+def quote_residue(
+    plan: ExtractionPlan, *, width: int | None = None, min_tokens: int = 4
+) -> QuoteResidue:
+    """Count the spans of this plan that occur in more than one document of the same request.
+
+    ``width`` re-batches the plan's documents into fixed windows *of the same ask*, mirroring
+    :func:`batch_documents` without depending on either of its caps — so "how does the residue grow
+    with batch width" is one call per width and needs no constant edited. ``None`` measures the
+    batching the plan would really send.
+    """
+    batches = _windows(plan.documents, width) if width else plan.batches
+    rows: list[RequestResidue] = []
+    for n, batch in enumerate(batches):
+        per_document = [set(_token_windows(plan.documents[i].text, min_tokens)) for i in batch]
+        carried: dict[str, int] = {}
+        for spans in per_document:
+            for span in spans:
+                carried[span] = carried.get(span, 0) + 1
+        rows.append(
+            RequestResidue(
+                request=n,
+                n_documents=len(batch),
+                n_spans=sum(len(s) for s in per_document),
+                n_ambiguous=sum(sum(1 for s in spans if carried[s] > 1) for spans in per_document),
+            )
+        )
+    return QuoteResidue(
+        width=width,
+        min_tokens=min_tokens,
+        n_requests=len(rows),
+        n_documents=sum(r.n_documents for r in rows),
+        n_spans=sum(r.n_spans for r in rows),
+        n_ambiguous=sum(r.n_ambiguous for r in rows),
+        per_request=tuple(rows),
+    )
+
+
+def _token_windows(text: str, n: int) -> Iterator[str]:
+    """Every run of ``n`` consecutive whole tokens, with the separators between them, as substrings."""
+    spans = token_spans(text)
+    for i in range(len(spans) - n + 1):
+        yield text[spans[i][0] : spans[i + n - 1][1]]
+
+
+def _windows(documents: Sequence[NormalizedDoc], width: int) -> tuple[tuple[int, ...], ...]:
+    """Plan-ordered indices chunked into fixed-width groups **of one ask** — a measurement batching,
+    never a send one, so it reads none of the send-time bounds. Sweeping the residue against width is
+    the whole point of the instrument, and a sweep that stopped at whatever the shipped batcher would
+    have chosen could not answer the question it exists for."""
+    by_ask: dict[tuple[str, ...], list[int]] = {}
+    for i, doc in enumerate(documents):
+        by_ask.setdefault(fields_for(doc.scope, doc.role), []).append(i)
+    out = [
+        tuple(group[i : i + width])
+        for group in by_ask.values()
+        for i in range(0, len(group), width)
+    ]
+    return tuple(sorted(out, key=lambda b: b[0]))
+
+
 def _deduplicated(documents: Sequence[NormalizedDoc]) -> list[NormalizedDoc]:
     """Drop a document whose ask is byte-identical to one already in the list.
 
@@ -636,9 +1107,15 @@ __all__ = [
     "PER_DRAFT_TOKENS",
     "REASONING_HEADROOM_TOKENS",
     "ExtractionPlan",
+    "FanReport",
+    "FannedClaim",
+    "QuoteResidue",
+    "RequestResidue",
     "batch_documents",
     "batch_max_tokens",
     "batch_width",
     "extract_planned",
+    "fan_claims",
     "plan_extraction",
+    "quote_residue",
 ]
