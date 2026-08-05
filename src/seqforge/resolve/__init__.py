@@ -133,7 +133,42 @@ from __future__ import annotations
 #: so CB/UMI are tags and no dump flag recovers them) is cached as a question whose offered answer is
 #: `bulk-rnaseq`, one human "yes" away from a gene-count matrix for a library nobody could barcode.
 #: `dataset_hash` does not fold this stamp, so no stored manifest moves.
-RESOLVE_VERSION = "2026.8.7"
+#: 2026.8.8 — a `supports` test the DATA could not answer leaves the score NORMALIZER as well as its
+#: numerator (#307). `_score_cell` divided by every DECLARED weight, so an unevaluated test
+#: contributed `weight * 0.0` on top while keeping its whole weight underneath — a spec marked down
+#: for evidence nobody could check, which is the rule 2026.7.16 (#177) and 2026.8.4 (#255) already
+#: settled twice and #277 restated for read sets. `_global_support` had the same shape and takes the
+#: same rule.
+#: **The fact this needed is not the ABSTAIN outcome**, and reading it off the outcome is the wrong
+#: fix rather than an incomplete one: `distinct_ratio` abstains on EVERY input by design, so it can
+#: never be written into a `requires` and gate a spec away, while measuring on every input. Every
+#: support 10x-3p-gex-v3 declares abstains, so dropping on the outcome empties the normalizer and
+#: scores the chemistry 0.0 on the reads it generated. `Evaluation.applicable` carries it instead.
+#: **A whitelist WE could not obtain is NOT that case and keeps its weight.** The question was
+#: answerable and a rival spec whose list did materialize answered it, so renormalizing around it
+#: makes the unverifiable spec cheaper to satisfy than the verified one. Measured, on an over-length
+#: v3 library with only the 3M and ARC lists installed, dropping it ties the whole 10x cohort at
+#: 0.7819 on the geometry supports they all declare identically — above `bulk-rnaseq` at 0.7500 and
+#: above the true chemistry whose whitelist HIT, last at 0.6083. The 10x siblings are separated by the
+#: whitelist and nothing else, so removing it from the comparison removes the comparison.
+#: **Withholding it from every spec at once is a third case and leaves the SIGNATURE**, not the
+#: normalizer (`confuse.without_rung3_evidence`). That is the rung-0-2 world the confusability guard
+#: scores in, where an empty registry was already meant to mean "the verdict rests on geometry alone"
+#: and did not: weight is not declared evenly — 5 of 8 support weight for 10x's barcode read, 9 of 10
+#: for SPLiT-seq and the BD beads, none at all for the barcodeless fallback — so every barcoded
+#: chemistry was marked down against the one candidate that must never win by default, in proportion
+#: to how much whitelist evidence it had the honesty to declare. `splitseq` and the three BD beads
+#: recover 0.5500 -> 1.0000 and the 10x cohort 0.6594 -> 0.9083 on their own reads; bulk is unmoved at
+#: 1.0100, and its six declared edges are re-derived in `tests/test_kb.py` against the danger
+#: direction rather than the arithmetic that handicap produced.
+#: This bump is the 2026.7.13 kind and NOT the 2026.7.15/.16/.17/.18 kind: what changed is the
+#: DEFINITION of a cell (the normalizer is the weight consulted, not the weight declared), while every
+#: graded value on the corpus stayed put — the frozen-18 grade digest is
+#: `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` before and after, 18/18
+#: `correct`, re-taken on this tree. No cached verdict is known to be wrong, so nothing must re-key for
+#: correctness; the stamp moves because a reader of a cached candidate is entitled to know which
+#: arithmetic produced it. `dataset_hash` does not fold this stamp, so no stored manifest moves.
+RESOLVE_VERSION = "2026.8.8"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

@@ -280,11 +280,16 @@ them. There is no hand-maintained truth table.
    from that spec to almost the whole KB. `resolve/confuse.py` holds the predicate and
    `rung02_margin` the number under it; bulk's six edges are re-derived from that margin in
    `tests/test_kb.py`, because the sweep itself skips a declared pair and so cannot notice one that
-   stopped being true. **Each is re-derived against the claim it makes**, read off its own
-   `distinguishable_by`: an `[onlist]` edge says rung 3 decides, so bulk must be *above* the tie band
-   (+0.1376 to +0.4500), while the one `[metadata]` edge says nothing cheaper answers, so bulk must
-   be *inside* it — above the band the resolver would simply decide and never reach for the mechanism
-   the edge promises. `smartseq3` measures exactly 0.0 there.
+   stopped being true. **Each is re-derived against the DANGER DIRECTION**: bulk must not sit
+   *decisively above* the chemistry on that chemistry's own reads (`margin <= θ`), because there the
+   resolver returns a bulk gene-count matrix and never reaches for the mechanism the edge promises. A
+   `[metadata]` edge must additionally be *inside* the band, since a human is only asked on a tie;
+   `smartseq3` measures exactly 0.0 there. The five `[onlist]` edges were re-derived against the
+   opposite arithmetic until #307 — bulk *ahead* by +0.1376 to +0.4500 — and that lead was an artifact
+   of withholding the onlist from the numerator while leaving its weight in the normalizer, which
+   marked each incumbent down by however much whitelist evidence it declared (5 of 8 support weight
+   for the 10x cohort, 9 of 10 for SPLiT-seq and the BD beads) while the fallback, declaring none,
+   lost nothing. They now measure -0.0267 to +0.0000.
 
    **And outranking is not sufficient either, because the guard's danger is "would pick one and never
    ask".** A read set that ORPHANS the file the incumbent seats as its barcode read does not get to

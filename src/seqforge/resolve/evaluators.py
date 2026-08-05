@@ -10,6 +10,14 @@ Two invariants hold regardless of where a test is placed:
   ``header_index`` must not reject every SRA dataset).
 - **``distinct_ratio`` never gates.** It is depth-dependent: its gate outcome is forced to ``ABSTAIN``
   so a misplaced ``requires`` cannot use it; its supports ``score`` remains meaningful.
+
+Those two invariants are why **``ABSTAIN`` cannot answer "did we measure anything"**, and why
+``applicable`` is a separate field rather than a property of the outcome. The second invariant makes
+``distinct_ratio`` abstain on every input while measuring on every input, so a caller reading the
+outcome alone cannot tell it from an onlist test that had no whitelist to check against. ``supports``
+weighting needs exactly that distinction — an unmeasured test must leave the normalizer instead of
+scoring its spec down (#307) — so every "cannot see" return in this file is built by
+:func:`_inapplicable` and nothing else is.
 """
 
 from __future__ import annotations
@@ -79,10 +87,54 @@ class Evaluation:
     detail: str = ""
     #: True iff a real (materialized) onlist was consulted — lifts the deciding rung to 3.
     used_onlist: bool = False
+    #: Did the probe measure anything at all? False means the test could not be evaluated — no
+    #: whitelist to check against, no read reaching the column, a header the archive stripped — so its
+    #: ``score`` of 0.0 is a placeholder and NOT a measurement, and ``scoring`` drops it from the
+    #: support normalizer rather than scoring the spec down for evidence nobody could check (#307).
+    #:
+    #: **It is its own field because ``outcome`` cannot answer this.** ABSTAIN is overloaded: it is
+    #: what "the probe could not see" returns, AND what ``distinct_ratio`` returns on every input by
+    #: design, so a depth-dependent statistic can never be written into a ``requires`` and gate a spec
+    #: away. Deriving applicability from the outcome would discard every ``distinct_ratio``
+    #: measurement in the KB — on 10x's barcode read that is the only evidence left once the onlist is
+    #: withheld, and the chemistry would score 0.0 on the reads it generated.
+    applicable: bool = True
 
 
 def _clip(x: float) -> float:
     return max(0.0, min(1.0, x))
+
+
+def _inapplicable(detail: str) -> Evaluation:
+    """The DATA could not answer this test — it gates nothing and it normalizes nothing.
+
+    Every "the bytes are silent here" return in this file goes through here, so the 0.0 that stands in
+    for the unmeasured score can never be mistaken for a measured one by a caller that reads ``score``
+    without ``applicable``. The one ABSTAIN that is NOT built here is ``distinct_ratio``'s scored
+    return, and that exception is the whole reason applicability is not read off the outcome.
+    """
+    return Evaluation(Outcome.ABSTAIN, 0.0, detail, applicable=False)
+
+
+def _unconfirmed(detail: str) -> Evaluation:
+    """WE could not ask — the whitelist was missing, so the test stands unconfirmed rather than unread.
+
+    The other half of #307, and the half that decides whether the fix is safe. A support leaves the
+    normalizer when the DATA could not answer it, because then no chemistry could have got an answer
+    there and dropping it advantages nobody. An onlist we could not obtain is not that: the question
+    was answerable, and for a RIVAL spec whose list did materialize it WAS answered. Drop it from the
+    normalizer and the rival pays for every imperfection in its hit rate while this spec pays nothing
+    — measured, the whole 10x cohort then ties on the geometry supports they all declare identically,
+    at 0.7819, above both `bulk-rnaseq` (0.7500) and the true chemistry whose whitelist actually hit
+    (0.6083, last). The whitelist is the ONLY evidence separating that family, and renormalizing it
+    away removes it from the comparison for everybody who lacks it. So the weight stays: a spec is not
+    credited for evidence nobody was able to check.
+
+    That leaves the case #307 measured — the onlist withheld from EVERY spec at once — and it is not
+    this one. There the question is not asked of anyone, so it leaves the SIGNATURE rather than the
+    normalizer; :func:`~seqforge.resolve.confuse.without_rung3_evidence` is where that happens.
+    """
+    return Evaluation(Outcome.ABSTAIN, 0.0, detail, applicable=True)
 
 
 def _window_for(test: object, read: Read) -> tuple[int, int | None]:
@@ -193,7 +245,7 @@ def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluati
         if end is None:
             # An open-ended element has no fixed column to be constant over, and a window that runs to
             # whichever read is longest is not one either. "Cannot see it" is not "it is absent".
-            return Evaluation(Outcome.ABSTAIN, 0.0, "open-ended window")
+            return _inapplicable("open-ended window")
         tolerance = int((end - start) * _CONSTANT_MISMATCH_ALLOWANCE)
         rate = wp.consensus_match_rate(start, end, tolerance)
         if rate is None:
@@ -201,7 +253,7 @@ def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluati
             # answered anyway, off however many cycles the short reads did cover, and called a
             # 10-cycle prefix of a 30 bp linker a verdict on the linker. Whether such a file can fill
             # the role is the declared geometry's question, and `read_length_compatible` asks it.
-            return Evaluation(Outcome.ABSTAIN, 0.0, "no read reaches this column")
+            return _inapplicable("no read reaches this column")
         outcome = Outcome.PASS if rate >= _CONSTANT_CARRIER_MIN else Outcome.FAIL
         return Evaluation(
             outcome,
@@ -212,13 +264,13 @@ def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluati
         # Near-uniformity IS a population property, so this one stays a mean over cycles.
         mmf = _mean_max_fraction(wp, start, end)
         if mmf is None:
-            return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
+            return _inapplicable("window unreadable")
         outcome = Outcome.PASS if mmf <= _RANDOM_MAXFRAC else Outcome.FAIL
         return Evaluation(outcome, _clip((_RANDOM_MAXFRAC - mmf) / 0.3), f"mean_maxfrac={mmf:.2f}")
     base = "T" if test.kind == "polyT" else "A"
     frac = _mean_base_fraction(wp, start, end, base)
     if frac is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
+        return _inapplicable("window unreadable")
     outcome = Outcome.PASS if frac >= 0.8 else Outcome.FAIL
     return Evaluation(outcome, _clip(frac), f"{base}-fraction={frac:.2f}")
 
@@ -232,11 +284,11 @@ def _eval_distinct_ratio(test: DistinctRatio, read: Read, wp: WindowProbe) -> Ev
     else:
         start, end = _window_for(test, read)
         if end is None:
-            return Evaluation(Outcome.ABSTAIN, 0.0, "open-ended window")
+            return _inapplicable("open-ended window")
         ratio = wp.distinct_ratio(start, end)
         detail = ""
     if ratio is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
+        return _inapplicable("window unreadable")
     score = _clip(1.0 - ratio) if test.expect == "low" else _clip(ratio)
     return Evaluation(
         Outcome.ABSTAIN, score, f"{detail}distinct_ratio={ratio:.3f} expect={test.expect}"
@@ -248,13 +300,13 @@ def _eval_onlist(
 ) -> Evaluation:
     ref = spec.onlists.get(test.onlist)
     if ref is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, f"unknown onlist alias {test.onlist!r}")
+        return _unconfirmed(f"unknown onlist alias {test.onlist!r}")
     if not registry.has(ref.registry):
-        return Evaluation(Outcome.ABSTAIN, 0.0, f"onlist {ref.registry!r} not registered")
+        return _unconfirmed(f"onlist {ref.registry!r} not registered")
     try:
         packed = registry.packed(ref.registry)
     except OnlistNotAvailable:
-        return Evaluation(Outcome.ABSTAIN, 0.0, f"onlist {ref.registry!r} not materialized")
+        return _unconfirmed(f"onlist {ref.registry!r} not materialized")
     anchored = _anchored_element(test, read)
     if anchored is not None:
         hit = wp.anchored_onlist_hit(read, anchored.name, packed, orientation=test.orientation)
@@ -323,7 +375,7 @@ def _eval_motif(test: MotifPresent, wp: WindowProbe) -> Evaluation:
         # Two causes, one verdict: no read reached the motif's width, or none was called where the
         # motif was looked for. Naming only the first was a lie a dark cycle told — and either way
         # the probe could not see, which never gates.
-        return Evaluation(Outcome.ABSTAIN, 0.0, "no read could carry the motif (short or uncalled)")
+        return _inapplicable("no read could carry the motif (short or uncalled)")
     outcome = Outcome.PASS if rate >= test.min_rate else Outcome.FAIL
     return Evaluation(outcome, _clip(rate / max(test.min_rate, 1e-9)), f"motif_rate={rate:.2f}")
 
@@ -332,7 +384,7 @@ def _eval_base_composition(test: BaseComposition, read: Read, wp: WindowProbe) -
     start, end = _window_for(test, read)
     frac = _mean_base_fraction(wp, start, end, test.base)
     if frac is None:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "window unreadable")
+        return _inapplicable("window unreadable")
     outcome = Outcome.PASS if frac >= test.min_fraction else Outcome.FAIL
     return Evaluation(
         outcome, _clip(frac / max(test.min_fraction, 1e-9)), f"{test.base}={frac:.2f}"
@@ -342,7 +394,7 @@ def _eval_base_composition(test: BaseComposition, read: Read, wp: WindowProbe) -
 def _eval_header_index(test: HeaderIndex, wp: WindowProbe) -> Evaluation:
     grammar = wp.observation.read_name
     if grammar.sra_normalized:
-        return Evaluation(Outcome.ABSTAIN, 0.0, "SRA-normalized header (index stripped)")
+        return _inapplicable("SRA-normalized header (index stripped)")
     has_index = grammar.index is not None
     outcome = Outcome.PASS if has_index == test.present else Outcome.FAIL
     return Evaluation(outcome, 1.0 if has_index == test.present else 0.0, f"has_index={has_index}")

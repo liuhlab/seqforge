@@ -29,7 +29,7 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING
 
-from ..kb.schema import Spec
+from ..kb.schema import OnlistHitRate, Spec
 
 if TYPE_CHECKING:  # `scoring` imports nothing from here, but only the annotations need the type
     from .scoring import TechEvaluation
@@ -111,13 +111,50 @@ def backend_identical(a: Spec, b: Spec) -> bool:
     return canonical_backend(a) == canonical_backend(b)
 
 
+def without_rung3_evidence(spec: Spec) -> Spec:
+    """``spec`` with its ``onlist_hit_rate`` supports removed — the rung-0-2 view of its signature.
+
+    **Withholding the onlist has to take it out of the NORMALIZER too, and an empty registry alone
+    does not** (#307). Handing the evaluator an empty registry stops an onlist test scoring, but the
+    scorer still divided by every DECLARED support weight, so the withheld test contributed
+    ``weight * 0.0`` to the numerator while keeping its whole weight in the denominator — a spec
+    scored down for evidence nobody was able to check, which is what the surrounding docstrings have
+    always claimed does not happen ("the verdict rests on geometry ... alone"). It did not: the
+    verdict rested on geometry diluted by a zero.
+
+    The asymmetry is what made it bite rather than merely offend. Weight is not declared evenly:
+    10x's barcode read puts 5 of its 8 support weight in an onlist and SPLiT-seq and the BD beads put
+    9 of 10, while ``bulk-rnaseq`` — the generic paired-end fallback that declares no onlist at all —
+    loses nothing. So every barcoded chemistry was marked down against the one candidate that must
+    never win by default, and by an amount set by how much whitelist evidence it had the honesty to
+    declare. Measured on each spec's own reads, removing it lifts ``splitseq`` and the three BD beads
+    from 0.5500 to 1.0000 and the 10x cohort from 0.6594 to 0.9083, leaving bulk at 1.0100 untouched.
+
+    **Removing the test, not renormalizing around it, and the difference is load-bearing.** At
+    runtime an onlist that failed to materialize is a spec we could not CONFIRM, and it keeps its
+    weight (:func:`~seqforge.resolve.evaluators._unconfirmed`) — dropping it there lets a chemistry
+    whose whitelist was never obtained outrank one whose whitelist hit. Here the list is withheld from
+    every spec by construction, so the question is asked of nobody and belongs to neither side's
+    evidence base. One situation removes a question from the comparison; the other records that a
+    spec failed to answer it.
+
+    Only ``supports`` are stripped. No shipped signature gates on an onlist, and one that did would be
+    claiming rung-3 evidence can FORBID a cell — a different claim, and not one this function is
+    entitled to retract on the KB's behalf.
+    """
+    supports = [s for s in spec.signature.supports if not isinstance(s.when, OnlistHitRate)]
+    signature = spec.signature.model_copy(update={"supports": supports})
+    return spec.model_copy(update={"signature": signature})
+
+
 def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
     """Would ``spec`` claim this data using only the CHEAP probes — no onlist, no network?
 
-    The onlist is withheld by handing the evaluator an **empty registry**, so every
-    ``onlist_hit_rate`` test abstains and the verdict rests on geometry, segmentation, distinct-value
-    ratios and header grammar alone. That is precisely rungs 0-2, expressed by removing the
-    rung-3 evidence rather than by reimplementing the scorer without it.
+    The onlist is withheld by :func:`without_rung3_evidence` and by handing the evaluator an **empty
+    registry**, so no ``onlist_hit_rate`` test is scored OR normalized against and the verdict rests
+    on geometry, segmentation, distinct-value ratios and header grammar alone. That is precisely
+    rungs 0-2, expressed by removing the rung-3 evidence rather than by reimplementing the scorer
+    without it.
 
     This is the primitive behind :func:`rung02_separable` and the *feasibility* half of
     :func:`could_outrank_at_rungs_0_2`, and it is why "ask the human" can be a computed property
@@ -129,7 +166,9 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
     from .window import WindowProbe
 
     wps = [p for p in probes if isinstance(p, WindowProbe)]
-    return build_tech_evaluation(spec, wps, OnlistRegistry(offline=True)).valid
+    return build_tech_evaluation(
+        without_rung3_evidence(spec), wps, OnlistRegistry(offline=True)
+    ).valid
 
 
 def seats_a_file_the_fallback_dropped(
@@ -196,10 +235,10 @@ def _rung02_pair(
 
     wps = [p for p in b_probes if isinstance(p, WindowProbe)]
     registry = OnlistRegistry(offline=True)
-    challenger = build_tech_evaluation(a, wps, registry)
+    challenger = build_tech_evaluation(without_rung3_evidence(a), wps, registry)
     if not challenger.valid:
         return None
-    return challenger, build_tech_evaluation(b, wps, registry)
+    return challenger, build_tech_evaluation(without_rung3_evidence(b), wps, registry)
 
 
 def rung02_margin(a: Spec, b: Spec, b_probes: Iterable[object]) -> float | None:
@@ -267,8 +306,15 @@ def could_outrank_at_rungs_0_2(a: Spec, b: Spec, b_probes: Iterable[object]) -> 
     The exemption reads :func:`seats_a_file_the_fallback_dropped` rather than restating it, so the
     guard cannot come to disagree with the escalation it is a proxy for. That predicate is scoped to a
     proper-subset read set, which is why it exempts nothing that shipped before read sets did:
-    ``bulk-rnaseq`` -> ``10x-multiome-atac`` orphans a barcode read from its MAXIMAL set and keeps
-    deriving at +0.1376, along with the other four declared edges.
+    ``bulk-rnaseq`` -> ``10x-multiome-atac`` orphans a barcode read from its MAXIMAL set, so the
+    exemption has never applied to it.
+
+    That pair is also the one place this predicate now answers False on a DECLARED edge, and the
+    reason is the ordering rather than the exemption (#307). With the onlist out of the rung-0-2
+    signature the chemistry recovers to 0.9067 against bulk's 0.8800, so the fallback is decisively
+    below and could not win the data. The edge is kept regardless — see
+    ``test_bulks_declared_edges_still_derive_under_the_ordering_predicate``, which holds both facts
+    apart so that "the true chemistry now wins" cannot be mistaken for "the guard went blind".
     """
     from .escalate import _THETA  # the resolver's tie band, not a second copy of it
 

@@ -21,7 +21,31 @@ from "the signal is absent", and conflating them would reject every SRA-normaliz
 test alone.
 
 Gate semantics: a `requires` FAIL forbids the cell, an `excludes` PASS forbids the cell, and
-`supports` sum as `Σ weight · score` with weights summing to 1, so a finite cell lands in `[0,1]`.
+`supports` sum as `Σ weight · score` normalized by the weight actually consulted, so a finite cell
+lands in `[0,1]`.
+
+**A support the DATA could not answer leaves the normalizer; one WE could not ask keeps its weight**
+(#307). Those are two different facts and the scorer needs both, so `Evaluation.applicable` carries
+them and is deliberately *not* derived from `outcome` — `distinct_ratio` abstains on every input by
+design (it must never gate) while measuring on every input, so dropping supports on the gate outcome
+would empty the normalizer for most of the KB. A column no read reaches, or a header the archive
+stripped, is dropped from numerator and normalizer alike: no chemistry could have got an answer there,
+so dropping it advantages nobody, and keeping it scored a spec down for evidence nobody could check —
+the same rule as #177, #255 and #277. A **whitelist that failed to materialize** is the opposite case
+and keeps its weight: the question was answerable, and a rival spec whose list did materialize is
+paying for every imperfection in its hit rate. Renormalizing it away made the whole 10x cohort — whose
+siblings declare byte-identical geometry and are separated by the whitelist and nothing else — tie at
+0.7819, above `bulk-rnaseq` at 0.7500 and above the true chemistry whose whitelist hit, last at
+0.6083. A spec is not credited for evidence nobody was able to check.
+
+**Withholding the onlist from EVERY spec is a third situation, and it removes the test from the
+signature rather than from the normalizer.** That is the rung-0-2 world the confusability guard scores
+in (`confuse.without_rung3_evidence`): the question is asked of nobody, so it belongs to neither
+side's evidence base. An empty registry alone was not enough — it emptied the numerator and left the
+weight, and since weight is not declared evenly (5 of 8 support weight for 10x's barcode read, 9 of 10
+for SPLiT-seq and the BD beads, none at all for the barcodeless fallback) every barcoded chemistry was
+marked down against the one candidate that must never win by default, in proportion to how much
+whitelist evidence it had the honesty to declare.
 
 | evaluator | what it does, and the decision inside it |
 |---|---|
