@@ -1734,29 +1734,202 @@ def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_
     )
 
 
-def test_a_request_is_bounded_by_documents_too_and_never_asks_about_one_twice(
+def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> None:
+    """The rule itself: how many documents share a request is a function of what they are asked.
+
+    ``(32 000 - 1 000) / (n_asked x 62)`` — an output budget, less a fixed reservation for reasoning
+    tokens that bill against that same ceiling, over the measured cost of serialising one draft. So
+    the nine sample attributes come out at 55, an experiment record's two-field ask at 250, and a
+    dataset document's thirteen at 38.
+
+    **55 and not the 57 #233 decision 1 quotes**, and the two tokens between them are the point.
+    Decision 1 computed 57 as ``32 000 / 558`` with no reserve at all, before #282 required one;
+    rounding the measured 62 down to 60 reaches 57 again only by handing the reserve straight back,
+    at which point a full batch's worst case (``57 x 558 = 31 806``) exceeds the ``31 780`` it would
+    ask for. A width that matches a projection the projection's own assumptions no longer support is
+    worth less than one that falls out of the measurement.
+
+    Every one of them is above the single count of **8** that used to be applied to all of them
+    alike, and the narrow ask by 31x: that number was worst-case-tuned against the widest ask, so the
+    experiment request — the one carrying the protocol paragraph — paid the sample vocabulary's
+    price. The width falling as the ask widens is the whole shape, and it is what one constant could
+    not express at any value.
+    """
+    from seqforge.harvest.fields import fields_for
+    from seqforge.harvest.plan import batch_width
+
+    assert batch_width(fields_for("sample", "reference")) == 55
+    assert batch_width(fields_for("run", "reference")) == 55, "nine attributes, the same question"
+    assert batch_width(fields_for("experiment", "reference")) == 250
+    assert batch_width(fields_for("dataset", "reference")) == 38
+
+    asks = _every_ask()
+    assert all(batch_width(a) > 8 for a in asks), "no ask is still bounded by the count it replaced"
+    widest = max(asks, key=len)
+    assert batch_width(widest) == min(batch_width(a) for a in asks), "widest ask, narrowest request"
+    assert batch_width(()) >= 1, (
+        "a document asked nothing is still a document, not a divide by zero"
+    )
+
+
+def test_a_request_is_bounded_by_its_ask_too_and_never_asks_about_one_document_twice(
     tmp_path: Path,
 ) -> None:
-    """Characters alone do not bound a batch of one-line records, and two caps are not one cap twice.
+    """Characters alone do not bound a batch of one-line records, and two bounds are not one twice.
 
     A run alias is 20 characters and can still support nine sample attributes, so what bounds the
-    RESPONSE is the document count; and a batch-level failure costs a re-ask of every member, so a
-    request carrying hundreds of them is a wave to lose rather than a round trip. Separately, two
-    documents whose text is byte-identical are indistinguishable to a model routing by sha, so they
-    never share a request — a question with no answer must not be asked.
+    RESPONSE is how many drafts the ask permits, never how much text went in. That is why the second
+    bound is the ask's own width rather than a count: the character budget here is nowhere near
+    binding, and the batch still closes. Separately, two documents whose text is byte-identical are
+    indistinguishable to a model routing by sha, so they never share a request — a question with no
+    answer must not be asked.
     """
     from dataclasses import replace as _replace
 
     from seqforge.harvest import plan_extraction
-    from seqforge.harvest.plan import MAX_BATCH_DOCUMENTS, batch_documents
+    from seqforge.harvest.fields import fields_for
+    from seqforge.harvest.plan import MAX_BATCH_CHARS, batch_documents, batch_width
 
-    tiny = _many(tmp_path, [f"Rep {i} was N2 wild type." for i in range(MAX_BATCH_DOCUMENTS + 3)])
+    width = batch_width(fields_for("dataset", "reference"))
+    tiny = _many(tmp_path, [f"Rep {i} was N2 wild type." for i in range(width + 3)])
     plan = plan_extraction(documents=tiny)
-    assert [len(b) for b in plan.batches] == [MAX_BATCH_DOCUMENTS, 3]
+
+    assert plan.n_chars < MAX_BATCH_CHARS, "the input budget is not what closed these batches"
+    assert [len(b) for b in plan.batches] == [width, 3]
 
     # Same bytes, same ask, different subject: one document to the model, two to the plan.
     twin = _replace(tiny[0], subject="SAMN9")
     assert batch_documents([tiny[0], twin]) == ((0,), (1,))
+
+
+def _every_ask() -> list[tuple[str, ...]]:
+    """Every question this compiler can put to a document — every role x every scope.
+
+    Collected from the ``Literal``s themselves rather than retyped here, so a sixth scope arrives in
+    these assertions the moment it is declared. A list spelled out by hand stays green over a
+    vocabulary it has stopped covering, which is the one way a test like this fails silently.
+    """
+    from typing import get_args
+
+    from seqforge.harvest.fields import DocRole, DocScope, fields_for
+
+    return [fields_for(scope, role) for scope in get_args(DocScope) for role in get_args(DocRole)]
+
+
+def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
+    tmp_path: Path,
+) -> None:
+    """The ceiling a width was divided out of is the ceiling the request actually asks for.
+
+    A full-width nine-attribute batch is 55 x 9 x 62 = 30 690 output tokens of drafts, plus the
+    1 000 reserved for reasoning tokens — which bill against this same ceiling — for 31 690, just
+    under the 32 000 budget. Pinned at 8 000, the number this replaced, the same request would run
+    out of ceiling about a quarter of the way through its own batch, truncate the JSON, and fail the
+    shape gate wholesale.
+
+    The reserve has to survive the arithmetic, not just appear in it: the drafts a full batch can
+    emit fit **inside** what the request asks for, leaving the reservation actually reserved. That is
+    the check a rounded-down per-draft rate would quietly break.
+
+    The fallback is priced too, and priced to what it already was: one document asks 8 000, which is
+    what every unbatched request has asked since before batching existed. A fallback that could fail
+    by truncation where the batch it is recovering did not would be no fallback at all.
+    """
+    from dataclasses import replace as _replace
+
+    from seqforge.harvest import extract_planned, plan_extraction
+    from seqforge.harvest.fields import fields_for
+    from seqforge.harvest.plan import BATCH_OUTPUT_BUDGET, batch_max_tokens, batch_width
+
+    width = batch_width(fields_for("sample", "reference"))
+    texts = [f"Aliquot {i} was N2 wild type." for i in range(width)]
+    docs = [_replace(d, scope="sample") for d in _many(tmp_path, texts)]
+    plan = plan_extraction(documents=docs)
+    assert [len(b) for b in plan.batches] == [width], (
+        "one full-width request, and this is its price"
+    )
+
+    provider = _AnswersEveryDocument(
+        {d.doc_sha256: "Mus musculus" for d in docs},
+        batch_failure=ProviderUnavailable("this endpoint refused the request"),
+    )
+    extract_planned(plan, kb.load_all_specs(), provider=provider)
+
+    ceilings = [sent["max_tokens"] for sent in provider.asked]
+    assert provider.widths == [width] + [1] * width, "the batch, then one request per document"
+    assert ceilings == [31_690] + [8000] * width
+
+    from seqforge.harvest.plan import PER_DRAFT_TOKENS, REASONING_HEADROOM_TOKENS
+
+    worst_case_drafts = width * len(fields_for("sample", "reference")) * PER_DRAFT_TOKENS
+    assert worst_case_drafts + REASONING_HEADROOM_TOKENS <= ceilings[0], (
+        "the reservation is only a reservation if the drafts fit under the ceiling without it"
+    )
+
+    assert all(
+        8000 <= batch_max_tokens(ask, n) <= BATCH_OUTPUT_BUDGET
+        for ask in _every_ask()
+        for n in (1, batch_width(ask))
+    ), "never above the budget, and never below what one document already asked for"
+
+
+def test_the_requests_a_plan_sends_do_not_depend_on_the_machine(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The property batching has always claimed, now that a second number could have broken it.
+
+    `MAX_IN_FLIGHT` is derived from the core count, and it sizes the POOL that carries the batches;
+    it must never size the batches themselves. Neither may the width rule — it reads the ask, and the
+    ask comes from the document. So the same plan run under a pool of one and a pool of forty-eight
+    issues the same requests: the same documents grouped the same way, each carrying the same
+    `max_tokens`.
+
+    What the patch below actually varies is `max_workers`, and saying so is the honest version:
+    `_SLOTS` is sized once at import and rebinding the module attribute does not resize it, so the
+    process-wide allowance is the same in both runs while the executor's width is not. That is
+    sufficient for what this test is about — the two runs schedule differently, and a plan whose
+    grouping or ceilings depended on scheduling would diverge. A test that claimed to vary both would
+    be claiming a reach it does not have.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path)], records=_records({"SAMN1": 2, "SAMN2": 2}))
+    answers = {d.doc_sha256: "Mus musculus" for d in plan.documents}
+
+    def _requests(pool: int) -> list[tuple[str, int]]:
+        monkeypatch.setattr("seqforge.harvest.plan.MAX_IN_FLIGHT", pool)
+        provider = _AnswersEveryDocument(answers)
+        extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+        return sorted((str(sent["user"]), int(sent["max_tokens"])) for sent in provider.asked)
+
+    laptop, node = _requests(1), _requests(48)
+
+    assert len(laptop) == plan.n_requests > 1, "more than one request, or this proves nothing"
+    assert laptop == node
+
+
+def test_the_dry_runs_request_list_is_the_one_the_paid_run_issues(tmp_path: Path) -> None:
+    """The module's central promise, re-checked against a run now that the widths have moved.
+
+    `--dry-run` reports `n_requests`, which derives from `batches` — the very tuple the fan-out
+    iterates — so the count cannot drift from the run by construction. What a test still owes is that
+    the *contents* agree: every planned document reaches exactly one request, no request carries a
+    document the plan did not list, and the widths the plan predicted are the widths sent.
+    """
+    from seqforge.harvest import extract_planned, plan_extraction
+
+    plan = plan_extraction(documents=[_doc(tmp_path)], records=_records({"SAMN1": 2, "SAMN2": 2}))
+    report = plan.report()
+    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+
+    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+
+    assert report.n_requests == provider.n_calls < report.n_documents
+    assert sorted(provider.widths) == sorted(len(b) for b in plan.batches)
+    sent = [sha for request in provider.asked for sha in _shas_in(str(request["user"]))]
+    assert sorted(sent) == sorted(d.doc_sha256 for d in report.documents), (
+        "each document once, and nothing the dry run did not list"
+    )
 
 
 def test_a_batched_run_lands_every_claim_on_the_document_that_carried_it(tmp_path: Path) -> None:
@@ -1824,8 +1997,8 @@ def test_a_batch_that_answers_only_some_of_its_documents_is_not_a_failure(tmp_pa
 
     "This document supports nothing" returns no drafts, so a batch answering two of its three
     documents is indistinguishable from one where the third had nothing to say — which is the common
-    case, not the exception. Treating it as a batch failure would re-ask eight sample records every
-    time six of them were silent, which is strictly more requests than never batching at all.
+    case, not the exception. Treating it as a batch failure would re-ask fifty-seven sample records
+    every time fifty of them were silent, which is strictly more requests than never batching at all.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
@@ -1883,12 +2056,12 @@ def test_a_batch_failure_falls_back_to_per_document_calls_and_loses_nothing(
 ) -> None:
     """THE decision (#190): batching may never lose more documents than not batching would have.
 
-    Unbatched, a failed request costs one document; batched it could cost eight, which would make
-    "half a batch is worse than none" worse rather than better. So a batch-level failure — a provider
-    error, or any response the one shape gate cannot use — re-asks every member individually, at
-    once. Worst case that is one extra round trip; here the provider fails on anything wider than one
-    document, which is the worst case, and all three documents still answer with the claim each
-    carries.
+    Unbatched, a failed request costs one document; batched it could cost the whole batch, which
+    would make "half a batch is worse than none" worse rather than better. So a batch-level failure
+    — a provider error, or any response the one shape gate cannot use — re-asks every member
+    individually, at once. Worst case that is one extra round trip; here the provider fails on
+    anything wider than one document, which is the worst case, and all three documents still answer
+    with the claim each carries.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 

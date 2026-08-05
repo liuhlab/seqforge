@@ -20,10 +20,13 @@ is told apart **structurally**, at rungs 0–2, from every scRNA chemistry:
 | Aligner | STARsolo | **chromap** |
 | Deliverable | count matrix (`.h5ad`) | **fragments** (`fragments.tsv.gz`) |
 
-The read count (3 vs 2) and the barcode-read length (16 vs 28, no UMI) are hard `requires` gates, so a
-2-read scRNA chemistry can never claim these reads and vice versa. The ARC whitelist (`737K-arc-v1`,
-shared with the GEX arm) hitting the barcode read is the rung-3 positive signal, but the structure
-already carries the decision.
+The read count (3 vs 2) and the barcode-read length (16 vs 28, no UMI) are DECLARED, not gated, and
+that is what separates them: role assignment is total and injective over the reads a spec declares, so
+a 2-read scRNA chemistry cannot fill three roles and this spec's `min_len`/`max_len` on the barcode
+read forbid a 28 bp one. This entry's `requires` is empty — it used to hold a `read_count` gate that
+abstained on every input, restating the read list beside it. The ARC whitelist (`737K-arc-v1`, shared
+with the GEX arm) hitting the barcode read is the rung-3 positive signal, but the structure already
+carries the decision.
 
 Before this spec existed the ATAC arm had no positive target and abstained as
 `UNSUPPORTED_TECHNOLOGY`; it now resolves to `10x-multiome-atac` and, through it, to the chromap

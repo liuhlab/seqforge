@@ -52,8 +52,12 @@ here that the model needs in order to name the node at all.
 - **The `signature` tests are a closed set, identical to the scorer's evaluators**
   ([`resolve.md`](resolve.md)). `requires` are hard AND-gates and may not use a distinct ratio, which
   is depth-dependent; `supports` are additive positive evidence, and this is where an onlist test and
-  a distinct ratio belong; `excludes` are anti-gates, and any pass disqualifies. `read_count` counts
-  biological and barcode **roles**, not raw files.
+  a distinct ratio belong; `excludes` are anti-gates, and any pass disqualifies. The set is closed at
+  both ends: `evaluate` takes the union and ends in `assert_never`, so adding a word to the DSL is a
+  type error until the scorer is given a meaning for it, and a `requires` list may legally be **empty**
+  (`bulk-rnaseq`, `10x-multiome-atac`). How many reads a spec has is declared by `reads`, never
+  asserted by a test — `read_count` did that and abstained on every input, so it was deleted rather
+  than fixed ([ADR-0029](../adr/0029-a-spec-declares-read-sets-not-a-fixed-read-list.md)).
 - **`Backend.params` is the chemistry-defining minimum only** — how to *parse* reads. A knob whose
   value is the same for every dataset is the module's, not the KB's and not the recipe's (below). The
   one interpolation token allowed anywhere in it is `{onlist:<alias>}`, and it is validated: any other
@@ -64,6 +68,22 @@ here that the model needs in order to name the node at all.
   it drifted freely with nothing to notice. The derivation reproduces all five hand-typed values
   exactly, which is how you know it was only ever a comment. Two other fields died the same way; if
   you are about to add a field nothing reads, that is the pattern.
+- **`identity.sample_is_cell` says one `Sample` of this chemistry IS one cell** — demultiplexing
+  happened at the bench, so the cell barcode is the *file* and not a read. Declared and never
+  derived: `umi ∧ ¬barcode` is backwards for SMART-seq2 (neither, still one cell per file) and for
+  UMI-tagged bulk (a UMI, no barcode, one file per specimen), because the property is about *where*
+  demultiplexing happened and no byte reports that. It says `Sample` because 20 of 190 well-labelled
+  plate deposits are not strictly 1:1. Its sole consumer is `reduce_dataset`'s cell gate
+  ([`resolve.md`](resolve.md)); it never enters a manifest, so `dataset_hash` is untouched by
+  construction. Rejected: a three-value cell-axis field (two of its three values are derivable), and
+  any name built on "demultiplexed" — every Illumina run is sample-demultiplexed at bcl2fastq, so a
+  reader would tick that box for a droplet chemistry too.
+- **`Spec.min_input_reads` is an admission threshold, and it is top level for that reason** —
+  `identity` *names* the technology and a threshold names none. Summed over a `Sample`'s runs, never
+  per run. A number here must sit **under the probe budget**: below it the per-file count is exact
+  (the probe read to EOF), above it the count is an extrapolation that moves with `--max-reads`.
+  Both fields default off, so **zero shipped `spec.yaml` files declare either** — the regression bar
+  getting cheaper by construction rather than by measurement, pinned hermetically in `tests/test_kb.py`.
 - **`Spec._cross_refs` resolves everything by name**: every test's `read` and `element`, every
   `anchor.ref_element`, and every onlist alias, against the reads and elements block. A dangling name
   is a load-time failure, not a scoring-time surprise.
@@ -153,8 +173,8 @@ both halves — the `ask`, and `10x-5p-gex-v2-metadata-decided` proving the decl
 
 **`10x-3p-gex-v3`** is the fixed-offset case: R1 is 28 bp of 16 bp CB plus 12 bp UMI
 (`soloType CB_UMI_Simple`), R2 is open-ended cDNA. Its `signature` shows the rung structure clearly —
-`requires` are structural gates friendly to the cheap rungs (read count, 28 bp segment length, two
-random segments; **no** onlist and **no** distinct ratio), `supports` add the onlist hit rate that
+`requires` are structural gates friendly to the cheap rungs (28 bp segment length, two random
+segments; **no** onlist and **no** distinct ratio), `supports` add the onlist hit rate that
 costs a rung-3 lookup plus depth-dependent distinct-ratio priors, and `excludes` anti-gate the
 Multiome whitelist.
 
@@ -281,6 +301,36 @@ than a wrong answer:
 
 `seqforge kb roundtrip` runs this and exits 3 on failure; `seqforge kb lint` validates the schema and
 the key allowlist.
+
+**A declared constant sequence is read back, not merely measured** (#285). The round-trip recorded a
+check for onlist-backed barcodes and for UMIs while computing a statistic for every element, so a
+`linker`/`fixed` one fell straight through: six checks ran for `splitseq` and *none* touched its two
+30 bp linkers — the sequences that entry's whole discipline rests on, and where three published
+sources turned out to disagree with the instrument at base 8. Each one is now cut back out of the
+generated reads and compared base for base against what the spec says, over a fixed `[start, end)` and
+over a recovered anchor frame alike, which is what closes SPLiT-seq and both BD Rhapsody Enhanced
+entries with one check. What can genuinely fail is the two derivations of *where* the sequence goes
+disagreeing — the generator concatenates elements in order, the check cuts the declared coordinates,
+and nothing validates that a `sequence`'s length matches its own window, so a typo'd linker shifts
+everything after it and lands here. On the anchored path the claim is weaker by construction (the
+frame is found *by* matching the linker), which is why the demonstration that the check can fail picks
+a fixed-coordinate element.
+
+**A `min_rate` is a frequency, and the generator writes every element on every read** — so each
+entry's structure is in 100 % of its own reads and every declared motif floor was tested infinitely
+far above itself. The floor test builds the population the entry actually claims: the spec's own reads
+mixed with the all-cDNA entry's, the honest diluent since one generator draws both. It asserts the
+gate PASSES a quarter above the floor and FAILS a quarter below it, and both sides are needed —
+PASS alone is what the 100 %-tagged fixture already gave, and FAIL alone would pass for a gate that
+can never fire. The diluent is *derived* (the one entry whose every element is plain cDNA) rather than
+named, which is the difference between a test that follows a rename and one that breaks on it.
+**Its limit, written down so a green is not over-read:** synthetic cDNA is uniform random, while real
+untagged reads of the chemistry that motivated this carry the tag off-offset at ~6 % and *structured*,
+at offsets 13/15/23, against 0.25 % in real bulk. This calibrates a gate against a FREQUENCY;
+robustness against that structured background stays a measurement on real reads and is not claimed
+here.
+
+Both live in `tests/test_kb.py`, generic over every shipped entry, and neither names a spec.
 
 ## What the KB covers, and what it does not
 

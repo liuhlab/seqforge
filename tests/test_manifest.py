@@ -253,6 +253,120 @@ def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
     assert ids[0] != ids[1]
 
 
+def test_provenance_counts_the_reads_of_every_file_in_the_inventory(built_v3: Built) -> None:
+    """Every file, every manifest — the counts compose cannot otherwise have.
+
+    `FileInventoryItem` is uri/basename/sha/size/read_id and `SampleGroup` is ids and uris, so no
+    read count exists anywhere a composer can reach; `plan` joins the path and never reads it, so a
+    third input is not available either. This is the field that closes that, and it is populated
+    unconditionally: making it conditional on the loaded KB declaring a threshold would make two
+    manifests of the same bytes differ by the date they were written.
+
+    600 exactly, and that is a statement about the FIXTURE, not about the field. At n=600 under the
+    2000-read probe budget the head reaches EOF, so the estimate is an exact count. The expensive
+    case — a file that exhausts the budget and gets an extrapolation from compressed
+    bytes-per-read — is the one that makes the number a function of `--max-reads`, and it is why the
+    two tests below exist.
+    """
+    manifest, _ = built_v3
+    counts = manifest.provenance.estimated_reads
+    assert set(counts) == {f.sha256 for f in manifest.library.files}
+    assert set(counts.values()) == {600}
+
+
+def test_the_read_counts_move_neither_the_dataset_hash_nor_the_run_id(built_v3: Built) -> None:
+    """The counts are budget-dependent, so this is what keeps `--max-reads` out of the identity.
+
+    Two mutations, because they fail differently. STRIPPED proves the field is not folded in at all;
+    DOUBLED proves it is the *values* that are excluded and not merely an empty dict serializing
+    away — the extrapolation a bigger budget would produce moves nothing. Then `run_id`, which takes
+    the dataset hash as a string plus kb/processing/workflow, so it inherits the property.
+
+    Asserted against the fixture's own recorded hash, not only across the pair: this is the
+    acceptance criterion that says every manifest that existed before the field did still hashes to
+    what it hashed to.
+    """
+    manifest, _ = built_v3
+    prov = manifest.provenance
+    assert prov.estimated_reads, "the fixture carries no counts, so this proves nothing"
+
+    stripped = manifest.model_copy(
+        update={"provenance": prov.model_copy(update={"estimated_reads": {}})}
+    )
+    doubled = manifest.model_copy(
+        update={
+            "provenance": prov.model_copy(
+                update={"estimated_reads": {k: v * 2 for k, v in prov.estimated_reads.items()}}
+            )
+        }
+    )
+    assert (
+        dataset_content_hash(manifest)
+        == dataset_content_hash(stripped)
+        == dataset_content_hash(doubled)
+        == prov.dataset_hash
+    )
+
+    p = _processing(manifest)
+    ids = {
+        run_id(
+            dataset_hash=m.provenance.dataset_hash,
+            processing_hash=p.provenance.processing_hash,
+            kb_version=m.provenance.kb_version,
+            workflow_version=p.provenance.workflow_version,
+        )
+        for m in (manifest, stripped, doubled)
+    }
+    assert len(ids) == 1, "the read counts reached run_id"
+
+
+def test_a_runs_read_count_is_the_minimum_over_its_files(built_v3: Built) -> None:
+    """Not the sum: R1 and R2 are two views of the same fragments, so adding them doubles the depth.
+
+    Healthy mates are equal by construction — which is what makes the minimum free rather than
+    pessimistic — and the pair that is not equal was refused upstream as a truncated member. So the
+    rule only ever chooses between numbers that agree, and it is written down once here because the
+    alternative is each consumer half-remembering it at its own call site.
+    """
+    manifest, _ = built_v3
+    shas = [f.sha256 for f in manifest.library.files]
+    prov = manifest.provenance
+    assert len(shas) == 2
+    assert prov.reads_in_run(shas) == 600
+
+    thin = prov.model_copy(update={"estimated_reads": {**prov.estimated_reads, shas[0]: 599}})
+    assert thin.reads_in_run(shas) == 599, "a mate short of its partner must not be averaged away"
+    assert thin.reads_in_run(shas) != sum(thin.estimated_reads.values())
+
+
+def test_an_unmeasured_file_gates_as_none_rather_than_as_zero(built_v3: Built) -> None:
+    """A manifest written before this field existed measured nothing; nothing is not zero.
+
+    The field is optional so those manifests still load — they are immutable and there is nothing to
+    rewrite them from — and a gate reading their silence as `0` would drop every sample in one at
+    exit 0, which is the silent-plausible-wrong-answer class this compiler exists to prevent.
+    """
+    manifest, _ = built_v3
+    older = DatasetManifest.model_validate(
+        {
+            **manifest.model_dump(mode="json"),
+            "provenance": {
+                k: v
+                for k, v in manifest.provenance.model_dump(mode="json").items()
+                if k != "estimated_reads"
+            },
+        }
+    )
+    assert older.provenance.estimated_reads == {}
+    assert older.provenance.dataset_hash == manifest.provenance.dataset_hash
+    assert older.provenance.reads_in_run([f.sha256 for f in older.library.files]) is None
+    # and one file measured is still not a measured run: the minimum is over ALL of them
+    partial = older.provenance.model_copy(
+        update={"estimated_reads": {manifest.library.files[0].sha256: 600}}
+    )
+    assert partial.reads_in_run([f.sha256 for f in older.library.files]) is None
+
+
 def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_path: Path) -> None:
     """Both forms are legitimate and they are for different jobs.
 

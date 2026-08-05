@@ -76,7 +76,6 @@ onlists:
 
 signature:
   requires:                              # the two FIXED linkers are the structural signature
-    - {test: read_count, roles: 2}
     - {test: has_segment, read: bc, start: 9,  end: 21, kind: constant}   # linker1 (12 bp)
     - {test: has_segment, read: bc, start: 30, end: 43, kind: constant}   # linker2 (13 bp)
   supports:                              # each CLS block hits its own 97 x 9 bp whitelist

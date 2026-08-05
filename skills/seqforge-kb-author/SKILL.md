@@ -52,6 +52,17 @@ The generator reads **only** `spec.reads` — never `signature` or `backend`. Th
 round-trip a real test rather than a tautology, so do not "help" by teaching the generator about the
 signature.
 
+**A `linker`/`fixed` sequence is read back out of the reads, so its length must agree with its own
+window.** The round-trip cuts each declared constant sequence at its `[start, end)` (or at the frame
+the anchored resolver recovers) and compares it base for base. Nothing else validates that
+`len(sequence) == end - start`, so a sequence one base off its coordinates shifts every element after
+it and reddens there — usually on the *next* linker, which is the confusing half. Count the bases.
+
+**A `motif_present` `min_rate` is a frequency, and the suite now tests it at its floor.** Your gate is
+evaluated against a population mixed down to just under `min_rate` and just over it, so pick a rate
+you would defend on a part-tagged library rather than one that happens to clear a 100 %-tagged
+fixture. A floor at or below the motif's chance rate in plain cDNA is a gate that cannot fail.
+
 ## Never write a value from memory
 
 This is the rule that matters most here, and it is not stylistic. **Look up every one:**

@@ -142,6 +142,18 @@ Values:
 """
 
 
+#: The output ceiling a request asks for when its caller computes nothing better — and the number
+#: every extraction was made under before a batch's width came from its ask.
+#:
+#: It was a literal at both call sites here, defensible only while it was also the number
+#: :mod:`seqforge.harvest.plan` was silently dividing a fixed document cap out of. The planner now
+#: derives both the width and the ceiling from one output budget, and this survives as a **floor**
+#: rather than a pin — see :func:`~seqforge.harvest.plan.batch_max_tokens` for what that floor is
+#: load-bearing for. A caller that batches by hand and passes nothing still gets a request that works
+#: for one document, which is the only width this default can honestly claim to cover.
+DEFAULT_MAX_OUTPUT_TOKENS = 8000
+
+
 class ExtractUnavailable(RuntimeError):
     """The LLM surface could not produce a usable batch (no provider, API error, or bad shape)."""
 
@@ -365,7 +377,7 @@ def extract_drafts(
     provider: LLMProvider | None = None,
     model: str | None = None,
     fields: tuple[str, ...] | None = None,
-    max_tokens: int = 8000,
+    max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> ExtractionOutcome:
     """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides.
 
@@ -454,7 +466,7 @@ def extract_batch(
     provider: LLMProvider | None = None,
     model: str | None = None,
     fields: tuple[str, ...] | None = None,
-    max_tokens: int = 8000,
+    max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> list[ExtractionOutcome]:
     """One request for several documents that receive the same ask. One outcome per document, in order.
 
@@ -468,6 +480,13 @@ def extract_batch(
     guarantees it; ``fields`` here defaults from the first document, and enforcement is
     ``verify_drafts``'s regardless — it refuses an off-scope field whatever was asked, so grouping is
     about not *wasting* the ask, never about safety.
+
+    **``max_tokens`` is the caller's to size, and it is a per-REQUEST ceiling over a batch whose width
+    the caller chose.** :func:`~seqforge.harvest.plan.extract_planned` derives it from the same output
+    budget it derived the width from, so the two cannot disagree; the default here covers one document
+    and nothing wider. A ceiling too small for the batch does not truncate a document — it truncates
+    the JSON, which fails the shape gate wholesale and re-asks every member one at a time. Cheap to
+    recover, expensive to do on every request, and invisible in the drafts either way.
 
     **Which document a draft belongs to is the one thing a batch makes the model responsible for.**
     At width one code overwrites the echoed ``span.doc_sha256`` outright, because we know what we
@@ -485,9 +504,9 @@ def extract_batch(
 
     A response that answers only SOME of the batch is **not** a failure. A document supporting nothing
     is a correct and common answer that returns no drafts at all, so partial coverage is
-    indistinguishable from it — and treating it as a failure would re-ask a batch of eight sample
-    records every time six of them had nothing to say, which is strictly more requests than not
-    batching at all.
+    indistinguishable from it — and treating it as a failure would re-ask a batch of fifty-seven
+    sample records every time fifty of them had nothing to say, which is strictly more requests than
+    not batching at all.
     """
     if not docs:
         return []

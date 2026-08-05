@@ -39,7 +39,7 @@ dependencies = [
     "pdfplumber>=0.11",  # in-text tables -> markdown, so a table cell greps back
     "openpyxl>=3.1",     # supplementary .xlsx sample tables
     "anndata>=0.10",     # the pilot's deliverable format
-    "pysam>=0.22",       # the UMI counter reads alignments; a plain dep, no container, like anndata
+    "pysam>=0.22",       # read/write BAM for the plate-assay UMI path; a plain dep, no image needed
     "gffutils>=0.13",    # reads the annotation database liulab-genome BUILT — we never build one
     # `harvest extract` is the one stage that touches an LLM; both clients are lazy-imported, and
     # `run --no-llm` drives the whole compiler without them.

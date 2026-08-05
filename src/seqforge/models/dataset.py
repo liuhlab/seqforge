@@ -22,7 +22,8 @@ processed many ways.
 
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Iterable
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -281,11 +282,58 @@ class DatasetProvenance(BaseModel):
     which Snakemake module will one day run: the assay happened before we had an opinion about it.
     It belongs to the processing manifest, and folding it in here would make a dataset's identity
     churn every time a rule file changed — which is exactly the coupling the two-artifact split removes.
+
+    ``estimated_reads`` is here for the mirror-image reason. It is a **measurement of** the bytes
+    that must not become part of what the bytes **are**: downstream gates need a depth per file, and
+    the number is a function of the probe budget, so the section that carries the manifest's identity
+    is the one place it cannot go (ADR-0030).
     """
 
     dataset_hash: str
     kb_version: str
     seqforge_version: str
+    #: sha256 -> that file's :attr:`~seqforge.models.observation.Observation.estimated_total_reads`,
+    #: for every file in the inventory, on every manifest seqforge writes.
+    #:
+    #: **Named ``estimated_`` because it is.** Below ``--max-reads`` the probe reaches EOF and the
+    #: number is an exact count; above it the number is extrapolated from compressed bytes-per-read
+    #: or the gzip ISIZE, so it is a function of the budget the probe ran under and not of the file
+    #: alone. Carried in ``library.files`` it would put ``--max-reads`` inside ``dataset_hash``: the
+    #: same bytes, two identities.
+    #:
+    #: **Unconditional**, never "only when some spec declares a threshold". A manifest whose
+    #: *contents* depend on which KB was loaded the day it was written is two artifacts wearing one
+    #: name — ship a KB later that adds a threshold to an existing chemistry and every manifest
+    #: written before it has nothing to gate against, so compose must either refuse a manifest it
+    #: should read or skip the gate in silence.
+    #:
+    #: Empty on a manifest written before this field existed, which is why every reader goes through
+    #: :meth:`reads_in_run` rather than indexing the dict.
+    estimated_reads: dict[Sha256, Annotated[int, Field(ge=0)]] = Field(default_factory=dict)
+
+    def reads_in_run(self, file_shas: Iterable[str]) -> int | None:
+        """The read count of the files of ONE run: the **minimum** over them, never their sum.
+
+        A run's mates are two views of the same fragments — 900 000 pairs are 1 800 000 FASTQ records
+        and 900 000 reads — so summing counts every fragment once per mate and reports a library at
+        twice its depth. Healthy mates are equal by construction, which is what makes the minimum a
+        free choice rather than a pessimistic one; the pair that is *not* equal has already been
+        refused upstream (a member that ran out mid-stream is ``TRUNCATED_GZIP``). What is left is
+        the depth every read role can actually contribute, which is what a threshold is about.
+
+        The unit is the **run**, and callers group before they call: across runs the counts add,
+        because two runs of one sample are two separate passes over the library. One function so
+        that "min within, sum across" has one owner and cannot be half-remembered at the second
+        call site.
+
+        Returns ``None`` — not ``0`` — when any of the files carries no count. A manifest written
+        before this field existed measured nothing, and a consumer reading that as zero reads would
+        drop every sample in it. "Not measured" and "empty" must not be the same value to a gate.
+        """
+        counts = [self.estimated_reads.get(sha) for sha in file_shas]
+        if not counts or any(count is None for count in counts):
+            return None
+        return min(count for count in counts if count is not None)
 
 
 class DatasetManifest(BaseModel):
