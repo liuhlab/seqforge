@@ -39,6 +39,7 @@ dependencies = [
     "pdfplumber>=0.11",  # in-text tables -> markdown, so a table cell greps back
     "openpyxl>=3.1",     # supplementary .xlsx sample tables
     "anndata>=0.10",     # the pilot's deliverable format
+    "pysam>=0.22",       # read/write BAM for the plate-assay UMI path; a plain dep, no image needed
     # `harvest extract` is the one stage that touches an LLM; both clients are lazy-imported, and
     # `run --no-llm` drives the whole compiler without them.
     "anthropic>=0.40",
@@ -105,6 +106,10 @@ pdfplumber = ">=0.11.10,<0.12"
 # liulab-genome's transitive needs, mirrored from liulab-runtime's `lab` feature. A missing one is
 # an ImportError at `import genome`, not a wrong number.
 pandas = ">=2.1,<3"
+# `pysam` is deliberately NOT mirrored here, and it is the one dependency above that is not. It
+# lives on bioconda, which pixi's PyPI->conda name mapping does not cover, so declaring it in both
+# tables installs BOTH and the wheel overwrites the conda package's 494 files — a warning on every
+# task, and two copies of a C extension over htslib. Declared once, as the wheel it resolves to.
 gffutils = "*"
 ucsc-fatotwobit = "*"
 ucsc-twobitinfo = "*"
@@ -234,6 +239,14 @@ ignore_missing_imports = true
 # registry asserts on the fetched file — not the type of the fetcher.
 [[tool.mypy.overrides]]
 module = ["pooch", "pooch.*"]
+ignore_missing_imports = true
+
+# pysam's wheel ships no `py.typed` (its conda build does, so this depends on which one resolved --
+# pin the behaviour rather than the packaging). It is htslib behind a C extension, reached here to
+# write one unaligned BAM and read it back; what protects that deliverable is the round trip through
+# a real BAM in `test_workflows.py`, not the type of `AlignedSegment.set_tag`.
+[[tool.mypy.overrides]]
+module = ["pysam", "pysam.*"]
 ignore_missing_imports = true
 
 # Both PDF engines are incompletely typed, and we call each through one thin guarded function in
