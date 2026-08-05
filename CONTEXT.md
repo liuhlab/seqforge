@@ -99,6 +99,18 @@ resolver answers "which sample is each file from"; the byte resolver never sees 
 _Avoid_: specimen; and never use "sample" for a head. `StreamSample`/`probe_sample`/`sample_fastq_*`
 are legacy spellings of the byte sense, being retired.
 
+**Pre-demultiplexed**:
+A chemistry whose libraries were split into cells *before* the archive saw them — demultiplexing
+happened at the bench, so the cell barcode is the **file** and not a range of bases inside a read.
+Named for the property and not for the field: `identity.sample_is_cell` is the KB's *declaration* of
+it, since no byte reports where a split happened (`docs/agents/kb.md`, `docs/adr/0032`). It says
+**Sample**, not file and not run — 20 of 190 well-labelled plate deposits are not strictly 1:1.
+_Avoid_: demultiplexed (every Illumina run is sample-demultiplexed at bcl2fastq, so a reader would
+tick that box for a droplet chemistry too), plate (one physical vessel, and the property is about
+where the split happened rather than what it happened in), one-cell-one-file (true of the common case
+and not of the 20); and never as a second name for `sample_is_cell`, which declares the property and
+is not it
+
 **Run**:
 One sequencing run — one **Library** on one pass of a sequencer, spanning every **Lane** it was
 loaded into. The grouping `resolve/group.py` derives from filenames. With no archive record that
@@ -119,6 +131,23 @@ transcript, never an interpretation, and optional: most sequencing data never ha
 that absence is the normal case rather than a degraded one (`docs/adr/0010`).
 _Avoid_: metadata (too broad), SRA entry, database row; and never **Record**, which is four lines of
 FASTQ
+
+**Deposit**:
+Everything one submission put into an archive under one project, as the archive holds it — every
+**Archive record** at every level, and every file, whether or not any of them was fetched. One
+deposit is one source at every level (`docs/adr/0021`), and it is the scope any count over archive
+records is taken at, because such a count asks what *kind* of dataset this is and that is a property
+of the submission rather than of what reached disk (`docs/agents/resolve.md`).
+_Avoid_: dataset (that is the files you were handed — a **Download**), project, study, series,
+submission; BioProject and GEO series are one archive's spelling of a deposit, not the word
+
+**Download**:
+The part of a **Deposit** actually handed to seqforge — the files `resolve_runs` is given, which is
+the set this glossary calls a dataset everywhere the contrast does not matter. Reach for the word
+only where it does: a fingerprint package of 96 cells stands for a 1440-cell deposit, so a count
+taken here reports how much was fetched and never what the deposit is.
+_Avoid_: as a general synonym for dataset — it earns its keep only against **Deposit**; also fetch,
+pull, local copy, working set
 
 ### Evidence
 

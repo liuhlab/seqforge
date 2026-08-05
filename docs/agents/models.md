@@ -142,6 +142,18 @@ damage it did are [ADR-0004](../adr/0004-two-artifacts-not-one.md).
   `reads_in_run`, which owns "minimum within a run" and answers `None` — never `0` — for a manifest
   that measured nothing.
 
+**The measurement is in `models/` and the bar it will be compared against is not, deliberately.**
+Those per-file counts exist because something thresholds them, and that something is
+`Spec.min_input_reads` — which, with `identity.sample_is_cell` beside it, is a **KB** schema field
+([`kb/schema.py`](../../src/seqforge/kb/schema.py), argued in [`kb.md`](kb.md)) and not a model here.
+The split is the decision: a manifest is written once and hashed, so a verdict computed under one
+day's KB may not enter it, while a `spec.yaml` is hand-authored and CI-validated, so it is out of
+`SCHEMA_MODELS` and `schema export` never carried it. Two consequences worth stating because both
+were pre-declared as expected moves and only one happened: the two new KB fields moved **no exported
+schema at all**, and the one export this work did move is `ComposeResult`, which gained `admission`
+below. The manifest records what was measured, the KB records the bar, and `compose` is the only
+place they meet ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
+
 ## `ProcessingManifest` — intent, plural
 
 [`models/processing.py`](../../src/seqforge/models/processing.py). The flags to the manifest's IR:

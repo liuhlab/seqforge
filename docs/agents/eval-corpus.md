@@ -665,6 +665,74 @@ cell raised a validation error from inside the reduction instead of recording th
 clamped to the ceiling, and the regression test asserts the score is over 1.0 before it asserts
 anything about the clamp.
 
+### The regression protocol, and the run it prescribes (2026-08-04, #296)
+
+The protocol is written down here rather than in the pull request that ran it, because it is a
+procedure the next person changing the shipped path has to be able to repeat.
+
+**Who runs what.** The hermetic tier is CI on every commit. **The networked tier is
+maintainer-launched, single-trial, with `--llm` excluded** — the exclusion #231 established and the
+sections above priced: six single-trial `--llm` runs of one case graded two `correct`, two
+`over_ask` and two aborted, so a single-trial harvest grade is a coin flip and a digest over one
+would be an instrument nobody trusted twice. `--no-llm` reaches no model, needs no credential, and
+grades chemistry from pinned bytes and sample facts from committed records.
+
+**The bar, kept and scoped.** *Every per-case grade byte-identical* is unsatisfiable the moment a
+case is added, because the digest recipe hashes `n_cases` **and** the whole per-case list — so
+equal-digest and add-a-case are incompatible instruments and the nineteenth case is excluded from
+the digest by construction ([`evals/digest.py`](../../src/seqforge/evals/digest.py), and the section
+above on why that is a refusal rather than a filter). **The protocol is therefore two commands, not
+one**: a run over exactly the frozen eighteen, which the digest is taken from, and a run over the
+whole tier, which is what turns the plate case green. Each non-plate change in this map landed
+separately with its own before/after digest pair, so the plate comparison ran against a re-taken
+baseline on which the digest genuinely should not move.
+
+**A pre-run string assertion, because a closed bug is not the precondition.** #266's alias-ranking
+fix had landed, but nobody had ever read `GSE207085`'s *own* declared value against the matcher — no
+cached record set on the machine held PRJNA853582. Two lines, before the run was launched:
+`kb.match.resolve_chemistry` over the 245-character `library_construction_protocol` string that all
+96 experiment records carry verbatim — *"FACS sorted nasal Prox1+ cells were processed by Smart-Seq3
+protocol Libraries were generated following Smart-Seq3 protocol (Hagemann-Jensen M et al.,Single-cell
+RNA counting at allele and isoform resolution using Smartseq3. Nat Biotechnol 2020)"* — returns
+`smartseq3`. It passed **first**, which is the whole point: a red afterwards is then about this work
+and nothing else. That there is exactly **one** distinct such string across 96 records is the same
+fact that makes this deposit the corpus's only real instance of the shape harvest's collapse is for.
+
+**Pre-declared before the run as expected moves, and only one of them happened.** Every `run_id`
+moves: `KB_VERSION` (2026.8.3 → 2026.8.5) and `WORKFLOW_VERSION` (2026.8.4 → 2026.8.6) both bumped
+over this map, so the benchmark run is **cold** and no cache carried an answer into it. The exported
+schema golden was declared to move and did **not** — `Spec` is a KB model and has never been in
+`SCHEMA_MODELS`, so its two new fields moved no exported schema at all, and the one exported shape
+that did move is `ComposeResult.admission` ([`models.md`](models.md)). A pre-declaration that turns
+out unnecessary is the instrument working; one invented afterwards would not be.
+
+**What the run measured.**
+
+| | |
+|---|---|
+| frozen 18, `--no-llm`, single trial | **18/18 `correct`, exit 0, 91.5 s** — `field_accuracy` 1.0, `false_accept_rate` 0.0, `false_refuse_rate` 0.0, one question (`GSE126954`) |
+| frozen-18 grade digest | `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **byte-identical** to the live baseline, re-taken on this same tree |
+| whole tier, 19 cases | **19/19 `correct`, exit 0, 198.0 s wall** (729.3 s summed across the jobs) |
+| `GSE207085-nasal-prox1-96cells` | **red → green**, graded against the `expected.yaml` committed before any of the work landed and never edited |
+
+**The plate change was predicted to be a measured no-op on the eighteen, and it is one.** The
+prediction is structural rather than hopeful: `smartseq3`'s `requires` gate keeps it out of every
+existing ranking (bulk R1 carries the tag at offset 0 in 0.00 % of reads against a 2 % floor), and
+`sample_is_cell` is `False` on every other shipped spec, so nothing pools. It was measured anyway,
+because this effort has been wrong three times about "this should be unchanged".
+
+**The 96-cell case now dominates the tier's clock, and that is a cost to know before dispatching.**
+The eighteen finish in 91.5 s; adding one plate takes the wall clock to 198.0 s, essentially all of
+it that case (198.0 s of its own), because 96 cells are 96 resolves against the whole KB. It is the
+tier's most expensive case by an order of magnitude and it is worth it — it is the only place the
+sample explosion is measured on real bytes.
+
+**The `--llm` blind spot is structural and this protocol does not close it.** No routine gate
+observes the harvest path: the hermetic tier excludes every case that harvests, and a `--no-llm`
+digest never calls harvest. The three-part instrument #233's batching change shipped with — an
+`eval plan` diff, a hermetic test on `batch_documents`, and a bounded recall probe — closes it for
+that change specifically. Closing it in general is separate work.
+
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
 **Nothing here is decided, and there is no third tier.**

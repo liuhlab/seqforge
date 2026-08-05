@@ -1,0 +1,102 @@
+{
+  "dataset": "GSE207085 / PRJNA853582 (SMART-seq3, mouse, 2x151)",
+  "source": "liuhlab/seqforge-benchmark, packages/GSE207085/*.fingerprint.tar.gz",
+  "n_cells": 10,
+  "normalisation": {
+    "why": "The packages carry sra-tools --readids names (SRR#.<spot>.<mate>). umiextract requires the R1 and R2 name tokens to be byte-identical (umiextract.py:163-165) and refuses at read 1 otherwise (#235 section 3).",
+    "transform": "Per FASTQ record, on BOTH the '@' line and the '+' line, strip a trailing '.1'/'.2' from the whitespace-delimited name token; leave the description after the first space untouched.",
+    "why_both_lines": "These packages repeat the full ID on the '+' line, and HTSeq's FastqReader refuses a record whose '+' line disagrees with its '@' line (HTSeq/__init__.py:213). Rewriting only the header trades one refusal for another -- this is NOT recorded in #235, which normalised differently.",
+    "example": [
+      {
+        "before": "@SRR19884922.1.1 ST-E00114:1220:HGL5HCCX2:7:1101:16498:1731 length=151",
+        "after": "@SRR19884922.1 ST-E00114:1220:HGL5HCCX2:7:1101:16498:1731 length=151"
+      },
+      {
+        "before": "+SRR19884922.1.1 ST-E00114:1220:HGL5HCCX2:7:1101:16498:1731 length=151",
+        "after": "+SRR19884922.1 ST-E00114:1220:HGL5HCCX2:7:1101:16498:1731 length=151"
+      }
+    ]
+  },
+  "cells": {
+    "SRR19884922": {
+      "package": "GSE207085-nasal-prox1-1356",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "4103f88e0ee32ccb80cf9fe076a5e276453668513dd96c633da1a13be8de2a89",
+        "r2": "b9ab1e6ae2d4efcb7b385a31ba255bb68acdb337e87d6bcbbdfb1a5fe23e3af0"
+      }
+    },
+    "SRR19884992": {
+      "package": "GSE207085-nasal-prox1-939",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "2a91a49c61b662a0c4f42e3c6554ba84a6d4777a8603df2ed44511b5876ae90b",
+        "r2": "86195adf66babce102ed0f7fba99e41e7b89906ed6c7e3c63836a4ade0a044e6"
+      }
+    },
+    "SRR19885397": {
+      "package": "GSE207085-nasal-prox1-207",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "45466e46be834529e24b98b879efcee485fb263a4824c3c3880151419637301c",
+        "r2": "04b987e0248e22b6bf5ae2e4765bf4255d591978be5ce2ae573d251f1ccc1d3b"
+      }
+    },
+    "SRR19885469": {
+      "package": "GSE207085-nasal-prox1-63",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "86f87426b0daeabac38a08f1ebec2306abcfb33aa341129951a1966924d3c203",
+        "r2": "c2fc83590059d5b1209dcc9d3a508d6b8d42ab1e9c725995ddc1cfe85b1e6736"
+      }
+    },
+    "SRR19885554": {
+      "package": "GSE207085-nasal-prox1-1419",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "c4a1f65cd06d4cfd245d36bb01db4bc9582931f17e7d669273b0cc99e2efb257",
+        "r2": "4db6c71e6010d6baec88b34838e88a4dc99613a90f354c2b71805fa9d88df837"
+      }
+    },
+    "SRR19885810": {
+      "package": "GSE207085-nasal-prox1-1146",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "55369a659941d2707b6c7fd5c2d8a326420fbe6dffef23255b68da606ad40903",
+        "r2": "062727cf1e91a565120e3c2ebbc5a5d2e153e88189950606553d5a558aba8d37"
+      }
+    },
+    "SRR19885842": {
+      "package": "GSE207085-nasal-prox1-1291",
+      "reads": 901,
+      "source_sha256": {
+        "r1": "cc688ef9f6cdbbf391d02409851fdfe42837e88278967a920a690c5e3abf1c4a",
+        "r2": "66b97a9dd7ab93c7a43196b951975c41af3bd1ad59310db6125908277243a601"
+      }
+    },
+    "SRR19885954": {
+      "package": "GSE207085-nasal-prox1-867",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "3e78d45c97d9d4cd51e1b24314020d8f4926079358eb6e781cf690b84d802e3a",
+        "r2": "fdc3666b66a84fcc416a9e632d6d7e362c6293b40c7663801aaef8036953d2a1"
+      }
+    },
+    "SRR19886065": {
+      "package": "GSE207085-nasal-prox1-538",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "45159c8eab9e8f52bf4e7fcf0b47b7c3b96f31f6062b3cc7da7bface89a7b519",
+        "r2": "e9ff22566897ddf9e84fdb077c5e923e1840128b6716bf8f93edbd250c4bd3f1"
+      }
+    },
+    "SRR19886277": {
+      "package": "GSE207085-nasal-prox1-804",
+      "reads": 2000,
+      "source_sha256": {
+        "r1": "dc1e7e284fc4afb109efa6278695e05fbbe7cdc28f43e0cf695373ad87f22054",
+        "r2": "ebbc22f83373c632633995da03bae012c60e1f31f4f0f5560bee10d716604caf"
+      }
+    }
+  }
+}

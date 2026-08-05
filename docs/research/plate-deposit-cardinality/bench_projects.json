@@ -1,0 +1,21 @@
+{
+ "PRJNA853582": ["GSE207085 (this map's plate)"],
+ "PRJNA1192296": ["benchmark GSE283483"],
+ "PRJNA952585": ["benchmark GSE229022"],
+ "PRJNA858484": ["benchmark GSE208154"],
+ "PRJNA1190381": ["benchmark GSE282765"],
+ "PRJNA523834": ["benchmark GSE126954"],
+ "PRJNA1195922": ["benchmark PRJNA1195922"],
+ "PRJNA1027859": ["benchmark PRJNA1027859 (demo)"],
+ "PRJNA434658": ["benchmark GSE110823"],
+ "PRJNA1365850": ["benchmark GSE310378"],
+ "PRJNA983807": ["benchmark GSE234962"],
+ "PRJNA1078821": ["benchmark GSE256266"],
+ "PRJNA1415162": ["benchmark GSE317744"],
+ "PRJNA1105052": ["benchmark GSE266161"],
+ "PRJNA658829": ["benchmark PRJNA658829"],
+ "PRJNA1145880": ["benchmark GSE274290"],
+ "PRJNA1304262": ["benchmark GSE305031"],
+ "PRJEB36367": ["SMART-seq3 paper E-MTAB-8735"],
+ "PRJEB50980": ["SMART-seq3xpress E-MTAB-11452"]
+}
