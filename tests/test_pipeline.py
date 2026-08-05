@@ -18,13 +18,15 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
 import yaml
 
-from conftest import Built, _processing
+from conftest import Built, _processing, declare_read_floor, one_run_each, plate_of
 from seqforge.compose import compose
 from seqforge.pipeline import (
     CONFIG_NAME,
     DEFAULT_OUTDIR,
+    EXCLUSIONS_NAME,
     SNAKEFILE_NAME,
     UNITS_TSV_NAME,
     CompiledPipeline,
@@ -191,3 +193,30 @@ def test_the_three_filenames_are_the_ones_the_composer_writes(
 
     written = {item.name for item in pipeline.directory.iterdir()}
     assert {SNAKEFILE_NAME, CONFIG_NAME, UNITS_TSV_NAME} <= written
+
+
+def test_the_exclusion_record_is_named_here_and_absent_when_nothing_was_excluded(
+    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sixth file: named by the layout's owner whether or not one is there, written only if it is.
+
+    Absent is the honest reading of "nothing was excluded", so the property is a join like the other
+    four and a caller asks the filesystem — the alternative, a `None` when the file is missing, would
+    make every reader spell the same fallback. Composing without a floor and composing with one that
+    drops a cell are the two states, and the name has to be the same in both or the reader looking for
+    an explanation would not find the one that exists.
+    """
+    manifest, reg = built_v3
+    compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path / "shipped")
+    shipped = CompiledPipeline.discover(tmp_path / "shipped")
+    assert shipped is not None
+    assert shipped.exclusions_path == shipped.directory / EXCLUSIONS_NAME
+    assert not shipped.exclusions_path.exists(), "no floor is declared, so nothing was excluded"
+
+    plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400}))
+    declare_read_floor(monkeypatch, plate.library.chemistry.value[0], 1000)
+    compose(plate, _processing(plate), registry=reg, workspace=tmp_path / "plate")
+    gated = CompiledPipeline.discover(tmp_path / "plate")
+    assert gated is not None
+    assert gated.exclusions_path.is_file()
+    assert gated.samples == ["cell1"], "the contracted list is the post-drop one"

@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import ast
 import gzip
+import hashlib
 import re
 import sys
 import types
@@ -47,10 +48,12 @@ from typing import Protocol
 import pytest
 
 from seqforge import __version__, kb
+from seqforge.compose import core as compose_core
 from seqforge.compose.core import ComposePlan
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import ExperimentInputs, ProcessingInputs, fill_manifest, fill_processing
-from seqforge.models.dataset import DatasetManifest, SampleGroup
+from seqforge.manifest.hash import dataset_content_hash
+from seqforge.models.dataset import DatasetManifest, FileInventoryItem, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.probe import probe_file
@@ -564,6 +567,82 @@ def _processing(
         seqforge_version=__version__,
     )
     return p
+
+
+# --------------------------------------------------------------------------- #
+# a PLATE: one Sample per cell, at declared read depths, for the admission floor
+# --------------------------------------------------------------------------- #
+
+#: cell id -> run key -> the read count of each of that run's files, in read-layout order.
+Plate = dict[str, dict[str, tuple[int, ...]]]
+
+
+def one_run_each(depths: dict[str, int]) -> Plate:
+    """The strictly 1:1 plate — one cell, one run, every file at the same depth. 170 of 190 real ones."""
+    return {cell: {"r": (n, n)} for cell, n in depths.items()}
+
+
+def plate_of(
+    base: DatasetManifest, cells: Plate, *, accession: str | None = None
+) -> DatasetManifest:
+    """``base`` with its one sample replaced by ``cells``, and a provenance count for every new file.
+
+    The files are named, never written: ``compose.plan`` joins a path and reads no byte, so a plate of
+    synthetic cells costs nothing on disk. Each file is a copy of one the real resolver assigned, so
+    the read layout, the chemistry and every emitted param stay exactly what it decided; only the uri,
+    the checksum and the sample claiming it are new. ``dataset_hash`` is recomputed at the end, because
+    a manifest whose recorded identity disagrees with its own content is not one anything downstream
+    may be asked a question about.
+
+    Here rather than beside its first caller because both the composer's tests and the CLI's read it,
+    and two builders of one fixture shape do not disagree until they do.
+    """
+    template = list(base.library.files)
+    files: list[FileInventoryItem] = []
+    samples: list[SampleGroup] = []
+    reads: dict[str, int] = {}
+    for cell, runs in cells.items():
+        uris: list[str] = []
+        for run, depths in runs.items():
+            for item, depth in zip(template, depths, strict=True):
+                uri = f"{cell}_{run}_{item.read_id}.fastq.gz"
+                sha = hashlib.sha256(uri.encode()).hexdigest()
+                files.append(item.model_copy(update={"uri": uri, "basename": uri, "sha256": sha}))
+                reads[sha] = depth
+                uris.append(uri)
+        samples.append(SampleGroup(sample_id=cell, accession=accession, file_uris=uris))
+    plate = base.model_copy(
+        update={
+            "library": base.library.model_copy(update={"files": files}),
+            "experiment": base.experiment.model_copy(update={"samples": samples}),
+            "provenance": base.provenance.model_copy(update={"estimated_reads": reads}),
+        }
+    )
+    return plate.model_copy(
+        update={
+            "provenance": plate.provenance.model_copy(
+                update={"dataset_hash": dataset_content_hash(plate)}
+            )
+        }
+    )
+
+
+def declare_read_floor(monkeypatch: pytest.MonkeyPatch, tech: str, floor: int | None) -> None:
+    """Hand the COMPOSER ``tech``'s spec with a read floor, and one ``Sample`` declared to be one cell.
+
+    A ``model_copy`` and never a mutation: ``load_spec`` is cached and hands back a SHARED ``Spec``, so
+    setting the field in place would leak a floor into every other test in the session. Patched at the
+    composer's own name because that is the only reader this fixture is about — resolve's half of the
+    same declaration is exercised in ``tests/test_resolve.py`` against its own fixture.
+    """
+    spec = kb.load_spec(tech)
+    declared = spec.model_copy(
+        update={
+            "identity": spec.identity.model_copy(update={"sample_is_cell": True}),
+            "min_input_reads": floor,
+        }
+    )
+    monkeypatch.setattr(compose_core, "load_spec", lambda name: declared if name == tech else spec)
 
 
 def solo_block(config: dict[str, object]) -> dict[str, object]:

@@ -115,12 +115,14 @@ and `test_an_unmeasured_file_gates_as_none_rather_than_as_zero`.
 `test_a_provenance_read_count_cannot_be_pre_registered_in_a_case` (`tests/test_evals.py`) holds the
 third of the three surfaces the number must not reach.
 
-**Nothing enforces the compose half yet, because nothing applies a threshold yet.** No shipped spec
-declares `min_input_reads`, so there is no gate to hold to the live KB. What would notice a
-violation is a test that composes one manifest twice under two thresholds and asserts two `run_id`s
-over one unmoved `dataset_hash` — it must land with the first consumer
-([#278](https://github.com/liuhlab/seqforge/issues/278) §E), and until then this half of the record
-is an obligation on that ticket rather than a gate.
+**The compose half is enforced by
+[ADR-0032](0032-a-spec-declares-the-shape-of-a-deposit.md)'s first consumer.**
+`test_the_drop_is_invisible_to_the_dataset_hash` (`tests/test_compose.py`) composes one manifest twice
+under two thresholds and pins two sample lists against one unmoved `dataset_hash`, and
+`test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it_as_empty` holds the
+*not measured* / *empty* distinction at the gate rather than only at `reads_in_run`. No shipped spec
+declares `min_input_reads`, so both run against a spec the test declares one on — which is the only
+way to hold a rule whose shipped state is that nobody exercises it.
 
 ## Consequences
 

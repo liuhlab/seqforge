@@ -11,7 +11,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from conftest import SrcTrees, SynthDataset, real_cbs, write_fastq_gz
+from conftest import (
+    SrcTrees,
+    SynthDataset,
+    declare_read_floor,
+    one_run_each,
+    plate_of,
+    real_cbs,
+    write_fastq_gz,
+)
 from seqforge import __version__, kb
 from seqforge.cli import app
 
@@ -513,6 +521,46 @@ def test_compose_refuses_invalid_manifest(tmp_path: Path) -> None:
     bad.write_text("library: {}\n")
     result = runner.invoke(app, ["compose", str(bad), "-C", str(tmp_path)])
     assert result.exit_code == 2  # unreadable/invalid manifest is a usage error, not a silent pass
+
+
+def test_compose_says_on_the_human_stream_that_it_dropped_cells(
+    synth_bulk_pe: SynthDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A pipeline shorter than the manifest it was compiled from must SAY so where a person looks.
+
+    The counts and the record path are on stdout with everything else, which is the machine surface —
+    but a compile that quietly produces 1200 of 1440 samples is precisely the shape nobody goes
+    looking for. One line on stderr, and it names the record rather than restating it.
+
+    Driven through the real verb rather than the composer, because what is under test is the seam
+    between them: `compose` decides and the CLI reports, and the failure this catches is the report
+    going missing while the decision keeps working.
+    """
+    plate = plate_of(synth_bulk_pe.manifest, one_run_each({"cell1": 4000, "cell2": 400}))
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text(yaml.safe_dump(plate.model_dump(mode="json"), sort_keys=True))
+    declare_read_floor(monkeypatch, plate.library.chemistry.value[0], 1000)
+
+    result = runner.invoke(
+        app,
+        [
+            "compose",
+            str(manifest_path),
+            "--assembly",
+            "sacCer3",
+            "--annotation",
+            "ensembl",
+            "-C",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    admission = json.loads(result.stdout)["admission"]
+    assert admission["excluded"] == {"cell2": 400} and admission["declared"] == 2
+    assert "1 of 2 cells dropped" in result.stderr
+    assert admission["record_path"] in result.stderr
+    assert (tmp_path / admission["record_path"]).is_file()
 
 
 def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:

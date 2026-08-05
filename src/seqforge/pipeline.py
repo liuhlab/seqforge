@@ -49,6 +49,12 @@ SNAKEFILE_NAME = "Snakefile"
 CONFIG_NAME = "config.yaml"
 UNITS_TSV_NAME = "units.tsv"
 
+#: The exclusion record — present only when the composer's admission floor kept a sample out, which is
+#: the only state in which there is anything to say. Named here beside the three because a run
+#: directory's contents have one owner, and a reader looking for "where did those cells go?" must not
+#: have to know which module happened to write the answer.
+EXCLUSIONS_NAME = "excluded.md"
+
 #: Where a pipeline puts its per-sample outputs when nobody says otherwise: what ``compose`` writes
 #: into ``config["outdir"]`` absent a flag, and what a reader falls back to for a config written
 #: before that key existed. Both ends of one name, so the fallback cannot drift from the default it
@@ -104,6 +110,16 @@ class CompiledPipeline:
     def units_path(self) -> Path:
         """The units table — one row per (sample, **Run**, **Lane**, read role, file)."""
         return self.directory / UNITS_TSV_NAME
+
+    @property
+    def exclusions_path(self) -> Path:
+        """The exclusion record — why this run's sample list is shorter than the manifest's.
+
+        A join like the three above, so it names the file whether or not one is there: absent is the
+        normal state, and it is the honest reading of "nothing was excluded". A caller that wants to
+        know asks the filesystem, exactly as it would for a results directory.
+        """
+        return self.directory / EXCLUSIONS_NAME
 
     @property
     def module(self) -> str | None:
@@ -177,6 +193,7 @@ __all__ = [
     "SNAKEFILE_NAME",
     "CONFIG_NAME",
     "UNITS_TSV_NAME",
+    "EXCLUSIONS_NAME",
     "DEFAULT_OUTDIR",
     "CompiledPipeline",
 ]

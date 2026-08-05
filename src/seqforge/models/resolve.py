@@ -181,6 +181,39 @@ class ModuleSelection(BaseModel):
     env: RuntimeEnv
 
 
+class SampleAdmission(BaseModel):
+    """The read floor the LIVE knowledge base applied, and the samples it kept out of this compile.
+
+    Present whenever the chemistry's spec declares ``min_input_reads`` — with ``excluded`` empty when
+    every sample cleared it, so a reader can tell a gate that ran from one that never existed. Absent
+    for all sixteen shipped entries, none of which declares a floor.
+
+    **The manifest records none of this.** The measurement is in the dataset (per file, in
+    ``provenance``); the *verdict* is recomputed at every compile against whatever knowledge base is
+    loaded, and lands here and in the pipeline directory. Freezing it into the write-once manifest
+    would make a dataset's identity a function of a threshold — raise the floor and the same bytes
+    become a different dataset.
+    """
+
+    #: The floor, in reads, as the loaded spec declares it.
+    threshold: int
+    #: Every sample the manifest carries — the denominator of ``summary``. The manifest keeps all of
+    #: them; only this pipeline is shorter.
+    declared: int
+    #: sample id -> its **exact** read count, for every sample below ``threshold``. Exact rather than
+    #: extrapolated: a file shallow enough to fail a floor of this size was read to EOF inside the
+    #: probe's budget.
+    excluded: dict[str, int] = Field(default_factory=dict)
+    #: The exclusion record written beside the config, or ``None`` when nothing was excluded and there
+    #: is therefore nothing to explain.
+    record_path: Uri | None = None
+    #: The totals line — *"240 of 1440 cells dropped"*. Rendered once and read twice, as the record's
+    #: headline and as the compose verb's one line on the human stream, so the two cannot disagree
+    #: about how much was lost. A sentence in a machine surface for the same reason ``Blocker`` carries
+    #: one: the count alone does not say what it is a count of.
+    summary: str
+
+
 class ComposeResult(BaseModel):
     """The output of ``compose``: selected modules, emitted config paths, and the gate verdicts.
 
@@ -201,6 +234,9 @@ class ComposeResult(BaseModel):
     units_path: Uri
     gate: dict[str, Literal["pass", "fail", "skip"]]
     params_preview: dict[str, object]
+    #: What the live knowledge base's read floor admitted. ``None`` when the chemistry declares no
+    #: floor, which is every dataset seqforge compiles today.
+    admission: SampleAdmission | None = None
 
 
 class RunResult(BaseModel):

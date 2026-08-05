@@ -115,5 +115,14 @@ def compose_cmd(
         typer.echo(str(exc), err=True)
         raise typer.Exit(3) from exc
     typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+    # The one line the human stream owes: a compile that produces fewer samples than the manifest
+    # declares must say so where a person reading a terminal will see it. The count is on stdout
+    # either way; what this adds is that nobody has to be looking for it.
+    if result.admission is not None and result.admission.record_path is not None:
+        typer.echo(
+            f"{result.admission.summary} below the {result.admission.threshold}-read admission "
+            f"floor this chemistry declares. Which, and why: {result.admission.record_path}",
+            err=True,
+        )
     if any(v == "fail" for v in result.gate.values()):
         raise typer.Exit(3)

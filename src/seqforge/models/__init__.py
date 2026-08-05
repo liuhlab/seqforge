@@ -121,6 +121,7 @@ from .resolve import (
     ResolveResult,
     RoleAssignment,
     RunResult,
+    SampleAdmission,
     TechScore,
     ValidationReport,
 )
@@ -280,6 +281,7 @@ __all__ = [
     "ArbitrationResponse",
     "ValidationReport",
     "ModuleSelection",
+    "SampleAdmission",
     "ComposeResult",
     "RunResult",
     "EvalReport",
