@@ -1023,10 +1023,10 @@ _PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
 def _plate_run_dir(directory: Path, samples: Sequence[str]) -> dict[str, object]:
     """Write a runnable plate pipeline directory by hand, and return the config it carries.
 
-    Hand-written rather than composed, because the module has no chemistry yet and the point is that
-    it does not need one: a ``.smk`` is configuration in, rules out, so its whole contract is the key
-    set :func:`keys_read_by` scans off it. The caller asserts that this config covers exactly that
-    set, which is what makes the plan below a proof about the module rather than about a fixture.
+    Hand-written rather than composed, and the point is that it does not need a chemistry: a ``.smk``
+    is configuration in, rules out, so its whole contract is the key set :func:`keys_read_by` scans
+    off it. The caller asserts that this config covers exactly that set, which is what makes the plan
+    below a proof about the module rather than about a fixture.
     """
     module = get_module("map/star-umi")
     config: dict[str, object] = {
@@ -1058,9 +1058,12 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
 ) -> None:
     """The plate `.smk` plans a real DAG on its own — per cell in, one object out.
 
-    The other three modules are planned through `compose` because a chemistry names them; this one
-    has none yet (module first, entry second — see :data:`MODULES_NO_SPEC_REACHES_YET`), and waiting
-    for a spec to prove the rules parse would mean shipping a module nothing has ever run.
+    Written when no chemistry named this module, and `smartseq3` names it now — so what keeps it is
+    no longer "nothing else reaches these rules". It is that **nothing COMPOSED reaches them**: the
+    config above is hand-written, so the key set asserted against `required_config` is a claim about
+    the MODULE. Compose the same plate and the composer supplies whatever the composer supplies, and
+    the assertion turns into the composer agreeing with itself. `composed_plate` covers the other
+    half — the shipped entry compiling into this module — and the two are deliberately not merged.
 
     Two claims, and the second is what makes the first mean something. The plan must reach every
     rule — the shared load, the per-cell chain, and the fan-in — and the hand-written config above
