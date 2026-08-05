@@ -295,9 +295,13 @@ def resolve_dataset(
     # Descent narrows the scored pool WITHOUT changing the winner: (1) an ABSTRACT family node
     # classifies but has no runnable backend, so it is never a candidate and is excluded; (2)
     # `length_feasible` is the scorer's own length gate, so any spec it drops would have scored
-    # `forbidden` anyway (a proven necessary condition). The trailing `or runnable` is the mandatory
-    # fallback — narrowing may never leave the pool empty. `escalate` still receives the FULL `kb_specs`
-    # so id/confusable lookups resolve for unscored nodes.
+    # `forbidden` anyway (a proven necessary condition) — and it asks that of EVERY read set the spec
+    # declares, because `build_tech_evaluation` scores every set and keeps the best, so a spec is
+    # forbidden only when all of them are. The trailing `or runnable` is the mandatory fallback —
+    # narrowing may never leave the pool empty — and it is also why a maximal-set-only feasibility test
+    # would have broken this quietly: a wrongly-dropped spec is simply never scored whenever some other
+    # spec keeps the pool non-empty. `escalate` still receives the FULL `kb_specs` so id/confusable
+    # lookups resolve for unscored nodes.
     runnable = [spec for spec in kb_specs.values() if spec.backend is not None]
     pool = [spec for spec in runnable if length_feasible(spec, wps)] or runnable
     # A standalone call runs probe then score sequentially, so the per-spec pool may reuse the full

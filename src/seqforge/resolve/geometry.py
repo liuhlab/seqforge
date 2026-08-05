@@ -18,27 +18,40 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Sequence
 
-from ..kb.schema import SegmentLength, Spec
+from ..kb.schema import Read, SegmentLength, Spec
 from .assign import best_assignment
 from .evaluators import Outcome, read_length_compatible
 from .window import WindowProbe
 
 
 def length_feasible(spec: Spec, wps: Sequence[WindowProbe]) -> bool:
-    """True iff every read can be matched one-to-one to a length-compatible file.
+    """True iff **some** read set's reads can be matched one-to-one to length-compatible files.
 
     Uses only ``read_length_compatible`` — the scorer's first, unconditional gate — so a ``False`` here
     provably implies ``build_tech_evaluation(spec, wps, ...).valid is False``. The converse does not
     hold (a length-feasible spec may still be forbidden by a finer requires/excludes test); that is
     correct for a necessary condition and simply means the spec is scored and rejected normally.
+
+    **Any-set, and the "any" is what keeps the proof true.** ``build_tech_evaluation`` scores every read
+    set and keeps the best, so a spec is forbidden only when EVERY set is; asking the maximal set alone
+    would reject a spec whose alternative set fits, and the claim above ("narrowing can never drop a
+    spec that full scoring would have made a winner") would be false. It would also be false *quietly*:
+    the engine's descent narrowing falls back to the whole runnable pool only when the narrowed one
+    comes up empty, so on any dataset with one other feasible spec the wrongly-dropped winner just
+    never gets scored. That is the direction to be careful about whenever a new predicate is written
+    over ``spec.reads`` — this one means *any set*, canonicalization and the benign-twin comparison mean
+    *the maximal set*, and nothing in the type system asks which you meant.
     """
-    n_roles = len(spec.reads)
+    return any(_set_feasible(spec.reads_in(name), wps) for name in spec.read_set_names())
+
+
+def _set_feasible(reads: Sequence[Read], wps: Sequence[WindowProbe]) -> bool:
+    """True iff these exact reads seat one-to-one on length-compatible files — one read set's half."""
+    n_roles = len(reads)
     n_files = len(wps)
     if n_files < n_roles:
         return False
-    forbidden = [
-        [read_length_compatible(read, wp) == Outcome.FAIL for wp in wps] for read in spec.reads
-    ]
+    forbidden = [[read_length_compatible(read, wp) == Outcome.FAIL for wp in wps] for read in reads]
     score = [[0.0] * n_files for _ in range(n_roles)]
     prior = [[0.0] * n_files for _ in range(n_roles)]
     return best_assignment(n_roles, n_files, score, forbidden, prior).valid
@@ -60,6 +73,11 @@ def geometry_fingerprint(spec: Spec) -> str:
 
     File order is irrelevant (reads are sorted by a canonical descriptor), so two specs that differ
     only in which mate is R1 vs R2 collide. Not a correctness predicate — see :func:`length_feasible`.
+
+    **Maximal-set, deliberately**, and the asymmetry with :func:`length_feasible` is not an oversight:
+    this key is read by nothing in ``src/``, so a spec with an alternative read set grouping alongside a
+    spec without one is cosmetic. If it ever becomes a correctness predicate, the read-set question has
+    to be asked again — ``n_reads`` is where it would be wrong.
     """
     seg_by_read: dict[str, SegmentLength] = {
         t.read: t for t in spec.signature.requires if isinstance(t, SegmentLength)

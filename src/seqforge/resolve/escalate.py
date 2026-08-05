@@ -105,16 +105,26 @@ def escalate(
     # onlist was merely consulted): a random ~100 bp bulk read passes a barcode read's over-length
     # geometry gate and reaches rung 3 with a FAILING onlist, and must stay bulk. Canonical single-cell
     # already out-scores bulk (a short barcode read is a poor cDNA), so there the anchor is a no-op.
+    #
+    # A SECOND way a barcodeless top must yield, and it arrived with read sets (ADR-0029): a fallback
+    # whose active read set consumes FEWER files can win while leaving one of them unexplained. A
+    # single-end bulk set seats its one cDNA role on the cDNA mate of a 10x deposit, orphans the 28 bp
+    # barcode read at ``λ/1`` and still scores 0.75 against a barcoded candidate whose whitelist MISSED
+    # (0.57) — so a barcoded library whose barcodes match no shipped list resolved to bulk at exit 0
+    # instead of refusing, which is a plausible gene-count matrix rather than a recoverable refusal.
+    # The over-length case above must NOT be caught by this and is not: there bulk seats every file, so
+    # it orphans nothing, and a random 100 bp read that merely passes a barcode read's over-length gate
+    # still stays bulk. The distinguishing fact is EXPLANATION, not score — a deposit holding a read
+    # this chemistry cannot seat at all is not this chemistry's deposit.
     anchor = valid[0]
     if _barcode_read_id(specs[anchor.tech]) is None:
-        anchor = next(
-            (
-                e
-                for e in valid
-                if e.barcode_onlist_hit and _barcode_read_id(specs[e.tech]) is not None
-            ),
-            anchor,
+        barcoded = [e for e in valid if _barcode_read_id(specs[e.tech]) is not None]
+        hit = next((e for e in barcoded if e.barcode_onlist_hit), None)
+        seats_dropped = next(
+            (e for e in barcoded if _seats_a_file_the_fallback_dropped(e, anchor, specs[e.tech])),
+            None,
         )
+        anchor = hit or seats_dropped or anchor
     best_value = anchor.value
     tie = [e for e in valid if best_value - e.value <= _THETA]
     # The whitelist that HIT is the arbiter. Among the tie, a barcoded candidate whose onlist positively
@@ -257,11 +267,16 @@ def _pretrimmed_blockers(
     length varies only in the junk tail, while CB/UMI stay at their fixed offsets, so that variation is
     not a trimmed barcode. The canonical length is still enforced — a read sitting AT its declared
     length, most of whose reads have left it, is trimmed and blocks.
+
+    **The WINNING read set's reads, not the maximal set's.** The claim is about a file this library
+    actually has: a read the winning configuration does not carry has no seated file to measure, so a
+    maximal-set loop would only ever reach the `continue` below. Saying which set is meant is the point
+    — a predicate over a spec's reads has two readings now, and the type system asks neither.
     """
     by_sha = {o.file.sha256: o for o in observations}
     assigned = top.role_assignment_shas()
     blockers: list[Blocker] = []
-    for read in spec.reads:
+    for read in spec.reads_in(top.read_set):
         fixed = _declared_fixed_length(spec, read)
         if fixed is None:
             continue
@@ -297,6 +312,33 @@ def _pretrimmed_blockers(
             )
         )
     return blockers
+
+
+def _seats_a_file_the_fallback_dropped(
+    barcoded: TechEvaluation, fallback: TechEvaluation, barcoded_spec: Spec
+) -> bool:
+    """Does ``barcoded`` seat its BARCODE role on a file the barcodeless ``fallback`` left unassigned?
+
+    The predicate that stops a fewer-file read set from winning a deposit it does not explain. A
+    barcodeless fallback that orphans a file another candidate calls a barcode read has not accounted
+    for the deposit: a single-end bulk library produces one biological read per run and nothing else,
+    so a 28 bp neighbour is evidence that this is not one — evidence that lives in the OTHER file, which
+    is why no gate on the fallback's own read could ever see it.
+
+    Deliberately about the orphan and not about the score. The leftover penalty (``λ/|R|`` per orphaned
+    file) already prices an unexplained file, and at ``λ = 0.25`` on a one-role set that price is too low
+    to beat a two-role candidate whose whitelist came up empty. Raising ``λ`` would re-price every
+    assignment in the KB to fix one shape; asking whether the file was explained is the same question
+    without the collateral.
+    """
+    bc = _barcode_read_id(barcoded_spec)
+    if bc is None:
+        return False
+    sha = barcoded.role_assignment_shas().get(bc)
+    if sha is None:
+        return False
+    dropped = {fallback.file_shas[f] for f in fallback.assignment.unassigned_files}
+    return sha in dropped
 
 
 def _barcodeless_seated_blocker(
@@ -676,6 +718,7 @@ def _candidate(e: TechEvaluation, equiv_members: list[str], rung: int) -> Candid
     return Candidate(
         technology=e.tech,
         score=e.score,
+        read_set=e.read_set,
         role_assignment=RoleAssignment(
             assignment=e.role_assignment_shas(),
             unassigned=[e.file_shas[f] for f in e.assignment.unassigned_files],
@@ -688,6 +731,13 @@ def _candidate(e: TechEvaluation, equiv_members: list[str], rung: int) -> Candid
 
 # ---- geometry helpers ----
 def _barcode_read_id(spec: Spec) -> str | None:
+    """The id of this chemistry's barcode read, or ``None`` when it has none — i.e. when it is bulk.
+
+    **The MAXIMAL read set**, deliberately: "is this chemistry barcoded?" is a property of the
+    chemistry, not of the configuration one deposit was sequenced in, and every guard reading this
+    (the collapse conflicts, F1b, the bulk-hint drop) is asking the chemistry-level question. A
+    barcoded chemistry whose alternative set dropped the barcode read would still be single-cell.
+    """
     for read in spec.reads:
         if any(el.type == "barcode" for el in read.elements):
             return read.id

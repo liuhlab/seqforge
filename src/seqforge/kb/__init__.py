@@ -103,7 +103,32 @@ from .schema import Spec
 #: weights only. Re-inserting a read-less `requires` entry into every spec leaves all 256
 #: (spec x data) verdicts — score, rank, matrix, assignment, rung — byte-identical, and the suite is
 #: green with no expectation edited. That gate is the whole of why this shipped as its own change.
-KB_VERSION = "2026.8.4"
+#: 2026.8.5 — `Spec.read_sets`: a spec declares a MAXIMAL read set (`reads`, implicitly named `full`)
+#: and may name SUBSETS of it, and `bulk-rnaseq` declares `se: [R1]`. A single-end bulk RNA-seq FASTQ
+#: resolved to `Blocker(UNSUPPORTED_TECHNOLOGY)` at exit 3 — not for failing a gate, since bulk's
+#: `requires` is empty, but because a role assignment is injective AND total, so declaring two reads
+#: demanded two files before any evidence was read. Single-end bulk RNA-seq is not exotic, and
+#: SMART-seq3's published Methods name three configurations for one protocol.
+#: The keys are a CLOSED vocabulary (a `Literal`, so `single_end:` fails at load where every other DSL
+#: typo fails) and each value is a subset of ids `reads` already declares — never a re-declaration,
+#: which is the whole of why the shape is cheap: R1's coordinates exist once, so the two configurations
+#: of one chemistry cannot drift apart, and there is no second entry to keep in sync. A `requires` test
+#: may address only reads present in EVERY set, because a gate a set cannot reach silently stops
+#: gating; the rule has no instance in the shipped KB and so is held by a negative test that builds a
+#: violating spec (`tests/test_kb.py`).
+#: The read-set loop lives INSIDE `build_tech_evaluation`, so one spec still yields one Candidate and no
+#: ranking rule needed a "a spec does not tie with itself" clause. `length_feasible` became
+#: feasible-iff-ANY-set: it claims to be a proven necessary condition for a valid score, and the
+#: engine's `pool = [...] or runnable` fallback would have hidden the falsification. The winning set
+#: lands on the Candidate — in the resolve artifacts, where "how this was decided" lives — and NOT on
+#: the manifest, whose read layout already lists exactly that set's reads.
+#: The bump costs a `run_id` and nothing else. `dataset_hash` does not move: a paired-end deposit still
+#: selects the maximal set at the score it always had (1.01 on the synthetic pair — the subset would
+#: pay `λ/|R|` = 0.25 for the mate it declined to explain), so no stored manifest is regenerated. The
+#: round-trip is NOT extended per read set, deliberately: it is per READ, from the same seed, so a
+#: subset would re-run a strict subset of the same checks. Recognition was the unproven thing, and it
+#: is what the new resolve cases assert.
+KB_VERSION = "2026.8.5"
 
 __all__ = [
     "KB_VERSION",

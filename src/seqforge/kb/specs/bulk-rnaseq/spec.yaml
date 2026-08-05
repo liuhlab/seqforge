@@ -14,12 +14,24 @@ identity:
 reads:
   # Two symmetric cDNA mates, no cell barcode / UMI. The min_len gate (>=40) is what excludes a short
   # single-cell barcode read (26/28 bp) from ever filling a bulk role.
+  #
+  # max_len is 300 because this entry says ILLUMINA, and 2 x 300 bp is the longest read any Illumina
+  # kit produces (MiSeq Reagent Kit v3, 600 cycles — verified against Illumina's live MiSeq
+  # specifications page, https://www.illumina.com/systems/sequencing-platforms/miseq/specifications.html).
+  # It is a GATE, not decoration: this entry is the generic fallback and forbids very little, so
+  # without a ceiling a 500-3000 bp nanopore read is a fine bulk cDNA read and an ONT run resolves to
+  # STAR at exit 0 — a plausible gene-count matrix from a long-read library, which is the worst
+  # failure available here. What used to refuse that run was the TWO-READ declaration and nothing
+  # else: a single-file deposit could satisfy no spec, so `ont-unsupported` graded a refusal for a
+  # reason that was never about read length (two long-read files already resolved to bulk before the
+  # single-end read set below existed — measured, not assumed). The read set removes that accident, so
+  # the claim has to be made where it is true.
   - id: R1
     seqspec_read_id: R1
     file_hint: "_R1_"
     strand: pos
     min_len: 40
-    max_len: null
+    max_len: 300
     elements:
       - {type: cdna, name: cdna_r1, start: 0, end: null, seqspec_region_type: cdna}
   - id: R2
@@ -27,9 +39,18 @@ reads:
     file_hint: "_R2_"
     strand: neg                          # the reverse mate
     min_len: 40
-    max_len: null
+    max_len: 300
     elements:
       - {type: cdna, name: cdna_r2, start: 0, end: null, seqspec_region_type: cdna}
+
+# The alternative sequencing configuration this same chemistry publishes. A SUBSET of the ids above,
+# never a re-declaration: R1's coordinates are written once, so the single-end and paired-end
+# configurations cannot drift apart, and there is no second entry to keep in sync. Single-end bulk
+# RNA-seq used to be UNSUPPORTED_TECHNOLOGY at exit 3 — not for failing a gate (there are none) but
+# because a role assignment is injective AND total, so two declared reads demanded two files.
+# R1 and not R2: a single-end run sequences the forward mate.
+read_sets:
+  se: [R1]
 
 onlists: {}
 

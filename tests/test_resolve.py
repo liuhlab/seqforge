@@ -397,6 +397,42 @@ def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
     assert out.exit_code() == 0
     assert out.result.candidates[0].technology == "bulk-rnaseq"
     assert out.result.rung_reached == 2  # geometry-only: no onlist involved
+    winner = out.result.candidates[0]
+    # The MAXIMAL set still wins a two-file deposit, and the score is the one it always had. Read sets
+    # add an alternative, never a preference: the `se` set would seat one role and orphan the other
+    # mate at `λ/|R|`, which is 0.25 against a one-role assignment — so it loses by a wide margin.
+    assert winner.read_set == "full"
+    assert sorted(winner.role_assignment.assignment) == ["R1", "R2"]
+    assert winner.score.value == pytest.approx(1.01)
+
+
+def test_a_single_end_bulk_deposit_resolves_and_records_the_se_read_set(tmp_path: Path) -> None:
+    """The user-facing point of read sets: ONE bulk FASTQ decides, where it used to refuse.
+
+    Before this, a single-end bulk RNA-seq deposit was `Blocker(UNSUPPORTED_TECHNOLOGY)` at exit 3 —
+    not because a gate rejected it (bulk's `requires` is empty) but because the entry declared two
+    reads against a role assignment that is injective AND total, so `n_files < n_roles` was invalid
+    before any evidence was read. Single-end bulk RNA-seq is not exotic.
+
+    Recognition is the unproven half of the feature — the round-trip is per READ, so a subset re-runs
+    a strict subset of the same checks from the same seed and could not have caught a set that never
+    gets selected. Hence both halves are asserted here: the spec is recognized, *and* the `se` set is
+    the one recorded on the candidate.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=1200, seed=0)
+    only = tmp_path / "bulk_R1.fastq.gz"
+    _write_fastq_gz(only, reads["R1"])
+
+    out = resolve_dataset(
+        [only], registry=registry_for(kb.load_spec("10x-3p-gex-v3")), use_cache=False
+    )
+    assert out.exit_code() == 0, out.result.blockers
+    winner = out.result.candidates[0]
+    assert winner.technology == "bulk-rnaseq"
+    assert winner.read_set == "se", "the set that fits is the set the artifact must record"
+    assert sorted(winner.role_assignment.assignment) == ["R1"]
+    assert not winner.role_assignment.unassigned  # one file, one role, nothing orphaned
 
 
 def test_resolve_splitseq_beats_generic_bulk_via_onlist(tmp_path: Path) -> None:
@@ -487,6 +523,7 @@ def _te(
     )
     return TechEvaluation(
         tech=tech,
+        read_set="full",
         roles=["R1", "R2"],
         file_shas=["sha-bc", "sha-cdna"],
         matrix={"R1": [Cell(False, value or 0.0)], "R2": [Cell(False, value or 0.0)]},
@@ -1556,12 +1593,17 @@ def test_the_constant_gate_fails_on_every_other_technologys_reads(kb_probes: KbP
     SPLiT-seq's linker1 gate, run against every OTHER spec's own reads, must find nothing. This is
     the sweep that would go red if the statistic were computed over a self-selected subset, because
     then any 30 bp window of anything would look like a perfect linker.
+
+    Every ``(spec, read set)`` key is swept, not just the maximal sets. A subset's probes are a strict
+    subset of its own maximal set's, so it adds no new verdict — but the sweep is over "every file any
+    configuration of any other chemistry produces", and writing it that way keeps it true if a future
+    read set is ever built from its own reads rather than a narrowing.
     """
     test, bc, spec = _splitseq_linker1_gate()
     registry = registry_for(spec)
     verdicts = [
         (tech, evaluate(test, bc, wp, spec, registry).outcome)
-        for tech, probes in kb_probes.items()
+        for (tech, _read_set), probes in kb_probes.items()
         if tech != "splitseq"
         for wp in probes
     ]
@@ -1662,9 +1704,54 @@ def test_real_splitseq_reads_resolve_to_splitseq() -> None:
 def test_a_spec_is_length_feasible_against_its_own_reads(kb_probes: KbProbes) -> None:
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
-        assert length_feasible(spec, kb_probes[tech_id]), (
+        assert length_feasible(spec, kb_probes[tech_id, "full"]), (
             f"{tech_id} must accept its own synthetic reads"
         )
+
+
+def test_length_feasibility_is_true_when_only_an_alternative_read_set_fits(
+    tmp_path: Path,
+) -> None:
+    """Feasibility is **any-set**, and that is a correctness fix rather than a nicety.
+
+    `length_feasible` documents itself as a *proven* necessary condition for a valid score — a spec it
+    rejects is one `build_tech_evaluation` would also reject, which is what lets descent narrow the
+    scored pool without moving the winner. It computed the role count from the maximal set, so a spec
+    whose alternative set fits was dropped from the pool while full scoring would have made it a
+    winner. The engine's `pool = [...] or runnable` fallback would have HIDDEN that: it hands back the
+    whole pool only when the narrowed one comes up empty, so on any dataset with one other feasible
+    spec the falsification is silent. A latent break behind a fallback is worse than a loud one.
+
+    One 60 bp cDNA read: bulk's maximal set needs two files and cannot be seated, its `se` set can.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=400, seed=0)
+    only = tmp_path / "one_mate.fastq.gz"
+    _write_fastq_gz(only, reads["R1"])
+    wps = [WindowProbe(observation=probe_file(only), seqs=reads["R1"][:200])]
+
+    assert length_feasible(spec, wps), "the `se` set fits, so the spec is feasible"
+    assert not _reads_are_assignable(spec.reads_in("full"), wps), "...and the maximal set does not"
+    # The necessary-condition contract, on the very dataset that used to falsify it.
+    assert build_tech_evaluation(spec, wps, DEFAULT_REGISTRY).valid
+
+
+def _reads_are_assignable(reads: list[Read], wps: list[WindowProbe]) -> bool:
+    """Is this exact read list one-to-one seatable on ``wps``? The per-set half of feasibility.
+
+    Spelled out here rather than imported so the test states the OLD (maximal-only) question in its
+    own words: importing the private per-set helper would let a refactor that broke the distinction
+    keep this assertion green.
+    """
+    from seqforge.resolve.assign import best_assignment
+    from seqforge.resolve.evaluators import read_length_compatible
+
+    n_roles, n_files = len(reads), len(wps)
+    if n_files < n_roles:
+        return False
+    forbidden = [[read_length_compatible(r, wp) == Outcome.FAIL for wp in wps] for r in reads]
+    zeros = [[0.0] * n_files for _ in range(n_roles)]
+    return best_assignment(n_roles, n_files, zeros, forbidden, zeros).valid
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -1688,8 +1775,8 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbP
 
     for a in ids:
         for b in ids:
-            if accepts_at_rungs_0_2(specs[a], kb_probes[b]):
-                assert geometry_could_accept(specs[a], kb_probes[b]), (
+            if accepts_at_rungs_0_2(specs[a], kb_probes[b, "full"]):
+                assert geometry_could_accept(specs[a], kb_probes[b, "full"]), (
                     f"{a!r} accepts {b!r}'s reads at rungs 0-2 but geometry_could_accept says no — "
                     "the necessary-condition guarantee is broken and the guard/shortlist would be unsound"
                 )
@@ -1713,7 +1800,7 @@ def test_descent_narrowing_never_drops_a_valid_spec(kb_probes: KbProbes) -> None
     specs = kb.load_all_specs()
     runnable = [s for s in specs.values() if s.backend is not None]
     for tech in kb.runnable_spec_ids():
-        wps = kb_probes[tech]
+        wps = kb_probes[tech, "full"]
         for spec in runnable:
             if length_feasible(spec, wps):  # == geometry_could_accept; the pre-gate, already here
                 continue
@@ -1800,6 +1887,7 @@ def _seated_v3(observations: list[Observation]) -> TechEvaluation:
     shas = [o.file.sha256 for o in observations]
     return TechEvaluation(
         tech="10x-3p-gex-v3",
+        read_set="full",
         roles=["R1", "R2"],
         file_shas=shas,
         matrix={},
@@ -3004,6 +3092,7 @@ def test_barcode_absent_refusal_abstains_when_a_sibling_barcoded_leaf_hits() -> 
     def ev(tech: str, hit: bool, avail: bool = True) -> TechEvaluation:
         return TechEvaluation(
             tech=tech,
+            read_set="full",
             roles=["R1", "R2"],
             file_shas=["a", "b"],
             matrix={},

@@ -79,6 +79,27 @@ score(t) = −∞ if no valid assignment exists
 argmax toward high-role-count technologies, so a six-role SPLiT-seq would beat a two-role 10x on
 cardinality alone.
 
+**`R` is the active read set's reads, and the loop over sets is INSIDE the technology evaluation.** A
+spec declares a maximal read set and may name subsets of it ([`kb.md`](kb.md)), so scoring a chemistry
+means scoring each configuration it publishes and keeping the best — which is why there is still
+exactly **one `Candidate` per spec**, and why ranking, equivalence, escalation and the divergent-tie
+machinery needed no clause saying a chemistry does not tie with itself. A forbidden set scores `−∞`, so
+validity needs no special case, and an exact tie prefers the **larger** set (it explains more of the
+data, and the order must be deterministic because the answer feeds a content-addressed artifact). A
+signature test addressed to a read outside the active set is *inapplicable*: it has no cell, so it
+enters neither the numerator nor its normalizer, which is already how a nonexistent cell behaves. The
+winning set is recorded on the `Candidate` — the resolve artifacts, where "how this was decided" lives —
+and **not** on the manifest, whose read layout already lists exactly that set's reads.
+
+**Two consequences worth carrying.** The leftover penalty is what makes a smaller set lose when it
+should: a one-role set on a two-file deposit pays `λ/1` for the mate it declined to explain, and loses
+to a barcoded incumbent whose whitelist hit by ~0.22 (measured over every single-cell leaf,
+`tests/test_kb.py`). But the penalty alone is *not* enough when the incumbent's whitelist MISSES — so
+`escalate` will not let a barcodeless top anchor the tie when it orphaned a file a valid barcoded
+candidate seats as its **barcode role**. A deposit holding a read the winning chemistry cannot seat at
+all is not that chemistry's deposit, and that is evidence living in the other file, which no gate on the
+fallback's own read could see.
+
 **The filename prior is sub-threshold by construction.** `β · prior(r, f)` is 1 when the file's
 `_1`/`_2` token matches the role's conventional slot and 0 otherwise, with `β` far below the smallest
 evaluator weight — so it can break an **exact byte-tie** and nothing else. It can never override bytes

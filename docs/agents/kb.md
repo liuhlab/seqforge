@@ -46,6 +46,22 @@ here that the model needs in order to name the node at all.
 
 ## The schema decisions a field list cannot show
 
+- **`reads` is the MAXIMAL read set, and `read_sets` names subsets of it.** A chemistry that publishes
+  more than one sequencing configuration — bulk RNA-seq run paired-end or single-end; SMART-seq3's
+  Methods name three — is **one entry**, because a read set is a list of ids `reads` already declares
+  and never a re-declaration. That is the whole reason the shape is cheap: no read's coordinates are
+  written twice, so two configurations cannot drift apart, and there is no second spec to keep in sync
+  ([ADR-0029](../adr/0029-a-spec-declares-read-sets-not-a-fixed-read-list.md)). The maximal set is
+  implicitly named `full`, which is therefore reserved; the other names are a **closed vocabulary**
+  (`ReadSetName`, a `Literal` — today just `se`), extended as deliberately as an `ElementType`, so a
+  misspelling fails at load rather than becoming a set nothing ever selects. Three rules are enforced
+  at load: a set names only declared ids, a set is non-empty and repeats nothing, and **a `requires`
+  test may address only reads present in every set** — a hard gate addressed to a read a set lacks is
+  *inapplicable* there, i.e. it silently stops gating, so a set-specific claim belongs in `supports`.
+  That last rule has no instance in the shipped KB and so is held by a negative test that builds a
+  violating spec. When you write a new predicate over a spec's reads, **decide explicitly** whether it
+  means the maximal set (canonicalization, the benign-twin comparison, "is this chemistry barcoded")
+  or any set (length feasibility, recognition); nothing in the type system asks for you.
 - **An `Element` has exactly one coherent addressing mode** — a fixed `[start, end)` XOR an `anchor`
   (a floating element) XOR `min_len`/`max_len` — enforced by a model validator. `linker` and `fixed`
   elements require a `sequence`, and an open `end: null` is allowed only for `cdna` and `gdna`.
@@ -286,12 +302,20 @@ than a wrong answer:
 `seqforge kb roundtrip` runs this and exits 3 on failure; `seqforge kb lint` validates the schema and
 the key allowlist.
 
+**The round-trip is NOT extended per read set, and that is a decision rather than an omission.** It is
+per *read*: it generates each declared read's file, probes it alone, and checks the declared lengths and
+element coordinates recover — it never runs role assignment. A read set is a subset of read ids, so its
+round-trip would re-run a strict subset of the same checks from the same seed. What a read set can get
+wrong is **recognition** — whether the set is selected at all, and which one is recorded — so that is
+what the resolve cases assert instead (`tests/test_resolve.py`).
+
 ## What the KB covers, and what it does not
 
 Recorded so that a green suite is not mistaken for full coverage. The shipped entries were chosen for
 **architectural** coverage rather than popularity — breadth before depth:
 
-- **bulk paired-end Illumina RNA-seq** — the no-barcode branch, header parsing, run and lane grouping;
+- **bulk Illumina RNA-seq, paired-end AND single-end** — the no-barcode branch, header parsing, run
+  and lane grouping, and the read-set branch (one entry, two configurations);
 - **10x 3′ GEX v2 / v3 / v3.1, GEM-X v4, Multiome GEX and ATAC** — onlist matching, technical-read
   identification, SRA mangling, and the benign-twin case;
 - **10x 5′ GEX v1/v2 and v3** — the *read-undecidable* branch: a pair that shares geometry AND

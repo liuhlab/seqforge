@@ -10,7 +10,7 @@ keys, so a typo fails validation exactly where the DSL is executed. The signatur
 from __future__ import annotations
 
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -99,6 +99,24 @@ class Read(_Forbid):
     min_len: int | None = None
     max_len: int | None = None
     elements: list[Element]
+
+
+#: The maximal read set's implicit name — ``reads`` itself, the set every other one is a subset of.
+#: RESERVED, and reserved by ABSENCE from :data:`ReadSetName`: it already names ``reads``, so binding
+#: it in ``read_sets`` would be a second declaration of the same set, free to disagree with the first.
+FULL_READ_SET: Final = "full"
+
+#: The names a spec may give a read set: a **closed vocabulary**, extended deliberately — adding a
+#: word here is the same act as adding an ``ElementType``, not a local edit. A ``Literal`` because that
+#: makes ``single_end:`` fail at spec LOAD, where every other DSL typo fails; the alternative is a read
+#: set nothing ever selects, on an entry that reads as though it declared two configurations.
+#:
+#: ``se`` is the whole vocabulary today, and it covers the case the feature was built for: a protocol
+#: that publishes a single-end configuration beside its paired-end one (bulk RNA-seq; SMART-seq3's
+#: Methods publish "75-bp single end, 50-bp single end or 150-bp paired end" verbatim). Note what is
+#: NOT here and must not be added: nothing naming how many files a DEPOSIT happens to hold. A read set
+#: is a configuration the chemistry publishes, and the bytes choose between them.
+ReadSetName = Literal["se"]
 
 
 class OnlistRef(_Forbid):
@@ -313,7 +331,15 @@ class Spec(_Forbid):
 
     schema_version: int
     identity: Identity
+    #: The **maximal** read set, implicitly named :data:`FULL_READ_SET`. Unchanged by read sets: a read
+    #: is declared here exactly once, whichever configurations use it.
     reads: list[Read]
+    #: Named SUBSETS of ``reads`` — the alternative sequencing configurations this one chemistry
+    #: publishes, so a paired-end and a single-end run of one protocol are one entry rather than two.
+    #: Each value is a list of ids ``reads`` already declares, **never a re-declaration**: that is the
+    #: whole of why the shape is cheap, since no read's coordinates are written twice and two
+    #: configurations of one chemistry cannot drift apart. Empty is the ordinary case.
+    read_sets: dict[ReadSetName, list[str]] = Field(default_factory=dict)
     onlists: dict[str, OnlistRef]
     signature: Signature
     #: The runnable STARsolo/STAR template. ``None`` on an ABSTRACT family node — a classifier that
@@ -343,6 +369,40 @@ class Spec(_Forbid):
                 "only leaves and runnable families compile"
             )
         return self.backend
+
+    def read_set_names(self) -> list[str]:
+        """Every read set this spec offers — the **maximal set first**, then the declared subsets sorted.
+
+        The order is not cosmetic: it is the tie-break. Scoring keeps the best-scoring set and an exact
+        tie prefers the LARGER one (it explains more of the data), which falls out of visiting the
+        maximal set first and replacing only on a strict improvement. Two subsets of equal size are
+        ordered by name, so the answer is deterministic — it feeds a content-addressed artifact, and a
+        winner that depended on dict iteration order would re-key a dataset for no reason.
+        """
+        return [FULL_READ_SET, *sorted(self.read_sets)]
+
+    def reads_in(self, read_set: str) -> list[Read]:
+        """The reads of one named set, in ``reads`` declaration order.
+
+        Declaration order rather than the order the set lists, because a read set is a SET of ids: the
+        reads it names are the same reads whichever way round they were typed, and role placement is
+        the composer's business (``read_files_in``) rather than a set's. An unknown name raises — the
+        names are a closed vocabulary validated at load, so reaching here with one is a code defect.
+        """
+        if read_set == FULL_READ_SET:
+            return list(self.reads)
+        # Matched by iteration rather than by `.get`, because the mapping's keys are the closed
+        # `ReadSetName` Literal while a caller holds a set NAME read off an evaluation or a candidate,
+        # which is a plain `str`. Narrowing it back to the Literal at every call site would push the
+        # closed vocabulary out of the schema and into its consumers.
+        ids = next((v for name, v in self.read_sets.items() if name == read_set), None)
+        if ids is None:
+            raise ValueError(
+                f"{self.identity.id!r} declares no read set {read_set!r} "
+                f"(it has {self.read_set_names()})"
+            )
+        wanted = set(ids)
+        return [r for r in self.reads if r.id in wanted]
 
     @property
     def decidable_by(self) -> list[Decidable]:
@@ -424,4 +484,60 @@ class Spec(_Forbid):
 
         if self.backend is not None:
             self.backend.check_tokens(aliases)
+        return self
+
+    @model_validator(mode="after")
+    def _read_sets_are_subsets(self) -> Spec:
+        """A read set names ids ``reads`` already declares, and a ``requires`` gate reaches every set.
+
+        Three refusals, all at LOAD — which is where every other DSL mistake in this file dies, and the
+        reason the feature cannot be got wrong slowly:
+
+        1. **an undeclared id.** A read set is a subset, so a name with no ``Read`` behind it would
+           reach the scorer as a role it cannot look up: a ``KeyError`` mid-scoring rather than a
+           refusal on the file that is wrong.
+        2. **an empty set, or a repeated id.** A set with no roles can be assigned nothing and can
+           never win; a repeated id would make one read two roles, which injectivity would then seat on
+           two different files — the same FASTQ counted twice, at exit 0.
+        3. **a ``requires`` gate a set cannot reach.** A test whose read is absent from the active set
+           is *inapplicable*: it has no cell, so it enters neither the score numerator nor its
+           normalizer, exactly as a nonexistent cell already behaves. That is right for evidence and
+           wrong for a hard AND-gate — the gate would silently stop gating for the sets that lack the
+           read, which is a claim the spec appears to make and does not. So a ``requires`` test may
+           address only reads present in EVERY declared set, and a set-specific claim belongs in
+           ``supports``, where losing the read loses evidence rather than a gate.
+
+        ``excludes`` is deliberately NOT held to the same rule: an anti-gate that cannot fire admits
+        more, and the smaller set is already penalized for what it leaves behind (``λ/|R|`` per orphaned
+        file, which bites harder the fewer roles it has). Making excludes universal too would forbid
+        the ordinary shape where the maximal set anti-gates a read only it declares.
+        """
+        if not self.read_sets:
+            return self
+        declared = {r.id for r in self.reads}
+        for name, ids in self.read_sets.items():
+            if not ids:
+                raise ValueError(
+                    f"read set {name!r} is empty: a set with no reads has no roles to assign"
+                )
+            if len(set(ids)) != len(ids):
+                raise ValueError(f"read set {name!r} repeats a read id: {ids}")
+            unknown = sorted(set(ids) - declared)
+            if unknown:
+                raise ValueError(
+                    f"read set {name!r} names read(s) {unknown} that this spec does not declare — "
+                    f"a read set is a SUBSET of {sorted(declared)}, never a second declaration"
+                )
+        universal = set.intersection(*(set(ids) for ids in self.read_sets.values()), declared)
+        for t in self.signature.requires:
+            role = getattr(t, "read", None)
+            if role is None or role in universal:
+                continue
+            missing = sorted(n for n, ids in self.read_sets.items() if role not in ids)
+            raise ValueError(
+                f"the requires test {getattr(t, 'test', '?')!r} gates read {role!r}, which read "
+                f"set(s) {missing} do not have. A requires test is a hard gate, and one addressed to "
+                f"a read a set lacks is inapplicable there — it would silently stop gating. Move it "
+                f"to `supports` (where a set-specific claim belongs), or address a read every set has."
+            )
         return self
