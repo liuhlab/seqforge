@@ -95,10 +95,20 @@ and **not** on the manifest, whose read layout already lists exactly that set's 
 should: a one-role set on a two-file deposit pays `λ/1` for the mate it declined to explain, and loses
 to a barcoded incumbent whose whitelist hit by ~0.22 (measured over every single-cell leaf,
 `tests/test_kb.py`). But the penalty alone is *not* enough when the incumbent's whitelist MISSES — so
-`escalate` will not let a barcodeless top anchor the tie when it orphaned a file a valid barcoded
-candidate seats as its **barcode role**. A deposit holding a read the winning chemistry cannot seat at
-all is not that chemistry's deposit, and that is evidence living in the other file, which no gate on the
-fallback's own read could see.
+`escalate` will not let a barcodeless top anchor the tie when its **proper-subset** read set orphaned a
+file a valid barcoded candidate seats as its **barcode role**. A deposit holding a read the winning
+chemistry cannot seat at all is not that chemistry's deposit, and that is evidence living in the other
+file, which no gate on the fallback's own read could see. The barcoded candidate then anchors the band,
+so it is inside it whatever the fallback scored, and the pair becomes a divergent tie: the resolver
+**asks** instead of deciding.
+
+That last sentence is also why the CI under-declaration guard reads the same predicate
+(`confuse.seats_a_file_the_fallback_dropped`, which is where it lives so both can). The guard's whole
+danger is *"the resolver would pick one and never ask"*, and on those pairs that is now false; a guard
+that demanded a `confusable_with` edge anyway would be requiring a declaration for a danger the
+resolver averts. Scoping the rule to a proper subset is what keeps its blast radius equal to the
+feature that introduced it — every pair that predates read sets scores, ranks and escalates
+byte-identically.
 
 **The filename prior is sub-threshold by construction.** `β · prior(r, f)` is 1 when the file's
 `_1`/`_2` token matches the role's conventional slot and 0 otherwise, with `β` far below the smallest

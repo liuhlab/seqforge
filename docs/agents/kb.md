@@ -237,6 +237,18 @@ them. There is no hand-maintained truth table.
    `rung02_margin` the number under it; bulk's five edges are re-derived from that margin in
    `tests/test_kb.py`, because the sweep itself skips a declared pair and so cannot notice one that
    stopped being true.
+
+   **And outranking is not sufficient either, because the guard's danger is "would pick one and never
+   ask".** A read set that ORPHANS the file the incumbent seats as its barcode read does not get to
+   anchor the tie band, so the resolver raises a divergent-tie question on that pair rather than
+   deciding it — the guard reads `seats_a_file_the_fallback_dropped`, the same predicate `escalate`
+   acts on, so a proxy for a runtime behaviour cannot drift from the behaviour. Without the exemption
+   `bulk-rnaseq`'s single-end set would demand an edge to all seven of the 28 bp-barcode leaves at
+   +0.09, which is that "edge to almost the whole KB" arriving by another route. The exemption is
+   scoped to a **proper-subset** read set, so it retires nothing that predates read sets:
+   `bulk-rnaseq` → `10x-multiome-atac` orphans a barcode read from its maximal set and still derives.
+   `test_the_orphan_exemption_is_not_a_blanket_one` strips bulk's edges and pins exactly which five
+   come back flagged — an exemption nobody has watched fail may be swallowing everything.
 2. **Do their onlists separate them?** True only if the two whitelists have a low cross-hit rate,
    computed by an actual set intersection over the packed barcode arrays — **not** by comparing
    checksums. Different hashes prove the files differ, not that the barcode sets differ, and a

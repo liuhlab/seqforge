@@ -34,7 +34,17 @@ from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
-from .confuse import is_processing_equivalent, narrows_to, same_family, sibling_decided_by
+from .confuse import (
+    is_processing_equivalent,
+    narrows_to,
+    same_family,
+    # The runtime half of the orphan rule, imported from where the CI guard also reads it. It lives in
+    # `confuse` rather than here because the under-declaration guard's question — "would the resolver
+    # pick one and never ask?" — is answered by this predicate, and a second copy of it is the copy
+    # that drifts from the behaviour it claims to model.
+    seats_a_file_the_fallback_dropped,
+    sibling_decided_by,
+)
 from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
@@ -121,7 +131,7 @@ def escalate(
         barcoded = [e for e in valid if _barcode_read_id(specs[e.tech]) is not None]
         hit = next((e for e in barcoded if e.barcode_onlist_hit), None)
         seats_dropped = next(
-            (e for e in barcoded if _seats_a_file_the_fallback_dropped(e, anchor, specs[e.tech])),
+            (e for e in barcoded if seats_a_file_the_fallback_dropped(e, anchor, specs[e.tech])),
             None,
         )
         anchor = hit or seats_dropped or anchor
@@ -312,33 +322,6 @@ def _pretrimmed_blockers(
             )
         )
     return blockers
-
-
-def _seats_a_file_the_fallback_dropped(
-    barcoded: TechEvaluation, fallback: TechEvaluation, barcoded_spec: Spec
-) -> bool:
-    """Does ``barcoded`` seat its BARCODE role on a file the barcodeless ``fallback`` left unassigned?
-
-    The predicate that stops a fewer-file read set from winning a deposit it does not explain. A
-    barcodeless fallback that orphans a file another candidate calls a barcode read has not accounted
-    for the deposit: a single-end bulk library produces one biological read per run and nothing else,
-    so a 28 bp neighbour is evidence that this is not one — evidence that lives in the OTHER file, which
-    is why no gate on the fallback's own read could ever see it.
-
-    Deliberately about the orphan and not about the score. The leftover penalty (``λ/|R|`` per orphaned
-    file) already prices an unexplained file, and at ``λ = 0.25`` on a one-role set that price is too low
-    to beat a two-role candidate whose whitelist came up empty. Raising ``λ`` would re-price every
-    assignment in the KB to fix one shape; asking whether the file was explained is the same question
-    without the collateral.
-    """
-    bc = _barcode_read_id(barcoded_spec)
-    if bc is None:
-        return False
-    sha = barcoded.role_assignment_shas().get(bc)
-    if sha is None:
-        return False
-    dropped = {fallback.file_shas[f] for f in fallback.assignment.unassigned_files}
-    return sha in dropped
 
 
 def _barcodeless_seated_blocker(

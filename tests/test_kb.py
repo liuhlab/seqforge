@@ -758,6 +758,14 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
     new. `length_feasible` is proven necessary for validity (geometry.py), hence necessary here; a
     geometry-NO pair cannot outrank. `test_geometry_could_accept_is_necessary_for_rung02_acceptance`
     holds the premise over every shipped pair.
+
+    **And a higher score is not the whole of "would pick one and never ask"** (ADR-0029). A read set
+    that ORPHANS the file the incumbent seats as its barcode read does not get to anchor the tie band,
+    so the resolver raises a divergent-tie question on those pairs rather than deciding — measured, at
+    rungs 0-2, over the eight pairs where it fires. `could_outrank_at_rungs_0_2` therefore reads
+    `seats_a_file_the_fallback_dropped`, the SAME predicate `escalate` acts on, and demanding an edge
+    for a danger the resolver already averts would be this guard becoming the formality it exists to
+    prevent. `test_the_orphan_exemption_is_not_a_blanket_one` holds it open at both ends.
     """
     from seqforge.resolve.confuse import could_outrank_at_rungs_0_2, is_tree_kin, rung02_margin
     from seqforge.resolve.geometry import geometry_could_accept
@@ -786,6 +794,54 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
                     f"parent) — the resolver would pick one and never ask"
                 )
     assert not undeclared, "under-declaration:\n" + "\n".join(undeclared)
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
+    """Prove the guard still FIRES with the exemption in place, and fires on exactly the right pairs.
+
+    An exemption nobody has watched fail is an exemption that may be swallowing everything, and this
+    one sits inside the only CI error the confusability contract has. So the perturbation: **strip
+    `bulk-rnaseq`'s five declared edges** in memory and re-ask the guard's question. Five of its pairs
+    must come back flagged — the ones where the fallback explains every file and the resolver really
+    would pick it and never ask — and the 10x cohort must not, because there the fallback orphans the
+    barcode read and the resolver asks.
+
+    That split is the whole claim, and it is what makes the exemption legible as targeted rather than
+    total: it turns on whether the file was EXPLAINED, not on who scored higher. `splitseq` and the
+    three BD beads put their barcode read at 60-94 bp, which bulk's 40 bp floor admits, so bulk's
+    maximal set seats both files and orphans nothing. `10x-multiome-atac` orphans its 24 bp barcode
+    read — but from the MAXIMAL set, and the exemption is scoped to a proper-subset read set, so a
+    rule introduced by read sets cannot retire an edge that predates them.
+
+    Deleting a spec's edges is exactly how `test_a_declared_twin_that_diverges_would_be_caught` proves
+    the benign-twin gate fires, and it is the same reason here: a guard that has never been seen to go
+    red is a guard nobody knows is connected.
+    """
+    from seqforge.resolve.confuse import could_outrank_at_rungs_0_2
+    from seqforge.resolve.geometry import geometry_could_accept
+
+    specs = kb.load_all_specs()
+    undeclared_bulk = specs["bulk-rnaseq"].model_copy(update={"confusable_with": []})
+    flagged = {
+        b
+        for b in kb.build_tree(specs).leaves()
+        if b != "bulk-rnaseq"
+        and geometry_could_accept(undeclared_bulk, kb_probes[b, "full"])
+        and could_outrank_at_rungs_0_2(undeclared_bulk, specs[b], kb_probes[b, "full"])
+    }
+
+    assert flagged == {
+        "splitseq",
+        "bd-rhapsody-wta",
+        "bd-rhapsody-wta-enhanced-v1",
+        "bd-rhapsody-wta-enhanced-v2",
+        "10x-multiome-atac",
+    }, (
+        f"an undeclared bulk must still be caught against the five leaves whose data it fully "
+        f"explains; got {sorted(flagged)}. Too few means the exemption is swallowing real danger, "
+        f"too many means it stopped applying where the resolver genuinely asks."
+    )
 
 
 def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
