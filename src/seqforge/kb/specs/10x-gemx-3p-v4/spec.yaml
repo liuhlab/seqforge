@@ -55,7 +55,6 @@ onlists:
 
 signature:
   requires:                      # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
-    - {test: read_count, roles: 2}
     # Identical to v3's gate. v4 and v3 share every structural rung by construction — the whitelist at
     # rung 3 is the entire separation, which is what `distinguishable_by: [onlist]` claims below.
     - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}

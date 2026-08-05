@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import assert_never
 
 from ..io import OnlistNotAvailable, OnlistRegistry
 from ..kb.schema import (
@@ -29,6 +30,7 @@ from ..kb.schema import (
     Read,
     SegmentLength,
     Spec,
+    Test,
 )
 from ..models.observation import CycleComposition
 from .window import WindowProbe
@@ -139,9 +141,18 @@ def _mean_base_fraction(wp: WindowProbe, start: int, end: int | None, base: str)
 
 
 def evaluate(
-    test: object, read: Read, wp: WindowProbe, spec: Spec, registry: OnlistRegistry
+    test: Test, read: Read, wp: WindowProbe, spec: Spec, registry: OnlistRegistry
 ) -> Evaluation:
-    """Evaluate one signature test against a file's :class:`WindowProbe`."""
+    """Evaluate one signature test against a file's :class:`WindowProbe`.
+
+    ``test`` is the KB's ``Test`` union rather than ``object``, and the dispatch ends in
+    ``assert_never`` rather than in a default: the union is the DSL's whole vocabulary, so a member
+    with no branch here is a spec key the scorer silently ignores. The default was
+    ``Evaluation(ABSTAIN, 0.0, "not a per-cell test")``, and it is what let ``read_count`` read as a
+    gate in all 16 shipped signatures while gating nothing, with nothing anywhere going red (#276).
+    Adding a word to the DSL is now a type error here until the scorer is given a meaning for it —
+    the shape ``compose/core.py``'s ``_read_files_in`` takes, for the same reason.
+    """
     if isinstance(test, SegmentLength):
         return _eval_segment_length(test, wp)
     if isinstance(test, HasSegment):
@@ -156,8 +167,7 @@ def evaluate(
         return _eval_base_composition(test, read, wp)
     if isinstance(test, HeaderIndex):
         return _eval_header_index(test, wp)
-    # read_count is a dataset-level global, handled by the assignment feasibility check.
-    return Evaluation(Outcome.ABSTAIN, 0.0, "not a per-cell test")
+    assert_never(test)
 
 
 def _eval_segment_length(test: SegmentLength, wp: WindowProbe) -> Evaluation:

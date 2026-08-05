@@ -49,7 +49,6 @@ signature:
   # Coarse recognition only — enough to admit any 10x 3' child at rungs 0-2 and to reject bulk (whose
   # R1 is a long cDNA, not a 16 bp CB in a 26-28 bp read). NO exact segment_length: 26 and 28 both pass.
   requires:
-    - {test: read_count, roles: 2}
     - {test: has_segment, read: R1, start: 0, end: 16, kind: random}
   supports:
     - when: {test: distinct_ratio, read: R1, start: 0, end: 16, expect: low}
