@@ -323,7 +323,8 @@ def _size_disagreement(
 
     It comes from ``stat()`` and reads no FASTQ, which is why it is here at all: the md5 on the same
     record element would answer the same question far better and costs every byte of the file to
-    check, so R3 rules it out and the size catches most of what it would have caught for nothing.
+    check, so the read budget rules it out and the size catches most of what it would have caught for
+    nothing.
 
     A recompression is the likeliest cause and is harmless; a truncated download is the one worth
     catching; a different file that happens to share a common name (``sample1_R1.fastq.gz``) is the
@@ -372,8 +373,8 @@ def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
     *most* deposits publish no originals, so an empty list can never be the signal by itself.
     """
     declared = sorted({r.accession for r in records.at("run")})
-    #: The check-the-files remedy, which is the tail of both: even a re-fetch can only get you back
-    #: to this question, so it is stated once rather than diverging between the two branches.
+    # The check-the-files remedy, which is the tail of both: even a re-fetch can only get you back
+    # to this question, so it is stated once rather than diverging between the two branches.
     on_disk = (
         "the files are not from this accession, or they were renamed after download: check the "
         "accession, or re-fetch them with a tool that keeps the run accession in the filename "

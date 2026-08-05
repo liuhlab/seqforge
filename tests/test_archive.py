@@ -426,11 +426,12 @@ def test_a_freshly_fetched_record_set_carries_the_version_that_wrote_it(
 
 
 def test_a_record_set_written_before_submitted_files_loads_and_reads_as_unstamped() -> None:
-    """Every committed benchmark transcript was written when `filenames` was the stored field.
+    """Every committed benchmark transcript predates the writer stamp, and still reads as unstamped.
 
-    They are real caches in the shape the field rename changes, so they are the evidence that the
-    rename is readable rather than a migration: the names still arrive, and the set reads as
-    unstamped — which is what a resolver refusing a stale cache has to be able to see.
+    They were migrated to `submitted_files` in the same change that introduced it — the legacy key is
+    deliberately not accepted on input — so what they prove is the *stamp* half and not the rename:
+    the absence of `io_version` survives a round trip, which is what a resolver refusing a stale cache
+    has to be able to see. Their names arriving is the migration's own guarantee, held one test up.
     """
     benchmark = Path(__file__).resolve().parents[1] / "evals" / "benchmark"
     committed = sorted(benchmark.glob("*/records.json"))

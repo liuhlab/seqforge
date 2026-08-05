@@ -84,8 +84,8 @@ class SubmittedFile(BaseModel):
     filename: str
     #: The **provider's** md5 over the bytes at ``uri`` — an address, adopted via
     #: ``content_key_from_md5`` if those bytes are ever fetched. It is never computed here and never
-    #: compared against a file on disk: doing that means reading every byte of a FASTQ, which R3
-    #: forbids and #37 removed once already.
+    #: compared against a file on disk: doing that means reading a FASTQ end to end, which the read
+    #: budget forbids — and #37 already removed one whole-file hash for that reason.
     md5: str | None = None
     #: What the archive says the upload weighed. It *checks* a join the filename already made and
     #: never makes one, because matching on a size is a coincidence over a fact the archive supplied.

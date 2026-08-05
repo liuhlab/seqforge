@@ -66,7 +66,7 @@ path ever hashes a local file to compare against it.**
 | **`submitted_files`** | replaces `filenames` as the *stored* field: `SubmittedFile(filename, md5, size_bytes, uri)`. `filenames` survives as a **derived property** over it, so nothing stores the same names twice and the join keeps its shape |
 | **the md5** | an **address** over the bytes at `uri`, adopted via `content_key_from_md5` if those bytes are ever fetched. Never computed, never verified, never compared against a local file |
 | **the size** | **checks, never joins.** Where `_join` matched a file by the submitter's filename, a size disagreement is a `Warning`; a size never *creates* a join, because the archive supplied a fact and matching on a coincidence would be a guess over it |
-| **the uri** | printed where the record set is in hand — `io records`, and the record-join blocker. The five remedies point at that verb and never carry the value |
+| **the uri** | printed by `io records` and nowhere else. Every refusal — including the record-join blocker, which *does* hold a record set — names that verb instead, so there is one place to look rather than a value that may or may not be inlined depending on which stage refused |
 | **a record set** | carries the stamp of the version that wrote it, so a cache predating this is distinguishable from a deposit that legitimately publishes no originals — most do |
 | **ENA** | `submitted_md5` joins the requested field list and surfaces in `io resolve`. Same concept, same word, one surface earlier |
 

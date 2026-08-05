@@ -13,7 +13,13 @@ the rule most expensive to get wrong, so it is enforced twice.
 
 from __future__ import annotations
 
-from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
+from ..models.blocker import (
+    MISSING_TECHNICAL_READ_REMEDY,
+    Blocker,
+    BlockerCode,
+    BlockerSubject,
+    ValidationWarning,
+)
 from ..models.conflict import Conflict
 from ..models.dataset import INDEX_ROLE, DatasetManifest
 from ..models.processing import ProcessingManifest
@@ -142,12 +148,7 @@ def validate_manifest(
                     # print. That is the pointer `docs/adr/0033` asks for, and it is also all this
                     # function could honestly carry: a manifest names no host and no absolute path,
                     # so there is no local answer here to bake in even if we wanted one.
-                    remedy=(
-                        "Re-fetch with `fasterq-dump --include-technical`, or go back for the "
-                        "submitter's own upload: `seqforge io records <accession>` lists what the "
-                        "deposit declares, each file with its `sra-pub-src-*` URI. The SDL API "
-                        "reaches those same bytes by another route."
-                    ),
+                    remedy=MISSING_TECHNICAL_READ_REMEDY,
                     subject=BlockerSubject(kind="field", ref=f"library.read_layout.{role}"),
                 )
             )

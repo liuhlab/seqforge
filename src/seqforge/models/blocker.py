@@ -79,3 +79,23 @@ class ValidationWarning(BaseModel):
     code: str
     message: str
     subject: BlockerSubject
+
+
+#: Where to get the submitter's own upload, in the one phrasing five refusals share. It names the
+#: **verb** and never the URI: three of those refusals are raised inside the byte resolver, which may
+#: not hold an archive record, so a remedy carrying the value would first have to be handed one
+#: (``docs/adr/0033``). It lives here because ``_missing_technical_read`` said it first and said it
+#: correctly — two copies of this sentence would be two remedies to keep true — and by the time the
+#: fifth site was found there were four, one of them still naming a route that usually dead-ends.
+SUBMITTED_FILES_REMEDY = (
+    "`seqforge io records <accession>` lists what the deposit declares, each file with its "
+    "`sra-pub-src-*` URI"
+)
+
+#: The whole remedy for ``MISSING_TECHNICAL_READ``, which the byte resolver and the manifest
+#: validator both raise. One code reached from two places is one instruction, not two that happen to
+#: agree today.
+MISSING_TECHNICAL_READ_REMEDY = (
+    "Re-fetch with `fasterq-dump --include-technical`, or go back for the submitter's own upload: "
+    f"{SUBMITTED_FILES_REMEDY}. The SDL API reaches those same bytes by another route."
+)

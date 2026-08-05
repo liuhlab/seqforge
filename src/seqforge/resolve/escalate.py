@@ -30,7 +30,13 @@ from dataclasses import dataclass, field
 
 from ..kb.match import resolve_chemistry_id
 from ..kb.schema import FULL_READ_SET, Read, SegmentLength, Spec
-from ..models.blocker import Blocker, BlockerCode, BlockerSubject
+from ..models.blocker import (
+    MISSING_TECHNICAL_READ_REMEDY,
+    SUBMITTED_FILES_REMEDY,
+    Blocker,
+    BlockerCode,
+    BlockerSubject,
+)
 from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
@@ -326,9 +332,8 @@ def _pretrimmed_blockers(
                 # in to print the concrete URI would put archive facts inside the byte resolver
                 # (`docs/adr/0033`).
                 remedy=(
-                    "Re-fetch the untrimmed original — `seqforge io records <accession>` lists the "
-                    "submitter's own uploads, each with the `sra-pub-src-*` URI SRA preserves them "
-                    "at — or confirm the technical read was excluded from trimming and re-probe."
+                    f"Re-fetch the untrimmed original — {SUBMITTED_FILES_REMEDY} — or confirm the "
+                    "technical read was excluded from trimming and re-probe."
                 ),
                 subject=BlockerSubject(kind="file", ref=ref),
                 evidence=[obs.file.sha256],
@@ -377,9 +382,8 @@ def _barcodeless_seated_blocker(
         # stale one names the route that only *might* have the file over the one already on disk.
         remedy=(
             "Confirm the barcode/technical read was included — SRA drops it unless dumped with "
-            "`fasterq-dump --include-technical`. If it was stripped, go back for the submitter's own "
-            "upload: `seqforge io records <accession>` lists what the deposit declares, each file "
-            "with its `sra-pub-src-*` URI. Then re-probe."
+            f"`fasterq-dump --include-technical`. If it was stripped, {SUBMITTED_FILES_REMEDY}. "
+            "Then re-probe."
         ),
         subject=BlockerSubject(kind="dataset", ref=top.tech),
     )
@@ -476,11 +480,7 @@ def _missing_technical_read(hyp_tech: str) -> Blocker:
             f"Metadata asserts {hyp_tech} (single-cell), but the technical/barcode read is "
             "absent — only a cDNA-shaped read is present."
         ),
-        remedy=(
-            "Re-fetch with `fasterq-dump --include-technical`, or go back for the submitter's own "
-            "upload: `seqforge io records <accession>` lists what the deposit declares, each file "
-            "with its `sra-pub-src-*` URI. The SDL API reaches those same bytes by another route."
-        ),
+        remedy=MISSING_TECHNICAL_READ_REMEDY,
         subject=BlockerSubject(kind="dataset", ref=hyp_tech),
     )
 
