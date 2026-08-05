@@ -34,6 +34,11 @@ io_app.add_typer(onlist_app, name="onlist")
 resolve_app = typer.Typer(help="Score bytes + KB into a ranked, escalated chemistry decision.")
 app.add_typer(resolve_app, name="resolve")
 
+records_app = typer.Typer(
+    help="The record set: which files compile together. A local file, never a fetch."
+)
+app.add_typer(records_app, name="records")
+
 manifest_app = typer.Typer(
     help="The DATASET manifest: what the data IS. Immutable, one per dataset."
 )

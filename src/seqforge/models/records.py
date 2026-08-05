@@ -33,6 +33,17 @@ from pydantic import BaseModel, ConfigDict, Field
 #: files. Other archives use other words for the same four things.
 RecordLevel = Literal["project", "sample", "experiment", "run"]
 
+#: The ``source`` of a set a **human wrote** about their own pre-deposit data, rather than one
+#: transcribed from an archive. It lives beside the field it is a value of, because a string literal
+#: repeated across modules is a chance to typo a decision — and this one decides which dialect the
+#: loader enforces, whether fusing runs is remarkable, and where a refusal sends its reader
+#: (`docs/adr/0034`).
+#:
+#: **Read it through** :attr:`ArchiveRecordSet.declared_by_hand`, which is the question those
+#: consumers are actually asking. What is left for the constant is the loader: it dispatches on the
+#: raw ``source`` of a mapping that is not yet a model, and it writes the value back out.
+USER_SOURCE = "user"
+
 
 class FreeText(BaseModel):
     """One piece of prose from a record, and what the archive called it.
@@ -153,6 +164,21 @@ class ArchiveRecordSet(BaseModel):
     #: came off disk keeps whatever stamp it was written with.
     io_version: str | None = None
 
+    @property
+    def declared_by_hand(self) -> bool:
+        """Did a human write this set about their own data, rather than a transcriber fetch it?
+
+        The question three consumers actually ask, named once here rather than re-derived from
+        ``source`` at each of them. Every one of the three is a *decision* — which dialect the loader
+        enforces, whether fusing runs is worth a note or is the archive's ordinary shape, and whether
+        a refusal's remedy should send its reader to an archive — so a string comparison spelled out
+        three times is three places for one decision to drift, and nothing would go red when it did.
+
+        It reads ``source`` and does not replace it: ``source`` records *which* archive a set came
+        from, of which "a human" is one value, and the loader still has to write that value.
+        """
+        return self.source == USER_SOURCE
+
     def at(self, level: RecordLevel) -> list[ArchiveRecord]:
         return [r for r in self.records if r.level == level]
 
@@ -180,6 +206,7 @@ class ArchiveRecordSet(BaseModel):
 
 __all__ = [
     "RecordLevel",
+    "USER_SOURCE",
     "FreeText",
     "RecordAttribute",
     "SubmittedFile",

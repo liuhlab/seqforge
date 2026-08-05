@@ -1311,6 +1311,61 @@ def test_a_record_with_nothing_to_read_or_nothing_to_ask_costs_no_call() -> None
     assert plan.estimated_input_tokens == 0, "no call, no stable prefix to pay for"
 
 
+def test_a_structure_only_record_set_plans_nothing_and_asks_nobody(tmp_path: Path) -> None:
+    """The plan a hand-written record set produces — an empty one — and the fan-out over it.
+
+    A `source: user` set declares which files compile together and never a fact about what a sample
+    was, so it carries no prose at all: every record fails `_worth_asking` and the send list comes
+    back empty. That is the intended shape of the case the file exists for — an in-house dataset with
+    no accession and no paper — and not a degraded one, so the whole pipeline below it has to treat
+    an empty plan as an answer rather than as an input it never expected.
+
+    **Asks nobody, and that is the half that was missing.** With no batches there is no request, so a
+    provider that raises when it is touched still yields a clean empty list of outcomes. Zero
+    outcomes is precisely what `harvest extract` used to be unable to survive — the loop that builds
+    the extractor never ran and the verify step then asserted on the `None` it was left holding.
+
+    Read through the real loader, because the container model does not enforce the hand-written
+    dialect: a set built directly could carry exactly the free text this test is about the absence of.
+    """
+    import yaml
+
+    from seqforge.harvest import extract_planned, plan_extraction
+    from seqforge.recordset import load_record_set
+
+    path = tmp_path / "records.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "source": "user",
+                "query": "plateA",
+                "records": [
+                    {"level": "sample", "id": "lib01"},
+                    *(
+                        {
+                            "level": "run",
+                            "id": f"plateA_S{n}",
+                            "parent": "lib01",
+                            "filenames": [f"plateA_S{n}_L001_R1_001.fastq.gz"],
+                        }
+                        for n in (1, 3)
+                    ),
+                ],
+            }
+        )
+    )
+    plan = plan_extraction(records=load_record_set(path), system_prompt_chars=9_000)
+
+    assert plan.n_documents == 0 and plan.n_records_read == 0
+    assert plan.n_requests == 0, "and therefore no request to price"
+    assert plan.estimated_input_tokens == 0, "not even the stable prefix, which is paid per request"
+    assert plan.report().documents == [], "a dry run says the same thing, in the same shape"
+
+    provider = _FakeProvider(AssertionError("an empty plan must not reach a provider"))
+    assert extract_planned(plan, kb.load_all_specs(), provider=provider) == []
+    assert provider.captured == {}, "no request was built, let alone sent"
+
+
 def test_the_plan_charges_the_stable_prefix_once_per_request(tmp_path: Path) -> None:
     """The prefix is ~9 KB and byte-identical on every request, so N requests pay it N times. That is
     the arithmetic that makes a fan-out over one-line aliases expensive, and a plan that only counted

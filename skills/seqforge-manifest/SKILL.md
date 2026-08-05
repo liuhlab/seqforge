@@ -60,6 +60,14 @@ that exits 3. You asked for those facts, and a manifest is content-addressed and
 quietly omitting them would bake the omission in. `--offline` with `--accession` refuses for the same
 reason; fetch once with `seqforge io records` and pass `--records`.
 
+**`--records` also takes a file a human wrote, and that is what it was built for.** A filename cannot
+say two runs are one library — `_S1` and `_S3` on one flowcell compile as two half-depth samples at
+exit 0 — so for in-house data with no accession, `seqforge records new <fastq dir>` drafts a record
+set (one sample per run: a no-op until you edit it, and it comments the pairs it will not decide) and
+`seqforge records validate` says what the edited file declares. It declares **structure only** —
+`level`, `id`, `parent`, `filenames` — and an attribute typed there is refused at parse. A fact about
+a sample goes in a README that `seqforge harvest` reads, because it has to arrive with a span.
+
 **`--assertions` is how prose reaches the manifest.** Without it the model might as well not have run:
 `harvest extract` writes `seqforge/assertions.json` and nothing read it. Pass
 `harvest extract --records` too, and each archive record becomes its own document — which is how a

@@ -48,6 +48,13 @@ class BlockerCode(StrEnum):
     #: sample facts, and a manifest that is confidently right about four samples and silent about two
     #: reads as a manifest about six.
     RECORD_JOIN_INCOMPLETE = "RECORD_JOIN_INCOMPLETE"
+    #: A ``--records`` file is not a legal record set at all, so nothing could be joined WITH. Refused
+    #: at parse, one blocker per problem. Distinct from RECORD_JOIN_INCOMPLETE, which is a well-formed
+    #: set that fails to account for the files on disk: that one is answered by re-fetching or by
+    #: checking the download, this one by editing the file in front of you. The strict half is the
+    #: hand-written dialect, where an ``attributes`` key would hand an unverifiable line the standing
+    #: an archive's typed slot has — see ``recordset.py`` for why that is a refusal and not a warning.
+    RECORD_SET_INVALID = "RECORD_SET_INVALID"
     #: One run reached the ceiling on the tokens it may spend at the model seam, so the request that
     #: would have followed was refused and the extraction is incomplete. A ceiling that only warned
     #: would be a number nobody sets: the run it exists to stop is exactly the run whose warning
