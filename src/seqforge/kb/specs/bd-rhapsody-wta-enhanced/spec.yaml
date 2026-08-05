@@ -84,7 +84,6 @@ signature:
   # `GTGANNNNNNNNNGACA` = GTGA + CLS2(9N) + GACA, searched across the 0-3 bp insert stagger (start
   # positions 8-13), tolerating 2 substitutions. NO onlist here (that is the children's job).
   requires:
-    - {test: read_count, roles: 2}
     - {test: motif_present, read: bc, motif: "GTGANNNNNNNNNGACA", where: window,
        search_start: 8, search_end: 13, max_mismatch: 2, min_rate: 0.5}
   supports:

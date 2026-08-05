@@ -44,7 +44,6 @@ onlists:
 
 signature:
   requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
-    - {test: read_count, roles: 2}
     # Identical to v3: length 28 stays exact for canonical reads; over_length_min 100 admits a
     # full-length over-sequenced R1 without loosening 26-vs-28. Multiome GEX and v3 share this gate —
     # they are told apart only at rung 3 by which whitelist hits, which is exactly the divergent-tie

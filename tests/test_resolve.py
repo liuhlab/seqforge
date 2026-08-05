@@ -470,11 +470,7 @@ def _mini_spec(tech_id: str, confusables: list[dict[str, Any]] | None = None) ->
             },
         ],
         "onlists": {"wl": {"registry": f"reg-{tech_id}", "role": "cell_barcode"}},
-        "signature": {
-            "requires": [{"test": "read_count", "roles": 2}],
-            "supports": [],
-            "excludes": [],
-        },
+        "signature": {"requires": [], "supports": [], "excludes": []},
         "backend": {"module": "map/starsolo", "params": {"soloType": "CB_UMI_Simple"}},
         "confusable_with": confusables or [],
     }

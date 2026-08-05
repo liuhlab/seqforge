@@ -16,7 +16,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from ..io import OnlistNotAvailable, OnlistRegistry
-from ..kb.schema import OnlistHitRate, Read, SegmentLength, Spec
+from ..kb.schema import OnlistHitRate, Read, SegmentLength, Spec, Test
 from ..models.resolve import TechScore
 from .assign import AssignmentResult, best_assignment
 from .evaluators import Outcome, evaluate, onlist_admits_over_length, read_length_compatible
@@ -100,9 +100,9 @@ def _score_cell(
     wp: WindowProbe,
     spec: Spec,
     registry: OnlistRegistry,
-    requires: list[object],
-    excludes: list[object],
-    supports: list[tuple[object, float]],
+    requires: list[Test],
+    excludes: list[Test],
+    supports: list[tuple[Test, float]],
 ) -> tuple[Cell, bool]:
     used_onlist = False
     if read_length_compatible(read, wp) == Outcome.FAIL:
@@ -148,12 +148,12 @@ def _score_cell(
 
 
 def _over_length_admitted_by_onlist(
-    test: object,
+    test: Test,
     read: Read,
     wp: WindowProbe,
     spec: Spec,
     registry: OnlistRegistry,
-    supports: list[tuple[object, float]],
+    supports: list[tuple[Test, float]],
 ) -> bool:
     """Admit a barcode read over-sequenced into the length dead zone IFF its barcode prefix hits the
     whitelist. Deliberately narrow and additive: it fires ONLY on a ``segment_length`` FAIL whose mode
@@ -184,7 +184,7 @@ def _over_length_admitted_by_onlist(
 def _clears_onlist_bar(
     read: Read,
     wp: WindowProbe,
-    supports: list[tuple[object, float]],
+    supports: list[tuple[Test, float]],
     spec: Spec,
     registry: OnlistRegistry,
 ) -> bool:
@@ -203,7 +203,7 @@ def _barcode_onlist_available(
     spec: Spec,
     registry: OnlistRegistry,
     barcode_role_ids: list[str],
-    sup_by: dict[str, list[tuple[object, float]]],
+    sup_by: dict[str, list[tuple[Test, float]]],
 ) -> bool:
     """True iff at least one barcode role's onlist whitelist is REGISTERED and materializable — we had a
     list to check against. When False the whitelist was never consulted, so a ``barcode_onlist_hit`` of
@@ -224,7 +224,7 @@ def _barcode_onlist_available(
 
 
 def _global_support(
-    global_supports: list[tuple[object, float]],
+    global_supports: list[tuple[Test, float]],
     reads: list[Read],
     wps: list[WindowProbe],
     spec: Spec,
@@ -253,10 +253,10 @@ def build_tech_evaluation(
     file_shas = [wp.observation.file.sha256 for wp in wps]
     barcode_role_ids = [r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements)]
 
-    req_by: dict[str, list[object]] = defaultdict(list)
-    exc_by: dict[str, list[object]] = defaultdict(list)
-    sup_by: dict[str, list[tuple[object, float]]] = defaultdict(list)
-    global_sup: list[tuple[object, float]] = []
+    req_by: dict[str, list[Test]] = defaultdict(list)
+    exc_by: dict[str, list[Test]] = defaultdict(list)
+    sup_by: dict[str, list[tuple[Test, float]]] = defaultdict(list)
+    global_sup: list[tuple[Test, float]] = []
     for t in spec.signature.requires:
         rid = getattr(t, "read", None)
         if rid is not None:

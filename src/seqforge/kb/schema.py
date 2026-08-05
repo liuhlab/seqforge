@@ -127,11 +127,6 @@ class _Seg(_Forbid):
         return self
 
 
-class ReadCount(_Forbid):
-    test: Literal["read_count"]
-    roles: int  # biological + barcode ROLE count, never raw file count
-
-
 class SegmentLength(_Forbid):
     test: Literal["segment_length"]
     read: str
@@ -198,8 +193,7 @@ class HeaderIndex(_Forbid):
 
 
 Test = Annotated[
-    ReadCount
-    | SegmentLength
+    SegmentLength
     | HasSegment
     | DistinctRatio
     | OnlistHitRate

@@ -56,8 +56,11 @@ onlists:
     expected_orientation: revcomp # ARC ATAC reads carry the barcode reverse-complemented vs the list
 
 signature:
-  requires:                       # hard structural gate: three reads (two genomic + one barcode)
-    - {test: read_count, roles: 3}
+  # EMPTY. "Three reads (two genomic + one barcode)" was written here as a `read_count` gate, which
+  # abstained on every input and gated nothing; the three-read demand is the three reads DECLARED
+  # above, against a total, injective role assignment (ADR-0029). Nothing structural is lost — this
+  # spec's positive identification was always the ARC ATAC whitelist at rung 3, below.
+  requires: []
   supports:                       # additive evidence (rung 3+); the whitelist hit IS the positive ID
     - when: {test: onlist_hit_rate, read: R2, element: CB, onlist: atac_whitelist, orientation: either, offset_scan: 8, min: 0.6}
       weight: 5.0                 # the ARC ATAC whitelist hitting the barcode window, at any lead-in offset, either strand
