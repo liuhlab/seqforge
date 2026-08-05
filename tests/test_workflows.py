@@ -1110,7 +1110,7 @@ def test_a_module_whose_config_contract_is_unreadable_refuses() -> None:
         version="0.0.0",
         env="align-rna",
         snakefile=tmp_snakefile(),
-        read_layout_kind="paired",
+        read_layout_kind="mates",
     )
     with pytest.raises(ValueError, match="exactly one of solo/bulk"):
         _ = ghost.param_block

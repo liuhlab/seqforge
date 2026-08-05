@@ -1,8 +1,13 @@
 # workflows/map/star.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated.
 #
-# Plain STAR mapping for bulk paired-end RNA-seq (no cell barcode / UMI demultiplex). Selected by the
-# composer's module id `map/star`; gene counts come from STAR's own `--quantMode GeneCounts`. The
-# genome index resolves at RUN TIME from a `liulab-genome` assembly id.
+# Plain STAR mapping for bulk RNA-seq (no cell barcode / UMI demultiplex), single- or paired-end.
+# Selected by the composer's module id `map/star`; gene counts come from STAR's own
+# `--quantMode GeneCounts`. The genome index resolves at RUN TIME from a `liulab-genome` assembly id.
+#
+# The read->role placement arrives via `config["read_files_in"]`, whose `mates` shape is 1..2
+# biological mates chosen by ORDER — `mate1`, and `mate2` only when the library has a second one
+# (ADR-0029). One module serves both, because the layout kind is a property of the MODULE and STAR
+# reads a single-end library as the same `--readFilesIn` with one argument instead of two.
 
 import csv
 
@@ -22,6 +27,7 @@ UNITS = _load_units(config["units_tsv"])
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
 ASSEMBLY = config["genome"]["assembly"]
+READ_FILES_IN = config["read_files_in"]
 
 
 def fastqs(sample, role):
@@ -31,6 +37,21 @@ def fastqs(sample, role):
     return ordered_fastqs(UNITS, sample, role)
 
 
+def mates():
+    """The mates this library has, in ORDER -- ``[mate1]`` or ``[mate1, mate2]``.
+
+    The `mates` layout kind is 1..2 reads (ADR-0029), so the composer emits `mate2` only for a library
+    that HAS a second biological mate. `mate1` is read with a subscript and `mate2` with `.get`, and
+    that difference is the whole mechanism: `keys_read_by` scans this source to decide what compose
+    owes every dataset composed against this module, so a subscript here would oblige a single-end
+    library to emit a key it does not have -- and the params gate, which forbids a key no owner
+    declares, would then refuse the very layout this module was widened to run. Exactly the line
+    starsolo.smk draws between `soloBarcodeReadLength` (some chemistries) and `soloCBmatchWLtype`
+    (all of them)."""
+    second = READ_FILES_IN.get("mate2")
+    return [READ_FILES_IN["mate1"], *([] if second is None else [second])]
+
+
 def readfilesin(sample, *roles):
     """Render STAR ``--readFilesIn`` for one sample: each role (a mate) is its FASTQs **comma-joined**,
     and the mates are space-separated -- ``mate1_run1,mate1_run2 mate2_run1,mate2_run2``.
@@ -38,7 +59,10 @@ def readfilesin(sample, *roles):
     A sample pooled across N sequencing runs (or across one run's lanes) passes every such file for a
     mate as one comma-list, in the single order ``fastqs`` imposes on both mates alike. This is STAR's
     multi-file syntax; joining with spaces instead makes STAR read the extra files as extra mates and
-    crash. A single-run sample renders one file per mate, so this generalises to any run count."""
+    crash. A single-run sample renders one file per mate, so this generalises to any run count.
+
+    Passing ONE role renders one comma-list and no space, which is STAR's single-end form -- the
+    single-end case needs no branch here, only a caller that hands it the mates the layout has."""
     return " ".join(",".join(fastqs(sample, role)) for role in roles)
 
 
@@ -79,15 +103,18 @@ rule genome_index:
 
 
 rule star_count:
-    """Map one bulk sample's two mates to per-gene counts (STAR GeneCounts).
+    """Map one bulk sample's mates -- one of them or two -- to per-gene counts (STAR GeneCounts).
 
     The shell block clears STAR's `_STARtmp` before invoking STAR, so every (re)run is
     preemption-safe: a preempted STAR leaves `results/<sample>/_STARtmp` behind, STAR ABORTS a rerun
     if it already exists, and snakemake cannot remove it (an undeclared output).
     """
     input:
-        mate1=lambda wc: fastqs(wc.sample, config["read_files_in"]["mate1"]),
-        mate2=lambda wc: fastqs(wc.sample, config["read_files_in"]["mate2"]),
+        mate1=lambda wc: fastqs(wc.sample, mates()[0]),
+        # EMPTY for a single-end library, which is a declared input of no files rather than a missing
+        # one: snakemake takes an empty list happily, while a `mate2` naming a role no unit carries
+        # would resolve to nothing under a name that claims something.
+        mate2=lambda wc: [f for role in mates()[1:] for f in fastqs(wc.sample, role)],
         index=rules.genome_index.output,
     output:
         f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
@@ -98,10 +125,9 @@ rule star_count:
     params:
         bulk=config["bulk"],
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
-        # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass.
-        reads=lambda wc: readfilesin(
-            wc.sample, config["read_files_in"]["mate1"], config["read_files_in"]["mate2"]
-        ),
+        # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass; only
+        # the mates the layout HAS are passed, so a single-end library renders STAR's single-end form.
+        reads=lambda wc: readfilesin(wc.sample, *mates()),
     shell:
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)

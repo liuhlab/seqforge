@@ -43,12 +43,12 @@ inverted ``--soloStrand``. This gate asserts the value survives compose intact; 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Literal
+from typing import Literal, assert_never
 
 from ..kb.schema import Element, Read, Spec
 from ..models.dataset import DatasetManifest, ReadDef, ReadElement
 from ..models.processing import BulkQuant, ProcessingManifest, Quantification, SoloQuant
-from ..workflows import get_module, parse_keys_for
+from ..workflows import ReadLayoutKind, get_module, parse_keys_for
 
 GateStatus = Literal["pass", "fail"]
 ParamOwner = Literal["kb", "processing", "derived"]
@@ -545,7 +545,7 @@ def _check_simple_geometry(bc_read: ReadDef, params: Mapping[str, object]) -> li
 
 
 def _check_read_files_in(
-    manifest: DatasetManifest, config: Mapping[str, object], layout_kind: str
+    manifest: DatasetManifest, config: Mapping[str, object], layout_kind: ReadLayoutKind
 ) -> list[str]:
     """Assert config's read->role map matches the byte-decided layout, per this pipeline's layout kind.
 
@@ -553,6 +553,10 @@ def _check_read_files_in(
     dispatches on — so the gate checks exactly the mapping the composer was supposed to emit, rather than
     inferring the shape from ``soloType`` (which a non-STARsolo pipeline like chromap does not carry, and
     which would then have silently fallen into the bulk mate1/mate2 branch).
+
+    Every kind is named and none is the ``else``, for that same reason one level down: an unhandled
+    kind reaching a gate's fall-through is a gate agreeing with the composer because both guessed the
+    same way. ``assert_never`` makes it a type error instead.
     """
     problems: list[str] = []
     rfi = config.get("read_files_in")
@@ -592,11 +596,23 @@ def _check_read_files_in(
                 )
         if len({rfi.get("gdna1"), rfi.get("gdna2"), rfi.get("barcode")}) != 3:
             problems.append("read_files_in maps two scATAC roles to the same read")
-    else:  # bulk: two biological mates, no barcode role
-        mates = [rfi.get("mate1"), rfi.get("mate2")]
-        roles = [r.read_id for r in manifest.library.read_layout.reads]
-        if any(m not in roles for m in mates):
-            problems.append(f"read_files_in mates {mates} are not layout reads {roles}")
-        if mates[0] == mates[1]:
-            problems.append("read_files_in maps both mates to the same read")
+    elif layout_kind == "mates":
+        # 1..2 biological mates chosen by ORDER, with no barcode role to name one by. The whole
+        # mapping is re-derived and compared, rather than the mates being checked for membership and
+        # distinctness as they were while every mates layout had exactly two reads. Membership no
+        # longer says enough: it cannot tell a `mate2` the layout does not have from one it does, and
+        # "the config emitted a key for a mate that is not there" is the failure this kind's widening
+        # introduces. Same shape as the two branches above, which have always compared a derivation.
+        reads = manifest.library.read_layout.reads
+        if not reads:
+            problems.append("a mates layout needs at least one read, and this one has none")
+            return problems
+        expected = {f"mate{n}": r.read_id for n, r in enumerate(reads[:2], start=1)}
+        emitted = {k: v for k, v in rfi.items() if k.startswith("mate")}
+        if emitted != expected:
+            problems.append(
+                f"read_files_in mates {emitted} are not the layout's mates {expected}, in order"
+            )
+    else:
+        assert_never(layout_kind)
     return problems
