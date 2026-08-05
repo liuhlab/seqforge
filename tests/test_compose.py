@@ -31,6 +31,8 @@ from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
 from seqforge.compose.params import param_block_key, param_owners
 from seqforge.io import OnlistRegistry
+from seqforge.manifest.hash import dataset_content_hash
+from seqforge.models.dataset import DatasetManifest
 from seqforge.models.processing import ProcessingManifest
 from seqforge.resolve.confuse import canonical_backend
 from seqforge.workflows import get_module, keys_read_by, list_modules
@@ -620,6 +622,12 @@ def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
 
 
 def test_compose_bulk_selects_plain_star(synth_bulk_pe: SynthDataset, tmp_path: Path) -> None:
+    """The two-mate case, unchanged by the `mates` widening: BOTH keys, in layout order.
+
+    Half of a pair. Its sibling below composes the same dataset with one mate, and both assert at the
+    composed-config seam rather than on `_read_files_in`, because the config is what the module reads
+    and a composer internal is not what a wrong answer would reach STAR through.
+    """
     manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/star"
@@ -628,6 +636,132 @@ def test_compose_bulk_selects_plain_star(synth_bulk_pe: SynthDataset, tmp_path: 
     assert config["bulk"]["quantMode"] == "GeneCounts"
     assert config["read_files_in"] == {"mate1": "R1", "mate2": "R2"}
     assert "solo" not in config
+
+
+def _one_mate(manifest: DatasetManifest) -> DatasetManifest:
+    """The same bulk dataset with its second mate removed — a hand-written **one-read Manifest**.
+
+    Hand-written because no KB entry declares a single-end library yet (read sets are ADR-0029's
+    later ticket) and none is needed to state what this one is about: the composer and `map/star`
+    read the MANIFEST's read layout, never the spec's declared reads. So the fixture is the shipped
+    two-read manifest with R2 taken out of all three places that carry it — the layout, the file
+    inventory, and the sample's file list — which is exactly the shape a resolver that had decided
+    single-end would fill.
+
+    The dataset hash is recomputed rather than inherited. A manifest whose hash disagrees with its own
+    content is a *different* defect, and one that would be sitting inside every assertion below
+    pretending to be this test's subject.
+    """
+    single = manifest.model_copy(deep=True)
+    keep = single.library.read_layout.reads[0].read_id
+    single.library.read_layout.reads = [
+        r for r in single.library.read_layout.reads if r.read_id == keep
+    ]
+    single.library.files = [f for f in single.library.files if f.read_id == keep]
+    for sample in single.experiment.samples:
+        sample.file_uris = [f.uri for f in single.library.files if f.uri in sample.file_uris]
+    return single.model_copy(
+        update={
+            "provenance": single.provenance.model_copy(
+                update={"dataset_hash": dataset_content_hash(single)}
+            )
+        }
+    )
+
+
+def test_compose_a_one_mate_layout_emits_the_first_mate_key_alone(
+    synth_bulk_pe: SynthDataset, tmp_path: Path
+) -> None:
+    """A `mates` layout is 1..2 reads, so one read COMPOSES rather than being refused.
+
+    `_read_files_in` used to raise `bulk paired-end needs 2 reads`, which made a single-end library
+    uncompilable however it got resolved — the prefactor this ticket exists to remove, so that the
+    byte resolver has something able to run a single-end library by the time it starts deciding one.
+
+    Three claims, one compose, all off disk: the config carries `mate1` and no `mate2`, the params
+    gate PASSES (a gate that refused the very layout the composer just emitted would be the composer
+    and its checker disagreeing about the same widening), and `units.tsv` carries the one mate — a
+    units table still listing R2 would hand STAR a file the config never named.
+    """
+    manifest = _one_mate(synth_bulk_pe.manifest)
+    result = compose(
+        manifest, _processing(manifest), registry=synth_bulk_pe.registry, workspace=tmp_path
+    )
+    assert result.modules[0].name == "map/star"
+    assert result.gate["params"] == "pass"
+
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["read_files_in"] == {"mate1": "R1"}
+
+    units = (tmp_path / result.units_path).read_text().splitlines()
+    assert units[0].split("\t") == ["sample_id", "run", "lane", "read_id", "path"]
+    assert len(units) == 2, f"one mate, one sample -> header + one row; got {units}"
+    assert units[1].split("\t")[3] == "R1"
+
+
+def test_the_params_gate_refuses_a_mate_the_layout_does_not_have(
+    synth_bulk_pe: SynthDataset,
+) -> None:
+    """Prove the mates check still fires — in the direction the widening opened.
+
+    The bulk branch used to ask only whether each emitted mate named SOME layout read and whether the
+    two differed. That was sufficient while every mates layout had exactly two reads and is not any
+    more: a one-read layout carrying a `mate2` that points back at its only read answers both of those
+    questions and hands STAR the same FASTQ twice, which doubles every count and exits 0. So the
+    branch compares the whole derivation, in order, the way the two barcoded branches always have —
+    and a guard nobody has watched fail is a guard that may not be looking.
+    """
+    manifest = _one_mate(synth_bulk_pe.manifest)
+    processing = _processing(manifest)
+    spec = kb.load_spec(manifest.library.chemistry.value[0])
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+    assert params_gate(manifest, processing, spec, config) == ("pass", []), (
+        "the clean pair must pass"
+    )
+
+    poisoned = {**config, "read_files_in": {"mate1": "R1", "mate2": "R1"}}
+    status, problems = params_gate(manifest, processing, spec, poisoned)
+    assert status == "fail"
+    assert any("mate2" in p for p in problems), problems
+
+
+def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_one(
+    synth_bulk_pe: SynthDataset, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """What STAR is actually handed, both ways, off one fixture — the contrast IS the claim.
+
+    A config key the module never reaches is a config key that decides nothing, and `star.smk`
+    dereferenced `config["read_files_in"]["mate2"]` in two places: the rule's second input, and the
+    `--readFilesIn` rendering. Both die at Snakemake parse time on a one-mate config, which is a
+    compute node's failure and not a compile-time one — so the one-mate half is asserted through the
+    plan text rather than through the emitted config, which cannot see a `KeyError`.
+
+    The two-mate half is here rather than left implicit because a one-sided assertion is satisfied by
+    a module that dropped `mate2` for EVERYBODY: single-end is a correct rendering of a paired-end
+    library's first mate, it exits 0, and it silently maps half the data.
+    """
+    reg = synth_bulk_pe.registry
+    r1, r2 = (p.name for p in synth_bulk_pe.paths)
+    planned: dict[str, str] = {}
+    for label, manifest in (
+        ("one", _one_mate(synth_bulk_pe.manifest)),
+        ("two", synth_bulk_pe.manifest),
+    ):
+        processing = _processing(manifest)
+        result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+        pipeline_dir = (tmp_path / result.snakefile_path).parent
+        planned[label] = dry_run(pipeline_dir, plan(manifest, processing, registry=reg))
+
+    def readfilesin(text: str) -> list[str]:
+        return [ln for ln in text.splitlines() if "readFilesIn" in ln]
+
+    assert f"--readFilesIn {r1} --readFilesCommand" in planned["one"], readfilesin(planned["one"])
+    assert f"--readFilesIn {r1} {r2} --readFilesCommand" in planned["two"], readfilesin(
+        planned["two"]
+    )
+    # ...and the second mate is nowhere in the one-mate plan at all: `input.mate2` resolves to EMPTY,
+    # rather than to a stale file the units table no longer lists.
+    assert r2 not in planned["one"], f"a one-mate layout planned the second mate's file: {r2}"
 
 
 def test_two_processing_manifests_do_not_overwrite_each_other(

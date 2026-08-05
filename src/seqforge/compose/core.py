@@ -31,6 +31,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import assert_never
 
 import yaml
 
@@ -445,15 +446,18 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
     `if spec.backend.module == "map/starsolo": ... else: <bulk>`, which is a bug rather than an
     abstraction gap: it makes "not starsolo" mean "bulk paired-end", so any third module would have
     silently emitted `mate1`/`mate2` for a chemistry that has neither and produced a wrong command
-    line with no error anywhere.
+    line with no error anywhere. Each kind is therefore named here and none is the fall-through —
+    `assert_never` is what makes a fourth kind a type error at the dispatch it forgot, rather than a
+    wrong command line the barcode-free branch happily emits.
     """
-    if module.read_layout_kind == "barcoded":
+    kind = module.read_layout_kind
+    if kind == "barcoded":
         cdna = find_read_with_role(manifest, "cDNA") or find_read_with_role(manifest, "gDNA")
         barcode = find_read_with_role(manifest, "CB")
         if cdna is None or barcode is None:
             raise ComposeError("a barcoded chemistry needs both a cDNA read and a CB-bearing read")
         return {"cdna": cdna.read_id, "barcode": barcode.read_id}
-    if module.read_layout_kind == "atac_barcoded":
+    if kind == "atac_barcoded":
         # scATAC: two GENOMIC mates + a separate barcode read (chromap's -1/-2/-b). The two gDNA reads
         # keep layout order (R1 before R3), which is arbitrary between symmetric mates but stable — the
         # units.tsv `run` column, not this order, is what pairs a pooled sample's files.
@@ -462,10 +466,17 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
         if len(gdna) < 2 or barcode is None:
             raise ComposeError("scATAC needs two genomic (gDNA) reads and a barcode read")
         return {"gdna1": gdna[0].read_id, "gdna2": gdna[1].read_id, "barcode": barcode.read_id}
-    reads = manifest.library.read_layout.reads
-    if len(reads) < 2:
-        raise ComposeError(f"bulk paired-end needs 2 reads, found {len(reads)}")
-    return {"mate1": reads[0].read_id, "mate2": reads[1].read_id}
+    if kind == "mates":
+        # 1..2 biological mates chosen by ORDER, never by role: a bulk library has no barcode read to
+        # name one by. Only the mates the layout HAS are emitted, so a single-end library composes to
+        # `{mate1}` and `star.smk` renders STAR's own single-end `--readFilesIn` (ADR-0029). Emitting
+        # a `mate2` key pointing at nothing would be the same lie in the other direction: the module
+        # would declare an input the sample cannot supply.
+        reads = manifest.library.read_layout.reads
+        if not reads:
+            raise ComposeError("a mates layout needs at least one read, found none")
+        return {f"mate{n}": read.read_id for n, read in enumerate(reads[:2], start=1)}
+    assert_never(kind)
 
 
 def _reads_with_role(manifest: DatasetManifest, role: str) -> list[ReadDef]:
