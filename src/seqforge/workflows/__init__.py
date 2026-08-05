@@ -22,6 +22,20 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.5 — `star.smk` takes ONE mate or two (#274, ADR-0029). `read_layout_kind: paired` becomes
+#: `mates` — 1..2 biological mates chosen by ORDER, against the two barcoded kinds which choose by
+#: ROLE — and `rule star_count` stops demanding a second one: `input.mate2` is empty when the layout
+#: has none, and `--readFilesIn` renders only the mates present, which is STAR's own single-end form.
+#: The rename is the change and not decoration on it. The kind is a property of the MODULE, so
+#: `map/star` cannot be `paired` for one dataset and `single` for the next; adding a `single` kind
+#: would mean a second hand-written module for one aligner, and leaving the name `paired` on a kind
+#: that is single-ended half the time would reintroduce exactly what `read_layout_kind` was created to
+#: remove — a dispatch key that lies about what it selects. `config["read_files_in"]["mate2"]` is read
+#: with `.get`, not a subscript, so `keys_read_by` stops making it a key the composer owes for every
+#: bulk dataset — the same optional/required line starsolo.smk draws between `soloBarcodeReadLength`
+#: and `soloCBmatchWLtype`. A two-mate library renders the byte-identical command line it did before;
+#: the bump is owed anyway, because editing a shipped module invalidates
+#: `run_id = H(dataset | processing | kb | workflow)` whatever the edit was.
 #: 2026.8.4 — `units.tsv` gains a `lane` column and `fastqs` orders a sample's files by
 #: `(run, lane, path)` (#263, ADR-0027). A run is now lane-blind, so a four-lane library is ONE run
 #: and the `run` column no longer orders anything within it — lexical path order silently took over
@@ -156,7 +170,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.4"
+WORKFLOW_VERSION = "2026.8.5"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -274,6 +288,29 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
 #: per pipeline: a chromap backend is policed against exactly this set, a starsolo backend against ``solo*``.
 _CHROMAP_PARSE_KEYS: frozenset[str] = frozenset({"barcode_whitelist"})
 
+#: How a module wants its reads handed to the aligner — a CLOSED vocabulary, extended deliberately:
+#:
+#: - ``barcoded``      — ``{cdna, barcode}``, chosen by ROLE (a barcoded single-cell RNA chemistry).
+#: - ``mates``         — ``{mate1}`` or ``{mate1, mate2}``, chosen by ORDER (a bulk library, single-
+#:   or paired-end).
+#: - ``atac_barcoded`` — ``{gdna1, gdna2, barcode}``, chosen by ROLE (scATAC: two genomic mates and a
+#:   separate barcode read — chromap's ``-1``/``-2``/``-b`` shape).
+#:
+#: A typed, visible choice rather than the old ``spec.backend.module == "map/starsolo"`` string
+#: compare, in which every module that was not starsolo silently fell into the bulk mate1/mate2
+#: branch and emitted a wrong command line. A third module must pick a kind, or add one.
+#:
+#: **``mates`` is 1..2 and not exactly 2, and the name moved for that reason** (ADR-0029). A kind is a
+#: property of the MODULE, so ``map/star`` cannot be ``paired`` for one dataset and ``single`` for the
+#: next; a ``single`` kind would buy a second hand-written module for one aligner. Widening the one
+#: kind is what avoids that, and then the old name would have been a dispatch key that lies about what
+#: it selects — the exact defect this field exists to remove.
+#:
+#: Named here rather than written inline on the field, because the composer's dispatch and the params
+#: gate's cross-check are two independent re-derivations of one mapping and must be annotated against
+#: the SAME set. Two separately spelled ``Literal``s agree right up until one of them gains a kind.
+ReadLayoutKind = Literal["barcoded", "mates", "atac_barcoded"]
+
 
 @dataclass(frozen=True)
 class WorkflowModule:
@@ -290,17 +327,8 @@ class WorkflowModule:
     version: str
     env: RuntimeEnv
     snakefile: Path
-    #: How this module wants its reads handed to the aligner:
-    #:
-    #: - ``barcoded``      — ``{cdna, barcode}``, chosen by ROLE (a barcoded single-cell RNA chemistry).
-    #: - ``paired``        — ``{mate1, mate2}``, chosen by ORDER (a bulk paired-end library).
-    #: - ``atac_barcoded`` — ``{gdna1, gdna2, barcode}``, chosen by ROLE (scATAC: two genomic mates and a
-    #:   separate barcode read — chromap's ``-1``/``-2``/``-b`` shape).
-    #:
-    #: A typed, visible choice rather than the old ``spec.backend.module == "map/starsolo"`` string
-    #: compare, in which every module that was not starsolo silently fell into the bulk mate1/mate2
-    #: branch and emitted a wrong command line. A third module must pick a kind, or add one.
-    read_layout_kind: Literal["barcoded", "paired", "atac_barcoded"]
+    #: How this module wants its reads handed to the aligner — see :data:`ReadLayoutKind`.
+    read_layout_kind: ReadLayoutKind
     #: The parse-param namespace this pipeline's KB backends may declare (byte-decided knobs). Empty for
     #: a bulk pipeline that takes no parse params. Per pipeline, so a chromap backend declares chromap's
     #: parse knobs and a starsolo backend declares ``solo*`` — each gated against its own namespace.
@@ -380,7 +408,7 @@ MODULES: dict[str, WorkflowModule] = {
         version=WORKFLOW_VERSION,
         env="align-rna",
         snakefile=_MODULE_DIR / "map" / "star.smk",
-        read_layout_kind="paired",
+        read_layout_kind="mates",
     ),
     "map/chromap": WorkflowModule(
         name="map/chromap",
@@ -440,6 +468,7 @@ def list_modules() -> list[str]:
 __all__ = [
     "WORKFLOW_VERSION",
     "RUNTIME_IMAGE",
+    "ReadLayoutKind",
     "WorkflowModule",
     "MODULES",
     "container_uri",

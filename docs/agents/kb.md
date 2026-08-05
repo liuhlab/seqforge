@@ -204,11 +204,19 @@ recover the frame. A read whose frame is not found contributes nothing, rather t
 For every ordered pair of specs, CI derives three facts and then validates the declared labels against
 them. There is no hand-maintained truth table.
 
-1. **Is the pair separable at the cheap rungs?** Generate synthetic reads from A's declared layout, run
-   the non-onlist subset of A's signature against B's synthetic reads, and symmetrically.
-   **Under-declaration is a CI error:** not separable, and B is not in A's `confusable_with`. That is
-   the guard that makes a GEM-X entry mandatory once the flagship exists. **Over-declaration is a CI
-   warning:** separable, but declared confusable anyway.
+1. **Could either spec outrank the other at the cheap rungs?** Generate synthetic reads from B's
+   declared layout, score **both** A and B against them with the onlist withheld, and compare —
+   then symmetrically. **Under-declaration is a CI error:** A could outrank B on B's own reads, and B
+   is not in A's `confusable_with`. That is the guard that makes a GEM-X entry mandatory once the
+   flagship exists. **Over-declaration is a CI warning:** separable, but declared confusable anyway.
+   The question is an **ordering** one and used to be a validity one
+   ([ADR-0029](../adr/0029-a-spec-declares-read-sets-not-a-fixed-read-list.md)): validity tracked
+   danger only while every spec consumed every file, and a spec that consumes fewer is valid against
+   nearly every leaf while scoring far below all of them, so the guard would have demanded an edge
+   from that spec to almost the whole KB. `resolve/confuse.py` holds the predicate and
+   `rung02_margin` the number under it; bulk's five edges are re-derived from that margin in
+   `tests/test_kb.py`, because the sweep itself skips a declared pair and so cannot notice one that
+   stopped being true.
 2. **Do their onlists separate them?** True only if the two whitelists have a low cross-hit rate,
    computed by an actual set intersection over the packed barcode arrays — **not** by comparing
    checksums. Different hashes prove the files differ, not that the barcode sets differ, and a
