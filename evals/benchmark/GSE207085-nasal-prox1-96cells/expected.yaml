@@ -15,12 +15,41 @@
 # silent-plausible-wrong-answer failure class this compiler exists to prevent, reached from the
 # inside — which is why the corpus should hold it now rather than after it is fixed.
 #
-# So this case grades `false_accept` today: `outcome: decide` with a chemistry that disagrees is the
-# corpus-poisoning cell of the confusion matrix, and it is the honest grade. It moves the tier's
-# `false_accept_rate` off 0.0 by construction, which is precisely why the case is EXCLUDED FROM THE
-# FROZEN-18 GRADE DIGEST (`src/seqforge/evals/digest.py`, #258): that digest hashes the case
-# count and the whole per-case list, so equal-digest and add-a-case are incompatible instruments and
-# the bar is scoped to the eighteen cases that existed at #231's baseline.
+# So this case was predicted to grade `false_accept` today: `outcome: decide` with a chemistry that
+# disagrees is the corpus-poisoning cell of the confusion matrix. MEASURED ON THE PUBLISHED PACKAGE
+# (2026-08-04, `--no-llm`) IT GRADES `false_refuse` INSTEAD, and the prediction below is left
+# standing. 95 of the 96 cells decide `bulk-rnaseq` at exit 0 on their own bytes — the first ten by
+# accession among them — exactly the answer #230 measured. On SRR19884935, the 31st, the barcoded
+# 10x family overtakes bulk by 0.0159 (0.201156 against 0.185250, five leaves tied), no whitelist
+# hits, and `escalate` raises BARCODE_READ_ABSENT; `MultiRunOutput.exit_code()` is a max over runs,
+# so that one cell refuses the whole plate at exit 3. The bulk false accept is NOT gone — it is 95
+# cells wide, standing behind one cell's refusal — and this IS the dud-well hazard named below,
+# reached by a real cell rather than a designed one. Two causes are ruled out by measurement rather
+# than by argument: the KB, because the same two slices score byte-identically on the pre-#299 tree
+# (`5624f8e`) and the pre-#297 one (`b5f2e85`), where the sole difference is that the bulk entry is
+# spelled `bulk-rnaseq-pe`; and the packaging, because every slice carries exactly
+# `DEFAULT_MAX_READS`, so a deeper package hands resolve the same first 2,000 reads.
+#
+# WHY THE PREDICTION SURVIVES THAT — AN INFERENCE FROM TWO MEASURED NUMBERS, NOT SOMETHING RUN.
+# SRR19884935 is the weakest well in the draw by TSO-tag fraction: `ATTGCGCAATG` opens 11.10% of its
+# R1, the minimum over all 96 (median 53.88%, max 87.20%). That is an EXACT-prefix count, while the
+# gate #278 specifies for `smartseq3` allows two mismatches — so the rate that gate would read is at
+# least that, never less. Its floor is `min_rate: 0.02`. The weakest well therefore sits ~5.5x above
+# the floor the entry will be admitted by, which is the mechanical reason to expect it to flip to
+# `smartseq3` with the other 95 rather than to sit out, and so to CONFORM under the per-cell gate
+# (#290) rather than contradict.
+#
+# WHICH IS WHAT MAKES THIS FALSIFIABLE, AND SHARPER THAN `outcome: decide` READS. Under that gate a
+# cell deciding a DIFFERENT chemistry outright is a Blocker by design: the gate is a conjunction, so
+# one dissent refuses and no cell is ever outvoted. If SRR19884935 does not flip, this plate refuses
+# anyway — the case cannot go green by 95 cells agreeing. It goes green only if the WEAKEST well
+# conforms, and that is the claim the case actually tests.
+#
+# The tier rate this case moves off 0.0 is therefore `false_refuse_rate`, not `false_accept_rate`.
+# It is EXCLUDED FROM THE FROZEN-18 GRADE DIGEST (`src/seqforge/evals/digest.py`, #258) either way:
+# that digest hashes the case count and the whole per-case list, so equal-digest and add-a-case are
+# incompatible instruments and the bar is scoped to the eighteen cases that existed at #231's
+# baseline.
 #
 # The wrong answer is spelled `bulk-rnaseq` rather than #230's `bulk-rnaseq-pe`: that entry was
 # renamed (#273) between the measurement and this file, and nothing about the measurement moved.
@@ -119,7 +148,7 @@ description: >-
   the hermetic tier where a cell can be starved by construction.
 
   EXCLUDED FROM THE FROZEN-18 GRADE DIGEST (`seqforge.evals.digest`): a red nineteenth case moves
-  `n_cases`, the per-case list and `false_accept_rate` at once, and equal-digest and add-a-case are
+  `n_cases`, the per-case list and `false_refuse_rate` at once, and equal-digest and add-a-case are
   incompatible instruments.
 predicts:
   seqforge: 2026.7.1
