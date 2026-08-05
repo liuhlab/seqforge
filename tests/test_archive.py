@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from seqforge.io import archive
+from seqforge.io import IO_VERSION, archive
 from seqforge.io.remote import RemoteError
-from seqforge.models.records import ArchiveRecord
+from seqforge.models.records import ArchiveRecord, ArchiveRecordSet
 
 FIXTURES = Path(__file__).parent / "fixtures" / "archive"
 
@@ -294,6 +294,155 @@ def test_the_samples_own_title_reaches_the_record(nasal_package: list[ArchiveRec
     samples = [r for r in nasal_package if r.level == "sample"]
     assert [s.text("sample_title") for s in samples] == ["nasal_prox1_270"]
     assert [s.text("sample_alias") for s in samples] == ["GSM6277169"]
+
+
+# ------------------------------------------------------------ what the submitter uploaded
+
+#: Both committed packages, because one carries six runs of a 10x deposit and the other a single
+#: Smart-Seq3 run whose two Original entries are served in reverse order — the case a parser that
+#: kept the archive's order would pass and a sorted one would not.
+_SRA_PACKAGES = ("PRJNA1027859.sra.xml", "SRP383998.sra.xml")
+
+#: Every run's filenames as `_original_filenames` returned them before `submitted_files` became the
+#: stored field: sorted, deduplicated, Originals only. Pinned as literals rather than recomputed from
+#: the parser, because a derived property checked against the code that fills it agrees with any code.
+_DECLARED_FILENAMES: dict[str, list[str]] = {
+    "SRR28716553": [
+        "2562__daf-2_R3_library-read-1.fastq.gz",
+        "2562__daf-2_R3_library-read-4.fastq.gz",
+    ],
+    "SRR28716554": [
+        "2495__daf-2_R2_library-read-1.fastq.gz",
+        "2495__daf-2_R2_library-read-4.fastq.gz",
+    ],
+    "SRR28716555": [
+        "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz",
+        "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz",
+    ],
+    "SRR28716556": [
+        "2562__Wild-type_R3_library-read-1.fastq.gz",
+        "2562__Wild-type_R3_library-read-4.fastq.gz",
+    ],
+    "SRR28716557": [
+        "2495__wild-type_R2_library-read-1.fastq.gz",
+        "2495__wild-type_R2_library-read-4.fastq.gz",
+    ],
+    "SRR28716558": [
+        "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz",
+        "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz",
+    ],
+    "SRR19886090": ["NasalProx1_270_1.fastq.gz", "NasalProx1_270_2.fastq.gz"],
+}
+
+
+@pytest.fixture(scope="module")
+def submitted_runs() -> list[ArchiveRecord]:
+    """Every run record in both committed packages, off the real parse of the real bytes."""
+    return [
+        record
+        for package in _SRA_PACKAGES
+        for record in archive.parse_sra_package_set((FIXTURES / package).read_text())
+        if record.level == "run"
+    ]
+
+
+def test_every_submitted_file_carries_the_md5_size_and_uri_beside_its_name(
+    submitted_runs: list[ArchiveRecord],
+) -> None:
+    """The four facts arrive on one `<SRAFile>` element, so they are one value (ADR-0033).
+
+    A filename with no hash and no URI is what we had; an md5 with no URI names bytes nobody can
+    reach. The URI is the `<Alternatives>` child of the *same* element, which is why each one must
+    name its own file rather than a sibling's — reading the run's first `<Alternatives>` for every
+    file would give every entry the same, wrong, bucket path.
+    """
+    files = [f for run in submitted_runs for f in run.submitted_files]
+    assert len(files) == sum(len(names) for names in _DECLARED_FILENAMES.values())
+    for f in files:
+        assert f.md5 is not None and len(f.md5) == 32, f"{f.filename}: no provider md5"
+        assert f.size_bytes is not None and f.size_bytes > 0, f"{f.filename}: no declared size"
+        assert f.uri is not None and f.uri.startswith("s3://sra-pub-src-"), (
+            f"{f.filename}: the submitter's own upload lives in a `sra-pub-src-*` bucket, and "
+            f"{f.uri} is not one"
+        )
+        assert f.filename in f.uri, f"{f.filename}: the URI came off another element ({f.uri})"
+
+
+def test_the_submitted_files_are_the_uploads_and_not_sras_own_normalized_products(
+    submitted_runs: list[ArchiveRecord],
+) -> None:
+    """`supertype="Original"` still selects, and it now has to do more work than it did.
+
+    The `.sra` and `.lite` entries beside them carry an `@md5`, an `@size` and their own
+    `<Alternatives>` too, so a parser that lost the supertype filter would fill all four fields for
+    all of them and every assertion about shape would still pass. What it would have transcribed is
+    a file the submitter never uploaded and nobody has on disk, addressed in a bucket
+    (`sra-pub-run-odp`, `sra-pub-zq-*`) holding SRA's regenerated copy rather than the original.
+    """
+    files = [f for run in submitted_runs for f in run.submitted_files]
+    assert not [f for f in files if f.filename.endswith((".lite", ".sra"))]
+    assert not [f for f in files if f.uri and "sra-pub-zq" in f.uri]
+    assert all(f.filename.endswith(".fastq.gz") for f in files)
+
+
+def test_the_filenames_property_returns_what_the_stored_field_no_longer_duplicates(
+    submitted_runs: list[ArchiveRecord],
+) -> None:
+    """`filenames` is derived, so the join it feeds keeps its shape and the names are stored once.
+
+    Sorted and deduplicated exactly as `sorted(set(...))` was: a record set is content-addressed and
+    cached, so the order the archive happened to serve two entries in must not reach it — SRP383998
+    serves its mate 2 before its mate 1.
+    """
+    assert {run.accession: run.filenames for run in submitted_runs} == _DECLARED_FILENAMES
+    dumped = submitted_runs[0].model_dump()
+    assert "filenames" not in dumped, "the names would then be stored twice, and could disagree"
+    assert [f["filename"] for f in dumped["submitted_files"]] == submitted_runs[0].filenames
+
+
+def test_a_freshly_fetched_record_set_carries_the_version_that_wrote_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The stamp is what separates "this deposit publishes no originals" from "this cache is older
+    than the question". Most deposits publish none, so absence of files is the normal case and can
+    never be the signal — which is why the second half of this test matters as much as the first.
+    """
+    _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment("SRX15982970")])
+    monkeypatch.setattr(
+        archive,
+        "_efetch",
+        lambda db, ids, **params: (
+            (FIXTURES / "SRP383998.sra.xml").read_text() if db == "sra" else "<RecordSet/>"
+        ),
+    )
+    assert archive.fetch_records("SRP383998").io_version == IO_VERSION
+
+    # The same fetch over a package set declaring no `<SRAFile>` at all: stamped all the same, and
+    # its runs' emptiness is then a fact about the deposit rather than about our parser's age.
+    _paged_archive(monkeypatch, [("SRX0000001", "SAMN0000001")])
+    no_originals = archive.fetch_records("PRJNA9999999")
+    assert [run.submitted_files for run in no_originals.at("run")] == [[]]
+    assert no_originals.io_version == IO_VERSION
+
+
+def test_a_record_set_written_before_submitted_files_loads_and_reads_as_unstamped() -> None:
+    """Every committed benchmark transcript predates the writer stamp, and still reads as unstamped.
+
+    They were migrated to `submitted_files` in the same change that introduced it — the legacy key is
+    deliberately not accepted on input — so what they prove is the *stamp* half and not the rename:
+    the absence of `io_version` survives a round trip, which is what a resolver refusing a stale cache
+    has to be able to see. Their names arriving is the migration's own guarantee, held one test up.
+    """
+    benchmark = Path(__file__).resolve().parents[1] / "evals" / "benchmark"
+    committed = sorted(benchmark.glob("*/records.json"))
+    assert committed, "the committed transcripts are the fixture here"
+
+    declared: list[str] = []
+    for path in committed:
+        record_set = ArchiveRecordSet.model_validate_json(path.read_text())
+        assert record_set.io_version is None, f"{path.parent.name} predates the stamp"
+        declared.extend(name for run in record_set.at("run") for name in run.filenames)
+    assert declared, "no committed transcript declares a filename, so nothing was proven"
 
 
 def test_efetch_adds_the_ncbi_api_key_only_when_the_environment_sets_one(

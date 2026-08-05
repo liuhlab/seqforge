@@ -66,6 +66,7 @@ def _run_records_stage(
     """
     import hashlib
 
+    from ..io import IO_VERSION
     from ..io.archive import fetch_records
     from ..io.remote import RemoteError
     from ..models.records import ArchiveRecordSet
@@ -90,14 +91,23 @@ def _run_records_stage(
         target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
         per_accession.append(target)
         merged.extend(record_set.records)
+    # Every record below came back from `fetch_records` a moment ago, so the set re-assembled around
+    # them was written by this transcriber and says so — an unstamped set means a cache older than
+    # the question, and a fresh fetch must never look like one.
     if len(accession) == 1:
-        return ArchiveRecordSet(source="ncbi-sra+biosample", query=accession[0], records=merged), (
-            per_accession[0]
-        )
+        return ArchiveRecordSet(
+            source="ncbi-sra+biosample",
+            query=accession[0],
+            records=merged,
+            io_version=IO_VERSION,
+        ), per_accession[0]
     # Two accessions render one dataset: harvest needs them in a single document set, so write a
     # combined file keyed by the accession list (the per-accession caches stay, for `io records`).
     combined = ArchiveRecordSet(
-        source="ncbi-sra+biosample", query=", ".join(accession), records=merged
+        source="ncbi-sra+biosample",
+        query=", ".join(accession),
+        records=merged,
+        io_version=IO_VERSION,
     )
     tag = hashlib.sha256(", ".join(sorted(accession)).encode()).hexdigest()
     combined_path = outdir / (readable("combined", tag) + ".json")

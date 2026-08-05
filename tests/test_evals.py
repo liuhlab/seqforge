@@ -2293,7 +2293,7 @@ def _bulk_fingerprint(tmp_path: Path) -> tuple[Path, str]:
                 "level": "run",
                 "accession": "SRR12345678",
                 "parent": "SRX12345678",
-                "filenames": [p.name for p in paths],
+                "submitted_files": [{"filename": p.name} for p in paths],
             },
             {"level": "experiment", "accession": "SRX12345678", "parent": "SAMN12345678"},
             {

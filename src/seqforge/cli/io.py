@@ -581,6 +581,10 @@ def io_records(
     on the BioSample record and were fetched by no code at all until now, which is why the pilot's six
     samples all said `tissue: null`.
 
+    It is also where the files the submitter UPLOADED are listed — name, provider md5, size and the
+    `sra-pub-src-*` URI each one can be fetched from. A run that lists none is the normal case: most
+    deposits publish no originals.
+
     Cached under `seqforge/records/`: a record is a fact about the archive at a moment, so
     re-fetching it should be a choice.
     """
@@ -597,6 +601,12 @@ def io_records(
     state.mkdir(parents=True, exist_ok=True)
     target = state / f"{accession}.json"
     target.write_text(json.dumps(records.model_dump(mode="json"), indent=2))
+    # The submitted files are listed in full rather than counted, because this verb is where the
+    # concrete `s3://sra-pub-src-*` URI reaches a person at all: five refusals now say "go run
+    # `seqforge io records`" instead of naming a bucket and an API to go hunting in, and every one of
+    # those pointers dead-ends if the answer is a number (`docs/adr/0033`). Flat, one row per file
+    # with its run alongside, so a caller filters it with one `jq select`: this output is an
+    # interface for a program first and a person second.
     typer.echo(
         json.dumps(
             {
@@ -607,6 +617,17 @@ def io_records(
                     level: len(records.at(level))
                     for level in ("project", "sample", "experiment", "run")
                 },
+                "submitted_files": [
+                    {
+                        "run": record.accession,
+                        "filename": f.filename,
+                        "md5": f.md5,
+                        "size_bytes": f.size_bytes,
+                        "uri": f.uri,
+                    }
+                    for record in records.at("run")
+                    for f in record.submitted_files
+                ],
             },
             indent=2,
         )

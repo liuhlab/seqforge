@@ -36,7 +36,7 @@
           "text": "To facilitate scalable profiling of single cells, we developed Split Pool Ligation-based Transcriptome sequencing (SPLiT-seq), a single-cell RNA-seq (scRNA-seq) method that labels the cellular origin of RNA through combinatorial barcoding. SPLiT-seq is compatible with fixed cells or nuclei, allows efficient sample multiplexing and requires no customized equipment. We used SPLiT-seq to analyze 156,049 single-nucleus transcriptomes from postnatal day 2 and 11 mouse brains and spinal cords. Over 100 cell types were identified, with gene expression patterns corresponding to cellular function, regional specificity, and stage of differentiation. Pseudotime analysis revealed transcriptional programs driving four developmental lineages, providing a snapshot of early postnatal development in the murine central nervous system. SPLiT-seq provides a path towards comprehensive single-cell transcriptomic analysis of other similarly complex multicellular systems. Overall design: Single-cell/nucleus RNA-seq was performed using SPLiT-seq This code explains how to read the data from the paper into python: https://gist.github.com/Alex-Rosenberg/5ee8b14ea580144facad9c2b87cebf10"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -98,7 +98,7 @@
           "text": "GSM3017260"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -140,7 +140,7 @@
           "text": "GSM3017260"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -153,9 +153,13 @@
           "text": "GSM3017260_r1"
         }
       ],
-      "filenames": [
-        "S1_S1_R1_001.fastq.gz",
-        "S1_S1_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "S1_S1_R1_001.fastq.gz"
+        },
+        {
+          "filename": "S1_S1_R2_001.fastq.gz"
+        }
       ]
     }
   ]

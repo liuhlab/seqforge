@@ -36,7 +36,7 @@
           "text": "We presents a complete single-cell atlas of aging worms, encompassing both somatic and germ cell types. This atlas was built upon 241K nuclei across the worm lifespan at day 1, 6, 12, and 14 (100%, 99%, 61%, and 14% survival rates, respectively). The worms were aged under normal physiological conditions, without interfering with their reproductive processes. Overall design: To perfom snRNAseq for wild-type and longevity worms, we harvested and homogenized ~2,000 worms for each genotype/condition. Nuclei were isolated using fluorescence-activated cell sorting (FACS) based on the DNA content signal and then proceed with 10x Chromium sequcing."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -104,7 +104,7 @@
           "text": "GSM8029690"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -150,7 +150,7 @@
           "text": "GSM8029690"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -163,11 +163,19 @@
           "text": "GSM8029690_r1"
         }
       ],
-      "filenames": [
-        "Max_10x_MW1_S1_L001_I1_001.fastq.gz",
-        "Max_10x_MW1_S1_L001_I2_001.fastq.gz",
-        "Max_10x_MW1_S1_L001_R1_001.fastq.gz",
-        "Max_10x_MW1_S1_L001_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Max_10x_MW1_S1_L001_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L001_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L001_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L001_R2_001.fastq.gz"
+        }
       ]
     },
     {
@@ -181,11 +189,19 @@
           "text": "GSM8029690_r2"
         }
       ],
-      "filenames": [
-        "Max_10x_MW1_S1_L002_I1_001.fastq.gz",
-        "Max_10x_MW1_S1_L002_I2_001.fastq.gz",
-        "Max_10x_MW1_S1_L002_R1_001.fastq.gz",
-        "Max_10x_MW1_S1_L002_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Max_10x_MW1_S1_L002_I1_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L002_I2_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L002_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Max_10x_MW1_S1_L002_R2_001.fastq.gz"
+        }
       ]
     }
   ]

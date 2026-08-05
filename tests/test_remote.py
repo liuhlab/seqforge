@@ -333,6 +333,55 @@ def test_the_filereport_asks_ena_for_the_library_construction_protocol(
     assert "Smart-Seq3" in rows[0]["library_construction_protocol"]
 
 
+def test_the_filereport_asks_ena_for_the_submitted_md5_beside_its_siblings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Three quarters of one fact was requested: name, size and format, but never the hash.
+
+    `submitted_md5` is ENA's spelling of what SRA publishes on `<SRAFile supertype="Original">` — an
+    address over the submitter's own upload, the copy nobody normalized (ADR-0033). ENA generates no
+    FASTQ at all for a cellranger BAM, so for those deposits the submitted file is the only data and
+    its hash is the only content-address on offer.
+    """
+    captured: dict[str, dict[str, str] | None] = {}
+
+    def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
+        captured["params"] = params
+        return "submitted_md5\n993e02dd8079b30a23285828a8ee9982\n"
+
+    monkeypatch.setattr(remote, "_get", fake_get)
+
+    rows = remote.ena_filereport("SRP383998")
+    params = captured["params"]
+    assert params is not None
+    requested = params["fields"].split(",")
+    assert {"submitted_ftp", "submitted_bytes", "submitted_format", "submitted_md5"} <= set(
+        requested
+    ), requested
+    assert rows[0]["submitted_md5"] == "993e02dd8079b30a23285828a8ee9982"
+
+
+def test_a_runs_submitted_md5_surfaces_in_resolve_beside_the_siblings_it_arrived_with() -> None:
+    """Requesting the field is half of it — `io resolve` is where a human sees the answer.
+
+    Driven on an ERR run because `run_new` is an NCBI endpoint that serves SRR only, so this reaches
+    no network: what is under test is the annotation, not the statistics call it skips.
+    """
+    entry = remote._annotate(
+        {
+            "run_accession": "ERR4082915",
+            "submitted_ftp": "ftp.sra.ebi.ac.uk/vol1/err/ERR408/possorted_genome_bam.bam",
+            "submitted_bytes": "28543057",
+            "submitted_format": "BAM",
+            "submitted_md5": "993e02dd8079b30a23285828a8ee9982",
+        }
+    )
+
+    assert entry["submitted_md5"] == "993e02dd8079b30a23285828a8ee9982"
+    assert entry["submitted_bytes"] == "28543057"  # the siblings it must arrive beside
+    assert entry["fastq_urls"] == [] and "note" in entry, "the BAM case: submitted is all there is"
+
+
 #: ``(run, expected)`` for ``fastq_urls``: it splits ``fastq_ftp`` on ``;``, prepends the ``https://``
 #: scheme, and sorts (ENA does not guarantee order). An absent or empty field is a meaningful "no
 #: fastq" — the 10x case, where ENA generates none for a cellranger BAM / a BAM with CB tags — not a
@@ -486,6 +535,21 @@ def test_remedy_names_fasterq_dump_first_not_sdl() -> None:
     assert "--include-technical" in remedy
     assert remedy.index("fasterq-dump") < remedy.index("Data Locator")
     assert "SRR9170959" in remedy
+
+
+def test_the_remedy_offers_the_records_we_already_hold_before_a_second_api() -> None:
+    """The fallback used to be "go query SDL and hope", for a fact the fetched record set states.
+
+    An `ArchiveRecordSet` names the `sra-pub-src-*` bucket per run, with the file's md5 and size, and
+    it was already fetched, parsed and cached — so SDL is one route to those bytes and never the only
+    one (ADR-0033). The remedy carries the POINTER at the verb that prints them and not the URI
+    itself: the three byte-side copies of this sentence hold no record set and never will.
+    """
+    remedy = technical_read_remedy("SRR9170959")
+    assert "seqforge io records SRR9170959" in remedy
+    assert remedy.index("io records") < remedy.index("Data Locator"), (
+        "the record set we hold is the first fallback; SDL is what a deposit with no originals leaves"
+    )
 
 
 # ---------------------------------------------------------------------------------------------

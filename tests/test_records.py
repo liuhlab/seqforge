@@ -70,9 +70,13 @@ def records() -> ArchiveRecordSet:
     return ArchiveRecordSet(source="fixture", query="PRJNA1027859", records=recs)
 
 
-def _file(basename: str, sha: str) -> FileIdentity:
-    """Identity only. The resolver is handed no probe output at all — see `resolve/records.py`."""
-    return FileIdentity(basename=basename, sha256=sha, size_bytes=1024)
+def _file(basename: str, sha: str, size_bytes: int = 1024) -> FileIdentity:
+    """Identity only. The resolver is handed no probe output at all — see `resolve/records.py`.
+
+    ``size_bytes`` is the one field here anything reads: it is what a record's declared size is
+    compared against, and every other test wants it to be some number and does not care which.
+    """
+    return FileIdentity(basename=basename, sha256=sha, size_bytes=size_bytes)
 
 
 def _pilot_files() -> list[FileIdentity]:
@@ -304,6 +308,166 @@ def test_a_record_that_does_not_account_for_the_files_refuses(records: ArchiveRe
     assert [b.code for b in out.blockers] == [BlockerCode.RECORD_JOIN_INCOMPLETE]
     assert out.samples == []
     assert "mystery_1.fastq.gz" in out.blockers[0].evidence
+
+
+# ------------------------------------------------- the size the archive declares, and what it may do
+#
+# The archive publishes a size beside every submitted filename, and the temptation it creates is to
+# join on it. It may not: a size is a coincidence between two numbers, and a filename is a fact the
+# submitter typed, so matching on the first would be a guess laid over the second. What it may do is
+# *comment* on a join the name already made — and only there, because only a file matched by the name
+# the record declares is claiming to BE that submitted file. A file matched by its run accession
+# claims nothing of the sort: `fasterq-dump` regenerates a FASTQ that has no reason to weigh what the
+# submitter uploaded, so a disagreement there is the normal case and a warning on it would be noise on
+# every dataset fetched the ordinary way. Never a `Blocker` either way (ADR-0010): this stage decides.
+
+#: The pilot's real SRA numbers, from `<SRAFile filename=... size=...>` — the shape ADR-0033 quotes.
+SUBMITTED_NAME = "NasalProx1_270_2.fastq.gz"
+SUBMITTED_SIZE = 28543057
+
+
+def _one_run_records(
+    *, size_bytes: int | None, io_version: str | None = "2026.7.0"
+) -> ArchiveRecordSet:
+    """One run, reachable BOTH ways: by its accession, and by the name the submitter uploaded under.
+
+    One record set serving both joins is what makes the pair of tests below a comparison — the record,
+    the declared size and the file on disk are held fixed and the only thing that varies is which of
+    the two names the file carries.
+    """
+    from seqforge.models.records import ArchiveRecord, SubmittedFile
+
+    return ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA249",
+        io_version=io_version,
+        records=[
+            ArchiveRecord(level="sample", accession="SAMN249"),
+            ArchiveRecord(level="experiment", accession="SRX19886090", parent="SAMN249"),
+            ArchiveRecord(
+                level="run",
+                accession="SRR19886090",
+                parent="SRX19886090",
+                submitted_files=[SubmittedFile(filename=SUBMITTED_NAME, size_bytes=size_bytes)],
+            ),
+        ],
+    )
+
+
+def test_a_size_the_record_disagrees_with_warns_on_a_filename_made_join() -> None:
+    """The file on disk says it IS that submitted file, by wearing its name, and it weighs something
+    else. Both numbers go in the message: a warning that says only "the size differs" leaves the
+    reader to fetch the record themselves to learn by how much, which is the work it exists to save.
+    """
+    out = resolve_metadata(
+        files=[_file(SUBMITTED_NAME, "a" * 64, size_bytes=4096)],
+        records=_one_run_records(size_bytes=SUBMITTED_SIZE),
+    )
+    notes = [w for w in out.warnings if w.code == "submitted_file_size_mismatch"]
+    assert len(notes) == 1, f"warnings were {[w.model_dump() for w in out.warnings]}"
+    assert SUBMITTED_NAME in notes[0].message, (
+        "a note that does not name the file cannot be acted on"
+    )
+    assert str(SUBMITTED_SIZE) in notes[0].message, "the size the archive declares"
+    assert "4096" in notes[0].message, "and the size the file on disk actually is"
+    assert notes[0].subject.ref == SUBMITTED_NAME
+
+
+def test_a_size_disagreement_is_silent_where_the_accession_made_the_join() -> None:
+    """Same record, same declared size, same 4096 bytes on disk — and nothing to say.
+
+    `SRR19886090_2.fastq.gz` is a file `fasterq-dump` wrote out of SRA's own normalized copy. It never
+    claimed to be the submitter's upload, so its weight bears on nothing, and warning here would put a
+    line on every dataset anyone fetched the ordinary way.
+    """
+    out = resolve_metadata(
+        files=[_file("SRR19886090_2.fastq.gz", "b" * 64, size_bytes=4096)],
+        records=_one_run_records(size_bytes=SUBMITTED_SIZE),
+    )
+    assert [w for w in out.warnings if w.code == "submitted_file_size_mismatch"] == []
+
+
+def test_a_record_declaring_no_size_says_nothing_about_the_one_on_disk() -> None:
+    """Every record set written before ADR-0033 is this case, so it is the common one, not the corner.
+
+    Absent is not zero and it is not a disagreement: there is nothing to compare against, and a note
+    saying so would fire on every migrated transcript in the corpus.
+    """
+    out = resolve_metadata(
+        files=[_file(SUBMITTED_NAME, "c" * 64, size_bytes=4096)],
+        records=_one_run_records(size_bytes=None),
+    )
+    assert [w for w in out.warnings if w.code == "submitted_file_size_mismatch"] == []
+
+
+def test_a_size_disagreement_never_blocks_and_never_unmakes_the_join() -> None:
+    """ADR-0010: the metadata resolver decides and only warns, and the join is the name's to make.
+
+    Stated over both arrangements at once because the claim is about the pair — whatever the size
+    says, the file still reaches its sample, and the compile still exits 0. The alternative reading of
+    a size disagreement is "this is the wrong file, drop the join", and that would strand the file with
+    no sample while the manifest still read as though it described it.
+    """
+    for basename in (SUBMITTED_NAME, "SRR19886090_2.fastq.gz"):
+        out = resolve_metadata(
+            files=[_file(basename, "d" * 64, size_bytes=4096)],
+            records=_one_run_records(size_bytes=SUBMITTED_SIZE),
+        )
+        assert out.blockers == [], f"{basename}: a declared size may never refuse a dataset"
+        assert [s.accession for s in out.samples] == ["SAMN249"], f"{basename}: the join stands"
+        assert out.samples[0].file_shas == ["d" * 64]
+
+
+# --------------------------------- a stale record set is not a deposit that published no originals
+
+
+def test_an_unstamped_record_set_that_cannot_join_names_the_re_fetch() -> None:
+    """A set with no writer stamp was transcribed before seqforge read submitted files at all.
+
+    Its silence is a question we did not ask, not an answer the archive gave, and the two must not
+    read alike — the old message blamed the archive for declaring no such filenames, which sends a
+    reader to check their download when the fix is one command against the cache.
+    """
+    records = _one_run_records(size_bytes=None, io_version=None)
+    out = resolve_metadata(files=[_file("renamed_R1.fastq.gz", "e" * 64)], records=records)
+
+    assert [b.code for b in out.blockers] == [BlockerCode.RECORD_JOIN_INCOMPLETE]
+    blocker = out.blockers[0]
+    assert "seqforge io records PRJNA249" in blocker.remedy, (
+        "the remedy has to name the command that rewrites the set, and the accession to run it on"
+    )
+    assert "the original filenames the record declares" not in blocker.message, (
+        "that wording asserts the archive declared nothing, which an unstamped set cannot know"
+    )
+
+
+def test_a_stamped_set_that_declares_no_originals_still_blames_neither_side() -> None:
+    """The contrast case, and the reason the stamp exists: most deposits publish no originals.
+
+    Here the transcriber DID look and the archive published nothing, so the join really did run out of
+    both halves and the message that says so is the honest one. Re-fetching would change nothing and
+    telling someone to do it would waste the one remedy they read.
+    """
+    from seqforge.models.records import ArchiveRecord
+
+    records = ArchiveRecordSet(
+        source="fixture",
+        query="PRJNA249",
+        io_version="2026.7.0",
+        records=[
+            ArchiveRecord(level="sample", accession="SAMN249"),
+            ArchiveRecord(level="experiment", accession="SRX19886090", parent="SAMN249"),
+            ArchiveRecord(level="run", accession="SRR19886090", parent="SRX19886090"),
+        ],
+    )
+    out = resolve_metadata(files=[_file("renamed_R1.fastq.gz", "f" * 64)], records=records)
+
+    assert [b.code for b in out.blockers] == [BlockerCode.RECORD_JOIN_INCOMPLETE]
+    blocker = out.blockers[0]
+    assert "the original filenames the record declares" in blocker.message
+    assert "seqforge io records" not in blocker.remedy, (
+        "a fresh set re-fetches to the same emptiness; the remedy must stay about the files on disk"
+    )
 
 
 # ---------------------------------------------------------------- no record at all
@@ -658,7 +822,7 @@ def _typed_slot_records(attr: str, declared: str, read: str) -> ArchiveRecordSet
     Deliberately the two halves of ONE deposit — the structured slot and the prose a model is shown
     — because that pairing is the whole subject here.
     """
-    from seqforge.models.records import ArchiveRecord, FreeText, RecordAttribute
+    from seqforge.models.records import ArchiveRecord, FreeText, RecordAttribute, SubmittedFile
 
     return ArchiveRecordSet(
         source="fixture",
@@ -679,7 +843,10 @@ def _typed_slot_records(attr: str, declared: str, read: str) -> ArchiveRecordSet
                 level="run",
                 accession="SRR1",
                 parent="SRX1",
-                filenames=["one_1.fastq.gz", "one_2.fastq.gz"],
+                submitted_files=[
+                    SubmittedFile(filename="one_1.fastq.gz"),
+                    SubmittedFile(filename="one_2.fastq.gz"),
+                ],
             ),
         ],
     )
@@ -930,7 +1097,7 @@ def test_two_prose_readings_with_no_typed_slot_are_still_a_disagreement() -> Non
     With nothing typed, both values are a model's reading and neither is the archive's own string, so
     preferring the longer one would store a value code chose between two guesses. Null instead.
     """
-    from seqforge.models.records import ArchiveRecord, FreeText
+    from seqforge.models.records import ArchiveRecord, FreeText, SubmittedFile
 
     records = ArchiveRecordSet(
         source="fixture",
@@ -948,7 +1115,7 @@ def test_two_prose_readings_with_no_typed_slot_are_still_a_disagreement() -> Non
                 accession="SRR1",
                 parent="SRX1",
                 free_text=[FreeText(label="run_alias", text="L2 larvae rep1")],
-                filenames=["two_1.fastq.gz"],
+                submitted_files=[SubmittedFile(filename="two_1.fastq.gz")],
             ),
         ],
     )
@@ -1204,7 +1371,7 @@ def _twin_sample_records() -> ArchiveRecordSet:
     the plan are the two sample records, and the only thing separating them is the accession our own
     renderer put there.
     """
-    from seqforge.models.records import ArchiveRecord, FreeText
+    from seqforge.models.records import ArchiveRecord, FreeText, SubmittedFile
 
     records = [ArchiveRecord(level="project", accession="PRJNA1")]
     for accession in ("SAMN1", "SAMN22"):
@@ -1220,7 +1387,7 @@ def _twin_sample_records() -> ArchiveRecordSet:
                 level="run",
                 accession=f"SRR{accession}",
                 parent=f"SRX{accession}",
-                filenames=[f"{accession}_1.fastq.gz"],
+                submitted_files=[SubmittedFile(filename=f"{accession}_1.fastq.gz")],
             ),
         ]
     return ArchiveRecordSet(source="test", query="PRJNA1", records=records)

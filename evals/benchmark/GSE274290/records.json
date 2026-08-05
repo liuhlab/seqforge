@@ -23,7 +23,7 @@
           "value": "2024-08-08"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -101,7 +101,7 @@
           "value": "L4 worm after synchronization"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -139,7 +139,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -160,9 +160,13 @@
     {
       "accession": "SRR30172517",
       "attributes": [],
-      "filenames": [
-        "l4_germcell_1.fq.gz",
-        "l4_germcell_2.fq.gz"
+      "submitted_files": [
+        {
+          "filename": "l4_germcell_1.fq.gz"
+        },
+        {
+          "filename": "l4_germcell_2.fq.gz"
+        }
       ],
       "free_text": [
         {
@@ -176,9 +180,13 @@
     {
       "accession": "SRR30172518",
       "attributes": [],
-      "filenames": [
-        "l4_germcell_add_seq_1.fastq.gz",
-        "l4_germcell_add_seq_2.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "l4_germcell_add_seq_1.fastq.gz"
+        },
+        {
+          "filename": "l4_germcell_add_seq_2.fastq.gz"
+        }
       ],
       "free_text": [
         {
