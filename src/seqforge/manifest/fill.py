@@ -240,7 +240,7 @@ def fill_manifest(
         ),
         assay=_assay_labels(chemistry, specs),
         read_layout=_build_read_layout(spec, winner, obs_by_sha),
-        onlists=_build_onlists(spec, registry),
+        onlists=_build_onlists(spec, winner, registry),
         files=_build_files(winner, observations, role_of_sha, uris=uris),
     )
 
@@ -385,9 +385,16 @@ def _assay_labels(chemistry: list[str], specs: dict[str, Spec] | None) -> list[A
 def _build_read_layout(
     spec: Spec, winner: Candidate, obs_by_sha: dict[str, Observation]
 ) -> ReadLayout:
-    """Declared element structure (KB) x observed read geometry (the assigned file's bytes)."""
+    """Declared element structure (KB) x observed read geometry (the assigned file's bytes).
+
+    **The WINNING read set's reads** — the one place the read set decides a manifest, and the reason the
+    manifest needs no field for it. A chemistry may publish more than one sequencing configuration, and
+    the layout is what this library IS, so a single-end bulk run lists one read and a paired-end run of
+    the same chemistry lists two. Iterating the maximal set instead would raise below on the read the
+    winning configuration does not have, which is exactly the refusal read sets exist to remove.
+    """
     reads: list[ReadDef] = []
-    for read in spec.reads:
+    for read in spec.reads_in(winner.read_set):
         sha = winner.role_assignment.assignment.get(read.id)
         if sha is None or sha not in obs_by_sha:
             raise FillError(f"role {read.id!r} has no assigned file in the winning candidate")
@@ -441,14 +448,21 @@ def _read_element(el: Element, spec: Spec) -> ReadElement:
     )
 
 
-def _build_onlists(spec: Spec, registry: OnlistRegistry) -> list[Onlist]:
-    """Registry-backed whitelist entries for the onlists this chemistry's ELEMENTS actually use.
+def _build_onlists(spec: Spec, winner: Candidate, registry: OnlistRegistry) -> list[Onlist]:
+    """Registry-backed whitelist entries for the onlists this LIBRARY's elements actually use.
 
     An onlist referenced only by an ``excludes`` anti-gate is a detection probe, not part of the
     library, and is not recorded. A registry entry without a real URI + sha256 (a declared-but-not-
     materialized real list) is skipped — ``validate`` surfaces that as a warning, not a silent pass.
+
+    **The WINNING read set's reads**, for the same reason the read layout is built from them: a
+    whitelist reached only by a read this configuration does not carry is not a list this library was
+    built with, and recording it would be a claim with no behaviour behind it sitting inside
+    ``dataset_hash``. It also keeps the two halves in step — ``validate`` warns when a LAYOUT element
+    references an onlist the manifest does not carry, so the set that fills one must fill the other.
     """
-    used = {el.onlist for read in spec.reads for el in read.elements if el.onlist}
+    reads = spec.reads_in(winner.read_set)
+    used = {el.onlist for read in reads for el in read.elements if el.onlist}
     out: list[Onlist] = []
     for alias in sorted(used):
         name = spec.onlists[alias].registry

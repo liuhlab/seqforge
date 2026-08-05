@@ -1,13 +1,20 @@
 """Per-technology scoring: evidence matrix -> injective assignment -> cardinality-normalized score.
 
-For technology ``t`` with roles ``R_t`` (its reads) and files ``F``, cell ``M[r][f]`` is ``FORBIDDEN``
-if any ``requires(r)`` gate FAILs or any ``excludes(r)`` gate PASSes, else the normalized weighted
-``supports(r)`` sum in ``[0, 1]``. ``FORBIDDEN`` is an internal ``Cell(forbidden=True)`` flag, never a
-``±inf`` — serialized it is ``{"status": "forbidden"}`` so no infinity ever crosses the JSON boundary.
+For technology ``t`` with roles ``R_t`` (the reads of its active **read set**) and files ``F``, cell
+``M[r][f]`` is ``FORBIDDEN`` if any ``requires(r)`` gate FAILs or any ``excludes(r)`` gate PASSes, else
+the normalized weighted ``supports(r)`` sum in ``[0, 1]``. ``FORBIDDEN`` is an internal
+``Cell(forbidden=True)`` flag, never a ``±inf`` — serialized it is ``{"status": "forbidden"}`` so no
+infinity ever crosses the JSON boundary.
 
 ``score(t) = raw / |R_t|  -  (λ / |R_t|)·|F \\ A*|`` is cardinality-normalized so a 2-role 10x and a
 6-role SPLiT-seq are comparable. The filename prior enters as a sub-threshold ``β``-scaled nudge that
 can only break an exact byte-tie.
+
+**A spec may declare more than one read set, and the loop over them lives HERE** — inside the
+technology evaluation, never above it. Every set is scored and the best one is kept, so there is still
+exactly ONE ``TechEvaluation`` per spec: ranking, equivalence, escalation and the divergent-tie
+machinery need no new "a spec does not tie with itself" rule, and a chemistry never competes with
+itself for a place in the candidate list.
 """
 
 from __future__ import annotations
@@ -43,9 +50,18 @@ class Cell:
 
 @dataclass(frozen=True)
 class TechEvaluation:
-    """The full scored verdict for one technology against the dataset's files."""
+    """The full scored verdict for one technology against the dataset's files.
+
+    One per spec, and it names the **read set** that produced it: ``roles`` is that set's reads, so on a
+    spec declaring alternatives the verdict answers "which configuration of this chemistry, scored how"
+    rather than only "this chemistry". The name reaches the resolve artifacts (a ``Candidate``), where
+    "how this was decided" lives, and NOT the manifest — the manifest's read layout already lists
+    exactly this set's reads, and the composer reads the reads and never the name.
+    """
 
     tech: str
+    #: Which read set was scored: :data:`~seqforge.kb.schema.FULL_READ_SET` for the maximal one.
+    read_set: str
     roles: list[str]
     file_shas: list[str]
     matrix: dict[str, list[Cell]]
@@ -246,12 +262,72 @@ def _global_support(
 def build_tech_evaluation(
     spec: Spec, wps: list[WindowProbe], registry: OnlistRegistry
 ) -> TechEvaluation:
-    """Score one technology against the dataset's files (the evidence matrix + joint assignment)."""
-    reads_by_id = {r.id: r for r in spec.reads}
-    roles = [r.id for r in spec.reads]
+    """Score one technology against the dataset's files — the best of its read sets, and only that one.
+
+    A spec declares a maximal read set and may name subsets of it, so "score this chemistry" is really
+    "score each configuration it publishes and keep the one the bytes support". The loop is here rather
+    than in the engine above so that **one spec still yields one Candidate**: a chemistry that appeared
+    twice in the ranking would tie with itself, and every downstream rule — the θ tie set, the
+    equivalence class, the divergent-tie question, the alphabetical determinism tiebreak — would need a
+    new clause saying that particular tie is not a disagreement.
+
+    **The comparison, and why it needs no special case for validity.** A forbidden set scores ``-inf``
+    (``TechEvaluation.value``), so a set that cannot be seated loses to any set that can, and a spec all
+    of whose sets are forbidden keeps the maximal one's verdict — the reason string and
+    ``unfillable_role_ids`` a caller renders stay the ones it always got. An exact tie prefers the LARGER
+    set: it explains more of the data, and preferring it falls out of visiting the maximal set first
+    (``Spec.read_set_names``) and replacing only on a strict improvement. Nothing here needs a
+    thumb on the scale to make a subset lose where it should — the score is normalized by role count and
+    charges ``λ/|R|`` per orphaned file, so on a two-file deposit the one-role set pays 0.25 for the mate
+    it declined to explain.
+    """
+    best: TechEvaluation | None = None
+    for name in spec.read_set_names():
+        evaluation = _evaluate_read_set(spec, name, wps, registry)
+        if best is None or (evaluation.value, len(evaluation.roles)) > (
+            best.value,
+            len(best.roles),
+        ):
+            best = evaluation
+    if best is None:  # unreachable: `read_set_names` always yields the maximal set
+        raise ValueError(f"{spec.identity.id!r} declares no read set to score")
+    return best
+
+
+def read_set_evaluations(
+    spec: Spec, wps: list[WindowProbe], registry: OnlistRegistry
+) -> list[TechEvaluation]:
+    """Every read set's verdict, in :meth:`~seqforge.kb.schema.Spec.read_set_names` order.
+
+    What :func:`build_tech_evaluation` takes the best of. Exposed because a claim about ONE set is not
+    checkable through the maximum — "the single-end set does not outrank a real single-cell chemistry on
+    that chemistry's own data" is the plausible-matrix failure this feature could introduce, and on data
+    where the maximal set is forbidden the maximum IS the subset, so a test reading only the winner
+    could not tell which set it was measuring. Nothing in ``src/`` consumes this: production always
+    wants the best set, and a caller that could pick a set would be a second policy.
+    """
+    return [_evaluate_read_set(spec, name, wps, registry) for name in spec.read_set_names()]
+
+
+def _evaluate_read_set(
+    spec: Spec, read_set: str, wps: list[WindowProbe], registry: OnlistRegistry
+) -> TechEvaluation:
+    """Score ONE read set of one technology (the evidence matrix + joint assignment).
+
+    Every ``spec.reads`` read of the maximal set is a role here; a subset's reads are its roles and the
+    rest of the spec's reads simply have no row. **A signature test addressed to a read outside the
+    active set is therefore inapplicable** — it has no cell, so it enters neither the score numerator
+    nor its normalizer (``total_w`` sums the ACTIVE role's supports), which is already how a nonexistent
+    cell behaves. That is why one signature serves every set and no set-specific signature exists.
+    """
+    reads = spec.reads_in(read_set)
+    reads_by_id = {r.id: r for r in reads}
+    roles = [r.id for r in reads]
     n_files = len(wps)
     file_shas = [wp.observation.file.sha256 for wp in wps]
-    barcode_role_ids = [r.id for r in spec.reads if any(el.type == "barcode" for el in r.elements)]
+    # The ACTIVE set's barcode roles, not the spec's: this list seats a constraint (F1a) and indexes
+    # into `roles`, so a barcode read the active set does not carry has no seat to constrain.
+    barcode_role_ids = [r.id for r in reads if any(el.type == "barcode" for el in r.elements)]
 
     req_by: dict[str, list[Test]] = defaultdict(list)
     exc_by: dict[str, list[Test]] = defaultdict(list)
@@ -357,6 +433,7 @@ def build_tech_evaluation(
     equivalence = [c.id for c in spec.confusable_with if c.relationship == "processing_equivalent"]
     return TechEvaluation(
         tech=spec.identity.id,
+        read_set=read_set,
         roles=roles,
         file_shas=file_shas,
         matrix=matrix,

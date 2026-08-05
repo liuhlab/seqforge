@@ -34,7 +34,17 @@ from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
 from ..models.resolve import Candidate, Question, RoleAssignment
-from .confuse import is_processing_equivalent, narrows_to, same_family, sibling_decided_by
+from .confuse import (
+    is_processing_equivalent,
+    narrows_to,
+    same_family,
+    # The runtime half of the orphan rule, imported from where the CI guard also reads it. It lives in
+    # `confuse` rather than here because the under-declaration guard's question — "would the resolver
+    # pick one and never ask?" — is answered by this predicate, and a second copy of it is the copy
+    # that drifts from the behaviour it claims to model.
+    seats_a_file_the_fallback_dropped,
+    sibling_decided_by,
+)
 from .scoring import TechEvaluation
 
 _THETA = 0.02  # tie threshold: candidates within θ of the top are a "tie set"
@@ -105,16 +115,26 @@ def escalate(
     # onlist was merely consulted): a random ~100 bp bulk read passes a barcode read's over-length
     # geometry gate and reaches rung 3 with a FAILING onlist, and must stay bulk. Canonical single-cell
     # already out-scores bulk (a short barcode read is a poor cDNA), so there the anchor is a no-op.
+    #
+    # A SECOND way a barcodeless top must yield, and it arrived with read sets (ADR-0029): a fallback
+    # whose active read set consumes FEWER files can win while leaving one of them unexplained. A
+    # single-end bulk set seats its one cDNA role on the cDNA mate of a 10x deposit, orphans the 28 bp
+    # barcode read at ``λ/1`` and still scores 0.75 against a barcoded candidate whose whitelist MISSED
+    # (0.57) — so a barcoded library whose barcodes match no shipped list resolved to bulk at exit 0
+    # instead of refusing, which is a plausible gene-count matrix rather than a recoverable refusal.
+    # The over-length case above must NOT be caught by this and is not: there bulk seats every file, so
+    # it orphans nothing, and a random 100 bp read that merely passes a barcode read's over-length gate
+    # still stays bulk. The distinguishing fact is EXPLANATION, not score — a deposit holding a read
+    # this chemistry cannot seat at all is not this chemistry's deposit.
     anchor = valid[0]
     if _barcode_read_id(specs[anchor.tech]) is None:
-        anchor = next(
-            (
-                e
-                for e in valid
-                if e.barcode_onlist_hit and _barcode_read_id(specs[e.tech]) is not None
-            ),
-            anchor,
+        barcoded = [e for e in valid if _barcode_read_id(specs[e.tech]) is not None]
+        hit = next((e for e in barcoded if e.barcode_onlist_hit), None)
+        seats_dropped = next(
+            (e for e in barcoded if seats_a_file_the_fallback_dropped(e, anchor, specs[e.tech])),
+            None,
         )
+        anchor = hit or seats_dropped or anchor
     best_value = anchor.value
     tie = [e for e in valid if best_value - e.value <= _THETA]
     # The whitelist that HIT is the arbiter. Among the tie, a barcoded candidate whose onlist positively
@@ -257,11 +277,16 @@ def _pretrimmed_blockers(
     length varies only in the junk tail, while CB/UMI stay at their fixed offsets, so that variation is
     not a trimmed barcode. The canonical length is still enforced — a read sitting AT its declared
     length, most of whose reads have left it, is trimmed and blocks.
+
+    **The WINNING read set's reads, not the maximal set's.** The claim is about a file this library
+    actually has: a read the winning configuration does not carry has no seated file to measure, so a
+    maximal-set loop would only ever reach the `continue` below. Saying which set is meant is the point
+    — a predicate over a spec's reads has two readings now, and the type system asks neither.
     """
     by_sha = {o.file.sha256: o for o in observations}
     assigned = top.role_assignment_shas()
     blockers: list[Blocker] = []
-    for read in spec.reads:
+    for read in spec.reads_in(top.read_set):
         fixed = _declared_fixed_length(spec, read)
         if fixed is None:
             continue
@@ -676,6 +701,7 @@ def _candidate(e: TechEvaluation, equiv_members: list[str], rung: int) -> Candid
     return Candidate(
         technology=e.tech,
         score=e.score,
+        read_set=e.read_set,
         role_assignment=RoleAssignment(
             assignment=e.role_assignment_shas(),
             unassigned=[e.file_shas[f] for f in e.assignment.unassigned_files],
@@ -688,6 +714,13 @@ def _candidate(e: TechEvaluation, equiv_members: list[str], rung: int) -> Candid
 
 # ---- geometry helpers ----
 def _barcode_read_id(spec: Spec) -> str | None:
+    """The id of this chemistry's barcode read, or ``None`` when it has none — i.e. when it is bulk.
+
+    **The MAXIMAL read set**, deliberately: "is this chemistry barcoded?" is a property of the
+    chemistry, not of the configuration one deposit was sequenced in, and every guard reading this
+    (the collapse conflicts, F1b, the bulk-hint drop) is asking the chemistry-level question. A
+    barcoded chemistry whose alternative set dropped the barcode read would still be single-cell.
+    """
     for read in spec.reads:
         if any(el.type == "barcode" for el in read.elements):
             return read.id

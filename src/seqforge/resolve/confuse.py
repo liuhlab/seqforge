@@ -27,8 +27,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING
 
 from ..kb.schema import Spec
+
+if TYPE_CHECKING:  # `scoring` imports nothing from here, but only the annotations need the type
+    from .scoring import TechEvaluation
 
 
 def _role_placement(spec: Spec) -> list[str]:
@@ -128,6 +132,76 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
     return build_tech_evaluation(spec, wps, OnlistRegistry(offline=True)).valid
 
 
+def seats_a_file_the_fallback_dropped(
+    barcoded: TechEvaluation, fallback: TechEvaluation, barcoded_spec: Spec
+) -> bool:
+    """Does ``barcoded`` seat its BARCODE role on a file the barcodeless ``fallback`` ORPHANED, having
+    won on a read set smaller than the one its chemistry declares?
+
+    **One predicate, two readers, and that is the point.** At runtime ``escalate`` uses it to refuse a
+    barcodeless top the anchor: a fallback that leaves another candidate's barcode read unexplained has
+    not accounted for the deposit, so the barcoded candidate anchors the tie band and the pair becomes a
+    divergent tie — a question, exit 4. The CI under-declaration guard uses the SAME call to know that
+    ``the resolver would pick one and never ask`` is false for that pair, which is the only danger a
+    ``confusable_with`` edge exists to avert. A guard is a proxy for a runtime behaviour; when the two
+    are written twice they drift, and the copy CI reads is the one that goes stale.
+
+    **Scoped to a PROPER SUBSET read set, deliberately, and this is the load-bearing line.** A maximal
+    set that orphans a file is the ordinary leftover case the ``λ/|R|`` penalty has always priced and
+    the KB has always declared edges for — ``bulk-rnaseq`` drops 10x Multiome ATAC's 24 bp barcode read
+    exactly that way, and that edge is a shipped, re-derived declaration. Widening this rule to the
+    maximal set would retire it silently, trading a declared danger for an undeclared one. A rule
+    introduced by read sets applies to read sets: the blast radius of this change is then equal to the
+    feature it adds, and every pre-existing pair scores, ranks and escalates byte-identically.
+
+    Deliberately about the ORPHAN and not about the score. The leftover penalty already prices an
+    unexplained file, and at ``λ = 0.25`` on a one-role set that price is too low to beat a two-role
+    candidate whose whitelist came up empty (0.75 against 0.57). Raising ``λ`` would re-price every
+    assignment in the KB to fix one shape; asking whether the file was explained is the same question
+    without the collateral.
+    """
+    from ..kb.schema import FULL_READ_SET
+
+    # `_barcode_read_id` is imported here rather than at module scope for the reason `_THETA` is in
+    # `could_outrank_at_rungs_0_2`: `escalate` imports THIS module at module scope, so the dependency
+    # runs one way at import time and both ways lazily. Taking the resolver's own predicate rather
+    # than restating it is what stops "is this chemistry barcoded" meaning two things in one codebase.
+    from .escalate import _barcode_read_id
+
+    if fallback.read_set == FULL_READ_SET:
+        return False
+    bc = _barcode_read_id(barcoded_spec)
+    if bc is None:
+        return False
+    sha = barcoded.role_assignment_shas().get(bc)
+    if sha is None:
+        return False
+    dropped = {fallback.file_shas[f] for f in fallback.assignment.unassigned_files}
+    return sha in dropped
+
+
+def _rung02_pair(
+    a: Spec, b: Spec, b_probes: Iterable[object]
+) -> tuple[TechEvaluation, TechEvaluation] | None:
+    """``(a, b)`` both scored on ``b``'s reads with the onlist withheld, or ``None`` if ``a`` is invalid.
+
+    The one scoring pass :func:`rung02_margin` and :func:`could_outrank_at_rungs_0_2` share. They ask
+    two different questions of the same two evaluations — a number and a verdict — and computing them
+    apart would either double the scorer's cost on an O(n²) sweep or let the number and the verdict be
+    derived from different runs of it.
+    """
+    from ..io import OnlistRegistry
+    from .scoring import build_tech_evaluation
+    from .window import WindowProbe
+
+    wps = [p for p in b_probes if isinstance(p, WindowProbe)]
+    registry = OnlistRegistry(offline=True)
+    challenger = build_tech_evaluation(a, wps, registry)
+    if not challenger.valid:
+        return None
+    return challenger, build_tech_evaluation(b, wps, registry)
+
+
 def rung02_margin(a: Spec, b: Spec, b_probes: Iterable[object]) -> float | None:
     """``a``'s rung-0-2 score minus ``b``'s, both measured on ``b``'s OWN reads. ``None`` if ``a``
     scores nothing there (no valid injective assignment — an unscorable spec ranks nowhere).
@@ -144,19 +218,14 @@ def rung02_margin(a: Spec, b: Spec, b_probes: Iterable[object]) -> float | None:
     ``distinguishable_by: [onlist]`` edge promises will separate the pair later, so letting the
     incumbent keep its whitelist here would answer the question the edge exists to ask.
     """
-    from ..io import OnlistRegistry
-    from .scoring import build_tech_evaluation
-    from .window import WindowProbe
-
-    wps = [p for p in b_probes if isinstance(p, WindowProbe)]
-    registry = OnlistRegistry(offline=True)
-    challenger = build_tech_evaluation(a, wps, registry)
-    if not challenger.valid:
+    pair = _rung02_pair(a, b, b_probes)
+    if pair is None:
         return None
+    challenger, incumbent = pair
     # `.value` is -inf for a forbidden incumbent, so a spec that cannot score its own synthetic reads
     # loses to every valid challenger — which is the honest ordering, and a KB defect the round-trip
     # and `test_a_spec_is_length_feasible_against_its_own_reads` catch first.
-    return challenger.value - build_tech_evaluation(b, wps, registry).value
+    return challenger.value - incumbent.value
 
 
 def could_outrank_at_rungs_0_2(a: Spec, b: Spec, b_probes: Iterable[object]) -> bool:
@@ -185,11 +254,31 @@ def could_outrank_at_rungs_0_2(a: Spec, b: Spec, b_probes: Iterable[object]) -> 
     :func:`accepts_at_rungs_0_2`. Every necessary condition of that one therefore remains a sound
     skip for this one — in particular ``geometry.geometry_could_accept``, which the guard uses to
     avoid scoring length-infeasible pairs.
+
+    **A higher score is not the whole of "would pick one and never ask", and read sets are what made
+    the difference visible** (ADR-0029). When ``a``'s winning read set is a proper subset that ORPHANS
+    the very file ``b`` seats as its barcode read, ``escalate`` re-anchors the tie band on ``b``, so
+    ``b`` is inside the band whatever ``a`` scored, the pair is a divergent tie, and the resolver
+    raises a question — it asks. Measured over the eight pairs where the rule fires: without it the
+    resolver returns ``bulk-rnaseq`` and asks nothing; with it, the same eight ask. Reporting those as
+    under-declared would be this guard demanding a `confusable_with` edge for a danger the resolver
+    already averts — the guard-as-formality failure it exists to avoid, arrived at from the other side.
+
+    The exemption reads :func:`seats_a_file_the_fallback_dropped` rather than restating it, so the
+    guard cannot come to disagree with the escalation it is a proxy for. That predicate is scoped to a
+    proper-subset read set, which is why it exempts nothing that shipped before read sets did:
+    ``bulk-rnaseq`` -> ``10x-multiome-atac`` orphans a barcode read from its MAXIMAL set and keeps
+    deriving at +0.1376, along with the other four declared edges.
     """
     from .escalate import _THETA  # the resolver's tie band, not a second copy of it
 
-    margin = rung02_margin(a, b, b_probes)
-    return margin is not None and margin >= -_THETA
+    pair = _rung02_pair(a, b, b_probes)
+    if pair is None:
+        return False
+    challenger, incumbent = pair
+    if seats_a_file_the_fallback_dropped(incumbent, challenger, b):
+        return False
+    return challenger.value - incumbent.value >= -_THETA
 
 
 def rung02_separable(

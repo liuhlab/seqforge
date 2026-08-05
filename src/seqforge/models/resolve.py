@@ -35,10 +35,19 @@ class RoleAssignment(BaseModel):
 
 
 class Candidate(BaseModel):
-    """One ranked technology candidate with its role assignment and per-field deciding rungs."""
+    """One ranked technology candidate with its read set, role assignment and per-field deciding rungs.
+
+    One per technology — a chemistry never competes with itself, even when it publishes more than one
+    sequencing configuration. The read set that won is recorded here, in the resolve artifacts, because
+    this is where "how this was decided" lives; the **manifest gains no field for it**, since its read
+    layout already lists exactly this set's reads and the composer reads the reads and never the name.
+    """
 
     technology: ChemistryId
     score: TechScore
+    #: Which of the chemistry's read sets the bytes selected: ``full`` (the maximal set every spec has)
+    #: or a declared subset such as ``se``. ``full`` for every spec that declares no alternatives.
+    read_set: str = "full"
     role_assignment: RoleAssignment
     rung_resolved: dict[str, int]
     equivalence_members: list[ChemistryId] = Field(default_factory=list)

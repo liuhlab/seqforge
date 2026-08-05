@@ -641,12 +641,14 @@ def test_compose_bulk_selects_plain_star(synth_bulk_pe: SynthDataset, tmp_path: 
 def _one_mate(manifest: DatasetManifest) -> DatasetManifest:
     """The same bulk dataset with its second mate removed — a hand-written **one-read Manifest**.
 
-    Hand-written because no KB entry declares a single-end library yet (read sets are ADR-0029's
-    later ticket) and none is needed to state what this one is about: the composer and `map/star`
-    read the MANIFEST's read layout, never the spec's declared reads. So the fixture is the shipped
-    two-read manifest with R2 taken out of all three places that carry it — the layout, the file
-    inventory, and the sample's file list — which is exactly the shape a resolver that had decided
-    single-end would fill.
+    Hand-written on purpose, and it stayed hand-written after the KB gained a single-end read set: the
+    composer and `map/star` read the MANIFEST's read layout, never the spec's declared reads, so
+    deriving this fixture from the resolver would make three composer claims depend on the byte
+    resolver agreeing. `test_a_single_end_bulk_deposit_compiles_end_to_end` is the other half — the
+    genuinely-resolved one — and having both is what separates "the composer tolerates a one-read
+    layout" from "a single-end deposit compiles". So the fixture is the shipped two-read manifest with
+    R2 taken out of all three places that carry it — the layout, the file inventory, and the sample's
+    file list — which is exactly the shape a resolver that decided single-end fills.
 
     The dataset hash is recomputed rather than inherited. A manifest whose hash disagrees with its own
     content is a *different* defect, and one that would be sitting inside every assertion below
@@ -696,6 +698,36 @@ def test_compose_a_one_mate_layout_emits_the_first_mate_key_alone(
     units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "run", "lane", "read_id", "path"]
     assert len(units) == 2, f"one mate, one sample -> header + one row; got {units}"
+    assert units[1].split("\t")[3] == "R1"
+
+
+def test_a_single_end_bulk_deposit_compiles_end_to_end(
+    synth_bulk_se: SynthDataset, tmp_path: Path
+) -> None:
+    """The whole point of read sets, from one FASTQ to a Snakefile: resolve -> fill -> compose.
+
+    Every claim here is one the BYTE RESOLVER made, not one a fixture trimmed: the deposit is a single
+    file, so the manifest's one-read layout, its one-file inventory and the `mate1`-only config all
+    follow from the resolver having selected the `se` read set. Its sibling above states the composer
+    half against a hand-written layout; this one states that the two halves meet, which is the claim
+    that was impossible while a single-end deposit exited 3 with `UNSUPPORTED_TECHNOLOGY`.
+    """
+    manifest, reg = synth_bulk_se.manifest, synth_bulk_se.registry
+    assert manifest.library.chemistry.value == ["bulk-rnaseq"]
+    assert [r.read_id for r in manifest.library.read_layout.reads] == ["R1"]
+    assert [f.read_id for f in manifest.library.files] == ["R1"]
+
+    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == "map/star"
+    assert result.gate["params"] == "pass"
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["read_files_in"] == {"mate1": "R1"}
+    assert config["bulk"]["quantMode"] == "GeneCounts"
+    assert "solo" not in config
+    assert (tmp_path / result.snakefile_path).is_file()  # the deliverable a user submits
+
+    units = (tmp_path / result.units_path).read_text().splitlines()
+    assert len(units) == 2, f"one read, one sample -> header + one row; got {units}"
     assert units[1].split("\t")[3] == "R1"
 
 

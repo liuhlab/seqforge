@@ -17,7 +17,8 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`synth_10x_v3`, :data:`synth_bulk_pe`, :data:`synth_splitseq` — **session-scoped** read-only
   FASTQ directories and the ``(manifest, registry)`` built from each, for the three shapes the suite
   keeps rebuilding: barcoded, no-barcode, and complex-geometry.
-* :data:`kb_probes` — every KB spec's own reads, probed once (``spec id -> [WindowProbe]``).
+* :data:`kb_probes` — every KB spec's own reads, probed once
+  (``(spec id, read set) -> [WindowProbe]``).
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
@@ -63,8 +64,11 @@ Record = tuple[str, str, str]
 #: Cheap by default; see the module docstring. ~5-8s across the suite, and no claim depends on it.
 DEFAULT_COMPRESSLEVEL = 1
 
-#: What :data:`kb_probes` hands back: KB spec id -> the probes a scorer sees for that technology.
-KbProbes = dict[str, list[WindowProbe]]
+#: What :data:`kb_probes` hands back: ``(KB spec id, read set)`` -> the probes a scorer sees for that
+#: technology in that sequencing configuration. The maximal set is keyed ``full``, so ``probes[id,
+#: "full"]`` is what a caller asking "this spec's own reads" wants, and ``probes["bulk-rnaseq", "se"]``
+#: is a genuinely single-end deposit of the same chemistry.
+KbProbes = dict[tuple[str, str], list[WindowProbe]]
 
 #: What :data:`src_trees` hands back: every ``.py`` under ``src/seqforge`` -> its parsed AST.
 SrcTrees = dict[Path, ast.Module]
@@ -472,6 +476,20 @@ def synth_bulk_pe(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
 
 
 @pytest.fixture(scope="session")
+def synth_bulk_se(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The same chemistry, sequenced SINGLE-END — one FASTQ, resolved and filled.
+
+    Not a trimmed copy of :data:`synth_bulk_pe`'s manifest: it is one file handed to the resolver, so
+    every claim read off it (the winning read set, the one-read layout, the file inventory) is one the
+    byte resolver actually made. That is the difference between testing the composer's tolerance of a
+    one-read layout and testing that a single-end deposit compiles at all.
+    """
+    return build_synth_dataset(
+        tmp_path_factory.mktemp("synth-bulk-se"), "bulk-rnaseq", keys=("R1",)
+    )
+
+
+@pytest.fixture(scope="session")
 def synth_splitseq(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     """The complex-geometry shape (``cdna``/``bc``, three whitelists). Companion to the two above."""
     return build_synth_dataset(tmp_path_factory.mktemp("synth-splitseq"), "splitseq")
@@ -581,7 +599,7 @@ def _rule_blocks(snakefile: Path) -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
-    """Every KB spec's own synthetic reads, probed — ``spec id -> the probes a scorer would see``.
+    """Every KB spec's own synthetic reads, probed — ``(spec id, read set) -> the probes a scorer sees``.
 
     Six tests across ``test_kb.py`` and ``test_resolve.py`` rebuilt this sweep from two copies of the
     same private helper, at ~19.4 ms/spec. The worst rebuilt it per ``(family, leaf)`` PAIR — 20
@@ -593,20 +611,26 @@ def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
     pure memo of a deterministic function — a probe answers the same question whoever asked first.
     No ``seqforge/`` workspace is involved, and nothing writes into the directory once it is built.
 
-    Keyed by id over ``kb.list_spec_ids()``, which is the same 12 ids as ``load_all_specs()`` and
-    ``load_tree().specs``, so one sweep serves callers that iterate any of the three.
+    Keyed over ``kb.list_spec_ids()``, which is the same ids as ``load_all_specs()`` and
+    ``load_tree().specs``, so one sweep serves callers that iterate any of the three — and now by
+    ``(id, read set)``, because a spec that publishes more than one sequencing configuration has more
+    than one "its own reads". The maximal set is ``full``; a declared subset's entry is the SAME probes
+    narrowed to that set's reads, so ``("bulk-rnaseq", "se")`` is a single-end bulk deposit written
+    from the same seed as the paired-end one. No extra FASTQ is written for a subset: sharing the file
+    is what keeps the two configurations byte-comparable rather than merely similar.
     """
     workdir = tmp_path_factory.mktemp("kb-probes")
-    out: dict[str, list[WindowProbe]] = {}
+    out: KbProbes = {}
     for tech_id in kb.list_spec_ids():
         spec = kb.load_spec(tech_id)
         reads = kb.generate_reads(spec, n=400, seed=0)
-        probes = []
+        by_read: dict[str, WindowProbe] = {}
         for read_id, seqs in reads.items():
             path = workdir / f"{tech_id.replace('/', '_')}_{read_id}.fastq.gz"
             write_fastq_gz(path, seqs)
-            probes.append(WindowProbe(observation=probe_file(path), seqs=seqs[:200]))
-        out[tech_id] = probes
+            by_read[read_id] = WindowProbe(observation=probe_file(path), seqs=seqs[:200])
+        for set_name in spec.read_set_names():
+            out[tech_id, set_name] = [by_read[r.id] for r in spec.reads_in(set_name)]
     return out
 
 

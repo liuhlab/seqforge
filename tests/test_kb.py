@@ -10,7 +10,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from conftest import KbProbes, write_fastq_gz
+from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import kb
 from seqforge.kb.schema import Identity, MotifPresent, Read, Spec
 from seqforge.models.observation import ConstantSegment
@@ -54,6 +54,93 @@ def test_linker_element_requires_a_sequence() -> None:
     )
     with pytest.raises(ValidationError):
         Spec.model_validate(data)
+
+
+# ---------- read sets: a subset of declared ids, checked where every other DSL typo is ----------
+def test_bulk_declares_a_single_end_read_set() -> None:
+    """The chemistry the read-set feature exists for: one entry, two sequencing configurations.
+
+    A single-end bulk RNA-seq FASTQ used to be `Blocker(UNSUPPORTED_TECHNOLOGY)` at exit 3, because
+    the entry declared two reads and the role assignment is injective AND total. The set is a subset
+    of ids, never a re-declaration, so R1's element coordinates exist exactly once and the two
+    configurations cannot drift apart.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    assert spec.read_sets == {"se": ["R1"]}
+    assert spec.read_set_names() == ["full", "se"], "maximal first, then the declared subsets"
+    assert [r.id for r in spec.reads_in("full")] == ["R1", "R2"]
+    assert [r.id for r in spec.reads_in("se")] == ["R1"]
+
+
+def test_a_misspelled_read_set_name_fails_at_load() -> None:
+    """The keys are a CLOSED vocabulary, so a typo dies where every other DSL typo dies.
+
+    `single_end:` instead of `se:` would otherwise be a read set nothing ever selects — a spec that
+    silently declares one configuration while reading as though it declared two. The vocabulary is
+    extended deliberately, exactly as an `ElementType` is.
+    """
+    data = kb.load_spec("bulk-rnaseq").model_dump()
+    data["read_sets"] = {"single_end": ["R1"]}
+    with pytest.raises(ValidationError):
+        Spec.model_validate(data)
+
+
+def test_the_maximal_read_sets_name_is_reserved_and_cannot_be_declared() -> None:
+    """`full` names `reads` itself, so declaring it would be a second declaration of the same set.
+
+    It is reserved by being absent from the vocabulary: the same mechanism that rejects a misspelling
+    rejects the one name a spec may never bind.
+    """
+    data = kb.load_spec("bulk-rnaseq").model_dump()
+    data["read_sets"] = {"full": ["R1", "R2"]}
+    with pytest.raises(ValidationError):
+        Spec.model_validate(data)
+
+
+def test_a_read_set_naming_a_read_the_spec_does_not_declare_fails_at_load() -> None:
+    """A read set is a SUBSET of declared ids. A dangling id is a dangling name like any other.
+
+    `Spec._cross_refs` already refuses a signature test naming an unknown read; a read set naming one
+    would otherwise reach the scorer as a role with no `Read` behind it — a KeyError at scoring time
+    instead of a load-time refusal.
+    """
+    data = kb.load_spec("bulk-rnaseq").model_dump()
+    data["read_sets"] = {"se": ["R3"]}
+    with pytest.raises(ValidationError, match="R3"):
+        Spec.model_validate(data)
+
+
+def test_a_read_set_may_not_be_empty() -> None:
+    """A set with no reads has no roles, so nothing could be assigned to it and it can never win."""
+    data = kb.load_spec("bulk-rnaseq").model_dump()
+    data["read_sets"] = {"se": []}
+    with pytest.raises(ValidationError):
+        Spec.model_validate(data)
+
+
+def test_a_requires_test_a_read_set_cannot_reach_fails_at_load_and_points_at_supports() -> None:
+    """The universality rule, proved by construction — it has **no instance in the shipped KB**.
+
+    A `requires` test is a hard AND-gate; a test whose read is absent from the active set is
+    *inapplicable* and enters neither the numerator nor its normalizer. So a gate addressed to a read
+    only SOME sets carry is a gate that silently stops gating for the sets that lack it — the author
+    almost certainly meant either a set-specific `supports`, or a read every set has.
+
+    After `read_count` left the vocabulary bulk's `requires` is empty and no other spec declares a
+    read set, so without this negative case the rule would ship as decoration. The positive control
+    is in the same test on purpose: the identical gate addressed to R1 — a read *every* set carries —
+    must load, or the rule would be rejecting universal gates too and nothing would notice.
+    """
+    data = kb.load_spec("bulk-rnaseq").model_dump()
+    assert data["read_sets"] == {"se": ["R1"]}, "the fixture is the shipped single-end set"
+
+    data["signature"]["requires"] = [{"test": "segment_length", "read": "R2", "length": 40}]
+    with pytest.raises(ValidationError, match="supports") as exc:
+        Spec.model_validate(data)
+    assert "'se'" in str(exc.value), "the message must name the set that cannot reach the read"
+
+    data["signature"]["requires"] = [{"test": "segment_length", "read": "R1", "length": 40}]
+    Spec.model_validate(data)  # R1 is in EVERY set — universal, so legal
 
 
 @pytest.mark.parametrize("tech", kb.list_spec_ids())
@@ -919,6 +1006,14 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
     new. `length_feasible` is proven necessary for validity (geometry.py), hence necessary here; a
     geometry-NO pair cannot outrank. `test_geometry_could_accept_is_necessary_for_rung02_acceptance`
     holds the premise over every shipped pair.
+
+    **And a higher score is not the whole of "would pick one and never ask"** (ADR-0029). A read set
+    that ORPHANS the file the incumbent seats as its barcode read does not get to anchor the tie band,
+    so the resolver raises a divergent-tie question on those pairs rather than deciding — measured, at
+    rungs 0-2, over the eight pairs where it fires. `could_outrank_at_rungs_0_2` therefore reads
+    `seats_a_file_the_fallback_dropped`, the SAME predicate `escalate` acts on, and demanding an edge
+    for a danger the resolver already averts would be this guard becoming the formality it exists to
+    prevent. `test_the_orphan_exemption_is_not_a_blanket_one` holds it open at both ends.
     """
     from seqforge.resolve.confuse import could_outrank_at_rungs_0_2, is_tree_kin, rung02_margin
     from seqforge.resolve.geometry import geometry_could_accept
@@ -937,16 +1032,64 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
                 continue
             if is_tree_kin(specs, a, b):
                 continue  # siblings / parent-child: the tree DECLARES this confusability
-            if not geometry_could_accept(specs[a], kb_probes[b]):
+            if not geometry_could_accept(specs[a], kb_probes[b, "full"]):
                 continue  # proven necessary condition — a length-infeasible pair cannot be confusable
-            if could_outrank_at_rungs_0_2(specs[a], specs[b], kb_probes[b]):
-                margin = rung02_margin(specs[a], specs[b], kb_probes[b])
+            if could_outrank_at_rungs_0_2(specs[a], specs[b], kb_probes[b, "full"]):
+                margin = rung02_margin(specs[a], specs[b], kb_probes[b, "full"])
                 undeclared.append(
                     f"{a!r} could outrank {b!r} on {b!r}'s own reads at rungs 0-2 "
                     f"(margin {margin:+.4f}) but does not list it in confusable_with (nor share a "
                     f"parent) — the resolver would pick one and never ask"
                 )
     assert not undeclared, "under-declaration:\n" + "\n".join(undeclared)
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
+    """Prove the guard still FIRES with the exemption in place, and fires on exactly the right pairs.
+
+    An exemption nobody has watched fail is an exemption that may be swallowing everything, and this
+    one sits inside the only CI error the confusability contract has. So the perturbation: **strip
+    `bulk-rnaseq`'s five declared edges** in memory and re-ask the guard's question. Five of its pairs
+    must come back flagged — the ones where the fallback explains every file and the resolver really
+    would pick it and never ask — and the 10x cohort must not, because there the fallback orphans the
+    barcode read and the resolver asks.
+
+    That split is the whole claim, and it is what makes the exemption legible as targeted rather than
+    total: it turns on whether the file was EXPLAINED, not on who scored higher. `splitseq` and the
+    three BD beads put their barcode read at 60-94 bp, which bulk's 40 bp floor admits, so bulk's
+    maximal set seats both files and orphans nothing. `10x-multiome-atac` orphans its 24 bp barcode
+    read — but from the MAXIMAL set, and the exemption is scoped to a proper-subset read set, so a
+    rule introduced by read sets cannot retire an edge that predates them.
+
+    Deleting a spec's edges is exactly how `test_a_declared_twin_that_diverges_would_be_caught` proves
+    the benign-twin gate fires, and it is the same reason here: a guard that has never been seen to go
+    red is a guard nobody knows is connected.
+    """
+    from seqforge.resolve.confuse import could_outrank_at_rungs_0_2
+    from seqforge.resolve.geometry import geometry_could_accept
+
+    specs = kb.load_all_specs()
+    undeclared_bulk = specs["bulk-rnaseq"].model_copy(update={"confusable_with": []})
+    flagged = {
+        b
+        for b in kb.build_tree(specs).leaves()
+        if b != "bulk-rnaseq"
+        and geometry_could_accept(undeclared_bulk, kb_probes[b, "full"])
+        and could_outrank_at_rungs_0_2(undeclared_bulk, specs[b], kb_probes[b, "full"])
+    }
+
+    assert flagged == {
+        "splitseq",
+        "bd-rhapsody-wta",
+        "bd-rhapsody-wta-enhanced-v1",
+        "bd-rhapsody-wta-enhanced-v2",
+        "10x-multiome-atac",
+    }, (
+        f"an undeclared bulk must still be caught against the five leaves whose data it fully "
+        f"explains; got {sorted(flagged)}. Too few means the exemption is swallowing real danger, "
+        f"too many means it stopped applying where the resolver genuinely asks."
+    )
 
 
 def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
@@ -990,18 +1133,18 @@ def test_the_separability_guard_can_actually_catch_a_collision(kb_probes: KbProb
 
     spec = kb.load_spec("10x-3p-gex-v3")
     splitseq = kb.load_spec("splitseq")
-    own = kb_probes["10x-3p-gex-v3"]
+    own = kb_probes["10x-3p-gex-v3", "full"]
     assert accepts_at_rungs_0_2(spec, own)
     assert not rung02_separable(spec, own, spec, own)  # nothing is separable from itself
     assert could_outrank_at_rungs_0_2(spec, spec, own)
     assert rung02_margin(spec, spec, own) == 0.0
 
     # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
-    assert not accepts_at_rungs_0_2(spec, kb_probes["splitseq"])
+    assert not accepts_at_rungs_0_2(spec, kb_probes["splitseq", "full"])
     # A spec that cannot score the data at all ranks NOWHERE on it — `None`, not a negative margin.
     # That is the conjunct which keeps `geometry_could_accept` a sound skip for the new predicate.
-    assert rung02_margin(spec, splitseq, kb_probes["splitseq"]) is None
-    assert not could_outrank_at_rungs_0_2(spec, splitseq, kb_probes["splitseq"])
+    assert rung02_margin(spec, splitseq, kb_probes["splitseq", "full"]) is None
+    assert not could_outrank_at_rungs_0_2(spec, splitseq, kb_probes["splitseq", "full"])
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -1040,13 +1183,71 @@ def test_bulks_five_declared_edges_still_derive_under_the_ordering_predicate(
     )
 
     for other in edges:
-        margin = rung02_margin(bulk, specs[other], kb_probes[other])
+        margin = rung02_margin(bulk, specs[other], kb_probes[other, "full"])
         assert margin is not None and margin > _THETA, (
             f"bulk-rnaseq -> {other!r} no longer derives: margin {margin} on {other!r}'s own "
             f"reads at rungs 0-2. The edge says the ONLIST decides this pair, which presumes the "
             f"cheap rungs do not. Do not delete the edge to make this pass."
         )
-        assert could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other])
+        assert could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other, "full"])
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_the_single_end_set_does_not_outrank_a_single_cell_chemistry_on_its_own_data(
+    kb_probes: KbProbes,
+) -> None:
+    """The plausible-matrix failure a single-end fallback could introduce, asserted rather than argued.
+
+    A one-role read set seats itself on any 40+ bp cDNA read, and every single-cell chemistry in the KB
+    HAS a cDNA read. So the question the read-set feature has to answer directly is whether that set can
+    take a real single-cell library's own data — because the answer being "no" is not a refusal, it is a
+    bulk gene-count matrix at exit 0, and a plausible matrix is the one failure here that nobody
+    downstream notices.
+
+    Nothing had to be invented for it to lose. The score is normalized by role count and charges
+    ``λ/|R|`` per orphaned file, so a one-role set on a two-file deposit pays 0.25 for the mate it
+    declined to explain, while the barcoded incumbent's whitelist HITS and takes it to ~0.97. Measured
+    over every barcoded leaf, on that leaf's own synthetic reads, with each leaf's own whitelist
+    registered — i.e. the comparison the resolver actually makes at runtime:
+
+    | leaf | incumbent | bulk `se` | margin |
+    |---|---|---|---|
+    | `10x-3p-gex-v2`               | 0.9700 | 0.7500 | -0.2200 |
+    | `10x-3p-gex-v3` / `-v3.1`     | 0.9719 | 0.7500 | -0.2219 |
+    | `10x-5p-gex-v2`               | 0.9700 | 0.7500 | -0.2200 |
+    | `10x-5p-gex-v3`               | 0.9719 | 0.7500 | -0.2219 |
+    | `10x-gemx-3p-v4`              | 0.9719 | 0.7500 | -0.2219 |
+    | `10x-multiome-gex`            | 0.9719 | 0.7500 | -0.2219 |
+    | `10x-multiome-atac`           | 0.9805 | 0.5100 | -0.4705 |
+    | `bd-rhapsody-wta` (+ both Enhanced) | 1.0000 | 0.7500 | -0.2500 |
+    | `splitseq`                    | 1.0000 | 0.7500 | -0.2500 |
+
+    The set is measured DIRECTLY, not through ``build_tech_evaluation``'s maximum. On most of these the
+    maximal set is length-forbidden (a 28 bp barcode read is under bulk's 40 bp floor), so the maximum
+    IS the single-end set and a test reading only the winner could not say which set it had measured;
+    on the five where the maximal set is feasible it is the incumbent, and those five are the declared
+    `confusable_with` edges whose behaviour this change leaves exactly as it was.
+    """
+    from seqforge.resolve.escalate import _THETA, _barcode_read_id
+    from seqforge.resolve.scoring import build_tech_evaluation, read_set_evaluations
+
+    specs = kb.load_all_specs()
+    bulk = specs["bulk-rnaseq"]
+    barcoded = [i for i in kb.build_tree(specs).leaves() if _barcode_read_id(specs[i]) is not None]
+    assert len(barcoded) >= 10, f"expected the KB's single-cell leaves, got {barcoded}"
+
+    for leaf in barcoded:
+        wps = kb_probes[leaf, "full"]
+        registry = registry_for(specs[leaf])  # the leaf's OWN whitelist, so rung 3 can fire
+        incumbent = build_tech_evaluation(specs[leaf], wps, registry)
+        se = next(e for e in read_set_evaluations(bulk, wps, registry) if e.read_set == "se")
+        assert incumbent.valid, f"{leaf} must score its own reads"
+        assert se.value < incumbent.value - _THETA, (
+            f"bulk's single-end read set scores {se.value:.4f} against {leaf}'s {incumbent.value:.4f} "
+            f"on {leaf}'s OWN reads (margin {se.value - incumbent.value:+.4f}) — a barcodeless "
+            f"fallback level with a real single-cell chemistry on its own data emits a bulk gene-count "
+            f"matrix for a single-cell library at exit 0. Do not widen the tie band to fix this."
+        )
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -1079,7 +1280,7 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
     for fam in families:
         fam_spec = tree.specs[fam]
         for child in tree.children_of(fam):
-            assert accepts_at_rungs_0_2(fam_spec, kb_probes[child]), (
+            assert accepts_at_rungs_0_2(fam_spec, kb_probes[child, "full"]), (
                 f"family {fam!r} must recognize its child {child!r} at rungs 0-2"
             )
         descendants = set(tree.runnable_descendants_of(fam))
@@ -1087,7 +1288,7 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
         for other in tree.leaves():
             if other in descendants:
                 continue
-            if not accepts_at_rungs_0_2(fam_spec, kb_probes[other]):
+            if not accepts_at_rungs_0_2(fam_spec, kb_probes[other, "full"]):
                 continue
             assert declared & {other, *tree.ancestors_of(other)}, (
                 f"family {fam!r} recognizes non-descendant {other!r} at rungs 0-2 and declares "

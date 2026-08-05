@@ -46,6 +46,22 @@ here that the model needs in order to name the node at all.
 
 ## The schema decisions a field list cannot show
 
+- **`reads` is the MAXIMAL read set, and `read_sets` names subsets of it.** A chemistry that publishes
+  more than one sequencing configuration — bulk RNA-seq run paired-end or single-end; SMART-seq3's
+  Methods name three — is **one entry**, because a read set is a list of ids `reads` already declares
+  and never a re-declaration. That is the whole reason the shape is cheap: no read's coordinates are
+  written twice, so two configurations cannot drift apart, and there is no second spec to keep in sync
+  ([ADR-0029](../adr/0029-a-spec-declares-read-sets-not-a-fixed-read-list.md)). The maximal set is
+  implicitly named `full`, which is therefore reserved; the other names are a **closed vocabulary**
+  (`ReadSetName`, a `Literal` — today just `se`), extended as deliberately as an `ElementType`, so a
+  misspelling fails at load rather than becoming a set nothing ever selects. Three rules are enforced
+  at load: a set names only declared ids, a set is non-empty and repeats nothing, and **a `requires`
+  test may address only reads present in every set** — a hard gate addressed to a read a set lacks is
+  *inapplicable* there, i.e. it silently stops gating, so a set-specific claim belongs in `supports`.
+  That last rule has no instance in the shipped KB and so is held by a negative test that builds a
+  violating spec. When you write a new predicate over a spec's reads, **decide explicitly** whether it
+  means the maximal set (canonicalization, the benign-twin comparison, "is this chemistry barcoded")
+  or any set (length feasibility, recognition); nothing in the type system asks for you.
 - **An `Element` has exactly one coherent addressing mode** — a fixed `[start, end)` XOR an `anchor`
   (a floating element) XOR `min_len`/`max_len` — enforced by a model validator. `linker` and `fixed`
   elements require a `sequence`, and an open `end: null` is allowed only for `cdna` and `gdna`.
@@ -237,6 +253,18 @@ them. There is no hand-maintained truth table.
    `rung02_margin` the number under it; bulk's five edges are re-derived from that margin in
    `tests/test_kb.py`, because the sweep itself skips a declared pair and so cannot notice one that
    stopped being true.
+
+   **And outranking is not sufficient either, because the guard's danger is "would pick one and never
+   ask".** A read set that ORPHANS the file the incumbent seats as its barcode read does not get to
+   anchor the tie band, so the resolver raises a divergent-tie question on that pair rather than
+   deciding it — the guard reads `seats_a_file_the_fallback_dropped`, the same predicate `escalate`
+   acts on, so a proxy for a runtime behaviour cannot drift from the behaviour. Without the exemption
+   `bulk-rnaseq`'s single-end set would demand an edge to all seven of the 28 bp-barcode leaves at
+   +0.09, which is that "edge to almost the whole KB" arriving by another route. The exemption is
+   scoped to a **proper-subset** read set, so it retires nothing that predates read sets:
+   `bulk-rnaseq` → `10x-multiome-atac` orphans a barcode read from its maximal set and still derives.
+   `test_the_orphan_exemption_is_not_a_blanket_one` strips bulk's edges and pins exactly which five
+   come back flagged — an exemption nobody has watched fail may be swallowing everything.
 2. **Do their onlists separate them?** True only if the two whitelists have a low cross-hit rate,
    computed by an actual set intersection over the packed barcode arrays — **not** by comparing
    checksums. Different hashes prove the files differ, not that the barcode sets differ, and a
@@ -332,12 +360,20 @@ here.
 
 Both live in `tests/test_kb.py`, generic over every shipped entry, and neither names a spec.
 
+**The round-trip is NOT extended per read set, and that is a decision rather than an omission.** It is
+per *read*: it generates each declared read's file, probes it alone, and checks the declared lengths and
+element coordinates recover — it never runs role assignment. A read set is a subset of read ids, so its
+round-trip would re-run a strict subset of the same checks from the same seed. What a read set can get
+wrong is **recognition** — whether the set is selected at all, and which one is recorded — so that is
+what the resolve cases assert instead (`tests/test_resolve.py`).
+
 ## What the KB covers, and what it does not
 
 Recorded so that a green suite is not mistaken for full coverage. The shipped entries were chosen for
 **architectural** coverage rather than popularity — breadth before depth:
 
-- **bulk paired-end Illumina RNA-seq** — the no-barcode branch, header parsing, run and lane grouping;
+- **bulk Illumina RNA-seq, paired-end AND single-end** — the no-barcode branch, header parsing, run
+  and lane grouping, and the read-set branch (one entry, two configurations);
 - **10x 3′ GEX v2 / v3 / v3.1, GEM-X v4, Multiome GEX and ATAC** — onlist matching, technical-read
   identification, SRA mangling, and the benign-twin case;
 - **10x 5′ GEX v1/v2 and v3** — the *read-undecidable* branch: a pair that shares geometry AND
