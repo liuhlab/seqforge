@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import gzip
 import zlib
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO
@@ -64,6 +64,16 @@ class BoundedReader:
     is the reader's final position, taken when iteration finishes; the caller owns opening and closing
     ``fileobj``.
 
+    **A read the caller stopped may have no byte count at all** (:attr:`abandoned`). An abandoned
+    read's count is *absent*, spelled here as a flag beside a zero rather than as a zero, because a
+    measured zero is a real and different answer — so nothing may read ``compressed_bytes`` as a
+    measurement without checking it. The flag stays on the reader and is deliberately **not** carried
+    onto :class:`FastqHead`: :meth:`FastqHead.read` drives this iteration to completion itself and
+    returns nothing if it raises, so a head that exists always holds a measured count, and the one
+    consumer that treats a zero as a defined input (``core._estimate_reads``) never sees an absent
+    one. A future accumulator that stops early would owe that field; today none does, and a nullable
+    ``compressed_bytes`` on every observation would be a schema paying for it.
+
     Parameters
     ----------
     fileobj
@@ -81,9 +91,16 @@ class BoundedReader:
     ok
         False when the stream is **not readable gzip**: a header that does not parse, a corrupt
         deflate payload, a CRC that disagrees with what came out.
+    abandoned
+        The iteration was **stopped by its caller and its position could never be taken**, because
+        the handle was already closed when this generator was finalised. A verdict about the *read*
+        rather than about the stream, which is what separates it from the two above — and it is not
+        ``budget_exhausted``, which names the opposite case: a read that finished, on a bound.
+        ``compressed_bytes`` is meaningless while it is true.
 
-    The two are different verdicts and never both true, because they carry different remedies — a cut
-    upload is re-downloaded, a corrupt file is re-examined for whether it was ever a FASTQ — and
+    ``truncated`` and ``ok`` are different verdicts and never both true, because they carry different
+    remedies — a cut upload is re-downloaded, a corrupt file is re-examined for whether it was ever a
+    FASTQ — and
     ``resolve`` raises a different ``Blocker`` for each. Which one applies is decided by *what the
     decompressor raised*, not by a heuristic over the record count: ``EOFError`` means the bytes ran
     out, anything else means they did not say what they claimed. They used to collapse into
@@ -98,6 +115,7 @@ class BoundedReader:
         self.compressed_bytes = 0
         self.truncated = False
         self.ok = True
+        self.abandoned = False
 
     @property
     def budget_exhausted(self) -> bool:
@@ -107,7 +125,13 @@ class BoundedReader:
             or self.decompressed_bytes >= self.budget.max_bytes
         )
 
-    def __iter__(self) -> Iterator[Record]:
+    def __iter__(self) -> Generator[Record, None, None]:
+        """The records, as a GENERATOR — `close()` is part of the contract, not an accident.
+
+        Spelled as one rather than as an `Iterator`, because a caller that stops early has to be
+        able to finalise this deterministically: `contextlib.closing` around it is what decides
+        whether the read ends measured or **abandoned** (see the class docstring).
+        """
         max_reads, max_bytes = self.budget.max_reads, self.budget.max_bytes
         try:
             with gzip.GzipFile(fileobj=self._fileobj) as gz:
@@ -148,7 +172,20 @@ class BoundedReader:
         except (zlib.error, OSError):
             self.ok = False  # the same verdict, for a stream that failed before the first record
         finally:
-            self.compressed_bytes = self._fileobj.tell()
+            try:
+                self.compressed_bytes = self._fileobj.tell()
+            except ValueError:
+                # The handle is gone before this generator was finalised, so the position cannot be
+                # taken: an **Abandoned read**. It happens to any caller that stops mid-stream and
+                # closes its files before the generator is collected — a mid-loop refusal does
+                # exactly that — and the finalisation then runs inside `GeneratorExit`, where a
+                # raise is UNRAISABLE: it prints at some later, unrelated moment and is ignored.
+                # Recorded as a flag instead, because the alternative repair — swallow it and leave
+                # `compressed_bytes` at 0 — makes an absent measurement indistinguishable from a
+                # measured zero, in the accounting that proves the read stayed in budget.
+                # `ValueError` and not `Exception`: a closed handle raises exactly that, and
+                # `io.UnsupportedOperation` (a stream with no `tell`) is one too.
+                self.abandoned = True
 
 
 @dataclass

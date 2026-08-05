@@ -25,7 +25,10 @@ _Avoid_: limit, cap, quota
 A **Head** whose iteration the caller stopped — neither a clean EOF, nor a **Budget** trip, nor a cut
 stream — so its byte accounting was never taken. Distinct from *truncated* (the bytes ran out) and
 from `ok` (the stream was not readable gzip), because those are verdicts about the stream and this is
-a verdict about the read; an abandoned read's compressed byte count is **absent, never zero**.
+a verdict about the read; an abandoned read's compressed byte count is **absent, never zero**. The
+absent count is the definition and stopping early is only how one gets there: a caller that stops
+mid-stream and finalises the read while its handle is still open measured that count, so its read is
+not abandoned.
 _Avoid_: exhausted — that names a **Budget** trip, which is the opposite case, and `budget_exhausted`
 already means it; also cancelled, aborted, interrupted
 

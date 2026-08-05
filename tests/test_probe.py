@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import ast
 import builtins
+import gc
 import gzip
 import hashlib
 import json
 import random
 import re
+import sys
 from collections.abc import Callable
 from io import BufferedReader, BytesIO
 from pathlib import Path
@@ -328,6 +330,70 @@ def test_the_reader_stops_at_the_byte_budget(tmp_path: Path) -> None:
     assert reader.budget_exhausted
     # It stops on the first record that crosses the budget, so it overshoots by at most one record.
     assert 2_000 <= reader.decompressed_bytes < 2_000 + 200
+
+
+def test_an_abandoned_read_says_so_instead_of_reaching_into_a_closed_handle(
+    tmp_path: Path,
+) -> None:
+    """A generator finalised AFTER its caller closed the handle: legible, never an unraisable crash.
+
+    R3's one FASTQ loop ends by taking its final position, and a caller that stops mid-stream —
+    which is what every mid-loop refusal does — may well have closed the handle before the generator
+    is collected. Reaching into it there raises out of `GeneratorExit`, where nothing can catch it:
+    it prints at some later, unrelated moment and is ignored, which is the worst shape a failure in
+    the shared reader can have.
+
+    `sys.unraisablehook` rather than the suite's `filterwarnings = error`, because collection time
+    is not ours to schedule: the warning pytest raises for one arrives during whichever test happens
+    to be running when the collector gets to it. Capturing the hook makes the assertion about THIS
+    generator, deterministically.
+    """
+    path = tmp_path / "abandoned.fastq.gz"
+    path.write_bytes(_reader_fixture(tmp_path))
+    handle = open(path, "rb")  # noqa: SIM115 - closed by hand, which is the case under test
+    reader = BoundedReader(handle, Budget(1_000_000, 1 << 30))
+    stream = iter(reader)
+    next(stream)  # begin, then walk away from it the way a refusal does
+    handle.close()
+
+    unraisable: list[object] = []
+    previous = sys.unraisablehook
+    sys.unraisablehook = unraisable.append
+    try:
+        stream.close()
+        del stream
+        gc.collect()
+    finally:
+        sys.unraisablehook = previous
+
+    assert unraisable == [], f"finalising the reader reached into a closed handle: {unraisable}"
+    assert reader.abandoned
+    # Absent, never zero: the count was never taken, and nothing may read this as a measurement.
+    assert reader.compressed_bytes == 0
+
+
+def test_a_read_that_finished_is_not_abandoned_however_it_ended(tmp_path: Path) -> None:
+    """`abandoned` is a verdict about the READ, and both endings that are not one clear it.
+
+    A clean EOF and a **Budget** trip are the two ways a read finishes, and neither is abandonment —
+    which is exactly why the flag is not called `exhausted`: `budget_exhausted` already means the
+    second of them, and means the opposite thing.
+    """
+    whole = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(1_000_000, 1 << 30))
+    list(whole)
+    assert not whole.abandoned and not whole.budget_exhausted and whole.compressed_bytes > 0
+
+    bounded = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(10, 1 << 30))
+    list(bounded)
+    assert not bounded.abandoned and bounded.budget_exhausted and bounded.compressed_bytes > 0
+
+    # And a caller that stops mid-stream with its handle still OPEN measured the count it stopped
+    # at — which is what the plate extractor's exit-stack ordering buys, and why it is kept.
+    stopped = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(1_000_000, 1 << 30))
+    stream = iter(stopped)
+    next(stream)
+    stream.close()
+    assert not stopped.abandoned and stopped.compressed_bytes > 0
 
 
 def _cut_tail(data: bytes) -> bytes:

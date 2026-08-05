@@ -22,6 +22,17 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.7 — `rule umi_extract` renders the **Units table** and the wildcard, and NO file (#327,
+#: ADR-0036). `ordered_fastqs` returns a list, so `--r1 {input.tagged}` expanded a cell's two files
+#: after a one-value option and died at job execution with `exit 2, Got unexpected extra argument(s)`
+#: — on the 20 of 190 well-labelled plate deposits that are not strictly 1:1, and invisible to the
+#: wiring gate, which FORMATS a `shell:` block while planning and never runs one. The verb resolves
+#: its own list from the same table through the same helper the rule's `input:` is built from, so
+#: this is one derivation used twice rather than two, and the FASTQs stay declared inputs because
+#: what snakemake stages is still the rule's to state. `mate_arg` is gone; `units.tsv` becomes a
+#: declared input; `read_files_type`'s `SAM SE`/`SAM PE` derivation is untouched and still reads the
+#: same per-sample mate list. Only this module's command line moves — the other three are untouched
+#: — but the bump is owed by any `.smk` edit, and a `run_id` is its whole cost.
 #: 2026.8.6 — a FOURTH module, `map/star-umi`: the pre-demultiplexed, one-cell-one-file pipeline
 #: (#291). Per cell `extract -> STAR -> one coordinate-sorted BAM`, then ONCE `count(N BAMs) -> one
 #: combined .h5ad`. Purely additive — the three shipped modules' rules, params and command lines are
@@ -192,7 +203,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.6"
+WORKFLOW_VERSION = "2026.8.7"
 
 _MODULE_DIR = Path(__file__).parent
 

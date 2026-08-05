@@ -795,11 +795,20 @@ def io_umi_count(
 
 @io_app.command("umi-extract")
 def io_umi_extract(
-    r1: Path = typer.Option(..., "--r1", help="The tagged read's FASTQ (gzipped)."),
-    r2: Path | None = typer.Option(
+    units: Path | None = typer.Option(
         None,
+        "--units",
+        help="The pipeline's units.tsv. With --sample it states this cell's files, so none are "
+        "named on the command line. Mutually exclusive with --r1/--r2.",
+    ),
+    r1: list[Path] = typer.Option(
+        [], "--r1", help="The tagged read's FASTQ (gzipped). Repeat it for a cell spanning runs."
+    ),
+    r2: list[Path] = typer.Option(
+        [],
         "--r2",
-        help="Its mate's FASTQ; paired by POSITION, never by name. Omitted for a single-end plate.",
+        help="Its mate's FASTQ, repeated alongside --r1 and paired in the order given. Omitted "
+        "for a single-end plate.",
     ),
     geometry: str = typer.Option(
         ...,
@@ -807,10 +816,17 @@ def io_umi_extract(
         help="The read structure compose derived from the element model, e.g. "
         "`R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22`.",
     ),
-    sample: str = typer.Option(..., "--sample", help="Cell id; becomes the uBAM's read group."),
+    sample: str = typer.Option(
+        ...,
+        "--sample",
+        help="Cell id: which sample to resolve out of --units, and the uBAM's read group.",
+    ),
     out: Path = typer.Option(..., "--out", help="Output path for the unaligned BAM."),
     read_id: str = typer.Option(
-        "R1", "--read-id", help="Which layout read `--r1` is. Refused if the geometry disagrees."
+        "R1",
+        "--read-id",
+        help="Which layout read carries the tag. Refused if the geometry disagrees; it also "
+        "selects the tagged role out of --units.",
     ),
 ) -> None:
     """Lift a plate assay's UMI out of R1 and write it as a uBAM carrying `UB:Z:`.
@@ -820,28 +836,50 @@ def io_umi_extract(
     `run:`, so only a verb is visible to compose's wiring gate. Needs no container — writing a BAM
     through a library is not aligning reads.
 
-    **`--r2` is optional, because the mate is an addition to the extraction rather than half of
-    it.** The tag is found, cut and trimmed entirely within `--r1`; a mate contributes nothing to
+    **It is handed the TABLE and the cell, not the files** (ADR-0036). `--units` plus `--sample`
+    resolves this cell's tagged files and their mates through the same `ordered_fastqs` the rule's
+    own `input:` is built from, over the same file — one derivation used twice, never two. That is
+    what lets a cell topped up across two runs run at all: the file list never reaches the command
+    line, so there is no arity to get wrong on the one surface the wiring gate cannot see. It
+    formats a `shell:` block while planning and never runs one, so a usage error on a rendered
+    command plans clean and dies at job execution, past handover.
+
+    `--r1`/`--r2` remain, repeatable, for a hand invocation and for a test that wants two paths and
+    no table. Exactly one of the two forms: both is a caller who believes two different things about
+    which files these are, neither is a caller who has said nothing, and each is exit 3.
+
+    **The mate is optional, because it is an addition to the extraction rather than half of it.**
+    The tag is found, cut and trimmed entirely within the tagged read; a mate contributes nothing to
     that and only inherits the resulting `UB` onto a record emitted alongside. So a protocol's
     single-end configuration runs through this same verb — one unpaired record per fragment instead
     of two interleaved ones, with the geometry, the `--read-id` refusal, the anchor search and the
     truncation checks all shared — and the flags say which shape was written, which is what the
     aligner's `SAM SE` / `SAM PE` argument is derived from. There is no second verb and no flag
-    saying whether the plate is paired: the file being absent IS the statement.
+    saying whether the plate is paired: **no row carrying a second role IS the statement**, exactly
+    as an absent `--r2` is.
 
     **`--geometry` is a DERIVATION, not a knob, and it arrives as one value.** The anchor and its
     offset, the UMI's offset and length, the trailing motif and the cDNA start are all read off the
     element coordinates by `compose` and rendered into a single config value — the same move
     chromap's `--read-format` makes, and the reason there is no `--anchor`, `--umi-length` or
     `--window` here for anyone to type. Nothing may declare it: the key is in the composer's derived
-    set, so a KB backend that states it is refused at load. `--read-id` says which layout read the
-    `--r1` file is and is checked against the read the geometry names, so a rule wired to hand over
-    the plain mate is refused instead of quietly extracting nothing.
+    set, so a KB backend that states it is refused at load. `--read-id` names the tagged read and is
+    checked against the read the geometry names. Under `--units` that check has become belt and
+    braces — the role selects the rows, so a wrong one finds no files rather than the wrong ones —
+    and it still earns its keep over `--r1`, where the tagged file is asserted by hand and handing
+    over the plain mate would otherwise extract nothing at exit 0. Deleting it is ADR-0036's
+    explicitly deferred question, not a tidy-up (ADR-0035 treats the refusal as load-bearing).
 
-    Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a half-renamed
-    FASTQ, a pair of unequal length, a truncated input.
+    Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a run whose mate was
+    never deposited, a half-renamed FASTQ, a pair of unequal length, a truncated input.
     """
-    from ..workflows.umite.extract import TagGeometry, UmiExtractError, extract_umis
+    from ..workflows.umite.extract import (
+        TagGeometry,
+        UmiExtractError,
+        extract_umis,
+        extraction_inputs,
+    )
+    from ..workflows.units import UnitsError
 
     try:
         structure = TagGeometry.parse(geometry)
@@ -851,8 +889,11 @@ def io_umi_extract(
                 f"on {structure.read_id}. Extracting from the wrong mate finds no tags at all and "
                 f"exits 0"
             )
-        stats = extract_umis(r1, r2, out, structure, sample=sample)
-    except UmiExtractError as exc:
+        tagged, mates = extraction_inputs(
+            units=units, sample=sample, r1=r1, r2=r2, tagged_role=structure.read_id
+        )
+        stats = extract_umis(tagged, mates, out, structure, sample=sample)
+    except (UmiExtractError, UnitsError) as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
     typer.echo(
