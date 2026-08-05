@@ -1814,3 +1814,198 @@ def test_a_freshly_fetched_record_set_is_stamped_and_one_off_disk_keeps_what_it_
     stale.write_text(_one_submitted_run().model_dump_json())  # type: ignore[attr-defined]
     loaded = m._load_records([], stale, offline=False)
     assert loaded is not None and loaded.io_version is None
+
+
+# ---------------------------------------------------------------------------------------------
+# `seqforge records` — the record set as a CLI surface. Top-level and never under `io`: both verbs
+# read a local directory and a local file, and `io` is the one group where a reader is entitled to
+# assume a network call. `io records <accession>` fetches a transcript and stays exactly where it is.
+#
+# What is under test here is the SURFACE and its refusals; the loader's own dialect rules are
+# `tests/test_recordset.py`'s. The one property that spans both is the draft's no-op guarantee, and
+# it is asserted here because that is where the file the verb writes actually lands on disk.
+# ---------------------------------------------------------------------------------------------
+
+
+def _fastq_dir(tmp_path: Path, *stems: str) -> Path:
+    """A directory of paired FASTQ named `<stem>_R1_001.fastq.gz` / `<stem>_R2_001.fastq.gz`.
+
+    Real gzip rather than touched files: nothing in `records new` reads a byte today, and a fixture
+    that would stop being a FASTQ the moment something did is one that quietly bounds what this block
+    can grow into.
+    """
+    directory = tmp_path / "fastq"
+    directory.mkdir(exist_ok=True)
+    for stem in stems:
+        for mate in ("R1", "R2"):
+            write_fastq_gz(directory / f"{stem}_{mate}_001.fastq.gz", ["ACGTACGTAC"])
+    return directory
+
+
+def test_records_new_drafts_a_set_the_loader_and_validate_both_accept(tmp_path: Path) -> None:
+    """The draft's first obligation: what it prints must load, and must name the open decision.
+
+    `lib_S1` and `lib_S3` are two libraries on one flowcell or one library resequenced for depth, and
+    the filenames cannot tell those apart — so the draft has to put both keys in front of a human
+    rather than pick. The scan running and finding nothing looks identical to no scan at all, which is
+    why the comment being present is asserted rather than assumed.
+    """
+    from seqforge.recordset import load_record_set
+
+    directory = _fastq_dir(tmp_path, "lib_S1", "lib_S3")
+    drafted = runner.invoke(app, ["records", "new", str(directory)])
+    assert drafted.exit_code == 0, drafted.stdout
+
+    flagged = [line for line in drafted.stdout.splitlines() if line.lstrip().startswith("#")]
+    assert any("lib_S1" in line for line in flagged) and any(
+        "lib_S3" in line for line in flagged
+    ), "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
+
+    path = tmp_path / "records.yaml"
+    path.write_text(drafted.stdout)
+    loaded = load_record_set(path)
+    assert loaded.source == "user"
+    assert [r.accession for r in loaded.at("run")] == ["lib_S1", "lib_S3"]
+
+    validated = runner.invoke(app, ["records", "validate", str(path)])
+    assert validated.exit_code == 0, validated.stdout
+    summary = json.loads(validated.stdout)["summary"]
+    assert summary["n"] == {"project": 0, "sample": 0, "experiment": 0, "run": 2}
+    assert summary["n_filenames"] == 4, "every file in the directory is claimed by exactly one run"
+    assert summary["fused"] == {}, "a draft declares no sample, so it fuses nothing"
+
+
+def test_the_draft_applied_unedited_produces_the_samples_the_filenames_already_did(
+    tmp_path: Path,
+) -> None:
+    """The property that makes it safe to write this file into somebody's dataset directory.
+
+    A draft that could move a sample identity would be a guess wearing a file's clothes — and sample
+    identity is inside `dataset_hash`, which is never rewritten. So the drafted set is run through the
+    real metadata resolver and its samples compared against the same files resolved with no record set
+    at all. Equal ids AND equal file membership, because a grouping that agrees on names while moving
+    a file between them is the failure this is about.
+    """
+    from seqforge.models.observation import FileIdentity
+    from seqforge.recordset import load_record_set
+    from seqforge.resolve.records import resolve_metadata
+
+    directory = _fastq_dir(tmp_path, "lib_S1", "lib_S3")
+    out = tmp_path / "records.yaml"
+    written = runner.invoke(app, ["records", "new", str(directory), "-o", str(out)])
+    assert written.exit_code == 0, written.stdout
+
+    files = [
+        FileIdentity(sha256=f"{i:064x}", size_bytes=path.stat().st_size, basename=path.name)
+        for i, path in enumerate(sorted(directory.iterdir()))
+    ]
+    by_filename = resolve_metadata(files=files)
+    by_draft = resolve_metadata(files=files, records=load_record_set(out))
+
+    assert [(s.sample_id, s.file_shas) for s in by_draft.samples] == [
+        (s.sample_id, s.file_shas) for s in by_filename.samples
+    ]
+    assert not by_draft.blockers, "the draft claims every file the directory holds"
+    assert not by_draft.warnings, "it fuses nothing, so there is nothing for it to report fusing"
+
+
+def test_records_validate_refuses_a_typed_attribute_and_names_the_key(tmp_path: Path) -> None:
+    """A hand-written set declares structure, never a fact — and the refusal has to say which key.
+
+    An attribute typed here carries no quote, no span and nothing that greps back, yet it would
+    outrank a harvested claim carrying all three, permanently. So this is a Blocker at exit 3 rather
+    than a dropped key, and the stdout object names the offending field: a refusal a caller cannot act
+    on is a refusal that gets routed around.
+    """
+    path = tmp_path / "records.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "source": "user",
+                "records": [
+                    {
+                        "level": "run",
+                        "id": "lib",
+                        "filenames": ["lib_R1_001.fastq.gz"],
+                        "attributes": [{"name": "strain", "value": "CQ758"}],
+                    }
+                ],
+            }
+        )
+    )
+
+    result = runner.invoke(app, ["records", "validate", str(path)])
+
+    assert result.exit_code == 3, result.stdout
+    out = json.loads(result.stdout)
+    assert out["records"] == str(path)
+    assert out["report"]["ok"] is False
+    assert out["summary"] is None, "there is nothing truthful to say about a file that was refused"
+    blockers = out["report"]["blockers"]
+    assert any(b["subject"]["ref"] == "records[0].attributes" for b in blockers), blockers
+    assert any("attributes" in b["evidence"] for b in blockers), blockers
+    assert any("harvest" in b["remedy"] for b in blockers), (
+        "it must name the path that keeps a span"
+    )
+
+
+def test_records_new_refuses_a_directory_with_no_fastq_and_prints_no_traceback(
+    tmp_path: Path,
+) -> None:
+    """A directory with nothing to declare is a refusal, not a stack trace out of a drafter.
+
+    stdout stays empty because on this branch there is no result object: the YAML never existed. The
+    exit code is the refusal channel, and the human stream carries the remedy.
+    """
+    empty = tmp_path / "empty"
+    empty.mkdir()
+
+    result = runner.invoke(app, ["records", "new", str(empty)])
+
+    assert result.exit_code == 3, result.stdout
+    assert result.stdout == "", "stdout carries the drafted YAML or nothing at all"
+    assert "Traceback" not in result.stderr
+    assert "blk-record-set-no-fastq" in result.stderr
+    assert "remedy:" in result.stderr, "a message with no remedy leaves a caller with nowhere to go"
+
+
+def test_records_new_refuses_to_clobber_its_out_file_and_takes_force_to_replace_it(
+    tmp_path: Path,
+) -> None:
+    """`records new` writes into a directory the caller chose, so it must not silently replace.
+
+    The file this verb drafts is the one file in the compiler a human then EDITS, and the second run
+    of the same command is exactly how somebody would lose that edit. Refused as a bad invocation —
+    nothing about the data is wrong — and `--force` is the same escape hatch `hook install` already
+    uses for the same shape of clobber.
+    """
+    directory = _fastq_dir(tmp_path, "lib_S1")
+    out = tmp_path / "records.yaml"
+    out.write_text("# the grouping somebody decided\n")
+
+    refused = runner.invoke(app, ["records", "new", str(directory), "-o", str(out)])
+
+    assert refused.exit_code == 2, refused.stdout
+    assert out.read_text() == "# the grouping somebody decided\n", "the edit survives the refusal"
+    assert "--force" in refused.stderr, "a refusal must name the flag that clears it"
+
+    forced = runner.invoke(app, ["records", "new", str(directory), "-o", str(out), "--force"])
+
+    assert forced.exit_code == 0, forced.stdout
+    assert json.loads(forced.stdout)["records"] == str(out)
+    assert "source: user" in out.read_text()
+
+
+def test_records_is_a_top_level_group_and_io_records_is_left_where_it_was() -> None:
+    """The group's placement is the decision, so it is pinned against the live app rather than prose.
+
+    Two verbs at the top level because neither touches the network, and `io records` untouched because
+    fetching a transcript from an archive is exactly what `io` is for. Introspected, never listed: a
+    hand-written surface is the shape this repo keeps finding rotted.
+    """
+    from typer.main import get_command
+
+    top = cast(dict[str, Any], getattr(get_command(app), "commands", {}))
+
+    assert set(getattr(top["records"], "commands", {})) == {"new", "validate"}
+    assert "records" in getattr(top["io"], "commands", {}), "io records is a fetch and stays there"

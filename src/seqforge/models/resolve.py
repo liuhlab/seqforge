@@ -249,6 +249,57 @@ class RunResult(BaseModel):
     provenance_id: str
 
 
+class RecordSetSummary(BaseModel):
+    """What a record set turned out to SAY, once it was established that it parses.
+
+    Every field answers a question an author asks about a file they just typed. ``n`` and
+    ``n_filenames`` answer "did it see everything I wrote"; ``fused`` answers the only question that
+    made the file worth writing.
+    """
+
+    #: Where the set came from. Semantic, not decorative: it selects the dialect the loader enforced,
+    #: and it decides whether fusing runs is remarkable or the archive's ordinary shape.
+    source: str
+    #: What the set was asked for -- an accession for a fetched one, the file's own name for a typed
+    #: one, which is what refusals downstream print when they name the set.
+    query: str
+    #: Records per level, all four, always -- a set that reports ``experiment: 0`` and one that never
+    #: had the level at all look identical to a caller unless every level is always reported.
+    n: dict[str, int]
+    #: Files claimed across every record. The number to compare against `ls *.fastq.gz | wc -l`: a
+    #: set that leaves a file unclaimed is refused at the join, and this is where that is visible
+    #: before anything is compiled.
+    n_filenames: int
+    #: sample id -> the runs pointing at it, for every sample claimed by MORE THAN ONE run. This is
+    #: the declaration a filename could not have made, so it is echoed back rather than counted.
+    #:
+    #: Empty for anything but a hand-written set, and that is not a limitation. In an archive
+    #: transcript several runs under one sample is the ordinary deposit shape, so reporting it would
+    #: print every run of every dataset and mean nothing -- the same reason the fuse warning is keyed
+    #: on the source rather than fired on any fusion at all.
+    fused: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class RecordSetResult(BaseModel):
+    """One record set, the verdict on it, and what it says. The stdout object for both record verbs.
+
+    One type rather than two because ``records new`` and ``records validate`` answer the same
+    question about the same artifact: one about a file somebody wrote, one about the file it just
+    wrote for them. Splitting them would let the two drift into disagreeing about what a record set
+    is worth reporting, and a draft whose envelope says less than a validate of the identical file is
+    a needless second shape for a caller to learn.
+    """
+
+    #: The file, as the caller named it.
+    records: str
+    #: The refusal channel. Read by ``exit_code_for_report``, so the exit code and this object can
+    #: never disagree about whether the set was usable.
+    report: ValidationReport
+    #: ``None`` exactly when the set did not load -- there is nothing truthful to say about the
+    #: contents of a file that was refused, and an empty summary would read as an empty set.
+    summary: RecordSetSummary | None = None
+
+
 class EvalReport(BaseModel):
     """The output of ``eval run``: the metrics tracked on every prompt/KB/resolve change."""
 
