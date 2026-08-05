@@ -22,6 +22,28 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.6 — a FOURTH module, `map/star-umi`: the pre-demultiplexed, one-cell-one-file pipeline
+#: (#291). Per cell `extract -> STAR -> one coordinate-sorted BAM`, then ONCE `count(N BAMs) -> one
+#: combined .h5ad`. Purely additive — the three shipped modules' rules, params and command lines are
+#: untouched — so the bump is owed for the module's arrival and not for a change to anything already
+#: composed. Four things arrive with it. (a) A fourth `read_layout_kind`, `umi_tagged`, emitting
+#: `{umi_cdna, cdna}` chosen by ROLE: `barcoded` refuses correctly (no CB element exists anywhere in
+#: the layout), and `mates` is the DANGEROUS one — it picks by ORDER, and these two mates are not
+#: symmetric, so a layout listing the plain mate first hands the untagged read to the extractor for
+#: 0% UMI yield AT EXIT 0, which is precisely the silent fall-through `read_layout_kind` was created
+#: to kill reappearing in the kind that looks like the safe default. The new kind tolerates one read
+#: structurally, so single-end needs no fifth kind later. (b) A fan-in step DECLARED on the module
+#: (`fan_in_artifact`), naming the dataset-scoped deliverable; absent on the other three. Left
+#: implicit, `pipeline.sample_dir()` and the report assume per-sample forever and the next
+#: cross-sample module discovers that the way the last three discovered `read_layout_kind`,
+#: `param_block` and the stats registry. (c) The aligner-param block literal gains `umi`, without
+#: which `param_block` raises and compose dies on this module. (d) `parse_keys` stay EMPTY and the
+#: whole extraction geometry is DERIVED into one key: the anchor and its offset, the UMI's offset and
+#: length, the trailing motif and the cDNA start are all read off the element coordinates, exactly as
+#: `soloAdapterSequence` moved out of the declarable set one chemistry earlier. `aligner` stays
+#: derived from the id's tail, so the tail has to be a true statement on its own — and it is: STAR
+#: aligns. The id names the MECHANISM, which is what makes SMART-seq2's inability to use it legible
+#: from the id alone (also plate-based, also one cell per file, no UMI at all).
 #: 2026.8.5 — `star.smk` takes ONE mate or two (#274, ADR-0029). `read_layout_kind: paired` becomes
 #: `mates` — 1..2 biological mates chosen by ORDER, against the two barcoded kinds which choose by
 #: ROLE — and `rule star_count` stops demanding a second one: `input.mate2` is empty when the layout
@@ -170,7 +192,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.5"
+WORKFLOW_VERSION = "2026.8.6"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -295,10 +317,24 @@ _CHROMAP_PARSE_KEYS: frozenset[str] = frozenset({"barcode_whitelist"})
 #:   or paired-end).
 #: - ``atac_barcoded`` — ``{gdna1, gdna2, barcode}``, chosen by ROLE (scATAC: two genomic mates and a
 #:   separate barcode read — chromap's ``-1``/``-2``/``-b`` shape).
+#: - ``umi_tagged``    — ``{umi_cdna, cdna}``, chosen by ROLE (a pre-demultiplexed plate assay: one
+#:   mate opens with a tag + UMI + motif and the other is plain cDNA, with NO barcode read at all).
 #:
 #: A typed, visible choice rather than the old ``spec.backend.module == "map/starsolo"`` string
 #: compare, in which every module that was not starsolo silently fell into the bulk mate1/mate2
 #: branch and emitted a wrong command line. A third module must pick a kind, or add one.
+#:
+#: **``umi_tagged`` is not cosmetic, and ``mates`` is the reason.** ``barcoded`` refuses a plate
+#: correctly — no ``CB`` element exists anywhere in the layout, so the lookup returns nothing — but
+#: ``mates`` accepts it and picks by ORDER, and a plate's two mates are *not* symmetric: one carries
+#: the tag. A layout listing the plain mate first hands the untagged read to the extractor, nothing
+#: is tagged, and the run ends in an empty matrix at **exit 0**. That is exactly the silent
+#: fall-through this field exists to kill, reappearing in the kind that looks like the safe default.
+#: The kind also **tolerates one read** structurally — no minimum-of-two assert to undo later — so a
+#: single-end plate needs a wider extractor rather than a fifth kind. Named for the READ property
+#: rather than for the sample axis: ``plate``/``cell_per_file`` would be a second place to say what
+#: the KB's ``identity.sample_is_cell`` already says, and ``tagged``/``untagged`` is the per-read
+#: vocabulary the counting design uses *inside* one read.
 #:
 #: **``mates`` is 1..2 and not exactly 2, and the name moved for that reason** (ADR-0029). A kind is a
 #: property of the MODULE, so ``map/star`` cannot be ``paired`` for one dataset and ``single`` for the
@@ -309,7 +345,7 @@ _CHROMAP_PARSE_KEYS: frozenset[str] = frozenset({"barcode_whitelist"})
 #: Named here rather than written inline on the field, because the composer's dispatch and the params
 #: gate's cross-check are two independent re-derivations of one mapping and must be annotated against
 #: the SAME set. Two separately spelled ``Literal``s agree right up until one of them gains a kind.
-ReadLayoutKind = Literal["barcoded", "mates", "atac_barcoded"]
+ReadLayoutKind = Literal["barcoded", "mates", "atac_barcoded", "umi_tagged"]
 
 
 @dataclass(frozen=True)
@@ -336,6 +372,23 @@ class WorkflowModule:
     #: Which assay modalities this pipeline serves. The adapter refuses to bind a spec whose modality is
     #: not here, so an RNA chemistry can never be composed against an ATAC-only pipeline (or vice versa).
     serves_modalities: frozenset[str] = frozenset({"rna"})
+    #: The DATASET-scoped deliverable this pipeline fans in to, if it has one — one filename under the
+    #: results directory, produced once for the whole deposit rather than once per sample. ``None``
+    #: for a pipeline that is per-sample end to end, which is the three shipped ones and the default.
+    #:
+    #: **Declared rather than inferred, and minimal on purpose.** A plate assay counts every cell in
+    #: one job and writes one combined object, so "this module produces something the sample axis
+    #: does not reach" is a fact about the module — and this repo has already paid three times for
+    #: the implicit version of exactly that shape: ``read_layout_kind`` exists because a module-name
+    #: compare made every non-starsolo module silently mean bulk, ``param_block`` raises rather than
+    #: guessing which config block a module reads, and the stats registry names the modules that
+    #: report nothing so a fourth aligner cannot be silently absent from every page. Left implicit
+    #: here, the per-sample assumption baked into a pipeline directory's layout and its report holds
+    #: forever and the next cross-sample module discovers it the way those three were discovered.
+    #:
+    #: It NAMES the artifact and stops there — not a scope algebra, and not the rule's resource class
+    #: (which the module's own arithmetic owns, because only the module knows its rule graph).
+    fan_in_artifact: str | None = None
 
     @property
     def aligner(self) -> str:
@@ -383,16 +436,27 @@ class WorkflowModule:
         do not understand, and guessing would be how the wrong params reach an aligner.
         """
         blocks = sorted(
-            {k.split(".")[0] for k in self.required_config} & {"solo", "bulk", "chromap"}
+            {k.split(".")[0] for k in self.required_config} & {"solo", "bulk", "chromap", "umi"}
         )
         if len(blocks) != 1:
             raise ValueError(
                 f"{self.name} reads {blocks or 'no'} aligner-param block(s) in its config; expected "
-                f"exactly one of solo/bulk/chromap. A module whose contract is unreadable must not be "
-                f"guessed at — add the block it reads, or teach `param_block` the new shape."
+                f"exactly one of solo/bulk/chromap/umi. A module whose contract is unreadable must "
+                f"not be guessed at — add the block it reads, or teach `param_block` the new shape."
             )
         return blocks[0]
 
+
+#: What ``map/star-umi`` fans in to: ONE ``.h5ad`` over every cell of the deposit, under the results
+#: directory and named for nothing in particular — there is no sample to name it after, which is the
+#: whole point of the artifact.
+#:
+#: Here rather than in the counter, because the counter does not choose it: ``write_umi_counts``
+#: writes wherever it is pointed, so the two places that decide this name are the registry entry
+#: below (which DECLARES the deliverable) and the rule that produces it. Both read this constant, so
+#: the declaration and the rule cannot come apart — the same one-owner-two-readers discipline the
+#: QC-suffix constants get, applied to the one artifact that has no ``{sample}`` in it.
+PLATE_H5AD = "combined.h5ad"
 
 MODULES: dict[str, WorkflowModule] = {
     "map/starsolo": WorkflowModule(
@@ -418,6 +482,19 @@ MODULES: dict[str, WorkflowModule] = {
         read_layout_kind="atac_barcoded",
         parse_keys=_CHROMAP_PARSE_KEYS,
         serves_modalities=frozenset({"atac", "multi"}),
+    ),
+    # The pre-demultiplexed, one-cell-one-file pipeline. `align-rna` is forced rather than chosen —
+    # STAR is what needs the image, and the extractor and the counter shell out to nothing at all.
+    # `parse_keys` is EMPTY and stays empty: every knob the extractor needs is already in the element
+    # model, so the whole geometry is DERIVED into one config key rather than declared six times over
+    # (see `compose.params.DERIVED_PARAM_KEYS`). A backend that declares one is refused at load.
+    "map/star-umi": WorkflowModule(
+        name="map/star-umi",
+        version=WORKFLOW_VERSION,
+        env="align-rna",
+        snakefile=_MODULE_DIR / "map" / "star-umi.smk",
+        read_layout_kind="umi_tagged",
+        fan_in_artifact=PLATE_H5AD,
     ),
 }
 
@@ -467,6 +544,7 @@ def list_modules() -> list[str]:
 
 __all__ = [
     "WORKFLOW_VERSION",
+    "PLATE_H5AD",
     "RUNTIME_IMAGE",
     "ReadLayoutKind",
     "WorkflowModule",

@@ -89,9 +89,14 @@ here that the model needs in order to name the node at all.
   derived: `umi ∧ ¬barcode` is backwards for SMART-seq2 (neither, still one cell per file) and for
   UMI-tagged bulk (a UMI, no barcode, one file per specimen), because the property is about *where*
   demultiplexing happened and no byte reports that. It says `Sample` because 20 of 190 well-labelled
-  plate deposits are not strictly 1:1. Its sole consumer is `reduce_dataset`'s cell gate
+  plate deposits are not strictly 1:1. Its sole *consumer* is `reduce_dataset`'s cell gate
   ([`resolve.md`](resolve.md)); it never enters a manifest, so `dataset_hash` is untouched by
-  construction. Rejected: a three-value cell-axis field (two of its three values are derivable), and
+  construction. **It is also half of a biconditional the schema enforces at load** — the flag is true
+  iff the spec's `backend.module` declares a dataset-scoped fan-in artifact — so `sample_is_cell`
+  beside a per-sample module (a plate compiling to one object per well) and an aggregating module
+  beside a silent chemistry (a plate the reduction cannot tell from a two-assay project) are both
+  unsayable, in `load_spec`, in `kb lint`, and in every test that touches a spec. Same idiom as
+  `Backend._only_parse_keys`. Rejected: a three-value cell-axis field (two of its three values are derivable), and
   any name built on "demultiplexed" — every Illumina run is sample-demultiplexed at bcl2fastq, so a
   reader would tick that box for a droplet chemistry too.
 - **`Spec.min_input_reads` is an admission threshold, and it is top level for that reason** —

@@ -565,3 +565,57 @@ class Spec(_Forbid):
                 f"to `supports` (where a set-specific claim belongs), or address a read every set has."
             )
         return self
+
+    @model_validator(mode="after")
+    def _cell_axis_matches_the_module(self) -> Spec:
+        """``identity.sample_is_cell`` is true **iff** this spec's module fans in to one deliverable.
+
+        A biconditional, not an implication, and both halves are live failures rather than tidiness:
+
+        - **A cell is a sample, beside a per-sample module.** Every cell compiles to its own object
+          and the deposit's answer is a directory of 1440 matrices nobody asked for, at exit 0. The
+          declaration would be true and the pipeline would quietly disagree with it.
+        - **A fan-in module, beside a chemistry that says nothing.** The dataset reduction reads
+          ``sample_is_cell`` and nothing else to tell "a plate whose cells must not be split apart"
+          from "a project that genuinely mixes two assays". Undeclared, one cell scoring differently
+          partitions the deposit into two manifests — one of them bulk — and again at exit 0.
+
+        Same idiom as :meth:`Backend._only_parse_keys`: it fires in ``load_spec``, in ``kb lint``,
+        and in every test that loads a spec, so the pairing is a property of the DSL rather than a
+        rule somebody remembers. An abstract family node has no backend and therefore no fan-in, so
+        it may not claim the cell axis either — a classifier decides nothing about how a deposit is
+        shaped, and the leaf it descends to is where both halves are stated together.
+        """
+        from ..workflows import get_module
+
+        declared = self.identity.sample_is_cell
+        if self.backend is None:
+            if declared:
+                raise ValueError(
+                    f"{self.identity.id!r} declares identity.sample_is_cell on an ABSTRACT node "
+                    f"with no backend. One sample being one cell is a claim about the pipeline that "
+                    f"runs it, and a family node runs nothing — declare it on the leaves it "
+                    f"descends to, beside the module that aggregates them"
+                )
+            return self
+        try:
+            module = get_module(self.backend.module)
+        except KeyError:
+            return self  # `Backend._only_parse_keys` already refuses an unregistered module
+        aggregates = module.fan_in_artifact is not None
+        if declared and not aggregates:
+            raise ValueError(
+                f"{self.identity.id!r} declares identity.sample_is_cell, but its module "
+                f"{module.name!r} is per-sample end to end and declares no dataset-scoped "
+                f"deliverable. One Sample is one cell only if something counts them together; "
+                f"otherwise a plate compiles to one matrix per cell at exit 0"
+            )
+        if aggregates and not declared:
+            raise ValueError(
+                f"{self.identity.id!r} names module {module.name!r}, which fans in to "
+                f"{module.fan_in_artifact!r} over the whole deposit, but does not declare "
+                f"identity.sample_is_cell. The dataset reduction reads that flag and nothing else "
+                f"to tell a plate from a project that mixes two assays, so without it one dissenting "
+                f"cell silently splits this chemistry's deposit into two manifests"
+            )
+        return self

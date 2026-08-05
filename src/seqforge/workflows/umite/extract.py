@@ -61,6 +61,8 @@ file is not aligning reads.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
@@ -104,6 +106,19 @@ class UmiExtractError(RuntimeError):
 # "what the data is" and "how to read it" from being two facts that can disagree.
 
 
+#: One rendered geometry, and the only shape the CLI accepts —
+#: ``R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22``. Every offset in it is ABSOLUTE, in the element
+#: model's own 0-based half-open coordinates, so the string reads as the layout it came from rather
+#: than as an anchor-relative arithmetic nobody can check by eye.
+_RENDERED = re.compile(
+    r"^(?P<read>[A-Za-z0-9_.+-]+)"
+    r":(?P<anchor>[ACGTN]+)@(?P<anchor_start>\d+)"
+    r":umi@(?P<umi_start>\d+)\+(?P<umi_length>\d+)"
+    r":(?P<trailing>[ACGTN]+)@(?P<trailing_start>\d+)"
+    r":cdna@(?P<cdna_start>\d+)$"
+)
+
+
 @dataclass(frozen=True)
 class TagGeometry:
     """Where the tag, the UMI and the cDNA sit, relative to **the anchor's own start**.
@@ -111,8 +126,15 @@ class TagGeometry:
     Relative rather than absolute because the anchor floats: it is declared at ``anchor_start`` and
     found anywhere from there to ``anchor_start + MAX_ANCHOR_DRIFT``, so every offset that follows
     it has to travel with it. ``anchor_start`` is the search's lower bound and never a slice index.
+
+    It carries the ``read_id`` it was derived from, which is what lets a rule wired to hand over the
+    plain mate be refused: the geometry states which read is tagged, so nothing has to be told twice.
     """
 
+    #: Which layout read carries the tag. Part of the geometry rather than a second argument beside
+    #: it: "where the UMI is" and "which read it is on" are one fact read off one element list, and
+    #: splitting them is how a caller comes to hold a geometry for a read it is not extracting.
+    read_id: str
     #: The literal tag the element model declares, e.g. an 11 bp piece of the template-switch oligo.
     anchor: str
     #: Where the layout says the anchor begins. The bottom of the search window, not the match.
@@ -141,8 +163,52 @@ class TagGeometry:
         """
         return self.anchor_start + MAX_ANCHOR_DRIFT + self.span
 
+    def render(self) -> str:
+        """The whole geometry as ONE string — what the composer emits and the rule hands over.
 
-def _placed(read: ReadDef) -> list[tuple[ReadElement, int, int | None]]:
+        One value, not six, and the same move chromap's ``--read-format`` makes: a geometry split
+        across six config keys is six chances for five of them to travel and one to be dropped, and
+        the drop is silent because five correct numbers still cut *a* span out of *a* read. It is
+        computed by the composer from the element coordinates and never declared by anyone — the KB
+        is refused if it tries — so what a rule passes here is a derivation, not a knob.
+        """
+        return (
+            f"{self.read_id}:{self.anchor}@{self.anchor_start}"
+            f":umi@{self.anchor_start + self.umi_offset}+{self.umi_length}"
+            f":{self.trailing}@{self.anchor_start + self.trailing_offset}"
+            f":cdna@{self.anchor_start + self.cdna_offset}"
+        )
+
+    @classmethod
+    def parse(cls, text: str) -> TagGeometry:
+        """Read back what :meth:`render` wrote, or refuse.
+
+        Refuses rather than tolerating a near-miss: this value arrives from a composed config, so a
+        string that does not round-trip means the composer and the extractor disagree about what a
+        geometry is, and extracting under a half-understood one would cut a UMI out of the wrong
+        bases at exit 0.
+        """
+        match = _RENDERED.match(text.strip())
+        if match is None:
+            raise UmiExtractError(
+                f"{text!r} is not a rendered read structure "
+                f"(expected e.g. `R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22`); it is emitted by "
+                f"compose from the element coordinates and is not a value to type by hand"
+            )
+        anchor_start = int(match["anchor_start"])
+        return cls(
+            read_id=match["read"],
+            anchor=match["anchor"],
+            anchor_start=anchor_start,
+            umi_offset=int(match["umi_start"]) - anchor_start,
+            umi_length=int(match["umi_length"]),
+            trailing=match["trailing"],
+            trailing_offset=int(match["trailing_start"]) - anchor_start,
+            cdna_offset=int(match["cdna_start"]) - anchor_start,
+        )
+
+
+def _placed(elements: Sequence[ReadElement]) -> list[tuple[ReadElement, int, int | None]]:
     """``(element, start, end)`` in declaration order; ``end`` is ``None`` for an open tail.
 
     A layout may pin every element with a ``start`` or leave them to follow one another; this walks
@@ -151,7 +217,7 @@ def _placed(read: ReadDef) -> list[tuple[ReadElement, int, int | None]]:
     """
     placed: list[tuple[ReadElement, int, int | None]] = []
     pos = 0
-    for el in read.elements:
+    for el in elements:
         start = el.start if el.start is not None else pos
         width = el.length
         if width is None and el.sequence is not None:
@@ -164,59 +230,65 @@ def _placed(read: ReadDef) -> list[tuple[ReadElement, int, int | None]]:
     return placed
 
 
-def geometry_for_read(read: ReadDef) -> TagGeometry:
+def geometry_for_elements(read_id: str, elements: Sequence[ReadElement]) -> TagGeometry:
     """Derive the extraction geometry from one read's elements, or refuse.
 
     The shape being read out is `` <fixed tag> <UMI> <fixed motif> ... <cDNA> `` with the first three
     contiguous, which is what makes "the match consumes ``span`` bases" true. Adjacency is checked
     rather than assumed: a gap between them means the layout is not this shape, and matching a span
     that straddles a gap would cut the UMI out of the wrong bases while still exiting 0.
+
+    Elements rather than a whole read, because there are two element models that state this one fact
+    — the KB's, which the composer derives the emitted geometry from, and the manifest's, which the
+    gate re-derives it from — and a single walker over the IR elements is what keeps those two from
+    being two answers. :func:`geometry_for_read` is the manifest-side caller.
     """
-    placed = _placed(read)
+    placed = _placed(elements)
     umi_at = [i for i, (el, _, _) in enumerate(placed) if el.role == "UMI"]
     if len(umi_at) != 1:
         raise UmiExtractError(
-            f"read {read.read_id} declares {len(umi_at)} UMI elements; the tagged-molecule "
+            f"read {read_id} declares {len(umi_at)} UMI elements; the tagged-molecule "
             f"extractor needs exactly one"
         )
     i = umi_at[0]
     umi_el, umi_start, umi_end = placed[i]
     if umi_el.length is None or umi_end is None:
-        raise UmiExtractError(f"read {read.read_id}'s UMI element declares no length")
+        raise UmiExtractError(f"read {read_id}'s UMI element declares no length")
     if i == 0:
         raise UmiExtractError(
-            f"read {read.read_id} opens with its UMI, so there is no anchor to find it by"
+            f"read {read_id} opens with its UMI, so there is no anchor to find it by"
         )
     anchor_el, anchor_start, anchor_end = placed[i - 1]
     if not anchor_el.sequence:
         raise UmiExtractError(
-            f"the element before read {read.read_id}'s UMI declares no literal sequence, so there "
+            f"the element before read {read_id}'s UMI declares no literal sequence, so there "
             f"is nothing to search for"
         )
     if anchor_end != umi_start:
         raise UmiExtractError(
-            f"read {read.read_id}'s anchor ends at {anchor_end} and its UMI starts at {umi_start}; "
+            f"read {read_id}'s anchor ends at {anchor_end} and its UMI starts at {umi_start}; "
             f"the extractor cuts one contiguous span and cannot straddle a gap"
         )
     if i + 1 >= len(placed):
         raise UmiExtractError(
-            f"read {read.read_id}'s UMI closes the read; there is no trailing motif to confirm a "
+            f"read {read_id}'s UMI closes the read; there is no trailing motif to confirm a "
             f"match against, and an anchor alone would tag untagged reads"
         )
     trail_el, trail_start, trail_end = placed[i + 1]
     if not trail_el.sequence or trail_end is None:
         raise UmiExtractError(
-            f"the element after read {read.read_id}'s UMI declares no literal sequence"
+            f"the element after read {read_id}'s UMI declares no literal sequence"
         )
     if trail_start != umi_end:
         raise UmiExtractError(
-            f"read {read.read_id}'s UMI ends at {umi_end} and its trailing motif starts at "
+            f"read {read_id}'s UMI ends at {umi_end} and its trailing motif starts at "
             f"{trail_start}; the extractor cuts one contiguous span and cannot straddle a gap"
         )
     cdna_start = next((s for el, s, _ in placed[i + 2 :] if el.role in ("cDNA", "gDNA")), None)
     if cdna_start is None:
-        raise UmiExtractError(f"read {read.read_id} carries a UMI but no cDNA to trim down to")
+        raise UmiExtractError(f"read {read_id} carries a UMI but no cDNA to trim down to")
     return TagGeometry(
+        read_id=read_id,
         anchor=anchor_el.sequence,
         anchor_start=anchor_start,
         umi_offset=umi_start - anchor_start,
@@ -227,20 +299,34 @@ def geometry_for_read(read: ReadDef) -> TagGeometry:
     )
 
 
-def tagged_read_geometry(layout: ReadLayout) -> tuple[str, TagGeometry]:
-    """``(read_id, geometry)`` for the one read in a layout that carries a tagged-molecule UMI.
+def geometry_for_read(read: ReadDef) -> TagGeometry:
+    """The extraction geometry of one manifest read — :func:`geometry_for_elements` on its own id."""
+    return geometry_for_elements(read.read_id, read.elements)
+
+
+def tagged_geometry(reads: Sequence[tuple[str, Sequence[ReadElement]]]) -> TagGeometry:
+    """The geometry of the one read among ``reads`` that carries a tagged-molecule UMI.
 
     Refuses on none and on more than one, rather than picking. Which read is tagged is a fact about
-    the chemistry that the layout already states; a caller that had to name it could name the wrong
-    one, and the extractor would then cut a UMI out of a cDNA read.
+    the chemistry that the element model already states; a caller that had to name it could name the
+    wrong one, and the extractor would then cut a UMI out of a cDNA read.
+
+    ``(read_id, elements)`` pairs rather than a ``ReadLayout``, so the composer can hand over a KB
+    spec's reads translated into IR elements and get the SAME answer the manifest gives — one
+    selection rule and one derivation, consulted from both sides.
     """
-    tagged = [r for r in layout.reads if any(el.role == "UMI" for el in r.elements)]
+    tagged = [(read_id, els) for read_id, els in reads if any(el.role == "UMI" for el in els)]
     if len(tagged) != 1:
         raise UmiExtractError(
             f"{len(tagged)} of this layout's reads carry a UMI element "
-            f"({[r.read_id for r in layout.reads]}); the extractor needs exactly one"
+            f"({[read_id for read_id, _ in reads]}); the extractor needs exactly one"
         )
-    return tagged[0].read_id, geometry_for_read(tagged[0])
+    return geometry_for_elements(*tagged[0])
+
+
+def tagged_read_geometry(layout: ReadLayout) -> TagGeometry:
+    """:func:`tagged_geometry` over a manifest's read layout — what the BYTES were decided to be."""
+    return tagged_geometry([(read.read_id, read.elements) for read in layout.reads])
 
 
 # ---- finding one tag ----------------------------------------------------------------------------
@@ -511,6 +597,8 @@ __all__ = [
     "UmiExtractError",
     "extract_umis",
     "find_tag",
+    "geometry_for_elements",
     "geometry_for_read",
+    "tagged_geometry",
     "tagged_read_geometry",
 ]

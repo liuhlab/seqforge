@@ -29,7 +29,10 @@ workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only
             metrics.py is the leaf metric vocabulary, stats.py the per-module reader registry, and
             each adapter lives beside the writer whose format it reads (ADR-0025).
             umite/ is the SMART-seq3 UMI extractor and counter, re-implemented rather than
-            depended on; count.py is the plate-wide fan-in and writes one .h5ad directly
+            depended on; count.py is the plate-wide fan-in and writes one .h5ad directly.
+            map/star-umi.smk is the module that runs them — the one pipeline that is NOT
+            per-sample end to end, which it DECLARES (`fan_in_artifact`) rather than leaving
+            to be discovered from its rule graph
 assets/     NOT a package — the one design-token layer (`sf-tokens.css`) that BOTH report pages'
             Tailwind inputs import. A build input, never read at runtime; it ships as the source of
             record. Neutral home because neither report owns it (report/assets/VENDOR.md)

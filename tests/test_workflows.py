@@ -29,14 +29,21 @@ from typing import Any, get_args
 import anndata as ad
 import pysam
 import pytest
+import yaml
 from scipy.sparse import csr_matrix
 
-from conftest import SrcTrees, _build, _processing, _rule_blocks, _src_root
+from conftest import DryRun, SrcTrees, _build, _processing, _rule_blocks, _src_root
 from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
-from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
+from seqforge.workflows import (
+    PLATE_H5AD,
+    WORKFLOW_VERSION,
+    get_module,
+    keys_read_by,
+    list_modules,
+)
 from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
@@ -112,6 +119,7 @@ from seqforge.workflows.umite.count import (
     write_umi_counts,
 )
 from seqforge.workflows.umite.extract import (
+    TagGeometry,
     UmiExtractError,
     extract_umis,
     find_tag,
@@ -903,7 +911,7 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
 
     from seqforge.workflows import MODULES, resolve_pipeline
 
-    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap"}
+    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap", "map/star-umi"}
     valid_envs = set(get_args(RuntimeEnv))
     for name in list_modules():
         module = get_module(name)
@@ -914,6 +922,15 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         # env is the module's own declaration (policy reads it off the pipeline), so a second aligner
         # in a different env is correct, not a test failure.
         assert module.env in valid_envs
+
+    # The fan-in declaration, by NAME in both directions. Exactly one shipped module produces a
+    # deliverable the sample axis does not reach, and the other three are untouched by its arrival —
+    # which is the whole of why the field defaults to absent. A set comparison rather than a count:
+    # "some module aggregates" was never the claim.
+    assert {n for n in list_modules() if get_module(n).fan_in_artifact is not None} == {
+        "map/star-umi"
+    }
+    assert get_module("map/star-umi").fan_in_artifact == PLATE_H5AD
 
     # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
     # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
@@ -931,6 +948,19 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         resolve_pipeline(unserved)  # type: ignore[arg-type]
 
 
+#: Registered modules **no shipped spec names yet**, and why each is here. The KB entry cannot land
+#: before its module: the confusability biconditional computes `backend_identical` off the resolved
+#: `backend.module`, and against a placeholder CI stamps `processing_equivalent`, which is wrong. So
+#: the module ships first and its chemistry follows.
+#:
+#: Written down rather than derived, in the shape `MODULES_WITHOUT_STATS` established: a module that
+#: no spec reaches is untested by the composed-pipeline gate below, and the only safe version of that
+#: is one that says which module and until when. Its `.smk` is proved to plan by
+#: `test_the_plate_module_plans_a_whole_run_from_a_hand_written_config` instead, which needs no
+#: chemistry at all — and the day a spec names it, this set empties and that test stays.
+MODULES_NO_SPEC_REACHES_YET: frozenset[str] = frozenset({"map/star-umi"})
+
+
 @pytest.mark.parametrize("module", list_modules())
 def test_every_registered_module_wires_into_a_runnable_dag(
     module: str, tmp_path: Path, real_wiring_gate: None
@@ -943,7 +973,8 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     claim on the interface that owns it: every registered module, exhaustively.
 
     The tech comes from the KB, not a hand-written list — a fourth module gets a case the moment
-    a spec targets it, and a module no spec reaches fails loudly rather than going untested.
+    a spec targets it, and a module no spec reaches is refused here unless it is NAMED in
+    :data:`MODULES_NO_SPEC_REACHES_YET` with the reason, rather than going quietly untested.
 
     It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of
     its own on `map/starsolo`. The gate stands in zero-byte FASTQs; they were touched straight into
@@ -957,6 +988,14 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     techs = sorted(
         t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
     )
+    if module in MODULES_NO_SPEC_REACHES_YET:
+        assert not techs, (
+            f"{module} is named as reached by no spec, but {techs} reach it — drop it from "
+            f"MODULES_NO_SPEC_REACHES_YET so the composed-pipeline gate covers it"
+        )
+        pytest.skip(
+            f"{module} has no chemistry yet; its .smk is planned from a hand-written config"
+        )
     assert techs, f"{module} is registered but no spec reaches it"
     manifest, reg = _build(tmp_path, techs[0])
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
@@ -968,6 +1007,121 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     run_dir = (tmp_path / result.snakefile_path).parent
     strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
+
+
+#: One plate's worth of hand-written config: the three cells, the geometry compose would derive, and
+#: the two roles it would place by ROLE. Enough to plan the module and nothing more.
+_PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
+
+
+def _plate_run_dir(directory: Path, samples: Sequence[str]) -> dict[str, object]:
+    """Write a runnable plate pipeline directory by hand, and return the config it carries.
+
+    Hand-written rather than composed, because the module has no chemistry yet and the point is that
+    it does not need one: a ``.smk`` is configuration in, rules out, so its whole contract is the key
+    set :func:`keys_read_by` scans off it. The caller asserts that this config covers exactly that
+    set, which is what makes the plan below a proof about the module rather than about a fixture.
+    """
+    module = get_module("map/star-umi")
+    config: dict[str, object] = {
+        "container": "docker://example/align-rna",
+        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
+        "mem_mb": 8 * 1024,
+        "outdir": "results",
+        "read_files_in": {"umi_cdna": "R1", "cdna": "R2"},
+        "threads": 4,
+        "umi": {"read_structure": _PLATE_GEOMETRY},
+        "units_tsv": "units.tsv",
+    }
+    rows = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
+    for sample in samples:
+        for read_id in ("R1", "R2"):
+            path = f"fastq/{sample}_{read_id}.fastq.gz"
+            (directory / "fastq").mkdir(parents=True, exist_ok=True)
+            (directory / path).write_bytes(b"")
+            rows.append("\t".join((sample, sample, "", read_id, path)))
+    (directory / "units.tsv").write_text("\n".join(rows) + "\n")
+    (directory / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+    shutil.copy2(module.snakefile, directory / module.snakefile.name)
+    (directory / "Snakefile").write_text(core.render_wrapper(module.name, module.snakefile.name))
+    return config
+
+
+def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The plate `.smk` plans a real DAG on its own — per cell in, one object out.
+
+    The other three modules are planned through `compose` because a chemistry names them; this one
+    has none yet (module first, entry second — see :data:`MODULES_NO_SPEC_REACHES_YET`), and waiting
+    for a spec to prove the rules parse would mean shipping a module nothing has ever run.
+
+    Two claims, and the second is what makes the first mean something. The plan must reach every
+    rule — the shared load, the per-cell chain, and the fan-in — and the hand-written config above
+    must be EXACTLY the key set scanned off the module source. Configuration nobody reads is how a
+    module comes to depend on a key the composer does not owe it, which surfaces as a `KeyError` on a
+    compute node long after compose exited 0.
+    """
+    module = get_module("map/star-umi")
+    config = _plate_run_dir(tmp_path, ["cell_a", "cell_b", "cell_c"])
+
+    dotted = {
+        f"{key}.{sub}" if isinstance(value, dict) else key
+        for key, value in config.items()
+        for sub in (value if isinstance(value, dict) else [None])
+    }
+    # `read_files_in.cdna` is the one key the config carries and the scan does not: the module reads
+    # it with `.get`, so a single-end plate is not obliged to emit a mate it does not have.
+    assert set(module.required_config) == dotted - {"read_files_in.cdna"}
+
+    plan = dry_run(tmp_path)
+
+    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+        assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
+    # The fan-in is ONE job over three cells, while the per-cell chain is one job each. That ratio is
+    # the module's whole shape, and a per-cell counter followed by a merge would read as three here.
+    assert re.search(r"^umi_extract\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^star_umi_map\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^umi_count\s+1\s*$", plan, re.M), plan
+    assert re.search(r"^load_genome\s+1\s*$", plan, re.M), plan
+    # The deliverables `rule all` demands, by name: one object for the plate, one CRAM per cell.
+    assert f"results/{PLATE_H5AD}" in plan
+    assert all(f"results/{s}/{s}.cram" in plan for s in ("cell_a", "cell_b", "cell_c"))
+    # The shared-memory contract, rendered rather than merely written: the load rule marks any stale
+    # segment for destruction before loading, and every mapping job attaches instead of loading.
+    assert "--genomeLoad Remove" in plan and "--genomeLoad LoadAndExit" in plan
+    assert "--genomeLoad LoadAndKeep" in plan
+    # ...and the geometry the extractor is handed is the ONE derived value, not six numbers.
+    assert f"--geometry {_PLATE_GEOMETRY}" in plan
+
+
+def test_the_plate_modules_load_rule_cleans_up_on_both_paths() -> None:
+    """Defensive removal AND a handler, because neither alone is the guarantee.
+
+    `Remove` at the head of `load_genome` is the half that always holds: it runs inside the pinned
+    image, so STAR is there, and it covers the case a handler cannot — a SIGKILL leaves no chance to
+    run anything. What it cannot do is release the segment when a run simply ends, so the handlers
+    are the other half. seqforge emits a Snakefile the USER submits, possibly at a site whose
+    scheduler does not reclaim a killed job's IPC, so the guarantee has to be the Snakefile's.
+
+    Read off the source rather than from a run: a dry run never fires a handler, and this suite owns
+    no scheduler to kill a job on.
+    """
+    source = get_module("map/star-umi").snakefile.read_text()
+
+    load = _rule_blocks(get_module("map/star-umi").snakefile)["load_genome"]
+    assert "--genomeLoad Remove" in load and "|| true" in load, load
+    assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), (
+        "the stale segment must be marked for destruction BEFORE the load, or the load inherits it"
+    )
+    # `IPC_RMID` marks rather than kills, and the docstring has to say so: the line reads dangerous,
+    # is not, and would otherwise be "cleaned up" by the next person who reads it as a race.
+    assert "marks" in load and "attached keeps running" in load
+
+    for handler in ("onsuccess", "onerror"):
+        assert re.search(rf"^{handler}:", source, re.M), f"no {handler} handler"
+    after = source[source.index("\nonsuccess:") :]
+    assert after.count("--genomeLoad Remove") == 2, "both handlers must release the segment"
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
@@ -1094,6 +1248,11 @@ def test_the_config_block_is_read_off_the_module_not_matched_on_its_name(
 
     assert MODULES["map/starsolo"].param_block == "solo"
     assert MODULES["map/star"].param_block == "bulk"
+    # The fourth name. `param_block` intersects against a LITERAL set and raises unless exactly one
+    # survives, so a module reading a block that literal does not name does not fall through to bulk
+    # — it kills compose outright. That is the design working, and it is why the literal has to gain
+    # a name with the module rather than after it.
+    assert MODULES["map/star-umi"].param_block == "umi"
 
     # A COMPARISON against a module name, not a mention of one: the docstrings deliberately keep the
     # old line so the bug it names stays findable. Grepping the text would forbid the record of the
@@ -1157,6 +1316,10 @@ def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
     assert len(parse_keys_for("map/starsolo")) == 12
     # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
     assert parse_keys_for("map/star") == frozenset()
+    # The plate pipeline's is empty for the opposite reason: it needs six numbers and every one of
+    # them is already in the element coordinates, so all six are DERIVED into one key rather than
+    # declared. Empty here is what makes "a backend declaring a parse key is refused" true of it.
+    assert parse_keys_for("map/star-umi") == frozenset()
     with pytest.raises(KeyError, match="unknown workflow module"):
         parse_keys_for("map/nonesuch")
 
@@ -1171,6 +1334,10 @@ def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
 
     assert MODULES["map/starsolo"].aligner == "starsolo"
     assert MODULES["map/star"].aligner == "star"
+    # A hyphenated id goes through the same rsplit and nothing else. A lookup for the one module
+    # whose tail is not a bare binary name would regress to exactly the mirror that was deleted, so
+    # the id has to be a true statement on its own — and it is, because STAR is what aligns here.
+    assert MODULES["map/star-umi"].aligner == "star-umi"
 
 
 # ================================================================================================
@@ -1459,6 +1626,38 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
     )
 
 
+def test_the_plate_module_turns_the_recipes_one_figure_into_two_requests() -> None:
+    """One recipe number in, a per-cell request and a fan-in request out — and they differ.
+
+    The recipe says exactly one thing because `resources.mem_gb` is INTENT, and per-rule budgets in a
+    recipe would make every recipe carry every module's rule names. So the map lives in the module,
+    which is the only artifact that knows its own rule graph, and the claim here is that it IS a map:
+    two rule classes that scale differently must not come out of it as one number.
+
+    The per-cell request is the whole figure because a mapping job is dominated by the genome index,
+    which is per process and independent of read count — 27.7 GB peak against a 25 GB index whether
+    the well holds 901 reads or 3.1M. The fan-in loads no index at all, so it takes a share.
+    """
+    from seqforge.workflows.memory import PLATE_RETRIES, fan_in_mem_mb, per_cell_mem_mb
+
+    assert per_cell_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
+    assert fan_in_mem_mb(_DEFAULT_MEM_MB, 1) < per_cell_mem_mb(_DEFAULT_MEM_MB, 1)
+
+    # Escalation per rule class, INDEPENDENTLY: each is linear in its own attempt over its own base,
+    # so a retried counter never asks for a mapping job's headroom and vice versa. Attempt 1 is the
+    # unescalated request for both, which is what keeps the common case unchanged.
+    for attempt in range(1, PLATE_RETRIES + 2):
+        assert per_cell_mem_mb(_DEFAULT_MEM_MB, attempt) == _DEFAULT_MEM_MB * attempt
+        assert (
+            fan_in_mem_mb(_DEFAULT_MEM_MB, attempt) == fan_in_mem_mb(_DEFAULT_MEM_MB, 1) * attempt
+        )
+
+    # A recipe smaller than the fan-in floor may not be turned into a request BIGGER than the recipe:
+    # a job asking the scheduler for more than the pipeline was budgeted is a job that never starts.
+    tiny = 2 * 1024
+    assert fan_in_mem_mb(tiny, 1) == tiny
+
+
 # ================================================================================================
 # metrics/stats/qc/fragments — reading a finished pipeline back
 # ================================================================================================
@@ -1629,7 +1828,12 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     assert set(modules_with_stats()) | MODULES_WITHOUT_STATS == set(list_modules())
     # And `MODULES_WITHOUT_STATS` is the OTHER half: a module may only be silent by saying so.
     assert not (set(modules_with_stats()) & MODULES_WITHOUT_STATS)
-    assert set(modules_with_stats()) == {"map/starsolo", "map/chromap", "map/star"}
+    assert set(modules_with_stats()) == {
+        "map/starsolo",
+        "map/chromap",
+        "map/star",
+        "map/star-umi",
+    }
     assert MODULES_WITHOUT_STATS == frozenset()
 
 
@@ -1682,7 +1886,7 @@ def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_no
     )
     assert not (set(modules_with_cross_checks()) & MODULES_WITHOUT_CROSS_CHECKS)
     assert set(modules_with_cross_checks()) == {"map/starsolo"}
-    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star"}
+    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star", "map/star-umi"}
 
 
 def _stub_reader(path: Path, sample: str) -> SampleStats:
@@ -3453,13 +3657,37 @@ def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_writt
 
 
 def test_the_tagged_read_is_the_one_the_layout_says_carries_a_umi() -> None:
-    """Which read is tagged is a fact the layout already states, so nobody gets to name it."""
+    """Which read is tagged is a fact the layout already states, so nobody gets to name it.
+
+    The id rides ON the geometry rather than beside it, which is what lets the verb refuse a rule
+    wired to hand over the mate without being told separately which read that was.
+    """
     layout = ReadLayout(modality="rna", reads=[_plain_read("R2"), _smartseq3_r1()])
 
-    read_id, geometry = tagged_read_geometry(layout)
+    geometry = tagged_read_geometry(layout)
 
-    assert read_id == "R1"
+    assert geometry.read_id == "R1"
     assert geometry.anchor == _TAG
+
+
+def test_the_rendered_geometry_round_trips_and_reads_as_the_layout_it_came_from() -> None:
+    """One derived value carries all six numbers, and reading it back gives the same six.
+
+    The rendering is what the composer emits into the config and what the rule hands the extractor,
+    so a round trip that loses a field is a run that cuts a span out of the wrong bases at exit 0.
+    Absolute offsets in the element model's own coordinates, so the string can be checked by eye
+    against a spec: tag at 0, UMI at 11 for 8, the motif at 19, cDNA from 22.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    assert geometry.render() == f"R1:{_TAG}@0:umi@11+8:GGG@19:cdna@22"
+    assert TagGeometry.parse(geometry.render()) == geometry
+
+    # ...and a string that is not one is refused rather than half-read: this value arrives from a
+    # composed config, so a near-miss means the composer and the extractor disagree about what a
+    # geometry IS.
+    with pytest.raises(UmiExtractError, match="is not a rendered read structure"):
+        TagGeometry.parse(f"R1:{_TAG}@0:umi@11:GGG@19:cdna@22")
 
 
 def test_a_layout_with_no_umi_element_yields_no_extraction_geometry() -> None:

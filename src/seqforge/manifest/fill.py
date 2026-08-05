@@ -414,6 +414,23 @@ def _build_read_layout(
     return ReadLayout(modality=modality, reads=reads)  # type: ignore[arg-type]
 
 
+def declared_read_elements(spec: Spec) -> list[tuple[str, list[ReadElement]]]:
+    """``(read id, elements)`` for every read a spec DECLARES, translated into the IR's element model.
+
+    The KB's element model and the manifest's are two vocabularies for one structure, and
+    :func:`_read_element` is the one translator between them — used here so that a consumer wanting
+    to read a chemistry's geometry off the KB reads the SAME elements a filled manifest would carry,
+    rather than walking the KB shape a second way. The composer's derived params are that consumer:
+    a geometry derived from the spec and a geometry derived from the layout have to be one answer,
+    and one translator plus one walker is what makes them one.
+
+    No observed lengths and no ``ReadDef``, deliberately: this states what the chemistry DECLARES,
+    and a read's min/max length is a fact about a dataset's bytes that only :func:`_build_read_layout`
+    is entitled to fill in.
+    """
+    return [(read.id, [_read_element(el, spec) for el in read.elements]) for read in spec.reads]
+
+
 def _read_element(el: Element, spec: Spec) -> ReadElement:
     length = el.end - el.start if (el.start is not None and el.end is not None) else None
     onlist_ref = spec.onlists[el.onlist].registry if el.onlist else None

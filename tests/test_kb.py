@@ -1427,6 +1427,72 @@ def test_no_shipped_spec_says_a_sample_is_a_cell_or_sets_a_read_floor() -> None:
         assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
 
 
+def test_a_cell_is_a_sample_only_beside_a_module_that_counts_them_together() -> None:
+    """The biconditional, fired in both directions on a spec built to violate it.
+
+    `identity.sample_is_cell` is true **iff** the spec's module declares a dataset-scoped fan-in
+    artifact, and both halves are live wrong answers rather than tidiness. A cell-is-a-sample
+    chemistry beside a per-sample module compiles a 1440-well plate to 1440 separate objects at exit
+    0. A fan-in module beside a chemistry that stays silent leaves the dataset reduction with nothing
+    to tell "a plate whose cells must not be split apart" from "a project that mixes two assays", so
+    one dissenting well partitions the deposit into two manifests — again at exit 0.
+
+    It fires where every other DSL mistake in this file dies: at LOAD, which is `load_spec`, `kb
+    lint`, and every test that touches a spec. Driven through `Spec.model_validate` over a real
+    shipped entry with one field changed, so what is under test is the rule and not a fixture.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    assert raw["backend"]["module"] == "map/starsolo"  # per-sample end to end
+
+    with pytest.raises(ValidationError, match="is per-sample end to end"):
+        Spec.model_validate({**raw, "identity": {**raw["identity"], "sample_is_cell": True}})
+
+    # ...and the other way round: the aggregating module, with the chemistry saying nothing. The
+    # backend's params have to go with it — this module parses nothing, because its whole geometry is
+    # derived — which is the second half of "parse keys are empty" arriving as a load-time refusal.
+    plate = {**raw, "backend": {"module": "map/star-umi", "params": {}}}
+    with pytest.raises(ValidationError, match="does not declare identity.sample_is_cell"):
+        Spec.model_validate(plate)
+
+    # Both together is the legal pairing, and asserting it is what stops the rule from being one that
+    # merely refuses everything.
+    ok = Spec.model_validate({**plate, "identity": {**raw["identity"], "sample_is_cell": True}})
+    assert ok.identity.sample_is_cell and ok.require_backend().module == "map/star-umi"
+
+
+def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None:
+    """Its parse namespace is EMPTY, so any declared key is refused at load — including a real one.
+
+    Every number the extractor needs is already in the element coordinates, so the whole geometry is
+    DERIVED into one config key rather than declared. That makes "a user instruction contradicts the
+    observed bytes" inexpressible for this pipeline by construction: there is nothing to write.
+
+    The refused key below is a *valid* key of another pipeline, which is the case that matters — the
+    namespace is per pipeline, so a plausible-looking `solo*` knob copied from a neighbouring spec
+    must not quietly become this backend's.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    plate = {
+        **raw,
+        "identity": {**raw["identity"], "sample_is_cell": True},
+        "backend": {"module": "map/star-umi", "params": {"soloUMIlen": 8}},
+    }
+    with pytest.raises(ValidationError, match=r"does not parse"):
+        Spec.model_validate(plate)
+
+    # Nor may it declare the derived key itself, which is the same refusal reached from the other
+    # side: `read_structure` is not in this pipeline's parse namespace either, because it is not
+    # declarable anywhere at all.
+    with pytest.raises(ValidationError, match=r"does not parse"):
+        Spec.model_validate(
+            {**plate, "backend": {"module": "map/star-umi", "params": {"read_structure": "x"}}}
+        )
+
+
 def test_a_read_floor_of_zero_is_a_gate_that_cannot_fire() -> None:
     """`min_input_reads: 0` admits everything while reading as a threshold somebody chose.
 

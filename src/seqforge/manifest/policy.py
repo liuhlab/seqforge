@@ -31,6 +31,7 @@ from ..models.processing import (
     RuntimeEnv,
     SoloFeature,
     SoloQuant,
+    UmiQuant,
 )
 from ..workflows import resolve_pipeline
 from .instruct import Instruction
@@ -214,6 +215,8 @@ def processing_defaults(spec: Spec) -> ProcessingDefaults:
         quantification = SoloQuant(features=list(DEFAULT_SOLO_FEATURES))
     elif block == "chromap":
         quantification = AtacQuant()
+    elif block == "umi":
+        quantification = UmiQuant()
     else:
         quantification = BulkQuant(mode="GeneCounts")
     return ProcessingDefaults(
@@ -363,6 +366,13 @@ def resolve_processing(
         # user overrides (the parse/count split is trivial when there is no count).
         quant = defaults.quantification
         basis, evidence = "inferred", ["policy:default-atac-fragments"]
+    elif isinstance(defaults.quantification, UmiQuant):
+        # A plate assay: the counter writes UMIs and reads, each split exonic/intronic, in one pass
+        # over every cell — so there is nothing to select and nothing here a user overrides. Same
+        # law as `soloFeatures` and `quantMode`: when every alternative is computed in one pass and
+        # the outputs are small, compute them all and let the consumer choose from the object.
+        quant = defaults.quantification
+        basis, evidence = "inferred", ["policy:default-umi-plate-matrices"]
     else:
         # bulk: counting is module-scoped, and there is nothing here a user needs to instruct —
         # --quantMode GeneCounts already emits all three strand columns.

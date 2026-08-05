@@ -796,6 +796,256 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
     assert r2 not in planned["one"], f"a one-mate layout planned the second mate's file: {r2}"
 
 
+# ---- the plate pipeline: a fourth layout kind, and a geometry nobody declares --------------------
+#
+# `map/star-umi` has no chemistry yet (module first, entry second — the confusability biconditional
+# computes `backend_identical` off the resolved module, and against a placeholder CI stamps the wrong
+# label). So the composer is driven against a synthetic spec that names it, which is enough: what is
+# under test here is what COMPOSE does with a tagged-molecule layout, and none of it reads the KB for
+# anything but the elements and the module id.
+
+
+def _plate_spec() -> object:
+    """A tagged-molecule chemistry on the plate module: 11 bp tag, 8 bp UMI, `GGG`, cDNA from 22.
+
+    Built off a shipped bulk entry so every field this test does not care about is a real one, with
+    the reads and the backend replaced. `model_copy` rather than `model_validate`, deliberately: the
+    cell-axis biconditional is `tests/test_kb.py`'s subject and re-proving it here would make this
+    fixture an assertion about a different rule.
+    """
+    from seqforge.kb.schema import Backend, Element, Read
+
+    base = kb.load_spec("bulk-rnaseq")
+    tagged = Read(
+        id="R1",
+        seqspec_read_id="read1",
+        strand="pos",
+        min_len=40,
+        elements=[
+            Element(
+                type="fixed",
+                name="tso_tag",
+                start=0,
+                end=11,
+                sequence="ATTGCGCAATG",
+                seqspec_region_type="custom_primer",
+            ),
+            Element(type="umi", name="umi", start=11, end=19, seqspec_region_type="umi"),
+            Element(
+                type="fixed",
+                name="tso_ggg",
+                start=19,
+                end=22,
+                sequence="GGG",
+                seqspec_region_type="linker",
+            ),
+            Element(type="cdna", name="cdna", start=22, seqspec_region_type="cdna"),
+        ],
+    )
+    plain = Read(
+        id="R2",
+        seqspec_read_id="read2",
+        strand="neg",
+        min_len=40,
+        elements=[Element(type="cdna", name="cdna", start=0, seqspec_region_type="cdna")],
+    )
+    return base.model_copy(
+        update={
+            "identity": base.identity.model_copy(update={"sample_is_cell": True}),
+            "reads": [tagged, plain],
+            "read_sets": {},
+            "backend": Backend(module="map/star-umi", params={}),
+            "confusable_with": [],
+        }
+    )
+
+
+def _plate_layout(manifest: DatasetManifest, *, tagged_first: bool = True) -> DatasetManifest:
+    """The same manifest with a tagged-molecule read layout — optionally listing the PLAIN mate first.
+
+    The order argument is the whole point of the fourth layout kind: `mates` would take these two by
+    position, and they are not symmetric.
+    """
+    from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
+
+    tagged = ReadDef(
+        read_id="R1",
+        strand="pos",
+        min_len=40,
+        max_len=150,
+        elements=[
+            ReadElement(
+                role="linker",
+                region_type="custom_primer",
+                start=0,
+                length=11,
+                sequence="ATTGCGCAATG",
+            ),
+            ReadElement(role="UMI", region_type="umi", start=11, length=8),
+            ReadElement(role="linker", region_type="linker", start=19, length=3, sequence="GGG"),
+            ReadElement(role="cDNA", region_type="cdna", start=22),
+        ],
+    )
+    plain = ReadDef(
+        read_id="R2",
+        strand="neg",
+        min_len=40,
+        max_len=150,
+        elements=[ReadElement(role="cDNA", region_type="cdna", start=0)],
+    )
+    reads = [tagged, plain] if tagged_first else [plain, tagged]
+    return _with_layout(manifest, ReadLayout(modality="rna", reads=reads))
+
+
+def _with_layout(manifest: DatasetManifest, layout: object) -> DatasetManifest:
+    """The same manifest carrying a different read layout, and nothing else changed."""
+    return manifest.model_copy(
+        update={"library": manifest.library.model_copy(update={"read_layout": layout})}
+    )
+
+
+@pytest.fixture
+def plate(
+    synth_bulk_pe: SynthDataset, monkeypatch: pytest.MonkeyPatch
+) -> Callable[..., tuple[DatasetManifest, ProcessingManifest]]:
+    """A plate dataset + recipe, with the composer's spec lookup pointed at the synthetic chemistry."""
+    from seqforge.compose import core as compose_core
+    from seqforge.manifest.fill import ProcessingInputs, fill_processing
+
+    spec = _plate_spec()
+    monkeypatch.setattr(compose_core, "load_spec", lambda tech: spec)
+
+    def build(*, tagged_first: bool = True) -> tuple[DatasetManifest, ProcessingManifest]:
+        from seqforge import __version__
+
+        manifest = _plate_layout(synth_bulk_pe.manifest, tagged_first=tagged_first)
+        processing, _ = fill_processing(
+            spec=spec,  # type: ignore[arg-type]
+            dataset=manifest,
+            processing=ProcessingInputs(assembly="sacCer3", annotation_name="ensembl"),
+            processing_id="default",
+            pin=True,
+            seqforge_version=__version__,
+        )
+        return manifest, processing
+
+    return build
+
+
+def test_a_plate_composes_its_reads_by_role_whichever_order_the_layout_lists_them(
+    plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
+    synth_bulk_pe: SynthDataset,
+    tmp_path: Path,
+) -> None:
+    """The fourth layout kind picks the TAGGED read by role, and the order it is listed in is inert.
+
+    This contrast is the entire reason `umi_tagged` exists rather than reusing `mates`. `mates` picks
+    by ORDER, and a plate's two mates are not symmetric — one opens with tag + UMI + motif. A layout
+    listing the plain mate first would hand the untagged read to the extractor: nothing is tagged, the
+    count matrix is empty, and every exit code along the way is 0.
+
+    So both orders are composed and the two configs must agree. One direction alone would pass under
+    an order-based dispatch for whichever order happened to be written first.
+    """
+    for tagged_first in (True, False):
+        manifest, processing = plate(tagged_first=tagged_first)
+        result = compose(manifest, processing, registry=synth_bulk_pe.registry, workspace=tmp_path)
+        assert result.modules[0].name == "map/star-umi"
+        assert result.gate["params"] == "pass", result.params_preview["params_problems"]
+
+        config = yaml.safe_load((tmp_path / result.config_path).read_text())
+        assert config["read_files_in"] == {"umi_cdna": "R1", "cdna": "R2"}, (
+            f"tagged_first={tagged_first} placed the roles by order, not by role"
+        )
+
+
+def test_a_plates_whole_extraction_geometry_arrives_as_one_derived_key(
+    plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
+    synth_bulk_pe: SynthDataset,
+    tmp_path: Path,
+) -> None:
+    """Six numbers, one key, and no owner but the element coordinates.
+
+    The block this module reads is `umi:` and it carries exactly one thing. That it is DERIVED rather
+    than declared is what makes the chemistry's parse namespace empty — there is nothing for a spec
+    to write down and therefore nothing that can contradict the bytes.
+    """
+    manifest, processing = plate()
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+
+    assert param_block_key(_plate_spec()) == "umi"  # type: ignore[arg-type]
+    assert config["umi"] == {"read_structure": "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"}
+    # ...and it is owned by the ELEMENTS, not by the KB and not by the recipe. A plate recipe carries
+    # no counting key at all: the counter writes all four matrices in one pass.
+    assert param_owners(_plate_spec(), processing) == {"read_structure": "derived"}  # type: ignore[arg-type]
+
+
+def test_the_params_gate_refuses_a_plate_wired_to_the_untagged_mate(
+    plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
+    synth_bulk_pe: SynthDataset,
+) -> None:
+    """The load-bearing assertion for this pipeline, because the failure it catches exits 0.
+
+    Handed the plain mate, the extractor finds no tag in any read, writes a uBAM with no `UB`
+    anywhere, and every rule after it succeeds on an empty matrix. There is no non-zero exit and no
+    error line to notice — which is why the composer's derivation is re-checked here rather than
+    trusted, exactly as the two barcoded kinds are.
+    """
+    manifest, processing = plate()
+    spec = _plate_spec()
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+    assert params_gate(manifest, processing, spec, config) == ("pass", []), (  # type: ignore[arg-type]
+        "the clean pair must pass"
+    )
+
+    swapped = {**config, "read_files_in": {"umi_cdna": "R2", "cdna": "R1"}}
+    status, problems = params_gate(manifest, processing, spec, swapped)  # type: ignore[arg-type]
+    assert status == "fail"
+    assert any("is not the tagged read" in p for p in problems), problems
+
+
+def test_a_plate_geometry_that_contradicts_the_observed_reads_is_refused(
+    plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
+    synth_bulk_pe: SynthDataset,
+) -> None:
+    """The cross-derivation: what the chemistry declares and what the bytes are must be one geometry.
+
+    This pipeline's whole config block is a single derived value, so there is no declared offset for
+    a KB to get wrong — only the coordinates themselves. That makes this the one place the two
+    element models are made to agree, and a disagreement means the extractor would cut a UMI out of
+    bases the reads do not have.
+    """
+    manifest, processing = plate()
+    spec = _plate_spec()
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+
+    # The chemistry's elements say the UMI is 8 bp; these reads say 10, with everything after it
+    # shifted so the layout stays a perfectly well-formed tagged read. That is the case worth
+    # catching: a MALFORMED layout refuses on its own shape, and a plausible one does not.
+    from seqforge.models.dataset import ReadElement
+
+    layout = manifest.library.read_layout
+    widened = layout.reads[0].model_copy(
+        update={
+            "elements": [
+                layout.reads[0].elements[0],
+                ReadElement(role="UMI", region_type="umi", start=11, length=10),
+                ReadElement(
+                    role="linker", region_type="linker", start=21, length=3, sequence="GGG"
+                ),
+                ReadElement(role="cDNA", region_type="cdna", start=24),
+            ]
+        }
+    )
+    contradicted = _with_layout(
+        manifest, layout.model_copy(update={"reads": [widened, layout.reads[1]]})
+    )
+
+    status, problems = params_gate(contradicted, processing, spec, config)  # type: ignore[arg-type]
+    assert status == "fail"
+    assert any("derived from the observed read layout" in p for p in problems), problems
+
+
 def test_two_processing_manifests_do_not_overwrite_each_other(
     built_v3: Built, tmp_path: Path
 ) -> None:
