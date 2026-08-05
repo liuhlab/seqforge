@@ -95,7 +95,11 @@ answer in EFO's vocabulary, not a second fact
 
 **Sample**:
 A **biological specimen** — what NCBI's BioSample describes. Never a read of bytes. The metadata
-resolver answers "which sample is each file from"; the byte resolver never sees one.
+resolver answers "which sample is each file from"; the byte resolver never sees one. It is also the
+level that **fuses runs** — `ancestor(run, "sample")` is the join, so a sample is what becomes one
+`<sample>.h5ad`. In a `source: user` **Record set** the two come apart, and there the sample id is a
+*grouping key* and not a claim about a specimen: it carries no attributes, so it declares only which
+files compile together (`docs/adr/0034`).
 _Avoid_: specimen; and never use "sample" for a head. `StreamSample`/`probe_sample`/`sample_fastq_*`
 are legacy spellings of the byte sense, being retired.
 
@@ -128,9 +132,19 @@ _Avoid_: run; and never a **Sample**, which is what reading it as one produced (
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
 transcript, never an interpretation, and optional: most sequencing data never had an accession, and
-that absence is the normal case rather than a degraded one (`docs/adr/0010`).
+that absence is the normal case rather than a degraded one (`docs/adr/0010`). An archive is not the
+only declarer — a **Record set** is the container, and its `source` says who declared it.
 _Avoid_: metadata (too broad), SRA entry, database row; and never **Record**, which is four lines of
 FASTQ
+
+**Record set**:
+The records handed to the metadata resolver, at whatever levels they were declared, with `source`
+naming who declared them. `source: user` is one a human wrote about their own pre-deposit data: it
+carries structure only — `level`, `id`, `parent`, `filenames` — and **no attributes**, which is what
+keeps `asserted` meaning *"an archive's typed slot"* in `docs/adr/0010`'s precedence table
+(`docs/adr/0034`). A fact about a sample enters through harvest, carrying a **Span**, or not at all.
+_Avoid_: records file, sample sheet (a bcl2fastq artefact, and a different thing), manifest — a
+record set is an *input* to the dataset manifest and never one of the two artifacts
 
 **Deposit**:
 Everything one submission put into an archive under one project, as the archive holds it — every
