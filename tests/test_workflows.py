@@ -1112,6 +1112,11 @@ def test_the_plate_modules_load_rule_cleans_up_on_both_paths() -> None:
 
     Read off the source rather than from a run: a dry run never fires a handler, and this suite owns
     no scheduler to kill a job on.
+
+    Both handlers release the segment by CALLING one helper rather than by each carrying the command,
+    so what is asserted below is the call in each handler AND the command in the helper. Two
+    byte-identical three-line copies is two chances to fix one of them, and the copy that lost its
+    trailing `|| true` would turn a finished plate into a failed run.
     """
     source = get_module("map/star-umi").snakefile.read_text()
 
@@ -1127,7 +1132,11 @@ def test_the_plate_modules_load_rule_cleans_up_on_both_paths() -> None:
     for handler in ("onsuccess", "onerror"):
         assert re.search(rf"^{handler}:", source, re.M), f"no {handler} handler"
     after = source[source.index("\nonsuccess:") :]
-    assert after.count("--genomeLoad Remove") == 2, "both handlers must release the segment"
+    assert after.count("release_genome_segment()") == 2, "both handlers must release the segment"
+    assert "--genomeLoad Remove" not in after, "the command belongs to the helper, not to a handler"
+
+    helper = source[source.index("def release_genome_segment(") : source.index("\nonsuccess:")]
+    assert "--genomeLoad Remove" in helper and "|| true" in helper, helper
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:

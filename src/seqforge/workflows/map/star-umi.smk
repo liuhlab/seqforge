@@ -375,29 +375,38 @@ rule umi_count:
         """
 
 
-onsuccess:
-    # Cleanup is OURS, with the site as the backstop. A well-configured scheduler reclaims a killed
-    # user's IPC segments, but that is site policy rather than SysV semantics -- a segment otherwise
-    # persists until reboot, which is why STAR ships a `Remove` mode at all -- and seqforge emits a
-    # Snakefile the USER submits, possibly somewhere else entirely. Two lines here make the guarantee
-    # ours rather than the scheduler's.
-    #
-    # Honest about its reach: a handler runs in the environment that ran snakemake, outside the
-    # container that has STAR, and it cannot run at all after a SIGKILL. The defensive `Remove` at
-    # the head of `load_genome` is the half that always holds -- it runs inside the image, and it
-    # covers exactly the case a handler cannot. Belt and braces, the same shape as clearing
-    # `_STARtmp` on entry and declaring the outputs that replace it.
+def release_genome_segment():
+    """Mark the shared genome segment for destruction. ONE command, called by both end-of-run paths.
+
+    Cleanup is OURS, with the site as the backstop. A well-configured scheduler reclaims a killed
+    user's IPC segments, but that is site policy rather than SysV semantics -- a segment otherwise
+    persists until reboot, which is why STAR ships a `Remove` mode at all -- and seqforge emits a
+    Snakefile the USER submits, possibly somewhere else entirely. Calling this from both handlers
+    makes the guarantee ours rather than the scheduler's.
+
+    Honest about its reach: a handler runs in the environment that ran snakemake, outside the
+    container that has STAR, and it cannot run at all after a SIGKILL. The defensive `Remove` at the
+    head of `load_genome` is the half that always holds -- it runs inside the image, and it covers
+    exactly the case a handler cannot. Belt and braces, the same shape as clearing `_STARtmp` on
+    entry and declaring the outputs that replace it.
+
+    Written once because the two paths release the SAME segment the same way, and two byte-identical
+    copies is two chances to fix one of them: the prefix, the redirect and the trailing `|| true`
+    have to stay together, and the copy that lost the `|| true` would turn a finished plate into a
+    failed run.
+    """
     shell(
         f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
         f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
     )
+
+
+onsuccess:
+    release_genome_segment()
 
 
 onerror:
-    # The same removal on the failing path, and it is the one that matters more: a run that died
+    # The same release on the failing path, and it is the one that matters more: a run that died
     # mid-plate is exactly the run that leaves a ~30 GB segment resident on a node with nothing left
     # to detach from it.
-    shell(
-        f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
-        f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
-    )
+    release_genome_segment()

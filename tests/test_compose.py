@@ -1183,11 +1183,14 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     # ...and the release runs on BOTH paths. A dry run fires no handler and this suite owns no
     # scheduler to kill a job on, so the two handlers are read off the module compose EMITTED —
     # which is a different file from the one in `src/`, and the one this pipeline would actually run.
+    # Each handler calls one helper; the command itself is written once, just above them.
     emitted = (composed_plate.pipeline_dir / "star-umi.smk").read_text()
     for handler in ("onsuccess:", "onerror:"):
         body = emitted.split(handler, 1)[1] if handler in emitted else ""
         assert body, f"the emitted module carries no `{handler}` handler"
-        assert "--genomeLoad Remove" in body.split("\n\n", 1)[0]
+        assert "release_genome_segment()" in body.split("\n\n", 1)[0]
+    helper = emitted[emitted.index("def release_genome_segment(") : emitted.index("\nonsuccess:")]
+    assert "--genomeLoad Remove" in helper and "|| true" in helper, helper
 
 
 @pytest.mark.xdist_group("composed-plate")
