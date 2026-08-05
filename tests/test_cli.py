@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import pytest
 import yaml
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from conftest import (
     SrcTrees,
@@ -1585,6 +1585,207 @@ def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
 
     assert result.exit_code == 3
     assert "this layout's UMI is on R1" in result.stderr
+
+
+# ---- io umi-extract: the cell whose files the TABLE states (ADR-0036) ----------------------------
+#
+# These run the verb's OWN argument parsing, which is the layer `wiring_gate` structurally cannot
+# reach: `snakemake -n -p` FORMATS every `shell:` block while planning and never runs one, so every
+# arity, quoting and ordering fact in a rendered command plans clean and dies at job execution on a
+# compute node, past handover. That is the layer that broke, and this is where it is held.
+
+
+def _units_table(
+    tmp_path: Path, rows: list[tuple[str, str, str, str]], name: str = "units.tsv"
+) -> Path:
+    """A units.tsv from `(run, lane, read_id, path)` rows for one cell. The columns compose writes."""
+    lines = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
+    lines += ["\t".join(("cell_42", run, lane, read_id, path)) for run, lane, read_id, path in rows]
+    table = tmp_path / name
+    table.write_text("\n".join(lines) + "\n")
+    return table
+
+
+#: Three bases that say which run a read came from, written into every read's cDNA. What a uBAM
+#: record was PAIRED with is then readable off the bases rather than inferred from a count — which is
+#: the whole point, since two runs with equal totals and unequal per-file counts pair wrongly at exit
+#: 0 under a concatenation and no count-based assertion can see it.
+_RUN_MARK = {"runa": "AAA", "runb": "CCC"}
+
+
+def _run_fastqs(tmp_path: Path, run: str, *, tagged: int, mate: int | None) -> None:
+    """One run's files for `cell_42`: `tagged` tagged reads, and `mate` mate reads if there are any."""
+    tag = "ATTGCGCAATG"
+    body = "GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCATT" + _RUN_MARK[run]
+    write_fastq_gz(
+        tmp_path / f"{run}_R1.fastq.gz",
+        [tag + "ACGTACGT" + "GGG" + body] * tagged,
+        prefix=f"{run}:cell",
+    )
+    if mate is not None:
+        write_fastq_gz(tmp_path / f"{run}_R2.fastq.gz", [body] * mate, prefix=f"{run}:cell")
+
+
+def _extract(argv: list[str]) -> Result:
+    """Invoke the verb with the shipped plate geometry and the standard cell/out arguments."""
+    return runner.invoke(app, ["io", "umi-extract", *argv, "--geometry", _plate_geometry(),
+                               "--sample", "cell_42"])  # fmt: skip
+
+
+def test_umi_extract_reads_a_cell_spanning_two_runs_off_the_table_and_pairs_within_each_run(
+    tmp_path: Path,
+) -> None:
+    """The defect this closes, at the boundary it broke on — and the pairing it is really about.
+
+    Two runs top up one cell, which is the ordinary form of the 20 of 190 well-labelled plate
+    deposits that are not strictly 1:1. Rendered as paths that expanded after a one-value option it
+    was `exit 2, Got unexpected extra argument(s)`; handed the table it is one argument whatever the
+    file count.
+
+    The assertion is on CONTENT and not on counts, because counts cannot see the failure that
+    matters. Each run's reads carry that run's own name in their bases, so a record paired against
+    the other run's mate is visible — and it is exactly what a concatenate-then-zip implementation
+    produces, silently, at a plausible size.
+    """
+    _run_fastqs(tmp_path, "runa", tagged=3, mate=3)
+    _run_fastqs(tmp_path, "runb", tagged=2, mate=2)
+    table = _units_table(tmp_path, [
+        ("runb", "", "R1", str(tmp_path / "runb_R1.fastq.gz")),
+        ("runa", "", "R2", str(tmp_path / "runa_R2.fastq.gz")),
+        ("runa", "", "R1", str(tmp_path / "runa_R1.fastq.gz")),
+        ("runb", "", "R2", str(tmp_path / "runb_R2.fastq.gz")),
+    ])  # fmt: skip
+    out = tmp_path / "cell_42.bam"
+
+    result = _extract(["--units", str(table), "--out", str(out)])
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)["fragments"] == 5  # every fragment of BOTH files
+
+    import pysam
+
+    with pysam.AlignmentFile(str(out), "rb", check_sq=False) as ubam:
+        records = list(ubam.fetch(until_eof=True))
+    assert [r.is_read1 for r in records] == [True, False] * 5  # interleaved, tagged read first
+    for tagged, mate in zip(records[::2], records[1::2], strict=True):
+        assert str(tagged.query_sequence)[-3:] == str(mate.query_sequence)[-3:], (
+            "a tagged read was paired with a mate from the OTHER run — which is what pairing two "
+            "concatenated streams by record index does, at equal totals and exit 0"
+        )
+    # In the table's order (run a, then run b), which is `ordered_fastqs`' order, not the row order.
+    assert [str(r.query_sequence)[-3:] for r in records[::2]] == (
+        [_RUN_MARK["runa"]] * 3 + [_RUN_MARK["runb"]] * 2
+    )
+
+
+def test_umi_extract_refuses_two_runs_whose_totals_agree_and_whose_files_do_not(
+    tmp_path: Path,
+) -> None:
+    """ADR-0036's worked example, and the ONLY shape that tells the two implementations apart.
+
+    Over a well-formed cell, concatenating the two roles and zipping the streams gives exactly the
+    pairing that pairing per run gives — every run holds as many mates as tagged reads, so the two
+    agree file for file. They part company here:
+
+        R1 = [runa (5 records), runb (2 records)]
+        R2 = [runa (2 records), runb (5 records)]
+
+    The totals agree at 7, so `zip_longest` yields no `None` and **no refusal fires**; every record
+    past the second pairs run a's cDNA against run b's molecules. Exit 0, plausible size, wrong cell.
+    Placing the files first turns it into an unequal PAIR, which the extractor already refuses — and
+    the message it refuses with is the one it has always had.
+    """
+    _run_fastqs(tmp_path, "runa", tagged=5, mate=2)
+    _run_fastqs(tmp_path, "runb", tagged=2, mate=5)
+    table = _units_table(tmp_path, [
+        ("runa", "", "R1", str(tmp_path / "runa_R1.fastq.gz")),
+        ("runa", "", "R2", str(tmp_path / "runa_R2.fastq.gz")),
+        ("runb", "", "R1", str(tmp_path / "runb_R1.fastq.gz")),
+        ("runb", "", "R2", str(tmp_path / "runb_R2.fastq.gz")),
+    ])  # fmt: skip
+
+    result = _extract(["--units", str(table), "--out", str(tmp_path / "cell_42.bam")])
+
+    assert result.exit_code == 3
+    assert "runa_R2.fastq.gz" in result.stderr
+    assert "paired by position" in result.stderr  # the existing refusal, applied within one pair
+
+
+def test_umi_extract_refuses_a_run_whose_mate_the_table_does_not_carry(tmp_path: Path) -> None:
+    """A tagged row with no mate row at its place: exit 3, naming the file, and no BAM behind it.
+
+    The refusal fires while resolving the inputs, before the writer opens — so the failure leaves
+    nothing for a downstream rule to consume. Pairing it with the OTHER run's mate instead is the
+    silent alternative, and it is only ever caught by a record-count disagreement that a plate is
+    under no obligation to produce.
+    """
+    _run_fastqs(tmp_path, "runa", tagged=3, mate=3)
+    _run_fastqs(tmp_path, "runb", tagged=2, mate=None)
+    table = _units_table(tmp_path, [
+        ("runa", "", "R1", str(tmp_path / "runa_R1.fastq.gz")),
+        ("runa", "", "R2", str(tmp_path / "runa_R2.fastq.gz")),
+        ("runb", "", "R1", str(tmp_path / "runb_R1.fastq.gz")),
+    ])  # fmt: skip
+    out = tmp_path / "cell_42.bam"
+
+    result = _extract(["--units", str(table), "--out", str(out)])
+
+    assert result.exit_code == 3
+    assert "runb_R1.fastq.gz" in result.stderr and "'runb'" in result.stderr
+    assert not out.exists(), "a refused extraction left a uBAM for the aligner to read"
+
+
+def test_umi_extract_runs_a_single_end_cell_off_a_table_that_carries_no_mate_row(
+    tmp_path: Path,
+) -> None:
+    """No row carrying a second role IS the statement (ADR-0035): one unpaired record per fragment."""
+    _run_fastqs(tmp_path, "runa", tagged=3, mate=None)
+    table = _units_table(tmp_path, [("runa", "", "R1", str(tmp_path / "runa_R1.fastq.gz"))])
+    out = tmp_path / "cell_42.bam"
+
+    result = _extract(["--units", str(table), "--out", str(out)])
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)["fragments"] == 3
+
+    import pysam
+
+    with pysam.AlignmentFile(str(out), "rb", check_sq=False) as ubam:
+        records = list(ubam.fetch(until_eof=True))
+    assert len(records) == 3 and not any(r.is_paired for r in records)
+
+
+def test_umi_extract_takes_the_table_or_the_paths_and_refuses_both_and_neither(
+    tmp_path: Path,
+) -> None:
+    """The two forms are mutually exclusive, and each refusal is a Blocker rather than a usage error.
+
+    Both is a caller holding two different beliefs about which files this cell is — the table states
+    where each was sequenced and the paths state only an order, so there is nothing to reconcile.
+    Neither is a caller who has said nothing. The repeated direct form still works, which is what
+    keeps a hand invocation and a unit test possible without a table.
+    """
+    r1, r2 = _plate_fastqs(tmp_path)
+    table = _units_table(tmp_path, [("runa", "", "R1", str(r1)), ("runa", "", "R2", str(r2))])
+
+    both = _extract(["--units", str(table), "--r1", str(r1), "--out", str(tmp_path / "b.bam")])
+    assert both.exit_code == 3
+    assert "both name this cell's files" in both.stderr
+
+    neither = _extract(["--out", str(tmp_path / "n.bam")])
+    assert neither.exit_code == 3
+    assert "no input files" in neither.stderr
+
+    # The direct form, repeated, and it pairs in the order given rather than refusing an arity.
+    direct = _extract(["--r1", str(r1), "--r1", str(r1), "--r2", str(r2), "--r2", str(r2),
+                       "--out", str(tmp_path / "d.bam")])  # fmt: skip
+    assert direct.exit_code == 0, direct.stdout + direct.stderr
+    assert json.loads(direct.stdout)["fragments"] == 6  # both files, read in sequence
+
+    lopsided = _extract(["--r1", str(r1), "--r1", str(r1), "--r2", str(r2),
+                         "--out", str(tmp_path / "l.bam")])  # fmt: skip
+    assert lopsided.exit_code == 3
+    assert "2 --r1 files against 1 --r2 files" in lopsided.stderr
 
 
 # ---------- records-only harvest, and what a collapsed member leaves on disk ----------

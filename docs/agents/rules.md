@@ -65,10 +65,17 @@ Everything that reads a FASTQ iterates it — `FastqHead` (probe's signals) and 
 fingerprint's verbatim records) differ only in what they retain. Writing a second budget loop is the
 bug this rule is really guarding.
 
+**A read the caller stopped carries no byte count, and says so** — a property of the one loop, not of
+whichever caller trips it. `BoundedReader.abandoned` (`CONTEXT.md`: **Abandoned read**), never
+`exhausted`, which names the opposite case: `compressed_bytes` is *absent* rather than zero, and is
+not a measurement while that flag is true.
+
 **Enforced by.** The `PreToolUse` hook (`hooks/guards.py`, size-blind);
 `test_the_read_budget_bounds_bytes_read_however_large_the_file`,
-`test_the_byte_budget_binds_when_the_reads_are_long`, `test_the_reader_stops_at_the_read_budget` and
-`test_the_reader_stops_at_the_byte_budget` (`tests/test_probe.py`);
+`test_the_byte_budget_binds_when_the_reads_are_long`, `test_the_reader_stops_at_the_read_budget`,
+`test_the_reader_stops_at_the_byte_budget`,
+`test_an_abandoned_read_says_so_instead_of_reaching_into_a_closed_handle` and
+`test_a_read_that_finished_is_not_abandoned_however_it_ended` (`tests/test_probe.py`);
 `test_both_accumulations_consume_the_same_records` (`tests/test_fingerprint.py`), which is the one
 that would catch a second loop.
 

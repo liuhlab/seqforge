@@ -19,9 +19,10 @@
 #
 # The mate is an ADDITION and never half of the operation (ADR-0035): the tag lives entirely within
 # the tagged read, and the mate only inherits the resulting `UB` onto a record emitted alongside.
-# Take it away and nothing about the extraction changes — only the uBAM's record count. So the
-# layout's ONE fact, whether it carries a mate, is where both branches below come from and the only
-# place it is stated: the rendered `--r2`, and the aligner's `SAM SE` / `SAM PE`.
+# Take it away and nothing about the extraction changes — only the uBAM's record count. The layout's
+# ONE fact, whether it carries a mate, is stated in `units.tsv` and read from there by both sides:
+# the extractor asks the table (ADR-0036), and the aligner's `SAM SE` / `SAM PE` is derived from the
+# same per-sample mate list this module stages for it.
 #
 # Every knob the extraction needs arrives as ONE derived value, `config["umi"]["read_structure"]`,
 # computed by compose from the element coordinates. This module's parse namespace is EMPTY: there is
@@ -30,27 +31,21 @@
 # The genome index resolves at RUN TIME from a `liulab-genome` assembly id — no genome path is ever
 # baked into a config or a manifest.
 
-import csv
-
 # seqforge's own helpers, imported rather than restated -- the same contract the other three modules
 # state at greater length. `ordered_fastqs` decides the order every mate of one sample is handed over
-# in, and all four modules must agree on it exactly. `memory` is this module's map from the recipe's
-# ONE memory figure to its TWO rule classes: a Snakefile is not importable, so arithmetic written
-# here could never be unit-tested, only run. `PLATE_H5AD` is the name the module registry DECLARES as
-# this pipeline's dataset-scoped deliverable, so the declaration and the rule that produces it cannot
-# come apart.
+# in, and all four modules must agree on it exactly; `load_units` is the one reader of the table, and
+# `rule umi_extract`'s verb opens the same file through the same function (ADR-0036). `memory` is
+# this module's map from the recipe's ONE memory figure to its TWO rule classes: a Snakefile is not
+# importable, so arithmetic written here could never be unit-tested, only run. `PLATE_H5AD` is the
+# name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
+# declaration and the rule that produces it cannot come apart.
 from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM
 from seqforge.workflows.memory import PLATE_RETRIES, bam_sort_ram, fan_in_mem_mb, per_cell_mem_mb
-from seqforge.workflows.units import ordered_fastqs
+from seqforge.workflows.units import load_units, ordered_fastqs
 
-
-def _load_units(path):
-    with open(path, newline="") as fh:
-        return list(csv.DictReader(fh, delimiter="\t"))
-
-
-UNITS = _load_units(config["units_tsv"])
+UNITS_TSV = config["units_tsv"]
+UNITS = load_units(UNITS_TSV)
 # One cell is one sample here, so this is the plate. `config["samples"]` is the contracted list and
 # this is what units.tsv actually carries; they agree by construction because compose writes both.
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
@@ -74,9 +69,11 @@ LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
 def fastqs(sample, role):
     # `ordered_fastqs` owns the order and the argument for it; the other three mapping modules read
     # the same one. Here a cell is usually one run, but a cell topped up across two runs is exactly
-    # the 10.5% of plate deposits that are not strictly 1:1 -- and the extractor pairs its two
-    # FASTQs POSITIONALLY, so a mate ordered differently from its partner would pair one run's reads
-    # with another's, silently, at equal record counts.
+    # the 10.5% of plate deposits that are not strictly 1:1 -- and those files are STAGED here and
+    # resolved again by the extractor off this same table, which is one derivation used twice rather
+    # than two (ADR-0036): the rule declares what the job depends on, the verb reads which file is
+    # which. What is NOT done is rendering this list into the command line, where the pairing would
+    # be two sorts assumed parallel and the arity would be unguarded by the wiring gate.
     return ordered_fastqs(UNITS, sample, role)
 
 
@@ -244,12 +241,19 @@ rule umi_extract:
     verb refuses if the two disagree, which turns a rule wired to the wrong mate into exit 3 instead
     of a uBAM with no UMI anywhere.
 
-    **`--r2` is RENDERED, not written**, because a `shell:` block is a static string and this is the
-    only place a branch can reach it. The verb's mate is nullable, so a layout without one passes no
-    such option at all rather than the option with nothing after it -- and the argument is built
-    from `input.mate`, so the list snakemake staged is the list the command names.
+    **NO FILE IS NAMED ON THE COMMAND LINE** (ADR-0036). The table and the wildcard are rendered;
+    the verb resolves this cell's tagged files and their mates from `units.tsv` through the same
+    `ordered_fastqs` the inputs below are declared from. A cell topped up across two runs therefore
+    runs, where a rendered `--r1 {input.tagged}` expanded a list after a one-value option and died
+    with a usage error at job execution -- past the wiring gate, which formats a `shell:` block
+    while planning and never runs one, so no arity or quoting fact in a rendered command is guarded.
+
+    The FASTQs are still declared inputs: what snakemake stages and what the job depends on is this
+    rule's to state, and the mate list is also what `read_files_type` reads. `units.tsv` joins them,
+    because the command now opens it.
     """
     input:
+        units=UNITS_TSV,
         tagged=lambda wc: fastqs(wc.sample, tagged_role()),
         mate=lambda wc: mate_fastqs(wc.sample),
     output:
@@ -262,13 +266,11 @@ rule umi_extract:
         # and width, the motif that closes the tag, and where cDNA begins. Nothing declares it.
         structure=UMI["read_structure"],
         read_id=lambda wc: tagged_role(),
-        # The mate's whole contribution to the command line: `--r2 <path>`, or nothing whatever.
-        mate_arg=lambda wc, input: f"--r2 {input.mate}" if input.mate else "",
     shell:
         r"""
-        seqforge io umi-extract --r1 {input.tagged} {params.mate_arg} \
+        seqforge io umi-extract --units {input.units} --sample {wildcards.sample} \
              --geometry {params.structure} --read-id {params.read_id} \
-             --sample {wildcards.sample} --out {output.ubam}
+             --out {output.ubam}
         """
 
 

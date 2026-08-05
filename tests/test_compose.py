@@ -1234,13 +1234,17 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
     extractions = _rendered_shell(composed_plate.plan_text)["umi_extract"]
     assert len(extractions) == PLATE_CELL_COUNT
     for cell, command in extractions.items():
-        argv = re.search(r"--r1 (\S+) --r2 (\S+)", command)
-        assert argv, f"the extractor's rendered command names no mates:\n{command}"
-        assert argv.group(1) == units[cell, roles["umi_cdna"]]
-        assert argv.group(2) == units[cell, roles["cdna"]]
+        # The table and the wildcard, and NO file (ADR-0036): an arity, a quoting or an ordering
+        # fact in a rendered command is one this gate cannot see, because `-p` formats a `shell:`
+        # block while planning and never runs one. What is left here is one argument per cell.
+        assert re.search(rf"--units \S*units\.tsv --sample {re.escape(cell)}\b", command), command
+        assert not re.search(r"--r1\b|--r2\b", command), (
+            f"the extractor is handed a file list the gate cannot check the arity of:\n{command}"
+        )
         assert f"--read-id {geometry.read_id}" in command
-        # ...and the plain mate is nowhere near `--r1`, which is the swap that exits 0.
-        assert argv.group(1) != units[cell, roles["cdna"]]
+        # The role the verb will resolve through that table is still the TAGGED one, and the file it
+        # lands on is not the plain mate — the swap that tags nothing and exits 0.
+        assert units[cell, roles["umi_cdna"]] != units[cell, roles["cdna"]]
 
 
 @pytest.mark.xdist_group("composed-plate")
@@ -1504,6 +1508,9 @@ def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_c
 
     work = tmp_path / "run"
     work.mkdir()
+    # The rendered extraction opens the units table, so the run directory carries it — which is what
+    # a real submission has and is the point of ADR-0036: the command names one file, not a list.
+    shutil.copy2(composed_plate.pipeline_dir / "units.tsv", work / "units.tsv")
     contig = _e2e_contig()
     (work / "genome.fa").write_text(f">chr1\n{contig}\n")
     index = Path(str(composed_plate.config["outdir"])) / "index"
@@ -1784,6 +1791,7 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
 
     work = tmp_path / "run"
     work.mkdir()
+    shutil.copy2(composed_plate_se.pipeline_dir / "units.tsv", work / "units.tsv")
     contig = _e2e_contig()
     (work / "genome.fa").write_text(f">chr1\n{contig}\n")
     index = Path(str(composed_plate_se.config["outdir"])) / "index"
@@ -1815,8 +1823,9 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
         _e2e_shell(rendered["load_genome"][""], work)
         for cell in cells:
             extraction = rendered["umi_extract"][cell]
-            assert re.search(r"--r1 (\S+)", extraction).group(1) == units[cell, roles["umi_cdna"]]  # type: ignore[union-attr]
-            assert "--r2" not in extraction, f"the mate-less rule renders a mate:\n{extraction}"
+            assert "--r1" not in extraction and "--r2" not in extraction, (
+                f"the rule renders a file list rather than the table (ADR-0036):\n{extraction}"
+            )
             _e2e_shell(extraction, work)
             # The uBAM is where the derived geometry becomes bases, and here it is also where the
             # SHAPE is stated: one unpaired record per fragment, carrying the UMI injected into it

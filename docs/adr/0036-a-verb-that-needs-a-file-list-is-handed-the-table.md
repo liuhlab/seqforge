@@ -150,12 +150,31 @@ which file is which, and any second spelling of that — a filename parse, a lis
 parallel to another sort — is the copy that goes stale silently, at equal record counts, in a matrix
 nobody can tell is wrong.
 
-**Enforced by.** **None exists.** The gate arrives with the implementation and is owed by it: a test
-at the **CLI boundary** that invokes the verb over a units table naming two files for one sample and
-asserts the uBAM carries every fragment from both, plus one asserting that a mate row missing for one
-run is refused by name rather than mispaired. Both must exercise the verb's own argument parsing —
-the layer `wiring_gate` structurally cannot reach, and the layer that broke. Until they exist nothing
-notices a regression here: `test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts`
+**Enforced by.** At the **CLI boundary** — the layer `wiring_gate` structurally cannot reach, and the
+layer that broke — in `tests/test_cli.py`:
+`test_umi_extract_reads_a_cell_spanning_two_runs_off_the_table_and_pairs_within_each_run` (two tagged
+files for one cell; every fragment of both reaches the uBAM, each beside its own run's mate, asserted
+on bases rather than on counts),
+`test_umi_extract_refuses_two_runs_whose_totals_agree_and_whose_files_do_not` (the worked example
+above, and the only shape that tells a per-run pairing apart from a concatenated one — over a
+well-formed cell the two agree file for file),
+`test_umi_extract_refuses_a_run_whose_mate_the_table_does_not_carry` (refused by name, with no BAM
+left behind), `test_umi_extract_runs_a_single_end_cell_off_a_table_that_carries_no_mate_row`, and
+`test_umi_extract_takes_the_table_or_the_paths_and_refuses_both_and_neither`. The placement rules
+themselves are held one level down, on the table:
+`test_a_cell_across_two_runs_pairs_by_where_each_file_was_sequenced`,
+`test_a_lane_reorders_the_pairing_the_way_it_reorders_the_order`,
+`test_a_run_whose_mate_was_never_deposited_is_refused_by_name` and
+`test_a_sample_with_no_second_role_has_no_mate_and_one_with_two_is_refused`
+(`tests/test_workflows.py`).
+
+**And the rendered command is EXECUTED rather than merely formatted**, by
+`test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_two_runs`
+(`tests/test_workflows.py`), which plans a two-run cell and runs the module's own `shell:` block. It
+was confirmed to go red against the rendering it replaces, with the filed failure verbatim. It needs
+no aligner — the extractor shells out to nothing at all — which is why this gap is closed here
+rather than left to the external suite:
+`test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts`
 (`tests/test_compose.py`) drives the composed pipeline's real rendered shell blocks, but over a 1:1
 plate, and a 1:1 plate is exactly the deposit shape that never had this defect.
 
