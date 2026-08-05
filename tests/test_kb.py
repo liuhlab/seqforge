@@ -630,15 +630,49 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
     blocked. It would not have been.
 
     Computed, not asserted-to: generate each spec's own synthetic reads, then ask every OTHER spec
-    whether it would claim them using rungs 0-2 alone (the onlist is withheld via an empty registry,
-    so rung-3 evidence cannot rescue the answer). If A accepts B's data, A must say so.
+    whether it could **outrank** their owner on them using rungs 0-2 alone (the onlist is withheld
+    from BOTH sides via an empty registry, so rung-3 evidence cannot rescue either answer). If A
+    could come out on top of B on B's own data, A must say so.
 
-    It found one on its first run. `bulk-rnaseq-pe` — the generic paired-end fallback — accepts
+    It found one on its first run. `bulk-rnaseq-pe` — the generic paired-end fallback — takes
     SPLiT-seq's cdna+bc pair on geometry alone, and declared nothing. The system already knew: a test
     comment called bulk "the generic bulk fallback that merely fails to be forbidden (rung 2)". The
     KB is where that has to be written down, because the KB is what the resolver reads.
+
+    **The predicate is an ORDERING one, and used to be a validity one** (#275, ADR-0029). Validity
+    tracked danger only while every spec consumed every file; a spec that consumes fewer is valid
+    against nearly every leaf while scoring far below all of them, because the leftover-file penalty
+    is `λ/|R|` per orphan and so bites harder the fewer roles a set has. Under validity such a spec
+    would have to declare an edge to almost the whole KB — boilerplate that leaves this guard unable
+    to discriminate. The message this guard has always failed with names the danger as "the resolver
+    would pick one and never ask", which is a claim about ORDER; the question it asks is now that one.
+
+    **The gate on that change: bulk's five declared edges re-derived under it**, since a stronger
+    guard that silently drops a true edge has traded noise for blindness. Every one survives, and
+    with room to spare — `bulk` on the other spec's own reads, both scored with the onlist withheld:
+
+    | edge | bulk | incumbent | margin |
+    |---|---|---|---|
+    | `splitseq`                    | 1.0000 | 0.5500 | +0.4500 |
+    | `bd-rhapsody-wta`             | 0.9875 | 0.5500 | +0.4375 |
+    | `bd-rhapsody-wta-enhanced-v1` | 0.9975 | 0.5500 | +0.4475 |
+    | `bd-rhapsody-wta-enhanced-v2` | 0.9975 | 0.5500 | +0.4475 |
+    | `10x-multiome-atac`           | 0.8800 | 0.7424 | +0.1376 |
+
+    Re-derive with `resolve.confuse.rung02_margin(specs['bulk-rnaseq-pe'], specs[b], probes[b])`.
+    Across the whole shipped KB the two predicates in fact flag the identical pair set: every pair
+    that accepts at rungs 0-2 also outranks, because the rest are exact ties (margin 0.0000, the 10x
+    28 bp cohort and the two Enhanced beads) and a tie is not a separation. So no edge is gained or
+    lost here — the change is about the KB the next entry will make, not the one in the tree.
+
+    **`geometry_could_accept` stays a sound skip**, unchanged, and the argument is a containment one
+    rather than a new measurement: outranking REQUIRES a valid assignment, so the new predicate
+    implies the old one, and every necessary condition of the old is a necessary condition of the
+    new. `length_feasible` is proven necessary for validity (geometry.py), hence necessary here; a
+    geometry-NO pair cannot outrank. `test_geometry_could_accept_is_necessary_for_rung02_acceptance`
+    holds the premise over every shipped pair.
     """
-    from seqforge.resolve.confuse import accepts_at_rungs_0_2, is_tree_kin
+    from seqforge.resolve.confuse import could_outrank_at_rungs_0_2, is_tree_kin, rung02_margin
     from seqforge.resolve.geometry import geometry_could_accept
 
     specs = kb.load_all_specs()
@@ -657,10 +691,12 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
                 continue  # siblings / parent-child: the tree DECLARES this confusability
             if not geometry_could_accept(specs[a], kb_probes[b]):
                 continue  # proven necessary condition — a length-infeasible pair cannot be confusable
-            if accepts_at_rungs_0_2(specs[a], kb_probes[b]):
+            if could_outrank_at_rungs_0_2(specs[a], specs[b], kb_probes[b]):
+                margin = rung02_margin(specs[a], specs[b], kb_probes[b])
                 undeclared.append(
-                    f"{a!r} accepts {b!r}'s reads at rungs 0-2 but does not list it in "
-                    f"confusable_with (nor share a parent) — the resolver would pick one and never ask"
+                    f"{a!r} could outrank {b!r} on {b!r}'s own reads at rungs 0-2 "
+                    f"(margin {margin:+.4f}) but does not list it in confusable_with (nor share a "
+                    f"parent) — the resolver would pick one and never ask"
                 )
     assert not undeclared, "under-declaration:\n" + "\n".join(undeclared)
 
@@ -687,18 +723,82 @@ def test_a_confusable_pair_declares_how_it_is_decided(tmp_path: Path) -> None:
 def test_the_separability_guard_can_actually_catch_a_collision(kb_probes: KbProbes) -> None:
     """Prove the guard fires: a spec IS confusable with itself, by construction.
 
-    A tautology, and that is the point — if `accepts_at_rungs_0_2` cannot recognise a spec's own
-    synthetic reads, it recognises nothing and every "declared OK" above is vacuous.
+    A tautology, and that is the point — if the predicate cannot recognise a spec's own synthetic
+    reads, it recognises nothing and every "declared OK" above is vacuous.
+
+    Both predicates are pinned here, because the guard's question moved from one to the other (#275)
+    and `rung02_separable` still asks the older one. A spec ties ITSELF exactly — margin 0.0000 — so
+    it could outrank itself, and that is the sign convention as much as the tautology: a tie is not a
+    separation. A predicate reading `>` rather than `>=` would exempt the exact tie, which is the one
+    shape where nothing in the bytes orders the pair at all and `escalate` falls through to its
+    alphabetical determinism tiebreak to decide which of the two leads the candidate list.
     """
-    from seqforge.resolve.confuse import accepts_at_rungs_0_2, rung02_separable
+    from seqforge.resolve.confuse import (
+        accepts_at_rungs_0_2,
+        could_outrank_at_rungs_0_2,
+        rung02_margin,
+        rung02_separable,
+    )
 
     spec = kb.load_spec("10x-3p-gex-v3")
+    splitseq = kb.load_spec("splitseq")
     own = kb_probes["10x-3p-gex-v3"]
     assert accepts_at_rungs_0_2(spec, own)
     assert not rung02_separable(spec, own, spec, own)  # nothing is separable from itself
+    assert could_outrank_at_rungs_0_2(spec, spec, own)
+    assert rung02_margin(spec, spec, own) == 0.0
 
     # ...and it discriminates: splitseq's 94 bp barcode read is not 10x's 28 bp geometry.
     assert not accepts_at_rungs_0_2(spec, kb_probes["splitseq"])
+    # A spec that cannot score the data at all ranks NOWHERE on it — `None`, not a negative margin.
+    # That is the conjunct which keeps `geometry_could_accept` a sound skip for the new predicate.
+    assert rung02_margin(spec, splitseq, kb_probes["splitseq"]) is None
+    assert not could_outrank_at_rungs_0_2(spec, splitseq, kb_probes["splitseq"])
+
+
+@pytest.mark.xdist_group("kb-probes")
+def test_bulks_five_declared_edges_still_derive_under_the_ordering_predicate(
+    kb_probes: KbProbes,
+) -> None:
+    """The gate on #275: a stronger guard that silently drops a TRUE edge has traded noise for
+    blindness, and that failure is invisible unless it is checked for directly.
+
+    The under-declaration sweep cannot check it — it `continue`s on a declared pair, so every edge in
+    the KB is a claim the sweep takes on trust. `bulk-rnaseq-pe` is where the trust is expensive: it
+    is the generic paired-end fallback, its five edges are the only thing standing between a
+    single-cell library and a bulk gene-count matrix at exit 0, and each was derived under the OLD
+    (validity) predicate. So they are re-derived here, under the new one, as an executable gate
+    rather than a sentence in a pull request.
+
+    Each edge is required to clear the resolver's tie band, not merely to reach it: the note on every
+    one of them says the ONLIST decides (rung 3), which is a claim that at rungs 0-2 bulk is not
+    merely level with the incumbent but ahead of it. The measured margins run +0.1376 (Multiome ATAC,
+    the closest — two genomic mates ARE a bulk cDNA pair to this fallback) to +0.4500 (SPLiT-seq).
+
+    An edge that stops deriving is a discussion, not a deletion: the honest repairs are to tighten
+    the fallback's gates or to write down why the pair separates now, and both are changes somebody
+    has to argue for. Deleting the edge to make this green removes the only declaration that stops a
+    silent bulk answer for that chemistry.
+    """
+    from seqforge.resolve.confuse import could_outrank_at_rungs_0_2, rung02_margin
+    from seqforge.resolve.escalate import _THETA
+
+    specs = kb.load_all_specs()
+    bulk = specs["bulk-rnaseq-pe"]
+    edges = sorted(c.id for c in bulk.confusable_with)
+    assert len(edges) == 5, (
+        f"bulk-rnaseq-pe declares {len(edges)} confusable edges, not the five this gate re-derives: "
+        f"{edges}. A new one needs a line here; a missing one needs an argument, not a diff."
+    )
+
+    for other in edges:
+        margin = rung02_margin(bulk, specs[other], kb_probes[other])
+        assert margin is not None and margin > _THETA, (
+            f"bulk-rnaseq-pe -> {other!r} no longer derives: margin {margin} on {other!r}'s own "
+            f"reads at rungs 0-2. The edge says the ONLIST decides this pair, which presumes the "
+            f"cheap rungs do not. Do not delete the edge to make this pass."
+        )
+        assert could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other])
 
 
 @pytest.mark.xdist_group("kb-probes")
