@@ -3071,7 +3071,9 @@ def test_a_tagged_read_loses_exactly_the_structural_prefix_and_its_qualities_mov
     assert (stats.pairs, stats.tagged, stats.untagged) == (1, 1, 0)
     assert stats.offsets == {13: 1}
     assert read1.query_sequence == _CDNA
-    assert pysam.qualities_to_qualitystring(read1.query_qualities) == _quals(seq)[13 + 22 :]
+    qualities = read1.query_qualities
+    assert qualities is not None, "a record whose sequence survived the trim without its qualities"
+    assert pysam.qualities_to_qualitystring(qualities) == _quals(seq)[13 + 22 :]
     # The mate is untouched: only the tagged read carries a structural prefix.
     assert read2.query_sequence == _CDNA
     # An unaligned pair, flagged the way `samtools import` flags one.

@@ -241,14 +241,6 @@ ignore_missing_imports = true
 module = ["pooch", "pooch.*"]
 ignore_missing_imports = true
 
-# pysam's wheel ships no `py.typed` (its conda build does, so this depends on which one resolved --
-# pin the behaviour rather than the packaging). It is htslib behind a C extension, reached here to
-# write one unaligned BAM and read it back; what protects that deliverable is the round trip through
-# a real BAM in `test_workflows.py`, not the type of `AlignedSegment.set_tag`.
-[[tool.mypy.overrides]]
-module = ["pysam", "pysam.*"]
-ignore_missing_imports = true
-
 # Both PDF engines are incompletely typed, and we call each through one thin guarded function in
 # `harvest/normalize.py`.
 [[tool.mypy.overrides]]
