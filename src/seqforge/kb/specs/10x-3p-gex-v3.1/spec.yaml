@@ -58,7 +58,6 @@ onlists:
 
 signature:
   requires:
-    - {test: read_count, roles: 2}
     # length 28 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced
     # R1 (>=100 bp) while a 60-94 bp cDNA/split-pool read stays exact-checked and rejected (see v3).
     - {test: segment_length, read: R1, length: 28, tolerance: 0, over_length_min: 100}

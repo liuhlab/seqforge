@@ -52,8 +52,12 @@ here that the model needs in order to name the node at all.
 - **The `signature` tests are a closed set, identical to the scorer's evaluators**
   ([`resolve.md`](resolve.md)). `requires` are hard AND-gates and may not use a distinct ratio, which
   is depth-dependent; `supports` are additive positive evidence, and this is where an onlist test and
-  a distinct ratio belong; `excludes` are anti-gates, and any pass disqualifies. `read_count` counts
-  biological and barcode **roles**, not raw files.
+  a distinct ratio belong; `excludes` are anti-gates, and any pass disqualifies. The set is closed at
+  both ends: `evaluate` takes the union and ends in `assert_never`, so adding a word to the DSL is a
+  type error until the scorer is given a meaning for it, and a `requires` list may legally be **empty**
+  (`bulk-rnaseq`, `10x-multiome-atac`). How many reads a spec has is declared by `reads`, never
+  asserted by a test — `read_count` did that and abstained on every input, so it was deleted rather
+  than fixed ([ADR-0029](../adr/0029-a-spec-declares-read-sets-not-a-fixed-read-list.md)).
 - **`Backend.params` is the chemistry-defining minimum only** — how to *parse* reads. A knob whose
   value is the same for every dataset is the module's, not the KB's and not the recipe's (below). The
   one interpolation token allowed anywhere in it is `{onlist:<alias>}`, and it is validated: any other
@@ -153,8 +157,8 @@ both halves — the `ask`, and `10x-5p-gex-v2-metadata-decided` proving the decl
 
 **`10x-3p-gex-v3`** is the fixed-offset case: R1 is 28 bp of 16 bp CB plus 12 bp UMI
 (`soloType CB_UMI_Simple`), R2 is open-ended cDNA. Its `signature` shows the rung structure clearly —
-`requires` are structural gates friendly to the cheap rungs (read count, 28 bp segment length, two
-random segments; **no** onlist and **no** distinct ratio), `supports` add the onlist hit rate that
+`requires` are structural gates friendly to the cheap rungs (28 bp segment length, two random
+segments; **no** onlist and **no** distinct ratio), `supports` add the onlist hit rate that
 costs a rung-3 lookup plus depth-dependent distinct-ratio priors, and `excludes` anti-gate the
 Multiome whitelist.
 

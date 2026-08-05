@@ -39,7 +39,6 @@ onlists:
 
 signature:
   requires:                              # length separates v2 (26) from v3 (28) for canonical reads
-    - {test: read_count, roles: 2}
     # length 26 exact for canonical reads; over_length_min 100 admits a full-length over-sequenced R1
     # without loosening 26-vs-28 (a 28 bp read is < 100 -> not over-length -> still FAILs v2's exact
     # 26), and a 60-94 bp cDNA/split-pool read stays exact-checked and rejected.
