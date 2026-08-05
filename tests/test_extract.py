@@ -2242,7 +2242,9 @@ def test_records_that_differ_only_in_an_accession_are_one_ask(tmp_path: Path) ->
 
     Everything stays visible: the records are still READ (`n_records_read`), the fold is counted
     (`n_records_collapsed`), and the exemplar's `members` names every record it stands for — because
-    "one document, 4 members" is a different thing for a human to audit than 4 readings.
+    "one document, 4 members" is a different thing for a human to audit than 4 readings. Here all
+    three others are *withheld*, so `members` really is the whole group and `reduced_members` is
+    empty; the test below is the case where that stops being true.
     """
     from seqforge.harvest import plan_extraction
 
@@ -2253,6 +2255,7 @@ def test_records_that_differ_only_in_an_accession_are_one_ask(tmp_path: Path) ->
     exemplar = plan.documents[0]
     assert plan.stands_for(exemplar) == ("SAMN1", "SAMN22", "SAMN333", "SAMN4444")
     assert plan.report().documents[0].members == list(plan.stands_for(exemplar))
+    assert plan.report().documents[0].reduced_members == [], "nothing here was sent its difference"
     assert [m.value for m in exemplar.variants] == ["SAMN1"], "only the accession varies"
 
 
@@ -2283,6 +2286,47 @@ def test_one_record_that_differs_makes_every_record_asked_with_no_special_case(
     sent = {d.subject: d.text for d in one_differs.documents}
     assert "day7" in sent["SAMN4444"] and "day3" in sent["SAMN22"]
     assert one_differs.n_chars < 4 * len(sent["SAMN1"]), "and the shared prose is read once"
+
+
+def test_a_reduced_member_is_not_reported_as_a_record_this_document_was_the_only_reading_of() -> (
+    None
+):
+    """The two outcomes are two facts, and one member list said the wrong one about both.
+
+    A reduced member IS sent — its distinctive bytes, as a document of its own — so listing it beside
+    the withheld ones under a single `members` says the opposite of what happened. On GSE207085 that
+    reads as one exemplar standing for 1440 records while 4317 of the 4320 were in fact asked their
+    difference, and a reader concludes 1439 went unread. The guarantee this whole mechanism is named
+    for is that none of them did.
+
+    So the arithmetic is the check, not the prose: **every record a plan reads appears in exactly one
+    document's `members`**. Summing that column against `n_records_read` is how "no record went
+    unread" becomes something a reader verifies rather than something we assert.
+    """
+    from seqforge.harvest import plan_extraction
+
+    plan = plan_extraction(records=_twins(["whole worm, day3"] * 3 + ["whole worm, day7"]))
+    report = plan.report()
+    exemplar, *reduced = report.documents
+
+    assert exemplar.members == ["SAMN1"], "it is the only reading of its own record and no other"
+    assert exemplar.reduced_members == ["SAMN22", "SAMN333", "SAMN4444"]
+    # ...and each of those is right here, in the same report, with the bytes it cost.
+    assert [d.members for d in reduced] == [["SAMN22"], ["SAMN333"], ["SAMN4444"]]
+    assert all(d.n_chars > 0 and d.reduced_members == [] for d in reduced)
+
+    assert sum(len(d.members) for d in report.documents) == report.n_records_read == 4
+
+    # One group holding one of each, which is the case a single list cannot describe at all. SAMN22's
+    # alias is nothing but the accession we ourselves wrote, so it is withheld — read only through the
+    # exemplar. SAMN333 says `day7`, so its difference is sent and it is read in a document of its own.
+    mixed = plan_extraction(
+        records=_twins(["day3", "SAMN22", "day7"], label="sample_alias")
+    ).report()
+
+    assert mixed.documents[0].members == ["SAMN1", "SAMN22"], "withheld, so read only here"
+    assert mixed.documents[0].reduced_members == ["SAMN333"], "sent, so read over there"
+    assert sum(len(d.members) for d in mixed.documents) == mixed.n_records_read == 3
 
 
 def test_a_claim_fans_out_only_where_its_quote_touches_no_variant() -> None:
@@ -2325,7 +2369,7 @@ def test_a_sample_scoped_claim_materializes_one_assertion_per_member() -> None:
     assert {a.span_verified for a in fan.assertions} == {True}
     assert {a.entailment_ok for a in fan.assertions} == {True}
 
-    withheld = {d.doc_sha256: d for d in plan.collapsed[plan.documents[0].doc_sha256]}
+    withheld = {d.doc_sha256: d for d in plan.collapsed[plan.documents[0].doc_sha256].members}
     for a in fan.assertions[1:]:
         text = withheld[a.span.doc_sha256].text
         assert text[a.span.char_start : a.span.char_end] == "day3"

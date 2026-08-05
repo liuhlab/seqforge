@@ -1277,7 +1277,7 @@ def test_a_fanned_claim_resolves_as_asserted_against_the_sample_it_names() -> No
     # ...and said directly, so a change to `_basis_for` breaks this rather than quietly weakening it.
     from seqforge.resolve.records import _Sample
 
-    withheld = plan.collapsed[plan.documents[0].doc_sha256][0]
+    withheld = plan.collapsed[plan.documents[0].doc_sha256].withheld[0]
     placed = DocumentSubject(
         doc_sha256=withheld.doc_sha256, scope=withheld.scope, subject=withheld.subject
     )

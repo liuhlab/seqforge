@@ -49,7 +49,7 @@ line, not a docstring edit."*
 | | what it holds |
 | --- | --- |
 | `plan.documents` | the send list — the exemplar (marked), and every other member reduced to its distinctive bytes |
-| `plan.collapsed` | exemplar `doc_sha256` -> every other member's FULL rendering, which is what a fanned claim cites |
+| `plan.collapsed` | exemplar `doc_sha256` -> a `CollapsedGroup`: every other member's FULL rendering, which is what a fanned claim cites, split into the `reduced` and the `withheld` |
 | `plan.all_documents` | both, in plan order — **what reaches disk** |
 
 So a reduced member owns two documents: the short one that was sent, and its full rendering, which is
@@ -120,11 +120,15 @@ records that never carried them in the other.
 `test_a_variant_document_keeps_the_accession_and_drops_the_labels`,
 `test_adjacent_variants_keep_the_separator_the_record_wrote_between_them` and
 `test_a_variant_document_is_regenerable_from_the_record_set_and_only_from_it`. `tests/test_evals.py`:
-`test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does`. `tests/test_records.py`:
+`test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does` and
+`test_eval_plan_shows_the_records_the_collapse_sends_as_their_difference`. `tests/test_records.py`:
 `test_a_fanned_claim_resolves_as_asserted_against_the_sample_it_names` and
 `test_a_withheld_documents_subject_is_load_bearing_not_bookkeeping`, which pins the silent drop this
 record exists to prevent. `tests/test_extract.py`:
-`test_a_collapsed_member_is_rendered_and_kept_even_though_it_is_never_sent`.
+`test_a_collapsed_member_is_rendered_and_kept_even_though_it_is_never_sent` and
+`test_a_reduced_member_is_not_reported_as_a_record_this_document_was_the_only_reading_of`, which
+sums the `members` column against `n_records_read` — the arithmetic that makes "no record went
+unread" checkable rather than asserted.
 
 **Nothing enforces the archival half beyond one run.** No gate checks that a stored assertion's
 `doc_sha256` still has a file under `documents/`, so a workspace pruned by hand leaves citations that
@@ -137,10 +141,18 @@ against the document directory — `harvest verify` is the natural home, and it 
   the collapse asked documents this one folds away, and its claims were never fanned. The normalizer
   is untouched — the collapse marks spans and never edits text, so `NORMALIZER_VERSION` and every
   offset computed under it stand.
-- **`PlannedDocument.members` now carries the folded records too**, so `--dry-run` prints "one
-  document, N members"; `ExtractionPlanReport` gains `n_records_reduced` beside `n_records_collapsed`,
-  because a record that cost nothing and a record that cost what it is worth are two facts and one
-  number cannot hold both. `Assertion` itself is byte-identical under `schema export`.
+- **The same split runs through every count the report carries, because the two outcomes are two
+  facts and no one number holds both.** `PlannedDocument` gains a second member list: `members` stays
+  what it always meant — the records this document is the *only* reading of, so a withheld member
+  joins it — and `reduced_members` names the records that share this document's prose and were sent
+  their own difference, each as a `PlannedDocument` of its own. One merged list is what makes a
+  1440-member exemplar read as 1439 records that went unread, which is the opposite of the guarantee;
+  kept apart, every record a plan reads appears in exactly one document's `members` and a reader
+  checks the guarantee by summing that column. `ExtractionPlanReport` gains `n_records_reduced` beside
+  `n_records_collapsed` for the same reason, and `CasePlanRow`/`EvalPlanReport` carry it up to the
+  tier — without it `eval plan` shows the whole mechanism as an unexplained drop in `n_chars`, since
+  the benchmark reduces 100 records and withholds none. `Assertion` itself is byte-identical under
+  `schema export`.
 - **Six of the eighteen benchmark cases move, and none of them by document count.** `GSE126954`,
   `GSE234962`, `GSE256266`, `PRJNA1027859`, `PRJNA1195922` and `PRJNA658829` each hold records that
   share a skeleton, so 100 records across them are now sent reduced: same documents, same requests,

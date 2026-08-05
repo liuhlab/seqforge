@@ -50,6 +50,12 @@ def plan_case(case: Case, *, prompt_chars: int) -> CasePlanRow:
     the documents a synthetic case keeps beside itself) **plus** every archive record worth asking.
     Both halves matter — eleven of the eighteen benchmark packages carry no prose at all, and their
     whole bill is records.
+
+    **Both halves of a fold travel with the row**, too: ``n_records_collapsed`` for the records that
+    cost nothing and ``n_records_reduced`` for the ones sent their difference alone. The tier folds
+    away 66 and reduces 100, so a row carrying only the first would show the whole near-identical
+    collapse as an unexplained drop in ``n_chars`` — a saving a reader cannot attribute is one they
+    cannot check.
     """
     with tempfile.TemporaryDirectory(prefix="seqforge-plan-") as tmp:
         try:
@@ -68,6 +74,7 @@ def plan_case(case: Case, *, prompt_chars: int) -> CasePlanRow:
         n_requests=plan.n_requests,
         n_records_read=plan.n_records_read,
         n_records_collapsed=plan.n_records_collapsed,
+        n_records_reduced=plan.n_records_reduced,
         n_chars=plan.n_chars,
         estimated_input_tokens=plan.estimated_input_tokens,
     )
@@ -118,6 +125,7 @@ def plan_cases(
         n_requests=sum(r.n_requests for r in planned) * trials,
         n_records_read=sum(r.n_records_read for r in planned) * trials,
         n_records_collapsed=sum(r.n_records_collapsed for r in planned) * trials,
+        n_records_reduced=sum(r.n_records_reduced for r in planned) * trials,
         n_chars=sum(r.n_chars for r in planned) * trials,
         system_prompt_chars=prompt_chars,
         estimated_input_tokens=sum(r.estimated_input_tokens for r in planned) * trials,

@@ -48,13 +48,14 @@ other member is sent as its **distinctive bytes only**, and a member whose disti
 nothing but its own accession is not sent at all. :func:`fan_claims` then extends the exemplar's
 claims to every member whose own bytes carry the quote.
 
-The guarantee is **no unread byte**, never *no wrong claim* — the invariant is read once and every
-other member's difference is read, because a mechanism that reads the majority and silently skips the
-records that *differ* is anti-correlated with value. Measured on the 1440-record GSE207085 dump, and
-measured on top of the width rule above rather than instead of it: **786 906 characters over 80
-requests become 194 038 over 59**, ~375 K estimated input tokens becoming ~180 K. No record goes
-unread — every level carries a per-cell serial name (``nasal_prox1_270``, ``GSM6277169_r1``), so
-nothing is withheld and 1439 of each 1440 are asked their difference and nothing else.
+The guarantee is **no unread byte**, never *no wrong claim*: the invariant is read once and every
+other member's difference is read. Why the cheaper reading — fan a claim out and send nobody — is
+rejected, with the pilot that falsified it, is argued once in ADR-0031. Measured on the 1440-record
+GSE207085 dump, and measured on top of the width rule above rather than instead of it: **786 906
+characters over 80 requests become 194 038 over 59**, ~375 K estimated input tokens becoming ~180 K.
+No record goes unread — every level carries a per-cell serial name (``nasal_prox1_270``,
+``GSM6277169_r1``), so nothing is withheld and 1439 of each 1440 are asked their difference and
+nothing else.
 """
 
 from __future__ import annotations
@@ -62,7 +63,7 @@ from __future__ import annotations
 import hashlib
 import os
 import threading
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
@@ -226,6 +227,35 @@ _SAMPLE_SCOPED_FIELDS = frozenset(fields_for("sample", "reference"))
 
 
 @dataclass(frozen=True)
+class CollapsedGroup:
+    """The near-identical records one exemplar was read FOR, split by what each of them cost.
+
+    Both halves hold **full renderings** — the bytes
+    :func:`~seqforge.harvest.normalize.render_record` produced, never the reduced text — because that
+    is what a fanned Assertion cites and what must reach disk (ADR-0031). Splitting them is not
+    bookkeeping. It is the difference between a record this plan reads only through somebody else's
+    prose and a record this plan asks in its own right, and a reader handed the union alone would
+    take a 1440-member exemplar for 1439 records that went unread — the exact opposite of the
+    guarantee the collapse is built on.
+
+    So a :attr:`reduced` member appears in a plan twice: here, as the full rendering a fanned claim
+    cites, and in :attr:`ExtractionPlan.documents` as the short document carrying its distinctive
+    bytes. A :attr:`withheld` member appears once, and never as something sent.
+    """
+
+    #: Members whose distinctive bytes ARE sent, as a document of their own.
+    reduced: tuple[NormalizedDoc, ...] = ()
+    #: Members not sent at all: their distinctive tokens were nothing but the accession we wrote.
+    withheld: tuple[NormalizedDoc, ...] = ()
+
+    @property
+    def members(self) -> tuple[NormalizedDoc, ...]:
+        """Every member the exemplar stands for, whatever it cost — which is exactly the set its
+        invariant claims fan to, because a fan is decided by bytes and never by price."""
+        return self.reduced + self.withheld
+
+
+@dataclass(frozen=True)
 class ExtractionPlan:
     """What will be asked, of what, and roughly what it costs — before a token is spent.
 
@@ -251,13 +281,14 @@ class ExtractionPlan:
     #: The stable system prefix, in characters. It is byte-identical on every request — which is what
     #: makes prefix caching work — and it is therefore paid once **per document**, not once per run.
     system_prompt_chars: int = 0
-    #: Exemplar ``doc_sha256`` -> the near-identical documents whose bytes it stands for, which are
-    #: therefore **never sent**. They are still RENDERED, because rendering is free and because a
-    #: fanned Assertion *cites* one of them: a span citation is checkable only while the exact text
-    #: survives, so ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and
-    #: names them in ``document_subjects`` — without which ``resolve`` would drop every fanned claim
-    #: for having no subject (ADR-0031).
-    collapsed: dict[str, tuple[NormalizedDoc, ...]] = field(default_factory=dict)
+    #: Exemplar ``doc_sha256`` -> the group of near-identical records whose prose it carries. Their
+    #: full renderings are never sent — a reduced member's *difference* is, and a withheld member's
+    #: nothing — but they are still RENDERED, because rendering is free and because a fanned Assertion
+    #: *cites* one of them: a span citation is checkable only while the exact text survives, so
+    #: ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and names them in
+    #: ``document_subjects`` — without which ``resolve`` would drop every fanned claim for having no
+    #: subject (ADR-0031).
+    collapsed: dict[str, CollapsedGroup] = field(default_factory=dict)
 
     @property
     def n_documents(self) -> int:
@@ -265,27 +296,46 @@ class ExtractionPlan:
 
     @property
     def all_documents(self) -> tuple[NormalizedDoc, ...]:
-        """Every document this plan RENDERED — the ones it sends, each followed by the ones it folded
-        onto it. What must reach disk, as against :attr:`documents`, which is what is paid for."""
+        """Every document this plan RENDERED — the ones it sends, each followed by the full
+        renderings of the ones it collapsed onto it. What must reach disk, as against
+        :attr:`documents`, which is what is paid for."""
         out: list[NormalizedDoc] = []
         for doc in self.documents:
             out.append(doc)
-            out.extend(self.collapsed.get(doc.doc_sha256, ()))
+            group = self.collapsed.get(doc.doc_sha256)
+            if group is not None:
+                out.extend(group.members)
         return tuple(out)
 
     def stands_for(self, doc: NormalizedDoc) -> tuple[str, ...]:
-        """Every archive record ``doc`` speaks for: its own, plus every near-identical record the
-        collapse folded onto it. The claim side of that number is what :func:`fan_claims` reports —
-        at either count every claim is verified in the record it names, so N does not move the
-        epistemics, but "one assertion, 1440 members" is a very different thing to audit than 1440
-        independent readings."""
-        own = self.members.get(doc.doc_sha256, ())
-        folded = tuple(
-            accession
-            for other in self.collapsed.get(doc.doc_sha256, ())
-            for accession in self.members.get(other.doc_sha256, ())
-        )
-        return own + folded
+        """Every archive record ``doc`` is the ONLY reading of: its own, the runs of one sample folded
+        into it, and every near-identical member **withheld** onto it — the ones whose difference was
+        nothing but the accession we ourselves wrote, so nothing of theirs was sent.
+
+        A member the collapse **reduced** is deliberately absent; it is in :meth:`reduced_members`,
+        because its difference *was* sent, as a document of its own. Across a whole plan every record
+        read appears in exactly one document's ``stands_for``, which is the arithmetic that makes "no
+        record went unread" checkable rather than merely asserted. Why either number is reported at
+        all, given that neither moves the epistemics, is argued once on
+        :class:`~seqforge.models.assertion.PlannedDocument`.
+        """
+        group = self.collapsed.get(doc.doc_sha256)
+        withheld = group.withheld if group is not None else ()
+        return self.members.get(doc.doc_sha256, ()) + self._accessions(withheld)
+
+    def reduced_members(self, doc: NormalizedDoc) -> tuple[str, ...]:
+        """Every near-identical record that shares ``doc``'s prose and was sent its own DIFFERENCE.
+
+        They cost a document each — their distinctive bytes, further down :attr:`documents` — and it
+        is there that they are read; what ``doc`` bought them is the invariant, read once. A claim of
+        ``doc``'s that touches no variant fans to them exactly as it does to :meth:`stands_for`'s,
+        because a fan is decided by bytes and never by price.
+        """
+        group = self.collapsed.get(doc.doc_sha256)
+        return self._accessions(group.reduced) if group is not None else ()
+
+    def _accessions(self, documents: Iterable[NormalizedDoc]) -> tuple[str, ...]:
+        return tuple(a for d in documents for a in self.members.get(d.doc_sha256, ()))
 
     @property
     def batches(self) -> tuple[tuple[int, ...], ...]:
@@ -349,6 +399,7 @@ class ExtractionPlan:
                     n_chars=len(d.text),
                     fields=list(self.asked(d)),
                     members=list(self.stands_for(d)),
+                    reduced_members=list(self.reduced_members(d)),
                 )
                 for d in self.documents
             ],
@@ -395,16 +446,20 @@ def plan_extraction(
             planned.append(doc)
             members[doc.doc_sha256] = tuple(r.accession for r in group)
 
-    sent, collapsed, withheld, reduced = _collapse_near_identical(_deduplicated(planned), members)
+    collapse = _collapse_near_identical(_deduplicated(planned), members)
+    # The fold hands its new entries back rather than writing them into `members` behind us: a
+    # reduced document is a document nothing else knew about, and its record has to be findable
+    # under its sha or `stands_for` cannot name it.
+    members.update(collapse.members)
 
     return ExtractionPlan(
-        documents=tuple(sent),
+        documents=collapse.documents,
         members=members,
         n_records_read=n_read,
-        n_records_collapsed=n_collapsed + withheld,
-        n_records_reduced=reduced,
+        n_records_collapsed=n_collapsed + collapse.n_records_withheld,
+        n_records_reduced=collapse.n_records_reduced,
         system_prompt_chars=system_prompt_chars,
-        collapsed=collapsed,
+        collapsed=collapse.groups,
     )
 
 
@@ -470,9 +525,31 @@ def batch_max_tokens(fields: Sequence[str], n_documents: int) -> int:
     )
 
 
+@dataclass(frozen=True)
+class Collapse:
+    """What :func:`_collapse_near_identical` decided — named fields, never a positional tuple.
+
+    :attr:`members` is the reason this is a type rather than a fourth tuple element. The fold used to
+    write its new entries straight into the caller's ``members`` map — a fourth rule, stated nowhere
+    among the three its docstring gives and expected by no reader of them. Handed back, the edit
+    becomes the caller's, and it is visible beside the map it changes.
+    """
+
+    #: The send list: every document that survives the fold, in plan order.
+    documents: tuple[NormalizedDoc, ...]
+    #: Exemplar ``doc_sha256`` -> the group of near-identical records it carries the prose of.
+    groups: dict[str, CollapsedGroup]
+    #: New ``members`` entries, one per reduced document, each naming the record its bytes came from.
+    members: dict[str, tuple[str, ...]]
+    #: Records folded away entirely, and records sent as their difference — counted in RECORDS, not
+    #: in documents, which is why they are computed here: only the fold holds both maps at once.
+    n_records_withheld: int
+    n_records_reduced: int
+
+
 def _collapse_near_identical(
-    documents: Sequence[NormalizedDoc], members: dict[str, tuple[str, ...]]
-) -> tuple[list[NormalizedDoc], dict[str, tuple[NormalizedDoc, ...]], int, int]:
+    documents: Sequence[NormalizedDoc], members: Mapping[str, tuple[str, ...]]
+) -> Collapse:
     """Fold records that say the same thing onto one exemplar, under **no unread byte**.
 
     1440 sample records that differ only in an accession are semantically identical and *lexically
@@ -505,10 +582,8 @@ def _collapse_near_identical(
     they have no record behind them, so there is no accession to recognize and nothing to fold onto.
 
     Rejected, and it must not be re-proposed: **fan-out-only** — fan a claim to every record whose
-    bytes carry the quote and never send the others. It reads the majority and silently skips the
-    records that *differ*, and :mod:`seqforge.harvest.fields` records the pilot in which a run alias
-    was the only place a WT-vs-mutant contrast was written in plain words. A mechanism anti-correlated
-    with value is worse than one uniformly lossy.
+    bytes carry the quote and never send the others. Argued once, with the pilot that falsified it,
+    under ADR-0031's "Why not skip the fan-out and simply not collapse".
     """
     groups: dict[tuple[str, str, tuple[str, ...]], list[int]] = {}
     for i, doc in enumerate(documents):
@@ -516,7 +591,7 @@ def _collapse_near_identical(
             continue  # a paper is not a record: no accession to recognize, nothing to fold onto
         groups.setdefault((doc.scope, doc.role, token_skeleton(doc.text)), []).append(i)
 
-    stood_for: dict[int, tuple[NormalizedDoc, ...]] = {}
+    stood_for: dict[int, tuple[int, ...]] = {}
     marks: dict[int, tuple[VariantSpan, ...]] = {}
     #: member index -> the reduced document sent in its place, or ``None`` where it is withheld.
     instead: dict[int, NormalizedDoc | None] = {}
@@ -534,19 +609,27 @@ def _collapse_near_identical(
         ]
         lead = next((p for p, ok in enumerate(askable) if ok), 0)
         exemplar = indices[lead]
-        others = tuple(documents[indices[p]] for p in range(len(indices)) if p != lead)
+        others = tuple(indices[p] for p in range(len(indices)) if p != lead)
         stood_for[exemplar] = others
-        marks[exemplar] = variant_spans([documents[exemplar].text, *(o.text for o in others)])
+        marks[exemplar] = variant_spans([texts[lead], *(documents[o].text for o in others)])
         for p, i in enumerate(indices):
             if p != lead:
                 instead[i] = _variant_document(documents[i], varying) if askable[p] else None
 
-    n_withheld = sum(len(members[documents[i].doc_sha256]) for i, r in instead.items() if r is None)
-    n_reduced = sum(
-        len(members[documents[i].doc_sha256]) for i, r in instead.items() if r is not None
-    )
+    folded = {
+        documents[exemplar].doc_sha256: CollapsedGroup(
+            reduced=tuple(documents[o] for o in others if instead[o] is not None),
+            withheld=tuple(documents[o] for o in others if instead[o] is None),
+        )
+        for exemplar, others in stood_for.items()
+    }
+
+    def _records(docs: Iterable[NormalizedDoc]) -> int:
+        """Documents to RECORDS: a document may stand for several already (a sample's runs)."""
+        return sum(len(members.get(d.doc_sha256, ())) for d in docs)
 
     sent: list[NormalizedDoc] = []
+    added: dict[str, tuple[str, ...]] = {}
     for i, doc in enumerate(documents):
         if i in stood_for:
             # The marks travel on a COPY, and `doc_sha256` is untouched by them: the bytes sent are
@@ -556,12 +639,17 @@ def _collapse_near_identical(
         elif i in instead:
             reduced = instead[i]
             if reduced is not None:
-                members[reduced.doc_sha256] = members[doc.doc_sha256]
+                added[reduced.doc_sha256] = members[doc.doc_sha256]
                 sent.append(reduced)
         else:
             sent.append(doc)
-    folded = {documents[i].doc_sha256: others for i, others in stood_for.items()}
-    return sent, folded, n_withheld, n_reduced
+    return Collapse(
+        documents=tuple(sent),
+        groups=folded,
+        members=added,
+        n_records_withheld=sum(_records(g.withheld) for g in folded.values()),
+        n_records_reduced=sum(_records(g.reduced) for g in folded.values()),
+    )
 
 
 def _variant_document(doc: NormalizedDoc, varying: Sequence[int]) -> NormalizedDoc:
@@ -592,7 +680,7 @@ def _variant_document(doc: NormalizedDoc, varying: Sequence[int]) -> NormalizedD
 
 def _nothing_to_ask(
     doc: NormalizedDoc,
-    members: dict[str, tuple[str, ...]],
+    members: Mapping[str, tuple[str, ...]],
     values: Sequence[str],
     varying: Sequence[int],
 ) -> bool:
@@ -846,10 +934,10 @@ def _collapsed_run_document(owner: str, runs: Sequence[ArchiveRecord]) -> Normal
 class FannedClaim:
     """One verified claim whose quote proved byte-identical across the group it was read in.
 
-    The **claim** side of the collapse's legibility, and the thing ``PlannedDocument.members`` cannot
-    answer: that side says one document stood for 1440 records, this says *this value* holds of 1440
-    of them. At either count every claim is verified in the record it names, so N does not move the
-    epistemics — it moves what a human is being asked to audit.
+    The **claim** side of the collapse's legibility, and the thing ``PlannedDocument``'s two member
+    lists cannot answer: those say which records one document was read for, this says *this value*
+    holds of N of them. Why a count is reported at all, given that N does not move the epistemics, is
+    argued once on :class:`~seqforge.models.assertion.PlannedDocument`.
     """
 
     #: Every stored Assertion this claim produced: one for a dataset-scoped field, one per member for
@@ -915,16 +1003,18 @@ def fan_claims(assertions: Sequence[Assertion], plan: ExtractionPlan) -> FanRepo
     for n, claim in enumerate(assertions):
         out.append(claim)
         doc = by_sha.get(claim.span.doc_sha256)
-        group = plan.collapsed.get(claim.span.doc_sha256, ())
+        group = plan.collapsed.get(claim.span.doc_sha256)
         start, end = claim.span.char_start, claim.span.char_end
-        if doc is None or not group or start is None or end is None:
+        if doc is None or group is None or start is None or end is None:
             continue
         if not is_invariant_span(doc, start, end):
             continue  # the quote touches a place the members disagree: it speaks for this one only
         materialize = claim.field in _SAMPLE_SCOPED_FIELDS
         reached = list(plan.members.get(doc.doc_sha256, ()))
         ids = [claim.id]
-        for other in group:
+        # Every member, reduced and withheld alike: what a member COST decides which document carries
+        # its difference, and never whether the invariant holds of its bytes.
+        for other in group.members:
             found = find_span(other.text, claim.span.quote)
             if found is None:
                 # Unreachable while the invariant holds — and checked anyway, because "by
@@ -1106,6 +1196,7 @@ __all__ = [
     "MAX_IN_FLIGHT",
     "PER_DRAFT_TOKENS",
     "REASONING_HEADROOM_TOKENS",
+    "CollapsedGroup",
     "ExtractionPlan",
     "FanReport",
     "FannedClaim",

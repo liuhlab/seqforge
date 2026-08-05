@@ -72,8 +72,12 @@ is the *document* rather than a field the model fills in:
 [ADR-0008](../adr/0008-llm-surface-carries-only-checkable-fields.md).
 
 `ExtractionPlanReport` shares this file because it is about the same two things one step earlier:
-which documents exist, and what each will be asked — including the ones a **collapse** folded away, so
-`PlannedDocument.members` can read "one document, 1440 members" ([ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)).
+which documents exist, and what each will be asked — including the ones a **collapse** folded away.
+That is two facts, so `PlannedDocument` keeps them apart: `members` is every record the document is
+the ONLY reading of, `reduced_members` every record that shares its prose and was sent its own
+difference as a document of its own. "One document, 1440 members" therefore means 1439 records nobody
+need read again — never 1439 records nobody read, which is what one merged list says
+([ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)).
 It is a **result type, not an LLM-facing one** —
 `harvest extract --dry-run` prints it and no model ever sees it — so it is in `SCHEMA_MODELS` and
 deliberately not in `LLM_FACING`. `estimated_input_tokens` charges the stable system prefix once per

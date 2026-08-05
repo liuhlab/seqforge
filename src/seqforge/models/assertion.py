@@ -71,13 +71,23 @@ class Assertion(BaseModel):
 class PlannedDocument(BaseModel):
     """One document an extraction will pay for, described before it is sent.
 
-    ``members`` is what a collapse is visible as: every archive record this document speaks for. One
-    entry for a record rendered on its own, many for the runs of one sample, many for a group of
-    near-identical records folded onto this one (ADR-0031), none for a document a human handed us.
-    It is the DOCUMENT side of that number — "one document, 1440 members" — and the claim side is
-    ``harvest extract``'s ``fanned`` rows, which say how many records each value was fanned to. At
-    either count every claim is verified in the record it names, so neither moves the epistemics;
-    what they move is what a human is being asked to audit.
+    **Two member lists, because a collapse produces two facts and one list cannot hold both.**
+    ``members`` is every archive record this document is the ONLY reading of — its own, the runs of
+    one sample folded into it, and a near-identical member *withheld* onto it because its whole
+    difference was the accession we ourselves wrote. ``reduced_members`` is every near-identical
+    record that shares this document's prose and was sent **its own difference**, as a document of
+    its own further down the same list (ADR-0031). A reader handed only the union would take "one
+    document, 1440 members" for 1439 records that went unread, which is the exact opposite of the
+    guarantee the collapse is named for; every record a plan reads appears in exactly one document's
+    ``members``, and summing that column is how a reader checks it rather than trusting it.
+
+    Both are the DOCUMENT side of the collapse's legibility. The claim side is ``harvest extract``'s
+    ``fanned`` rows, which say how many records each value was fanned to. **This is the one place
+    that argument is made**: at either count every claim is verified in the record it names — a
+    fanned claim's quote greps into the record it lands on by construction — so **no N here moves the
+    epistemics**. What N moves is what a human is being asked to audit, because "one assertion, 1440
+    members" is a different thing to check than 1440 independent readings (#233 decision 6). Every
+    other count in this mechanism glosses this and points back.
     """
 
     doc_sha256: str
@@ -90,6 +100,10 @@ class PlannedDocument(BaseModel):
     n_chars: int
     fields: list[str]
     members: list[str] = Field(default_factory=list)
+    #: Near-identical records that were sent their distinctive bytes instead — each of them is its
+    #: own ``PlannedDocument`` in this same report, so they were read, not folded away. Empty unless
+    #: this document is a collapse's exemplar.
+    reduced_members: list[str] = Field(default_factory=list)
 
 
 class ExtractionPlanReport(BaseModel):

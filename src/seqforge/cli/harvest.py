@@ -423,9 +423,8 @@ def _harvest_extract_pipeline(
     payload["n_accepted"] = report.n_accepted
     payload["n_stored"] = len(fan.assertions)
     payload["n_rejected"] = len(report.rejected)
-    # How many records a claim was fanned to. At either count every claim is verified in the record it
-    # names, so N does not move the epistemics -- but "one assertion, 1440 members" is a very
-    # different thing for a human to audit than 1440 independent readings, and only this says which.
+    # How many records a claim was fanned to -- the CLAIM side of what `PlannedDocument` argues once
+    # for the document side: N does not move the epistemics, it moves what a human must audit.
     payload["fanned"] = [
         {
             "field": f.field,

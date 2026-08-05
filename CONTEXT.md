@@ -201,6 +201,16 @@ supplies the quote only; code computes the offsets, so a fabricated span fails c
 false-rejecting (`docs/adr/0008`).
 _Avoid_: window (a window is a base range inside a read), citation, location, offset
 
+**Variant span**:
+A range of an **exemplar**'s text where the near-identical records it stands for *disagree* — marked
+in place, never spliced out, so the model still reads coherent prose. Neither a **Span** (that is
+where a claim came *from*) nor the **Declared** mark sitting beside it on the same document: a
+declared span makes `verify` **refuse** a quote, a variant span decides whether a verified claim may
+**fan**. One field per question asked of a range. Argued once in
+[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
+_Avoid_: diff, mask, hole, gap; and never for the *reduced* text of a **Collapse**, which is a
+document of its own and carries no marks at all
+
 **Quote**:
 The verbatim substring a claim rests on. It must grep back into the canonical text *and* entail the
 value, or the claim is rejected — R2's hallucination tripwire.

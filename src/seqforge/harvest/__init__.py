@@ -58,25 +58,18 @@ from .normalize import (  # noqa: E402
     UnreadableDocument,
     VariantSpan,
     clean_invalid_unicode,
-    declared_spans,
     has_prose,
-    is_invariant_span,
     normalize_document,
     normalize_record,
     normalize_text,
     page_for_offset,
     read_document,
     render_record,
-    token_skeleton,
-    token_spans,
-    token_values,
-    variant_spans,
-    variant_text,
-    varying_token_indices,
 )
 from .plan import (  # noqa: E402
     CHARS_PER_TOKEN,
     MAX_IN_FLIGHT,
+    CollapsedGroup,
     ExtractionPlan,
     FannedClaim,
     FanReport,
@@ -121,16 +114,14 @@ __all__ = [
     "PdfBackend",
     "NormalizedDoc",
     "PageSpan",
+    # A mark's TYPE is here because it types a field of `NormalizedDoc`, which every consumer of a
+    # document already holds. The functions that COMPUTE one -- `declared_spans`, `variant_spans`,
+    # `variant_text`, `is_invariant_span` and the tokenizer under them -- are the planner's and
+    # nobody else's, so they stay `seqforge.harvest.normalize`'s and are imported from there. It is
+    # the rule the CLI keeps one layer up: a surface is what a caller acts through, never an
+    # inventory of what the mechanism happens to be made of.
     "DeclaredSpan",
-    "declared_spans",
     "VariantSpan",
-    "variant_spans",
-    "variant_text",
-    "varying_token_indices",
-    "is_invariant_span",
-    "token_spans",
-    "token_values",
-    "token_skeleton",
     "UnreadableDocument",
     "normalize_document",
     "normalize_record",
@@ -168,6 +159,13 @@ __all__ = [
     "fan_claims",
     "FanReport",
     "FannedClaim",
+    "CollapsedGroup",
+    # `quote_residue` reaches no CLI verb, ON PURPOSE, and is exported anyway: it is a measurement
+    # instrument rather than a stage. It is what answered #283's recall probe -- 71 % of every
+    # document's four-token spans occurred verbatim in another document of the same request before
+    # the reduction, 0 % at every width after it (ADR-0031) -- and that is a property of one deposit,
+    # not a theorem, so it has to stay runnable against the next one. A verb would put a maintainer's
+    # ruler on the machine interface, every entry of which is a step the compiler itself takes.
     "quote_residue",
     "QuoteResidue",
     "RequestResidue",
