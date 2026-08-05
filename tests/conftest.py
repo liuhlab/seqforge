@@ -20,6 +20,8 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`kb_probes` — every KB spec's own reads, probed once
   (``(spec id, read set) -> [WindowProbe]``).
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
+* :data:`composed_plate` — one ``smartseq3`` plate, composed and planned once, for the three-part
+  plate gate. It spawns, so its NAME is in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 * :func:`pytest_cmdline_main` — a bare ``pytest`` runs the whole suite ACROSS CORES, because
@@ -43,9 +45,13 @@ import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import pytest
+
+if TYPE_CHECKING:  # the count-matrix narrowing needs the names, not the import cost
+    import anndata as ad
+    from scipy.sparse import csr_matrix
 
 from seqforge import __version__, kb
 from seqforge.compose import core as compose_core
@@ -175,7 +181,11 @@ _UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
 
 #: Fixture names that mean "this test spawns ``snakemake``" — which is what ``external`` is ABOUT.
 #: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
-_SPAWNS_SNAKEMAKE = frozenset({"real_wiring_gate", "dry_run"})
+#:
+#: ``composed_plate`` is here for the same reason ``dry_run`` is: it is a *product* of a
+#: ``snakemake -n -p``, and a fixture that spawns has to be visible to the marker whether the test
+#: reading it thinks of itself as a subprocess test or not.
+_SPAWNS_SNAKEMAKE = frozenset({"real_wiring_gate", "dry_run", "composed_plate"})
 
 
 @pytest.fixture(autouse=True)
@@ -246,41 +256,50 @@ class DryRun(Protocol):
     def __call__(self, directory: Path, plan: ComposePlan | None = None) -> str: ...
 
 
-@pytest.fixture
-def dry_run() -> DryRun:
+def snakemake_dry_run(directory: Path, plan: ComposePlan | None = None) -> str:
     """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
 
-    A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
-    four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
-    through a private ``_dry_run`` in the compose tests — invisible to
-    :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
-    to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
+    The one spawner. It is a module-level function rather than only a fixture body because two
+    fixtures want it — the per-test :func:`dry_run` and the session-scoped :func:`composed_plate` —
+    and a second copy of the argv is the copy that comes to disagree about which flags a plan is
+    taken under. Both fixture NAMES are in :data:`_SPAWNS_SNAKEMAKE`, so the marker still follows
+    the fixture and never this function.
 
     Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
-    afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the test
-    left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
+    afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the
+    caller left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
     """
     import shutil
     import subprocess
 
     from seqforge.compose.gates import _replica
 
-    def run(directory: Path, plan: ComposePlan | None = None) -> str:
-        target = _replica(directory, plan) if plan is not None else directory
-        try:
-            proc = subprocess.run(
-                ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],
-                capture_output=True,
-                text=True,
-                timeout=300,
-            )
-            assert proc.returncode == 0, proc.stderr
-            return proc.stdout + proc.stderr
-        finally:
-            if plan is not None:
-                shutil.rmtree(target, ignore_errors=True)
+    target = _replica(directory, plan) if plan is not None else directory
+    try:
+        proc = subprocess.run(
+            ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout + proc.stderr
+    finally:
+        if plan is not None:
+            shutil.rmtree(target, ignore_errors=True)
 
-    return run
+
+@pytest.fixture
+def dry_run() -> DryRun:
+    """:func:`snakemake_dry_run`, as the fixture the ``external`` marker can see.
+
+    A *fixture*, not a module-local helper, and that is the whole point. ``wiring_gate`` returns a
+    four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
+    through a private ``_dry_run`` in the compose tests — invisible to
+    :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
+    to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
+    """
+    return snakemake_dry_run
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -649,6 +668,104 @@ def declare_read_floor(monkeypatch: pytest.MonkeyPatch, tech: str, floor: int | 
         }
     )
     monkeypatch.setattr(compose_core, "load_spec", lambda name: declared if name == tech else spec)
+
+
+#: How many cells the shared composed plate declares. A plate deposit is order 10² cells, and the
+#: wildcard expansion is the part of a plate pipeline that only misbehaves at scale — one cell
+#: resolves under any dispatch at all. Deliberately not 1440: the plan text grows linearly and the
+#: claim (`N` per-cell jobs, ONE fan-in, ONE load) is the same shape at 96.
+PLATE_CELL_COUNT = 96
+
+#: Reads per cell, comfortably over the live `smartseq3` floor so no cell is dropped. The composer's
+#: admission floor has its own tests; a plate built at the floor would make every gate here also an
+#: assertion about that.
+PLATE_CELL_DEPTH = 1200
+
+
+@dataclass(frozen=True)
+class ComposedPlate:
+    """A composed ``smartseq3`` plate, its emitted config, and the plan snakemake made of it.
+
+    Immutable, in the sense this file means it: nothing writes into ``pipeline_dir``. The plan text
+    is taken over a throwaway replica that is removed before the fixture returns, so the run
+    directory never gains the zero-byte stand-ins the gate needs.
+    """
+
+    manifest: DatasetManifest
+    processing: ProcessingManifest
+    registry: OnlistRegistry
+    #: The compiled pipeline directory: the wrapper, the copied ``.smk``, ``config.yaml``, ``units.tsv``.
+    pipeline_dir: Path
+    config: dict[str, object]
+    #: ``snakemake -n -p`` over that directory — the rendered plan, shell blocks and all.
+    plan_text: str
+    cells: tuple[str, ...]
+
+
+@pytest.fixture(scope="session")
+def composed_plate(tmp_path_factory: pytest.TempPathFactory) -> ComposedPlate:
+    """A real ``smartseq3`` deposit, composed and planned ONCE for the whole plate gate.
+
+    The chemistry is the shipped KB entry, not a synthetic stand-in: what this fixture is for is the
+    claim that a plate compiles from the entry a user would actually resolve onto, so a hand-built
+    spec would prove the composer's tolerance of a shape nothing ships.
+
+    One ``snakemake -n -p`` serves every reader. A plan at this cell count is the most expensive
+    single spawn in the suite, and paying it per assertion is exactly the waste that once put ~41 of
+    them in a compose test file.
+    """
+    import yaml
+
+    from seqforge.compose import compose
+
+    workdir = tmp_path_factory.mktemp("composed-plate")
+    reads = workdir / "reads"
+    reads.mkdir()
+    dataset = build_synth_dataset(reads, "smartseq3")
+    cells = tuple(f"cell_{i:03d}" for i in range(PLATE_CELL_COUNT))
+    manifest = plate_of(
+        dataset.manifest,
+        one_run_each(dict.fromkeys(cells, PLATE_CELL_DEPTH)),
+        accession="PRJNA1027859",
+    )
+    processing = _processing(manifest)
+    result = compose(
+        manifest,
+        processing,
+        registry=dataset.registry,
+        workspace=workdir / "ws",
+        run_wiring_gate=False,
+    )
+    pipeline_dir = (workdir / "ws" / result.snakefile_path).parent
+    config = yaml.safe_load((workdir / "ws" / result.config_path).read_text())
+    plan = compose_core.plan(manifest, processing, registry=dataset.registry)
+    return ComposedPlate(
+        manifest=manifest,
+        processing=processing,
+        registry=dataset.registry,
+        pipeline_dir=pipeline_dir,
+        config=config,
+        plan_text=snakemake_dry_run(pipeline_dir, plan),
+        cells=cells,
+    )
+
+
+def count_matrix(adata: ad.AnnData, layer: str | None = None) -> csr_matrix:
+    """One count matrix off an ``.h5ad``, narrowed to what packaging actually writes.
+
+    ``X`` and ``layers[...]`` are declared as a union of array protocols — a dense array, a lazy
+    on-disk dataset, ``None`` — so a bare ``[i, j]`` on either reads through something that may not
+    be a matrix at all. Packaging writes sparse, so a dense or absent one is a regression this says
+    out loud rather than an index error three lines later.
+
+    Here rather than beside its first caller because it now has two of them, and two narrowings of
+    one shape do not disagree until they do.
+    """
+    from scipy.sparse import csr_matrix as _csr
+
+    matrix = adata.X if layer is None else adata.layers[layer]
+    assert isinstance(matrix, _csr), f"expected a sparse count matrix, got {type(matrix)}"
+    return matrix
 
 
 def solo_block(config: dict[str, object]) -> dict[str, object]:
