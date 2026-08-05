@@ -145,6 +145,8 @@ generate:
   seed: 0
   onlists: synthetic      # synthetic (rung 3 reachable) | none (structure only, rung <=2)
   truncate: {file: R1, fraction: 0.6}   # optional: the TRUNCATED_GZIP negative
+  over_length: {read: R1, extra: 2}     # optional: sequence a read past its declared cycles
+  deposit: {libraries: 2, lanes: 2}     # optional: N libraries x M lanes; default 1x1 is byte-identical
 hypothesis: 10x-3p-gex-v2 # optional: a metadata claim WITHOUT an LLM, so conflict cases run in CI
 ```
 

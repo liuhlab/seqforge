@@ -201,6 +201,20 @@ the two extra cycles the submitter's run had. It is the first hermetic case anyw
 over-length admission path, which until now only real datasets in the networked tier exercised, and it
 needed one new recipe knob (`over_length`) to be expressible at all.
 
+**A synthesized case can be deposited as N libraries × M lanes, as of 2026-08-04 (#286).** Until the
+`deposit` knob existed a `spec` recipe wrote one library under one run and materialization *refused*
+anything else, so the commonest deposit there is — GSE126954's 14 libraries × 4 lanes — was
+inexpressible, and `grouping/record-less-two-libraries-two-lanes` had to stage its FASTQs outside git
+behind an environment variable and therefore **skipped on an ordinary pass**. It now grades in the
+hermetic tier. Two things make the knob cheap: the default `1 × 1` is byte-identical to what every
+existing case already generated, so no case's dataset hash moved; and lanes differ by **read-header
+prefix** rather than by depth, which gives distinct shas with an identical length histogram by
+construction — the staged fixture had to *measure* a 400–500 depth band where the modal read length
+held still, because `index_tagged_roles` re-seats a surplus lane onto its role only within 3 bp of the
+representative. The one-run invariant is kept, narrowed to a case that *declares* a single library, so
+a spec whose file hints cannot be read as a mate still fails in its own fixture naming the spec rather
+than three layers away naming nothing.
+
 **One package is one library, and `--multi-experiment` is the caller saying two experiments are one.**
 The default refusal is what keeps a series mixing modalities — GSE283483's bulk RNA + Multiome GEX +
 Multiome ATAC — out of a single package, and it stays. But a plate deposit puts every cell in its own
