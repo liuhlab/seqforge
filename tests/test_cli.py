@@ -211,6 +211,43 @@ def test_kb_lint_fires_on_a_spec_whose_cell_axis_and_module_disagree(
     assert "is per-sample end to end" in report["specs"][0]["error"]
 
 
+def test_kb_lint_reports_a_width_that_lies_rather_than_tracebacking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The verb, not just the validator: an element wider than its own window exits 3 and says so.
+
+    `Element._addressable` raises a bare `ValueError`, which pydantic wraps into the `ValidationError`
+    `kb lint` already catches — so this is a claim about the wrapping, not about the clause. Without
+    it a mis-declared width would leave the verb by the uncaught path: a traceback on stderr and exit
+    1, which reads as a broken tool rather than a spec that needs one number changed.
+
+    Pointed at one entry off disk, for the same reason `test_kb_lint_fires_on_a_spec_whose_cell_axis_
+    and_module_disagree` is: the clause fires at LOAD, so no file under `kb/specs/` can be made to
+    violate it without failing the suite at import time. `Spec.model_validate` is the real validator
+    throughout — what is stubbed is only which files the verb walks.
+    """
+    from seqforge.cli import kb as kb_cli
+    from seqforge.kb.loader import SPECS_DIR
+    from seqforge.kb.schema import Spec
+
+    raw = yaml.safe_load((SPECS_DIR / "splitseq" / "spec.yaml").read_text())
+    linker = next(
+        e for r in raw["reads"] if r["id"] == "bc" for e in r["elements"] if e["name"] == "linker1"
+    )
+    linker["end"] += 1
+    monkeypatch.setattr(kb_cli, "list_spec_ids", lambda: ["impossible"])
+    monkeypatch.setattr(kb_cli, "load_spec", lambda tech: Spec.model_validate(raw))
+
+    result = runner.invoke(app, ["kb", "lint"])
+
+    assert result.exit_code == 3
+    report = json.loads(result.stdout)
+    assert report["ok"] is False
+    assert report["specs"][0]["tech"] == "impossible"
+    assert "'linker1'" in report["specs"][0]["error"]
+    assert "30 bp" in report["specs"][0]["error"] and "31 bp" in report["specs"][0]["error"]
+
+
 def test_kb_roundtrip_passes() -> None:
     result = runner.invoke(app, ["kb", "roundtrip", "10x-3p-gex-v3"])
     assert result.exit_code == 0

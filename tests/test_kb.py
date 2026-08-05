@@ -57,6 +57,58 @@ def test_linker_element_requires_a_sequence() -> None:
         Spec.model_validate(data)
 
 
+@pytest.mark.parametrize("delta", [1, -1], ids=["window_wider", "window_narrower"])
+def test_an_element_whose_sequence_contradicts_its_own_window_fails_at_load(delta: int) -> None:
+    """A declared width that lies shifts every element after it, and surfaces far from its cause.
+
+    The round-trip's C1 constant-element check is circular with respect to *substitution* — the
+    generator writes out the same string C1 reads back, so a wrongly published base is green there and
+    only ever catchable on real reads (#285). What C1 genuinely stands for is the other derivation,
+    **where** the element goes: the generator concatenates elements in order, C1 reads the window back
+    off `[start, end)`. So a `sequence` one base wider or narrower than its own window re-frames
+    everything downstream and reddens C1 on some *later* element — and only on an entry that has a
+    fixture to run the round-trip against at all. The precondition belongs where the element is first
+    addressable, three derivations earlier.
+
+    Both directions, because they are not the same edit: a wide literal and a wide window are the two
+    ways one clause can be written to catch only half of what it names.
+    """
+    data = kb.load_spec("splitseq").model_dump()
+    elements = next(r for r in data["reads"] if r["id"] == "bc")["elements"]
+    linker = next(e for e in elements if e["name"] == "linker1")
+    assert len(linker["sequence"]) == linker["end"] - linker["start"], "the shipped entry agrees"
+
+    linker["end"] += delta
+    with pytest.raises(ValidationError, match="linker1") as exc:
+        Spec.model_validate(data)
+    message = str(exc.value)
+    assert "30" in message and str(30 + delta) in message, "both widths, so the fix is one edit"
+
+
+def test_the_width_clause_is_not_decoration_the_shipped_kb_exercises_it() -> None:
+    """The positive control: 7 shipped elements carry BOTH a literal and a fixed window, and agree.
+
+    A guard nothing reaches is indistinguishable from a green suite, and this one is a *pure* guard —
+    it was measured to land on a clean KB, not to force a migration. The other direction matters as
+    much: BD Rhapsody Enhanced's four linkers carry a literal and NO window (they float behind a
+    variable-length diversity insert), so the clause must stay conditioned on all three being present
+    or every anchored element in the KB would be refused for declaring a width it never claimed.
+    """
+    both, anchored = 0, 0
+    for tech in kb.list_spec_ids():
+        for read in kb.load_spec(tech).reads:
+            for el in read.elements:
+                if el.sequence is None:
+                    continue
+                if el.start is not None and el.end is not None:
+                    both += 1
+                    assert len(el.sequence) == el.end - el.start, f"{tech}/{read.id}/{el.name}"
+                else:
+                    anchored += 1
+    assert both == 7, "the measurement this clause shipped against"
+    assert anchored, "and at least one literal with no window, which the clause must not touch"
+
+
 # ---------- read sets: a subset of declared ids, checked where every other DSL typo is ----------
 def test_bulk_declares_a_single_end_read_set() -> None:
     """The chemistry the read-set feature exists for: one entry, two sequencing configurations.
@@ -244,15 +296,21 @@ def test_the_round_trip_checks_every_constant_sequence_a_spec_declares(tech: str
     )
 
 
-def test_a_linker_one_base_short_of_its_own_coordinates_reddens_the_round_trip() -> None:
+def test_a_linker_shifted_off_its_own_coordinates_reddens_the_round_trip() -> None:
     """The negative direction: the constant check must be able to fail, and this is what makes it.
 
     The generator writes `el.sequence` and the check reads it back, so a *substituted* base cannot
     redden anything — both halves would move together. What the check really compares is the two
     derivations of WHERE the sequence goes: the generator concatenates elements in order, and the
-    check cuts the declared `[start, end)`. Nothing validates that `len(sequence)` agrees with its own
-    coordinates, so a typo'd linker shifts every element after it — and that is the failure this
-    reproduces, by dropping one base from a shipped entry's linker and watching the schema accept it.
+    check cuts the declared `[start, end)`. Sliding a window one base off its literal separates them
+    while every declared width stays honest, so the schema has nothing to refuse and the failure
+    reaches the round-trip, which is the whole claim C1 carries.
+
+    This used to drop a base from the literal instead, and that route is now **closed at load**:
+    `Element._addressable` refuses `len(sequence) != end - start` outright (#332), because a width that
+    lies shifts every element after it and surfaces here as a mystery on some *later* element — see
+    `test_an_element_whose_sequence_contradicts_its_own_window_fails_at_load`. Two derivations of one
+    width are a precondition; two derivations of one position are what the round-trip is for.
 
     Derived from whatever the KB declares first rather than aimed at one entry: the guard is generic,
     and the demonstration should not quietly become a test of one spec. It picks a FIXED-coordinate
@@ -280,15 +338,19 @@ def test_a_linker_one_base_short_of_its_own_coordinates_reddens_the_round_trip()
         for el in read["elements"]
         if el["name"] == el_name
     )
-    element["sequence"] = element["sequence"][:-1]  # one base short of the window it declares
-    broken = Spec.model_validate(data)  # ...and the schema is happy, which is why this test exists
+    # Slide the window, carrying both ends so the width never lies. Leftwards where there is room; a
+    # constant element at offset 0 is never the whole read, so rightwards is inside the read too.
+    shift = -1 if element["start"] > 0 else 1
+    element["start"] += shift
+    element["end"] += shift
+    broken = Spec.model_validate(data)  # the schema is happy: one position moved, no width did
 
     checks = kb.roundtrip_checks(broken, n=300)
     constant = [c for c in checks if str(c["check"]).startswith("constant_sequence:")]
     assert constant, f"{tech}: no constant check to fail"
     assert not all(c["ok"] for c in constant), (
-        f"{tech}: dropping a base from {el_name!r} left every constant check green — the check is "
-        "comparing the declared sequence against itself rather than against the reads."
+        f"{tech}: sliding {el_name!r} off its coordinates left every constant check green — the check "
+        "is comparing the declared sequence against itself rather than against the reads."
     )
 
 

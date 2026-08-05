@@ -98,11 +98,17 @@ def roundtrip_checks(spec: Spec, *, n: int = 2000, seed: int = 0) -> list[dict[s
                     # What can fail, since the generator writes this same string: the two derivations
                     # of WHERE it goes. The generator concatenates elements in order; this reads the
                     # window back off the declared `[start, end)` (or the frame the anchored resolver
-                    # recovers). A `sequence` whose length disagrees with its own coordinates, or an
-                    # upstream element whose width does, shifts everything after it and lands here as
-                    # a consensus that is not what the spec says. On the anchored path the claim is
+                    # recovers). A window that disagrees with its literal's place in that chain — its
+                    # own, or an upstream element's — shifts everything after it and lands here as a
+                    # consensus that is not what the spec says. On the anchored path the claim is
                     # weaker by construction — the frame was found BY matching this linker — but a
-                    # wrong width or a mis-ordered chain still shows up.
+                    # mis-ordered chain still shows up.
+                    #
+                    # One route no longer arrives here: `len(sequence) != end - start`. It used to
+                    # surface as a mystery on some LATER element, and only on an entry with a fixture
+                    # to run this against, so `Element._addressable` now refuses it at LOAD (#332). A
+                    # width is a precondition of addressing the element at all; a position is what
+                    # this check is for.
                     recovered = modal_consensus(bases)
                     checks.append(
                         {
