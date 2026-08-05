@@ -35,7 +35,7 @@
 # wherever the value is a substring of its own quote, which is the limit the verifier documents about
 # itself. "RNA-Seq" is not a chemistry — it is SRA's library_strategy, true of every 10x deposit ever
 # made — but an asserted chemistry is matched against KB ids and aliases by substring, and "rna-seq"
-# sits inside bulk-rnaseq-pe's "bulk RNA-seq". So it reaches the byte resolver as a BULK claim
+# sits inside bulk-rnaseq's "bulk RNA-seq". So it reaches the byte resolver as a BULK claim
 # against barcoded observed bytes and surfaces `conflict-bulk-asserted-single-cell-observed` on
 # library.chemistry: exit 4, graded `over_ask`. Handing that one string to the resolver as a
 # hypothesis over this case's own pinned bytes reproduces it exactly with no LLM in the loop, while

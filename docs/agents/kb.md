@@ -35,11 +35,11 @@ carries no alias resolves to nothing, which is the honest answer and a refusal d
 
 **`identity.descriptive_aliases` is for a phrase that only describes the run.** The test is whether a
 *different* chemistry's record could carry it truthfully: "paired-end RNA-seq" is as true of a
-SPLiT-seq library as of a bulk one, so on `bulk-rnaseq-pe` it goes here, while "bulk RNA-seq" — which
+SPLiT-seq library as of a bulk one, so on `bulk-rnaseq` it goes here, while "bulk RNA-seq" — which
 no single-cell record says — stays an alias. A descriptive form still reaches its node when the value
 names no other, so an archive describing a real bulk record the only way it knows still resolves; it
 simply loses to any form that names a chemistry. Ranking by token count alone made the wordier
-*description* win, so `SPLiT-seq paired-end RNA-seq` resolved to `bulk-rnaseq-pe` (#266). Both lists
+*description* win, so `SPLiT-seq paired-end RNA-seq` resolved to `bulk-rnaseq` (#266). Both lists
 are surface forms for [span verification](../../src/seqforge/harvest/verify.py) — the demotion is in
 the ranking only — but **only `aliases` is shown to the extraction model**, so do not put a spelling
 here that the model needs in order to name the node at all.
@@ -249,7 +249,7 @@ of its ancestors in `confusable_with`. That used to be a flat "reject every non-
 own comment recorded why it held: the 26–28 bp R1 gate did all the work, "no cross-family edge needed".
 `10x-5p-gex` is the case that needs one — 5′ reads *are* 3′ reads to every cheap probe, so no gate can
 separate the families that would not also reject the family's own children. Recognition is not the
-thing to forbid; **undeclared** recognition is. `bulk-rnaseq-pe` is declared by nobody, so the original
+thing to forbid; **undeclared** recognition is. `bulk-rnaseq` is declared by nobody, so the original
 accepts-everything trap still turns the test red.
 
 ## The round-trip, and the adversarial fixtures

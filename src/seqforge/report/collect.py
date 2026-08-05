@@ -905,7 +905,7 @@ _FAMILY_PRETTY: dict[str, str] = {
     "bd-rhapsody-wta": "BD Rhapsody WTA",
     "bd-rhapsody-wta-enhanced": "BD Rhapsody WTA (Enhanced)",
     "splitseq": "SPLiT-seq",
-    "bulk-rnaseq-pe": "bulk RNA-seq",
+    "bulk-rnaseq": "bulk RNA-seq",
 }
 
 

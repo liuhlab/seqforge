@@ -13,5 +13,5 @@ predicts:
   kb: 2026.7.7
   workflow: 2026.7.14
 fields:
-  library.chemistry: bulk-rnaseq-pe
+  library.chemistry: bulk-rnaseq
   experiment.organism: 10090

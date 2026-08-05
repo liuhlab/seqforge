@@ -286,7 +286,7 @@ def same_family(specs: Mapping[str, Spec], a: str, b: str) -> bool:
     not a blocking conflict — the bytes decide the leaf. It is broader than ``is_tree_kin`` (which is
     parent-child OR siblings only): two cousins under a deeper tree are the same family yet not kin.
 
-    Every assay family is its own root today (``10x-3p-gex``, ``bulk-rnaseq-pe``, ``splitseq``,
+    Every assay family is its own root today (``10x-3p-gex``, ``bulk-rnaseq``, ``splitseq``,
     ``bd-rhapsody-wta`` are distinct roots), so a shared root IS the same family. A future super-root
     over two genuinely different families would need a KB-lint guard against over-suppression; none
     exists now, and none is needed while roots and families coincide.

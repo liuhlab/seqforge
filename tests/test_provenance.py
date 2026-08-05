@@ -111,7 +111,7 @@ def test_the_strongest_case_no_signal_matches_and_assay_contradicts_blocks() -> 
         assertions=[
             _assert("experiment.organism", "Homo sapiens"),
             _assert("experiment.samples.strain", "HeLa"),
-            _assert("library.chemistry", "bulk-rnaseq-pe"),
+            _assert("library.chemistry", "bulk-rnaseq"),
         ],
         subjects=_DATASET_SUBJECT,
         records=_records(taxid="6239", strain="N2"),
@@ -216,14 +216,14 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
     document is read from the workspace by its hash, the gate's Conflict rides into `validate`, and
     `questions.md` is written for the Stop hook. Everything lives under pytest's tmp dir.
 
-    The bytes are a clean bulk-rnaseq-pe library (geometry-only, no onlist, so it resolves against the
+    The bytes are a clean bulk-rnaseq library (geometry-only, no onlist, so it resolves against the
     real registry with no whitelist step). The staged "paper" describes a *different* study — human,
     HeLa, a foreign accession — with no chemistry claim, so it does not trip the byte cross-family
     conflict first; the provenance gate is what catches it.
     """
     from seqforge.workspace import documents_dir, state_dir
 
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     # n=200 is enough: the floor here is per-spec scoring, not reads, and it returns the identical
     # code=4 and the identical single `document.provenance` conflict as a larger read count (#111).
     reads = kb.generate_reads(spec, n=200, seed=0)

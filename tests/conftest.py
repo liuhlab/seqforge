@@ -468,7 +468,7 @@ def synth_10x_v3(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
 @pytest.fixture(scope="session")
 def synth_bulk_pe(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     """The no-barcode shape. Companion to :data:`synth_10x_v3`; built 3x before it existed."""
-    return build_synth_dataset(tmp_path_factory.mktemp("synth-bulk-pe"), "bulk-rnaseq-pe")
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-bulk-pe"), "bulk-rnaseq")
 
 
 @pytest.fixture(scope="session")

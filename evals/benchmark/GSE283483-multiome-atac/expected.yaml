@@ -5,7 +5,7 @@
 # is a 24bp barcode read = 8bp lead-in + 16bp CB at offset 8, reverse-complement, matching a DISJOINT
 # ARC-ATAC whitelist (not the GEX one). library.chemistry is what seqforge resolved from those bytes on
 # arc at the `predicts` versions (SRR34104041); experiment.organism is from the BioSample record.
-# A regression that reverts the geometry fix drops this back to `bulk-rnaseq-pe`, turning the case red.
+# A regression that reverts the geometry fix drops this back to `bulk-rnaseq`, turning the case red.
 outcome: decide
 description: >-
   Benchmark: GSE283483 10x Multiome ATAC arm (SRR34104041) resolved from its fingerprint package — the

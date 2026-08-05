@@ -18,7 +18,7 @@ terminal shapes:
 Every guard here that reads the hypothesis first asks :func:`~seqforge.kb.match.resolve_chemistry_id`
 what the asserted string NAMES, and that matcher is one-directional: a curated alias must sit inside
 the value, never the value inside an alias. What that removes is a whole class of manufactured claim —
-`library_strategy: RNA-Seq` used to name ``bulk-rnaseq-pe``, so an archive's filing vocabulary became a
+`library_strategy: RNA-Seq` used to name ``bulk-rnaseq``, so an archive's filing vocabulary became a
 bulk assertion and every guard below then read a single-cell winner as a cross-family contradiction. A
 string naming no node asserts nothing, and a term naming an ANCESTOR of the winner narrows to it rather
 than disagreeing with it (``narrows_to``, ADR-0020).

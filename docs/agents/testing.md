@@ -399,7 +399,7 @@ about the surfaces that consume them, where the reader cannot see the document y
   `tests/test_<the-issue-i-am-fixing>.py`.
 - Shared setup belongs in `tests/conftest.py`. It owns the one FASTQ writer, the synthetic onlist
   registry, the fake range server, the `snakemake` dry run, and the session-scoped immutable products:
-  the `10x-3p-gex-v3` / `bulk-rnaseq-pe` / `splitseq` datasets, the per-spec `kb_probes` sweep, and the
+  the `10x-3p-gex-v3` / `bulk-rnaseq` / `splitseq` datasets, the per-spec `kb_probes` sweep, and the
   `src_trees` AST parse.
 - **What may be shared is immutable products only.** A manifest, a registry, a directory nothing
   writes into. Never a workspace a test writes into: `seqforge/cache/` makes resume implicit (R5), so

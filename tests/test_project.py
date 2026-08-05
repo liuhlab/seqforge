@@ -58,7 +58,7 @@ def test_the_attribute_columns_are_the_union_of_what_resolved_not_a_fixed_schema
     still gets a column.
     """
     bulk = _assay(
-        synth_10x_v3.manifest, "bulk-rnaseq-pe", "s_bulk", {"strain": "CQ757", "isolate": "iso1"}, 1
+        synth_10x_v3.manifest, "bulk-rnaseq", "s_bulk", {"strain": "CQ757", "isolate": "iso1"}, 1
     )
     tenx = _assay(
         synth_10x_v3.manifest,
@@ -96,7 +96,7 @@ def test_an_attribute_that_did_not_resolve_is_an_empty_cell_not_a_guess(
 ) -> None:
     """Absence, honestly. The 10x sample has no `strain`, so its `strain` cell is empty — not "NA",
     not "None", and not the other sample's value carried across."""
-    bulk = _assay(synth_10x_v3.manifest, "bulk-rnaseq-pe", "s_bulk", {"strain": "CQ757"}, 1)
+    bulk = _assay(synth_10x_v3.manifest, "bulk-rnaseq", "s_bulk", {"strain": "CQ757"}, 1)
     tenx = _assay(synth_10x_v3.manifest, "10x-3p-gex-v3", "s_10x", {"tissue": "Neurons"}, 1)
 
     columns, rows = sample_metadata_table([bulk, tenx])
@@ -139,13 +139,13 @@ def test_the_index_sorts_assays_by_chemistry_and_totals_their_samples() -> None:
         [
             {"chemistry": "splitseq-v2", "subdir": "splitseq-v2", "n_samples": 3},
             {"chemistry": "10x-3p-gex-v3", "subdir": "10x-3p-gex-v3", "n_samples": 2},
-            {"chemistry": "bulk-rnaseq-pe", "subdir": "bulk-rnaseq-pe", "n_samples": 1},
+            {"chemistry": "bulk-rnaseq", "subdir": "bulk-rnaseq", "n_samples": 1},
         ]
     )
 
     assert [a["chemistry"] for a in index["assays"]] == [
         "10x-3p-gex-v3",
-        "bulk-rnaseq-pe",
+        "bulk-rnaseq",
         "splitseq-v2",
     ]
     assert index["n_assays"] == 3

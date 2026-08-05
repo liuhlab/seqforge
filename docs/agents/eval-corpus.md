@@ -486,7 +486,7 @@ of `library.chemistry = "RNA-Seq"` off that span-verifies and entails **by const
 value *is* the quote; entailment is vacuous whenever `value ⊆ quote`, which is exactly the limit
 `harvest/verify.py` documents about itself. `"RNA-Seq"` is not a chemistry — it is SRA's
 `library_strategy`, true of every 10x deposit ever made — but an asserted chemistry is matched against
-KB ids and aliases by substring, and `"rna-seq"` sits inside `bulk-rnaseq-pe`'s `"bulk RNA-seq"`. So
+KB ids and aliases by substring, and `"rna-seq"` sits inside `bulk-rnaseq`'s `"bulk RNA-seq"`. So
 it arrives as a **bulk** assertion against barcoded observed bytes and surfaces
 `conflict-bulk-asserted-single-cell-observed`, exit 4. Handing that string to the byte resolver as a
 hypothesis on this case's own pinned bytes reproduces it exactly, with no LLM in the loop;

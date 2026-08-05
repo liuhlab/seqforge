@@ -37,7 +37,7 @@ Gate semantics: a `requires` FAIL forbids the cell, an `excludes` PASS forbids t
 "every read carries this linker" from "most do and the rest of the head is junk" — the two agree only
 on a head with no junk in it, which is the one kind of head `kb roundtrip` generates. Calibrated
 there, a 0.9 purity bar forbade real SPLiT-seq's barcode read (linker1 0.905, linker2 0.827 over the
-head; 0.99+ over the ~61 % of it that is genuinely SPLiT-seq), so `bulk-rnaseq-pe` won on geometry at
+head; 0.99+ over the ~61 % of it that is genuinely SPLiT-seq), so `bulk-rnaseq` won on geometry at
 exit 0 with three correct whitelists never consulted — the plausible-matrix failure, not a refusal.
 The proportion is the shape that survives, and the reason it survives is that junk reads are
 **counted, not filtered**: they stay in the denominator, so contamination lowers the statistic instead

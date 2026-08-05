@@ -68,7 +68,7 @@ from __future__ import annotations
 #: 2026.7.15 — `has_segment kind: constant` becomes a floor on the SHARE OF READS carrying the window's
 #: modal consensus, replacing a mean per-cycle purity that could not tell "every read carries this
 #: linker" from "most do and the rest of the head is junk" (#149). This one MUST re-key: the defect it
-#: fixes is a cached verdict. A real SPLiT-seq dataset already resolved to `bulk-rnaseq-pe` at exit 0
+#: fixes is a cached verdict. A real SPLiT-seq dataset already resolved to `bulk-rnaseq` at exit 0
 #: would otherwise keep serving that candidate straight out of the cache, and the fix would land
 #: green while changing nothing anyone could observe.
 #: 2026.7.16 — the onlist hit rate's DENOMINATOR counts only reads that could have hit: a window
@@ -82,7 +82,7 @@ from __future__ import annotations
 #: a family term that narrows to the observed leaf is agreement rather than a conflict (ADR-0020).
 #: This MUST re-key, and for the reason 2026.7.15 and 2026.7.16 did — the defect it fixes is a cached
 #: REFUSAL. Every transcriptomic run in SRA carries `library_strategy: RNA-Seq`, which the old matcher
-#: read as `bulk-rnaseq-pe`, so a byte-provably single-cell dataset is already sitting in caches as
+#: read as `bulk-rnaseq`, so a byte-provably single-cell dataset is already sitting in caches as
 #: `conflict-bulk-asserted-single-cell-observed` at exit 4. Without the bump those datasets would keep
 #: being served that refusal out of the cache while this landed green and changed nothing anyone could
 #: observe. `evals` run with `use_cache=False`, so the benchmark cannot report this either way.
@@ -120,7 +120,7 @@ from __future__ import annotations
 #: 2026.8.6 — chemistry matching ranks by specificity, not by an alias's token count (#266,
 #: ADR-0028). ADR-0020 states the obligation this discharges: the tie-break is part of the verdict,
 #: so a change to it is a change to a cached one. The stale entries are the dangerous direction —
-#: a dataset whose metadata said "SPLiT-seq paired-end RNA-seq" is cached as `bulk-rnaseq-pe` at
+#: a dataset whose metadata said "SPLiT-seq paired-end RNA-seq" is cached as `bulk-rnaseq` at
 #: exit 0, a confident wrong answer that would keep being served while this landed green.
 RESOLVE_VERSION = "2026.8.6"
 

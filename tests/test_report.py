@@ -54,7 +54,7 @@ def _build_bulk_workspace(tmp_path: Path) -> Path:
     The self-consistent run means the manifest shas and the persisted candidate/matrix shas agree, so
     the report's scan-join finds the evidence matrix.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
     write_fastq_gz(f1, reads["R1"])
@@ -1944,7 +1944,7 @@ def test_an_alert_names_the_decision_and_the_value_the_workspace_currently_carri
 
     "Your chemistry call looks wrong" is only actionable once it says what the call currently IS, and
     a rule cannot know that — it is pure over metrics. So the expected values are read out of the
-    manifest on disk rather than restated here: a test that spelled `bulk-rnaseq-pe` would keep
+    manifest on disk rather than restated here: a test that spelled `bulk-rnaseq` would keep
     passing against a collector that had stopped reading the manifest at all.
     """
     _finish_a_starsolo_pipeline(own_workspace, summary=_BROKEN_BARCODES)

@@ -74,14 +74,24 @@ from .providers import (
 #: so a plan whose documents all differ in what is asked of them sends exactly what it sent before —
 #: and the version moves anyway, because one code state is one extractor, and a `prompt_version` that
 #: depended on how a particular plan happened to group would be unusable as provenance.
-#: 2026.8.1 — `bulk-rnaseq-pe`'s four format-describing aliases moved to `descriptive_aliases` (#266),
+#: 2026.8.1 — `bulk-rnaseq`'s four format-describing aliases moved to `descriptive_aliases` (#266),
 #: so the KB block no longer offers the model "paired-end RNA-seq" as a spelling of that id. The
 #: prompt only ever listed `identity.aliases`, so this is a byte change to the cached prefix and a
 #: narrowing of what the model is taught to name; `verify` still ACCEPTS those forms (they stay in
 #: `curated_forms`), so nothing the model can now draft is rejected for vocabulary it was never shown.
 #: The model is not stranded on a descriptively-worded bulk record either: the id and the entry's
 #: name ("Bulk Illumina paired-end RNA-seq (no cell barcode)") are both still in the block.
-EXTRACT_PROMPT_VERSION = "2026.8.1"
+#: 2026.8.2 — the KB block's bulk entry dropped its `-pe`: the two lines the loop writes for it are now
+#: `id: bulk-rnaseq` and `name: Bulk Illumina RNA-seq (no cell barcode)` (#273). The block is derived
+#: from the KB, so a chemistry rename lands directly in the CACHED PREFIX, and the version moves for
+#: that alone — one code state is one extractor, and a `prompt_version` stamped on two byte-different
+#: prompts cannot answer the only question it exists to answer, which is what produced this Assertion.
+#: Nothing the model can now draft is newly rejected, and nothing it could draft before is lost. The
+#: id it is taught here is the id `verify` checks — both read one KB, so the two cannot disagree about
+#: the spelling — and `identity.aliases` is byte-untouched, so every value that named this entry still
+#: names it. What moved is the STRING the model is told to return for a chemistry it was already being
+#: told about; the entry's own display name moved with it because the block prints that too.
+EXTRACT_PROMPT_VERSION = "2026.8.2"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -206,7 +216,7 @@ def build_kb_context(specs: dict[str, Spec]) -> str:
     onto the id `10x-3p-gex-v3`; `verify` then checks the same KB, so extraction and verification
     cannot disagree about vocabulary. Only the NAMING aliases are listed — a `descriptive_alias`
     ("paired-end RNA-seq") is a phrase any chemistry's record carries truthfully, and offering it here
-    as a spelling of `bulk-rnaseq-pe` would invite exactly the draft #266 stopped code from believing.
+    as a spelling of `bulk-rnaseq` would invite exactly the draft #266 stopped code from believing.
     `verify` accepts them anyway, so the asymmetry can only ever accept a draft, never reject one.
     """
     lines = ["Knowledge-base technologies (use these ids for library.chemistry):", ""]

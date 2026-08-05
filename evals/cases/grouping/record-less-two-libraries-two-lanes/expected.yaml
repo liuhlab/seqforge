@@ -40,4 +40,4 @@ description: >-
   `library.chemistry` is here anyway and is not decoration: it is what makes the run a decision rather
   than a refusal, so a grouping claim is being made about a dataset the compiler actually compiled.
 fields:
-  library.chemistry: bulk-rnaseq-pe
+  library.chemistry: bulk-rnaseq

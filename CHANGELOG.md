@@ -233,7 +233,7 @@ by hand, beside the code it describes, checked against itself.**
   manifest: **derived**. `WORKFLOW_VERSION` → 2026.7.2.
 - **The KB now blocks a silent collision.** Rung-0–2 separability is computed (generate each spec's
   reads; ask every other spec whether it would claim them with the onlist withheld). Its first run
-  found `bulk-rnaseq-pe` — the generic paired-end fallback — accepting SPLiT-seq's `cdna`+`bc` pair on
+  found `bulk-rnaseq` — the generic paired-end fallback — accepting SPLiT-seq's `cdna`+`bc` pair on
   geometry alone while declaring nothing. Both specs now declare the pair `processing_divergent`,
   `distinguishable_by: [onlist]`. `KB_VERSION` → 2026.7.2.
 - **Every KB entry round-trips.** The parametrize was a hardcoded list of three while the KB had five,
@@ -277,7 +277,7 @@ below — see that entry for what was proposed and what superseded it.
   to say so.
 - **R14 — the instructable surface is closed; the line is parse vs count.** `KB_PARSE_KEYS` + a
   `Backend` validator: the KB can no longer *express* a count key. `soloFeatures` left three specs;
-  `quantMode` and `outSAMtype` left `bulk-rnaseq-pe`, whose `backend.params` is now `{}` — meaningful,
+  `quantMode` and `outSAMtype` left `bulk-rnaseq`, whose `backend.params` is now `{}` — meaningful,
   not degenerate. `params_gate` goes from two checks to four (disjointness, coverage, per-owner
   faithfulness, cross-derivation), because disjointness alone is the decorative bug in reverse: it
   proves the owners cannot disagree, not that either key arrives.
@@ -439,7 +439,7 @@ table style, heading and list structure, inline HTML — is enforced.
   `Decision | Conflict | Question | Blocker` with rung provenance (onlist-verified rung 3 dominates a
   rung-2 look-alike; §12 benign twins recorded together, 0 questions). Content-addressed `.seqforge/`
   artifacts (R7). `mypy --strict` scope extended to `resolve/`.
-- **KB** — added `10x-3p-gex-v2` (26 bp length gate vs v3), `bulk-rnaseq-pe` (the no-barcode PE
+- **KB** — added `10x-3p-gex-v2` (26 bp length gate vs v3), `bulk-rnaseq` (the no-barcode PE
   branch), and `splitseq` (original SPLiT-seq, Rosenberg et al. Science 2018 — combinatorial 8 bp
   round barcodes + two fixed 30 bp linkers; Parse Evercode deliberately deferred to its own future
   entry). All pass `kb roundtrip`.

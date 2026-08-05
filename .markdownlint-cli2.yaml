@@ -44,6 +44,6 @@ ignores:
   - "docs/kb/10x-3p-gex-v3.md"
   - "docs/kb/bd-rhapsody-wta.md"
   - "docs/kb/splitseq.md"
-  - "docs/kb/bulk-rnaseq-pe.md"
+  - "docs/kb/bulk-rnaseq.md"
   # The v3.1 README is a symlink to the v3 README — linting the target once is enough.
   - "src/seqforge/kb/specs/10x-3p-gex-v3.1/README.md"
