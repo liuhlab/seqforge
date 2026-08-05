@@ -1,0 +1,33 @@
+# Three cells of one plate, deposited the way bcl2fastq names them, with cell 3 sequenced to a
+# quarter of its siblings' depth. `shallow:` is what makes that expressible: a deposit wrote one
+# depth for every library, so either every cell cleared the read floor or none did, and a corpus
+# could only ever grade "nothing was dropped".
+#
+# 1500 AND 400 ARE BOTH CHOSEN AGAINST THE PROBE BUDGET, not for size. `smartseq3` declares
+# `min_input_reads: 1000` and the entry's own comment says why it must stay under the 2000-read probe
+# budget: any file shallow enough to fail a floor of that size is read to EOF inside the budget, so
+# the gate is decided on an exact count rather than on an extrapolation. Both depths here are under
+# 2000, so BOTH sides of the comparison are exact — the starved cell at 400 and the two that clear at
+# 1500 — and a case whose whole subject is a threshold does not rest on an estimate.
+#
+# `onlists: none` is the only honest setting rather than a withholding: no whitelist exists for this
+# chemistry, because the cell barcode is the FILE.
+generate:
+  kind: spec
+  spec: smartseq3
+  n: 1500
+  seed: 0
+  onlists: none
+  deposit:
+    libraries: 3
+  shallow:
+    libraries: [3]
+    n: 400
+
+# The archive's own sentence, quoted verbatim from the experiment record of the deposit this shape is
+# taken from. Not "Smart-seq3": the point of steering a plate is that a real submitter's prose does
+# it, and this sentence carries a chemistry name inside a paragraph of husbandry and a citation —
+# which is exactly the shape that used to resolve to the generic fallback because an alias was ranked
+# by how many words it had. It enters resolve as a rung-0 claim with no LLM, so this runs in a CI
+# with no API key.
+hypothesis: "FACS sorted nasal Prox1+ cells were processed by Smart-Seq3 protocol Libraries were generated following Smart-Seq3 protocol (Hagemann-Jensen M et al.,Single-cell RNA counting at allele and isoform resolution using Smartseq3. Nat Biotechnol 2020)"

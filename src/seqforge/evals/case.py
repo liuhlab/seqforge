@@ -71,6 +71,67 @@ class OverLength(BaseModel):
     extra: int = Field(gt=0)
 
 
+class Dilute(BaseModel):
+    """Write the spec's layout on only a MINORITY of one read's records; the rest are plain cDNA.
+
+    The generator writes every element on every read, so a case built from a spec has that spec's
+    structure in 100 % of its own bytes — infinitely far above any floor the entry declares. That is
+    fine for a layout every read of a real library carries and wrong for one where the share is a
+    **protocol parameter**: Smart-seq3's tagged fraction is 6.9–70.5 % across five published
+    libraries, tuned at the bench by the tagmentation conditions, and the entry's whole separation
+    from generic bulk is a `motif_present` floor over that share. A fixture at 100 % can therefore
+    say nothing about the population the entry actually claims, and no recipe could express one.
+
+    ``fraction`` is the share that CARRIES the layout, and the remainder is drawn from
+    :func:`~seqforge.kb.generate.all_cdna_spec` — the same generator, so the untagged half carries no
+    signal the tagged half does not. The two populations are **interleaved**, deterministically in
+    the recipe's own seed, and that is load-bearing rather than tidy: every probe reads a bounded
+    head, so a file holding its tagged reads first is a population the resolver would read as fully
+    tagged.
+
+    ``libraries`` names which libraries of a :class:`Deposit` are diluted, 1-based; empty means all
+    of them. A plate's cells do not share one tagged fraction — two of ten measured cells sit below a
+    majority within one plate — so "one cell of this deposit is thin" is a real deposit shape and not
+    a contrivance of the fixture.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: A ``Read.id`` of the spec being generated. The other reads are untouched.
+    read: str
+    #: The share of records that carry the spec's layout.
+    fraction: float = Field(gt=0.0, lt=1.0)
+    #: 1-based library indices; empty = every library of the deposit.
+    libraries: list[int] = Field(default_factory=list)
+
+
+class Shallow(BaseModel):
+    """Libraries of a deposit written at their own depth, so one member can be starved by construction.
+
+    A deposit writes ``n`` reads per file for every library, which is right when the subject is the
+    filenames and wrong when it is a **threshold**: a chemistry may declare ``min_input_reads``, and a
+    plate's normal state is that some wells failed, so the behaviour worth pinning is one cell under
+    the floor beside siblings over it. With one depth per deposit that shape is inexpressible — every
+    cell clears the floor or none does, and a corpus can only grade "nothing was dropped".
+
+    A shallow library is a **prefix** of the deposit's own draw — the same molecules sequenced less
+    deeply, which is what a starved well is — and never a second draw at a smaller ``n``, which
+    would share only its first read with the deep one because the generator writes each read fully
+    before starting the next. ``n`` must therefore be smaller than the recipe's, and a value that is
+    not is a case error rather than a silent re-draw.
+
+    Depth varies **across libraries and never within one**, so the reason :class:`Deposit` rejected
+    depth as its lane-distinguisher does not apply here — each library is its own run, resolved on
+    its own bytes, and no role is re-seated across a modal-length band that moved.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: 1-based library indices written at ``n`` instead of the recipe's.
+    libraries: list[int] = Field(min_length=1)
+    n: int = Field(gt=0)
+
+
 class Deposit(BaseModel):
     """How many libraries a case is deposited as, and how many lanes each was loaded into.
 
@@ -140,6 +201,11 @@ class SpecRecipe(BaseModel):
     #: The deposit layout. The default — one library, one lane — is the shape every case had before
     #: the knob existed, down to the filenames and the bytes.
     deposit: Deposit = Field(default_factory=Deposit)
+    #: A minority-carrying population for one read. ``None`` keeps the 100 %-structured bytes every
+    #: case wrote before this knob existed.
+    dilute: Dilute | None = None
+    #: Libraries deposited at their own depth. ``None`` keeps one depth for the whole deposit.
+    shallow: Shallow | None = None
 
 
 class RandomRecipe(BaseModel):
@@ -625,6 +691,9 @@ class _Deposited:
     #: The read-header prefix (`@<prefix>:0`). It is the ONLY thing separating two lanes of one
     #: library, which carry the same molecules — see :class:`Deposit` for why not the depth.
     prefix: str
+    #: Which library of the deposit, 1-based. Two lanes of one library share it, which is what makes
+    #: a per-library depth or dilution a property of the LIBRARY and never of a lane.
+    library: int = 1
 
 
 def _mate_token(spec: Spec, read_id: str, index: int) -> str:
@@ -668,19 +737,62 @@ def _deposit(spec: Spec, read_ids: list[str], deposit: Deposit) -> list[_Deposit
     for library in range(1, deposit.libraries + 1):
         for lane in range(1, deposit.lanes + 1):
             stem = f"{SIM_RUN}_b{library:02d}_S{library}_L{lane:03d}"
-            out += [_Deposited(f"{stem}_{mates[r]}_001.fastq.gz", r, stem) for r in read_ids]
+            out += [
+                _Deposited(f"{stem}_{mates[r]}_001.fastq.gz", r, stem, library) for r in read_ids
+            ]
     return out
 
 
-def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
-    try:
-        spec = kb.load_spec(gen.spec)
-    except Exception as exc:
-        raise CaseError(f"unknown KB spec {gen.spec!r}: {exc}") from exc
+def _depth_of_library(gen: SpecRecipe) -> dict[int, int]:
+    """1-based library index -> how many reads each of its files holds.
 
-    pools = kb.build_pools(spec, seed=gen.seed, pool_size=gen.pool_size)
-    reads = kb.generate_reads(spec, n=gen.n, seed=gen.seed, pool_size=gen.pool_size, pools=pools)
+    ``gen.n`` for every library unless :class:`Shallow` names one, which is the shape every deposit
+    had before a floor existed to fall under.
+    """
+    depths = {i: gen.n for i in range(1, gen.deposit.libraries + 1)}
+    if gen.shallow is not None:
+        if gen.shallow.n >= gen.n:
+            # Shallower, or the knob is not what it says. A library deeper than the deposit's own `n`
+            # cannot be a prefix of it, so it would have to be a second draw — and a second draw
+            # shares only its first read with the first one, because the generator writes each read
+            # fully before starting the next.
+            raise CaseError(
+                f"shallow.n={gen.shallow.n} is not shallower than the deposit's n={gen.n}"
+            )
+        for library in gen.shallow.libraries:
+            if library not in depths:
+                raise CaseError(
+                    f"shallow.libraries names library {library}, but this deposit has "
+                    f"{gen.deposit.libraries} (1-based)"
+                )
+            depths[library] = gen.shallow.n
+    return depths
 
+
+def _diluted(seqs: list[str], *, fraction: float, seed: int) -> list[str]:
+    """``fraction`` of ``seqs`` kept, the rest replaced by plain cDNA, and the two INTERLEAVED.
+
+    Interleaved because every probe reads a bounded head: a file holding its structured reads first
+    is a population the resolver reads as fully structured, and the fixture would measure nothing
+    about the share it declares. The diluent is drawn by the same generator from the KB's own
+    all-cDNA entry (:func:`~seqforge.kb.generate.all_cdna_spec`), so the replaced reads carry no
+    signal the kept ones do not.
+    """
+    diluent = kb.all_cdna_spec()
+    kept = round(fraction * len(seqs))
+    plain = kb.generate_reads(diluent, n=len(seqs) - kept, seed=seed)[diluent.reads[0].id]
+    mixed = seqs[:kept] + plain
+    random.Random(seed).shuffle(mixed)
+    return mixed
+
+
+def _shaped(gen: SpecRecipe, reads: dict[str, list[str]]) -> dict[str, list[str]]:
+    """The deposit's one draw, with the deviations a recipe declares about the READ SET applied.
+
+    Withholding and over-length describe the reads themselves rather than any one library's copy of
+    them, so they are applied once, here, before the draw is split per library — which is what keeps
+    a shallow library a prefix of a *shaped* deposit rather than of a raw one.
+    """
     if gen.reads:
         # Withheld AFTER generation, never before: the generator draws every read from one seeded
         # stream, so filtering the spec first would change the bytes of the reads that DID survive and
@@ -705,6 +817,65 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
         reads[ol.read] = [
             seq + "".join(rng.choice("ACGT") for _ in range(ol.extra)) for seq in reads[ol.read]
         ]
+    return reads
+
+
+def _reads_per_library(
+    gen: SpecRecipe, base: dict[str, list[str]]
+) -> dict[int, dict[str, list[str]]]:
+    """1-based library index -> the reads that library's files hold.
+
+    Every library shares ``base`` unless a knob says otherwise, so a deposit that declares neither
+    :class:`Shallow` nor :class:`Dilute` writes exactly the bytes it wrote before either existed.
+
+    A shallow library is ``base`` **truncated**, never re-drawn: a prefix of the deep draw is the
+    same molecules sequenced less deeply, which is what a starved well is, where a second draw at a
+    smaller ``n`` would be a different library that merely happens to be smaller. The generator
+    writes one read fully before starting the next, so a re-draw would leave the first read a prefix
+    and every read after it unrelated — the sort of half-true fixture a threshold case cannot rest on.
+    """
+    depths = _depth_of_library(gen)
+    per: dict[int, dict[str, list[str]]] = {
+        library: {rid: seqs[:depth] for rid, seqs in base.items()}
+        for library, depth in depths.items()
+    }
+
+    if gen.dilute is not None:
+        thin = gen.dilute
+        if thin.read not in base:
+            raise CaseError(
+                f"dilute.read={thin.read!r} is not a deposited read of spec {gen.spec!r} "
+                f"(have: {sorted(base)})"
+            )
+        unknown = [lib for lib in thin.libraries if lib not in per]
+        if unknown:
+            raise CaseError(
+                f"dilute.libraries names {unknown}, but this deposit has "
+                f"{gen.deposit.libraries} librar(ies) (1-based)"
+            )
+        for library in thin.libraries or sorted(per):
+            per[library] = dict(per[library])
+            # A seed per library, offset from every other stream this module owns: two thin cells of
+            # one plate are two draws of the diluent, not one draw twice, and their files must
+            # content-address apart even before the header prefix separates them.
+            per[library][thin.read] = _diluted(
+                per[library][thin.read],
+                fraction=thin.fraction,
+                seed=gen.seed + 613 + library,
+            )
+    return per
+
+
+def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
+    try:
+        spec = kb.load_spec(gen.spec)
+    except Exception as exc:
+        raise CaseError(f"unknown KB spec {gen.spec!r}: {exc}") from exc
+
+    pools = kb.build_pools(spec, seed=gen.seed, pool_size=gen.pool_size)
+    reads = _shaped(
+        gen, kb.generate_reads(spec, n=gen.n, seed=gen.seed, pool_size=gen.pool_size, pools=pools)
+    )
 
     if gen.truncate is not None and gen.truncate.file not in reads:
         # A recipe names the READ, never the file it landed under — that name is this function's
@@ -736,11 +907,12 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
             f"lane is one run; check the reads' `file_hint` against `resolve.group_runs`."
         )
 
+    per_library = _reads_per_library(gen, reads)
     paths: list[Path] = []
     labels: dict[str, str] = {}
     for item in deposited:
         path = dest / item.name
-        _write_fastq_gz(path, reads[item.read_id], prefix=item.prefix)
+        _write_fastq_gz(path, per_library[item.library][item.read_id], prefix=item.prefix)
         paths.append(path)
         labels[path.name] = item.read_id
         # Every copy of the named read, because `truncate` names a read and a deposit deposits it

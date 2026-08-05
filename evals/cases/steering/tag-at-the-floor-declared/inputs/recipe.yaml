@@ -1,0 +1,19 @@
+# Byte-identical to `steering/tag-at-the-floor-undeclared` — same spec, same n, same seed, same
+# dilution — plus the one line that is the whole difference between the pair. Keep the two `generate`
+# blocks equal: the moment they diverge the pair stops being a control and becomes two unrelated
+# cases that happen to sit beside each other.
+generate:
+  kind: spec
+  spec: smartseq3
+  n: 3000
+  seed: 0
+  onlists: none
+  dilute:
+    read: R1
+    fraction: 0.03
+
+# The experiment record's own `library_construction_protocol`, verbatim. A rung-0 claim with no LLM,
+# so this runs in a CI with no API key — the same channel prose reaches resolve through once harvest
+# has span-verified it, which is why a case may stand in for the model here and may not stand in for
+# the verification.
+hypothesis: "FACS sorted nasal Prox1+ cells were processed by Smart-Seq3 protocol Libraries were generated following Smart-Seq3 protocol (Hagemann-Jensen M et al.,Single-cell RNA counting at allele and isoform resolution using Smartseq3. Nat Biotechnol 2020)"

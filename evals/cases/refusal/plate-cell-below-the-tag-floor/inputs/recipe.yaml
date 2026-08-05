@@ -1,0 +1,31 @@
+# Three cells of one plate, all at the same depth, with ONE of them thinned below the entry's
+# admission floor. `dilute.libraries` is what makes a per-cell tagged fraction expressible: a plate's
+# cells do not share one, and two of ten measured cells of a real plate sit below a majority within
+# that one plate, so "one cell of this deposit is thin" is a deposit shape rather than a contrivance.
+#
+# 1 % AGAINST A 2 % FLOOR, not 1.9 %. The subject here is what happens on the far side of the gate,
+# and a fixture placed a hair under it would be measuring the gate's own calibration instead — which
+# the knowledge base's round-trip already does, from both sides, on every entry that declares a
+# floor.
+#
+# The depth is uniform on purpose. A cell that was BOTH thin and shallow would abstain on its depth
+# before its chemistry was ever consulted, and the dissent this case exists to pin would never be
+# reached.
+generate:
+  kind: spec
+  spec: smartseq3
+  n: 1500
+  seed: 0
+  onlists: none
+  deposit:
+    libraries: 3
+  dilute:
+    read: R1
+    fraction: 0.01
+    libraries: [3]
+
+# The archive's own sentence, as in the grouping case. It is REQUIRED here rather than incidental:
+# without a declared chemistry every healthy cell only ties, no cell decides a chemistry that says a
+# Sample is a cell, and the deposit is never judged as a plate at all — it stops at exit 4 on the
+# ordinary question instead, which is a different case with a different meaning.
+hypothesis: "FACS sorted nasal Prox1+ cells were processed by Smart-Seq3 protocol Libraries were generated following Smart-Seq3 protocol (Hagemann-Jensen M et al.,Single-cell RNA counting at allele and isoform resolution using Smartseq3. Nat Biotechnol 2020)"

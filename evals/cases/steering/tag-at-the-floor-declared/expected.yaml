@@ -1,0 +1,33 @@
+outcome: decide
+description: >-
+  METADATA RESCUES THE TIE, on bytes that are otherwise identical to the case that stops. Its twin
+  `steering/tag-at-the-floor-undeclared` is the same recipe minus one line, and it asks; here the
+  archive's own library-construction sentence names the chemistry, the tie collapses to the entry the
+  claim names, and the deposit compiles at exit 0 as `smartseq3`.
+
+  THEY SHIP TOGETHER BECAUSE EACH ALONE PINS HALF A MECHANISM. The undeclared case proves the tie
+  genuinely stops a run; this one proves the declared string genuinely settles it. A corpus holding
+  only the first would be satisfied by a resolver that could never be steered at all, and one holding
+  only the second by a resolver that steers when nothing needs steering.
+
+  THE STRING IS AN ARCHIVE'S, NOT A SLOGAN. It is quoted verbatim from a real experiment record: a
+  chemistry name twice, inside a sentence of sorting method and a journal citation. That shape is the
+  hard case rather than the easy one — an alias matcher ranking a curated name by how many words it
+  carried resolved exactly this kind of value to the generic fallback, so a claim naming the right
+  chemistry steered the run to the wrong one. Here the same sentence must land on the plate entry,
+  and nothing else in the hermetic tier asks it to.
+
+  WHAT THE CLAIM DOES NOT BUY, written down so the case is not read as more than it is. It does not
+  make the bytes decisive: the tag is on 3 % of R1, which clears the entry's admission floor and
+  nothing more, and the fallback still scores level with the plate entry. The claim is consulted only
+  because the bytes already tied, it must still be byte-CONSISTENT to be honoured, and a claim naming
+  a chemistry these reads had eliminated would be surfaced rather than obeyed — which is the sibling
+  refusal case, one floor down.
+
+  The roles are pinned because a chemistry decided from prose still has to seat its reads from
+  structure: R1 is the read carrying the tag and the UMI, R2 the plain cDNA mate, and nothing about
+  which is which comes from the claim or from a filename.
+fields:
+  library.chemistry: smartseq3
+  library.roles.R1: R1
+  library.roles.R2: R2

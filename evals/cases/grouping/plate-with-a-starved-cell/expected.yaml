@@ -1,0 +1,42 @@
+outcome: decide
+description: >-
+  A PLATE WITH A DUD WELL — three cells in one deposit, one of them starved below the read floor its
+  chemistry declares, by construction. It is the only case in either tier where a chemistry says one
+  Sample IS one cell AND some of those cells do not clear the floor, which is a plate's normal state
+  rather than an exception: failed and empty wells are designed into the format, so a compiler that
+  refused on one would refuse on every real plate.
+
+  WHY THE HERMETIC TIER OWNS THIS. The corpus's real plate is 96 cells of GSE207085 selected by a
+  stated rule — sort the deposit's runs by accession and take the first 96 — and no cell in that draw
+  is below the floor. Choosing one that was would be a designed test wearing a real dataset's
+  clothes: the drop would fire because we picked the cell that makes it fire, and the case would
+  measure our selection rather than the rule. Here the starved cell is a recipe line, at no data cost,
+  and what is proved is the rule.
+
+  WHAT `experiment.n_samples: 3` IS CLAIMING, and it is the pre-drop number ON PURPOSE. The manifest
+  keeps every cell it was handed — it is what the data IS, and dropping there would make a dataset's
+  identity a function of a knowledge-base number, so raising the floor would give the same bytes a
+  different name. The drop is a verdict, recomputed at every compile against whatever knowledge base
+  is loaded, and it lives in the pipeline rather than in the manifest. So three is the right answer
+  here and TWO is the right answer downstream, and the two numbers disagreeing is the design.
+  `tests/test_evals.py::test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short` reads
+  the post-drop list off the SAME pass this grade came from, because the harness stops at a graded
+  resolve and builds no pipeline.
+
+  THE STARVED CELL ABSTAINS RATHER THAN DISSENTING, and the order is load-bearing. Depth is asked
+  BEFORE conformance: a cell too shallow for its bytes to speak for it inherits the plate's chemistry
+  and is recorded as a resolved conflict, which moves no exit code. Asked the other way round, a
+  starved cell that happened to land on the generic fallback would dissent and refuse the whole
+  deposit before its depth was ever consulted — and that is the measured shape, not a hypothetical:
+  on the real plate the one cell under the floor decides bulk on 901 reads. This case's cell 3 is at
+  400 reads against a floor of 1000, and its siblings at 1500 are exactly counted rather than
+  extrapolated, because the floor sits under the probe's own read budget.
+
+  THE DECLARED PROTOCOL STRING IS NOT DECORATION HERE. These bytes tie with the generic paired-end
+  fallback — the tie `spec/smartseq3-bytes-only` exists to pin — so without a claim every cell asks,
+  no cell decides a chemistry that declares a Sample is a cell, and the plate rule never runs at all.
+  The string is the archive's own, quoted from the deposit this case's shape is taken from, so what
+  reaches resolve is exactly what a real record supplies.
+fields:
+  library.chemistry: smartseq3
+  experiment.n_samples: 3

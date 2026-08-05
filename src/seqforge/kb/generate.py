@@ -89,6 +89,31 @@ def build_pools(spec: Spec, *, seed: int = 0, pool_size: int = 64) -> dict[str, 
     return pools
 
 
+def all_cdna_spec() -> Spec:
+    """The KB entry whose every element is plain cDNA — the honest thing to dilute a layout with.
+
+    Derived from the loaded entries, never named. What a diluent has to BE is "reads carrying no
+    structure at all, drawn by this same generator", which is a property of a spec and checkable
+    here; an id written into a caller is a name that outlives the entry it points at, and the way
+    that fails is a fixture quietly diluting with the wrong reads.
+
+    Two callers need it and they need the same one: the round-trip's two-sided ``min_rate`` check,
+    which builds the population a motif floor actually claims, and an eval recipe describing a
+    library where only a minority of reads carry the layout. A second copy of this derivation is a
+    second opinion about what "no structure" means.
+    """
+    from .loader import list_spec_ids, load_spec
+
+    plain = [
+        tech
+        for tech in list_spec_ids()
+        if all(el.type == "cdna" for read in load_spec(tech).reads for el in read.elements)
+    ]
+    if len(plain) != 1:
+        raise ValueError(f"expected exactly one all-cDNA entry to dilute with, found {plain}")
+    return load_spec(plain[0])
+
+
 def generate_reads(
     spec: Spec,
     *,
