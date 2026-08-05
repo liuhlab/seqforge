@@ -24,6 +24,11 @@ workspace.py the one place `seqforge/` is spelled, and the one place a readable-
 pipeline.py what is INSIDE one compiled pipeline directory: the three filenames, and the reader that
             answers which module ran, the config, the contracted samples, the results dir and the
             per-sample join. Top-level because the composer writes and everyone else reads (ADR-0024)
+recordset.py the record set on disk: ONE loader for both dialects — an `io records` cache, and a
+            hand-written `source: user` file that declares structure and never a fact — plus the
+            draft `records new` writes. `source` picks the dialect, never the extension. Top-level
+            for pipeline.py's reason: the module that writes the artifact owns reading it, and three
+            verbs read one (ADR-0034)
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
             h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout).
             metrics.py is the leaf metric vocabulary, stats.py the per-module reader registry, and

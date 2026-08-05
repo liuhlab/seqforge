@@ -4618,3 +4618,176 @@ def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does()
     assert len({a.span.doc_sha256 for a in ages}) == 2, "and each cites the record it names"
     placed = {s.doc_sha256 for s in subjects}
     assert {a.span.doc_sha256 for a in ages} <= placed, "including the one nobody sent"
+
+
+# --------------------------------------------------------------------------------------------
+# the declared grouping — a `source: user` record set fuses runs the filenames keep apart (#270)
+# --------------------------------------------------------------------------------------------
+
+#: The corpus case these two read. Its bytes, its record set and its graded sample count are its own
+#: (`evals/cases/grouping/declared-one-library-across-two-runs/`); what is left here is the half a
+#: graded `Expected` cannot say — which sample, how deep, and that the fuse announced itself.
+FUSE_CASE_ID = "declared-one-library-across-two-runs"
+
+
+def test_a_declared_record_set_fuses_two_runs_into_one_sample(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Two `_S<n>` runs, one declared sample: ONE sample holding all four files, at an OK exit.
+
+    **The count is the case's own claim** (`experiment.n_samples: 1`), graded on every commit. What
+    is asserted here is what a count cannot carry: that the sample is the id the record set chose
+    rather than a run's own, that it kept BOTH runs' files, and that no file was dropped on the way
+    in — a fuse that bound one run and lost the other leaves the count at 1 and the depth halved,
+    which is the same silent-loss class as the split it exists to undo.
+
+    **A fuse announces itself and never refuses**, which is the property most worth pinning. Two
+    libraries of one chemistry declared as one sample passes every other check: the gate that refuses
+    a sample spanning two chemistries sees agreement, and the join sees every file placed. So the
+    warning is the only thing standing between a mistyped `parent` and a permanent, plausible,
+    half-wrong matrix — and it must stay a warning, because refusing here would refuse the feature's
+    primary use case on first run and teach callers to route around exit codes (ADR-0034).
+
+    Read off the SAME pass the grade came from, or it would be asserting over a second compile.
+    """
+    from seqforge.resolve.group import run_key
+
+    case = next(c for c in discover_cases() if c.id == FUSE_CASE_ID)
+    assert case.records is not None, "the case commits a record set; without it it grades nothing"
+    run, out, metadata = _harness_decisions(case, None, monkeypatch)
+    assert run.skipped is None, run.skipped
+    assert run.grade.ok, run.to_json()
+
+    # The deposit really is two runs, asserted before anything is concluded from it: a one-run
+    # deposit would give one sample with no record set involved at all, and the case would be green
+    # while measuring nothing.
+    names = [o.file.basename for o in out.observations]
+    assert len(names) == 4
+    assert sorted({run_key(n) for n in names}) == ["SIM_b01_S1", "SIM_b02_S2"]
+
+    assert [s.sample_id for s in metadata.samples] == ["lib01"], (
+        "the declared sample is the grouping key the record set typed; two samples is the record "
+        "set loaded and not applied"
+    )
+    # A hand-written id is a grouping key and not a specimen an archive named, so it is not an
+    # accession — and the sample carries no attribute, because the dialect has no way to declare
+    # one. That is the half that keeps `asserted` meaning a slot a submitter typed.
+    assert [(s.accession, s.attributes) for s in metadata.samples] == [(None, {})]
+    assert [len(s.file_shas) for s in metadata.samples] == [4], "one sample holds BOTH runs"
+    # Every file, once. A sample holding one run twice would leave the count and the depth intact
+    # and the dataset wrong.
+    assert len({sha for s in metadata.samples for sha in s.file_shas}) == len(names)
+
+    fused = [w for w in metadata.warnings if w.code == "declared_sample_fuses_runs"]
+    assert len(fused) == 1, f"a declared fuse must say so: {[w.code for w in metadata.warnings]}"
+    assert "SIM_b01_S1" in fused[0].message and "SIM_b02_S2" in fused[0].message, (
+        "the note names the runs that were fused, or it cannot be acted on"
+    )
+    assert not metadata.blockers, "a fuse is a Warning, never a Blocker"
+    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq"]
+    # A file with no role is dropped by `_units` at exit 0 — the silent-loss class one level down.
+    assert len(out.role_of_sha()) == len(names), (
+        "a file lost its role and would be dropped silently"
+    )
+
+
+def test_the_same_deposit_without_the_record_set_stays_two_samples(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The control for the case above: identical recipe, record set withheld, TWO samples.
+
+    Without it "one sample" is unfalsifiable — a compiler that fused every deposit it was handed,
+    or one whose `_S<n>` had quietly left the run key, would grade the case above green. The claim
+    being pinned is a DIFFERENCE, so both halves have to be measured, and the recipe is taken off
+    the case itself rather than restated so the two halves cannot drift apart.
+
+    **A test and not a second corpus case.** As a case it would be a byte-identical deposit
+    differing by one committed file, re-grading the record-less filename path
+    `record-less-two-libraries-two-lanes` already grades — a second compile in the tier for nothing
+    new. Here it costs one compile in a file that already runs.
+
+    The expectation is rebuilt rather than copied because it is a different prediction about the
+    same bytes: 2, and no fuse to warn about.
+    """
+    import dataclasses
+
+    case = next(c for c in discover_cases() if c.id == FUSE_CASE_ID)
+    control = dataclasses.replace(
+        case,
+        id=f"{FUSE_CASE_ID}-control",
+        records=None,
+        expected=Expected(
+            outcome="decide",
+            description="the same deposit with nothing declaring a grouping",
+            fields={"library.chemistry": "bulk-rnaseq", "experiment.n_samples": 2},
+        ),
+    )
+    run, out, metadata = _harness_decisions(control, None, monkeypatch)
+    assert run.skipped is None, run.skipped
+    assert run.grade.ok, run.to_json()
+
+    assert [s.sample_id for s in metadata.samples] == ["SIM_b01_S1", "SIM_b02_S2"], (
+        "with no record set the run grouping IS the sample identity (ADR-0010)"
+    )
+    assert [len(s.file_shas) for s in metadata.samples] == [2, 2], (
+        "two half-depth samples — which is exactly what the declared set exists to overrule"
+    )
+    assert [w.code for w in metadata.warnings] == [], (
+        "nothing was fused, so nothing is announced; a note here would fire on every deposit"
+    )
+    assert out.exit_code == 0, (
+        "the split compiles cleanly, which is why it is the expensive silence"
+    )
+
+
+def test_a_case_commits_its_record_set_under_either_name_and_never_both(tmp_path: Path) -> None:
+    """`records.json` and `records.yaml` are one loader, and two of them in one case is refused.
+
+    The corpus used to read `records.json` with the container model alone, which is how a case
+    could only ever commit an archive transcript: the name is the one `seqforge io records` writes,
+    and a set validated by the model alone would have accepted an attribute a human typed — graded
+    `asserted` here while the CLI reading the identical file refused it.
+
+    Three properties, one fixture. A hand-written set loads under the YAML name; a case carrying
+    both names is refused rather than resolved by a preference order, because the loser would be
+    silently ungraded; and a malformed set arrives as a `CaseError` naming the case, which is what a
+    corpus run reports, rather than as a traceback out of a parser.
+    """
+    from seqforge.evals.case import load_case
+
+    case_dir = tmp_path / "case"
+    (case_dir / "inputs").mkdir(parents=True)
+    (case_dir / "inputs" / "recipe.yaml").write_text(
+        "generate:\n  kind: spec\n  spec: bulk-rnaseq\n"
+    )
+    (case_dir / "expected.yaml").write_text(
+        "outcome: decide\ndescription: a hand-written grouping\nfields:\n  experiment.n_samples: 1\n"
+    )
+    structure = (
+        "source: user\n"
+        "records:\n"
+        "  - level: sample\n"
+        "    id: lib01\n"
+        "  - level: run\n"
+        "    id: SIM_b01_S1\n"
+        "    parent: lib01\n"
+        "    filenames: [SIM_b01_S1_L001_R1_001.fastq.gz]\n"
+    )
+    (case_dir / "records.yaml").write_text(structure)
+
+    loaded = load_case(case_dir)
+    assert loaded.records is not None and loaded.records.source == "user"
+    assert [r.accession for r in loaded.records.at("sample")] == ["lib01"]
+
+    (case_dir / "records.json").write_text('{"source": "test", "query": "PRJNA9", "records": []}')
+    with pytest.raises(CaseError, match="records.json and records.yaml"):
+        load_case(case_dir)
+
+    (case_dir / "records.json").unlink()
+    (case_dir / "records.yaml").write_text(
+        structure.replace(
+            "    parent: lib01\n", "    parent: lib01\n    attributes: {tissue: gut}\n"
+        )
+    )
+    with pytest.raises(CaseError, match="never a fact about what a sample was"):
+        load_case(case_dir)

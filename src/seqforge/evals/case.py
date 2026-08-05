@@ -36,6 +36,7 @@ from ..kb.generate import write_fastq_gz
 from ..kb.schema import Spec
 from ..models.observation import Observation
 from ..models.records import ArchiveRecord, ArchiveRecordSet
+from ..recordset import RecordSetError, load_record_set
 from ..resolve.group import run_key
 
 CASES_DIRNAME = "cases"
@@ -386,12 +387,16 @@ class Case:
     recipe: Recipe
     expected: Expected
     metadata_docs: list[Path]
-    #: `<case>/records.json` — what the archive declares, as `seqforge io records` fetched it.
+    #: `<case>/records.json` — what the archive declares, as `seqforge io records` fetched it — or
+    #: `<case>/records.yaml`, structure a human declared about data that never had an accession.
     #:
     #: Committed rather than fetched at run time, for the same reason the FASTQ is a recipe: a case
     #: must be reproducible and must not need the network. It is public metadata (no lab path,
     #: `test_skill_never_leaks_a_lab_path` still applies), it is an INPUT rather than an expectation,
     #: and it is byte-identical to what `io records` returns today.
+    #:
+    #: A hand-written set declares which files compile together and never a fact about a sample, so
+    #: a case carrying one grades a sample COUNT and no attribute — see `_records_the_case_commits`.
     records: ArchiveRecordSet | None = None
 
     @property
@@ -480,20 +485,54 @@ def load_case(root: Path) -> Case:
     docs = sorted(p for p in meta_dir.glob("*") if p.is_file()) if meta_dir.is_dir() else []
     docs += _docs_beside_the_data(recipe)
 
-    records_path = root / "records.json"
-    records = (
-        ArchiveRecordSet.model_validate_json(records_path.read_text())
-        if records_path.is_file()
-        else None
-    )
     return Case(
         id=root.name,
         root=root,
         recipe=recipe,
         expected=expected,
         metadata_docs=docs,
-        records=records,
+        records=_records_the_case_commits(root),
     )
+
+
+#: The two names a case may commit its record set under, and there is no extension dispatch behind
+#: them: ``load_record_set`` parses YAML and JSON is YAML, so the suffix tells a *reader* which
+#: dialect to expect and tells the loader nothing. ``records.json`` is what ``seqforge io records``
+#: writes and what every benchmark case ships; ``records.yaml`` is what a human types for data that
+#: never had an accession, and it is the only way a ``source: user`` set reaches the corpus at all.
+_RECORD_SET_NAMES = ("records.json", "records.yaml")
+
+
+def _records_the_case_commits(root: Path) -> ArchiveRecordSet | None:
+    """The record set this case commits, under either name — or ``None`` for the many with neither.
+
+    **Through the one loader**, which is most of the point. This used to be a bare
+    ``model_validate_json``, so a case's record set was validated by the container model alone: a
+    hand-written set declaring an attribute would have loaded here and been graded ``asserted``,
+    while the CLI reading the identical file refused it. A corpus that validates its inputs more
+    weakly than the product does cannot pre-register what the product will do with them.
+
+    **Two names, and never both.** A case carrying both would have one read and the other silently
+    ignored — and the ignored one is exactly where somebody would have written the grouping they
+    expected to be graded — so the ambiguity is refused rather than settled by a preference order.
+
+    A malformed set is a :class:`CaseError` carrying the refusals that say why, for the reason the
+    CLI turns one into a ``Blocker``: a corpus run reports a broken case by id, and a traceback out
+    of a YAML parser is not a report.
+    """
+    present = [root / name for name in _RECORD_SET_NAMES if (root / name).is_file()]
+    if not present:
+        return None
+    if len(present) > 1:
+        raise CaseError(
+            f"{root.name}: commits both {' and '.join(p.name for p in present)}. A case has one "
+            f"record set — two would leave whichever lost silently ungraded. Keep the one this "
+            f"case is about and delete the other."
+        )
+    try:
+        return load_record_set(present[0])
+    except RecordSetError as exc:
+        raise CaseError(f"{root.name}/{present[0].name}: {exc}") from exc
 
 
 def _docs_beside_the_data(recipe: Recipe) -> list[Path]:

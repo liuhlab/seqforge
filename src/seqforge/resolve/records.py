@@ -79,6 +79,16 @@ BioSample, and no submitter alias. With no record, sample identity falls back to
 nothing. Nothing here refuses for lack of a record. The refusal is narrower and it is real: a record
 that *exists* and does not account for the files on disk is a broken join, and half-joining would
 leave some files with no sample while the manifest still read as though it described them all.
+
+**And a record is not always an archive's.** ``source`` says who declared the set, and a ``user`` one
+is a human describing their own pre-deposit data: structure only — levels, ids, parents, filenames —
+and never an attribute, because ``asserted`` above means "a submitter typed this into a slot for this
+sample" and a line of hand-written YAML has no document to grep back into (`docs/adr/0034`). None of
+the precedence machinery below moves; two messages do. Declaring one sample over runs the filenames
+would have kept apart is the *reason* such a set gets written, so it is a note rather than a refusal —
+and a note only here, since firing it on a deposit would report every ordinary run-to-BioSample
+fusion. A set that leaves a file unplaced still refuses, with a remedy naming the file the human
+wrote rather than an archive they were never near.
 """
 
 from __future__ import annotations
@@ -255,6 +265,7 @@ def _join(
         return _join_by_filename(files), [], []
 
     runs = records.at("run")
+    declared_by_user = records.declared_by_hand
     by_accession = {r.accession: r for r in runs}
     # The submitted file itself and not just its name: the size on it is read below, and looking it
     # up a second time from the run would mean re-deciding which of that run's entries matched.
@@ -266,6 +277,9 @@ def _join(
     grouped: dict[str, list[str]] = {}
     accession_of: dict[str, str | None] = {}
     record_of: dict[str, ArchiveRecord | None] = {}
+    # What the FILENAMES would have said, kept beside what the records decided. Only ever read for a
+    # hand-written set, and only to say where the two disagree (:func:`_fused_runs_note`).
+    run_keys_of: dict[str, set[str]] = {}
     unclaimed: list[str] = []
     notes: list[ValidationWarning] = []
 
@@ -288,11 +302,27 @@ def _join(
         # and honest about it: the files are grouped correctly, we just cannot say what they are.
         sample_id = sample.accession if sample is not None else run.accession
         grouped.setdefault(sample_id, []).append(f.sha256)
-        accession_of[sample_id] = sample.accession if sample is not None else None
-        record_of[sample_id] = sample
+        # A hand-written id is a GROUPING KEY and not a specimen the archive named (`CONTEXT.md`,
+        # **Sample**), so it is not an accession and must not be stored as one — `plate7` does not
+        # match the accession pattern and reached this stage as an uncaught validation error rather
+        # than as anything a caller could act on. Carrying no record with it is the same rule from
+        # the other side: a structure-only set has nothing for `_positions_for` to read, and a loader
+        # that let an attribute through would otherwise have it graded `asserted` — the standing
+        # reserved for a slot a submitter typed (`docs/adr/0034`).
+        declarer = None if declared_by_user else sample
+        accession_of[sample_id] = declarer.accession if declarer is not None else None
+        record_of[sample_id] = declarer
+        run_keys_of.setdefault(sample_id, set()).add(run_key(basename))
 
     if unclaimed:
         return [], notes, [_join_blocker(unclaimed, records)]
+
+    if declared_by_user:
+        notes.extend(
+            _fused_runs_note(sid, run_keys_of[sid])
+            for sid in sorted(grouped)
+            if len(run_keys_of[sid]) > 1
+        )
 
     return (
         [
@@ -346,6 +376,44 @@ def _size_disagreement(
     )
 
 
+def _fused_runs_note(sample_id: str, keys: set[str]) -> ValidationWarning:
+    """A hand-written record set put several filename-runs into one sample. Say so; never refuse.
+
+    Two libraries of the same chemistry declared as one sample is the one shape nothing else catches.
+    The gate that refuses a sample spanning two chemistries does not see it — the chemistries agree —
+    and :func:`_join_blocker` does not either, because every file was placed. It is also the expensive
+    direction of being wrong: a split library gives quarter-depth matrices somebody notices, and a
+    fused one gives a single plausible matrix nobody does.
+
+    **It is still a note.** Fusing runs the filenames separate is the *whole point* of writing a
+    record set by hand — a library resequenced for saturation is ``_S3`` where batch one was ``_S1``,
+    and a library split across two flowcells carries a different flowcell id in every name, so both
+    compile as two samples at partial depth until a human says otherwise. Refusing here would refuse
+    the feature working, and an exit code that fires when it need not teaches callers to route around
+    exit codes. Silence is the other failure — a mistyped ``parent`` would be permanent and invisible
+    — and a warning naming what disagreed and how it was settled is this resolver's own instrument
+    for a thing it decided rather than deferred.
+
+    **Only for a set a human wrote**, which is what makes ``source`` semantic rather than decorative.
+    Every ordinary deposit joins several runs under one BioSample — that is what ``ancestor(run,
+    "sample")`` is *for* — so fired on an archive set this would put a line on every dataset that has
+    a record at all, which is how a note stops being read.
+    """
+    ordered = sorted(keys)
+    return ValidationWarning(
+        code="declared_sample_fuses_runs",
+        message=(
+            f"{sample_id}: the record set fuses {len(ordered)} runs the filenames would have kept "
+            f"apart ({', '.join(ordered[:6])}{', ...' if len(ordered) > 6 else ''}). Nothing in those "
+            f"names says they are one library, so this grouping is declared rather than observed — "
+            f"they compile into one {sample_id} matrix because the record set says so, where the same "
+            f"files with no record set would compile into {len(ordered)}. If that is not what was "
+            f"meant, the line to fix is the `parent` on one of those runs."
+        ),
+        subject=BlockerSubject(kind="dataset", ref=f"{SAMPLE_FIELD_PREFIX}{sample_id}"),
+    )
+
+
 def _join_by_filename(files: Sequence[FileIdentity]) -> list[_Sample]:
     """No record: the run grouping IS the sample identity.
 
@@ -371,17 +439,37 @@ def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
     fault and sends a reader to inspect a download that is very likely fine, when one command against
     the cache is the fix. The distinction is the whole reason the stamp is on the set (ADR-0033):
     *most* deposits publish no originals, so an empty list can never be the signal by itself.
+
+    A set a **human wrote** takes neither of those branches, and that is not a nicety. It carries no
+    writer stamp — nothing stamped it — and no accession, so the stale-cache branch would fire on
+    every one of them and send its reader to re-fetch from an archive that was never involved. Same
+    refusal, same code: what changes is that the gap is in a file they can open, and the remedy names
+    the two ways to close it.
     """
     declared = sorted({r.accession for r in records.at("run")})
-    # The check-the-files remedy, which is the tail of both: even a re-fetch can only get you back
-    # to this question, so it is stated once rather than diverging between the two branches.
+    user_written = records.declared_by_hand
+    # A hand-written set's `query` is not an accession — it defaults to the file's own stem — so it
+    # is introduced as the name of a file rather than dropped where a reader expects one to be typed.
+    named = f"the record set {records.query}" if user_written else records.query
+    # The check-the-files remedy, which is the tail of both archive branches: even a re-fetch can only
+    # get you back to this question, so it is stated once rather than diverging between the two.
     on_disk = (
         "the files are not from this accession, or they were renamed after download: check the "
         "accession, or re-fetch them with a tool that keeps the run accession in the filename "
         "(`fasterq-dump --split-files` names them <RUN>_1.fastq.gz). To compile with no sample facts "
         "at all, omit the accession — a dataset with no record is not an error."
     )
-    if records.io_version is None:
+    if user_written:
+        why = "none of them by any run id or filename it lists: "
+        remedy = (
+            "This record set was written by hand, so what does not account for these files is the "
+            "file you wrote, not an archive: add each one to the `filenames` of the run it belongs "
+            "to, or re-draft with `seqforge records new <dir>` — which lists every file in the "
+            "directory, one sample per run — and edit that. Dropping the record set entirely is also "
+            "legal: the filenames group on their own, and a dataset with no record set is not an "
+            "error."
+        )
+    elif records.io_version is None:
         why = (
             "none of them by run accession, and this record set carries no writer stamp — it was "
             "cached before seqforge transcribed the submitter's own filenames, so the other half of "
@@ -400,7 +488,7 @@ def _join_blocker(unclaimed: list[str], records: ArchiveRecordSet) -> Blocker:
         id="blk-record-join-incomplete",
         code=BlockerCode.RECORD_JOIN_INCOMPLETE,
         message=(
-            f"{records.query} declares {len(declared)} run(s) ({', '.join(declared[:6])}"
+            f"{named} declares {len(declared)} run(s) ({', '.join(declared[:6])}"
             f"{', ...' if len(declared) > 6 else ''}), and {len(unclaimed)} file(s) on disk match "
             f"{why}"
             f"{', '.join(sorted(unclaimed)[:6])}{', ...' if len(unclaimed) > 6 else ''}. Refusing to "

@@ -250,7 +250,7 @@ def _harvest_extract_pipeline(
         verify_drafts,
     )
     from ..kb import load_all_specs
-    from ..models.records import ArchiveRecordSet
+    from ..recordset import RecordSetError, load_record_set
 
     specs = load_all_specs()
     roled = _roled(docs, instruction)
@@ -278,7 +278,16 @@ def _harvest_extract_pipeline(
     dataset_ref = "dataset"
     records = None
     if records_path is not None:
-        records = ArchiveRecordSet.model_validate_json(records_path.read_text())
+        try:
+            # One loader for a fetched cache and a hand-written set alike. A `source: user` set
+            # carries no prose by construction, so it renders no document and this stage finds
+            # nothing to ask — which is the intended shape, not a degraded one.
+            records = load_record_set(records_path)
+        except RecordSetError as exc:
+            # Exit 3, the code a Blocker always carries, rather than the 1 an unreadable *document*
+            # takes: that one is a file we could not turn into text, this one is a file that is not
+            # the thing it claims to be, and each blocker below names a line of it to edit.
+            return _StageOut(exc.envelope, 3, err=True)
         dataset_ref = records.query or dataset_ref
 
     # Which documents exist, and what each will be asked, is one module's decision — the eval harness
@@ -291,6 +300,8 @@ def _harvest_extract_pipeline(
     )
     if dry_run:
         return _StageOut(plan.report().model_dump(mode="json"), 0)
+    if not plan.documents:
+        return _nothing_to_ask(workspace)
 
     logs = logs_dir(workspace)
     logs.mkdir(parents=True, exist_ok=True)
@@ -456,6 +467,68 @@ def _harvest_extract_pipeline(
     # that failed the span tripwire needs a human rather than a silent drop.
     code = 4 if (conflicts or report.rejected) else 0
     return _StageOut(payload, code)
+
+
+def _nothing_to_ask(workspace: Path) -> _StageOut:
+    """A plan with no documents: write the empty artifact, exit 0, and reach no provider.
+
+    **This is a normal shape, not a degenerate one.** A record set a human wrote declares structure —
+    which files compile together — and never a fact, so it carries no prose at all: nothing in it is
+    worth asking, and the send list comes back empty. An archive set whose records happen to carry no
+    free text lands in exactly the same place, and did so long before the hand-written dialect
+    existed. The stage used to walk straight past this: the loop that builds the extractor never ran,
+    and the verify step then asserted on the ``None`` it was left holding — a bare ``AssertionError``
+    out of a compiler whose whole contract is that a refusal is an exit code and carries a remedy.
+
+    **A no-op, and never a refusal.** Nothing was asked, so nothing failed. Exit 0 is already what
+    ``--dry-run`` answers for the same empty plan, and it is what lets ``seqforge run`` step through
+    the LLM stage on the in-house, no-accession, no-prose dataset a record set exists for — a compile
+    that otherwise stopped dead unless the caller happened to know to pass ``--no-llm``.
+
+    **Before a provider is resolved**, for the reason ``--dry-run`` is: a records-only compile on a
+    machine with no credential at all must not fail on a credential it never needed. Nothing here
+    spends a token, so there is no ledger and no transcript to write — those two files record
+    exchanges, and there were none to record.
+
+    The one artifact that *is* written is ``assertions.json``, empty. It is written because every
+    downstream stage reads a **path**: ``manifest fill --assertions`` and ``processing new`` open the
+    file rather than ask whether harvest had anything to say, so "no claims" and "no file" have to be
+    the same thing on disk or a records-only run fails two stages later on a missing file. Written
+    whatever ``--verify`` says, because with no drafts the verified and the unverified artifact are
+    the same three empty lists.
+    """
+    logs = logs_dir(workspace)
+    logs.mkdir(parents=True, exist_ok=True)
+    assertions = logs / "assertions.json"
+    assertions.write_text(
+        json.dumps({"instruction_docs": [], "document_subjects": [], "assertions": []}, indent=2)
+    )
+    return _StageOut(
+        {
+            # Said in a field rather than implied by a row of zeros: "the extraction found nothing"
+            # and "the extraction was never given anything to look at" are different facts, and only
+            # one of them is worth a reader's attention.
+            "no_documents": (
+                "nothing to ask: no document was handed in, and the records carry no free text. A "
+                "record set that declares structure and no facts is the intended shape, so this is "
+                "an empty extraction and not a refusal — what these samples ARE will come from the "
+                "bytes, and any fact about them enters through a document `seqforge harvest` reads."
+            ),
+            "n_drafts": 0,
+            "n_extract_rejected": 0,
+            "extract_rejected": [],
+            "n_accepted": 0,
+            "n_stored": 0,
+            "n_rejected": 0,
+            "drafts": [],
+            "assertions": [],
+            "instructions": [],
+            "conflicts": [],
+            "rejected": [],
+            "assertions_path": str(assertions),
+        },
+        0,
+    )
 
 
 def _write_transcript(logs: Path, meter: TokenMeter) -> Path:

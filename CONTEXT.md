@@ -21,6 +21,14 @@ The pair `(max_reads, max_bytes)` that bounds a head. Whichever trips first stop
 Wall-clock is never a budget. A head carries the budget it was read under — not one it is told it had.
 _Avoid_: limit, cap, quota
 
+**Abandoned read**:
+A **Head** whose iteration the caller stopped — neither a clean EOF, nor a **Budget** trip, nor a cut
+stream — so its byte accounting was never taken. Distinct from *truncated* (the bytes ran out) and
+from `ok` (the stream was not readable gzip), because those are verdicts about the stream and this is
+a verdict about the read; an abandoned read's compressed byte count is **absent, never zero**.
+_Avoid_: exhausted — that names a **Budget** trip, which is the opposite case, and `budget_exhausted`
+already means it; also cancelled, aborted, interrupted
+
 **Record**:
 One FASTQ entry: four lines — header, sequence, plus, quality.
 _Avoid_: entry, line, sequence (a sequence is only the second line); what an archive declares is an
@@ -114,7 +122,11 @@ answer in EFO's vocabulary, not a second fact
 
 **Sample**:
 A **biological specimen** — what NCBI's BioSample describes. Never a read of bytes. The metadata
-resolver answers "which sample is each file from"; the byte resolver never sees one.
+resolver answers "which sample is each file from"; the byte resolver never sees one. It is also the
+level that **fuses runs** — `ancestor(run, "sample")` is the join, so a sample is what becomes one
+`<sample>.h5ad`. In a `source: user` **Record set** the two come apart, and there the sample id is a
+*grouping key* and not a claim about a specimen: it carries no attributes, so it declares only which
+files compile together (`docs/adr/0034`).
 _Avoid_: specimen; and never use "sample" for a head. `StreamSample`/`probe_sample`/`sample_fastq_*`
 are legacy spellings of the byte sense, being retired.
 
@@ -154,12 +166,32 @@ _Avoid_: mate (a paired-end sense with no room for `I1`); role or `read_id`, whi
 designation is matched *to* and is not — a role comes from the **Chemistry**'s read layout and this
 comes from the filename; lane token
 
+**Units table**:
+The table `compose` writes beside a **Compiled pipeline**'s config: one row per FASTQ, naming its
+**Sample**, its **Run**, its **Lane**, and which layout read it is. It is the only statement of where
+a run's files are and what order they arrive in (`docs/adr/0027`), so every consumer — a module's
+declared inputs and the verbs that module calls — reads placement from here rather than deriving it a
+second time (`docs/adr/0036`).
+_Avoid_: **sample sheet** — bcl2fastq's `SampleSheet.csv` maps indices to samples *upstream* of us,
+which is a different mapping one layer up, and the collision is why we do not reuse the phrase; also
+manifest (the IR — what the data IS, never where its files sit) and `units.tsv` (a filename)
+
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
 transcript, never an interpretation, and optional: most sequencing data never had an accession, and
-that absence is the normal case rather than a degraded one (`docs/adr/0010`).
+that absence is the normal case rather than a degraded one (`docs/adr/0010`). An archive is not the
+only declarer — a **Record set** is the container, and its `source` says who declared it.
 _Avoid_: metadata (too broad), SRA entry, database row; and never **Record**, which is four lines of
 FASTQ
+
+**Record set**:
+The records handed to the metadata resolver, at whatever levels they were declared, with `source`
+naming who declared them. `source: user` is one a human wrote about their own pre-deposit data: it
+carries structure only — `level`, `id`, `parent`, `filenames` — and **no attributes**, which is what
+keeps `asserted` meaning *"an archive's typed slot"* in `docs/adr/0010`'s precedence table
+(`docs/adr/0034`). A fact about a sample enters through harvest, carrying a **Span**, or not at all.
+_Avoid_: records file, sample sheet (a bcl2fastq artefact, and a different thing), manifest — a
+record set is an *input* to the dataset manifest and never one of the two artifacts
 
 **Deposit**:
 Everything one submission put into an archive under one project, as the archive holds it — every

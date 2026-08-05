@@ -85,11 +85,13 @@ Same order, when a step needs inspection or a re-run in isolation:
 
 ```bash
 seqforge io records ACC           # accession -> project/sample/experiment/run records (network)
+seqforge records new FASTQ_DIR    # NO accession: draft which files compile together (local)
+seqforge records validate FILE    # ...then edit it. Structure only, never a fact about a sample
 seqforge probe FILES              # bytes -> Observation      (no LLM, no network)
 seqforge harvest extract DOCS --records seqforge/records/ACC.json   # the one LLM touchpoint
 seqforge resolve score FILES      # Obs + KB -> library decision  (no LLM)
 # --- the IR: what the data IS. One per dataset, immutable. Takes no genome. ---
-seqforge manifest fill FILES --accession ACC --assertions seqforge/assertions.json
+seqforge manifest fill FILES --accession ACC --assertions seqforge/assertions.json [--records FILE]
 seqforge manifest validate seqforge/manifest.yaml
 # --- the flags: what to DO with it. Many per dataset. Optional — compose defaults them. ---
 seqforge processing new seqforge/manifest.yaml --assembly ce11 --annotation WS298 -o seqforge/processing.yaml

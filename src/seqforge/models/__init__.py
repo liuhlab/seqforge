@@ -118,6 +118,8 @@ from .resolve import (
     EvalReport,
     ModuleSelection,
     Question,
+    RecordSetResult,
+    RecordSetSummary,
     ResolveResult,
     RoleAssignment,
     RunResult,
@@ -147,6 +149,9 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
         ArbitrationRequest,
         ArbitrationResponse,
         ValidationReport,
+        # the record set — an INPUT, like the FASTQs and the harvested documents, never an artifact
+        RecordSetSummary,
+        RecordSetResult,
         # compile / manifest — TWO artifacts, two lifetimes
         DatasetManifest,
         ProcessingManifest,
@@ -280,6 +285,8 @@ __all__ = [
     "ArbitrationRequest",
     "ArbitrationResponse",
     "ValidationReport",
+    "RecordSetSummary",
+    "RecordSetResult",
     "ModuleSelection",
     "SampleAdmission",
     "ComposeResult",

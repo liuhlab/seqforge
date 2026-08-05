@@ -114,6 +114,7 @@ def manifest_fill(
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate.
     """
     from ..io.remote import RemoteError
+    from ..recordset import RecordSetError
 
     try:
         records = _load_records(accession, records_path, offline=offline)
@@ -123,6 +124,12 @@ def manifest_fill(
         typer.echo(
             json.dumps({"error": "records_unavailable", "detail": str(exc)}, indent=2), err=True
         )
+        raise typer.Exit(3) from exc
+    except RecordSetError as exc:
+        # A --records file that is not a record set refuses the same way an unfetchable one does:
+        # the facts you named cannot be used. It carries blockers rather than a sentence, because
+        # every one of them names a line to edit — and a stack trace out of a YAML parser names none.
+        typer.echo(json.dumps(exc.envelope, indent=2), err=True)
         raise typer.Exit(3) from exc
 
     _emit(
@@ -557,12 +564,15 @@ def _load_records(
     from ..io.archive import fetch_records
     from ..io.remote import RemoteError
     from ..models.records import ArchiveRecordSet
+    from ..recordset import load_record_set
 
     if records_path is not None:
-        # Whatever stamp this file was written with, it keeps: re-stamping a set this process did
-        # not fetch would forge the signature the staleness check reads, and a set predating
-        # submitted files is exactly what the check exists to spot.
-        return ArchiveRecordSet.model_validate_json(records_path.read_text())
+        # One loader for a machine's cache and a hand-written set alike — which it is, is what
+        # `source` says and not what the extension says. Whatever stamp this file was written with,
+        # it keeps: re-stamping a set this process did not fetch would forge the signature the
+        # staleness check reads, and a set predating submitted files is exactly what it exists to
+        # spot. A hand-written set carries no stamp because it was never fetched.
+        return load_record_set(records_path)
     if not accessions:
         return None
     if offline:
