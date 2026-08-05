@@ -17,6 +17,18 @@ with all six merged. So the removal of ``read_count`` from the signature vocabul
 **not at all**, and neither did any of those six merges. The trees that agree are what make a
 disagreement mean something.
 
+**#267 took it before and after, and it did not move** (2026-08-05, ``--no-llm``, ``--trials 1``):
+the same hex on both sides — at the merge-base ``7e2488f`` in a detached worktree, and on
+``fix/267-single-end-plate`` with `smartseq3` declaring a single-end read set and ``KB_VERSION``
+bumped to ``2026.8.6``. 18/18, ``field_accuracy`` 1.0, both rates 0.0, on both trees. The before was
+taken in a *separate checkout of the same machine* rather than by stashing, because the branch was
+being written while it ran; that is the shape to copy when a tree is not clean. **A zero here was
+predictable and is recorded anyway**: the tier carries no single-end deposit and no Smart-seq3 one at
+all (``GSE207085-nasal-prox1-96cells`` is outside :data:`FROZEN_18`, by #258), and `smartseq3`'s
+``requires`` gate measures its motif at 0.00–0.15% on every non-SS3 read set, so no new read set can
+be seated on any of the eighteen. That is the argument for *expecting* zero, and this paragraph
+exists because this module's own rule is that an expected zero is not a measured one.
+
 **It is not #231's ``247a9354eecd11773e3dc482f83cfb916c1b1a3edd3e47f1202d57298007f426``
 (``27ffd05``), and nothing regressed — the report's SHAPE moved under it.** ``questions_asked`` is now
 a dict (``total`` / ``per_case`` / ``missed``) where the 2026-07 baseline hashed a scalar. The

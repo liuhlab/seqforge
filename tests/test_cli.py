@@ -1552,7 +1552,7 @@ def test_umi_extract_takes_one_derived_geometry_and_offers_no_way_to_declare_a_n
     assert result.exit_code == 0, result.stdout
     written = json.loads(result.stdout)
     assert written["read_id"] == "R1"
-    assert (written["pairs"], written["tagged"], written["untagged"]) == (3, 2, 1)
+    assert (written["fragments"], written["tagged"], written["untagged"]) == (3, 2, 1)
     # The offset histogram is how a run reports whether the unanchored search still earns its keep.
     assert written["offsets"] == {"0": 1, "12": 1}
     assert (tmp_path / "cell_42.bam").exists()

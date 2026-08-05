@@ -23,6 +23,19 @@ The tag itself is not sequenced by accident: the Read 1 primer ends `...GTGTATAA
 `AGAGACAG` of the TSO is consumed by the primer and the read genuinely begins at `ATTGCGCAATG`, at
 offset 0 with no anchor to find.
 
+## The two sequencing configurations
+
+The Methods publish three — *"75-bp single end, 50-bp single end or 150-bp paired end"* — which are
+two read sets here, because the two single-end recipes differ in cycle count and not in structure.
+`reads` is the paired one and `read_sets.se` names R1 alone (ADR-0029). R1 and not R2, and that is
+structural rather than conventional: R1 is the read carrying `tso_tag` + `umi` + `tso_ggg` + `cdna_r1`
+— every element that says Smart-seq3 — so it is the one that survives on its own, while R2 is plain
+cDNA indistinguishable from bulk.
+
+A single-end deposit runs the same pipeline. The extraction is entirely *within* the tagged read, so
+the mate is an addition rather than half of it (ADR-0035): the extractor takes one FASTQ, writes one
+unpaired record per fragment, and the aligner is told `SAM SE` instead of `SAM PE`.
+
 ## How seqforge tells it apart from bulk
 
 **By anchoring, not by the motif.** The whole separation is one test: the 11 bp tag at *read start*,
@@ -46,9 +59,6 @@ side for rung 3 to reach for.
 
 ## What is not modelled
 
-- **Single-end.** The Methods publish "75-bp single end, 50-bp single end or 150-bp paired end"; this
-  entry declares two reads, so a single-end deposit refuses rather than resolving. That is a gap
-  shared with bulk RNA-seq and tracked separately, not a property of this chemistry.
 - **Smart-seq3xpress.** A separate publication with no ontology term of its own and a different cDNA
   start — and that start is exactly the geometry the extractor is derived from, so folding it in here
   would launder an unresolved disagreement between primary sources into a derived parameter. It is a

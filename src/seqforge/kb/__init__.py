@@ -128,7 +128,41 @@ from .schema import Spec
 #: round-trip is NOT extended per read set, deliberately: it is per READ, from the same seed, so a
 #: subset would re-run a strict subset of the same checks. Recognition was the unproven thing, and it
 #: is what the new resolve cases assert.
-KB_VERSION = "2026.8.5"
+#: 2026.8.6 — `smartseq3` declares `se: [R1]`, the second sequencing configuration its own peer-reviewed
+#: Methods publish ("75-bp single end, 50-bp single end or 150-bp paired end"). 2026.8.5 built the
+#: mechanism and `bulk-rnaseq` was the only entry that could use it: the plate half could not follow,
+#: because `map/star-umi`'s mate-role helper RAISED rather than render an extraction with no mate.
+#: ADR-0035 removes that — the tag operation is entirely WITHIN the tagged read (find the anchor, cut
+#: the UMI, trim `geometry.span`), so the single-end form is the base case and the mate is an addition
+#: that inherits the `UB`. This spec edit and the wider extractor are one change and not two: declaring
+#: the read set alone unlocks a `umi_tagged` placement that then dies at DAG construction, which turns
+#: a recoverable refusal into a failure past handover.
+#: R1 and not R2, structurally rather than conventionally: R1 is the TAGGED read (`tso_tag` + `umi` +
+#: `tso_ggg` + `cdna_r1`), so it is the one that survives alone, while R2 is plain cDNA and an `se` set
+#: over it would declare a configuration this entry could not recognize. The set is a SUBSET of ids
+#: `reads` already declares, so R1's coordinates still exist exactly once and the two configurations
+#: cannot drift. The entry's one `requires` gate addresses R1, a read present in EVERY set, so
+#: ADR-0029's universality rule holds and the anchored motif still gates the single-end configuration —
+#: this is the rule's first shipped instance, and it is satisfied rather than exercised.
+#: The bump costs a `run_id` and nothing else, and both halves of that are MEASURED rather than
+#: expected, because a plate has neither thing that makes the bulk case safe: no onlist, and on a
+#: one-file deposit no orphan to charge. Method, figures and the three depths they were taken at:
+#: `docs/research/smartseq3-single-end-configuration.md` (2026-08-05).
+#: On a PAIRED deposit the maximal set still wins, at the score this entry always had, by exactly the
+#: `λ/|R|` the subset pays for the mate it declined to explain — so the same candidate is selected at
+#: the same value, `dataset_hash` does not move, and no stored plate manifest is REGENERATED; every
+#: dataset simply recompiles under a new `run_id`, the standing price of a spec-semantics change.
+#: On a SINGLE-END deposit the contest with the generic fallback is a NEAR tie whose exact margin is
+#: DEPTH-DEPENDENT — an exact tie on the truncated slice a fixture scores, +0.000999 to the plate on
+#: every read — so quote no margin without its depth, and read only what survives both: inside
+#: `_THETA` (0.02) either way. That is the DESIGNED outcome, not a defect: it routes to the declared
+#: `smartseq3` <-> `bulk-rnaseq` edge (`processing_divergent`, `distinguishable_by: [metadata]`), i.e.
+#: a Question at exit 4, which is recoverable. The signature was NOT tuned to win it outright — #257
+#: measured every additional R1 support on this entry as a strict liability. Both directions ship as
+#: gates in `tests/test_kb.py`, and the single-end one asserts that BULK DOES NOT WIN rather than that
+#: the plate does — the asymmetry is what makes it hold at both depths, where an assertion demanding an
+#: outright win would pass on a deposit and fail on the fixture that scores it.
+KB_VERSION = "2026.8.6"
 
 __all__ = [
     "KB_VERSION",
