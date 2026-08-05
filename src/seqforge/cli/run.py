@@ -70,9 +70,13 @@ def _run_records_stage(
     from ..io.archive import fetch_records
     from ..io.remote import RemoteError
     from ..models.records import ArchiveRecordSet
+    from ..recordset import load_record_set
 
     if records_path is not None:
-        return ArchiveRecordSet.model_validate_json(records_path.read_text()), records_path
+        # The one loader: a cache `io records` wrote and a set a human typed are the same input here,
+        # and `source` — not the extension — says which. A hand-written set is handed on to harvest
+        # exactly like a fetched one; carrying no prose, it renders no document to ask about.
+        return load_record_set(records_path), records_path
     if not accession:
         return None, None
     if offline:
@@ -372,6 +376,7 @@ def run_cmd(
     calls its own provider (DEEPSEEK_API_KEY / ANTHROPIC_API_KEY), which is why --no-llm exists.
     """
     from ..io.remote import RemoteError
+    from ..recordset import RecordSetError
 
     # A fingerprint package stands in for the raw FASTQs: unpack it, take its slices as `files`, and
     # carry a pinned probe map so resolve reproduces the full-file verdict (and hash) from the slices.
@@ -414,6 +419,11 @@ def run_cmd(
         )
     except RemoteError as exc:
         stages["records"] = {"error": "records_unavailable", "detail": str(exc)}
+        _run_finish(stages, 3)
+    except RecordSetError as exc:
+        # Same exit as an unfetchable record and for the same reason — the records you named cannot
+        # be used — but carrying the blockers, since each one names a line of that file to edit.
+        stages["records"] = {"error": "records_invalid", **exc.report.model_dump(mode="json")}
         _run_finish(stages, 3)
     if records is not None:
         stages["records"] = {

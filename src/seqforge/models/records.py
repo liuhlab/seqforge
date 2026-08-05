@@ -33,6 +33,13 @@ from pydantic import BaseModel, ConfigDict, Field
 #: files. Other archives use other words for the same four things.
 RecordLevel = Literal["project", "sample", "experiment", "run"]
 
+#: The ``source`` of a set a **human wrote** about their own pre-deposit data, rather than one
+#: transcribed from an archive. It lives beside the field it is a value of, because three modules
+#: branch on it and a string literal repeated in three places is three chances to typo a decision:
+#: the loader picks the structure-only dialect from it, the join fires its fuse note only under it,
+#: and the join's refusal chooses a remedy by it (`docs/adr/0034`).
+USER_SOURCE = "user"
+
 
 class FreeText(BaseModel):
     """One piece of prose from a record, and what the archive called it.
@@ -180,6 +187,7 @@ class ArchiveRecordSet(BaseModel):
 
 __all__ = [
     "RecordLevel",
+    "USER_SOURCE",
     "FreeText",
     "RecordAttribute",
     "SubmittedFile",

@@ -250,7 +250,7 @@ def _harvest_extract_pipeline(
         verify_drafts,
     )
     from ..kb import load_all_specs
-    from ..models.records import ArchiveRecordSet
+    from ..recordset import RecordSetError, load_record_set
 
     specs = load_all_specs()
     roled = _roled(docs, instruction)
@@ -278,7 +278,18 @@ def _harvest_extract_pipeline(
     dataset_ref = "dataset"
     records = None
     if records_path is not None:
-        records = ArchiveRecordSet.model_validate_json(records_path.read_text())
+        try:
+            # One loader for a fetched cache and a hand-written set alike. A `source: user` set
+            # carries no prose by construction, so it renders no document and this stage finds
+            # nothing to ask — which is the intended shape, not a degraded one.
+            records = load_record_set(records_path)
+        except RecordSetError as exc:
+            # Exit 3, the code a Blocker always carries, rather than the 1 an unreadable *document*
+            # takes: that one is a file we could not turn into text, this one is a file that is not
+            # the thing it claims to be, and each blocker below names a line of it to edit.
+            return _StageOut(
+                {"error": "records_invalid", **exc.report.model_dump(mode="json")}, 3, err=True
+            )
         dataset_ref = records.query or dataset_ref
 
     # Which documents exist, and what each will be asked, is one module's decision — the eval harness
