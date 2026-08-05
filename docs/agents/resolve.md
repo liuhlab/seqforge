@@ -110,6 +110,22 @@ resolver averts. Scoping the rule to a proper subset is what keeps its blast rad
 feature that introduced it — every pair that predates read sets scores, ranks and escalates
 byte-identically.
 
+**The orphan rule has a degenerate twin, and it needs its own condition.** When the deposit is ONE
+cDNA file the fallback orphans nothing — it explains the single read it was handed, and what is
+missing was never deposited at all, so no other file carries the evidence
+`seats_a_file_the_fallback_dropped` looks for. The only witness left is the **assertion**: a
+barcodeless top on a proper-subset read set, while the asserted chemistry's barcode role is unfillable
+and its cDNA role fillable, is `Blocker(MISSING_TECHNICAL_READ)` and not a question. That is the same
+condition `_no_candidate_blocker` has always refused on, reached by a second entrance — before read
+sets, one file made every spec invalid and the dataset fell into that branch; `bulk-rnaseq`'s `se` set
+made one candidate valid and the refusal degraded into a question offering `bulk-rnaseq`
+(#309, GSE208154). Two things follow. Descent must keep the asserted chemistry in the scored pool even
+when `length_feasible` drops it — its evaluation is the only thing that can answer *why* it could not
+be seated, and it used to be scored only by the accident of `pool = [...] or runnable` firing on an
+empty pool. And the rule stays scoped to a PROPER subset: a maximal-set bulk winner over an asserted
+single-cell chemistry explained every file, so it stays `_single_cell_collapse_conflict`'s open
+Conflict at exit 4, where a human is shown a disagreement rather than a dead end.
+
 **The filename prior is sub-threshold by construction.** `β · prior(r, f)` is 1 when the file's
 `_1`/`_2` token matches the role's conventional slot and 0 otherwise, with `β` far below the smallest
 evaluator weight — so it can break an **exact byte-tie** and nothing else. It can never override bytes
@@ -185,6 +201,9 @@ if no candidate passes its requires:
     a required PHYSICAL read is unfillable by any file -> Blocker(MISSING_TECHNICAL_READ, remedy)
     gzip or integrity failed                           -> Blocker(TRUNCATED_GZIP | CORRUPT_FASTQ)
     otherwise                                          -> Blocker(UNSUPPORTED_TECHNOLOGY)
+
+a BARCODELESS top on a PROPER-SUBSET read set, while the ASSERTED chemistry's barcode role
+is unfillable and its cDNA role fillable          -> Blocker(MISSING_TECHNICAL_READ, remedy)
 
 divergent_ties = confusable ties with the top that are NOT processing-equivalent
 

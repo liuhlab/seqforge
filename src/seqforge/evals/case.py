@@ -117,6 +117,17 @@ class SpecRecipe(BaseModel):
 
     kind: Literal["spec"] = "spec"
     spec: str
+    #: Which of the spec's reads were actually **deposited**; empty (the default) means all of them,
+    #: byte-for-byte the shape every case had before this knob existed.
+    #:
+    #: The archive's second commonest deviation after :class:`OverLength`, and until now inexpressible
+    #: in a recipe for the same reason: a submitted read set is not always the chemistry's read set.
+    #: SRA drops the technical read unless a dump asks for it (``fasterq-dump --include-technical``),
+    #: and a run submitted as a Cell Ranger BAM never had one in the archive's read space at all — its
+    #: CB/UMI are BAM tags, so no dump flag brings them back (GSE208154). Naming the READS the deposit
+    #: holds says that, where a hand-picked read length would only imply it, and it stays tied to the
+    #: KB: edit the chemistry and the case's bytes move with it.
+    reads: list[str] = Field(default_factory=list)
     #: Reads per generated FILE, not per case: a 2x2 deposit of ``n: 400`` writes 400 reads eight times.
     n: int = Field(default=3000, gt=0)
     seed: int = 0
@@ -669,6 +680,17 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
 
     pools = kb.build_pools(spec, seed=gen.seed, pool_size=gen.pool_size)
     reads = kb.generate_reads(spec, n=gen.n, seed=gen.seed, pool_size=gen.pool_size, pools=pools)
+
+    if gen.reads:
+        # Withheld AFTER generation, never before: the generator draws every read from one seeded
+        # stream, so filtering the spec first would change the bytes of the reads that DID survive and
+        # a deposit-shape knob would silently be a different-molecules knob.
+        missing = [rid for rid in gen.reads if rid not in reads]
+        if missing:
+            raise CaseError(
+                f"reads={missing} are not reads of spec {gen.spec!r} (have: {sorted(reads)})"
+            )
+        reads = {rid: seqs for rid, seqs in reads.items() if rid in gen.reads}
 
     if gen.over_length is not None:
         ol = gen.over_length

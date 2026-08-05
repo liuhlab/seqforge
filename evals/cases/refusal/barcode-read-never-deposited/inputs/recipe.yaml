@@ -1,0 +1,23 @@
+# A 10x 3' v3 run deposited as its cDNA read ALONE — the barcode read is not in the archive at all.
+#
+# `reads: [R2]` is the whole fixture: the molecules are the generator's real v3 cDNA, and R1 (16 bp CB
+# + 12 bp UMI) was never written. That is GSE208154's shape reproduced without the network — its 11
+# runs were submitted as Cell Ranger `possorted_genome_bam_*.bam`, so ENA generated no FASTQ and SRA's
+# normalized run declares ONE 91 bp read per spot, with CB and UMI living in BAM tags that
+# `fasterq-dump --include-technical` cannot turn back into reads.
+#
+# The hypothesis is declared here rather than harvested so the case runs with no API key, exactly as
+# the benchmark case does. It stands in for GEO's verbatim extract protocol — "Cells were processed
+# into libraries using 10x Genomics Chromium Single Cell 3' V3 Chemistry as directed by the
+# manufacturer" — which a real `harvest extract` would span-verify. It is LOAD-BEARING, not colour:
+# without an asserted single-cell chemistry the lone cDNA read is honestly bulk, `bulk-rnaseq`'s `se`
+# read set explains it, and exit 0 is the right answer — which is the other half of the pair, asserted
+# in `tests/test_resolve.py` rather than here because a case can only pin one outcome.
+generate:
+  kind: spec
+  spec: 10x-3p-gex-v3
+  reads: [R2]
+  n: 1500
+  seed: 0
+  onlists: synthetic
+hypothesis: 10x-3p-gex-v3

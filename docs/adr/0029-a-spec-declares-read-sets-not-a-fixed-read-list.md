@@ -174,6 +174,18 @@ it ships as decoration unless its negative test is written, which is the standar
   move the digest (by exactly one string, re-derived and shown) while the `read_count` deletion and
   the read-set work must **not** — which is why they are three tickets with three gates rather than
   one change with a written excuse.
+- **A REFUSAL rested on the two-read declaration, and it was not the guard's** (#309, found on the
+  networked benchmark after this landed). A deposit of one cDNA file with a single-cell chemistry
+  asserted used to refuse `MISSING_TECHNICAL_READ` because no spec could seat two roles on one file;
+  `bulk-rnaseq`'s `se` set seats one, so the deposit became explainable and the refusal became a
+  question offering bulk. The orphan predicate above provably cannot catch it — with one file the
+  fallback orphans nothing — so `escalate` grew a second, distinct condition on the same proper-subset
+  scoping, and descent now keeps the ASSERTED chemistry in the scored pool: its evaluation is what
+  answers *why* it could not be seated, and it used to be scored only by the accident of
+  `pool = [...] or runnable` firing on an empty pool. **The generalisable lesson is the one this record
+  already states about `spec.reads` predicates, one layer out**: a claim proved about the WINNER
+  ("narrowing can never drop a spec full scoring would have made a winner") is not a claim about the
+  REFUSAL, and read sets are what pull the two apart.
 - **A known gap: `geometry_fingerprint` keys on `len(spec.reads)`** and stays maximal-only. It is
   documented as diagnostics-only and is not a correctness predicate, so an SE-capable spec grouping
   with a PE-only one is cosmetic — recorded here so the next reader does not mistake the asymmetry

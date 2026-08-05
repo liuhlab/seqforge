@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_all_specs
-from ..kb.match import carries, resolve_chemistry
+from ..kb.match import carries, resolve_chemistry, resolve_chemistry_id
 from ..kb.schema import Spec
 from ..models.assertion import Assertion
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
@@ -249,6 +249,38 @@ def _score_pool(
         return list(ex.map(lambda spec: build_tech_evaluation(spec, wps, registry), pool))
 
 
+def _with_asserted(
+    pool: list[Spec], hypothesis_value: str | None, specs: dict[str, Spec]
+) -> list[Spec]:
+    """``pool``, plus the ASSERTED chemistry when descent narrowed it away. Order is preserved.
+
+    Descent's proof is about the WINNER — a length-infeasible spec would have scored ``forbidden``, so
+    dropping it cannot change which candidate wins (:mod:`.geometry`). It is not a proof about the
+    *refusal*, and that gap is what this closes. ``escalate``'s ``MISSING_TECHNICAL_READ`` branch asks
+    a question only the asserted chemistry's own evaluation can answer — is its BARCODE role
+    structurally unfillable while its cDNA role is fillable? — so a spec that was never scored makes
+    the branch unreachable and the refusal degrades to a generic one, or to a question.
+
+    Read sets are what made it bite. A deposit of one cDNA file used to leave the narrowed pool EMPTY,
+    and ``or runnable`` then handed back the whole KB, so the asserted spec was scored by accident;
+    ``bulk-rnaseq``'s single-end set now keeps that pool non-empty and the accident stops happening
+    (#309, GSE208154). Restoring the evaluation explicitly is what makes the branch depend on the
+    assertion rather than on whether some other spec happened to fit.
+
+    Cheap and winner-invariant by the same proof it repairs: at most ONE extra spec, scored only when
+    a hypothesis names a runnable node the narrowing dropped, and length-infeasibility guarantees the
+    result is ``forbidden`` — so it never enters ``valid``, never joins a tie set and never becomes a
+    candidate. It reaches ``evaluations`` alone, which is exactly where the refusal reads.
+    """
+    tech = resolve_chemistry_id(hypothesis_value, specs)
+    if tech is None:
+        return pool
+    asserted = specs[tech]
+    if asserted.backend is None:  # an abstract family node classifies but never scores
+        return pool
+    return pool if any(spec is asserted for spec in pool) else [*pool, asserted]
+
+
 def resolve_dataset(
     # Sequence, not list: the engine only iterates. `list` is invariant, so a caller holding a
     # perfectly good list[Path] could not pass it without a copy — an API defect, not a caller bug.
@@ -307,12 +339,13 @@ def resolve_dataset(
     # lookups resolve for unscored nodes.
     runnable = [spec for spec in kb_specs.values() if spec.backend is not None]
     pool = [spec for spec in runnable if length_feasible(spec, wps)] or runnable
+    hv = hypothesis.value if hypothesis else None
+    pool = _with_asserted(pool, hv, kb_specs)
     # A standalone call runs probe then score sequentially, so the per-spec pool may reuse the full
     # `cpus` budget; resolve_runs hands `_probed` + an explicit `score_threads` to stay bounded.
     if _probed is None:
         score_threads = max(score_threads, cpus)
     evaluations = _score_pool(pool, wps, registry, score_threads)
-    hv = hypothesis.value if hypothesis else None
     hid = hypothesis.id if hypothesis else None
     hconf = hypothesis.confidence if hypothesis else 0.0
     esc = escalate(evaluations, observations, kb_specs, hv, hid, hconf)
