@@ -21,6 +21,14 @@ The pair `(max_reads, max_bytes)` that bounds a head. Whichever trips first stop
 Wall-clock is never a budget. A head carries the budget it was read under — not one it is told it had.
 _Avoid_: limit, cap, quota
 
+**Abandoned read**:
+A **Head** whose iteration the caller stopped — neither a clean EOF, nor a **Budget** trip, nor a cut
+stream — so its byte accounting was never taken. Distinct from *truncated* (the bytes ran out) and
+from `ok` (the stream was not readable gzip), because those are verdicts about the stream and this is
+a verdict about the read; an abandoned read's compressed byte count is **absent, never zero**.
+_Avoid_: exhausted — that names a **Budget** trip, which is the opposite case, and `budget_exhausted`
+already means it; also cancelled, aborted, interrupted
+
 **Record**:
 One FASTQ entry: four lines — header, sequence, plus, quality.
 _Avoid_: entry, line, sequence (a sequence is only the second line); what an archive declares is an
@@ -147,6 +155,16 @@ One physical lane of a flowcell, written into a filename by bcl2fastq as `_L001`
 **Run** and never one itself — the same library in four lanes is one run, one library, one sample.
 Retained only to order a run's files identically for every mate.
 _Avoid_: run; and never a **Sample**, which is what reading it as one produced (`docs/adr/0027`)
+
+**Units table**:
+The table `compose` writes beside a **Compiled pipeline**'s config: one row per FASTQ, naming its
+**Sample**, its **Run**, its **Lane**, and which layout read it is. It is the only statement of where
+a run's files are and what order they arrive in (`docs/adr/0027`), so every consumer — a module's
+declared inputs and the verbs that module calls — reads placement from here rather than deriving it a
+second time (`docs/adr/0036`).
+_Avoid_: **sample sheet** — bcl2fastq's `SampleSheet.csv` maps indices to samples *upstream* of us,
+which is a different mapping one layer up, and the collision is why we do not reuse the phrase; also
+manifest (the IR — what the data IS, never where its files sit) and `units.tsv` (a filename)
 
 **Archive record**:
 What an archive *declared*, transcribed at four levels — project, sample, experiment, run. A
