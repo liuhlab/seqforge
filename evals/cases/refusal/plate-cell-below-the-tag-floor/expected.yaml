@@ -1,0 +1,34 @@
+outcome: refuse
+description: >-
+  A CELL THAT CANNOT BE ONE OF THIS PLATE'S, and the exit-3 refusal that keeps a plate from quietly
+  becoming two experiments. Three cells, the deposit declared as Smart-seq3 by the archive's own
+  sentence, and cell 3 sequenced with 1 % of its R1 carrying the anchored tag — under the 2 % floor
+  the entry declares. Its two siblings decide the plate chemistry; cell 3's bytes eliminate that
+  chemistry outright and land on the generic paired-end fallback. That is an outright dissent, and a
+  dissenting cell is never outvoted by its siblings.
+
+  WHAT REFUSING BUYS. Without it the difference reads as a legal partition into assays — which is the
+  correct reading for a project that really does hold two — and the deposit compiles as two studies
+  at exit 0, each half a plate, with nothing red anywhere. The only thing that tells the two shapes
+  apart is the chemistry's own declaration that one Sample IS one cell, which is why it is declared
+  rather than inferred.
+
+  IT IS BELOW THE FLOOR, NOT AT IT, and the distinction is the whole of the sibling pair one
+  directory over. AT the floor a thin library still ties with the fallback and stops for a human to
+  settle, and the archive's sentence settles it — that is
+  `steering/tag-at-the-floor-{undeclared,declared}`. BELOW it there is no tie to settle: the entry
+  fails its own admission gate before any scoring happens, the fallback is the only candidate left,
+  and no declared string can put back a chemistry the bytes already excluded. So the claim that
+  rescues a thin cell does nothing for a starved one, and this case is where the corpus says so.
+
+  IT IS ALSO NOT THE STARVED CELL. `grouping/plate-with-a-starved-cell` has a cell under the READ
+  floor, and that one is admitted: depth is asked before conformance, so a cell too shallow for its
+  bytes to speak for it inherits the plate's chemistry and the deposit compiles. Here cell 3 is at
+  full depth and its bytes speak clearly — they say something else. Two floors, two cells, two
+  opposite outcomes, and neither is reachable from the other's fixture.
+
+  `UNRESOLVED_CONFLICT` is the code because the refusal is a disagreement code could not settle
+  rather than a defect in the bytes: every file is intact, every read has a role, and each cell's
+  own verdict is one it reached on its own bytes.
+blockers:
+- UNRESOLVED_CONFLICT

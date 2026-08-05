@@ -614,6 +614,57 @@ an expected move, not a no-op. Quote a digest with the tree it was taken on, re-
 you are about to change, and diff it against that same tree: a hex carried over from a neighbouring
 tree has already been misattributed once.
 
+### The plate's designed behaviours are hermetic, and one of them could not be built as written (2026-08-04, #294)
+
+The real plate above is deliberately un-tilted, which is exactly why it covers none of the plate's
+*rules*: no cell in its accession-ordered draw is under the read floor, and choosing one that was
+would measure our selection. Four hermetic cases carry the rules instead, built by construction at no
+data cost — and all four graded `correct` on their first run against pre-registrations that were
+committed before the inputs existed.
+
+| case | outcome | what only this case pins |
+|---|---|---|
+| `grouping/plate-with-a-starved-cell` | decide | three cells, one at 400 reads against a floor of 1000: the manifest keeps all three, the pipeline is contracted for two |
+| `steering/tag-at-the-floor-undeclared` | ask | a thin library with no metadata — the tie stands, and the fallback is what the run provisionally lands on |
+| `steering/tag-at-the-floor-declared` | decide | byte-identical inputs plus the archive's own sentence — the tie collapses to `smartseq3` |
+| `refusal/plate-cell-below-the-tag-floor` | refuse | one cell *under* the gate dissents outright, and the deposit refuses rather than partitioning into two assays at exit 0 |
+
+**Two recipe knobs were needed and both close a "no fixture can express this" gap**, in the shape
+`over_length` already established. `dilute` writes the spec's layout on a minority of one read's
+records and plain cDNA (drawn from the KB's own all-cDNA entry) on the rest, interleaved — without it
+every fixture carries its structure in 100 % of its bytes and sits infinitely far above any
+frequency floor an entry declares, which is not a population any real Smart-seq3 library has. And
+`shallow` writes one library of a deposit at a smaller depth as a **prefix** of the deep draw, so a
+starved well is the same molecules sequenced less deeply rather than a different, smaller library;
+without it every cell of a deposit clears a floor or none does, and a corpus can only ever grade
+"nothing was dropped".
+
+**The refusal case's ticket said "below the tag floor … it ties … and it refuses", and the live code
+does not do that.** Measured across a dilution sweep, on the shipped entry:
+
+| tagged share of R1 | what happens, with no metadata | with the declared string |
+|---|---|---|
+| ≤ 2 % (the declared floor) | `smartseq3` fails its own admission gate and is eliminated; the generic fallback is the ONLY candidate and **decides at exit 0** | unchanged — **exit 0, the fallback**; a claim cannot put back a chemistry the bytes excluded |
+| ≥ 2.5 % | the two **tie**; `[metadata]` is the declared tie-breaker and there is none; **exit 4** | **exit 0, `smartseq3`** |
+
+So the ticket's literal construction produces a decision, not a tie, and no declared string rescues
+it — which is a fact worth having, and is what `refusal/plate-cell-below-the-tag-floor` now pins from
+the plate side. **There is no exit-3 path out of a tie at all**: a processing-divergent tie always
+becomes a Question. The stated reason — *a tie the metadata rung cannot break* — therefore stops a
+compile at **exit 4**, which is what the pair one row above grades, and the exit-3 refusal the corpus
+was owed is a *different* mechanism: a cell whose bytes exclude the plate's chemistry outright.
+Both are shipped rather than one relabelled as the other.
+
+**A defect fell out of building the grouping case, and it is the kind only a synthetic fixture
+reaches.** A cell admitted without byte confirmation is recorded as a resolved conflict whose
+observed position carries the candidate's score as a confidence — and a confidence is bounded at 1.0
+while a score is the role assignment's normalized total, which adds the sub-threshold filename prior
+on every role. The ten published cells the rule was measured on all scored under 0.9; reads generated
+from a spec's own elements saturate by construction and score 1.01, so the first plate to starve a
+cell raised a validation error from inside the reduction instead of recording the inheritance. It is
+clamped to the ceiling, and the regression test asserts the score is over 1.0 before it asserts
+anything about the clamp.
+
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 
 **Nothing here is decided, and there is no third tier.**

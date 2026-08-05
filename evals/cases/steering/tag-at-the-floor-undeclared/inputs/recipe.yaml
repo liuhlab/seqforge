@@ -1,0 +1,22 @@
+# A Smart-seq3 library at the thin end: 3 % of R1 carries the anchored tag, the other 97 % is plain
+# cDNA drawn from the knowledge base's own all-cDNA entry. `dilute:` is what makes that expressible.
+# Without it a case built from this spec writes the tag on 100 % of its reads, which is a population
+# no real library has — the tagged fraction is a tunable protocol parameter, measured between 6.9 %
+# and 70.5 % across five published libraries — so every fixture sat infinitely far above the floor
+# the entry actually declares and could say nothing about it.
+#
+# The two populations are INTERLEAVED, and that is the half that matters. Every probe reads a bounded
+# head, so a file holding its tagged reads first is a library the resolver would read as fully
+# tagged; the shuffle is what makes the declared share the share that is measured.
+#
+# NO `hypothesis:`. The absence is the case: this is the undeclared half of a pair whose declared
+# half is `steering/tag-at-the-floor-declared`, over byte-identical inputs.
+generate:
+  kind: spec
+  spec: smartseq3
+  n: 3000
+  seed: 0
+  onlists: none
+  dilute:
+    read: R1
+    fraction: 0.03

@@ -1,0 +1,36 @@
+outcome: ask
+description: >-
+  THE COST OF HAVING NO METADATA, priced. A Smart-seq3 library whose tagged fraction sits just over
+  the floor its entry declares, with nothing declared about it anywhere: the bytes tie with the
+  generic paired-end fallback, the rung both specs name as the one that breaks such a tie is
+  `metadata`, there is none to read, and the compile stops. Its twin
+  `steering/tag-at-the-floor-declared` is the SAME bytes with the archive's own sentence attached and
+  decides at exit 0 — the two are each other's control, and either alone pins half a mechanism.
+
+  This is the stated consequence of letting metadata decide a chemistry, and nothing else in the
+  corpus pins it. `spec/smartseq3-bytes-only` is the neighbouring case and is NOT this one: its
+  fixture writes the tag on every read, so the entry's own layout tops the ranking and the question
+  is asked from a position of strength. Here the fallback tops it — `library.chemistry` below is
+  `bulk-rnaseq`, and that is the pre-registration rather than a slip. The provisional answer a thin
+  library lands on is the WRONG one, and the question is the only thing standing between it and a
+  bulk manifest for a single-cell experiment.
+
+  WHY 3 % AND NOT LESS. The entry admits a library at 2 % of reads carrying the anchored tag, and
+  that floor is not arbitrary: it is thirteen times the highest rate ever measured on a negative and
+  three and a half times below the thinnest published Smart-seq3 library. Below it the entry is
+  eliminated outright — see the sibling refusal case, where that is the whole subject — so 2 % is the
+  boundary and this case is built just over it, at a share more than twice as thin as anything the
+  protocol has ever published. The tagged fraction is a knob turned at the bench, not a property of
+  the chemistry, so the thin end is a real library and not a damaged one.
+
+  WHAT THE OPTION SET PINS. Naming only the field would be satisfied by any chemistry question at
+  all; the content of this case is that the two answers offered are exactly the plate chemistry and
+  the generic fallback, which is the pair the knowledge base declares undecidable from reads. A
+  question offering three, or the wrong two, is a different failure wearing the same exit code.
+conflict:
+  field: library.chemistry
+  options:
+  - bulk-rnaseq
+  - smartseq3
+fields:
+  library.chemistry: bulk-rnaseq

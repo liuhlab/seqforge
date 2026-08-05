@@ -327,18 +327,11 @@ _FLOOR_MARGIN = 0.5
 def _untagged_diluent() -> Spec:
     """The KB entry whose every element is plain cDNA — the honest thing to dilute a layout with.
 
-    Derived, not named. What the diluent has to BE is "reads carrying no structure at all, drawn by
-    the same generator as the tagged ones", which is a property of a spec and checkable right here;
-    an id written into a test is a name that outlives the entry it points at, and the way that fails
-    is a floor test quietly diluting with the wrong reads.
+    Derived, not named, and derived in ONE place: an eval recipe now describes a library where only
+    a minority of reads carry the layout, which is the same construction, so the rule lives beside
+    the generator that draws both populations rather than once here and once there.
     """
-    plain = [
-        tech
-        for tech in kb.list_spec_ids()
-        if all(el.type == "cdna" for read in kb.load_spec(tech).reads for el in read.elements)
-    ]
-    assert len(plain) == 1, f"expected exactly one all-cDNA entry to dilute with, found {plain}"
-    return kb.load_spec(plain[0])
+    return kb.all_cdna_spec()
 
 
 def _evaluate_at(

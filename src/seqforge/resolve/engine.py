@@ -769,6 +769,17 @@ def _inherited_conflict(run: RunResolution, plate: str, note: str) -> Conflict:
     The inherited position is ``inferred`` and not ``observed``: nothing was observed on THIS cell's
     bytes that says ``plate``. Its rung is 1 — the identity prior (which files are one sample) is
     what carried the answer across, not any measurement of these reads.
+
+    **A candidate's score is not a probability, and the gap shows up exactly here.** A
+    ``ConflictPosition``'s confidence is bounded at 1.0; a ``TechScore``'s value is the role
+    assignment's normalized total, which carries the sub-threshold filename prior on every role and
+    therefore lands just above 1.0 whenever every cell of the matrix saturates. The ten published
+    cells this rule was measured on all scored under 0.9, so nothing real reached it — but reads
+    generated from a spec's own elements saturate by construction, so the first synthetic plate to
+    starve a cell raised a validation error from inside the reduction instead of recording the
+    inheritance it was there to record. Reported at the ceiling: that is the strongest claim a byte
+    position can make, and a second scale invented to preserve the excess would be a number nothing
+    else in the report reads.
     """
     said = run.winner or "undecided"
     top = next((c.score.value for c in run.output.result.candidates), None)
@@ -782,7 +793,7 @@ def _inherited_conflict(run: RunResolution, plate: str, note: str) -> Conflict:
                 value=said,
                 basis="observed",
                 evidence=shas,
-                confidence=top if top is not None else 0.0,
+                confidence=min(top, 1.0) if top is not None else 0.0,
             ),
         ],
         kind="other",

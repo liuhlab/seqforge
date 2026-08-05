@@ -866,6 +866,139 @@ def test_the_one_run_invariant_survives_a_multi_library_deposit(
         materialize(case, tmp_path / "x")
 
 
+def test_a_shallow_library_is_the_same_stream_stopped_early(tmp_path: Path) -> None:
+    """One member of a deposit written at its own depth — the same molecules, sequenced less deeply.
+
+    A deposit wrote one depth for every library, so a threshold case could only ever be "every member
+    clears the floor" or "none does". What makes a depth override honest rather than a second
+    generator is that a shallow library's records are a PREFIX of a deep one's: the draw is the same
+    seeded stream stopped early, which is what a starved well is, and not a different library that
+    happens to be smaller.
+
+    The libraries the knob does not name are untouched, byte for byte — a depth knob that perturbed
+    its siblings would move the dataset hash of every case that ever used it.
+    """
+    import gzip
+
+    def records(path: Path) -> list[bytes]:
+        return gzip.decompress(path.read_bytes()).split(b"\n")
+
+    even = materialize(
+        Case(
+            "even",
+            tmp_path,
+            _spec_recipe(n=60, onlists="none", deposit={"libraries": 2}),
+            Expected(outcome="decide"),
+            [],
+        ),
+        tmp_path / "even",
+    )
+    uneven = materialize(
+        Case(
+            "uneven",
+            tmp_path,
+            _spec_recipe(
+                n=60, onlists="none", deposit={"libraries": 2}, shallow={"libraries": [2], "n": 20}
+            ),
+            Expected(outcome="decide"),
+            [],
+        ),
+        tmp_path / "uneven",
+    )
+    by_name = {p.name: p for p in uneven.paths}
+    deep = {p.name: p for p in even.paths}
+    assert set(by_name) == set(deep), "a depth override may not rename a single file"
+
+    untouched = [n for n in by_name if n.startswith("SIM_b01")]
+    assert untouched, "the fixture must hold a library the knob did NOT name"
+    for name in untouched:
+        assert by_name[name].read_bytes() == deep[name].read_bytes()
+
+    shallow = [n for n in by_name if n.startswith("SIM_b02")]
+    for name in shallow:
+        short, long = records(by_name[name]), records(deep[name])
+        assert len(short) < len(long)
+        assert long[: len(short) - 1] == short[:-1], (
+            "a shallow library must be a PREFIX of the deep draw, or it is a different library "
+            "rather than a shallower sequencing of the same one"
+        )
+
+
+def test_a_diluted_read_carries_the_layout_on_the_share_it_declares(tmp_path: Path) -> None:
+    """The structured population is thinned to `fraction`, and INTERLEAVED with what replaces it.
+
+    Both halves are the contract. The share is measured back through the entry's own gate rather than
+    counted here, because what a case declares has to be what the resolver sees. And it is measured
+    over the probe's BOUNDED HEAD, which is the half that would otherwise pass vacuously: a file
+    holding its structured reads first reads as fully structured to every probe in the system, so an
+    un-shuffled diluent would leave this assertion green and the fixture meaningless.
+    """
+    from seqforge import kb
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.kb.schema import MotifPresent
+    from seqforge.probe.core import probe_sample
+    from seqforge.resolve.evaluators import evaluate
+    from seqforge.resolve.window import WindowProbe
+
+    spec = kb.load_spec("smartseq3")
+    gate = next(t for t in spec.signature.requires if isinstance(t, MotifPresent))
+    read = next(r for r in spec.reads if r.id == gate.read)
+
+    recipe = Recipe.model_validate(
+        {
+            "generate": {
+                "kind": "spec",
+                "spec": "smartseq3",
+                "n": 2000,
+                "onlists": "none",
+                "deposit": {"libraries": 2},
+                "dilute": {"read": "R1", "fraction": 0.2, "libraries": [2]},
+            }
+        }
+    )
+    built = materialize(Case("thin", tmp_path, recipe, Expected(outcome="ask"), []), tmp_path / "d")
+    rates = {}
+    for path in built.paths:
+        if built.labels[path.name] != gate.read:
+            continue
+        obs, seqs = probe_sample(path)
+        ev = evaluate(gate, read, WindowProbe(observation=obs, seqs=seqs), spec, DEFAULT_REGISTRY)
+        rates[path.name.split("_L")[0]] = float(ev.detail.split("=")[1])
+
+    assert rates["SIM_b01_S1"] == pytest.approx(1.0)
+    assert rates["SIM_b02_S2"] == pytest.approx(0.2, abs=0.02), (
+        "the declared share is the share the resolver measures over a bounded head — an un-shuffled "
+        "diluent would read as 1.0 here"
+    )
+
+
+@pytest.mark.parametrize(
+    ("knob", "value"),
+    [
+        ("shallow", {"libraries": [3], "n": 10}),
+        ("dilute", {"read": "R1", "fraction": 0.5, "libraries": [3]}),
+    ],
+)
+def test_a_per_library_knob_naming_a_library_the_deposit_lacks_is_a_case_error(
+    knob: str, value: dict[str, object], tmp_path: Path
+) -> None:
+    """Off-by-one in a 1-based index must name itself, not quietly build the uniform deposit.
+
+    Both knobs exist to make ONE member of a deposit different from the rest, so a silently ignored
+    index is a fixture that no longer holds the thing its case grades — and the case would go green
+    for having measured nothing.
+    """
+    case = Case(
+        "bad",
+        tmp_path,
+        _spec_recipe(n=20, onlists="none", deposit={"libraries": 2}, **{knob: value}),
+        Expected(outcome="decide"),
+        [],
+    )
+    with pytest.raises(CaseError, match="3"):
+        materialize(case, tmp_path / "x")
+
+
 def test_unknown_spec_is_a_case_error(tmp_path: Path) -> None:
     recipe = Recipe.model_validate({"generate": {"kind": "spec", "spec": "not-a-tech"}})
     case = Case("bad", tmp_path, recipe, Expected(outcome="decide"), [])
@@ -1660,6 +1793,96 @@ def test_a_record_less_multi_lane_deposit_stays_two_samples(
     # dropped by `_units` at exit 0 — the same silent-loss class one level down.
     assert len(out.role_of_sha()) == len(names), (
         "a lane lost its role and would be dropped silently"
+    )
+
+
+# --------------------------------------------------------------------------------------------
+# the plate with a dud well — the manifest keeps every cell, the pipeline is contracted for fewer
+# --------------------------------------------------------------------------------------------
+
+#: The corpus case this section reads. Its bytes, its ground truth and its grade are its own
+#: (`evals/cases/grouping/plate-with-a-starved-cell/`); what is left here is the half a graded
+#: `Expected` cannot say, because the harness stops at a graded resolve and builds no pipeline.
+STARVED_CASE_ID = "plate-with-a-starved-cell"
+
+
+def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Three cells in, three in the manifest, TWO contracted — the two numbers that must disagree.
+
+    The case's own `experiment.n_samples: 3` is the first number and is graded on every commit. The
+    second is here because it is not a property of the manifest at all: the read floor is read from
+    whatever knowledge base is loaded at compile time, so the verdict is recomputed at every compile
+    and is deliberately never written down. Freeze it into the manifest and the next compile silently
+    re-reads the first knowledge base's opinion of a threshold that has since moved — and the dataset
+    would carry a different identity for the same bytes.
+
+    **Read off the SAME pass the grade came from.** A second run of the compiler would be asserting
+    about a different pass, and the whole point of pinning the pre- and post-drop numbers together is
+    that they are two readings of one compile.
+
+    **The exclusion is stated three ways and all three are checked**: which cell, at what depth, and
+    what the totals line says — because a reader of a 384-well plate spots "1 of 3 cells dropped" and
+    will never spot one absent row. The record also has to disclose that the cell axis came from
+    filenames, since no accession exists anywhere in this deposit: a cell sequenced across two runs
+    would have arrived as two half-depth samples and been gated as two half-cells, and nothing in the
+    bytes or the names could say otherwise.
+    """
+    from seqforge import kb
+    from seqforge.compose.admission import admit, render_record
+
+    case = next(c for c in discover_cases() if c.id == STARVED_CASE_ID)
+    run, out, metadata = _harness_decisions(case, None, monkeypatch)
+    assert run.skipped is None, run.skipped
+    assert run.grade.ok, run.to_json()
+
+    # The cell really is starved, and its siblings really are not — asserted before anything is
+    # concluded from it, or "one was dropped" is a description of a fixture rather than a claim.
+    depth = {
+        r.run_id: min(o.estimated_total_reads for o in r.output.observations) for r in out.runs.runs
+    }
+    assert depth == {"SIM_b01_S1": 1500, "SIM_b02_S2": 1500, "SIM_b03_S3": 400}, (
+        "both depths must be EXACT counts under the probe budget, or the floor is being decided on "
+        "an extrapolation"
+    )
+    # It abstained rather than dissenting: depth is asked before conformance, so the shallow cell
+    # inherits the plate's chemistry and the deposit still compiles.
+    assert out.abstained == frozenset({"SIM_b03_S3"})
+    assert [c.id for c in out.conflicts] == ["conflict-cell-unconfirmed-SIM_b03_S3"]
+    assert [c.status for c in out.conflicts] == ["resolved"], "an inheritance moves no exit code"
+
+    manifest = _manifest_the_harness_decided(out, metadata)
+    assert manifest is not None, "this case is meant to decide; a refusal contracts nothing"
+    assert [s.sample_id for s in manifest.experiment.samples] == [
+        "SIM_b01_S1",
+        "SIM_b02_S2",
+        "SIM_b03_S3",
+    ], "the manifest is what the data IS and keeps every cell it was handed"
+
+    spec = kb.load_spec("smartseq3")
+    admission = admit(manifest, spec)
+    assert admission is not None
+    assert [s.sample_id for s in admission.admitted] == ["SIM_b01_S1", "SIM_b02_S2"], (
+        "`config['samples']` and `units.tsv` are the post-drop list — a dropped cell was never "
+        "contracted, so nothing downstream may report it as a result that failed to arrive"
+    )
+    assert admission.excluded == {"SIM_b03_S3": 400}
+    assert admission.unmeasured == ()
+    assert admission.threshold == spec.min_input_reads
+    assert admission.summary == "1 of 3 cells dropped", (
+        "the noun is `cells` because this chemistry declares a Sample IS one; a floor any chemistry "
+        "may declare says `samples`"
+    )
+
+    record = render_record(
+        admission, chemistry="smartseq3", kb_version=kb.KB_VERSION, filename_derived=True
+    )
+    assert "| SIM_b03_S3 | 400 | 1000 |" in record
+    assert "SIM_b01_S1" not in record, "the record names what was lost, not what survived"
+    assert "came from filenames" in record, (
+        "no sample here carries an accession, so the loss the cell axis cannot repair has to be "
+        "disclosed at the point it happens"
     )
 
 

@@ -1465,6 +1465,56 @@ def test_a_cell_that_asked_inherits_the_plates_chemistry_and_is_recorded(plate_m
     assert inherited.resolution is not None and inherited.resolution.decided_by == "code"
 
 
+def test_a_saturating_cell_records_its_inheritance_instead_of_raising(tmp_path: Path) -> None:
+    """A candidate's score is not a probability, and the reduction may not treat it as one.
+
+    A surfaced position carries a confidence bounded at 1.0; a `TechScore`'s value is the role
+    assignment's normalized total, which adds the sub-threshold filename prior on every role and so
+    lands just over 1.0 whenever every cell of the evidence matrix saturates. The ten published cells
+    the plate rules were measured on all scored under 0.9, so nothing real ever reached it — but
+    reads generated from a spec's own elements saturate by construction, and every hermetic corpus
+    case is generated that way, so the first synthetic plate to starve a cell raised a validation
+    error from inside the reduction rather than recording the inheritance it exists to record.
+
+    **The real plate entry, not the stand-in, and no monkeypatched floor.** `_PLATE`'s whitelist hit
+    rate falls off below about 900 reads, so its score crosses back under 1.0 exactly where a floor
+    would have to sit and the fixture stops provoking anything. `smartseq3` is the entry that made
+    this reachable: it declares the bit and the floor itself, and its gate is an anchored motif that
+    saturates at any depth. Its bytes tie with the generic paired-end fallback, so the claim is what
+    lets any cell DECIDE — without one no cell names a plate chemistry and the gate never runs.
+
+    The score is asserted over 1.0 FIRST, so this cannot keep passing on a fixture that has stopped
+    provoking the bug.
+    """
+    plate = kb.load_spec("smartseq3")
+    floor = plate.min_input_reads
+    assert floor is not None
+    paths: list[Path] = []
+    for acc, n in (("SRR1", floor + 500), ("SRR2", floor // 2)):
+        reads = kb.generate_reads(plate, n=n, seed=0)
+        for role in ("R1", "R2"):
+            p = tmp_path / f"{acc}_S1_L001_{role}_001.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(p)
+    multi = resolve_runs(
+        paths, hypothesis=Hypothesis(value="Smart-seq3", id="t", confidence=0.9), use_cache=False
+    )
+    top = {r.run_id: r.output.result.candidates[0].score.value for r in multi.runs}
+    assert all(v is not None and v > 1.0 for v in top.values()), (
+        f"the fixture no longer saturates, so it can no longer provoke the clamp: {top}"
+    )
+
+    starved = reduce_dataset(multi, _cells(multi))
+    assert starved.exit_code == 0 and starved.abstained == {"SRR2"}
+    observed = [
+        p.confidence for c in starved.conflicts for p in c.positions if p.basis == "observed"
+    ]
+    assert observed == [1.0], (
+        "reported at the ceiling: the strongest claim a byte position can make, rather than a "
+        "second scale invented to carry the excess"
+    )
+
+
 def test_a_cell_asking_about_a_set_the_plate_is_not_in_still_reaches_a_human(
     plate_multi: Any,
 ) -> None:
