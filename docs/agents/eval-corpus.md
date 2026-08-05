@@ -581,18 +581,24 @@ red nineteenth case moves `false_accept_rate` off 0.0 by construction. `FROZEN_1
 **data** — the tier as it stood at #231's baseline `27ffd05` — and `grade_digest` raises on a report
 holding anything else, because silently dropping the extra rows would hash four rates `build_report`
 computed over nineteen cases, and recomputing them there would be a second copy of that arithmetic.
-And the **finding that argues for code at all**: re-run on 2026-08-04 (`main` @ `b5f2e85`, `--no-llm`,
-twice), the tier is 18/18 `correct` with every grade identical to #231's baseline, and the digest is
-`aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **not** the published
-`247a9354…`. Nothing regressed; `questions_asked` became a dict where the 2026-07 baseline hashed a
-scalar. The constant went stale silently while every grade it protected stayed put, which is why the
-module pins the case list and the recipe and **no test asserts a digest value**.
+And the **finding that argues for code at all**: the live baseline is
+`aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` at `main` @ `3ab99ff`
+(2026-08-04, `--no-llm`) — 18/18 `correct`, every grade identical to #231's — and it is **not** the
+published `247a9354…` (`27ffd05`). Nothing regressed; `questions_asked` became a dict where the
+2026-07 baseline hashed a scalar. The constant went stale silently while every grade it protected
+stayed put, which is why the module pins the case list and the recipe and **no test asserts a digest
+value**.
 
-**Quote a digest with its commit or do not quote it.** `247a9354…` is `27ffd05` and `aeff9af9…` is
-`b5f2e85`; the generic bulk entry's rename (#297) and `read_count` leaving the signature vocabulary
-(#299) have both landed since, and the first moves a graded `library.chemistry` string on
-`GSE283483-bulk` — a **pre-declared expected move**, which is the shape #258 asks every move to
-arrive in. Re-take the number on the tree you are about to change and diff it against that same tree.
+**What the reproductions buy, and where they stop.** `aeff9af9…` came back twice on an unchanged tree
+and independently from six branches — two based on `5624f8e`, two on `4adc182`, plus `main` at both
+of those and at `3ab99ff` with all six merged. So `read_count` leaving the signature vocabulary
+(#299) moved it **not at all**, and neither did those six merges; agreement across trees is what
+makes a later disagreement mean something. But **every one of those runs is already post-#297**, the
+generic bulk entry's rename. That rename does change a graded `library.chemistry` string on
+`GSE283483-bulk`, and no pre-#297 number was ever taken, so its effect here is **unmeasured** — not
+an expected move, not a no-op. Quote a digest with the tree it was taken on, re-take it on the tree
+you are about to change, and diff it against that same tree: a hex carried over from a neighbouring
+tree has already been misattributed once.
 
 ## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
 

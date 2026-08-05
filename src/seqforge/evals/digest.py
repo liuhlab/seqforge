@@ -6,25 +6,34 @@ a **timing-free grade digest**: the case count, the four tier-wide rates, and th
 with every timing field stripped. Equal digest ⇒ no case moved **and** no graded value moved. Unequal
 ⇒ diff the tables.
 
-**Why it is here now, and why no value is pinned.** It lived as a copy-pasteable Python snippet in
-#231's resolution comment, and prose in an issue cannot be run. Re-measured 2026-08-04 on ``main`` @
-``b5f2e85``, twice: the tier is 18/18 ``correct`` at ``field_accuracy`` 1.0 and both rates 0.0 —
-every grade identical to #231's baseline — and the digest is
-``aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b``, which is **not** the published
-``247a9354eecd11773e3dc482f83cfb916c1b1a3edd3e47f1202d57298007f426``. Nothing regressed; the
-*report's shape* moved under it. ``questions_asked`` is now a dict (``total`` / ``per_case`` /
-``missed``) where the 2026-07 baseline hashed a scalar, so the constant went stale silently while
-every grade it was protecting stayed put — a comparison instrument reporting a difference that is
-not about the thing being compared.
+**Why it is here now.** It lived as a copy-pasteable Python snippet in #231's resolution comment, and
+prose in an issue cannot be run.
 
-**A digest is only ever quoted with the commit it was taken on**, and neither hex above is a live
-baseline: ``247a9354…`` is ``27ffd05``, ``aeff9af9…`` is ``b5f2e85``, and the rename of the generic
-bulk entry (#297) plus the removal of ``read_count`` from the signature vocabulary (#299) have landed
-since — the first of which moves a graded ``library.chemistry`` string on ``GSE283483-bulk`` and is
-therefore a **pre-declared expected move** rather than a regression. Re-take the number on the tree
-you are about to change, and diff it against the same tree. That is why the recipe ships as code, why
-this module pins the **case list** and the **recipe** and not a value, and why **no test asserts a
-digest**: a pinned constant is precisely what rotted. What the tests hold is the property it was for.
+**The live baseline is ``aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b`` at
+``main`` @ ``3ab99ff``** (2026-08-04, ``--no-llm``): 18/18 ``correct``, ``field_accuracy`` 1.0, both
+rates 0.0. It is reproduced twice on an unchanged tree **and independently from six branches** — two
+based on ``5624f8e``, two on ``4adc182``, plus ``main`` itself at both of those and at ``3ab99ff``
+with all six merged. So the removal of ``read_count`` from the signature vocabulary (#299) moved it
+**not at all**, and neither did any of those six merges. The trees that agree are what make a
+disagreement mean something.
+
+**It is not #231's ``247a9354eecd11773e3dc482f83cfb916c1b1a3edd3e47f1202d57298007f426``
+(``27ffd05``), and nothing regressed — the report's SHAPE moved under it.** ``questions_asked`` is now
+a dict (``total`` / ``per_case`` / ``missed``) where the 2026-07 baseline hashed a scalar. The
+constant went stale silently while every grade it was protecting stayed put: a comparison instrument
+reporting a difference that is not about the thing being compared. That is why the recipe ships as
+code, why this module pins the **case list** and the **recipe** and not a value, and why **no test
+asserts a digest** — a pinned constant is precisely what rotted, and what the tests hold instead is
+the property it was for.
+
+**A digest is quoted with the tree it was taken on, and what was not measured is not a finding.**
+Every run above is already **post**-#297, the rename of the generic bulk entry. That rename does
+change a graded ``library.chemistry`` string on ``GSE283483-bulk`` — but no pre-#297 number was ever
+taken, so its effect on this digest is **unmeasured**, and an unmeasured effect is not an expected
+move, a no-op, or anything else. Re-take the number on the tree you are about to change and diff it
+against that same tree. A hex carried over from a neighbouring tree is exactly the mistake this
+paragraph exists to stop, and the baseline above was itself misattributed to a neighbouring commit
+once — caught only because the report it came from grades ``GSE283483-bulk`` at the post-#297 id.
 
 **The exclusion, and why it is a refusal rather than a filter.** The recipe hashes ``n_cases`` and the
 whole ``per_case`` list, so **equal-digest and add-a-case are incompatible instruments** (#258): a
@@ -49,7 +58,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 #: The eighteen cases the bar is scoped to: `evals/benchmark` as it stood at #231's baseline commit
-#: `27ffd05`, re-confirmed against a whole-tier run on 2026-08-04 (`main` @ `b5f2e85`). Dated **data**,
+#: `27ffd05`, re-confirmed against a whole-tier run on 2026-08-04 (`main` @ `3ab99ff`). Dated **data**,
 #: not a derivation — reading the directory instead would defeat the point, since the whole purpose is
 #: to name a set that does not grow when the corpus does. A case added after this line is outside the
 #: bar by construction, which is the decision in #258 rather than an omission.
