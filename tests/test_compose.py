@@ -1183,11 +1183,14 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     # ...and the release runs on BOTH paths. A dry run fires no handler and this suite owns no
     # scheduler to kill a job on, so the two handlers are read off the module compose EMITTED —
     # which is a different file from the one in `src/`, and the one this pipeline would actually run.
+    # Each handler calls one helper; the command itself is written once, just above them.
     emitted = (composed_plate.pipeline_dir / "star-umi.smk").read_text()
     for handler in ("onsuccess:", "onerror:"):
         body = emitted.split(handler, 1)[1] if handler in emitted else ""
         assert body, f"the emitted module carries no `{handler}` handler"
-        assert "--genomeLoad Remove" in body.split("\n\n", 1)[0]
+        assert "release_genome_segment()" in body.split("\n\n", 1)[0]
+    helper = emitted[emitted.index("def release_genome_segment(") : emitted.index("\nonsuccess:")]
+    assert "--genomeLoad Remove" in helper and "|| true" in helper, helper
 
 
 @pytest.mark.xdist_group("composed-plate")
@@ -2101,6 +2104,12 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
 # under a spec carrying `min_input_reads`. Where the claim is that the floor did it, the same plate is
 # compiled a second time under a spec declaring none — the control, and the state the sixteen
 # non-plate entries are in.
+#
+# The plate is built on `built_plate`, the shipped `smartseq3` entry, and that is what makes the word
+# "cell" below a fact rather than a decoration: one Sample of that chemistry IS one cell, and no other
+# entry may say so. A floor on a chemistry that says nothing of the kind is legal and drops *samples*
+# — the second-to-last test in this section is that case, so the two nouns are pinned apart rather
+# than assumed.
 
 #: The floor these tests declare — `smartseq3`'s real number, so the arithmetic below is the shipped one.
 _FLOOR = 1000
@@ -2111,7 +2120,7 @@ def _compose_plate(plate: DatasetManifest, reg: OnlistRegistry, workspace: Path)
 
 
 def test_a_cell_below_the_live_kbs_floor_leaves_the_pipeline_and_stays_in_the_manifest(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The emitted sample list is the POST-DROP list, and the dataset still carries every cell.
 
@@ -2120,7 +2129,7 @@ def test_a_cell_below_the_live_kbs_floor_leaves_the_pipeline_and_stays_in_the_ma
     contract was written. Dropped from the manifest instead, the same data would acquire a different
     identity every time somebody moved the threshold.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400, "cell3": 4000}))
 
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], _FLOOR)
@@ -2134,7 +2143,7 @@ def test_a_cell_below_the_live_kbs_floor_leaves_the_pipeline_and_stays_in_the_ma
 
 
 def test_a_cells_depth_is_the_minimum_within_a_run_and_the_sum_across_them(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Two runs of one cell are one cell at their combined depth; two mates of one run are not.
 
@@ -2143,7 +2152,7 @@ def test_a_cells_depth_is_the_minimum_within_a_run_and_the_sum_across_them(
     700 and 900: summing them would report a 700-read cell as 1600 and admit it, so the minimum is
     what the shallowest file can support, which is what the aligner will actually see.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(
         manifest,
         {"topped_up": {"ra": (600, 600), "rb": (600, 600)}, "unequal": {"ra": (700, 900)}},
@@ -2159,7 +2168,7 @@ def test_a_cells_depth_is_the_minimum_within_a_run_and_the_sum_across_them(
 
 
 def test_the_exclusion_record_carries_each_dropped_cell_its_count_the_threshold_and_the_totals(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Nobody spots a split cell by reading 240 rows; everybody spots 768 wells on a 384-well plate.
 
@@ -2167,7 +2176,7 @@ def test_the_exclusion_record_carries_each_dropped_cell_its_count_the_threshold_
     attributable. The record lives in the pipeline directory because that is the deliverable a human
     opens to answer "where did those cells go?".
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(
         manifest, one_run_each({"cell1": 4000, "cell2": 400, "cell3": 4000, "cell4": 12})
     )
@@ -2186,7 +2195,7 @@ def test_the_exclusion_record_carries_each_dropped_cell_its_count_the_threshold_
 
 
 def test_the_record_less_caveat_appears_only_when_a_drop_met_a_dataset_with_no_accession(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Disclosed exactly once, where the loss is — and never as noise on a compile that lost nothing.
 
@@ -2195,7 +2204,7 @@ def test_the_record_less_caveat_appears_only_when_a_drop_met_a_dataset_with_no_a
     unfixable by construction, so it is disclosed rather than hidden — and only where it can have
     bitten, which is a compile that actually dropped something.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     starved = one_run_each({"cell1": 4000, "cell2": 400})
     declare_read_floor(monkeypatch, manifest.library.chemistry.value[0], _FLOOR)
 
@@ -2221,14 +2230,14 @@ def test_the_record_less_caveat_appears_only_when_a_drop_met_a_dataset_with_no_a
 
 
 def test_compose_refuses_a_dataset_whose_every_cell_is_below_the_floor(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """An empty `rule all` at exit 0 is the silent-success failure class, so this is a refusal.
 
     There is deliberately no drop-rate gate above it: a plate with 60% dud wells is real, and a rate
     threshold needs a number nobody can defend. Nothing left to produce is the one defensible line.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(manifest, one_run_each({"cell1": 40, "cell2": 400}))
 
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], _FLOOR)
@@ -2237,7 +2246,7 @@ def test_compose_refuses_a_dataset_whose_every_cell_is_below_the_floor(
 
 
 def test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it_as_empty(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """ "Not measured" and "zero reads" must not be the same value to a gate.
 
@@ -2245,7 +2254,7 @@ def test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it
     drop every cell in it — silently, and at the one moment the compiler looks most confident. Refuse
     and name the fix instead.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 4000}))
     unmeasured = plate.model_copy(
         update={"provenance": plate.provenance.model_copy(update={"estimated_reads": {}})}
@@ -2257,7 +2266,7 @@ def test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it
 
 
 def test_the_drop_is_invisible_to_the_dataset_hash(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Two thresholds, two sample lists, one unmoved identity — the reason no verdict is stored.
 
@@ -2266,7 +2275,7 @@ def test_the_drop_is_invisible_to_the_dataset_hash(
     processing change exists to prevent. So compose applies the floor and records the outcome in its
     own output; the manifest is read and never rewritten.
     """
-    manifest, reg = built_v3
+    manifest, reg = built_plate
     plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400, "cell3": 4000}))
     before = dataset_content_hash(plate)
 
@@ -2281,6 +2290,36 @@ def test_the_drop_is_invisible_to_the_dataset_hash(
     assert gated_config["samples"] == ["cell1", "cell3"]
     assert ungated.admission is None, "a spec declaring no floor runs no gate at all"
     assert dataset_content_hash(plate) == before == plate.provenance.dataset_hash
+
+
+def test_a_floor_on_a_chemistry_whose_sample_is_not_a_cell_drops_samples_and_says_so(
+    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A floor is an admission threshold ANY chemistry may declare; only a plate makes it a *cell*.
+
+    The two declarations are independent, and this is the half nothing ships: `smartseq3` declares
+    both, so every other test in this section reads the word "cells" and would keep reading it if the
+    noun were hard-coded. Here a 10x library — demultiplexed in the read, so one Sample is one library
+    and never one cell — carries a floor, and what leaves the pipeline is a *sample*.
+
+    It also pins the shape of the fixture that hands the composer a spec. Declaring a floor must not
+    require declaring the cell axis, because the knowledge base refuses that flag beside a per-sample
+    module: a fixture that set it anyway would be proving this gate against a spec `load_spec` cannot
+    produce, and no amount of green here would mean anything.
+    """
+    manifest, reg = built_v3
+    libraries = plate_of(manifest, one_run_each({"lib1": 4000, "lib2": 400}))
+    assert not kb.load_spec(libraries.library.chemistry.value[0]).identity.sample_is_cell
+
+    declare_read_floor(monkeypatch, libraries.library.chemistry.value[0], _FLOOR)
+    result = _compose_plate(libraries, reg, tmp_path)
+
+    assert result.admission is not None and result.admission.record_path is not None
+    assert result.admission.summary == "1 of 2 samples dropped"
+    record = (tmp_path / result.admission.record_path).read_text()
+    assert "1 of 2 samples dropped" in record and "cell" not in record
+    config = yaml.safe_load((tmp_path / result.config_path).read_text())
+    assert config["samples"] == ["lib1"]
 
 
 def test_a_chemistry_that_declares_no_floor_makes_the_composer_add_no_step(

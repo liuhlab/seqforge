@@ -196,7 +196,7 @@ def test_the_three_filenames_are_the_ones_the_composer_writes(
 
 
 def test_the_exclusion_record_is_named_here_and_absent_when_nothing_was_excluded(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    built_v3: Built, built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The sixth file: named by the layout's owner whether or not one is there, written only if it is.
 
@@ -205,6 +205,10 @@ def test_the_exclusion_record_is_named_here_and_absent_when_nothing_was_excluded
     make every reader spell the same fallback. Composing without a floor and composing with one that
     drops a cell are the two states, and the name has to be the same in both or the reader looking for
     an explanation would not find the one that exists.
+
+    Two chemistries because the two states are two chemistries: the 10x entry declares no floor at
+    all, and the plate entry is the one whose Sample is a cell — a cell axis bolted onto the first
+    would be a spec the knowledge base refuses to load.
     """
     manifest, reg = built_v3
     compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path / "shipped")
@@ -213,9 +217,10 @@ def test_the_exclusion_record_is_named_here_and_absent_when_nothing_was_excluded
     assert shipped.exclusions_path == shipped.directory / EXCLUSIONS_NAME
     assert not shipped.exclusions_path.exists(), "no floor is declared, so nothing was excluded"
 
-    plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400}))
+    plate_manifest, plate_reg = built_plate
+    plate = plate_of(plate_manifest, one_run_each({"cell1": 4000, "cell2": 400}))
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], 1000)
-    compose(plate, _processing(plate), registry=reg, workspace=tmp_path / "plate")
+    compose(plate, _processing(plate), registry=plate_reg, workspace=tmp_path / "plate")
     gated = CompiledPipeline.discover(tmp_path / "plate")
     assert gated is not None
     assert gated.exclusions_path.is_file()

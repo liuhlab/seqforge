@@ -558,7 +558,7 @@ def test_compose_refuses_invalid_manifest(tmp_path: Path) -> None:
 
 
 def test_compose_says_on_the_human_stream_that_it_dropped_cells(
-    synth_bulk_pe: SynthDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    synth_smartseq3: SynthDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A pipeline shorter than the manifest it was compiled from must SAY so where a person looks.
 
@@ -569,8 +569,11 @@ def test_compose_says_on_the_human_stream_that_it_dropped_cells(
     Driven through the real verb rather than the composer, because what is under test is the seam
     between them: `compose` decides and the CLI reports, and the failure this catches is the report
     going missing while the decision keeps working.
+
+    On the plate chemistry, because the line asserted below says *cells* and that is the one entry
+    whose Sample is one.
     """
-    plate = plate_of(synth_bulk_pe.manifest, one_run_each({"cell1": 4000, "cell2": 400}))
+    plate = plate_of(synth_smartseq3.manifest, one_run_each({"cell1": 4000, "cell2": 400}))
     manifest_path = tmp_path / "manifest.yaml"
     manifest_path.write_text(yaml.safe_dump(plate.model_dump(mode="json"), sort_keys=True))
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], 1000)

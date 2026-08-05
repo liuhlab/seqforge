@@ -404,8 +404,16 @@ about the surfaces that consume them, where the reader cannot see the document y
   `tests/test_<the-issue-i-am-fixing>.py`.
 - Shared setup belongs in `tests/conftest.py`. It owns the one FASTQ writer, the synthetic onlist
   registry, the fake range server, the `snakemake` dry run, and the session-scoped immutable products:
-  the `10x-3p-gex-v3` / `bulk-rnaseq` / `splitseq` datasets, the per-spec `kb_probes` sweep, the
-  `src_trees` AST parse, and the composed-and-planned `composed_plate`.
+  the `10x-3p-gex-v3` / `bulk-rnaseq` / `splitseq` / `smartseq3` datasets, the per-spec `kb_probes`
+  sweep, the `src_trees` AST parse, and the composed-and-planned `composed_plate` (which builds on the
+  `smartseq3` one rather than repeating it).
+- **A fixture that hands code a model must hand it one the loader would accept.** `model_copy` runs
+  no validator, so a fixture built that way can express a shape the real schema refuses — and then
+  the thing under test is proved against something that cannot exist, green *because* of the defect.
+  `declare_read_floor` is the worked example: it re-validates what it produces, so a collision goes
+  red at the fixture instead of hiding. Where a *deliberately* unloadable model is the subject, say
+  so at the fixture — `tests/test_resolve.py`'s plate stand-in does, because the control case it
+  needs is one the schema makes unsayable.
 - **What may be shared is immutable products only.** A manifest, a registry, a directory nothing
   writes into. Never a workspace a test writes into: `seqforge/cache/` makes resume implicit (R5), so
   a shared workspace lets a later test collect a cached `Observation` and pass for the wrong reason.

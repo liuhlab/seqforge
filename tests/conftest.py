@@ -14,9 +14,10 @@ times and nothing could be tuned in one place. What lives here:
   own level explicitly — see ``test_probe.py``'s ``_value_stable_fixture``, which owns its
   compressor because it owns a literal ``size_bytes``.
 * :func:`registry_for` — a synthetic :class:`OnlistRegistry` backed by the generator's own pools.
-* :data:`synth_10x_v3`, :data:`synth_bulk_pe`, :data:`synth_splitseq` — **session-scoped** read-only
-  FASTQ directories and the ``(manifest, registry)`` built from each, for the three shapes the suite
-  keeps rebuilding: barcoded, no-barcode, and complex-geometry.
+* :data:`synth_10x_v3`, :data:`synth_bulk_pe`, :data:`synth_splitseq`, :data:`synth_smartseq3` —
+  **session-scoped** read-only FASTQ directories and the ``(manifest, registry)`` built from each, for
+  the four shapes the suite keeps rebuilding: barcoded, no-barcode, complex-geometry, and the plate
+  (the one chemistry whose ``Sample`` is a cell).
 * :data:`kb_probes` — every KB spec's own reads, probed once
   (``(spec id, read set) -> [WindowProbe]``).
 * :data:`src_trees` — every ``.py`` under ``src/seqforge``, parsed once (``path -> ast.Module``).
@@ -523,6 +524,21 @@ def synth_splitseq(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
     return build_synth_dataset(tmp_path_factory.mktemp("synth-splitseq"), "splitseq")
 
 
+@pytest.fixture(scope="session")
+def synth_smartseq3(tmp_path_factory: pytest.TempPathFactory) -> SynthDataset:
+    """The PLATE shape: a resolved, filled ``smartseq3`` pair — the one entry whose ``Sample`` IS a cell.
+
+    The shipped chemistry and never a decorated copy of another one, because the cell axis is not a
+    flag a fixture may add: it is legal only beside a module that counts the deposit's samples
+    together, and the knowledge base refuses the pairing at load. So a test that wants a *cell*
+    dropped, or the noun ``cells`` in an exclusion record, builds on this and cannot get there from
+    :data:`synth_10x_v3`.
+
+    Shared with :data:`composed_plate`, which used to build its own copy of exactly this.
+    """
+    return build_synth_dataset(tmp_path_factory.mktemp("synth-smartseq3"), "smartseq3")
+
+
 # --------------------------------------------------------------------------- #
 # the compile half: the shared build helpers ``test_manifest.py`` and ``test_compose.py`` both read
 # --------------------------------------------------------------------------- #
@@ -540,6 +556,17 @@ def built_v3(synth_10x_v3: SynthDataset) -> Built:
     ``model_copy``, and every test still composes into its own ``tmp_path``.
     """
     return synth_10x_v3.manifest, synth_10x_v3.registry
+
+
+@pytest.fixture
+def built_plate(synth_smartseq3: SynthDataset) -> Built:
+    """The plate shape, built ONCE per session: companion to :func:`built_v3` for the admission gate.
+
+    Any chemistry may declare a read floor, and one declared beside an ordinary chemistry drops
+    *samples*. Only this one makes the thing it drops a *cell*, so a test asserting that word builds
+    here rather than adding the flag to a spec that cannot carry it.
+    """
+    return synth_smartseq3.manifest, synth_smartseq3.registry
 
 
 def _build(tmp_path: Path, tech: str, keys: tuple[str, ...] | None = None) -> Built:
@@ -653,19 +680,29 @@ def plate_of(
 
 
 def declare_read_floor(monkeypatch: pytest.MonkeyPatch, tech: str, floor: int | None) -> None:
-    """Hand the COMPOSER ``tech``'s spec with a read floor, and one ``Sample`` declared to be one cell.
+    """Hand the COMPOSER ``tech``'s spec with ``min_input_reads`` set to ``floor``, and nothing else moved.
 
-    A ``model_copy`` and never a mutation: ``load_spec`` is cached and hands back a SHARED ``Spec``, so
-    setting the field in place would leak a floor into every other test in the session. Patched at the
+    A copy and never a mutation: ``load_spec`` is cached and hands back a SHARED ``Spec``, so setting
+    the field in place would leak a floor into every other test in the session. Patched at the
     composer's own name because that is the only reader this fixture is about — resolve's half of the
     same declaration is exercised in ``tests/test_resolve.py`` against its own fixture.
+
+    **The copy is re-validated, because ``model_copy`` runs no validator at all.** This helper used to
+    declare ``identity.sample_is_cell`` here too, so whichever chemistry a caller built its plate on
+    silently became a plate chemistry — and that flag beside a per-sample module is the pairing the
+    knowledge base refuses at load. The admission gate was therefore proved against a ``Spec`` shape
+    ``load_spec`` would never hand anybody, and the suite was green *because* of it. Round-tripping
+    through ``model_validate`` is what stops a fixture inventing a chemistry the schema forbids: the
+    collision goes red here rather than passing quietly.
+
+    Whether the thing dropped is a *cell* or a *sample* is the loaded spec's business, so build the
+    plate on the chemistry whose noun you mean — :data:`built_plate` for cells, :data:`built_v3` (or
+    any other entry) for samples. A floor is a general admission threshold and any chemistry may
+    declare one.
     """
     spec = kb.load_spec(tech)
-    declared = spec.model_copy(
-        update={
-            "identity": spec.identity.model_copy(update={"sample_is_cell": True}),
-            "min_input_reads": floor,
-        }
+    declared = kb.Spec.model_validate(
+        spec.model_copy(update={"min_input_reads": floor}).model_dump()
     )
     monkeypatch.setattr(compose_core, "load_spec", lambda name: declared if name == tech else spec)
 
@@ -703,7 +740,9 @@ class ComposedPlate:
 
 
 @pytest.fixture(scope="session")
-def composed_plate(tmp_path_factory: pytest.TempPathFactory) -> ComposedPlate:
+def composed_plate(
+    tmp_path_factory: pytest.TempPathFactory, synth_smartseq3: SynthDataset
+) -> ComposedPlate:
     """A real ``smartseq3`` deposit, composed and planned ONCE for the whole plate gate.
 
     The chemistry is the shipped KB entry, not a synthetic stand-in: what this fixture is for is the
@@ -719,9 +758,7 @@ def composed_plate(tmp_path_factory: pytest.TempPathFactory) -> ComposedPlate:
     from seqforge.compose import compose
 
     workdir = tmp_path_factory.mktemp("composed-plate")
-    reads = workdir / "reads"
-    reads.mkdir()
-    dataset = build_synth_dataset(reads, "smartseq3")
+    dataset = synth_smartseq3
     cells = tuple(f"cell_{i:03d}" for i in range(PLATE_CELL_COUNT))
     manifest = plate_of(
         dataset.manifest,

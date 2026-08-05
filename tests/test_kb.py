@@ -1422,10 +1422,20 @@ def test_only_the_plate_entry_says_a_sample_is_a_cell_and_it_is_the_one_that_set
     it is named here rather than counted: a second id appearing in this set is a second plate
     chemistry, which is a thing to argue for, not a diff.
 
-    **The two fields move together on that entry, and neither is a default there.** They answer
+    **Both fields are declared on that entry, and only ONE direction of that is a rule.** They answer
     different questions — one names what the technology IS, the other is an admission threshold that
-    names no technology — but a plate assay that says a sample is a cell without saying how thin a
-    cell may be is a plate whose starved wells dissent instead of abstaining.
+    names no technology. A chemistry whose `Sample` IS a cell must also say how thin a cell may be,
+    or its starved wells dissent instead of abstaining, so that half is asserted. The converse is
+    **not**, and this test used to demand it: `compose.admission` says plainly that a chemistry *may*
+    declare a read floor, and one declared beside an ordinary chemistry drops *samples* rather than
+    *cells* — a supported case `test_a_floor_on_a_chemistry_whose_sample_is_not_a_cell_drops_samples_and_says_so`
+    exercises. It has no shipped instance today, which is exactly how a test comes to forbid a
+    permitted shape without anyone noticing.
+
+    The `declaring` bar below is not that rule wearing a disguise. It says what the KB SHIPS — one
+    entry departs from both defaults — and a floor-only entry appearing in it is a change to argue
+    for on its own terms, not a shape the schema refuses. The assertion dropped here was the other
+    thing: a claim about what a spec is ALLOWED to say.
 
     Read off the FILES and not off the loaded model, because a default is exactly what a model read
     cannot distinguish from a declaration.
@@ -1453,8 +1463,16 @@ def test_only_the_plate_entry_says_a_sample_is_a_cell_and_it_is_the_one_that_set
             assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
             continue
         declaring.add(spec_id)
-        assert "min_input_reads" in raw and "sample_is_cell" in raw["identity"], spec_id
-        assert spec.min_input_reads is not None and spec.identity.sample_is_cell, spec_id
+        # Each field straight off the file it was written in: what the loaded model carries, it
+        # carries because the entry said so and not because the schema defaulted it.
+        assert raw.get("min_input_reads") == spec.min_input_reads, spec_id
+        assert raw["identity"].get("sample_is_cell", False) == spec.identity.sample_is_cell, spec_id
+        if spec.identity.sample_is_cell:
+            assert spec.min_input_reads is not None, (
+                f"{spec_id} says one Sample of it IS a cell but declares no read floor. A plate "
+                f"whose starved wells have no threshold to fall under dissents instead of "
+                f"abstaining, and every one of them compiles."
+            )
 
     assert declaring == {"smartseq3"}, (
         f"the plate fields are declared by {sorted(declaring)}, not by the one plate entry. Every "
