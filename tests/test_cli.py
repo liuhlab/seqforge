@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import random
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from typer.testing import CliRunner
@@ -48,6 +49,13 @@ CLI_SURFACE = [
         ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
          "--sort-mem-mb", "8000"], 2, (), id="io-cram-has-no-sort-memory-knob",
     ),
+    # Each cell's BAM arrives with the sample id that names its h5ad row, so a bare path is a bad
+    # invocation — refused before the assembly is looked up, since a typo should not first cost a
+    # genome resolution that may not be possible on this host at all.
+    pytest.param(
+        ["io", "umi-count", "/x/cell.bam", "--assembly", "mm10", "--annotation", "gencode_vM23",
+         "--out", "plate.h5ad"], 2, (), id="io-umi-count-refuses-a-bam-with-no-sample-id",
+    ),
 ]  # fmt: skip
 
 
@@ -59,6 +67,80 @@ def test_the_cli_surface_exits_and_answers_as_documented(
     assert result.exit_code == exit_code, result.stdout
     for needle in contains:
         assert needle in result.stdout
+
+
+def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome_registered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The verb's whole job: marshal arguments, resolve the annotation, and answer on stdout.
+
+    liulab-genome registers an annotation as `<name>.gtf` with the gffutils `<name>.db` it builds
+    from it in the same directory, and exposes only the first — so the verb derives the second, and
+    this is the test that goes red if that layout ever moves. `Genome` is stubbed because resolving
+    a real assembly needs a genome store this box may not have; what is under test is the
+    derivation and the wiring, not liulab-genome.
+    """
+    import anndata as ad
+    import genome as liulab_genome
+    import gffutils
+    import pysam
+
+    gtf = tmp_path / "synthetic.gtf"
+    gtf.write_text(
+        'chr1\tsynthetic\tgene\t1\t1000\t.\t+\t.\tgene_id "GENE_A";\n'
+        'chr1\tsynthetic\texon\t101\t200\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";\n'
+    )
+    built = gffutils.create_db(
+        str(gtf),
+        str(gtf.with_suffix(".db")),
+        keep_order=True,
+        merge_strategy="create_unique",
+        sort_attribute_values=True,
+        disable_infer_genes=True,
+        disable_infer_transcripts=True,
+    )
+    built.conn.close()
+
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": [{"SN": "chr1", "LN": 10000}]}
+    )
+    record = pysam.AlignedSegment(header)
+    record.query_name = "one_read"
+    record.query_sequence = "A" * 20
+    record.query_qualities = pysam.qualitystring_to_array("I" * 20)
+    record.reference_id = 0
+    record.reference_start = 120  # inside the exon, 0-based
+    record.mapping_quality = 255
+    record.cigarstring = "20M"
+    record.set_tags([("NH", 1, "i"), ("UB", "AAAAAAAA", "Z")])
+    bam = tmp_path / "cell.bam"
+    with pysam.AlignmentFile(str(bam), "wb", header=header) as out:
+        out.write(record)
+
+    class _StubGenome:
+        def __init__(self, assembly: str) -> None:
+            self.assembly = assembly
+
+        def get_gtf_path(self, name: str) -> Path:
+            return gtf
+
+    monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
+
+    written = tmp_path / "plate.h5ad"
+    result = runner.invoke(
+        app,
+        ["io", "umi-count", f"cell_a={bam}", "--assembly", "mm10",
+         "--annotation", "synthetic", "--out", str(written)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    assert json.loads(result.stdout)["written"] == str(written)
+    adata = ad.read_h5ad(written)
+    assert list(adata.obs_names) == ["cell_a"]
+    # `X` is declared as a union that includes a lazy on-disk dataset; on an object just read back
+    # it is the sparse matrix that was written, and only the cast says so to the checker.
+    counts = cast("Any", adata.X)
+    assert int(counts[0, adata.var_names.get_loc("GENE_A")]) == 1
 
 
 def test_schema_export_is_valid_json_per_model_and_over_all() -> None:

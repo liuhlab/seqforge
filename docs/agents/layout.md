@@ -27,7 +27,9 @@ pipeline.py what is INSIDE one compiled pipeline directory: the three filenames,
 workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only — no fetch/ yet.
             h5ad.py packages Solo.out as the deliverable (its input contract IS STARsolo's layout).
             metrics.py is the leaf metric vocabulary, stats.py the per-module reader registry, and
-            each adapter lives beside the writer whose format it reads (ADR-0025)
+            each adapter lives beside the writer whose format it reads (ADR-0025).
+            umite/ is the SMART-seq3 UMI extractor and counter, re-implemented rather than
+            depended on; count.py is the plate-wide fan-in and writes one .h5ad directly
 assets/     NOT a package — the one design-token layer (`sf-tokens.css`) that BOTH report pages'
             Tailwind inputs import. A build input, never read at runtime; it ships as the source of
             record. Neutral home because neither report owns it (report/assets/VENDOR.md)

@@ -340,6 +340,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -629,6 +630,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -917,6 +919,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
   docs:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -1213,6 +1216,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -1475,6 +1479,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -1736,6 +1741,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
   test:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -2025,6 +2031,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -2280,6 +2287,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -2534,6 +2542,7 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#ab3272312eb3f9ef25e3ac8320aac28187af42f5
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
+      - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
 packages:
 - conda: https://conda.anaconda.org/bioconda/linux-64/ucsc-fatotwobit-482-hdc0a859_0.tar.bz2
   sha256: 49a3812350d8bcde5993e1620e36921e7419fb98db8b160e186fff16a4bfdaf9
@@ -2976,7 +2985,7 @@ packages:
   - zstd >=1.5.7,<1.6.0a0
   license: BSD-3-Clause AND MIT AND EPL-2.0
   purls:
-  - pkg:pypi/backports-zstd?source=compressed-mapping
+  - pkg:pypi/backports-zstd?source=hash-mapping
   run_exports: {}
   size: 242845
   timestamp: 1781450812380
@@ -5010,7 +5019,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/librt?source=compressed-mapping
+  - pkg:pypi/librt?source=hash-mapping
   run_exports: {}
   size: 164035
   timestamp: 1783529451161
@@ -10133,7 +10142,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/greenlet?source=compressed-mapping
+  - pkg:pypi/greenlet?source=hash-mapping
   run_exports: {}
   size: 263371
   timestamp: 1782524773735
@@ -11780,6 +11789,8 @@ packages:
   - pdfplumber>=0.11
   - openpyxl>=3.1
   - anndata>=0.10
+  - pysam>=0.22
+  - gffutils>=0.13
   - anthropic>=0.40
   - openai>=1.40
   requires_python: '>=3.12'
@@ -11812,3 +11823,18 @@ packages:
   name: py2bit
   version: 1.0.1
   sha256: cf81b59b5be9b8e35b06c49025c30b906cc2451923b48b1e7fa7302494e7f320
+- pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
+  name: pysam
+  version: 0.24.0
+  sha256: c30f746060a8944adaf5004652b4a25b2460a07360fb01be2b6b38f883fae8e7
+  requires_python: '>=3.8'
+- pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  name: pysam
+  version: 0.24.0
+  sha256: 1448b3100f79bd00830c586a256ea21b1f701d937f5ad4318adffdb5b2933478
+  requires_python: '>=3.8'
+- pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
+  name: pysam
+  version: 0.24.0
+  sha256: b9445a4c3be5ed4b60202690af3890a444452276372e3abb58564308cc6d5a45
+  requires_python: '>=3.8'

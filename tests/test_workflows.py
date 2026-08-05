@@ -20,10 +20,11 @@ import json
 import re
 import shutil
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
-from typing import get_args
+from typing import Any, get_args
 
 import anndata as ad
 import pytest
@@ -94,6 +95,19 @@ from seqforge.workflows.stats import (
     modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
+)
+from seqforge.workflows.umite.count import (
+    FATES,
+    LAYERS,
+    N_FRAGMENTS,
+    PRIMARY_MATRIX,
+    UmiCountError,
+    correct_umis,
+    count_bam,
+    count_plate,
+    parse_cells,
+    read_annotation,
+    write_umi_counts,
 )
 
 # ================================================================================================
@@ -2863,3 +2877,439 @@ def test_every_mate_of_one_sample_is_ordered_the_same_way() -> None:
     # The other sample's file never leaks in, and an absent role is empty rather than an error.
     assert ordered_fastqs(units, "s1", "I1") == []
     assert ordered_fastqs(units, "s2", "R1") == ["x_bc.fq"]
+
+
+# ================================================================================================
+# umite/count — one counting job over a whole plate, into one h5ad
+# ================================================================================================
+#
+# The centrepiece is a synthetic annotation and BAM where **every fragment's fate is known by
+# construction**. That is deliberate rather than convenient: the frozen agreement record captured
+# against the real tool proves "agrees with umite on these ten cells" and is structurally blind to
+# the one arithmetic this port most easily inverts — its combined UMI figure equals exon + intron
+# *exactly* on all ten cells, so a port that deduplicated over the union of the two buckets would
+# have passed it. A fixture built by construction proves the counting *rule*, and it carries no
+# species: a real-genome slice would bake one assembly and one annotation into this repo.
+
+_GTF = """\
+chr1\tsynthetic\tgene\t1\t1000\t.\t+\t.\tgene_id "GENE_A"; gene_name "alpha";
+chr1\tsynthetic\texon\t101\t200\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";
+chr1\tsynthetic\texon\t501\t600\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";
+chr1\tsynthetic\tgene\t2001\t3000\t.\t-\t.\tgene_id "GENE_B"; gene_name "beta";
+chr1\tsynthetic\texon\t2101\t2200\t.\t-\t.\tgene_id "GENE_B"; transcript_id "GENE_B.1";
+chr1\tsynthetic\tgene\t4001\t5000\t.\t+\t.\tgene_id "GENE_C"; gene_name "gamma";
+chr1\tsynthetic\texon\t4601\t4700\t.\t+\t.\tgene_id "GENE_C"; transcript_id "GENE_C.1";
+chr1\tsynthetic\tgene\t4501\t5500\t.\t+\t.\tgene_id "GENE_D"; gene_name "delta";
+chr1\tsynthetic\texon\t4651\t4750\t.\t+\t.\tgene_id "GENE_D"; transcript_id "GENE_D.1";
+"""
+
+#: What the GTF above says, 0-based half-open, so the fragments below can be placed against the
+#: geometry rather than against a re-derivation of it: GENE_A [0,1000) with exons [100,200) and
+#: [500,600); GENE_B [2000,3000) exon [2100,2200); GENE_C [4000,5000) exon [4600,4700); GENE_D
+#: [4500,5500) exon [4650,4750). C and D overlap in their bodies from 4500 and in their exons from
+#: 4650, which is what makes a fragment there ambiguous in two different ways. `chrUn_synthetic` is
+#: in the BAM header and in no GTF line at all.
+_CONTIGS = [{"SN": "chr1", "LN": 10000}, {"SN": "chrUn_synthetic", "LN": 1000}]
+
+_READ_LEN = 20
+
+
+def _annotation_db(tmp_path: Path) -> Path:
+    """The synthetic GTF, built into a gffutils database the way liulab-genome builds one.
+
+    The flags mirror `genome.io.gtf.register_gtf` — `keep_order`, `merge_strategy="create_unique"`,
+    `sort_attribute_values`, and inference disabled because a real annotation declares its own
+    `gene` rows. Building it here rather than reaching for a registered assembly is what keeps this
+    species-free and runnable with no genome on the box: what the counter consumes is a database,
+    and this is one, written by the same library.
+    """
+    import gffutils
+
+    gtf = tmp_path / "synthetic.gtf"
+    gtf.write_text(_GTF)
+    db = tmp_path / "synthetic.db"
+    built = gffutils.create_db(
+        str(gtf),
+        str(db),
+        keep_order=True,
+        merge_strategy="create_unique",
+        sort_attribute_values=True,
+        disable_infer_genes=True,
+        disable_infer_transcripts=True,
+    )
+    built.conn.close()  # gffutils leaves it open; `register_gtf` closes its own for the same reason
+    return db
+
+
+@dataclass(frozen=True)
+class _Fragment:
+    """One fragment to synthesise: where it lands, what it carries, and how many loci it claims."""
+
+    name: str
+    contig: str
+    start: int
+    end: int
+    umi: str = ""
+    hits: int = 1
+    mate_unmapped: bool = False
+
+
+def _segments(header: Any, frag: _Fragment) -> list[Any]:
+    """One `_Fragment` -> its BAM records: two mates, or one when the mate never aligned."""
+    import pysam
+
+    tid = header.get_tid(frag.contig)
+    span = frag.end - frag.start
+    mate_start = frag.end - _READ_LEN
+
+    def build(start: int, flag: int, mate: int, tlen: int) -> Any:
+        rec = pysam.AlignedSegment(header)
+        rec.query_name = frag.name
+        rec.query_sequence = "A" * _READ_LEN
+        rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
+        rec.flag = flag
+        rec.reference_id = tid
+        rec.reference_start = start
+        rec.mapping_quality = 255
+        rec.cigarstring = f"{_READ_LEN}M"
+        rec.next_reference_id = tid
+        rec.next_reference_start = mate
+        rec.template_length = tlen
+        tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
+        if frag.umi:
+            tags.append(("UB", frag.umi, "Z"))
+        rec.set_tags(tags)
+        return rec
+
+    if frag.mate_unmapped:
+        # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
+        # so the flag on this one is the only evidence that the fragment did not align.
+        return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
+    return [
+        build(frag.start, 1 | 2 | 32 | 64, mate_start, span),
+        build(mate_start, 1 | 2 | 16 | 128, frag.start, -span),
+    ]
+
+
+def _synthetic_bam(path: Path, fragments: Sequence[_Fragment]) -> Path:
+    """`fragments` -> a COORDINATE-sorted BAM, which is the input contract this counter has.
+
+    Sorting by position is what scatters each fragment's two mates apart, so a port that quietly
+    depended on name adjacency goes red here rather than in production.
+    """
+    import pysam
+
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    )
+    records = [rec for frag in fragments for rec in _segments(header, frag)]
+    records.sort(key=lambda r: (r.reference_id, r.reference_start))
+    with pysam.AlignmentFile(str(path), "wb", header=header) as out:
+        for rec in records:
+            out.write(rec)
+    return path
+
+
+#: The plate every fate assertion below reads. One line per fragment, and the comment above each is
+#: the whole expected result — nothing here is computed, so no assertion can agree with it by
+#: sharing an arithmetic error.
+_PLATE: tuple[_Fragment, ...] = (
+    # GENE_A, exonic, the same UMI twice: two observations that deduplicate to one count.
+    _Fragment("a_exon_1", "chr1", 120, 180, umi="AAAAAAAA"),
+    _Fragment("a_exon_2", "chr1", 520, 580, umi="AAAAAAAA"),
+    # That SAME UMI again, this time between the two exons. Deduplicated inside its own bucket, so
+    # it counts once more in the intron matrix — `inex` is NOT `exon + intron`.
+    _Fragment("a_intron", "chr1", 300, 360, umi="AAAAAAAA"),
+    # The first mate lands in the intron and its mate reaches the second exon; the span between
+    # them is what makes the fragment exonic, recovered from this record's own mate coordinates.
+    _Fragment("a_spanning", "chr1", 300, 520, umi="GGGGGGGG"),
+    # Untagged: one count each in the read matrices, and one count is what says both mates were not
+    # counted twice.
+    _Fragment("a_exon_read", "chr1", 120, 180),
+    _Fragment("a_intron_read", "chr1", 300, 360),
+    _Fragment("b_exon", "chr1", 2120, 2180, umi="CCCCCCCC"),
+    # NH says two loci. One record, primary, over an exon — which the reference counts into GENE_A.
+    _Fragment("multimapper", "chr1", 120, 180, umi="TTTTTTTT", hits=2),
+    # Aligned to a scaffold no GTF line mentions, and to a gap between genes: both `_no_feature`.
+    _Fragment("scaffold", "chrUn_synthetic", 50, 110),
+    _Fragment("intergenic", "chr1", 8000, 8060),
+    # Exons of GENE_C and GENE_D at once, then bodies of both with no exon: ambiguous twice over.
+    _Fragment("ambiguous_exon", "chr1", 4660, 4690),
+    _Fragment("ambiguous_intron", "chr1", 4520, 4560),
+    _Fragment("mate_never_aligned", "chr1", 120, 180, umi="AAAAAAAA", mate_unmapped=True),
+)
+
+
+def _plate(tmp_path: Path) -> tuple[Path, list[tuple[str, Path]]]:
+    """The two-cell plate: the annotation database, and the cells in the order they are handed over."""
+    db = _annotation_db(tmp_path)
+    cell_a = _synthetic_bam(tmp_path / "cell_a.bam", _PLATE)
+    cell_b = _synthetic_bam(tmp_path / "cell_b.bam", _PLATE[6:7])  # GENE_B alone
+    return db, [("cell_a", cell_a), ("cell_b", cell_b)]
+
+
+def _row(adata: ad.AnnData, sample: str, gene: str, layer: str | None = None) -> int:
+    """One cell's count for one gene, by name — never by an index this file also computed."""
+    return int(
+        _counts(adata, layer)[adata.obs_names.get_loc(sample), adata.var_names.get_loc(gene)]
+    )
+
+
+def _frame(table: object) -> Any:
+    """`adata.obs`/`adata.var` are declared as a union with a lazy on-disk table.
+
+    On an object this file just built or read back it is a pandas frame, narrowed once here rather
+    than with a cast at every call site — the same move `_counts` makes for a matrix.
+    """
+    return table
+
+
+def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_path: Path) -> None:
+    """What the counter consumes is the database liulab-genome built, not the GTF it built it from.
+
+    The reference parses the GTF with HTSeq into two `GenomicArrayOfSets`, pickles them at 47.5 MB
+    and serialises that into every worker — ~76 GB through pipes at 1440 cells, on top of a 50 s
+    parse. Reading the database instead is what deletes both, so the gene axis arriving from it,
+    correct, is the load-bearing claim of the port's largest single win.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+
+    assert set(annotation.gene_ids) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
+    assert annotation.gene_names[annotation.gene_ids.index("GENE_A")] == "alpha"
+
+    # The geometry, asked as the overlap questions the counter asks rather than read back as spans.
+    a = annotation.gene_ids.index("GENE_A")
+    assert annotation.exonic("chr1", 120, 140) == frozenset({a})
+    assert annotation.exonic("chr1", 300, 320) == frozenset()  # between GENE_A's two exons
+    assert annotation.gene_bodies("chr1", 300, 320) == frozenset({a})
+    # A contig with no annotated feature at all answers empty rather than raising — see the fate
+    # test below for why that difference is worth a test of its own.
+    assert annotation.gene_bodies("chrUn_synthetic", 50, 70) == frozenset()
+
+
+def test_a_missing_or_unreadable_annotation_database_is_a_refusal_not_an_empty_gene_axis(
+    tmp_path: Path,
+) -> None:
+    """An annotation that cannot be read must not become a matrix of zeros nobody questions."""
+    with pytest.raises(UmiCountError, match="does not exist"):
+        read_annotation(tmp_path / "never-registered.db")
+
+    not_a_database = tmp_path / "junk.db"
+    not_a_database.write_bytes(b"this is not sqlite")
+    with pytest.raises(UmiCountError):
+        read_annotation(not_a_database)
+
+
+def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
+    tmp_path: Path,
+) -> None:
+    """The whole counting rule at once, against a plate whose every fate is known by construction.
+
+    Thirteen fragments, four counted matrices and four fates; every number below is read off the
+    fixture's own comments rather than recomputed here.
+    """
+    db, cells = _plate(tmp_path)
+    adata, per_cell = count_plate(cells, read_annotation(db))
+    cell = per_cell[0]
+
+    assert cell.n_fragments == len(_PLATE)
+    assert cell.fates == {
+        "unmapped": 1,  # mate_never_aligned
+        "multimapping": 1,  # NH == 2
+        "no_feature": 2,  # the scaffold, and the intergenic fragment
+        "ambiguous": 2,  # two exonic genes, then two gene bodies and no exon
+    }
+
+    # UMIs: GENE_A carries "AAAAAAAA" (twice, deduplicated) and "GGGGGGGG" (the spanning fragment).
+    assert _row(adata, "cell_a", "GENE_A") == 2
+    assert _row(adata, "cell_a", "GENE_B") == 1
+    # ...and an untagged fragment never reaches a UMI matrix, nor a tagged one a read matrix.
+    assert _row(adata, "cell_a", "GENE_A", "read_exon") == 1
+    assert _row(adata, "cell_a", "GENE_A", "read_intron") == 1
+    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix.
+    for gene in ("GENE_C", "GENE_D"):
+        assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0, 0, 0, 0]
+
+    # The second cell is a different row, not a copy of the first.
+    assert _row(adata, "cell_b", "GENE_B") == 1
+    assert _row(adata, "cell_b", "GENE_A") == 0
+    assert int(_frame(adata.obs).loc["cell_b", N_FRAGMENTS]) == 1
+
+
+def test_a_umi_seen_both_exonically_and_intronically_counts_once_in_each_so_inex_is_not_their_sum(
+    tmp_path: Path,
+) -> None:
+    """The arithmetic the frozen agreement fixture is blind to, pinned by construction instead.
+
+    "AAAAAAAA" reaches GENE_A three times: twice over an exon, once between the exons. Each bucket
+    is deduplicated on its own, so it counts once in each and the exon and intron matrices sum to
+    two — where deduplicating over the union of the buckets would give one. The two differ by
+    exactly the UMIs seen both ways on one gene, and on the ten real cells captured against the
+    reference that intersection is empty, so this case cannot be measured against real data at that
+    depth.
+    """
+    db, cells = _plate(tmp_path)
+    adata, _ = count_plate(cells, read_annotation(db))
+
+    assert _PLATE[0].umi == _PLATE[2].umi  # the same UMI, one exonic fragment and one intronic
+    assert _row(adata, "cell_a", "GENE_A", "umi_intron") == 1
+    assert _row(adata, "cell_a", "GENE_A") + _row(adata, "cell_a", "GENE_A", "umi_intron") == 3
+
+
+def test_a_multimapper_is_read_off_nh_and_never_reaches_the_gene_it_aligned_to(
+    tmp_path: Path,
+) -> None:
+    """`NH`, not bundle length — which is what makes the aligner's one-record flag survivable.
+
+    The reference infers multimapping from how many alignments a read name has, so with STAR
+    emitting exactly one record per multimapper every bundle is length 1 and every multimapper is
+    counted into a gene: `_multimapping` measured 0 for all ten fixture cells while 12.6% of aligned
+    names carried `NH > 1`, and realigning one cell with the flag as the only difference moved its
+    primary UMI matrix by +10.2% — more than the fuzzy-matching gain the tool is published for.
+    """
+    db = _annotation_db(tmp_path)
+    annotation = read_annotation(db)
+    exonic = _Fragment("hit", "chr1", 120, 180, umi="AAAAAAAA")
+
+    unique = count_bam(_synthetic_bam(tmp_path / "unique.bam", (exonic,)), annotation)
+    multi = count_bam(
+        _synthetic_bam(tmp_path / "multi.bam", (replace(exonic, hits=4),)), annotation
+    )
+
+    assert unique.fates["multimapping"] == 0
+    assert unique.umi_exon[annotation.gene_ids.index("GENE_A")] == {"AAAAAAAA": 1}
+    assert multi.fates["multimapping"] == 1
+    assert multi.umi_exon == {}  # the same fragment, over the same exon, counted nowhere
+
+
+def test_a_read_on_a_scaffold_with_no_annotated_feature_is_no_feature_and_not_unmapped(
+    tmp_path: Path,
+) -> None:
+    """The reference catches a lookup error on the contig and calls the read unmapped. It aligned.
+
+    A handful of reads per cell land on scaffolds a GTF never mentions, and calling them unmapped
+    charges an annotation gap to the aligner — wrong in a way a summary hides completely.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+    bam = _synthetic_bam(
+        tmp_path / "scaffold.bam", (_Fragment("off_annotation", "chrUn_synthetic", 50, 110),)
+    )
+
+    counts = count_bam(bam, annotation)
+
+    assert counts.fates["no_feature"] == 1
+    assert counts.fates["unmapped"] == 0
+
+
+def test_both_mates_of_a_fragment_are_counted_once_and_the_mate_coordinates_still_place_it(
+    tmp_path: Path,
+) -> None:
+    """Two records, one count — and the second mate still decides where the fragment goes.
+
+    The input is coordinate-sorted, so the two mates are nowhere near each other and nothing here
+    reconstructs the pair. One record stands for the fragment and the mate's footprint arrives
+    through the template length that record already carries, which is why `a_spanning` — whose
+    first mate is squarely in an intron — is counted as exonic rather than intronic.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+    a = annotation.gene_ids.index("GENE_A")
+
+    both = count_bam(
+        _synthetic_bam(tmp_path / "pair.bam", (_Fragment("untagged", "chr1", 120, 180),)),
+        annotation,
+    )
+    assert both.read_exon == {a: 1}  # two records went in
+    assert both.n_fragments == 1
+
+    spanning = count_bam(
+        _synthetic_bam(
+            tmp_path / "span.bam", (_Fragment("spanning", "chr1", 300, 520, umi="GGGGGGGG"),)
+        ),
+        annotation,
+    )
+    assert spanning.umi_exon == {a: {"GGGGGGGG": 1}}
+    assert spanning.umi_intron == {}
+
+
+def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() -> None:
+    """Hamming-1 with the count-ratio guard, as a rule about two numbers rather than about a BAM.
+
+    The guard is what keeps two genuinely distinct UMIs at similar depth apart: a candidate is only
+    absorbed into a seed at least roughly twice as abundant. At a Hamming threshold of 3 the
+    trailing check is vacuous and the merge starts manufacturing UMIs, which is why 1 is a module
+    literal and not a flag.
+    """
+    # One error away and far rarer -> absorbed, and the seed keeps every observation.
+    assert correct_umis({"AAAAAAAA": 9, "AAAAAAAT": 1}) == {"AAAAAAAA": 10}
+    # One error away but comparably abundant -> two real UMIs, left alone.
+    assert correct_umis({"AAAAAAAA": 2, "AAAAAAAT": 2}) == {"AAAAAAAA": 2, "AAAAAAAT": 2}
+    # Two errors away -> beyond the threshold at any ratio.
+    assert correct_umis({"AAAAAAAA": 9, "AAAAAATT": 1}) == {"AAAAAAAA": 9, "AAAAAATT": 1}
+    # Equal counts break on the sequence, never on the order the BAM happened to hand them over.
+    assert list(correct_umis({"TTTTTTTT": 3, "AAAAAAAA": 3})) == ["AAAAAAAA", "TTTTTTTT"]
+
+
+def test_the_object_is_x_plus_three_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
+    tmp_path: Path,
+) -> None:
+    """The deliverable's shape, which is the half of this ticket no wrong number would show.
+
+    Rows are sample ids, which is what makes an h5ad row and a per-cell CRAM filename join. The
+    fates are per-cell scalars and live on `obs`; the reference carries them as extra *gene*
+    columns in a matrix whose other 55 335 columns really are genes, which is what forced a
+    correction in its output shape.
+    """
+    db, cells = _plate(tmp_path)
+    out = write_umi_counts(cells, db, tmp_path / "plate" / "counts.h5ad")
+    adata = ad.read_h5ad(out)
+
+    assert list(adata.obs_names) == ["cell_a", "cell_b"]  # the order the cells were handed over
+    assert _layer_names(adata) == set(LAYERS)
+    assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+    assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
+    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS}
+    assert _frame(adata.var).loc["GENE_B", "gene_name"] == "beta"
+    _counts(adata)  # sparse in the object and not only on disk: a plate is almost entirely zeros
+
+
+def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Path) -> None:
+    """Determinism, asserted on the artifact rather than on the absence of `random` in the source.
+
+    The reference picks an alignment with an unseeded `random.choice` when a read has several
+    primary alignments. There is nothing to choose here — every tie-break is written down — and
+    this is what proves it, including the iteration orders that are only accidentally stable.
+    """
+    db, cells = _plate(tmp_path)
+
+    first = write_umi_counts(cells, db, tmp_path / "first.h5ad")
+    second = write_umi_counts(cells, db, tmp_path / "second.h5ad")
+
+    assert first.read_bytes() == second.read_bytes()
+
+
+def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path: Path) -> None:
+    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting."""
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+
+    with pytest.raises(UmiCountError, match="repeat"):
+        count_plate([("same", cells[0][1]), ("same", cells[1][1])], annotation)
+    with pytest.raises(UmiCountError, match="no cells"):
+        count_plate([], annotation)
+    with pytest.raises(UmiCountError, match="missing"):
+        count_plate([("gone", tmp_path / "never-aligned.bam")], annotation)
+
+
+def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the_filename() -> None:
+    """The join the reference had to warn about, removed by never making it.
+
+    Its rows come out labelled `SRR19884922.namesort.bam` — the BAM's basename, suffix and all — so
+    every consumer has to strip something it was never told the shape of.
+    """
+    assert parse_cells(["c1=/x/one.bam", "c2=/y/two.bam"]) == [
+        ("c1", Path("/x/one.bam")),
+        ("c2", Path("/y/two.bam")),
+    ]
+    for malformed in ("/x/one.bam", "=/x/one.bam", "c1="):
+        with pytest.raises(UmiCountError, match="sample_id=path"):
+            parse_cells([malformed])
