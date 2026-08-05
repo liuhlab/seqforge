@@ -121,6 +121,25 @@ confusable_with:
     note: >
       The BD Rhapsody Enhanced bead (v2, 384-plex) — same reasoning as `-enhanced-v1`. Separated at rung
       3 by the 384 x 3 CLS whitelists (disjoint from both the 96 pools and from anything bulk could hit).
+  # The sixth confusable, and the first that no onlist separates: SMART-seq3 has no whitelist at all
+  # (its cell barcode is the FILE), so rung 3 has nothing to look up on either side and the tie has to
+  # be broken one rung lower.
+  - id: smartseq3
+    relationship: processing_divergent
+    distinguishable_by: [metadata]
+    note: >
+      A plate assay whose R1 is a tagged cDNA read: 11 bp TSO tag, 8 bp UMI, GGG, then cDNA from 22.
+      To this generic fallback that is simply a pair of long-enough reads, so it accepts the pair on
+      read-count and length alone. The acceptance is ONE-DIRECTIONAL — smartseq3 rejects bulk's reads
+      at rung 0, since bulk R1 carries the tag at offset 0 in 0.00% of reads against a 2% floor — and
+      the sweep runs over ordered pairs, so the edge is declared on this side too rather than only on
+      the entry that gates. This is the copy that actually FIRES: the divergent-tie question reads the
+      TOP-scoring spec's list, and bulk tops every measured near-tie (0.8552 vs 0.8444 on the thinnest
+      real cell). `metadata` and not `onlist`: neither entry has a whitelist. Not `alignment` either —
+      the discriminating fact is a 22 bp prefix, which alignment adds nothing to, and on a tie the
+      bytes are already spent. Maximally divergent downstream: map/star gene counts with every PCR
+      duplicate counted once per read, versus map/star-umi's UMI-deduplicated tagged/internal split
+      fanning a whole plate into one object.
   - id: 10x-multiome-atac
     relationship: processing_divergent
     distinguishable_by: [onlist]

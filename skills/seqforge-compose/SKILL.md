@@ -88,9 +88,9 @@ would make the dataset's identity a function of a knowledge-base number.
 So when the emitted sample list is shorter than the manifest's, that is not data loss to investigate:
 read `excluded.md` in the run directory, which names each dropped sample, its exact read count, the
 threshold, and the totals. `ComposeResult.admission` carries the same facts as JSON, and is `null`
-for every chemistry declaring no floor — which today is all sixteen. Every sample below the floor is
-a **refusal**, because a pipeline contracted to produce nothing would otherwise finish, empty, at
-exit 0.
+for every chemistry declaring no floor — which today is all of them but the plate one. Every sample
+below the floor is a **refusal**, because a pipeline contracted to produce nothing would otherwise
+finish, empty, at exit 0.
 
 ## Exit codes
 

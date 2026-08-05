@@ -628,8 +628,8 @@ def _distinct(items: Iterable[_ModelT]) -> list[_ModelT]:
 def plate_chemistries(multi: MultiRunOutput, specs: dict[str, Spec] | None = None) -> list[str]:
     """The ``identity.sample_is_cell`` chemistries this dataset's runs actually DECIDED.
 
-    Empty is the answer for all sixteen shipped specs and therefore for every dataset seqforge
-    compiles today, which is what makes :func:`_plate_gate` inert rather than merely cheap.
+    Empty is the answer for every shipped spec but the plate one, and therefore for every deposit
+    that is not a plate, which is what makes :func:`_plate_gate` inert rather than merely cheap.
 
     A run that ASKED names nothing here, however its candidate list is ordered: the plate's chemistry
     is what its cells DECIDED, and a plate asserted only by cells that declined to answer would be a
@@ -826,8 +826,9 @@ def _plate_gate(
     """Judge every cell of a plate against the chemistry the plate resolved to, or ``None``.
 
     ``None`` — no run decided a ``sample_is_cell`` chemistry — is the answer for every dataset the
-    sixteen shipped specs can describe, and it is what makes the whole gate inert rather than merely
-    cheap: :func:`reduce_dataset` then takes the byte-for-byte path it took before this existed.
+    sixteen non-plate specs can describe, and it is what makes the whole gate inert rather than
+    merely cheap: :func:`reduce_dataset` then takes the byte-for-byte path it took before this
+    existed.
 
     Scoring is untouched and stays per run (ADR-0010 is not crossed either way): every verdict read
     here is one a run already reached on its own bytes, and the only new thing is the sum, which
@@ -1056,8 +1057,8 @@ def reduce_dataset(
        one cell deciding a *different* chemistry outright (:func:`_plate_gate`). Asked first because
        a dissent is the strongest claim available about a plate and must not be masked by a sibling
        cell's question; inert, and the four gates below are byte-for-byte what they were, wherever no
-       run decided a ``sample_is_cell`` chemistry — which is every dataset the sixteen shipped specs
-       can describe;
+       run decided a ``sample_is_cell`` chemistry — which is every dataset the sixteen non-plate
+       specs can describe;
     1. **a run did not resolve** — ``multi.exit_code()`` is the max over the runs, so one run's
        blocker (exit 3) or one run's open question (exit 4) is the dataset's. An abstaining cell is
        excluded from that max: it no longer asks anything, and what it inherited is recorded;

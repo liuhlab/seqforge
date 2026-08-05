@@ -103,8 +103,12 @@ here that the model needs in order to name the node at all.
   `identity` *names* the technology and a threshold names none. Summed over a `Sample`'s runs, never
   per run. A number here must sit **under the probe budget**: below it the per-file count is exact
   (the probe read to EOF), above it the count is an extrapolation that moves with `--max-reads`.
-  Both fields default off, so **zero shipped `spec.yaml` files declare either** — the regression bar
-  getting cheaper by construction rather than by measurement, pinned hermetically in `tests/test_kb.py`.
+  Both fields default off, and exactly **one shipped `spec.yaml` declares them** — `smartseq3`, the
+  plate entry the mechanism was built for, at `1000`. They move together there rather than
+  separately: a chemistry that says a sample is a cell without saying how thin a cell may be is one
+  whose starved wells dissent instead of abstaining. Every other entry keeps the file it had, which
+  is the regression bar staying cheap by construction rather than by measurement, pinned hermetically
+  in `tests/test_kb.py`.
   It has **two** consumers, and both read it live: the reduction, where a starved cell abstains and
   inherits its plate's chemistry rather than dissenting ([`resolve.md`](resolve.md)), and `compose`,
   which drops that cell from `config["samples"]` and `units.tsv` and writes an exclusion record
@@ -260,9 +264,13 @@ them. There is no hand-maintained truth table.
    danger only while every spec consumed every file, and a spec that consumes fewer is valid against
    nearly every leaf while scoring far below all of them, so the guard would have demanded an edge
    from that spec to almost the whole KB. `resolve/confuse.py` holds the predicate and
-   `rung02_margin` the number under it; bulk's five edges are re-derived from that margin in
+   `rung02_margin` the number under it; bulk's six edges are re-derived from that margin in
    `tests/test_kb.py`, because the sweep itself skips a declared pair and so cannot notice one that
-   stopped being true.
+   stopped being true. **Each is re-derived against the claim it makes**, read off its own
+   `distinguishable_by`: an `[onlist]` edge says rung 3 decides, so bulk must be *above* the tie band
+   (+0.1376 to +0.4500), while the one `[metadata]` edge says nothing cheaper answers, so bulk must
+   be *inside* it — above the band the resolver would simply decide and never reach for the mechanism
+   the edge promises. `smartseq3` measures exactly 0.0 there.
 
    **And outranking is not sufficient either, because the guard's danger is "would pick one and never
    ask".** A read set that ORPHANS the file the incumbent seats as its barcode read does not get to
@@ -273,7 +281,7 @@ them. There is no hand-maintained truth table.
    +0.09, which is that "edge to almost the whole KB" arriving by another route. The exemption is
    scoped to a **proper-subset** read set, so it retires nothing that predates read sets:
    `bulk-rnaseq` → `10x-multiome-atac` orphans a barcode read from its maximal set and still derives.
-   `test_the_orphan_exemption_is_not_a_blanket_one` strips bulk's edges and pins exactly which five
+   `test_the_orphan_exemption_is_not_a_blanket_one` strips bulk's edges and pins exactly which six
    come back flagged — an exemption nobody has watched fail may be swallowing everything.
 2. **Do their onlists separate them?** True only if the two whitelists have a low cross-hit rate,
    computed by an actual set intersection over the packed barcode arrays — **not** by comparing
@@ -390,7 +398,12 @@ Recorded so that a green suite is not mistaken for full coverage. The shipped en
   whitelist, so the resolver must reach past the bytes for metadata or an alignment rather than pick;
 - **SPLiT-seq** — combinatorial multi-block indexing with fixed linkers and small onlists;
 - **BD Rhapsody WTA and Enhanced** — variable-*position* anchored elements, validated against real
-  Enhanced reads.
+  Enhanced reads;
+- **SMART-seq3** — the *plate* branch: one cell per FASTQ pair, so the cell barcode is the file and
+  the entry declares `sample_is_cell` beside the one module that fans a whole deposit into a single
+  object. It is also the only entry with **no whitelist at all** and the only one recognised by a
+  single anchored motif, so it is where `distinguishable_by: [metadata]` is a real claim rather than
+  a fallback — a tie with the generic paired-end fallback has no rung 3 to reach for.
 
 Plus three day-one negatives, which are as much of the coverage as the positives: a truncated gzip
 becomes a `Blocker`; a technology absent from the KB becomes `UNSUPPORTED_TECHNOLOGY` rather than a

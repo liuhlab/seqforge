@@ -260,7 +260,7 @@ Five gates, in this order, each a refusal:
 
 | gate | means | exit |
 |---|---|---|
-| `cell` | one cell of a plate dissented outright. Only reachable under a chemistry declaring `identity.sample_is_cell`, so it is inert across all sixteen shipped specs | 3 |
+| `cell` | one cell of a plate dissented outright. Only reachable under a chemistry declaring `identity.sample_is_cell`, which is `smartseq3` and no other shipped spec | 3 |
 | `run` | a run did not resolve on its own bytes, or asked. `MultiRunOutput.exit_code()` is the max over the runs, so one run's blocker or one run's open question is the dataset's | 3 or 4 |
 | `metadata` | the record join refused — a record whose runs are not the files on disk | 3 |
 | `sample` | one sample's files span two chemistries. This is the relocated "all runs must agree" invariant, now per-SAMPLE: across *different* samples a difference is a legal partition into assays, within one sample it is a mis-grouping | 3 |

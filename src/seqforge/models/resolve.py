@@ -186,7 +186,7 @@ class SampleAdmission(BaseModel):
 
     Present whenever the chemistry's spec declares ``min_input_reads`` — with ``excluded`` empty when
     every sample cleared it, so a reader can tell a gate that ran from one that never existed. Absent
-    for all sixteen shipped entries, none of which declares a floor.
+    for the sixteen non-plate entries, none of which declares a floor.
 
     **The manifest records none of this.** The measurement is in the dataset (per file, in
     ``provenance``); the *verdict* is recomputed at every compile against whatever knowledge base is

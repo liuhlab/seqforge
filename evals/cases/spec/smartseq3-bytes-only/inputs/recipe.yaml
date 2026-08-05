@@ -1,0 +1,9 @@
+# Smart-seq3: one cell per FASTQ pair. R1 carries an 11 bp TSO tag at offset 0, an 8 bp UMI, GGG,
+# then cDNA from 22; R2 is plain cDNA. No onlist exists to withhold or register — the cell barcode
+# is the FILE — so `onlists: none` is the only honest setting rather than a withholding.
+generate:
+  kind: spec
+  spec: smartseq3
+  n: 3000
+  seed: 0
+  onlists: none

@@ -948,17 +948,19 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         resolve_pipeline(unserved)  # type: ignore[arg-type]
 
 
-#: Registered modules **no shipped spec names yet**, and why each is here. The KB entry cannot land
-#: before its module: the confusability biconditional computes `backend_identical` off the resolved
-#: `backend.module`, and against a placeholder CI stamps `processing_equivalent`, which is wrong. So
-#: the module ships first and its chemistry follows.
+#: Registered modules **no shipped spec names yet**, and why each is here. **Empty, and it emptied
+#: the way it was meant to**: `map/star-umi` sat here for exactly as long as its chemistry took to
+#: land, because a KB entry cannot precede its module — the confusability biconditional computes
+#: `backend_identical` off the resolved `backend.module`, and against a placeholder CI stamps
+#: `processing_equivalent`, which is wrong. The module shipped first and `smartseq3` followed, so the
+#: composed-pipeline gate below now covers every registered module with a real chemistry.
 #:
-#: Written down rather than derived, in the shape `MODULES_WITHOUT_STATS` established: a module that
-#: no spec reaches is untested by the composed-pipeline gate below, and the only safe version of that
-#: is one that says which module and until when. Its `.smk` is proved to plan by
-#: `test_the_plate_module_plans_a_whole_run_from_a_hand_written_config` instead, which needs no
-#: chemistry at all — and the day a spec names it, this set empties and that test stays.
-MODULES_NO_SPEC_REACHES_YET: frozenset[str] = frozenset({"map/star-umi"})
+#: Kept as a named, empty set rather than deleted, in the shape `MODULES_WITHOUT_STATS` established:
+#: a module no spec reaches is untested by that gate, and the only safe version of that is one which
+#: says which module and until when. The next module to ship ahead of its entry writes its name here
+#: and takes `test_the_plate_module_plans_a_whole_run_from_a_hand_written_config`'s route in the
+#: meantime — a `.smk` proved to plan from a hand-written config, needing no chemistry at all.
+MODULES_NO_SPEC_REACHES_YET: frozenset[str] = frozenset()
 
 
 @pytest.mark.parametrize("module", list_modules())

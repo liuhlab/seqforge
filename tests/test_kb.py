@@ -1050,17 +1050,20 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
 
     An exemption nobody has watched fail is an exemption that may be swallowing everything, and this
     one sits inside the only CI error the confusability contract has. So the perturbation: **strip
-    `bulk-rnaseq`'s five declared edges** in memory and re-ask the guard's question. Five of its pairs
-    must come back flagged — the ones where the fallback explains every file and the resolver really
-    would pick it and never ask — and the 10x cohort must not, because there the fallback orphans the
+    `bulk-rnaseq`'s declared edges** in memory and re-ask the guard's question. Six of its pairs must
+    come back flagged — the ones where the fallback explains every file and the resolver really would
+    pick it and never ask — and the 10x cohort must not, because there the fallback orphans the
     barcode read and the resolver asks.
 
     That split is the whole claim, and it is what makes the exemption legible as targeted rather than
     total: it turns on whether the file was EXPLAINED, not on who scored higher. `splitseq` and the
     three BD beads put their barcode read at 60-94 bp, which bulk's 40 bp floor admits, so bulk's
-    maximal set seats both files and orphans nothing. `10x-multiome-atac` orphans its 24 bp barcode
-    read — but from the MAXIMAL set, and the exemption is scoped to a proper-subset read set, so a
-    rule introduced by read sets cannot retire an edge that predates them.
+    maximal set seats both files and orphans nothing. `smartseq3` orphans nothing either and is the
+    starkest instance of it — both of its files are long cDNA reads, one merely carrying a 22 bp
+    structural prefix, so the fallback explains the pair completely and ties dead level.
+    `10x-multiome-atac` orphans its 24 bp barcode read — but from the MAXIMAL set, and the exemption
+    is scoped to a proper-subset read set, so a rule introduced by read sets cannot retire an edge
+    that predates them.
 
     Deleting a spec's edges is exactly how `test_a_declared_twin_that_diverges_would_be_caught` proves
     the benign-twin gate fires, and it is the same reason here: a guard that has never been seen to go
@@ -1085,8 +1088,9 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
         "bd-rhapsody-wta-enhanced-v1",
         "bd-rhapsody-wta-enhanced-v2",
         "10x-multiome-atac",
+        "smartseq3",
     }, (
-        f"an undeclared bulk must still be caught against the five leaves whose data it fully "
+        f"an undeclared bulk must still be caught against the six leaves whose data it fully "
         f"explains; got {sorted(flagged)}. Too few means the exemption is swallowing real danger, "
         f"too many means it stopped applying where the resolver genuinely asks."
     )
@@ -1148,7 +1152,7 @@ def test_the_separability_guard_can_actually_catch_a_collision(kb_probes: KbProb
 
 
 @pytest.mark.xdist_group("kb-probes")
-def test_bulks_five_declared_edges_still_derive_under_the_ordering_predicate(
+def test_bulks_declared_edges_still_derive_under_the_ordering_predicate(
     kb_probes: KbProbes,
 ) -> None:
     """The gate on #275: a stronger guard that silently drops a TRUE edge has traded noise for
@@ -1156,15 +1160,22 @@ def test_bulks_five_declared_edges_still_derive_under_the_ordering_predicate(
 
     The under-declaration sweep cannot check it — it `continue`s on a declared pair, so every edge in
     the KB is a claim the sweep takes on trust. `bulk-rnaseq` is where the trust is expensive: it
-    is the generic paired-end fallback, its five edges are the only thing standing between a
-    single-cell library and a bulk gene-count matrix at exit 0, and each was derived under the OLD
+    is the generic paired-end fallback, its edges are the only thing standing between a single-cell
+    library and a bulk gene-count matrix at exit 0, and the first five were derived under the OLD
     (validity) predicate. So they are re-derived here, under the new one, as an executable gate
     rather than a sentence in a pull request.
 
-    Each edge is required to clear the resolver's tie band, not merely to reach it: the note on every
-    one of them says the ONLIST decides (rung 3), which is a claim that at rungs 0-2 bulk is not
-    merely level with the incumbent but ahead of it. The measured margins run +0.1376 (Multiome ATAC,
-    the closest — two genomic mates ARE a bulk cDNA pair to this fallback) to +0.4500 (SPLiT-seq).
+    **Each edge is re-derived against the claim it actually makes**, which is read off
+    `distinguishable_by` rather than assumed uniform:
+
+    - An `[onlist]` edge says rung 3 decides, which presumes the cheap rungs do NOT — bulk is not
+      merely level with the incumbent there but ahead of it. Measured +0.1376 (Multiome ATAC, the
+      closest: two genomic mates ARE a bulk cDNA pair to this fallback) to +0.4500 (SPLiT-seq).
+    - The `[metadata]` edge says no rung below a human's answers it, and that is the opposite
+      arithmetic: bulk must be INSIDE the tie band, because above it bulk would simply win and never
+      ask, and the edge would be promising a mechanism nothing reaches for. `smartseq3` measures
+      exactly 0.0 — the fallback explains both of its files completely and every support either
+      entry has saturates on synthetic reads, so the pair is a dead heat the bytes cannot order.
 
     An edge that stops deriving is a discussion, not a deletion: the honest repairs are to tighten
     the fallback's gates or to write down why the pair separates now, and both are changes somebody
@@ -1176,20 +1187,32 @@ def test_bulks_five_declared_edges_still_derive_under_the_ordering_predicate(
 
     specs = kb.load_all_specs()
     bulk = specs["bulk-rnaseq"]
-    edges = sorted(c.id for c in bulk.confusable_with)
-    assert len(edges) == 5, (
-        f"bulk-rnaseq declares {len(edges)} confusable edges, not the five this gate re-derives: "
-        f"{edges}. A new one needs a line here; a missing one needs an argument, not a diff."
+    edges = {c.id: c.distinguishable_by for c in bulk.confusable_with}
+    assert len(edges) == 6, (
+        f"bulk-rnaseq declares {len(edges)} confusable edges, not the six this gate re-derives: "
+        f"{sorted(edges)}. A new one needs a line here; a missing one needs an argument, not a diff."
     )
 
-    for other in edges:
+    for other, mechanisms in sorted(edges.items()):
         margin = rung02_margin(bulk, specs[other], kb_probes[other, "full"])
-        assert margin is not None and margin > _THETA, (
-            f"bulk-rnaseq -> {other!r} no longer derives: margin {margin} on {other!r}'s own "
-            f"reads at rungs 0-2. The edge says the ONLIST decides this pair, which presumes the "
-            f"cheap rungs do not. Do not delete the edge to make this pass."
+        assert margin is not None, (
+            f"bulk-rnaseq scores nothing on {other!r}'s own reads, so it cannot be confusable with "
+            f"it at all. Do not delete the edge to make this pass."
         )
         assert could_outrank_at_rungs_0_2(bulk, specs[other], kb_probes[other, "full"])
+        if mechanisms == ["onlist"]:
+            assert margin > _THETA, (
+                f"bulk-rnaseq -> {other!r} no longer derives: margin {margin} on {other!r}'s own "
+                f"reads at rungs 0-2. The edge says the ONLIST decides this pair, which presumes "
+                f"the cheap rungs do not. Do not delete the edge to make this pass."
+            )
+        else:
+            assert abs(margin) <= _THETA, (
+                f"bulk-rnaseq -> {other!r} declares {mechanisms}, i.e. that the cheap rungs cannot "
+                f"order this pair — but the margin on {other!r}'s own reads is {margin}, outside "
+                f"the tie band. Outside the band the resolver decides and never reaches for the "
+                f"mechanism this edge promises, so the declaration is the thing that is wrong."
+            )
 
 
 @pytest.mark.xdist_group("kb-probes")
@@ -1393,18 +1416,26 @@ def test_a_spec_that_calls_onlists_decisive_can_actually_reach_one() -> None:
     )
 
 
-def test_no_shipped_spec_says_a_sample_is_a_cell_or_sets_a_read_floor() -> None:
-    """`sample_is_cell: False` / `min_input_reads: None` are the defaults, so ZERO spec.yaml files move.
+def test_only_the_plate_entry_says_a_sample_is_a_cell_and_it_is_the_one_that_sets_a_read_floor() -> (
+    None
+):
+    """`sample_is_cell: False` / `min_input_reads: None` are the defaults, so ONE spec.yaml declares.
 
-    That is the regression bar for the whole plate mechanism getting cheaper by construction rather
-    than by measurement: every shipped entry keeps the file it had, and the reduction's cell gate is
-    provably inert across the KB as it stands (`reduce_dataset`'s companion test asserts the other
-    half — that inert means the byte-for-byte old path).
+    That is the regression bar for the whole plate mechanism, and it stayed cheap by construction
+    rather than by measurement: sixteen of the seventeen shipped entries keep the file they had, and
+    the reduction's cell gate is provably inert on every dataset none of them describes
+    (`reduce_dataset`'s companion test asserts the other half — that inert means the byte-for-byte
+    old path). `smartseq3` is the entry the mechanism was built for, so it is the one exception and
+    it is named here rather than counted: a second id appearing in this set is a second plate
+    chemistry, which is a thing to argue for, not a diff.
+
+    **The two fields move together on that entry, and neither is a default there.** They answer
+    different questions — one names what the technology IS, the other is an admission threshold that
+    names no technology — but a plate assay that says a sample is a cell without saying how thin a
+    cell may be is a plate whose starved wells dissent instead of abstaining.
 
     Read off the FILES and not off the loaded model, because a default is exactly what a model read
-    cannot distinguish from a declaration. The two fields sit at different levels on purpose:
-    `identity` NAMES the technology, and an admission threshold names none, so `min_input_reads` is
-    top level.
+    cannot distinguish from a declaration.
 
     `Spec` is deliberately absent from `SCHEMA_MODELS`, so neither field moves `schema export`. The
     KB schema is Pydantic so that one executable validator also self-tests every entry — not because
@@ -1419,12 +1450,24 @@ def test_no_shipped_spec_says_a_sample_is_a_cell_or_sets_a_read_floor() -> None:
     assert "Spec" not in SCHEMA_MODELS
     assert Spec.model_fields["min_input_reads"].default is None
     assert Identity.model_fields["sample_is_cell"].default is False
+
+    declaring: set[str] = set()
     for spec_id in kb.list_spec_ids():
         raw = yaml.safe_load((SPECS_DIR / spec_id / "spec.yaml").read_text())
-        assert "min_input_reads" not in raw, spec_id
-        assert "sample_is_cell" not in raw["identity"], spec_id
+        declares = "min_input_reads" in raw or "sample_is_cell" in raw["identity"]
         spec = kb.load_spec(spec_id)
-        assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
+        if not declares:
+            assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
+            continue
+        declaring.add(spec_id)
+        assert "min_input_reads" in raw and "sample_is_cell" in raw["identity"], spec_id
+        assert spec.min_input_reads is not None and spec.identity.sample_is_cell, spec_id
+
+    assert declaring == {"smartseq3"}, (
+        f"the plate fields are declared by {sorted(declaring)}, not by the one plate entry. Every "
+        f"other shipped chemistry demultiplexes in the read, so a sample of it is a library and not "
+        f"a cell — and a floor beside one of those would drop libraries nobody asked to drop."
+    )
 
 
 def test_a_cell_is_a_sample_only_beside_a_module_that_counts_them_together() -> None:

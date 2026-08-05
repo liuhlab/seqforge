@@ -1,0 +1,149 @@
+schema_version: 1
+
+identity:
+  id: smartseq3
+  version: hagemann-jensen-2020
+  name: "Smart-seq3 (plate-based one-cell-one-file, Hagemann-Jensen et al. 2020)"
+  # Three, not five: `carries()` lowercases both sides, so SMART-seq3 / SMARTseq3 are duplicates.
+  # "Smartseq3" is NOT redundant -- the unhyphenated spelling shares no token with the hyphenated one.
+  # No "Smart-seq3xpress": a separate publication with no EFO term and a different cDNA start; a
+  # future sibling entry, blocked on #266. No "SS3": one token loses every tie.
+  aliases: ["Smart-seq3", "Smartseq3", "Smart-seq 3"]
+  assay_ontology: ["EFO:0022488"]   # label "Smart-seq3", parent EFO:0010184 "Smart-like". Checked live
+                                    # against OLS4 2026-08-04 (#226), not from memory. NB the OLS4 v1
+                                    # /api/search endpoint 500s on any hyphenated query; use
+                                    # /api/v2/entities?search=.
+  modality: rna
+  sample_is_cell: true              # #253. One cell per FASTQ pair -- demultiplexing happened at the
+                                    # bench, so the cell barcode is the FILE. Sole consumer is
+                                    # reduce_dataset; never enters the manifest.
+
+# #253 decision 5. Below this a cell ABSTAINS in resolve and is DROPPED by compose, while staying in
+# the manifest (dropping there would make dataset_hash a function of a KB threshold). Must stay under
+# the probe budget in force (DEFAULT_MAX_READS = 2000) or the gate is decided on an extrapolation.
+min_input_reads: 1000
+
+reads:
+  # R1 of the TAGGED population. The untagged population of the same file is byte-identical to bulk
+  # cDNA (#226: scg_lib_structs prints SMART-seq2's final library and SMART-seq3's internal fragments
+  # as character-for-character identical strings), which is why the gate below is a PROPORTION over
+  # reads at a fixed offset and never a per-cycle purity, and why this layout describes the minority
+  # that carries the structure.
+  #
+  # Pinned by five independent primary sources (#226): the authors' zUMIs config (find_pattern
+  # ATTGCGCAATG, UMI(12-19), cDNA(23-150)), the peer-reviewed Methods' verbatim TSO
+  # 5'-biotin-AGAGACAGATTGCGCAATGNNNNNNNNrGrGrG-3', scg_lib_structs, seqspec, and base-by-base on raw
+  # GSE207085 reads (cycles 1-11 99.6-100% pure; 12-19 near-random; 20-22 G at 95-97%). Fixed offset,
+  # NO anchor: the Read 1 sequencing primer ends ...GTGTATAAGAGACAG, so the AGAGACAG is consumed by
+  # the primer and the read genuinely begins at ATTGCGCAATG.
+  # `fixed` and `linker` are interchangeable to every consumer -- `fixed` because the tag is a
+  # constant prefix, not a linker between barcode blocks.
+  - id: R1
+    seqspec_read_id: R1
+    file_hint: "_R1_"
+    strand: pos
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: fixed, name: tso_tag, start: 0,  end: 11,   sequence: "ATTGCGCAATG", seqspec_region_type: custom_primer}
+      - {type: umi,   name: umi,     start: 11, end: 19,                            seqspec_region_type: umi}
+      - {type: fixed, name: tso_ggg, start: 19, end: 22,   sequence: "GGG",         seqspec_region_type: custom_primer}
+      - {type: cdna,  name: cdna_r1, start: 22, end: null,                          seqspec_region_type: cdna}
+  - id: R2
+    seqspec_read_id: R2
+    file_hint: "_R2_"
+    strand: neg
+    min_len: 40
+    max_len: null
+    elements:
+      - {type: cdna, name: cdna_r2, start: 0, end: null, seqspec_region_type: cdna}
+
+onlists: {}   # no whitelist exists: the cell barcode is the FILE (`identity.sample_is_cell`).
+
+signature:
+  requires:
+    # THE WHOLE SEPARATION, in one existing evaluator. `where: read_start` makes this POSITIONAL -- it
+    # looks at offset 0 and nowhere else -- which is why min_rate can sit two orders of magnitude below
+    # the observed positives without admitting anything. `where: anywhere` does NOT separate: SS3's own
+    # R2 measures 8-20% (#234). The ANCHORING does the work, not the motif.
+    #   measured rate at offset 0, mm<=2, 2000-read slices (#234):
+    #     ten GSE207085 cells, R1   39.6% - 67.6%    lowest published library (#226): 6.9%
+    #     the same ten cells,  R2    0.00% -  0.15%
+    #     GSE283483-bulk R1 / R2     0.00% /  0.05%
+    #   min_rate 0.02 is 13x above the highest observed negative and 3.45x below the lowest published
+    #   positive. NOT the schema default 0.50, which fails cells 63 (0.40) and 1419 (0.42).
+    #
+    # NO `has_segment: constant` on the tag: it is majority-gated, and the tag fraction is a TUNABLE
+    # PROTOCOL PARAMETER (#226: the peer-reviewed Fig 1c titles it "Effect of tagmentation conditions
+    # on the fraction of UMI-containing reads"), 6.9-70.5% across five libraries. A majority gate would
+    # refuse the authors' own reference data and split one plate across two chemistries at exit 0.
+    # NO read-count gate: how many reads a spec has is DECLARED by `reads` and never asserted by a
+    # test. 50/75 bp SINGLE-END SS3 is published and first-class, and it refuses here via the two-read
+    # LAYOUT rather than via a gate -- a pre-existing gap shared with `bulk-rnaseq`, tracked at #267.
+    - {test: motif_present, read: R1, motif: "ATTGCGCAATG", where: read_start, max_mismatch: 2, min_rate: 0.02}
+  supports:
+    # ONE per read, and the weights are INERT: `_score_cell` normalizes within a read
+    # (`value = acc / total_w` over `sup_by[rid]`), so a lone support's weight cancels. Do not tune them.
+    #
+    # The motif saturates at 1.0 on every real cell (rate 0.40-0.68 vs min_rate 0.02), so R1's cell is
+    # at its MAXIMUM and every additional R1 support is a strict liability -- measured (#257): GGG goes
+    # negative on 4 of 10 cells, `has_segment const 0-11` collapses to +0.0005 on the adapter-heavy cell
+    # 1419, and every `distinct_ratio` window is negative on all ten. Dropping the draft's two extra
+    # supports roughly DOUBLES the thin margins (804 0.027->0.054, 939 0.031->0.067, 1356 0.030->0.059).
+    # Yes, this repeats the `requires` gate. It is kept deliberately: R1 must carry a support or its
+    # cell scores 0.0, the duplication cannot drift (same test, same file), and the entry's
+    # falsifiability lives in `requires`.
+    - when: {test: motif_present, read: R1, motif: "ATTGCGCAATG", where: read_start, max_mismatch: 2, min_rate: 0.02}
+      weight: 1.0
+    # R2 is bulk cDNA and cannot be told from it -- this is byte-identical to `bulk-rnaseq`'s own R2
+    # support, so both specs' R2 cell is the SAME NUMBER and it cancels out of the margin exactly. It
+    # cannot be deleted: a read with no supports scores 0.0, not "no opinion".
+    - when: {test: distinct_ratio, read: R2, start: 0, end: 25, expect: high}
+      weight: 1.0
+  excludes: []
+    # Deliberately empty. In particular NOT the Tn5 mosaic end `CTGTCTCTTATACACATCT`: #230 measured it
+    # in 6.5-79.5% of SS3's own R1 (read-through), so excluding it would reject the chemistry. #234
+    # measured it is abundant but NON-POSITIONAL (rate@0 <= 0.75%), which is why it does not confound an
+    # anchored test.
+
+backend:
+  module: map/star-umi              # #256 decision 3. env align-rna; it reads the `umi:` config block.
+  params: {}
+  # EMPTY, and meaningfully so. Every extraction knob -- the anchor sequence and its offset, the UMI
+  # offset and length, the trailing GGG, where cDNA begins -- is already stated by the elements above,
+  # so #256 decision 6 DERIVES them into one key; declaring them here would be the same fact twice
+  # (`soloAdapterSequence`/#43 is the exact precedent). This module's parse namespace is EMPTY, so any
+  # key written here is refused at load.
+  #
+  # AND THERE IS NO STRAND VALUE TO OWN. umite 0.1.1 -- the engine #229 chose, #235 validated and #264
+  # re-implements -- builds its feature index as `HTSeq.GenomicArrayOfSets("auto", False)`
+  # (umicount.py:89-90); HTSeq's second positional arg is `stranded`
+  # (GenomicArray.__init__(self, object chroms, bint stranded=True, ...), _HTSeq.pyx:624), so it counts
+  # UNSTRANDED for tagged and internal reads alike, with no knob anywhere in the package. #227's
+  # "different strand rules" describes zUMIs, which #229 eliminated; the Sandberg lab's own 2020 config
+  # is `strand: 0` too. INHERITED, not derived: running the 10x-5p-gex-v2 oligo derivation would land on
+  # Forward and diverge our counter from umite, breaking #264's frozen agreement fixture as an oracle.
+  # What would resurrect a strand key: #227's pyTSOfilter, which requires stranded UMI assignment.
+  # Same law as `bulk-rnaseq`'s empty block -- nothing varies, so nothing has an owner.
+
+parent: null
+node_kind: leaf
+
+confusable_with:
+  - id: bulk-rnaseq
+    relationship: processing_divergent
+    distinguishable_by: [metadata]
+    note: >
+      One-directional acceptance, computed not assumed: smartseq3 REJECTS bulk's reads at rung 0 (bulk
+      R1 carries the tag at offset 0 in 0.00% of reads against a 2% floor), but the generic paired-end
+      fallback accepts smartseq3's pair on read-count and length alone, so
+      `rung02_separable(smartseq3, bulk-rnaseq)` is False and BOTH specs must declare the edge --
+      the sweep runs over ordered pairs. Downstream they are maximally divergent: bulk gene counts with
+      every PCR duplicate counted once per read, versus a UMI-deduplicated tagged/internal split with
+      22 bp of tag+UMI+GGG stripped from every 5' read. `distinguishable_by` names the rung that breaks
+      a TIE, not what tells the two apart in general -- on a tie the bytes are already spent, so
+      `metadata` (rung 0: a span-verified assertion that disambiguates and is byte-consistent) is the
+      honest answer and `reads` would be a null instruction. Note the copy that actually fires is
+      bulk's, since `_divergent_question` reads the TOP-scoring spec's list and bulk is the top in
+      every measured tie. NOT `alignment`: the discriminating fact is a 22 bp prefix, which alignment
+      adds nothing to.

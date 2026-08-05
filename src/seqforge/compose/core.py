@@ -190,7 +190,7 @@ def plan(
         raise ComposeError(str(exc)) from exc
 
     # The live KB's admission floor, applied here and recorded nowhere in the manifest. `None` for
-    # every chemistry that declares no floor, which is all sixteen shipped entries.
+    # every chemistry that declares no floor, which is every shipped entry but the plate one.
     admission = _admit(manifest, spec)
     admitted = (
         [s.sample_id for s in admission.admitted]
