@@ -63,7 +63,7 @@ from seqforge.resolve import (
 )
 from seqforge.resolve.assign import AssignmentResult, _brute, _hungarian_assign, best_assignment
 from seqforge.resolve.confuse import accepts_at_rungs_0_2
-from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles
+from seqforge.resolve.engine import MultiRunOutput, index_tagged_roles, read_designation
 from seqforge.resolve.escalate import _pretrimmed_blockers, escalate
 from seqforge.resolve.evaluators import Outcome, evaluate
 from seqforge.resolve.geometry import (
@@ -4144,7 +4144,7 @@ def _multiflowcell_reads(
 
 
 # One fact on two on-disk shapes: a single flowcell's lanes, and several flowcells whose differing
-# flowcell id the read designation ignores. De-laning is gone; `_read_designation` + `_LANE_LEN_TOL` is
+# flowcell id the read designation ignores. De-laning is gone; `read_designation` + `LANE_LEN_TOL` is
 # the sole absorption mechanism, and both fixtures drive it identically.
 _ABSORPTION_SHAPES = [
     pytest.param(("X",), 3, id="one-flowcell-three-lanes"),
@@ -4201,6 +4201,37 @@ def test_multifile_units_emit_every_file_and_exclude_index(
     assert len(rows) == per_read * 2
     assert set(Counter(r["read_id"] for r in rows).values()) == {per_read}
     assert len({r["run"] for r in rows}) == 1  # all one accession -> one run, comma-joined
+
+
+def test_a_lane_too_short_to_absorb_blocks_and_is_told_it_is_a_lane(tmp_path: Path) -> None:
+    """The refusal #325 makes legible, produced the way a delivery produces it -- not by hand.
+
+    Absorption is a length gate as well as a designation one: a surplus lane rejoins its role only
+    within `LANE_LEN_TOL` of that role's modal read length. Trim one lane's cDNA read and it stays
+    unassigned, the manifest blocks, and the file it blocks on is a lane of a read that IS seated --
+    the one shape ADR-0027's fused run created, and the one the pre-#325 remedy told to re-run `fill`
+    or delete. Both were wrong: `fill` is what just ran, and the lane is depth this dataset would lose.
+    """
+    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=("X",), lanes=2)
+    trimmed = next(p for p in paths if p.name.endswith("L002_R2_001.fastq.gz"))
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    write_fastq_gz(trimmed, [r[:60] for r in reads["R2"]])  # 90 -> 60 bp, far outside LANE_LEN_TOL
+
+    manifest = _filled_manifest(spec, reg, paths)
+    roleless = [f for f in manifest.library.files if f.read_id is None]
+    assert [f.basename for f in roleless] == [trimmed.name], "the trimmed lane is the only leftover"
+
+    report = validate_manifest(manifest)
+    assert exit_code_for_report(report) == 3
+    blocker = next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
+    seated_r2 = next(
+        f
+        for f in manifest.library.files
+        if f.read_id is not None and read_designation(f.basename) == "R2"
+    )
+    assert seated_r2.basename in blocker.remedy  # the lane it belongs beside, by name
+    assert "neither is the fix" in blocker.remedy
+    assert "several runs" not in blocker.remedy
 
 
 # ------------------------------------------------------------ coverage over score (the real pathology)
@@ -4275,25 +4306,25 @@ def test_read_designation_reads_the_mate_across_lanes_and_flowcells() -> None:
     """Absorption fuses a surplus file into a role by the read designation the sequencer wrote, so that
     token must be read precisely -- and identically across the lanes and flowcells of one accession,
     whose files differ only by a lane token and the flowcell id the designation ignores."""
-    from seqforge.resolve.engine import _read_designation
+    from seqforge.resolve.engine import read_designation
 
     # The Illumina R/I token, read regardless of lane or flowcell id.
-    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == "R1"
-    assert _read_designation("SRR1_HCL2YBBXY_S1_L002_R2_001.fastq.gz") == "R2"
-    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_I1_001.fastq.gz") == "I1"
+    assert read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == "R1"
+    assert read_designation("SRR1_HCL2YBBXY_S1_L002_R2_001.fastq.gz") == "R2"
+    assert read_designation("SRR1_HCL2YBBXY_S1_L001_I1_001.fastq.gz") == "I1"
     # The whole point: two flowcells / two lanes of one read share ONE designation (de-laning could not
     # -- the flowcell id differs, so their de-laned names differed and the surplus stayed unassigned).
-    assert _read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == _read_designation(
+    assert read_designation("SRR1_HCL2YBBXY_S1_L001_R1_001.fastq.gz") == read_designation(
         "SRR1_HCL2KBBXY_S1_L005_R1_001.fastq.gz"
     )
     # fasterq-dump's numeric mate suffix (SRR..._1 / _2 / _3).
-    assert _read_designation("SRXidx_1.fastq.gz") == "1"
-    assert _read_designation("SRXidx_2.fastq.gz") == "2"
-    assert _read_designation("SRXidx_3.fastq.gz") == "3"
+    assert read_designation("SRXidx_1.fastq.gz") == "1"
+    assert read_designation("SRXidx_2.fastq.gz") == "2"
+    assert read_designation("SRXidx_3.fastq.gz") == "3"
     # R1 and R2 are DIFFERENT designations, so a barcode surplus never rejoins the cDNA role.
-    assert _read_designation("x_R1.fastq.gz") != _read_designation("x_R2.fastq.gz")
+    assert read_designation("x_R1.fastq.gz") != read_designation("x_R2.fastq.gz")
     # A name that declares no mate designation -> None, so it is never absorbed (stays a blocker).
-    assert _read_designation("sample_barcodes.fastq.gz") is None
+    assert read_designation("sample_barcodes.fastq.gz") is None
 
 
 # ================================================================================================

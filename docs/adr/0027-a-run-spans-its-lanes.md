@@ -28,7 +28,7 @@ grouping is self-consistent, every file gets a role, `validate` passes, exit 0. 
 class `group.py` was written to prevent, one level up: that bug dropped files, this one split a
 library ([#263](https://github.com/liuhlab/seqforge/issues/263)).
 
-**The obvious reading, and why it is wrong.** `_read_designation` (`resolve/engine.py`) already
+**The obvious reading, and why it is wrong.** `read_designation` (`resolve/engine.py`) already
 argues *against* a de-laned basename: the flowcell id differs between flowcells, so de-laning cannot
 bridge them, and a surplus file stayed unassigned. That argument is about **role propagation inside a
 group already formed** — it says de-laning is *insufficient* there, not that it is wrong here. It
@@ -136,7 +136,7 @@ the Consequences below promise — it fails with four samples if the strip is re
 - **The role-assignment burden moved, and this is where it now sits.** Four lanes used to be four
   runs, each scored alone, each filling its own roles. They are now ONE run of eight files, and the
   injective assignment fills each role once — the other six are surplus, re-seated by
-  `index_tagged_roles` only within `_LANE_LEN_TOL` (3 bp) of their role's representative. A lane whose
+  `index_tagged_roles` only within `LANE_LEN_TOL` (3 bp) of their role's representative. A lane whose
   modal read length drifts further gets **no role**, and `compose._units` drops a file with no role
   silently, at exit 0. Real lanes of one library share a cycle count so the modes coincide, and the
   accession path has relied on this since 2026.7.4 — but this record is what extended that reliance to

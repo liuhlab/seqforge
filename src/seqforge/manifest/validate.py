@@ -21,9 +21,10 @@ from ..models.blocker import (
     ValidationWarning,
 )
 from ..models.conflict import Conflict
-from ..models.dataset import INDEX_ROLE, DatasetManifest
+from ..models.dataset import INDEX_ROLE, DatasetManifest, FileInventoryItem
 from ..models.processing import ProcessingManifest
 from ..models.resolve import ValidationReport
+from ..resolve.engine import LANE_LEN_TOL, read_designation
 
 # Confidence below which a decided chemistry is flagged (non-blocking) as a close call. Rung-aware: a
 # rung-3 winner had an onlist positively participate (the barcode read matched a whitelist), so it is
@@ -35,6 +36,46 @@ from ..models.resolve import ValidationReport
 # band and refusing them would be worse than composing them (see the emit site in `validate_manifest`).
 _CHEM_CONF_FLOOR_ONLIST = 0.55
 _CHEM_CONF_FLOOR_GEOMETRY = 0.65
+
+
+#: The remedy for a roleless file that is nobody's sibling — one carrying no read designation, or one
+#: whose designation no layout role's representative shares. That file really may be a mis-grouped set
+#: of runs or a stray from another dataset, which is what this text has always said.
+_UNASSIGNED_REMEDY = (
+    "Usually this means the files were resolved as one library when they are several runs: use "
+    "`seqforge manifest fill` on the whole set (it groups by run and assigns roles per run), or drop "
+    "the file if it does not belong to this dataset."
+)
+
+
+def _lane_surplus_remedy(
+    roleless: FileInventoryItem, sibling: FileInventoryItem, designation: str
+) -> str:
+    """The remedy for the one roleless shape ADR-0027 created: an unseated lane of a fused run.
+
+    A run is lane-blind, so a four-lane library is **one** run of eight files. The injective
+    assignment fills each role once and ``resolve.engine.index_tagged_roles`` re-seats the surplus
+    only within :data:`~seqforge.resolve.engine.LANE_LEN_TOL` of its role's modal read length; a lane
+    that drifts further gets no role and lands on this blocker. Every clause of
+    :data:`_UNASSIGNED_REMEDY` is wrong for it — the files ARE one run, deliberately; ``manifest
+    fill`` is the thing that just produced the refusal; and dropping the lane is exactly the
+    partial-depth loss ADR-0027 exists to refuse, so the old text recommended the destructive action.
+
+    The branch keys on the read designation because it is the only signal available here: a
+    :class:`~seqforge.models.dataset.FileInventoryItem` carries no read length and ``validate`` is
+    handed no ``Observation``. Nothing about the refusal changes — only what it tells the user to do.
+    """
+    return (
+        f"{sibling.basename} carries the same read designation ({designation}) and is seated as "
+        f"{sibling.read_id!r}: one run spans its lanes (ADR-0027), so this is normally that read's "
+        "lane/flowcell sibling, and its reads are this library's depth. Re-running `seqforge manifest "
+        "fill` is what produced this refusal and dropping the file loses that depth, so neither is "
+        f"the fix. A sibling joins a role only within {LANE_LEN_TOL} bp of that role's modal read "
+        f"length: compare them with `seqforge probe {sibling.basename} {roleless.basename}`. Re-fetch "
+        "a lane truncated in transfer or trimmed on its own; a delivery legitimately trimmed per lane "
+        "needs a wider tolerance in the resolver, which is an issue to open rather than a manifest to "
+        "edit."
+    )
 
 
 def _looks_absolute(uri: str) -> bool:
@@ -167,8 +208,29 @@ def validate_manifest(
     # index read is tagged INDEX_ROLE (not None) by the resolver's length gate, so it never reaches
     # here. The gate is why that stays honest — it only sets a leftover aside when the bytes say it is
     # index-sized (<= 20 bp); a cDNA-length leftover keeps read_id=None and blocks loudly below.
+    #
+    # The refusal is one; the way out of it is two, because ADR-0027 made a run lane-blind and so
+    # created a roleless file that is nobody's mistake — see `_lane_surplus_remedy`. Which one a file
+    # gets turns on whether a LAYOUT role's representative shares its read designation.
+    #
+    # INDEX_ROLE is excluded, and that is the branch's whole honesty. `index_tagged_roles` builds its
+    # representatives from `role_assignment.assignment` alone, so an index-tagged file is not one a
+    # surplus lane was ever compared against; and a roleless file designated `I1` is by construction
+    # LONGER than the length gate (<= 20 bp) that would have tagged it — a cDNA-length stray, which is
+    # exactly the shape the old text was written for. Admitting index files here would hand the lane
+    # remedy to that stray, and tell it its reads are depth STARsolo never reads.
+    representatives: dict[str, FileInventoryItem] = {}
+    for f in manifest.library.files:
+        if f.read_id is None or f.read_id == INDEX_ROLE:
+            continue
+        designation = read_designation(f.basename)
+        if designation is not None:
+            representatives.setdefault(designation, f)  # they are lanes of one read; any names it
+
     for f in manifest.library.files:
         if f.read_id is None:
+            designation = read_designation(f.basename)
+            sibling = representatives.get(designation) if designation is not None else None
             blockers.append(
                 Blocker(
                     id=f"blk-unassigned-{f.sha256[:8]}",
@@ -178,10 +240,9 @@ def validate_manifest(
                         f"Its reads would be dropped, and nothing downstream would say so."
                     ),
                     remedy=(
-                        "Usually this means the files were resolved as one library when they are "
-                        "several runs: use `seqforge manifest fill` on the whole set (it groups by "
-                        "run and assigns roles per run), or drop the file if it does not belong to "
-                        "this dataset."
+                        _lane_surplus_remedy(f, sibling, designation)
+                        if designation is not None and sibling is not None
+                        else _UNASSIGNED_REMEDY
                     ),
                     subject=BlockerSubject(kind="file", ref=f.basename),
                 )
