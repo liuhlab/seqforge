@@ -145,17 +145,12 @@ Values:
 #: The output ceiling a request asks for when its caller computes nothing better — and the number
 #: every extraction was made under before a batch's width came from its ask.
 #:
-#: It was a literal at both call sites here, which was defensible only while it was also the number
-#: :mod:`seqforge.harvest.plan` was silently dividing a fixed document cap out of. The two were never
-#: tuned against each other, so the planner now derives both the width and the ceiling from one
-#: output budget (:func:`~seqforge.harvest.plan.batch_max_tokens`) and this survives as a **floor**
-#: rather than a pin: a one-document request asks for exactly what it asked for before, so nothing
-#: about batching can truncate a document that used to fit — including the per-document fallback,
-#: which would be no fallback at all if it could fail by truncation where the batch it recovers did
-#: not.
-#:
-#: A caller that batches by hand and passes nothing still gets a request that works for one document,
-#: which is the only width this default can honestly claim to cover.
+#: It was a literal at both call sites here, defensible only while it was also the number
+#: :mod:`seqforge.harvest.plan` was silently dividing a fixed document cap out of. The planner now
+#: derives both the width and the ceiling from one output budget, and this survives as a **floor**
+#: rather than a pin — see :func:`~seqforge.harvest.plan.batch_max_tokens` for what that floor is
+#: load-bearing for. A caller that batches by hand and passes nothing still gets a request that works
+#: for one document, which is the only width this default can honestly claim to cover.
 DEFAULT_MAX_OUTPUT_TOKENS = 8000
 
 

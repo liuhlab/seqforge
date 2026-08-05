@@ -121,15 +121,23 @@ MAX_BATCH_CHARS = 24_000
 #: dying at 181 s on a transient connection error the shipped retry covers — so widening this
 #: multiplies both the wall clock and what one drop costs, for drafts that are almost never emitted.
 #:
+#: **And a second, independent reason to keep it well under the ceiling: it is what the Ceiling
+#: overshoots by.** :class:`~seqforge.harvest.meter.TokenMeter` reserves the INPUT half of a request
+#: and declines to reserve ``max_tokens`` outright, on the stated grounds that "the cap is several
+#: times a real extraction's output" and reserving it would refuse runs that would have fitted. Its
+#: own docstring concedes the consequence: during the first wave, before any exchange has banked, the
+#: unreserved remainder is the output of every request in flight. Raising the per-request cap from
+#: 8 000 to ~31 690 widens that window by ~4x. That trade is still the right one — but the multiple
+#: moved, so anyone tightening a Ceiling should read this number rather than the old literal.
+#:
 #: If a provider ever does refuse an output ceiling this size, the fallback is a count cap PER ASK
 #: WIDTH — 8 for the nine-field ask, 36 for the two-field one — rather than the single cap that used
 #: to be here. The measurement says it is not needed.
 BATCH_OUTPUT_BUDGET = 32_000
 
 #: Reserved off the top of :data:`BATCH_OUTPUT_BUDGET` before any draft is budgeted for. Reasoning
-#: tokens bill against the same ``max_tokens`` and cannot be switched off: how much a V4 reasons is
-#: baked into ``-flash`` versus ``-pro`` and the API takes no toggle, so a budget that assumed the
-#: whole ceiling reached the drafts would be spending tokens the model had already taken.
+#: tokens bill against the same ``max_tokens``, so a budget that assumed the whole ceiling reached the
+#: drafts would be spending tokens the model had already taken.
 #:
 #: **Fixed, not a proportion, because the overhead is closer to constant than proportional** —
 #: measured at 589 of 32 000 on a wide ask (1.8 %) and 70 of 114 on a trivial one (61 %). A
@@ -138,26 +146,47 @@ BATCH_OUTPUT_BUDGET = 32_000
 #: exists to un-throttle — the place the estimate is worst. That is backwards, and it is the failure
 #: this constant exists to prevent.
 #:
-#: 1 000 rather than the 589 that was measured, because two calls are not a distribution. The round
-#: number costs one document of width at the nine-field ask (58 -> 57) and 3 % of the budget; being
-#: wrong in the other direction costs a truncated response, which is a re-ask of the whole batch.
+#: 1 000 rather than the 589 that was measured, because two calls are not a distribution. Being wrong
+#: in the other direction costs a truncated response, which is a re-ask of the whole batch.
+#:
+#: **Calibrated on the one provider that was measured, and it is not a bound on every provider.**
+#: On DeepSeek V4 there is nothing to bound: how much a V4 reasons is baked into ``-flash`` versus
+#: ``-pro`` and the API takes no toggle. But :class:`~seqforge.harvest.providers.AnthropicProvider`
+#: sends ``thinking={"type": "adaptive"}``, which is a toggle, and adaptive thinking bills against
+#: this same ``max_tokens`` with no bound we set — so a reasoning-heavy turn there can spend past this
+#: reserve. ADR-0009 makes the provider pluggable, so state the limit rather than imply generality.
+#: What it costs when it happens is a truncated response, which is a batch-level failure
+#: :func:`extract_planned` already re-asks one document at a time without losing a claim.
 REASONING_HEADROOM_TOKENS = 1_000
 
 #: What one draft costs to serialise, in output tokens — the rate a width is metered at.
 #:
-#: Measured: one draft under the strict schema is 251 characters, 64 of them the echoed
-#: ``doc_sha256``, which is ~62 tokens at the meter's rule of thumb (:data:`CHARS_PER_TOKEN`). 60 is
-#: taken rather than 62, and the two tokens are given up deliberately rather than lost: 62 is one
-#: example draft divided by a chars-per-token approximation, and a draft's real length moves with the
-#: quote it carries, so carrying the 62 into every width would claim a precision the measurement does
-#: not have. What the round number buys is a derivation a reader can check in their head.
+#: **The measured rate, carried unrounded, and that is the whole discipline here.** One draft under
+#: the strict schema is 251 characters — 64 of them the echoed ``doc_sha256`` — which is ~62 tokens at
+#: the meter's rule of thumb (:data:`CHARS_PER_TOKEN`). The same 62 is what makes the two numbers this
+#: change exists to reconcile: the nine-field ask costs 558 tokens per document and the two-field ask
+#: 124, so a fixed ``max_tokens`` of 8 000 had room for 14 of the former and **64** of the latter
+#: against a cap of 8.
 #:
-#: What it costs is bounded on both sides. The rate multiplies a WORST case — every asked field
-#: answered by every document in the batch — that the prompt's own instruction 5 ("an empty ``drafts``
-#: list is a CORRECT and common answer") says is rare; and if a batch does overrun, it overruns into
-#: a truncated response, which is a batch-level failure that :func:`extract_planned` already re-asks
-#: one document at a time without losing a claim. Nothing here promises a draft fits in 60 tokens.
-PER_DRAFT_TOKENS = 60
+#: **Rounding it down to 60 is the one thing this must not do**, and it was tried. 60 recovers the
+#: width 57 that #233 decision 1 quotes — but decision 1 computed 57 as ``32000 / 558`` with **no
+#: reserve at all**, before #282 required one. So shaving the rate hands straight back the headroom
+#: :data:`REASONING_HEADROOM_TOKENS` had just taken, and the reserve becomes decorative. It is worse
+#: than decorative: at width 57 the worst case is ``57 x 558 = 31 806`` output tokens against the
+#: ``31 780`` such a request would ask for, so the batch overruns before reasoning has spent a token.
+#: A constant chosen to match a projection, against a derivation that projection predates.
+#:
+#: Carried at 62 the width falls out at 55, and the two constants divide the labour honestly: this one
+#: is the measurement, and the headroom absorbs the approximation. The cost is ~80 requests on the
+#: 1440-record deposit where the projection said ~78 — inside #282's "~78", and correct by derivation
+#: rather than by agreeing with a number computed under different assumptions.
+#:
+#: The rate still multiplies a WORST case — every asked field answered by every document — that the
+#: prompt's own instruction 5 ("an empty ``drafts`` list is a CORRECT and common answer") says is
+#: rare; and an overrun is a truncated response, which is a batch-level failure
+#: :func:`extract_planned` already re-asks one document at a time without losing a claim. Nothing here
+#: promises a draft fits in 62 tokens.
+PER_DRAFT_TOKENS = 62
 
 
 @dataclass(frozen=True)
@@ -321,7 +350,7 @@ def batch_width(fields: Sequence[str]) -> int:
     bounds a dropped request's cost in OUTPUT TOKENS, uniformly across asks, which is what a count cap
     was approximating (see :data:`BATCH_OUTPUT_BUDGET`). And there is no input term:
     :data:`MAX_BATCH_CHARS` is the input bound and still binds first for anything long — the
-    experiment-scope ask comes out at 258 here and hits the character budget at ~55.
+    experiment-scope ask comes out at 250 here and hits the character budget at ~55.
 
     Never below one, and total on an empty ask. A ``project`` document is asked nothing and is never
     planned (:func:`_worth_asking` drops it), but this is a public function over arbitrary documents
@@ -428,14 +457,14 @@ def extract_planned(
     processes would only add IPC. :data:`_SLOTS` is what the provider actually sees, because a caller
     may already be inside a pool of its own.
 
-    **Each request asks for the output ceiling its own batch was priced at**, computed here from that
-    batch's ask and its width rather than pinned per call site. It has to be computed where the batch
-    is known: a ceiling the planner divided a width out of and the sender never asked for would leave
-    every full batch truncating at a number nobody chose, and that is one number the dry run cannot
-    report on the paid run's behalf.
+    **Each request asks for the output ceiling its own batch was priced at**
+    (:func:`batch_max_tokens`), rather than the ceiling being pinned per call site. A width divided
+    out of a budget the sender then never asked for would leave every full batch truncating at a
+    number nobody chose. It is a pure function of the batch's ask and its width — both plan-time — so
+    the dry run and the paid run cannot disagree about it.
 
     **A batch-level failure falls back to per-document calls, immediately.** Unbatched, a failed
-    request costs one document; batched it could cost the whole batch — 57 of them at the
+    request costs one document; batched it could cost the whole batch — 55 of them at the
     nine-attribute ask — which would make "half a batch is worse than none" worse rather than better.
     So batching may never lose more documents than not batching would have: worst case one extra
     round trip, best case most of the per-request prompt overhead gone. Three properties make that a
@@ -469,8 +498,7 @@ def extract_planned(
         """One document, one request — what an unbatched run does, and what a fallback retries as.
 
         Priced at width one off this document's own ask, so the fallback is a coherent request rather
-        than one carrying whatever ceiling the batch it is recovering from happened to ask for. The
-        floor in :func:`batch_max_tokens` is what makes it identical to a pre-batching request.
+        than one carrying whatever ceiling the batch it is recovering from happened to ask for.
         """
         max_tokens = batch_max_tokens(plan.asked(doc), 1)
         if not partial:

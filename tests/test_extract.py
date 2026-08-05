@@ -1737,13 +1737,20 @@ def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_
 def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> None:
     """The rule itself: how many documents share a request is a function of what they are asked.
 
-    ``(32 000 - 1 000) / (n_asked x 60)`` — an output budget, less a fixed reservation for reasoning
-    tokens that bill against that same ceiling, over what one draft costs to serialise. So the nine
-    sample attributes come out at 57, an experiment record's two-field ask at 258, and a dataset
-    document's thirteen at 39.
+    ``(32 000 - 1 000) / (n_asked x 62)`` — an output budget, less a fixed reservation for reasoning
+    tokens that bill against that same ceiling, over the measured cost of serialising one draft. So
+    the nine sample attributes come out at 55, an experiment record's two-field ask at 250, and a
+    dataset document's thirteen at 38.
+
+    **55 and not the 57 #233 decision 1 quotes**, and the two tokens between them are the point.
+    Decision 1 computed 57 as ``32 000 / 558`` with no reserve at all, before #282 required one;
+    rounding the measured 62 down to 60 reaches 57 again only by handing the reserve straight back,
+    at which point a full batch's worst case (``57 x 558 = 31 806``) exceeds the ``31 780`` it would
+    ask for. A width that matches a projection the projection's own assumptions no longer support is
+    worth less than one that falls out of the measurement.
 
     Every one of them is above the single count of **8** that used to be applied to all of them
-    alike, and the narrow ask by 32x: that number was worst-case-tuned against the widest ask, so the
+    alike, and the narrow ask by 31x: that number was worst-case-tuned against the widest ask, so the
     experiment request — the one carrying the protocol paragraph — paid the sample vocabulary's
     price. The width falling as the ask widens is the whole shape, and it is what one constant could
     not express at any value.
@@ -1751,10 +1758,10 @@ def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> Non
     from seqforge.harvest.fields import fields_for
     from seqforge.harvest.plan import batch_width
 
-    assert batch_width(fields_for("sample", "reference")) == 57
-    assert batch_width(fields_for("run", "reference")) == 57, "nine attributes, the same question"
-    assert batch_width(fields_for("experiment", "reference")) == 258
-    assert batch_width(fields_for("dataset", "reference")) == 39
+    assert batch_width(fields_for("sample", "reference")) == 55
+    assert batch_width(fields_for("run", "reference")) == 55, "nine attributes, the same question"
+    assert batch_width(fields_for("experiment", "reference")) == 250
+    assert batch_width(fields_for("dataset", "reference")) == 38
 
     asks = _every_ask()
     assert all(batch_width(a) > 8 for a in asks), "no ask is still bounded by the count it replaced"
@@ -1796,14 +1803,17 @@ def test_a_request_is_bounded_by_its_ask_too_and_never_asks_about_one_document_t
 
 
 def _every_ask() -> list[tuple[str, ...]]:
-    """Every question this compiler can put to a document — both roles, all five scopes."""
-    from seqforge.harvest.fields import fields_for
+    """Every question this compiler can put to a document — every role x every scope.
 
-    return [
-        fields_for(scope, role)
-        for scope in ("dataset", "sample", "experiment", "project", "run")
-        for role in ("reference", "instruction")
-    ]
+    Collected from the ``Literal``s themselves rather than retyped here, so a sixth scope arrives in
+    these assertions the moment it is declared. A list spelled out by hand stays green over a
+    vocabulary it has stopped covering, which is the one way a test like this fails silently.
+    """
+    from typing import get_args
+
+    from seqforge.harvest.fields import DocRole, DocScope, fields_for
+
+    return [fields_for(scope, role) for scope in get_args(DocScope) for role in get_args(DocRole)]
 
 
 def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
@@ -1811,11 +1821,15 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 ) -> None:
     """The ceiling a width was divided out of is the ceiling the request actually asks for.
 
-    A full-width nine-attribute batch is 57 x 9 x 60 = 30 780 output tokens of drafts, plus the
-    1 000 reserved for reasoning tokens — which bill against this same ceiling and have no toggle —
-    for 31 780, just under the 32 000 budget. Pinned at 8 000, the number this replaced, the same
-    request would run out of ceiling about a fifth of the way through its own batch, truncate the
-    JSON, and fail the shape gate wholesale.
+    A full-width nine-attribute batch is 55 x 9 x 62 = 30 690 output tokens of drafts, plus the
+    1 000 reserved for reasoning tokens — which bill against this same ceiling — for 31 690, just
+    under the 32 000 budget. Pinned at 8 000, the number this replaced, the same request would run
+    out of ceiling about a quarter of the way through its own batch, truncate the JSON, and fail the
+    shape gate wholesale.
+
+    The reserve has to survive the arithmetic, not just appear in it: the drafts a full batch can
+    emit fit **inside** what the request asks for, leaving the reservation actually reserved. That is
+    the check a rounded-down per-draft rate would quietly break.
 
     The fallback is priced too, and priced to what it already was: one document asks 8 000, which is
     what every unbatched request has asked since before batching existed. A fallback that could fail
@@ -1843,7 +1857,14 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 
     ceilings = [sent["max_tokens"] for sent in provider.asked]
     assert provider.widths == [width] + [1] * width, "the batch, then one request per document"
-    assert ceilings == [31_780] + [8000] * width
+    assert ceilings == [31_690] + [8000] * width
+
+    from seqforge.harvest.plan import PER_DRAFT_TOKENS, REASONING_HEADROOM_TOKENS
+
+    worst_case_drafts = width * len(fields_for("sample", "reference")) * PER_DRAFT_TOKENS
+    assert worst_case_drafts + REASONING_HEADROOM_TOKENS <= ceilings[0], (
+        "the reservation is only a reservation if the drafts fit under the ceiling without it"
+    )
 
     assert all(
         8000 <= batch_max_tokens(ask, n) <= BATCH_OUTPUT_BUDGET
@@ -1857,11 +1878,18 @@ def test_the_requests_a_plan_sends_do_not_depend_on_the_machine(
 ) -> None:
     """The property batching has always claimed, now that a second number could have broken it.
 
-    `MAX_IN_FLIGHT` sizes the POOL that carries the batches and is derived from the core count; it
-    must never size the batches themselves. Neither may the width rule — it reads the ask, and the
+    `MAX_IN_FLIGHT` is derived from the core count, and it sizes the POOL that carries the batches;
+    it must never size the batches themselves. Neither may the width rule — it reads the ask, and the
     ask comes from the document. So the same plan run under a pool of one and a pool of forty-eight
     issues the same requests: the same documents grouped the same way, each carrying the same
     `max_tokens`.
+
+    What the patch below actually varies is `max_workers`, and saying so is the honest version:
+    `_SLOTS` is sized once at import and rebinding the module attribute does not resize it, so the
+    process-wide allowance is the same in both runs while the executor's width is not. That is
+    sufficient for what this test is about — the two runs schedule differently, and a plan whose
+    grouping or ceilings depended on scheduling would diverge. A test that claimed to vary both would
+    be claiming a reach it does not have.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
