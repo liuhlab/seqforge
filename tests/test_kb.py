@@ -919,10 +919,11 @@ def test_the_anchored_resolver_recovers_the_staggered_frame() -> None:
 def test_every_confusable_target_is_a_technology_we_support() -> None:
     """A `confusable_with` edge must point at a spec that exists, not at one we mean to write.
 
-    This is the same defect `UNSHIPPED_ONLIST_DEBT` was built for, one level up, and it hid in the one
-    place that register does not look: that guard reads the onlists a spec's own ELEMENTS reference, so
-    it never sees a `distinguishable_by: [onlist]` claim about a *pair*. Four edges pointed at ids with
-    no spec directory — `10x-gemx-3p-v4` and `10x-5p-gex`, from both v3 and v3.1.
+    This is the same defect `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` was built
+    for, one level up, and it hid in the one place that guard does not look: it reads the onlists a
+    spec's own ELEMENTS reference, so it never sees a `distinguishable_by: [onlist]` claim about a
+    *pair*. Four edges pointed at ids with no spec directory — `10x-gemx-3p-v4` and `10x-5p-gex`, from
+    both v3 and v3.1.
 
     A dangling edge fails the way this repo's worst failures fail: quietly and safely. The resolver
     cannot score a spec that does not exist, so the divergent tie the edge describes never happens; a
@@ -1379,38 +1380,6 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 # ---------------------------------------------------------------- the mechanism must be able to fire
 
 
-#: KB entries whose declared onlists we do not ship, and which therefore CANNOT be resolved the way
-#: their own spec says they are. An exact pin, not a filter: this is a debt, and a debt you can forget
-#: is a debt you keep.
-#:
-#: **Empty, and it took shipping a whitelist to empty it.** `splitseq` sat here: it declared three
-#: barcode whitelists and said of the one technology it is confusable with "rung 3 decides it: the
-#: round1/2/3 whitelists hit", while the three we shipped were all 10x's. The three weight-3.0 onlist
-#: tests went unconfirmed and the mechanism the spec called decisive could never fire. It survived
-#: unnoticed because nothing was red: every test that appeared to prove SPLiT-seq works built a
-#: synthetic registry from the spec's own aliases, proving only that the spec agrees with itself.
-#:
-#: **That failure is NOT safe, and this comment used to say it was** ("it over-asks, it does not
-#: answer wrongly"). Measured on reads built from the barcodes we now ship, `splitseq` with its three
-#: lists withheld scores **0.3300** against `bulk-rnaseq`'s **0.7800** on its own data — the onlist
-#: supports carry 9 of its 10 barcode-role weight and keep that weight when unconfirmed, deliberately
-#: (#307). At +0.45 the chemistry is far outside θ, so it never joins the tie set its own declared
-#: `confusable_with` edge would be consulted for, nothing asks, and the deposit compiles to a bulk
-#: gene-count matrix at exit 0. With all three shipped the same reads tie 0.7800/0.7800 and the edge
-#: routes the decision to the onlist, which hits. Over-asking is the safe failure; this is the other
-#: one. Recording a debt below is legitimate — an entry may land before its whitelist is derived —
-#: but it makes that chemistry LOSE SILENTLY TO BULK, not merely go unconfirmed (#321).
-#:
-#: The barcodes now ship, derived from the paper's own Supplementary Table S12 rather than guessed;
-#: `test_the_splitseq_rounds_are_one_barcode_set` pins what that derivation found.
-#:
-#: Adding an entry here is legitimate; leaving one unrecorded is not. Do NOT close a future entry by
-#: guessing barcodes — a wrong whitelist does not fail loudly. STARsolo exits 0 and emits a matrix
-#: that merely looks like a thin dataset, and a plausible matrix is unrecoverable in a way a refusal
-#: never is.
-UNSHIPPED_ONLIST_DEBT: dict[str, list[str]] = {}
-
-
 def test_the_splitseq_rounds_are_one_barcode_set() -> None:
     """SPLiT-seq reuses ONE 96 x 8 bp set across all three rounds — a KB fact, not a packing accident.
 
@@ -1456,28 +1425,90 @@ def test_a_spec_that_calls_onlists_decisive_can_actually_reach_one() -> None:
     """The gap this repo could not see: a KB entry declaring what the code cannot execute.
 
     Adding a technology really is one YAML file and zero Python — SPLiT-seq proves it. But a spec can
-    *declare* a mechanism that does not exist, and that fails SILENTLY: the tests abstain, resolve
-    over-asks, and nothing is red. This is the check that makes the declaration cost something.
+    *declare* a mechanism that does not exist, and that fails SILENTLY: the tests go unconfirmed,
+    nothing is red, and the chemistry loses. This is the check that makes the declaration cost
+    something.
+
+    **There is no debt list any more, and deleting it is the point** (#321). This assertion used to
+    compare against a recorded `UNSHIPPED_ONLIST_DEBT`, so a spec could land without its whitelist as
+    long as somebody wrote the gap down. The comment beside that pin told the next author the failure
+    was tolerable — "it over-asks, it does not answer wrongly" — and that was false. Measured on reads
+    built from the barcodes we now ship, `splitseq` with its three lists withheld scores **0.3300**
+    against `bulk-rnaseq`'s **0.7800** on its own data: its onlist supports carry 9 of its 10
+    barcode-role weight and keep that weight when unconfirmed, deliberately (#307), so at +0.45 the
+    chemistry sits far outside θ, never joins the tie set its own declared `confusable_with` edge
+    would be consulted for, and the deposit compiles to a bulk gene-count matrix at exit 0. With all
+    three shipped the same reads tie 0.7800/0.7800 and the edge routes the decision to the onlist,
+    which hits.
+
+    So the debt was never a deferral, it was a silently wrong answer with a note attached — and a note
+    is a rule somebody has to remember. Removing the escape hatch makes the right thing happen by
+    default: ship the whitelist, or do not ship the spec. `splitseq` is the precedent for paying that
+    cost rather than deferring it — its three lists were derived from the paper's own Supplementary
+    Table S12, and `test_the_splitseq_rounds_are_one_barcode_set` pins what the derivation found.
+
+    Do NOT close a future gap by guessing barcodes. A wrong whitelist does not fail loudly: STARsolo
+    exits 0 and emits a matrix that merely looks like a thin dataset, and a plausible matrix is
+    unrecoverable in a way a refusal never is.
     """
     from seqforge.io import DEFAULT_REGISTRY
 
+    gaps = _onlist_gaps(DEFAULT_REGISTRY)
+    assert gaps == {}, (
+        f"these specs call the onlist decisive and cannot reach one: {gaps}\n"
+        "A spec whose decisive whitelist does not ship LOSES SILENTLY to `bulk-rnaseq` — measured, "
+        "`splitseq` without its three lists scores 0.3300 against bulk's 0.7800 on its own reads, "
+        "far outside the tie band, so nothing asks and the deposit compiles as bulk at exit 0. It "
+        "does not over-ask; it answers wrongly.\n"
+        "Ship the whitelist (`seqforge io onlist pack`) or do not ship the spec. There is no safe "
+        "third option, and recording the gap instead of closing it was the one this test used to "
+        "allow (#321)."
+    )
+
+
+def _onlist_gaps(registry: OnlistRegistry) -> dict[str, list[str]]:
+    """spec id -> the decisive onlists ``registry`` cannot reach. Empty is the only legal answer."""
     gaps: dict[str, list[str]] = {}
     for spec_id in kb.list_spec_ids():
         spec = kb.load_spec(spec_id)
         if "onlist" not in spec.decidable_by:
             continue
-        missing = [n for n in _onlists_that_would_decide(spec) if not DEFAULT_REGISTRY.has(n)]
+        missing = [n for n in _onlists_that_would_decide(spec) if not registry.has(n)]
         if missing:
             gaps[spec_id] = missing
+    return gaps
 
-    assert gaps == UNSHIPPED_ONLIST_DEBT, (
-        "the KB's rung-3 claims no longer match what ships.\n"
-        f"  found:    {gaps}\n"
-        f"  recorded: {UNSHIPPED_ONLIST_DEBT}\n"
-        "If you shipped a whitelist, delete its entry from UNSHIPPED_ONLIST_DEBT. If you added a "
-        "spec that declares onlists we do not have, either ship them or record the debt here — but "
-        "do not leave it unrecorded: a spec whose decisive mechanism cannot fire looks exactly like "
-        "one that works, right up until a real dataset arrives."
+
+def test_the_unshipped_onlist_guard_can_actually_go_red() -> None:
+    """Prove the guard above fires, now that there is no way to record your way past it.
+
+    It has only ever been seen green, and a guard nobody has watched fail is a guard nobody knows is
+    connected — the same reason `test_the_orphan_exemption_is_not_a_blanket_one` and
+    `test_a_declared_twin_that_diverges_would_be_caught` perturb their subjects in memory. It matters
+    more here than it did before #321: the assertion used to compare against a recorded pin, so an
+    author who tripped it had a green-making edit available and would have found out the guard worked.
+    Now the only way past is to ship the list, and nobody will discover the wrong `decidable_by` by
+    accident.
+
+    Withhold SPLiT-seq's three rounds from an otherwise-complete registry — exactly the state the KB
+    was in before those lists were derived — and the guard must name that spec and those three lists,
+    and nothing else.
+    """
+    from seqforge.io import DEFAULT_REGISTRY
+    from seqforge.io.onlist import shipped_entries
+
+    withheld = OnlistRegistry(offline=True)
+    for entry in shipped_entries():
+        if not entry.name.startswith("splitseq-"):
+            withheld.register(entry)
+    assert len(withheld.names()) == len(DEFAULT_REGISTRY.names()) - 3, (
+        "the perturbation must remove exactly SPLiT-seq's three rounds"
+    )
+
+    assert _onlist_gaps(withheld) == {
+        "splitseq": ["splitseq-round1", "splitseq-round2", "splitseq-round3"]
+    }, (
+        "the guard must name the spec AND the lists it cannot reach, or its message cannot be acted on"
     )
 
 

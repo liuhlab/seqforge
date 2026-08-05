@@ -116,14 +116,12 @@ Built from the barcodes we actually ship, the picture is the opposite:
 | all lists shipped | 0.7800 | 0.7800 | **exact tie** -> declared edge -> onlist decides -> `splitseq` |
 | `splitseq-round{1,2,3}` absent | **0.3300** | 0.7800 | bulk by +0.4500, outside θ — decides silently |
 
-## What IS real, and it is one sentence in a guard
+## What IS real: an escape hatch that deferred nothing
 
-The bottom row can only be reached through `UNSHIPPED_ONLIST_DEBT`
-(`tests/test_kb.py`) — the pin that permits a spec to ship while its decisive whitelist does not. It
-is **empty**, and `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` keeps it empty, so
-this cannot arrive by accident.
-
-What can arrive is somebody adding an entry, and the guard's own comment tells them it is safe:
+The bottom row was reachable only through `UNSHIPPED_ONLIST_DEBT` (`tests/test_kb.py`) — a pin
+permitting a spec to ship while its decisive whitelist did not, provided somebody wrote the gap down.
+It was **empty**, so nothing was ever in that state; the danger was the next author putting something
+there, because the comment beside it told them the failure was tolerable:
 
 > That failure was safe — *it over-asks, it does not answer wrongly* — which is exactly why it
 > survived unnoticed
@@ -131,9 +129,13 @@ What can arrive is somebody adding an entry, and the guard's own comment tells t
 **Measured, it does not over-ask.** With its whitelist withheld `splitseq` falls to 0.3300 against
 bulk's 0.7800; at +0.45 it is far outside θ, so it never joins the tie set its own declared
 `confusable_with` edge would be consulted for, and the deposit compiles to a bulk gene-count matrix
-at exit 0. Over-asking is the safe failure that sentence promises; answering wrongly is the one the
-KB most fears, and it is the one on offer. The debt hatch is still the right escape — a KB entry
-should be able to land before its whitelist is derived — but the note beside it has to say that
-recording a debt makes that chemistry *lose silently to bulk*, not that it merely goes unconfirmed.
+at exit 0. Over-asking is the safe failure the sentence promised; answering wrongly is the one the KB
+most fears, and it was the one on offer.
 
-Tracked as #321, narrowed to that.
+**So the hatch was deleted rather than re-annotated** (#321).
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now asserts the gap set is empty
+unconditionally: ship the whitelist, or do not ship the spec. Correcting the note would have left a
+rule somebody has to remember, and the measurement above says what it would have been protecting is
+not a deferral at all — it is a wrong answer with a comment attached. `splitseq` is the precedent for
+paying the cost instead: its three lists were derived from the paper's own Supplementary Table S12
+before the spec was trusted to decide anything.

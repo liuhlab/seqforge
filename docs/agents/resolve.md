@@ -47,11 +47,14 @@ finally makes `accepts_at_rungs_0_2`'s own "the verdict rests on geometry ... al
 **"But when is a whitelist ever unobtainable?" — almost never, and that is worth knowing before
 reading the paragraph above as urgent.** All fifteen lists ship pre-packed (3.0 MB; a sorted 2-bit
 barcode set is a twentieth of the vendor's `.txt.gz`), every onlist reference in all seventeen specs
-resolves from `DEFAULT_REGISTRY` with no network and no setup, and every production verb uses it. The
-one door left is `UNSHIPPED_ONLIST_DEBT` — a spec landing before its whitelist is derived — which is
-empty and CI-pinned empty. What is NOT true is that guard's promise that such a spec merely
-over-asks: measured on real barcodes, `splitseq` with its lists withheld falls to 0.3300 against
-bulk's 0.7800, far outside θ, so nothing asks and the deposit compiles as bulk (#321).
+resolves from `DEFAULT_REGISTRY` with no network and no setup, and every production verb uses it.
+There used to be one door left — a recorded-debt pin letting a spec land before its whitelist was
+derived — and it is **gone** (#321):
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now demands the gap set be empty
+outright, so a chemistry that calls the onlist decisive cannot ship until its list does. The pin's own
+comment had promised such a spec merely over-asks; measured on real barcodes, `splitseq` with its
+lists withheld falls to 0.3300 against bulk's 0.7800, far outside θ, so nothing asks and the deposit
+compiles as bulk. That is not a deferral to record, so there is no longer a way to record it.
 
 | evaluator | what it does, and the decision inside it |
 |---|---|
