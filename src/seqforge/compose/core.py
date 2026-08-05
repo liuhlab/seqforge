@@ -573,6 +573,35 @@ def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[st
         if not reads:
             raise ComposeError("a mates layout needs at least one read, found none")
         return {f"mate{n}": read.read_id for n, read in enumerate(reads[:2], start=1)}
+    if kind == "umi_tagged":
+        # A plate assay: one mate opens with tag + UMI + motif, the other is plain cDNA, and there is
+        # no barcode read anywhere to name either by. Chosen by ROLE, and that is the whole reason
+        # this kind exists: `mates` would take these two in ORDER, and they are NOT symmetric — a
+        # layout listing the plain mate first would hand the untagged read to the extractor, tag
+        # nothing, and finish with an empty matrix at exit 0.
+        tagged = find_read_with_role(manifest, "UMI")
+        if tagged is None:
+            raise ComposeError(
+                "a umi_tagged layout needs a read carrying a UMI element; this one carries none, so "
+                "there is nothing for the extractor to lift out"
+            )
+        # The mate is optional, because the kind tolerates ONE read structurally — a single-end plate
+        # is a real published configuration and must not need a fifth layout kind to express. What it
+        # does need is an extractor that pairs one FASTQ, which is separate work; the module refuses
+        # loudly when the key is absent rather than this dispatch inventing a mate that is not there.
+        mate = next(
+            (
+                read
+                for read in manifest.library.read_layout.reads
+                if read.read_id != tagged.read_id
+                and any(el.role in ("cDNA", "gDNA") for el in read.elements)
+            ),
+            None,
+        )
+        placement = {"umi_cdna": tagged.read_id}
+        if mate is not None:
+            placement["cdna"] = mate.read_id
+        return placement
     assert_never(kind)
 
 

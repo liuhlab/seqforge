@@ -1,4 +1,13 @@
-"""What the STARsolo mapping rule asks the scheduler for, and how much of it STAR may sort in.
+"""What a mapping rule asks the scheduler for, and how much of it STAR may sort in.
+
+**Two modules' arithmetic, one file, and the second one is a map rather than a cap.** ``map/starsolo``
+has one expensive rule and needs the sort budget below to follow the request across a retry.
+``map/star-umi`` has *two* rule classes that scale differently — index-dominated per-cell alignment,
+and one plate-wide counting job that loads no index at all — and the recipe still says exactly one
+thing, because ``resources.mem_gb`` is intent and a recipe carrying every module's rule names would
+widen the recipe schema on every new module. So the module turns one figure into two requests
+(:func:`per_cell_mem_mb`, :func:`fan_in_mem_mb`), and the escalation applies to each class alone.
+
 
 Two numbers that only mean anything together, so they live in one file. ``starsolo.smk`` requests
 ``mem_mb`` from the scheduler and hands STAR ``--limitBAMsortRAM``; the second is a fraction of the
@@ -136,6 +145,62 @@ def escalated_mem_mb(mem_mb: int, attempt: int) -> int:
     return mem_mb * attempt
 
 
+#: How many times the scheduler may re-run one of ``map/star-umi``'s two rule classes after a
+#: failure. Its own name rather than a reuse of :data:`STARSOLO_RETRIES`, because the escalation
+#: applies to each rule class **independently**: a fan-in counter that ran out of memory has nothing
+#: to do with the per-cell mapping jobs that already finished, and a shared constant would tie the
+#: two together for no reason beyond having the same value today.
+PLATE_RETRIES: int = 2
+
+#: What share of the recipe's memory figure the plate-wide counting job asks for, and the floor it
+#: may not fall below. **A declared share, not a measurement, and it is here so it can become one.**
+#:
+#: What is known is the SHAPE, and the shape is what makes one figure wrong for both rules. A
+#: per-cell mapping job is dominated by the genome index — per process, independent of read count,
+#: measured at 27.7 GB peak RSS against a 25 GB index whether the cell holds 901 reads or 3.1M — so
+#: it wants the whole figure the recipe was sized with. The fan-in counter loads **no genome index at
+#: all**: it reads the built annotation database into one interval index and accumulates the plate's
+#: sparse matrices, which is a fraction of a mapping job rather than a multiple of it. Asking for the
+#: mapping figure would idle three quarters of a node for the one job that must run after every cell
+#: has finished, which on a scheduler is exactly when a large request queues worst.
+#:
+#: No peak has been measured for it, so the number below is a floor-and-share written in ONE
+#: importable function precisely so a measurement can replace it without touching a rule.
+_FAN_IN_NUMERATOR, _FAN_IN_DENOMINATOR = 1, 4
+_MIN_FAN_IN_MEM_MB = 8 * 1024
+
+
+def per_cell_mem_mb(mem_mb: int, attempt: int) -> int:
+    """What ONE cell's mapping job asks for on ``attempt`` — the recipe's whole figure, escalated.
+
+    The recipe says one thing, on purpose: ``resources.mem_gb`` is *intent*, and a recipe carrying
+    every module's rule names would make each new module widen the recipe schema. So the module —
+    the only artifact that knows its own rule graph — turns that one figure into two requests, and
+    this is the first of them.
+
+    It is the figure **unchanged** rather than a share of it, and that is the measurement talking:
+    STAR's memory here is dominated by the genome index, which is per-process and independent of how
+    many reads the cell holds, so a 901-read well and a 3.1M-read well ask for the same thing. The
+    recipe's default was sized against a mapping job, which is what this is; the fan-in is the rule
+    that is not (:func:`fan_in_mem_mb`).
+    """
+    return escalated_mem_mb(mem_mb, attempt)
+
+
+def fan_in_mem_mb(mem_mb: int, attempt: int) -> int:
+    """What the plate-wide counting job asks for on ``attempt`` — a share of the same one figure.
+
+    The second half of the module's map. See :data:`_FAN_IN_NUMERATOR` for why a share and not the
+    whole: this rule loads no genome index, so the number that sizes a mapping job says nothing
+    about it. Escalation is applied to the share and applies to this rule class alone — a retry here
+    does not mean a mapping job wanted more, and nothing re-runs to find out.
+    """
+    share = mem_mb * _FAN_IN_NUMERATOR // _FAN_IN_DENOMINATOR
+    # The floor may not exceed the whole request: on a recipe smaller than the floor, asking the
+    # scheduler for more than the pipeline was budgeted is a job that never starts.
+    return escalated_mem_mb(min(mem_mb, max(_MIN_FAN_IN_MEM_MB, share)), attempt)
+
+
 def bam_sort_ram(mem_mb: int) -> int:
     """``--limitBAMsortRAM``, in BYTES, derived from the memory this attempt was actually given.
 
@@ -172,7 +237,10 @@ def bam_sort_ram(mem_mb: int) -> int:
 
 
 __all__ = [
+    "PLATE_RETRIES",
     "STARSOLO_RETRIES",
     "bam_sort_ram",
     "escalated_mem_mb",
+    "fan_in_mem_mb",
+    "per_cell_mem_mb",
 ]

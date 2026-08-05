@@ -148,12 +148,17 @@ damage it did are [ADR-0004](../adr/0004-two-artifacts-not-one.md).
 many per dataset, and that plurality *is* the design. `user_confirmed` — a basis written nowhere else
 in seqforge — is what this artifact exists to carry.
 
-- **`quantification` is a discriminated union** (`SoloQuant | BulkQuant`) and is not decorative:
-  `params_gate` fails if the emitted config disagrees with it. `SoloQuant.features` is **ordered**
-  (index 0 is primary) and **defaults to all five** solo features; validators enforce "no duplicates"
-  and "Velocyto requires Gene", a real STAR constraint no enum can express. `BulkQuant` needs no
-  strandedness knob — `--quantMode GeneCounts` already emits all three strand columns, so there was
-  never a decision to make there.
+- **`quantification` is a discriminated union** (`SoloQuant | BulkQuant | AtacQuant | UmiQuant`) and
+  is not decorative: `params_gate` fails if the emitted config disagrees with it. `SoloQuant.features`
+  is **ordered** (index 0 is primary) and **defaults to all five** solo features; validators enforce
+  "no duplicates" and "Velocyto requires Gene", a real STAR constraint no enum can express.
+  `BulkQuant` needs no strandedness knob — `--quantMode GeneCounts` already emits all three strand
+  columns, so there was never a decision to make there. `AtacQuant` and `UmiQuant` carry **no knob at
+  all**, for two different reasons that land in the same place: ATAC's deliverable is a fragments
+  file, so nothing is counted, and the plate counter writes all four matrices in one pass, so nothing
+  is chosen. A member per counting family is what keeps a recipe well-typed against the module that
+  runs it — without one, a plate's config block inherits `quantMode`, an instruction its counter has
+  never heard of.
 - **`basis` records *who decided*:** a CLI flag or an `--instruction` document is `user_confirmed`,
   policy is `inferred`.
 - **`dataset is None` means a template; set means bound.** `compose` refuses a mismatch with a

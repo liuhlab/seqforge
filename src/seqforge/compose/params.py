@@ -83,7 +83,7 @@ declaring one would be a contract we have not established — the same "must not
 """
 
 DERIVED_PARAM_KEYS: frozenset[str] = frozenset(
-    {"soloCBposition", "soloUMIposition", "soloAdapterSequence", "read_format"}
+    {"soloCBposition", "soloUMIposition", "soloAdapterSequence", "read_format", "read_structure"}
 )
 """Params computed from the element model rather than declared by anyone.
 
@@ -105,6 +105,15 @@ just the barcode widths and linker literals read off the elements — one more f
 already state. It was in the pipeline's parse keys (declarable) but nothing emitted it; now it is derived, and
 the ``soloCBposition``/``soloUMIposition`` quadruples become adapter-anchored (anchor 2/3) rather than
 read-start-anchored (anchor 0) for such a chemistry.
+
+``read_structure`` is the plate assay's whole extraction geometry — which read carries the tag, the
+tag itself and where it is declared, the UMI's offset and width, the motif that closes the tag, and
+where cDNA begins. It is the ``soloAdapterSequence`` precedent one chemistry later and taken further:
+the extractor needs SIX numbers and every one of them is already in the element coordinates, so
+``map/star-umi``'s parse namespace is **empty** and this key carries all of them at once. One key
+rather than six, exactly as ``read_format`` renders chromap's barcode placement — six travelling
+separately is five that arrive and one that is dropped, and five correct numbers still cut *a* span
+out of *a* read at exit 0.
 """
 
 
@@ -134,8 +143,11 @@ def derived_params(spec: Spec) -> dict[str, str]:
     # chromap expresses barcode geometry through `--read-format`, the way STARsolo expresses it through
     # the position quadruple below — dispatched on the module's declared `param_block`, never its name
     # (a name compare is the `_read_files_in` bug this file's guard forbids).
-    if get_module(backend.module).param_block == "chromap":
+    block = get_module(backend.module).param_block
+    if block == "chromap":
         return _chromap_read_format(spec)
+    if block == "umi":
+        return _umi_read_structure(spec)
     if backend.params.get("soloType") != "CB_UMI_Complex":
         return {}
 
@@ -193,6 +205,35 @@ def _chromap_read_format(spec: Spec) -> dict[str, str]:
     ref = spec.onlists.get(cb.onlist) if cb.onlist else None
     strand = "-" if (ref is not None and ref.expected_orientation == "revcomp") else "+"
     return {"read_format": f"bc:{cb.start}:{cb.end - 1}:{strand}"}
+
+
+def _umi_read_structure(spec: Spec) -> dict[str, str]:
+    """The plate assay's whole extraction geometry, as ONE derived key, from the element model.
+
+    ``map/star-umi``'s parse namespace is empty, so this is the only thing in its config block and
+    it carries everything the extractor needs: which read is tagged, the tag and where the layout
+    declares it, the UMI's offset and width, the motif that closes the tag, and where cDNA begins.
+    Six facts, one value — six keys travelling separately is five that arrive and one that is
+    dropped, and five correct numbers still cut *a* span out of *a* read at exit 0.
+
+    The derivation itself is the EXTRACTOR's, called here rather than reproduced: the spec's reads
+    are translated through the one KB→IR element translator and handed to the same walker the
+    manifest side uses, so "what the chemistry declares" and "what the bytes were decided to be"
+    cannot be two answers. The gate then re-derives the second and compares.
+
+    Returns ``{}`` for a spec whose layout is not this shape at all — a chemistry that declares no
+    UMI element, or more than one tagged read. Silently emitting a half-geometry would be worse than
+    emitting none: the params gate's coverage check turns a missing key into a named refusal, while
+    a wrong one is a run that extracts from the wrong bases.
+    """
+    from ..manifest.fill import declared_read_elements
+    from ..workflows.umite.extract import UmiExtractError, tagged_geometry
+
+    try:
+        geometry = tagged_geometry(declared_read_elements(spec))
+    except UmiExtractError:
+        return {}
+    return {"read_structure": geometry.render()}
 
 
 def _whitelist_aliases(whitelist: object) -> list[str]:
@@ -302,9 +343,11 @@ def processing_params(quant: Quantification) -> dict[str, object]:
         return {"soloFeatures": " ".join(quant.features)}
     if isinstance(quant, BulkQuant):
         return {"quantMode": quant.mode}
-    # AtacQuant: the deliverable is a fragments file, so there is nothing to count and no count key to
-    # emit. The empty dict keeps `param_owners`/`params_gate` correct — chromap's config block is
-    # exactly its parse keys, with no processing-owned counting key to reconcile.
+    # AtacQuant and UmiQuant: neither has a counting knob to render, for two different reasons that
+    # land in the same place. ATAC's deliverable is a fragments file, so there is nothing to count;
+    # the plate counter writes all four matrices in one pass, so there is nothing to choose. The
+    # empty dict keeps `param_owners`/`params_gate` correct — each of those two config blocks is
+    # exactly its own keys, with no processing-owned counting key to reconcile.
     return {}
 
 
@@ -466,6 +509,8 @@ def params_gate(
             problems.append("layout has no CB-bearing read, but soloType is CB_UMI_Simple")
         else:
             problems += _check_simple_geometry(bc_read, params)
+    if "read_structure" in from_derived:
+        problems += _check_read_structure(manifest, from_derived["read_structure"])
 
     # ---- 5. pairwise legality: (soloType, soloCBmatchWLtype) must be a pair STAR accepts ----
     problems += _check_cb_match_wl_type(params)
@@ -512,6 +557,33 @@ def _check_cb_match_wl_type(params: Mapping[str, object]) -> list[str]:
             f"KB soloCBmatchWLtype={str(value)!r} is illegal for soloType={solo_type!r}; STAR accepts "
             f"{sorted(legal)} there. This is a hard STAR FATAL raised after the genome loads, so "
             f"compose refuses it now instead of a compute node refusing it in twenty minutes"
+        ]
+    return []
+
+
+def _check_read_structure(manifest: DatasetManifest, emitted: str) -> list[str]:
+    """The geometry derived from the KB must equal the one derived from the OBSERVED layout.
+
+    The plate module's cross-derivation, and the same claim ``_check_simple_geometry`` makes for a
+    simple STARsolo chemistry: a KB whose element coordinates contradict the reads is a run that cuts
+    a UMI out of the wrong bases. It is worth stating separately here because this pipeline's entire
+    config block is one derived value — there is no declared offset for the KB to get wrong, only
+    the coordinates themselves, so this is the only place the two element models are made to agree.
+    """
+    from ..workflows.umite.extract import UmiExtractError, tagged_read_geometry
+
+    try:
+        observed = tagged_read_geometry(manifest.library.read_layout).render()
+    except UmiExtractError as exc:
+        return [
+            f"the observed read layout carries no extractable tagged read ({exc}), but the "
+            f"chemistry's elements derive read_structure={emitted!r}"
+        ]
+    if observed != emitted:
+        return [
+            f"read_structure={emitted!r} derived from the chemistry's elements contradicts "
+            f"{observed!r} derived from the observed read layout — the two element models state one "
+            f"geometry and this dataset's bytes were decided to be a different one"
         ]
     return []
 
@@ -596,6 +668,27 @@ def _check_read_files_in(
                 )
         if len({rfi.get("gdna1"), rfi.get("gdna2"), rfi.get("barcode")}) != 3:
             problems.append("read_files_in maps two scATAC roles to the same read")
+    elif layout_kind == "umi_tagged":
+        # ROLE, not order, and the assertion is the load-bearing one for this pipeline: the two mates
+        # of a plate assay are not symmetric, so handing the extractor the plain one yields a uBAM
+        # with no UMI anywhere, an empty matrix, and exit 0 all the way down.
+        tagged = find_read_with_role(manifest, "UMI")
+        if tagged is None:
+            problems.append("a umi_tagged chemistry needs a read carrying a UMI element")
+            return problems
+        if rfi.get("umi_cdna") != tagged.read_id:
+            problems.append(
+                f"read_files_in.umi_cdna={rfi.get('umi_cdna')!r} is not the tagged read "
+                f"{tagged.read_id!r}; the extractor would find no tags at all and exit 0"
+            )
+        mate = rfi.get("cdna")
+        if mate is not None and mate == rfi.get("umi_cdna"):
+            problems.append("read_files_in maps the tagged read and its mate to the same read")
+        others = [
+            r.read_id for r in manifest.library.read_layout.reads if r.read_id != tagged.read_id
+        ]
+        if mate is not None and mate not in others:
+            problems.append(f"read_files_in.cdna={mate!r} is not a read this layout carries")
     elif layout_kind == "mates":
         # 1..2 biological mates chosen by ORDER, with no barcode role to name one by. The whole
         # mapping is re-derived and compared, rather than the mates being checked for membership and

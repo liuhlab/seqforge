@@ -10,6 +10,7 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
     map/starsolo   <sample>.qc.json.gz             gzipped JSON, written by `rule qc_bundle`
     map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
     map/star       Log.final.out                   plain text, written by STAR itself
+    map/star-umi   Log.final.out                   the same, one per cell
 
 Three artifacts, three vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
@@ -109,6 +110,15 @@ _SPECS: dict[str, StatsSpec] = {
     ),
     "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
     "map/star": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
+    # The plate module reports from the same file `map/star` does, and for the same reason: it runs
+    # one STAR job per cell, and STAR writes `Log.final.out` into that cell's directory unasked. A
+    # cell IS a sample here, so `<results>/<sample>/Log.final.out` is already this reader's shape
+    # with no new rule, no second artifact and no per-cell QC bundle to invent. What it does NOT
+    # report is the plate-wide half — the read fates the counter puts in the combined object's `obs`
+    # — because this reader is per sample by construction and that artifact has no sample in its
+    # path. Widening the seam to a dataset-scoped artifact is its own change; reporting nothing at
+    # all in the meantime would have been the silence this registry exists to forbid.
+    "map/star-umi": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
 }
 
 #: Registered modules that deliberately report nothing **yet** — the half of the drift guard that lets
@@ -135,7 +145,12 @@ MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 #: seqforge decided, which is the same reason their own thresholds are loose. A rule with no
 #: defensible threshold does not ship, and declaring that out loud is a supported answer rather than
 #: a gap. Either name leaves this set the day a rule for it can be argued.
-MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset({"map/chromap", "map/star"})
+#: ``map/star-umi`` joins them on the same argument read off the artifact rather than off the assay:
+#: what it reports is STAR's own alignment log, which carries no barcode-match rate and no gene
+#: assignment, so every rule the barcoded module cross-checks with is a number that is not there.
+MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset(
+    {"map/chromap", "map/star", "map/star-umi"}
+)
 
 #: What the reader will survive from one sample's artifact: bad **bytes**. Caught per sample, so one
 #: corrupt file costs its own row and not the whole pipeline.

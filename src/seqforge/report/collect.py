@@ -498,6 +498,27 @@ def _pipeline_stages(plan: PlanView | None) -> list[PipelineStage]:
                 detail="sort, bgzip and tabix-index fragments.tsv.gz for ArchR / SnapATAC2 / Signac",
             ),
         ]
+    if plan.quantification_kind == "umi":
+        # A plate assay: one cell is one file, so there is no whitelist step at all, and the last
+        # stage is a FAN-IN — one job over every cell rather than one job per cell. Rendering the
+        # bulk stages here would tell a reader their plate was counted as a single bulk library.
+        return [
+            PipelineStage(
+                key="extract",
+                title="Lift each cell's UMI out of its reads",
+                detail="find the tag at the start of the tagged mate and carry its UMI as a tag",
+            ),
+            PipelineStage(
+                key="align",
+                title="Align each cell to the genome (STAR)",
+                detail="map one cell per job against a genome index loaded once and shared",
+            ),
+            PipelineStage(
+                key="count",
+                title="Count every cell into one matrix",
+                detail="tally UMIs and reads per gene, exonic and intronic, into a single .h5ad",
+            ),
+        ]
     return [
         PipelineStage(
             key="align",
@@ -533,6 +554,12 @@ def _plan(
         # crashes on a chromap workspace. The full fragments-aware rendering is PR-E; this is the
         # defensive stub that keeps `seqforge report` from dying on an ATAC manifest.
         quant_str = "atac: fragments (fragments.tsv.gz)"
+    elif quant.kind == "umi":
+        # A plate assay counts every cell into ONE object, and the four matrices are not a choice
+        # anyone made — so there is no feature list and no `mode` to render here either. Without this
+        # branch `quant.mode` AttributeErrors and the whole page dies on a plate workspace, which is
+        # the failure the ATAC branch above already had to be written for.
+        quant_str = "umi: UMIs and reads, exonic and intronic (one .h5ad over all cells)"
     else:
         quant_str = f"bulk: {quant.mode}"
 

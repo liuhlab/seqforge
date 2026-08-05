@@ -177,6 +177,40 @@ def test_kb_lint_is_clean() -> None:
     assert json.loads(result.stdout)["ok"] is True
 
 
+def test_kb_lint_fires_on_a_spec_whose_cell_axis_and_module_disagree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The verb, not just the validator: a violating entry makes `kb lint` exit 3 and say which.
+
+    `test_kb_lint_is_clean` proves the shipped KB passes, which a lint that checked nothing would
+    also prove. This is the other direction, and it needs an entry that cannot ship — the
+    biconditional fires at LOAD, so no file under `kb/specs/` can be made to violate it without
+    failing every other test in the suite at import time.
+
+    So the verb is pointed at one entry off disk instead: a real shipped spec with one field flipped,
+    claiming that one Sample is one cell beside a module that is per-sample end to end. That
+    compiles a 1440-well plate to 1440 separate objects at exit 0, which is the answer the pairing
+    exists to make unsayable. `Spec.model_validate` is the real validator throughout — what is stubbed
+    is only which files the verb walks.
+    """
+    from seqforge.cli import kb as kb_cli
+    from seqforge.kb.loader import SPECS_DIR
+    from seqforge.kb.schema import Spec
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    raw["identity"] = {**raw["identity"], "sample_is_cell": True}
+    monkeypatch.setattr(kb_cli, "list_spec_ids", lambda: ["impossible"])
+    monkeypatch.setattr(kb_cli, "load_spec", lambda tech: Spec.model_validate(raw))
+
+    result = runner.invoke(app, ["kb", "lint"])
+
+    assert result.exit_code == 3
+    report = json.loads(result.stdout)
+    assert report["ok"] is False
+    assert report["specs"][0]["tech"] == "impossible"
+    assert "is per-sample end to end" in report["specs"][0]["error"]
+
+
 def test_kb_roundtrip_passes() -> None:
     result = runner.invoke(app, ["kb", "roundtrip", "10x-3p-gex-v3"])
     assert result.exit_code == 0
@@ -1451,27 +1485,15 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
 # ---- io umi-extract: the per-cell half of the plate-assay counting engine -------------------------
 
 
-def _plate_manifest(path: Path) -> Path:
-    """A manifest whose R1 is a tagged-molecule layout: 11 bp tag, 8 bp UMI, `GGG`, cDNA at 22.
+def _plate_geometry() -> str:
+    """The rendered read structure compose derives for a tagged-molecule layout, from its ELEMENTS.
 
-    Only `library.read_layout` is under test; the rest is the least that validates. Written through
-    the models rather than as hand-typed YAML so a field rename breaks this loudly.
+    11 bp tag, 8 bp UMI, `GGG`, cDNA from 22 — written as a read the model validates and then
+    derived, never as the string itself. The verb takes one derived value and has no way to be
+    handed a number, so what a test must not do is type the answer it is checking.
     """
-    from seqforge.models.dataset import (
-        DatasetManifest,
-        DatasetProvenance,
-        ExperimentSection,
-        FileInventoryItem,
-        LibrarySection,
-        ReadDef,
-        ReadElement,
-        ReadLayout,
-    )
-    from seqforge.models.evidenced import (
-        EvidencedAccessionList,
-        EvidencedChemistrySet,
-        EvidencedTaxid,
-    )
+    from seqforge.models.dataset import ReadDef, ReadElement
+    from seqforge.workflows.umite.extract import geometry_for_read
 
     tagged = ReadDef(
         read_id="R1",
@@ -1491,39 +1513,7 @@ def _plate_manifest(path: Path) -> Path:
             ReadElement(role="cDNA", region_type="cdna", start=22),
         ],
     )
-    mate = ReadDef(
-        read_id="R2",
-        strand="neg",
-        min_len=40,
-        max_len=150,
-        elements=[ReadElement(role="cDNA", region_type="cdna", start=0)],
-    )
-    manifest = DatasetManifest(
-        library=LibrarySection(
-            chemistry=EvidencedChemistrySet(value=["smart-seq3"], basis="observed", rung=1),
-            read_layout=ReadLayout(modality="rna", reads=[tagged, mate]),
-            files=[
-                FileInventoryItem(
-                    uri="cell_R1.fastq.gz",
-                    basename="cell_R1.fastq.gz",
-                    sha256="0" * 64,
-                    size_bytes=1,
-                    read_id="R1",
-                )
-            ],
-        ),
-        experiment=ExperimentSection(
-            # The verb reads none of this; the model requires it, so it is the least that validates.
-            organism=EvidencedTaxid(value=10090, basis="asserted", rung=0),
-            accessions=EvidencedAccessionList(value=[], basis="inferred", rung=0),
-            samples=[],
-        ),
-        provenance=DatasetProvenance(
-            dataset_hash="0" * 64, kb_version="test", seqforge_version="test"
-        ),
-    )
-    path.write_text(yaml.safe_dump(manifest.model_dump(mode="json")))
-    return path
+    return geometry_for_read(tagged).render()
 
 
 def _plate_fastqs(tmp_path: Path) -> tuple[Path, Path]:
@@ -1536,21 +1526,23 @@ def _plate_fastqs(tmp_path: Path) -> tuple[Path, Path]:
     return r1_path, r2_path
 
 
-def test_umi_extract_derives_its_geometry_and_offers_no_way_to_declare_it(tmp_path: Path) -> None:
+def test_umi_extract_takes_one_derived_geometry_and_offers_no_way_to_declare_a_number(
+    tmp_path: Path,
+) -> None:
     """The verb marshals arguments and decides nothing: the anchor, the UMI's offset and length, the
-    trailing motif and the cDNA start all come out of the manifest's element model.
+    trailing motif and the cDNA start all arrive as ONE value the composer read off the elements.
 
     The second half of the assertion is the part that keeps it true. A `--anchor` flag would let a
-    caller hand the extractor a geometry that disagrees with what the bytes were decided to be —
-    the manifest says what the data IS, and there is nowhere else for a parse key to enter — so the
-    absence of one is checked against the live app rather than left to review.
+    caller hand the extractor a geometry assembled by hand, piece by piece, that disagrees with what
+    the bytes were decided to be — so the absence of one is checked against the live app rather than
+    left to review. `--geometry` is not that flag and is the reason there is no room for one: it is
+    the composer's derivation, in the composer's derived key set, which a KB may not declare.
     """
-    manifest = _plate_manifest(tmp_path / "manifest.yaml")
     r1, r2 = _plate_fastqs(tmp_path)
 
     result = runner.invoke(
         app,
-        ["io", "umi-extract", "--r1", str(r1), "--r2", str(r2), "--manifest", str(manifest),
+        ["io", "umi-extract", "--r1", str(r1), "--r2", str(r2), "--geometry", _plate_geometry(),
          "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
     )  # fmt: skip
 
@@ -1566,7 +1558,7 @@ def test_umi_extract_derives_its_geometry_and_offers_no_way_to_declare_it(tmp_pa
 
     verb = get_command(app).commands["io"].commands["umi-extract"]  # type: ignore[attr-defined]
     flags = {opt for param in verb.params for opt in param.opts}
-    assert flags & {"--manifest", "--read-id"}
+    assert flags & {"--geometry", "--read-id"}
     assert not flags & {"--anchor", "--umi-offset", "--umi-length", "--trailing", "--window"}
 
 
@@ -1580,12 +1572,11 @@ def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
     cDNA is why `units.tsv` grew a lane column. Extracting from the wrong mate produces a uBAM with
     no `UB` anywhere, an empty count matrix, and exit 0 all the way down.
     """
-    manifest = _plate_manifest(tmp_path / "manifest.yaml")
     r1, r2 = _plate_fastqs(tmp_path)
 
     result = runner.invoke(
         app,
-        ["io", "umi-extract", "--r1", str(r2), "--r2", str(r1), "--manifest", str(manifest),
+        ["io", "umi-extract", "--r1", str(r2), "--r2", str(r1), "--geometry", _plate_geometry(),
          "--read-id", "R2", "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
     )  # fmt: skip
 

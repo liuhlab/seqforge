@@ -778,13 +778,16 @@ def io_umi_extract(
     r2: Path = typer.Option(
         ..., "--r2", help="Its mate's FASTQ; paired by POSITION, never by name."
     ),
-    manifest: Path = typer.Option(
-        ..., "--manifest", help="The dataset manifest whose read layout the geometry comes from."
+    geometry: str = typer.Option(
+        ...,
+        "--geometry",
+        help="The read structure compose derived from the element model, e.g. "
+        "`R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22`.",
     ),
     sample: str = typer.Option(..., "--sample", help="Cell id; becomes the uBAM's read group."),
     out: Path = typer.Option(..., "--out", help="Output path for the unaligned BAM."),
     read_id: str = typer.Option(
-        "R1", "--read-id", help="Which layout read `--r1` is. Refused if the layout disagrees."
+        "R1", "--read-id", help="Which layout read `--r1` is. Refused if the geometry disagrees."
     ),
 ) -> None:
     """Lift a plate assay's UMI out of R1 and write the pair as a uBAM carrying `UB:Z:`.
@@ -794,31 +797,32 @@ def io_umi_extract(
     `run:`, so only a verb is visible to compose's wiring gate. Needs no container — writing a BAM
     through a library is not aligning reads.
 
-    **Every number the extraction needs is derived from the manifest's element model, and none of
-    them can be passed here.** There is deliberately no `--anchor`, no `--umi-length` and no
-    `--window`: a geometry a caller can type is a geometry that can disagree with what the bytes
-    were decided to be, and the read layout already states all of it. `--read-id` says which layout
-    read the `--r1` file is, and is checked against the read the layout says carries the UMI, so a
-    rule wired to hand over the mate is refused instead of quietly extracting nothing.
+    **`--geometry` is a DERIVATION, not a knob, and it arrives as one value.** The anchor and its
+    offset, the UMI's offset and length, the trailing motif and the cDNA start are all read off the
+    element coordinates by `compose` and rendered into a single config value — the same move
+    chromap's `--read-format` makes, and the reason there is no `--anchor`, `--umi-length` or
+    `--window` here for anyone to type. Nothing may declare it: the key is in the composer's derived
+    set, so a KB backend that states it is refused at load. `--read-id` says which layout read the
+    `--r1` file is and is checked against the read the geometry names, so a rule wired to hand over
+    the plain mate is refused instead of quietly extracting nothing.
 
-    Exit 3 on a Blocker-shaped refusal: a layout with no tagged read, a half-renamed FASTQ, a pair
-    of unequal length, a truncated input.
+    Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a half-renamed
+    FASTQ, a pair of unequal length, a truncated input.
     """
-    from ..workflows.umite.extract import UmiExtractError, extract_umis, tagged_read_geometry
-    from ._common import _load_manifest
+    from ..workflows.umite.extract import TagGeometry, UmiExtractError, extract_umis
 
-    dataset = _load_manifest(manifest)
     try:
-        tagged_read, geometry = tagged_read_geometry(dataset.library.read_layout)
-        if tagged_read != read_id:
+        structure = TagGeometry.parse(geometry)
+        if structure.read_id != read_id:
             raise UmiExtractError(
                 f"--read-id {read_id} was handed over as the tagged read, but this layout's UMI is "
-                f"on {tagged_read}. Extracting from the wrong mate finds no tags at all and exits 0"
+                f"on {structure.read_id}. Extracting from the wrong mate finds no tags at all and "
+                f"exits 0"
             )
-        stats = extract_umis(r1, r2, out, geometry, sample=sample)
+        stats = extract_umis(r1, r2, out, structure, sample=sample)
     except UmiExtractError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
     typer.echo(
-        json.dumps({"written": str(out), "read_id": tagged_read, **stats.to_dict()}, indent=2)
+        json.dumps({"written": str(out), "read_id": structure.read_id, **stats.to_dict()}, indent=2)
     )

@@ -135,7 +135,27 @@ class AtacQuant(BaseModel):
     kind: Literal["atac"] = "atac"
 
 
-Quantification = Annotated[SoloQuant | BulkQuant | AtacQuant, Field(discriminator="kind")]
+class UmiQuant(BaseModel):
+    """The plate assay's counting shape — one combined matrix object over every cell of the deposit.
+
+    Carries no knob, and that is a statement about the counter rather than a placeholder. The
+    engine writes four matrices in one pass — UMIs and reads, each split exonic/intronic — for the
+    same reason :class:`BulkQuant` has no strandedness field: when every alternative is computed in
+    one pass and the outputs are small, compute them all and let the consumer choose. Which of the
+    four a reader wants is a question asked of the object, not of the pipeline.
+
+    It exists so a plate recipe stays well-typed against the module that runs it. Without it the
+    module's config block inherits ``quantMode``, a real and wrong instruction to a pipeline whose
+    counter has never heard of it — the same silent fall-through the counting shape has already been
+    split three ways to prevent.
+    """
+
+    kind: Literal["umi"] = "umi"
+
+
+Quantification = Annotated[
+    SoloQuant | BulkQuant | AtacQuant | UmiQuant, Field(discriminator="kind")
+]
 """What to COUNT, discriminated by aligner family (the house style: cf. ``Segment``, ``Test``)."""
 
 
@@ -281,6 +301,7 @@ __all__ = [
     "SoloQuant",
     "BulkQuant",
     "AtacQuant",
+    "UmiQuant",
     "Quantification",
     "EvidencedQuantification",
     "ResourceHints",
