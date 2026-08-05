@@ -86,13 +86,18 @@ def test_an_element_whose_sequence_contradicts_its_own_window_fails_at_load(delt
 
 
 def test_the_width_clause_is_not_decoration_the_shipped_kb_exercises_it() -> None:
-    """The positive control: 7 shipped elements carry BOTH a literal and a fixed window, and agree.
+    """The positive control: shipped elements carry BOTH a literal and a fixed window, and agree.
 
     A guard nothing reaches is indistinguishable from a green suite, and this one is a *pure* guard —
     it was measured to land on a clean KB, not to force a migration. The other direction matters as
     much: BD Rhapsody Enhanced's four linkers carry a literal and NO window (they float behind a
     variable-length diversity insert), so the clause must stay conditioned on all three being present
     or every anchored element in the KB would be refused for declaring a width it never claimed.
+
+    `>=`, not `==`. Seven was the count the clause shipped against — evidence that it lands green, not
+    an invariant — and an entry that adds an eighth would redden an equality for GROWING the KB rather
+    than for lying about a width. What has to hold as the KB grows is the per-element agreement in the
+    loop, and that a literal reaches the clause at all.
     """
     both, anchored = 0, 0
     for tech in kb.list_spec_ids():
@@ -105,7 +110,7 @@ def test_the_width_clause_is_not_decoration_the_shipped_kb_exercises_it() -> Non
                     assert len(el.sequence) == el.end - el.start, f"{tech}/{read.id}/{el.name}"
                 else:
                     anchored += 1
-    assert both == 7, "the measurement this clause shipped against"
+    assert both >= 7, "7 shipped elements reached this clause when it landed; a KB only grows"
     assert anchored, "and at least one literal with no window, which the clause must not touch"
 
 
@@ -264,7 +269,7 @@ def _constant_checks(checks: list[dict[str, object]]) -> set[tuple[str, str]]:
 #: The entries that declare a constant sequence at all. Parametrizing over the whole KB would add ten
 #: items asserting that a spec with no linker has no linker checked — a case that cannot fail and
 #: reads as coverage. That the KB declares any at all is
-#: `test_a_linker_one_base_short_of_its_own_coordinates_reddens_the_round_trip`'s assertion, which
+#: `test_a_linker_shifted_off_its_own_coordinates_reddens_the_round_trip`'s assertion, which
 #: needs one to exist before it can break it.
 _SPECS_DECLARING_A_CONSTANT = [
     tech for tech in kb.list_spec_ids() if _constant_elements(kb.load_spec(tech))
@@ -331,16 +336,17 @@ def test_a_linker_shifted_off_its_own_coordinates_reddens_the_round_trip() -> No
     tech, read_id, el_name = fixed_first[0]
 
     data = kb.load_spec(tech).model_dump()
-    element = next(
-        el
-        for read in data["reads"]
-        if read["id"] == read_id
-        for el in read["elements"]
-        if el["name"] == el_name
-    )
-    # Slide the window, carrying both ends so the width never lies. Leftwards where there is room; a
-    # constant element at offset 0 is never the whole read, so rightwards is inside the read too.
+    read = next(r for r in data["reads"] if r["id"] == read_id)
+    element = next(el for el in read["elements"] if el["name"] == el_name)
+    # Slide the window, carrying both ends so the width never lies. Leftwards where there is room —
+    # `start > 0` means a base exists before it. Otherwise rightwards, which needs a base AFTER it: a
+    # later element is that base, so the window stays inside the read the generator writes. Checked
+    # rather than asserted in prose, because the entry this lands on is whatever the KB declares first.
     shift = -1 if element["start"] > 0 else 1
+    if shift == 1:
+        assert element is not read["elements"][-1], (
+            f"{tech}/{read_id}: {el_name!r} starts at 0 and ends the read — nowhere to slide it to"
+        )
     element["start"] += shift
     element["end"] += shift
     broken = Spec.model_validate(data)  # the schema is happy: one position moved, no width did

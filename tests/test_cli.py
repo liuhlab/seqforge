@@ -177,28 +177,26 @@ def test_kb_lint_is_clean() -> None:
     assert json.loads(result.stdout)["ok"] is True
 
 
-def test_kb_lint_fires_on_a_spec_whose_cell_axis_and_module_disagree(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The verb, not just the validator: a violating entry makes `kb lint` exit 3 and say which.
+def _shipped_spec_raw(tech: str) -> dict[str, Any]:
+    """A shipped `spec.yaml` as plain data, ready to be mutated into an entry that cannot ship."""
+    from seqforge.kb.loader import SPECS_DIR
 
-    `test_kb_lint_is_clean` proves the shipped KB passes, which a lint that checked nothing would
-    also prove. This is the other direction, and it needs an entry that cannot ship — the
-    biconditional fires at LOAD, so no file under `kb/specs/` can be made to violate it without
-    failing every other test in the suite at import time.
+    return cast("dict[str, Any]", yaml.safe_load((SPECS_DIR / tech / "spec.yaml").read_text()))
 
-    So the verb is pointed at one entry off disk instead: a real shipped spec with one field flipped,
-    claiming that one Sample is one cell beside a module that is per-sample end to end. That
-    compiles a 1440-well plate to 1440 separate objects at exit 0, which is the answer the pairing
-    exists to make unsayable. `Spec.model_validate` is the real validator throughout — what is stubbed
-    is only which files the verb walks.
+
+def _lint_error_for(monkeypatch: pytest.MonkeyPatch, raw: dict[str, Any]) -> str:
+    """Point `kb lint` at ONE off-disk spec and return the error it reported for it.
+
+    Every caller below needs an entry that cannot ship, and each of their clauses fires at LOAD — so
+    no file under `kb/specs/` can be made to violate one without failing every other test in the suite
+    at import time. The verb is therefore pointed at a mutated copy of a real spec instead.
+    `Spec.model_validate` is the real validator throughout; what is stubbed is only which files the
+    verb walks. Exit 3, `ok: false` and the named entry are asserted here because they are the same
+    claim every caller makes — what differs is only the message, which is what comes back.
     """
     from seqforge.cli import kb as kb_cli
-    from seqforge.kb.loader import SPECS_DIR
     from seqforge.kb.schema import Spec
 
-    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
-    raw["identity"] = {**raw["identity"], "sample_is_cell": True}
     monkeypatch.setattr(kb_cli, "list_spec_ids", lambda: ["impossible"])
     monkeypatch.setattr(kb_cli, "load_spec", lambda tech: Spec.model_validate(raw))
 
@@ -208,7 +206,23 @@ def test_kb_lint_fires_on_a_spec_whose_cell_axis_and_module_disagree(
     report = json.loads(result.stdout)
     assert report["ok"] is False
     assert report["specs"][0]["tech"] == "impossible"
-    assert "is per-sample end to end" in report["specs"][0]["error"]
+    return str(report["specs"][0]["error"])
+
+
+def test_kb_lint_fires_on_a_spec_whose_cell_axis_and_module_disagree(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The verb, not just the validator: a violating entry makes `kb lint` exit 3 and say which.
+
+    `test_kb_lint_is_clean` proves the shipped KB passes, which a lint that checked nothing would
+    also prove. This is the other direction: a real shipped spec with one field flipped, claiming that
+    one Sample is one cell beside a module that is per-sample end to end. That compiles a 1440-well
+    plate to 1440 separate objects at exit 0, which is the answer the pairing exists to make unsayable.
+    """
+    raw = _shipped_spec_raw("10x-3p-gex-v3")
+    raw["identity"] = {**raw["identity"], "sample_is_cell": True}
+
+    assert "is per-sample end to end" in _lint_error_for(monkeypatch, raw)
 
 
 def test_kb_lint_reports_a_width_that_lies_rather_than_tracebacking(
@@ -220,32 +234,16 @@ def test_kb_lint_reports_a_width_that_lies_rather_than_tracebacking(
     `kb lint` already catches — so this is a claim about the wrapping, not about the clause. Without
     it a mis-declared width would leave the verb by the uncaught path: a traceback on stderr and exit
     1, which reads as a broken tool rather than a spec that needs one number changed.
-
-    Pointed at one entry off disk, for the same reason `test_kb_lint_fires_on_a_spec_whose_cell_axis_
-    and_module_disagree` is: the clause fires at LOAD, so no file under `kb/specs/` can be made to
-    violate it without failing the suite at import time. `Spec.model_validate` is the real validator
-    throughout — what is stubbed is only which files the verb walks.
     """
-    from seqforge.cli import kb as kb_cli
-    from seqforge.kb.loader import SPECS_DIR
-    from seqforge.kb.schema import Spec
-
-    raw = yaml.safe_load((SPECS_DIR / "splitseq" / "spec.yaml").read_text())
+    raw = _shipped_spec_raw("splitseq")
     linker = next(
         e for r in raw["reads"] if r["id"] == "bc" for e in r["elements"] if e["name"] == "linker1"
     )
     linker["end"] += 1
-    monkeypatch.setattr(kb_cli, "list_spec_ids", lambda: ["impossible"])
-    monkeypatch.setattr(kb_cli, "load_spec", lambda tech: Spec.model_validate(raw))
 
-    result = runner.invoke(app, ["kb", "lint"])
-
-    assert result.exit_code == 3
-    report = json.loads(result.stdout)
-    assert report["ok"] is False
-    assert report["specs"][0]["tech"] == "impossible"
-    assert "'linker1'" in report["specs"][0]["error"]
-    assert "30 bp" in report["specs"][0]["error"] and "31 bp" in report["specs"][0]["error"]
+    error = _lint_error_for(monkeypatch, raw)
+    assert "'linker1'" in error
+    assert "30 bp" in error and "31 bp" in error
 
 
 def test_kb_roundtrip_passes() -> None:

@@ -115,7 +115,9 @@ not `CB_UMI_Simple`. The recipe:
 
 - Model each barcode block as its own `{type: barcode, onlist: <alias>}` element and each spacer as
   `{type: linker, sequence: "<verbatim>"}`. The linker's literal `sequence` is **required** by the
-  schema (`Element._addressable`) and is the structural signature — pin it from primary oligos.
+  schema (`Element._addressable`) and is the structural signature — pin it from primary oligos. If you
+  also give it a fixed `[start, end)`, the same validator requires `len(sequence) == end - start`: the
+  window and the literal are one width declared twice, and a disagreement shifts every element after it.
 - `backend.params.soloCBwhitelist` is an **ordered list** `["{onlist:a}", "{onlist:b}", ...]` in
   **CB-position order**: STARsolo pairs the i-th whitelist with the i-th CB segment.
 - **OMIT `soloCBstart`/`soloCBlen` and `soloCBposition`/`soloUMIposition`.** They are DERIVED from the
