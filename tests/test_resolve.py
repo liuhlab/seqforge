@@ -2197,7 +2197,7 @@ def test_real_splitseq_reads_resolve_to_splitseq() -> None:
 # depth-dependent and must never be usable as a gate; its `score` is a real measurement all the same.
 # Every support 10x-3p-gex-v3 declares abstains, so dropping on the gate outcome empties the
 # normalizer and scores the chemistry 0.0 on its own reads. The fact the scorer needs is not "did this
-# test abstain" but "was this test able to measure anything", which is why `Evaluation.applicable`
+# test abstain" but "could these bytes have answered it", which is why `Evaluation.answerable`
 # exists as its own field and is not derived from `outcome`.
 
 _UNMEASURED = "10x-3p-gex-v3"  # 5 of its 8 R1 support weight is an onlist, withheld at rungs 0-2
@@ -2209,6 +2209,13 @@ def _supports_of(spec: Spec, read_id: str) -> list[tuple[Any, float]]:
         (s.when, s.weight)
         for s in spec.signature.supports
         if getattr(s.when, "read", None) == read_id
+    ]
+
+
+def _global_supports_of(spec: Spec) -> list[tuple[Any, float]]:
+    """The shipped READ-LESS supports — what `_evaluate_read_set` buckets into `global_sup`."""
+    return [
+        (s.when, s.weight) for s in spec.signature.supports if getattr(s.when, "read", None) is None
     ]
 
 
@@ -2236,8 +2243,8 @@ def test_a_support_the_data_could_not_answer_leaves_the_normalizer_it_never_ente
         when for when, _ in _supports_of(spec, "R1") if isinstance(when, DistinctRatio)
     )
     unreadable = measurable.model_copy(update={"start": 400, "end": 480})
-    assert evaluate(measurable, read, wp, spec, registry).applicable
-    assert not evaluate(unreadable, read, wp, spec, registry).applicable, (
+    assert evaluate(measurable, read, wp, spec, registry).answerable
+    assert not evaluate(unreadable, read, wp, spec, registry).answerable, (
         "no read is 480 bp long, so this column is one the DATA cannot answer"
     )
 
@@ -2262,7 +2269,7 @@ def test_a_whitelist_we_could_not_obtain_keeps_its_weight(kb_probes: KbProbes) -
     them indistinguishable and floats every unverifiable one above the verified answer.
 
     ABSTAIN is still the outcome — an unavailable list must never FAIL and so forbid a cell — which is
-    exactly why this fact could not be read off `outcome` and needed `applicable` to carry it.
+    exactly why this fact could not be read off `outcome` and needed `answerable` to carry it.
     """
     spec = kb.load_spec(_UNMEASURED)
     wp = next(p for p in kb_probes[_UNMEASURED, "full"] if p.mode_length == 28)
@@ -2272,7 +2279,7 @@ def test_a_whitelist_we_could_not_obtain_keeps_its_weight(kb_probes: KbProbes) -
     ev = evaluate(onlist, read, wp, spec, OnlistRegistry(offline=True))
     assert ev.outcome == Outcome.ABSTAIN, "an unavailable whitelist must never forbid a cell"
     assert ev.score == 0.0
-    assert ev.applicable, "unconfirmed is not unreadable — the weight stays"
+    assert ev.answerable, "unconfirmed is not unreadable — the weight stays"
 
     ratio = next(when for when, _ in _supports_of(spec, "R1") if isinstance(when, DistinctRatio))
     supports: list[tuple[Test, float]] = [(onlist, 5.0), (ratio, 1.0)]
@@ -2292,7 +2299,7 @@ def test_a_depth_dependent_support_abstains_by_design_and_still_counts(
     spec away. Drop supports on the gate outcome and every one of this chemistry's supports goes,
     every cell divides by an empty normalizer, and a chemistry scores 0.0 on the reads it generated.
 
-    So both halves are pinned here: the ratio abstains, and it is `applicable` and scores; and the
+    So both halves are pinned here: the ratio abstains, and it is `answerable` and scores; and the
     cell it feeds is a real number rather than the collapse.
     """
     spec = kb.load_spec(_UNMEASURED)
@@ -2305,7 +2312,7 @@ def test_a_depth_dependent_support_abstains_by_design_and_still_counts(
     for when, _w in ratios:
         ev = evaluate(when, read, wp, spec, OnlistRegistry(offline=True))
         assert ev.outcome == Outcome.ABSTAIN, "it must never be able to gate"
-        assert ev.applicable, "...and it measured all the same"
+        assert ev.answerable, "...and it measured all the same"
 
     assert all(
         evaluate(when, read, wp, spec, OnlistRegistry(offline=True)).outcome == Outcome.ABSTAIN
@@ -2344,7 +2351,7 @@ def test_a_cell_with_nothing_left_to_average_has_no_evidence_and_scores_zero(
         (ratio.model_copy(update={"start": 400, "end": 480}), 2.0),
         (ratio.model_copy(update={"start": 500, "end": 560}), 1.0),
     ]
-    assert not any(evaluate(when, read, wp, spec, registry).applicable for when, _ in unreadable)
+    assert not any(evaluate(when, read, wp, spec, registry).answerable for when, _ in unreadable)
 
     cell, _ = _score_cell(read, wp, spec, registry, [], [], unreadable)
     assert not cell.forbidden, "no evidence is not a refusal — only a gate can forbid a cell"
@@ -2364,9 +2371,15 @@ def test_a_global_support_nobody_could_read_leaves_its_normalizer_too(kb_probes:
     second read-less support added to any signature would wake it.
 
     A generated fixture's header is NOT SRA-normalized — it is a full Illumina header carrying no
-    index, so the shipped support FAILs on it, which is a measurement ("we looked; there is none") and
+    index, so the shipped support FAILs on it, which is an answer ("we looked; there is none") and
     stays in the normalizer. Rewriting the grammar flag is what puts the archive in the picture, and
-    it is the one thing this test fabricates.
+    it is one of the two things this test fabricates.
+
+    **The other is the second support itself.** The shipped KB has no signature declaring two
+    read-less supports, so the mixed case is built by handing `_global_support` a read-addressed
+    `distinct_ratio` in that position — a shape `build_tech_evaluation` never produces, and legible
+    only because this function takes its supports as an argument. What is being pinned is the
+    NORMALIZER's arithmetic over two entries, which does not care where the second one came from.
 
     Pinned both ways: the all-unreadable case stays 0.0 (there is no bonus to award, and inventing one
     would credit a spec for a header nobody read), and a mixed pair normalizes by the support that was
@@ -2375,24 +2388,20 @@ def test_a_global_support_nobody_could_read_leaves_its_normalizer_too(kb_probes:
     spec = kb.load_spec(_UNMEASURED)
     reads = list(spec.reads)
     registry = OnlistRegistry(offline=True)
-    header = next(s.when for s in spec.signature.supports if getattr(s.when, "read", None) is None)
+    header = next(when for when, _ in _global_supports_of(spec))
     assert isinstance(header, HeaderIndex)
 
     readable = kb_probes[_UNMEASURED, "full"]
-    assert all(evaluate(header, reads[0], wp, spec, registry).applicable for wp in readable), (
-        "a generated header is read, and reports no index — a FAIL, not a non-measurement"
+    assert all(evaluate(header, reads[0], wp, spec, registry).answerable for wp in readable), (
+        "a generated header is read, and reports no index — a FAIL, not a non-answer"
     )
     stripped = [_sra_normalized(wp) for wp in readable]
-    assert not any(evaluate(header, reads[0], wp, spec, registry).applicable for wp in stripped)
+    assert not any(evaluate(header, reads[0], wp, spec, registry).answerable for wp in stripped)
     assert _global_support([(header, 0.2)], reads, stripped, spec, registry) == 0.0
 
     # ...and the mixed case the shipped KB has no instance of: one unreadable support beside a
     # readable one must not halve the readable one's score.
-    ratio = next(
-        s.when
-        for s in spec.signature.supports
-        if isinstance(s.when, DistinctRatio) and getattr(s.when, "read", None) == "R2"
-    )
+    ratio = next(when for when, _ in _supports_of(spec, "R2") if isinstance(when, DistinctRatio))
     r2 = [next(r for r in spec.reads if r.id == "R2")]
     alone = _global_support([(ratio, 1.0)], r2, stripped, spec, registry)
     assert alone > 0.0, "the fixture needs a support that actually reads something"

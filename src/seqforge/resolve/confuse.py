@@ -127,8 +127,8 @@ def without_rung3_evidence(spec: Spec) -> Spec:
     9 of 10, while ``bulk-rnaseq`` — the generic paired-end fallback that declares no onlist at all —
     loses nothing. So every barcoded chemistry was marked down against the one candidate that must
     never win by default, and by an amount set by how much whitelist evidence it had the honesty to
-    declare. Measured on each spec's own reads, removing it lifts ``splitseq`` and the three BD beads
-    from 0.5500 to 1.0000 and the 10x cohort from 0.6594 to 0.9083, leaving bulk at 1.0100 untouched.
+    declare. Per-spec scores before and after are tabulated in
+    ``docs/research/support-normalizer-asymmetry.md`` (2026-08-05).
 
     **Removing the test, not renormalizing around it, and the difference is load-bearing.** At
     runtime an onlist that failed to materialize is a spec we could not CONFIRM, and it keeps its
@@ -138,9 +138,13 @@ def without_rung3_evidence(spec: Spec) -> Spec:
     evidence base. One situation removes a question from the comparison; the other records that a
     spec failed to answer it.
 
-    Only ``supports`` are stripped. No shipped signature gates on an onlist, and one that did would be
-    claiming rung-3 evidence can FORBID a cell — a different claim, and not one this function is
-    entitled to retract on the KB's behalf.
+    **Only ``supports`` are stripped, and eleven shipped ``excludes`` entries ARE onlist tests** —
+    the cross-hit probes seven leaves use to disqualify a sibling whose whitelist also matches. They
+    are left in place, and the empty registry is what makes that safe: an unobtainable list ABSTAINs,
+    and only a PASS forbids a cell, so none of them can gate here. Stripping them would be a different
+    and larger claim — that rung-3 evidence may not FORBID — which this function is not entitled to
+    make on the KB's behalf, and which would change what a rung-0-2 verdict means rather than what it
+    is normalized by.
     """
     supports = [s for s in spec.signature.supports if not isinstance(s.when, OnlistHitRate)]
     signature = spec.signature.model_copy(update={"supports": supports})

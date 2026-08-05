@@ -151,40 +151,44 @@ def _score_cell(
             return Cell(
                 forbidden=True, value=0.0, reason=f"excludes matched: {ev.detail}"
             ), used_onlist
-    # A support the probe could not MEASURE leaves the normalizer as well as the numerator (#307).
-    # Normalizing by every DECLARED weight scored a spec down for evidence nobody was able to check:
-    # an unmeasured test contributed `weight * 0.0` to the numerator while keeping its full weight in
-    # the denominator, exactly as if it had been checked and come back negative. The asymmetry is what
-    # bit — 10x's barcode read puts 5 of its 8 support weight in an onlist and BD/SPLiT-seq put 9 of
-    # 10, so withholding the whitelist punished every barcoded chemistry while the barcodeless bulk
-    # fallback, which declares no onlist at all, lost nothing. Same rule as #177 (a dark cycle costs
-    # `motif_present` coverage, not rate), #255 (an uncalled base is not a substitution) and #277 (a
-    # test addressed to a read outside the active set has no cell): a thing you could not measure
-    # leaves the denominator; it does not score zero.
+    # A support the BYTES could not answer leaves the normalizer as well as the numerator (#307).
+    # Normalizing by every DECLARED weight marked a spec down for a question nobody could have
+    # answered: the test contributed `weight * 0.0` to the numerator while keeping its full weight in
+    # the denominator, exactly as if it had been asked and come back negative. Same rule as #177 (a
+    # dark cycle costs `motif_present` coverage, not rate), #255 (an uncalled base is not a
+    # substitution) and #277 (a test addressed to a read outside the active set has no cell).
     #
-    # `applicable`, NEVER the ABSTAIN outcome — `distinct_ratio` abstains on every input by design so
-    # it can never gate, while measuring on every input. Dropping on the outcome would empty this
-    # normalizer for most of the KB (see `evaluators.Evaluation.applicable`).
+    # `answerable`, NEVER the ABSTAIN outcome — `distinct_ratio` abstains on every input by design so
+    # it can never gate, while measuring on every input; and a whitelist we could not obtain is
+    # answerable and keeps its weight. Both traps are argued at `evaluators.Evaluation.answerable`.
     #
     # Every support is still evaluated: `used_onlist` is a fact about what was consulted, not about
     # what scored, and skipping the call would lower the reached rung.
-    acc = 0.0
-    measured_w = 0.0
+    answered: list[tuple[float, float]] = []
     for when, weight in supports:
         ev = evaluate(when, read, wp, spec, registry)
         used_onlist = used_onlist or ev.used_onlist
-        if not ev.applicable:
-            continue
-        acc += weight * ev.score
-        measured_w += weight
-    # Nothing measurable left: NO evidence, which is 0.0 — the same value a role declaring no supports
-    # at all has always taken, and the two say the one thing ("this role offers no positive evidence
-    # about this file"). Deliberately NOT dropping the role from the tech score's `|R|` normalizer,
-    # which would be #277's rule applied one level up: that rewards blindness, letting a spec that
-    # could measure nothing score the mean of its remaining roles and so beat a spec that measured and
-    # got 0.5. An unmeasured support must not count against a spec; it must not count for one either.
-    value = acc / measured_w if measured_w > 0 else 0.0
-    return Cell(forbidden=False, value=value, reason="scored"), used_onlist
+        if ev.answerable:
+            answered.append((weight, ev.score))
+    return Cell(forbidden=False, value=_weighted_mean(answered), reason="scored"), used_onlist
+
+
+def _weighted_mean(weighted: list[tuple[float, float]]) -> float:
+    """``Σ w·s / Σ w`` over the supports that were answered, or 0.0 when none were.
+
+    **Nothing left to average is NO evidence, which is 0.0** — the same value a role declaring no
+    supports at all has always taken, and the two say the one thing: this role offers no positive
+    evidence about this file. Deliberately not the other reading, which would be #277's rule applied
+    one level up — dropping the ROLE from the tech score's ``|R|`` normalizer. That rewards blindness:
+    a spec that could answer nothing would score the mean of its remaining roles and so beat a spec
+    that answered and got 0.5. An unanswerable support must not count against a spec, and it must not
+    count for one either.
+
+    Shared by :func:`_score_cell` and :func:`_global_support` because they had the same defect for the
+    same reason, and a normalizer written twice is a normalizer that gets fixed once.
+    """
+    total = sum(w for w, _ in weighted)
+    return sum(w * s for w, s in weighted) / total if total > 0 else 0.0
 
 
 def _over_length_admitted_by_onlist(
@@ -272,32 +276,29 @@ def _global_support(
 ) -> float:
     """Normalized score of read-less supports (e.g. ``header_index``), max over files.
 
-    Carries :func:`_score_cell`'s applicability rule, because it has the same shape and so had the
-    same defect (#307): a support no file could answer kept its weight in the normalizer and halved a
-    readable one beside it. A test is taken at its best over the files that COULD answer it and is
-    dropped entirely when none could.
+    Carries :func:`_score_cell`'s answerability rule through the same :func:`_weighted_mean`, because
+    it had the same defect for the same reason (#307): a support no file could answer kept its weight
+    in the normalizer and halved a readable one beside it. A test is taken at its best over the files
+    that COULD answer it, and is dropped entirely when none could.
 
     Latent rather than live in the shipped KB, and worth saying which: every signature declaring a
     read-less support declares exactly one (``header_index``), so the mixed case has no instance and
     an all-unreadable one already returned 0.0 by arithmetic. The fix is here so that adding a second
     read-less support is not a silent re-weighting — an SRA-normalized header, which is most deposits
-    and is how probe DETECTS the normalization, abstains on every file.
+    and is how probe DETECTS the normalization, answers nothing on any file.
     """
     if not global_supports or not wps:
         return 0.0
-    acc = 0.0
-    measured_w = 0.0
+    answered: list[tuple[float, float]] = []
     for when, weight in global_supports:
         scores = [
             ev.score
             for wp in wps
-            if (ev := evaluate(when, reads[0], wp, spec, registry)).applicable
+            if (ev := evaluate(when, reads[0], wp, spec, registry)).answerable
         ]
-        if not scores:
-            continue
-        acc += weight * max(scores)
-        measured_w += weight
-    return acc / measured_w if measured_w > 0 else 0.0
+        if scores:
+            answered.append((weight, max(scores)))
+    return _weighted_mean(answered)
 
 
 def build_tech_evaluation(

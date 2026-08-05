@@ -24,28 +24,33 @@ Gate semantics: a `requires` FAIL forbids the cell, an `excludes` PASS forbids t
 `supports` sum as `Σ weight · score` normalized by the weight actually consulted, so a finite cell
 lands in `[0,1]`.
 
-**A support the DATA could not answer leaves the normalizer; one WE could not ask keeps its weight**
-(#307). Those are two different facts and the scorer needs both, so `Evaluation.applicable` carries
-them and is deliberately *not* derived from `outcome` — `distinct_ratio` abstains on every input by
-design (it must never gate) while measuring on every input, so dropping supports on the gate outcome
-would empty the normalizer for most of the KB. A column no read reaches, or a header the archive
-stripped, is dropped from numerator and normalizer alike: no chemistry could have got an answer there,
-so dropping it advantages nobody, and keeping it scored a spec down for evidence nobody could check —
-the same rule as #177, #255 and #277. A **whitelist that failed to materialize** is the opposite case
-and keeps its weight: the question was answerable, and a rival spec whose list did materialize is
-paying for every imperfection in its hit rate. Renormalizing it away made the whole 10x cohort — whose
-siblings declare byte-identical geometry and are separated by the whitelist and nothing else — tie at
-0.7819, above `bulk-rnaseq` at 0.7500 and above the true chemistry whose whitelist hit, last at
-0.6083. A spec is not credited for evidence nobody was able to check.
+**A support the BYTES could not answer leaves the normalizer; one WE could not ask keeps its weight;
+and one withheld from EVERY spec leaves the signature** (#307). Three situations, and treating them
+alike fails in three different directions — all measured, with the numbers and the surviving residual
+in [`docs/research/support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md)
+(2026-08-05).
 
-**Withholding the onlist from EVERY spec is a third situation, and it removes the test from the
-signature rather than from the normalizer.** That is the rung-0-2 world the confusability guard scores
-in (`confuse.without_rung3_evidence`): the question is asked of nobody, so it belongs to neither
-side's evidence base. An empty registry alone was not enough — it emptied the numerator and left the
-weight, and since weight is not declared evenly (5 of 8 support weight for 10x's barcode read, 9 of 10
-for SPLiT-seq and the BD beads, none at all for the barcodeless fallback) every barcoded chemistry was
-marked down against the one candidate that must never win by default, in proportion to how much
-whitelist evidence it had the honesty to declare.
+`Evaluation.answerable` carries the first distinction and is deliberately *not* derived from
+`outcome`: `distinct_ratio` abstains on every input by design (it must never gate) while measuring on
+every input, so dropping supports on the gate outcome would empty the normalizer for most of the KB.
+A column no read reaches, or a header the archive stripped, leaves numerator and normalizer alike — no
+chemistry could have got an answer there, so dropping it advantages nobody, and keeping it marked a
+spec down for a question nobody could answer (the rule of #177, #255 and #277). A **whitelist that
+failed to materialize** is the opposite case and keeps its weight, because a rival spec whose list did
+materialize answered the same question and is paying for every imperfection in its hit rate.
+Renormalizing it away makes the unverifiable spec the cheaper one to satisfy, and it is the 10x cohort
+— siblings that declare byte-identical geometry and are separated by the whitelist and nothing else —
+where that removes the comparison outright. Withholding it from everyone is neither: the question is
+asked of nobody, so `confuse.without_rung3_evidence` takes it out of the signature, which is what
+finally makes `accepts_at_rungs_0_2`'s own "the verdict rests on geometry ... alone" true.
+
+**One residual is knowingly left, and it is the case #307 opened with.** With no whitelist obtainable,
+`bulk-rnaseq` still beats `splitseq`, the three BD beads and `10x-multiome-atac` outright on their own
+reads, outside θ, so nothing asks. The 28 bp 10x cohort is protected — bulk's 40 bp floor forces it
+onto `se`, which orphans the barcode read and re-anchors the tie band — but those five are not, and
+their declared edges do not reach them at that margin. It is not closed here because the obvious fix
+is the renormalization the paragraph above rejects; closing it needs a rung-aware comparison or a
+refusal, which is the shape `barcode_onlist_available` and escalate's F1b already reach for.
 
 | evaluator | what it does, and the decision inside it |
 |---|---|
