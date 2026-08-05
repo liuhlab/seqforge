@@ -15,7 +15,7 @@
 #
 # THE PREDICTION, AND WHY IT IS THIS.
 #   * `refuse`, not `decide`. No KB spec can fill two roles from one file, so no candidate has a valid
-#     injective assignment. (`bulk-rnaseq-pe` cannot rescue it either: it needs two mates.)
+#     injective assignment. (`bulk-rnaseq` cannot rescue it either: it needs two mates.)
 #   * `MISSING_TECHNICAL_READ`, not `UNSUPPORTED_TECHNOLOGY`. That distinction is the point of the
 #     case. The generic code is what a lone unrecognised read gets; the specific one is only reachable
 #     when a single-cell chemistry has been asserted and its BARCODE role is the unfillable one while

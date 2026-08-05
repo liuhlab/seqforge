@@ -21,8 +21,8 @@ curated alias inside the value, *or* the value inside a curated alias. The secon
 vacuous, and it turned an archive's filing vocabulary into chemistry claims:
 
 ```text
-_match_tech('RNA-Seq')       -> 'bulk-rnaseq-pe'      # inside the alias "Illumina PE RNA-seq"
-_match_tech('Illumina')      -> 'bulk-rnaseq-pe'      # the same alias, the other word
+_match_tech('RNA-Seq')       -> 'bulk-rnaseq'      # inside the alias "Illumina PE RNA-seq"
+_match_tech('Illumina')      -> 'bulk-rnaseq'      # the same alias, the other word
 _match_tech('transcriptome') -> 'bd-rhapsody-wta'     # inside "…Whole Transcriptome Analysis"
 _match_tech('WTA')           -> 'bd-rhapsody-wta'     # ...or 'bd-rhapsody-wta-enhanced', by dict order
 ```

@@ -95,5 +95,5 @@ backend:
 # Siblings under the family are decided by onlist (parent.children_decided_by), so no per-sibling edge.
 # Nothing else is confusable: the GTGA...GACA `requires` motif rejects the original bead, 10x and bulk
 # outright, and the >43 bp bc read is length-infeasible for 10x. (The generic bulk fallback accepts THIS
-# on read-count alone, so the edge is declared on `bulk-rnaseq-pe`, mirroring the original bead.)
+# on read-count alone, so the edge is declared on `bulk-rnaseq`, mirroring the original bead.)
 confusable_with: []

@@ -27,13 +27,13 @@ from .schema import Spec
 #: processing_divergent (whitelist-decided) for the over-length case length can no longer separate.
 #: (over_length_min is 100, not 40, so a 60-94 bp cDNA/split-pool read is not mistaken for an
 #: over-sequenced barcode read -> the rung-0-2 separability guard stays green without over-declaring.)
-#: 2026.7.2 — bulk-rnaseq-pe <-> splitseq declared processing_divergent, distinguishable_by onlist.
+#: 2026.7.2 — bulk-rnaseq <-> splitseq declared processing_divergent, distinguishable_by onlist.
 #: Found by the new rung-0-2 separability guard on its first run: the generic paired-end fallback
 #: accepts SPLiT-seq's cdna+bc pair on geometry alone and had declared nothing.
 #: 2026.7.1 — the parse/count line: soloFeatures / quantMode / outSAMtype left backend.params,
 #: which now declares ONLY byte-decided parse keys. Also adds the 10x-3p-gex-v3.1 benign twin.
 #: 2026.7.4 — added the bd-rhapsody-wta spec (BD Rhapsody WTA, original fixed-offset cell-label bead:
-#: CB_UMI_Complex, three 97 x 9 bp CLS whitelists SHIPPED, two fixed linkers). bulk-rnaseq-pe <->
+#: CB_UMI_Complex, three 97 x 9 bp CLS whitelists SHIPPED, two fixed linkers). bulk-rnaseq <->
 #: bd-rhapsody-wta declared processing_divergent, distinguishable_by onlist (same rung-0-2 collision
 #: SPLiT-seq has with the generic paired-end fallback).
 #: 2026.7.5 — the KB became a TREE: added the abstract family node 10x-3p-gex (node_kind: family, no
@@ -56,12 +56,31 @@ from .schema import Spec
 #: compose and an illegal one is a named refusal rather than a FATAL on a compute node.
 #: Every dataset gets a new run_id: the KB version is one of its four inputs. The reprocessing that
 #: costs is accepted — the alternative is a corpus whose barcode correction nobody can state.
-#: 2026.8.2 — `identity.descriptive_aliases` (#266), and `bulk-rnaseq-pe`'s four format-describing
+#: 2026.8.2 — `identity.descriptive_aliases` (#266), and `bulk-rnaseq`'s four format-describing
 #: aliases moved into it. The KB's own vocabulary changed, so this re-keys even though no read layout
 #: did: ten strings in that vocabulary resolve to a different node than they did
 #: (`_MOVED_BY_266`, `tests/test_kb.py`), and a `run_id` that did not move would be claiming a
 #: chemistry decision the current KB no longer makes.
-KB_VERSION = "2026.8.2"
+#: 2026.8.3 — the generic bulk entry is `bulk-rnaseq`, version `illumina`, and its display name no
+#: longer says "paired-end". All three used to carry a `-pe`, and a `-pe` in an id is a CLAIM — that
+#: this chemistry has one sequencing configuration and it has two mates. The entry is about to stop
+#: making it: a single-end read set lands next, and an id contradicting what the entry declares is the
+#: class of defect this tree deletes rather than annotates. Renamed AHEAD of the read set so the id is
+#: never wrong, not even for the one release in between.
+#: This bump costs strictly more than the ones above it, and the difference is the reason it is done
+#: now. A KB version re-keys `run_id` alone, so a dataset RECOMPILES — the standing price of a
+#: spec-semantics change, and it is paid here whatever else moves. But the chemistry sits in
+#: `library`, and `dataset_content_hash` is taken over `library` + `experiment`, so this also moves
+#: `dataset_hash`: a stored bulk manifest is not recompiled under the new id, it is REGENERATED from
+#: the bytes under a new dataset hash, and every processing manifest pinned to the old one refuses
+#: until it is re-pinned. The population of stored bulk manifests is smaller today than it will ever
+#: be again, which is the whole argument for paying that now rather than at the next opportunity.
+#: Nothing else moves. Exactly one live line reads the id — `report/collect.py`'s display map, which
+#: already rendered this chemistry as "bulk RNA-seq", so the suffix was never user-facing. The reads,
+#: elements, signature, backend and all five confusable edges say what 2026.8.2 said; the only other
+#: files that changed are the two specs naming the edge back (`splitseq`, `bd-rhapsody-wta`), and they
+#: changed by the id alone.
+KB_VERSION = "2026.8.3"
 
 __all__ = [
     "KB_VERSION",

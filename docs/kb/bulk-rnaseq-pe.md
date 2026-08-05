@@ -1,1 +1,0 @@
---8<-- "src/seqforge/kb/specs/bulk-rnaseq-pe/README.md"

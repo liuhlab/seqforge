@@ -99,7 +99,7 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     materializes no real whitelist (they are license-restricted), which is exactly why the 10x path
     refuses to compose until one is registered.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
@@ -189,7 +189,7 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     thing a chain of separately-green stages does not: that the composition itself produces every
     artifact.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
@@ -254,7 +254,7 @@ def test_run_defaults_fastq_dir_to_the_common_root_for_a_subdir_layout(tmp_path:
     """A dataset whose reads sit in one accession subdir must compile without the caller knowing the
     `--fastq-dir`-is-the-common-root contract: `run` defaults it to the computed root, so units.tsv
     points at the real files instead of the dataset dir (the GSE274290 wiring-gate failure)."""
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     sub = tmp_path / "SRX9"
     sub.mkdir()
@@ -283,7 +283,7 @@ def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     And the manifest is still written — the IR is what the data IS, independent of what you do with
     it — so the refusal is precisely at the `processing` stage, with an actionable message.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     f1 = tmp_path / "s_R1.fastq.gz"
     f2 = tmp_path / "s_R2.fastq.gz"
@@ -334,7 +334,7 @@ def test_parallel_probe_does_not_change_the_dataset_hash(tmp_path: Path) -> None
     header, so regenerating a "logically identical" file yields different bytes and a different (and
     correct) content hash. Same input bytes in, same hash out is precisely the property under test.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     data = tmp_path / "data"
     data.mkdir()
@@ -683,7 +683,7 @@ def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -
     `cli.py` built `SampleGroup.file_uris` from basenames while `fill_manifest` built relative paths.
     Every fixture in this repo was flat; that is why nothing saw it.
     """
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     accessions = [f"SRR2871655{i}" for i in range(3, 6)]
     paths: list[str] = []
     for i, acc in enumerate(accessions):
@@ -883,7 +883,7 @@ def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: 
         kind="observed_vs_asserted",
         positions=[
             ConflictPosition(value="10x-3p-gex-v2", basis="asserted", confidence=0.9),
-            ConflictPosition(value="bulk-rnaseq-pe", basis="observed", confidence=0.99),
+            ConflictPosition(value="bulk-rnaseq", basis="observed", confidence=0.99),
         ],
         decidable_by=["reads", "user"],
         status="open",
@@ -893,7 +893,7 @@ def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: 
     qmd = state / "questions.md"
     assert questions_outstanding(tmp_path) == [qmd]
     body = qmd.read_text()
-    assert "10x-3p-gex-v2" in body and "bulk-rnaseq-pe" in body
+    assert "10x-3p-gex-v2" in body and "bulk-rnaseq" in body
 
     # a resolved (non-open) conflict is not surfaced -> file cleared, the hook stops blocking
     _sync_questions(state, [_run([open_c.model_copy(update={"status": "resolved"})])])

@@ -17,6 +17,6 @@ conflict:
   field: library.chemistry
   positions:
     asserted: "10x-3p-gex-v2"
-    observed: "bulk-rnaseq-pe"
+    observed: "bulk-rnaseq"
 fields:
-  library.chemistry: bulk-rnaseq-pe
+  library.chemistry: bulk-rnaseq

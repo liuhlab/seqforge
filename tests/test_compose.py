@@ -1077,7 +1077,7 @@ def test_params_gate_names_the_right_block_for_a_bulk_manifest(synth_bulk_pe: Sy
     now read from the one definition the composer also writes through.
     """
     manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     p = plan(manifest, _processing(manifest), registry=reg)
     assert params_gate(manifest, _processing(manifest), spec, p.config) == ("pass", [])
 

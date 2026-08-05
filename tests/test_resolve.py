@@ -378,7 +378,7 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
 
 
 def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=1200, seed=0)
     f1 = tmp_path / "bulk_R1.fastq.gz"
     f2 = tmp_path / "bulk_R2.fastq.gz"
@@ -395,7 +395,7 @@ def test_resolve_bulk_pe_no_barcode(tmp_path: Path) -> None:
         [f1, f2], registry=registry_for(kb.load_spec("10x-3p-gex-v3")), use_cache=False
     )
     assert out.exit_code() == 0
-    assert out.result.candidates[0].technology == "bulk-rnaseq-pe"
+    assert out.result.candidates[0].technology == "bulk-rnaseq"
     assert out.result.rung_reached == 2  # geometry-only: no onlist involved
 
 
@@ -878,7 +878,7 @@ def two_chemistry_multi(tmp_path_factory: pytest.TempPathFactory) -> Any:
 
     tmp = tmp_path_factory.mktemp("two_chemistry_multi")
     v3 = kb.load_spec("10x-3p-gex-v3")
-    bulk = kb.load_spec("bulk-rnaseq-pe")
+    bulk = kb.load_spec("bulk-rnaseq")
     reg = registry_for(v3)
     paths: list[Path] = []
     for acc, spec, keys in (("SRR1", v3, ("R1", "R2")), ("SRR2", bulk, ("R1", "R2"))):
@@ -900,9 +900,9 @@ def test_by_chemistry_partitions_the_runs_into_assays(two_chemistry_multi: Any) 
     multi = two_chemistry_multi
     assert not multi.blockers  # a 2-assay project is not a refusal
     groups = multi.by_chemistry()
-    assert set(groups) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert set(groups) == {"10x-3p-gex-v3", "bulk-rnaseq"}
     assert [r.run_id for r in groups["10x-3p-gex-v3"]] == ["SRR1"]
-    assert [r.run_id for r in groups["bulk-rnaseq-pe"]] == ["SRR2"]
+    assert [r.run_id for r in groups["bulk-rnaseq"]] == ["SRR2"]
     # Every run lands in exactly one assay, and no run is lost.
     assert sum(len(v) for v in groups.values()) == len(multi.runs)
 
@@ -970,7 +970,7 @@ def test_reduce_dataset_lets_a_clean_multi_assay_project_through(two_chemistry_m
     assert resolution.refused_at is None
     assert resolution.exit_code == 0
     assert resolution.blockers == []
-    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq"}
     assert len(resolution.observations) == 4
     assert len(resolution.role_of_sha()) == 4, "every file of every run keeps its role"
 
@@ -988,7 +988,7 @@ def test_reduce_dataset_stops_at_the_sample_gate_on_a_mis_grouping(
     assert len(resolution.blockers) == 1 and "mixed" in resolution.blockers[0].message
     # The partition is still computed and reported — the refusal is about the JOIN, and a caller
     # rendering it should be able to say which two chemistries the sample was split across.
-    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq"}
 
 
 def test_reduce_dataset_stops_at_the_metadata_gate(two_chemistry_multi: Any) -> None:
@@ -1677,7 +1677,7 @@ def test_geometry_could_accept_is_necessary_for_rung02_acceptance(kb_probes: KbP
 
     If ``a`` accepts ``b``'s reads at rungs 0-2 (a real confusable), then ``a`` must be geometry-feasible
     against ``b``'s reads — so skipping geometry-infeasible pairs can never miss a real confusable. The
-    founding cross-geometry collision (``bulk-rnaseq-pe`` accepts ``splitseq``) must therefore still be
+    founding cross-geometry collision (``bulk-rnaseq`` accepts ``splitseq``) must therefore still be
     seen by ``geometry_could_accept``.
 
     #112 asked whether the ``geometry_could_accept`` pre-gate the confusability guard uses could bound
@@ -2006,7 +2006,7 @@ def _chem_assertion(
         pytest.param(["10x-3p-gex-v3"], "10x-3p-gex-v3", id="one-claim"),
         pytest.param(["10x 5'", "10x 5'"], "10x 5'", id="two-documents-one-answer"),
         pytest.param(["10x-3p-gex-v2", "10x-3p-gex-v3"], None, id="two-answers-steers-nothing"),
-        pytest.param(["bulk-rnaseq-pe", "10x-3p-gex-v3", "bulk-rnaseq-pe"], None, id="majority"),
+        pytest.param(["bulk-rnaseq", "10x-3p-gex-v3", "bulk-rnaseq"], None, id="majority"),
     ],
 )
 def test_chemistry_hypothesis_is_agreement_or_nothing(
@@ -2063,9 +2063,7 @@ def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: 
     It must also not *spoil* a good one by counting as a second, disagreeing answer — an ignored
     claim is ignored, not a veto.
     """
-    bad = _chem_assertion(
-        "bulk-rnaseq-pe", span_verified=span_verified, entailment_ok=entailment_ok
-    )
+    bad = _chem_assertion("bulk-rnaseq", span_verified=span_verified, entailment_ok=entailment_ok)
     assert chemistry_hypothesis([bad]) is None
     got = chemistry_hypothesis([_chem_assertion("10x-3p-gex-v3"), bad])
     assert got is not None and got.value == "10x-3p-gex-v3"
@@ -2093,7 +2091,7 @@ def _experiment_record(library_source: str | None) -> ArchiveRecord:
     ("library_source", "chemistry", "expected"),
     [
         pytest.param(
-            "TRANSCRIPTOMIC SINGLE CELL", "bulk-rnaseq-pe", None, id="single-cell-drops-bulk"
+            "TRANSCRIPTOMIC SINGLE CELL", "bulk-rnaseq", None, id="single-cell-drops-bulk"
         ),
         pytest.param(
             "transcriptomic single-cell", "bulk RNA-seq", None, id="case-and-hyphen-tolerant"
@@ -2106,13 +2104,11 @@ def _experiment_record(library_source: str | None) -> ArchiveRecord:
         ),
         pytest.param(
             "TRANSCRIPTOMIC",
-            "bulk-rnaseq-pe",
-            "bulk-rnaseq-pe",
+            "bulk-rnaseq",
+            "bulk-rnaseq",
             id="bare-transcriptomic-says-nothing",
         ),
-        pytest.param(
-            None, "bulk-rnaseq-pe", "bulk-rnaseq-pe", id="no-library-source-attribute-at-all"
-        ),
+        pytest.param(None, "bulk-rnaseq", "bulk-rnaseq", id="no-library-source-attribute-at-all"),
     ],
 )
 def test_a_single_cell_deposit_rules_a_bulk_hint_out(
@@ -2145,13 +2141,13 @@ def test_a_dataset_with_no_records_keeps_every_hint() -> None:
     An archive-shaped column may only ever enrich; a rule that needed one would refuse the in-house
     plate on the lab filesystem, which has no records at all and never will.
     """
-    claim = [_chem_assertion("bulk-rnaseq-pe")]
+    claim = [_chem_assertion("bulk-rnaseq")]
     empty: list[list[ArchiveRecord] | None] = [None, []]
     for records in empty:
         got = chemistry_hypothesis(claim, records=records)
-        assert got is not None and got.value == "bulk-rnaseq-pe"
+        assert got is not None and got.value == "bulk-rnaseq"
     got = chemistry_hypothesis(claim)  # the parameter is optional, and absent means absent
-    assert got is not None and got.value == "bulk-rnaseq-pe"
+    assert got is not None and got.value == "bulk-rnaseq"
 
 
 def test_a_single_cell_record_never_manufactures_a_hypothesis() -> None:
@@ -2163,7 +2159,7 @@ def test_a_single_cell_record_never_manufactures_a_hypothesis() -> None:
     """
     records = [_experiment_record("TRANSCRIPTOMIC SINGLE CELL")]
     assert chemistry_hypothesis([], records=records) is None
-    two_protocols = [_chem_assertion("bulk-rnaseq-pe"), _chem_assertion("10x-3p-gex-v3")]
+    two_protocols = [_chem_assertion("bulk-rnaseq"), _chem_assertion("10x-3p-gex-v3")]
     assert chemistry_hypothesis(two_protocols, records=records) is None
 
 
@@ -2278,7 +2274,7 @@ def test_same_family_groups_leaves_under_their_root() -> None:
     assert same_family(specs, "10x-3p-gex-v3", "10x-3p-gex-v3.1")
     assert same_family(specs, "10x-3p-gex-v2", "10x-3p-gex-v2")  # reflexive
     # cross-family: a paper-vs-bytes disagreement here IS a real conflict, must NOT be suppressed
-    assert not same_family(specs, "10x-3p-gex-v2", "bulk-rnaseq-pe")
+    assert not same_family(specs, "10x-3p-gex-v2", "bulk-rnaseq")
     assert not same_family(specs, "splitseq", "bd-rhapsody-wta")
     assert not same_family(specs, "10x-3p-gex-v2", "no-such-tech")  # unknown id
 
@@ -2295,23 +2291,23 @@ def test_single_cell_collapse_guard_is_structural_not_length() -> None:
     specs = kb.load_all_specs()
 
     # The guard reads only `.tech` off the winner, so `_te` (the file's evaluation builder) supplies it.
-    top_bulk = _te("bulk-rnaseq-pe", 0.8)
+    top_bulk = _te("bulk-rnaseq", 0.8)
     top_single_cell = _te("10x-3p-gex-v3", 0.8)
 
     conflict = _single_cell_collapse_conflict(
-        "10x-3p-gex-v2", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
+        "10x-3p-gex-v2", "harvest", 0.9, top_bulk, specs["bulk-rnaseq"], [], specs
     )
     assert conflict is not None
     assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
     assert {p.value: p.basis for p in conflict.positions} == {
         "10x-3p-gex-v2": "asserted",
-        "bulk-rnaseq-pe": "observed",
+        "bulk-rnaseq": "observed",
     }
     # negatives — no collapse to surface:
     # a bulk chemistry was asserted and bulk won (agreement)
     assert (
         _single_cell_collapse_conflict(
-            "bulk-rnaseq-pe", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
+            "bulk-rnaseq", "harvest", 0.9, top_bulk, specs["bulk-rnaseq"], [], specs
         )
         is None
     )
@@ -2324,9 +2320,7 @@ def test_single_cell_collapse_guard_is_structural_not_length() -> None:
     )
     # no hypothesis at all
     assert (
-        _single_cell_collapse_conflict(
-            None, None, 0.8, top_bulk, specs["bulk-rnaseq-pe"], [], specs
-        )
+        _single_cell_collapse_conflict(None, None, 0.8, top_bulk, specs["bulk-rnaseq"], [], specs)
         is None
     )
 
@@ -2344,7 +2338,7 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
     registered and materializable), `_over_length_admitted_by_onlist` is anchored on a floor that
     SCALES with `n_entries` rather than keying on it, and a random 75-mer hits a 64-barcode synthetic
     list less often than it chance-hits a 6.8M one, not more. Then verified end to end: identical
-    exit 4, identical winner `bulk-rnaseq-pe`, identical `conflict-single-cell-collapsed-to-bulk`,
+    exit 4, identical winner `bulk-rnaseq`, identical `conflict-single-cell-collapsed-to-bulk`,
     identical rung, no blocker and no question either way."""
     rng = random.Random(0)
     r1 = [
@@ -2363,7 +2357,7 @@ def test_single_cell_metadata_but_bulk_bytes_surfaces_a_collapse_conflict(tmp_pa
         use_cache=False,
     )
     assert out.result.candidates
-    assert out.result.candidates[0].technology == "bulk-rnaseq-pe"
+    assert out.result.candidates[0].technology == "bulk-rnaseq"
     assert out.exit_code() == 4
     assert any(c.id == "conflict-single-cell-collapsed-to-bulk" for c in out.result.conflicts), [
         c.id for c in out.result.conflicts
@@ -2379,16 +2373,16 @@ def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
 
     # The guard reads only `.tech` off the winner, so `_te` (the file's evaluation builder) supplies it.
     top_single_cell = _te("10x-3p-gex-v3", 0.8)
-    top_bulk = _te("bulk-rnaseq-pe", 0.8)
+    top_bulk = _te("bulk-rnaseq", 0.8)
 
     conflict = _bulk_asserted_single_cell_observed(
-        "bulk-rnaseq-pe", "harvest", 0.9, top_single_cell, specs["10x-3p-gex-v3"], [], specs
+        "bulk-rnaseq", "harvest", 0.9, top_single_cell, specs["10x-3p-gex-v3"], [], specs
     )
     assert conflict is not None
     assert conflict.id == "conflict-bulk-asserted-single-cell-observed"
     assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
     assert {p.value: p.basis for p in conflict.positions} == {
-        "bulk-rnaseq-pe": "asserted",
+        "bulk-rnaseq": "asserted",
         "10x-3p-gex-v3": "observed",
     }
     # negatives — no reverse conflict to surface:
@@ -2402,7 +2396,7 @@ def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
     # the winner is itself bulk (agreement)
     assert (
         _bulk_asserted_single_cell_observed(
-            "bulk-rnaseq-pe", "harvest", 0.9, top_bulk, specs["bulk-rnaseq-pe"], [], specs
+            "bulk-rnaseq", "harvest", 0.9, top_bulk, specs["bulk-rnaseq"], [], specs
         )
         is None
     )
@@ -2429,7 +2423,7 @@ def test_bulk_metadata_but_single_cell_bytes_surfaces_a_reverse_conflict(tmp_pat
     out = resolve_dataset(
         [f1, f2],
         registry=registry_for(spec),
-        hypothesis=Hypothesis(value="bulk-rnaseq-pe", id="meta-1", confidence=0.9),
+        hypothesis=Hypothesis(value="bulk-rnaseq", id="meta-1", confidence=0.9),
         use_cache=False,
     )
     assert out.result.candidates[0].technology == "10x-3p-gex-v3"
@@ -2453,7 +2447,7 @@ def test_narrows_to_is_directional_subtree_membership() -> None:
     # ...and siblings do not narrow to each other. Asserted v2 against observed v3 is a real
     # disagreement that `same_family` keeps as a RESOLVED conflict (2026.7.8); it is not suppressed.
     assert not narrows_to(specs, "10x-3p-gex-v2", "10x-3p-gex-v3")
-    assert not narrows_to(specs, "bulk-rnaseq-pe", "10x-3p-gex-v3")
+    assert not narrows_to(specs, "bulk-rnaseq", "10x-3p-gex-v3")
     assert not narrows_to(specs, "no-such-tech", "10x-3p-gex-v3")
 
 
@@ -2486,7 +2480,7 @@ def test_an_archive_filing_word_asserts_no_chemistry_at_all(tmp_path: Path) -> N
     """The defect this PR closes, at the resolver: `RNA-Seq` steered nothing, and now names nothing.
 
     Every transcriptomic run in SRA carries `library_strategy: RNA-Seq`, and the old matcher read that
-    as `bulk-rnaseq-pe` — so a single-cell library, byte-provably 10x v3, became an asserted-bulk /
+    as `bulk-rnaseq` — so a single-cell library, byte-provably 10x v3, became an asserted-bulk /
     observed-single-cell contradiction and a decided dataset turned into an exit-4 question
     (GSE229022), or the bogus hypothesis displaced a real one (GSE317744). The guards are unchanged
     and still fire on a *real* bulk claim, which the test above pins; what changed is that a word
@@ -2740,7 +2734,7 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
     assert winner.technology != "10x-3p-gex-v2", (
         "a whitelist-missing 75 bp read must not be admitted"
     )
-    assert winner.technology == "bulk-rnaseq-pe"
+    assert winner.technology == "bulk-rnaseq"
 
 
 # `GSE282525` (Vijay Lab) declares "Chromium Next GEM Single Cell 5' Reagent Kit v2" verbatim and
@@ -2837,7 +2831,7 @@ def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
     """Safety guard for the dominance anchor (a barcoded candidate that positively matched a whitelist
     is not shadowed by the barcodeless fallback): it must NEVER hijack genuine bulk. Canonical ~100 bp
     paired cDNA reads with NO barcode content, resolved with the v2 whitelist registered, must still
-    resolve to bulk-rnaseq-pe. v2 IS consulted here (it reaches rung 3, and its barcode read even passes
+    resolve to bulk-rnaseq. v2 IS consulted here (it reaches rung 3, and its barcode read even passes
     the over-length geometry gate at 100 bp = over_length_min) — but its onlist FAILS, so
     ``barcode_onlist_hit`` stays False, the anchor never promotes it, and bulk wins. That False is the
     invariant keeping every real bulk dataset (and any dataset whose barcodes are genuinely absent)
@@ -2854,7 +2848,7 @@ def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
     reg = registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
 
     out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
-    assert out.result.candidates[0].technology == "bulk-rnaseq-pe", [
+    assert out.result.candidates[0].technology == "bulk-rnaseq", [
         c.technology for c in out.result.candidates[:3]
     ]
 

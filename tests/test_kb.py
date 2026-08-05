@@ -141,7 +141,7 @@ def test_a_divergent_pair_is_not_backend_identical() -> None:
 
     specs = kb.load_all_specs()
     assert not backend_identical(specs["10x-3p-gex-v2"], specs["10x-3p-gex-v3"])
-    assert not backend_identical(specs["bulk-rnaseq-pe"], specs["splitseq"])
+    assert not backend_identical(specs["bulk-rnaseq"], specs["splitseq"])
 
 
 def test_a_declared_twin_that_diverges_would_be_caught() -> None:
@@ -279,7 +279,7 @@ def test_kb_parse_keys_and_recipe_param_keys_are_disjoint() -> None:
 
 def test_bulk_declares_no_parse_keys_and_that_is_meaningful() -> None:
     """Empty, not degenerate: bulk PE has no barcode, no UMI, no whitelist, no offsets to declare."""
-    assert kb.load_spec("bulk-rnaseq-pe").require_backend().params == {}
+    assert kb.load_spec("bulk-rnaseq").require_backend().params == {}
 
 
 def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> None:
@@ -343,7 +343,7 @@ def test_bd_rhapsody_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> 
 
     Synthetic random barcodes miss the whitelist (that is true of every spec's roundtrip, which is why
     `resolve score` decides 10x on geometry there), so this builds reads from the ACTUAL shipped CLS
-    lists — exactly what a real GSE274290 run carries. If this ever regresses to `bulk-rnaseq-pe`, the
+    lists — exactly what a real GSE274290 run carries. If this ever regresses to `bulk-rnaseq`, the
     onlist is not reaching the scorer and BD Rhapsody datasets would compile as bulk.
     """
     import random
@@ -633,7 +633,7 @@ def test_no_spec_pair_is_confusable_without_declaring_it(kb_probes: KbProbes) ->
     whether it would claim them using rungs 0-2 alone (the onlist is withheld via an empty registry,
     so rung-3 evidence cannot rescue the answer). If A accepts B's data, A must say so.
 
-    It found one on its first run. `bulk-rnaseq-pe` — the generic paired-end fallback — accepts
+    It found one on its first run. `bulk-rnaseq` — the generic paired-end fallback — accepts
     SPLiT-seq's cdna+bc pair on geometry alone, and declared nothing. The system already knew: a test
     comment called bulk "the generic bulk fallback that merely fails to be forbidden (rung 2)". The
     KB is where that has to be written down, because the KB is what the resolver reads.
@@ -720,7 +720,7 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
     Recognition is therefore not the thing to forbid; UNDECLARED recognition is. A family that reaches
     into another family's data must carry a `confusable_with` edge naming that leaf or one of its
     ancestors — which is the same rule the leaf-level under-declaration sweep applies one level down,
-    and it keeps the original trap intact: `bulk-rnaseq-pe` is declared by nobody, so a family that
+    and it keeps the original trap intact: `bulk-rnaseq` is declared by nobody, so a family that
     started accepting bulk reads still turns this red.
     """
     from seqforge.resolve.confuse import accepts_at_rungs_0_2
@@ -934,7 +934,7 @@ _CORPUS_HYPOTHESES: list[tuple[str, str]] = [
     ("10x 5'", "10x-5p-gex"),
     ("10x-3p-gex-v2", "10x-3p-gex-v2"),
     ("10x-3p-gex-v3", "10x-3p-gex-v3"),
-    ("bulk-rnaseq-pe", "bulk-rnaseq-pe"),
+    ("bulk-rnaseq", "bulk-rnaseq"),
 ]
 
 
@@ -961,7 +961,7 @@ def test_a_generic_strategy_word_names_no_chemistry() -> None:
     """The whole point: an archive's own strategy/platform vocabulary is not a chemistry claim.
 
     Each of these resolved to a real KB node under the old two-directional substring rule — `RNA-Seq`
-    and `Illumina` to `bulk-rnaseq-pe` (via the alias "Illumina PE RNA-seq"), `transcriptome` and
+    and `Illumina` to `bulk-rnaseq` (via the alias "Illumina PE RNA-seq"), `transcriptome` and
     `WTA` to `bd-rhapsody-wta` (via "…Whole Transcriptome Analysis") — because the *needle* was
     allowed to sit inside the alias. A term that names a whole field of assays entails no chemistry,
     and no amount of it appearing in a curated alias makes it one.
@@ -987,7 +987,7 @@ def test_chemistry_matching_is_one_directional() -> None:
     "paired-end RNA-seq", and inside a hundred other kit names nobody has curated. Only the first
     direction is entailment.
     """
-    assert _resolved_id("libraries were built with the bulk RNA-seq protocol") == "bulk-rnaseq-pe"
+    assert _resolved_id("libraries were built with the bulk RNA-seq protocol") == "bulk-rnaseq"
     assert kb.resolve_chemistry("RNA-seq") is None
     assert kb.resolve_chemistry("Rhapsody") is not None  # a whole alias, short but curated
     assert kb.resolve_chemistry("Rhap") is None  # ...and a fragment of one is not
@@ -1006,7 +1006,7 @@ def test_a_leaf_alias_outranks_the_family_alias_it_contains() -> None:
 
 
 #: Values carrying BOTH a chemistry's own name and a phrase that only describes the sequencing
-#: format. Measured against the shipped KB in #266: every one of them resolved to `bulk-rnaseq-pe`.
+#: format. Measured against the shipped KB in #266: every one of them resolved to `bulk-rnaseq`.
 _NAMED_AND_DESCRIBED: list[tuple[str, str]] = [
     ("SPLiT-seq", "splitseq"),  # the control: the name alone always worked
     ("SPLiT-seq paired-end RNA-seq", "splitseq"),
@@ -1026,8 +1026,8 @@ def test_a_phrase_that_only_describes_the_format_never_outranks_a_chemistrys_own
     "SPLiT-seq paired-end RNA-seq" says *a SPLiT-seq library, sequenced paired-end*: one clause names
     the chemistry, the other describes the run. Ranking a matched form by its significant-token count
     read that backwards — "paired-end RNA-seq" is four tokens against `SPLiT-seq`'s two, so the
-    wordier DESCRIPTION beat the NAME and all five of these landed on `bulk-rnaseq-pe`. Verbosity is
-    not specificity, and the tree cannot settle it either: `bulk-rnaseq-pe` and `splitseq` are both
+    wordier DESCRIPTION beat the NAME and all five of these landed on `bulk-rnaseq`. Verbosity is
+    not specificity, and the tree cannot settle it either: `bulk-rnaseq` and `splitseq` are both
     root leaves, so neither is the other's ancestor. Which forms only describe is a fact about the
     entry, so the entry declares it (`identity.descriptive_aliases`).
     """
@@ -1042,10 +1042,10 @@ def test_a_descriptive_phrase_still_names_the_bulk_entry_when_nothing_else_is_na
     archive ever does, which is the over-strictness #184 measured and rejected. `bulk RNA-seq` names
     the chemistry rather than describing a format, so it stays a first-class alias and wins alone.
     """
-    assert _resolved_id("Illumina PE RNA-seq") == "bulk-rnaseq-pe"
-    assert _resolved_id("polyA RNA-seq PE") == "bulk-rnaseq-pe"
-    assert _resolved_id("RNA-seq PE") == "bulk-rnaseq-pe"
-    assert _resolved_id("bulk RNA-seq") == "bulk-rnaseq-pe"
+    assert _resolved_id("Illumina PE RNA-seq") == "bulk-rnaseq"
+    assert _resolved_id("polyA RNA-seq PE") == "bulk-rnaseq"
+    assert _resolved_id("RNA-seq PE") == "bulk-rnaseq"
+    assert _resolved_id("bulk RNA-seq") == "bulk-rnaseq"
     assert (
         kb.resolve_chemistry("RNA-seq") is None
     )  # ...and a bare strategy word still names nothing
@@ -1090,9 +1090,9 @@ def test_chemistry_matching_does_not_depend_on_the_order_specs_were_loaded_in() 
 #: issue's own values) resolved before and after, and these ten differ. The other 111 are unchanged.
 _MOVED_BY_266: list[tuple[str, str, str]] = [
     # 1. the defect itself — a described format stops outranking a named chemistry
-    ("SPLiT-seq paired-end RNA-seq", "bulk-rnaseq-pe", "splitseq"),
-    ("10x 3' v3 paired-end RNA-seq", "bulk-rnaseq-pe", "10x-3p-gex-v3"),
-    ("BD Rhapsody paired-end RNA-seq", "bulk-rnaseq-pe", "bd-rhapsody-wta"),
+    ("SPLiT-seq paired-end RNA-seq", "bulk-rnaseq", "splitseq"),
+    ("10x 3' v3 paired-end RNA-seq", "bulk-rnaseq", "10x-3p-gex-v3"),
+    ("BD Rhapsody paired-end RNA-seq", "bulk-rnaseq", "bd-rhapsody-wta"),
     # 2. a versioned family alias now reaches the leaf that declares it. `SC3Pv2` carries `SC3P` and
     #    scores one significant token either way, so the lower id took it and the FAMILY won — the
     #    reverse of this module's own stated rule, and unreachable by the alias's own owner.
@@ -1150,7 +1150,7 @@ def _named_pool(*names: tuple[str, str]) -> dict[str, Spec]:
     matcher reads nothing but ``identity`` either way. ``model_copy`` does not re-run validation, so
     this is a shaped object and not a claim that the KB would accept these two as specs.
     """
-    base = kb.load_all_specs()["bulk-rnaseq-pe"]
+    base = kb.load_all_specs()["bulk-rnaseq"]
     return {
         tech_id: base.model_copy(
             update={

@@ -16,7 +16,7 @@ which is the circularity that hid a real defect in that entry for its whole life
 When the case was committed on 2026-07-23 it was **red, and known to be red**, for a reason
 understood down to the number: the constant-segment purity gate demanded a per-cycle
 `mean_maxfrac >= 0.9` and real reads give linker2 **0.827** (0.99+ over the ~61 % of reads that are
-genuinely SPLiT-seq; the rest is head junk). So `resolve score` returned `bulk-rnaseq-pe` at 0.98
+genuinely SPLiT-seq; the rest is head junk). So `resolve score` returned `bulk-rnaseq` at 0.98
 instead of `splitseq`. `expected.yaml` said `splitseq` anyway, deliberately: it is a **pre-registered
 prediction of a fix**, and grading it against what the code did would have enshrined the defect as
 the specification.

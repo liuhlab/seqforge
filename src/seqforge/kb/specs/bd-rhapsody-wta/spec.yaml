@@ -134,9 +134,9 @@ backend:
 # The combinatorial CLS geometry + the two fixed linkers separate this from 10x / SPLiT-seq (different
 # linker sequences and positions). What it does NOT separate itself from is the generic paired-end
 # fallback, which forbids so little it accepts these two files at rungs 0-2 — the confusion runs in
-# that direction, the relation is symmetric, so it is declared on both sides (see bulk-rnaseq-pe).
+# that direction, the relation is symmetric, so it is declared on both sides (see bulk-rnaseq).
 confusable_with:
-  - id: bulk-rnaseq-pe
+  - id: bulk-rnaseq
     relationship: processing_divergent
     distinguishable_by: [onlist]
     note: >

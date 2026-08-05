@@ -1,9 +1,9 @@
 schema_version: 1
 
 identity:
-  id: bulk-rnaseq-pe
-  version: illumina-pe
-  name: "Bulk Illumina paired-end RNA-seq (no cell barcode)"
+  id: bulk-rnaseq
+  version: illumina
+  name: "Bulk Illumina RNA-seq (no cell barcode)"
   aliases: ["bulk RNA-seq"]                # NAMES this chemistry: no single-cell record says it
   # ...and these only DESCRIBE a run. A SPLiT-seq or 10x record carries any of them truthfully, so
   # they name this entry only when the value names no other (#266).

@@ -110,7 +110,7 @@ class BulkQuant(BaseModel):
     """Plain-STAR counting.
 
     There is no strandedness knob here and there never needs to be: ``--quantMode GeneCounts``
-    already emits all three strand columns in ``ReadsPerGene.out.tab``. ``bulk-rnaseq-pe``'s spec
+    already emits all three strand columns in ``ReadsPerGene.out.tab``. ``bulk-rnaseq``'s spec
     long carried a comment promising that "library strandedness is resolved at compose from
     processing policy", and no code ever implemented it — because there was never a decision to make.
     Same law as ``soloFeatures``: when the aligner computes every alternative in one pass and the

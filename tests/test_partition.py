@@ -41,7 +41,7 @@ def _reads(tech: str, *, n: int = 400, seed: int = 0) -> dict[str, list[str]]:
 def _two_chemistry_files(tmp_path: Path) -> list[Path]:
     """SRR1 -> v3 (28 bp barcode), SRR2 -> bulk paired-end. Two runs, two chemistries."""
     files: list[Path] = []
-    for acc, tech in (("SRR1", "10x-3p-gex-v3"), ("SRR2", "bulk-rnaseq-pe")):
+    for acc, tech in (("SRR1", "10x-3p-gex-v3"), ("SRR2", "bulk-rnaseq")):
         reads = _reads(tech)
         for mate, role in (("1", "R1"), ("2", "R2")):
             p = tmp_path / f"{acc}_{mate}.fastq.gz"
@@ -58,7 +58,7 @@ def _two_chemistry_files_nested(tmp_path: Path) -> list[Path]:
     files: list[Path] = []
     for acc, srx, tech in (
         ("SRR1", "SRX_A", "10x-3p-gex-v3"),
-        ("SRR2", "SRX_B", "bulk-rnaseq-pe"),
+        ("SRR2", "SRX_B", "bulk-rnaseq"),
     ):
         reads = _reads(tech)
         subdir = tmp_path / srx
@@ -192,7 +192,7 @@ def test_a_two_chemistry_project_writes_one_manifest_per_assay_subdir(
     assays = payload["assays"]
     assert payload["n_assays"] == 2
     chems = {a["chemistry"] for a in assays}
-    assert chems == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert chems == {"10x-3p-gex-v3", "bulk-rnaseq"}
 
     for a in assays:
         # Each assay's manifest is a real file under its own seqforge/<assay>/ subdir.
@@ -248,13 +248,13 @@ def test_project_views_union_every_assays_samples(own_two_chemistry_project: Pro
     assays_col = header.index("assay")
     assert {ln.split("\t")[assays_col] for ln in lines[1:]} == {
         "10x-3p-gex-v3",
-        "bulk-rnaseq-pe",
+        "bulk-rnaseq",
     }
 
     index = yaml.safe_load(project_path.read_text())
     assert index["n_assays"] == 2
     assert index["n_samples"] == 2
-    assert {a["chemistry"] for a in index["assays"]} == {"10x-3p-gex-v3", "bulk-rnaseq-pe"}
+    assert {a["chemistry"] for a in index["assays"]} == {"10x-3p-gex-v3", "bulk-rnaseq"}
 
 
 def test_project_metadata_verb_regenerates_from_manifests(

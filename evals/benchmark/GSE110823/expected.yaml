@@ -10,7 +10,7 @@ description: >-
   What it measured, and what was wrong. `10x-*` and `bd-rhapsody-*` are proven on real barcodes by
   their own cases; `splitseq` was proven only on reads seqforge generated from its own spec. That
   circularity hid a real defect for the life of the entry. Run against real reads, `resolve score`
-  returned `bulk-rnaseq-pe` at score 0.98, rung 2, with zero conflicts, zero questions and exit 0 —
+  returned `bulk-rnaseq` at score 0.98, rung 2, with zero conflicts, zero questions and exit 0 —
   the whitelists derived from Table S12 were correct and were never consulted, because `splitseq`
   failed its own `requires` gate before rung 3 was reached. `has_segment kind: constant` demanded a
   per-cycle mean_maxfrac >= 0.9 and real reads give linker2 0.827 (0.99+ over the ~61% of reads that

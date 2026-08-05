@@ -94,7 +94,7 @@ def curated_forms(tech_id: str, spec: Spec) -> list[str]:
     carry to NAME this node (here), and which forms a quote may carry to entail a value already known
     to be it (:func:`seqforge.harvest.verify.surface_forms`). The descriptive forms belong in it for
     the second question's sake — a quote saying "paired-end RNA-seq" does support a value already
-    established to be `bulk-rnaseq-pe`. Ranking is where the two differ, and it reads them apart.
+    established to be `bulk-rnaseq`. Ranking is where the two differ, and it reads them apart.
     """
     return [*naming_forms(tech_id, spec), *spec.identity.descriptive_aliases]
 
@@ -108,7 +108,7 @@ def _best_match(value: str, tech_id: str, spec: Spec) -> tuple[tuple[int, int], 
        different chemistry's record carries just as truthfully, so it can never outrank a name.
        Without this, ranking measures the matched phrase's *verbosity*: "paired-end RNA-seq" is four
        significant tokens against `SPLiT-seq`'s two, so "SPLiT-seq paired-end RNA-seq" resolved to
-       the bulk entry (#266). Node generality cannot supply it — `bulk-rnaseq-pe` and `splitseq` are
+       the bulk entry (#266). Node generality cannot supply it — `bulk-rnaseq` and `splitseq` are
        both root leaves, neither an ancestor of the other — so the entry declares it instead.
     2. **Significant tokens of the best form matched in that class.** A form matched as a bare
        substring still scores by its tokens, so "BD Rhapsody" (2) outranks "Rhapsody" (1) on the same

@@ -8,4 +8,4 @@ generate:
   n: 3000
   seed: 0
   onlists: synthetic
-hypothesis: bulk-rnaseq-pe
+hypothesis: bulk-rnaseq

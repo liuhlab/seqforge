@@ -5,7 +5,7 @@
 # single-cell. The hypothesis is declared here (not harvested) so the case runs with no API key.
 generate:
   kind: spec
-  spec: bulk-rnaseq-pe
+  spec: bulk-rnaseq
   n: 3000
   seed: 0
   onlists: none

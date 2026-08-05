@@ -92,7 +92,7 @@ pixi run test -- tests/test_kb.py -k "confusable or biconditional"
 
 It collects every loaded spec pair and reports any that share your geometry at rungs 0-2 without a
 declared relationship. Add each reported edge on BOTH sides (the relation is symmetric). A bare
-combinatorial geometry — SPLiT-seq, BD Rhapsody — always reports `bulk-rnaseq-pe`: the generic
+combinatorial geometry — SPLiT-seq, BD Rhapsody — always reports `bulk-rnaseq`: the generic
 paired-end fallback forbids so little it accepts any `cdna + barcode-read` pair, so the edge is
 `processing_divergent`, `distinguishable_by: [onlist]`.
 

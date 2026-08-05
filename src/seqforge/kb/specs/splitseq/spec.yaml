@@ -114,7 +114,7 @@ signature:
   # not a per-cycle purity. On 20 000 real GSE110823 reads the two linkers are carried by 0.85 and
   # 0.73 of the head; averaged per cycle over that same head they read 0.905 and 0.827, because ~39%
   # of it is off-structure junk (both linkers are 0.99+ pure in the rest). A 0.9 purity bar therefore
-  # forbade the `bc` role and handed a real SPLiT-seq dataset to `bulk-rnaseq-pe` at exit 0, with the
+  # forbade the `bc` role and handed a real SPLiT-seq dataset to `bulk-rnaseq` at exit 0, with the
   # three whitelists above correct and never consulted — while the round trip, whose reads have no
   # junk in them, stayed green throughout. Do not re-express these as a purity threshold.
   requires:                              # the two FIXED linkers are the structural signature
@@ -195,9 +195,9 @@ backend:
 # The combinatorial geometry + onlists separate this from 10x / inDrop. What it does NOT separate
 # itself from is the generic paired-end fallback, which forbids so little that it accepts these two
 # files at rungs 0-2 — the confusion runs in that direction, and the relation is symmetric, so it is
-# declared on both sides. See bulk-rnaseq-pe's note.
+# declared on both sides. See bulk-rnaseq's note.
 confusable_with:
-  - id: bulk-rnaseq-pe
+  - id: bulk-rnaseq
     relationship: processing_divergent
     distinguishable_by: [onlist]
     note: >

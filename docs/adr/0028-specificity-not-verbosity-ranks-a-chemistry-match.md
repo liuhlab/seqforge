@@ -19,28 +19,28 @@ Token count is a measure of an alias's **verbosity**. Across nodes it inverts (#
 
 ```
 SPLiT-seq                                             -> splitseq
-SPLiT-seq paired-end RNA-seq                          -> bulk-rnaseq-pe    WRONG
-10x 3' v3 paired-end RNA-seq                          -> bulk-rnaseq-pe    WRONG
-BD Rhapsody paired-end RNA-seq                        -> bulk-rnaseq-pe    WRONG
+SPLiT-seq paired-end RNA-seq                          -> bulk-rnaseq    WRONG
+10x 3' v3 paired-end RNA-seq                          -> bulk-rnaseq    WRONG
+BD Rhapsody paired-end RNA-seq                        -> bulk-rnaseq    WRONG
 ```
 
-`bulk-rnaseq-pe` carried `paired-end RNA-seq` (4 significant tokens); `splitseq` carries `SPLiT-seq`
+`bulk-rnaseq` carried `paired-end RNA-seq` (4 significant tokens); `splitseq` carries `SPLiT-seq`
 (2). Both are genuinely carried, `max` picks 4, and the generic entry wins a value that names a
 single-cell chemistry. This is not #184's vacuous direction — `RNA-Seq` alone still correctly names
 nothing — it is the ordering among forms that are all entailed.
 
 **The obvious reading, and why it fails.** The KB is a tree, so rank by generality: a leaf beats the
-family whose alias it contains. That is already true and already insufficient — `bulk-rnaseq-pe` and
+family whose alias it contains. That is already true and already insufficient — `bulk-rnaseq` and
 `splitseq` are both root leaves, `parent: None`, neither an ancestor of the other. No tree walk
 orders them, because their relationship is not one of descent. Nor can the ranking read genericness
 off the KB's token statistics: that would make an answer depend on what else the KB holds, and the
 resolved chemistry folds into `run_id`, so adding an unrelated spec would silently re-point an
 existing dataset — the failure 0020's own tie-break exists to prevent.
 
-Why it matters beyond tidiness: #257 gave the `smartseq3` ↔ `bulk-rnaseq-pe` confusable edge
+Why it matters beyond tidiness: #257 gave the `smartseq3` ↔ `bulk-rnaseq` confusable edge
 `distinguishable_by: [metadata]`, which routes a near-tie to `_metadata_disambiguation`. On a real SRA
 `LIBRARY_CONSTRUCTION_PROTOCOL` value — *"Smart-seq3 paired-end RNA-seq libraries were prepared…"* —
-the old ranking would confirm `bulk-rnaseq-pe`, turning a near-tie into a **confident wrong answer at
+the old ranking would confirm `bulk-rnaseq`, turning a near-tie into a **confident wrong answer at
 exit 0**. `docs/agents/kb.md` ranks that as the worst outcome available.
 
 ## Decision
@@ -64,7 +64,7 @@ shown to the extraction model.
 
 ## Why not mark the whole entry as the fallback
 
-A flag on `bulk-rnaseq-pe` saying "lose to anything else" fixes the same six strings and is a smaller
+A flag on `bulk-rnaseq` saying "lose to anything else" fixes the same six strings and is a smaller
 schema change. It also demotes `bulk RNA-seq`, which **names** the chemistry — no single-cell record
 says it — and would leave that entry unable to win on its own best evidence. The property being
 recorded belongs to a *form*, not to an entry, so it is declared on the form.
@@ -108,10 +108,10 @@ demotion to ranking alone.
   this change (#231, `247a9354…`), because no shipped case carries these strings. A green corpus is
   not evidence that a matcher change is inert, and the sweep is what stands in for that.
 - `KB_VERSION` and `RESOLVE_VERSION` both re-key, so every dataset takes a new `run_id`. The stale
-  direction is the dangerous one: a cached `bulk-rnaseq-pe` at exit 0 is a confident wrong answer.
+  direction is the dangerous one: a cached `bulk-rnaseq` at exit 0 is a confident wrong answer.
 - `EXTRACT_PROMPT_VERSION` moves too — the KB block the model reads lists only naming aliases now, so
   the cached prefix changes. `verify` still accepts the descriptive forms, so the asymmetry can only
   accept a draft, never reject one.
 - **A value that names two chemistries is still ranked, not refused.** "SPLiT-seq bulk RNA-seq" names
-  both and resolves to `bulk-rnaseq-pe` on token count, unchanged by this record. Whether a
+  both and resolves to `bulk-rnaseq` on token count, unchanged by this record. Whether a
   self-contradicting value should be a `Conflict` rather than a winner is 0020's question, left open.

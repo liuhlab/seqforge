@@ -65,7 +65,7 @@ nav:
           - 10x Chromium 3' v2: kb/10x-3p-gex-v2.md
           - BD Rhapsody WTA: kb/bd-rhapsody-wta.md
           - SPLiT-seq: kb/splitseq.md
-          - Bulk paired-end RNA-seq: kb/bulk-rnaseq-pe.md
+          - Bulk paired-end RNA-seq: kb/bulk-rnaseq.md
 
 # Two trees stay in the repo and OUT of the site, deliberately. `agents/` is the reference layer
 # behind AGENTS.md — the rules and what enforces them, testing, toolchain, layout, on-disk state, the

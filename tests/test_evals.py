@@ -308,7 +308,7 @@ CONFUSION_MATRIX = [
             "conflict": {"field": "library.read_layout.R1.length"},
             "fields": {"library.chemistry": "10x-3p-gex-v3"},
         },
-        _result(tech="bulk-rnaseq-pe", conflicts=[_conflict()]), 4, Grade.WRONG_REASON, None, False,
+        _result(tech="bulk-rnaseq", conflicts=[_conflict()]), 4, Grade.WRONG_REASON, None, False,
         id="a-wrong-library-value-while-asking-is-wrong-reason-not-false-accept",
     ),
     # -- role assignment + field extraction --
@@ -380,7 +380,7 @@ def test_a_dataset_that_resolved_into_two_assays_reports_both_and_fails() -> Non
     the harness graded a representative assay instead, the case would PASS whenever the expectation
     happened to name that one, having compiled a dataset nobody described.
     """
-    both = ["10x-3p-gex-v3", "bulk-rnaseq-pe"]
+    both = ["10x-3p-gex-v3", "bulk-rnaseq"]
     g = grade_case(
         "t",
         Expected.model_validate({"outcome": "decide", "fields": {"library.chemistry": both[0]}}),
@@ -1158,7 +1158,7 @@ def _two_chemistry_case_over(data: Path, tmp_path: Path, monkeypatch: pytest.Mon
         "harness-vs-front-door",
         tmp_path,
         recipe,
-        Expected(outcome="decide", fields={"library.chemistry": "bulk-rnaseq-pe"}),
+        Expected(outcome="decide", fields={"library.chemistry": "bulk-rnaseq"}),
         [first, second],
     )
 
@@ -1287,7 +1287,7 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
 
     **The case is also built so the prose reduction decides the answer.** Two documents name two
     different chemistries over barcodeless bulk reads. Agreement-or-nothing yields no hypothesis and
-    the bytes decide `bulk-rnaseq-pe` at exit 0; any reduction that picks one of the two instead
+    the bytes decide `bulk-rnaseq` at exit 0; any reduction that picks one of the two instead
     hands a single-cell claim to bulk bytes, which surfaces a cross-family conflict at exit 4 — and
     a pipeline that stops writes no manifest at all. That is why the outcome is compared before the
     content: the divergence changes *whether* there is a manifest, and the two manifests it does
@@ -1506,7 +1506,7 @@ def test_a_record_less_multi_lane_deposit_stays_two_samples(
     # Every file, once. A sample holding a lane twice, or the eight collapsing to four, would leave
     # the counts above intact and the depth wrong — which is the failure #263 was, expressed in shas.
     assert len({sha for s in metadata.samples for sha in s.file_shas}) == len(paths)
-    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq-pe"]
+    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq"]
     # A fused run assigns roles across its lanes (`index_tagged_roles`), and a file with no role is
     # dropped by `_units` at exit 0 — the same silent-loss class one level down.
     assert len(out.role_of_sha()) == len(paths), (
@@ -1881,7 +1881,7 @@ def test_usage_is_accumulated_into_the_report() -> None:
 # whole-file identity) resolves the chemistry from the slice, reproduces the full dataset's identity
 # from the pin, and grades sample attributes from a committed records.json — no full FASTQ, no
 # network, no API key. These pin that the kind materializes, resolves, grades, and skips correctly.
-# bulk-rnaseq-pe is used because it is decided by STRUCTURE alone (no onlist lookup), so the fixture
+# bulk-rnaseq is used because it is decided by STRUCTURE alone (no onlist lookup), so the fixture
 # is hermetic regardless of which whitelists happen to be cached.
 # --------------------------------------------------------------------------------------------
 
@@ -1894,11 +1894,11 @@ def _bulk_fingerprint(tmp_path: Path) -> tuple[Path, str]:
     from seqforge import kb
     from seqforge.fingerprint.build import build_fingerprint
 
-    # n=600 with reads=400 below, not n=1500/reads=2000. bulk-rnaseq-pe is decided by STRUCTURE
+    # n=600 with reads=400 below, not n=1500/reads=2000. bulk-rnaseq is decided by STRUCTURE
     # alone and the chemistry call is N-invariant, so the smaller N grades identically. It
     # also makes the docstring true: at n=1500 with reads=2000 the "slice" was the WHOLE file, so
     # "no full FASTQ is present (only the slice)" was not being proved by anything.
-    spec = kb.load_spec("bulk-rnaseq-pe")
+    spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
     src = tmp_path / "SRR12345678"
     src.mkdir(parents=True)
@@ -1942,7 +1942,7 @@ def _fingerprint_case_dir(tmp_path: Path, recipe_yaml: str, records_json: str | 
         "outcome: decide\n"
         "description: a real bulk dataset resolved from its fingerprint package, samples from records\n"
         "fields:\n"
-        "  library.chemistry: bulk-rnaseq-pe\n"
+        "  library.chemistry: bulk-rnaseq\n"
         "  experiment.samples.*.strain: [CB4856]\n"
         "  experiment.samples.SAMN12345678.strain: CB4856\n"
     )
@@ -2434,7 +2434,7 @@ def _render_fixture() -> dict[str, Any]:
                     {
                         "path": "library.chemistry",
                         "expected": "10x-3p-gex-v3",
-                        "actual": "bulk-rnaseq-pe",
+                        "actual": "bulk-rnaseq",
                         "ok": False,
                     },
                     {
@@ -2638,7 +2638,7 @@ def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() 
 
     assert "FALSE ACCEPT" in page, "a false accept is stated outright, not folded into a percentage"
     assert "poisoned-one" in page, "and the case is named"
-    assert "bulk-rnaseq-pe" in page and "10x-3p-gex-v3" in page, "the wrong value must be visible"
+    assert "bulk-rnaseq" in page and "10x-3p-gex-v3" in page, "the wrong value must be visible"
     assert "library.chemistry" in page, "beside the field path it was wrong about"
 
     clean = dict(_render_fixture())
