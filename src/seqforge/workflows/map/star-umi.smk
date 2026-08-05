@@ -361,9 +361,11 @@ rule umi_count:
         # `sample_id=path` per cell, in the object's row order. The ids come from units.tsv, which is
         # seqforge's own grouping, and the paths come from `input.bams` rather than being rebuilt --
         # a second spelling of a path is the copy that goes stale, and here it would point the
-        # counter at cells that are not there while the ids still look right.
+        # counter at cells that are not there while the ids still look right. `strict=True` because
+        # the failure of a silent zip is a SHORTER plate: cells dropped from the object with every
+        # remaining row still correctly labelled, which no reader could notice.
         cells=lambda wc, input: " ".join(
-            f"{sample}={bam}" for sample, bam in zip(SAMPLES, input.bams)
+            f"{sample}={bam}" for sample, bam in zip(SAMPLES, input.bams, strict=True)
         ),
     shell:
         r"""
