@@ -44,7 +44,12 @@ from .remote import (
 )
 
 #: CalVer YYYY.M.PATCH; bump when onlist packing / registry semantics change.
-IO_VERSION = "2026.7.0"
+#: 2026.8.0 — the SRA package parser reads what it had been dropping: per run, one **Submitted file**
+#: per uploaded original, carrying the provider md5, the declared size and the `sra-pub-src-*` URI
+#: beside the filename it already read (ADR-0033). A record set now also carries the version that
+#: wrote it, which is what lets an unstamped one say "written before this" rather than passing for a
+#: deposit that publishes no originals — so the stamp only means anything if this constant moves.
+IO_VERSION = "2026.8.0"
 
 __all__ = [
     "IO_VERSION",

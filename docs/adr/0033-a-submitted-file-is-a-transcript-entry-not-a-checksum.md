@@ -38,10 +38,13 @@ hash is over the FASTQ **ENA generated**, SRA's is over the **submitter's own up
 that was never normalized, never regenerated, and never had its technical read dropped. That makes it
 the more valuable of the two identities, not a duplicate of one we hold.
 
-**We already send people to a second API for a fact we threw away.** Four sites name the
+**We already send people to a second API for a fact we threw away.** Five sites name the
 `sra-pub-src-*` buckets as somewhere the originals "may exist via the SRA Data Locator / SDL API" —
-`io.remote.technical_read_remedy`, the `PRETRIMMED_VARIABLE_LENGTH` and `MISSING_TECHNICAL_READ`
-remedies in `resolve/escalate.py`, and the unfilled-role blocker in `manifest/validate.py`. The
+`io.remote.technical_read_remedy`, the `PRETRIMMED_VARIABLE_LENGTH`, `MISSING_TECHNICAL_READ` and
+`BARCODE_READ_ABSENT` remedies in `resolve/escalate.py`, and the unfilled-role blocker in
+`manifest/validate.py`. (The first count of them said four; the fifth turned up while the other four
+were being repaired, which is the argument for repairing all of one sentence at once rather than the
+instances that prompted the ticket.) The
 efetch package we already fetch, parse and cache names the bucket outright, per run, with the
 `access_type` attached. A remedy that says *go query SDL and hope* is worse than one that says *the
 record you already have lists it*.
@@ -63,7 +66,7 @@ path ever hashes a local file to compare against it.**
 | **`submitted_files`** | replaces `filenames` as the *stored* field: `SubmittedFile(filename, md5, size_bytes, uri)`. `filenames` survives as a **derived property** over it, so nothing stores the same names twice and the join keeps its shape |
 | **the md5** | an **address** over the bytes at `uri`, adopted via `content_key_from_md5` if those bytes are ever fetched. Never computed, never verified, never compared against a local file |
 | **the size** | **checks, never joins.** Where `_join` matched a file by the submitter's filename, a size disagreement is a `Warning`; a size never *creates* a join, because the archive supplied a fact and matching on a coincidence would be a guess over it |
-| **the uri** | printed where the record set is in hand — `io records`, and the record-join blocker. The four byte-side remedies point at that verb and never carry the value |
+| **the uri** | printed where the record set is in hand — `io records`, and the record-join blocker. The five remedies point at that verb and never carry the value |
 | **a record set** | carries the stamp of the version that wrote it, so a cache predating this is distinguishable from a deposit that legitimately publishes no originals — most do |
 | **ENA** | `submitted_md5` joins the requested field list and surfaces in `io resolve`. Same concept, same word, one surface earlier |
 
@@ -84,8 +87,9 @@ what that would have caught, from `stat()`, for nothing.
 
 ## Why not name the URI in the remedy that needs it
 
-Three of the four sites are byte-side. `score(Observation, KB, hypo?)` decides what a library is from
-bytes alone; records enter at `resolve_metadata` and nowhere else. Threading an `ArchiveRecordSet`
+Not one of the five holds a record set, and three of them are inside the byte resolver where one may
+never arrive. `score(Observation, KB, hypo?)` decides what a library is from bytes alone; records
+enter at `resolve_metadata` and nowhere else. Threading an `ArchiveRecordSet`
 into `resolve/escalate.py` or `manifest/validate.py` buys a better sentence — the exact `s3://` URI,
 in the blocker that made you want it — at the price of the split the compiler is built on, and it
 would be bought quietly, as a parameter with a default. The pointer costs the reader one command and
@@ -118,11 +122,36 @@ second read path to write one in. The join this record re-shapes is held by
 `test_the_original_filenames_join_when_the_accession_is_gone` (`tests/test_records.py`), which must
 keep passing *through the derived property*, unchanged: if it needs editing, the property is wrong.
 
-**Three gates do not exist yet, and are conditions of the change rather than follow-ups:** a parse
-case proving `md5`, `size_bytes` and `uri` survive from both archive fixtures on hand; a stale-cache
-case proving a record set written without the stamp refuses with the re-fetch remedy rather than with
-"the record declares no such filenames"; and a size-disagreement case proving the `Warning` fires on a
-filename-made join and stays silent on an accession-made one.
+The three gates this record was written demanding now exist. In `tests/test_archive.py`, the parse is
+held by `test_every_submitted_file_carries_the_md5_size_and_uri_beside_its_name` and
+`test_the_submitted_files_are_the_uploads_and_not_sras_own_normalized_products`, both driving the real
+parse over committed archive bytes rather than a hand-built string; the rename is held by
+`test_the_filenames_property_returns_what_the_stored_field_no_longer_duplicates`, and the stamp by
+`test_a_freshly_fetched_record_set_carries_the_version_that_wrote_it` with
+`test_a_record_set_written_before_submitted_files_loads_and_reads_as_unstamped`. In
+`tests/test_records.py`, `test_an_unstamped_record_set_that_cannot_join_names_the_re_fetch` and
+`test_a_stamped_set_that_declares_no_originals_still_blames_neither_side` are the two halves of the
+distinction the stamp exists for, and the size rule is pinned from four sides:
+`test_a_size_the_record_disagrees_with_warns_on_a_filename_made_join`,
+`test_a_size_disagreement_is_silent_where_the_accession_made_the_join`,
+`test_a_record_declaring_no_size_says_nothing_about_the_one_on_disk` and
+`test_a_size_disagreement_never_blocks_and_never_unmakes_the_join`.
+
+**The pointer-never-a-value rule is the one worth a named guard**, since the tempting version of the
+mistake compiles: `test_both_remedies_for_a_missing_original_point_at_the_records_verb_not_a_second_api`
+(`tests/test_resolve.py`) asserts each remedy names the verb, keeps the bucket, and carries no run
+accession — a remedy that grew a URI would have to grow an accession first, and that is what fails.
+`test_barcode_absent_refusal_abstains_when_a_sibling_barcoded_leaf_hits` holds the fifth site the same
+way. `test_the_filereport_asks_ena_for_the_submitted_md5_beside_its_siblings` (`tests/test_remote.py`)
+holds the ENA half, and `test_io_records_prints_each_submitted_files_md5_size_and_uri`
+(`tests/test_cli.py`) holds the one place the concrete URI is allowed to appear.
+
+**What nothing pins: the hash.** `dataset_hash` was measured identical across this change on the
+suite's deterministic synthetic build, which is how the claim below was checked rather than assumed —
+but no test compares a hash to a value from before a release, and
+`test_dataset_hash_is_invariant_across_a_processing_sweep` pins invariance across *recipes*, not
+across versions. A future change that did move the hash would go unnoticed here; noticing it would
+take a committed expected hash per benchmark case, which the corpus deliberately does not carry.
 
 ## Consequences
 

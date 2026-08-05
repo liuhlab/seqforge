@@ -36,7 +36,7 @@
           "text": "Eosinophils, traditionally associated with allergic responses, have emerged as critical immune modulators in colorectal cancer (CRC). Here, we reveal that eosinophils actively shape the tumor microenvironment and influence metastatic progression. Using comprehensive transcriptomics analysis of human CRC and a murine orthotopic tumor model, we identify a conserved tumor-specific eosinophil signature and activation profile. Despite their declining presence in advanced CRC, eosinophils suppress metastatic dissemination by counteracting the pro-tumorigenic functions of SPP1+ macrophages \u00e2\u0080\u0093 a subset linked to immune exclusion and tumor metastasis. Mechanistically, eosinophils respond to tumor-derived signals and inhibit macrophage differentiation into SPP1+ cells. Eosinophil depletion exacerbates peritoneal tumor spread. These findings highlight the pivotal role of eosinophils in restraining late-stage CRC progression and unveil a novel eosinophil\u00e2\u0080\u0093macrophage axis as potential therapeutic targets. Overall design: Immune cells from biopsies of late-stage CRC patients were collected and analysed using the BD Rhapsody pipeline with a specific interest in eosinophils. To validate our findings and to conduct further testing scRNASeq was also performed from mouse models of late stage CRC with and without eosinophil depletion. *************************************************************** Raw files for human/patient samples were not submitted to GEO due to concerns about submitting personally identifiable sequence data for open access. ***************************************************************"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -122,7 +122,7 @@
           "text": "GSM9270243"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -168,7 +168,7 @@
           "text": "GSM9270243"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -181,9 +181,13 @@
           "text": "GSM9270243_r1"
         }
       ],
-      "filenames": [
-        "Colon_Crod_Mm_WTA_S5_R1_001.fastq.gz",
-        "Colon_Crod_Mm_WTA_S5_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "Colon_Crod_Mm_WTA_S5_R1_001.fastq.gz"
+        },
+        {
+          "filename": "Colon_Crod_Mm_WTA_S5_R2_001.fastq.gz"
+        }
       ]
     }
   ]

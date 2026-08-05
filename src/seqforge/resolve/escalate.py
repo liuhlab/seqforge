@@ -319,10 +319,16 @@ def _pretrimmed_blockers(
                     f"ran before upload, so barcode/UMI offsets may have shifted — counts would be "
                     f"silently wrong."
                 ),
+                # Naming the bucket is a lead; naming the verb that prints its URI is an
+                # instruction. `seqforge io records <accession>` lists the submitter's own uploads
+                # out of the record set the records stage already fetched. The pointer stays a
+                # pointer: this gate is handed an evaluation and a spec, and threading a record set
+                # in to print the concrete URI would put archive facts inside the byte resolver
+                # (`docs/adr/0033`).
                 remedy=(
-                    "Re-fetch the untrimmed original (SRA's sra-pub-src-* buckets preserve the "
-                    "submitter's files), or confirm the technical read was excluded from trimming "
-                    "and re-probe."
+                    "Re-fetch the untrimmed original — `seqforge io records <accession>` lists the "
+                    "submitter's own uploads, each with the `sra-pub-src-*` URI SRA preserves them "
+                    "at — or confirm the technical read was excluded from trimming and re-probe."
                 ),
                 subject=BlockerSubject(kind="file", ref=ref),
                 evidence=[obs.file.sha256],
@@ -365,10 +371,15 @@ def _barcodeless_seated_blocker(
             "barcode read matches the chemistry's whitelist only at chance. STARsolo would report "
             "near-zero valid barcodes and exit 0 with an empty matrix."
         ),
+        # The fifth site saying "go ask SDL", and the one ADR-0033 did not enumerate — found by
+        # implementing the other four. Leaving it would be worse than never touching any of them: a
+        # reader who hit two of these would get two different answers to the same question, and the
+        # stale one names the route that only *might* have the file over the one already on disk.
         remedy=(
             "Confirm the barcode/technical read was included — SRA drops it unless dumped with "
-            "`fasterq-dump --include-technical`; re-fetch the original submitted files "
-            "(`sra-pub-src-*` via the SDL API) if it was stripped, then re-probe."
+            "`fasterq-dump --include-technical`. If it was stripped, go back for the submitter's own "
+            "upload: `seqforge io records <accession>` lists what the deposit declares, each file "
+            "with its `sra-pub-src-*` URI. Then re-probe."
         ),
         subject=BlockerSubject(kind="dataset", ref=top.tech),
     )
@@ -452,6 +463,11 @@ def _missing_technical_read(hyp_tech: str) -> Blocker:
     :func:`_barcodeless_subset_blocker`), because the defect and the remedy are one: the read is not
     in the archive's read space, and the human has to go back for the submitter's own files. Two
     copies of that sentence would be two remedies to keep true.
+
+    It says ``<accession>`` and not the run's — deliberately. The exact ``s3://sra-pub-src-*`` URI is
+    two lines away in an ``ArchiveRecordSet``, and taking it would mean records reaching a decision
+    that is made from bytes alone; `docs/adr/0033` argues the trade and refuses it, naming the
+    parameter-with-a-default as the shape it would arrive in. The reader pays one command instead.
     """
     return Blocker(
         id=f"blk-missing-technical-{hyp_tech}",
@@ -461,8 +477,9 @@ def _missing_technical_read(hyp_tech: str) -> Blocker:
             "absent — only a cDNA-shaped read is present."
         ),
         remedy=(
-            "Re-fetch with `fasterq-dump --include-technical`, or pull the original submitted "
-            "files `sra-pub-src-*` via the SRA Data Locator / SDL API."
+            "Re-fetch with `fasterq-dump --include-technical`, or go back for the submitter's own "
+            "upload: `seqforge io records <accession>` lists what the deposit declares, each file "
+            "with its `sra-pub-src-*` URI. The SDL API reaches those same bytes by another route."
         ),
         subject=BlockerSubject(kind="dataset", ref=hyp_tech),
     )

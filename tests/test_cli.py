@@ -1592,7 +1592,7 @@ def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
 
 def _twin_records(n: int, *, prose: str = "whole worm, day3") -> object:
     """N sample records whose documents differ only in their accessions, plus their runs."""
-    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, SubmittedFile
 
     records = [ArchiveRecord(level="project", accession="PRJNA9")]
     for i in range(1, n + 1):
@@ -1609,7 +1609,7 @@ def _twin_records(n: int, *, prose: str = "whole worm, day3") -> object:
                 level="run",
                 accession=f"SRR{i}",
                 parent=f"SRX{i}",
-                filenames=[f"{accession}_1.fastq.gz"],
+                submitted_files=[SubmittedFile(filename=f"{accession}_1.fastq.gz")],
             ),
         ]
     return ArchiveRecordSet(source="test", query="PRJNA9", records=records)
@@ -1691,7 +1691,7 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
     f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
     write_fastq_gz(f1, reads["R1"])
     write_fastq_gz(f2, reads["R2"])
-    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, SubmittedFile
 
     records_path = tmp_path / "records.json"
     records_path.write_text(
@@ -1708,7 +1708,7 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
                     level="run",
                     accession="SRR1",
                     parent="SAMN1",
-                    filenames=[f1.name, f2.name],
+                    submitted_files=[SubmittedFile(filename=n) for n in (f1.name, f2.name)],
                 ),
             ],
         ).model_dump_json()
@@ -1725,3 +1725,92 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
     assert json.loads(with_records.stdout)["stages"]["harvest"] == {
         "skipped": "--no-llm: documents were not read"
     }, "records ARE prose, so the stage exists and says why it did not run"
+
+
+# ---------------------------------------------------------------------------------------------
+# The submitted-file transcript where a HUMAN meets it (ADR-0033). Four remedies now point at
+# `io records`, so what that verb prints is a contract: if the `sra-pub-src-*` URI does not come
+# out here, every one of those pointers dead-ends.
+# ---------------------------------------------------------------------------------------------
+
+
+def _one_submitted_run() -> object:
+    """A record set of one run declaring one submitted file, with all four fields populated.
+
+    The values are ADR-0033's own worked example, so a reader can put the printed JSON next to the
+    `<SRAFile>` element it came from.
+    """
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
+
+    return ArchiveRecordSet(
+        source="ncbi-sra+biosample",
+        query="SRR19886090",
+        records=[
+            ArchiveRecord(
+                level="run",
+                accession="SRR19886090",
+                submitted_files=[
+                    SubmittedFile(
+                        filename="NasalProx1_270_2.fastq.gz",
+                        md5="993e02dd8079b30a23285828a8ee9982",
+                        size_bytes=28543057,
+                        uri="s3://sra-pub-src-15/SRR19886090/NasalProx1_270_2.fastq.gz.1",
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def test_io_records_prints_each_submitted_files_md5_size_and_uri(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The one surface where the concrete bucket URI reaches a person.
+
+    The blockers that send people here cannot carry it — they are byte-side, and a record set does
+    not enter `score` (ADR-0033) — so this verb is the whole of that pointer's payoff. Printing the
+    filename alone would leave a reader exactly where the old "may exist via the SDL API" left them.
+    """
+    import seqforge.io.archive as archive
+
+    monkeypatch.setattr(archive, "fetch_records", lambda _acc: _one_submitted_run())
+
+    result = runner.invoke(app, ["io", "records", "SRR19886090", "-C", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout
+    out = json.loads(result.stdout)
+    assert out["submitted_files"] == [
+        {
+            "run": "SRR19886090",
+            "filename": "NasalProx1_270_2.fastq.gz",
+            "md5": "993e02dd8079b30a23285828a8ee9982",
+            "size_bytes": 28543057,
+            "uri": "s3://sra-pub-src-15/SRR19886090/NasalProx1_270_2.fastq.gz.1",
+        }
+    ]
+
+
+def test_a_freshly_fetched_record_set_is_stamped_and_one_off_disk_keeps_what_it_had(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`manifest fill --accession` merges fresh records into a set of its own, and it wrote no stamp.
+
+    An unstamped set means "written before submitted files existed", which is why a run declaring
+    none can still be trusted to publish none (ADR-0033) — so a set assembled around records fetched
+    a second ago must say so, or the freshest possible fetch reads as the stalest possible cache.
+    `--records`, by contrast, hands back what is on disk: re-stamping a file this process did not
+    fetch would forge the signature the staleness check reads.
+    """
+    import seqforge.io.archive as archive
+    from seqforge.cli import manifest as m
+    from seqforge.io import IO_VERSION
+
+    monkeypatch.setattr(archive, "fetch_records", lambda _acc: _one_submitted_run())
+
+    fetched = m._load_records(["SRR19886090"], None, offline=False)
+    assert fetched is not None and fetched.io_version == IO_VERSION
+
+    stale = tmp_path / "records.json"
+    stale.write_text(_one_submitted_run().model_dump_json())  # type: ignore[attr-defined]
+    loaded = m._load_records([], stale, offline=False)
+    assert loaded is not None and loaded.io_version is None

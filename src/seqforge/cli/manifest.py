@@ -553,11 +553,15 @@ def _load_records(
     those facts, and a manifest is content-addressed and never rewritten, so quietly omitting them
     would bake the omission in.
     """
+    from ..io import IO_VERSION
     from ..io.archive import fetch_records
     from ..io.remote import RemoteError
     from ..models.records import ArchiveRecordSet
 
     if records_path is not None:
+        # Whatever stamp this file was written with, it keeps: re-stamping a set this process did
+        # not fetch would forge the signature the staleness check reads, and a set predating
+        # submitted files is exactly what the check exists to spot.
         return ArchiveRecordSet.model_validate_json(records_path.read_text())
     if not accessions:
         return None
@@ -570,8 +574,14 @@ def _load_records(
     merged: list[Any] = []
     for acc in accessions:
         merged.extend(fetch_records(acc).records)
+    # Re-assembling several fetches into one set drops the stamp `fetch_records` put on each of them,
+    # and an unstamped set means "written before submitted files existed" — so without this the
+    # freshest possible fetch reads as the stalest possible cache. Same carry as `cli/run.py`'s merge.
     return ArchiveRecordSet(
-        source="ncbi-sra+biosample", query=", ".join(accessions), records=merged
+        source="ncbi-sra+biosample",
+        query=", ".join(accessions),
+        records=merged,
+        io_version=IO_VERSION,
     )
 
 

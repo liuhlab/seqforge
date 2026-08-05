@@ -36,7 +36,7 @@
           "text": "We performed single-cell transcriptional profiling of Caenorhabditis elegans embryos to benchmark CONCORD, a dimensionality reduction and data integration framework for single-cell analysis. This dataset complements previously published late-stage embryogenesis transcriptomic studies by enriching for early-stage embryos through low-temperature culture conditions, enabling construction of a comprehensive, continuous map of the full embryogenesis process. Overall design: Wildtype N2 worms were grown on NGM plates and synchronized by bleaching. Eggs hatched on 10-cm plates and grown until L3/L4 stage. Then, plates were transferred to a 12\u00c2\u00b0C and incubated for 48 h. Adult worms were lysed by bleaching, and embryos were dissociated into single cells. Cells were loaded onto a Chromium GEM-X chip, libraries were prepared following the 10x Genomics protocol."
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "sample",
@@ -110,7 +110,7 @@
           "text": "GSM9161260"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "experiment",
@@ -156,7 +156,7 @@
           "text": "GSM9161260"
         }
       ],
-      "filenames": []
+      "submitted_files": []
     },
     {
       "level": "run",
@@ -169,11 +169,19 @@
           "text": "GSM9161260_r1"
         }
       ],
-      "filenames": [
-        "N2_S11_L003_I1_001.fastq.gz",
-        "N2_S11_L003_I2_001.fastq.gz",
-        "N2_S11_L003_R1_001.fastq.gz",
-        "N2_S11_L003_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "N2_S11_L003_I1_001.fastq.gz"
+        },
+        {
+          "filename": "N2_S11_L003_I2_001.fastq.gz"
+        },
+        {
+          "filename": "N2_S11_L003_R1_001.fastq.gz"
+        },
+        {
+          "filename": "N2_S11_L003_R2_001.fastq.gz"
+        }
       ]
     }
   ]

@@ -133,7 +133,12 @@ from __future__ import annotations
 #: so CB/UMI are tags and no dump flag recovers them) is cached as a question whose offered answer is
 #: `bulk-rnaseq`, one human "yes" away from a gene-count matrix for a library nobody could barcode.
 #: `dataset_hash` does not fold this stamp, so no stored manifest moves.
-RESOLVE_VERSION = "2026.8.7"
+#: 2026.8.8 — the metadata resolver reads the size an archive declares for a submitted file. Where a
+#: file was joined by that declared filename it *claims to be* that upload, so a size disagreement is
+#: new advisory output (a truncated download, or a different file renamed into place); a size never
+#: makes or breaks a join, and this stage still only warns (ADR-0010, ADR-0033). `dataset_hash` does
+#: not fold this stamp — no stored manifest moves, and none of this reaches one.
+RESOLVE_VERSION = "2026.8.8"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

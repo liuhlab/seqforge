@@ -23,7 +23,7 @@
           "value": "2020-08-23"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -83,7 +83,7 @@
           "value": "whole-organism"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -139,7 +139,7 @@
           "value": "whole-organism"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -177,7 +177,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -227,7 +227,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -277,7 +277,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -327,7 +327,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -377,7 +377,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -427,7 +427,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -452,10 +452,16 @@
     {
       "accession": "SRR12575567",
       "attributes": [],
-      "filenames": [
-        "N2_PTM299_2_S1_L004_I1_001.fastq.gz",
-        "N2_PTM299_2_S1_L004_R1_001.fastq.gz",
-        "N2_PTM299_2_S1_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "N2_PTM299_2_S1_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "N2_PTM299_2_S1_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "N2_PTM299_2_S1_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -469,10 +475,16 @@
     {
       "accession": "SRR12575568",
       "attributes": [],
-      "filenames": [
-        "XQTL_F4_N2PTM299_L2_5_S6_L004_I1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_5_S6_L004_R1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_5_S6_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_5_S6_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_5_S6_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_5_S6_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -486,10 +498,16 @@
     {
       "accession": "SRR12575569",
       "attributes": [],
-      "filenames": [
-        "XQTL_F4_N2PTM299_L2_4_S5_L004_I1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_4_S5_L004_R1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_4_S5_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_4_S5_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_4_S5_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_4_S5_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -503,10 +521,16 @@
     {
       "accession": "SRR12575570",
       "attributes": [],
-      "filenames": [
-        "XQTL_F4_N2PTM299_L2_3_S4_L004_I1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_3_S4_L004_R1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_3_S4_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_3_S4_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_3_S4_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_3_S4_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -520,10 +544,16 @@
     {
       "accession": "SRR12575571",
       "attributes": [],
-      "filenames": [
-        "XQTL_F4_N2PTM299_L2_2_S3_L004_I1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_2_S3_L004_R1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_2_S3_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_2_S3_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_2_S3_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_2_S3_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -537,10 +567,16 @@
     {
       "accession": "SRR12575572",
       "attributes": [],
-      "filenames": [
-        "XQTL_F4_N2PTM299_L2_1_S2_L004_I1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz",
-        "XQTL_F4_N2PTM299_L2_1_S2_L004_R2_001.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_1_S2_L004_I1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz"
+        },
+        {
+          "filename": "XQTL_F4_N2PTM299_L2_1_S2_L004_R2_001.fastq.gz"
+        }
       ],
       "free_text": [
         {

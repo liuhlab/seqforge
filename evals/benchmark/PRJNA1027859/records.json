@@ -23,7 +23,7 @@
           "value": "2023-10-13"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "study_title",
@@ -95,7 +95,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -163,7 +163,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -231,7 +231,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -299,7 +299,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -367,7 +367,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -435,7 +435,7 @@
           "value": "Neurons"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "sample_alias",
@@ -473,7 +473,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -523,7 +523,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -573,7 +573,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -623,7 +623,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -673,7 +673,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -723,7 +723,7 @@
           "value": "Illumina NovaSeq 6000"
         }
       ],
-      "filenames": [],
+      "submitted_files": [],
       "free_text": [
         {
           "label": "experiment_title",
@@ -748,9 +748,13 @@
     {
       "accession": "SRR28716553",
       "attributes": [],
-      "filenames": [
-        "2562__daf-2_R3_library-read-1.fastq.gz",
-        "2562__daf-2_R3_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2562__daf-2_R3_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2562__daf-2_R3_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -764,9 +768,13 @@
     {
       "accession": "SRR28716554",
       "attributes": [],
-      "filenames": [
-        "2495__daf-2_R2_library-read-1.fastq.gz",
-        "2495__daf-2_R2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2495__daf-2_R2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2495__daf-2_R2_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -780,9 +788,13 @@
     {
       "accession": "SRR28716555",
       "attributes": [],
-      "filenames": [
-        "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz",
-        "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2235__daf-2_neuron_nuclei_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2235__daf-2_neuron_nuclei_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -796,9 +808,13 @@
     {
       "accession": "SRR28716556",
       "attributes": [],
-      "filenames": [
-        "2562__Wild-type_R3_library-read-1.fastq.gz",
-        "2562__Wild-type_R3_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2562__Wild-type_R3_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2562__Wild-type_R3_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -812,9 +828,13 @@
     {
       "accession": "SRR28716557",
       "attributes": [],
-      "filenames": [
-        "2495__wild-type_R2_library-read-1.fastq.gz",
-        "2495__wild-type_R2_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2495__wild-type_R2_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2495__wild-type_R2_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {
@@ -828,9 +848,13 @@
     {
       "accession": "SRR28716558",
       "attributes": [],
-      "filenames": [
-        "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz",
-        "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz"
+      "submitted_files": [
+        {
+          "filename": "2235__N2_wild_type_neuron_nuclei_library-read-1.fastq.gz"
+        },
+        {
+          "filename": "2235__N2_wild_type_neuron_nuclei_library-read-4.fastq.gz"
+        }
       ],
       "free_text": [
         {

@@ -137,9 +137,16 @@ def validate_manifest(
                     id=f"blk-unfilled-{role}",
                     code=BlockerCode.MISSING_TECHNICAL_READ,
                     message=f"the declared layout needs read {role!r}, but no file fills it.",
+                    # A validator holds a manifest and nothing else — no accession, no record set —
+                    # so the remedy names the verb that does hold one rather than the URI it would
+                    # print. That is the pointer `docs/adr/0033` asks for, and it is also all this
+                    # function could honestly carry: a manifest names no host and no absolute path,
+                    # so there is no local answer here to bake in even if we wanted one.
                     remedy=(
-                        "Re-fetch with `fasterq-dump --include-technical`, or pull the original "
-                        "submitted files `sra-pub-src-*` via the SRA Data Locator / SDL API."
+                        "Re-fetch with `fasterq-dump --include-technical`, or go back for the "
+                        "submitter's own upload: `seqforge io records <accession>` lists what the "
+                        "deposit declares, each file with its `sra-pub-src-*` URI. The SDL API "
+                        "reaches those same bytes by another route."
                     ),
                     subject=BlockerSubject(kind="field", ref=f"library.read_layout.{role}"),
                 )
