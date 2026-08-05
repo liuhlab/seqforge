@@ -23,13 +23,13 @@ Numbers only; the table below carries the links.
 | area | ADRs |
 | --- | --- |
 | `src/seqforge/cli/` | 0013, 0018 |
-| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029 |
+| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021, 0028 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018 |
 | `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029 |
-| `src/seqforge/manifest/` | 0003, 0004, 0005, 0012 |
-| `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023 |
+| `src/seqforge/manifest/` | 0003, 0004, 0005, 0012, 0030 |
+| `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023, 0030 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029 |
@@ -72,3 +72,4 @@ Numbers only; the table below carries the links.
 | [0027](0027-a-run-spans-its-lanes.md) | A run spans its lanes, and filenames group no further | `run_key` strips `_L` + exactly three digits and nothing else — never `_S<n>`, never conditioned on the directory — and the lane survives in `units.tsv` to order a run's files identically for every mate | `resolve/group.py`, `compose/core.py`, `workflows/units.py`, `workflows/map/` |
 | [0028](0028-specificity-not-verbosity-ranks-a-chemistry-match.md) | Specificity, not verbosity, ranks a chemistry match | A form that only describes a run is declared as one and never outranks a chemistry's own name; tokens then entailment settle the rest, and every component reads only the two strings | `kb/match.py`, `kb/schema.py`, `kb/specs/`, `harvest/extract.py` |
 | [0029](0029-a-spec-declares-read-sets-not-a-fixed-read-list.md) | A spec declares read sets, not a fixed read list | `reads` is the maximal set and `read_sets` names subsets of its ids, so one chemistry covers the paired-end and single-end configurations its protocol publishes; every set is complete, so role assignment stays injective and total | `kb/schema.py`, `kb/specs/`, `resolve/scoring.py`, `resolve/geometry.py`, `compose/core.py`, `workflows/` |
+| [0030](0030-a-measurement-lives-in-provenance.md) | A measurement the dataset's identity must exclude lives in provenance | Per-file read counts keyed by sha256, on every manifest and outside every hash; the threshold over them is applied at compose under the live KB and never frozen into the write-once manifest as a verdict | `models/dataset.py`, `manifest/fill.py`, `manifest/hash.py`, `compose/` |
