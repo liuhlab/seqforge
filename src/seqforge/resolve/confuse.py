@@ -14,6 +14,12 @@ along, and it makes the rule **stronger**, not weaker: two specs differing only 
 no longer distinguishable here, because that difference is no longer a chemistry fact at all. It is
 the processing manifest's to make, per dataset.
 
+The other half of this module is the **rung-0-2** side of the same contract: whether the cheap probes
+can order two chemistries at all. ``accepts_at_rungs_0_2`` answers "would this spec claim that data",
+``could_outrank_at_rungs_0_2`` answers "could it WIN that data", and the CI under-declaration guard
+asks the second — the danger a `confusable_with` edge exists to avert is an ordering claim, not a
+feasibility one (#275; ADR-0029, the read-set record).
+
 **List order is significant** and is never normalized; see :func:`_resolve_value`.
 """
 
@@ -109,8 +115,10 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
     ratios and header grammar alone. That is precisely rungs 0-2, expressed by removing the
     rung-3 evidence rather than by reimplementing the scorer without it.
 
-    This is the primitive behind :func:`rung02_separable`, and it is why "ask the human" can be a
-    computed property instead of a prompt hope.
+    This is the primitive behind :func:`rung02_separable` and the *feasibility* half of
+    :func:`could_outrank_at_rungs_0_2`, and it is why "ask the human" can be a computed property
+    instead of a prompt hope. It is no longer the under-declaration guard's whole question: claiming
+    the data and being able to WIN it are two facts, and only the second is a danger.
     """
     from ..io import OnlistRegistry
     from .scoring import build_tech_evaluation
@@ -118,6 +126,70 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
 
     wps = [p for p in probes if isinstance(p, WindowProbe)]
     return build_tech_evaluation(spec, wps, OnlistRegistry(offline=True)).valid
+
+
+def rung02_margin(a: Spec, b: Spec, b_probes: Iterable[object]) -> float | None:
+    """``a``'s rung-0-2 score minus ``b``'s, both measured on ``b``'s OWN reads. ``None`` if ``a``
+    scores nothing there (no valid injective assignment — an unscorable spec ranks nowhere).
+
+    Positive means the challenger ``a`` beats the incumbent ``b`` on the incumbent's home ground,
+    which is the number the under-declaration guard is really about; the guard's threshold on it is
+    :func:`could_outrank_at_rungs_0_2`. Exposed separately because the *margin* is what an author has
+    to be able to re-derive: a `confusable_with` edge that survives only by 0.001 of synthetic score
+    is a different claim from one that survives by 0.45, and neither is legible from a boolean.
+
+    Both sides are scored against the same probes with the onlist withheld — an empty offline
+    registry, exactly as :func:`accepts_at_rungs_0_2` withholds it. Withholding it from BOTH is what
+    makes the comparison fair rather than rigged: rung-3 evidence is precisely what a
+    ``distinguishable_by: [onlist]`` edge promises will separate the pair later, so letting the
+    incumbent keep its whitelist here would answer the question the edge exists to ask.
+    """
+    from ..io import OnlistRegistry
+    from .scoring import build_tech_evaluation
+    from .window import WindowProbe
+
+    wps = [p for p in b_probes if isinstance(p, WindowProbe)]
+    registry = OnlistRegistry(offline=True)
+    challenger = build_tech_evaluation(a, wps, registry)
+    if not challenger.valid:
+        return None
+    # `.value` is -inf for a forbidden incumbent, so a spec that cannot score its own synthetic reads
+    # loses to every valid challenger — which is the honest ordering, and a KB defect the round-trip
+    # and `test_a_spec_is_length_feasible_against_its_own_reads` catch first.
+    return challenger.value - build_tech_evaluation(b, wps, registry).value
+
+
+def could_outrank_at_rungs_0_2(a: Spec, b: Spec, b_probes: Iterable[object]) -> bool:
+    """Could ``a`` come out on top of ``b`` on ``b``'s OWN data, using the cheap probes alone?
+
+    The under-declaration guard's question, and it is an **ordering** one. It used to be a *validity*
+    one (:func:`accepts_at_rungs_0_2`), which was a sound proxy for danger only while every spec
+    consumed every file: a spec that seats every role somewhere and orphans nothing scores near the
+    top by construction, so "valid" and "could win" were one fact wearing two names. A spec that
+    consumes FEWER files breaks the identity — the leftover penalty is ``λ/|R|`` per orphaned file,
+    so it bites harder the fewer roles the assignment has, and a one-role fallback seated on any
+    long-enough cDNA read is *valid* against nearly every leaf in the KB while scoring far below all
+    of them. Left as validity, the guard would demand an edge from that fallback to almost
+    everything: honest boilerplate, and a gate that flags everything discriminates nothing — the
+    defect this prevents is a guard decaying into a formality nobody reads (#275, ADR-0029).
+
+    **Danger, stated exactly:** on ``b``'s own reads the cheap probes do not put ``a`` DECISIVELY
+    below ``b``. "Decisively" is not a new number invented here — it is ``escalate``'s own tie
+    threshold, the same θ that decides at runtime whether a candidate joins the tie set and gets
+    asked about at all. A second copy of that constant would drift, and the copy that drifts is the
+    one CI reads, so it is imported rather than restated. Above the band ``a`` is the winner the
+    resolver hands back; inside it ``a`` and ``b`` are one tie the cheap rungs cannot order, and the
+    KB is where "reach for the onlist or a human" has to be written down.
+
+    ``a`` must still produce a valid assignment to rank at all, so this predicate **implies**
+    :func:`accepts_at_rungs_0_2`. Every necessary condition of that one therefore remains a sound
+    skip for this one — in particular ``geometry.geometry_could_accept``, which the guard uses to
+    avoid scoring length-infeasible pairs.
+    """
+    from .escalate import _THETA  # the resolver's tie band, not a second copy of it
+
+    margin = rung02_margin(a, b, b_probes)
+    return margin is not None and margin >= -_THETA
 
 
 def rung02_separable(
