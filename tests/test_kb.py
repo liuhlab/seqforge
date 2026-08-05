@@ -1386,10 +1386,20 @@ def test_a_family_node_recognizes_its_children_and_no_one_else(kb_probes: KbProb
 #: **Empty, and it took shipping a whitelist to empty it.** `splitseq` sat here: it declared three
 #: barcode whitelists and said of the one technology it is confusable with "rung 3 decides it: the
 #: round1/2/3 whitelists hit", while the three we shipped were all 10x's. The three weight-3.0 onlist
-#: tests abstained and the mechanism the spec called decisive could never fire. That failure was safe
-#: — it over-asks, it does not answer wrongly — which is exactly why it survived unnoticed: nothing
-#: was red, and every test that appeared to prove SPLiT-seq works built a synthetic registry from the
-#: spec's own aliases, proving the spec agrees with itself.
+#: tests went unconfirmed and the mechanism the spec called decisive could never fire. It survived
+#: unnoticed because nothing was red: every test that appeared to prove SPLiT-seq works built a
+#: synthetic registry from the spec's own aliases, proving only that the spec agrees with itself.
+#:
+#: **That failure is NOT safe, and this comment used to say it was** ("it over-asks, it does not
+#: answer wrongly"). Measured on reads built from the barcodes we now ship, `splitseq` with its three
+#: lists withheld scores **0.3300** against `bulk-rnaseq`'s **0.7800** on its own data — the onlist
+#: supports carry 9 of its 10 barcode-role weight and keep that weight when unconfirmed, deliberately
+#: (#307). At +0.45 the chemistry is far outside θ, so it never joins the tie set its own declared
+#: `confusable_with` edge would be consulted for, nothing asks, and the deposit compiles to a bulk
+#: gene-count matrix at exit 0. With all three shipped the same reads tie 0.7800/0.7800 and the edge
+#: routes the decision to the onlist, which hits. Over-asking is the safe failure; this is the other
+#: one. Recording a debt below is legitimate — an entry may land before its whitelist is derived —
+#: but it makes that chemistry LOSE SILENTLY TO BULK, not merely go unconfirmed (#321).
 #:
 #: The barcodes now ship, derived from the paper's own Supplementary Table S12 rather than guessed;
 #: `test_the_splitseq_rounds_are_one_barcode_set` pins what that derivation found.
