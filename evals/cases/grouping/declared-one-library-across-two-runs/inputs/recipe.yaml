@@ -1,0 +1,39 @@
+# Two libraries on one flowcell, ONE lane each, and a committed `records.yaml` that says the two are
+# one library. `deposit:` writes the files the way bcl2fastq names them,
+# `SIM_b<NN>_S<n>_L<lane>_<read>_001.fastq.gz`, so the four names group into exactly the two runs
+# `SIM_b01_S1` and `SIM_b02_S2` — and nothing in those names says they belong together.
+#
+# WHY ONE LANE AND NOT TWO, which is the only thing separating this recipe from its sibling
+# `record-less-two-libraries-two-lanes`. A lane already fuses: ADR-0027 takes `_L\d{3}` off the run
+# key, so two lanes of one library are one run before any record is read. Deposit two of them here
+# and a green case no longer says which mechanism did the fusing — the lane strip and the declared
+# `parent` would both be pulling in the same direction, and a `parent` that had stopped working
+# would still leave two samples rather than four. One lane per library means the ONLY thing that can
+# put these four files under one sample is the line a human typed.
+#
+# WHY BULK, and it is the sibling's argument unchanged: a barcoded spec's synthetic barcodes are
+# drawn from pools this case would have to register itself, and every real whitelist misses them —
+# which would turn a grouping case into a question about its own fixture's onlist. Bulk needs no
+# whitelist. The join reads filenames and records and is handed no probe signal at all (ADR-0010),
+# so the chemistry is chosen to be the cheapest one that decides from bytes and nothing more.
+#
+# WHY THE SAME CHEMISTRY IN BOTH LIBRARIES, deliberately. A sample spanning two chemistries is
+# already refused one layer down, so a fuse across them would be graded by that gate rather than by
+# this case. Same-chemistry-same-sample is the shape that passes every existing check, which is why
+# ADR-0034 makes the fuse a Warning and never a Blocker — and why it is the shape worth grading.
+#
+# `n` IS PER FILE, so 400 here is 1600 reads across four files. It is low on purpose and costs this
+# case nothing: bulk is decided by the distinct-ratio of two cDNA mates, a support 400 reads settle
+# exactly as `spec/bulk-pe-bytes-only`'s 3000 do, and the subject here is the record set.
+generate:
+  kind: spec
+  spec: bulk-rnaseq
+  n: 400
+  seed: 0
+  onlists: none
+  deposit:
+    libraries: 2
+    lanes: 1
+
+# No `hypothesis:`. Nothing here is steered — the bytes name the chemistry, and the RECORD SET names
+# the sample, which is the whole subject.

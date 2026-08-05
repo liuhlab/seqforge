@@ -1,0 +1,56 @@
+outcome: decide
+description: >-
+  A DECLARED GROUPING — the first case in either tier whose sample count comes from a file a human
+  wrote rather than from the filenames. Two libraries on one flowcell, one lane each, four files,
+  plus a committed `records.yaml` with `source: user` putting both runs under one sample: it must
+  resolve to ONE sample, and it must resolve to one at exit 0.
+
+  WHAT THIS GUARDS AGAINST, in the order the failures get quieter. A record set the corpus cannot
+  LOAD is the loud one: until #270 a case could commit a record set only under `records.json`, the
+  name `seqforge io records` writes, so a hand-written set was unloadable in the corpus and the
+  whole `source: user` dialect had no end-to-end case at all — this file is what says the one loader
+  really is on the case path. Below that, a set that loads and is not APPLIED: the join walks
+  `ancestor(run, "sample")`, and a sample record that is skipped, or a `parent` that resolves to the
+  run's own id, leaves two samples and looks exactly like success. Quietest of all, and the reason
+  ADR-0034 was written: the fuse is a Warning, so nothing here can refuse, and a compiler that
+  silently ignored this file would emit two half-depth `<sample>.h5ad` at exit 0 with every file
+  assigned a role and `validate` clean. That is the same class as #263 one level up, arrived at from
+  the opposite direction — there a rule split what belonged together, here a declaration that fails
+  to bind leaves it split.
+
+  ONE SAMPLE IS THE ONLY ANSWER THIS FILE CAN GET WRONG, which is what makes the count worth
+  grading. `experiment.n_samples: 1` is 2 under every failure above and is 1 under no accident: the
+  bytes cannot produce it, since the metadata resolver is handed a `FileIdentity` and never an
+  `Observation` (ADR-0010), and the filenames cannot produce it either — `_S<n>` is the sample-sheet
+  entry ADR-0027 deliberately keeps in the run key, because it separates two libraries on one
+  flowcell just as often as it marks a library resequenced for depth. The declaration is the only
+  thing in the case that can move the number.
+
+  WHY THIS SHAPE AND NOT ANOTHER. One lane per library, where the sibling case
+  `record-less-two-libraries-two-lanes` has two: a lane already fuses without any record, so a
+  two-lane deposit here would leave a green run unable to say which mechanism did it, and a `parent`
+  that had stopped binding would still show two samples rather than four. The two libraries share a
+  chemistry because a sample spanning two chemistries is refused a layer down — same-chemistry
+  same-sample is the one fuse nothing else catches, which is precisely why ADR-0034 makes it a note.
+  And the set declares no attributes, because a `source: user` set may not: `experiment.samples.*`
+  is therefore empty here whatever happens, and the count is the only sample claim this dataset can
+  make at all.
+
+  A COUNT AND NOT THE SAMPLE ID, even though the id here IS the one thing the record set chooses
+  (`lib01`, a grouping key and not a specimen). Pinning it in `fields` would pin the fixture's own
+  naming alongside the claim, and it does not travel: the id, the four-files-under-one-sample depth,
+  and the `declared_sample_fuses_runs` warning naming both fused runs are asserted in
+  `tests/test_evals.py::test_a_declared_record_set_fuses_two_runs_into_one_sample`, over the same
+  pass the harness grades — because a sample holding one run twice, or two files quietly lost on the
+  way in, would leave the count below intact and the depth wrong.
+
+  THE CONTROL IS A TEST AND NOT A SECOND CASE. `..._stays_two_samples`, beside it, runs this exact
+  recipe with the record set withheld and gets 2. As a corpus case it would be a byte-identical
+  deposit differing from this one by a single committed file, re-grading a record-less filename path
+  the sibling case already grades — the tier would pay a second compile to learn nothing new.
+
+  `library.chemistry` is here for the sibling's reason: it is what makes the run a decision rather
+  than a refusal, so a grouping claim is being made about a dataset the compiler actually compiled.
+fields:
+  library.chemistry: bulk-rnaseq
+  experiment.n_samples: 1

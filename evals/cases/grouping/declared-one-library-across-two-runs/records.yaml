@@ -1,0 +1,37 @@
+# A record set: which files compile together, and nothing else.
+#
+# `source: user` is the strict dialect, so this file may declare `level`, `id`, `parent` and
+# `filenames` and nothing else. It therefore says exactly one thing: `SIM_b01_S1` and `SIM_b02_S2`
+# are two sequencing batches of ONE library, so their four files compile into a single `lib01`
+# matrix. It says nothing about what `lib01` IS — a strain or a tissue typed here would have no
+# document to grep and no span to verify, and it would still outrank a harvested claim that has
+# both, permanently (ADR-0034). That is why there is no `attributes:` key anywhere below, and why a
+# loader accepting one would be broken rather than lenient.
+#
+# WHY A HUMAN HAS TO SAY IT. These two runs differ only in `_S<n>`, the sample-sheet entry — the one
+# token separating two libraries loaded on one flowcell, and also what a library resequenced for
+# depth comes back with. ADR-0027 keeps it in the run key, correctly, because no filename can tell
+# those two apart. Delete this file and the same four files compile as two half-depth samples at
+# exit 0, with nothing refusing and nothing warning.
+#
+# The run ids are `run_key`'s own output, which is what `seqforge records new` drafts, so the join
+# matches each file to its run by that key. `filenames` is carried anyway: it is what keeps the set
+# accountable for every file on disk, and a file no record claims is refused at the join rather than
+# half-applied.
+source: user
+query: declared-one-library-across-two-runs
+records:
+  - level: sample
+    id: lib01
+  - level: run
+    id: SIM_b01_S1
+    parent: lib01
+    filenames:
+      - SIM_b01_S1_L001_R1_001.fastq.gz
+      - SIM_b01_S1_L001_R2_001.fastq.gz
+  - level: run
+    id: SIM_b02_S2
+    parent: lib01
+    filenames:
+      - SIM_b02_S2_L001_R1_001.fastq.gz
+      - SIM_b02_S2_L001_R2_001.fastq.gz
