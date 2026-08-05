@@ -59,7 +59,6 @@ onlists:
 
 signature:
   requires:
-    - {test: read_count, roles: 2}
     - {test: motif_present, read: bc, motif: "GTGANNNNNNNNNGACA", where: window,
        search_start: 8, search_end: 13, max_mismatch: 2, min_rate: 0.5}
   supports:

@@ -47,7 +47,6 @@ onlists:
 
 signature:
   requires:                     # hard structural gates, rungs 0-2 friendly (NO distinct_ratio, NO onlist)
-    - {test: read_count, roles: 2}
     # length 28 stays exact for canonical reads; over_length_min 100 admits a full-length
     # over-sequenced R1 (>=100 bp: the run read length) without loosening 26-vs-28. A shorter
     # non-canonical read (a 60-94 bp cDNA or split-pool barcode) is below it, so it is still

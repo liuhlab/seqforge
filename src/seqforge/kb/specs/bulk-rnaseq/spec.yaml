@@ -34,8 +34,10 @@ reads:
 onlists: {}
 
 signature:
-  requires:
-    - {test: read_count, roles: 2}       # two reads, both biological; no barcode role to fill
+  # EMPTY, and honestly so: this entry is the fallback and gated nothing before either. Its only
+  # `requires` was `read_count`, which abstained on every input — the two-file demand comes from
+  # DECLARING two reads against a total, injective role assignment, never from a gate (ADR-0029).
+  requires: []
   supports:                              # diverse cDNA => high distinct-ratio (not a repeated barcode)
     - when: {test: distinct_ratio, read: R1, start: 0, end: 25, expect: high}
       weight: 2.0

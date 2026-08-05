@@ -118,7 +118,6 @@ signature:
   # three whitelists above correct and never consulted — while the round trip, whose reads have no
   # junk in them, stayed green throughout. Do not re-express these as a purity threshold.
   requires:                              # the two FIXED linkers are the structural signature
-    - {test: read_count, roles: 2}
     - {test: has_segment, read: bc, start: 18, end: 48, kind: constant}   # linker1
     - {test: has_segment, read: bc, start: 56, end: 86, kind: constant}   # linker2
   supports:                              # each round barcode hits its own small whitelist (width-generic 8 bp)
