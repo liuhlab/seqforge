@@ -253,7 +253,7 @@ def _untagged_diluent() -> Spec:
     return kb.load_spec(plain[0])
 
 
-def _outcome_at(
+def _evaluate_at(
     fraction: float,
     *,
     gate: MotifPresent,
@@ -266,8 +266,9 @@ def _outcome_at(
     """Evaluate ``gate`` over a population that is ``fraction`` tagged reads and the rest plain cDNA."""
     from seqforge.io import DEFAULT_REGISTRY
 
-    k = round(fraction * _FLOOR_N)
-    mixed = tagged[:k] + plain[: _FLOOR_N - k]
+    n = len(tagged)
+    k = round(fraction * n)
+    mixed = tagged[:k] + plain[: n - k]
     # Interleaved, because a real part-tagged library is: a file holding the tagged reads first would
     # be a population any bounded head could read as fully tagged.
     random.Random(0).shuffle(mixed)
@@ -317,7 +318,7 @@ def test_a_motif_gate_passes_above_the_floor_it_declares_and_fails_below_it(
     plain = kb.generate_reads(diluent, n=_FLOOR_N, seed=1)[diluent.reads[0].id]
 
     def measure(fraction: float) -> Evaluation:
-        return _outcome_at(
+        return _evaluate_at(
             fraction, gate=gate, spec=spec, read=read, tagged=tagged, plain=plain, tmp_path=tmp_path
         )
 
