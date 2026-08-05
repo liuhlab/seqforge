@@ -435,6 +435,128 @@ def test_a_single_end_bulk_deposit_resolves_and_records_the_se_read_set(tmp_path
     assert not winner.role_assignment.unassigned  # one file, one role, nothing orphaned
 
 
+def test_a_lone_cdna_read_refuses_when_single_cell_is_asserted_and_decides_when_it_is_not(
+    tmp_path: Path,
+) -> None:
+    """The read-set feature and the refusal it must not eat, over the SAME bytes (#309, GSE208154).
+
+    One 10x v3 cDNA file, no barcode read anywhere — a real deposit shape, not an edge: GSE208154's
+    runs were submitted as Cell Ranger BAMs, so ENA generated no FASTQ and SRA's normalized run
+    declares one 91 bp read per spot, with CB and UMI living in BAM tags that
+    `fasterq-dump --include-technical` cannot turn back into reads.
+
+    **Both directions, because the fix and the feature it must preserve differ only in the
+    assertion.** Without one, the lone cDNA read is honestly bulk: `bulk-rnaseq`'s `se` set explains
+    it and exit 0 is right — that is #277's headline behaviour, and a fix that refuses every
+    single-end deposit would pass the regression half of this test while destroying the feature. With
+    a single-cell chemistry asserted, the same bytes are a library whose barcodes the compiler never
+    saw, and compiling them as bulk is the silent corpus poisoning refusal exists for.
+
+    **The CODE is half the assertion.** `UNSUPPORTED_TECHNOLOGY` sends the human after a KB entry;
+    `MISSING_TECHNICAL_READ` sends them after the submitter's own files, which is the only remedy that
+    applies. Getting the right outcome for the wrong reason still fails.
+    """
+    v3 = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(v3, n=1500, seed=0)
+    only = tmp_path / "SIM_R2.fastq.gz"  # the cDNA read, deposited alone
+    _write_fastq_gz(only, reads["R2"])
+    registry = registry_for(v3)
+
+    decided = resolve_dataset([only], registry=registry, use_cache=False)
+    assert decided.exit_code() == 0, decided.result.blockers
+    assert decided.result.candidates[0].technology == "bulk-rnaseq"
+    assert decided.result.candidates[0].read_set == "se"
+
+    refused = resolve_dataset(
+        [only],
+        registry=registry,
+        hypothesis=Hypothesis(value="10x-3p-gex-v3", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert refused.exit_code() == 3
+    codes = [b.code for b in refused.result.blockers]
+    assert codes == [BlockerCode.MISSING_TECHNICAL_READ], codes
+
+
+def test_the_asserted_chemistry_is_scored_even_where_descent_narrowed_it_away(
+    tmp_path: Path,
+) -> None:
+    """Descent's proof is about the WINNER, and the refusal needs the LOSER's evaluation.
+
+    `length_feasible` may drop a spec because it would have scored `forbidden` anyway — sound for
+    ranking, and silently unsound for `MISSING_TECHNICAL_READ`, whose whole question is *why* the
+    asserted chemistry could not be seated (barcode role unfillable, cDNA role fillable). A spec that
+    was never scored cannot answer it.
+
+    It used to be answered by accident. On one file every two-read spec is infeasible, so the narrowed
+    pool came up EMPTY and `pool = [...] or runnable` handed back the whole KB; read sets made
+    `bulk-rnaseq` feasible on one file, the pool stopped being empty, and the accident stopped
+    happening. So the assertion buys its own evaluation back — and buys back exactly one, which is the
+    other half of this test: an unasserted run must not silently widen the pool it narrowed.
+    """
+    v3 = kb.load_spec("10x-3p-gex-v3")
+    reads = kb.generate_reads(v3, n=800, seed=0)
+    only = tmp_path / "SIM_R2.fastq.gz"
+    _write_fastq_gz(only, reads["R2"])
+    registry = registry_for(v3)
+
+    unasserted = resolve_dataset([only], registry=registry, use_cache=False)
+    assert "10x-3p-gex-v3" not in unasserted.matrices, "descent must still narrow when nothing asks"
+    assert "bulk-rnaseq" in unasserted.matrices
+
+    asserted = resolve_dataset(
+        [only],
+        registry=registry,
+        hypothesis=Hypothesis(value="10x-3p-gex-v3", id="meta-1", confidence=0.9),
+        use_cache=False,
+    )
+    assert "10x-3p-gex-v3" in asserted.matrices
+    assert set(asserted.matrices) - set(unasserted.matrices) == {"10x-3p-gex-v3"}
+
+
+def test_the_never_deposited_blocker_fires_only_on_a_proper_subset_and_an_asserted_chemistry() -> (
+    None
+):
+    """Each clause of F1c, one at a time — the three ways it must decline to fire.
+
+    End-to-end coverage above proves it fires; this proves it is not a rule that refuses whenever a
+    barcodeless candidate wins. The maximal-set case belongs to `_single_cell_collapse_conflict` (an
+    open Conflict, exit 4: every file WAS explained, so the human is shown a disagreement rather than
+    a dead end), and an unasserted or bulk-asserted deposit is `bulk-rnaseq`'s own data.
+    """
+    from seqforge.resolve.escalate import _barcodeless_subset_blocker
+
+    specs = kb.load_all_specs()
+    bulk_spec = specs["bulk-rnaseq"]
+    # The two evaluations `escalate` would hold: a barcodeless winner on the `se` set, and the
+    # asserted single-cell chemistry whose barcode role no file could fill.
+    top = dataclasses.replace(
+        _te("bulk-rnaseq", 1.0, rung=2), read_set="se", roles=["R1"], barcode_role_ids=[]
+    )
+    asserted = dataclasses.replace(
+        _te("10x-3p-gex-v3", None), unfillable_role_ids=["R1"], cdna_role_fillable=True
+    )
+    evaluations = [top, asserted]
+
+    fired = _barcodeless_subset_blocker(top, bulk_spec, evaluations, "10x-3p-gex-v3", specs)
+    assert fired is not None and fired.code == BlockerCode.MISSING_TECHNICAL_READ
+
+    full = dataclasses.replace(top, read_set="full", roles=["R1", "R2"])
+    assert (
+        _barcodeless_subset_blocker(full, bulk_spec, [full, asserted], "10x-3p-gex-v3", specs)
+        is None
+    ), "a maximal-set winner explained every file — that is the collapse conflict, not a blocker"
+    assert _barcodeless_subset_blocker(top, bulk_spec, evaluations, None, specs) is None, (
+        "#277: one bulk FASTQ with nothing asserted decides, and must not be refused"
+    )
+    assert _barcodeless_subset_blocker(top, bulk_spec, evaluations, "bulk-rnaseq", specs) is None, (
+        "a bulk assertion may never reach a single-cell blocker"
+    )
+    assert (
+        _barcodeless_subset_blocker(top, bulk_spec, evaluations, "Nanopore cDNA", specs) is None
+    ), "a string naming no KB node establishes no single-cell claim"
+
+
 def test_resolve_splitseq_beats_generic_bulk_via_onlist(tmp_path: Path) -> None:
     # SPLiT-seq's specific evidence (3 round onlists + fixed linkers, rung 3) must dominate the
     # generic bulk fallback that merely fails to be forbidden (rung 2) — a Decision, not a question.

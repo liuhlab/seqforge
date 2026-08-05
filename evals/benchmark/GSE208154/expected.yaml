@@ -40,6 +40,18 @@
 #
 # packages/GSE208154.fingerprint.tar.gz was uploaded 2026-07-31, AFTER every line above was written
 # and committed. Graded against it, the run refused with MISSING_TECHNICAL_READ as predicted.
+#
+# APPENDED 2026-08-04 (#309), and nothing above is edited — a prediction stands as it was written.
+# The parenthesis in THE PREDICTION ("bulk-rnaseq cannot rescue it either: it needs two mates")
+# stopped being true when read sets landed: `bulk-rnaseq` gained a single-end configuration, seated
+# its one cDNA role on the 91 bp read, and this case went refuse -> ask, offering `bulk-rnaseq` as
+# the answer. The refusal is restored on a condition that does not rest on the two-read declaration
+# — a barcodeless winner on a PROPER-SUBSET read set, while the asserted chemistry's barcode role is
+# unfillable and its cDNA role fillable — so what carries the case now is the ASSERTION, exactly as
+# the second bullet above says it should be. The sentence about no case in either tier covering
+# MISSING_TECHNICAL_READ was true when written and is no longer: `cases/refusal/
+# barcode-read-never-deposited` is this dataset's hermetic twin, and it exists because a
+# networked-only tier was the first thing to notice a regression that had already merged.
 outcome: refuse
 description: >-
   Benchmark: GSE208154 (Roux et al., Cell Rep. 42:112902, 2023) — the corpus's barcode-absent case,

@@ -144,11 +144,19 @@ generate:
   n: 3000
   seed: 0
   onlists: synthetic      # synthetic (rung 3 reachable) | none (structure only, rung <=2)
+  reads: [R2]             # optional: which reads were DEPOSITED; default (empty) is all of them
   truncate: {file: R1, fraction: 0.6}   # optional: the TRUNCATED_GZIP negative
   over_length: {read: R1, extra: 2}     # optional: sequence a read past its declared cycles
   deposit: {libraries: 2, lanes: 2}     # optional: N libraries x M lanes; default 1x1 is byte-identical
 hypothesis: 10x-3p-gex-v2 # optional: a metadata claim WITHOUT an LLM, so conflict cases run in CI
 ```
+
+`reads:` says a submitted read set is not always the chemistry's read set — SRA drops the technical
+read unless a dump asks for it, and a run submitted as a Cell Ranger BAM never had one in the
+archive's read space at all. It withholds a **file**, never a molecule: the reads it keeps are
+byte-identical to the ones a full deposit writes, because the generator draws them all from one seeded
+stream and the filter runs after it. Pair it with `hypothesis:` and the deposit is a declared
+single-cell library with no barcode read — `refusal/barcode-read-never-deposited`.
 
 ```yaml
 # expected.yaml
@@ -221,9 +229,11 @@ generate:
 A benchmark case may also declare a `hypothesis:` beside `generate:`, exactly as a `steering/` case
 does. It stands in for a chemistry claim the archive states in prose, so the case exercises the
 metadata-conditioned branches without an API key — `GSE208154` needs one to reach
-`MISSING_TECHNICAL_READ` at all, since without it the refusal degrades to the generic
-`UNSUPPORTED_TECHNOLOGY`. Use it only where the record states the chemistry verbatim, and quote that
-sentence in the recipe comment.
+`MISSING_TECHNICAL_READ` at all: its lone 91 bp cDNA read is honestly bulk without it, so
+`bulk-rnaseq`'s single-end read set explains the deposit and the run *decides* at exit 0 rather than
+refusing (before read sets it degraded to the generic `UNSUPPORTED_TECHNOLOGY` instead — either way,
+the assertion is what names the actual defect). Use it only where the record states the chemistry
+verbatim, and quote that sentence in the recipe comment.
 
 **Provenance is per case, and the file's own header says which.** The first tranche was *seeded from a
 run* and was **reviewed against the publications** on 2026-07-31 (`# REVIEWED <date>`, issue #81): its

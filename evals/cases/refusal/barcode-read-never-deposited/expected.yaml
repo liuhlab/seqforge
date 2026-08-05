@@ -1,0 +1,15 @@
+outcome: refuse
+description: >-
+  The hermetic twin of benchmark/GSE208154: a declared 10x 3' v3 run whose barcode read is not in the
+  deposit at all, so the only file is a cDNA read. Refusing is the whole job — deciding anything here
+  means a single-cell manifest built on barcodes the compiler never saw, at exit 0, in a corpus nobody
+  re-reads. The blocker code is half the assertion: MISSING_TECHNICAL_READ is only reachable when a
+  single-cell chemistry has been ASSERTED and its barcode role is the unfillable one while its cDNA
+  role is fillable, and UNSUPPORTED_TECHNOLOGY (refusal/ont-unsupported's code) would send the human
+  after a KB entry instead of after the submitter's own files. This case exists because that
+  distinction had NO hermetic cover: read sets gave `bulk-rnaseq` a single-end configuration, the lone
+  cDNA read became explainable, and the refusal silently degraded into a question offering
+  `bulk-rnaseq` — a regression only the networked benchmark could see, and only after it had merged
+  (#309).
+blockers:
+- MISSING_TECHNICAL_READ

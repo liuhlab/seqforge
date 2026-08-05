@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..kb.match import resolve_chemistry_id
-from ..kb.schema import Read, SegmentLength, Spec
+from ..kb.schema import FULL_READ_SET, Read, SegmentLength, Spec
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject
 from ..models.conflict import Conflict, ConflictPosition, Resolution
 from ..models.observation import Observation
@@ -195,6 +195,13 @@ def escalate(
     if barcode_absent is not None:
         return Escalation(
             candidates=[], blockers=[barcode_absent], conflicts=conflicts, rung_reached=rung
+        )
+    never_deposited = _barcodeless_subset_blocker(
+        top, top_spec, evaluations, hypothesis_value, specs
+    )
+    if never_deposited is not None:
+        return Escalation(
+            candidates=[], blockers=[never_deposited], conflicts=conflicts, rung_reached=rung
         )
     equiv_members = sorted(set(top.equivalence_members) | {e.tech for e in equivalent_ties})
 
@@ -367,6 +374,100 @@ def _barcodeless_seated_blocker(
     )
 
 
+def _barcodeless_subset_blocker(
+    top: TechEvaluation,
+    top_spec: Spec,
+    evaluations: list[TechEvaluation],
+    hypothesis_value: str | None,
+    specs: dict[str, Spec],
+) -> Blocker | None:
+    """F1c — a **barcodeless** winner on a **proper-subset** read set, while an ASSERTED single-cell
+    chemistry's barcode role is unfillable. The technical read was never deposited: refuse.
+
+    **The degenerate twin of the orphan rule, and it needs its own condition because the orphan
+    predicate provably cannot see it.** ``confuse.seats_a_file_the_fallback_dropped`` asks whether the
+    fallback left a file another candidate seats as its barcode read — evidence living in a file the
+    fallback declined to explain. Here there is no such file: the deposit is one cDNA read, the
+    fallback's ``se`` set seats it, and nothing is orphaned. What is missing was never deposited at
+    all, so the only witness is the ASSERTION — which is why this guard reads the hypothesis and that
+    one does not.
+
+    The shape it reads is :func:`_asserted_barcode_role_unfillable`, the same one
+    :func:`_no_candidate_blocker` has always raised ``MISSING_TECHNICAL_READ`` on. That is deliberate
+    rather than convenient: until read sets (ADR-0029), a single cDNA file made EVERY spec invalid —
+    no spec could seat two roles on one file — so this dataset fell into that branch and refused
+    there. ``bulk-rnaseq``'s ``se`` set then made one candidate valid, the branch became unreachable,
+    and the refusal silently degraded into a question offering ``bulk-rnaseq`` (#309, GSE208154). One
+    predicate, one blocker, two entrances.
+
+    **Why a legitimate single-end bulk deposit cannot reach it.** The gate is an asserted chemistry
+    that ``kb.match`` resolves to a BARCODED node; a deposit with no hypothesis, or one whose
+    hypothesis names bulk (or names nothing the KB knows), returns ``None`` before anything else is
+    asked. #277's headline case — one bulk FASTQ, no assertion — is untouched, and that is asserted in
+    both directions in ``tests/test_resolve.py``.
+
+    **Why the read set must be a PROPER subset.** A maximal-set bulk winner over an asserted
+    single-cell chemistry is ``_single_cell_collapse_conflict``'s case and stays an open Conflict at
+    exit 4: there the deposit's every file WAS explained, so a human is being shown a real
+    disagreement between the bytes and the paper rather than a structural dead end. Scoping to a
+    proper subset keeps this rule's blast radius equal to the feature that created the hole.
+    """
+    if _barcode_read_id(top_spec) is not None:
+        return None  # a barcoded winner is F1b's case: the role is filled, not missing
+    if top.read_set == FULL_READ_SET:
+        return None  # the fallback explained the whole deposit — the collapse conflict's case
+    hyp_tech = _asserted_barcode_role_unfillable(evaluations, hypothesis_value, specs)
+    return None if hyp_tech is None else _missing_technical_read(hyp_tech)
+
+
+def _asserted_barcode_role_unfillable(
+    evaluations: list[TechEvaluation], hypothesis_value: str | None, specs: dict[str, Spec]
+) -> str | None:
+    """The asserted chemistry whose BARCODE role no file can fill while its cDNA role can — else
+    ``None``. The one condition ``MISSING_TECHNICAL_READ`` is reachable through.
+
+    Every clause carries weight. A chemistry must have been **asserted** (a hypothesis, or an
+    operator's ``--assert-chemistry``) and must NAME a KB node, or "single-cell" is not established
+    and the honest code is the generic ``UNSUPPORTED_TECHNOLOGY``. It must be **barcoded**
+    (``barcode_role_ids``), so a bulk assertion cannot reach a single-cell blocker. Its barcode role
+    must be **structurally unfillable** — forbidden on every file, not merely mis-seated. And its cDNA
+    role must be **fillable**, which is what makes "the technical read is missing" a truthful sentence
+    about the deposit rather than a guess about bytes that match nothing at all.
+    """
+    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
+    if hyp_tech is None:
+        return None
+    e = next((ev for ev in evaluations if ev.tech == hyp_tech), None)
+    if e is None or not e.barcode_role_ids or not e.cdna_role_fillable:
+        return None
+    if not set(e.unfillable_role_ids) & set(e.barcode_role_ids):
+        return None
+    return hyp_tech
+
+
+def _missing_technical_read(hyp_tech: str) -> Blocker:
+    """``Blocker(MISSING_TECHNICAL_READ)`` for an asserted single-cell chemistry with no barcode read.
+
+    One builder for both entrances (:func:`_no_candidate_blocker` and
+    :func:`_barcodeless_subset_blocker`), because the defect and the remedy are one: the read is not
+    in the archive's read space, and the human has to go back for the submitter's own files. Two
+    copies of that sentence would be two remedies to keep true.
+    """
+    return Blocker(
+        id=f"blk-missing-technical-{hyp_tech}",
+        code=BlockerCode.MISSING_TECHNICAL_READ,
+        message=(
+            f"Metadata asserts {hyp_tech} (single-cell), but the technical/barcode read is "
+            "absent — only a cDNA-shaped read is present."
+        ),
+        remedy=(
+            "Re-fetch with `fasterq-dump --include-technical`, or pull the original submitted "
+            "files `sra-pub-src-*` via the SRA Data Locator / SDL API."
+        ),
+        subject=BlockerSubject(kind="dataset", ref=hyp_tech),
+    )
+
+
 def _integrity_blockers(observations: list[Observation]) -> list[Blocker]:
     blockers: list[Blocker] = []
     for obs in observations:
@@ -400,28 +501,9 @@ def _no_candidate_blocker(
     evaluations: list[TechEvaluation], hypothesis_value: str | None, specs: dict[str, Spec]
 ) -> Blocker:
     """No technology passed its requires: a missing technical read, or genuinely unsupported."""
-    hyp_tech = resolve_chemistry_id(hypothesis_value, specs)
+    hyp_tech = _asserted_barcode_role_unfillable(evaluations, hypothesis_value, specs)
     if hyp_tech is not None:
-        e = next((ev for ev in evaluations if ev.tech == hyp_tech), None)
-        if (
-            e is not None
-            and e.barcode_role_ids
-            and set(e.unfillable_role_ids) & set(e.barcode_role_ids)
-            and e.cdna_role_fillable
-        ):
-            return Blocker(
-                id=f"blk-missing-technical-{hyp_tech}",
-                code=BlockerCode.MISSING_TECHNICAL_READ,
-                message=(
-                    f"Metadata asserts {hyp_tech} (single-cell), but the technical/barcode read is "
-                    "absent — only a cDNA-shaped read is present."
-                ),
-                remedy=(
-                    "Re-fetch with `fasterq-dump --include-technical`, or pull the original submitted "
-                    "files `sra-pub-src-*` via the SRA Data Locator / SDL API."
-                ),
-                subject=BlockerSubject(kind="dataset", ref=hyp_tech),
-            )
+        return _missing_technical_read(hyp_tech)
     return Blocker(
         id="blk-unsupported",
         code=BlockerCode.UNSUPPORTED_TECHNOLOGY,

@@ -721,6 +721,41 @@ def test_truncate_naming_a_nonexistent_read_is_a_case_error(tmp_path: Path) -> N
         materialize(case, tmp_path / "x")
 
 
+def test_a_deposit_may_withhold_a_read_without_moving_the_ones_it_keeps(tmp_path: Path) -> None:
+    """`reads:` withholds a FILE, never a molecule — the archive dropped it, the library did not.
+
+    The two assertions are the whole contract. Only the named reads are deposited (that is the shape:
+    a Cell Ranger BAM submission puts CB/UMI in tags, so the barcode read is not in the archive's read
+    space at all), and the surviving file is BYTE-IDENTICAL to the one a full deposit writes. The
+    second is what stops the knob from quietly becoming a different-molecules knob: `kb.generate`
+    draws every read from one seeded stream, so filtering the spec before generation would have
+    changed the cDNA a case grades while claiming only to have dropped a file.
+    """
+    full = Recipe.model_validate({"generate": {"kind": "spec", "spec": "10x-3p-gex-v3", "n": 40}})
+    partial = Recipe.model_validate(
+        {"generate": {"kind": "spec", "spec": "10x-3p-gex-v3", "n": 40, "reads": ["R2"]}}
+    )
+    both = materialize(Case("full", tmp_path, full, Expected(outcome="decide"), []), tmp_path / "a")
+    one = materialize(
+        Case("partial", tmp_path, partial, Expected(outcome="refuse"), []), tmp_path / "b"
+    )
+
+    assert sorted(one.labels.values()) == ["R2"]
+    assert sorted(both.labels.values()) == ["R1", "R2"]
+    kept = next(p for p in both.paths if both.labels[p.name] == "R2")
+    assert one.paths[0].read_bytes() == kept.read_bytes()
+
+
+def test_withholding_a_read_the_spec_never_declared_is_a_case_error(tmp_path: Path) -> None:
+    """A typo'd read id must name itself, not silently deposit the whole spec and pass."""
+    recipe = Recipe.model_validate(
+        {"generate": {"kind": "spec", "spec": "10x-3p-gex-v3", "n": 20, "reads": ["R9"]}}
+    )
+    case = Case("bad", tmp_path, recipe, Expected(outcome="refuse"), [])
+    with pytest.raises(CaseError, match="R9"):
+        materialize(case, tmp_path / "x")
+
+
 def _spec_recipe(**generate: object) -> Recipe:
     return Recipe.model_validate({"generate": {"kind": "spec", "spec": "bulk-rnaseq", **generate}})
 

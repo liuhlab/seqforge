@@ -122,7 +122,18 @@ from __future__ import annotations
 #: so a change to it is a change to a cached one. The stale entries are the dangerous direction —
 #: a dataset whose metadata said "SPLiT-seq paired-end RNA-seq" is cached as `bulk-rnaseq` at
 #: exit 0, a confident wrong answer that would keep being served while this landed green.
-RESOLVE_VERSION = "2026.8.6"
+#: 2026.8.7 — a barcodeless winner on a PROPER-SUBSET read set, while the ASSERTED chemistry's barcode
+#: role is unfillable and its cDNA role fillable, is `MISSING_TECHNICAL_READ` again rather than a
+#: question (#309, ADR-0029). Read sets gave `bulk-rnaseq` a single-end configuration, so a lone cDNA
+#: read stopped making every spec invalid and the refusal that rested on the two-read declaration
+#: became an ask offering bulk; descent also stops dropping the asserted chemistry, because its
+#: evaluation is the only thing that can say WHY it could not be seated. This MUST re-key for the
+#: reason 2026.7.15/.16/.17/.18, 2026.8.4/.5/.6 did — what sits in caches is a wrong TRIAGE. A
+#: single-cell deposit whose barcodes were never archived (GSE208154: submitted as Cell Ranger BAMs,
+#: so CB/UMI are tags and no dump flag recovers them) is cached as a question whose offered answer is
+#: `bulk-rnaseq`, one human "yes" away from a gene-count matrix for a library nobody could barcode.
+#: `dataset_hash` does not fold this stamp, so no stored manifest moves.
+RESOLVE_VERSION = "2026.8.7"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402
