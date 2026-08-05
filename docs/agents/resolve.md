@@ -237,21 +237,67 @@ those N answers back into the one verdict a caller acts on**, and the two caller
 whole dataset — `manifest fill` and the eval harness — both call it. (`resolve score` and `e2e.py`
 still call `resolve_dataset` directly, and correctly: each is handed one library's files.)
 
-Four gates, in this order, each a refusal:
+Five gates, in this order, each a refusal:
 
 | gate | means | exit |
 |---|---|---|
+| `cell` | one cell of a plate dissented outright. Only reachable under a chemistry declaring `identity.sample_is_cell`, so it is inert across all sixteen shipped specs | 3 |
 | `run` | a run did not resolve on its own bytes, or asked. `MultiRunOutput.exit_code()` is the max over the runs, so one run's blocker or one run's open question is the dataset's | 3 or 4 |
 | `metadata` | the record join refused — a record whose runs are not the files on disk | 3 |
 | `sample` | one sample's files span two chemistries. This is the relocated "all runs must agree" invariant, now per-SAMPLE: across *different* samples a difference is a legal partition into assays, within one sample it is a mis-grouping | 3 |
 | `assay` | nothing named a chemistry. The defensive floor; the `run` gate catches this in practice | 3 |
 
-Through all four, `assays` is the partition — one group per chemistry — and **more than one group is
+Through all five, `assays` is the partition — one group per chemistry — and **more than one group is
 a verdict, not an error**: a large project holds several assays, and `manifest fill` writes one
 manifest each. `DatasetResolution.result` is the one `ResolveResult` a consumer that wants one
 answer reads: the first assay's first run (the run `manifest fill` builds that assay's manifest
 from), carrying the **union** of every run's conflicts, questions and blockers, deduplicated. Run 0's
 result alone would show a dataset exiting 4 with nothing open on it.
+
+## A chemistry that declares one Sample is one cell
+
+Gates `cell` and `sample` read the *same* cross-sample chemistry difference and part on one declared
+bit. Across different samples that difference is a legal partition into assays — correct for a real
+multi-assay project, catastrophic for a plate, where it splits one experiment in two at exit 0 with
+nothing raised. `identity.sample_is_cell` is the only thing that tells the two apart, which is why it
+is **declared and never derived**: `umi ∧ ¬barcode` is backwards for SMART-seq2 (neither, still one
+cell per file) and for UMI-tagged bulk (a UMI, no barcode, one file per specimen). The property is
+about *where demultiplexing happened* — at the bench — which no byte reports. It says `Sample`, not
+file and not run, because 20 of 190 well-labelled plate deposits are not strictly 1:1.
+
+Three outcomes per cell, judged against the chemistry the plate itself decided:
+
+| outcome | trigger | effect |
+|---|---|---|
+| conforms | decides the plate's chemistry | role-assigned, in the manifest — exactly as today |
+| contradicts | decides a *different* chemistry outright | `Blocker`, gate `cell`, exit 3 |
+| abstains | asked with the plate's chemistry in its tie set, **or** below `Spec.min_input_reads` | inherits it, and is **recorded** |
+
+**A conjunction, not a vote.** A single outright dissent refuses, so no cell is ever outvoted and the
+gate creates no new authority over anyone's bytes — every verdict it reads is one a run already
+reached alone. Accepted consequence: a deposit genuinely holding a plate *and* a separate bulk
+library now refuses, which is the safe direction, and the remedy is to compile them separately.
+
+**An inherited cell is a claim the bytes never confirmed**, so it is not silent: a `Conflict` with
+`status: "resolved"` — the existing auditable-but-non-blocking channel, no model change and no hash
+movement. It surfaces in the report as *"37 of 1440 cells were admitted without byte confirmation"*.
+Not a fifth judgement type: four is a deliberate ceiling
+([ADR-0006](../adr/0006-one-judgement-one-envelope.md)).
+
+**`min_input_reads` gates the Sample, summed over its runs** — per-run count is the *minimum* over
+its files (R1 and R2 are two views of one fragment), per-cell is the *sum* over its runs. Gating the
+run would make a floor of 1000 silently mean 500 on exactly the plates that are not 1:1. It is asked
+*before* the dissent, because a starved cell deciding the wrong chemistry outright is the measured
+case and would otherwise refuse the plate before its depth was consulted.
+
+**None of this crosses [ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md).** A
+sample→files map is the *join* the reduction already owns for gate `sample`; summing read counts over
+it consults nothing the metadata resolver decided. Scoring stays per run and untouched — the sum
+happens in the reduction, after every run has independently resolved. **Nothing pools**: a pooled
+winner's role assignment would map roles to the pool's pseudo-shas, leaving every real file
+role-less, so pooling does not remove the per-cell pass, it removes the honest one. And `group.py`
+never learns what a cell is — merging two runs of one cell there re-introduces the
+global-role-assignment bug that module exists to prevent.
 
 **It lives beside the type it reduces, for `chemistry_hypothesis`'s reason.** `manifest fill` made
 this reduction inline and the eval harness that measures `manifest fill` skipped it entirely, calling

@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import random
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from conftest import SrcTrees, SynthDataset, real_cbs, write_fastq_gz
@@ -48,6 +50,13 @@ CLI_SURFACE = [
         ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
          "--sort-mem-mb", "8000"], 2, (), id="io-cram-has-no-sort-memory-knob",
     ),
+    # Each cell's BAM arrives with the sample id that names its h5ad row, so a bare path is a bad
+    # invocation — refused before the assembly is looked up, since a typo should not first cost a
+    # genome resolution that may not be possible on this host at all.
+    pytest.param(
+        ["io", "umi-count", "/x/cell.bam", "--assembly", "mm10", "--annotation", "gencode_vM23",
+         "--out", "plate.h5ad"], 2, (), id="io-umi-count-refuses-a-bam-with-no-sample-id",
+    ),
 ]  # fmt: skip
 
 
@@ -59,6 +68,80 @@ def test_the_cli_surface_exits_and_answers_as_documented(
     assert result.exit_code == exit_code, result.stdout
     for needle in contains:
         assert needle in result.stdout
+
+
+def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome_registered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The verb's whole job: marshal arguments, resolve the annotation, and answer on stdout.
+
+    liulab-genome registers an annotation as `<name>.gtf` with the gffutils `<name>.db` it builds
+    from it in the same directory, and exposes only the first — so the verb derives the second, and
+    this is the test that goes red if that layout ever moves. `Genome` is stubbed because resolving
+    a real assembly needs a genome store this box may not have; what is under test is the
+    derivation and the wiring, not liulab-genome.
+    """
+    import anndata as ad
+    import genome as liulab_genome
+    import gffutils
+    import pysam
+
+    gtf = tmp_path / "synthetic.gtf"
+    gtf.write_text(
+        'chr1\tsynthetic\tgene\t1\t1000\t.\t+\t.\tgene_id "GENE_A";\n'
+        'chr1\tsynthetic\texon\t101\t200\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";\n'
+    )
+    built = gffutils.create_db(
+        str(gtf),
+        str(gtf.with_suffix(".db")),
+        keep_order=True,
+        merge_strategy="create_unique",
+        sort_attribute_values=True,
+        disable_infer_genes=True,
+        disable_infer_transcripts=True,
+    )
+    built.conn.close()
+
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": [{"SN": "chr1", "LN": 10000}]}
+    )
+    record = pysam.AlignedSegment(header)
+    record.query_name = "one_read"
+    record.query_sequence = "A" * 20
+    record.query_qualities = pysam.qualitystring_to_array("I" * 20)
+    record.reference_id = 0
+    record.reference_start = 120  # inside the exon, 0-based
+    record.mapping_quality = 255
+    record.cigarstring = "20M"
+    record.set_tags([("NH", 1, "i"), ("UB", "AAAAAAAA", "Z")])
+    bam = tmp_path / "cell.bam"
+    with pysam.AlignmentFile(str(bam), "wb", header=header) as out:
+        out.write(record)
+
+    class _StubGenome:
+        def __init__(self, assembly: str) -> None:
+            self.assembly = assembly
+
+        def get_gtf_path(self, name: str) -> Path:
+            return gtf
+
+    monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
+
+    written = tmp_path / "plate.h5ad"
+    result = runner.invoke(
+        app,
+        ["io", "umi-count", f"cell_a={bam}", "--assembly", "mm10",
+         "--annotation", "synthetic", "--out", str(written)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    assert json.loads(result.stdout)["written"] == str(written)
+    adata = ad.read_h5ad(written)
+    assert list(adata.obs_names) == ["cell_a"]
+    # `X` is declared as a union that includes a lazy on-disk dataset; on an object just read back
+    # it is the sparse matrix that was written, and only the cast says so to the checker.
+    counts = cast("Any", adata.X)
+    assert int(counts[0, adata.var_names.get_loc("GENE_A")]) == 1
 
 
 def test_schema_export_is_valid_json_per_model_and_over_all() -> None:
@@ -1315,3 +1398,148 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
     # the bytes a citation greps into are on disk under a name a human can read
     documents = tmp_path / "seqforge" / "records" / "documents"
     assert any(p.name.startswith("runs-SAMN1-") for p in documents.iterdir())
+
+
+# ---- io umi-extract: the per-cell half of the plate-assay counting engine -------------------------
+
+
+def _plate_manifest(path: Path) -> Path:
+    """A manifest whose R1 is a tagged-molecule layout: 11 bp tag, 8 bp UMI, `GGG`, cDNA at 22.
+
+    Only `library.read_layout` is under test; the rest is the least that validates. Written through
+    the models rather than as hand-typed YAML so a field rename breaks this loudly.
+    """
+    from seqforge.models.dataset import (
+        DatasetManifest,
+        DatasetProvenance,
+        ExperimentSection,
+        FileInventoryItem,
+        LibrarySection,
+        ReadDef,
+        ReadElement,
+        ReadLayout,
+    )
+    from seqforge.models.evidenced import (
+        EvidencedAccessionList,
+        EvidencedChemistrySet,
+        EvidencedTaxid,
+    )
+
+    tagged = ReadDef(
+        read_id="R1",
+        strand="pos",
+        min_len=40,
+        max_len=150,
+        elements=[
+            ReadElement(
+                role="linker",
+                region_type="custom_primer",
+                start=0,
+                length=11,
+                sequence="ATTGCGCAATG",
+            ),
+            ReadElement(role="UMI", region_type="umi", start=11, length=8),
+            ReadElement(role="linker", region_type="linker", start=19, length=3, sequence="GGG"),
+            ReadElement(role="cDNA", region_type="cdna", start=22),
+        ],
+    )
+    mate = ReadDef(
+        read_id="R2",
+        strand="neg",
+        min_len=40,
+        max_len=150,
+        elements=[ReadElement(role="cDNA", region_type="cdna", start=0)],
+    )
+    manifest = DatasetManifest(
+        library=LibrarySection(
+            chemistry=EvidencedChemistrySet(value=["smart-seq3"], basis="observed", rung=1),
+            read_layout=ReadLayout(modality="rna", reads=[tagged, mate]),
+            files=[
+                FileInventoryItem(
+                    uri="cell_R1.fastq.gz",
+                    basename="cell_R1.fastq.gz",
+                    sha256="0" * 64,
+                    size_bytes=1,
+                    read_id="R1",
+                )
+            ],
+        ),
+        experiment=ExperimentSection(
+            # The verb reads none of this; the model requires it, so it is the least that validates.
+            organism=EvidencedTaxid(value=10090, basis="asserted", rung=0),
+            accessions=EvidencedAccessionList(value=[], basis="inferred", rung=0),
+            samples=[],
+        ),
+        provenance=DatasetProvenance(
+            dataset_hash="0" * 64, kb_version="test", seqforge_version="test"
+        ),
+    )
+    path.write_text(yaml.safe_dump(manifest.model_dump(mode="json")))
+    return path
+
+
+def _plate_fastqs(tmp_path: Path) -> tuple[Path, Path]:
+    """One cell: two tagged reads (one of them at offset 13) and one internal read."""
+    tag, cdna = "ATTGCGCAATG", "GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCATTTGG"
+    r1 = [tag + "ACGTACGT" + "GGG" + cdna, "CTGTCTCTTATA" + tag + "TTTTGGCC" + "GGG" + cdna, cdna]
+    r1_path, r2_path = tmp_path / "cell_R1.fastq.gz", tmp_path / "cell_R2.fastq.gz"
+    write_fastq_gz(r1_path, r1, prefix="cell")
+    write_fastq_gz(r2_path, [cdna] * 3, prefix="cell")
+    return r1_path, r2_path
+
+
+def test_umi_extract_derives_its_geometry_and_offers_no_way_to_declare_it(tmp_path: Path) -> None:
+    """The verb marshals arguments and decides nothing: the anchor, the UMI's offset and length, the
+    trailing motif and the cDNA start all come out of the manifest's element model.
+
+    The second half of the assertion is the part that keeps it true. A `--anchor` flag would let a
+    caller hand the extractor a geometry that disagrees with what the bytes were decided to be —
+    the manifest says what the data IS, and there is nowhere else for a parse key to enter — so the
+    absence of one is checked against the live app rather than left to review.
+    """
+    manifest = _plate_manifest(tmp_path / "manifest.yaml")
+    r1, r2 = _plate_fastqs(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["io", "umi-extract", "--r1", str(r1), "--r2", str(r2), "--manifest", str(manifest),
+         "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout
+    written = json.loads(result.stdout)
+    assert written["read_id"] == "R1"
+    assert (written["pairs"], written["tagged"], written["untagged"]) == (3, 2, 1)
+    # The offset histogram is how a run reports whether the unanchored search still earns its keep.
+    assert written["offsets"] == {"0": 1, "12": 1}
+    assert (tmp_path / "cell_42.bam").exists()
+
+    from typer.main import get_command
+
+    verb = get_command(app).commands["io"].commands["umi-extract"]  # type: ignore[attr-defined]
+    flags = {opt for param in verb.params for opt in param.opts}
+    assert flags & {"--manifest", "--read-id"}
+    assert not flags & {"--anchor", "--umi-offset", "--umi-length", "--trailing", "--window"}
+
+
+def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
+    tmp_path: Path,
+) -> None:
+    """Handed the read the layout says is NOT tagged, it exits 3 instead of finding no tags.
+
+    A composer that pairs the mates the wrong way round is the failure this catches, and it is not
+    hypothetical — a units ordering that silently paired one lane's barcodes with another lane's
+    cDNA is why `units.tsv` grew a lane column. Extracting from the wrong mate produces a uBAM with
+    no `UB` anywhere, an empty count matrix, and exit 0 all the way down.
+    """
+    manifest = _plate_manifest(tmp_path / "manifest.yaml")
+    r1, r2 = _plate_fastqs(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["io", "umi-extract", "--r1", str(r2), "--r2", str(r1), "--manifest", str(manifest),
+         "--read-id", "R2", "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
+    )  # fmt: skip
+
+    assert result.exit_code == 3
+    assert "this layout's UMI is on R1" in result.stderr

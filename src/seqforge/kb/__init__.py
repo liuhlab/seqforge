@@ -18,7 +18,7 @@ from .loader import (
     runnable_spec_ids,
 )
 from .match import curated_forms, resolve_chemistry, resolve_chemistry_id
-from .roundtrip import run_roundtrip
+from .roundtrip import roundtrip_checks, run_roundtrip
 from .schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when spec semantics change. Folded into dataset candidate cache keys.
@@ -146,4 +146,5 @@ __all__ = [
     "generate_reads",
     "build_pools",
     "run_roundtrip",
+    "roundtrip_checks",
 ]

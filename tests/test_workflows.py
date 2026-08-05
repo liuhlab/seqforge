@@ -20,18 +20,21 @@ import json
 import re
 import shutil
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
-from typing import get_args
+from typing import Any, get_args
 
 import anndata as ad
+import pysam
 import pytest
 from scipy.sparse import csr_matrix
 
 from conftest import SrcTrees, _build, _processing, _rule_blocks, _src_root
 from seqforge import kb
 from seqforge.compose import compose, core
+from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import WORKFLOW_VERSION, get_module, keys_read_by, list_modules
 from seqforge.workflows.cram import CramError, bam_to_cram
@@ -94,6 +97,26 @@ from seqforge.workflows.stats import (
     modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
+)
+from seqforge.workflows.umite.count import (
+    FATES,
+    LAYERS,
+    N_FRAGMENTS,
+    PRIMARY_MATRIX,
+    UmiCountError,
+    correct_umis,
+    count_bam,
+    count_plate,
+    parse_cells,
+    read_annotation,
+    write_umi_counts,
+)
+from seqforge.workflows.umite.extract import (
+    UmiExtractError,
+    extract_umis,
+    find_tag,
+    geometry_for_read,
+    tagged_read_geometry,
 )
 
 # ================================================================================================
@@ -2863,3 +2886,883 @@ def test_every_mate_of_one_sample_is_ordered_the_same_way() -> None:
     # The other sample's file never leaks in, and an absent role is empty rather than an error.
     assert ordered_fastqs(units, "s1", "I1") == []
     assert ordered_fastqs(units, "s2", "R1") == ["x_bc.fq"]
+
+
+# ================================================================================================
+# umite/count — one counting job over a whole plate, into one h5ad
+# ================================================================================================
+#
+# The centrepiece is a synthetic annotation and BAM where **every fragment's fate is known by
+# construction**. That is deliberate rather than convenient: the frozen agreement record captured
+# against the real tool proves "agrees with umite on these ten cells" and is structurally blind to
+# the one arithmetic this port most easily inverts — its combined UMI figure equals exon + intron
+# *exactly* on all ten cells, so a port that deduplicated over the union of the two buckets would
+# have passed it. A fixture built by construction proves the counting *rule*, and it carries no
+# species: a real-genome slice would bake one assembly and one annotation into this repo.
+
+_GTF = """\
+chr1\tsynthetic\tgene\t1\t1000\t.\t+\t.\tgene_id "GENE_A"; gene_name "alpha";
+chr1\tsynthetic\texon\t101\t200\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";
+chr1\tsynthetic\texon\t501\t600\t.\t+\t.\tgene_id "GENE_A"; transcript_id "GENE_A.1";
+chr1\tsynthetic\tgene\t2001\t3000\t.\t-\t.\tgene_id "GENE_B"; gene_name "beta";
+chr1\tsynthetic\texon\t2101\t2200\t.\t-\t.\tgene_id "GENE_B"; transcript_id "GENE_B.1";
+chr1\tsynthetic\tgene\t4001\t5000\t.\t+\t.\tgene_id "GENE_C"; gene_name "gamma";
+chr1\tsynthetic\texon\t4601\t4700\t.\t+\t.\tgene_id "GENE_C"; transcript_id "GENE_C.1";
+chr1\tsynthetic\tgene\t4501\t5500\t.\t+\t.\tgene_id "GENE_D"; gene_name "delta";
+chr1\tsynthetic\texon\t4651\t4750\t.\t+\t.\tgene_id "GENE_D"; transcript_id "GENE_D.1";
+"""
+
+#: What the GTF above says, 0-based half-open, so the fragments below can be placed against the
+#: geometry rather than against a re-derivation of it: GENE_A [0,1000) with exons [100,200) and
+#: [500,600); GENE_B [2000,3000) exon [2100,2200); GENE_C [4000,5000) exon [4600,4700); GENE_D
+#: [4500,5500) exon [4650,4750). C and D overlap in their bodies from 4500 and in their exons from
+#: 4650, which is what makes a fragment there ambiguous in two different ways. `chrUn_synthetic` is
+#: in the BAM header and in no GTF line at all.
+_CONTIGS = [{"SN": "chr1", "LN": 10000}, {"SN": "chrUn_synthetic", "LN": 1000}]
+
+_READ_LEN = 20
+
+
+def _annotation_db(tmp_path: Path) -> Path:
+    """The synthetic GTF, built into a gffutils database the way liulab-genome builds one.
+
+    The flags mirror `genome.io.gtf.register_gtf` — `keep_order`, `merge_strategy="create_unique"`,
+    `sort_attribute_values`, and inference disabled because a real annotation declares its own
+    `gene` rows. Building it here rather than reaching for a registered assembly is what keeps this
+    species-free and runnable with no genome on the box: what the counter consumes is a database,
+    and this is one, written by the same library.
+    """
+    import gffutils
+
+    gtf = tmp_path / "synthetic.gtf"
+    gtf.write_text(_GTF)
+    db = tmp_path / "synthetic.db"
+    built = gffutils.create_db(
+        str(gtf),
+        str(db),
+        keep_order=True,
+        merge_strategy="create_unique",
+        sort_attribute_values=True,
+        disable_infer_genes=True,
+        disable_infer_transcripts=True,
+    )
+    built.conn.close()  # gffutils leaves it open; `register_gtf` closes its own for the same reason
+    return db
+
+
+@dataclass(frozen=True)
+class _Fragment:
+    """One fragment to synthesise: where it lands, what it carries, and how many loci it claims."""
+
+    name: str
+    contig: str
+    start: int
+    end: int
+    umi: str = ""
+    hits: int = 1
+    mate_unmapped: bool = False
+
+
+def _segments(header: Any, frag: _Fragment) -> list[Any]:
+    """One `_Fragment` -> its BAM records: two mates, or one when the mate never aligned."""
+    import pysam
+
+    tid = header.get_tid(frag.contig)
+    span = frag.end - frag.start
+    mate_start = frag.end - _READ_LEN
+
+    def build(start: int, flag: int, mate: int, tlen: int) -> Any:
+        rec = pysam.AlignedSegment(header)
+        rec.query_name = frag.name
+        rec.query_sequence = "A" * _READ_LEN
+        rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
+        rec.flag = flag
+        rec.reference_id = tid
+        rec.reference_start = start
+        rec.mapping_quality = 255
+        rec.cigarstring = f"{_READ_LEN}M"
+        rec.next_reference_id = tid
+        rec.next_reference_start = mate
+        rec.template_length = tlen
+        tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
+        if frag.umi:
+            tags.append(("UB", frag.umi, "Z"))
+        rec.set_tags(tags)
+        return rec
+
+    if frag.mate_unmapped:
+        # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
+        # so the flag on this one is the only evidence that the fragment did not align.
+        return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
+    return [
+        build(frag.start, 1 | 2 | 32 | 64, mate_start, span),
+        build(mate_start, 1 | 2 | 16 | 128, frag.start, -span),
+    ]
+
+
+def _synthetic_bam(path: Path, fragments: Sequence[_Fragment]) -> Path:
+    """`fragments` -> a COORDINATE-sorted BAM, which is the input contract this counter has.
+
+    Sorting by position is what scatters each fragment's two mates apart, so a port that quietly
+    depended on name adjacency goes red here rather than in production.
+    """
+    import pysam
+
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    )
+    records = [rec for frag in fragments for rec in _segments(header, frag)]
+    records.sort(key=lambda r: (r.reference_id, r.reference_start))
+    with pysam.AlignmentFile(str(path), "wb", header=header) as out:
+        for rec in records:
+            out.write(rec)
+    return path
+
+
+#: The plate every fate assertion below reads. One line per fragment, and the comment above each is
+#: the whole expected result — nothing here is computed, so no assertion can agree with it by
+#: sharing an arithmetic error.
+_PLATE: tuple[_Fragment, ...] = (
+    # GENE_A, exonic, the same UMI twice: two observations that deduplicate to one count.
+    _Fragment("a_exon_1", "chr1", 120, 180, umi="AAAAAAAA"),
+    _Fragment("a_exon_2", "chr1", 520, 580, umi="AAAAAAAA"),
+    # That SAME UMI again, this time between the two exons. Deduplicated inside its own bucket, so
+    # it counts once more in the intron matrix — `inex` is NOT `exon + intron`.
+    _Fragment("a_intron", "chr1", 300, 360, umi="AAAAAAAA"),
+    # The first mate lands in the intron and its mate reaches the second exon; the span between
+    # them is what makes the fragment exonic, recovered from this record's own mate coordinates.
+    _Fragment("a_spanning", "chr1", 300, 520, umi="GGGGGGGG"),
+    # Untagged: one count each in the read matrices, and one count is what says both mates were not
+    # counted twice.
+    _Fragment("a_exon_read", "chr1", 120, 180),
+    _Fragment("a_intron_read", "chr1", 300, 360),
+    _Fragment("b_exon", "chr1", 2120, 2180, umi="CCCCCCCC"),
+    # NH says two loci. One record, primary, over an exon — which the reference counts into GENE_A.
+    _Fragment("multimapper", "chr1", 120, 180, umi="TTTTTTTT", hits=2),
+    # Aligned to a scaffold no GTF line mentions, and to a gap between genes: both `_no_feature`.
+    _Fragment("scaffold", "chrUn_synthetic", 50, 110),
+    _Fragment("intergenic", "chr1", 8000, 8060),
+    # Exons of GENE_C and GENE_D at once, then bodies of both with no exon: ambiguous twice over.
+    _Fragment("ambiguous_exon", "chr1", 4660, 4690),
+    _Fragment("ambiguous_intron", "chr1", 4520, 4560),
+    _Fragment("mate_never_aligned", "chr1", 120, 180, umi="AAAAAAAA", mate_unmapped=True),
+)
+
+
+def _plate(tmp_path: Path) -> tuple[Path, list[tuple[str, Path]]]:
+    """The two-cell plate: the annotation database, and the cells in the order they are handed over."""
+    db = _annotation_db(tmp_path)
+    cell_a = _synthetic_bam(tmp_path / "cell_a.bam", _PLATE)
+    cell_b = _synthetic_bam(tmp_path / "cell_b.bam", _PLATE[6:7])  # GENE_B alone
+    return db, [("cell_a", cell_a), ("cell_b", cell_b)]
+
+
+def _row(adata: ad.AnnData, sample: str, gene: str, layer: str | None = None) -> int:
+    """One cell's count for one gene, by name — never by an index this file also computed."""
+    return int(
+        _counts(adata, layer)[adata.obs_names.get_loc(sample), adata.var_names.get_loc(gene)]
+    )
+
+
+def _frame(table: object) -> Any:
+    """`adata.obs`/`adata.var` are declared as a union with a lazy on-disk table.
+
+    On an object this file just built or read back it is a pandas frame, narrowed once here rather
+    than with a cast at every call site — the same move `_counts` makes for a matrix.
+    """
+    return table
+
+
+def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_path: Path) -> None:
+    """What the counter consumes is the database liulab-genome built, not the GTF it built it from.
+
+    The reference parses the GTF with HTSeq into two `GenomicArrayOfSets`, pickles them at 47.5 MB
+    and serialises that into every worker — ~76 GB through pipes at 1440 cells, on top of a 50 s
+    parse. Reading the database instead is what deletes both, so the gene axis arriving from it,
+    correct, is the load-bearing claim of the port's largest single win.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+
+    assert set(annotation.gene_ids) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
+    assert annotation.gene_names[annotation.gene_ids.index("GENE_A")] == "alpha"
+
+    # The geometry, asked as the overlap questions the counter asks rather than read back as spans.
+    a = annotation.gene_ids.index("GENE_A")
+    assert annotation.exonic("chr1", 120, 140) == frozenset({a})
+    assert annotation.exonic("chr1", 300, 320) == frozenset()  # between GENE_A's two exons
+    assert annotation.gene_bodies("chr1", 300, 320) == frozenset({a})
+    # A contig with no annotated feature at all answers empty rather than raising — see the fate
+    # test below for why that difference is worth a test of its own.
+    assert annotation.gene_bodies("chrUn_synthetic", 50, 70) == frozenset()
+
+
+def test_a_missing_or_unreadable_annotation_database_is_a_refusal_not_an_empty_gene_axis(
+    tmp_path: Path,
+) -> None:
+    """An annotation that cannot be read must not become a matrix of zeros nobody questions."""
+    with pytest.raises(UmiCountError, match="does not exist"):
+        read_annotation(tmp_path / "never-registered.db")
+
+    not_a_database = tmp_path / "junk.db"
+    not_a_database.write_bytes(b"this is not sqlite")
+    with pytest.raises(UmiCountError):
+        read_annotation(not_a_database)
+
+
+def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
+    tmp_path: Path,
+) -> None:
+    """The whole counting rule at once, against a plate whose every fate is known by construction.
+
+    Thirteen fragments, four counted matrices and four fates; every number below is read off the
+    fixture's own comments rather than recomputed here.
+    """
+    db, cells = _plate(tmp_path)
+    adata, per_cell = count_plate(cells, read_annotation(db))
+    cell = per_cell[0]
+
+    assert cell.n_fragments == len(_PLATE)
+    assert cell.fates == {
+        "unmapped": 1,  # mate_never_aligned
+        "multimapping": 1,  # NH == 2
+        "no_feature": 2,  # the scaffold, and the intergenic fragment
+        "ambiguous": 2,  # two exonic genes, then two gene bodies and no exon
+    }
+
+    # UMIs: GENE_A carries "AAAAAAAA" (twice, deduplicated) and "GGGGGGGG" (the spanning fragment).
+    assert _row(adata, "cell_a", "GENE_A") == 2
+    assert _row(adata, "cell_a", "GENE_B") == 1
+    # ...and an untagged fragment never reaches a UMI matrix, nor a tagged one a read matrix.
+    assert _row(adata, "cell_a", "GENE_A", "read_exon") == 1
+    assert _row(adata, "cell_a", "GENE_A", "read_intron") == 1
+    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix.
+    for gene in ("GENE_C", "GENE_D"):
+        assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0, 0, 0, 0]
+
+    # The second cell is a different row, not a copy of the first.
+    assert _row(adata, "cell_b", "GENE_B") == 1
+    assert _row(adata, "cell_b", "GENE_A") == 0
+    assert int(_frame(adata.obs).loc["cell_b", N_FRAGMENTS]) == 1
+
+
+def test_a_umi_seen_both_exonically_and_intronically_counts_once_in_each_so_inex_is_not_their_sum(
+    tmp_path: Path,
+) -> None:
+    """The arithmetic the frozen agreement fixture is blind to, pinned by construction instead.
+
+    "AAAAAAAA" reaches GENE_A three times: twice over an exon, once between the exons. Each bucket
+    is deduplicated on its own, so it counts once in each and the exon and intron matrices sum to
+    two — where deduplicating over the union of the buckets would give one. The two differ by
+    exactly the UMIs seen both ways on one gene, and on the ten real cells captured against the
+    reference that intersection is empty, so this case cannot be measured against real data at that
+    depth.
+    """
+    db, cells = _plate(tmp_path)
+    adata, _ = count_plate(cells, read_annotation(db))
+
+    assert _PLATE[0].umi == _PLATE[2].umi  # the same UMI, one exonic fragment and one intronic
+    assert _row(adata, "cell_a", "GENE_A", "umi_intron") == 1
+    assert _row(adata, "cell_a", "GENE_A") + _row(adata, "cell_a", "GENE_A", "umi_intron") == 3
+
+
+def test_a_multimapper_is_read_off_nh_and_never_reaches_the_gene_it_aligned_to(
+    tmp_path: Path,
+) -> None:
+    """`NH`, not bundle length — which is what makes the aligner's one-record flag survivable.
+
+    The reference infers multimapping from how many alignments a read name has, so with STAR
+    emitting exactly one record per multimapper every bundle is length 1 and every multimapper is
+    counted into a gene: `_multimapping` measured 0 for all ten fixture cells while 12.6% of aligned
+    names carried `NH > 1`, and realigning one cell with the flag as the only difference moved its
+    primary UMI matrix by +10.2% — more than the fuzzy-matching gain the tool is published for.
+    """
+    db = _annotation_db(tmp_path)
+    annotation = read_annotation(db)
+    exonic = _Fragment("hit", "chr1", 120, 180, umi="AAAAAAAA")
+
+    unique = count_bam(_synthetic_bam(tmp_path / "unique.bam", (exonic,)), annotation)
+    multi = count_bam(
+        _synthetic_bam(tmp_path / "multi.bam", (replace(exonic, hits=4),)), annotation
+    )
+
+    assert unique.fates["multimapping"] == 0
+    assert unique.umi_exon[annotation.gene_ids.index("GENE_A")] == {"AAAAAAAA": 1}
+    assert multi.fates["multimapping"] == 1
+    assert multi.umi_exon == {}  # the same fragment, over the same exon, counted nowhere
+
+
+def test_a_read_on_a_scaffold_with_no_annotated_feature_is_no_feature_and_not_unmapped(
+    tmp_path: Path,
+) -> None:
+    """The reference catches a lookup error on the contig and calls the read unmapped. It aligned.
+
+    A handful of reads per cell land on scaffolds a GTF never mentions, and calling them unmapped
+    charges an annotation gap to the aligner — wrong in a way a summary hides completely.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+    bam = _synthetic_bam(
+        tmp_path / "scaffold.bam", (_Fragment("off_annotation", "chrUn_synthetic", 50, 110),)
+    )
+
+    counts = count_bam(bam, annotation)
+
+    assert counts.fates["no_feature"] == 1
+    assert counts.fates["unmapped"] == 0
+
+
+def test_both_mates_of_a_fragment_are_counted_once_and_the_mate_coordinates_still_place_it(
+    tmp_path: Path,
+) -> None:
+    """Two records, one count — and the second mate still decides where the fragment goes.
+
+    The input is coordinate-sorted, so the two mates are nowhere near each other and nothing here
+    reconstructs the pair. One record stands for the fragment and the mate's footprint arrives
+    through the template length that record already carries, which is why `a_spanning` — whose
+    first mate is squarely in an intron — is counted as exonic rather than intronic.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+    a = annotation.gene_ids.index("GENE_A")
+
+    both = count_bam(
+        _synthetic_bam(tmp_path / "pair.bam", (_Fragment("untagged", "chr1", 120, 180),)),
+        annotation,
+    )
+    assert both.read_exon == {a: 1}  # two records went in
+    assert both.n_fragments == 1
+
+    spanning = count_bam(
+        _synthetic_bam(
+            tmp_path / "span.bam", (_Fragment("spanning", "chr1", 300, 520, umi="GGGGGGGG"),)
+        ),
+        annotation,
+    )
+    assert spanning.umi_exon == {a: {"GGGGGGGG": 1}}
+    assert spanning.umi_intron == {}
+
+
+def test_a_paired_record_flagged_as_neither_mate_refuses_instead_of_halving_the_cell(
+    tmp_path: Path,
+) -> None:
+    """One record stands for a fragment, so a record that will not say which mate it is stops the run.
+
+    Every count in the cell would otherwise simply be absent — at a plausible magnitude, with
+    nothing raised and nothing to compare against. STAR always sets one of the two flags; a BAM
+    where it did not is malformed, and this is what says so out loud.
+    """
+    import pysam
+
+    annotation = read_annotation(_annotation_db(tmp_path))
+    header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    )
+    record = _segments(header, _Fragment("nameless_mate", "chr1", 120, 180))[0]
+    record.flag = 1 | 2  # PAIRED and proper, and neither READ1 nor READ2
+    bam = tmp_path / "malformed.bam"
+    with pysam.AlignmentFile(str(bam), "wb", header=header) as out:
+        out.write(record)
+
+    with pytest.raises(UmiCountError, match="neither first nor second mate"):
+        count_bam(bam, annotation)
+
+
+def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() -> None:
+    """Hamming-1 with the count-ratio guard, as a rule about two numbers rather than about a BAM.
+
+    The guard is what keeps two genuinely distinct UMIs at similar depth apart: a candidate is only
+    absorbed into a seed at least roughly twice as abundant. At a Hamming threshold of 3 the
+    trailing check is vacuous and the merge starts manufacturing UMIs, which is why 1 is a module
+    literal and not a flag.
+    """
+    # One error away and far rarer -> absorbed, and the seed keeps every observation.
+    assert correct_umis({"AAAAAAAA": 9, "AAAAAAAT": 1}) == {"AAAAAAAA": 10}
+    # One error away but comparably abundant -> two real UMIs, left alone.
+    assert correct_umis({"AAAAAAAA": 2, "AAAAAAAT": 2}) == {"AAAAAAAA": 2, "AAAAAAAT": 2}
+    # Two errors away -> beyond the threshold at any ratio.
+    assert correct_umis({"AAAAAAAA": 9, "AAAAAATT": 1}) == {"AAAAAAAA": 9, "AAAAAATT": 1}
+    # Equal counts break on the sequence, never on the order the BAM happened to hand them over.
+    assert list(correct_umis({"TTTTTTTT": 3, "AAAAAAAA": 3})) == ["AAAAAAAA", "TTTTTTTT"]
+
+
+def test_the_object_is_x_plus_three_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
+    tmp_path: Path,
+) -> None:
+    """The deliverable's shape, which is the half of this ticket no wrong number would show.
+
+    Rows are sample ids, which is what makes an h5ad row and a per-cell CRAM filename join. The
+    fates are per-cell scalars and live on `obs`; the reference carries them as extra *gene*
+    columns in a matrix whose other 55 335 columns really are genes, which is what forced a
+    correction in its output shape.
+    """
+    db, cells = _plate(tmp_path)
+    out = write_umi_counts(cells, db, tmp_path / "plate" / "counts.h5ad")
+    adata = ad.read_h5ad(out)
+
+    assert list(adata.obs_names) == ["cell_a", "cell_b"]  # the order the cells were handed over
+    assert _layer_names(adata) == set(LAYERS)
+    assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+    assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
+    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS}
+    assert _frame(adata.var).loc["GENE_B", "gene_name"] == "beta"
+    _counts(adata)  # sparse in the object and not only on disk: a plate is almost entirely zeros
+
+
+def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Path) -> None:
+    """Determinism, asserted on the artifact rather than on the absence of `random` in the source.
+
+    The reference picks an alignment with an unseeded `random.choice` when a read has several
+    primary alignments. There is nothing to choose here — every tie-break is written down — and
+    this is what proves it, including the iteration orders that are only accidentally stable.
+    """
+    db, cells = _plate(tmp_path)
+
+    first = write_umi_counts(cells, db, tmp_path / "first.h5ad")
+    second = write_umi_counts(cells, db, tmp_path / "second.h5ad")
+
+    assert first.read_bytes() == second.read_bytes()
+
+
+def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path: Path) -> None:
+    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting."""
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+
+    with pytest.raises(UmiCountError, match="repeat"):
+        count_plate([("same", cells[0][1]), ("same", cells[1][1])], annotation)
+    with pytest.raises(UmiCountError, match="no cells"):
+        count_plate([], annotation)
+    with pytest.raises(UmiCountError, match="missing"):
+        count_plate([("gone", tmp_path / "never-aligned.bam")], annotation)
+
+
+def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the_filename() -> None:
+    """The join the reference had to warn about, removed by never making it.
+
+    Its rows come out labelled `SRR19884922.namesort.bam` — the BAM's basename, suffix and all — so
+    every consumer has to strip something it was never told the shape of.
+    """
+    assert parse_cells(["c1=/x/one.bam", "c2=/y/two.bam"]) == [
+        ("c1", Path("/x/one.bam")),
+        ("c2", Path("/y/two.bam")),
+    ]
+    for malformed in ("/x/one.bam", "=/x/one.bam", "c1="):
+        with pytest.raises(UmiCountError, match="sample_id=path"):
+            parse_cells([malformed])
+
+
+# ---- the plate-assay UMI extractor ---------------------------------------------------------------
+#
+# `workflows/umite/` is seqforge's own re-implementation of the counting engine a plate assay needs,
+# and this half is the extractor. Every number pinned below was measured against the reference
+# package on ten published GSE207085 cells while it was still installed (2026-08-04); none of them is
+# a preference, and none should be relaxed to make a test pass.
+
+#: The tag as the element model declares it -- 11 bp off the template-switch oligo's 3' end. Spelled
+#: HERE and nowhere under `src/`: the extractor DERIVES it from a read layout, so a test that
+#: imported a module constant would only be checking that a literal equals itself.
+_TAG = "ATTGCGCAATG"
+#: What Tn5 mosaic-end read-through leaves in front of the tag, and the only reason a tag is ever at
+#: a non-zero offset at all. Repeated so any prefix length can be cut from it; it shares no prefix
+#: with the tag, so an offset case cannot match at the wrong place by luck.
+_READ_THROUGH = "CTGTCTCTTATACACATCT" * 3
+#: A cDNA tail long enough to be a read an aligner would accept.
+_CDNA = "GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCATTTGGTATTTT"
+
+
+def _smartseq3_r1() -> ReadDef:
+    """R1 as an element model states it: an 11 bp tag, an 8 bp UMI, `GGG`, and cDNA from 22.
+
+    Elements rather than numbers, because the numbers are exactly what the extractor must derive.
+    """
+    return ReadDef(
+        read_id="R1",
+        strand="pos",
+        min_len=40,
+        max_len=150,
+        elements=[
+            ReadElement(
+                role="linker", region_type="custom_primer", start=0, length=11, sequence=_TAG
+            ),
+            ReadElement(role="UMI", region_type="umi", start=11, length=8),
+            ReadElement(role="linker", region_type="linker", start=19, length=3, sequence="GGG"),
+            ReadElement(role="cDNA", region_type="cdna", start=22),
+        ],
+    )
+
+
+def _plain_read(read_id: str) -> ReadDef:
+    """A read that is cDNA and nothing else -- R2 here, and both reads of a bulk layout."""
+    return ReadDef(
+        read_id=read_id,
+        strand="neg",
+        min_len=40,
+        max_len=150,
+        elements=[ReadElement(role="cDNA", region_type="cdna", start=0)],
+    )
+
+
+def _tagged(umi: str, *, offset: int = 0, trailing: str = "GGG", cdna: str = _CDNA) -> str:
+    """One R1 sequence carrying the tag at `offset`, with `trailing` closing it."""
+    return _READ_THROUGH[:offset] + _TAG + umi + trailing + cdna
+
+
+def _quals(seq: str) -> str:
+    """A quality string that differs at every position, so a trim that slips shows up as garbage."""
+    return "".join(chr(33 + (i % 40)) for i in range(len(seq)))
+
+
+def _fastq(path: Path, records: list[tuple[str, str, str, str]]) -> None:
+    """Write `(header, sequence, plus-line, quality)` records verbatim.
+
+    Not `conftest.write_fastq_gz`, which always writes a bare `+`: half of what the extractor's
+    input gate is about is what a package wrote on that third line.
+    """
+    with gzip.open(path, "wt") as fh:
+        for header, seq, plus, qual in records:
+            fh.write(f"{header}\n{seq}\n{plus}\n{qual}\n")
+
+
+def _write_pair(tmp: Path, reads: list[tuple[str, str]]) -> tuple[Path, Path]:
+    """One cell's two FASTQs from `(r1, r2)` sequence pairs, with well-formed headers."""
+    r1, r2 = tmp / "cell_R1.fastq.gz", tmp / "cell_R2.fastq.gz"
+    _fastq(r1, [(f"@cell:{i}", s, "+", _quals(s)) for i, (s, _) in enumerate(reads)])
+    _fastq(r2, [(f"@cell:{i}", s, "+", _quals(s)) for i, (_, s) in enumerate(reads)])
+    return r1, r2
+
+
+def _records(bam: Path) -> list[pysam.AlignedSegment]:
+    """Every record of a uBAM. `check_sq=False` because an unaligned BAM has no `@SQ` lines."""
+    with pysam.AlignmentFile(str(bam), "rb", check_sq=False) as fh:
+        return list(fh)
+
+
+def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_written_down() -> None:
+    """The 46 bp window is a consequence of the layout, not a number in the source.
+
+    Anchor start <= 24 -- mechanistic, not fitted: no exact hit anywhere in 18,901 reads starts past
+    offset 24, that bound being Tn5 mosaic-end read-through -- plus the 22 bp one match consumes.
+    Every term comes out of the elements, so a chemistry with a longer tag gets a wider window
+    without a line changing.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    assert geometry.anchor == _TAG
+    assert (geometry.anchor_start, geometry.umi_offset, geometry.umi_length) == (0, 11, 8)
+    assert (geometry.trailing, geometry.trailing_offset, geometry.cdna_offset) == ("GGG", 19, 22)
+    assert geometry.span == 22
+    assert geometry.window == 46
+
+
+def test_the_tagged_read_is_the_one_the_layout_says_carries_a_umi() -> None:
+    """Which read is tagged is a fact the layout already states, so nobody gets to name it."""
+    layout = ReadLayout(modality="rna", reads=[_plain_read("R2"), _smartseq3_r1()])
+
+    read_id, geometry = tagged_read_geometry(layout)
+
+    assert read_id == "R1"
+    assert geometry.anchor == _TAG
+
+
+def test_a_layout_with_no_umi_element_yields_no_extraction_geometry() -> None:
+    """A bulk library has nothing to extract, and saying so beats cutting eight bases off R1."""
+    layout = ReadLayout(modality="rna", reads=[_plain_read("R1"), _plain_read("R2")])
+
+    with pytest.raises(UmiExtractError, match="0 of this layout's reads"):
+        tagged_read_geometry(layout)
+
+
+@pytest.mark.parametrize("offset", [0, 13, 15, 23, 24])
+def test_a_tag_away_from_offset_zero_is_still_found(offset: int) -> None:
+    """The search is unanchored, and 4.3% of the reference's exact hits depend on it.
+
+    Of 8,266 exact hits measured against the reference matcher -- a `re.search`, so unanchored --
+    354 are not at offset 0, clustering at 13, 15 and 23. Anchoring at the declared offset is the
+    obvious reading of "derived from the element model" and silently loses every one of them. 24 is
+    here because the bound is inclusive: it is the deepest offset the read-through can produce.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    match = find_tag(_tagged("ACGTACGT", offset=offset), geometry)
+
+    assert match is not None
+    assert match.start == offset
+    assert match.umi == "ACGTACGT"
+
+
+def test_a_tag_deeper_than_the_read_through_bound_is_not_a_tag() -> None:
+    """Past 24 the window closes, and that costs exact hits nothing.
+
+    Capping the search there dropped 0 exact hits and 113 of 8,976 fuzzy ones (-1.26%), all of which
+    are a purity gain: a tolerant anchor matches spurious 11-mers as deep as offset 133, at offsets
+    a fixed-offset chemistry cannot produce.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    assert find_tag(_tagged("ACGTACGT", offset=25), geometry) is None
+    assert find_tag(_tagged("ACGTACGT", offset=57), geometry) is None
+
+
+def test_the_trailing_motif_tolerates_one_substitution_and_not_two() -> None:
+    """One, because at three the check is vacuous over a 3 bp motif.
+
+    Three tolerated mismatches accept any three bases at all, so the motif stops confirming anything
+    and the extractor manufactures a UMI out of every untagged read that happens to carry the tag's
+    11-mer. One absorbs ordinary sequencing error and still says something.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    one_off = find_tag(_tagged("ACGTACGT", trailing="GGA"), geometry)
+    assert one_off is not None
+    assert one_off.umi == "ACGTACGT"
+
+    assert find_tag(_tagged("ACGTACGT", trailing="GAA"), geometry) is None
+
+
+def test_a_read_that_is_all_prefix_stays_untagged_rather_than_becoming_an_empty_record() -> None:
+    """A match with no cDNA left is not a usable read, and an empty BAM record is one an aligner
+    refuses rather than skips -- so it falls through to the untagged path with its bases intact."""
+    geometry = geometry_for_read(_smartseq3_r1())
+
+    assert find_tag(_tagged("ACGTACGT", cdna=""), geometry) is None
+    assert find_tag(_tagged("ACGTACGT", cdna="A"), geometry) is not None
+
+
+def test_a_tagged_read_loses_exactly_the_structural_prefix_and_its_qualities_move_with_it(
+    tmp_path: Path,
+) -> None:
+    """The trim is measured from where the anchor WAS found, not from the read's start.
+
+    Trimming a constant 22 would leave 13 bases of read-through and mosaic end on the front of every
+    offset read's cDNA, which aligns -- badly, and at exit 0.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("ACGTACGT", offset=13)
+    r1, r2 = tmp_path / "r1.fastq.gz", tmp_path / "r2.fastq.gz"
+    _fastq(r1, [("@cell:0", seq, "+", _quals(seq))])
+    _fastq(r2, [("@cell:0", _CDNA, "+", _quals(_CDNA))])
+
+    stats = extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+    read1, read2 = _records(tmp_path / "cell.bam")
+
+    assert (stats.pairs, stats.tagged, stats.untagged) == (1, 1, 0)
+    assert stats.offsets == {13: 1}
+    assert read1.query_sequence == _CDNA
+    qualities = read1.query_qualities
+    assert qualities is not None, "a record whose sequence survived the trim without its qualities"
+    assert pysam.qualities_to_qualitystring(qualities) == _quals(seq)[13 + 22 :]
+    # The mate is untouched: only the tagged read carries a structural prefix.
+    assert read2.query_sequence == _CDNA
+    # An unaligned pair, flagged the way `samtools import` flags one.
+    assert (read1.flag, read2.flag) == (77, 141)
+    assert read1.get_tag("UB") == read2.get_tag("UB") == "ACGTACGT"
+
+
+def test_an_untagged_read_keeps_every_base_and_carries_no_umi(tmp_path: Path) -> None:
+    """Internal reads are a third to two thirds of a real library and are counted, not dropped."""
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_CDNA, _CDNA)])
+
+    stats = extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+    read1, read2 = _records(tmp_path / "cell.bam")
+
+    assert (stats.tagged, stats.untagged) == (0, 1)
+    assert read1.query_sequence == _CDNA
+    assert not read1.has_tag("UB")
+    assert not read2.has_tag("UB")
+
+
+def test_a_pair_whose_names_disagree_still_extracts(tmp_path: Path) -> None:
+    """R1 and R2 are paired by POSITION, so the input contract stops depending on who wrote it.
+
+    This dissolves a hazard rather than guarding it: the reference took everything after the last
+    underscore of the read name as the UMI with no format check, so a cell named `cell_42` yielded
+    the UMI `42` -- silently, at exit 0. Nothing here reads a name for anything but a QNAME, and the
+    mate's name is discarded with its FASTQ.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("TTTTGGCC")
+    r1, r2 = tmp_path / "r1.fastq.gz", tmp_path / "r2.fastq.gz"
+    _fastq(r1, [("@cell_42/1", seq, "+", _quals(seq))])
+    _fastq(r2, [("@SRR19884922.7 7 length=60", _CDNA, "+", _quals(_CDNA))])
+
+    stats = extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell_42")
+    read1, read2 = _records(tmp_path / "cell.bam")
+
+    assert stats.tagged == 1
+    # The UMI comes out of the BASES. `42` is what everything-after-the-last-underscore gave.
+    assert read1.get_tag("UB") == "TTTTGGCC"
+    # One QNAME for both mates, taken from the tagged read, with the mate suffix left to the flag.
+    assert read1.query_name == read2.query_name == "cell_42"
+
+
+def test_a_plus_line_that_disagrees_with_its_header_is_refused(tmp_path: Path) -> None:
+    """The gate is on the RECORD, because these packages repeat the whole ID on the `+` line.
+
+    Rewriting only the `@` line trades one refusal for another -- a wrong first attempt already made
+    once, while capturing the reference fixture -- and a reader that compares the two lines is what
+    caught it. A half-renamed file is one somebody normalised wrong, not one to extract from.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("ACGTACGT")
+    r1, r2 = tmp_path / "r1.fastq.gz", tmp_path / "r2.fastq.gz"
+    _fastq(r1, [("@cell:0", seq, "+cell:0/1", _quals(seq))])
+    _fastq(r2, [("@cell:0", _CDNA, "+", _quals(_CDNA))])
+
+    with pytest.raises(UmiExtractError, match="half-renamed"):
+        extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+
+
+def test_a_plus_line_repeating_the_whole_id_is_the_normal_case_and_is_accepted(
+    tmp_path: Path,
+) -> None:
+    """The gate refuses DISAGREEMENT, not repetition -- a repeated ID is what these files look like."""
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("ACGTACGT")
+    r1, r2 = tmp_path / "r1.fastq.gz", tmp_path / "r2.fastq.gz"
+    _fastq(r1, [("@cell:0", seq, "+cell:0", _quals(seq))])
+    _fastq(r2, [("@cell:0", _CDNA, "+cell:0", _quals(_CDNA))])
+
+    assert extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell").tagged == 1
+
+
+def test_two_fastqs_of_different_lengths_are_refused_rather_than_zipped_to_the_shorter(
+    tmp_path: Path,
+) -> None:
+    """Positional pairing makes a length disagreement unpairable, and a cell quietly missing its
+    tail counts low while saying nothing."""
+    geometry = geometry_for_read(_smartseq3_r1())
+    seq = _tagged("ACGTACGT")
+    r1, r2 = tmp_path / "r1.fastq.gz", tmp_path / "r2.fastq.gz"
+    _fastq(r1, [(f"@cell:{i}", seq, "+", _quals(seq)) for i in range(2)])
+    _fastq(r2, [("@cell:0", _CDNA, "+", _quals(_CDNA))])
+
+    with pytest.raises(UmiExtractError, match="paired by position"):
+        extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+
+
+def test_the_same_pair_extracts_to_a_byte_identical_bam(tmp_path: Path) -> None:
+    """Deterministic throughout: no unseeded choice anywhere, and no clock in the header.
+
+    The leftmost match wins rather than the best-scoring one, which is both what the reference does
+    and the reason no tie-break has to be written down.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    reads = [
+        (_tagged("ACGTACGT", offset=0), _CDNA),
+        (_tagged("TTTTGGCC", offset=15), _CDNA),
+        (_CDNA, _CDNA),
+    ]
+    r1, r2 = _write_pair(tmp_path, reads)
+
+    first = extract_umis(r1, r2, tmp_path / "one.bam", geometry, sample="cell")
+    second = extract_umis(r1, r2, tmp_path / "two.bam", geometry, sample="cell")
+
+    assert (tmp_path / "one.bam").read_bytes() == (tmp_path / "two.bam").read_bytes()
+    assert first.to_dict() == second.to_dict()
+    assert first.to_dict()["offsets"] == {"0": 1, "15": 1}
+
+
+def test_a_truncated_input_is_refused_rather_than_extracted_up_to_the_cut(tmp_path: Path) -> None:
+    """The bounded reader's own verdict, taken as an input-gate refusal instead of re-decided.
+
+    This step reads every record -- it must, since its output is one BAM record per input record --
+    so what the read-budget rule still binds here is its real target: do not write a second loop
+    over a FASTQ. Truncation detection comes free with not writing one.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA)])
+    whole = r1.read_bytes()
+    r1.write_bytes(whole[: len(whole) - 12])
+
+    with pytest.raises(UmiExtractError, match="ends mid-record|not readable gzip"):
+        extract_umis(r1, r2, tmp_path / "cell.bam", geometry, sample="cell")
+
+
+@pytest.mark.xdist_group("src-trees")
+def test_the_extractor_shells_out_to_nothing_so_its_rule_needs_no_image(
+    src_trees: SrcTrees,
+) -> None:
+    """No container: the counter is not an aligner, and this half does not even call a binary.
+
+    The CRAM converter and the fragments finalizer both shell out to a runtime image's htslib, so
+    "a workflow module needs a container" is a live default here rather than an absent thought. This
+    one writes a BAM through a library, which is the h5ad packager's line exactly. The contrast is
+    asserted alongside so the check cannot rot into one that passes because it looks at nothing.
+    """
+    import ast
+
+    def imported_by(relative: str) -> set[str]:
+        tree = src_trees[_src_root() / relative]
+        top: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                top |= {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                top.add(node.module.split(".")[0])
+        return top
+
+    assert "subprocess" not in imported_by("workflows/umite/extract.py")
+    assert "subprocess" in imported_by("workflows/cram.py")
+
+
+def _revcomp(seq: str) -> str:
+    """The reverse complement, so a synthetic mate maps in the orientation a pair maps in."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
+@pytest.mark.external
+def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Path) -> None:
+    """The uBAM route, run end to end: `UB:Z:` goes in as input and comes out on the alignment.
+
+    This is the claim the output format rests on, and the reason it is a BAM rather than a FASTQ.
+    STAR **refuses** `UB` in `--outSAMattributes` outside its single-cell mode (`FATAL INPUT ERROR:
+    ... not allowed for --soloType None`), so the tag cannot be asked for on the way out; it has to
+    arrive on the way in and survive. Measured on real data while the reference package was still
+    installed (2026-08-04): 452 of 716 aligned records came out carrying their input `UB` — and
+    their `RG` — with `UB` named nowhere in the output attribute list.
+
+    Re-run here on this synthetic pair under STAR 2.7.11b (the pinned `align-rna` image, 2026-08-04):
+    46 of 46 records aligned, the 40 from tagged pairs all carried `UB:Z:` and all 46 carried
+    `RG:Z:`. `--outSAMattributes ... UB` on the same input dies with the FATAL INPUT ERROR above, so
+    the input route is not merely the better one, it is the only one.
+
+    `--readFilesSAMattrKeep All` is **STAR's own default**, measured: dropping it from this command
+    changed nothing (40 of 46 again). It is passed anyway, and that is not cargo — it pins a default
+    the whole output format depends on, in the one place a reader can see the dependency.
+
+    Needs STAR and samtools, which seqforge does not own and this suite never installs, so it skips
+    everywhere but a machine that has them.
+    """
+    import random
+
+    star, samtools = shutil.which("STAR"), shutil.which("samtools")
+    if star is None or samtools is None:
+        pytest.skip("needs STAR and samtools on PATH")
+
+    rng = random.Random(0)  # noqa: S311 — a synthetic contig, not a security decision
+    contig = "".join(rng.choice("ACGT") for _ in range(20_000))
+    (tmp_path / "genome.fa").write_text(f">chr1\n{contig}\n")
+    index = tmp_path / "index"
+    subprocess.run(
+        [star, "--runMode", "genomeGenerate", "--genomeDir", str(index),
+         "--genomeFastaFiles", str(tmp_path / "genome.fa"), "--genomeSAindexNbases", "6",
+         "--outFileNamePrefix", str(tmp_path / "gg_")],
+        check=True, capture_output=True,
+    )  # fmt: skip
+
+    geometry = geometry_for_read(_smartseq3_r1())
+    cdna, mate = contig[1000:1060], _revcomp(contig[1200:1260])
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT", offset=13, cdna=cdna), mate)])
+    ubam = tmp_path / "cell.bam"
+    assert extract_umis(r1, r2, ubam, geometry, sample="cell").tagged == 1
+
+    subprocess.run(
+        [star, "--genomeDir", str(index), "--readFilesIn", str(ubam),
+         "--readFilesType", "SAM", "PE", "--readFilesCommand", samtools, "view",
+         "--readFilesSAMattrKeep", "All", "--outSAMtype", "BAM", "Unsorted",
+         "--outFileNamePrefix", str(tmp_path / "star_")],
+        check=True, capture_output=True,
+    )  # fmt: skip
+
+    aligned = _records(tmp_path / "star_Aligned.out.bam")
+    assert aligned, "STAR aligned nothing, so the tag question was never asked"
+    assert all(record.get_tag("UB") == "ACGTACGT" for record in aligned)

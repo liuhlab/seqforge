@@ -324,6 +324,18 @@ class Identity(_Forbid):
     descriptive_aliases: list[str] = Field(default_factory=list)
     assay_ontology: list[str] = Field(default_factory=list)
     modality: Literal["rna", "atac", "multi"] = "rna"
+    #: One ``Sample`` of this chemistry IS one cell — demultiplexing happened at the BENCH, so the
+    #: cell barcode is the file and not a read. **Declared, never derived.** ``umi and not barcode``
+    #: was tried and is backwards in both directions: SMART-seq2 has neither and is still one cell
+    #: per file, UMI-tagged bulk has a UMI and no barcode and is one file per specimen. What the
+    #: property is about is *where demultiplexing happened*, which is outside the bytes entirely —
+    #: which is exactly why it earns a name rather than a rule. It says ``Sample``, not file and not
+    #: run, because 20 of 190 well-labelled plate deposits are not strictly 1:1. Rejected: a
+    #: three-value cell-axis field (two of its three values are derivable, re-importing the disease
+    #: the declaration cures), and any name built on "demultiplexed" — every Illumina run is
+    #: sample-demultiplexed at bcl2fastq, so a reader would tick that box for a droplet chemistry
+    #: too. (#253 decision 1)
+    sample_is_cell: bool = False
 
 
 class Spec(_Forbid):
@@ -355,6 +367,18 @@ class Spec(_Forbid):
     #: a leaf. Replaces the per-sibling ``distinguishable_by`` for the divergent-tie question.
     children_decided_by: list[Mechanism] = Field(default_factory=list)
     confusable_with: list[Confusable] = Field(default_factory=list)
+    #: Reads a ``Sample`` must carry before its own bytes are allowed to speak for it. **Top level,
+    #: not inside ``identity``**: ``identity`` NAMES the technology, and this names no technology —
+    #: it is an admission threshold, with two consumers (the dataset reduction, where a starved cell
+    #: abstains and inherits its plate's chemistry instead of dissenting; and compose, which drops
+    #: it). Summed over the ``Sample``'s runs, never per run: gating the run would make a threshold
+    #: of 1000 silently mean 500 on exactly the 10.5% of plates that are not 1:1.
+    #:
+    #: A number here must sit **under the probe budget**. Below it the per-file count is exact (the
+    #: probe read the file to EOF); above it the count is an ISIZE or compressed-ratio
+    #: extrapolation, so a threshold set there would be compared against an estimate and would move
+    #: with ``--max-reads``. ``None`` — every shipped spec — admits everything. (#253 decisions 5, 7)
+    min_input_reads: int | None = Field(default=None, gt=0)
 
     def require_backend(self) -> Backend:
         """The runnable backend, or a clear error if this is an abstract family node.

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when case format or grading semantics change. A grading change is a
 #: code change — two reports are only comparable at equal EVALS_VERSION.
-EVALS_VERSION = "2026.7.0"
+EVALS_VERSION = "2026.8.0"
 
 from .case import (  # noqa: E402
     Case,

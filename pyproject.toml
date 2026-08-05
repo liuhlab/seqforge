@@ -39,6 +39,8 @@ dependencies = [
     "pdfplumber>=0.11",  # in-text tables -> markdown, so a table cell greps back
     "openpyxl>=3.1",     # supplementary .xlsx sample tables
     "anndata>=0.10",     # the pilot's deliverable format
+    "pysam>=0.22",       # read/write BAM for the plate-assay UMI path; a plain dep, no image needed
+    "gffutils>=0.13",    # reads the annotation database liulab-genome BUILT — we never build one
     # `harvest extract` is the one stage that touches an LLM; both clients are lazy-imported, and
     # `run --no-llm` drives the whole compiler without them.
     "anthropic>=0.40",
@@ -102,10 +104,21 @@ anthropic = ">=0.40"
 openai = ">=1.40"
 pymupdf = ">=1.28.0,<2"
 pdfplumber = ">=0.11.10,<0.12"
+# `pysam` is deliberately NOT here, and it is the one dependency this table does not mirror.
+# bioconda's package carries no PyPI purl, so pixi cannot tell it is the same distribution as the
+# `pysam` the editable install asks for: it resolves both, and the wheel lands on top of the conda
+# package's own files ("PyPI package files will overwrite files installed by conda"). The wheel is
+# self-contained (it vendors htslib) and exists for every platform this workspace declares, so one
+# source is both sufficient and the only one that installs cleanly. Do not add it back.
+#
+# gffutils used to sit in the block below as one of liulab-genome's transitive needs. The UMI
+# counter now imports it directly to READ the annotation database liulab-genome built, so it is
+# ours as well; the block below may only claim what nothing here imports. It maps to its PyPI
+# distribution correctly, so mirroring it here is right.
+gffutils = ">=0.13"
 # liulab-genome's transitive needs, mirrored from liulab-runtime's `lab` feature. A missing one is
 # an ImportError at `import genome`, not a wrong number.
 pandas = ">=2.1,<3"
-gffutils = "*"
 ucsc-fatotwobit = "*"
 ucsc-twobitinfo = "*"
 
@@ -234,6 +247,14 @@ ignore_missing_imports = true
 # registry asserts on the fetched file — not the type of the fetcher.
 [[tool.mypy.overrides]]
 module = ["pooch", "pooch.*"]
+ignore_missing_imports = true
+
+# pysam is a C extension over htslib and gffutils is plain-Python SQLite; neither ships type
+# information. What protects the counter is not their types — it is the synthetic annotation and BAM
+# in `tests/test_workflows.py`, where every read's fate is known by construction, so a wrong flag or
+# a wrong coordinate convention shows up as a wrong count rather than as a missing annotation.
+[[tool.mypy.overrides]]
+module = ["pysam", "pysam.*", "gffutils", "gffutils.*"]
 ignore_missing_imports = true
 
 # Both PDF engines are incompletely typed, and we call each through one thin guarded function in

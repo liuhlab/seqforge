@@ -1141,6 +1141,299 @@ def test_the_datasets_one_result_carries_every_runs_judgements_once(tmp_path: Pa
     assert [q.id for q in resolution.result.questions] == ["q-chemistry", "q-lane"]
 
 
+# ---------- a chemistry declares that a Sample IS a cell, and the reduction honours it (#290) ----------
+#
+# The whole gate hangs on ONE declared bit, so every test below runs the same fixture twice: once with
+# the bit set and once without. The without-run is not decoration -- it is the control that says the
+# behaviour came from `sample_is_cell` and not from the fixture's shape, and it is the same fixture
+# `test_by_chemistry_partitions_the_runs_into_assays` reads as a legal two-assay project.
+
+_PLATE = "10x-3p-gex-v3"  # stands in for `smartseq3`, which is a separate ticket's entry
+
+
+def _plate_specs(*, floor: int | None = None) -> dict[str, Spec]:
+    """Every shipped spec, with :data:`_PLATE` declaring one Sample is one cell (and a read floor).
+
+    A `model_copy` and never a mutation: `load_spec` is cached and hands back a SHARED `Spec`, so
+    setting the field in place would leak a plate into every other test in the session.
+    """
+    specs = dict(kb.load_all_specs())
+    spec = specs[_PLATE]
+    specs[_PLATE] = spec.model_copy(
+        update={
+            "identity": spec.identity.model_copy(update={"sample_is_cell": True}),
+            "min_input_reads": floor,
+        }
+    )
+    return specs
+
+
+#: Reads per run in :func:`plate_multi`. The two dissenting cells are deliberately EQUAL and
+#: deliberately under :data:`_FLOOR`, so the only thing that can move the floor tests below off their
+#: answer is how those runs are joined into Samples — which is what a threshold silently asked of the
+#: run rather than of the sample cannot see.
+_DEEP, _SHALLOW, _FLOOR = 900, 400, 500
+
+
+@pytest.fixture(scope="module")
+def plate_multi(tmp_path_factory: pytest.TempPathFactory) -> Any:
+    """Four runs: SRR1/SRR2 are :data:`_PLATE` cells at 900 reads, SRR3/SRR4 are bulk at 400."""
+    tmp = tmp_path_factory.mktemp("plate_multi")
+    plate, bulk = kb.load_spec(_PLATE), kb.load_spec("bulk-rnaseq")
+    reg = registry_for(plate)
+    paths: list[Path] = []
+    for acc, spec, n in (
+        ("SRR1", plate, _DEEP),
+        ("SRR2", plate, _DEEP),
+        ("SRR3", bulk, _SHALLOW),
+        ("SRR4", bulk, _SHALLOW),
+    ):
+        reads = kb.generate_reads(spec, n=n, seed=0)
+        for mate, role in zip(("1", "2"), ("R1", "R2"), strict=True):
+            p = tmp / f"{acc}_{mate}.fastq.gz"
+            _write_fastq_gz(p, reads[role])
+            paths.append(p)
+    multi = resolve_runs(paths, registry=reg, use_cache=False)
+    winners = {r.run_id: r.winner for r in multi.runs}
+    if winners != {"SRR1": _PLATE, "SRR2": _PLATE, "SRR3": "bulk-rnaseq", "SRR4": "bulk-rnaseq"}:
+        pytest.skip(f"fixtures did not resolve as intended: {winners}")  # pragma: no cover
+    return multi
+
+
+def _cells(multi: MultiRunOutput) -> MetadataResolution:
+    """One Sample per run — the strictly 1:1 plate, which is 170 of the 190 real ones."""
+    return _metadata_over(**{f"c-{rid}": shas for rid, shas in _shas_by_run(multi).items()})
+
+
+def test_the_cell_gate_is_inert_when_no_chemistry_says_a_sample_is_a_cell(plate_multi: Any) -> None:
+    """The sixteen shipped specs take the path they took before this gate existed.
+
+    `sample_is_cell` defaults to False on every one of them, so a cross-sample chemistry difference
+    is read as a legal partition into assays and NOTHING here fires: no refusal, no inherited
+    conflict, no run set aside. This is the control every test below is measured against — with the
+    real KB the identical fixture is a clean two-assay project at exit 0.
+    """
+    resolution = reduce_dataset(plate_multi, _cells(plate_multi))
+
+    assert not any(s.identity.sample_is_cell for s in kb.load_all_specs().values())
+    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert set(resolution.assays) == {_PLATE, "bulk-rnaseq"}
+    assert resolution.conflicts == [] and resolution.abstained == frozenset()
+
+
+def test_a_cell_deciding_a_different_chemistry_outright_refuses_the_plate(plate_multi: Any) -> None:
+    """The silent split, killed. One dissenting cell is a Blocker at exit 3, not a second assay at 0.
+
+    A conjunction and not a vote: two cells conform and two dissent, and the dissent wins outright
+    rather than being outvoted two-to-two — no cell is ever outweighed by its siblings, because the
+    gate creates no new authority over anyone's bytes. The accepted consequence is written into the
+    remedy: a deposit genuinely holding a plate AND a separate library refuses, and is compiled
+    separately.
+    """
+    resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=_plate_specs())
+
+    assert resolution.refused_at == "cell"
+    assert resolution.exit_code == 3, "the plate refuses; it does not split at exit 0"
+    assert [b.id for b in resolution.blockers] == [
+        "blk-cell-chemistry-SRR3",
+        "blk-cell-chemistry-SRR4",
+    ]
+    assert all(b.code == BlockerCode.UNRESOLVED_CONFLICT for b in resolution.blockers)
+    assert all(b.remedy for b in resolution.blockers)
+    # and it is readable off the ONE result, like every other dataset-level refusal
+    assert {b.id for b in resolution.result.blockers} >= {b.id for b in resolution.blockers}
+
+
+def test_a_cell_below_the_read_floor_abstains_rather_than_dissenting(plate_multi: Any) -> None:
+    """The starved cell is the measured case, and the threshold is asked BEFORE the dissent.
+
+    GSE207085's cell 1291 decides `bulk-rnaseq-pe` outright on 901 reads and is proved unwinnable by
+    any weighting — so a plate carrying one is refused by the test above unless depth is consulted
+    first. Here the same two dissenting cells sit under a 500-read floor: they abstain, inherit, and
+    the dataset compiles at exit 0 with the inheritance on the record.
+    """
+    resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=_plate_specs(floor=_FLOOR))
+
+    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.blockers == []
+    assert set(resolution.assays) == {_PLATE}, "the starved cells inherited; nothing split off"
+    assert [r.run_id for r in resolution.assays[_PLATE]] == ["SRR1", "SRR2", "SRR3", "SRR4"]
+    assert resolution.abstained == {"SRR3", "SRR4"}
+    assert [c.id for c in resolution.conflicts] == [
+        "conflict-cell-unconfirmed-SRR3",
+        "conflict-cell-unconfirmed-SRR4",
+    ]
+    assert all(c.status == "resolved" for c in resolution.conflicts), "auditable, non-blocking"
+    assert all(c.resolution is not None for c in resolution.conflicts)
+    assert all(c.resolution.chosen_value == _PLATE for c in resolution.conflicts)  # type: ignore[union-attr]
+    # A conforming cell is not recorded: the record is about admission WITHOUT byte confirmation.
+    assert not {c.id for c in resolution.conflicts} & {
+        f"conflict-cell-unconfirmed-{r}" for r in ("SRR1", "SRR2")
+    }
+
+
+def test_the_read_floor_is_summed_over_a_samples_runs_and_not_asked_of_each(
+    plate_multi: Any,
+) -> None:
+    """The threshold gates the **Sample**, summed over its runs — the same bytes, two joins, two verdicts.
+
+    Both dissenting runs are 400 reads deep and the floor is 500. Join each to its own cell and both
+    cells are starved (400 < 500) and abstain; join both runs to ONE cell and it clears the floor
+    (800 >= 500) and dissents. A threshold asked of the RUN cannot tell those two apart — which is
+    exactly how a floor of 1000 would come to mean 500 on the 10.5% of real plates that are not
+    strictly 1:1.
+    """
+    by_run = _shas_by_run(plate_multi)
+    specs = _plate_specs(floor=_FLOOR)
+
+    one_run_each = reduce_dataset(plate_multi, _cells(plate_multi), specs=specs)
+    assert one_run_each.exit_code == 0 and one_run_each.abstained == {"SRR3", "SRR4"}
+
+    two_runs_one_cell = reduce_dataset(
+        plate_multi,
+        _metadata_over(
+            **{f"c-{r}": by_run[r] for r in ("SRR1", "SRR2")},
+            c34=by_run["SRR3"] + by_run["SRR4"],
+        ),
+        specs=specs,
+    )
+    assert two_runs_one_cell.refused_at == "cell", "800 reads clears a 500 floor and dissents"
+    assert two_runs_one_cell.exit_code == 3
+    assert two_runs_one_cell.abstained == frozenset()
+
+
+def test_a_cell_that_asked_inherits_the_plates_chemistry_and_is_recorded(plate_multi: Any) -> None:
+    """A cell asking with the plate's chemistry in its TIE SET inherits it, and the dataset does not
+    refuse at exit 4 because one cell asked.
+
+    Its question was answered — by inheritance — and a question that has been answered must not still
+    be asked: carried through, one cell of fourteen hundred asking refuses the whole plate. What
+    replaces it is a resolved `Conflict`, the existing auditable-but-non-blocking channel, so the
+    admission is on the record without a fifth judgement type (ADR-0006's ceiling of four).
+    """
+    asking = MultiRunOutput(
+        runs=[
+            _asking_between(r, "bulk-rnaseq", _PLATE) if r.run_id in ("SRR3", "SRR4") else r
+            for r in plate_multi.runs
+        ]
+    )
+    # Without the declaration this same input refuses at exit 4, and that is the control: what
+    # follows comes from `sample_is_cell` and not from the shape of the fixture.
+    assert reduce_dataset(asking, _cells(asking)).exit_code == 4
+
+    resolution = reduce_dataset(asking, _cells(asking), specs=_plate_specs())
+
+    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.result.questions == [], (
+        "the questions they asked were answered by inheritance"
+    )
+    assert resolution.abstained == {"SRR3", "SRR4"}
+    assert set(resolution.assays) == {_PLATE}
+    inherited = next(c for c in resolution.conflicts if c.id == "conflict-cell-unconfirmed-SRR3")
+    assert inherited.status == "resolved" and inherited.kind == "other"
+    assert [p.basis for p in inherited.positions] == ["inferred", "observed"]
+    assert inherited.positions[0].value == _PLATE, "inherited, not observed on THIS cell's bytes"
+    assert inherited.resolution is not None and inherited.resolution.decided_by == "code"
+
+
+def test_a_cell_asking_about_a_set_the_plate_is_not_in_still_reaches_a_human(
+    plate_multi: Any,
+) -> None:
+    """Inheritance is not a licence to answer any question. A cell whose tie set does not contain the
+    plate's chemistry has not abstained about THIS plate at all, so the `run` gate still refuses at
+    exit 4 and a human decides — the abstention rescues only a cell whose own bytes already said the
+    plate's answer was one of the possibilities. Its sibling, asking a tie the plate IS in, is
+    rescued in the same reduction, which is what makes this the tie test's other direction rather
+    than a differently-shaped fixture."""
+    asking = MultiRunOutput(
+        runs=[
+            _asking_between(r, "bulk-rnaseq", _PLATE)
+            if r.run_id == "SRR3"
+            else _asking_between(r, "bulk-rnaseq", "10x-5p-gex-v2")
+            if r.run_id == "SRR4"
+            else r
+            for r in plate_multi.runs
+        ]
+    )
+    resolution = reduce_dataset(asking, _cells(asking), specs=_plate_specs())
+
+    assert resolution.refused_at == "run" and resolution.exit_code == 4
+    assert resolution.abstained == {"SRR3"}
+    assert [q.id for q in resolution.result.questions] == ["q-chemistry"]
+
+
+def test_two_plate_chemistries_leave_nothing_to_inherit(plate_multi: Any) -> None:
+    """Two chemistries each declaring one sample is one cell is every cell of each dissenting from the
+    other. Naming one of them the plate's would be the vote this gate refuses to hold, so it refuses
+    the dataset instead."""
+    specs = _plate_specs()
+    bulk = specs["bulk-rnaseq"]
+    specs["bulk-rnaseq"] = bulk.model_copy(
+        update={"identity": bulk.identity.model_copy(update={"sample_is_cell": True})}
+    )
+    resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=specs)
+
+    assert resolution.refused_at == "cell" and resolution.exit_code == 3
+    assert [b.id for b in resolution.blockers] == ["blk-cell-chemistry-plates"]
+
+
+def test_run_grouping_never_learns_what_a_cell_is(plate_multi: Any) -> None:
+    """`group_runs` is unchanged, and the cell gate is downstream of it by construction.
+
+    Merging two runs of one cell into one group there would hand a single (R1, R2) assignment to
+    four files and leave two of them role-less — the global-role-assignment bug `group.py` exists to
+    prevent. The join that knows a cell lives in the reduction, above the bytes, which is why the
+    grouping below is identical whether or not a chemistry declares `sample_is_cell`.
+    """
+    from seqforge.resolve import group_runs
+
+    paths = [p for r in plate_multi.runs for p in r.paths]
+    assert {k: sorted(v) for k, v in group_runs(paths).items()} == {
+        r.run_id: sorted(r.paths) for r in plate_multi.runs
+    }
+    resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=_plate_specs(floor=_FLOOR))
+    assert [r.run_id for r in resolution.runs.runs] == ["SRR1", "SRR2", "SRR3", "SRR4"]
+    assert len(resolution.role_of_sha()) == 8, "every file of every cell keeps its own run's role"
+
+
+def _replace_result(run: Any, update: dict[str, Any]) -> Any:
+    """One run with its `ResolveResult` fields overridden — the seam the reduction tests already use."""
+    result = run.output.result.model_copy(update=update)
+    return dataclasses.replace(run, output=dataclasses.replace(run.output, result=result))
+
+
+def _asking_between(run: Any, leader: str, runner_up: str) -> Any:
+    """`run`, rewritten as a cell that ASKED, its tie set exactly ``{leader, runner_up}``.
+
+    Synthesized rather than provoked from bytes: what is under test is which outcome the reduction
+    draws from a tie, and manufacturing a genuine divergent tie between two shipped chemistries would
+    pin the scorer's calibration inside a test about the reduction. The two scores sit 0.001 apart —
+    inside the escalator's θ, which is the definition of a tie the reduction reads back.
+    """
+    top = run.output.result.candidates[0]
+
+    def _as(tech: str, value: float) -> Any:
+        return top.model_copy(
+            update={
+                "technology": tech,
+                "score": top.score.model_copy(update={"technology": tech, "value": value}),
+                "equivalence_members": [],
+            }
+        )
+
+    question = m.Question(
+        id="q-chemistry",
+        field="library.chemistry",
+        prompt="which one?",
+        options=[leader, runner_up],
+        decidable_by=["user"],
+        rung=7,
+    )
+    return _replace_result(
+        run, {"candidates": [_as(leader, 1.0), _as(runner_up, 0.999)], "questions": [question]}
+    )
+
+
 # ---------- the anchored measures, pinned by value ----------
 # `VALUE_STABLE_DIGEST` (tests/test_probe.py) pins probe's structural fields, but probe never resolves a
 # per-read frame -- so nothing pinned what `WindowProbe`'s ANCHORED measures return. The scoring tests

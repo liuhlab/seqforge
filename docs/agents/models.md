@@ -129,7 +129,12 @@ damage it did are [ADR-0004](../adr/0004-two-artifacts-not-one.md).
 - **`Study` is not `Evidenced`**, and its abstract is deliberately absent — none of it is an
   interpretation, and prose belongs in a document a quote can grep into.
 - **`DatasetProvenance` omits `workflow_version`** on purpose: the assay happened before we had an
-  opinion about which rules would run over it, and that opinion belongs to the recipe.
+  opinion about which rules would run over it, and that opinion belongs to the recipe. It **carries
+  the per-file read counts** for the mirror-image reason: a measurement a later stage will threshold
+  is a function of the probe's budget, so it may not sit inside the two sections the content hash
+  covers ([ADR-0030](../adr/0030-a-measurement-lives-in-provenance.md)). Read one through
+  `reads_in_run`, which owns "minimum within a run" and answers `None` — never `0` — for a manifest
+  that measured nothing.
 
 ## `ProcessingManifest` — intent, plural
 

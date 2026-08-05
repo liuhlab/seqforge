@@ -707,3 +707,118 @@ def io_efo(
             {"wrote": str(path), "terms": {c: t.name for c, t in sorted(terms.items())}}, indent=2
         )
     )
+
+
+@io_app.command("umi-count")
+def io_umi_count(
+    cells: list[str] = typer.Argument(
+        ..., help="One `sample_id=/path/to.bam` per cell, in the h5ad's row order."
+    ),
+    assembly: str = typer.Option(
+        ..., "--assembly", help="UCSC assembly id the cells were mapped to."
+    ),
+    annotation: str = typer.Option(
+        ..., "--annotation", help="Registered GTF name; its built database is what is read."
+    ),
+    out: Path = typer.Option(
+        ..., "--out", help="Output .h5ad path — one object for the whole plate."
+    ),
+) -> None:
+    """Count every cell of a plate into ONE .h5ad — the fan-in of the SMART-seq3 pipeline.
+
+    One counting job over all N per-cell BAMs, not N jobs and a merge, and it writes the object
+    directly: 1440 cells x ~55 000 genes x 4 matrices is ~630 MB of dense text as a TSV, for a
+    sparse object several times smaller. `X` is the exonic UMI matrix, three layers carry the rest,
+    rows are sample ids and the four read fates are `obs` columns.
+
+    A verb rather than a `run:` block for the same reason `io h5ad` is one: `snakemake -n -p`
+    renders a `shell:` while planning and cannot see inside a `run:`, so only a verb is visible to
+    compose's wiring gate. The counter takes **no container** — pysam and gffutils are plain
+    dependencies, like anndata, and only the aligner needs an environment we do not own.
+
+    The annotation database is resolved here rather than in the workflow module, exactly as `io
+    cram` resolves the reference FASTA: liulab-genome registers a GTF as `<name>.gtf` beside the
+    `<name>.db` it builds from it, and exposes the first, so the second is derived from it and the
+    module below stays strictly typed and testable against a synthetic annotation. Exit 2 on a
+    malformed cell argument, exit 3 on an unresolvable annotation or a missing BAM.
+    """
+    from ..workflows.umite.count import UmiCountError, parse_cells, write_umi_counts
+
+    # The cells are parsed before anything reaches the environment: a typo in an argument is a bad
+    # invocation and should not first cost an assembly lookup that may not even be resolvable here.
+    try:
+        plate = parse_cells(cells)
+    except UmiCountError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+    try:
+        from genome import (
+            Genome,  # untyped lab package; resolved here, off the strict workflow path
+        )
+    except ImportError as exc:  # pragma: no cover - depends on the host
+        typer.echo(json.dumps({"error": f"liulab-genome is not importable: {exc}"}), err=True)
+        raise typer.Exit(3) from exc
+    try:
+        gtf = Path(str(Genome(assembly).get_gtf_path(annotation)))
+        written = write_umi_counts(plate, gtf.with_suffix(".db"), out)
+    except UmiCountError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    except (KeyError, ValueError) as exc:  # liulab-genome refuses an unregistered annotation name
+        typer.echo(
+            json.dumps({"error": f"{annotation} is not registered for {assembly}: {exc}"}), err=True
+        )
+        raise typer.Exit(3) from exc
+    typer.echo(json.dumps({"written": str(written)}, indent=2))
+
+
+@io_app.command("umi-extract")
+def io_umi_extract(
+    r1: Path = typer.Option(..., "--r1", help="The tagged read's FASTQ (gzipped)."),
+    r2: Path = typer.Option(
+        ..., "--r2", help="Its mate's FASTQ; paired by POSITION, never by name."
+    ),
+    manifest: Path = typer.Option(
+        ..., "--manifest", help="The dataset manifest whose read layout the geometry comes from."
+    ),
+    sample: str = typer.Option(..., "--sample", help="Cell id; becomes the uBAM's read group."),
+    out: Path = typer.Option(..., "--out", help="Output path for the unaligned BAM."),
+    read_id: str = typer.Option(
+        "R1", "--read-id", help="Which layout read `--r1` is. Refused if the layout disagrees."
+    ),
+) -> None:
+    """Lift a plate assay's UMI out of R1 and write the pair as a uBAM carrying `UB:Z:`.
+
+    The per-cell half of the counting engine, and a verb rather than a `run:` block for the reason
+    `io h5ad` is one: `snakemake -n -p` renders a `shell:` while planning and cannot see inside a
+    `run:`, so only a verb is visible to compose's wiring gate. Needs no container — writing a BAM
+    through a library is not aligning reads.
+
+    **Every number the extraction needs is derived from the manifest's element model, and none of
+    them can be passed here.** There is deliberately no `--anchor`, no `--umi-length` and no
+    `--window`: a geometry a caller can type is a geometry that can disagree with what the bytes
+    were decided to be, and the read layout already states all of it. `--read-id` says which layout
+    read the `--r1` file is, and is checked against the read the layout says carries the UMI, so a
+    rule wired to hand over the mate is refused instead of quietly extracting nothing.
+
+    Exit 3 on a Blocker-shaped refusal: a layout with no tagged read, a half-renamed FASTQ, a pair
+    of unequal length, a truncated input.
+    """
+    from ..workflows.umite.extract import UmiExtractError, extract_umis, tagged_read_geometry
+    from ._common import _load_manifest
+
+    dataset = _load_manifest(manifest)
+    try:
+        tagged_read, geometry = tagged_read_geometry(dataset.library.read_layout)
+        if tagged_read != read_id:
+            raise UmiExtractError(
+                f"--read-id {read_id} was handed over as the tagged read, but this layout's UMI is "
+                f"on {tagged_read}. Extracting from the wrong mate finds no tags at all and exits 0"
+            )
+        stats = extract_umis(r1, r2, out, geometry, sample=sample)
+    except UmiExtractError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    typer.echo(
+        json.dumps({"written": str(out), "read_id": tagged_read, **stats.to_dict()}, indent=2)
+    )
