@@ -71,6 +71,45 @@ class OverLength(BaseModel):
     extra: int = Field(gt=0)
 
 
+class Deposit(BaseModel):
+    """How many libraries a case is deposited as, and how many lanes each was loaded into.
+
+    A case is built from one KB spec, and a spec is one **chemistry** — not one library. Until this
+    knob existed the two were the same thing: the generator wrote one library under one run and
+    :func:`_materialize_spec` *refused* anything else, so the commonest deposit there is —
+    ``Murray_b01_S1_L001_R1_001.fastq.gz``, GSE126954's 14 libraries x 4 lanes — was inexpressible in
+    the corpus. That is exactly the shape #263 compiled as four samples per library, and the shape
+    #278's plate case needs, so the corpus could not grade either.
+
+    **Every file of a deposit carries the same molecules and differs in its READ HEADER**, which is
+    where a real deposit puts the lane. Two alternatives were rejected, and both are things the
+    staged fixture this knob replaces had to live with:
+
+    - *A different depth per lane.* Two lanes must be different bytes — identical reads
+      content-address to identical shas, so a manifest keyed by sha would hold four files where eight
+      were handed to it — and depth is the obvious dial. But ``kb.generate`` draws each cDNA read's
+      length uniformly in [60, 91], so a file's MODAL length is a lottery over that band, while
+      ``resolve.engine.index_tagged_roles`` re-seats a surplus lane file onto its role only within
+      3 bp of that role's representative. The staged fixture had to *measure* a depth band (400–500,
+      where both reads' modes held still at 66/65) and stay inside it, or one of its eight files
+      silently lost its role. A header prefix changes the bytes and leaves the length histogram
+      identical by construction, so there is no band to measure and nothing to re-measure when
+      ``kb.generate`` changes.
+    - *A different seed per library.* More honest about what two libraries are, and it buys nothing
+      the corpus can see: a record-less deposit takes its sample identity from the **filename**
+      (ADR-0010), which is the whole subject here. It would also need each library's barcode pool
+      registered as a synthetic onlist, so the knob would stop being orthogonal to ``onlists:``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: Libraries on the flowcell — one run each, told apart by ``_S<n>``, the sample-sheet entry
+    #: ADR-0027 never strips.
+    libraries: int = Field(default=1, gt=0)
+    #: Lanes each library was loaded into. A run spans its lanes, so a lane must never add a sample.
+    lanes: int = Field(default=1, gt=0)
+
+
 class SpecRecipe(BaseModel):
     """Synthesize inputs from a KB spec via the round-trip generator."""
 
@@ -78,6 +117,7 @@ class SpecRecipe(BaseModel):
 
     kind: Literal["spec"] = "spec"
     spec: str
+    #: Reads per generated FILE, not per case: a 2x2 deposit of ``n: 400`` writes 400 reads eight times.
     n: int = Field(default=3000, gt=0)
     seed: int = 0
     pool_size: int = Field(default=64, gt=0)
@@ -86,6 +126,9 @@ class SpecRecipe(BaseModel):
     onlists: Literal["synthetic", "none"] = "synthetic"
     truncate: Truncate | None = None
     over_length: OverLength | None = None
+    #: The deposit layout. The default — one library, one lane — is the shape every case had before
+    #: the knob existed, down to the filenames and the bytes.
+    deposit: Deposit = Field(default_factory=Deposit)
 
 
 class RandomRecipe(BaseModel):
@@ -245,7 +288,9 @@ class Expected(BaseModel):
     #: (b) claim — append, and let the old prediction stand in git as the dated record.
     predicts: dict[str, str] = Field(default_factory=dict)
     #: Dotted manifest paths -> expected value. Supported: ``library.chemistry``,
-    #: ``library.equivalence_members``, ``library.roles.<role_id>`` (value = a file label), ``rung``.
+    #: ``library.equivalence_members``, ``library.roles.<role_id>`` (value = a file label), ``rung``,
+    #: and the metadata resolver's ``experiment.*`` — including ``experiment.n_samples``, the one
+    #: claim a record-less dataset can make about its samples at all (see ``evals/grade.py``).
     fields: dict[str, Any] = Field(default_factory=dict)
     #: For ``outcome: refuse`` — the BlockerCodes that must be raised.
     blockers: list[str] = Field(default_factory=list)
@@ -552,15 +597,27 @@ def _materialize_random(gen: RandomRecipe, dest: Path) -> Materialized:
 
 
 #: The run accession stand-in every generated case deposits its files under. A case built from one KB
-#: spec IS one library, so its files are one run's — and the only thing that says so downstream is the
-#: filename, because `resolve.group_runs` groups by name (never by role) and nothing else in the
-#: pipeline knows a case exists. Deliberately not an `[SED]RR\d+` shape: these bytes were never in an
-#: archive, and a name that reads like an accession in a manifest is a lie a reader cannot check.
+#: spec is one CHEMISTRY, and by default one library, so its files are one run's — and the only thing
+#: that says so downstream is the filename, because `resolve.group_runs` groups by name (never by
+#: role) and nothing else in the pipeline knows a case exists. Deliberately not an `[SED]RR\d+` shape:
+#: these bytes were never in an archive, and a name that reads like an accession in a manifest is a
+#: lie a reader cannot check.
 SIM_RUN = "SIM"
 
 
-def _deposited_as(spec: Spec, read_id: str, index: int) -> str:
-    """The filename read ``read_id``'s bytes are written under: ``SIM_R1.fastq.gz``.
+@dataclass(frozen=True)
+class _Deposited:
+    """One file of a deposit: where it lands, which read it carries, and what stamps its headers."""
+
+    name: str
+    read_id: str
+    #: The read-header prefix (`@<prefix>:0`). It is the ONLY thing separating two lanes of one
+    #: library, which carry the same molecules — see :class:`Deposit` for why not the depth.
+    prefix: str
+
+
+def _mate_token(spec: Spec, read_id: str, index: int) -> str:
+    """The conventional mate slot read ``read_id`` is deposited in: ``R1``.
 
     **The generator used to name each file after the read it carries** — `R1.fastq.gz`,
     `cdna.fastq.gz` — which is a shape no deposit has and, worse, one that groups into no run: two
@@ -569,7 +626,7 @@ def _deposited_as(spec: Spec, read_id: str, index: int) -> str:
     case's whole file list to `resolve_dataset` as one library; the moment it resolves runs the way
     `manifest fill` does (#196), every generated case refuses `UNSUPPORTED_TECHNOLOGY`.
 
-    The mate token is the spec's own ``file_hint`` (`_R1_` -> `R1`), so the name carries exactly the
+    The token is the spec's own ``file_hint`` (`_R1_` -> `R1`), so the name carries exactly the
     conventional slot a real submitter's file carries, and `scoring.filename_prior` — a sub-threshold
     nudge that can break an exact byte tie and nothing else — reads the same token off a generated
     case that it reads off a real one. A spec that declares no hint falls back to the read's 1-based
@@ -578,7 +635,30 @@ def _deposited_as(spec: Spec, read_id: str, index: int) -> str:
     """
     read = next((r for r in spec.reads if r.id == read_id), None)
     hint = (read.file_hint or "").strip("_") if read is not None else ""
-    return f"{SIM_RUN}_{hint or index}.fastq.gz"
+    return hint or str(index)
+
+
+def _deposit(spec: Spec, read_ids: list[str], deposit: Deposit) -> list[_Deposited]:
+    """Lay the spec's reads out as ``deposit`` declares — names, and the header prefix each carries.
+
+    One library in one lane keeps the name every case had before this knob existed
+    (``SIM_R1.fastq.gz``) and the generator's own ``SIM`` header prefix, so no existing case moves a
+    byte and no committed dataset hash moves with it. Anything larger is written the way bcl2fastq
+    writes it — ``SIM_b01_S1_L001_R1_001.fastq.gz``, after GSE126954's `Murray_b01_S1_L001_R1_001` —
+    because that is the layout the record-less path is actually asked to read: ``_S<n>`` is the
+    sample-sheet entry separating two libraries on one flowcell, and ``_L\\d{3}`` is the lane a run
+    spans (ADR-0027). So a 2x2 deposit's eight names group into exactly the two runs it declares, and
+    a rule that fused ``_S<n>`` or split on the lane says so in the case's own sample count.
+    """
+    mates = {read_id: _mate_token(spec, read_id, i) for i, read_id in enumerate(read_ids, start=1)}
+    if deposit.libraries == 1 and deposit.lanes == 1:
+        return [_Deposited(f"{SIM_RUN}_{mates[r]}.fastq.gz", r, SIM_RUN) for r in read_ids]
+    out: list[_Deposited] = []
+    for library in range(1, deposit.libraries + 1):
+        for lane in range(1, deposit.lanes + 1):
+            stem = f"{SIM_RUN}_b{library:02d}_S{library}_L{lane:03d}"
+            out += [_Deposited(f"{stem}_{mates[r]}_001.fastq.gz", r, stem) for r in read_ids]
+    return out
 
 
 def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
@@ -604,37 +684,49 @@ def _materialize_spec(gen: SpecRecipe, dest: Path) -> Materialized:
             seq + "".join(rng.choice("ACGT") for _ in range(ol.extra)) for seq in reads[ol.read]
         ]
 
-    paths: list[Path] = []
-    labels: dict[str, str] = {}
-    names = {read_id: _deposited_as(spec, read_id, i) for i, read_id in enumerate(reads, start=1)}
-    # The invariant `_deposited_as` promises, ENFORCED rather than trusted: one spec is one library
-    # is one run. A spec whose `file_hint` `group_runs` cannot read as a mate would split the case
-    # back into single-file runs, and the symptom is a case refusing UNSUPPORTED_TECHNOLOGY three
-    # layers away — so it fails here, naming the spec, instead of there, naming nothing.
-    if len({run_key(name) for name in names.values()}) != 1:
+    if gen.truncate is not None and gen.truncate.file not in reads:
+        # A recipe names the READ, never the file it landed under — that name is this function's
+        # business, and under a deposit there is more than one of them. A typo must stay the loud
+        # case error it always was, not a silently un-truncated (and therefore passing) case.
+        raise CaseError(
+            f"truncate.file={gen.truncate.file!r} is not a read of spec {gen.spec!r} "
+            f"(have: {sorted(reads)})"
+        )
+
+    deposited = _deposit(spec, list(reads), gen.deposit)
+    # The invariant `_deposit` promises, ENFORCED rather than trusted: one library's one lane is one
+    # run. A spec whose `file_hint` `group_runs` cannot read as a mate would split that lane back
+    # into single-file runs, and the symptom is a case refusing UNSUPPORTED_TECHNOLOGY three layers
+    # away — so it fails here, naming the spec, instead of there, naming nothing.
+    #
+    # ONE library's ONE lane, and the narrowing is the whole point rather than an economy. This check
+    # reads `run_key`, which is also what a deposit knob exists to put on trial: asserted over the
+    # whole deposit it would raise a CaseError the moment ADR-0027's lane strip regressed, and
+    # `grouping/record-less-two-libraries-two-lanes` would die in its fixture instead of grading four
+    # samples where it predicted two. A fixture may not assert the thing it was built to measure.
+    # Scoped to one lane of one library the question is the mate token alone, and its answer is the
+    # same whatever the grouping rule does with lanes or with `_S<n>`.
+    one_lane = [d.name for d in deposited if d.prefix == deposited[0].prefix]
+    if len({run_key(name) for name in one_lane}) != 1:
         raise CaseError(
             f"spec {gen.spec!r} generated files that do not group into one run: "
-            f"{sorted(names.values())} -> {sorted({run_key(n) for n in names.values()})}. A case is "
-            f"one library; check the reads' `file_hint` against `resolve.group_runs`."
+            f"{sorted(one_lane)} -> {sorted({run_key(n) for n in one_lane})}. One library in one "
+            f"lane is one run; check the reads' `file_hint` against `resolve.group_runs`."
         )
-    for read_id, seqs in reads.items():
-        path = dest / names[read_id]
-        _write_fastq_gz(path, seqs)
-        paths.append(path)
-        labels[path.name] = read_id
 
-    if gen.truncate is not None:
-        # A recipe names the READ, never the file it landed under — that name is this function's
-        # business. A typo must stay the loud case error it always was, not a silently un-truncated
-        # (and therefore passing) case.
-        if gen.truncate.file not in names:
-            raise CaseError(
-                f"truncate.file={gen.truncate.file!r} is not a read of spec {gen.spec!r} "
-                f"(have: {sorted(reads)})"
-            )
-        target = dest / names[gen.truncate.file]
-        data = target.read_bytes()
-        target.write_bytes(data[: int(len(data) * gen.truncate.fraction)])
+    paths: list[Path] = []
+    labels: dict[str, str] = {}
+    for item in deposited:
+        path = dest / item.name
+        _write_fastq_gz(path, reads[item.read_id], prefix=item.prefix)
+        paths.append(path)
+        labels[path.name] = item.read_id
+        # Every copy of the named read, because `truncate` names a read and a deposit deposits it
+        # once per library-lane. Truncating one of four lanes would be a different fixture — a
+        # partially damaged run — and no case has asked for one.
+        if gen.truncate is not None and item.read_id == gen.truncate.file:
+            data = path.read_bytes()
+            path.write_bytes(data[: int(len(data) * gen.truncate.fraction)])
 
     registry: OnlistRegistry | None = None
     if gen.onlists == "synthetic":
@@ -653,14 +745,18 @@ def _label(basename: str) -> str:
     return name
 
 
-def _write_fastq_gz(path: Path, seqs: list[str]) -> None:
+def _write_fastq_gz(path: Path, seqs: list[str], *, prefix: str = SIM_RUN) -> None:
     """The KB's reproducible writer: identical recipe -> identical bytes -> identical sha256.
 
     Reproducibility is what makes a recipe a legitimate stand-in for the bytes it replaces, so this
     module must not grow its own writer. See :func:`kb.generate.write_fastq_gz` for why a plain
     ``gzip.open`` is not reproducible.
+
+    ``prefix`` stamps the read headers, and it is what makes two lanes of one library two files
+    rather than one sha twice. It defaults to the writer's own ``SIM``, so a single-library case is
+    byte-identical to what it wrote before deposits existed.
     """
-    write_fastq_gz(path, seqs)
+    write_fastq_gz(path, seqs, prefix=prefix)
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
