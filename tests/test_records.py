@@ -1494,3 +1494,178 @@ def test_a_withheld_documents_subject_is_load_bearing_not_bookkeeping() -> None:
     assert ages["SAMN22"] is None, (
         "and the fanned one is dropped — which is what the write prevents"
     )
+
+
+# ================================================================================================
+# A record set a human wrote: it groups, and the grouping is not observed
+# ================================================================================================
+#
+# `source` used to be reported and never branched on. Two messages key on it now, and both would be
+# wrong without it. A hand-written set's whole purpose is to fuse runs a filename cannot rejoin — a
+# library resequenced for saturation is `_S3` where batch one was `_S1` — so the fuse is a note and
+# never a refusal; fired on a deposit that same note would report every ordinary run-to-BioSample
+# fusion, which is how a warning stops being read. And a set with no accession and no writer stamp
+# would otherwise be told to re-fetch from an archive it was never near.
+
+
+def _user_record_set(*, sample_of: dict[str, str], query: str = "records.yaml") -> ArchiveRecordSet:
+    """A structure-only set: two runs of one library, and which sample each declares itself part of.
+
+    `sample_of` maps a run id to the sample id it parents to, so one call builds both arrangements —
+    the fuse (both runs to one sample) and the no-op draft `records new` writes (one sample per run).
+    Deliberately carries NO attributes: a hand-written line has no document to grep back into, and
+    the precedence table's `asserted` means "a submitter typed this into a slot", so the container is
+    widened by `source` alone (`docs/adr/0034`).
+
+    The run ids are not the filenames' run keys, which is the realistic shape: a human names the runs
+    whatever they call them and joins by `filenames`, so the fuse is visible only by asking what
+    `run_key` would have said about the files that landed together.
+    """
+    from seqforge.models.records import ArchiveRecord, SubmittedFile
+
+    files_of = {
+        "batch1": ("lib7_S1_L001_R1_001.fastq.gz", "lib7_S1_L001_R2_001.fastq.gz"),
+        "batch2": ("lib7_S3_L001_R1_001.fastq.gz", "lib7_S3_L001_R2_001.fastq.gz"),
+    }
+    records = [
+        ArchiveRecord(level="sample", accession=sample)
+        for sample in sorted(set(sample_of.values()))
+    ]
+    records += [
+        ArchiveRecord(
+            level="run",
+            accession=run,
+            parent=sample_of[run],
+            submitted_files=[SubmittedFile(filename=name) for name in files_of[run]],
+        )
+        for run in sorted(sample_of)
+    ]
+    return ArchiveRecordSet(source="user", query=query, records=records)
+
+
+def _plate_files() -> list[FileIdentity]:
+    """The four files, two per resequencing batch. `run_key` reads `lib7_S1` and `lib7_S3`."""
+    names = [
+        "lib7_S1_L001_R1_001.fastq.gz",
+        "lib7_S1_L001_R2_001.fastq.gz",
+        "lib7_S3_L001_R1_001.fastq.gz",
+        "lib7_S3_L001_R2_001.fastq.gz",
+    ]
+    return [_file(name, str(i).ljust(64, "7")) for i, name in enumerate(names)]
+
+
+def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared() -> None:
+    """The feature working, and the note that keeps it honest.
+
+    `_S1` and `_S3` are one library sequenced twice, and nothing in either name says so — that is
+    exactly why the record set exists. So the fuse must LAND (one sample, one matrix, exit-0 shape)
+    and must be SAID, because two libraries of the same chemistry declared as one sample is the shape
+    no other gate catches: the chemistries agree, every file is placed, and the result is a single
+    plausible matrix nobody would look at twice.
+
+    The message is read rather than counted. A note that no longer names the runs it fused cannot be
+    acted on, and "it warns" is the claim that rots.
+    """
+    out = resolve_metadata(
+        files=_plate_files(),
+        records=_user_record_set(sample_of={"batch1": "lib7", "batch2": "lib7"}),
+    )
+
+    assert out.blockers == [], "a declared fuse is never a refusal — it is the primary use case"
+    assert [s.sample_id for s in out.samples] == ["lib7"]
+    assert len(out.samples[0].file_shas) == 4, "all four files compile into the one sample"
+    assert out.samples[0].attributes == {}, "structure only: a hand-written set declares no facts"
+    assert out.samples[0].accession is None, (
+        "`lib7` is a grouping key a human chose, not a specimen an archive named — storing it as an "
+        "accession is both false and unrepresentable, and it arrived here as an uncaught error"
+    )
+
+    fused = [w for w in out.warnings if w.code == "declared_sample_fuses_runs"]
+    assert len(fused) == 1, f"warnings were {[w.model_dump() for w in out.warnings]}"
+    note = fused[0]
+    assert "lib7_S1" in note.message and "lib7_S3" in note.message, (
+        "the note has to name BOTH runs the filenames would have kept apart"
+    )
+    assert "lib7" in note.message, "and which sample they were fused into"
+    assert "declared rather than observed" in note.message, (
+        "the point of the note is that no byte and no filename said these are one library"
+    )
+    assert note.subject.ref == f"{SAMPLE_FIELD_PREFIX}lib7"
+
+
+def test_the_safe_draft_grouping_says_nothing() -> None:
+    """`records new` drafts one sample per run, so applying it unedited changes no grouping.
+
+    That draft must therefore be silent: a note on it would fire on every set a human generated and
+    did not edit, which is the same "warn on the normal case" defect the `source` gate exists to
+    prevent one level over.
+    """
+    out = resolve_metadata(
+        files=_plate_files(),
+        records=_user_record_set(sample_of={"batch1": "lib7_a", "batch2": "lib7_b"}),
+    )
+
+    assert out.blockers == []
+    assert [s.sample_id for s in out.samples] == ["lib7_a", "lib7_b"]
+    assert [w for w in out.warnings if w.code == "declared_sample_fuses_runs"] == []
+
+
+def test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent() -> None:
+    """The regression the `source` gate exists to prevent, stated as its own test.
+
+    Joining several runs under one BioSample is what `ancestor(run, "sample")` is FOR — the pilot
+    does it six times over — so a note keyed on the grouping rather than on who declared it would put
+    a line on every dataset that has a record at all.
+    """
+    from seqforge.models.records import ArchiveRecord
+
+    records = ArchiveRecordSet(
+        source="ncbi-sra+biosample",
+        query="PRJNA1027859",
+        io_version="2026.7.0",
+        records=[
+            ArchiveRecord(level="sample", accession="SAMN40935621"),
+            ArchiveRecord(level="experiment", accession="SRX24276460", parent="SAMN40935621"),
+            ArchiveRecord(level="run", accession="SRR28716553", parent="SRX24276460"),
+            ArchiveRecord(level="run", accession="SRR28716554", parent="SRX24276460"),
+        ],
+    )
+    out = resolve_metadata(
+        files=[
+            _file("SRR28716553_1.fastq.gz", "a" * 64),
+            _file("SRR28716554_1.fastq.gz", "b" * 64),
+        ],
+        records=records,
+    )
+
+    assert out.blockers == []
+    assert [s.sample_id for s in out.samples] == ["SAMN40935621"], "the two runs are one sample"
+    assert out.warnings == [], f"an archive fusion is the normal case: {out.warnings}"
+
+
+def test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file() -> None:
+    """Same refusal, correctly explained. A hand-written set has no accession and no writer stamp,
+    so the stale-cache branch fires on every one of them and tells a human to re-fetch records from
+    an archive that was never involved — a remedy that cannot be followed and does not describe the
+    gap. What is missing is a line in a file they can open.
+    """
+    records = _user_record_set(sample_of={"batch1": "lib7"})
+    out = resolve_metadata(
+        files=[*_plate_files(), _file("orphan_S9_L001_R1_001.fastq.gz", "9" * 64)],
+        records=records,
+    )
+
+    assert [b.code for b in out.blockers] == [BlockerCode.RECORD_JOIN_INCOMPLETE]
+    blocker = out.blockers[0]
+    assert blocker.id == "blk-record-join-incomplete", "the same refusal, not a new one"
+    assert out.samples == [], "half-joining is the failure, whoever wrote the set"
+    assert "seqforge records new" in blocker.remedy, "the draft-and-edit route"
+    assert "filenames" in blocker.remedy, "and the one-line fix that does not need a re-draft"
+    assert "seqforge io records" not in blocker.remedy, (
+        "there is no archive to re-fetch from: the record set was written by hand"
+    )
+    assert "fasterq-dump" not in blocker.remedy
+    assert "the record set records.yaml" in blocker.message, (
+        "the set's `query` is a filename here, so it must not be dropped where an accession is read"
+    )
+    assert "orphan_S9_L001_R1_001.fastq.gz" in blocker.evidence
