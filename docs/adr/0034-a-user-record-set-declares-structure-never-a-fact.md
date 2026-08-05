@@ -122,24 +122,93 @@ scrolling past.
 The warning is why `source` is load-bearing rather than decorative: fired on archive sets it would
 report every normal `SRR`→BioSample fusion.
 
+## What the build settled
+
+Two spellings this record left open. [#270](https://github.com/liuhlab/seqforge/issues/270) decided
+both, and they are written down here so the next reader does not re-derive them:
+
+- **The draft emits run records only, and no sample record.** "One sample per run" is sayable two
+  ways — an explicit `- level: sample` beside each run, or a run parented to nothing — and only the
+  second is the *strict* no-op. An explicit sample record would set `experiment.samples[].accession`
+  to the grouping key where the record-less path leaves it absent, and that field is inside
+  `dataset_hash`, so the file that must change nothing would move the dataset's identity. The draft
+  therefore writes runs, each parentless, and a run with no sample above it is its own sample: the
+  same ids, the same files, the same null accession the filenames alone produce.
+- **A `source: user` sample carries `accession=None` and no record.** A hand-written id is a grouping
+  key and not a specimen an archive named, and `plate7` matches no accession pattern — storing it as
+  one was both false and unrepresentable, and it reached the resolver as an uncaught validation error
+  rather than as anything a caller could act on. `_join` keeps neither for a declared sample, which
+  is the no-attributes rule holding from the other side: a structure-only set leaves `_positions_for`
+  nothing to read.
+
 ## So in code
 
 **A record set whose `source` is `user` may declare only `level`, `id`, `parent` and `filenames` — a
 loader that lets an attribute through has broken `asserted`, not just widened a schema.** Parse it
-with `yaml.safe_load` like both manifests (YAML is a superset of JSON, so one loader takes the
-existing `io records` caches and a hand-written file with no extension dispatch). Keep `records new`
-in a top-level `records` group, never under `io`: it reads a local directory and touches no network,
-and `docs/agents/cli.md` makes `io` the only network surface. Draft one sample per run so applying the
-draft unedited cannot change a grouping, and put the `_S<n>` / flowcell candidates in comments.
+with a safe loader like both manifests (`CSafeLoader`, as the KB's does; YAML is a superset of JSON,
+so one loader takes the existing `io records` caches and a hand-written file with no extension
+dispatch). Keep `records new` in a top-level `records` group, never under `io`: it reads a local
+directory and touches no network, and `docs/agents/cli.md` makes `io` the only network surface. Draft
+one sample per run — as parentless runs, per the fork above — so applying the draft unedited cannot
+change a grouping, and put the `_S<n>` / flowcell candidates in comments.
 
-**Enforced by.** **None exists.** Nothing is implemented yet — this record precedes the build
-([#270](https://github.com/liuhlab/seqforge/issues/270)). Until it is, a loader accepting attributes
-would be caught by no test: the gate that would notice is a parse-level rejection test plus an
-end-to-end case asserting that a `source: user` set carrying an attribute is refused. The eval half is
-already expressible — `SpecRecipe.deposit` (libraries × lanes) and the `experiment.n_samples` grade
-path both shipped in [#286](https://github.com/liuhlab/seqforge/issues/286), and cases already load a
-record set from `<case>/records.json` — so a two-library deposit fused by a committed record set to
-`experiment.n_samples: 1`, and the same case without it grading 2, needs no new eval machinery.
+**Enforced by.** The parse gate, in `tests/test_recordset.py`:
+`test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them_loads` (the refusal
+this record exists for, against the identical set minus the attribute, which loads),
+`test_free_text_is_refused_for_the_same_reason_attributes_are`, `test_an_archive_level_is_refused`
+(parametrized over `experiment` and `project` — the two-level rule),
+`test_a_dangling_parent_is_refused_by_the_id_it_names`,
+`test_a_run_parented_to_another_run_is_refused`, `test_a_duplicate_id_is_refused`,
+`test_an_unknown_key_on_a_record_is_refused`, `test_an_unknown_key_on_the_set_is_refused`,
+`test_a_run_with_no_filenames_and_a_sample_with_them_are_both_refused`,
+`test_one_file_declared_by_two_runs_is_refused` and `test_every_refusal_names_something_to_type`.
+One loader over both dialects is `test_json_and_yaml_are_one_code_path`, with the archive spelling
+held exactly as tolerant as it was by `test_an_archive_cache_still_loads_unchanged` and
+`test_an_archive_cache_carrying_an_unknown_key_still_loads`; a refusal is an object rather than a
+traceback in `test_a_missing_file_refuses_rather_than_raising`,
+`test_a_file_that_is_not_a_mapping_refuses_rather_than_raising`,
+`test_a_broken_archive_cache_refuses_rather_than_raising` and
+`test_a_hand_written_file_that_forgot_source_user_is_told_so`.
+
+The fuse note, in `tests/test_records.py`:
+`test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared` (one sample, four
+files, no Blocker, `accession is None`, and a message naming both runs),
+`test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent` (the `source` gate — an ordinary
+`SRR`→BioSample fusion says nothing), `test_the_safe_draft_grouping_says_nothing` (an unedited draft
+is silent for the same reason), and
+`test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file` (the join still
+refuses, with a remedy naming `seqforge records new` and no re-fetch). Where the fuse LANDS is
+`test_a_declared_sample_fuses_two_runs_the_filenames_kept_apart` (`tests/test_recordset.py`).
+
+The draft as a no-op, in `tests/test_recordset.py`:
+`test_applying_the_draft_unedited_changes_no_sample` — same ids, same files under each, same absent
+accession as resolving the identical bytes with no record set — and
+`test_the_draft_is_one_run_per_run_and_loads_clean`, which pins the fork above by asserting the draft
+declares no sample record at all. The comments it exists for are
+`test_the_draft_names_the_sample_sheet_pair_it_will_not_decide`,
+`test_the_draft_names_the_flowcell_pair_it_will_not_decide` and
+`test_an_unambiguous_draft_says_the_scan_ran_and_found_nothing`;
+`test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set` keeps a draft that would
+not load from being written.
+
+The verbs, in `tests/test_cli.py`:
+`test_records_is_a_top_level_group_and_io_records_is_left_where_it_was` (introspected off the live
+app — `records new`/`validate` at the top level, `io records` untouched),
+`test_records_new_drafts_a_set_the_loader_and_validate_both_accept`,
+`test_the_draft_applied_unedited_produces_the_samples_the_filenames_already_did`,
+`test_records_validate_refuses_a_typed_attribute_and_names_the_key` (exit 3, and the stdout object
+names the offending field),
+`test_records_new_refuses_a_directory_with_no_fastq_and_prints_no_traceback` and
+`test_records_new_refuses_to_clobber_its_out_file_and_takes_force_to_replace_it`.
+
+The corpus, over `evals/cases/grouping/declared-one-library-across-two-runs/` — two libraries, one
+lane each, a committed `records.yaml` with `source: user`, graded `experiment.n_samples: 1` — in
+`tests/test_evals.py`: `test_a_declared_record_set_fuses_two_runs_into_one_sample` holds what a count
+cannot carry (the declared id, all four files under it, `(accession, attributes) == (None, {})`, and
+the warning naming both fused runs), `test_the_same_deposit_without_the_record_set_stays_two_samples`
+is the control that makes the 1 falsifiable, and
+`test_a_case_commits_its_record_set_under_either_name_and_never_both` holds the corpus to the same
+loader the CLI uses.
 
 ## Consequences
 
@@ -149,9 +218,15 @@ record set from `<case>/records.json` — so a two-library deposit fused by a co
   claim. The `asserted` precedence in [0010](0010-two-resolvers-one-blocks-one-warns.md) is now
   **conditional on the no-attributes rule** — permit attributes later and that justification breaks
   silently, which is the reason this file exists.
-- **#270's first checkbox was largely already built.** `--records <path>` is on `manifest fill` and
-  `run` today. What is missing is the validating loader, `records new`, and the fuse warning — not a
-  new dataset-side input.
+- **#270's first checkbox needed no new dataset-side input.** `--records <path>` was already on
+  `manifest fill`, `run` and `harvest extract`; what the build added is the validating loader and the
+  draft (a top-level `recordset.py`, for the reason `pipeline.py` is top-level — the module that
+  writes the file owns reading it), the `records new` / `records validate` verbs, the fuse warning,
+  and a `_join_blocker` branch whose remedy names `records new` instead of an archive to re-fetch
+  from. One consumer that was not obvious: `evals/case.py` read `<case>/records.json` through the
+  container model alone, so a hand-written set was both unnameable and validated more weakly in the
+  corpus than in the product — a case may now commit `records.json` **or** `records.yaml`, never
+  both, and either goes through the one loader.
 - A **Record set** is an *input*, like the FASTQs and the harvested **Document**s, and not a third
   artifact: [0004](0004-two-artifacts-not-one.md)'s two artifacts are unchanged, and the dataset
   manifest stays write-once.

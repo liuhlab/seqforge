@@ -59,6 +59,7 @@ Test files mirror packages, so rung 1 has an answer:
 | `resolve/` (scoring, assign, escalate, geometry, window) | `tests/test_resolve.py` |
 | `resolve/records.py` (the metadata resolver) | `tests/test_records.py` |
 | `resolve/provenance.py` (the wrong-PDF gate) | `tests/test_provenance.py` |
+| `recordset.py` (the loader both dialects go through, and the `records new` draft) | `tests/test_recordset.py`; where a loaded set LANDS is `tests/test_records.py`, and the two verbs are in `tests/test_cli.py` |
 | `kb/` | `tests/test_kb.py` |
 | `manifest/` (fill, hash, validate, policy/precedence) | `tests/test_manifest.py` |
 | `compose/` (plan, config, units, gates, params_gate) | `tests/test_compose.py` |
