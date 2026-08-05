@@ -73,7 +73,7 @@ is the *document* rather than a field the model fills in:
 
 `ExtractionPlanReport` shares this file because it is about the same two things one step earlier:
 which documents exist, and what each will be asked — including the ones a **collapse** folded away, so
-`PlannedDocument.members` can read "one document, 1440 members" ([ADR-0030](../adr/0030-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)).
+`PlannedDocument.members` can read "one document, 1440 members" ([ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)).
 It is a **result type, not an LLM-facing one** —
 `harvest extract --dry-run` prints it and no model ever sees it — so it is in `SCHEMA_MODELS` and
 deliberately not in `LLM_FACING`. `estimated_input_tokens` charges the stable system prefix once per

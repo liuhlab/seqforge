@@ -1611,7 +1611,7 @@ def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
     Its bytes exist nowhere else — we made them — so a span citation is checkable only while they
     survive; and `resolve` silently drops a claim whose document has no subject, so the whole
     mechanism would be lossy at the next stage if `document_subjects` listed only what was paid for.
-    Both are written, and the ask still costs one request (ADR-0030).
+    Both are written, and the ask still costs one request (ADR-0031).
     """
     import seqforge.harvest as harvest_pkg
 

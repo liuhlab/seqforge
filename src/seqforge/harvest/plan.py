@@ -256,7 +256,7 @@ class ExtractionPlan:
     #: fanned Assertion *cites* one of them: a span citation is checkable only while the exact text
     #: survives, so ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and
     #: names them in ``document_subjects`` — without which ``resolve`` would drop every fanned claim
-    #: for having no subject (ADR-0030).
+    #: for having no subject (ADR-0031).
     collapsed: dict[str, tuple[NormalizedDoc, ...]] = field(default_factory=dict)
 
     @property
@@ -571,7 +571,7 @@ def _variant_document(doc: NormalizedDoc, varying: Sequence[int]) -> NormalizedD
     else — no marks, and nothing here ever fans, because there is no invariant in it to fan. The
     ``-variant`` in the basename is not decoration: this text is NOT
     :func:`~seqforge.harvest.normalize.render_record`'s output, and a reader who finds it beside the
-    full rendering must be able to tell which is which ([ADR-0030](docs/adr)).
+    full rendering must be able to tell which is which (ADR-0031).
     """
     text = variant_text(doc.text, varying)
     digest = hashlib.sha256(text.encode()).hexdigest()

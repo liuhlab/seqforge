@@ -260,7 +260,7 @@ because the invariant was read once) or **withheld** (not sent at all, its diffe
 but the accession we ourselves wrote). A claim from an exemplar **fans** to every member its quote is
 byte-identical in; a sample-scoped one is materialized once per member so it still names one sample.
 What a collapse never does is drop a byte. Argued once in
-[ADR-0030](docs/adr/0030-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
+[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
 _Avoid_: dedup (that is byte-equality, and it misses records that differ only in an accession),
 merge, cluster, summarize; and never for `reduce_dataset`'s partition into assays, which is a
 **Manifest** decision and not a document one

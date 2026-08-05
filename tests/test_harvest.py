@@ -1009,7 +1009,7 @@ def test_adjacent_variants_keep_the_separator_the_record_wrote_between_them() ->
 
 
 def test_a_variant_document_is_regenerable_from_the_record_set_and_only_from_it() -> None:
-    """ADR-0030's subject, made concrete. `render_record` promises a document is reproducible from one
+    """ADR-0031's subject, made concrete. `render_record` promises a document is reproducible from one
     record; this text is not — it needs the record set, because which tokens vary is a property of the
     group. Same records in, same bytes out, forever; one record alone cannot produce it."""
     from seqforge.harvest import variant_text, varying_token_indices

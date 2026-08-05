@@ -411,7 +411,7 @@ def _harvest_extract_pipeline(
     # The rendered documents, on disk, under readable names. A span citation is only checkable if the
     # exact text it was greppedded against still exists -- and for a record-derived document these
     # bytes exist nowhere else, because we made them. A COLLAPSED member's bytes exist nowhere else
-    # either, and it is the one a fanned citation names, so it is written too (ADR-0030).
+    # either, and it is the one a fanned citation names, so it is written too (ADR-0031).
     docdir = documents_dir(workspace)
     docdir.mkdir(parents=True, exist_ok=True)
     for nd in every:

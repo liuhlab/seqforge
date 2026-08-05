@@ -99,7 +99,7 @@ Three costs, and each verb should be obviously in or out of each:
   exits 2 only when there is nothing at all to read. What that plan prints is already the collapsed
   send list — near-identical records fold onto one exemplar at PLAN time, never at send time, or the
   dry run would quote a bill nobody pays
-  ([ADR-0030](../adr/0030-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)). `run` (alias `compile`) reaches a model only by way of that stage, so
+  ([ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)). `run` (alias `compile`) reaches a model only by way of that stage, so
   `run --no-llm` is a fully deterministic pipeline. `eval run` reaches a model only for prose cases.
   Everything else — probing, scoring, filling, validating, composing, every `kb` self-test — is
   deterministic and shell-scriptable.

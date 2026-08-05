@@ -73,7 +73,7 @@ class PlannedDocument(BaseModel):
 
     ``members`` is what a collapse is visible as: every archive record this document speaks for. One
     entry for a record rendered on its own, many for the runs of one sample, many for a group of
-    near-identical records folded onto this one (ADR-0030), none for a document a human handed us.
+    near-identical records folded onto this one (ADR-0031), none for a document a human handed us.
     It is the DOCUMENT side of that number — "one document, 1440 members" — and the claim side is
     ``harvest extract``'s ``fanned`` rows, which say how many records each value was fanned to. At
     either count every claim is verified in the record it names, so neither moves the epistemics;
@@ -119,7 +119,7 @@ class ExtractionPlanReport(BaseModel):
     n_records_collapsed: int = 0
     #: Records sent as their DISTINCTIVE BYTES only: the invariant they share was read once, in the
     #: exemplar. A separate number from ``n_records_collapsed`` because they are separate facts — a
-    #: record that cost nothing, against a record that cost what it is worth (ADR-0030).
+    #: record that cost nothing, against a record that cost what it is worth (ADR-0031).
     n_records_reduced: int = 0
     n_chars: int = 0
     system_prompt_chars: int = 0

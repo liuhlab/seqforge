@@ -1,4 +1,4 @@
-# 30. A collapsed citation is regenerable only from the record set, so harvest writes every member
+# 31. A collapsed citation is regenerable only from the record set, so harvest writes every member
 
 Date: 2026-08-04
 
@@ -152,10 +152,13 @@ against the document directory — `harvest verify` is the natural home, and it 
   [ADR-0021](0021-one-deposit-is-one-source-at-every-layer.md) — one deposit is one source at every
   layer — and it is the second place that principle has cost something concrete rather than merely
   explained something.
-- **Measured on the 1440-record `GSE207085` dump, 2026-08-04: 786 906 characters over 540 requests
-  become 194 038 over 59** (~180 K estimated input tokens under an ask-derived batch width,
-  [#282](https://github.com/liuhlab/seqforge/issues/282)) — 53 requests for the sample and run
-  documents and 6 for the experiments, which is #233 decision 4's arithmetic to the request. **Not
+- **Measured on the 1440-record `GSE207085` dump, 2026-08-04: 786 906 characters over 80 requests
+  become 194 038 over 59**, and 375 066 estimated input tokens become 180 035. The comparison is
+  taken on top of the ask-derived batch width ([#282](https://github.com/liuhlab/seqforge/issues/282))
+  rather than instead of it — 540 requests was the world before that landed, and quoting it here
+  would credit this decision with a saving the width rule had already banked. 53 requests for the
+  sample and run documents and 6 for the experiments, which is #233 decision 4's arithmetic to the
+  request. **Not
   one record is withheld**: every level carries a per-cell serial name (`nasal_prox1_270`,
   `GSM6277169_r1`), so 4317 of 4320 are reduced and asked their difference, and the three exemplars
   carry the prose. An earlier reading of "mark, never splice" applied it to every member rather than

@@ -2435,7 +2435,7 @@ def test_a_collapsed_member_is_rendered_and_kept_even_though_it_is_never_sent() 
 
     A fanned assertion cites a document nobody sent. Its bytes exist nowhere else — we made them —
     and `resolve` drops a claim whose document has no subject, so both the text and the subject have
-    to survive the process (ADR-0030).
+    to survive the process (ADR-0031).
     """
     from seqforge.harvest import plan_extraction
 
