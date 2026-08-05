@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import random
 from pathlib import Path
 
 import pytest
@@ -10,9 +11,11 @@ from pydantic import ValidationError
 
 from conftest import KbProbes, write_fastq_gz
 from seqforge import kb
-from seqforge.kb.schema import Spec
+from seqforge.kb.schema import MotifPresent, Read, Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
+from seqforge.resolve.evaluators import Evaluation, Outcome, evaluate
+from seqforge.resolve.window import WindowProbe
 
 
 def test_10x_spec_loads_and_validates() -> None:
@@ -88,6 +91,250 @@ def test_splitseq_recovers_fixed_linker_structure() -> None:
     # the two 30 bp placeholder linkers at [18,48) and [56,86) come back as constant segments
     assert (18, 48) in constant_spans
     assert (56, 86) in constant_spans
+
+
+# ---------- the constant sequences themselves, and the floor a motif gate declares ----------
+def _constant_elements(spec: Spec) -> set[tuple[str, str]]:
+    """``(read id, element name)`` for every `linker`/`fixed` element that declares a sequence.
+
+    Derived from the elements block rather than listed, because the claim underneath is "every one of
+    these is checked" — and a hand-written list is that claim with exactly the interesting half (the
+    one nobody remembered) left out.
+    """
+    return {
+        (read.id, el.name)
+        for read in spec.reads
+        for el in read.elements
+        if el.type in ("linker", "fixed") and el.sequence is not None
+    }
+
+
+def _constant_checks(checks: list[dict[str, object]]) -> set[tuple[str, str]]:
+    """The ``(read, element)`` pairs a round-trip result recorded a constant-sequence check for."""
+    return {
+        (str(c["read"]), str(c["check"]).split(":", 1)[1])
+        for c in checks
+        if str(c["check"]).startswith("constant_sequence:")
+    }
+
+
+#: The entries that declare a constant sequence at all. Parametrizing over the whole KB would add ten
+#: items asserting that a spec with no linker has no linker checked — a case that cannot fail and
+#: reads as coverage. That the KB declares any at all is
+#: `test_a_linker_one_base_short_of_its_own_coordinates_reddens_the_round_trip`'s assertion, which
+#: needs one to exist before it can break it.
+_SPECS_DECLARING_A_CONSTANT = [
+    tech for tech in kb.list_spec_ids() if _constant_elements(kb.load_spec(tech))
+]
+
+
+@pytest.mark.parametrize("tech", _SPECS_DECLARING_A_CONSTANT)
+def test_the_round_trip_checks_every_constant_sequence_a_spec_declares(tech: str) -> None:
+    """A declared linker is a claim about bytes, so the self-test has to read those bytes back (#285).
+
+    The round-trip computed a statistic for every element and then recorded a check for barcodes with
+    an onlist and for UMIs — so a `linker`/`fixed` element fell through with nothing said about it, on
+    every entry in the KB. Measured before this: six checks ran for `splitseq` and **none** of them
+    touched its two 30 bp linkers, the sequences its own guide holds up as that entry's whole
+    discipline, and where three published sources turned out to disagree with the instrument at base 8.
+
+    That the checks now PASS is `test_every_kb_spec_roundtrips`'s assertion, at the shipped read
+    count. This one is about which checks EXIST, which does not depend on how many reads were drawn —
+    so it draws the smallest sample that still writes a file. An element the round-trip cannot address
+    (no fixed coordinates and no anchor of its own) reddens here rather than being skipped in silence:
+    that silence is the whole defect.
+    """
+    spec = kb.load_spec(tech)
+    declared = _constant_elements(spec)
+    checked = _constant_checks(kb.roundtrip_checks(spec, n=300))
+    assert checked == declared, (
+        f"{tech}: the round-trip checks {sorted(checked)} but the spec declares {sorted(declared)}. "
+        "A constant sequence the round-trip does not address is a sequence nothing in CI reads back."
+    )
+
+
+def test_a_linker_one_base_short_of_its_own_coordinates_reddens_the_round_trip() -> None:
+    """The negative direction: the constant check must be able to fail, and this is what makes it.
+
+    The generator writes `el.sequence` and the check reads it back, so a *substituted* base cannot
+    redden anything — both halves would move together. What the check really compares is the two
+    derivations of WHERE the sequence goes: the generator concatenates elements in order, and the
+    check cuts the declared `[start, end)`. Nothing validates that `len(sequence)` agrees with its own
+    coordinates, so a typo'd linker shifts every element after it — and that is the failure this
+    reproduces, by dropping one base from a shipped entry's linker and watching the schema accept it.
+
+    Derived from whatever the KB declares first rather than aimed at one entry: the guard is generic,
+    and the demonstration should not quietly become a test of one spec. It picks a FIXED-coordinate
+    element deliberately — on the anchored path the frame is found BY matching the linker, so the same
+    mutation moves the window with it and the check is weaker there by construction.
+    """
+    fixed_first = [
+        (tech, read.id, el.name)
+        for tech in kb.list_spec_ids()
+        for read in kb.load_spec(tech).reads
+        for el in read.elements
+        if el.type in ("linker", "fixed")
+        and el.sequence is not None
+        and el.start is not None
+        and el.end is not None
+    ]
+    assert fixed_first, "the KB declares no fixed-coordinate constant element to demonstrate on"
+    tech, read_id, el_name = fixed_first[0]
+
+    data = kb.load_spec(tech).model_dump()
+    element = next(
+        el
+        for read in data["reads"]
+        if read["id"] == read_id
+        for el in read["elements"]
+        if el["name"] == el_name
+    )
+    element["sequence"] = element["sequence"][:-1]  # one base short of the window it declares
+    broken = Spec.model_validate(data)  # ...and the schema is happy, which is why this test exists
+
+    checks = kb.roundtrip_checks(broken, n=300)
+    constant = [c for c in checks if str(c["check"]).startswith("constant_sequence:")]
+    assert constant, f"{tech}: no constant check to fail"
+    assert not all(c["ok"] for c in constant), (
+        f"{tech}: dropping a base from {el_name!r} left every constant check green — the check is "
+        "comparing the declared sequence against itself rather than against the reads."
+    )
+
+
+def _motif_floor_gates(spec: Spec) -> list[MotifPresent]:
+    """The `motif_present` gates this spec claims about its OWN reads, in signature order.
+
+    `requires` and `supports` only. An `excludes` motif is an anti-gate — a claim about somebody
+    else's reads — so the population that would calibrate it is not one this spec generates, and
+    adding more of its own reads moves that rate in neither direction. The KB declares none today;
+    one arriving needs a carrier population of its own, not this collector widened to swallow it.
+    """
+    return [
+        t
+        for t in (*spec.signature.requires, *(s.when for s in spec.signature.supports))
+        if isinstance(t, MotifPresent)
+    ]
+
+
+#: Every motif gate in the KB, as ``(spec id, its ordinal within that spec)`` — collected, never
+#: listed, so a gate added to any entry is calibrated because it exists.
+_MOTIF_GATES = [
+    (tech, i)
+    for tech in kb.list_spec_ids()
+    for i, _ in enumerate(_motif_floor_gates(kb.load_spec(tech)))
+]
+
+#: Reads per mixed population. Large enough that the binomial noise on a rate near 0.5 is a couple of
+#: points — an order of magnitude under the margin below — and small enough to probe in milliseconds.
+_FLOOR_N = 400
+
+#: How far each population is built from the floor it tests, as a share of the room on that side: the
+#: passing one sits halfway between `min_rate` and every read, the failing one halfway between
+#: `min_rate` and none. At the shipped 0.5 floor that is 75% / 25% tagged, measuring back 0.76 / 0.27
+#: (2026-08-04) — a quarter clear on each side, which is what "comfortably" has to mean for the
+#: assertion to be about calibration rather than about noise.
+_FLOOR_MARGIN = 0.5
+
+
+def _untagged_diluent() -> Spec:
+    """The KB entry whose every element is plain cDNA — the honest thing to dilute a layout with.
+
+    Derived, not named. What the diluent has to BE is "reads carrying no structure at all, drawn by
+    the same generator as the tagged ones", which is a property of a spec and checkable right here;
+    an id written into a test is a name that outlives the entry it points at, and the way that fails
+    is a floor test quietly diluting with the wrong reads.
+    """
+    plain = [
+        tech
+        for tech in kb.list_spec_ids()
+        if all(el.type == "cdna" for read in kb.load_spec(tech).reads for el in read.elements)
+    ]
+    assert len(plain) == 1, f"expected exactly one all-cDNA entry to dilute with, found {plain}"
+    return kb.load_spec(plain[0])
+
+
+def _evaluate_at(
+    fraction: float,
+    *,
+    gate: MotifPresent,
+    spec: Spec,
+    read: Read,
+    tagged: list[str],
+    plain: list[str],
+    tmp_path: Path,
+) -> Evaluation:
+    """Evaluate ``gate`` over a population that is ``fraction`` tagged reads and the rest plain cDNA."""
+    from seqforge.io import DEFAULT_REGISTRY
+
+    n = len(tagged)
+    k = round(fraction * n)
+    mixed = tagged[:k] + plain[: n - k]
+    # Interleaved, because a real part-tagged library is: a file holding the tagged reads first would
+    # be a population any bounded head could read as fully tagged.
+    random.Random(0).shuffle(mixed)
+    path = tmp_path / f"mixed-{fraction:.2f}.fastq.gz"
+    write_fastq_gz(path, mixed)
+    wp = WindowProbe(observation=probe_file(path), seqs=mixed)
+    return evaluate(gate, read, wp, spec, DEFAULT_REGISTRY)
+
+
+@pytest.mark.parametrize(("tech", "ordinal"), _MOTIF_GATES)
+def test_a_motif_gate_passes_above_the_floor_it_declares_and_fails_below_it(
+    tech: str, ordinal: int, tmp_path: Path
+) -> None:
+    """`min_rate` is a frequency, and until now no fixture ever put a spec near one (#285).
+
+    The generator writes every element on every read, so each entry's structure is in 100% of its own
+    reads and every declared floor was tested at 1.0 — infinitely far above itself. This builds the
+    population the entry actually claims by mixing its own reads with the all-cDNA entry's: the honest
+    diluent, since the same generator draws both and the untagged half therefore carries no signal the
+    tagged half does not.
+
+    Both sides are asserted because only the pair is a calibration. PASS alone is what a 100%-tagged
+    fixture already gave; FAIL alone would pass for a gate that can never fire. And the FAIL side is
+    what catches a diluent that does not dilute: a read the search window does not fit leaves the
+    denominator rather than lowering the rate, so reads too short to be asked show up here as the
+    dilute population PASSING, not as a silent green.
+
+    **The limit, written down rather than discovered later.** The synthetic diluent is cleaner than
+    reality. Real untagged reads of the chemistry that motivated this carry the tag off-offset at
+    ~6% — and *structured*, at offsets 13/15/23 — against 0.25% in real bulk, while uniform-random
+    cDNA gives an unstructured ~3% here. This proves the gate is calibrated to a FREQUENCY. It does
+    **not** prove robustness against that structured background, which stays measured on real reads
+    and must not be claimed from a green here.
+    """
+    spec = kb.load_spec(tech)
+    gate = _motif_floor_gates(spec)[ordinal]
+    read = next(r for r in spec.reads if r.id == gate.read)
+    assert 0.0 < gate.min_rate <= 1.0, (
+        f"{tech}: min_rate={gate.min_rate} is not a floor — a gate every population clears (or none "
+        "can) says nothing about the frequency the entry claims."
+    )
+
+    tagged = kb.generate_reads(spec, n=_FLOOR_N, seed=0)[read.id]
+    diluent = _untagged_diluent()
+    # Either mate of a two-cDNA entry is the same construction, so the first one is as arbitrary as it
+    # is deterministic. A seed of its own keeps the two populations independent draws.
+    plain = kb.generate_reads(diluent, n=_FLOOR_N, seed=1)[diluent.reads[0].id]
+
+    def measure(fraction: float) -> Evaluation:
+        return _evaluate_at(
+            fraction, gate=gate, spec=spec, read=read, tagged=tagged, plain=plain, tmp_path=tmp_path
+        )
+
+    above = gate.min_rate + (1.0 - gate.min_rate) * _FLOOR_MARGIN
+    below = gate.min_rate * (1.0 - _FLOOR_MARGIN)
+    passing = measure(above)
+    failing = measure(below)
+
+    assert passing.outcome is Outcome.PASS, (
+        f"{tech}: {above:.0%} of reads carrying the motif did not clear min_rate={gate.min_rate} "
+        f"({passing.detail})"
+    )
+    assert failing.outcome is Outcome.FAIL, (
+        f"{tech}: {below:.0%} of reads carrying the motif still cleared min_rate={gate.min_rate} "
+        f"({failing.detail}) — the gate is not measuring the frequency it declares."
+    )
 
 
 # ---------- the benign-twin rule, as a computed biconditional ----------

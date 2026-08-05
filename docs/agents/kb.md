@@ -286,6 +286,36 @@ than a wrong answer:
 `seqforge kb roundtrip` runs this and exits 3 on failure; `seqforge kb lint` validates the schema and
 the key allowlist.
 
+**A declared constant sequence is read back, not merely measured** (#285). The round-trip recorded a
+check for onlist-backed barcodes and for UMIs while computing a statistic for every element, so a
+`linker`/`fixed` one fell straight through: six checks ran for `splitseq` and *none* touched its two
+30 bp linkers — the sequences that entry's whole discipline rests on, and where three published
+sources turned out to disagree with the instrument at base 8. Each one is now cut back out of the
+generated reads and compared base for base against what the spec says, over a fixed `[start, end)` and
+over a recovered anchor frame alike, which is what closes SPLiT-seq and both BD Rhapsody Enhanced
+entries with one check. What can genuinely fail is the two derivations of *where* the sequence goes
+disagreeing — the generator concatenates elements in order, the check cuts the declared coordinates,
+and nothing validates that a `sequence`'s length matches its own window, so a typo'd linker shifts
+everything after it and lands here. On the anchored path the claim is weaker by construction (the
+frame is found *by* matching the linker), which is why the demonstration that the check can fail picks
+a fixed-coordinate element.
+
+**A `min_rate` is a frequency, and the generator writes every element on every read** — so each
+entry's structure is in 100 % of its own reads and every declared motif floor was tested infinitely
+far above itself. The floor test builds the population the entry actually claims: the spec's own reads
+mixed with the all-cDNA entry's, the honest diluent since one generator draws both. It asserts the
+gate PASSES a quarter above the floor and FAILS a quarter below it, and both sides are needed —
+PASS alone is what the 100 %-tagged fixture already gave, and FAIL alone would pass for a gate that
+can never fire. The diluent is *derived* (the one entry whose every element is plain cDNA) rather than
+named, which is the difference between a test that follows a rename and one that breaks on it.
+**Its limit, written down so a green is not over-read:** synthetic cDNA is uniform random, while real
+untagged reads of the chemistry that motivated this carry the tag off-offset at ~6 % and *structured*,
+at offsets 13/15/23, against 0.25 % in real bulk. This calibrates a gate against a FREQUENCY;
+robustness against that structured background stays a measurement on real reads and is not claimed
+here.
+
+Both live in `tests/test_kb.py`, generic over every shipped entry, and neither names a spec.
+
 ## What the KB covers, and what it does not
 
 Recorded so that a green suite is not mistaken for full coverage. The shipped entries were chosen for
