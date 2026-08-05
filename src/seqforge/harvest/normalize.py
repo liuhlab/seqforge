@@ -117,6 +117,31 @@ class DeclaredSpan:
 
 
 @dataclass(frozen=True)
+class VariantSpan:
+    """Where the near-identical records this document stands for DISAGREE — a half-open range.
+
+    A **different kind of mark from** :class:`DeclaredSpan`, and the difference is load-bearing enough
+    that they may never share a type. A declared span says *this quote is a column, refuse it*
+    (:func:`~seqforge.harvest.verify._typed_column_at`). A variant span says *this quote speaks only
+    for the member we sent, so do not fan it*. Conflate them and a fanned claim would be silently
+    rejected, or — far worse — a quote lying inside a column would be fanned into 1439 records that
+    never carried it. One field on the document per question asked of a span.
+
+    ``value`` is the **exemplar's own** token text at this position, because a mark is only auditable
+    beside the bytes it marks; ``n_values`` is how many distinct strings the group's members carry
+    here, which is what makes "this is an index, not a fact" visible at all (it is undecidable from
+    one record — :func:`~seqforge.harvest.plan.plan_extraction`'s collapse is what computes it).
+    """
+
+    start: int
+    end: int
+    #: The exemplar's token text in ``[start, end)``. Whole tokens, never a character slice.
+    value: str
+    #: Distinct strings the group's members carry at this position. ``>= 2`` by construction.
+    n_values: int
+
+
+@dataclass(frozen=True)
 class NormalizedDoc:
     """One document reduced to the canonical span space, with both identities recorded.
 
@@ -149,6 +174,11 @@ class NormalizedDoc:
     #: Ranges of ``text`` that are this record repeating one of its own typed columns
     #: (:func:`declared_spans`). Empty for every document a human handed us, which have no columns.
     declared: tuple[DeclaredSpan, ...] = ()
+    #: Ranges of ``text`` where the near-identical records this document stands for DISAGREE
+    #: (:func:`variant_spans`). Empty unless the planner collapsed a group onto this document, and
+    #: its complement — everything else in ``text`` — is byte-identical in every one of them, which
+    #: is what lets a claim quoting only that complement be fanned to all of them.
+    variants: tuple[VariantSpan, ...] = ()
     #: Which extractor produced ``text``: a :data:`PdfBackend` for a PDF, ``"text"`` otherwise.
     extractor: str = "text"
 
@@ -547,6 +577,155 @@ def _on_token_boundary(text: str, start: int, end: int) -> bool:
     if start > 0 and _is_token_char(text[start - 1]) and _is_token_char(text[start]):
         return False
     return not (end < len(text) and _is_token_char(text[end - 1]) and _is_token_char(text[end]))
+
+
+def token_spans(text: str) -> tuple[tuple[int, int], ...]:
+    """Every maximal run of token characters in ``text``, as half-open ``[start, end)`` ranges.
+
+    The same :func:`_is_token_char` the boundary check uses, so ``_`` counts and ``nasal_prox1_270``
+    is ONE token. That is not a detail to tune: see :func:`varying_token_indices` for what a
+    finer-grained answer costs.
+    """
+    spans: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        if not _is_token_char(text[i]):
+            i += 1
+            continue
+        j = i
+        while j < n and _is_token_char(text[j]):
+            j += 1
+        spans.append((i, j))
+        i = j
+    return tuple(spans)
+
+
+def token_values(text: str) -> tuple[str, ...]:
+    """``text``'s tokens, in order — what :func:`varying_token_indices` compares."""
+    return tuple(text[s:e] for s, e in token_spans(text))
+
+
+def token_skeleton(text: str) -> tuple[str, ...]:
+    """Everything in ``text`` that is NOT a token: the separators, in order, leading and trailing ones
+    included. Two texts with the same skeleton have the same token count and the same punctuation, so
+    they differ only in what their tokens SAY — which is the only shape a group can be aligned in
+    without parsing the prose.
+
+    It is a whole-string equality key, deliberately. An edit-distance alignment would let two records
+    with different fields be "near-identical" at some threshold, and a threshold is a knob nobody can
+    tune from bytes; a record that structurally differs simply forms its own group and is asked on its
+    own, which is the failure mode we want (:mod:`seqforge.harvest.plan`).
+    """
+    spans = token_spans(text)
+    seps: list[str] = []
+    prev = 0
+    for start, end in spans:
+        seps.append(text[prev:start])
+        prev = end
+    seps.append(text[prev:])
+    return tuple(seps)
+
+
+def varying_token_indices(texts: Sequence[str]) -> tuple[int, ...]:
+    """Token positions where at least two of ``texts`` disagree. THE definition of "varies".
+
+    **Token boundaries, never character spans, and this costs the last order of magnitude.** At
+    character granularity ``age: 3`` in 1439 records and ``age: 30`` in one makes ``3`` a shared span:
+    ``age = 3`` would fan into the record that says 30, and the leftover variant would be the single
+    character ``0``, which no askable-content test would ever send — a wrong claim, silently, on the
+    one record that differed. It is the ``CD4``-inside-``CD45`` caution (:func:`_on_token_boundary`)
+    one layer up, and it is why ``3`` and ``30`` are two tokens here and never a shared prefix.
+
+    Two rescues for the granularity this costs were considered and both rejected. Masking a digit run
+    whose values across the group are exactly an enumeration ``1..N`` works on a plate and dies on
+    ``sample_1h ... sample_24h``, where the digit IS the data and no code-side test separates the two.
+    And ``_is_token_char`` counting ``_`` is not an oversight to fix: it makes ``nasal_prox1_270`` one
+    token, so a serially-named deposit's sample documents do not collapse and every one of them is
+    asked. That is the design pricing itself, not a defect — cost tracks information content.
+
+    Raises ``ValueError`` unless every text shares one skeleton; a caller that has not grouped by
+    :func:`token_skeleton` first is asking to align two different documents.
+    """
+    if not texts:
+        return ()
+    skeleton = token_skeleton(texts[0])
+    values = [token_values(t) for t in texts]
+    for text in texts[1:]:
+        if token_skeleton(text) != skeleton:
+            raise ValueError("varying_token_indices needs one skeleton; group before you align")
+    return tuple(k for k in range(len(values[0])) if len({v[k] for v in values}) > 1)
+
+
+def variant_spans(texts: Sequence[str]) -> tuple[VariantSpan, ...]:
+    """``texts[0]``'s ranges at every position :func:`varying_token_indices` names.
+
+    Marks, never splices. The bytes sent stay one member's own rendering, so ``doc_sha256`` is still
+    the sha of a string :func:`render_record` regenerates from one record, and the model still reads
+    coherent prose rather than a concatenation of fragments — a fragment document would be a string no
+    record ever produced, and a quote into it could be checked against nothing.
+    """
+    if len(texts) < 2:
+        return ()
+    varying = varying_token_indices(texts)
+    spans = token_spans(texts[0])
+    values = [token_values(t) for t in texts]
+    return tuple(
+        VariantSpan(
+            start=spans[k][0],
+            end=spans[k][1],
+            value=texts[0][spans[k][0] : spans[k][1]],
+            n_values=len({v[k] for v in values}),
+        )
+        for k in varying
+    )
+
+
+def variant_text(text: str, indices: Sequence[int]) -> str:
+    """``text`` reduced to the tokens at ``indices`` — its labels and its shared prose dropped.
+
+    What a **non-exemplar** member of a collapsed group is sent as. The exemplar carries the group's
+    prose in full, marked (:func:`variant_spans`); sending 1439 more copies of the identical paragraph
+    to read five serial names is the bill this whole mechanism exists to stop. Measured on the
+    1440-record GSE207085 dump: an experiment record renders to 429 characters of which 67 vary, and
+    the shared 362 are byte-identical in all 1440.
+
+    **The record's own accession leads, because it varies and everything that varies is kept.** No
+    special case, and it is what makes the reduction safe: a document's identity is its bytes, so two
+    members that happen to share a serial name would otherwise reduce to one ``doc_sha256`` — and
+    ``resolve`` keys a document's subject by that sha, so one of the two samples would silently
+    inherit the other's claims. It also keeps ``_nothing_to_ask`` a single sentence: a member is
+    withheld exactly when this text would say nothing but its own name.
+
+    **Adjacent varying tokens keep the separator the record wrote between them; anything else gets a
+    paragraph break.** Adjacency is the only syntax the group did NOT already read in the exemplar, so
+    it is the only syntax worth carrying; and a paragraph break between tokens that were apart stops
+    the join from inventing a phrase no record wrote (``genotype: WT`` and ``age: 72`` must not
+    reduce to ``WT 72``). What is genuinely lost is the syntax BETWEEN two variants — ``5 mM DMSO``
+    with a shared ``mM`` reduces to ``5`` and ``DMSO`` — and that loss is bounded by the two checks
+    that do not move: a quote must still grep back into this text, and it must still entail its value.
+    """
+    spans = token_spans(text)
+    out: list[str] = []
+    previous: int | None = None
+    for k in indices:
+        if previous is not None:
+            joiner = text[spans[previous][1] : spans[k][0]] if k == previous + 1 else "\n\n"
+            out.append(joiner)
+        out.append(text[spans[k][0] : spans[k][1]])
+        previous = k
+    return normalize_text("".join(out))
+
+
+def is_invariant_span(doc: NormalizedDoc, start: int, end: int) -> bool:
+    """Does ``doc.text[start:end]`` lie wholly inside text byte-identical across ``doc``'s group?
+
+    The fan-out predicate, and it is stated as *touches no variant* rather than *is inside a shared
+    range* because those are the same set and only one of them can be got wrong: a claim is fanned
+    exactly when nothing it quotes is a place the members disagree. A document with no marks has no
+    group, so this is vacuously true and the caller — never this function — is what knows whether
+    there is anything to fan to.
+    """
+    return not any(v.start < end and start < v.end for v in doc.variants)
 
 
 def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[DeclaredSpan, ...]:

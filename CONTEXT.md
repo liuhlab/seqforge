@@ -201,6 +201,16 @@ supplies the quote only; code computes the offsets, so a fabricated span fails c
 false-rejecting (`docs/adr/0008`).
 _Avoid_: window (a window is a base range inside a read), citation, location, offset
 
+**Variant span**:
+A range of an **exemplar**'s text where the near-identical records it stands for *disagree* — marked
+in place, never spliced out, so the model still reads coherent prose. Neither a **Span** (that is
+where a claim came *from*) nor the **Declared** mark sitting beside it on the same document: a
+declared span makes `verify` **refuse** a quote, a variant span decides whether a verified claim may
+**fan**. One field per question asked of a range. Argued once in
+[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
+_Avoid_: diff, mask, hole, gap; and never for the *reduced* text of a **Collapse**, which is a
+document of its own and carries no marks at all
+
 **Quote**:
 The verbatim substring a claim rests on. It must grep back into the canonical text *and* entail the
 value, or the claim is rejected — R2's hallucination tripwire.
@@ -250,6 +260,20 @@ so a plan holds the same send list the paid run uses. `harvest extract --dry-run
 nothing else.
 _Avoid_: estimate, preview, dry run (that is the flag that prints one), schedule; and never for
 `compose`'s output, which is a Snakemake plan
+
+**Collapse**:
+Reading several archive records through one **Document**. Two of them ship and they are one word on
+purpose: the runs of one sample become one document, and near-identical records at one level fold
+onto one **exemplar** — the member whose full prose is sent, with the non-shared spans *marked*.
+Every other member is then one of two things: **reduced** (sent as its distinctive bytes alone,
+because the invariant was read once) or **withheld** (not sent at all, its difference being nothing
+but the accession we ourselves wrote). A claim from an exemplar **fans** to every member its quote is
+byte-identical in; a sample-scoped one is materialized once per member so it still names one sample.
+What a collapse never does is drop a byte. Argued once in
+[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
+_Avoid_: dedup (that is byte-equality, and it misses records that differ only in an accession),
+merge, cluster, summarize; and never for `reduce_dataset`'s partition into assays, which is a
+**Manifest** decision and not a document one
 
 **Transcript**:
 Every **Exchange** of one run, assembled: one system prompt plus N (document, response) pairs, since

@@ -264,6 +264,11 @@ class CasePlanRow(BaseModel):
     n_requests: int = 0
     n_records_read: int = 0
     n_records_collapsed: int = 0
+    #: Records sent as their DISTINCTIVE BYTES only, the invariant they share having been read once.
+    #: Beside ``n_records_collapsed`` rather than inside it because a record that cost nothing and a
+    #: record that cost what it is worth are two facts (ADR-0031) — and without this column the
+    #: mechanism reaches ``eval plan`` as nothing but an unexplained drop in ``n_chars``.
+    n_records_reduced: int = 0
     n_chars: int = 0
     #: Input only, and the system prefix charged once **per request** — charging it per document is
     #: what made a fan-out over one-line archive records expensive. Output is not estimable: the
@@ -303,6 +308,9 @@ class EvalPlanReport(BaseModel):
     n_requests: int = 0
     n_records_read: int = 0
     n_records_collapsed: int = 0
+    #: Records the tier sends as their distinctive bytes alone. Read, and costing a document each —
+    #: the fold that pays for nothing is ``n_records_collapsed`` and these are not it (ADR-0031).
+    n_records_reduced: int = 0
     n_chars: int = 0
     #: The stable prefix, byte-identical on every request — which is what makes prefix caching work,
     #: and why it is charged per request rather than per run.

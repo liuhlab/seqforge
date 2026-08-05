@@ -2725,6 +2725,64 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
     assert run.llm_calls == row.n_requests, "the plan is the floor on what the run issues"
 
 
+def _near_identical_case(tmp_path: Path) -> Case:
+    """A case whose sample records say the same thing and differ in a serial name — what the
+    near-identical collapse is for, and the shape eleven of the eighteen benchmark packages have."""
+    from seqforge.evals.case import load_case
+
+    case_dir = tmp_path / "twins"
+    (case_dir / "inputs").mkdir(parents=True)
+    (case_dir / "inputs" / "recipe.yaml").write_text(
+        "generate:\n  kind: random\n  n: 4\n  min_len: 40\n  max_len: 60\n"
+    )
+    (case_dir / "expected.yaml").write_text(
+        "outcome: refuse\ndescription: records that say the same thing in different words\n"
+        "blockers: [UNSUPPORTED_TECHNOLOGY]\n"
+    )
+    (case_dir / "records.json").write_text(
+        json.dumps(
+            {
+                "source": "test",
+                "query": "TEST",
+                "records": [
+                    {
+                        "level": "sample",
+                        "accession": f"SAMN{i}",
+                        "free_text": [{"label": "title", "text": f"adult neurons, plate well {i}"}],
+                    }
+                    for i in range(1, 4)
+                ],
+            }
+        )
+    )
+    return load_case(case_dir)
+
+
+def test_eval_plan_shows_the_records_the_collapse_sends_as_their_difference(tmp_path: Path) -> None:
+    """The tier-wide half of `--dry-run`'s answer, and it has to carry BOTH fold counts.
+
+    A folded record and a reduced record are two facts: one cost nothing, the other cost what it is
+    worth. `eval plan` reported only the first, so on the eighteen-case benchmark — which reduces 100
+    records and withholds none — the entire near-identical collapse arrived as an unexplained drop in
+    `n_chars`. A saving a reader cannot attribute is one they cannot check.
+
+    The row is per trial and the total is not, exactly as every other number here: a trial is the unit
+    that repeats.
+    """
+    from seqforge.evals import plan_case, plan_cases, system_prompt_chars
+
+    case = _near_identical_case(tmp_path)
+    row = plan_case(case, prompt_chars=system_prompt_chars())
+
+    assert row.n_records_read == 3
+    assert row.n_records_collapsed == 0, "every well says something of its own; nothing is withheld"
+    assert row.n_records_reduced == 2, "the invariant is read once, and each well is asked its own"
+
+    report = plan_cases([case], trials=2, jobs=1)
+    assert report.n_records_reduced == 2 * row.n_records_reduced
+    assert report.per_case[0].n_records_reduced == row.n_records_reduced
+
+
 def test_a_case_the_plan_cannot_price_is_named_rather_than_costed_at_zero(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -4295,3 +4353,45 @@ def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: 
     assert from_workspace.exit_code == 0, from_workspace.output
     assert from_run_dir.exit_code == 0, from_run_dir.output
     assert (tmp_path / "a.html").read_text() == (tmp_path / "b.html").read_text()
+
+
+def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does() -> None:
+    """The harness must grade the stage the compiler runs, not one step of it.
+
+    A collapsed group sends ONE member's prose and reads the rest as their differences, so a claim
+    from that prose reaches the other members only through `fan_claims`. `_run_harvest` called
+    `verify_drafts` and stopped, which would under-report the compiler — the one direction a grade
+    must never be wrong in, since it makes the shipped path look worse than it is and invites
+    "fixing" something that works. It also returns subjects for `plan.all_documents`, because
+    `resolve` silently drops a fanned claim whose withheld document it cannot place.
+    """
+    import dataclasses
+
+    from seqforge.evals.run import _run_harvest
+    from seqforge.harvest import TokenMeter
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+
+    twins = ArchiveRecordSet(
+        source="test",
+        query="PRJNA9",
+        records=[
+            ArchiveRecord(
+                level="sample",
+                accession=accession,
+                free_text=[FreeText(label="sample_alias", text="Caenorhabditis elegans, day3")],
+            )
+            for accession in ("SAMN1", "SAMN22")
+        ],
+    )
+    case = dataclasses.replace(_trap_case(), records=twins, metadata_docs=[])
+    provider = _StubProvider([_draft("experiment.samples.age", "day3", "day3")])
+
+    _grade, _usage, accepted, subjects = _run_harvest(
+        case, [], meter=TokenMeter(provider), model=None
+    )
+
+    ages = [a for a in accepted if a.field == "experiment.samples.age"]
+    assert len(ages) == 2, "one document was sent; the claim holds of both records' bytes"
+    assert len({a.span.doc_sha256 for a in ages}) == 2, "and each cites the record it names"
+    placed = {s.doc_sha256 for s in subjects}
+    assert {a.span.doc_sha256 for a in ages} <= placed, "including the one nobody sent"

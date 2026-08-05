@@ -1543,3 +1543,143 @@ def test_umi_extract_refuses_the_mate_rather_than_extracting_nothing_from_it(
 
     assert result.exit_code == 3
     assert "this layout's UMI is on R1" in result.stderr
+
+
+# ---------- records-only harvest, and what a collapsed member leaves on disk ----------
+
+
+def _twin_records(n: int, *, prose: str = "whole worm, day3") -> object:
+    """N sample records whose documents differ only in their accessions, plus their runs."""
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+
+    records = [ArchiveRecord(level="project", accession="PRJNA9")]
+    for i in range(1, n + 1):
+        accession = f"SAMN{str(i) * i}"
+        records += [
+            ArchiveRecord(
+                level="sample",
+                accession=accession,
+                parent="PRJNA9",
+                free_text=[FreeText(label="sample_alias", text=prose)],
+            ),
+            ArchiveRecord(level="experiment", accession=f"SRX{i}", parent=accession),
+            ArchiveRecord(
+                level="run",
+                accession=f"SRR{i}",
+                parent=f"SRX{i}",
+                filenames=[f"{accession}_1.fastq.gz"],
+            ),
+        ]
+    return ArchiveRecordSet(source="test", query="PRJNA9", records=records)
+
+
+def test_a_records_only_extraction_is_a_legal_invocation(tmp_path: Path) -> None:
+    """The guard was written when a document was the only input harvest had.
+
+    `--records` became a second one without it noticing, so `harvest extract --records dump.json
+    --dry-run` exited 2 before the planner was ever called — on a dataset that is nothing but
+    records, which is the shape of eleven of the eighteen benchmark packages. `plan_extraction` has
+    accepted `documents=()` with records all along, and `evals/plan.py` calls it that way.
+    """
+    records_path = tmp_path / "records.json"
+    records_path.write_text(_twin_records(3).model_dump_json())  # type: ignore[attr-defined]
+
+    result = runner.invoke(
+        app,
+        ["harvest", "extract", "--records", str(records_path), "--dry-run", "-C", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    plan = json.loads(result.stdout)
+    assert plan["n_records_read"] == 3 and plan["n_documents"] == 1
+    assert plan["documents"][0]["members"] == ["SAMN1", "SAMN22", "SAMN333"]
+
+
+def test_harvest_extract_still_refuses_when_there_is_nothing_at_all_to_read(tmp_path: Path) -> None:
+    """The refusal moved from "no document" to "no input", and the message names the third flag."""
+    result = runner.invoke(app, ["harvest", "extract", "-C", str(tmp_path)])
+
+    assert result.exit_code == 2
+    assert "--records" in result.output and "--instruction" in result.output
+
+
+def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fanned assertion cites a document that was never sent.
+
+    Its bytes exist nowhere else — we made them — so a span citation is checkable only while they
+    survive; and `resolve` silently drops a claim whose document has no subject, so the whole
+    mechanism would be lossy at the next stage if `document_subjects` listed only what was paid for.
+    Both are written, and the ask still costs one request (ADR-0031).
+    """
+    import seqforge.harvest as harvest_pkg
+
+    provider = _CountingProvider(per_call=7)
+    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    records_path = tmp_path / "records.json"
+    records_path.write_text(_twin_records(3).model_dump_json())  # type: ignore[attr-defined]
+
+    result = runner.invoke(
+        app, ["harvest", "extract", "--records", str(records_path), "-C", str(tmp_path)]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert provider.n_calls == 1, "three records, one ask"
+    stored = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
+    placed = {(d["scope"], d["subject"]) for d in stored["document_subjects"]}
+    assert placed == {("sample", "SAMN1"), ("sample", "SAMN22"), ("sample", "SAMN333")}
+    written = {
+        p.name.split("-")[1] for p in (tmp_path / "seqforge" / "records" / "documents").iterdir()
+    }
+    assert written == {"SAMN1", "SAMN22", "SAMN333"}
+
+
+def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) -> None:
+    """`seqforge run` entered harvest only when a DOCUMENT was passed — the same defect `_roled`
+    carried, one file over. A deposit whose whole metadata is its archive record silently skipped the
+    one stage that could read it, and its manifest was then short every fact a sample record states
+    in prose, with nothing in the summary saying so.
+
+    Driven under `--no-llm`, so what is under test is the GUARD and not a model: the stage has to
+    appear, announcing it was skipped by the flag, where before it was absent altogether.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
+
+    records_path = tmp_path / "records.json"
+    records_path.write_text(
+        ArchiveRecordSet(
+            source="test",
+            query="PRJNA9",
+            records=[
+                ArchiveRecord(
+                    level="sample",
+                    accession="SAMN1",
+                    free_text=[FreeText(label="sample_alias", text="whole worm, day3")],
+                ),
+                ArchiveRecord(
+                    level="run",
+                    accession="SRR1",
+                    parent="SAMN1",
+                    filenames=[f1.name, f2.name],
+                ),
+            ],
+        ).model_dump_json()
+    )
+
+    argv = ["run", str(f1), str(f2), "--organism", "559292", "--assembly", "sacCer3",
+            "--annotation", "ensembl", "--no-llm", "--fastq-dir", str(tmp_path),
+            "-C", str(tmp_path)]  # fmt: skip
+    without = runner.invoke(app, argv)
+    with_records = runner.invoke(app, [*argv, "--records", str(records_path)])
+
+    assert without.exit_code == 0 and with_records.exit_code == 0, with_records.stdout
+    assert "harvest" not in json.loads(without.stdout)["stages"], "no prose, no stage"
+    assert json.loads(with_records.stdout)["stages"]["harvest"] == {
+        "skipped": "--no-llm: documents were not read"
+    }, "records ARE prose, so the stage exists and says why it did not run"

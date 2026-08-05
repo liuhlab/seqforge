@@ -17,9 +17,10 @@ enforced there, not in the prompt. A prompt asks; only code refuses.
 from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys.
-#: 2026.7.1: PDF extraction changed materially — pymupdf is the default engine, in-text tables are
-#: spliced into the canonical text, and invalid unicode is scrubbed — so a cached harvest must re-run.
-HARVEST_VERSION = "2026.7.1"
+#: 2026.8.0: near-identical archive records collapse at plan time, so the send list itself moved — a
+#: cached harvest computed before the collapse asked documents this one folds away, and its claims
+#: were never fanned to the records their quotes grep into.
+HARVEST_VERSION = "2026.8.0"
 
 from .extract import (  # noqa: E402
     EXTRACT_PROMPT_VERSION,
@@ -55,8 +56,8 @@ from .normalize import (  # noqa: E402
     PageSpan,
     PdfBackend,
     UnreadableDocument,
+    VariantSpan,
     clean_invalid_unicode,
-    declared_spans,
     has_prose,
     normalize_document,
     normalize_record,
@@ -68,9 +69,16 @@ from .normalize import (  # noqa: E402
 from .plan import (  # noqa: E402
     CHARS_PER_TOKEN,
     MAX_IN_FLIGHT,
+    CollapsedGroup,
     ExtractionPlan,
+    FannedClaim,
+    FanReport,
+    QuoteResidue,
+    RequestResidue,
     extract_planned,
+    fan_claims,
     plan_extraction,
+    quote_residue,
 )
 from .providers import (  # noqa: E402
     ANTHROPIC_DEFAULT_MODEL,
@@ -106,8 +114,14 @@ __all__ = [
     "PdfBackend",
     "NormalizedDoc",
     "PageSpan",
+    # A mark's TYPE is here because it types a field of `NormalizedDoc`, which every consumer of a
+    # document already holds. The functions that COMPUTE one -- `declared_spans`, `variant_spans`,
+    # `variant_text`, `is_invariant_span` and the tokenizer under them -- are the planner's and
+    # nobody else's, so they stay `seqforge.harvest.normalize`'s and are imported from there. It is
+    # the rule the CLI keeps one layer up: a surface is what a caller acts through, never an
+    # inventory of what the mechanism happens to be made of.
     "DeclaredSpan",
-    "declared_spans",
+    "VariantSpan",
     "UnreadableDocument",
     "normalize_document",
     "normalize_record",
@@ -141,6 +155,20 @@ __all__ = [
     "ExtractionPlan",
     "plan_extraction",
     "extract_planned",
+    # the collapse: near-identical records folded at PLAN time, and the claims that then fan
+    "fan_claims",
+    "FanReport",
+    "FannedClaim",
+    "CollapsedGroup",
+    # `quote_residue` reaches no CLI verb, ON PURPOSE, and is exported anyway: it is a measurement
+    # instrument rather than a stage. It is what answered #283's recall probe -- 71 % of every
+    # document's four-token spans occurred verbatim in another document of the same request before
+    # the reduction, 0 % at every width after it (ADR-0031) -- and that is a property of one deposit,
+    # not a theorem, so it has to stay runnable against the next one. A verb would put a maintainer's
+    # ruler on the machine interface, every entry of which is a step the compiler itself takes.
+    "quote_residue",
+    "QuoteResidue",
+    "RequestResidue",
     "CHARS_PER_TOKEN",
     "MAX_IN_FLIGHT",
     # providers (the LLM is swappable; nothing downstream trusts it)
