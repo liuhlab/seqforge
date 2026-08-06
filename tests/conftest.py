@@ -86,6 +86,29 @@ KbProbes = dict[tuple[str, str], list[WindowProbe]]
 #: What :data:`src_trees` hands back: every ``.py`` under ``src/seqforge`` -> its parsed AST.
 SrcTrees = dict[Path, ast.Module]
 
+#: Refuses the tests that make STAR ALIGN something, on the one platform whose STAR cannot (#345).
+#:
+#: Two independent defects in the ``osx-64`` bioconda build, and the first hides the second. STAR does
+#: not exec ``--readFilesCommand``: it writes a shebang-less script into its own ``_STARtmp`` and execs
+#: THAT, which works only where libc retries a failed exec through ``/bin/sh`` — glibc does, macOS does
+#: not. Passing ``--sysShell /bin/bash`` writes the ``#!`` and gets past it, and then STAR maps
+#: nothing: measured by hand outside pytest, on a fresh index, from a plain uncompressed FASTQ with no
+#: ``--readFilesCommand`` anywhere, ``Number of input reads | 0`` — for 10 reads and for 20,000. It
+#: opens the file correctly (a missing one still FATALs) and peeks EOF on the first byte. Not a path,
+#: not the fifo, not libc++ mixing (a minimal ``ifstream`` + ``peek`` against this env's libc++ reads
+#: it fine), and not Rosetta (the box is a real Intel i7).
+#:
+#: So this is NOT the invisible skip #333 is about. That one hid a claim NOBODY checked; this one is
+#: checked on every pull request by CI's ``test (external binaries)`` job on ``linux-64``, which is
+#: also the only kind of machine this project ever maps on. What is skipped here is a broken aligner,
+#: named, on a platform that is a development environment and not a target. The other ``external``
+#: tests — the DAG and planning ones — still run on macOS, because they do not make STAR align.
+NO_STAR_ALIGNMENT_ON_MACOS = pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="STAR's osx-64 build reads 0 input reads and cannot spawn a readFilesCommand (#345); "
+    "mapping runs on Linux, where CI covers these on every PR",
+)
+
 
 # --------------------------------------------------------------------------- #
 # the whole suite never runs on one core

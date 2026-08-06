@@ -21,6 +21,7 @@ import pytest
 import yaml
 
 from conftest import (
+    NO_STAR_ALIGNMENT_ON_MACOS,
     PLATE_CELL_COUNT,
     Built,
     ComposedPlate,
@@ -1461,6 +1462,7 @@ def _e2e_shell(command: str, work: Path) -> None:
     )
 
 
+@NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate")
 def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts(
@@ -1748,6 +1750,7 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
 # sentence was an argument about two functions read side by side. Below it is a number.
 
 
+@NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate-se")
 def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_counts(

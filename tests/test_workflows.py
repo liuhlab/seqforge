@@ -33,6 +33,7 @@ import yaml
 from scipy.sparse import csr_matrix
 
 from conftest import (
+    NO_STAR_ALIGNMENT_ON_MACOS,
     DryRun,
     SrcTrees,
     _build,
@@ -4710,6 +4711,7 @@ def _revcomp(seq: str) -> str:
     return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
 
 
+@NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Path) -> None:
     """The uBAM route, run end to end: `UB:Z:` goes in as input and comes out on the alignment.
@@ -4762,6 +4764,7 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
     subprocess.run(
         [star, "--genomeDir", str(index), "--readFilesIn", str(ubam),
          "--readFilesType", "SAM", "PE", "--readFilesCommand", samtools, "view",
+         "--sysShell", "/bin/bash",
          "--readFilesSAMattrKeep", "All", "--outSAMtype", "BAM", "Unsorted",
          "--outFileNamePrefix", str(tmp_path / "star_")],
         check=True, capture_output=True,

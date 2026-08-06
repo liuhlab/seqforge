@@ -596,6 +596,11 @@ def run_starsolo(
         _fq_arg(barcode_fq),
         "--readFilesCommand",
         "zcat",
+        # STAR runs the reader from a shebang-less script it writes itself, which execs only where
+        # libc retries through /bin/sh -- glibc does, macOS does not. This names the shell, so the
+        # script gets a `#!`. See `NO_STAR_ALIGNMENT_ON_MACOS` in tests/conftest.py for the measurement.
+        "--sysShell",
+        "/bin/bash",
         "--soloType",
         str(solo["soloType"]),
         "--soloCBstart",
