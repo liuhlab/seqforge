@@ -29,14 +29,27 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..models.resolve import GateVerdict
 from ..pipeline import CompiledPipeline
 
 if TYPE_CHECKING:  # pragma: no cover
     from .core import ComposePlan
 
+#: How much of a refused subprocess's stderr rides back on the verdict. A **tail**, because snakemake
+#: prints the plan before it prints what went wrong, so the last lines are the ones written for the
+#: person who hit it. Bounded at all because a `ComposeResult` is JSON on a machine's stdout and a
+#: subprocess's stderr has no ceiling.
+REASON_TAIL_LINES = 40
+
 
 def have(binary: str) -> bool:
     return shutil.which(binary) is not None
+
+
+def _tail(stream: str | None) -> list[str]:
+    """The last :data:`REASON_TAIL_LINES` non-empty lines of a subprocess stream."""
+    lines = [line for line in (stream or "").splitlines() if line.strip()]
+    return lines[-REASON_TAIL_LINES:]
 
 
 def _replica(pipeline_dir: Path, plan: ComposePlan) -> Path:
@@ -78,10 +91,19 @@ def _replica(pipeline_dir: Path, plan: ComposePlan) -> Path:
     return scratch
 
 
-def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> str:
-    """`snakemake -n -p` over a throwaway replica. ``skip`` only if snakemake is absent."""
+def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
+    """`snakemake -n -p` over a throwaway replica. ``skip`` only if snakemake is absent.
+
+    **The refusal carries snakemake's own words.** This captured both streams and discarded both,
+    returning a bare ``"fail"`` that `compose` turned into exit 3 — so a module's
+    `InputFunctionException`, a sentence written to be read by whoever hit it, never reached them. From
+    outside, an unexplained ``fail`` and a silent pass are hard to tell apart, and #267's own triage
+    mis-read one as the other.
+    """
     if not have("snakemake"):
-        return "skip"
+        return GateVerdict(
+            status="skip", reason=["snakemake is not on PATH, so the wiring was never planned"]
+        )
     scratch = _replica(pipeline_dir, plan)
     # A copy of a pipeline directory is a pipeline directory, so the wrapper is located through the
     # module that owns that layout. This gate spelled the name itself, which made it one of five
@@ -96,23 +118,56 @@ def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> str:
             timeout=300,
         )
         if proc.returncode != 0:
-            return "fail"
+            # BOTH streams, stderr first, and that order is measured rather than assumed: snakemake 8
+            # reports an `InputFunctionException` raised while building the DAG on **stdout**, beneath
+            # the plan, and leaves stderr empty. Reading only the stream an error "should" be on is how
+            # this gate would go on saying nothing while looking like it now says something.
+            return GateVerdict(
+                status="fail",
+                reason=[
+                    f"`snakemake -n -p` exited {proc.returncode}",
+                    *(_tail(proc.stderr) or _tail(proc.stdout)),
+                ],
+            )
         # A dry run that plans NOTHING exits 0 and says "Nothing to be done", which is exactly what a
         # workflow with no reachable target does — and for most of this repo's life that is what the
         # generated wrapper produced, because an `include:`d `rule all` is not a default target. A
         # gate cannot tell "correct" from "planned nothing" by exit code, so it must look.
         if "Nothing to be done" in (proc.stdout or ""):
-            return "fail"
-        return "pass"
+            # Snakemake's own output says only "Nothing to be done", which describes what it did and
+            # not what is wrong. This sentence is the reason, so it is written here rather than tailed.
+            return GateVerdict(
+                status="fail",
+                reason=[
+                    "`snakemake -n -p` planned nothing and exited 0: the wrapper exposes no "
+                    "reachable target. An `include:`d `rule all` is not a default target"
+                ],
+            )
+        return GateVerdict(status="pass")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def e2e_gate() -> str:
-    """The real count-matrix run is owned by ``seqforge kb e2e`` — never implicitly run by compose."""
-    if not (have("STAR") and _have_genome()):
-        return "skip"
-    return "skip"  # available but deliberately not run here; invoke `seqforge kb e2e`
+def e2e_gate() -> GateVerdict:
+    """The real count-matrix run is owned by ``seqforge kb e2e`` — never implicitly run by compose.
+
+    Both branches ``skip`` and always did; what they never said is **which** skip this is. "The
+    toolchain is absent" and "the toolchain is here and running it is not compose's job" are different
+    facts about a green result, and only the second means a reader can go get the coverage.
+    """
+    missing = [name for name, present in (("STAR", have("STAR")), ("liulab-genome", _have_genome()))
+               if not present]  # fmt: skip
+    if missing:
+        return GateVerdict(
+            status="skip", reason=[f"the end-to-end toolchain is incomplete here: {missing} absent"]
+        )
+    return GateVerdict(
+        status="skip",
+        reason=[
+            "STAR and liulab-genome are both here, but compose never runs the real count matrix — "
+            "`seqforge kb e2e` owns it"
+        ],
+    )
 
 
 def _have_genome() -> bool:

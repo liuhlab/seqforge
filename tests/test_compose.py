@@ -56,7 +56,7 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
 ) -> None:
     """Everything asserted here is text off disk, so it runs under conftest's stubbed gate.
 
-    It used to take `real_wiring_gate` for exactly one assertion, `gate["wiring"] == "pass"` — the
+    It used to take `real_wiring_gate` for exactly one assertion, `gate["wiring"].status == "pass"` — the
     claim `test_every_registered_module_wires_into_a_runnable_dag` now owns for all three modules
     rather than for this one dataset. A 1.5s `snakemake` spawn to re-prove it here bought nothing, and
     dropping it puts this test back into `test-fast`.
@@ -64,10 +64,10 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
     manifest, reg = built_v3
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
-    assert result.gate["params"] == "pass"
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
     # e2e stays skip: it is the real count-matrix run and belongs to `seqforge kb e2e`, never to
     # compose. Its toolchain (STAR, liulab-genome, a cluster) is genuinely absent here.
-    assert result.gate["e2e"] == "skip"
+    assert result.gate["e2e"].status == "skip", result.gate["e2e"].reason
 
     # read the path compose REPORTS, not one reconstructed here: the layout is keyed by run_id and a
     # test that hardcodes it is testing its own arithmetic
@@ -118,7 +118,7 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     processing = _processing(manifest)
     result = compose(manifest, processing, registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/starsolo"
-    assert result.gate["params"] == "pass"
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
 
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     solo = config["solo"]
@@ -326,7 +326,7 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(
     deliverable is still on disk and still complete.
 
     It un-stubs the gate *because* it is the test that no gate ran: under conftest's stub the gate
-    returns the literal `"skip"` for everyone, so `gate["wiring"] == "skip"` would hold even if
+    returns the literal `"skip"` for everyone, so `gate["wiring"].status == "skip"` would hold even if
     `run_wiring_gate` were ignored entirely. The assertion only means something when the thing it
     asserts was NOT taken is the thing that would otherwise have run.
 
@@ -339,7 +339,7 @@ def test_compose_emits_a_snakefile_even_when_no_gate_runs(
     result = compose(
         manifest, _processing(manifest), registry=reg, workspace=tmp_path, run_wiring_gate=False
     )
-    assert result.gate["wiring"] == "skip"
+    assert result.gate["wiring"].status == "skip", result.gate["wiring"].reason
     snakefile = tmp_path / result.snakefile_path
     assert snakefile.is_file(), "compose ran a gate-free path and emitted no Snakefile"
     assert get_module("map/starsolo").snakefile.name in snakefile.read_text()
@@ -375,7 +375,7 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
     (run_dir / "Snakefile").write_text(
         f'configfile: "config.yaml"\ninclude: "{module.snakefile.resolve()}"\n'
     )
-    assert wiring_gate(run_dir, p) == "fail", (
+    assert wiring_gate(run_dir, p).status == "fail", (
         "an include:-only wrapper plans zero jobs and exits 0; the gate must not call that a pass"
     )
 
@@ -387,7 +387,7 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
 
     Three tests used to read the plan of this same compose — the h5ad deliverable, the temporary
     whitelist, and `--soloBarcodeReadLength` — and the whitelist one paid twice, once for its own dry
-    run and once for a `real_wiring_gate` whose `gate["wiring"] == "pass"` is owned by
+    run and once for a `real_wiring_gate` whose `gate["wiring"].status == "pass"` is owned by
     `test_every_registered_module_wires_into_a_runnable_dag[map/starsolo]`. One plan, four claims.
 
     1. **The deliverable.** `rule all` used to demand `directory(Solo.out)`, so a green pipeline ended
@@ -644,7 +644,7 @@ def test_compose_bulk_selects_plain_star(synth_bulk_pe: SynthDataset, tmp_path: 
     manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/star"
-    assert result.gate["params"] == "pass"
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["bulk"]["quantMode"] == "GeneCounts"
     assert config["read_files_in"] == {"mate1": "R1", "mate2": "R2"}
@@ -703,7 +703,7 @@ def test_compose_a_one_mate_layout_emits_the_first_mate_key_alone(
         manifest, _processing(manifest), registry=synth_bulk_pe.registry, workspace=tmp_path
     )
     assert result.modules[0].name == "map/star"
-    assert result.gate["params"] == "pass"
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
 
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["read_files_in"] == {"mate1": "R1"}
@@ -732,7 +732,7 @@ def test_a_single_end_bulk_deposit_compiles_end_to_end(
 
     result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
     assert result.modules[0].name == "map/star"
-    assert result.gate["params"] == "pass"
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["read_files_in"] == {"mate1": "R1"}
     assert config["bulk"]["quantMode"] == "GeneCounts"
@@ -964,7 +964,7 @@ def test_a_plate_composes_its_reads_by_role_whichever_order_the_layout_lists_the
         manifest, processing = plate(tagged_first=tagged_first)
         result = compose(manifest, processing, registry=synth_bulk_pe.registry, workspace=tmp_path)
         assert result.modules[0].name == "map/star-umi"
-        assert result.gate["params"] == "pass", result.params_preview["params_problems"]
+        assert result.gate["params"].status == "pass", result.gate["params"].reason
 
         config = yaml.safe_load((tmp_path / result.config_path).read_text())
         assert config["read_files_in"] == {"umi_cdna": "R1", "cdna": "R2"}, (
@@ -1154,7 +1154,7 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     shapes, so the two assertions together are the whole case analysis rather than two samples of it.
     """
     plan_text = composed_plate.plan_text
-    assert composed_plate.gate["wiring"] == "pass", (
+    assert composed_plate.gate["wiring"].status == "pass", (
         f"the `{{umi_cdna, cdna}}` placement did not reach the DAG builder: {composed_plate.gate}"
     )
     assert (composed_plate.pipeline_dir / "star-umi.smk").is_file(), (
@@ -1628,7 +1628,7 @@ def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_c
 # second, on the same shipped `smartseq3` entry, whose `read_sets: {se: [R1]}` is what makes the
 # mate-less placement reachable at all.
 #
-# `gate["wiring"] == "pass"` is the assertion that does the work in both, and nothing cheaper can
+# `gate["wiring"].status == "pass"` is the assertion that does the work in both, and nothing cheaper can
 # stand in for it: that gate IS `snakemake -n -p`, i.e. the DAG BUILDER, which is exactly where the
 # deleted raise used to land (`InputFunctionException … ValueError: this layout carries only the
 # tagged read`, measured at 7e2488f). The placement itself was always emittable — the composer has
@@ -1652,7 +1652,7 @@ def test_a_single_end_plate_deposit_compiles_end_to_end(
     library at exit 0, which `docs/agents/kb.md` ranks as the worst outcome available. See
     :data:`conftest.synth_plate_se` for the measured margin.
 
-    **`gate["wiring"] == "pass"` is the point of the whole test.** Everything above it is text off
+    **`gate["wiring"].status == "pass"` is the point of the whole test.** Everything above it is text off
     disk and would hold just as well of a composer that emitted a placement the module goes on to
     raise over — which is precisely the state ADR-0035 removes, and the state the shipped `se` read
     set would otherwise have unlocked. That gate spawns `snakemake -n -p`, so it is the DAG builder's
@@ -1668,8 +1668,8 @@ def test_a_single_end_plate_deposit_compiles_end_to_end(
     assert result.modules[0].name == "map/star-umi"
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["read_files_in"] == {"umi_cdna": "R1"}, "the mate-less placement was not emitted"
-    assert result.gate["params"] == "pass", result.params_preview["params_problems"]
-    assert result.gate["wiring"] == "pass", (
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
+    assert result.gate["wiring"].status == "pass", (
         f"the mate-less placement never reached a runnable DAG: {result.gate}"
     )
     assert (tmp_path / result.snakefile_path).is_file()  # the deliverable a user submits
@@ -1700,14 +1700,14 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     The mate-less half of that config is left exactly as compose emitted it, so what is under test is
     the gate's reach and not the layout.
     """
-    from seqforge.compose.gates import wiring_gate
+    from seqforge.compose.gates import REASON_TAIL_LINES, wiring_gate
 
     manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
     processing = _processing(manifest)
     result = compose(manifest, processing, registry=reg, workspace=tmp_path, run_wiring_gate=False)
     pipeline_dir = (tmp_path / result.snakefile_path).parent
     p = plan(manifest, processing, registry=reg)
-    assert wiring_gate(pipeline_dir, p) == "pass", (
+    assert wiring_gate(pipeline_dir, p).status == "pass", (
         "the unbroken single-end plate must plan, or the red below says nothing"
     )
 
@@ -1715,9 +1715,27 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     config = yaml.safe_load(config_path.read_text())
     del config["read_files_in"]["umi_cdna"]
     config_path.write_text(yaml.safe_dump(config, sort_keys=True))
-    assert wiring_gate(pipeline_dir, p) == "fail", (
+    verdict = wiring_gate(pipeline_dir, p)
+    assert verdict.status == "fail", (
         "a plate whose tagged read the module cannot name dies while the DAG is being built, and "
         "the gate called it a pass"
+    )
+
+    # ...and it says WHY, in snakemake's own words. The verdict alone was all this carried, so the
+    # module's message — written to be read by whoever hit it — died inside `capture_output=True` and
+    # compose reported a bare `gate.wiring: fail`. From outside, an unexplained refusal and a silent
+    # pass are hard to tell apart, which is how #267's own triage mis-read this failure as exit 0.
+    reason = "\n".join(verdict.reason)
+    assert "exited 1" in reason, (
+        f"the exit code is the first thing a reader needs: {verdict.reason}"
+    )
+    assert "InputFunctionException" in reason, (
+        f"the gate must carry the exception snakemake raised while building the DAG, not just the "
+        f"verdict: {verdict.reason}"
+    )
+    assert len(verdict.reason) <= REASON_TAIL_LINES + 1, (
+        f"a reason rides on a JSON result, so it is bounded at a tail of {REASON_TAIL_LINES} lines "
+        f"plus the exit-code line; got {len(verdict.reason)}"
     )
 
 
@@ -1955,6 +1973,46 @@ def test_two_processing_manifests_do_not_overwrite_each_other(
     assert (tmp_path / a.config_path).is_file() and (tmp_path / b.config_path).is_file()
     assert yaml.safe_load((tmp_path / a.config_path).read_text())["genome"]["assembly"] == "sacCer3"
     assert yaml.safe_load((tmp_path / b.config_path).read_text())["genome"]["assembly"] == "ce11"
+
+
+def test_a_kb_bump_re_keys_the_compile_without_moving_the_dataset_hash(
+    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The same manifest, compiled under two knowledge bases, is two runs — ADR-0037.
+
+    `run_id` folded `manifest.provenance.kb_version`, which is stamped at **fill** time, while `plan`
+    reads the **live** KB for the params, the derived keys and the admission floor. So the emitted
+    config was a function of one knowledge base and its identity a function of another: bump the KB,
+    skip the re-fill, and the second compile wrote over the first with nothing noticing.
+
+    Patched on `compose.core`, not on `kb`, because that is where the name is bound — and the second
+    assertion is the half that makes this a re-keying rather than a new dataset: the manifest is
+    untouched, so its hash may not move. That is ADR-0032's property, and it now holds without
+    needing the re-fill that used to be the only thing that carried a KB bump into the run id.
+    """
+    manifest, reg = built_v3
+    processing = _processing(manifest)
+    dataset_hash = manifest.provenance.dataset_hash
+    recorded_kb = manifest.provenance.kb_version
+    before = compose(manifest, processing, registry=reg, workspace=tmp_path)
+
+    monkeypatch.setattr("seqforge.compose.core.KB_VERSION", "2099.1.1")
+    after = compose(manifest, processing, registry=reg, workspace=tmp_path)
+
+    assert before.config_path != after.config_path, (
+        "an old manifest compiled under a new KB must land in its own directory; sharing one is the "
+        "silent overwrite ADR-0037 exists to stop"
+    )
+    assert (tmp_path / before.config_path).is_file() and (tmp_path / after.config_path).is_file(), (
+        "both compiles must survive — re-keying that deletes the earlier run is not re-keying"
+    )
+    assert manifest.provenance.dataset_hash == dataset_hash, (
+        "the dataset hash may not move: what the data IS did not change, only what was done with it"
+    )
+    assert manifest.provenance.kb_version == recorded_kb, (
+        "the manifest's own kb_version is the KB that decided its CHEMISTRY, and compiling under a "
+        "newer one is not a decision about the chemistry — compose may not rewrite it"
+    )
 
 
 def test_compose_writes_the_bound_processing_lock(built_v3: Built, tmp_path: Path) -> None:

@@ -164,6 +164,9 @@ def render_record(
         "",
         f"**{admission.summary}.**",
         "",
+        # `kb_version` is the LIVE one, which is what makes this sentence true: the floor was read
+        # from the KB loaded here, so naming the manifest's recorded version would have attributed a
+        # live-KB number to whichever KB happened to decide the chemistry. See ADR-0037.
         f"Each {unit} below carries fewer reads than the {admission.threshold}-read admission floor "
         f"`{chemistry}` declares (`min_input_reads`), read from the knowledge base loaded at compile "
         f"time ({kb_version}). A {unit} below that floor is not analysed in any form and does not "
