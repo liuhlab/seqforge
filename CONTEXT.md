@@ -591,6 +591,31 @@ _Avoid_: stat, QC number, score (what the resolver computes over candidates), gr
 assigning a level); and never an **Observation** — that is read from the bytes *before* anything ran,
 a metric is what the finished pipeline reported *after*
 
+**Counting grid**:
+The two axes a plate assay's matrices are crossed from: the **counting unit** (a UMI — a deduplicated
+molecule — or a read, which has no UMI and cannot be deduplicated) against the **feature region**
+(exon, intron, or the two **combined**). Six cells, five of them materialised as matrices, because a
+matrix earns its place by being **non-derivable**: the combined UMI figure is a third deduplication
+over both populations at once and no arithmetic on the other two recovers it, while the combined read
+figure is exactly their sum and is left to whoever wants it. Its 3-column half is the grid
+`docs/research/smartseq3-analysis-practice.md` heads *exonic | intronic | combined*, which is where
+the word comes from.
+_Avoid_: `inex` (zUMIs' spelling) and `U`/`UE`/`UI`/`RE`/`RI` (the reference tool's) — both need the
+tool read first; also "spliced/unspliced", which is Velocyto's question about a **Read** and not this
+one about where a fragment landed
+
+**Fan-in artifact**:
+The deliverable a **Compiled pipeline** produces **once for the whole deposit** rather than once per
+**Sample** — one file, carrying one row per sample. Dataset-scoped as a *file* and sample-scoped as
+*data*, and that split is the whole term: it has no sample in its path, so nothing addressed per
+sample can find it, while everything inside it still belongs to one sample. A **Workflow module**
+declares it (`fan_in_artifact`), which is what lets the rule that writes it and the readers that find
+it share one name. Only a **Pre-demultiplexed** plate has one today: 1440 cells counted in one job
+into one `.h5ad`.
+_Avoid_: merged output, aggregate, summary (all three read as a *derived* second copy — a fan-in
+artifact is the primary result, produced once); combined file; and never for the **Manifest**, which
+is dataset-scoped and holds no per-sample rows of counts
+
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it
 holds the manifest and the Snakefile — it is output, not cache; only `seqforge/cache/` is safe to

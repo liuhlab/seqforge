@@ -145,6 +145,31 @@ So this reference pins the `inex ≠ exon + intron` arithmetic's **shape** (dedu
 per-bucket) but not its **value**: at this depth both implementations agree. A port that gets it
 backwards passes this fixture. That gap needs a synthetic case, not more real cells.
 
+### The gap was closed by reading the source, not by running anything more (2026-08-05)
+
+What `U` under `--combine_unspliced` *is* was settled from `umite==0.1.1`'s own `umicount.py`, and no
+part of the capture above was re-run:
+
+- `umicount.py:401` — the bucket key is only specialised to `'I'`/`'E'` when combining is **off**
+  (`if not config.combine_unspliced: rkey += ...`), so in combine mode a gene's exonic and intronic
+  UMIs land in the one bucket `geneumis[g]['U']`;
+- `umicount.py:437-448` — correction and deduplication then run **once** over that union
+  (`UIE_corrected = umi_correction(geneumis[g]['U'], ...)`, `gcounts[g]['U'] = len(UIE_corrected)`).
+
+So the answer is **union-dedup over the raw `(UMI, gene)` observations**, and the ordering is
+load-bearing rather than incidental: `umi_correction` is Hamming-1 *with a count-ratio test*, so a
+UMI's abundance decides which neighbours it absorbs, and in the union that abundance is
+`exon_count + intron_count`. Correcting each bucket and then unioning the surviving keys is a
+different function, not a rearrangement of the same one — it is short by every merge the summed
+counts would have licensed.
+
+`workflows/umite/count.py` therefore carries a fifth matrix, `layers["umi_combined"]`, computed that
+way, and the synthetic case this section asked for is
+`test_two_neighbour_umis_split_across_the_buckets_merge_only_if_the_counts_merge_first`: one gene, two
+UMIs one substitution apart, `A`x2 `B`x2 exonically and `A`x5 `B`x1 intronically. The three candidate
+definitions give three different answers there — 3 by addition, 2 by correcting each bucket first, 1
+the reference's way — which is what makes it a discriminator where the ten real cells are not.
+
 ## The `UB` tag survives STAR — mechanism confirmed
 
 #256 decision 9 settled that the UMI rides in a `UB` BAM tag rather than the read name, which is what
