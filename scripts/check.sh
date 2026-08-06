@@ -7,9 +7,10 @@
 # was 6.8s of a 23s gate — a third of it, spent waiting on ruff and mypy that share no inputs with
 # each other or with pytest.
 #
-# CI is unaffected: `.github/workflows/ci.yml` invokes `lint`, `fmt-check`, `typecheck` and `test`
-# as separate JOBS on separate runners, so it already had this concurrency and calls the individual
-# tasks, never this script.
+# CI is unaffected: `.github/workflows/ci.yml` calls the individual tasks and never this script. It
+# runs `lint`, `fmt-check` and `typecheck` as three STEPS of one job (with the docs build), and
+# `test` as a job of its own — so the concurrency this script buys is a local-only win, and CI's
+# shape is four more jobs (`markdown`, `test-external`, `build`) rather than four runners.
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous

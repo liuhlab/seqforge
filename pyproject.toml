@@ -194,7 +194,8 @@ fmt-check = "ruff format --check ."
 # Bare: `[tool.mypy] files` owns the scope, so the editor's checker cannot disagree with this one.
 typecheck = "mypy"
 # `auto` capped at 12: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner.
-# `loadgroup` groups only tests carrying `xdist_group`. Measurements: docs/agents/testing.md.
+# `loadgroup` groups only tests carrying `xdist_group`; why not `loadfile`, and when to mark a
+# module, is a decision record. Measurements: docs/research/xdist-worker-sweep-2026-08-01.md.
 test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"

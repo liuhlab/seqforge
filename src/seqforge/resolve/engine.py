@@ -103,9 +103,13 @@ def chemistry_hypothesis(
     """The chemistry the prose claims, entering `score` as a hypothesis. ``None`` when it cannot.
 
     **What this is allowed to do.** `score` builds a grid — one row per read role, one column per
-    file — from eight byte-tests, and the hypothesis touches none of them. It orders the candidates
-    (so the right whitelist is checked first) and it can break a tie the bytes genuinely cannot
-    settle. For prose to move a *score* there would have to be a ninth test, `metadata_says`, and a
+    file — from eight byte-tests, and the hypothesis touches none of them. It can keep an asserted
+    spec in the pool that read-length descent would have dropped, so the missing-technical-read
+    refusal stays reachable; it can break a tie the bytes genuinely cannot settle; and it is the
+    asserted side of conflict detection. What it does **not** do is order or narrow the work:
+    `_score_pool` scores every spec in the pool and pre-warms every onlist it can, so no whitelist is
+    "checked first" and nothing stops early. For prose to move a *score* there would have to be a
+    ninth test, `metadata_says`, and a
     spec could then declare a chemistry that identifies itself by being described rather than by
     what is in its reads. That is the thing we do not build.
 

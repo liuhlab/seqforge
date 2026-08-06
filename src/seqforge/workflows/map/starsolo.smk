@@ -173,14 +173,9 @@ rule all:
 rule onlist:
     """Materialize one barcode whitelist, for STAR to read once and snakemake to then delete.
 
-    `temp()` is the entire point. 10x's v3 whitelist is 6 794 880 barcodes = 111 MB of text, and
-    `compose` used to write it into the run directory at compile time -- so one dataset compiled
-    three ways cost a third of a gigabyte of identical bytes, sitting there forever, for a file STAR
-    opens once. Now it is built on demand and deleted when the last job that needs it is done.
-
-    It was also `temp()`-able in name only before this rule existed: the whitelist was bound to
-    `starsolo_count.input` with NO producing rule, and snakemake cannot delete what it did not make.
-    An input with no rule is a file snakemake merely requires to already be there.
+    `temp()` is the entire point, and why -- the 111 MB a compiled run used to carry three times over,
+    and why an input with no producing rule was `temp()`-able in name only -- is argued once in
+    `docs/adr/0015-onlists-are-built-and-deleted.md`.
 
     No `container:` directive, deliberately. This runs `seqforge`, which is not an aligner -- the
     ambient environment is the one that just ran `seqforge compose`, so it is by construction the one
