@@ -1,5 +1,7 @@
 # Deciding the library from bytes: evaluators, the evidence matrix, the ladder
 
+**Covers.** `src/seqforge/resolve/`.
+
 Read this when you touch `resolve/scoring`, `resolve/assign`, or `resolve/escalate` — the **byte
 resolver**, which answers "what IS this library?" from bytes and blocks on disagreement. Its sibling,
 the metadata resolver in [`resolve/records.py`](../../src/seqforge/resolve/records.py), answers "which

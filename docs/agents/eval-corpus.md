@@ -1,5 +1,7 @@
 # The eval corpus and the ground-truth runs
 
+**Covers.** `evals/`, `src/seqforge/evals/`, `src/seqforge/e2e.py`.
+
 Read this when you add an eval case, extend the benchmark, or change what the compose gate asserts.
 One lifetime: **how we prove the compiler works, and what the proofs actually measured.** Numbers here
 are dated, because a measurement without a date is a claim — and a measurement with a method is a

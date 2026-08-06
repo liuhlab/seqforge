@@ -1,5 +1,7 @@
 # The one LLM seam: what harvest sends, what it keeps, and what code re-checks
 
+**Covers.** `src/seqforge/harvest/`.
+
 Read this when you touch `src/seqforge/harvest/` — nine modules, three verbs (`harvest normalize`,
 `harvest extract`, `harvest verify`), and the compiler's only wire call to a model. The rule it lives
 under is [R2](rules.md): agents propose, code decides. Terms (`Document`, `Plan`, `Assertion`,

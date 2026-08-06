@@ -1,5 +1,8 @@
 # The rules: why each exists, and what enforces it
 
+**Covers.** No single module — R1–R11 span the tree. This page is the layer behind the router: one
+section per rule, its rationale, and the gate that holds it.
+
 [`AGENTS.md`](../../AGENTS.md) states R1–R11 as imperatives, and that is all an agent needs to obey
 them. This file is the layer behind: for each rule, **why** it exists — or which ADR records that
 decision, since rationale that became an ADR is pointed at here, never restated — and the **file you

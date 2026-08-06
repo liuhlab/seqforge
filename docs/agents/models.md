@@ -1,5 +1,7 @@
 # The model hierarchy: the decisions the field lists cannot show
 
+**Covers.** `src/seqforge/models/`.
+
 Read this when you touch `src/seqforge/models/`. It carries **decisions only** — no field lists. The
 schemas themselves are exported, not written down: `seqforge schema list` and `seqforge schema export`
 are the single source of truth, and a field list copied into prose is a second schema that drifts.

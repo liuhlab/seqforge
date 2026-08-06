@@ -1,5 +1,7 @@
 # The knowledge base: `spec.yaml`, confusability, and the round-trip
 
+**Covers.** `src/seqforge/kb/`.
+
 Read this when you add or edit a technology entry — it is the reference behind the
 `seqforge-kb-author` skill. R8 in detail: every entry is executable and self-testing, so the entry you
 write is the entry CI runs. Terms (`Spec`, `Backend params`, `Onlist`, `Confusable`,

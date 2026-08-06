@@ -1,5 +1,8 @@
 # On-disk state: `seqforge/`, resumable and content-addressed
 
+**Covers.** `src/seqforge/workspace.py`, `src/seqforge/hooks/`, and the run-time workspace tree those
+two name and guard — which exists only after a stage has written to it, so it is not a path here.
+
 R5 in one place. One owner for the name: [`workspace.py`](../../src/seqforge/workspace.py) — it is the
 only file that spells `seqforge/`, and the only one that knows a readable name is a stem plus a
 12-char hash.

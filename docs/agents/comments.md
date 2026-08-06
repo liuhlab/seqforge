@@ -1,5 +1,8 @@
 # Comments: name the idea, never the section number
 
+**Covers.** No module — a writing rule over every surface that consumes the numbered rules, which is
+most of the tree. The surfaces it is scanned on are named below.
+
 **On every surface that CONSUMES the numbered rules, a comment may not point at a governing document
 by number.** That is `src/`, `tests/`, `skills/`, `evals/` and `pyproject.toml` — the code, the thin
 clients that wrap it, the corpus that pre-registers what it should decide, and the project config.

@@ -13,8 +13,38 @@ whether the imperative is any use is a writing standard held at review, and noth
 
 Writing a new one: copy [`_template.md`](_template.md), take the next number, and add a row to both
 tables below — `test_the_adr_index_and_the_adr_tree_hold_the_same_files` reads both tables and fails
-on a record either one omits. Whether a thing is a decision, a term or a rule is settled in
-[`docs/agents/domain.md`](../agents/domain.md).
+on a record either one omits.
+
+## Does it belong here?
+
+Four layers hold the agent-facing material, each answering one question, and a piece of writing
+belongs to whichever question it answers
+([ADR-0041](0041-four-layers-and-none-is-published.md) decides the split and why none of them is
+published). Before adding an entry anywhere, ask which of the four it is:
+
+- a **rule** ("never read a whole FASTQ") → [`AGENTS.md`](../../AGENTS.md), with its rationale and its
+  gate in [`docs/agents/rules.md`](../agents/rules.md)
+- **rationale for a decision** ("why the manifest is hashed and the recipe is not") → a new record
+  here. If it is not a decision with alternatives but a standing description of how one area works,
+  it belongs in that area's [`docs/agents/`](../agents/) page instead
+- a **term** ("a *run* is one sequencing run; the grouping `resolve/group.py` produces from
+  filenames") → [`CONTEXT.md`](../../CONTEXT.md). A term one of the other layers already argues at
+  length is copied there as a one-line gloss with a pointer, never restated at length
+- a **measurement** ("6,894 control deposits, and here is the query that found them") →
+  [`docs/research/`](../research/), dated, with its method beside it — and its *conclusion* folded
+  into whichever `docs/agents/` page consumes it, also dated, because a branch is deletable and a
+  reader looking for the reason will be reading the consuming page rather than hunting the evidence
+
+**A decision, not a topic.** The test is whether you can name the alternative and say why it lost. A
+section that describes what is true now, with no rejected reading behind it, is a reference page's
+job — see [ADR-0039](0039-the-anti-restatement-gate-is-not-widened.md) for why that boundary is held
+by review and not by a check.
+
+**Flag a conflict rather than silently overriding one.** If what you are about to write contradicts a
+record here, say so where you write it:
+
+> _Contradicts ADR-0001 (a head is joined to a whole file; there is no read-source seam) — but worth
+> reopening because…_
 
 ## By area — which records govern what you are about to edit
 
@@ -38,7 +68,9 @@ Numbers only; the table below carries the links.
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018, 0034 |
 | `tests/`, and choosing which of them to run | 0002, 0038 |
-| `tests/test_docs.py`, and the agent-facing tree it guards | 0039 |
+| `tests/test_docs.py`, and the agent-facing tree it guards | 0039, 0041, 0042 |
+| `mkdocs.yml`, `.markdownlint-cli2.yaml` — which trees exist, and which are published | 0041 |
+| `docs/agents/`, and the router row and scope block a page owes | 0042 |
 | every Python file in the tree — what type-checks it, and what your editor shows | 0017 |
 | the compiler as a whole — what it is *for* | 0003 |
 
@@ -85,6 +117,8 @@ Numbers only; the table below carries the links.
 | [0038](0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md) | `loadgroup` over `loadfile`, and grouping is decided per module | Group only what is marked, and mark only after measuring the fixture against the module — `loadfile` makes the longest file the floor | `tests/`, `tests/conftest.py`, the pixi test tasks |
 | [0040](0040-a-tie-the-prose-broke-is-recorded-as-one.md) | A tie the prose broke is recorded as one, and correcting that moves `dataset_hash` | An assertion that NAMES the winner settles it at rung 0 on an `asserted` basis and raises a `resolved` conflict; a family term keeps the byte rung, because the bytes still chose the leaf | `resolve/escalate.py`, `manifest/fill.py`, `models/dataset.py` |
 | [0039](0039-the-anti-restatement-gate-is-not-widened.md) | The anti-restatement gate stays scoped to one page, because widening it was measured and does not work | Four widenings scored the pre-cleanup tree no worse than the cleaned one; restatement is held by review, and the overlap sweep survives as a reading tool | `tests/test_docs.py`, `docs/agents/` |
+| [0041](0041-four-layers-and-none-is-published.md) | The agent-facing material is four layers, and none of them is published | Router, reference, record and measurement answer four different questions on three different lifetimes; the site is the human layer on top, and the policy is stated here rather than in five config comments | `mkdocs.yml`, `.markdownlint-cli2.yaml`, `docs/agents/`, `docs/adr/`, `docs/research/` |
+| [0042](0042-a-reference-page-declares-what-it-covers.md) | A reference page declares what it covers, and a module with no page says so | A `**Covers.**` block binds a page to the paths it describes; eleven modules with no page are declared as such with a reason, in the shape `MODULES_WITHOUT_STATS` established | `docs/agents/`, `AGENTS.md`, `tests/test_docs.py` |
 
 ## 0019 was never issued
 

@@ -67,19 +67,12 @@ nav:
           - SPLiT-seq: kb/splitseq.md
           - Bulk RNA-seq: kb/bulk-rnaseq.md
 
-# Three trees stay in the repo and OUT of the site, deliberately. `agents/` is the reference layer
-# behind AGENTS.md — the rules and what enforces them, testing, toolchain, layout, on-disk state, the
-# models, the KB schema, scoring, the CLI contract, the eval corpus — `adr/` is the internal decision
-# record, and `research/` holds the dated measurements a decision was taken on. This site is the
-# human layer on top of all three.
+# Three trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
+# of them. The argument is docs/adr/0041-four-layers-and-none-is-published.md.
 #
-# The argument is concrete, not stylistic: agent-facing material carries open questions, measurements
-# that are only true as of a date, and values we have deliberately not verified yet. Published under a
-# docs URL, every one of those reads as settled guidance. `research/` is the sharpest case — a
-# research note is a snapshot of what one investigation could establish on one day, and it ends in a
-# list of what it could NOT, which is exactly the part a reader arriving from a docs URL would skip.
-# They stay in the repo, where their status is obvious. A new file under any of the three needs no
-# change here — the directory entries below cover it — but a NEW agent-facing tree does.
+# A new file under any of the three needs no change here — the directory entries below cover it — but
+# a NEW agent-facing tree does, and must be added to `ignores` in .markdownlint-cli2.yaml in the same
+# commit. They are one list, and test_docs.py fails when they drift.
 exclude_docs: |
   agents/
   adr/

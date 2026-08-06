@@ -1,5 +1,7 @@
 # Toolchain: pixi, lint, typing, versioning, docs
 
+**Covers.** `pyproject.toml`, `pixi.lock`, `mkdocs.yml`, `.markdownlint-cli2.yaml`.
+
 Everything runs through **pixi** (not `pip` / `conda` / `venv`).
 
 ```bash
@@ -68,11 +70,10 @@ identity rather than a compatibility promise.
 
 mkdocs-material → gh-pages, published from `main` by `.github/workflows/docs.yml`; CI's lint job runs
 the same `mkdocs build --strict` on every PR, so a dead link fails the PR rather than the next push to
-`main`. The site is the **human** layer. Three trees are agent-facing and therefore excluded from it
-(`exclude_docs` in `mkdocs.yml`): `agents/`, `adr/` and `research/` — they must not read as settled
-guidance under a docs URL.
-Anything added to `exclude_docs` must also be added to `ignores` in `.markdownlint-cli2.yaml`;
-`tests/test_docs.py` fails if the two lists drift, because they are the same list.
+`main`. The site is the **human** layer, and `agents/`, `adr/` and `research/` are excluded from it
+([ADR-0041](../adr/0041-four-layers-and-none-is-published.md)). Adding a new tree under `docs/` means
+adding it to `exclude_docs` here **and** to `ignores` in `.markdownlint-cli2.yaml`; adding a file to
+an existing one means neither.
 
 ## Discussions (GitHub)
 

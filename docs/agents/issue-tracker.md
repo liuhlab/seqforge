@@ -1,5 +1,7 @@
 # Issue tracker: GitHub
 
+**Covers.** No module — the tracker is off-repo, and this page is the convention for using it.
+
 Issues and PRDs for this repo live as GitHub issues on `liuhlab/seqforge`. Use the `gh` CLI for all operations.
 
 ## Conventions

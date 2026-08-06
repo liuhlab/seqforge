@@ -1,5 +1,7 @@
 # Testing: run the narrowest thing that can go red
 
+**Covers.** `tests/`.
+
 `pixi run check` is a **pre-PR gate, not a per-edit one**.
 
 This file is the rule. There are three steps and you climb them once per change, not once per edit.

@@ -1,5 +1,7 @@
 # CLI conventions: the contract every verb keeps
 
+**Covers.** `src/seqforge/cli/`.
+
 Read this when you add or change a `seqforge` verb. R6 in detail — the CLI *is* the API, and a skill
 is a thin client over it.
 

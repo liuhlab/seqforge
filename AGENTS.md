@@ -73,7 +73,7 @@ Imperatives only. Rationale, and the file enforcing each: [`docs/agents/rules.md
 | pixi, ruff, mypy, CalVer, mkdocs, GitHub Discussions | [`docs/agents/toolchain.md`](docs/agents/toolchain.md) |
 | where a module lives; the `liulab-genome` / `liulab-runtime` contracts | [`docs/agents/layout.md`](docs/agents/layout.md) |
 | the `seqforge/` output tree, its caches, and the hooks | [`docs/agents/state.md`](docs/agents/state.md) |
-| a term (`CONTEXT.md`), a decision (`docs/adr/`), a measurement (`docs/research/`), or where each belongs | [`docs/agents/domain.md`](docs/agents/domain.md) |
+| where a new piece of writing goes — a rule, a decision, a term, or a measurement | [`docs/adr/README.md`](docs/adr/README.md) |
 | issues, and the five triage labels | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) |
 | a comment in `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml` | [`docs/agents/comments.md`](docs/agents/comments.md) |
 | `models/`: the decisions behind the schemas (`schema export` is the schema) | [`docs/agents/models.md`](docs/agents/models.md) |

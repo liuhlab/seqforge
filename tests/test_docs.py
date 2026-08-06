@@ -1,18 +1,27 @@
 """Tests for the docs config and the agent-facing router: do the documents agree with each other?
 
-Five independent claims, all about files no other test reads.
+Six independent claims, all about files no other test reads.
 
 **The two exclusion lists are the same list.** `mkdocs.yml`'s `exclude_docs` and
 `.markdownlint-cli2.yaml`'s `ignores` answer the same question about `docs/`: which trees under it are
-agent-facing rather than site prose. `agents/` and `adr/` are excluded from the built site because
-agent-facing material must not read as settled guidance under a docs URL -- and for exactly that
-reason they are not linted as site pages either.
+agent-facing rather than site prose. Which trees those are, and why none of them is published, is
+`docs/adr/0041-four-layers-and-none-is-published.md`; this module is the gate that record names.
 They drifted once, and the failure was not theoretical: `agents/` was added to `exclude_docs` and not
-to `ignores`, so `docs/agents/domain.md` was linted as a site page, failed MD040 and MD049, and turned
-the `markdownlint` job red on every open PR. A comment saying "keep these in sync" is not a mechanism;
+to `ignores`, so a page of it was linted as a site page, failed MD040 and MD049, and turned the
+`markdownlint` job red on every open PR. A comment saying "keep these in sync" is not a mechanism;
 this is. The check is one-directional on purpose: everything mkdocs hides from the site must be
 ignored by markdownlint, but `ignores` legitimately holds more (the KB wrapper pages and a symlinked
 README are published, and skipped for their own reasons).
+
+**The reference tree says what it covers, and the router points at all of it.** `docs/agents/` is
+the standing description of the code, and it had none of the machinery the ADR tree grew for exactly
+this: a page said which module it described only through a hand-written row in `AGENTS.md`, so a
+renamed directory left the page describing something gone, and a new page was reachable only by
+listing the directory. Three set comparisons close it -- every page declares its scope in a
+`**Covers.**` block, every module either has a page or is in an explicit list saying why it needs
+none, and the router's pointer table and the tree hold the same files. The middle one is the shape
+`MODULES_WITHOUT_STATS` established in `workflows/stats.py`: "nothing here" as a declaration, so it
+cannot be reached by forgetting.
 
 **The router and the enforcement map do not go stale.** `AGENTS.md` is the canonical ~70-line router
 (`CLAUDE.md` is a symlink to it) and `docs/agents/rules.md` is the layer behind it: one section per
@@ -59,9 +68,11 @@ _REPO = Path(__file__).resolve().parents[1]
 MKDOCS = _REPO / "mkdocs.yml"
 MARKDOWNLINT = _REPO / ".markdownlint-cli2.yaml"
 ROUTER = _REPO / "AGENTS.md"
-RULES = _REPO / "docs" / "agents" / "rules.md"
+REFERENCE = _REPO / "docs" / "agents"
+RULES = REFERENCE / "rules.md"
 ADR = _REPO / "docs" / "adr"
 ADR_INDEX = ADR / "README.md"
+PACKAGES = _REPO / "src" / "seqforge"
 
 #: A rule reference, `R7` or the `R1` and `R11` of a range. Rungs are written "rung 3", never "R3".
 #: `.match` against a section title is how the enforcement map's `## R7 -- ...` headings are picked
@@ -102,6 +113,34 @@ _PRECISE_RUN_ID = tuple(
 )
 #: The suffixes a human writes prose into, mirroring `tests/test_repo_invariants.py`'s sweep.
 _PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk", ".toml"})
+#: The block every reference page owes: the paths it is the standing description FOR. One paragraph,
+#: so it runs to the first blank line -- the same shape as `**Enforced by.**` in the other tree, and
+#: the same reason for one token across both: one claim should not have two spellings.
+_COVERS = re.compile(r"^\*\*Covers\.\*\*(?P<body>.*?)(?=\n[ \t]*\n|\Z)", re.MULTILINE | re.DOTALL)
+#: A path a `**Covers.**` block may name: a directory (a trailing or interior slash) or a file with
+#: one of the suffixes this repo writes, dotfiles included. Filters out the backticked *terms* a
+#: block may also use -- `Observation`, `run_id` -- which are not paths and must not be stat'd.
+_A_PATH = re.compile(r"^\.?[\w][\w./-]*(?:/|\.(?:py|toml|yaml|yml|md|smk|lock))$")
+#: Top-level names under `src/seqforge/` that are packaging, not a module anyone reads a page about.
+_NOT_A_MODULE = frozenset({"__init__.py", "__pycache__", "py.typed"})
+#: Modules under `src/seqforge/` with no standing reference page, and why each is legible without
+#: one. The shape `MODULES_WITHOUT_STATS` established in `workflows/stats.py` (ADR-0025), applied to
+#: prose: "has no page" is a declaration, so the gap is countable rather than invisible. Every entry
+#: is covered by `layout.md`'s one-line map plus the records named beside it; adding a page for one
+#: of them means deleting its row, which is the direction this list is meant to move.
+_MODULES_WITHOUT_A_PAGE: dict[str, str] = {
+    "assets": "not a package -- a build input, and `report/assets/VENDOR.md` is its own record",
+    "compose": "decided across ADR-0004/0005/0011/0022/0024/0029/0032/0037; no standing page yet",
+    "fingerprint": "ADR-0001 decides it and `layout.md`'s entry is the whole description",
+    "io": "ADR-0007/0031/0033 decide the record and onlist surfaces; no standing page yet",
+    "manifest": "ADR-0003/0004/0005/0030/0037 decide it; no standing page yet",
+    "pipeline.py": "ADR-0024 owns the compiled directory, and is the page for it",
+    "probe": "ADR-0001 decides it, and R3's section in `rules.md` is the standing rule",
+    "project.py": "`layout.md`'s entry is the whole description -- two derived views, no decisions",
+    "recordset.py": "ADR-0034 owns the two dialects, and is the page for it",
+    "report": "ADR-0024/0025/0026 decide it; no standing page yet",
+    "workflows": "ADR-0015/0022/0023/0025/0027/0029/0035/0036 decide it; no standing page yet",
+}
 
 
 class _IgnoreTags(yaml.SafeLoader):
@@ -138,6 +177,28 @@ def _markdownlint_ignore_for(excluded: str) -> str:
     inside it -- `docs/agents/` alone matches the directory, not `domain.md`.
     """
     return f"docs/{excluded}**" if excluded.endswith("/") else f"docs/{excluded}"
+
+
+def _reference_pages() -> list[Path]:
+    """Every page of the reference tree, which is every `.md` in it. There is no index file."""
+    pages = sorted(REFERENCE.glob("*.md"))
+    assert pages, "docs/agents/ holds no pages -- has the tree moved?"
+    return pages
+
+
+def _covered_by(page: Path) -> tuple[str, list[str]] | None:
+    """One page's `**Covers.**` block, as `(body, the paths it names)`, or `None` if it has none.
+
+    A block may name terms as well as paths -- "the run-time workspace tree" -- so the paths are the
+    backticked spans that look like one. A block naming *no* path is legal and meaningful: it is how
+    a page says it is the standing description of no single module, which `rules.md`, `layout.md`,
+    `comments.md` and `issue-tracker.md` all legitimately are.
+    """
+    found = _COVERS.search(page.read_text())
+    if not found:
+        return None
+    body = found["body"]
+    return body, [span for span in _CODE_SPAN.findall(body) if _A_PATH.match(span)]
 
 
 def _rule_sections() -> list[tuple[str, str]]:
@@ -472,4 +533,126 @@ def test_the_router_and_the_enforcement_map_name_the_same_rules() -> None:
         f"  named in AGENTS.md only:  {sorted(router - documented)}\n"
         f"  documented in rules.md only: {sorted(documented - router)}\n"
         "The router carries every rule as an imperative, and names no rule the map does not cover."
+    )
+
+
+def test_every_reference_page_declares_what_it_covers() -> None:
+    """A reference page states the paths it is the standing description for, and they exist.
+
+    The other tree solved this many records ago: `docs/adr/README.md`'s by-area table maps
+    `src/seqforge/resolve/` to the records that govern it, and
+    `test_the_adr_index_and_the_adr_tree_hold_the_same_files` fails when the mapping rots. The
+    reference tree had the mirror-image problem and no mirror-image mechanism -- `resolve.md` is the
+    standing description of `resolve/`, and the only thing binding the two was a hand-written row in
+    the router, which nothing read.
+
+    So the binding moves onto the page, in the block that names it. A declared path that does not
+    exist is the failure a rename produces and the one a router row could never catch: the page goes
+    on describing a directory nobody has.
+
+    **Presence and existence, and nothing else.** Whether the page actually describes what it claims
+    is a review obligation, the same scope `test_every_record_names_what_enforces_it` keeps in the
+    other tree. This can tell you a page claims a directory that is gone; it cannot tell you the
+    prose inside is current.
+    """
+    missing = [page.name for page in _reference_pages() if _covered_by(page) is None]
+    assert not missing, (
+        "reference page(s) do not say what they cover:\n"
+        + "\n".join(f"  docs/agents/{name}" for name in missing)
+        + "\nAdd a `**Covers.**` block under the title naming the paths the page describes. A page "
+        "that is the standing description of no one module says so in words -- see rules.md."
+    )
+
+    dangling = [
+        (page.name, path)
+        for page in _reference_pages()
+        if (covered := _covered_by(page)) is not None
+        for path in covered[1]
+        if not (_REPO / path).exists()
+    ]
+    assert not dangling, (
+        "reference page(s) claim paths that do not exist:\n"
+        + "\n".join(f"  docs/agents/{name} covers {path}" for name, path in dangling)
+        + "\nEither the path was renamed -- update the block -- or the page describes something gone."
+    )
+
+
+def test_every_module_has_a_reference_page_or_is_declared_not_to() -> None:
+    """A module with no standing page is a declaration, not an omission.
+
+    Eleven of the twenty modules under `src/seqforge/` have no page of their own, which is a fact
+    worth being able to *count*. Left implicit it reads as an oversight in both directions: a reader
+    looking for `compose/`'s page cannot tell whether it is missing or was never written, and a
+    writer adding one cannot tell whether they are filling a gap or forking a description that
+    already exists somewhere else.
+
+    `_MODULES_WITHOUT_A_PAGE` is the instrument `workflows/stats.py` uses on the QC modules that
+    report nothing (ADR-0025): an explicit list with a reason per entry, cross-checked against what
+    is on disk, so "nothing here" cannot be reached by forgetting. All four directions are checked --
+    a new module with neither a page nor a row, a row for a module that is gone, a module holding
+    both, and two pages claiming one module, which is the duplication this tree is arranged to avoid.
+    """
+    modules = {
+        path.name
+        for path in PACKAGES.iterdir()
+        if path.name not in _NOT_A_MODULE and (path.is_dir() or path.suffix == ".py")
+    }
+    assert modules, "no modules found under src/seqforge/ -- has the package moved?"
+
+    claimed: dict[str, list[str]] = {}
+    for page in _reference_pages():
+        if (covered := _covered_by(page)) is None:
+            continue
+        for path in covered[1]:
+            if path.startswith("src/seqforge/"):
+                name = path.removeprefix("src/seqforge/").rstrip("/")
+                claimed.setdefault(name, []).append(page.name)
+
+    declared = set(_MODULES_WITHOUT_A_PAGE)
+    unaccounted = sorted(modules - set(claimed) - declared)
+    stale = sorted(declared - modules)
+    both = sorted(set(claimed) & declared)
+    twice = sorted(name for name, pages in claimed.items() if len(pages) > 1)
+
+    assert not (unaccounted or stale or both or twice), (
+        "src/seqforge/ and the reference tree disagree about which modules have a page.\n"
+        + "".join(
+            f"  {name}: no page covers it, and it is not in _MODULES_WITHOUT_A_PAGE\n"
+            for name in unaccounted
+        )
+        + "".join(f"  {name}: in _MODULES_WITHOUT_A_PAGE but not on disk\n" for name in stale)
+        + "".join(
+            f"  {name}: has a page ({', '.join(claimed[name])}) AND a _MODULES_WITHOUT_A_PAGE row\n"
+            for name in both
+        )
+        + "".join(
+            f"  {name}: covered by {', '.join(claimed[name])} -- pick one\n" for name in twice
+        )
+        + "Write the page and delete the row, or add the row saying why the module needs no page."
+    )
+
+
+def test_the_router_lists_every_reference_page() -> None:
+    """A page the router does not point at is a page nobody is sent to.
+
+    `AGENTS.md` says to read a pointer-table row only when you touch that area, which makes the table
+    the only entrance to this tree -- there is no index file, and a page it omits is reachable only by
+    listing the directory. The failure has happened: `docs/agents/triage-labels.md` was folded into
+    `issue-tracker.md` and the row was updated by hand, which worked, and would not have if the
+    person doing it had been someone else.
+
+    Both directions, because both are the same set comparison and each is a different mistake: a new
+    page with no row is unreachable, and a row for a deleted page sends a reader at nothing.
+    """
+    listed = set(re.findall(r"docs/agents/([a-z0-9-]+\.md)", ROUTER.read_text()))
+    tree = {page.name for page in _reference_pages()}
+
+    unlisted = sorted(tree - listed)
+    dangling = sorted(listed - tree)
+
+    assert not (unlisted or dangling), (
+        "AGENTS.md's pointer table and docs/agents/ disagree about which pages exist.\n"
+        + "".join(f"  in the tree, not pointed at by the router: {name}\n" for name in unlisted)
+        + "".join(f"  pointed at by the router, not in the tree: {name}\n" for name in dangling)
+        + "Add the row -- when you touch X, read Y -- or drop the one the rename left behind."
     )

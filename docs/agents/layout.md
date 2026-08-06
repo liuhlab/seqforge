@@ -1,5 +1,9 @@
 # Repository layout, and the liulab contracts
 
+**Covers.** No single module — this is the map, one line per package, plus the `liulab-genome` and
+`liulab-runtime` contracts. Where a package has a page of its own, that page is the standing
+description and this one is the index entry.
+
 Single repo, single `pyproject.toml`; do **not** split into distributions. Everything below is under
 `src/seqforge/` except the last three.
 

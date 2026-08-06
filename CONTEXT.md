@@ -6,6 +6,18 @@ synonyms it avoids. Rules live in `AGENTS.md`; the reference behind each area li
 and one decision per file in `docs/adr/` (indexed by module in `docs/adr/README.md`). Nothing else
 belongs here: a term one of those files already argues at length appears below as a one-line gloss and
 a pointer, because two prose definitions of one term is the failure this file exists to prevent.
+Which of the four layers a new piece of writing belongs to is settled in
+[`docs/adr/README.md`](docs/adr/README.md), and why there are four in
+[ADR-0041](docs/adr/0041-four-layers-and-none-is-published.md).
+
+**Use these words.** When your output names a domain concept — an issue title, a refactor proposal, a
+hypothesis, a test name — use the term as defined below, and not a synonym an entry lists under
+*Avoid*. A concept that is not here yet is a signal either way: usually it is language the project
+does not use, occasionally it is a real gap worth adding.
+
+**Two vocabularies, and they do not mix.** Domain terms come from here. Architecture terms — module,
+interface, depth, seam, adapter, leverage, locality — are fixed, and "component", "service", "API"
+and "boundary" are not substitutes for them.
 
 ## Language
 
