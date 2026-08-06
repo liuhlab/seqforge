@@ -59,7 +59,10 @@ hooks/      PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` — po
 cli/        a typer package, one module per command group; root app in root.py. JSON by default
 e2e.py      ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11), which RUN THE
             COMPOSED SNAKEFILE. `kb e2e-cost` (hg38) invokes STAR directly — a memory instrument must
-            reap STAR itself
+            reap STAR itself. `kb e2e-fit` is that sweep's collector: it merges the per-task JSONs a
+            job array emits and fits the line `e2e-cost` fits in-process, so an array and one
+            sequential run answer alike. It needs no toolchain, which is why it is not among the
+            verbs that may report `skip`
 evals/      ground-truth corpus + harness
 ─── repo root ───
 skills/     SKILL.md agent skills; `skills/install.py` symlinks them into a product's discovery path
