@@ -16,9 +16,6 @@ from .root import eval_app
 #: removes it; a genuinely larger dataset raises it.
 DEFAULT_EVAL_CEILING = 500_000
 
-#: The report's name inside the run directory. `eval report <directory>` looks for exactly this, so
-#: a caller passes the directory a run wrote rather than a filename it has to remember.
-
 
 @eval_app.command("list")
 def eval_list(
@@ -319,19 +316,15 @@ def eval_report(
     from datetime import datetime
 
     from ..evals.report import TRANSCRIPT_MODES, attach_transcripts, render_html
-    from ..workspace import EVAL_REPORT_FILENAME, eval_dir
+    from ..workspace import resolve_report_path
 
     if transcript not in TRANSCRIPT_MODES:
         typer.echo(f"--transcript must be one of {'|'.join(TRANSCRIPT_MODES)}", err=True)
         raise typer.Exit(2)
 
-    source_path = report
-    if report.is_dir():
-        # A run directory, or the workspace one lives under. Accepting both means a caller never has
-        # to spell `seqforge/eval` — which is the whole point of one module owning that name, and the
-        # CI workflow was the drift waiting to happen.
-        run_dir = report if (report / EVAL_REPORT_FILENAME).is_file() else eval_dir(report)
-        source_path = run_dir / EVAL_REPORT_FILENAME
+    # A run directory, or the workspace one lives under — and a caller never has to spell
+    # `seqforge/eval`, which is the whole point of one module owning that name.
+    source_path = resolve_report_path(report)
     if str(report) == "-":
         if output is None:
             typer.echo("reading from stdin needs an explicit -o/--output", err=True)

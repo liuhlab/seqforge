@@ -145,6 +145,28 @@ def eval_dir(workspace: str | Path = ".") -> Path:
     return state_dir(workspace, EVAL_DIRNAME)
 
 
+def resolve_report_path(path: str | Path) -> Path:
+    """The ``report.json`` a caller means by ``path``: a run directory, the workspace above it, or
+    the file itself.
+
+    A directory holding ``report.json`` **is** the run directory. Any other directory is read as a
+    workspace and gets ``seqforge/eval`` appended. Anything that is not a directory — a path to the
+    JSON itself, or ``-`` for stdin — comes back untouched, because a caller who named a file meant
+    that file.
+
+    A seam rather than a branch inside the renderer, because the alternative already shipped: the
+    benchmark workflow spelled the state path into its YAML by hand, which made it a second owner of
+    a name this module exists to own alone. `eval report` exits 0 on whatever it rendered, so a
+    rename here would have left that step reading a file that no longer existed and still going
+    green. It hands over the workspace now and this decides — one branch, in code, with a test on it.
+    """
+    given = Path(path)
+    if not given.is_dir():
+        return given
+    run_dir = given if (given / EVAL_REPORT_FILENAME).is_file() else eval_dir(given)
+    return run_dir / EVAL_REPORT_FILENAME
+
+
 def report_html_path(workspace: str | Path = ".") -> Path:
     """``seqforge/report.html`` — the single-file decision report (a deliverable, not cache)."""
     return state_dir(workspace, REPORT_HTML)
@@ -199,6 +221,7 @@ __all__ = [
     "pipeline_dir",
     "fingerprint_dir",
     "eval_dir",
+    "resolve_report_path",
     "report_html_path",
     "readable",
     "legacy_state_dir",

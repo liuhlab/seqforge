@@ -45,8 +45,10 @@ Everything runs through [pixi](https://pixi.sh) (not `pip`/`conda`/`venv`):
 
 ```bash
 pixi install                     # build environments
-pixi run check                   # lint + fmt-check + typecheck + test
-pixi run test                    # pytest only
+pixi run check                   # lint + fmt-check + typecheck + the three test lanes
+pixi run test                    # the unit lane only
+pixi run test-corpus             # the hermetic corpus only
+pixi run test-external           # the lane needing binaries we do not own
 pixi run -- pre-commit install   # once per clone — the fast hooks, not the suite
 ```
 

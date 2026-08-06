@@ -219,26 +219,58 @@ fmt       = "ruff format ."
 fmt-check = "ruff format --check ."
 # Bare: `[tool.mypy] files` owns the scope, so the editor's checker cannot disagree with this one.
 typecheck = "mypy"
-# `auto` capped at 12: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner.
-# `loadgroup` groups only tests carrying `xdist_group`; why not `loadfile`, and when to mark a
-# module, is a decision record. Measurements: docs/research/xdist-worker-sweep-2026-08-01.md.
-test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
+# THREE LANES, AND TOGETHER THEY ARE THE SUITE. `test` is the unit lane, `test-corpus` grades the
+# hermetic corpus, `test-external` needs binaries we do not own. Every test lands in exactly one:
+# `external` against its negation is total by boolean negation, and the corpus is one file, so
+# nothing outside the suite decides where a test runs. CI gives each lane a job and `check` runs all
+# three at once. `test_every_gate_on_an_external_binary_carries_the_marker` is what keeps the first
+# split honest — an unmarked gate would sit in the unit lane and skip itself green.
+#
+# `auto` capped: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner. The
+# caps are DIVIDED between the lanes because `check` runs them concurrently and each would otherwise
+# size itself to the whole box. 6/4/4 is proportional to the CPU each lane actually costs, which is
+# what balances them — measured, and the three walls land within four seconds of each other. It sums
+# to more than the cores on the maintainer's box ON PURPOSE: taking it down to exactly twelve has to
+# come out of the unit lane, which then cannot finish inside the wall this split exists to beat, and
+# the lanes do not all run to the end anyway. On a CI runner none of it binds: `auto` finds fewer
+# cores than the smallest cap, so each job still takes the whole runner and the division costs CI
+# nothing. `loadgroup` groups only tests carrying
+# `xdist_group`; why not `loadfile`, and when to mark a module, is a decision record. Measurements:
+# docs/research/xdist-worker-sweep-2026-08-01.md and docs/research/test-suite-cost-shape.md.
+#
+# The corpus path is spelled twice, here and in `test-corpus`. They are one decision and move
+# together — a stale `--ignore` would run the corpus in both lanes rather than drop it from neither.
+test      = "pytest -m 'not external' --ignore=tests/test_evals.py -n auto --maxprocesses 6 --dist=loadgroup"
+# The corpus grades every case in `evals/cases/` through the real compiler. That is a different claim
+# from a unit test's, and it was the module that dominated the suite's wall, so it gets its own lane
+# rather than its own deletion. It leaves the unit lane, not the gate.
+#
+# `-m 'not external'` here even though the corpus holds no external test today: without it the two
+# lanes are disjoint only by that happening to stay true, and an external test added to this module
+# would run in BOTH. With it, the three selections are disjoint by construction rather than by
+# inspection — which is the only kind of partition worth claiming.
+test-corpus = "pytest tests/test_evals.py -m 'not external' -n auto --maxprocesses 4 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake,
-# or one that would rather not install `test-star`.
+# or one that would rather not install `test-star`. Alone, so it keeps the whole box.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
-# The complement, and it now takes no incantation: `test`'s activation already put `test-star/bin` in
-# front, so `pixi run -e test test-external` is the whole command on any machine that ran
-# `pixi install`. Without those binaries these tests skip themselves and this verb reports green
-# having run nothing, which is why CI proves the binaries answer before it selects.
-test-external = "pytest -m external -n auto --maxprocesses 12 --dist=loadgroup"
+# `depends-on` here precisely BECAUSE pixi runs it sequentially: the binaries must be proved to answer
+# before the selection happens. Without that, a missing `test-star` is a PATH entry that does not
+# exist, every gated test skips itself, and this verb reports green having run nothing — which is the
+# failure the lane exists to end. `test`'s activation already put `test-star/bin` in front, so on any
+# machine that ran `pixi install` this is the whole command.
+test-external = { cmd = "pytest -m external -n auto --maxprocesses 4 --dist=loadgroup", depends-on = ["require-binaries"] }
+require-binaries = "bash scripts/require_binaries.sh"
 # Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
-# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the four concurrently and prints
-# each one's output whole, in a fixed order.
-check     = "bash scripts/check.sh lint fmt-check typecheck test"
+# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the six concurrently and prints
+# each one's output whole, in a fixed order. The three test lanes are separate steps rather than one,
+# so the corpus and the binaries land in what was idle time — the suite does not saturate its workers,
+# and a lane that finishes early gives its share back to the one that has not. The gate runs the same
+# three selections CI does, which is the point: what goes red here is what goes red there.
+check     = "bash scripts/check.sh lint fmt-check typecheck test test-corpus test-external"
 build     = "python -m build"
 # Runs in the CI `build` job, where the wheel already exists — as a test it built a second one.
 check-wheel = "python scripts/check_wheel_contents.py"

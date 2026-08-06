@@ -63,6 +63,14 @@ jobs:
       - name: markdownlint (docs + README)
         run: npx --yes markdownlint-cli2@0.23.1
 
+  # The unit lane. Three jobs run the suite and between them they are a PARTITION of it -- this one,
+  # `test-corpus` below, and `test-external` after that. The task table owns which selection is which.
+  #
+  # `--durations=10` on every pytest invocation here because the thing that sets a lane's wall is one
+  # indivisible item, and no worker count goes below one item. A per-item budget was considered and
+  # refused -- the same unchanged item measured 17.9 s alone and 22.7 s under contention, so the
+  # assertion would be keyed on hardware and load rather than on the test. Printing it makes the
+  # floor visible in every log instead; it is a measurement, not a gate.
   test:
     name: test
     runs-on: ubuntu-latest
@@ -73,7 +81,25 @@ jobs:
           environments: test
           locked: true
       - name: pytest
-        run: pixi run -e test test
+        run: pixi run -e test test -- --durations=10
+
+  # The hermetic corpus: every case in `evals/cases/` through the real compiler, no LLM and no
+  # network. It is a different KIND of claim from a unit test's -- a grade, not a behaviour -- and it
+  # was the module that dominated the suite's wall, so it runs BESIDE the unit lane rather than
+  # inside it. That is a lane, not a deletion: nothing here stops being checked on every commit.
+  #
+  # The networked tier is not this. It lives in `benchmark.yml` and runs on release only.
+  test-corpus:
+    name: test (hermetic corpus)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: test
+          locked: true
+      - name: pytest (corpus)
+        run: pixi run -e test test-corpus -- --durations=10
 
   # The `external` tests -- the ones needing a binary seqforge does not own. Until this job existed
   # the marker meant three different things: snakemake is a dependency, so those ran in the job above;
@@ -95,10 +121,20 @@ jobs:
   # reason no PR here caused, on the job that is closest to being the critical path, and cost an
   # uncached 26 s environment build every run. `setup-pixi` caches `test-star` because it is ours.
   #
-  # `test` is the environment, exactly as the job above builds it -- the only difference between the
-  # two jobs is that this one also installs `test-star`. So this DOES re-run the snakemake-gated
-  # externals the `test` job already ran, and that duplication is deliberate: deselecting them here or
-  # excluding them there would make the main job's selection a function of what this job covers.
+  # `test` is the environment, exactly as the unit lane builds it -- the only difference between the
+  # jobs is that this one also installs `test-star`. This job used to RE-RUN the snakemake-gated
+  # externals the unit lane had already run, and that duplication was defended: deselecting them
+  # there would have made the unit lane's selection a function of what this job happens to cover.
+  #
+  # What replaced it is not a hand-deselection but a MARKER PARTITION -- `-m external` here against
+  # `-m 'not external'` there. Boolean negation is total, so no test can fall between the two jobs
+  # however the marker is applied, and `--strict-markers` refuses one that was invented. The
+  # protection the duplication bought is bought by a checkable guard instead:
+  # `test_every_gate_on_an_external_binary_carries_the_marker` fails the build when a test gates on
+  # one of these binaries without carrying the marker, which is the only way a test could reach the
+  # wrong side of the split. The old defence was in any case already hollow -- the unit lane does not
+  # install `test-star`, so the STAR and htslib tests SKIPPED there rather than ran, and its coverage
+  # was a function of an installed environment the whole time, just silently.
   test-external:
     name: test (external binaries)
     runs-on: ubuntu-latest
@@ -111,13 +147,12 @@ jobs:
             test-star
           locked: true
       - name: pytest -m external
-        # PROVE THE BINARIES ANSWER BEFORE SELECTING. `test`'s activation puts `test-star/bin` on
-        # PATH, and if that environment is missing the entry is a directory that does not exist --
-        # PATH tolerates it, the gated tests skip themselves, and this job reports green having run
-        # nothing. That is the #333 failure exactly, so it is checked rather than assumed.
-        run: |
-          pixi run -e test bash -c 'STAR --version && samtools --version | head -1 && bgzip --version | head -1'
-          pixi run -e test test-external
+        # THE BINARIES ARE PROVED TO ANSWER BEFORE THE SELECTION HAPPENS -- but that check now lives
+        # inside the verb, as a `depends-on` pixi runs first, so the local gate refuses for the same
+        # reason instead of this job being the only place that looks. Spelling the probe here as well
+        # would be a second copy of the one thing that must not drift: which binaries the lane needs.
+        # See scripts/require_binaries.sh.
+        run: pixi run -e test test-external -- --durations=10
 
   build:
     name: build wheel + sdist

@@ -35,6 +35,73 @@ project does not own) is **not much faster than the whole suite**: the subproces
 dominate is gone, so what remains is mostly real work and the marker deselects a small fraction of it.
 It survives as a verb for a machine without those binaries, not as a step in a ladder.
 
+## How many tests there are, and the three lanes (measured 2026-08-06)
+
+A count, recorded because the bar a test clears is held at review and nothing mechanises it. A
+collected-count ratchet was considered and declined for the same reason the docs line-cap was, so
+drift has to be made **observable** rather than gated: diff this number, do not assert on it.
+
+| lane | selection | collected |
+| --- | --- | --- |
+| unit | `-m 'not external'`, corpus excluded | 1,369 |
+| hermetic corpus | `tests/test_evals.py` | 182 |
+| external | `-m external` | 25 |
+| **whole suite** | | **1,576** |
+
+The arithmetic is not the finding — the **partition** is. 1,369 + 182 + 25 leaves nothing over, so
+every test runs exactly once across CI's three jobs and none can fall between them: `external`
+against its negation is total by boolean negation, and the corpus is one file. Before this, the
+external selection ran twice, once in a job where its binaries were absent and it therefore skipped.
+
+What keeps the split honest is a guard rather than the count. A test that gates on a binary without
+carrying the marker would sit in the unit lane and skip itself green — which is the one way a test
+could reach the wrong side — so a `repo`-marked guard fails the build on exactly that.
+
+### Why there is no fourth lane keyed on the changed paths (measured 2026-08-06)
+
+A docs-only change runs the whole suite, and routing it to a cheap lane by changed path was costed
+and refused. The number that refused it: **`tests/test_skills.py` collects 67 tests, of which 19
+carry `repo`.** A lane gated on `skills/**.md` and selecting `-m repo` would therefore skip 48 tests
+that read exactly the prose that changed.
+
+So `repo` is not the superset such a lane would need, and it cannot be made into one by widening: it
+partitions by what a test is *about*, and the lane needs a partition by what a test *reads*. The
+decision that rests on this number is a record; only the number lives here.
+
+### What each lane costs, and how the workers were divided (osx-arm64, 12 cores)
+
+Each lane run **alone** at 12 workers, to get a cost independent of how they are scheduled:
+
+| lane | wall | CPU (user + sys) |
+| --- | --- | --- |
+| unit | 21.8 s | 174 s |
+| hermetic corpus | 16.6 s | 104 s |
+| external | 13.9 s | 73 s |
+
+352 s of CPU over 12 cores puts a **floor of ~29 s** under any concurrent arrangement of the three,
+and that floor — not the test count — is what the local gate is up against. The caps were set
+proportional to those costs rather than equally, because an equal split starves the lane that costs
+the most. Two arrangements were measured: **8 / 4 / 4 → 41 s**, **6 / 4 / 4 → 35 s**. At 6/4/4 the
+three walls land at 33.3 s, 35.1 s and 31.0 s — within four seconds of each other, which is what
+says the division is right.
+
+**6/4/4 is 14 workers on 12 cores, and that is deliberate rather than an oversight.** A split summing
+to exactly 12 has to take the two workers from the unit lane, whose 174 s of CPU then cannot finish
+inside ~44 s — the whole gain, given back. The overshoot is affordable because the lanes do not run
+for the same length of time: external and corpus finish first, so the peak is brief and the tail
+belongs to the unit lane alone. The measurement is the argument here, not the arithmetic — 8/4/4 was
+tried first *because* it looked generous, and it lost by six seconds.
+
+**The gate: ~44 s → 37 s.** Modest, and worth stating plainly rather than rounding up. The same tree
+as one undivided 12-worker run measures 42.3 s wall on 311 s of CPU — only ~7.4 cores busy, which is
+the under-utilisation the split exists to claim. Three sessions recover it (10.6 cores busy) but
+**cost 27 % more CPU** doing so, because each pays its own interpreter import across its own workers.
+That overhead is why the wall lands at 37 s and not at the 29 s floor.
+
+**Where the split actually pays is CI**, and by much more, because there the lanes are separate
+runners rather than three sessions contending for one box: no lane pays another's tail, and each gets
+a whole runner. The local gain is a side effect of the same change, not its point.
+
 ## The external selection (measured 2026-08-05)
 
 With liulab-runtime's `align-rna` environment on `PATH` — `star` 2.7.11b, `samtools` 1.23.1,

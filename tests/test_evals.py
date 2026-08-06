@@ -4552,20 +4552,29 @@ def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: 
     that. A caller that reconstructs the path by hand is a second owner of the name: the CI workflow
     did exactly that, and a rename of the directory would have left it reading a file that no longer
     existed while still exiting 0. Both spellings resolve to the same report.
+
+    The report is fabricated here, not earned. This used to buy its one boolean with a whole
+    `--no-llm` pass over the corpus and then discard the grades — the most expensive item in the
+    module by four times, and an indivisible one, so xdist could not spread it and it sat on the
+    critical path alone re-proving what `test_corpus_is_green` already grades case by case. What is
+    under test is a path branch, so it is tested where the branch now lives.
     """
     from typer.testing import CliRunner
 
     from seqforge.cli import app
-    from seqforge.workspace import eval_dir
+    from seqforge.workspace import eval_dir, resolve_report_path
 
     runner = CliRunner()
     ws = tmp_path / "ws"
-    written = runner.invoke(
-        app, ["eval", "run", "--no-llm", "--cases", str(default_cases_dir()), "-C", str(ws)]
-    )
-    assert written.exit_code in (0, 3), written.output
     run_dir = eval_dir(ws)
-    assert (run_dir / "report.json").is_file(), "the run directory holds the report"
+    run_dir.mkdir(parents=True)
+    written = run_dir / "report.json"
+    written.write_text(json.dumps({"per_case": [], "field_accuracy": 1.0}))
+
+    assert resolve_report_path(ws) == written, "a workspace resolves through seqforge/eval"
+    assert resolve_report_path(run_dir) == written, "the directory holding it is the run directory"
+    assert resolve_report_path(written) == written, "a caller who named a file meant that file"
+    assert resolve_report_path(Path("-")) == Path("-"), "no directory, so stdin stays untouched"
 
     from_workspace = runner.invoke(
         app, ["eval", "report", str(ws), "-o", str(tmp_path / "a.html"), "--no-timestamp"]

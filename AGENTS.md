@@ -87,7 +87,20 @@ test was considered and declined, and is the fallback if the bar drifts.
 - **Tests: run the narrowest thing that can go red.** `pixi run -e test pytest tests/test_<mod>.py
   -k <expr>` in the loop (files mirror packages), `pixi run check` once before the PR, then read CI.
   Two markers, both semantic: `external` (a binary seqforge does not own) and `repo` (repo
-  consistency, not `src/` behaviour).
+  consistency, not `src/` behaviour). Three lanes — unit, corpus, external — partition the suite, and
+  CI gives each a job; **selection may not be a function of a fact living outside the suite**, which
+  is why there is a marker split and no path-filtered lane (ADR-0002).
+- **A test clears three clauses or it goes**, the same bar a record clears. **(1) It can go red for
+  something the code can actually do.** An assertion whose subject is the *text* of source or of a
+  docstring is banned — a rename breaks it falsely and an indirection passes it falsely. A
+  *structural* check (AST) stays admissible when its docstring names why the path it guards cannot
+  execute in this suite, and what it caught. **(2) Its failure names a decision** — a rule or a
+  record. If the only honest answer to "what broke?" is *an internal moved*, fix the seam; do not
+  keep the test. **(3) Nothing already on disk goes red for the same cause** — the Nth case of a rule
+  already proved is at most a `parametrize` row, and prefer strengthening an existing test to adding
+  a neighbour. **This bar is held at review and nothing mechanises it**; a collected-count ratchet was
+  considered and declined, and is the fallback if the bar drifts. The count is a dated measurement in
+  [`docs/research/test-suite-cost-shape.md`](docs/research/test-suite-cost-shape.md), not a gate.
 - **Comments: name the idea, never the number** — no rule number and no document section number in
   `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml`; a guard in
   `tests/test_repo_invariants.py` fails on one. A number is a mutable label; write the term instead.

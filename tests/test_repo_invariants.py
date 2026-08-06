@@ -1,12 +1,16 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Eight families live here, and none of them composes anything:
+Nine families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
   ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards,
   plus a read of every pixi dependency table — the AST half was here first and watched only the
   *source*, so a feature declaring ``star`` walked straight past it.
+- **A skip is green.** Every test that gates itself on a binary this project does not own carries
+  the marker routing it to the lane that has one. The two lane selections are each other's boolean
+  negation, so they partition the suite only if the marker is total; an unmarked gate sits in the
+  lane that was never going to carry the binary and reports green having checked nothing.
 - **Prose that stays true.** No comment points at a governing document by number, because a number
   is a mutable label: renumber the document and the comment lies, silently, forever.
 - **One owner for a compiled pipeline's layout.** No module outside the two that own those names
@@ -45,7 +49,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, computed_field
 
-from conftest import SrcTrees, _src_root
+from conftest import _SPAWNS_SNAKEMAKE, SrcTrees, _src_root
 from seqforge.pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME
 from seqforge.workspace import PIPELINE_DIRNAME
 
@@ -257,6 +261,242 @@ def test_the_aligner_is_confined_to_the_test_only_environment() -> None:
     # into forbidding it, or the wiring gate goes back to skipping green.
     assert "snakemake-minimal" not in _RUNTIME_OWNED
     assert "snakemake-minimal" in _declared_packages()["tool.pixi.feature.wf.dependencies"]
+
+
+#: The binaries a test asks PATH for and this project does not own — every one of them a name whose
+#: absence turns a test into a skip. `STAR` and `samtools` come from the test-only environment, the
+#: two htslib tools beside them, and `snakemake` is a declared dependency that is nonetheless absent
+#: from a machine running the lane that drops it.
+#:
+#: `bash` is deliberately NOT here, and the exclusion is the half worth explaining. It is on every box
+#: this suite runs on, the gate-runner tests exec it unconditionally, and the one place `which` asks
+#: for it is a **parametrize source** — a case list, one entry per interpreter on the machine — rather
+#: than a gate that decides whether a test runs at all. Listing it would make this guard demand the
+#: marker on tests that skip nothing and spawn nothing either lane cares about, which is how a guard
+#: earns its deletion.
+_UNOWNED_BINARIES = frozenset({"STAR", "samtools", "bgzip", "tabix", "snakemake"})
+
+#: The subset the external lane's probe does NOT ask PATH for, and why it need not. `snakemake` is a
+#: declared dependency of the test environment itself rather than of the aligner-only one beside it,
+#: so any machine that ran `pixi install` has it by construction — there is no state in which the
+#: lane starts and it is missing. The rest arrive from an environment that can simply be absent,
+#: which is the case worth refusing before a selection rather than discovering as a skip.
+_TEST_ENVIRONMENT_OWNS = frozenset({"snakemake"})
+
+
+def _asks_path_for(node: ast.AST) -> set[str]:
+    """The unowned binaries some ``which(...)`` under ``node`` asks PATH for.
+
+    Matched on the CALL, not on the import it arrived through: what this guard is about is "this test
+    only runs if a binary is present", and whether the question was spelled ``shutil.which`` or a bare
+    ``which`` is not part of that.
+    """
+    found: set[str] = set()
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Call):
+            continue
+        if isinstance(sub.func, ast.Attribute):
+            called = sub.func.attr
+        elif isinstance(sub.func, ast.Name):
+            called = sub.func.id
+        else:
+            continue
+        if called != "which":
+            continue
+        for arg in sub.args:
+            if isinstance(arg, ast.Constant) and arg.value in _UNOWNED_BINARIES:
+                found.add(arg.value)
+    return found
+
+
+def _gate_constants(tree: ast.Module) -> dict[str, set[str]]:
+    """Module-level names whose VALUE asks PATH for an unowned binary — ``name -> binaries``.
+
+    The shape a gate takes once two binaries are wanted at once, or once several tests want the same
+    answer: the module resolves it once and each test reads the NAME. A guard that only looked inside
+    test bodies and decorators would see ``not _HTSLIB``, find no ``which`` anywhere near it, and wave
+    the test through — the exact failure it exists to catch, arriving by the tidier spelling.
+    """
+    found: dict[str, set[str]] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign | ast.AnnAssign) or node.value is None:
+            continue
+        if not (binaries := _asks_path_for(node.value)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        for target in targets:
+            for name in ast.walk(target):
+                if isinstance(name, ast.Name):
+                    found[name.id] = binaries
+    return found
+
+
+def _is_external(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Does the ``external`` marker reach this test — by EITHER of the two routes the suite gives it?
+
+    Written down as a decorator, or derived at collection time from a fixture the test takes: the
+    session hook marks anything whose fixtures spawn a subprocess, and most of the suite's external
+    tests carry no decorator at all. A guard reading only decorators would report every one of them
+    as an offence on its first run, and a guard that cries wolf gets deleted.
+
+    The fixture names are IMPORTED from the session configuration rather than re-spelled here, so a
+    fixture joining that set brings this guard with it instead of leaving a second hand-maintained
+    list to go stale.
+    """
+    for decorator in fn.decorator_list:
+        marker = decorator.func if isinstance(decorator, ast.Call) else decorator
+        if isinstance(marker, ast.Attribute) and marker.attr == "external":
+            return True
+    taken = {a.arg for a in (*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs)}
+    return bool(taken & _SPAWNS_SNAKEMAKE)
+
+
+def _binary_gates(
+    tree: ast.Module,
+) -> list[tuple[ast.FunctionDef | ast.AsyncFunctionDef, list[str]]]:
+    """Every test in ``tree`` that skips when a binary is missing, paired with the binaries.
+
+    Both spellings, because both are on disk: the ``which`` inside the test or its decorators, and the
+    module-level name holding the answer for it. Marker-blind on purpose — the guard needs this list
+    to prove it is watching a tree that really has gates in it, which an offender list cannot do.
+    """
+    constants = _gate_constants(tree)
+    gated: list[tuple[ast.FunctionDef | ast.AsyncFunctionDef, list[str]]] = []
+    for fn in tree.body:
+        if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        if not fn.name.startswith("test_"):
+            continue
+        binaries = _asks_path_for(fn)
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Name) and node.id in constants:
+                binaries |= constants[node.id]
+        if binaries:
+            gated.append((fn, sorted(binaries)))
+    return gated
+
+
+def _unmarked_binary_gates(tree: ast.Module) -> list[str]:
+    """Which tests in ``tree`` gate on an unowned binary without the ``external`` marker reaching them.
+
+    The exact predicate ``test_every_gate_on_an_external_binary_carries_the_marker`` applies to every
+    module in the test tree. Shared so its discriminator exercises the real guard, not a
+    re-implementation of it. Takes the parsed module rather than its text so the test can walk the
+    tree once and ask it two questions.
+    """
+    return [
+        f"{fn.lineno} {fn.name} (gates on {', '.join(binaries)})"
+        for fn, binaries in _binary_gates(tree)
+        if not _is_external(fn)
+    ]
+
+
+@pytest.mark.repo
+def test_every_gate_on_an_external_binary_carries_the_marker() -> None:
+    """A skip is green, so the marker that routes a test to the lane which can run it must be total.
+
+    The suite is split by ``external`` against its own negation, and that is a partition only because
+    one selection is exactly the complement of the other. A test that gates itself on a binary and
+    does not carry the marker therefore lands in the lane that was never going to have that binary,
+    where it finds nothing on PATH, skips itself, and contributes a green result having checked
+    nothing at all. Nothing raises, nothing is red, and the coverage the test's name claims is simply
+    absent.
+
+    This is not hypothetical here. The end-to-end proof that a UMI tag put on a read survives into
+    the aligner's own output ran on no host this project's CI could reach, for the life of the repo,
+    and the fragments finalize test passed only on a developer box that happened to carry htslib
+    (#333). Both read green throughout. The lanes exist now and the external lane proves its binaries
+    answer before it selects — but every one of those mechanisms sits downstream of the marker being
+    right, and the marker is the one part a human writes by hand on the day they add a test.
+
+    Two routes reach it and both are checked, because most external tests use the second: the
+    decorator, and a fixture whose name the collection hook keys on. Two gate spellings are read for
+    the same reason — the ``which`` inside a test or its decorators, and the module-level name that
+    resolves it once for whoever needs it.
+    """
+    tests = Path(__file__).resolve().parent
+    repo = tests.parent
+    trees = {
+        py: ast.parse(py.read_text(encoding="utf-8")) for py in sorted(tests.rglob("test_*.py"))
+    }
+    assert trees, "no test module was found -- this guard would pass over a tree it cannot see"
+
+    offenders = [
+        f"{py.relative_to(repo).as_posix()}:{found}"
+        for py, tree in trees.items()
+        for found in _unmarked_binary_gates(tree)
+    ]
+    assert not offenders, (
+        "a test gates on a binary seqforge does not own and the `external` marker does not reach it:\n"
+        + "\n".join(offenders)
+        + "\n\nAdd `@pytest.mark.external`, or take a fixture the collection hook already marks. "
+        "Without one of those the test sits in the lane that drops the externals, finds no binary "
+        "there, skips itself, and reports green having run nothing -- which is how the aligner's "
+        "end-to-end proof ran nowhere at all for the life of the repo (#333). The two lanes are a "
+        "partition only while the marker is complete."
+    )
+
+    # ...and the tree really does hold gates, so an empty offender list is a marker that is complete
+    # rather than a walk that found nothing to check. Asserted as a non-empty set of binaries rather
+    # than a count or a list of test names: either of those is a number to keep in step with the
+    # suite, and this is only trying to prove the walk has a subject.
+    watched = {b for tree in trees.values() for _, bins in _binary_gates(tree) for b in bins}
+    assert watched, (
+        "no test in this tree gates on an unowned binary -- either the gates moved to a spelling this "
+        "walk cannot see, or the walk broke; both leave the guard passing while it checks nothing"
+    )
+
+    # ...and the lane's own probe asks PATH for the same set, minus what the test environment itself
+    # declares. Two lists in two languages, and the drift between them is silent in exactly the
+    # direction that matters: a binary this guard knows about but the probe never asks for is one the
+    # lane can be missing while still reporting green -- which is the failure both of them exist to
+    # close, arriving through the mechanism built to close it.
+    probe = (repo / "scripts" / "require_binaries.sh").read_text(encoding="utf-8")
+    asked = re.search(r"for binary in ([^;]+);", probe)
+    assert asked, "the probe no longer spells its binaries as a loop this can read"
+    assert set(asked.group(1).split()) == _UNOWNED_BINARIES - _TEST_ENVIRONMENT_OWNS, (
+        f"scripts/require_binaries.sh probes {sorted(asked.group(1).split())}, but the binaries whose "
+        f"absence turns a test into a skip are {sorted(_UNOWNED_BINARIES - _TEST_ENVIRONMENT_OWNS)}. "
+        "A binary in the second list and not the first is one the external lane can run without, "
+        "skipping the tests that need it and exiting 0."
+    )
+
+    # ...and the guard discriminates. These call the REAL predicate: it must fire on both gate
+    # spellings when nothing marks the test, and stay silent on each way a test legitimately carries
+    # the marker -- including the fixture route, which shows up in no decorator. A guard nobody proved
+    # fires is a guard that always allows.
+    #
+    # The cases are SOURCE TEXT handed to the predicate rather than functions in this module, which is
+    # also what keeps this file's own scan honest: to the parser a `which` inside a string literal is
+    # a constant and never a call, so the walk above reads this file and sees none of them.
+    def fires(source: str) -> bool:
+        return bool(_unmarked_binary_gates(ast.parse(source)))
+
+    assert fires('def test_a(tmp_path):\n    star = shutil.which("STAR")\n')  # inside the body
+    assert fires(
+        '@pytest.mark.skipif(shutil.which("snakemake") is None, reason="not on PATH")\n'
+        "def test_b():\n    pass\n"
+    )  # inside a decorator
+    assert fires(
+        '_HTS = shutil.which("bgzip") is not None and shutil.which("tabix") is not None\n'
+        '@pytest.mark.skipif(not _HTS, reason="no htslib")\n'
+        "def test_c():\n    pass\n"
+    )  # through a module-level name -- the spelling a body-only walk cannot see
+
+    assert not fires('@pytest.mark.external\ndef test_d():\n    shutil.which("STAR")\n')  # marked
+    assert not fires(
+        '_HTS = shutil.which("bgzip") is not None\n'
+        "@pytest.mark.external\n"
+        '@pytest.mark.skipif(not _HTS, reason="no htslib")\n'
+        "def test_e():\n    pass\n"
+    )  # ...marked, and gated through the name: the shape actually on disk today
+    assert not fires(
+        'def test_f(dry_run):\n    assert shutil.which("snakemake")\n'
+    )  # marked by its FIXTURE, which no decorator shows
+    assert not fires(
+        'def test_g():\n    for path in (shutil.which("bash"), "/bin/bash"):\n        pass\n'
+    )  # bash is on every box: a parametrize source, not a gate
+    assert not fires('def helper():\n    return shutil.which("STAR")\n')  # not a test
 
 
 #: The section sign (U+00A7), spelled as a codepoint so this file does not contain the character it
@@ -1194,7 +1434,7 @@ _BASH_4_ONLY = (
 
 @pytest.mark.repo
 def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
-    """The gate must RUN on bash 3.2, not merely refuse loudly there.
+    """Every shell script the gate runs must RUN on bash 3.2, not merely refuse loudly there.
 
     macOS ships 3.2 as ``/bin/bash`` and that is where the maintainer works, so a version guard would
     only relocate the outage. What broke was `declare -A`: an associative array in a script whose
@@ -1204,14 +1444,25 @@ def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
 
     Nothing here needs a map. The steps arrive as an ordered list and every verdict is read back in
     that order, so a plain indexed array parallel to it carries the same information on every shell.
+
+    EVERY script, not only the runner. The second one to arrive was the external lane's binary probe,
+    whose own header promises it uses no empty array -- and a promise in a comment is what this guard
+    exists to replace. A script reached through a task the gate names fails the same way the runner
+    did, and a scan keyed on one filename would not have looked.
     """
+    scripts = sorted(_GATE.parent.glob("*.sh"))
+    assert len(scripts) > 1, (
+        "this walk found at most the runner -- it is keyed on a directory so that a new script is "
+        "covered the day it lands, and finding one back means the glob no longer matches them"
+    )
     offenders = [
-        line
-        for line in _GATE.read_text(encoding="utf-8").splitlines()
+        f"{path.name}: {line}"
+        for path in scripts
+        for line in path.read_text(encoding="utf-8").splitlines()
         if any(pattern.search(line) for pattern in _BASH_4_ONLY)
     ]
     assert not offenders, (
-        f"the gate runner uses bash 4 syntax macOS's /bin/bash does not have: {offenders}.\n"
+        f"a gate script uses bash 4 syntax macOS's /bin/bash does not have: {offenders}.\n"
         f"On bash 3.2 this does not abort the script -- there is no `set -e` and there must not be, "
         f"so it runs on and fails somewhere that looks like success. The step list is ordered; index "
         f"a parallel array by position instead."

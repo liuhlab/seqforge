@@ -528,12 +528,16 @@ def test_every_flow_step_kind_the_narrative_can_emit_has_a_declared_card() -> No
 
 
 def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
-    """The verb's ``--help`` and the renderer's docstring still promised the removed diagram engine.
+    """The verb's ``--help`` still promised the diagram engine the page no longer carries.
 
     Dropping Mermaid cut a rendered page from ~2.6 MB to tens of KB — the single largest thing ever
-    true about this page — and both prose sites went on describing the bundle as inlined. Prose that
-    names a dependency the wheel does not carry is worse than none: it is what a reader checks a size
-    budget against, and it would have sent the next person looking for an asset that is not there.
+    true about this page — and the prose went on describing the bundle as inlined. Prose that names a
+    dependency the wheel does not carry is worse than none: it is what a reader checks a size budget
+    against, and it would have sent the next person looking for an asset that is not there.
+
+    The renderer's own docstring was asserted here too, and is not any more: the text of a docstring
+    is not something the code can do, so a rename broke that half falsely and an indirection would
+    have passed it falsely. What the prose stood for is asserted below against the package instead.
     """
     from importlib.resources import files
 
@@ -545,8 +549,6 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
     # `--help` is a promise about the page a user is about to get, not a history of it.
     assert "mermaid" not in result.stdout.lower()
 
-    doc = (render.__doc__ or "").lower()
-    assert "no third-party runtime" in doc  # the renderer says what it executes
     # The word `vendored` was banned here as a proxy for "does not claim a bundle it lacks". The
     # page now really does vendor one thing -- a built Tailwind stylesheet -- so assert the rule the
     # proxy stood for instead: every sheet the renderer inlines is a file the package ships. (The
