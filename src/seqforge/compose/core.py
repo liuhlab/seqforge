@@ -451,6 +451,11 @@ def compose(
         gate=gate,
         params_preview=dict(p.config),
         admission=admission,
+        # Both, from the one place that already holds both. `rid` above folded the live value and
+        # `plan` read that same knowledge base for the params; recording them here is what lets every
+        # caller disclose the divergence without re-deriving which name to compare.
+        kb_version=KB_VERSION,
+        manifest_kb_version=manifest.provenance.kb_version,
     )
 
 

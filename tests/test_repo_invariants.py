@@ -1,6 +1,6 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Seven families live here, and none of them composes anything:
+Eight families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
@@ -19,6 +19,9 @@ Seven families live here, and none of them composes anything:
 - **The gate reports what it ran.** The pre-PR gate's own runner is exercised as a runner: a step
   that fails has to reach a non-zero exit and a printed verdict, and an interrupted gate has to
   leave nothing of itself running.
+- **The schema describes the whole machine surface.** No exportable model emits a key that
+  ``schema export`` does not declare, because that schema is the contract (R1) and a stdout object
+  it cannot describe is one a consumer would be right to reject.
 
 The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
@@ -38,6 +41,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, computed_field
 
 from conftest import SrcTrees, _src_root
 from seqforge.pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME
@@ -1083,3 +1087,52 @@ def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
 
     # ...and the guard discriminates, on the line this was actually reported for.
     assert [line for line in ["declare -A status"] if _BASH_4_ONLY[0].search(line)]
+
+
+@pytest.mark.repo
+def test_no_exported_model_emits_a_key_its_schema_does_not_declare() -> None:
+    """``schema export`` is the schema (R1), so no stdout object may hold a key it does not describe.
+
+    ``export_schema`` calls ``model_json_schema()``, which is pydantic's **validation** schema. A
+    ``computed_field`` lands in ``model_dump`` and in the **serialization** schema only — so adopting
+    one puts a key on a machine surface the exported schema never mentions, and a consumer validating
+    seqforge's own stdout against ``schema export`` would be right to reject a document seqforge
+    wrote. Nothing raises on the way: the dump succeeds, the schema exports, both look healthy, and
+    only a validator downstream ever finds out.
+
+    The rule is not *never derive a field*. It is that a derived value is either serialised **and**
+    exported, or neither. :attr:`~seqforge.models.resolve.ComposeResult.kb_moved` takes the second
+    road deliberately — a plain ``property``, so Python callers get one spelling of the comparison
+    while the JSON surface carries the two versions it is read off, both exported and both required.
+    This is the check that stops the first road being taken by accident, since taking it is a
+    one-word decorator and its cost appears nowhere near it.
+    """
+    from seqforge.models import SCHEMA_MODELS
+
+    offenders = {
+        name: sorted(undeclared)
+        for name, model in SCHEMA_MODELS.items()
+        if (
+            undeclared := set(model.model_json_schema(mode="serialization").get("properties", {}))
+            - set(model.model_json_schema().get("properties", {}))
+        )
+    }
+    assert not offenders, (
+        f"these exportable models emit keys `schema export` does not declare: {offenders}.\n"
+        f"A `computed_field` serialises but exports only in serialization mode, so the contract and "
+        f"the object disagree with nothing raising. Make it a plain `property` (derived, not "
+        f"serialised) and let the JSON carry the fields it is computed from."
+    )
+
+    # ...and the guard discriminates, against a model shaped like the mistake it exists to catch.
+    class _Computed(BaseModel):
+        a: int
+
+        @computed_field  # type: ignore[prop-decorator]
+        @property
+        def b(self) -> int:
+            return self.a
+
+    assert set(_Computed.model_json_schema(mode="serialization")["properties"]) - set(
+        _Computed.model_json_schema()["properties"]
+    ) == {"b"}

@@ -264,6 +264,32 @@ class ComposeResult(BaseModel):
     #: What the live knowledge base's read floor admitted. ``None`` when the chemistry declares no
     #: floor, which is every dataset seqforge compiles today.
     admission: SampleAdmission | None = None
+    #: The knowledge base **loaded at compile time**: what ``plan`` read for every ``backend.params``
+    #: key, for the derived keys, and for the admission floor above, and what ``run_id`` folds
+    #: (ADR-0037). On the result rather than compared inside a CLI, because ``compose`` is not the
+    #: only verb that compiles — ``run`` chains the same call, and a disclosure only the human stream
+    #: carried was one the headless path could not make.
+    kb_version: str
+    #: The knowledge base the manifest recorded at fill — **the KB that decided this chemistry**
+    #: (ADR-0037), never rewritten by a compile. Beside the live one because naming either alone says
+    #: a version without saying which of the two produced the params.
+    manifest_kb_version: str
+
+    @property
+    def kb_moved(self) -> bool:
+        """Did the knowledge base that decided this chemistry and the one that compiled it differ?
+
+        One definition of the question, so no verb spells the comparison itself. **Derived, never
+        stored**: a third value kept in step by hand is the copy that goes stale, and this one would
+        go stale in the direction that reports agreement where there is none.
+
+        A plain property and deliberately **not** a ``computed_field``. A computed field serialises
+        into ``model_dump`` but appears only in pydantic's *serialization* schema, so ``schema
+        export`` — which is the schema (R1) — would not have described a key the headless summary
+        emits. The JSON surface is therefore the two versions themselves, both exported and both
+        required; a consumer compares them, which is the same one line this property is.
+        """
+        return self.kb_version != self.manifest_kb_version
 
 
 class RunResult(BaseModel):
