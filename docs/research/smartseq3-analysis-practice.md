@@ -786,6 +786,14 @@ Caveat: `umicount$inex` is *not* `exon + intron` (§3), so under umite there is 
 would have to be either `UE` alone or an acknowledged over-count. That asymmetry is itself an argument
 in the engine bake-off.
 
+> **Answered since, and the caveat above no longer holds** (2026-08-05, [#333](https://github.com/liuhlab/seqforge/issues/333)).
+> umite has the same figure; it is simply a *mode* rather than a fifth file. Under
+> `--combine_unspliced` the bucket key stays `U` for an intronic assignment too, so both populations
+> land in one bucket and the deduplication runs once over the union — the same union semantics §3
+> records for zUMIs. seqforge's port materialises it as the `umi_combined` layer while keeping `X` as
+> `umi_exon`, so neither branch of the dilemma above is taken: no over-count, and nothing an analyst
+> has to reconstruct. See `docs/research/umite-agreement-fixture.md`.
+
 Three findings bear directly on open decisions in the map:
 
 - **STARsolo cannot be the engine** (§3). Constraint 4's bake-off is really zUMIs vs umite. If
