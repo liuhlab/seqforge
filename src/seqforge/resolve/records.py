@@ -304,8 +304,8 @@ def _join(
         grouped.setdefault(sample_id, []).append(f.sha256)
         # A hand-written id is a GROUPING KEY and not a specimen the archive named (this package's
         # `CONTEXT.md`, **Sample**), so it is not an accession and must not be stored as one —
-        # `plate7` does not
-        # match the accession pattern and reached this stage as an uncaught validation error rather
+        # `plate7` does not match the accession pattern and reached this stage as an uncaught
+        # validation error rather
         # than as anything a caller could act on. Carrying no record with it is the same rule from
         # the other side: a structure-only set has nothing for `_positions_for` to read, and a loader
         # that let an attribute through would otherwise have it graded `asserted` — the standing

@@ -40,7 +40,8 @@ runner = CliRunner()
 #: `xdist_group` pins the module to a single worker under `--dist=loadgroup`, so it happens once.
 #: Correct here because the run dominates: nothing below is slow enough to want its own core.
 #:
-#: The ratio is quoted and the seconds are not — this module has since
+#: The ratio is quoted and the seconds are not, per the method stated in
+#: `docs/research/test-suite-cost-shape.md` — this module has since
 #: grown past three times the size that measurement was taken at, and a stale absolute is worse than
 #: no number because it is still trusted. Re-measure before changing the grouping, not before
 #: reading this.

@@ -2,7 +2,7 @@
 
 The router — `CLAUDE.md` is a symlink to this file: one canonical copy, no fork. Read it in full;
 everything else is looked up. Terms are defined once in [`CONTEXT-MAP.md`](CONTEXT-MAP.md) — a
-shared kernel of a dozen words, plus one `CONTEXT.md` per bounded context under `src/seqforge/` —
+shared kernel of the words every context uses, plus one `CONTEXT.md` per bounded context —
 and decisions once in [`docs/adr/`](docs/adr/), the system-wide ones there and the rest beside the
 code they govern. This file points at both and restates neither.
 
@@ -73,6 +73,8 @@ moves between directories and its number does not; `—` means no record cites t
   `CONTEXT.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose/`.
 - **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
   `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
+- **A measurement — a number, and the method that produced it** — [`docs/research/`](docs/research/),
+  dated. A measurement is not a decision: it goes here, and whatever it *decided* goes to a record.
 
 **A term or a record is the exception.** Before adding either, the answer must not be readable from
 the code. A glossary entry is one or two sentences; a record is one paragraph and clears all three

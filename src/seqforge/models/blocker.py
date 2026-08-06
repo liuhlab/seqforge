@@ -70,7 +70,13 @@ class BlockerSubject(BaseModel):
 
 
 class Blocker(BaseModel):
-    """A structured refusal emitted alongside a nonzero exit. ``remedy`` MUST be actionable."""
+    """A structured refusal emitted alongside a nonzero exit. ``remedy`` MUST be actionable.
+
+    **Actionable means it names a command.** A remedy that only describes the problem, or that says
+    what a correct input would look like without saying what to type, is not finished — the caller is
+    a script as often as a person, and a sentence it cannot act on is a refusal with no exit from it.
+    Name the files too where the diagnosis turns on which ones they are.
+    """
 
     id: str
     code: BlockerCode

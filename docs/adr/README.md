@@ -2,7 +2,7 @@
 
 One decision per file, one paragraph: `# N. <the decision as a claim>` and one to three sentences on
 what was there, what was decided and why the obvious reading lost. Twelve lines is the ceiling, and a
-`## Status` line only where a record was amended or superseded. The bar for writing a new one at all
+`**Status.**` line only where a record was amended or superseded. The bar for writing a new one at all
 is stated in [`AGENTS.md`](../../AGENTS.md).
 
 The seven records here are system-wide. The rest sit beside the code they govern, in

@@ -4,6 +4,9 @@ Compiling one **Manifest** under one **Recipe** into a directory the user can su
 its config, and the table that says where every FASTQ is. This context also holds the words for what
 a finished pipeline reports back.
 
+Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
+defined once in the repo-root `CONTEXT-MAP.md`.
+
 ## Language
 
 ### Compiling

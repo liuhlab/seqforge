@@ -64,6 +64,6 @@ so it stays rejected in favour of `loadgroup`.
   That crossover belongs to the work that would decide parallelism from the size of the selection,
   which is not built.
 - **The cap of 12 is not in these tables.** They say 16 would be tolerable on a large box; the cap is
-  a policy about what one run may take from everyone sharing the machine, argued in ADR-0038.
+  a policy about what one run may take from everyone sharing the machine, argued in ADR-0002.
 - **The commit was not recorded**, only the date and the environment property that changed. Re-take
   the sweep rather than reconciling it against a tree.

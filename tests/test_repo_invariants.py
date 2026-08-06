@@ -279,12 +279,14 @@ _TRANSLITERATED_SECTION = re.compile(
 #: The surfaces a human writes prose into. Everything the sweep found lived in one of these.
 _PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk", ".toml"})
 
-#: The one exemption, and it is the file whose SUBJECT is the numbered rules: it parses their ids out
-#: of the agent-facing documents and asserts the two lists agree. There, a rule number is *data under
-#: test*, not a pointer — exempting it is the difference between "no comment cites a rule by number"
-#: and "the rule table may not be tested". The cost is that a real pointer inside that one file goes
-#: unseen, which is the smaller of the two harms by a wide margin.
-_EXEMPT = frozenset({"test_docs.py"})
+#: No file is exempt. `test_docs.py` used to be: its subject was the numbered rules, so a rule id there
+#: was *data under test* rather than a pointer, and exempting it was the difference between "no comment
+#: cites a rule by number" and "the rule table may not be tested". That test is gone — the rules are
+#: stated once, in the router, and nothing parses their ids back out — so the carve-out now only buys
+#: one file where a real pointer would go unseen. Kept as an empty set rather than deleted, because the
+#: shape is the thing worth having: the day a file legitimately holds a rule id as data, it goes here
+#: with its reason beside it.
+_EXEMPT: frozenset[str] = frozenset()
 
 
 def _points_by_number(text: str) -> bool:

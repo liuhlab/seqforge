@@ -484,8 +484,8 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
 
     # The sort budget, to the byte. Both numbers are LITERALS rather than a call to `bam_sort_ram`:
     # recomputing an expectation with the shipped formula cannot fail, and it would agree with a
-    # wrong formula as readily as a right one. 48 GiB is
-    # `ResourceHints.mem_gb`'s default, so 49152 MiB is what the composer emits and 36 GiB — 3/4 of
+    # wrong formula as readily as a right one. 48 GiB is `ResourceHints.mem_gb`'s default, so
+    # 49152 MiB is what the composer emits and 36 GiB — 3/4 of
     # it, in BYTES — is what STAR must be handed. The exactness is what proves the wiring: the number
     # is produced by a real `snakemake -n` resolving a `resources:` callable, and the `\d+` this
     # replaced matched a fall-back constant, a mis-scaled MiB figure and STAR's own default equally

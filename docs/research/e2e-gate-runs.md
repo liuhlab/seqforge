@@ -1,8 +1,8 @@
 # What the end-to-end gate runs actually measured
 
 Measured **2026-07-15** on three fixtures — sacCer3, ce11 + WS298, hg38 — moved out of
-the eval-corpus reference page on **2026-08-05**. The gate's design is `compose/params_gate.py`;
-the numbers and the boxes they were taken on live here.
+the eval-corpus reference page on **2026-08-05**. The gate's design is `params_gate` in
+`compose/params.py`; the numbers and the boxes they were taken on live here.
 
 **Method.** `seqforge kb e2e` (sacCer3, 2 000 reads, 120 genes, 8 cells), `kb e2e-introns` (ce11 with
 WS298 annotation) and `kb e2e-cost` (hg38) — each drives reads simulated from a real transcriptome

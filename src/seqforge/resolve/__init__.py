@@ -118,8 +118,8 @@ from __future__ import annotations
 #: `dataset_hash` moves with it for record-less multi-lane data, which is the point — a pin to the
 #: four-sample manifest refuses rather than resolving to a different dataset than it was written for.
 #: 2026.8.6 — chemistry matching ranks by specificity, not by an alias's token count (#266,
-#: ADR-0020, which states the obligation this discharges: the tie-break is part of the verdict,
-#: so a change to it is a change to a cached one. The stale entries are the dangerous direction —
+#: ADR-0020). That record states the obligation this discharges: the tie-break is part of the
+#: verdict, so a change to it is a change to a cached one. The stale entries are the dangerous direction —
 #: a dataset whose metadata said "SPLiT-seq paired-end RNA-seq" is cached as `bulk-rnaseq` at
 #: exit 0, a confident wrong answer that would keep being served while this landed green.
 #: 2026.8.7 — a barcodeless winner on a PROPER-SUBSET read set, while the ASSERTED chemistry's barcode
