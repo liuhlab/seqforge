@@ -249,6 +249,11 @@ class _Sample:
     accession: str | None
     file_shas: list[str]
     record: ArchiveRecord | None
+    #: What a document about this sample names it, which is the record's own id whoever wrote that
+    #: record. Distinct from ``accession``, which is typed as an archive accession and stays empty
+    #: for a set somebody wrote, and from ``sample_id``, which is the grouping key: a run document's
+    #: subject is the run, and ``_subject_to_sample`` walks it up to here.
+    subject_key: str | None = None
 
 
 def _join(
@@ -277,6 +282,7 @@ def _join(
     grouped: dict[str, list[str]] = {}
     accession_of: dict[str, str | None] = {}
     record_of: dict[str, ArchiveRecord | None] = {}
+    subject_of: dict[str, str | None] = {}
     # What the FILENAMES would have said, kept beside what the records decided. Only ever read for a
     # hand-written set, and only to say where the two disagree (:func:`_fused_runs_note`).
     run_keys_of: dict[str, set[str]] = {}
@@ -305,14 +311,28 @@ def _join(
         # A hand-written id is a GROUPING KEY and not a specimen the archive named (this package's
         # `CONTEXT.md`, **Sample**), so it is not an accession and must not be stored as one —
         # `plate7` does not match the accession pattern and reached this stage as an uncaught
-        # validation error rather
-        # than as anything a caller could act on. Carrying no record with it is the same rule from
-        # the other side: a structure-only set has nothing for `_positions_for` to read, and a loader
-        # that let an attribute through would otherwise have it graded `asserted` — the standing
-        # reserved for a slot a submitter typed (ADR-0034).
-        declarer = None if declared_by_user else sample
-        accession_of[sample_id] = declarer.accession if declarer is not None else None
+        # validation error rather than as anything a caller could act on. That still holds, so
+        # `accession` stays empty for a set somebody wrote.
+        #
+        # The RECORD is now kept either way, and the two used to be one decision only because a
+        # hand-written record had nothing on it worth reaching. It can carry prose now, and the
+        # document harvest renders from that prose is the sample's own — dropping the record here
+        # would strand every claim made about it. Keeping it grants nothing by itself: what
+        # `_positions_for` reads off a record is its typed `attributes`, and the loader still refuses
+        # those, so a set somebody wrote contributes exactly one thing — text that a quote must still
+        # be checked against.
+        declarer = sample
+        # Two ways to have no accession and they are not the same absence: a hand-written set has ids
+        # that are not accessions, and a run with no sample record above it has nothing to take one
+        # from. Both leave the field empty; only the first still has a subject, below.
+        accession_of[sample_id] = (
+            None if declared_by_user or declarer is None else declarer.accession
+        )
         record_of[sample_id] = declarer
+        # What a document hangs off, which is the record's own id whoever wrote it. Separate from
+        # `accession` because that field is typed as one and a hand-written id is not, and separate
+        # from `sample_id` because a run document's subject is the run.
+        subject_of[sample_id] = declarer.accession if declarer is not None else sample_id
         run_keys_of.setdefault(sample_id, set()).add(run_key(basename))
 
     if unclaimed:
@@ -332,6 +352,7 @@ def _join(
                 accession=accession_of[sid],
                 file_shas=sorted(grouped[sid]),
                 record=record_of[sid],
+                subject_key=subject_of[sid],
             )
             for sid in sorted(grouped)
         ],
@@ -511,6 +532,12 @@ def _subject_to_sample(records: ArchiveRecordSet | None) -> dict[str, str]:
     sample: the run names the sample by belonging to it, and code did the join, so no model was asked
     "which sample". Without it a run document's claim maps to no sample and is silently discarded —
     which is why the pilot's clearest genotype signal never reached the manifest.
+
+    **A run with no sample above it maps to itself**, which is the same degraded identity
+    :func:`_join` gives it: there, a run whose sample record is missing becomes its own sample. The
+    two have to agree or the claim is dropped for naming a sample that the join had just decided
+    exists. This is not a corner — ``seqforge records new`` drafts exactly one parentless run per
+    run, so it is the shape of every set drafted and then annotated rather than restructured.
     """
     if records is None:
         return {}
@@ -520,6 +547,8 @@ def _subject_to_sample(records: ArchiveRecordSet | None) -> dict[str, str]:
             sample = rec if level == "sample" else records.ancestor(rec, "sample")
             if sample is not None:
                 out[rec.accession] = sample.accession
+            elif level == "run":
+                out[rec.accession] = rec.accession
     return out
 
 
@@ -624,10 +653,24 @@ def _basis_for(
     about the study; that it holds of any one of six samples is **our** inference (``inferred``). That
     distinction is what makes the precedence in :func:`_decide` principled rather than a tiebreak we
     invented.
+
+    The join lands on ``subject_key`` rather than ``accession`` because those are the same string
+    only when an archive named the sample. A set somebody wrote has ids but no accessions, and
+    matching on the typed field would compare every document against ``None`` — every claim about
+    every hand-written sample silently discarded, which is the failure this function's own docstring
+    warns about one paragraph up. It falls back to ``accession`` so the field is purely additive: a
+    sample built without one keeps the standing it had.
+
+    **Both sides must exist before they may be equal.** A sample with neither key and a document
+    whose subject is in no map are both ``None``, and ``None == None`` would read as a match — an
+    unplaced document asserting itself of a sample nobody identified. Unreachable today, because a
+    dataset-scoped document returns above and there are no others when there are no records, but it
+    is one refactor from being the quietest possible wrong answer.
     """
     if doc.scope == "dataset":
         return "inferred"
-    if doc.subject is not None and subject_to_sample.get(doc.subject) == sample.accession:
+    key = sample.subject_key or sample.accession
+    if key is not None and doc.subject is not None and subject_to_sample.get(doc.subject) == key:
         return "asserted"
     return None
 

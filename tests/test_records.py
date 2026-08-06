@@ -1384,3 +1384,67 @@ def test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file(
         "the set's `query` is a filename here, so it must not be dropped where an accession is read"
     )
     assert "orphan_S9_L001_R1_001.fastq.gz" in blocker.evidence
+
+
+def test_prose_on_a_hand_written_record_lands_per_sample(tmp_path: Path) -> None:
+    """Two hand-written samples, two different strains, each read out of its own record's prose.
+
+    This is the whole of ADR-0047 in one assertion, and the pair is what makes it one: a
+    dataset-scoped README can also put a strain on both samples, but only ever the SAME strain, at
+    `inferred`. Two DIFFERENT values at `asserted` can only come from documents that know which
+    sample they are about, which before this was reachable only through an archive.
+
+    It goes red on any of the three seams parting: the loader refusing `free_text` again, the join
+    dropping a hand-written sample's record, or `_basis_for` matching subjects against the typed
+    `accession` field — which is empty here, so every claim would be discarded and both strains would
+    vanish rather than merely weaken.
+    """
+    from seqforge.recordset import load_record_set
+
+    path = tmp_path / "records.yaml"
+    path.write_text(
+        "source: user\n"
+        "query: aging_SS3\n"
+        "records:\n"
+        "  - level: run\n"
+        "    id: day1_N2_1\n"
+        "    filenames: [day1_N2_1_1.fq.gz, day1_N2_1_2.fq.gz]\n"
+        "    free_text:\n"
+        "      - {label: directory_name, text: day1_N2_1}\n"
+        "  - level: run\n"
+        "    id: day13_CF_26\n"
+        "    filenames: [day13_CF_26_1.fq.gz, day13_CF_26_2.fq.gz]\n"
+        "    free_text:\n"
+        "      - {label: directory_name, text: day13_CF_26}\n"
+    )
+    records = load_record_set(path)
+
+    files = [
+        _file("day1_N2_1_1.fq.gz", "a" * 64),
+        _file("day1_N2_1_2.fq.gz", "b" * 64),
+        _file("day13_CF_26_1.fq.gz", "c" * 64),
+        _file("day13_CF_26_2.fq.gz", "d" * 64),
+    ]
+    wt_doc, cf_doc = "1" * 64, "2" * 64
+    out = resolve_metadata(
+        files=files,
+        records=records,
+        assertions=[
+            _assertion("experiment.samples.strain", "N2", wt_doc),
+            _assertion("experiment.samples.strain", "CF", cf_doc),
+        ],
+        subjects=[
+            DocumentSubject(doc_sha256=wt_doc, scope="run", subject="day1_N2_1"),
+            DocumentSubject(doc_sha256=cf_doc, scope="run", subject="day13_CF_26"),
+        ],
+    )
+
+    assert not out.blockers
+    strains = {s.sample_id: s.attributes["strain"] for s in out.samples}
+    assert strains["day1_N2_1"].value == "N2"
+    assert strains["day13_CF_26"].value == "CF"
+    assert {ev.basis for ev in strains.values()} == {"asserted"}
+    assert all(s.accession is None for s in out.samples), (
+        "a hand-written id is a grouping key, not a specimen an archive named: it must not be "
+        "stored where an accession is validated"
+    )

@@ -15,12 +15,20 @@ argued once in ADR-0023. Read it before changing a number
 here; every one of them is load-bearing in a way the arithmetic alone does not show.
 
 **Two modules' arithmetic, and the second is a map rather than a cap.** `map/starsolo` has one
-expensive rule. `map/star-umi` has *two* rule classes that scale differently — index-dominated
-per-cell alignment, and one plate-wide counting job that loads no index at all — while the recipe
-still says exactly one thing, because `resources.mem_gb` is intent and a recipe carrying every
-module's rule names would widen its schema on every new module. So the module turns one figure into
-two requests (:func:`per_cell_mem_mb`, :func:`fan_in_mem_mb`) and escalation applies to each class
-alone.
+expensive rule. `map/star-umi` has *three* rule classes that scale differently — a shared-index load,
+per-cell alignment whose surplus over that index is a sort buffer, and one plate-wide counting job
+that loads no index at all — while the recipe still says exactly one thing, because `resources.mem_gb`
+is intent and a recipe carrying every module's rule names would widen its schema on every new module.
+So the module turns one figure into three requests (:func:`index_mem_mb`, :func:`per_cell_mem_mb`,
+:func:`fan_in_mem_mb`) and escalation applies to each class alone.
+
+**What that one figure is actually sized by, because it is not what it looks like.** It reads as a
+genome-index budget and it is a *sort* budget: :func:`bam_sort_ram` takes three quarters of it, and
+the default moved 32 -> 48 GB so that a 215M-read sample's ~32 GB sort would fit. Sort RAM scales
+with a sample's DEPTH; index residency scales with the GENOME. One number cannot track both, and on a
+small genome the surplus over the index is not waste — it is the half doing the work. Shrinking the
+figure because the index is small is therefore the one change that looks obviously right and FATALs
+deep samples.
 
 **The cap is a `resources:` entry and not a `params:` one, which is the part that is easy to get
 wrong.** Snakemake hands `resources` to a `params:` callable, so
@@ -134,11 +142,43 @@ def per_cell_mem_mb(mem_mb: int, attempt: int) -> int:
     the only artifact that knows its own rule graph — turns that one figure into two requests, and
     this is the first of them.
 
-    It is the figure **unchanged** rather than a share of it, and that is the measurement talking:
-    STAR's memory here is dominated by the genome index, which is per-process and independent of how
-    many reads the cell holds, so a 901-read well and a 3.1M-read well ask for the same thing. The
-    recipe's default was sized against a mapping job, which is what this is; the fan-in is the rule
-    that is not (:func:`fan_in_mem_mb`).
+    It is the figure **unchanged** rather than a share of it, and it stays unchanged for a reason
+    this docstring used to get wrong. It said the figure is dominated by the genome index, per
+    process. Two things in this same module contradict that. ``map/star-umi``'s ``load_genome`` puts
+    the index in SHARED memory with ``LoadAndExit`` and every mapping job depends on that rule's
+    flag, so the index is resident once per node and attached, not allocated per process. And
+    :func:`bam_sort_ram` records what actually moved the default to 48 GB: ``--limitBAMsortRAM``
+    takes three quarters of this figure, and a 215M-read sample needs ~32 GB of it. So the number is
+    sized by **sort RAM, which scales with a sample's depth**, not by an index, which scales with the
+    genome.
+
+    That matters when the genome is small. Against the 1.3 GB ce11 index a per-cell request of 48 GB
+    is ~35x the residency and the surplus is doing real work — it is the sort budget. **Do not shrink
+    it because the index shrank**: three quarters of a smaller figure is a smaller
+    ``--limitBAMsortRAM``, and STAR FATALs on a deep sample rather than degrading, which is the exact
+    regression the 32 -> 48 move fixed. What would justify a smaller figure here is a measurement of
+    sort RAM against a shallow plate, and what would separate the two concerns for good is a second
+    recipe knob — depth-driven sort budget apart from genome-driven residency. Neither exists yet,
+    and one number that is honest about being the larger of two is better than two that are guesses.
+    """
+    return escalated_mem_mb(mem_mb, attempt)
+
+
+def index_mem_mb(mem_mb: int, attempt: int) -> int:
+    """What the shared-index load asks for — the residency every mapping job on the node attaches to.
+
+    ``load_genome`` declared **no memory at all** until this existed, which is the one rule in the
+    module that unambiguously should: it is the job that materializes the genome segment, and a
+    scheduler told nothing about it will co-schedule anything beside it and then watch the node OOM.
+    Every other rule's request was carefully derived while the rule holding the largest single
+    allocation asked for zero.
+
+    The recipe's whole figure, because it is the only bound available and it is an upper one: the
+    figure covers a mapping job, and a mapping job is this residency plus a sort buffer. Asking for
+    an upper bound on the rule that runs **once per node** costs a scheduling slot briefly; asking
+    for too little on it costs the node. The number to replace this with is the index's own size,
+    which the recipe cannot see and ``liulab-genome`` can — that is the fix, and it is a measurement
+    away rather than an opinion away.
     """
     return escalated_mem_mb(mem_mb, attempt)
 
@@ -194,6 +234,7 @@ def bam_sort_ram(mem_mb: int) -> int:
 
 __all__ = [
     "PLATE_RETRIES",
+    "index_mem_mb",
     "STARSOLO_RETRIES",
     "bam_sort_ram",
     "escalated_mem_mb",
