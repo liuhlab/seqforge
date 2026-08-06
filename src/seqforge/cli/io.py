@@ -748,9 +748,10 @@ def io_umi_count(
     """Count every cell of a plate into ONE .h5ad — the fan-in of the SMART-seq3 pipeline.
 
     One counting job over all N per-cell BAMs, not N jobs and a merge, and it writes the object
-    directly: 1440 cells x ~55 000 genes x 4 matrices is ~630 MB of dense text as a TSV, for a
-    sparse object several times smaller. `X` is the exonic UMI matrix, three layers carry the rest,
-    rows are sample ids and the four read fates are `obs` columns.
+    directly: 1440 cells x ~55 000 genes x 5 matrices is ~790 MB of dense text as a TSV, for a
+    sparse object several times smaller. `X` is the exonic UMI matrix, four layers carry the rest —
+    intronic UMIs, the two together deduplicated as one population, and the two untagged-read
+    matrices — rows are sample ids and the four read fates are `obs` columns.
 
     A verb rather than a `run:` block for the same reason `io h5ad` is one: `snakemake -n -p`
     renders a `shell:` while planning and cannot see inside a `run:`, so only a verb is visible to

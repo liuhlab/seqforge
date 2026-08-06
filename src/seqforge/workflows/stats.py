@@ -11,12 +11,14 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
     map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
     map/star       Log.final.out                   plain text, written by STAR itself
     map/star-umi   Log.final.out                   the same, one per cell
+                   + the fan-in artifact           one h5ad over the plate, one `obs` row per cell
 
-Three artifacts, three vocabularies, and no shared column set — the ATAC summary has no
+Four artifacts, four vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
-about cells, and a bulk page speaks about mapping and never about barcodes. That divergence is the
-seam earning its keep: it is expressed as three adapters rather than as a widening union of optional
-fields on one.
+about cells, a bulk page speaks about mapping and never about barcodes, and a plate's counting object
+speaks about fragments that reached no gene, which none of the other three measured. That divergence
+is the seam earning its keep: it is expressed as four adapters rather than as a widening union of
+optional fields on one.
 
 **The spec carries a filename, not a suffix**, and the third row above is what that bought. A
 ``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and ``map/star``
@@ -32,6 +34,17 @@ a test fails if a registered module appears in neither it nor :data:`_SPECS`. Th
 ``module == "map/starsolo"`` branch in the collector — is the same silent fall-through that
 ``read_layout_kind`` and ``param_block`` already exist to prevent.
 
+**One module reads a second artifact, and what is new about it is its ARITY, not its name.**
+``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
+every cell's read fates — a **fan-in artifact**: dataset-scoped as a file, sample-scoped as data. A
+per-sample reader cannot express it, since there is no sample in its path; so the spec's second
+reader is plural (:attr:`StatsSpec.read_fan_in`), handed the file and the sample list once and
+returning one :class:`SampleStats` per row, which :func:`read_pipeline_stats` merges into what the
+per-sample artifact said. Its filename is deliberately **not** a second field on the spec:
+``Workflow.fan_in_artifact`` already declares it and the rule that produces it reads that same
+constant, so spelling it here would be a third owner of one name — the exact drift the imports below
+exist to prevent.
+
 The spec carries a second thing the same way: the module's **cross-checks**, the rules that read a
 metric back and say which *decision* looks wrong. Same registry, same guard, one level in — a module
 declares rules or is named in :data:`MODULES_WITHOUT_CROSS_CHECKS`, never neither and never both.
@@ -45,7 +58,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import MODULES
+from . import MODULES, get_module
 from .fragments import QC_SUFFIX as _FRAGMENTS_QC_SUFFIX
 from .fragments import read_metrics as _read_fragments
 from .h5ad import STAR_FINAL_LOG
@@ -56,6 +69,7 @@ from .qc import gene_model_rule as _starsolo_gene_model_rule
 from .qc import read_metrics as _read_starsolo
 from .qc import read_star_log as _read_star_log
 from .qc import solo_features_rule as _starsolo_solo_features_rule
+from .umite.count import read_plate_stats as _read_plate_stats
 
 #: One cross-check rule: one sample's metrics in, zero or more :class:`Finding` out. Pure by
 #: signature — there is no path, no manifest and no writer in it — which is what makes a threshold
@@ -79,11 +93,19 @@ class StatsSpec:
     key and the rule reading it change in one file or fail in one file. Defaulted to empty so the
     field can be added without touching every spec — and :data:`MODULES_WITHOUT_CROSS_CHECKS` is what
     stops that default from being a silent one.
+
+    ``read_fan_in`` is the plural reader, for the one module whose pipeline also produces a
+    **fan-in artifact**: ``(the artifact, the sample list) -> one SampleStats per row``, opened once
+    and merged into the rows above. It carries **no filename of its own** — the module's
+    ``fan_in_artifact`` is the single owner of that, and :func:`read_pipeline_stats` asks the
+    registry for it — so this field says only *how* to read the thing, never *where* it is.
+    ``None`` for the three per-sample-end-to-end modules, which is the default and the common case.
     """
 
     artifact: str
     read: Callable[[Path, str], SampleStats]
     checks: tuple[CrossCheck, ...] = ()
+    read_fan_in: Callable[[Path, Sequence[str]], dict[str, SampleStats]] | None = None
 
 
 #: Every artifact name here is **imported, never spelled**. A suffix written in the rule that produces
@@ -113,12 +135,21 @@ _SPECS: dict[str, StatsSpec] = {
     # The plate module reports from the same file `map/star` does, and for the same reason: it runs
     # one STAR job per cell, and STAR writes `Log.final.out` into that cell's directory unasked. A
     # cell IS a sample here, so `<results>/<sample>/Log.final.out` is already this reader's shape
-    # with no new rule, no second artifact and no per-cell QC bundle to invent. What it does NOT
-    # report is the plate-wide half — the read fates the counter puts in the combined object's `obs`
-    # — because this reader is per sample by construction and that artifact has no sample in its
-    # path. Widening the seam to a dataset-scoped artifact is its own change; reporting nothing at
-    # all in the meantime would have been the silence this registry exists to forbid.
-    "map/star-umi": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
+    # with no new rule, no second artifact and no per-cell QC bundle to invent.
+    #
+    # It is also the ONLY module with a second half, and that half is where its counting decisions
+    # are: the fan-in writes every cell's read fates into the combined object's `obs`, and those say
+    # what the alignment log cannot — how many fragments reached no gene, and why. They arrive
+    # through `read_fan_in` rather than through a second `artifact` entry because that artifact has
+    # no sample in its path at all: it is one file for the deposit, holding one row per cell.
+    #
+    # The filename is STILL not spelled here, and that is the same discipline as the four above one
+    # arity out: `map/star-umi` DECLARES its deliverable as `fan_in_artifact`, `star-umi.smk` reads
+    # that constant to name its output, and `read_pipeline_stats` asks the registry rather than
+    # restating it. Three readers, one owner — a rename reaches every one of them or fails at import.
+    "map/star-umi": StatsSpec(
+        artifact=STAR_FINAL_LOG, read=_read_star_log, read_fan_in=_read_plate_stats
+    ),
 }
 
 #: Registered modules that deliberately report nothing **yet** — the half of the drift guard that lets
@@ -145,9 +176,15 @@ MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 #: seqforge decided, which is the same reason their own thresholds are loose. A rule with no
 #: defensible threshold does not ship, and declaring that out loud is a supported answer rather than
 #: a gap. Either name leaves this set the day a rule for it can be argued.
-#: ``map/star-umi`` joins them on the same argument read off the artifact rather than off the assay:
-#: what it reports is STAR's own alignment log, which carries no barcode-match rate and no gene
-#: assignment, so every rule the barcoded module cross-checks with is a number that is not there.
+#: ``map/star-umi`` joins them on the same argument read off the artifacts rather than off the assay.
+#: Its per-cell half is STAR's own alignment log, which carries no barcode-match rate at all, so
+#: every barcode rule the droplet module cross-checks with is a number that is not there. Its
+#: fan-in half DOES carry a gene-assignment number — the share of fragments landing on no feature —
+#: and it still ships no rule, because a rule is a THRESHOLD and nobody has measured one: what share
+#: is wrong varies with the annotation's completeness and with how much of a plate library is
+#: intronic, and the droplet bar was set on droplet libraries counted a different way. Reporting the
+#: number and declining to grade it is the honest state; it leaves this set the day a bar can be
+#: argued from a measurement.
 MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset(
     {"map/chromap", "map/star", "map/star-umi"}
 )
@@ -165,6 +202,48 @@ MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset(
 #: raises, and catching them would turn a logic error into a per-sample note that reads like bad
 #: input — one `except` doing two jobs, tolerating bad bytes (right) and tolerating bad code (wrong).
 _UNREADABLE = (OSError, EOFError, ValueError)
+
+
+def _read_fan_in(
+    module: str,
+    spec: StatsSpec,
+    results_dir: Path,
+    samples: Sequence[str],
+    notes: list[str],
+) -> dict[str, SampleStats]:
+    """One module's **fan-in artifact**, opened ONCE — or ``{}`` when it has none, or none landed.
+
+    **The filename comes from the module, never from the spec.** ``Workflow.fan_in_artifact`` is what
+    DECLARES the pipeline's dataset-scoped deliverable and what the rule producing it reads; asking
+    the registry here makes this the second reader of one constant rather than the second speller of
+    one name — the rule the artifact table above states, applied to the one artifact with no
+    ``{sample}`` in it.
+
+    Once, and not once per sample, because the artifact is one object over the whole plate: 1440
+    cells means 1440 rows in one file, and re-opening it per row would turn a single read into a
+    quadratic one for a page showing five columns.
+
+    A module declaring a reader and no artifact is refused by :func:`_check_registry` at build time,
+    which is what the ``artifact is None`` arm here is: the narrowing that fact implies, not a
+    silent skip of a job somebody asked for.
+
+    An artifact that is there and unreadable costs a note and nothing else, exactly as a per-sample
+    one does — every cell keeps the half of its row the alignment log gave it.
+    """
+    artifact = get_module(module).fan_in_artifact
+    if spec.read_fan_in is None or artifact is None:
+        return {}
+    path = results_dir / artifact
+    if not path.is_file():
+        return {}
+    try:
+        return spec.read_fan_in(path, samples)
+    except _UNREADABLE as exc:
+        notes.append(
+            f"{artifact}: the pipeline's dataset-wide artifact could not be read "
+            f"({type(exc).__name__}), so no sample below carries what it measured"
+        )
+        return {}
 
 
 def read_pipeline_stats(
@@ -188,21 +267,45 @@ def read_pipeline_stats(
     The module's cross-checks run here, over the samples that were **read** — so a corrupt artifact
     costs its own row and its own findings and nothing else, and a partial pipeline is cross-checked
     on what landed rather than made to wait for a full plate.
+
+    A module with a **fan-in artifact** is read from both, and the join is a **union**: a sample is
+    reported if EITHER source has it. A cell whose ``Log.final.out`` is missing but whose row is in
+    the plate object was counted — it has fates, a fragment count and a matrix column — and dropping
+    it would report a plate as thinner than the object on disk says it is. ``n_found`` therefore
+    counts the samples one source or the other answered for, which is what "how much landed" means
+    once landing can happen twice.
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
         return None
 
-    found: list[SampleStats] = []
+    per_sample: dict[str, SampleStats] = {}
     notes: list[str] = []
     for sample in samples:
         path = results_dir / sample / spec.artifact.format(sample=sample)
         if not path.is_file():
             continue
         try:
-            found.append(spec.read(path, sample))
+            per_sample[sample] = spec.read(path, sample)
         except _UNREADABLE as exc:
             notes.append(f"{sample}: its QC artifact could not be read ({type(exc).__name__})")
+
+    # Read once, whatever the plate's size, and merged per sample below. A sample's two sources are
+    # two halves of ONE row and not two rows: the alignment log says what STAR did with this cell's
+    # reads, the plate object says what the counter then did with its fragments, and a page carrying
+    # them as separate rows would be a page where every cell appears twice.
+    fan_in = _read_fan_in(module, spec, results_dir, samples, notes)
+    found: list[SampleStats] = []
+    for sample in samples:
+        landed, counted = per_sample.get(sample), fan_in.get(sample)
+        if landed is not None and counted is not None:
+            landed = landed.model_copy(update={"metrics": [*landed.metrics, *counted.metrics]})
+        # Either source alone is a row. Contracted order is kept by walking `samples` rather than by
+        # appending as each source answers, so a cell the fan-in alone knows about sits where it
+        # belongs on the page instead of after every cell that also had a log of its own.
+        row = landed if landed is not None else counted
+        if row is not None:
+            found.append(row)
 
     # Nothing found AND nothing unreadable is the only "there is nothing on disk" case. Nothing found
     # WITH notes is a pipeline that ran and wrote bytes nobody can parse — and returning `None` for it
@@ -291,6 +394,29 @@ def _check_registry() -> None:
         raise AssertionError(
             f"workflow module(s) {both} both declare cross-checks and are named as having none"
         )
+
+    # A plural reader with no artifact to point it at reads nothing, forever and silently: the
+    # filename's owner is the module, so a spec declaring `read_fan_in` for a module that declares no
+    # `fan_in_artifact` is a reader that can never be handed a path. Caught here rather than at
+    # report time for the reason this whole function is: it is a build-time defect, and `_read_fan_in`
+    # treats the same combination as a no-op so a report for an unrelated dataset does not fail.
+    unpointed = sorted(m for m, s in _SPECS.items() if s.read_fan_in and not _fan_in_artifact(m))
+    if unpointed:
+        raise AssertionError(
+            f"workflow module(s) {unpointed} register a fan-in reader while declaring no "
+            f"fan_in_artifact — the module owns that filename, so there is nothing to read"
+        )
+
+
+def _fan_in_artifact(module: str) -> str | None:
+    """The registered module's declared fan-in artifact, or ``None`` for one that has none.
+
+    Through :data:`MODULES` rather than :func:`get_module` so the guard above reads whatever the
+    registry has been rebound to in a test, which is how the drift tests exercise it without
+    touching the shipped one.
+    """
+    known = MODULES.get(module)
+    return None if known is None else known.fan_in_artifact
 
 
 __all__ = [

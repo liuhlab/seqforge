@@ -4,19 +4,20 @@ This is the fan-in: one counting job over all N per-cell BAMs, not N counting jo
 re-implements what ``umite``'s ``umicount`` decided, and deliberately not how it decided it — the
 mechanism is where the reference costs the most and is wrong in the most places.
 
-**It writes the ``.h5ad`` directly, with no TSV in between.** 1440 cells x ~55 000 genes x 4
-matrices is ~79M values each, almost all zero: roughly 630 MB of dense text to produce a sparse
+**It writes the ``.h5ad`` directly, with no TSV in between.** 1440 cells x ~55 000 genes x 5
+matrices is ~79M values each, almost all zero: roughly 790 MB of dense text to produce a sparse
 object several times smaller. Writing a sample column to join back on would also rebuild, for
 ourselves, the exact trap the reference had to warn about — its rows are labelled with the BAM's
 *basename*, suffix and all. This counter is handed each cell's sample id along with its BAM, so
 there is nothing to join and nothing to strip.
 
-The object is four matrices and one row per cell:
+The object is five matrices and one row per cell:
 
 | in the object | is | the reference's column |
 | --- | --- | --- |
 | ``X`` | UMIs, exonic | ``UE`` |
 | ``layers["umi_intron"]`` | UMIs, intronic | ``UI`` |
+| ``layers["umi_combined"]`` | UMIs, exon and intron deduplicated together | ``U`` under ``--combine_unspliced`` |
 | ``layers["read_exon"]`` | untagged reads, exonic | ``RE`` |
 | ``layers["read_intron"]`` | untagged reads, intronic | ``RI`` |
 
@@ -27,9 +28,13 @@ other 55 335 columns are genes — a per-cell scalar dressed as a feature, which
 correction in its output shape. As columns they need no leading underscore either: the underscore
 was there to keep them out of the gene id namespace, and they are not in it any more.
 
-The reference's fifth table, ``D`` (per-gene PCR duplicates), is deliberately not a fifth matrix:
-the object is four by decision, and ``n_fragments`` on ``obs`` is what makes the four fates readable
-as rates.
+**A matrix is materialised when it cannot be derived from the others, and only then.** That is why
+the combined UMI matrix is here and a combined *read* matrix is not: reads carry no UMI and are
+never deduplicated (``umicount.py:407``), so ``read_exon + read_intron`` is exact arithmetic anybody
+can do on the object, while the combined UMI figure is a *third* deduplication that neither of the
+other two contains — see :func:`deduplicate`. The reference's remaining table, ``D`` (per-gene PCR
+duplicates), is not a sixth matrix for the same rule read the other way: it is derivable from the
+observation counts, and ``n_fragments`` on ``obs`` is what makes the four fates readable as rates.
 
 **The annotation comes from the database ``liulab-genome`` already built** — no HTSeq, no GTF parse,
 no per-worker copy. The reference parses the GTF into two HTSeq ``GenomicArrayOfSets`` and pickles
@@ -77,10 +82,16 @@ from collections.abc import Mapping, Sequence
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix
+
+# Aliased for the reason `fragments.py` aliases it: `count_bam`/`count_plate` already use the word
+# for what this module does, and a helper that silently means something else inside one function is
+# how a wrong number gets written.
+from ..metrics import Metric, MetricGroup, SampleStats, fraction
+from ..metrics import count as count_metric
 
 if TYPE_CHECKING:  # pragma: no cover — both are runtime deps; keeps import cost off compose
     import anndata
@@ -106,10 +117,16 @@ HITS_TAG = "NH"
 HAMMING_THRESHOLD = 1
 COUNT_RATIO_THRESHOLD = 2
 
-#: What ``X`` is, and what the other three matrices are called. The reference's names for these are
+#: What ``X`` is, and what the other four matrices are called. The reference's names for these are
 #: ``UE``/``UI``/``RE``/``RI``; these say the same thing to somebody who has never read it.
+#:
+#: ``umi_combined`` follows that same rule and is this repo's own word rather than either tool's:
+#: the practice survey in ``docs/research/`` heads the very grid these matrices come from *exonic |
+#: intronic | combined*, so the word is already the one this project reasons in. zUMIs calls it
+#: ``inex`` and the reference calls it ``U`` (under ``--combine_unspliced``); both are names you have
+#: to have read the tool to expand, which is exactly what the sentence above declines to ship.
 PRIMARY_MATRIX = "umi_exon"
-LAYERS: tuple[str, ...] = ("umi_intron", "read_exon", "read_intron")
+LAYERS: tuple[str, ...] = ("umi_intron", "umi_combined", "read_exon", "read_intron")
 
 #: The four ways a fragment fails to reach a gene, in the order they are decided. Per-cell scalars,
 #: so they are ``obs`` columns; :data:`N_FRAGMENTS` is here so they can be read as rates.
@@ -518,8 +535,42 @@ def _count_fragment(record: AlignedSegment, annotation: Annotation, counts: Cell
         counts.read_intron[gene] += 1
 
 
+def _combined_umis(counts: CellCounts) -> dict[int, int]:
+    """The combined UMI matrix: one deduplication over the union of the two buckets, per gene.
+
+    **The raw observation counts are merged BEFORE correction, and that ordering is the whole
+    definition.** It is what the reference does — under ``--combine_unspliced`` the bucket key stays
+    ``'U'`` for an intronic assignment too (``umicount.py:401``), so both populations land in one
+    bucket and ``umi_correction`` then runs once over it (``umicount.py:437-448``) — and it is not a
+    detail one can shuffle: correction is Hamming-1 *with a count-ratio test*, so a UMI's abundance
+    decides which neighbours it can absorb, and in the union its abundance is the sum of the two.
+
+    Which makes this matrix genuinely non-derivable, in two independent ways, both of which a port
+    can get wrong while looking right. On one gene of one cell with UMIs ``A``/``B`` one substitution
+    apart, ``A``x2 ``B``x2 exonically and ``A``x5 ``B``x1 intronically: the exon bucket corrects to
+    two UMIs (2*2-1 > 2, so ``B`` survives), the intron bucket to one (2*1-1 <= 5, so ``B`` is
+    absorbed), and the union — ``A``x7 ``B``x3 — to **one**. A port that adds the two matrices
+    reports 3; a port that corrects each bucket and unions the surviving *keys* reports 2; only
+    merging the counts first reports 1. Neither wrong answer is reachable from the object, which is
+    why this is a fifth matrix rather than a note telling the reader to add two columns.
+
+    ``.get`` and not ``[]``: both buckets are ``defaultdict``s, and subscripting one for a gene that
+    is only in the other would insert an empty dict into the very mapping :func:`deduplicate` reads
+    beside this. Genes are walked in sorted order for the reason everything here is — the same plate
+    counted twice must come out byte-identical, and a dict's order is the BAM's.
+    """
+    combined: dict[int, int] = {}
+    for gene in sorted(set(counts.umi_exon) | set(counts.umi_intron)):
+        merged = dict(counts.umi_exon.get(gene, {}))
+        for umi, observations in counts.umi_intron.get(gene, {}).items():
+            merged[umi] = merged.get(umi, 0) + observations
+        if merged:
+            combined[gene] = len(correct_umis(merged))
+    return combined
+
+
 def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
-    """The four matrices' non-zero entries for one cell, as ``matrix -> gene -> value``.
+    """The five matrices' non-zero entries for one cell, as ``matrix -> gene -> value``.
 
     **Each UMI bucket is deduplicated on its own**, which is the second trap this port reproduces
     rather than re-derives: one UMI seen both exonically and intronically on the same gene counts
@@ -527,10 +578,20 @@ def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
     cannot tell the two apart — at 2 000 reads a cell the combined figure equalled the sum exactly
     on all ten cells — so a port that deduplicated over the union would have passed it while
     quietly losing a count per gene wherever the depth was real.
+
+    The combined figure is therefore carried as its own matrix rather than left to be added up by
+    whoever opens the object: :func:`_combined_umis` is a third deduplication, over the union of the
+    two buckets' RAW counts, and no arithmetic over the two published ones recovers it.
+
+    The read matrices have no such third form and deliberately get no layer. An untagged read
+    carries nothing to deduplicate by and the reference never tries (``umicount.py:407``), so
+    ``read_exon + read_intron`` is exact — a derivable layer would be one more matrix to write, keep
+    consistent and explain, in exchange for an addition.
     """
     return {
         PRIMARY_MATRIX: {g: len(correct_umis(u)) for g, u in counts.umi_exon.items() if u},
         "umi_intron": {g: len(correct_umis(u)) for g, u in counts.umi_intron.items() if u},
+        "umi_combined": _combined_umis(counts),
         "read_exon": {g: n for g, n in counts.read_exon.items() if n},
         "read_intron": {g: n for g, n in counts.read_intron.items() if n},
     }
@@ -637,6 +698,162 @@ def parse_cells(pairs: Sequence[str]) -> list[tuple[str, Path]]:
     return cells
 
 
+# --------------------------------------------------------------------------------------------
+# Reading the plate object back, for `seqforge report`
+# --------------------------------------------------------------------------------------------
+#
+# ADR-0025: the module that WRITES an artifact owns reading it. `count_plate` above decides that the
+# fates are `obs` columns and what each is called, so the lookup that reads them back belongs beside
+# it — and `stats.py` stays a registry that dispatches on a module rather than a file that knows
+# what an h5ad is. The alternative drifts in the one direction nothing catches: rename a column here,
+# and a reader a package away keeps asking for the old one while the page silently loses a column.
+#
+# The shape is the two halves every other adapter keeps (`qc.py`, `fragments.py`): a PURE function
+# from what the artifact said to a `SampleStats`, and a thin loader around it. What is different is
+# the arity — this artifact holds every cell, so the loader is plural and opens it ONCE.
+
+
+#: How each fate reads on the page: its label, the band it sits under, and what a reader should make
+#: of it. All four are the counter's own verdicts on a fragment it could not count, which is why they
+#: band under *Counts* and not under *Alignment* — the alignment band on this module's page is
+#: STAR's, and two "multimapping" columns under one heading would be two numbers about two different
+#: things sharing a word.
+#:
+#: No thresholds, on any of them. `map/star-umi` is in `MODULES_WITHOUT_CROSS_CHECKS` on exactly this
+#: argument: what share of fragments landing on no feature is *wrong* depends on the annotation, and
+#: nobody has measured a bar for it. An ungraded number a reader can compare across cells beats an
+#: invented bar they learn to ignore.
+_FATE_METRICS: dict[str, tuple[str, MetricGroup, str]] = {
+    "unmapped": (
+        "Unmapped",
+        "counts",
+        "Fragments the aligner did not place, or whose mate it did not. Compare it with STAR's own "
+        "unmapped share beside it: these count fragments, that counts reads.",
+    ),
+    "multimapping": (
+        "Multimapping",
+        "counts",
+        "Fragments carrying NH > 1 — placed at several loci, so no gene owns them. Read off the "
+        "tag rather than off how many records the aligner chose to emit.",
+    ),
+    "no_feature": (
+        "No feature",
+        "counts",
+        "Fragments that landed where this annotation declares no gene at all. A high share usually "
+        "means the wrong gene model rather than a bad library.",
+    ),
+    "ambiguous": (
+        "Ambiguous",
+        "counts",
+        "Fragments overlapping more than one gene, which no single column can be credited with.",
+    ),
+}
+
+#: The one fate that belongs in the at-a-glance strip. This module's page carries its per-cell
+#: alignment log AND these five columns, which is past the width at which the report folds a table to
+#: its headline set — so what the folded view holds is a decision rather than an accident. Depth and
+#: STAR's mapping rate say whether the cell sequenced and aligned; this says whether what aligned
+#: could be counted at all, which is the one thing neither of the others reports and the one that
+#: implicates a decision (the gene model) rather than the library. The other three are one click
+#: away, not absent.
+_HEADLINE_FATE = "no_feature"
+
+
+def fate_metrics(row: Mapping[str, int], sample: str) -> SampleStats:
+    """One cell's ``obs`` row -> the metrics its page column shows. Pure — no file, no anndata.
+
+    The fates are carried as **rates**, over :data:`N_FRAGMENTS`, which is what that column is on the
+    object for: a plate's cells differ by three orders of magnitude in depth (901 to ~3M fragments on
+    the deposit this was built for), so a raw count of ambiguous fragments says nothing until it is
+    divided, and the divisor is right there. The count itself is not lost — ``n_fragments`` is a
+    column of its own, so the page carries the numerator's denominator rather than the numerator.
+
+    A cell whose ``n_fragments`` is zero yields no rates at all rather than four zeros: dividing by it
+    is the one arithmetic here that has no answer, and a rendered ``0.0%`` is a number a reader acts
+    on. Absent is absent, exactly as it is for a metric an artifact never carried.
+    """
+    total = row.get(N_FRAGMENTS)
+    built: list[Metric | None] = [
+        count_metric(
+            N_FRAGMENTS,
+            "Fragments",
+            total,
+            group="input",
+            exact=True,
+            hint="Fragments the counter read for this cell — one per read pair, whatever its fate.",
+            headline=True,
+        )
+    ]
+    for fate in FATES:
+        label, group, hint = _FATE_METRICS[fate]
+        seen = row.get(fate)
+        built.append(
+            fraction(
+                fate,
+                label,
+                seen / total if seen is not None and total else None,
+                group=group,
+                hint=hint,
+                headline=fate == _HEADLINE_FATE,
+            )
+        )
+    return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
+
+
+def _obs_columns(adata: anndata.AnnData) -> dict[str, list[int]]:
+    """The fate columns the object actually carries, as plain ints. Absent columns stay absent.
+
+    Its own function because it is where anndata stops: ``adata.obs`` is declared as a union with a
+    lazy on-disk table, so the narrowing happens once, at the boundary, and everything past it is
+    plain Python the metric table can be tested against with no h5ad in the way. A column an older
+    object was written without is simply missing from the result, and :func:`fate_metrics` then omits
+    its metric instead of reporting a zero nobody counted.
+    """
+    frame: Any = adata.obs
+    return {
+        column: [int(value) for value in frame[column]]
+        for column in (*FATES, N_FRAGMENTS)
+        if column in frame.columns
+    }
+
+
+def read_plate_stats(path: Path, samples: Sequence[str]) -> dict[str, SampleStats]:
+    """The whole plate's ``obs`` -> one :class:`SampleStats` per cell, keyed by sample id.
+
+    **Plural, because the artifact is.** This is the one file the fan-in writes for the whole
+    deposit, so it is opened once and every cell's row comes out of that one read; a per-sample
+    reader would open a 1440-row object 1440 times to take one row out of each.
+
+    ``backed="r"``: ``obs`` is what the report wants and the five matrices are what the file mostly
+    IS, so they stay on disk. Reading the object eagerly would pull ~400M sparse entries into a
+    process whose whole job is to render five columns per cell.
+
+    Restricted to ``samples`` — the composed config's own list, the same axis the per-sample half is
+    read on. A row naming a cell this pipeline was not contracted to produce belongs to some other
+    plate that wrote here, and the report's job is to say how much of THIS pipeline landed.
+
+    Raises ``OSError``/``ValueError`` on bytes it cannot read, like every other adapter, so a
+    truncated artifact costs its own note rather than the whole page.
+    """
+    import anndata as ad
+
+    adata = ad.read_h5ad(path, backed="r")
+    try:
+        columns = _obs_columns(adata)
+        names = [str(name) for name in adata.obs_names]
+    finally:
+        # Backed mode leaves the HDF5 handle open, and `seqforge report` outlives this read by the
+        # whole rendering pass -- the same handle discipline `read_annotation` keeps for gffutils.
+        adata.file.close()
+
+    wanted = set(samples)
+    return {
+        name: fate_metrics({column: values[i] for column, values in columns.items()}, name)
+        for i, name in enumerate(names)
+        if name in wanted
+    }
+
+
 __all__ = [
     "COUNT_RATIO_THRESHOLD",
     "FATES",
@@ -653,7 +870,9 @@ __all__ = [
     "count_bam",
     "count_plate",
     "deduplicate",
+    "fate_metrics",
     "parse_cells",
     "read_annotation",
+    "read_plate_stats",
     "write_umi_counts",
 ]
