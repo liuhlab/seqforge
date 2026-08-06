@@ -123,6 +123,8 @@ from seqforge.workflows.umite.count import (
     correct_umis,
     count_bam,
     count_plate,
+    deduplicate,
+    fate_metrics,
     parse_cells,
     read_annotation,
     write_umi_counts,
@@ -2148,6 +2150,31 @@ def test_the_cross_check_guard_can_actually_catch_drift_in_both_directions(
         stats_registry._check_registry()
 
 
+def test_a_fan_in_reader_is_refused_for_a_module_that_declares_no_such_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The filename's owner is the MODULE, so a reader for a module that declares none reads nothing.
+
+    It would do so silently and forever: `read_pipeline_stats` has no path to hand such a reader, so
+    the page simply never grows the columns somebody wrote a reader for, which looks exactly like a
+    pipeline that has not produced its artifact yet. A build-time defect, caught by the same guard
+    that already refuses a module with no reader and a reader for no module.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    def plural(path: Path, samples: Sequence[str]) -> dict[str, SampleStats]:
+        return {}  # never called; the guard refuses it before anything could call it
+
+    unpointed = stats_registry.StatsSpec(artifact="x", read=_stub_reader, read_fan_in=plural)
+    assert get_module("map/star").fan_in_artifact is None, "map/star must have nothing to fan in"
+    monkeypatch.setattr(
+        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": unpointed}, raising=True
+    )
+
+    with pytest.raises(AssertionError, match="no fan_in_artifact"):
+        stats_registry._check_registry()
+
+
 def test_the_modules_findings_land_on_the_pipeline_and_never_on_the_sample(tmp_path: Path) -> None:
     """The registry runs the rules, and one-judgement-one-envelope decides where the answers go.
 
@@ -3646,9 +3673,12 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
     # ...and an untagged fragment never reaches a UMI matrix, nor a tagged one a read matrix.
     assert _row(adata, "cell_a", "GENE_A", "read_exon") == 1
     assert _row(adata, "cell_a", "GENE_A", "read_intron") == 1
-    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix.
+    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix — all five of
+    # them, counted off `LAYERS` rather than written out, so a sixth matrix is not silently unasserted.
     for gene in ("GENE_C", "GENE_D"):
-        assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0, 0, 0, 0]
+        assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0] * (
+            1 + len(LAYERS)
+        )
 
     # The second cell is a different row, not a copy of the first.
     assert _row(adata, "cell_b", "GENE_B") == 1
@@ -3674,6 +3704,83 @@ def test_a_umi_seen_both_exonically_and_intronically_counts_once_in_each_so_inex
     assert _PLATE[0].umi == _PLATE[2].umi  # the same UMI, one exonic fragment and one intronic
     assert _row(adata, "cell_a", "GENE_A", "umi_intron") == 1
     assert _row(adata, "cell_a", "GENE_A") + _row(adata, "cell_a", "GENE_A", "umi_intron") == 3
+    # And the combined matrix is the figure that arithmetic is NOT: the union of the two buckets
+    # holds "AAAAAAAA" (seen both ways, one molecule) and the spanning fragment's "GGGGGGGG".
+    assert _row(adata, "cell_a", "GENE_A", "umi_combined") == 2
+    # A gene only ever seen one way has nothing to combine, and the layer still carries its count --
+    # this matrix is every UMI on the gene, not the ones that crossed the exon/intron line.
+    assert _row(adata, "cell_a", "GENE_B", "umi_combined") == 1
+
+
+#: The one construction that separates all three candidate definitions of the combined UMI matrix,
+#: which is why it is written down rather than picked. Two UMIs one substitution apart on GENE_A of
+#: one cell: exonically "AAAAAAAA" x2 and "AAAAAAAT" x2, intronically "AAAAAAAA" x5 and "AAAAAAAT"
+#: x1. Correction is Hamming-1 WITH a count-ratio test, so the abundances decide, and here they
+#: decide differently in each bucket and differently again in the union -- see the test below for
+#: the three numbers that come out. Every other case anybody would reach for first (one UMI seen
+#: both ways, two neighbours in one bucket) leaves at least two of the three definitions agreeing.
+_SPLIT_NEIGHBOURS: tuple[_Fragment, ...] = (
+    # Exonic: two observations of each UMI, over GENE_A's two exons.
+    _Fragment("exon_a_1", "chr1", 120, 180, umi="AAAAAAAA"),
+    _Fragment("exon_a_2", "chr1", 520, 580, umi="AAAAAAAA"),
+    _Fragment("exon_b_1", "chr1", 120, 180, umi="AAAAAAAT"),
+    _Fragment("exon_b_2", "chr1", 520, 580, umi="AAAAAAAT"),
+    # Intronic: five of the first UMI and one of its neighbour, between the two exons.
+    _Fragment("intron_a_1", "chr1", 300, 360, umi="AAAAAAAA"),
+    _Fragment("intron_a_2", "chr1", 300, 360, umi="AAAAAAAA"),
+    _Fragment("intron_a_3", "chr1", 300, 360, umi="AAAAAAAA"),
+    _Fragment("intron_a_4", "chr1", 300, 360, umi="AAAAAAAA"),
+    _Fragment("intron_a_5", "chr1", 300, 360, umi="AAAAAAAA"),
+    _Fragment("intron_b_1", "chr1", 300, 360, umi="AAAAAAAT"),
+)
+
+
+def test_two_neighbour_umis_split_across_the_buckets_merge_only_if_the_counts_merge_first(
+    tmp_path: Path,
+) -> None:
+    """Why the combined matrix is a MATRIX: no arithmetic over the published two recovers it.
+
+    The reference merges the two populations **before** correcting — under `--combine_unspliced` the
+    bucket key stays `'U'` for an intronic assignment (`umicount.py:401`) and `umi_correction` then
+    runs once over the union (`umicount.py:437-448`) — and the count-ratio guard is what makes that
+    ordering observable. On this cell's GENE_A:
+
+        exon   "AAAAAAAA" x2, "AAAAAAAT" x2  -> 2 UMIs   (2*2-1 > 2: the neighbour survives)
+        intron "AAAAAAAA" x5, "AAAAAAAT" x1  -> 1 UMI    (2*1-1 <= 5: the neighbour is absorbed)
+        union  "AAAAAAAA" x7, "AAAAAAAT" x3  -> 1 UMI    (2*3-1 <= 7: absorbed again)
+
+    So the three candidate definitions give three different answers here, and the two wrong ones are
+    computed below from the same counts rather than described: a port that adds the two matrices
+    reports **3**, a port that corrects each bucket and unions the surviving keys reports **2**, and
+    only merging the raw observations first reports **1**. That is the whole reason this layer
+    exists — both wrong answers are what a reader would derive from an object that omitted it.
+    """
+    annotation = read_annotation(_annotation_db(tmp_path))
+    a = annotation.gene_ids.index("GENE_A")
+    counts = count_bam(_synthetic_bam(tmp_path / "split.bam", _SPLIT_NEIGHBOURS), annotation)
+
+    # The fixture as built, read back off the raw buckets: nothing below is deduplicated yet.
+    assert counts.umi_exon[a] == {"AAAAAAAA": 2, "AAAAAAAT": 2}
+    assert counts.umi_intron[a] == {"AAAAAAAA": 5, "AAAAAAAT": 1}
+
+    entries = deduplicate(counts)
+    assert entries["umi_exon"][a] == 2
+    assert entries["umi_intron"][a] == 1
+    assert entries["umi_combined"][a] == 1
+
+    # The two answers that are NOT this matrix, from the same counts. Sum first...
+    assert entries["umi_exon"][a] + entries["umi_intron"][a] == 3
+    # ...then the tempting one: correct each bucket, union what survives. It cannot see that the
+    # neighbour's seven-observation seed and its own three are one molecule, because by then the
+    # counts it would have to compare have already been thrown away.
+    corrected_apart = set(correct_umis(counts.umi_exon[a])) | set(
+        correct_umis(counts.umi_intron[a])
+    )
+    assert len(corrected_apart) == 2
+
+    # And it is the object's number, not just `deduplicate`'s: the layer is what a reader opens.
+    adata, _ = count_plate([("one_cell", tmp_path / "split.bam")], annotation)
+    assert _row(adata, "one_cell", "GENE_A", "umi_combined") == 1
 
 
 def test_a_multimapper_is_read_off_nh_and_never_reaches_the_gene_it_aligned_to(
@@ -3794,7 +3901,7 @@ def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() 
     assert list(correct_umis({"TTTTTTTT": 3, "AAAAAAAA": 3})) == ["AAAAAAAA", "TTTTTTTT"]
 
 
-def test_the_object_is_x_plus_three_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
+def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
     tmp_path: Path,
 ) -> None:
     """The deliverable's shape, which is the half of this ticket no wrong number would show.
@@ -3803,6 +3910,11 @@ def test_the_object_is_x_plus_three_layers_indexed_on_sample_id_with_the_fates_a
     fates are per-cell scalars and live on `obs`; the reference carries them as extra *gene*
     columns in a matrix whose other 55 335 columns really are genes, which is what forced a
     correction in its output shape.
+
+    Five matrices and not six: the grid is (UMI | read) x (exon | intron | combined), and the sixth
+    cell is deliberately absent. An untagged read has nothing to deduplicate by and the reference
+    never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer that earns
+    nothing, kept out on the same rule that lets the combined UMI matrix in.
     """
     db, cells = _plate(tmp_path)
     out = write_umi_counts(cells, db, tmp_path / "plate" / "counts.h5ad")
@@ -3810,6 +3922,15 @@ def test_the_object_is_x_plus_three_layers_indexed_on_sample_id_with_the_fates_a
 
     assert list(adata.obs_names) == ["cell_a", "cell_b"]  # the order the cells were handed over
     assert _layer_names(adata) == set(LAYERS)
+    assert set(LAYERS) == {"umi_intron", "umi_combined", "read_exon", "read_intron"}
+    # The derivable cell of the grid, asserted as absent BY NAME: a reader adding two read columns
+    # gets the right answer, and a sixth matrix would only be a second place for it to be wrong.
+    assert "read_combined" not in _layer_names(adata)
+    assert (
+        _row(adata, "cell_a", "GENE_A", "read_exon")
+        + _row(adata, "cell_a", "GENE_A", "read_intron")
+        == 2
+    )
     assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
     assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
     assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS}
@@ -3858,6 +3979,212 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
     for malformed in ("/x/one.bam", "=/x/one.bam", "c1="):
         with pytest.raises(UmiCountError, match="sample_id=path"):
             parse_cells([malformed])
+
+
+# ---- the plate object's second reader: what `seqforge report` gets out of it ----------------------
+#
+# These drive `read_pipeline_stats` and they live HERE, in the counter's section, for the reason
+# ADR-0025 gives for the reader itself: what an `obs` column is called is the writer's fact, so the
+# claim under test is that the columns `count_plate` writes are the columns the page reads. Every one
+# of them therefore goes through the real writer over the synthetic plate above, rather than through
+# a hand-built AnnData that could only ever agree with itself.
+
+
+def _plate_results(tmp_path: Path, *, logged: Sequence[str] = ("cell_a", "cell_b")) -> Path:
+    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus a `Log.final.out` per cell.
+
+    `logged` is which cells got as far as writing an alignment log — a preempted plate has cells the
+    counter measured and STAR's per-cell log did not survive for, which is exactly the union case.
+    """
+    db, cells = _plate(tmp_path)
+    results = tmp_path / "results"
+    write_umi_counts(cells, db, results / PLATE_H5AD)
+    for sample in logged:
+        _write(
+            results / sample / "Log.final.out",
+            "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
+        )
+    return results
+
+
+def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_log(
+    tmp_path: Path,
+) -> None:
+    """The counter's own verdicts are on the page, and they arrive from the artifact that has them.
+
+    A cell's alignment log says what STAR did with its reads and stops there — it cannot say how many
+    fragments reached no gene, or were ambiguous, or were dropped as multimappers, because the
+    counter had not run when STAR wrote it. Those are in the plate object's `obs`, one row per cell,
+    and until this landed they were written and read by nobody.
+
+    Carried as RATES over `n_fragments`, which is what that column is on the object for: cells on one
+    plate differ by three orders of magnitude in depth, so a count of ambiguous fragments is not
+    comparable across a page and a share is. The counts stay recoverable — `n_fragments` is a column
+    of its own — so nothing is lost by dividing.
+    """
+    results = _plate_results(tmp_path)
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.complete
+    cell_a = _by_key(stats.samples[0])
+    # STAR's half is still there, untouched: this is one row per cell and not two.
+    assert "uniquely_mapped" in cell_a
+    # ...and the counter's half, off the synthetic plate whose every fate is known by construction:
+    # 13 fragments, of which 1 unmapped, 1 multimapping, 2 no-feature and 2 ambiguous.
+    assert cell_a[N_FRAGMENTS].value == len(_PLATE)
+    assert cell_a["no_feature"].value == pytest.approx(2 / len(_PLATE))
+    assert cell_a["ambiguous"].value == pytest.approx(2 / len(_PLATE))
+    assert cell_a["unmapped"].value == pytest.approx(1 / len(_PLATE))
+    assert cell_a["multimapping"].value == pytest.approx(1 / len(_PLATE))
+    # Every fate the counter records has a column and a label a human can read, checked against
+    # `FATES` itself rather than against a list here — a fifth fate must not reach the page unnamed.
+    assert set(FATES) <= set(cell_a)
+    assert all(label for _, label in stats.columns)
+    # And none of them is graded. `map/star-umi` cross-checks nothing on the stated argument that a
+    # bar for "too many fragments hit no feature" is a number nobody has measured; an ungraded column
+    # says that out loud, where an invented threshold would tint a page nobody could act on.
+    assert {_levels(stats.samples[0])[fate] for fate in FATES} == {"none"}
+    assert stats.findings == []
+    # Ten columns is past the width at which the report folds a table behind a control, so which of
+    # these survives the fold is a decision: depth, and the fate that implicates the gene model.
+    assert {m.key for m in stats.samples[0].metrics if m.headline} == {
+        "uniquely_mapped",
+        "unmapped_too_short",
+        N_FRAGMENTS,
+        "no_feature",
+    }
+
+
+def test_a_cell_the_counter_measured_is_reported_even_with_no_alignment_log_of_its_own(
+    tmp_path: Path,
+) -> None:
+    """The join is a UNION, because a missing per-cell log does not unmake a counted cell.
+
+    An intersection is the tempting shape — merge the fan-in into the rows that landed — and it
+    silently shortens the plate: a cell whose `Log.final.out` was lost to a preemption still has a
+    row in the object, a fragment count and a column in five matrices, and reporting it as absent
+    would say the counter never saw it. `n_found` is how many cells one source or the other answered
+    for, which is what "how much landed" means once landing can happen twice.
+    """
+    results = _plate_results(tmp_path, logged=["cell_a"])
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None
+    assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]  # contracted order, kept
+    assert (stats.n_found, stats.n_expected) == (2, 2)
+    logged, counted = (_by_key(s) for s in stats.samples)
+    assert "uniquely_mapped" in logged and "uniquely_mapped" not in counted
+    # The fan-in-only cell is a real row and not a placeholder: it carries what the counter measured.
+    assert counted[N_FRAGMENTS].value == 1  # `cell_b` is the one-fragment cell of the fixture
+    assert set(FATES) <= set(counted)
+    # A column one source alone produced is still a column for everyone -- the union rule the metric
+    # table already keeps, now across two artifacts rather than across two samples.
+    assert {key for key, _ in stats.columns} >= {"uniquely_mapped", *FATES, N_FRAGMENTS}
+
+
+def test_the_plate_object_is_opened_once_however_many_cells_the_page_reports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One artifact, one read — the property that makes a dataset-scoped reader affordable at all.
+
+    The per-sample half of this registry opens one file per sample because there is one file per
+    sample. The fan-in half must not inherit that shape: on the 1440-cell deposit this module was
+    built for, a per-sample open would parse one object holding every cell 1440 times to take one row
+    out of each. Asserting it on a two-cell plate is enough to tell the two apart — the wrong shape
+    counts two opens — and the wrong shape is invisible in every other assertion on this page.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    results = _plate_results(tmp_path)
+    spec = stats_registry._SPECS["map/star-umi"]
+    assert spec.read_fan_in is not None, "this test is vacuous unless the plate declares a reader"
+    real = spec.read_fan_in
+    opened: list[Path] = []
+
+    def counting(path: Path, samples: Sequence[str]) -> dict[str, SampleStats]:
+        opened.append(path)
+        return real(path, samples)
+
+    monkeypatch.setattr(
+        stats_registry,
+        "_SPECS",
+        {**stats_registry._SPECS, "map/star-umi": replace(spec, read_fan_in=counting)},
+        raising=True,
+    )
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.n_found == 2
+    assert opened == [results / PLATE_H5AD]
+
+
+def test_the_registry_reads_the_fan_in_artifact_the_module_declares_and_never_spells_its_name(
+    tmp_path: Path,
+) -> None:
+    """One owner for the filename, and the registry is a READER of it like the rule that writes it.
+
+    `map/star-umi` DECLARES `fan_in_artifact`, `star-umi.smk` names its output from that constant,
+    and this reader asks the registry for it — so a rename reaches all three or fails at import.
+    Spelled here instead, the reader's copy is the one that fails silently: a page that shows no
+    fates looks exactly like a plate that has not been counted yet, so nothing raises and nobody is
+    told. That is the same failure the QC-suffix constants above were made one owner to prevent.
+
+    Both halves are asserted, because either alone is weak: the source carries no literal, AND an
+    object written under any other name is not found.
+    """
+    assert PLATE_H5AD not in (_src_root() / "workflows" / "stats.py").read_text()
+
+    db, cells = _plate(tmp_path)
+    results = tmp_path / "results"
+    write_umi_counts(cells, db, results / "plate-counts.h5ad")  # a plausible name, and not the one
+    _write(results / "cell_a" / "Log.final.out", "  Number of input reads |\t10\n")
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a"])
+
+    assert stats is not None
+    assert not set(FATES) & set(_by_key(stats.samples[0]))
+    assert stats.notes == []  # an artifact that is not there is missing, never a failure to read
+
+
+def test_a_corrupt_plate_object_costs_a_note_and_never_the_cells_that_did_land(
+    tmp_path: Path,
+) -> None:
+    """The fan-in is one file for the whole deposit, so an unreadable one must not cost the page.
+
+    A per-sample artifact that cannot be parsed costs its own row — the registry has always said so.
+    This one is 1440 rows, and the same rule has to hold one arity out: every cell keeps the half of
+    its row STAR's log gave it, and the page says what it could not read rather than silently
+    dropping five columns.
+    """
+    results = _plate_results(tmp_path)
+    (results / PLATE_H5AD).write_bytes(b"this is not an h5ad")
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None
+    assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]
+    assert "uniquely_mapped" in _by_key(stats.samples[0])
+    assert not set(FATES) & set(_by_key(stats.samples[0]))
+    assert any(PLATE_H5AD in note for note in stats.notes), stats.notes
+
+
+def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:
+    """The one division here with no answer, and absence is what it produces.
+
+    Pure over an `obs` row, which is the seam the loader exists to keep testable: a cell whose BAM
+    held no fragment at all cannot have a share of them unmapped, and a rendered `0.0%` is a number
+    a reader acts on. The fragment count itself is a real zero and stays — it was measured.
+    """
+    empty = fate_metrics(dict.fromkeys(FATES, 0) | {N_FRAGMENTS: 0}, "cell_x")
+    assert {m.key for m in empty.metrics} == {N_FRAGMENTS}
+    assert empty.metrics[0].value == 0
+
+    counted = fate_metrics({"unmapped": 1, N_FRAGMENTS: 4}, "cell_y")
+    # And a fate the object never carried is absent too, never a zero: an older plate object written
+    # before a fate existed did not measure zero of them, it measured nothing.
+    assert {m.key: m.value for m in counted.metrics} == {N_FRAGMENTS: 4, "unmapped": 0.25}
 
 
 # ---- the plate-assay UMI extractor ---------------------------------------------------------------

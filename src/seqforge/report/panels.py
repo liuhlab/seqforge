@@ -970,9 +970,14 @@ _ORPHAN_GROUP: MetricGroup = "input"
 #: At or above this many metric columns the table folds to its headline set behind one control.
 #: Sample id plus seven columns is a table a human reads; sample id plus sixteen is a spreadsheet. So
 #: the fold engages where there is something to fold and nowhere else: ``map/starsolo`` (16 columns)
-#: folds to 7, while ``map/star`` (5) and ``map/chromap`` (6) show everything and render no
-#: disclosure at all — which is the fix for a bulk page whose two headline metrics would otherwise
-#: have hidden its own read count behind a click.
+#: folds to 7 and ``map/star-umi`` (10) to 4, while ``map/star`` (5) and ``map/chromap`` (6) show
+#: everything and render no disclosure at all — which is the fix for a bulk page whose two headline
+#: metrics would otherwise have hidden its own read count behind a click.
+#:
+#: ``map/star-umi`` crossed this threshold when the plate's four read fates joined STAR's own per-cell
+#: metrics on one row (#333). It is the case this number was chosen for rather than an exception to
+#: it: a plate page is the one a reader scans 1440 rows of, and the counts that decide whether the
+#: annotation was right belong in the headline set while STAR's finer statistics fold.
 #:
 #: **Why a threshold is admissible here when the sample-count threshold this replaces was not**, and
 #: it is the whole reason this number is allowed to exist: ``columns`` is the *module's* declared
