@@ -866,7 +866,7 @@ def test_the_unassigned_remedy_names_the_lane_sibling_it_could_not_re_seat(built
     assert seated.basename in remedy, "name the read it is a lane of"
     assert designation in remedy
     assert "read length" in remedy, "name why it was not re-seated"
-    # `docs/agents/models.md`: a remedy that does not name a command is not finished — and this one
+    # A remedy that does not name a command is not finished — and this one
     # is the diagnosis itself, so it names both files rather than leaving them to be typed.
     assert f"`seqforge probe {seated.basename} {surplus}`" in remedy
     # The misdiagnosis is gone, and the two fixes it prescribed are named as the wrong ones rather

@@ -483,9 +483,9 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     assert "--outSAMmultNmax 1" in planned
 
     # The sort budget, to the byte. Both numbers are LITERALS rather than a call to `bam_sort_ram`:
-    # recomputing an expectation with the shipped formula cannot fail (`docs/agents/testing.md`,
-    # "Adding a test"), and it would agree with a wrong formula as readily as a right one. 48 GiB is
-    # `ResourceHints.mem_gb`'s default, so 49152 MiB is what the composer emits and 36 GiB — 3/4 of
+    # recomputing an expectation with the shipped formula cannot fail, and it would agree with a
+    # wrong formula as readily as a right one. 48 GiB is `ResourceHints.mem_gb`'s default, so
+    # 49152 MiB is what the composer emits and 36 GiB — 3/4 of
     # it, in BYTES — is what STAR must be handed. The exactness is what proves the wiring: the number
     # is produced by a real `snakemake -n` resolving a `resources:` callable, and the `\d+` this
     # replaced matched a fall-back constant, a mis-scaled MiB figure and STAR's own default equally
@@ -1649,7 +1649,7 @@ def test_a_single_end_plate_deposit_compiles_end_to_end(
     **Asserting the chemistry is not scene-setting.** On one file `smartseq3/se` and `bulk-rnaseq/se`
     score inside the tie band, so the metadata assertion the fixture supplies is what lands this on a
     plate rather than on generic bulk — and generic bulk here is a gene-count matrix for a plate
-    library at exit 0, which `docs/agents/kb.md` ranks as the worst outcome available. See
+    library at exit 0 — a confident wrong answer, which is the worst outcome available. See
     :data:`conftest.synth_plate_se` for the measured margin.
 
     **`gate["wiring"].status == "pass"` is the point of the whole test.** Everything above it is text off

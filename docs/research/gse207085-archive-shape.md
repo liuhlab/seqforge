@@ -205,7 +205,7 @@ harvest-cost design has to take.
 
 The section above says what the collapse *would* have to look like. This one is the measurement of
 the shipped one, taken **2026-08-04** on the same 1440-record dump, against the tree carrying
-[ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)
+ADR-0031
 (`HARVEST_VERSION = 2026.8.0`). It is the note that record's Consequences point at.
 
 | | before the collapse | after |

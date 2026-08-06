@@ -11,7 +11,7 @@ only run — and three copies of an ordering rule are three chances for one of t
 suite stays green. `units.tsv` is written by `compose`, and the columns this reads are the ones it
 writes.
 
-**Its readers are modules AND the verbs those modules call** (`docs/adr/0036`). A verb that needs a
+**Its readers are modules AND the verbs those modules call** (ADR-0036). A verb that needs a
 sample's file list is handed this table and the sample id rather than the paths, so the placement is
 read from the columns that state it instead of being rebuilt from a rendered command line — where
 arity, quoting and order are unguarded by construction, because `snakemake -n -p` *formats* a
@@ -27,14 +27,14 @@ from pathlib import Path
 
 #: The units.tsv columns that decide order, most significant first. `run` groups a pooled sample's
 #: files; `lane` orders within one run, and is not the tie-break it looks like — a run SPANS its lanes
-#: (`docs/adr/0027`), so a four-lane library ties on `run` for every one of its files and `path` alone
+#: (ADR-0027), so a four-lane library ties on `run` for every one of its files and `path` alone
 #: would hand the pairing to lexical filename order. That happens to hold for bcl2fastq names, by the
 #: coincidence that `_L001_` precedes `_R1_`; it is not a fact anything enforces. `path` remains last
 #: so the order is total even when two files share a run and a lane.
 _ORDER = ("run", "lane", "path")
 
 #: Where a file was sequenced, which is what pairs one mate with another rather than a list index.
-#: A run SPANS its lanes (`docs/adr/0027`), so it takes both columns to name a place.
+#: A run SPANS its lanes (ADR-0027), so it takes both columns to name a place.
 _PLACE = ("run", "lane")
 
 
@@ -74,7 +74,7 @@ def ordered_fastqs(units: Iterable[Mapping[str, str]], sample: str, role: str) -
 def mate_role(units: Iterable[Mapping[str, str]], sample: str, tagged_role: str) -> str | None:
     """The one role this sample carries besides `tagged_role`, or `None` where it carries none.
 
-    **Absence is the statement** (`docs/adr/0035`): no row carrying a second role means there is no
+    **Absence is the statement** (ADR-0035): no row carrying a second role means there is no
     mate, and nothing declares that separately — a `paired:` column beside these would be the same
     fact said twice, and owed by every sample that has no use for it.
 
@@ -103,7 +103,7 @@ def paired_fastqs(
 
     Returns two lists the caller may zip, or `(tagged, None)` where the sample has no mate at all.
     The parallelism is not a coincidence of two sorts agreeing: index *i* of each list is the file
-    that `run` and `lane` put in one place (`docs/adr/0027`), and a place holding a tagged file and
+    that `run` and `lane` put in one place (ADR-0027), and a place holding a tagged file and
     no mate is refused **by name** rather than shifted onto the next place's mate.
 
     That refusal is the whole reason this is not `ordered_fastqs` called twice. Two independently

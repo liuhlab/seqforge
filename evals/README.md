@@ -32,11 +32,10 @@ command printed — and `transcripts/<case>.jsonl` for every case that reached a
 transcript lives, because stdout *is* the result object and a thousand-exchange transcript cannot ride on
 it; the report gains the paths, never the contents. `seqforge eval report` is handed the directory.
 
-`eval run` emits machine JSON on stdout and nothing else ([ADR-0013](../docs/adr/0013-cli-is-a-machine-interface.md)),
-so the human-readable page is a *consumer* of that stream rather than a second output mode:
-`seqforge eval report` writes one self-contained HTML file (every asset inlined, no network) that names
-the false accepts instead of averaging them into a rate. `benchmark.yml` uploads it as the job's
-artifact.
+`eval run` emits machine JSON on stdout and nothing else (ADR-0013), so the human-readable page is a
+*consumer* of that stream rather than a second output mode: `seqforge eval report` writes one
+self-contained HTML file (every asset inlined, no network) that names the false accepts instead of
+averaging them into a rate. `benchmark.yml` uploads it as the job's artifact.
 
 **The page shows the claims, the refusals, and a sample of the transcript.** Each graded assertion
 is rendered with the quote it rests on and the span code computed for it — `library.chemistry =
@@ -70,8 +69,8 @@ things here cannot, and both matter.
 `extractor: {provider, model, prompt_version}`. `--llm` takes the provider's own default —
 `deepseek-v4-pro`, and this corpus is what settled that (see the bottom of this file) — and
 `--model deepseek-v4-flash` is the other V4 DeepSeek serves. The same prompt on a different model is
-a **different extractor** ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run's
-numbers may only be compared against a baseline that names the same one.
+a **different extractor** (ADR-0009), so a run's numbers may only be compared against a baseline that
+names the same one.
 
 ## The metric that matters
 
@@ -206,6 +205,37 @@ down what happened", and only the first can be wrong.
   the prose really does describe that experiment without naming it — so a model answering "v3" is
   correct about the world and wrong at its job. Cases that can only pass are decoration.
 
+## What the corpus has caught
+
+Each of these is a dated finding whose detail lives in the case's own row and `expected.yaml` header.
+What generalizes past the one case is here, because that is the part the next case can be written from.
+
+- **A head slice is not a random sample — it is the flow cell's first tiles, which is exactly where a
+  dark cycle lives** (2026-08-01, `GSE305031`). The fix (#177) was to the onlist hit rate's
+  *denominator*, not to the read budget: an unpackable window was measuring how many cycles the
+  sequencer called rather than which whitelist the library came from. A dark cycle now costs
+  **coverage** and leaves the **rate** alone. `RESOLVE_VERSION` bumped and `PROBE_VERSION` did not,
+  because what was defective is a cached *refusal* rather than the bytes behind it.
+- **An absence is only tested by a case that reaches the leaf without it**, which is why one
+  chemistry needed two cases where another needed one. A separation you can *measure* is honest
+  coverage from a single real case — BD Rhapsody Enhanced's three cell-label pools hit 0.930 / 0.974 /
+  0.961 against 0.001 for the disjoint 97×3 (2026-07-31). `10x-5p-gex-v2`'s separation from
+  `10x-3p-gex-v2` is a documented *absence*: they share a whitelist, so one case would either carry a
+  hypothesis and never test the whitelist, or omit the hypothesis and never reach v2 at all.
+- **An honest question settles at `ask`; a manufactured one stays at `decide`.** `GSE126954` stops on
+  the knowledge base's one declared read-undecidable pair — the entry says so, and neither declared
+  mechanism is reachable — so `ask` is what it is owed, and its seven field claims still grade.
+  `GSE234962` stops on a `library_strategy` string re-read out of the record that typed it; moving
+  *that* one to `ask` would enshrine a defect as the specification (#184).
+- **One archive deposit read at two of its levels is one source** (#182). `GSE282765-colon-crod-wta`
+  graded `false_accept` under `--llm` and `correct` without it, for a *resolver* reason rather than a
+  hallucination: a quote of an experiment title re-derived `experiment.samples.treatment` from the
+  same submission that had typed it into a BioSample slot, both positions arrived as `asserted`, and
+  equal authorities that disagree leave the attribute **null**. A prose reading wholly inside the typed
+  value is now absorbed rather than tied against. Containment holds in one direction and over whole
+  words, so a reading that *extends* the typed value (`control` read as `control RNAi`) is still a
+  disagreement and still leaves null.
+
 ## The `benchmark/` tier (real data on HF)
 
 Real datasets (mostly *C. elegans*), run from their byte-light **fingerprint packages** on the HF repo
@@ -216,8 +246,7 @@ archive transcript — anonymous read, no token, no NCBI key. A package that is 
 package the repo does not hold (a 404 — it was never published) is reported as **absent**, a gap in
 the corpus rather than a network blip. Both are excluded from every rate. Publish one with
 `seqforge io publish-package <package>` (`--dry-run` first: it prints the URL the `hf:` key below must
-match). A case that a real dataset makes red is published anyway — see
-[ADR-0018](../docs/adr/0018-a-red-benchmark-case-is-published-anyway.md).
+match). A case that a real dataset makes red is published anyway — ADR-0016.
 
 ```yaml
 # benchmark/<accession>/inputs/recipe.yaml
@@ -359,8 +388,8 @@ number, a stderr line, and a tile on the page.
 ### The default model, and the run that decided it (2026-08-02, #188)
 
 **This section is the measurement's home.** Everywhere else that says pro is the default — ADR-0009,
-`docs/agents/eval-corpus.md`, `harvest/providers.py`, `cli/eval.py`, the harvest skill — carries the
-claim and points here, so there is one place to re-date when the next re-baseline lands.
+`harvest/providers.py`, `cli/eval.py`, the harvest skill — carries the claim and points here, so there
+is one place to re-date when the next re-baseline lands.
 
 `deepseek-v4-flash` was the default (#167) on a *cost* argument: ≈3× cheaper per token across 10⁴
 datasets, and safe to pull because it cannot move correctness (span verification re-greps every quote
@@ -388,19 +417,60 @@ failing at most one document where flash failed six. The comparison is direction
 to settle a default; it is not a baseline any later run may be diffed against.
 
 A silent fallback to another model after N failures is still rejected: the same prompt on a different
-model is a different extractor ([ADR-0009](../docs/adr/0009-llm-provider-is-pluggable.md)), so a run
-that switched mid-pass could not name its own, and `extractor` is the field that makes a baseline
-comparable at all. `--model` stays a decision a reader takes *from the report*, which is also why the
-coverage line names the model that ran and prescribes none.
+model is a different extractor (ADR-0009), so a run that switched mid-pass could not name its own, and
+`extractor` is the field that makes a baseline comparable at all. `--model` stays a decision a reader
+takes *from the report*, which is also why the coverage line names the model that ran and prescribes
+none.
 
-Two findings from that pass are recorded in
-[`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md), including one case that grades
-`false_accept` under `--llm` and `correct` without it — a partial quote of a record's own attribute
-colliding with the attribute itself, which is the metadata resolver's business rather than harvest's.
+One finding from that pass was not about harvest at all — a partial quote of a record's own attribute
+colliding with the attribute itself, which is the metadata resolver's business. It is the last entry
+under *What the corpus has caught* above.
+
+### The regression protocol, and the run it prescribes (2026-08-04, #296)
+
+Written here rather than in the pull request that ran it, because it is a procedure the next person
+changing the shipped path has to repeat.
+
+**Who runs what.** The hermetic tier is CI, on every commit. **The networked tier is
+maintainer-launched, single-trial, with `--llm` excluded** — six single-trial `--llm` runs of one case
+graded two `correct`, two `over_ask` and two aborted, so a single-trial harvest grade is a coin flip
+and a digest taken over one would be an instrument nobody trusted twice. `--no-llm` reaches no model,
+needs no credential, and grades chemistry from pinned bytes and sample facts from committed records.
+
+**It is two commands, not one**: a run over exactly the frozen eighteen, which the grade digest is
+taken from, and a run over the whole tier, which is what a newly-added case turns green. Land each
+change separately with its own before/after digest pair. **Quote a hex with the tree it was taken on**,
+re-take it on the tree you are about to change, and diff it against that same tree — a hex carried over
+from a neighbouring tree has been misattributed once already. `src/seqforge/evals/digest.py` owns the
+baselines and what moved them, and it *refuses* rather than filters: the recipe hashes the whole
+per-case list as well as the count, so equal-digest and add-a-case are incompatible instruments.
+
+**Pre-declare the moves, and assert the strings before the run rather than after.** #296's shape is
+the one to copy: two lines running the chemistry matcher over the dataset's own declared protocol
+string, passing **first**, so a red afterwards is about the work and nothing else. A pre-declaration
+that turns out unnecessary is the instrument working; one invented afterwards is not. Every `run_id`
+moves whenever the KB or workflow version bumps, so such a run is **cold** and no cache carries an
+answer into it.
+
+**Budget the clock.** The eighteen finish in about 91 s. A plate case roughly doubles the tier's wall
+clock on its own, because 96 cells are 96 resolves against the whole knowledge base — the tier's most
+expensive case by an order of magnitude, and the only place the sample explosion is measured on real
+bytes.
+
+**Change the ruler on its own, before any compiler fix.** Two such changes (#184/#188, #196) moved no
+grade for the reason they were made, and #307's support-normalizer change was *predicted* to move the
+digest and did not. The runs, and the argument for why the movement that did happen is not attributable
+to them, are in [`ruler-changes-that-moved-no-grade.md`](../docs/research/ruler-changes-that-moved-no-grade.md)
+and [`support-normalizer-asymmetry.md`](../docs/research/support-normalizer-asymmetry.md). An unchanged
+digest across a deliberate semantic change is informative only because both ends were taken on one tree.
+
+**The `--llm` blind spot is structural and this protocol does not close it.** No routine gate observes
+the harvest path: the hermetic tier excludes every case that harvests, and a `--no-llm` digest never
+calls harvest. Closing it in general is separate work.
 
 None of those provenances makes this a *test* set: when a case goes red we fix the compiler and grade
 it again, which is exactly what a held-out set forbids. Run it with `seqforge eval run --no-llm --cases
 evals/benchmark`; it fires in CI only on a published release or manual dispatch
 (`.github/workflows/benchmark.yml`), never per-commit. A true held-out **test** set is a later
 milestone, scoped — and not decided — in
-[`docs/agents/eval-corpus.md`](../docs/agents/eval-corpus.md).
+[`held-out-test-set-scope.md`](../docs/research/held-out-test-set-scope.md).

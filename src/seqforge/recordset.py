@@ -29,7 +29,7 @@ YAML file this morning. Let one attribute through and it silently outranks a har
 carries a quote which greps back and entails its value — and ``experiment`` is inside
 ``dataset_hash``, which is never rewritten, so the wrong value is permanent. A lab that does know its
 genotypes writes them into a README and harvests them; that path exists and it keeps the span
-(`docs/adr/0034`). So a loader that accepts an attribute has not widened a schema, it has broken what
+(ADR-0034). So a loader that accepts an attribute has not widened a schema, it has broken what
 ``asserted`` means, and this module is where that is stopped.
 
 **Every refusal is a ``Blocker``, never a traceback.** A ``--records`` file is user input, and user
@@ -71,7 +71,7 @@ if TYPE_CHECKING:
 #: forge the signature the staleness check reads.
 _USER_SET_KEYS = ("source", "query", "records")
 
-#: The only keys a ``source: user`` record may carry — the shape of the table in `docs/adr/0034`.
+#: The only keys a ``source: user`` record may carry — the shape of the table in ADR-0034.
 _USER_RECORD_KEYS = ("level", "id", "parent", "filenames")
 
 #: The two levels the join reads. ``experiment`` and ``project`` are archive levels: nothing walks an

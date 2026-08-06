@@ -24,7 +24,7 @@ description: >-
   what the chemistry IS made the benchmark the instrument that reported the gap, and then reported it
   closed.
 
-  Published anyway, and that decision stands (ADR-0018). The package was withheld for one release so
+  Published anyway, and that decision stands (ADR-0016). The package was withheld for one release so
   the benchmark would not go permanently red. Eval is not pytest: a corpus that holds only the cases
   it passes measures nothing, so a case is published on whether it is green or red. These are the
   corpus's only real SPLiT-seq reads and the only instrument that can report this gate at all — which

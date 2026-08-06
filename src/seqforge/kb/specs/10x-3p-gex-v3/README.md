@@ -33,11 +33,15 @@ comment.
 
 - **v2** — a 16 bp barcode + a **10** bp UMI makes a **26 bp** R1 (vs v3's 28 bp), on a different
   list. The 2 bp length difference alone separates them.
-- **Multiome (ARC) and GEM-X 3' v4** produce the same 28 bp / 16+12 layout — here **only the barcode
-  list** tells them apart, because each uses a different one. Geometry narrows to a family; the list
-  picks the exact member.
-- **5' kits** share the barcode/UMI geometry but read the cDNA in the opposite direction. The reads
-  can't reveal that, so it takes metadata or a trial alignment, not geometry.
+- **Multiome (ARC), GEM-X 3' v4 and 5' v3** all produce the same 28 bp / 16+12 layout. Four
+  chemistries, one geometry, told apart pairwise by **which of four barcode lists hits** — each
+  carries its own. Geometry narrows to the cohort; the list picks the member. 5' v3 does read the
+  cDNA in the opposite direction, but no probe can see that; its own `3M-5pgex-jan-2023` list is what
+  actually settles it.
+- **The 5' kit geometry genuinely cannot reach is one generation back.** 5' v1/v2 is a **26 bp** read
+  drawn from 3' **v2**'s whitelist, so *that* pair shares layout and list alike and is the only
+  read-undecidable one in this knowledge base — settled by metadata or a trial alignment, never by
+  bytes. It is a claim about a version pairing, not about "5'", and it does not apply here.
 
 ## Gotchas
 

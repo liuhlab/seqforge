@@ -70,7 +70,13 @@ class BlockerSubject(BaseModel):
 
 
 class Blocker(BaseModel):
-    """A structured refusal emitted alongside a nonzero exit. ``remedy`` MUST be actionable."""
+    """A structured refusal emitted alongside a nonzero exit. ``remedy`` MUST be actionable.
+
+    **Actionable means it names a command.** A remedy that only describes the problem, or that says
+    what a correct input would look like without saying what to type, is not finished — the caller is
+    a script as often as a person, and a sentence it cannot act on is a refusal with no exit from it.
+    Name the files too where the diagnosis turns on which ones they are.
+    """
 
     id: str
     code: BlockerCode
@@ -91,7 +97,7 @@ class ValidationWarning(BaseModel):
 #: Where to get the submitter's own upload, in the one phrasing five refusals share. It names the
 #: **verb** and never the URI: three of those refusals are raised inside the byte resolver, which may
 #: not hold an archive record, so a remedy carrying the value would first have to be handed one
-#: (``docs/adr/0033``). It lives here because ``_missing_technical_read`` said it first and said it
+#: (ADR-0033). It lives here because ``_missing_technical_read`` said it first and said it
 #: correctly — two copies of this sentence would be two remedies to keep true — and by the time the
 #: fifth site was found there were four, one of them still naming a route that usually dead-ends.
 SUBMITTED_FILES_REMEDY = (

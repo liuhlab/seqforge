@@ -1,8 +1,8 @@
 """Render one ``seqforge eval run`` report as a single self-contained HTML page.
 
 The input is the JSON ``eval run`` already writes to stdout — this module is a *consumer* of that
-stream, never a second output mode for it ([ADR-0013](../../../docs/adr/0013-cli-is-a-machine-interface.md)
-makes machine JSON the contract and forbids a ``--json`` switch). Same shape as
+stream, never a second output mode for it (ADR-0013 makes machine JSON the contract and forbids a
+``--json`` switch). Same shape as
 :mod:`seqforge.report`: every asset is a real file under ``assets/``, read via ``importlib.resources``
 and inlined, and the page makes zero network requests — a CI artifact is downloaded and opened from
 ``file://``, where an external stylesheet renders nothing.

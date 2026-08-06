@@ -83,7 +83,7 @@ leave some files with no sample while the manifest still read as though it descr
 **And a record is not always an archive's.** ``source`` says who declared the set, and a ``user`` one
 is a human describing their own pre-deposit data: structure only — levels, ids, parents, filenames —
 and never an attribute, because ``asserted`` above means "a submitter typed this into a slot for this
-sample" and a line of hand-written YAML has no document to grep back into (`docs/adr/0034`). None of
+sample" and a line of hand-written YAML has no document to grep back into (ADR-0034). None of
 the precedence machinery below moves; two messages do. Declaring one sample over runs the filenames
 would have kept apart is the *reason* such a set gets written, so it is a note rather than a refusal —
 and a note only here, since firing it on a deposit would report every ordinary run-to-BioSample
@@ -302,13 +302,14 @@ def _join(
         # and honest about it: the files are grouped correctly, we just cannot say what they are.
         sample_id = sample.accession if sample is not None else run.accession
         grouped.setdefault(sample_id, []).append(f.sha256)
-        # A hand-written id is a GROUPING KEY and not a specimen the archive named (`CONTEXT.md`,
-        # **Sample**), so it is not an accession and must not be stored as one — `plate7` does not
-        # match the accession pattern and reached this stage as an uncaught validation error rather
+        # A hand-written id is a GROUPING KEY and not a specimen the archive named (this package's
+        # `CONTEXT.md`, **Sample**), so it is not an accession and must not be stored as one —
+        # `plate7` does not match the accession pattern and reached this stage as an uncaught
+        # validation error rather
         # than as anything a caller could act on. Carrying no record with it is the same rule from
         # the other side: a structure-only set has nothing for `_positions_for` to read, and a loader
         # that let an attribute through would otherwise have it graded `asserted` — the standing
-        # reserved for a slot a submitter typed (`docs/adr/0034`).
+        # reserved for a slot a submitter typed (ADR-0034).
         declarer = None if declared_by_user else sample
         accession_of[sample_id] = declarer.accession if declarer is not None else None
         record_of[sample_id] = declarer
@@ -734,7 +735,7 @@ def _decide(
 def _outranking(found: list[_Position]) -> list[_Position]:
     """The positions nothing here outranks — one of them wins, and a tie between them is null.
 
-    Two levels, applied in order (`docs/adr/0021-one-deposit-is-one-source-at-every-layer.md`):
+    Two levels, applied in order (ADR-0021):
 
     1. **Basis.** A declaration about this sample beats our inference from a paper.
     2. **Declared, within ONE source.** A value the submitter TYPED into a slot for this attribute

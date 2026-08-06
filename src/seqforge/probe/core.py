@@ -40,7 +40,7 @@ class WholeFile:
     status, and an SRA address needs whole-run archive metadata the probe has no business seeing. So
     each source builds its own (:func:`local_whole_file`, ``io.remote.hosted_whole_file``,
     ``io.sra.sra_whole_file``, ``FilePin.whole_file``) and probe owns only the *type*. See
-    ``docs/adr/0001-head-and-wholefile.md``.
+    ADR-0001.
     """
 
     basename: str

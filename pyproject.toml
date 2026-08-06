@@ -67,6 +67,12 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 # Carries every non-Python file under the tree already (onlists, .smk modules, KB specs, report
 # assets); a `force-include` on top of it is a hard build error.
+#
+# That now includes the per-context `CONTEXT.md` files and the records under
+# `src/seqforge/*/docs/adr/` — about thirty markdown files. **Deliberately not excluded.** They are
+# beside the code precisely so the decision and the code travel together, and an installed copy that
+# drops them is a copy where a reader hits `ADR-0034` with nothing to open. The cost is a few hundred
+# lines in the wheel, alongside the KB READMEs that already ship.
 packages = ["src/seqforge"]
 
 # No `[tool.hatch.metadata] allow-direct-references`, on purpose: its absence is a tripwire, so

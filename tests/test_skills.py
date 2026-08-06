@@ -201,8 +201,8 @@ def _real_cli() -> tuple[set[str], set[str]]:
 #: earned by a false positive this guard actually produced:
 #:
 #: - **line-start, or after `pixi run -- `**. That is how a command appears. Mid-sentence it is
-#:   English: `docs/agents/layout.md` contains "liulab-genome does not fetch annotations — seqforge
-#:   stages the GTF", and `stages` is a verb in the grammatical sense only.
+#:   English: a page stating "liulab-genome does not fetch annotations — seqforge stages the GTF"
+#:   made `stages` read as a verb, which it is in the grammatical sense only.
 #: - **`[ \t]`, not `\s`**: a newline ends an invocation. `\s` crossed it, so a fenced block reading
 #:   `git clone .../seqforge` then `cd seqforge` parsed as the verb `seqforge cd`.
 #: - **at most three words**: past that you are reading arguments.

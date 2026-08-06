@@ -262,7 +262,7 @@ def _submitted_files(run: ElementTree.Element) -> list[SubmittedFile]:
     original name is the only thing left that can join a file to its sample.
 
     The other three fields ride on the same element and are transcribed, not acted on: the md5
-    addresses the bytes at ``uri`` and is never computed over a local file (`docs/adr/0033`), and a
+    addresses the bytes at ``uri`` and is never computed over a local file (ADR-0033), and a
     ``@size`` the archive spelled oddly is dropped rather than raised on, since a transcriber that
     refuses a whole dataset over one unparsable attribute is worse than one that carries three facts
     instead of four.

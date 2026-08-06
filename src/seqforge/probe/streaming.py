@@ -40,7 +40,8 @@ class Budget:
     One value rather than two ints threaded side by side, because they are never meaningful apart —
     the budget is two-part and whichever trips first stops the read, so a function holding one bound
     and not the other cannot enforce it.
-    ``CONTEXT.md`` has named this concept **Budget** since the glossary was written; this is the type.
+    This package's ``CONTEXT.md`` has named the concept **Budget** since the glossary was written;
+    this is the type.
 
     A head carries the budget it was actually read under (:attr:`FastqHead.budget`), which is what
     lets ``params_hash`` be *derived from the read* rather than recomputed from parameters a caller

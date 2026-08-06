@@ -6,8 +6,8 @@ environment *after* that environment began pinning `OMP_NUM_THREADS` / `OPENBLAS
 was oversubscription that no longer exists — this note supersedes it, and is written to be superseded
 in turn.
 
-The decision this fed is [`docs/adr/0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md`](../adr/0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md);
-the standing rule is [`docs/agents/testing.md`](../agents/testing.md).
+The decision this fed is ADR-0002, which absorbed it; the standing rule is the test ladder in
+`AGENTS.md`.
 
 ## Method
 
@@ -64,6 +64,6 @@ so it stays rejected in favour of `loadgroup`.
   That crossover belongs to the work that would decide parallelism from the size of the selection,
   which is not built.
 - **The cap of 12 is not in these tables.** They say 16 would be tolerable on a large box; the cap is
-  a policy about what one run may take from everyone sharing the machine, argued in ADR-0038.
+  a policy about what one run may take from everyone sharing the machine, argued in ADR-0002.
 - **The commit was not recorded**, only the date and the environment property that changed. Re-take
   the sweep rather than reconciling it against a tree.

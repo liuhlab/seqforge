@@ -173,7 +173,7 @@ if TYPE_CHECKING:
 #: 95.5 MB per deliverable, provably lossless. The mask is the UNION across features, never
 #: `X.sum() > 0` — `X` is exonic and `GeneFull` counts introns, so the narrow mask silently deletes
 #: the barcodes whose counts are all intronic. Which artifact owns each flag above, and the rule that
-#: decides it, is ADR-0022.
+#: decides it, is ADR-0011.
 #: 2026.7.14 — a SECOND aligner: `map/chromap` (chromap.smk) maps barcoded scATAC to a tabix-indexed
 #: `fragments.tsv.gz` (not a count matrix). It resolves its index via liulab-genome's `get_chromap_index`
 #: (no GTF — one index per assembly), reads two GENOMIC mates + a barcode read (`read_layout_kind`

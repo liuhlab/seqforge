@@ -21,7 +21,7 @@ re-reading — it declares a grouping, and a grouping that parses is not the sam
 says what its author meant. So the result carries what actually loaded: the source, the record count
 at each level, the files claimed, and, for a hand-written set, every sample that more than one run
 points at. That last one is the whole reason the file exists, and it is the line an author most needs
-to see printed back at them (`docs/adr/0034`).
+to see printed back at them (ADR-0034).
 """
 
 from __future__ import annotations

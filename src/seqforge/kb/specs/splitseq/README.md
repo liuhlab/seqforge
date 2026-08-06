@@ -28,19 +28,19 @@ round-barcode matches its own list. The exact linker lengths matter: the origina
 round-1 at a different position than the later Parse chemistry, so a position copied from the wrong
 source silently mismatches. seqforge pins the original layout from the paper's own oligos.
 
-## Status: not yet ready for real data
+## Status: one question still open
 
 SPLiT-seq is the pilot's generalization test — it exercises machinery the 10x entries don't (8 bp
-barcodes instead of 16, a barcode split combinatorially across a read). Two things must land before
-it can process real data:
+barcodes instead of 16, a barcode split combinatorially across a read). All three round-barcode lists
+ship packed with seqforge, so the entry resolves and compiles from bytes alone. One thing is still
+unconfirmed:
 
-- **The barcode lists must ship.** The entry names three round-barcode lists that aren't bundled yet.
-- **The strand must be confirmed on real data.** It's derived from the paper's oligos and the authors'
-  own pipeline (both point the same way), but the honest state is that most pipelines never explicitly
-  chose the strand — they inherited a default. The decisive check is to run the paper's own data both
-  ways; the correct strand assigns far more reads.
-
-Until then this entry is intentionally inert.
+- **The strand has not been checked against real data.** It's derived from the paper's oligos and
+  corroborated by the authors' own pipeline (both point the same way, and no source anywhere claims
+  the opposite), but the honest state is that most pipelines never explicitly chose the strand — they
+  inherited a default, so agreement with them is weaker evidence than it looks. The decisive check is
+  to run the paper's own data both ways; the correct strand assigns roughly an order of magnitude more
+  reads.
 
 ## References
 

@@ -17,7 +17,7 @@ name: benchmark
 #
 # A RED CASE HERE IS A MEASUREMENT, NOT A BREAKAGE, and the corpus is stocked on that basis: a case a
 # real dataset makes red is published anyway, because a corpus that holds only what it passes measures
-# nothing (ADR-0018). What this job must never report as routine is a package the corpus does not
+# nothing (ADR-0016). What this job must never report as routine is a package the corpus does not
 # HOLD — a 404 is reported as `absent` rather than folded into the skips, because "try again later"
 # and "publish the package" are different instructions.
 

@@ -16,7 +16,7 @@ vacuous direction is the defect this module was written to remove (#184).
 prose spelling — a paper writes the kit name, never `10x-5p-gex-v2` — closing the metadata channel in
 production while a benchmark steered by recipe hypotheses stayed green. Measured and rejected.
 
-Ranking is by **specificity** (ADR-0028): a form that NAMES a node beats one that only DESCRIBES it,
+Ranking is by **specificity** (ADR-0020): a form that NAMES a node beats one that only DESCRIBES it,
 then most alias tokens matched, then a form that entails a tied rival. The first component keeps
 "SPLiT-seq paired-end RNA-seq" on `splitseq` — a token count measures an alias's verbosity, and the
 generic bulk entry carries the wordier phrase (#266). The second picks a leaf over the family node

@@ -1267,7 +1267,7 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     command's arity, quoting and ordering are unguarded by construction: `--r1 {input.tagged}` over
     a cell topped up across two runs planned clean for as long as it existed and died at job
     execution, `exit 2, Got unexpected extra argument(s)`, on a compute node past handover
-    (`docs/adr/0036`). Nothing between the CLI tests and the STAR-gated end-to-end covered it,
+    (ADR-0036). Nothing between the CLI tests and the STAR-gated end-to-end covered it,
     because the composed plate those run over is 1:1 — the one deposit shape that never had the bug.
 
     So this takes the module's own rendered string and executes it, against a cell whose files come
@@ -3310,7 +3310,7 @@ def test_every_mate_of_one_sample_is_ordered_the_same_way() -> None:
     """The ordering all three mapping modules import, and the reason it is not `path` alone.
 
     Every aligner seqforge composes reads its mates in lockstep, so mate A's file list and mate B's
-    must agree file-for-file. Since a run went lane-blind (`docs/adr/0027`) a multi-lane library is
+    must agree file-for-file. Since a run went lane-blind (ADR-0027) a multi-lane library is
     ONE run, so `run` ties across every file and only `lane` still separates them.
 
     The rows below are the shape that makes this load-bearing: the barcode filenames sort AGAINST
@@ -3355,7 +3355,7 @@ def test_a_cell_across_two_runs_pairs_by_where_each_file_was_sequenced() -> None
     The rows arrive interleaved and out of order on purpose: what makes the two lists parallel must
     be the `run` and `lane` columns (ADR-0027), never the accident that two independent sorts came
     out the same way. The tagged order is still `ordered_fastqs`' order — one derivation used twice,
-    which is the property `docs/adr/0036` turns on.
+    which is the property ADR-0036 turns on.
     """
     from seqforge.workflows.units import ordered_fastqs, paired_fastqs
 

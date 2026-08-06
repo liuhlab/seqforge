@@ -17,7 +17,7 @@ registration and the two adapters stay untouched. It is:
 
 **It never reads ``response.text`` for meaning.** It measures, and hands the response back
 byte-identical. Post-processing, repairing or partially accepting a batch stays forbidden
-(``docs/adr/0009``); this is a separate module at the same seam, not a wider adapter.
+(ADR-0009); this is a separate module at the same seam, not a wider adapter.
 """
 
 from __future__ import annotations

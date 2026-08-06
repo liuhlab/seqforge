@@ -3,8 +3,9 @@
 Research note for [#226](https://github.com/liuhlab/seqforge/issues/226), under the plate-based map
 [#225](https://github.com/liuhlab/seqforge/issues/225). **No spec is authored here.** Every value
 below is either quoted from a primary source with its URL, or measured from named public data with
-the accession and the method written down, per `docs/agents/kb.md` ("a chemistry fact is looked up
-against a live source and pinned by URL plus checksum, or it does not go in a `spec.yaml`").
+the accession and the method written down, per the KB's own authoring rule (`kb/schema.py`): a
+chemistry fact is looked up against a live source and pinned by URL plus checksum, or it does not go
+in a `spec.yaml`.
 
 Measurements were taken 2026-08-04. Where sources disagree, both are recorded and labelled — the
 `splitseq` linker episode is why.
@@ -76,9 +77,9 @@ Measured on the same run: read 2 carries the tag at offset 0 in 2 of 8 825 reads
 
 **Verdict: the fraction is not a chemistry constant, it is a tunable protocol parameter, and across
 real libraries it ranges from ~7% to ~70%. It straddles the majority line, so the tag cannot be a
-`requires` gate under today's `has_segment: constant` evaluator** (`docs/agents/resolve.md`: "the
-share of reads carrying the window's modal consensus to within a per-base slack, gated at a
-majority").
+`requires` gate under today's `has_segment: constant` evaluator**, which scores the share of reads
+carrying the window's modal consensus to within a per-base slack and gates at a majority
+(`resolve/evaluators.py`).
 
 The published statement is explicitly that it is tunable, not that it is a number: "The proportions
 of 5′ to internal reads could be tuned by altering the Tn5-based tagmentation reaction (Figure 1c)"
@@ -120,7 +121,7 @@ directly over HTTP range requests.
 - Three of the five libraries measured are **below** a majority; two are above. Choosing a
   `requires` gate on the tag would refuse the authors' own reference libraries.
 - The `has_segment: constant` proportion is calibrated at a majority and counts junk in the
-  denominator on purpose (`docs/agents/resolve.md`). Here the "junk" is half the library **by
+  denominator on purpose (`resolve/evaluators.py`). Here the "junk" is half the library **by
   design** — the internal reads are the point of the assay, not contamination.
 - So either the tag becomes a `supports` test (positive evidence, no gate), or a new evaluator is
   needed whose passing band is a *minority* proportion — "present in 5–80% of reads, at a fixed
@@ -304,7 +305,7 @@ EFO:0022488 | ['Smart-seq3'] | definedBy ['efo'] | iri http://www.ebi.ac.uk/efo/
   CIDO assays, a ROR org). A future xpress leaf would have to reuse `EFO:0022488` or leave the field
   unset — it may not invent one.
 
-**Gotcha worth recording.** The OLS4 *v1* search endpoint that `docs/agents/kb.md` implies
+**Gotcha worth recording.** The OLS4 *v1* search endpoint the KB's ontology lookups imply
 (`https://www.ebi.ac.uk/ols4/api/search?q=...`) returns `HTTP 500 {"status":500,"message":"Raw search
 query failed"}` for any query containing a hyphen, quoted or not — `q=Smart-seq3`, `q="Smart-seq3"`
 and `q=Smart-seq` all fail while `q=diabetes` succeeds. Use
