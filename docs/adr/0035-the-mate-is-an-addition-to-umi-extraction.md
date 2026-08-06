@@ -188,8 +188,9 @@ measurement this record extends and the shape both copy.
   outside this record.
 - **A second known gap, adjacent and older: the verb takes one path per read**, while
   `ordered_fastqs` returns a list, so a cell topped up across two runs renders two paths after a
-  one-value option and dies with a usage error at job time. `umite`'s own `-1` takes several. It is
-  a distinct decision with its own design space and is tracked separately.
+  one-value option and dies with a usage error at job time. `umite`'s own `-1` takes several.
+  **Closed by [0036](0036-a-verb-that-needs-a-file-list-is-handed-the-table.md)**, which hands the
+  verb the **Units table** rather than a path list.
 - **What is deliberately not recorded on the manifest.** Which read set won lands in the resolve
   artifacts, where *how this was decided* lives — 0029 settled that, and a plate changes nothing
   about it.

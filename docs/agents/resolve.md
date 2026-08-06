@@ -48,13 +48,8 @@ finally makes `accepts_at_rungs_0_2`'s own "the verdict rests on geometry ... al
 reading the paragraph above as urgent.** All fifteen lists ship pre-packed (3.0 MB; a sorted 2-bit
 barcode set is a twentieth of the vendor's `.txt.gz`), every onlist reference in all seventeen specs
 resolves from `DEFAULT_REGISTRY` with no network and no setup, and every production verb uses it.
-There used to be one door left — a recorded-debt pin letting a spec land before its whitelist was
-derived — and it is **gone** (#321):
-`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` now demands the gap set be empty
-outright, so a chemistry that calls the onlist decisive cannot ship until its list does. The pin's own
-comment had promised such a spec merely over-asks; measured on real barcodes, `splitseq` with its
-lists withheld falls to 0.3300 against bulk's 0.7800, far outside θ, so nothing asks and the deposit
-compiles as bulk. That is not a deferral to record, so there is no longer a way to record it.
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` demands the gap set be empty, so a
+chemistry that calls its onlist decisive cannot ship until its list does (#321).
 
 | evaluator | what it does, and the decision inside it |
 |---|---|
@@ -106,9 +101,11 @@ For a technology with roles `R` and the dataset's files `F`, cell `M[r][f]` is `
 `requires` gate for that role fails or any `excludes` gate passes, and otherwise the weighted sum of
 that role's `supports` evaluators against that file's observation.
 
-`FORBIDDEN` is the internal sentinel `float("-inf")` **for computation only**. Serialized, a cell is
-either forbidden or scored, as a tagged object — **no `±inf` ever crosses the JSON boundary**
-([ADR-0014](../adr/0014-no-inf-across-the-json-seam.md)).
+`FORBIDDEN` is an internal `Cell(forbidden=True)` flag — **never an infinity, in memory or on the
+wire**. Serialized, a cell is either forbidden or scored, as a tagged object; the optimizer encodes a
+forbidden edge as a finite `+BIG` and post-checks that none was selected
+([ADR-0014](../adr/0014-no-inf-across-the-json-seam.md)). `−∞` survives only one level up, as the
+score of a technology with no valid assignment at all.
 
 ## The joint optimization
 
@@ -121,9 +118,12 @@ needs an explicit post-check.
 
 ```text
 raw(t)   = max over valid A of  Σ_r ( M[r][A(r)] + β · prior(r, A(r)) )
-score(t) = raw(t) / |R|  −  (λ / |R|) · |unassigned files|
+score(t) = raw(t) / |R|  −  (λ / |R|) · |unassigned files|  +  γ · global_support(t)
 score(t) = −∞ if no valid assignment exists
 ```
+
+A spec's dataset-scoped `supports` — today `header_index` — enter at `γ = 0.001`, below the filename
+prior, so like it they break ties and nothing else.
 
 **Normalizing by the role count is what makes techs comparable.** An unnormalized sum biases the
 argmax toward high-role-count technologies, so a six-role SPLiT-seq would beat a two-role 10x on
@@ -188,17 +188,21 @@ that no selected edge is one of those** — an all-forbidden row means the role 
 score is `−∞`, not a padded assignment — then re-check the globals, escalating to Murty k-best if a
 non-decomposable one fails.
 
-Building the matrix across all techs is dominated by the onlist tests, at roughly 100 ms each. That
-cost is precisely why the hypothesis exists.
+Building the matrix across all techs is dominated by the onlist scan.
 
 ## How the hypothesis enters, and why it is not evidence
 
-A byte-blind signature cannot implement "test one list first", because *which* list to load is a
-metadata fact and is not recoverable from the bytes being identified. So `score` takes an optional
-span-verified hypothesis, and it has exactly **two control-flow effects and zero evidential ones**:
+Every spec in the pool is scored, and the threaded path pre-warms every available onlist across the
+whole pool before scoring starts — nothing is evaluated first and nothing stops early. So `score`
+takes an optional span-verified hypothesis with **zero evidential effects**, and exactly three
+control-flow ones:
 
-1. **selector** — it picks which onlist and signature to evaluate first, enabling an early stop;
-2. **tie-break prior** — a sub-threshold nudge on evaluation order.
+1. **it keeps the asserted spec in the scored pool** when `length_feasible` descent would drop it —
+   the pool only ever widens — so the `MISSING_TECHNICAL_READ` branch has an evaluation to answer
+   *why* that chemistry could not be seated;
+2. **it breaks a processing-divergent tie**, and only there, through the escalation function;
+3. **it is the asserted side of conflict detection** — the three detectors and the
+   barcodeless-subset blocker read it, and none of them lets it decide.
 
 It never enters the matrix, never un-gates a forbidden cell, and never wins a `Conflict`.
 
@@ -233,12 +237,13 @@ matcher — not the rejection — is what closes them.
 
 **The determinism argument.** For a fixed observation, the validity and finite score of any candidate
 that gets computed is a pure function of the bytes. The hypothesis changes only *which* candidates are
-computed, at *what* cost, and to *which* rung. So the same observation with the same hypothesis gives
-identical output, and the same observation with a *different* hypothesis gives an **identical winner
-whenever the bytes are decisive** — a wrong hypothesis simply fails its own gates, blocks the early
-stop, and forces the ladder down. Only where the bytes are genuinely non-decisive, which means a
-processing-divergent pair, may it break the tie — and then only through the escalation function at
-rung 0, recorded with an asserted basis and **surfaced**, never merged into the observed value.
+computed. So the same observation with the same hypothesis gives identical output, and the same
+observation with a *different* hypothesis gives an **identical winner whenever the bytes are
+decisive** — a wrong hypothesis simply fails its own gates and forces the ladder down. Only where the
+bytes are genuinely non-decisive, which means a processing-divergent pair, may it break the tie — and
+then only through the escalation function, never merged into the observed value. What the artifact
+**records** of such a tie is a separate matter, and today an unhappy one; the ladder's rung-0 row
+below states the gap.
 
 ## The escalation ladder
 
@@ -263,7 +268,7 @@ no divergent ties, tie set is a DECLARED equivalent group
 otherwise (a processing-DIVERGENT tie), walk decidable_by in ladder order:
     onlist    (rung 3)  already tried during scoring
     metadata  (rung 0)  a span-verified assertion that disambiguates AND is byte-consistent
-                        -> Decision(asserted), SURFACED. Matches a tie member by NAME, else by
+                        -> Decision(the assertion's member). Matches a tie member by NAME, else by
                         FAMILY when the asserted family picks out exactly one of them — the same
                         authority split conflict detection already runs on (a paper names the assay
                         family reliably and the leaf vaguely, so the bytes pick the leaf). Two tie
@@ -277,6 +282,17 @@ otherwise (a processing-DIVERGENT tie), walk decidable_by in ladder order:
 
 **Rungs 4–6 are unbuilt**, so in practice a tie that survives rung 3 and has no usable assertion goes
 straight to rung 7 and asks a human. Rung 4 is likely redundant with rungs 2–3.
+
+**Rung 0 is the rung the artifact does not record, and that is a known gap.** The metadata branch
+returns `rung_reached=max(rung, 0)` over a tie whose members were scored at rung 2 or 3, so the
+recorded rung is the tie's *byte* rung and never 0; `manifest fill` stamps `basis: "observed"` on the
+chemistry envelope unconditionally, so no path can make it `asserted`; and the branch raises nothing
+of its own, because a hypothesis that names the picked candidate agrees with it and `_detect_conflicts`
+finds no disagreement. A tie the prose broke is therefore indistinguishable in the manifest from one
+the bytes broke — the single place R9's "record which rung resolved each field" is not honoured. The
+remedy is code, not prose (`rung_reached=0` on that branch, plus a `resolved` `Conflict` naming the
+assertion); until it lands, do not read `rung: 2` on a chemistry as proof that the bytes were
+decisive.
 
 **Conflict detection runs unconditionally, in parallel with all of this.** If an observed value
 contradicts an asserted one — metadata says 26 bp, the bytes say 28 bp — a `Conflict` is surfaced. The
@@ -293,9 +309,7 @@ is surfaced alongside, not instead of, the decision.
 | same family, not an ancestor (asserted v2, observed v3) | `resolved` `Conflict`: the bytes decide the leaf, exit 0 |
 | cross-family (asserted bulk, observed barcoded, or the reverse) | `open` `Conflict`, exit 4 |
 
-**The exit-code contract** is uniform across every verb: an open `Conflict` or a non-empty
-`questions.md` is exit **4**, which a human answer can clear; a hard `Blocker` is exit **3**, which no
-human answer can. See [`cli.md`](cli.md).
+Exit codes are [`cli.md`](cli.md)'s table: an open `Conflict` is 4, a `Blocker` is 3.
 
 ## From N runs to one dataset verdict: `reduce_dataset`
 
@@ -326,13 +340,15 @@ result alone would show a dataset exiting 4 with nothing open on it.
 ## A chemistry that declares one Sample is one cell
 
 Gates `cell` and `sample` read the *same* cross-sample chemistry difference and part on one declared
-bit. Across different samples that difference is a legal partition into assays — correct for a real
-multi-assay project, catastrophic for a plate, where it splits one experiment in two at exit 0 with
-nothing raised. `identity.sample_is_cell` is the only thing that tells the two apart, which is why it
-is **declared and never derived**: `umi ∧ ¬barcode` is backwards for SMART-seq2 (neither, still one
-cell per file) and for UMI-tagged bulk (a UMI, no barcode, one file per specimen). The property is
-about *where demultiplexing happened* — at the bench — which no byte reports. It says `Sample`, not
-file and not run, because 20 of 190 well-labelled plate deposits are not strictly 1:1.
+bit: across different samples that difference is a legal partition into assays, but on a plate it
+splits one experiment in two at exit 0 with nothing raised. `identity.sample_is_cell` is what tells
+the two apart, and it is **declared, never derived** — the property is about *where demultiplexing
+happened*, at the bench, which no read layout reports and no sample count recovers
+([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md); over 1 690 plate and 6 894
+droplet/bulk deposits no cardinality threshold separates them, and any such count is over the
+**Deposit** and not the **Download** —
+[`plate-deposit-cardinality.md`](../research/plate-deposit-cardinality.md), 2026-08-04). It says
+`Sample`, not file and not run, because 20 of 190 well-labelled plate deposits are not strictly 1:1.
 
 Three outcomes per cell, judged against the chemistry the plate itself decided:
 
@@ -353,17 +369,11 @@ movement. It surfaces in the report as *"37 of 1440 cells were admitted without 
 Not a fifth judgement type: four is a deliberate ceiling
 ([ADR-0006](../adr/0006-one-judgement-one-envelope.md)).
 
-**`min_input_reads` gates the Sample, summed over its runs** — per-run count is the *minimum* over
-its files (R1 and R2 are two views of one fragment), per-cell is the *sum* over its runs. Gating the
-run would make a floor of 1000 silently mean 500 on exactly the plates that are not 1:1. It is asked
-*before* the dissent, because a starved cell deciding the wrong chemistry outright is the measured
-case and would otherwise refuse the plate before its depth was consulted.
-
-Abstaining is where this half stops: the cell is admitted to the manifest, and it is `compose` that
-drops it from the pipeline, under whatever KB is loaded then and over the per-file counts in
-`provenance` — the same arithmetic, computed independently, because the manifest between the two
-stages records the measurement and never the verdict
-([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
+**`min_input_reads` gates the Sample, summed over its runs**, and is asked *before* the dissent; the
+unit rule and the reason for both are ADR-0032's. Abstaining is where this half stops: the cell is
+admitted to the manifest, and it is `compose` that drops it from the pipeline, recomputing the same
+arithmetic independently over the per-file counts in `provenance`, because the manifest between the
+two stages records the measurement and never the verdict.
 
 **None of this crosses [ADR-0010](../adr/0010-two-resolvers-one-blocks-one-warns.md).** A
 sample→files map is the *join* the reduction already owns for gate `sample`; summing read counts over
@@ -372,28 +382,8 @@ happens in the reduction, after every run has independently resolved. **Nothing 
 winner's role assignment would map roles to the pool's pseudo-shas, leaving every real file
 role-less, so pooling does not remove the per-cell pass, it removes the honest one. And `group.py`
 never learns what a cell is — merging two runs of one cell there re-introduces the
-global-role-assignment bug that module exists to prevent.
-
-**Any count over archive records is over the deposit, not the download.** Nothing consults such a
-count today, and that is the point: `sample_is_cell` is what replaced one. The predicate it replaced
-was `strict 1:1 ∧ n_samples > T`, and measured over 1 690 plate and 6 894 droplet/bulk deposits at
-deposit scope it has **no admissible `T`** — four hand-verified non-plates (two of them droplet) are
-strictly 1:1 with *more* samples than the 1 440-cell plate the threshold was written for, so a `T`
-that fires on the plate fires on all four and a `T` that spares them never fires on the plate. The
-131× margin that made it look safe was an artifact of an 18-deposit corpus holding no large
-strictly-1:1 bulk study, which is 11.3 % of the control pool
-([`docs/research/plate-deposit-cardinality.md`](../research/plate-deposit-cardinality.md),
-2026-08-04). The **scope** rule outlives the number, and it is recorded here because the pooling
-decision is the only place a count would ever be consulted: `resolve_runs` is handed the files that
-reached disk, so a count taken there answers "how many samples did I download" — and the corpus's own
-96-cell fingerprint package standing in for a 1 440-cell deposit would answer it wrong by a factor of
-15. **Deposit** and **Download** are two words in [`CONTEXT.md`](../../CONTEXT.md) for exactly this.
-
-**It lives beside the type it reduces, for `chemistry_hypothesis`'s reason.** `manifest fill` made
-this reduction inline and the eval harness that measures `manifest fill` skipped it entirely, calling
-`resolve_dataset` on a whole dataset's file list — so on 11 of the 18 benchmark cases the benchmark
-graded a code path the product had abandoned (#196). It was green only because those corpora are
-homogeneous, which is a property of the corpus and not of the compiler. One reduction, both callers.
+global-role-assignment bug that module exists to prevent. A count taken in `resolve_runs` would
+answer "how many samples did I *download*", which is why nothing consults one.
 
 ## Worked example: the benign twin
 

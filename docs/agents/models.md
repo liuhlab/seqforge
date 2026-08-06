@@ -20,9 +20,9 @@ statement, not a deferred annotation — so the package compiles top-to-bottom.
 - **`Basis`** is a closed set of four, and **`Rung`** is the escalation step `0..7`.
 
 Policy defaults are stamped `basis="inferred"` with an `evidence` ref naming the policy rule that
-fired. A distinct `policy_default` basis is unnecessary because the recipe already varies its basis by
-*who decided* ([ADR-0004](../adr/0004-two-artifacts-not-one.md)). **Still open, for the maintainer:**
-add one if you want a policy default to be machine-distinguishable from a derivation.
+fired; why there is no fifth `policy_default` basis is
+[ADR-0004](../adr/0004-two-artifacts-not-one.md)'s Consequences. **Open, noted 2026-08-05:** add one
+if you want a policy default machine-distinguishable from a derivation.
 
 ## `Evidenced[T]` — the three-truths carrier
 
@@ -81,7 +81,7 @@ need read again — never 1439 records nobody read, which is what one merged lis
 It is a **result type, not an LLM-facing one** —
 `harvest extract --dry-run` prints it and no model ever sees it — so it is in `SCHEMA_MODELS` and
 deliberately not in `LLM_FACING`. `estimated_input_tokens` charges the stable system prefix once per
-*document* rather than once per run, which is the arithmetic a fan-out over archive records hides;
+*request*, which is what batching same-ask documents buys back over a fan-out of archive records;
 output tokens are absent because the model decides how many claims a document supports, and the
 **Ceiling** is what bounds that half.
 
@@ -111,12 +111,10 @@ non-blocking `Warning` ([ADR-0013](../adr/0013-cli-is-a-machine-interface.md)). 
 closed set — read it from the enum, not from prose. Every Blocker carries an actionable `remedy` and a
 `subject` that is a basename, a dotted path or a dataset id, never an absolute path.
 
-The remedy is meant to be *operable*, not decorative. The one to imitate is
-`MISSING_TECHNICAL_READ`'s: *"re-fetch with `fasterq-dump --include-technical`, or go back for the
-submitter's own upload: `seqforge io records <accession>` lists what the deposit declares, each file
-with its `sra-pub-src-*` URI."* A remedy that does not name a command is not finished — and where a
+The remedy is meant to be *operable*: one that does not name a command is not finished, and where a
 verb we ship already prints the answer, naming a third-party API instead is a lead rather than an
-instruction ([ADR-0033](../adr/0033-a-submitted-file-is-a-transcript-entry-not-a-checksum.md)).
+instruction ([ADR-0033](../adr/0033-a-submitted-file-is-a-transcript-entry-not-a-checksum.md)). The
+exemplar is `io.remote.technical_read_remedy` — read it there rather than from a copy.
 
 ## `DatasetManifest` — two truths, one lifetime
 
@@ -126,35 +124,21 @@ what the bench did — with two truths and one lifetime, immutable. `compose()` 
 experiment `file_uri` is in the library inventory). The "three truths, three sections" pun and the
 damage it did are [ADR-0004](../adr/0004-two-artifacts-not-one.md).
 
-- **`LibrarySection` — physical truth, authority is evidence.** `chemistry` is the *only* `Evidenced`
-  field, carried as an equivalence class because benign twins are recorded together rather than chosen
-  between. `assay`, `read_layout` and `files[].read_id` all *follow* from it and carry no envelope of
-  their own ([ADR-0006](../adr/0006-one-judgement-one-envelope.md)).
-- **`SampleGroup.attributes` is keyed by NCBI's 960 harmonized BioSample names**, with NCBI's own
-  definitions ([`io/attributes.py`](../../src/seqforge/io/attributes.py)); the validator refuses
-  anything else. An open dict over a controlled vocabulary, never typed fields:
-  [ADR-0007](../adr/0007-sample-attributes-are-ncbi-keys.md).
-- **`Study` is not `Evidenced`**, and its abstract is deliberately absent — none of it is an
-  interpretation, and prose belongs in a document a quote can grep into.
-- **`DatasetProvenance` omits `workflow_version`** on purpose: the assay happened before we had an
-  opinion about which rules would run over it, and that opinion belongs to the recipe. It **carries
-  the per-file read counts** for the mirror-image reason: a measurement a later stage will threshold
-  is a function of the probe's budget, so it may not sit inside the two sections the content hash
-  covers ([ADR-0030](../adr/0030-a-measurement-lives-in-provenance.md)). Read one through
-  `reads_in_run`, which owns "minimum within a run" and answers `None` — never `0` — for a manifest
-  that measured nothing.
+- **One decision, one envelope:** `chemistry` is `LibrarySection`'s *only* `Evidenced` field, and
+  `assay`, `read_layout` and `files[].read_id` all follow from it
+  ([ADR-0006](../adr/0006-one-judgement-one-envelope.md)); `SampleGroup.attributes` is an open dict
+  over a controlled vocabulary, never typed fields
+  ([ADR-0007](../adr/0007-sample-attributes-are-ncbi-keys.md)).
+- **Read a provenance read count through `reads_in_run`**, never by indexing the dict: it owns
+  "minimum within a run" and answers `None` — never `0` — for a manifest that measured nothing
+  ([ADR-0030](../adr/0030-a-measurement-lives-in-provenance.md)).
 
-**The measurement is in `models/` and the bar it will be compared against is not, deliberately.**
-Those per-file counts exist because something thresholds them, and that something is
-`Spec.min_input_reads` — which, with `identity.sample_is_cell` beside it, is a **KB** schema field
-([`kb/schema.py`](../../src/seqforge/kb/schema.py), argued in [`kb.md`](kb.md)) and not a model here.
-The split is the decision: a manifest is written once and hashed, so a verdict computed under one
-day's KB may not enter it, while a `spec.yaml` is hand-authored and CI-validated, so it is out of
-`SCHEMA_MODELS` and `schema export` never carried it. Two consequences worth stating because both
-were pre-declared as expected moves and only one happened: the two new KB fields moved **no exported
-schema at all**, and the one export this work did move is `ComposeResult`, which gained `admission`
-below. The manifest records what was measured, the KB records the bar, and `compose` is the only
-place they meet ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
+**The measurement is in `models/` and the bar it is compared against is not, deliberately.**
+`Spec.min_input_reads` is a **KB** schema field ([`kb.md`](kb.md)) because a `spec.yaml` is
+hand-authored and CI-validated, so it is out of `SCHEMA_MODELS` and `schema export` never carried it.
+The manifest records what was measured, the KB records the bar, and `compose` is the only place they
+meet ([ADR-0030](../adr/0030-a-measurement-lives-in-provenance.md),
+[ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
 
 ## `ProcessingManifest` — intent, plural
 
@@ -162,17 +146,13 @@ place they meet ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.m
 many per dataset, and that plurality *is* the design. `user_confirmed` — a basis written nowhere else
 in seqforge — is what this artifact exists to carry.
 
-- **`quantification` is a discriminated union** (`SoloQuant | BulkQuant | AtacQuant | UmiQuant`) and
-  is not decorative: `params_gate` fails if the emitted config disagrees with it. `SoloQuant.features`
-  is **ordered** (index 0 is primary) and **defaults to all five** solo features; validators enforce
-  "no duplicates" and "Velocyto requires Gene", a real STAR constraint no enum can express.
-  `BulkQuant` needs no strandedness knob — `--quantMode GeneCounts` already emits all three strand
-  columns, so there was never a decision to make there. `AtacQuant` and `UmiQuant` carry **no knob at
-  all**, for two different reasons that land in the same place: ATAC's deliverable is a fragments
-  file, so nothing is counted, and the plate counter writes all four matrices in one pass, so nothing
-  is chosen. A member per counting family is what keeps a recipe well-typed against the module that
-  runs it — without one, a plate's config block inherits `quantMode`, an instruction its counter has
-  never heard of.
+- **`quantification` is a discriminated union** (`SoloQuant | BulkQuant | AtacQuant | UmiQuant`), so a
+  recipe stays well-typed against the module that runs it: `params_gate` fails if the emitted config
+  disagrees, and without a member per counting family a plate's config block inherits `quantMode`, an
+  instruction its counter never heard of. `SoloQuant.features` is **ordered** (index 0 is primary) and
+  **required** — **policy** defaults it to five of the six solo features (`SJ` excluded, a different
+  feature axis) at [`manifest/policy.py`](../../src/seqforge/manifest/policy.py). What each other
+  member does and does not carry is `schema export ProcessingManifest`.
 - **`basis` records *who decided*:** a CLI flag or an `--instruction` document is `user_confirmed`,
   policy is `inferred`.
 - **`dataset is None` means a template; set means bound.** `compose` refuses a mismatch with a
@@ -206,35 +186,20 @@ object round-trips through JSON Schema. Two decisions worth stating:
   the measurement is the dataset's and the verdict is the run's
   ([ADR-0032](../adr/0032-a-spec-declares-the-shape-of-a-deposit.md)).
 
-## The LLM provider is pluggable
-
-Three providers ship. `anthropic` uses strict `json_schema`, so the output shape is **guaranteed**,
-with explicit `cache_control`. `deepseek` offers `json_object` only, so the shape is **not** enforced
-by the provider, and caching is automatic prefix caching. `openai-compatible` takes any `base_url` and
-a caller-supplied model.
-
-Selection is explicit-beats-implicit (`--provider`, then `SEQFORGE_LLM_PROVIDER`, then auto-detection
-from the credentials present) and **refuses rather than guessing** when no credential is available.
-Why span verification is what makes the vendor swappable at all, and how the json-object capability
-gap is contained rather than papered over:
-[ADR-0009](../adr/0009-llm-provider-is-pluggable.md).
-
 ## JSON Schema export is the single source of truth
 
 `model_json_schema()` (2020-12) feeds both validation and docs. The **only** LLM-facing schemas are
 `AssertionDraft` and the two arbitration types; that set is pinned as `LLM_FACING` in
-[`models/__init__.py`](../../src/seqforge/models/__init__.py) and tested.
+[`models/__init__.py`](../../src/seqforge/models/__init__.py) and tested. Which providers ship and
+what each guarantees about output shape: [ADR-0009](../adr/0009-llm-provider-is-pluggable.md).
 
-The LLM-facing variant is **derived from the canonical one by a deterministic, CI-tested transform** —
-never a hand-maintained second schema. Emit with `ref_template="#/$defs/{model}"`, then for a
-provider's "strict" subset: rewrite `oneOf` to `anyOf`, drop the `discriminator` keyword (keep the
-literal tag field), inline single-member `allOf`, hoist `$ref`-sibling descriptions onto the
-referenced `$def`, strip `default`, set `additionalProperties: false`, and put every property in
-`required` (nullability travels via the null branch). Numeric and `pattern` constraints stay in the
-**canonical** schema only: Pydantic enforces them at ingest, which is the real guardrail, so carrying
-them into the LLM schema buys nothing and costs a divergence.
+The LLM-facing variant is not built here — the Anthropic SDK's strict-mode transform derives it from
+the canonical export, and `test_anthropic_strict_transform_drops_unsupported_constraints`
+(`tests/test_extract.py`) is the CI guard that our wire schema survives it. Numeric and `pattern`
+constraints therefore stay in the **canonical** schema only: Pydantic enforces them at ingest, which
+is the real guardrail.
 
-Three invariants keep the transform total: generics are materialized through the named `Evidenced[…]`
+Three invariants on our side keep that transform total: generics are materialized through the named `Evidenced[…]`
 subclasses, so every `$def` is stable; there is **no `value: Any`** anywhere (both `Assertion.value`
 and `ConflictPosition.value` are `str`); and discriminated unions live only inside `Observation`,
 which is code-emitted and never LLM-produced.

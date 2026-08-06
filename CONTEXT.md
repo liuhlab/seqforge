@@ -22,15 +22,11 @@ Wall-clock is never a budget. A head carries the budget it was read under — no
 _Avoid_: limit, cap, quota
 
 **Abandoned read**:
-A **Head** whose iteration the caller stopped — neither a clean EOF, nor a **Budget** trip, nor a cut
-stream — so its byte accounting was never taken. Distinct from *truncated* (the bytes ran out) and
-from `ok` (the stream was not readable gzip), because those are verdicts about the stream and this is
-a verdict about the read; an abandoned read's compressed byte count is **absent, never zero**. The
-absent count is the definition and stopping early is only how one gets there: a caller that stops
-mid-stream and finalises the read while its handle is still open measured that count, so its read is
-not abandoned.
-_Avoid_: exhausted — that names a **Budget** trip, which is the opposite case, and `budget_exhausted`
-already means it; also cancelled, aborted, interrupted
+A **Head** whose compressed byte count is **absent, never zero**: the caller stopped iterating, so no
+accounting was taken. A verdict about the read, where *truncated* and `ok` are verdicts about the
+stream.
+_Avoid_: exhausted — a **Budget** trip is the opposite case and is already `budget_exhausted`; also
+cancelled, aborted, interrupted
 
 **Record**:
 One FASTQ entry: four lines — header, sequence, plus, quality.
@@ -44,21 +40,16 @@ _Avoid_: using "read" for the act of reading bytes; say "a head" or "reading a h
 
 **Tagged read**:
 A **Read** that opens with the protocol's tag — an anchor motif, a UMI, and a closing motif — and so
-carries the molecule's UMI. A *minority* population, and its fraction is a tunable protocol
-parameter rather than a constant (6.9–70.5% across the five libraries the plate chemistry's own
-authors published), so a majority gate over tagged reads refuses that chemistry's reference data.
-Whether a read is tagged is decided positionally, at offset 0: the same motif is abundant elsewhere
-in the same file and separates nothing.
-_Avoid_: UMI read; barcoded read — a barcode names a cell, a tag names a molecule; and never a
-layout id as a synonym (a spec may say the tag is *on* R1, but "R1" does not mean "tagged" — the two
-populations that share one file are both R1)
+carries the molecule's UMI. Decided positionally, at offset 0; a *minority* population whose fraction
+is a tunable protocol parameter, which is why no gate over it may be a majority one
+(`docs/agents/resolve.md`, `kb/specs/smartseq3/`).
+_Avoid_: UMI read; barcoded read — a barcode names a cell, a tag names a molecule; and never a layout
+id as a synonym (the two populations that share one file are both R1)
 
 **Internal read**:
-The complement of a **Tagged read** in the same file: a fragment from the interior of the molecule,
-carrying no tag and no UMI, trimmed of nothing, and byte-identical to bulk cDNA. A third to two
-thirds of a real library — counted, but never deduplicated by UMI, because it has none. **Internal**
-names where it came from, which is why it is the noun for the population; *untagged* is the per-read
-predicate a scan answers, and is what a count of them is called.
+The complement of a **Tagged read** in the same file: a fragment from the molecule's interior,
+carrying no tag and no UMI, byte-identical to bulk cDNA. Counted, never UMI-deduplicated. *Untagged*
+is the per-read predicate a scan answers; **internal** names where it came from.
 _Avoid_: off-target, junk, discard — an internal read is data
 
 **Slice**:
@@ -77,10 +68,9 @@ _Avoid_: region, interval, span (a span is a harvest quote), segment (probe's ow
 segmentation)
 
 **Frame**:
-A window recovered per read, for a piece of a read's declared layout whose position floats.
-`kb.anchor.resolve_windows` finds one read's frame by phase detection; a read whose frame is not found
-contributes nothing rather than a wrong window. A fixed window is constant across reads; a frame is
-not.
+A window recovered per read, for a piece of a read's declared layout whose position floats. Found by
+phase detection; a read whose frame is not found contributes nothing rather than a wrong window. A
+fixed window is constant across reads; a frame is not.
 _Avoid_: offset, phase (phase is how a frame is found, not what it is), alignment
 
 **Segment**:
@@ -117,9 +107,9 @@ _Avoid_: checksum, file hash, digest — all three imply the whole file was read
 
 **Library**:
 One sequencing library — the physical construct the reads came out of, and what the byte resolver
-identifies. Its **Chemistry** is the only `Evidenced` field describing it; assay, read layout and
-per-file roles all follow from that single decision (`docs/adr/0006`). An **Archive record**'s
-experiment level names one, which is why several runs sit under one — a library sequenced twice.
+identifies. Assay, read layout and per-file roles all follow from its **Chemistry**
+(`docs/adr/0006`). An **Archive record**'s experiment level names one, which is why several runs sit
+under one — a library sequenced twice.
 _Avoid_: dataset (a dataset is the files you were handed), experiment, prep; `assay` is the same
 answer in EFO's vocabulary, not a second fact
 
@@ -130,24 +120,19 @@ level that **fuses runs** — `ancestor(run, "sample")` is the join, so a sample
 `<sample>.h5ad`. In a `source: user` **Record set** the two come apart, and there the sample id is a
 *grouping key* and not a claim about a specimen: it carries no attributes, so it declares only which
 files compile together (`docs/adr/0034`).
-_Avoid_: specimen; and never use "sample" for a head. `StreamSample`/`probe_sample`/`sample_fastq_*`
-are legacy spellings of the byte sense, being retired.
+_Avoid_: specimen; and never use "sample" for a head
 
 **Pre-demultiplexed**:
-A chemistry whose libraries were split into cells *before* the archive saw them — demultiplexing
-happened at the bench, so the cell barcode is the **file** and not a range of bases inside a read.
-Named for the property and not for the field: `identity.sample_is_cell` is the KB's *declaration* of
-it, since no byte reports where a split happened (`docs/agents/kb.md`, `docs/adr/0032`). It says
-**Sample**, not file and not run — 20 of 190 well-labelled plate deposits are not strictly 1:1.
+A chemistry whose libraries were split into cells *before* the archive saw them, so the cell barcode
+is the **file** and not a range of bases inside a read. Declared and never derived — no byte reports
+where a split happened — and it says **Sample**, not file and not run (`docs/adr/0032`).
 _Avoid_: demultiplexed (every Illumina run is sample-demultiplexed at bcl2fastq, so a reader would
-tick that box for a droplet chemistry too), plate (one physical vessel, and the property is about
-where the split happened rather than what it happened in), one-cell-one-file (true of the common case
-and not of the 20); and never as a second name for `sample_is_cell`, which declares the property and
-is not it
+tick that box for a droplet chemistry too), plate, one-cell-one-file; and never as a second name for
+`identity.sample_is_cell`, which is the field that declares the property and is not it
 
 **Run**:
 One sequencing run — one **Library** on one pass of a sequencer, spanning every **Lane** it was
-loaded into. The grouping `resolve/group.py` derives from filenames. With no archive record that
+loaded into. The grouping is derived from filenames. With no archive record that
 grouping is *taken as* the sample identity, which is exact for lanes and wrong for a library
 sequenced more than once: nothing in a filename rejoins two batches (`docs/adr/0027`).
 _Avoid_: lane (narrower, and its own term); experiment (the archive's level, which is a **Library**);
@@ -160,14 +145,11 @@ Retained only to order a run's files identically for every mate.
 _Avoid_: run; and never a **Sample**, which is what reading it as one produced (`docs/adr/0027`)
 
 **Read designation**:
-The mate a demultiplexed FASTQ declares **in its own name** — bcl2fastq's `R1`/`R2`/`I1`/`I2` token,
-or fasterq-dump's numeric `_1`/`_2`/`_3`. It carries no **Lane** and no flowcell id, which is exactly
-what lets the lanes and flowcells of one read fuse: it is the identity a surplus file shares with the
-file already seated in its role, and the only such signal a manifest still holds once the reads are
-behind it (`resolve/engine.read_designation`, `docs/adr/0027`).
-_Avoid_: mate (a paired-end sense with no room for `I1`); role or `read_id`, which is what a
-designation is matched *to* and is not — a role comes from the **Chemistry**'s read layout and this
-comes from the filename; lane token
+The mate a demultiplexed FASTQ declares **in its own name** — bcl2fastq's `R1`/`R2`/`I1`/`I2`, or
+fasterq-dump's `_1`/`_2`/`_3`. It carries no **Lane** and no flowcell id, which is exactly what lets
+the lanes and flowcells of one read fuse (`docs/adr/0027`).
+_Avoid_: mate (a paired-end sense with no room for `I1`); role or `read_id` — a role comes from the
+**Chemistry**'s read layout, a designation from the filename; lane token
 
 **Units table**:
 The table `compose` writes beside a **Compiled pipeline**'s config: one row per FASTQ, naming its
@@ -189,12 +171,10 @@ FASTQ
 
 **Record set**:
 The records handed to the metadata resolver, at whatever levels they were declared, with `source`
-naming who declared them. `source: user` is one a human wrote about their own pre-deposit data: it
-carries structure only — `level`, `id`, `parent`, `filenames` — and **no attributes**, which is what
-keeps `asserted` meaning *"an archive's typed slot"* in `docs/adr/0010`'s precedence table
-(`docs/adr/0034`). A fact about a sample enters through harvest, carrying a **Span**, or not at all.
-_Avoid_: records file, sample sheet (a bcl2fastq artefact, and a different thing), manifest — a
-record set is an *input* to the dataset manifest and never one of the two artifacts
+naming who declared them. A `source: user` set carries structure only and **no attributes**, which is
+what keeps `asserted` meaning *"an archive's typed slot"* (`docs/adr/0034`, `docs/adr/0010`).
+_Avoid_: records file, sample sheet (a bcl2fastq artefact), manifest — a record set is an *input* to
+the dataset manifest and never one of the two artifacts
 
 **Deposit**:
 Everything one submission put into an archive under one project, as the archive holds it — every
@@ -206,7 +186,7 @@ _Avoid_: dataset (that is the files you were handed — a **Download**), project
 submission; BioProject and GEO series are one archive's spelling of a deposit, not the word
 
 **Download**:
-The part of a **Deposit** actually handed to seqforge — the files `resolve_runs` is given, which is
+The part of a **Deposit** actually handed to seqforge — the files the resolver is given, which is
 the set this glossary calls a dataset everywhere the contrast does not matter. Reach for the word
 only where it does: a fingerprint package of 96 cells stands for a 1440-cell deposit, so a count
 taken here reports how much was fetched and never what the deposit is.
@@ -215,13 +195,10 @@ pull, local copy, working set
 
 **Submitted file**:
 What a **Deposit** declares about one file the submitter uploaded — its name, the provider md5, its
-size, and where it can be fetched. The md5 is a **Content address** over the bytes at that location:
-adopted if they are ever fetched, and never computed against a file on disk, which R3 forbids
-(`docs/adr/0033`). Both SRA and ENA publish all four under this word.
-_Avoid_: original (one archive's spelling of `supertype`), checksum, digest, verify (all four imply
-the file was read); and never a **Whole file**, which is what a probe knows about a FASTQ it *did*
-read, nor a **Download**, which is what reached disk — a submitted file is what the deposit says
-exists, fetched or not
+size, and where it can be fetched. The md5 is a **Content address** over the bytes at that location,
+never computed against a file on disk (`docs/adr/0033`).
+_Avoid_: original, checksum, digest, verify (all imply the file was read); and never a **Whole file**
+(what a probe knows about a FASTQ it *did* read) nor a **Download** (what reached disk)
 
 ### Evidence
 
@@ -263,18 +240,14 @@ _Avoid_: manual, override, approved, human-in-the-loop
 **Declared**:
 Not a fifth **Basis** — a property of one position *within* a source: the submitter typed this value
 into a slot **for this attribute**, rather than a model having read it out of that source's prose.
-Inside one source it wins, whatever the reading says, and the reading is named in a **Warning**
-(`docs/adr/0021`). One layer earlier the same fact marks a free-text span byte-equal to a typed
-column, and a quote wholly inside one is refused rather than read as prose.
+Inside one source it wins, and the reading is named in a **Warning** (`docs/adr/0021`).
 _Avoid_: as a synonym for **Asserted** — a record's typed slot and a model's reading of that record's
-title are both asserted, which is precisely the pair this term exists to separate; also stated,
-declared-by-the-archive, structured (that is the half of a **Record**, not this)
+title are both asserted, which is precisely the pair this term exists to separate; also stated
 
 **Rung**:
-The escalation-ladder step `0..7` that settled one field — 0 metadata, 2 bytes and geometry, 3 an
-onlist check, 7 ask a human. Recorded per field, because which rung paid for an answer is provenance
-and an eval signal (R9).
-_Avoid_: level, tier, attempt, retry; rungs 4-6 are unbuilt, so nothing sits between 3 and 7
+The escalation-ladder step `0..7` that settled one field, from metadata at 0 to a human at 7 (R9,
+`docs/agents/resolve.md`). Recorded per field — which rung paid is provenance and an eval signal.
+_Avoid_: level, tier, attempt, retry
 
 **Confidence**:
 The advisory number on an envelope, in `[0,1]` or `null`. Never an authority, and `null` is the
@@ -305,11 +278,11 @@ false-rejecting (`docs/adr/0008`).
 _Avoid_: window (a window is a base range inside a read), citation, location, offset
 
 **Variant span**:
-A range of an **exemplar**'s text where the near-identical records it stands for *disagree* — marked
+A range of an *exemplar*'s text where the near-identical records it stands for *disagree* — marked
 in place, never spliced out, so the model still reads coherent prose. Neither a **Span** (that is
 where a claim came *from*) nor the **Declared** mark sitting beside it on the same document: a
 declared span makes `verify` **refuse** a quote, a variant span decides whether a verified claim may
-**fan**. One field per question asked of a range. Argued once in
+*fan*. One field per question asked of a range. Argued once in
 [ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
 _Avoid_: diff, mask, hole, gap; and never for the *reduced* text of a **Collapse**, which is a
 document of its own and carries no marks at all
@@ -345,16 +318,11 @@ _Avoid_: call, turn, message, completion, round-trip; a **Document** is what an 
 not the exchange
 
 **Ceiling**:
-The most tokens one run may spend at the model seam. Counted raw — fresh input, cached input, cache
-writes and output all count, because a ceiling is a backstop and not a price. It bounds what may be
-**spent**, not what may be started: a request's estimated cost is reserved before it is issued and
-reconciled against the real usage when it returns, so the request the remaining budget cannot cover
-is refused **un-issued** and carries a `TOKEN_CEILING_EXCEEDED` **Blocker** at exit 3. A ceiling that
-only warns is a number nobody sets. The bound is *approximate* and must not be described otherwise —
-a response's token count is unknowable until it returns, so a run may finish a little over. Not a
-**Budget** — a budget bounds one head in bytes and reads, a ceiling bounds a whole run in tokens, and
-neither substitutes for the other.
-_Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound, per call)
+The most tokens one run may spend at the model seam, counted raw. It bounds what may be **spent**,
+not what may be started, it refuses rather than warns, and the bound is *approximate*
+(`docs/agents/cli.md`).
+_Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound); and
+never a **Budget**, which bounds one head in bytes and reads
 
 **Plan**:
 Which **Document**s one extraction will send, what each will be asked, and the input tokens that
@@ -365,25 +333,25 @@ _Avoid_: estimate, preview, dry run (that is the flag that prints one), schedule
 `compose`'s output, which is a Snakemake plan
 
 **Collapse**:
-Reading several archive records through one **Document**. Two of them ship and they are one word on
-purpose: the runs of one sample become one document, and near-identical records at one level fold
-onto one **exemplar** — the member whose full prose is sent, with the non-shared spans *marked*.
-Every other member is then one of two things: **reduced** (sent as its distinctive bytes alone,
-because the invariant was read once) or **withheld** (not sent at all, its difference being nothing
-but the accession we ourselves wrote). A claim from an exemplar **fans** to every member its quote is
-byte-identical in; a sample-scoped one is materialized once per member so it still names one sample.
+Reading several archive records through one **Document**: the runs of one sample become one document,
+and near-identical records at one level fold onto one *exemplar* whose non-shared spans are marked.
 What a collapse never does is drop a byte. Argued once in
-[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md).
-_Avoid_: dedup (that is byte-equality, and it misses records that differ only in an accession),
-merge, cluster, summarize; and never for `reduce_dataset`'s partition into assays, which is a
-**Manifest** decision and not a document one
+[ADR-0031](docs/adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md), which
+defines *reduced*, *withheld*, and how a claim *fans*.
+_Avoid_: dedup (that is byte-equality, and it misses records that differ only in an accession), merge,
+cluster, summarize; and never for `reduce_dataset`'s partition into assays, a **Manifest** decision
 
 **Transcript**:
 Every **Exchange** of one run, assembled: one system prompt plus N (document, response) pairs, since
 the prompt is byte-identical across a run. It is a file — stdout is the result object and a thousand
 exchanges cannot ride on it — and the meter that records it never chooses its address.
-_Avoid_: log, history, conversation, trace; `logs/usage.json` is the **ledger** (what a run spent),
+_Avoid_: log, history, conversation, trace; `logs/usage.json` is the **Ledger** (what a run spent),
 this is what it spent it on
+
+**Ledger**:
+What one run spent at the model seam — per-document token and mode costs against the **Ceiling** —
+written to `logs/usage.json`. The numbers, where a **Transcript** is what they were spent on.
+_Avoid_: usage log, receipt, bill; the *meter* is what writes one, never the file
 
 ### Deciding the library
 
@@ -424,8 +392,7 @@ structure), mode, variant, flavour; and never for how many files a deposit happe
 **Role assignment**:
 The injective map from a **Read set**'s roles to the dataset's files that scored best — *total* over
 that set, so an unfilled role is an invalid assignment and never a tolerated gap. Half of one
-decision, the other half being **Chemistry** — which is why only chemistry carries an envelope
-(`docs/adr/0006`).
+decision, the other half being **Chemistry** (`docs/adr/0006`).
 _Avoid_: mapping, pairing, demultiplexing, layout (a layout is the KB's declared structure)
 
 **Chemistry**:
@@ -460,7 +427,7 @@ to no artifact
 
 **Onlist**:
 A barcode whitelist, identified by the *set* of barcodes it holds rather than by the file carrying
-them. Consulting one is what rung 3 costs (~100 ms); a pipeline builds one by rule and deletes it,
+them. Consulting one is what rung 3 costs; a pipeline builds one by rule and deletes it,
 never storing it expanded (`docs/adr/0015`).
 _Avoid_: allowlist, barcode file, reference list; "whitelist" names the vendor's file, `onlist` is
 the spelling on the wire
@@ -471,28 +438,21 @@ it is mandatory — CI fails a pair that collides at rungs 0-2 in silence (`docs
 _Avoid_: ambiguous, similar, overlapping, competing
 
 **Answerable**:
-Whether *these bytes* could have answered a signature test at all. A test they were silent about —
-no read reaching the column, a header the archive stripped — leaves the support numerator **and its
-normalizer**, because no chemistry could have got an answer there, so dropping it advantages nobody
-(#307). Not readable off the `ABSTAIN` outcome, which `distinct_ratio` returns on every input by
-design so that a depth-dependent statistic can never gate.
+Whether *these bytes* could have answered a signature test at all. An unanswerable test leaves the
+support numerator **and its normalizer**, because no chemistry could have got an answer there. Not
+readable off the `ABSTAIN` outcome (`docs/research/support-normalizer-asymmetry.md`).
 _Avoid_: inapplicable (that is the **Read set** rule below), unmeasured, missing, N/A
 
 **Unconfirmed**:
 A test the bytes *were* willing to answer and we could not ask — the whitelist was not registered or
-would not materialize. It keeps its full weight in the normalizer, because a rival spec whose list
-did materialize answered the same question and pays for every imperfection in its hit rate: a spec is
-never credited for evidence nobody was able to check. Distinct from **Answerable**, and the
-distinction is what stops the #307 fix inverting the ranking
-(`docs/research/support-normalizer-asymmetry.md`).
-_Avoid_: unavailable, failed, missing whitelist; "the onlist abstained" names the outcome and not
-this fact
+would not materialize. It keeps its full weight in the normalizer: a spec is never credited for
+evidence nobody was able to check (`docs/research/support-normalizer-asymmetry.md` §2).
+_Avoid_: unavailable, failed, missing whitelist; "the onlist abstained" names the outcome, not this
 
 **Inapplicable**:
 Reserved for the **Read set** rule: a signature test addressed to a read the *active* set does not
-carry has no cell at all, so it enters neither the score numerator nor its normalizer
-(`docs/adr/0029`). The same arithmetic as an unanswerable test, reached from a different direction —
-one is a fact about the declaration, the other about the bytes.
+carry has no cell at all (`docs/adr/0029`). The same arithmetic as an unanswerable test, reached from
+the declaration rather than from the bytes.
 _Avoid_: using it for either of the two above
 
 **Processing-equivalent**:
@@ -545,6 +505,14 @@ _Avoid_: **Conflict**, **Warning**, **Blocker**, **Question** — all four are c
 before or while a manifest exists and carried by an exit code, and an alert is none of them arriving
 late; also issue, diagnostic, QC failure, recommendation
 
+**Absent**:
+Why a benchmark case produced no grade: the corpus does not hold its package. A standing fact about
+the corpus, published rather than hidden, and the `skip_kind` that never poisons a rate
+(`docs/adr/0018`). Its counterpart is **unavailable** — the package exists and this run could not
+reach it, which is transient. Two states, and folding them together is how a case sits out of the
+corpus for a release behind a word that reads as temporary.
+_Avoid_: skipped, missing, failed for either alone — each names both and so distinguishes neither
+
 ### Artifacts
 
 **Manifest**:
@@ -584,12 +552,9 @@ its execution; also build, job, workflow run
 **Metric**:
 One number a finished **Compiled pipeline** wrote, with the words a human reads it by, the stage it
 speaks about, and a **level** — `ok`/`warn`/`bad`, or `none` where no bar is defensible, which is a
-verdict and not a missing value. The module that wrote the artifact decides the level
-(`docs/adr/0025`, `workflows/metrics.py`); a number the artifact does not carry is absent, never a
-zero. One sample's are its *sample stats*, one execution's its *pipeline stats*.
-_Avoid_: stat, QC number, score (what the resolver computes over candidates), grade (the act of
-assigning a level); and never an **Observation** — that is read from the bytes *before* anything ran,
-a metric is what the finished pipeline reported *after*
+verdict and not a missing value. The module that wrote the artifact decides the level (`docs/adr/0025`).
+_Avoid_: stat, QC number, score, grade; and never an **Observation** — see that entry for the
+before/after split. One sample's are its *sample stats*, one execution's its *pipeline stats*.
 
 **Workspace**:
 The user's project root, and the `seqforge/` state directory under it. No leading dot, because it

@@ -81,7 +81,9 @@ beyond `{onlist:<alias>}`, do not put a knob that varies with nothing in a spec 
 CellRanger-parity set is a module literal, see [0022](0022-three-owners-for-an-aligner-param.md) —
 and when canonicalizing for comparison, **sort keys, never list values**.
 
-**Enforced by.** The `Backend` key allowlist, with `test_backend_rejects_illegal_template_token`
+**Enforced by.** The disjointness itself, directly, with
+`test_kb_parse_keys_and_recipe_param_keys_are_disjoint` (`tests/test_kb.py`); then the mechanisms that
+keep it that way — the `Backend` key allowlist, with `test_backend_rejects_illegal_template_token`
 (`tests/test_kb.py`); `extra="forbid"` on the processing models, with
 `test_the_processing_manifest_refuses_an_unknown_key` (`tests/test_models.py`); `params_gate` via
 `test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate` (`tests/test_compose.py`);

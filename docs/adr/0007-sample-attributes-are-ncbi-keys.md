@@ -38,10 +38,8 @@ Keys we did not coin cannot be bent to fit an extraction, and a key outside the 
 
 ## Why not route an unharmonized characteristic into the prose path (2026-08-01)
 
-The asymmetry that forced this question is real and is stated in the consequences: a fact typed into
-a structured characteristic reaches no key, while the same sentence in a free-text protocol field
-reaches harvest and can become a span-verified `Assertion`. Feeding the leftovers into that path
-would *close* the asymmetry rather than merely surface it.
+The asymmetry that forced this question is real and is stated in the consequences. Feeding the
+leftovers into the prose path would *close* it rather than merely surface it.
 
 It was rejected for now, not on principle. It changes what the language model is asked to read, which
 is a decision of its own and a larger one — the model has exactly two jobs and the input to job (a)

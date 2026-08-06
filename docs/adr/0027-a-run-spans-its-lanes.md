@@ -137,8 +137,10 @@ the Consequences below promise — it fails with four samples if the strip is re
   runs, each scored alone, each filling its own roles. They are now ONE run of eight files, and the
   injective assignment fills each role once — the other six are surplus, re-seated by
   `index_tagged_roles` only within `LANE_LEN_TOL` (3 bp) of their role's representative. A lane whose
-  modal read length drifts further gets **no role**, and `compose._units` drops a file with no role
-  silently, at exit 0. Real lanes of one library share a cycle count so the modes coincide, and the
+  modal read length drifts further gets **no role**, and `validate` refuses it — `blk-unassigned`,
+  exit 3, with a remedy that names it as a lane of a seated read
+  ([#325](https://github.com/liuhlab/seqforge/issues/325)). Real lanes of one library share a cycle
+  count so the modes coincide, and the
   accession path has relied on this since 2026.7.4 — but this record is what extended that reliance to
   every record-less multi-lane dataset, and a trimmed-per-lane delivery is the shape that would find
   it.

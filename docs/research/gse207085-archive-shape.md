@@ -201,6 +201,64 @@ harvest-cost design has to take.
    SMART-seq3 from its own `io records` output, while the archive states it in words, three
    different ways, in records seqforge already fetches.
 
+## What the near-identical collapse banked on this deposit (added 2026-08-04)
+
+The section above says what the collapse *would* have to look like. This one is the measurement of
+the shipped one, taken **2026-08-04** on the same 1440-record dump, against the tree carrying
+[ADR-0031](../adr/0031-a-collapsed-citation-is-regenerable-only-from-the-record-set.md)
+(`HARVEST_VERSION = 2026.8.0`). It is the note that record's Consequences point at.
+
+| | before the collapse | after |
+|---|---|---|
+| document text sent | 786,906 characters | **194,038** |
+| requests | 80 | **59** — 53 for the sample and run documents, 6 for the experiments |
+| estimated input tokens | 375,066 | **180,035** |
+| records withheld | — | **0** |
+| records reduced | — | **4317 of 4320**; the three exemplars carry the prose |
+
+**The baseline is the ask-derived batch width, not the world before it.** #282's width rule had
+already taken this deposit from 540 requests to 80, so the 80 → 59 comparison is taken on top of it
+rather than instead of it — quoting 540 here would credit the collapse with a saving the width rule
+banked. The 53 + 6 split is #233 decision 4's arithmetic, to the request.
+
+**Nothing is withheld because every level carries a per-cell serial name** (`nasal_prox1_270`,
+`GSM6277169_r1`), so every non-exemplar member has a difference worth sending and is asked it. A
+deposit whose members differed only in the accession seqforge itself wrote would withhold instead;
+this one does not, and that is a property of the deposit.
+
+**Quote residue goes to zero.** Before the reduction, 71 % of every document's four-token spans
+occurred verbatim in another document of the same request, so a misrouted draft would have
+span-verified against the wrong member. After it: **0 %, at every batch width from 1 to 250 and every
+quote length from one token to four.** A reduced document holds exactly what distinguishes its
+record, so there is nothing left for two of them to share.
+
+**It also falsified a reading of the rule.** "Mark, never splice" applied to *every* member rather
+than to the exemplar alone folds nothing on this deposit — the plan does not move at all. The
+measurement is what showed that reading was wrong.
+
+### Method
+
+```bash
+pixi run seqforge io records SRP383998 -C <workspace>           # the 4335-record set, cached
+pixi run seqforge harvest extract --records seqforge/records/SRP383998.json --dry-run -C <workspace>
+```
+
+`--dry-run` renders every document and resolves no provider, so the plan is the paid run's list and
+not a projection of one: `n_chars`, `n_requests` and `estimated_input_tokens` are read straight off
+it. The before/after pair is the same command on either side of the collapse. `quote_residue` reaches
+no CLI verb; it was called from Python over the same `ExtractionPlan`
+(`seqforge.harvest.quote_residue(plan, width=…)`), swept over widths 1–250 and quote lengths 1–4.
+
+### What this could not establish
+
+- **Whether the reduction generalises.** One deposit, and an extreme one — 1440 records off a single
+  template. The corpus-wide figure is the six benchmark cases ADR-0031 names, at 29–77 % less text.
+- **Whether 0 % residue survives a deposit with genuinely repeated prose.** This deposit's members
+  differ in a serial number; one whose members repeat whole sentences may not reduce to disjoint
+  text. The instrument stays for that reason — 0 % here is a property of this dump, not a theorem.
+- **What the reduction does to extraction quality.** Different text reaching a model can move a
+  draft. That is a before/after digest pair under #225 constraint 3, and it is not measured here.
+
 ## Declared strings, and what an alias could reach
 
 | field | value |

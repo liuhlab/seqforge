@@ -16,7 +16,7 @@ and understand the answer when it tells you what your data is.
 | [10x Chromium 3' v2](10x-3p-gex-v2.md) | droplet single-cell, previous 3' kit | 26 bp barcode read (2 bp shorter than v3) |
 | [BD Rhapsody WTA](bd-rhapsody-wta.md) | microwell single-cell, 3-block cell label | two fixed linkers + three barcode lists |
 | [SPLiT-seq](splitseq.md) | instrument-free split-pool single-cell | two fixed linkers + three round-barcode lists |
-| [Bulk paired-end RNA-seq](bulk-rnaseq.md) | plain bulk RNA-seq, no barcodes | the *absence* of a barcode read |
+| [Bulk RNA-seq](bulk-rnaseq.md) | plain bulk RNA-seq, no barcodes; paired-end or single-end | the *absence* of a barcode read |
 
 ## How the entries are organized
 

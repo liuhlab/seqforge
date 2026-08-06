@@ -40,12 +40,12 @@ distinguishable where a nullable float keeps two.
 
 ## So in code
 
-**No ±inf crosses the JSON seam.** Keep `float("-inf")` for computation and serialize a cell as a
-tagged status — `{"status": "forbidden"}` or `{"status": "scored", "value": …}` — never as `null`,
-which would conflate "forbidden by a gate" with "not computed" and with `ABSTAIN`. Inside the
-optimizer, encode a forbidden cell as a `+BIG` edge and then post-check that no *selected* edge is
-one; a solver will happily return a solution made entirely of them. An unfillable role is
-`score(t) = −∞`, never a padded assignment.
+**No ±inf crosses the JSON seam.** Keep the sentinel out of the cell entirely — a boolean flag in
+memory (`Cell(forbidden=True)`), `+BIG` in the optimizer, a tagged status on the wire:
+`{"status": "forbidden"}` or `{"status": "scored", "value": …}`, never `null`, which would conflate
+"forbidden by a gate" with "not computed" and with `ABSTAIN`. Post-check that no *selected* edge is
+one of the `+BIG` ones; a solver will happily return a solution made entirely of them. `−∞` survives
+only one level up, as the score of a technology with no valid assignment — never a padded assignment.
 
 **Enforced by.** `test_resolve_matrix_is_json_safe` (`tests/test_resolve.py`) for the wire, and
 `test_assignment_forbidden_diagonal_forces_swap` (same file) for the post-check;

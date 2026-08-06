@@ -15,8 +15,8 @@ skill documented two onlist subcommands the app never had. Run `--help`, or read
 
 **Machine JSON goes to stdout; human logs go to stderr.** Every verb emits JSON on stdout **by
 default** — there is no `--json` flag to remember, because a flag that must be passed to get the
-contract is a contract with an off switch. `kb list` is the single plain-text exception, and it is
-plain text because its output is a menu for a human.
+contract is a contract with an off switch. The plain-text verbs are `kb list`, `schema list` and
+`version`; all three print a menu or an identifier for a human.
 
 The practical consequence for a caller: `seqforge <verb> … > out.json` is always valid, and progress
 never contaminates the parse. The practical consequence for an implementer: nothing goes to stdout
@@ -40,7 +40,7 @@ Uniform across every verb, and the reason refusal never has to be parsed out of 
 | 0 | OK | including a run that emitted non-blocking `Warning`s |
 | 1 | ERROR | a bug or an IO failure — **not** a domain refusal |
 | 2 | USAGE | bad invocation |
-| 3 | BLOCKED | at least one `Blocker`. No human answer clears it |
+| 3 | BLOCKED | a refusal no human answer clears: at least one `Blocker`, or a gate a verb owns outright (`eval run`'s accuracy floor) |
 | 4 | NEEDS_HUMAN | an open `Conflict`, or a non-empty `questions.md`. A human answer *can* clear it |
 
 The 3-versus-4 split is the whole design: 3 says *this cannot be compiled*, 4 says *this is waiting on
@@ -58,28 +58,25 @@ There are no truly universal flags, and claiming otherwise is how a docs page st
 recurs, and what it must mean when it does:
 
 - **`-C` / `--workspace`** — the root holding `seqforge/`. On every verb that reads or writes state.
-- **`--no-cache`** — do not read or write the content-addressed artifacts. Resume is *implicit*
-  (R5), so this is the opt-out; **there is no `--resume` flag**, and adding one would mean the cache
-  was not trusted.
+- **`--no-cache`** — do not read or write the content-addressed artifacts, on `probe` and
+  `resolve score`, the two verbs that own a cache. A chained `run` has no opt-out and re-resolves
+  only when a version bump moves the key. Resume is *implicit* (R5); **there is no `--resume`
+  flag**, and adding one would mean the cache was not trusted.
 - **`--offline`** — never reach the network. It must **refuse** rather than quietly degrade: a verb
   that silently skips a lookup under `--offline` produces a manifest whose gaps are invisible.
-- **`--max-reads` / `--max-bytes`** — the read budget, on every verb that touches a FASTQ. Both, never
-  one (R3).
+- **`--max-reads` / `--max-bytes`** — the read budget, on every verb that **heads** a FASTQ; always
+  as a pair, though two older verbs spell the read half `--n-reads` / `--reads`. A verb that
+  consumes a whole file for the pipeline (`io umi-extract`) has no budget and is still bounded by
+  R3's shared reader.
 - **`--provider` / `--model`** — on the verbs that reach a model. Selection is
   explicit-beats-implicit, and refuses rather than guessing when no credential is present.
-- **`--ceiling`** — the token **Ceiling**, on those same verbs. It **refuses**, and it bounds what a
-  run may *spend* rather than what it may start: a request's estimated cost is reserved before the
-  request is issued, so the one the remaining budget cannot cover is refused un-issued with a
-  `TOKEN_CEILING_EXCEEDED` Blocker at exit 3 — never a warning, because a ceiling that only warns is
-  a number nobody sets. A ceiling under one request's estimate therefore refuses at the gate having
-  issued nothing. The bound is approximate: a response's cost is unknowable until it returns, so a
-  run may finish a little over. Counted raw — cached input and cache writes count too — and `0` removes it.
-  Not the read budget and not `max_tokens`: a budget bounds one head in bytes and reads, `max_tokens`
-  bounds one response's output, and a ceiling bounds a whole run in tokens.
+- **`--ceiling`** — the token **Ceiling** (`CONTEXT.md`), on the same verbs as `--provider` /
+  `--model`. It refuses at exit 3 rather than warning, and `0` removes it.
 
 A new flag on an existing verb is cheap; a new flag that duplicates one of these under another name is
-not. And a flag documented in prose but absent from the app fails the introspecting test, so prose and
-app cannot drift.
+not. And know what the introspecting test does and does not cover: a flag written into a full
+`seqforge <verb> --flag` invocation is checked against the app; a flag named in prose — every bullet
+above — is not, so those are a review obligation rather than a guarded claim.
 
 ## Which verbs are expensive, and in which currency
 
@@ -88,10 +85,13 @@ Three costs, and each verb should be obviously in or out of each:
 - **Network** — the `io` group is the *only* network surface. Everything it fetches is checksum-verified
   and cached; whitelists go through pooch. If a verb outside `io` needs the network, it is calling `io`.
   One verb there **writes** rather than reads — `io publish-package` commits a fingerprint package to
-  the public benchmark corpus — and it is in this group for that reason and no other: a verb whose
+  the public benchmark corpus — and it is here for the same reason the readers are: a verb whose
   whole content is a remote call belongs where a reader expects remote calls to be. It validates the
   package before it sends a byte, refuses rather than guessing when no credential is present, and has
-  a `--dry-run` that resolves the destination while touching neither.
+  a `--dry-run` that resolves the destination while touching neither. `io` is also where the composed
+  pipeline's own verbs live — `umi-extract`, `umi-count`, `h5ad`, `cram`, `qc-bundle`, `fragments` —
+  which reach no network and are here because a `shell:` block must call something a dry run can see
+  ([ADR-0036](../adr/0036-a-verb-that-needs-a-file-list-is-handed-the-table.md)).
 - **An LLM** — `harvest extract` is the **one** LLM touchpoint in a headless run, and verification runs
   inside it rather than after it. Its inputs are documents **or** `--records`, and either alone is a
   legal invocation: eleven of the eighteen benchmark packages carry no prose at all and their whole
@@ -104,7 +104,8 @@ Three costs, and each verb should be obviously in or out of each:
   Everything else — probing, scoring, filling, validating, composing, every `kb` self-test — is
   deterministic and shell-scriptable.
 - **A toolchain we do not own** — `kb e2e`, `kb e2e-introns` and `kb e2e-cost` need STAR, a genome and a
-  Linux compute node. They are the only verbs that may legitimately report **skip**; see
+  Linux compute node. They are the only verbs that may skip because a **toolchain we do not own** is
+  absent — `run` and `eval run` both report skipped work of their own; see
   [`eval-corpus.md`](eval-corpus.md).
 
 `run` adds no authority of its own. It chains the deterministic verbs in one headless pass and stops at

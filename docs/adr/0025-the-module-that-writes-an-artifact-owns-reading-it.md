@@ -129,9 +129,8 @@ names that log** and then reports off it anyway, so a future edit that re-derive
   `PipelineStats` as the type of one field and types none of its contents; the renderer picks a
   colour from a `Level` and never a threshold.
 - **Which samples finished is answered from the composed config's own list**, through
-  `CompiledPipeline` ([0024](0024-one-owner-for-the-compiled-pipeline.md)), never by globbing the
-  results tree — a listing can say what landed and can never say what is missing, so a partial
-  **Compiled pipeline** read that way is indistinguishable from a complete one.
+  `CompiledPipeline` ([0024](0024-one-owner-for-the-compiled-pipeline.md)) and never by globbing the
+  results tree — for 0024's reason.
 - `WORKFLOW_VERSION` is untouched **by this record**. Nothing here changes a rule, so no `run_id`
   ([0005](0005-run-id-is-the-pairing.md)) is invalidated and nothing already compiled is reprocessed.
   `QC_SUFFIX` went public for the shipped `.smk` to adopt, which it since has: `starsolo.smk` and
@@ -153,9 +152,10 @@ names that log** and then reports off it anyway, so a future edit that re-derive
   module is what `PipelineStats` was shaped to carry.
 - **The sibling list ships non-empty, and it is the same argument.** `MODULES_WITHOUT_CROSS_CHECKS` —
   the registry's other half, added with the **Alert** rules
-  ([0026](0026-alerts-are-advisory-and-non-mutating.md)) — holds `map/chromap` and `map/star`, and is
-  not waiting to empty: chromap's summary carries no whitelist-match rate and no gene assignment, and
-  bulk STAR has no barcode and no cell, so neither has a cross-check rule anyone could defend. That
+  ([0026](0026-alerts-are-advisory-and-non-mutating.md)) — holds the modules whose artifact carries
+  no barcode and no cell (`map/chromap`, `map/star` and `map/star-umi` at the time of writing), and
+  is not waiting to empty: chromap's summary carries no whitelist-match rate and no gene assignment,
+  and bulk STAR has no barcode and no cell, so none has a cross-check rule anyone could defend. That
   is not a disagreement with the bullet above. What is decided here is that a module *declares*
   rather than falls through; whether it declares "not yet" — which empties as adapters land — or
   "nothing defensible", which does not, is a fact about the tool and not about the seam.

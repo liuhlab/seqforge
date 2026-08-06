@@ -164,26 +164,14 @@ against the document directory — `harvest verify` is the natural home, and it 
   [ADR-0021](0021-one-deposit-is-one-source-at-every-layer.md) — one deposit is one source at every
   layer — and it is the second place that principle has cost something concrete rather than merely
   explained something.
-- **Measured on the 1440-record `GSE207085` dump, 2026-08-04: 786 906 characters over 80 requests
-  become 194 038 over 59**, and 375 066 estimated input tokens become 180 035. The comparison is
-  taken on top of the ask-derived batch width ([#282](https://github.com/liuhlab/seqforge/issues/282))
-  rather than instead of it — 540 requests was the world before that landed, and quoting it here
-  would credit this decision with a saving the width rule had already banked. 53 requests for the
-  sample and run documents and 6 for the experiments, which is #233 decision 4's arithmetic to the
-  request. **Not
-  one record is withheld**: every level carries a per-cell serial name (`nasal_prox1_270`,
-  `GSM6277169_r1`), so 4317 of 4320 are reduced and asked their difference, and the three exemplars
-  carry the prose. An earlier reading of "mark, never splice" applied it to every member rather than
-  to the exemplar alone, and under it this deposit folded *nothing* and the plan did not move at all
-  — the measurement is what showed the reading was wrong, and it is recorded here because the next
-  reader will reach the same reading from the same sentence.
-- **The residue the `--llm` recall probe was aimed at goes to zero on this deposit.** Before the
-  reduction, 71 % of every document's four-token spans occurred verbatim in another document of the
-  same request (`quote_residue`, measured), so a misrouted draft would have span-verified against the
-  wrong member. After it, **0 % at every batch width from 1 to 250 and every quote length from one
-  token to four** — a reduced document holds exactly what distinguishes its record, so there is
-  nothing left for two of them to share. The instrument stays, because that is a property of this
-  deposit and not a theorem.
+- **On a deposit built from one template the reduction is most of the bill, and the quote residue it
+  was aimed at goes to zero.** The 1440-record `GSE207085` dump loses three quarters of its document
+  text, withholds not one record, and drops from 71 % of four-token spans shared with another
+  document of the same request to 0 % at every batch width — so a misrouted draft no longer has a
+  wrong member to span-verify against. The numbers, the baseline they are taken against, and the
+  reading of "mark, never splice" they falsified are dated in
+  [`docs/research/gse207085-archive-shape.md`](../research/gse207085-archive-shape.md) (2026-08-04).
+  `quote_residue` stays as an instrument, because 0 % is a property of that deposit and not a theorem.
 - **The eval path and the `run` path each carried the same shape of gap, and both are closed here.**
   `evals/run.py` called `verify_drafts` and stopped, so a graded case whose records collapse would
   have been graded on the exemplar's claims alone — a harness measuring a stage the compiler does not

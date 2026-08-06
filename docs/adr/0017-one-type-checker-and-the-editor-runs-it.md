@@ -176,14 +176,12 @@ for the scope and the exclusion list, and the `typecheck` task for the errors th
   task; nothing breaks, and the "editor shows what CI shows" property is simply unrealised for them.
 - **No module in the tree is held to a lower standard than any other.** The one exception this
   decision was drafted with turned out to be unwritable and unnecessary, which is the section above.
-  What remains in `[[tool.mypy.overrides]]` is only the declaration that four third-party packages
-  ship no type information (scipy, the two PDF engines, pooch) — a fact about them, not a tier.
-- **CI gains a few seconds inside an existing job.** Measured on the same box, 66 files to 138:
-  **+3.8s** warm (1.4s to 5.2s) and **+2.1s** cold (17.3s to 19.4s). No new job, no new runner, no
-  step reordering; the four-job shape and its 62-second wall clock stand, with `test` still the
-  critical path at 51s and the lint job holding ~15s of slack against it. Splitting that job's three
-  steps across runners was measured and rejected: three `setup-pixi` installs to save four seconds
-  off a job that is not the pole.
+  What remains in `[[tool.mypy.overrides]]` is only the declaration that some third-party packages
+  ship no type information — a fact about them, not a tier. The list lives in `pyproject.toml`, with
+  a comment naming what protects the deliverable in each case; enumerating it here went stale twice.
+- **CI gains a few seconds inside an existing job** — two to four, in the lint job, with no new job,
+  no new runner and no step reordering. Splitting that job's three steps across runners was measured
+  and rejected: three `setup-pixi` installs to save four seconds off a job that is not the pole.
 - **Two documents were false the moment the scope moved** and were corrected in the same change: the
   typing section of [`docs/agents/toolchain.md`](../agents/toolchain.md), which enumerated the
   in-scope packages, and the `typecheck` comment in `pyproject.toml`, which said the same thing more
@@ -191,9 +189,3 @@ for the scope and the exclusion list, and the `typecheck` task for the errors th
 - **The scipy and PDF-backend overrides survive untouched.** They deliberately blind mypy to stubs
   pyright reads; with pyright's checker off, the disagreement they cause has no observer. Removing
   them is a separate question with an unmeasured error count behind it.
-- This record supersedes the split but implies nothing about what the compiler decides. No manifest
-  field, no scoring behaviour, no refusal and no exit code moved — in particular the closed
-  instructable surface ([0011](0011-closed-instructable-surface.md)) and produce-every-answer
-  ([0012](0012-produce-every-answer-rather-than-ask.md)) are untouched, and the sweep's one change
-  near them was to stop three frames *upstream* of construction from claiming a closed vocabulary
-  they never validated.

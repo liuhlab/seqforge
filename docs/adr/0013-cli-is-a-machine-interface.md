@@ -18,8 +18,8 @@ exactly the population (agents, batch scripts) least able to make it.
 Three conventions, one shape: **the caller is a machine, and a machine reads the exit code.**
 
 1. **Machine JSON to stdout, human logs to stderr**, so stdout is a clean pipe. There is **no
-   `--json` flag** — JSON is the default and the only machine format (`kb list` is the one
-   plain-text verb).
+   `--json` flag** — JSON is the default and the only machine format (the plain-text verbs are
+   `kb list`, `schema list` and `version`, each printing a menu or an identifier for a human).
 2. **Refusal is an exit code**, uniform across every verb:
 
    | code | meaning |
@@ -71,7 +71,9 @@ and 4 for one a human can, uniformly across verbs — an orchestrator must tell 
 
 - Every `Blocker` carries an actionable `remedy` and a `subject` that is a basename, a dotted path,
   or a dataset id — never an absolute path (R7). `MISSING_TECHNICAL_READ`'s remedy is operable:
-  re-fetch with `fasterq-dump --include-technical`, or pull `sra-pub-src-*` via the SDL API.
+  re-fetch with `fasterq-dump --include-technical`, or fall back to the submitter's own originals.
+  The fallback's wording is [0033](0033-a-submitted-file-is-a-transcript-entry-not-a-checksum.md)'s
+  now — `seqforge io records` first, off a record already on disk, and the SDL API only after it.
 - `manifest validate` returns the same 4 for an open `Conflict` that `run` does, so the orchestrator
   has one rule rather than a per-verb table.
 - The `Stop` hook and exit 4 are the only ways ambiguity clears, and both route to a human — which

@@ -5,7 +5,15 @@ Single repo, single `pyproject.toml`; do **not** split into distributions. Every
 
 ```text
 models/     pydantic v2 schemas; `schema export` is the single source of truth
-probe/      deterministic FASTQ fingerprinting (no LLM, no network)
+probe/      bounded head reads -> Observation; what the bytes say, deterministically (no LLM, no
+            network)
+fingerprint/ a portable head-slice that reproduces the dataset's FULL identity: subsample.py cuts the
+            reads and re-emits reproducible gzip, build.py packages them with a whole-file pin,
+            load.py replays that pin so a slice resolves exactly as the originals would (ADR-0001)
+harvest/    the compiler's ONE LLM seam, and three verbs of which only the middle one touches a model:
+            normalize (deterministic) -> extract (LLM; emits {field, value, quote} and nothing else,
+            no offsets and no verdicts) -> verify (greps the quote back, computes the offsets, checks
+            entailment). The permitted vocabulary is fields.py, never the prompt
 kb/         knowledge base, one dir per technology (spec.yaml + README.md) under kb/specs/;
             hierarchical — an abstract family node (10x-3p-gex, no backend) DESCENDS to leaf chemistries
 resolve/    TWO resolvers. scoring/assign/escalate decide the library from BYTES; records.py decides
@@ -24,6 +32,9 @@ workspace.py the one place `seqforge/` is spelled, and the one place a readable-
 pipeline.py what is INSIDE one compiled pipeline directory: the three filenames, and the reader that
             answers which module ran, the config, the contracted samples, the results dir and the
             per-sample join. Top-level because the composer writes and everyone else reads (ADR-0024)
+project.py  the "one study" views over a MULTI-ASSAY compile — a flat sample_metadata.tsv, one row per
+            sample across every assay, and a project.yaml index. Both DERIVED from the per-assay
+            manifests and deterministically ordered, so they cannot drift and regenerating is a no-op
 recordset.py the record set on disk: ONE loader for both dialects — an `io records` cache, and a
             hand-written `source: user` file that declares structure and never a fact — plus the
             draft `records new` writes. `source` picks the dialect, never the extension. Top-level
@@ -38,11 +49,14 @@ workflows/  hand-written, versioned Snakemake modules (NOT generated). map/ only
             map/star-umi.smk is the module that runs them — the one pipeline that is NOT
             per-sample end to end, which it DECLARES (`fan_in_artifact`) rather than leaving
             to be discovered from its rule graph
+report/     a deterministic READER: one workspace -> one self-contained HTML page that says what the
+            compiler decided and how. It decides nothing and writes only the report, so a missing
+            artifact degrades one panel rather than failing the page (ADR-0024/0025/0026)
 assets/     NOT a package — the one design-token layer (`sf-tokens.css`) that BOTH report pages'
             Tailwind inputs import. A build input, never read at runtime; it ships as the source of
             record. Neutral home because neither report owns it (report/assets/VENDOR.md)
 hooks/      PreToolUse/PostToolUse/Stop guards behind `seqforge hook …` — policy as mechanism
-cli.py      a single typer module (root app + sub-typers). JSON by default
+cli/        a typer package, one module per command group; root app in root.py. JSON by default
 e2e.py      ground-truth runs behind `kb e2e` (sacCer3) / `kb e2e-introns` (ce11), which RUN THE
             COMPOSED SNAKEFILE. `kb e2e-cost` (hg38) invokes STAR directly — a memory instrument must
             reap STAR itself
@@ -53,7 +67,7 @@ tests/      mirrors the packages above; see testing.md for the module→file tab
 ```
 
 Which test file covers which package is [`testing.md`](testing.md). What each module *writes* is
-[`state.md`](state.md).
+[`state.md`](state.md). How the one LLM seam works is [`harvest.md`](harvest.md).
 
 ## Consumer of the liulab stack (R10)
 

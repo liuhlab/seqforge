@@ -64,4 +64,5 @@ their run. **None of that makes it a test set.** When a case goes red we fix the
 it again, which is precisely what a held-out set forbids; a reviewed expectation is a sounder
 regression baseline, not a held-out measurement. A true held-out **test** set is a later milestone,
 it will have to be a dataset nobody has compiled yet, and it is scoped — deliberately as scope, not
-as a decision — in [`docs/agents/eval-corpus.md`](../agents/eval-corpus.md).
+as a decision — in
+[`docs/research/held-out-test-set-scope.md`](../research/held-out-test-set-scope.md).
