@@ -649,18 +649,19 @@ def test_compose_says_on_the_human_stream_which_knowledge_base_it_compiled_under
     two versions differ. So the disclosure is a line on the human stream, beside the admission line
     and for the same reason — not a gate, because there is no failure here to gate on.
 
-    `KB_VERSION` is patched where `cli.compose` binds it rather than on `kb`, because the comparison
-    under test reads that name. It is patched *forward*, to a version the manifest cannot have been
-    filled under: every manifest this suite builds is filled under the live KB, which is exactly why
-    no fixture produced this divergence and exactly why the defect ADR-0037 fixes survived a suite
-    that composes constantly.
+    `KB_VERSION` is patched where `compose.core` binds it rather than on `kb` or on this CLI, because
+    that is the one place the value now enters: `compose` records both versions on its result and
+    every verb renders from those. It is patched *forward*, to a version the manifest cannot have
+    been filled under: every manifest this suite builds is filled under the live KB, which is exactly
+    why no fixture produced this divergence and exactly why the defect ADR-0037 fixes survived a
+    suite that composes constantly.
     """
     manifest_path = tmp_path / "manifest.yaml"
     manifest_path.write_text(
         yaml.safe_dump(synth_smartseq3.manifest.model_dump(mode="json"), sort_keys=True)
     )
     recorded = synth_smartseq3.manifest.provenance.kb_version
-    monkeypatch.setattr("seqforge.cli.compose.KB_VERSION", "2099.1.1")
+    monkeypatch.setattr("seqforge.compose.core.KB_VERSION", "2099.1.1")
 
     result = runner.invoke(
         app,
@@ -707,6 +708,84 @@ def test_compose_is_silent_about_the_knowledge_base_when_it_has_not_moved(
         f"the manifest was filled under the live KB, so there is no divergence to disclose and the "
         f"human stream must stay quiet: {result.stderr}"
     )
+
+
+def test_run_carries_the_knowledge_base_divergence_on_its_machine_surface(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The headless path discloses it too — and discloses it where a machine is looking.
+
+    `run` chains the same `compose` call across ~10⁴ datasets, so it is the one path where this can
+    matter at scale, and it was the one path that said nothing: the disclosure lived as a comparison
+    inside `compose`'s CLI, which `run` does not go through. Copying that comparison into `run.py`
+    would have been a second spelling of one fact; instead `compose` records both versions on its
+    result, and `run` already dumps that result whole.
+
+    So this asserts the *summary*, not the stream. `run`'s stdout contract is one JSON object and its
+    stderr is all but unused — a warning printed once per dataset in a sweep of ten thousand is a
+    warning nobody reads, while a field is one a filter can find. The two versions are what the JSON
+    carries, and both are in `schema export`; `ComposeResult.kb_moved` is the same comparison for
+    Python callers and is deliberately not serialised, so the machine surface holds no key the
+    exported schema does not describe.
+
+    Patching `compose.core.KB_VERSION` forward is what manufactures the divergence, and it works here
+    for a reason worth naming: `run` fills the manifest in the same pass, and `manifest.fill` binds
+    `KB_VERSION` from `kb` independently of the composer. So fill stamps the real version and the
+    compile reads the patched one — which is the real-world shape (a manifest filled months ago,
+    compiled today) reproduced without a stale fixture.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    monkeypatch.setattr("seqforge.compose.core.KB_VERSION", "2099.1.1")
+
+    result = runner.invoke(
+        app,
+        ["run", str(f1), str(f2), "--organism", "559292", "--assembly", "sacCer3",
+         "--annotation", "ensembl", "--no-llm", "--fastq-dir", str(tmp_path), "-C", str(tmp_path)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    compose_stage = json.loads(result.stdout)["stages"]["compose"]
+    assert compose_stage["kb_version"] != compose_stage["manifest_kb_version"], (
+        f"the headless path compiled under a knowledge base that never saw this chemistry decided "
+        f"and its summary does not say so -- which is the whole defect: {compose_stage}"
+    )
+    assert compose_stage["kb_version"] == "2099.1.1", (
+        f"the KB the params actually came from must be named: {compose_stage}"
+    )
+    assert compose_stage["manifest_kb_version"] == kb.KB_VERSION, (
+        f"the KB that decided the chemistry is the one fill stamped, and naming only the live one "
+        f"says a version changed without saying from what: {compose_stage}"
+    )
+
+
+def test_run_says_the_knowledge_base_agrees_when_it_does(tmp_path: Path) -> None:
+    """...and reports agreement on the ordinary path, which is what makes the field readable.
+
+    The mirror of the test above, and the one that keeps the disclosure honest: two versions that
+    differ whenever anyone looks carry no information. Every manifest this suite builds is filled
+    under the live knowledge base, so this is the path every other `run` takes.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1 = tmp_path / "s_R1.fastq.gz"
+    f2 = tmp_path / "s_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+
+    result = runner.invoke(
+        app,
+        ["run", str(f1), str(f2), "--organism", "559292", "--assembly", "sacCer3",
+         "--annotation", "ensembl", "--no-llm", "--fastq-dir", str(tmp_path), "-C", str(tmp_path)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    compose_stage = json.loads(result.stdout)["stages"]["compose"]
+    assert compose_stage["kb_version"] == compose_stage["manifest_kb_version"] == kb.KB_VERSION
 
 
 def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:

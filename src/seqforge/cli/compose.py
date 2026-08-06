@@ -10,7 +10,7 @@ import typer
 from .. import __version__
 from ..compose import ComposeError, compose
 from ..io import default_registry
-from ..kb import KB_VERSION, load_spec
+from ..kb import load_spec
 from ..manifest import (
     ProcessingInputs,
     exit_code_for_report,
@@ -127,11 +127,14 @@ def compose_cmd(
     # The second line the human stream owes. `run_id` folds the LIVE knowledge base (ADR-0037), so an
     # old manifest under a new KB compiles cleanly into its own directory rather than over the last
     # one — but the chemistry in it was still decided under the older KB, and only this says so.
-    if manifest.provenance.kb_version != KB_VERSION:
+    # Read off the result rather than compared here: `run` chains the same `compose` call and owes the
+    # same disclosure, and a comparison spelled once per verb is the spelling that drifts.
+    if result.kb_moved:
         typer.echo(
-            f"compiled under knowledge base {KB_VERSION}; this manifest's chemistry was decided "
-            f"under {manifest.provenance.kb_version}. The params and any admission floor above come "
-            f"from {KB_VERSION}. Re-run `seqforge manifest fill` to decide the chemistry under it too.",
+            f"compiled under knowledge base {result.kb_version}; this manifest's chemistry was "
+            f"decided under {result.manifest_kb_version}. The params and any admission floor above "
+            f"come from {result.kb_version}. Re-run `seqforge manifest fill` to decide the chemistry "
+            f"under it too.",
             err=True,
         )
     # A refusal that does not say why is what #267's triage mis-read as a silent pass, so the reason
