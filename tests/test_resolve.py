@@ -742,6 +742,24 @@ def test_escalate_metadata_disambiguates_divergent_tie() -> None:
     assert esc.winner == "techB"
     assert not esc.questions
 
+    # The rung recorded is the LADDER STEP THAT SETTLED the field, not the step the tie was reached
+    # at. The bytes tied at rung 2; what broke the tie was a span-verified assertion, which is rung 0.
+    assert esc.rung_reached == 0
+    winner = next(c for c in esc.candidates if c.technology == "techB")
+    assert winner.rung_resolved["chemistry"] == 0
+
+    # And it is SURFACED. A tie the prose broke must not be indistinguishable, in the artifact, from
+    # one the bytes broke -- `resolved` is the auditable, non-blocking channel (`_inherited_conflict`
+    # uses the same one), so this moves no exit code and no hash beyond the rung itself.
+    settled = [c for c in esc.conflicts if c.status == "resolved"]
+    assert len(settled) == 1, "a metadata-settled tie must leave a record of who settled it"
+    assert settled[0].field == "library.chemistry"
+    assert settled[0].resolution is not None
+    assert settled[0].resolution.chosen_value == "techB"
+    assert settled[0].resolution.basis == "asserted"
+    assert settled[0].resolution.rung == 0
+    assert {p.basis for p in settled[0].positions} == {"asserted", "observed"}
+
 
 # ---------- benign twins tie EXACTLY, so the representative must be deterministic ----------
 def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_order() -> None:
@@ -3113,6 +3131,14 @@ def test_metadata_v3_vs_reads_v2_also_resolves_at_the_leaf(tmp_path: Path) -> No
     assert out.result.candidates[0].technology == "10x-3p-gex-v2"
     assert out.exit_code() == 0
     assert [c.status for c in out.result.conflicts] == ["resolved"]
+
+    # And the leaf stays the BYTES' decision. A family term narrowed the field to one member; it did
+    # not name v2, so the rung is the byte rung and not the metadata one. The sibling case -- prose
+    # naming the leaf outright -- is `test_escalate_metadata_disambiguates_divergent_tie`, and the two
+    # must not converge: crediting this one to rung 0 would say an assertion decided a leaf it was
+    # deliberately vague about, and the one resolved conflict above is already the record of the
+    # narrowing. Exactly one, because a second would be this narrowing counted twice.
+    assert out.result.candidates[0].rung_resolved["chemistry"] > 0
 
 
 def test_same_family_groups_leaves_under_their_root() -> None:

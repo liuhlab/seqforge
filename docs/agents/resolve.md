@@ -242,8 +242,8 @@ observation with a *different* hypothesis gives an **identical winner whenever t
 decisive** — a wrong hypothesis simply fails its own gates and forces the ladder down. Only where the
 bytes are genuinely non-decisive, which means a processing-divergent pair, may it break the tie — and
 then only through the escalation function, never merged into the observed value. What the artifact
-**records** of such a tie is a separate matter, and today an unhappy one; the ladder's rung-0 row
-below states the gap.
+**records** of such a tie — and which of the two ways the hypothesis reached it — is the ladder's
+rung-0 row below.
 
 ## The escalation ladder
 
@@ -283,16 +283,20 @@ otherwise (a processing-DIVERGENT tie), walk decidable_by in ladder order:
 **Rungs 4–6 are unbuilt**, so in practice a tie that survives rung 3 and has no usable assertion goes
 straight to rung 7 and asks a human. Rung 4 is likely redundant with rungs 2–3.
 
-**Rung 0 is the rung the artifact does not record, and that is a known gap.** The metadata branch
-returns `rung_reached=max(rung, 0)` over a tie whose members were scored at rung 2 or 3, so the
-recorded rung is the tie's *byte* rung and never 0; `manifest fill` stamps `basis: "observed"` on the
-chemistry envelope unconditionally, so no path can make it `asserted`; and the branch raises nothing
-of its own, because a hypothesis that names the picked candidate agrees with it and `_detect_conflicts`
-finds no disagreement. A tie the prose broke is therefore indistinguishable in the manifest from one
-the bytes broke — the single place R9's "record which rung resolved each field" is not honoured. The
-remedy is code, not prose (`rung_reached=0` on that branch, plus a `resolved` `Conflict` naming the
-assertion); until it lands, do not read `rung: 2` on a chemistry as proof that the bytes were
-decisive.
+**Rung 0 is recorded, and only for the tie an assertion NAMED.** The metadata branch splits on how
+the hypothesis reached the winner, and the two halves are recorded differently on purpose:
+
+| the hypothesis | who chose the leaf | rung | basis | raises |
+|---|---|---|---|---|
+| names the winner outright | the prose — the bytes tied and separated nothing | **0** | `asserted` | a `resolved` `Conflict` naming the assertion and the score both members tied on |
+| names the winner's **family** | the bytes, inside a field the prose narrowed | the tie's byte rung | `observed` | nothing new — the narrowing already has its own `resolved` record |
+
+The second row is [ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md) applied to
+provenance: a family term is deliberately vague about the leaf, so crediting it with the leaf would
+claim an authority it disclaims. Neither row blocks — an `observed`↔`asserted` conflict needs an
+observed *value*, and a tie is the absence of one, so nothing is overridden and nothing is arbitrated.
+
+Read `rung: 0` on a chemistry as "prose settled this", and any other rung as "the bytes did".
 
 **Conflict detection runs unconditionally, in parallel with all of this.** If an observed value
 contradicts an asserted one — metadata says 26 bp, the bytes say 28 bp — a `Conflict` is surfaced. The

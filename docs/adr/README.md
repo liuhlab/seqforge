@@ -32,7 +32,7 @@ Numbers only; the table below carries the links.
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023, 0030, 0033, 0034 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
-| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034 |
+| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034, 0040 |
 | `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035, 0036 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032, 0037 |
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
@@ -83,6 +83,7 @@ Numbers only; the table below carries the links.
 | [0036](0036-a-verb-that-needs-a-file-list-is-handed-the-table.md) | A verb that needs a file list is handed the table that states it | `io umi-extract` takes `--units` + `--sample` and resolves its own files through `ordered_fastqs`, so the pairing is stated by `run`/`lane` rather than inferred from two lists sorted in parallel | `cli/io.py`, `workflows/units.py`, `workflows/umite/extract.py`, `workflows/map/star-umi.smk` |
 | [0037](0037-the-live-knowledge-base-is-what-invalidates-a-compile.md) | The live knowledge base is what invalidates a compile | The `kb` component of `run_id` is read at compile time, never from the manifest's fill-time stamp, so an old manifest under a newer KB lands in its own directory | `compose/core.py`, `compose/admission.py`, `cli/compose.py`, `manifest/hash.py` |
 | [0038](0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md) | `loadgroup` over `loadfile`, and grouping is decided per module | Group only what is marked, and mark only after measuring the fixture against the module — `loadfile` makes the longest file the floor | `tests/`, `tests/conftest.py`, the pixi test tasks |
+| [0040](0040-a-tie-the-prose-broke-is-recorded-as-one.md) | A tie the prose broke is recorded as one, and correcting that moves `dataset_hash` | An assertion that NAMES the winner settles it at rung 0 on an `asserted` basis and raises a `resolved` conflict; a family term keeps the byte rung, because the bytes still chose the leaf | `resolve/escalate.py`, `manifest/fill.py`, `models/dataset.py` |
 | [0039](0039-the-anti-restatement-gate-is-not-widened.md) | The anti-restatement gate stays scoped to one page, because widening it was measured and does not work | Four widenings scored the pre-cleanup tree no worse than the cleaned one; restatement is held by review, and the overlap sweep survives as a reading tool | `tests/test_docs.py`, `docs/agents/` |
 
 ## 0019 was never issued
