@@ -659,6 +659,23 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     assert obs.file.size_bytes == len(data)  # the whole-file size, from Content-Range
 
 
+def test_a_206_that_declares_no_total_sizes_the_file_at_the_bytes_actually_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`Content-Range: bytes 0-N/*` — a streaming host that does not know the length. The size falls
+    back to what was read, and must never become 0 or the whole file's true size, which nothing here
+    was told. This is the only branch where the declared total is genuinely absent, and it is
+    unreachable through a server that answers a number."""
+    data = _fastq_gz(5000, read_len=90)
+    url = "https://ftp.x/streamed.fastq.gz"
+    monkeypatch.setattr(requests, "get", range_server({url: data}, known_total=False))
+
+    obs, _seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
+
+    assert obs.file.size_bytes == obs.probe.compressed_bytes_read  # the fall back, not the total
+    assert obs.file.size_bytes < len(data)  # the true size was never declared, so never claimed
+
+
 def test_probe_remote_without_md5_derives_a_bounded_remote_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
