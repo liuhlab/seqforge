@@ -38,6 +38,7 @@ Numbers only; the table below carries the links.
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018, 0034 |
 | `tests/`, and choosing which of them to run | 0002, 0038 |
+| `tests/test_docs.py`, and the agent-facing tree it guards | 0039 |
 | every Python file in the tree — what type-checks it, and what your editor shows | 0017 |
 | the compiler as a whole — what it is *for* | 0003 |
 
@@ -82,6 +83,7 @@ Numbers only; the table below carries the links.
 | [0036](0036-a-verb-that-needs-a-file-list-is-handed-the-table.md) | A verb that needs a file list is handed the table that states it | `io umi-extract` takes `--units` + `--sample` and resolves its own files through `ordered_fastqs`, so the pairing is stated by `run`/`lane` rather than inferred from two lists sorted in parallel | `cli/io.py`, `workflows/units.py`, `workflows/umite/extract.py`, `workflows/map/star-umi.smk` |
 | [0037](0037-the-live-knowledge-base-is-what-invalidates-a-compile.md) | The live knowledge base is what invalidates a compile | The `kb` component of `run_id` is read at compile time, never from the manifest's fill-time stamp, so an old manifest under a newer KB lands in its own directory | `compose/core.py`, `compose/admission.py`, `cli/compose.py`, `manifest/hash.py` |
 | [0038](0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md) | `loadgroup` over `loadfile`, and grouping is decided per module | Group only what is marked, and mark only after measuring the fixture against the module — `loadfile` makes the longest file the floor | `tests/`, `tests/conftest.py`, the pixi test tasks |
+| [0039](0039-the-anti-restatement-gate-is-not-widened.md) | The anti-restatement gate stays scoped to one page, because widening it was measured and does not work | Four widenings scored the pre-cleanup tree no worse than the cleaned one; restatement is held by review, and the overlap sweep survives as a reading tool | `tests/test_docs.py`, `docs/agents/` |
 
 ## 0019 was never issued
 
