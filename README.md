@@ -22,18 +22,6 @@ It produces two artifacts, and only the second is plural:
 - **`manifest.yaml`** — what the data **is**. One per dataset, immutable, content-addressed.
 - **`processing.yaml`** — what to **do** with it: genome, aligner, introns or not. Many per dataset.
 
-`compose` turns the pair into a Snakefile you submit yourself. Same dataset + a different recipe = a
-different pipeline, and the dataset's hash **does not move**.
-
-Files can be local or remote: `seqforge io probe-remote <url>` fingerprints a library straight from a
-URL via one bounded HTTP Range read — same identification, no download.
-
-**Status: the pilot compiles end to end.** The deterministic spine is implemented and green
-(`pixi run check`), and `seqforge run` takes the worm pilot PRJNA1027859 from its raw FASTQs and paper
-to a validated manifest + a runnable Snakefile in one headless pass. The ground-truth alignment runs
-(`kb e2e`) are still on synthetic yeast/worm fixtures with injected counts — it has not yet executed a
-pipeline on real reads at scale.
-
 ## Install
 
 ```bash
