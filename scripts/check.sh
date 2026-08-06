@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `pixi run check` — the pre-PR gate, with its four steps run CONCURRENTLY.
+# `pixi run check` — the pre-PR gate, with its six steps run CONCURRENTLY.
 #
 # It used to be `{ depends-on = ["lint", "fmt-check", "typecheck", "test"] }`, which pixi executes
 # sequentially: the three static checks (~6.8s together) ran before pytest and nothing overlapped.
@@ -8,13 +8,15 @@
 # each other or with pytest.
 #
 # CI is unaffected: `.github/workflows/ci.yml` calls the individual tasks and never this script. It
-# runs `lint`, `fmt-check` and `typecheck` as three STEPS of one job (with the docs build), and
-# `test` as a job of its own — so the concurrency this script buys is a local-only win, and CI's
-# shape is four more jobs (`markdown`, `test-external`, `build`) rather than four runners.
+# runs `lint`, `fmt-check` and `typecheck` as three STEPS of one job (with the docs build), and gives
+# each of the three test lanes a job of its own — so the concurrency this script buys is a local-only
+# win, and CI's shape is more runners rather than more background jobs. What the two DO share is the
+# selections: the lanes named on the `check` line are the ones CI's jobs run, so a lane that is red
+# here is red there and for the same reason.
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous
-# labelled block instead of lines from four tools interleaved by whoever flushed first.
+# labelled block instead of lines from six tools interleaved by whoever flushed first.
 #
 # Steps are invoked as `pixi run <task>` rather than by spelling their command lines again here.
 # The task table stays the one owner of what each step actually runs — duplicating mypy's module
