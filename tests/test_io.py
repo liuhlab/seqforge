@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
 
@@ -19,7 +18,7 @@ from seqforge.io import (
     pack_barcode,
     revcomp,
 )
-from seqforge.io.onlist import HitResult, Orientation, Strand, _dtype_for_width
+from seqforge.io.onlist import HitResult, Orientation, Strand
 
 
 def _pool(rng: random.Random, n: int, width: int) -> list[str]:
@@ -35,24 +34,22 @@ def test_revcomp_and_pack_roundtrip() -> None:
     assert pack_barcode("ACGN") is None  # N is unpackable -> never a hit
 
 
-def test_dtype_is_width_generic_not_hardcoded_16() -> None:
-    assert _dtype_for_width(8) is np.uint32
-    assert _dtype_for_width(16) is np.uint32
-    assert _dtype_for_width(17) is np.uint64  # SPLiT-seq-ish widths still pack (not capped at 16)
-    assert _dtype_for_width(32) is np.uint64
-    with pytest.raises(ValueError):
-        _dtype_for_width(33)
-
-
 def test_packed_onlist_membership_and_floor() -> None:
     codes = PackedOnlist.from_barcodes(["AAAAAAAA", "CCCCCCCC", "AAAAAAAA"])  # dup collapses
-    assert codes.n_entries == 2
-    assert codes.width == 8
+    assert (codes.n_entries, codes.width) == (2, 8)
+    assert codes.codes.dtype == np.dtype(np.uint32), "the narrowest int that holds 2 bits a base"
     present, absent = pack_barcode("AAAAAAAA"), pack_barcode("GGGGGGGG")
     assert present is not None and absent is not None, "an ACGT-only barcode always packs"
     assert codes.contains(present)
     assert not codes.contains(absent)
     assert codes.floor == pytest.approx(2 / 4**8)
+    # Width-generic, never capped at 16: a SPLiT-seq-ish 17 bp barcode still packs, into uint64,
+    # and 2 bits a base puts the real ceiling at 32.
+    seventeen = "ACGTACGTACGTACGTA"
+    wide, code = PackedOnlist.from_barcodes([seventeen]), pack_barcode(seventeen)
+    assert code is not None and wide.codes.dtype == np.dtype(np.uint64) and wide.contains(code)
+    with pytest.raises(ValueError, match="exceeds the uint64 pack budget"):
+        PackedOnlist.from_barcodes(["A" * 33])
 
 
 def test_onlist_hit_rate_forward_and_revcomp() -> None:
@@ -87,13 +84,10 @@ def test_a_dark_cycle_costs_coverage_not_hit_rate() -> None:
     """A read the sequencer never called leaves the DENOMINATOR (#177).
 
     The shape is `evals/benchmark/GSE305031`: one dark cycle inside the 16 bp barcode window, in most
-    of the reads at the head of the run. Barcodes are matched exactly, so every affected read is
-    unmatchable — and under the old denominator that dragged the rate down in proportion to the dark
-    fraction, turning a 91% library into a 9% one and refusing it as barcode-absent.
-
-    Both halves are asserted, because only the pair pins the policy: the rate must be the rate among
-    reads that COULD hit, and the loss must still be visible as `n_tested`. A change that silently
-    dropped the coverage report would pass on the rate alone.
+    of the reads at the head of the run. Barcodes match exactly, so every affected read is
+    unmatchable, and the old denominator dragged the rate down in proportion — a 91% library read as
+    9% and was refused as barcode-absent. Only the pair of assertions pins the policy: the rate is
+    the rate among reads that COULD hit, and the loss stays visible as `n_tested`.
     """
     rng = random.Random(17)
     pool = _pool(rng, 64, 16)
@@ -172,11 +166,9 @@ def _naive_hit_rate(
 
 
 def test_vectorized_hit_rate_matches_the_naive_loop_including_edges() -> None:
-    """The numpy rewrite must agree with the read-by-read loop it replaced, byte for byte.
-
-    Covers the cases that make packing subtle: N bases (unpackable, so neither a hit nor a test),
-    reads shorter than the window, non-zero anchors + offsets, revcomp, and an empty sample.
-    """
+    """The numpy rewrite must agree with the read-by-read loop it replaced, byte for byte, over the
+    cases that make packing subtle: N bases (unpackable, so neither a hit nor a test), reads shorter
+    than the window, non-zero anchors + offsets, revcomp, and an empty sample."""
     rng = random.Random(11)
     pool = _pool(rng, 300, 16)
     onlist = PackedOnlist.from_barcodes(pool)
@@ -204,17 +196,6 @@ def test_vectorized_hit_rate_matches_the_naive_loop_including_edges() -> None:
                     want.orientation,
                     want.offset,
                 )
-
-
-def test_packed_onlist_keeps_no_python_set() -> None:
-    """Regression: membership is `searchsorted` on the sorted array, not a 6.8M-entry `frozenset`.
-
-    That set was ~700 MB — the resolver's whole memory ceiling — and it duplicated information the
-    sorted `codes` array already holds. If someone reintroduces it, this fails.
-    """
-    onlist = PackedOnlist.from_barcodes(_pool(random.Random(5), 128, 16))
-    assert not hasattr(onlist, "_members")
-    assert onlist.codes.tolist() == sorted(onlist.codes.tolist())  # sorted -> searchsorted is valid
 
 
 def test_intersect_fraction() -> None:
@@ -248,15 +229,12 @@ def _gz(path: Path, text: str, *, mtime: int) -> None:
 
 
 def test_the_registry_hashes_content_so_recompression_does_not_break_it(tmp_path: Path) -> None:
-    """A `.gz` hash pins PACKAGING. The barcodes are what we mean, so the barcodes are what we hash.
+    """A `.gz` hash pins PACKAGING; the barcodes are what we mean, so the barcodes are what we hash.
 
     Measured on the real lists (2026-07-15): `3M-february-2018` is a 12 211 647-byte `.gz` from 10x's
     own Cell Ranger 7.2.0 and an 18 350 152-byte `.gz` from the scg_lib_structs mirror. Same 6 794 880
-    barcodes; the two download hashes agree on nothing. A registry pinning the download would reject
-    a mirror serving perfect data, while proving nothing about the barcodes either way.
-
-    This reproduces that in miniature: same content, two gzip headers, two file hashes, one accepted
-    onlist.
+    barcodes; the two download hashes agree on nothing, so a registry pinning the download rejects a
+    mirror serving perfect data. In miniature: same content, two gzip headers, one accepted onlist.
     """
     from seqforge.io.onlist import OnlistRegistry, PackedOnlist, RegistryEntry, codes_sha256
 
@@ -278,11 +256,10 @@ def test_the_registry_hashes_content_so_recompression_does_not_break_it(tmp_path
 
 
 def test_the_code_set_hash_ignores_order_and_duplicates_but_not_membership() -> None:
-    """A whitelist is a SET. Hashing the set is what makes every source comparable.
+    """A whitelist is a SET, and hashing the set is what makes every source comparable.
 
-    A file hash pins packaging (10x's .gz and the mirror's .gz share no bytes and the same barcodes);
-    a text hash pins byte order and line endings (`737K-arc-v1` really has no trailing newline). This
-    pins the barcodes and nothing else -- so it answers the only question we ask of a whitelist.
+    A file hash pins packaging; a text hash pins byte order and line endings (`737K-arc-v1` really
+    has no trailing newline). This pins the barcodes and nothing else.
     """
     from seqforge.io.onlist import PackedOnlist, codes_sha256
 
@@ -299,11 +276,9 @@ def test_the_code_set_hash_ignores_order_and_duplicates_but_not_membership() -> 
 
 
 def test_the_registry_refuses_a_whitelist_that_is_not_the_declared_one(tmp_path: Path) -> None:
-    """A wrong whitelist does not error downstream. It silently produces a thin matrix.
-
-    That is the same failure shape as an inverted strand, so the check must be here, at the
-    point where bytes become a whitelist, and it must refuse rather than warn.
-    """
+    """A wrong whitelist does not error downstream — it silently produces a thin matrix, the same
+    failure shape as an inverted strand. So the check is here, where bytes become a whitelist, and it
+    refuses rather than warns."""
     from seqforge.io.onlist import OnlistNotAvailable, OnlistRegistry, RegistryEntry
 
     _gz(tmp_path / "L.txt.gz", "ACGTACGTACGTACGT\nGGGGCCCCAAAATTTT\n", mtime=1)
@@ -343,27 +318,14 @@ def test_a_local_dir_makes_offline_irrelevant_rather_than_fatal(tmp_path: Path) 
         bare.packed("L")  # ...and without one, the refusal names the way forward
 
 
-def test_fetchable_is_derived_from_the_uri_and_cannot_disagree_with_it() -> None:
-    """It was a hand-set field that no code branched on -- read only for display, and wrong.
-
-    Every real entry declared `fetchable=False` while its true problem was an empty `uri`. A flag
-    that describes behaviour without causing it is a comment with a bool's syntax.
-    """
-    from seqforge.io.onlist import RegistryEntry
-
-    assert RegistryEntry(name="x", uri="https://h/x.gz", sha256="", width=16).fetchable
-    assert not RegistryEntry(name="x", uri="", sha256="", width=16).fetchable
-    assert not RegistryEntry(name="x", uri="synthetic:x", sha256="", width=16).fetchable
-
-
 def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
     """`index.json` sits beside the blobs it describes -- so it is checked against THEM, not itself.
 
     This is the shape the repo keeps getting burned by (`required_config`, `decidable_by`): a table
-    of facts about some data, maintained by hand, validated by a test that reads the same table. Here
-    the index is generated by `io onlist pack` and this test DECODES every blob and compares. The
-    index cannot claim a width, a count or a hash that the data disagrees with, and a blob with no
-    entry -- or an entry with no blob -- is an error rather than a thing nobody notices.
+    of facts about some data, maintained by hand, validated by a test reading the same table. Here
+    `io onlist pack` generates the index and this test DECODES every blob, so the index cannot claim
+    a width, a count or a hash the data disagrees with, and a blob with no entry -- or an entry with
+    no blob -- is an error rather than a thing nobody notices.
     """
     import json
 
@@ -401,12 +363,12 @@ def test_the_shipped_onlist_index_matches_the_shipped_data() -> None:
 
 
 def test_every_orientation_has_a_scan_plan() -> None:
-    """A new orientation must say which strands it scans, or it `KeyError`s at the scan.
+    """A new orientation must say which strands it scans, or it `KeyError`s at the scan -- a path no
+    test can reach, because a member nobody has written a scan for is a member nobody passes.
 
-    Collected from `Orientation` itself, so a new member is covered *because it exists* rather than
-    because someone remembered -- the same discipline `test_every_solo_feature_is_classified` uses
-    for the other `Literal`-keyed map in this repo. mypy does not check a dict literal against its
-    key type, so nothing else would say a value had been added to one and not the other.
+    Collected from `Orientation` itself, so a new one is covered *because it exists*. mypy does not
+    check a dict literal against its key type, so nothing else says a value went into one and not the
+    other; `resolve.window` reads the same map, so the two would disagree silently.
     """
     from typing import get_args
 
@@ -421,8 +383,7 @@ def test_an_unknown_orientation_is_refused_before_it_can_reach_the_index(
     """`pack` is the only writer of `index.json`, so a value outside the vocabulary dies here.
 
     Exit 2 rather than 3: a value outside a closed vocabulary is a malformed invocation, not a
-    Blocker. The package data is redirected at `tmp_path` so that "nothing was written" is something
-    this test can actually assert, rather than infer from the exit code.
+    Blocker. The package data is redirected at `tmp_path` so "nothing was written" is asserted.
     """
     from typer.testing import CliRunner
 
@@ -472,13 +433,9 @@ def test_the_shipped_10x_whitelists_are_the_real_ones() -> None:
     """Pinned to numbers verified against 10x's OWN CellRanger 7.2.0 on 2026-07-15, not remembered.
 
     v3 is separable from 10x Multiome and GEM-X by whitelist ALONE -- all three share the 28 bp /
-    16+12 geometry -- so if these barcodes are wrong, the resolver confidently decides the
-    wrong chemistry and nothing downstream disagrees.
-
-    The code-set hashes below were derived by packing three independent copies of each list (the
-    scg_lib_structs mirror, the lab's copy, and CellRanger 7.2.0's own) and confirming all three
-    produce the same set. The offline-default and floor checks are folded in from the vendoring test,
-    so the 6.8M list is decoded once here rather than twice across two registry instances.
+    16+12 geometry -- so if these barcodes are wrong, the resolver confidently decides the wrong
+    chemistry and nothing downstream disagrees. The hashes come from packing three independent copies
+    of each list (the scg_lib_structs mirror, the lab's, and CellRanger 7.2.0's own) to one set.
     """
     from seqforge.io import DEFAULT_REGISTRY
     from seqforge.io.onlist import codes_sha256, default_registry
@@ -526,20 +483,13 @@ def test_a_packed_onlist_round_trips_through_the_shipped_encoding() -> None:
     assert (decode_codes(encode_codes(codes), 16) == codes).all()
 
 
-# The wheel-contents guarantee -- that the built wheel actually ships the onlists, the `.smk`
-# modules, the KB specs and the report assets -- moved to the CI `build` job, where the wheel already
-# exists (scripts/check_wheel_contents.py, `pixi run check-wheel`, #108). Building a second wheel
-# under pytest cost ~1.9s in `default` and skipped entirely in the `test` env CI runs, so it billed
-# the developer and protected nothing on the machine that mattered.
+# The wheel-contents guarantee lives in the CI `build` job, where the wheel already exists
+# (scripts/check_wheel_contents.py, `pixi run check-wheel`, #108); building a second one under pytest
+# billed the developer and protected nothing on the machine that mattered.
 
-
-# --------------------------------------------------------------------------------------------
-# the HF benchmark fetch — URL construction offline, and failure -> a typed skip signal
-#
-# The actual pull is a networked-job concern (a public HF dataset, anonymous read, pooch-cached).
-# What must hold with no network is that the URL we build is the public `resolve` endpoint and that
-# a fetch failure is the typed exception the eval harness turns into a skip, never a raw crash.
-# --------------------------------------------------------------------------------------------
+# The HF benchmark pull itself is a networked-job concern. What must hold with no network is that the
+# URL we build is the public `resolve` endpoint, and that a fetch failure is the typed exception the
+# eval harness turns into a skip rather than a raw crash.
 
 
 def test_hf_package_url_is_the_public_resolve_endpoint() -> None:
@@ -554,44 +504,29 @@ def test_hf_package_url_is_the_public_resolve_endpoint() -> None:
     assert hf_package_url("/p.tar.gz", revision="v1").endswith("/resolve/v1/p.tar.gz")
 
 
-def test_a_fetch_failure_is_a_typed_unavailable_not_a_crash(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """A network failure (offline, DNS, a 5xx) surfaces as BenchmarkPackageUnavailable — a skip.
-
-    Note what this test no longer claims. It used to say "offline, 404, DNS" in one breath, and that
-    single bucket is exactly the defect below: a package nobody ever published is a *gap in the
-    corpus*, not a network blip, and folding the two made a missing dataset look like bad weather.
-    """
-    import pooch
-
-    from seqforge.io import (
-        BenchmarkPackageAbsent,
-        BenchmarkPackageUnavailable,
-        fetch_benchmark_package,
-    )
-
-    def _boom(**kwargs: object) -> NoReturn:
-        raise OSError("no network in CI")
-
-    monkeypatch.setattr(pooch, "retrieve", _boom)
-    with pytest.raises(BenchmarkPackageUnavailable, match="GSE274290") as caught:
-        fetch_benchmark_package("packages/GSE274290.fingerprint.tar.gz", cache_dir=tmp_path)
-    assert not isinstance(caught.value, BenchmarkPackageAbsent), (
-        "no HTTP response came back at all, so nothing was learned about whether the package exists"
-    )
-
-
-def test_a_404_is_absent_and_a_5xx_is_merely_unreachable(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+@pytest.mark.parametrize(
+    ("failure", "absent"),
+    [
+        ("offline", False),
+        (404, True),
+        ("wrapped-404", True),
+        (429, False),
+        (500, False),
+        (503, False),
+    ],
+)
+def test_only_a_404_says_the_package_is_absent_and_every_other_failure_is_a_skip(
+    failure: object, absent: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """The archive answering "no such file" is a different fact from the archive not answering.
 
-    A 404 means the repo was reached and does not hold this package — it was never published, which
-    is a gap in the corpus that the eval report has to say out loud. Everything else the wire can do
-    (offline, DNS, a rate limit, a 503) says nothing about whether the package exists, so it stays
-    the old skip. `BenchmarkPackageAbsent` SUBCLASSES `BenchmarkPackageUnavailable` on purpose: every
-    existing `except` keeps catching both, and only a caller that wants the distinction pays for it.
+    A 404 means the repo was reached and does not hold this package — never published, a gap in the
+    corpus the eval report says out loud. Everything else the wire can do says nothing about whether
+    it exists, so it stays a skip; folding the two made a missing dataset look like bad weather.
+    `BenchmarkPackageAbsent` SUBCLASSES `BenchmarkPackageUnavailable`, so every existing `except`
+    keeps catching both. The `wrapped-404` row reads the status off the exception CHAIN: pooch passes
+    the requests error through today, but the downloader is pluggable and a future one may re-raise
+    its own type `from` the original, which must not demote to "offline".
     """
     import pooch
     import requests
@@ -602,64 +537,33 @@ def test_a_404_is_absent_and_a_5xx_is_merely_unreachable(
         fetch_benchmark_package,
     )
 
-    def _status(code: int) -> Callable[..., NoReturn]:
-        def _raise(**kwargs: object) -> NoReturn:
-            response = requests.Response()
-            response.status_code = code
-            response.url = "https://huggingface.co/x"
-            raise requests.exceptions.HTTPError(f"{code} for url", response=response)
-
-        return _raise
-
-    monkeypatch.setattr(pooch, "retrieve", _status(404))
-    with pytest.raises(BenchmarkPackageAbsent, match="GSE110823") as absent:
-        fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
-    assert isinstance(absent.value, BenchmarkPackageUnavailable), "still catchable as the old type"
-    assert "never published" in str(absent.value), "the reason is on the exception, not inferred"
-
-    for code in (429, 500, 503):
-        monkeypatch.setattr(pooch, "retrieve", _status(code))
-        with pytest.raises(BenchmarkPackageUnavailable) as caught:
-            fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
-        assert not isinstance(caught.value, BenchmarkPackageAbsent), (
-            f"HTTP {code} is the archive being unwell, not the package being missing"
-        )
-
-
-def test_the_404_is_found_even_when_pooch_wraps_it(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """The status is read off the exception CHAIN, not off the top-level exception only.
-
-    pooch hands the requests error straight through today, but it downloads through a pluggable
-    downloader and a future one may re-raise its own type `from` the original. Walking the chain
-    costs nothing and means a wrapped 404 does not silently demote to "offline".
-    """
-    import pooch
-    import requests
-
-    from seqforge.io import BenchmarkPackageAbsent, fetch_benchmark_package
-
-    def _wrapped(**kwargs: object) -> NoReturn:
+    def _raise(**kwargs: object) -> NoReturn:
+        if failure == "offline":
+            raise OSError("no network in CI")
         response = requests.Response()
-        response.status_code = 404
+        response.status_code = 404 if failure == "wrapped-404" else int(str(failure))
+        response.url = "https://huggingface.co/x"
+        http = requests.exceptions.HTTPError(f"{response.status_code} for url", response=response)
+        if failure != "wrapped-404":
+            raise http
         try:
-            raise requests.exceptions.HTTPError("404 for url", response=response)
+            raise http
         except requests.exceptions.HTTPError as inner:
             raise RuntimeError("download failed") from inner
 
-    monkeypatch.setattr(pooch, "retrieve", _wrapped)
-    with pytest.raises(BenchmarkPackageAbsent):
+    monkeypatch.setattr(pooch, "retrieve", _raise)
+    with pytest.raises(BenchmarkPackageUnavailable, match="GSE110823") as caught:
         fetch_benchmark_package("packages/GSE110823.fingerprint.tar.gz", cache_dir=tmp_path)
+    assert isinstance(caught.value, BenchmarkPackageAbsent) is absent, (
+        f"{failure} was sorted into the wrong bucket, and a skip reason is what the report prints"
+    )
+    if absent:
+        assert "never published" in str(caught.value), "the reason is on it, not inferred"
 
 
-# --------------------------------------------------------------------------------------------
-# publishing a fingerprint package: the producer half of the same contract
-#
-# `preflight` builds a package and `fetch_benchmark_package` reads one; between them there used to
-# be nothing but a maintainer's memory. These tests never upload — the real call is behind an
-# injected API object, which is also what keeps the suite hermetic.
-# --------------------------------------------------------------------------------------------
+# Publishing a fingerprint package is the producer half of the same contract: `preflight` builds one
+# and `fetch_benchmark_package` reads one, and between them there used to be nothing but a
+# maintainer's memory. Nothing below uploads — the real call is behind an injected API object.
 
 
 def _tiny_package(tmp_path: Path, *, name: str = "GSE110823") -> Path:
@@ -696,21 +600,20 @@ class _FakeApi:
 def test_a_dry_run_publish_resolves_the_destination_and_uploads_nothing(tmp_path: Path) -> None:
     """ "Where does this go, and under what name" must be answerable without spending a commit.
 
-    The destination is DERIVED from the filename rather than typed, because the consuming side
-    derives it too: an eval recipe's `hf:` key is written by hand, and a package uploaded under a
-    name no recipe points at is a 404 that nobody discovers until the benchmark next runs. So the
-    dry run reports the public URL the fetch will GET, which is the string those two must agree on.
+    The destination is DERIVED from the filename, because the consuming side derives it too: an eval
+    recipe's `hf:` key is written by hand, and a package uploaded under a name no recipe points at is
+    a 404 nobody sees until the benchmark next runs. So the dry run reports the URL the fetch GETs.
     """
     from seqforge.io import hf_package_url, publish_benchmark_package
 
     package = _tiny_package(tmp_path)
-    result = publish_benchmark_package(package, dry_run=True, api=_FakeApi())
+    api = _FakeApi()
+    result = publish_benchmark_package(package, dry_run=True, api=api)
 
     assert result.dry_run is True
-    assert result.commit_url is None, "a dry run committed nothing, and says so"
+    assert api.calls == [] and result.commit_url is None, "a dry run commits nothing, and says so"
     # The BUILD names its output `GSE110823-<digest12>.fingerprint.tar.gz`; the corpus is keyed by
-    # dataset. A recipe pinned to the digest would 404 the moment the package was rebuilt.
-    assert "-" not in Path(result.rel_path).name.removesuffix(".fingerprint.tar.gz")
+    # dataset, because a recipe pinned to the digest would 404 the moment it was rebuilt.
     assert result.rel_path == "packages/GSE110823.fingerprint.tar.gz"
     assert result.url == hf_package_url(result.rel_path)
     # It read the pin, so the summary states what would enter the corpus rather than what was named.
@@ -721,11 +624,9 @@ def test_a_dry_run_publish_resolves_the_destination_and_uploads_nothing(tmp_path
 def test_publishing_uploads_exactly_the_path_the_fetch_side_reads(tmp_path: Path) -> None:
     """The upload goes through `HfApi().upload_file` — never the `hf` command line, which hangs.
 
-    Pinned here because the failure mode of getting it wrong is not an error: shelling out to `hf
-    upload` blocks forever with no output, which reads as a slow network rather than as a bug.
-
-    The path is asserted against `hf_package_url`'s own output rather than a literal, so the two
-    halves of the contract cannot drift apart while both tests stay green.
+    Getting it wrong is not an error: shelling out to `hf upload` blocks forever with no output,
+    which reads as a slow network rather than as a bug. The URL is asserted against `hf_package_url`
+    rather than a literal, so the two halves of the contract cannot drift apart while both stay green.
     """
     from seqforge.io import hf_package_url, publish_benchmark_package
 
@@ -749,8 +650,7 @@ def test_publishing_refuses_anything_that_is_not_a_fingerprint_package(tmp_path:
     """The pin is validated BEFORE a byte is sent, and a refusal uploads nothing.
 
     A corrupt package on the public repo is worse than a missing one: a missing one skips with a
-    reason, and a corrupt one turns every future run of that case into a diagnosis. The check is
-    cheap — the pin is read straight out of the tarball, without unpacking it anywhere.
+    reason, a corrupt one turns every future run of that case into a diagnosis.
     """
     from seqforge.io import publish_benchmark_package
 

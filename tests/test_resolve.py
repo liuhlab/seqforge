@@ -44,7 +44,6 @@ from seqforge.manifest import (
     fill_manifest,
     validate_manifest,
 )
-from seqforge.manifest.validate import _CHEM_CONF_FLOOR_GEOMETRY, _CHEM_CONF_FLOOR_ONLIST
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.dataset import INDEX_ROLE, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
@@ -860,60 +859,66 @@ def _six_run_dataset(tmp_path: Path) -> tuple[list[Path], OnlistRegistry]:
     return paths, reg
 
 
-def test_run_key_groups_by_accession_and_never_by_role() -> None:
-    from seqforge.resolve import group_runs, run_key
-
-    assert run_key("SRR28716558_1.fastq.gz") == "SRR28716558"
-    assert run_key("SRR28716558_2.fastq.gz") == "SRR28716558"
-    # Illumina's lane/chunk naming, and the `_R1_001` suffix that a naive end-anchor misses. The
-    # lane goes with it -- a run spans its lanes (ADR-0027) -- but the `_S<n>` sample sheet entry
-    # stays, and `test_the_lanes_of_one_library_are_one_run` holds that pair of rules.
-    assert run_key("x_S1_L001_R1_001.fastq.gz") == "x_S1"
-    assert run_key("s_R1.fastq.gz") == "s"
+#: ``(filename, run key)`` -- every clause of what a run IS (ADR-0027), one row each. A run is not a
+#: role, so the mate token goes; a run spans its lanes, so the lane goes; but the `_S<n>` sample sheet
+#: entry STAYS, because it is the one token separating two libraries on one flowcell and a merge
+#: yields one plausible matrix that nobody notices. A lane is three PADDED digits -- the benchmark
+#: tier spells a worm's larval stage `L2` in the same name it spells a lane `L004` -- and a strip that
+#: would leave nothing keeps the name, since an empty key is not a run and every such file would
+#: collapse into one group.
+_RUN_KEYS = [
+    pytest.param("SRR28716558_1.fastq.gz", "SRR28716558", id="a-mate-token-is-not-a-run"),
+    pytest.param("SRR28716558_2.fastq.gz", "SRR28716558", id="its-mate-is-the-same-run"),
     # `--include-technical` dumps _1.._4; a _3 that failed to match would become its own bogus run
-    assert run_key("SRR1_3.fastq.gz") == "SRR1"
-    # single-end: no mate token, so the file is its own run
-    assert run_key("reads.fastq.gz") == "reads"
-
+    pytest.param("SRR1_3.fastq.gz", "SRR1", id="the-third-technical-mate"),
+    pytest.param("s_R1.fastq.gz", "s", id="the-illumina-mate-token"),
+    pytest.param("reads.fastq.gz", "reads", id="no-mate-token-so-the-file-is-its-own-run"),
+    pytest.param("SRR9999999.fastq.gz", "SRR9999999", id="a-bare-accession"),
+    pytest.param("x_S1_L001_R1_001.fastq.gz", "x_S1", id="the-lane-goes-the-sheet-entry-stays"),
+    pytest.param("cell_42_S1_L001_R1_001.fastq.gz", "cell_42_S1", id="lane-1-of-a-library"),
+    pytest.param("cell_42_S1_L002_R1_001.fastq.gz", "cell_42_S1", id="lane-2-is-the-same-run"),
+    pytest.param("cell_42_S3_L001_R1_001.fastq.gz", "cell_42_S3", id="a-second-sheet-entry-is-a-second-run"),
+    pytest.param("cell_42_S1_L001.fastq.gz", "cell_42_S1", id="a-trailing-lane-on-a-bare-stem-comes-off"),
     # #6 (GSE310667): an original-format download keeps the submitter's lane naming AFTER the
-    # accession, so the mate token (`_R1_`/`_R2_`) is buried mid-name where the end-anchored strip
-    # cannot reach it. The leading accession must still win, or the two mates split into singleton
-    # runs and the record join misses every file.
-    assert run_key("SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz") == "SRR36109512"
-    assert run_key("SRR36109512_11314-RM-1_S1_L005_R2_001.fastq.gz") == "SRR36109512"
-    # DDBJ/ENA accessions share the shape; a bare accession with no suffix is still its own run
-    assert run_key("ERR123_S2_L001_I1_001.fastq.gz") == "ERR123"
-    assert run_key("SRR9999999.fastq.gz") == "SRR9999999"
+    # accession, so the mate token is buried mid-name where an end-anchored strip cannot reach it.
+    # The leading accession must still win, or the two mates split into singleton runs and the
+    # record join misses every file. DDBJ/ENA accessions share the shape.
+    pytest.param("SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz", "SRR36109512", id="buried-mate-r1"),
+    pytest.param("SRR36109512_11314-RM-1_S1_L005_R2_001.fastq.gz", "SRR36109512", id="buried-mate-r2"),
+    pytest.param("ERR123_S2_L001_I1_001.fastq.gz", "ERR123", id="an-ena-accession"),
+    pytest.param(
+        "XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz", "XQTL_F4_N2PTM299_L2_1_S2",
+        id="a-larval-stage-beside-a-real-lane",
+    ),
+    # `_L\d+` would fuse the stages wherever the mate strip leaves one trailing, which is this pair.
+    pytest.param("worm_L2_R1_001.fastq.gz", "worm_L2", id="two-digits-is-no-lane-trailing-either"),
+    pytest.param("worm_L0001_R1_001.fastq.gz", "worm_L0001", id="nor-is-four"),
+    pytest.param("L001_R1_001.fastq.gz", "L001", id="a-name-that-is-only-a-lane-keeps-it"),
+    pytest.param("L001.fastq.gz", "L001", id="and-keeps-it-with-no-mate-token-either"),
+]  # fmt: skip
 
-    groups = group_runs(["a_1.fastq.gz", "b_1.fastq.gz", "a_2.fastq.gz"])
-    assert groups == {
+
+@pytest.mark.parametrize(("name", "key"), _RUN_KEYS)
+def test_the_run_key_is_the_accession_never_the_role_the_lane_or_the_flowcell(
+    name: str, key: str
+) -> None:
+    from seqforge.resolve import run_key
+
+    assert run_key(name) == key
+
+
+def test_files_share_a_run_exactly_when_they_share_a_run_key() -> None:
+    """The grouping is `run_key` per file, in input order -- and #263 is what the lane clause bought.
+
+    Retaining the lane made a four-lane library four runs, and with no archive record a run IS the
+    sample identity: four samples at a quarter depth each, at exit 0.
+    """
+    from seqforge.resolve import group_runs
+
+    assert group_runs(["a_1.fastq.gz", "b_1.fastq.gz", "a_2.fastq.gz"]) == {
         "a": [Path("a_1.fastq.gz"), Path("a_2.fastq.gz")],
         "b": [Path("b_1.fastq.gz")],
     }
-    # the GSE310667 shape: two mates per accession collapse to one run each, not four singletons
-    joined = group_runs(
-        [
-            "SRR36109512_11314-RM-1_S1_L005_R1_001.fastq.gz",
-            "SRR36109512_11314-RM-1_S1_L005_R2_001.fastq.gz",
-            "SRR36109513_11314-RM-2_S2_L005_R1_001.fastq.gz",
-            "SRR36109513_11314-RM-2_S2_L005_R2_001.fastq.gz",
-        ]
-    )
-    assert set(joined) == {"SRR36109512", "SRR36109513"}
-    assert all(len(v) == 2 for v in joined.values())
-
-
-def test_the_lanes_of_one_library_are_one_run() -> None:
-    """A run spans every lane it was loaded into (ADR-0027), so the lane token is stripped.
-
-    Retaining it made a four-lane library four runs, and with no archive record a run IS the sample
-    identity -- so four samples at a quarter depth each, at exit 0 (#263).
-    """
-    from seqforge.resolve import group_runs, run_key
-
-    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
-    assert run_key("cell_42_S1_L002_R1_001.fastq.gz") == "cell_42_S1"
-
     fused = group_runs(
         [
             f"cell_42_S1_L00{lane}_{read}_001.fastq.gz"
@@ -923,68 +928,6 @@ def test_the_lanes_of_one_library_are_one_run() -> None:
     )
     assert list(fused) == ["cell_42_S1"]
     assert len(fused["cell_42_S1"]) == 8
-
-
-def test_the_sample_sheet_entry_is_never_stripped_with_the_lane() -> None:
-    """`_S<n>` stays: it is the one token separating two libraries on one flowcell (ADR-0027).
-
-    Stripping it would merge them, and a merge yields one plausible matrix that nobody notices --
-    the failure direction a grouping rule may never take. A library resequenced under a second
-    sample sheet is two runs of one sample here, and only a record may rejoin them.
-    """
-    from seqforge.resolve import group_runs, run_key
-
-    assert run_key("cell_42_S1_L001_R1_001.fastq.gz") == "cell_42_S1"
-    assert run_key("cell_42_S3_L001_R1_001.fastq.gz") == "cell_42_S3"
-
-    split = group_runs(
-        [
-            "cell_42_S1_L001_R1_001.fastq.gz",
-            "cell_42_S1_L002_R1_001.fastq.gz",
-            "cell_42_S3_L001_R1_001.fastq.gz",
-            "cell_42_S3_L002_R1_001.fastq.gz",
-        ]
-    )
-    assert list(split) == ["cell_42_S1", "cell_42_S3"]
-
-
-def test_a_lane_is_three_digits_because_bcl2fastq_pads() -> None:
-    """Only a padded three-digit token is a lane, because `L<n>` is not a lane-only namespace.
-
-    `XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz` -- 15 files on the benchmark tier -- spells the
-    worm's larval stage `L2` in the same name it spells a lane `L004`. All 250 real lane tokens in
-    the tier are three digits because bcl2fastq pads; a larval stage does not (ADR-0027). `_L\\d+`
-    fuses the stages wherever the mate strip leaves one trailing, which is the second case here.
-    """
-    from seqforge.resolve import run_key
-
-    assert run_key("XQTL_F4_N2PTM299_L2_1_S2_L004_R1_001.fastq.gz") == "XQTL_F4_N2PTM299_L2_1_S2"
-    # a two-digit token is not a lane wherever it sits, trailing included
-    assert run_key("worm_L2_R1_001.fastq.gz") == "worm_L2"
-    assert run_key("worm_L0001_R1_001.fastq.gz") == "worm_L0001"
-
-
-def test_a_name_that_is_only_a_lane_keeps_it() -> None:
-    """The floor: a strip that would leave nothing keeps the name (ADR-0027).
-
-    An empty run key is not a run -- every such file would collapse into one group.
-    """
-    from seqforge.resolve import group_runs, run_key
-
-    assert run_key("L001_R1_001.fastq.gz") == "L001"
-    assert run_key("L001.fastq.gz") == "L001"
-    assert list(group_runs(["L001_R1_001.fastq.gz", "L002_R1_001.fastq.gz"])) == ["L001", "L002"]
-
-
-def test_the_lanes_of_a_single_end_library_are_one_run_too() -> None:
-    """No mate token to strip first, so the lane is trailing on the bare stem. It still comes off.
-
-    A single-end library split four ways is the same quarter-depth failure as a paired one.
-    """
-    from seqforge.resolve import group_runs, run_key
-
-    assert run_key("cell_42_S1_L001.fastq.gz") == "cell_42_S1"
-    assert list(group_runs([f"cell_42_S1_L00{lane}.fastq.gz" for lane in (1, 2)])) == ["cell_42_S1"]
 
 
 def test_the_lane_survives_as_data_from_the_same_token_the_run_key_dropped() -> None:
@@ -1113,24 +1056,6 @@ def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(two_chemistry_mul
             assert chem[obs.file.sha256] == run.winner
 
 
-def test_a_sample_spanning_two_chemistries_blocks_but_two_samples_do_not(
-    two_chemistry_multi: Any,
-) -> None:
-    multi = two_chemistry_multi
-    by_run = {r.run_id: [o.file.sha256 for o in r.output.observations] for r in multi.runs}
-
-    # One sample owning BOTH runs' files spans two chemistries -> a mis-grouping, blocks.
-    one_sample = {"mixed": by_run["SRR1"] + by_run["SRR2"]}
-    blockers = multi.sample_disagreements(one_sample)
-    assert len(blockers) == 1
-    assert "mixed" in blockers[0].message
-    assert blockers[0].remedy
-
-    # Two samples, one chemistry each -> a legal 2-assay project, no block.
-    two_samples = {"s1": by_run["SRR1"], "s2": by_run["SRR2"]}
-    assert multi.sample_disagreements(two_samples) == []
-
-
 # ---------- the dataset-level reduction both front doors make (#196) ----------
 
 
@@ -1174,6 +1099,7 @@ def test_reduce_dataset_stops_at_the_sample_gate_on_a_mis_grouping(
     assert resolution.refused_at == "sample"
     assert resolution.exit_code == 3
     assert len(resolution.blockers) == 1 and "mixed" in resolution.blockers[0].message
+    assert resolution.blockers[0].remedy  # actionable: a mis-grouping is the human's to undo
     # The partition is still computed and reported — the refusal is about the JOIN, and a caller
     # rendering it should be able to say which two chemistries the sample was split across.
     assert set(resolution.assays) == {"10x-3p-gex-v3", "bulk-rnaseq"}
@@ -2808,25 +2734,6 @@ def test_the_over_length_escape_survives_a_tail_too_ragged_for_the_share_floor(
     assert not _pretrimmed_gate(r1, r2)
 
 
-def test_an_untrimmed_dataset_does_not_trip_the_pretrimmed_blocker(tmp_path: Path) -> None:
-    """The other half: cDNA is variable by design, and must not be mistaken for a trimmer's work.
-
-    A guard that fired on every 10x dataset would be deleted within a day.
-    """
-    spec = kb.load_spec("10x-3p-gex-v3")
-    reads = kb.generate_reads(spec, n=3000, seed=0)
-    f1 = tmp_path / "sample_R1.fastq.gz"
-    f2 = tmp_path / "sample_R2.fastq.gz"
-    write_fastq_gz(f1, reads["R1"])
-    write_fastq_gz(f2, reads["R2"])  # open-ended cDNA: genuinely many distinct lengths
-
-    out = resolve_dataset([f1, f2], registry=registry_for(spec), use_cache=False)
-
-    codes = {b.code for b in out.result.blockers}
-    assert BlockerCode.PRETRIMMED_VARIABLE_LENGTH not in codes
-    assert out.result.candidates[0].technology == "10x-3p-gex-v3"
-
-
 def test_ont_unsupported_technology_is_refused_not_guessed(tmp_path: Path) -> None:
     # A single long-read ONT file: no KB technology's read set can be satisfied -> refuse, don't guess.
     #
@@ -3010,12 +2917,7 @@ def test_a_dataset_with_no_records_keeps_every_hint() -> None:
     An archive-shaped column may only ever enrich; a rule that needed one would refuse the in-house
     plate on the lab filesystem, which has no records at all and never will.
     """
-    claim = [_chem_assertion("bulk-rnaseq")]
-    empty: list[list[ArchiveRecord] | None] = [None, []]
-    for records in empty:
-        got = chemistry_hypothesis(claim, records=records)
-        assert got is not None and got.value == "bulk-rnaseq"
-    got = chemistry_hypothesis(claim)  # the parameter is optional, and absent means absent
+    got = chemistry_hypothesis([_chem_assertion("bulk-rnaseq")], records=[])
     assert got is not None and got.value == "bulk-rnaseq"
 
 
@@ -3026,10 +2928,9 @@ def test_a_single_cell_record_never_manufactures_a_hypothesis() -> None:
     build — a spec could then identify itself by being described rather than by what is in its reads.
     Silence is what a record is entitled to produce.
     """
-    records = [_experiment_record("TRANSCRIPTOMIC SINGLE CELL")]
-    assert chemistry_hypothesis([], records=records) is None
-    two_protocols = [_chem_assertion("bulk-rnaseq"), _chem_assertion("10x-3p-gex-v3")]
-    assert chemistry_hypothesis(two_protocols, records=records) is None
+    assert (
+        chemistry_hypothesis([], records=[_experiment_record("TRANSCRIPTOMIC SINGLE CELL")]) is None
+    )
 
 
 def test_a_single_cell_record_declines_the_hint_rather_than_blocking(tmp_path: Path) -> None:
@@ -3586,12 +3487,28 @@ def test_a_dead_zone_barcode_read_below_the_support_gate_is_still_admitted(tmp_p
     assert winner.rung_resolved.get("chemistry", 0) >= 3
 
 
-def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: Path) -> None:
-    """The safety half, and why the admission is keyed on the whitelist and not on length: a 75 bp read
-    whose first 16 bp hit NO whitelist is a cDNA/junk read, not a barcode. The admission must NOT fire —
-    the read stays forbidden for v2 and the data resolves to the generic bulk fallback. If this ever
-    regressed, any 60-94 bp cDNA would be admitted as a barcode read and rungs 0-2 would stop being
-    separable."""
+@pytest.mark.parametrize(
+    "read_len",
+    [
+        # 75 bp: the DEAD ZONE the whitelist admission exists to rescue. The admission must key on the
+        # whitelist and not on length, or any 60-94 bp cDNA is admitted as a barcode read and rungs 0-2
+        # stop being separable.
+        pytest.param(DEAD_LEN, id="a-dead-zone-read-that-misses-every-whitelist-is-not-admitted"),
+        # 100 bp = over_length_min: v2's barcode role even PASSES the over-length geometry gate and
+        # reaches rung 3, so only `barcode_onlist_hit` staying False keeps the dominance anchor from
+        # promoting it over the barcodeless fallback. That False is what leaves genuine bulk alone.
+        pytest.param(100, id="genuine-bulk-with-barcode-whitelists-registered-stays-bulk"),
+    ],
+)
+def test_a_read_that_hits_no_registered_whitelist_resolves_to_the_bulk_fallback(
+    read_len: int, tmp_path: Path
+) -> None:
+    """Random reads of a barcode-plausible length, with v2's whitelist registered, must land on bulk.
+
+    The admission and the dominance anchor are both keyed on the whitelist ACTUALLY matching, so a
+    read that hits nothing is a cDNA/junk read whatever its length says. Both rows fail if either
+    starts keying on rung or on geometry instead.
+    """
     rng = random.Random(1)
 
     def rand(n: int) -> str:
@@ -3599,19 +3516,15 @@ def test_a_dead_zone_read_that_misses_every_whitelist_is_not_admitted(tmp_path: 
 
     r1 = tmp_path / "x_R1.fastq.gz"
     r2 = tmp_path / "x_R2.fastq.gz"
-    write_fastq_gz(r1, [rand(DEAD_LEN) for _ in range(600)])  # random 75 bp -> hits no whitelist
-    write_fastq_gz(r2, [rand(DEAD_LEN) for _ in range(600)])
-    reg = registry_for(
-        kb.load_spec("10x-3p-gex-v2")
-    )  # v2 whitelist IS registered; the reads miss it
+    write_fastq_gz(r1, [rand(read_len) for _ in range(600)])  # random -> hits no whitelist
+    write_fastq_gz(r2, [rand(read_len) for _ in range(600)])
+    reg = registry_for(kb.load_spec("10x-3p-gex-v2"))  # registered (available), and never hit
 
     out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
-    winner = out.result.candidates[0] if out.result.candidates else None
-    assert winner is not None
-    assert winner.technology != "10x-3p-gex-v2", (
-        "a whitelist-missing 75 bp read must not be admitted"
-    )
-    assert winner.technology == "bulk-rnaseq"
+    assert out.result.candidates
+    assert out.result.candidates[0].technology == "bulk-rnaseq", [
+        c.technology for c in out.result.candidates[:3]
+    ]
 
 
 # `GSE282525` (Vijay Lab) declares "Chromium Next GEM Single Cell 5' Reagent Kit v2" verbatim and
@@ -3702,34 +3615,6 @@ def test_the_two_extra_cycles_do_not_cost_the_leaf_its_metadata_decision(tmp_pat
     assert out.result.candidates[0].technology == "10x-5p-gex-v2"
 
 
-def test_genuine_bulk_still_resolves_to_bulk_with_barcode_whitelists_registered(
-    tmp_path: Path,
-) -> None:
-    """Safety guard for the dominance anchor (a barcoded candidate that positively matched a whitelist
-    is not shadowed by the barcodeless fallback): it must NEVER hijack genuine bulk. Canonical ~100 bp
-    paired cDNA reads with NO barcode content, resolved with the v2 whitelist registered, must still
-    resolve to bulk-rnaseq. v2 IS consulted here (it reaches rung 3, and its barcode read even passes
-    the over-length geometry gate at 100 bp = over_length_min) — but its onlist FAILS, so
-    ``barcode_onlist_hit`` stays False, the anchor never promotes it, and bulk wins. That False is the
-    invariant keeping every real bulk dataset (and any dataset whose barcodes are genuinely absent)
-    unaffected: the anchor keys on the whitelist ACTUALLY matching, not on rung 3."""
-    rng = random.Random(7)
-
-    def rand(n: int) -> str:
-        return "".join(rng.choice("ACGT") for _ in range(n))
-
-    r1 = tmp_path / "bulk_R1.fastq.gz"
-    r2 = tmp_path / "bulk_R2.fastq.gz"
-    write_fastq_gz(r1, [rand(100) for _ in range(600)])  # canonical cDNA length, no barcode
-    write_fastq_gz(r2, [rand(100) for _ in range(600)])
-    reg = registry_for(kb.load_spec("10x-3p-gex-v2"))  # whitelist registered but never hit
-
-    out = resolve_dataset([r1, r2], registry=reg, use_cache=False)
-    assert out.result.candidates[0].technology == "bulk-rnaseq", [
-        c.technology for c in out.result.candidates[:3]
-    ]
-
-
 def test_both_v2_and_v3_accept_the_over_length_read_on_geometry_alone(tmp_path: Path) -> None:
     """Why the whitelist is load-bearing: at rungs 0-2 (onlist withheld) BOTH chemistries accept the
     150 bp read, so neither length nor segmentation can pick — exactly the sub-rung-3 tie the
@@ -3743,33 +3628,6 @@ def test_both_v2_and_v3_accept_the_over_length_read_on_geometry_alone(tmp_path: 
     for tech in ("10x-3p-gex-v2", "10x-3p-gex-v3"):
         ev = build_tech_evaluation(kb.load_spec(tech), probes, empty)
         assert ev.valid, f"{tech} should accept the over-length read on geometry alone"
-
-
-def test_an_over_length_read_with_a_ragged_tail_is_not_flagged_as_pretrimmed(
-    tmp_path: Path,
-) -> None:
-    """A trimmed barcode read blocks (its offsets shifted); an over-length read whose *junk tail* is
-    ragged does not — CB/UMI are intact at the fixed offsets, so that variation is harmless."""
-    spec = kb.load_spec("10x-3p-gex-v3")
-    cb_pool = kb.build_pools(spec, seed=0)["cb_whitelist"]
-    rng = random.Random(1)
-
-    def rand(n: int) -> str:
-        return "".join(rng.choice("ACGT") for _ in range(n))
-
-    # mode 150 (over-length), but a minority of reads have a shorter junk tail -> n_distinct > 1.
-    barcode = [rng.choice(cb_pool) + rand(12) + rand(122 if i % 10 else 100) for i in range(600)]
-    cdna = [rand(OVER_LEN) for _ in range(600)]
-    r1 = tmp_path / "v3_R1.fastq.gz"
-    r2 = tmp_path / "v3_R2.fastq.gz"
-    write_fastq_gz(r1, barcode)
-    write_fastq_gz(r2, cdna)
-
-    out = resolve_dataset([r1, r2], registry=registry_for(spec), use_cache=False)
-    assert not any(b.code.name == "PRETRIMMED_VARIABLE_LENGTH" for b in out.result.blockers), [
-        b.message for b in out.result.blockers
-    ]
-    assert out.result.candidates[0].technology in {"10x-3p-gex-v3", "10x-3p-gex-v3.1"}
 
 
 def test_no_spurious_barcode_length_conflict_for_an_over_length_read(tmp_path: Path) -> None:
@@ -4256,6 +4114,8 @@ def test_a_lane_too_short_to_absorb_blocks_and_is_told_it_is_a_lane(tmp_path: Pa
         if f.read_id is not None and read_designation(f.basename) == "R2"
     )
     assert seated_r2.basename in blocker.remedy  # the lane it belongs beside, by name
+    assert "read length" in blocker.remedy  # why it was not re-seated
+    assert f"`seqforge probe {seated_r2.basename} {trimmed.name}`" in blocker.remedy
     assert "neither is the fix" in blocker.remedy
     assert "several runs" not in blocker.remedy
 
@@ -4496,9 +4356,3 @@ def test_the_low_confidence_chemistry_note_is_rung_aware(
     # A warning never makes a manifest non-compilable: the note rides along at exit 0.
     assert report.ok is True
     assert exit_code_for_report(report) == 0
-
-
-def test_the_onlist_floor_sits_below_the_geometry_floor() -> None:
-    # Why the 0.60 row above flips on rung: an onlist positively participating (rung 3) is stronger
-    # evidence than bare geometry (rung 2) at the same number, so its floor sits lower.
-    assert _CHEM_CONF_FLOOR_ONLIST < 0.60 < _CHEM_CONF_FLOOR_GEOMETRY

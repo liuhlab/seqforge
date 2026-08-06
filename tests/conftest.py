@@ -429,12 +429,18 @@ def real_cbs(n: int, onlist: str = "3M-february-2018") -> list[str]:
     return unpack_barcodes(PackedOnlist(packed.width, packed.codes[::step][:n]))
 
 
-def range_server(blobs: dict[str, bytes], *, status: int = 206) -> Callable[..., object]:
+def range_server(
+    blobs: dict[str, bytes], *, status: int = 206, known_total: bool = True
+) -> Callable[..., object]:
     """A fake ``requests.get`` that serves a 206 Range slice of ``blobs[url]`` with a Content-Range.
 
     Honors ``Range: bytes=0-N`` exactly as ENA does, so a bounded read returns a bounded prefix and the
     206's ``Content-Range: .../TOTAL`` carries the true file size. ``status=200`` simulates a host that
     ignores Range and hands back the whole file — the case ``_range_get`` must refuse.
+
+    ``known_total=False`` answers ``bytes 0-N/*``, which a server sends when it is streaming and does
+    not know the length. That is the one shape in which the total is genuinely unavailable, so it is
+    the only way to reach the caller's fall back to bytes-read; a numeric total can never exercise it.
 
     It lives here, not in ``test_remote.py``, because ``test_observation_sources.py`` also needs it
     and a test file importing another test file's private helper is a seam being routed around.
@@ -449,10 +455,11 @@ def range_server(blobs: dict[str, bytes], *, status: int = 206) -> Callable[...,
         data = blobs[url]
         match = re.search(r"bytes=0-(\d+)", (headers or {}).get("Range", ""))
         chunk = data[: int(match.group(1)) + 1] if match else data
+        total = str(len(data)) if known_total else "*"
         return types.SimpleNamespace(
             status_code=status,
             content=chunk,
-            headers={"Content-Range": f"bytes 0-{max(0, len(chunk) - 1)}/{len(data)}"},
+            headers={"Content-Range": f"bytes 0-{max(0, len(chunk) - 1)}/{total}"},
             close=lambda: None,
         )
 

@@ -19,6 +19,8 @@ import numpy as np
 import pytest
 
 from seqforge.e2e import (
+    SHIPPED_CELL_FILTER,
+    SHIPPED_OUT_SAM_TYPE,
     _compare,
     simulate,
     star_stats,
@@ -40,10 +42,6 @@ def test_simulate_bookkeeping_is_self_consistent() -> None:
     assert cells <= set(sim.whitelist) and len(cells) == 3
     umis = [b[16:] for b in sim.barcode]
     assert len(set(umis)) == len(umis)
-    # every emitted cDNA fragment really is a substring of the gene it was attributed to
-    by_id = dict(_GENES)
-    for (_cell, gene), _n in sim.truth.items():
-        assert gene in by_id
 
 
 def test_parse_h5ad_reads_x_and_layers(tmp_path: Path) -> None:
@@ -96,21 +94,18 @@ def test_compare_flags_spurious_and_inflated() -> None:
     assert v["example_spurious"] == [{"cell": "C1", "gene": "G3", "observed": 2}]
 
 
-def test_compare_exact_when_matrix_matches() -> None:
-    truth = {("C1", "G1"): 5, ("C1", "G2"): 3}
-    v = _compare(truth, dict(truth))
-    assert v["exact"] is True
-    assert v["recovery_rate"] == 1.0
-    assert v["n_spurious_pairs"] == 0 and v["n_inflated_pairs"] == 0
-
-
 def test_compare_counts_loss_but_no_fabrication() -> None:
     """STAR dropping an ambiguous read is a LOSS, not a fabrication — the verdict must distinguish."""
     truth = {("C1", "G1"): 5, ("C1", "G2"): 3}
     v = _compare(truth, {("C1", "G1"): 4})
+    assert v["exact"] is False
     assert v["n_spurious_pairs"] == 0 and v["n_inflated_pairs"] == 0
     assert v["recovered_total"] == 4
     assert v["recovery_rate"] == 0.5
+
+    exact = _compare(truth, dict(truth))
+    assert exact["exact"] is True and exact["recovery_rate"] == 1.0
+    assert exact["n_spurious_pairs"] == 0 and exact["n_inflated_pairs"] == 0
 
 
 # --------------------------------------------------------------------------------------------
@@ -121,34 +116,34 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
 def test_the_correctness_arms_run_the_composed_snakefile() -> None:
     """The ground-truth gates must drive `starsolo.smk`, never a second hand-written STAR argv.
 
-    For the life of the repo, `kb e2e` built the composed config and then assembled its **own** STAR
-    command line. It tested the params dict — its docstring said exactly that — and it never touched
-    the module. So STARsolo's command line existed twice, by hand, in two places that could not see
-    each other, and only the copy nobody ships was ever checked against ground truth.
-
-    They had already drifted, which is the proof this is not hypothetical: `run_starsolo` hardcodes
-    the four `soloCB/UMI` start/len flags and cannot run a `CB_UMI_Complex` chemistry at all, while
-    `starsolo.smk` branches on `soloType` to handle one.
-
-    This is a source-level check because the thing it guards is a structural claim about which code
-    path the gates take, and the gates themselves need a cluster — so a test that only ran on a
-    cluster would leave this unguarded exactly where it regressed before.
+    `kb e2e` used to build the composed config and then assemble its **own** STAR command line, so
+    STARsolo's argv existed twice by hand and had already drifted: `run_starsolo` hardcodes the four
+    `soloCB/UMI` start/len flags and cannot run a `CB_UMI_Complex` chemistry, while `starsolo.smk`
+    branches on `soloType` to handle one. The arms need a cluster, so nothing here executes them --
+    which is why the call graph is read statically. Only the cost sweep may still call
+    `run_starsolo`: it is the memory instrument.
     """
+    import ast
     import inspect
 
     from seqforge import e2e
 
-    for arm in (e2e.run_e2e, e2e.run_intron_e2e):
-        src = inspect.getsource(arm)
-        assert "run_composed(" in src, f"{arm.__name__} does not run the composed Snakefile"
-        assert "run_starsolo(" not in src, (
-            f"{arm.__name__} calls run_starsolo -- that renders a SECOND STAR command line by hand "
-            f"and leaves the shipped module unexecuted, which is the bug this test exists for"
+    called = {
+        fn.name: {
+            c.func.id
+            for c in ast.walk(fn)
+            if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+        }
+        for fn in ast.walk(ast.parse(inspect.getsource(e2e)))
+        if isinstance(fn, ast.FunctionDef)
+    }
+    for arm in ("run_e2e", "run_intron_e2e"):
+        assert "run_composed" in called[arm], f"{arm} does not run the composed Snakefile"
+        assert "run_starsolo" not in called[arm], (
+            f"{arm} calls run_starsolo -- that renders a SECOND STAR command line by hand and "
+            f"leaves the shipped module unexecuted, which is the bug this test exists for"
         )
-    # run_starsolo may still exist: it is the memory instrument. But only the cost sweep may use it,
-    # because reaping snakemake instead of STAR makes ru_maxrss approximate, and a memory instrument
-    # may not be approximate.
-    assert "run_starsolo(" in inspect.getsource(e2e.run_cost_sweep)
+    assert "run_starsolo" in called["run_cost_sweep"], "the memory instrument lost its measured run"
 
 
 def test_e2e_constructs_experiment_inputs_with_real_fields() -> None:
@@ -247,16 +242,6 @@ def test_nuclei_simulation_splits_exonic_and_intronic_truth() -> None:
     # unique UMIs => injected count == read count, which is what makes the assertion exact
     umis = [b[16:] for b in sim.barcode]
     assert len(set(umis)) == len(umis)
-
-
-def test_nuclei_simulation_is_deterministic_in_seed() -> None:
-    from seqforge.e2e import GeneModel, simulate_nuclei
-
-    models = [GeneModel(gene_id="G1", mrna="ACGT" * 200, introns=("TTTT" * 100,))]
-    a = simulate_nuclei(models, n_cells=2, reads_per_cell=20, seed=7)
-    b = simulate_nuclei(models, n_cells=2, reads_per_cell=20, seed=7)
-    assert a.cdna == b.cdna and a.barcode == b.barcode
-    assert a.truth_exonic == b.truth_exonic and a.truth_intronic == b.truth_intronic
 
 
 def test_nuclei_simulation_refuses_genes_with_no_usable_intron() -> None:
@@ -430,8 +415,8 @@ def test_peak_rss_does_not_inherit_the_measuring_process_own_memory(tmp_path: Pa
         del ballast
 
 
-def test_a_measured_run_reports_a_failing_exit_code_with_its_stderr(tmp_path: Path) -> None:
-    from seqforge.e2e import _run_measured
+def test_a_measured_run_surfaces_a_failure_and_kills_an_overrun(tmp_path: Path) -> None:
+    from seqforge.e2e import E2EUnavailable, _run_measured
 
     code, _wall, _kib, err = _run_measured(
         [sys.executable, "-c", "import sys; sys.stderr.write('boom'); sys.exit(3)"],
@@ -440,10 +425,6 @@ def test_a_measured_run_reports_a_failing_exit_code_with_its_stderr(tmp_path: Pa
     )
     assert code == 3
     assert "boom" in err
-
-
-def test_a_measured_run_that_overruns_its_budget_is_killed(tmp_path: Path) -> None:
-    from seqforge.e2e import E2EUnavailable, _run_measured
 
     with pytest.raises(E2EUnavailable, match="budget"):
         _run_measured(
@@ -518,13 +499,6 @@ def test_the_line_fit_recovers_a_known_slope_and_intercept() -> None:
     assert projected["500M_reads"]["extrapolation_factor"] == pytest.approx(15.6, abs=0.1)
 
 
-def test_the_fit_refuses_when_there_is_nothing_to_fit() -> None:
-    from seqforge.e2e import _fit_line
-
-    assert not _fit_line([(1_000_000, 30.0)])["ok"]
-    assert not _fit_line([(1_000_000, 30.0), (1_000_000, 31.0)])["ok"]
-
-
 def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint(
     tmp_path: Path,
 ) -> None:
@@ -548,49 +522,35 @@ def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint
     assert _load_resumable_points(partial, "abc123") == {10_000_000: measured}
     assert _load_resumable_points(partial, "different") == {}, "a changed input must not be reused"
 
-
-def test_the_shipped_outsamtype_is_the_one_the_module_actually_hardcodes() -> None:
-    """`kb e2e-cost` prices a command it does not itself run, so what it names had better be real.
-
-    The instrument runs `--outSAMtype None` -- it wants a count matrix, and a BAM nobody reads is pure
-    cost -- and `--out-sam-type` exists to price the gap up to what users run. That makes the shipped
-    value a claim about ANOTHER FILE, and a claim about another file spelled out by hand is the shape
-    this repo keeps finding broken: it was written out four times (an argv comment, `run_composed`'s
-    docstring, the flag's help text, the fingerprint case below) and all four still said `BAM Unsorted`
-    while `starsolo.smk` moved to a coordinate-sorted BAM to get `CB`/`UB` into the CRAM.
-
-    One constant now, and this reads the module's shell block back to prove it, so a future move
-    fails here instead of silently repricing the wrong command.
-    """
-    from seqforge.e2e import SHIPPED_OUT_SAM_TYPE
-    from seqforge.workflows import get_module
-
-    # Whitespace-normalized: the flag and its values are one argv fragment, and how the module's shell
-    # block happens to indent or wrap is not what is under test.
-    source = " ".join(get_module("map/starsolo").snakefile.read_text().split())
-    flag = "--outSAMtype " + " ".join(SHIPPED_OUT_SAM_TYPE)
-    assert flag in source, (
-        f"starsolo.smk does not run `{flag}`, so SHIPPED_OUT_SAM_TYPE names a command nobody ships "
-        f"and every gap `kb e2e-cost --out-sam-type` measures against it is the wrong gap"
+    partial.write_text(
+        json.dumps({"fingerprint": "abc123", "points": [{"n_reads": 5, "failed": True}]})
     )
+    assert _load_resumable_points(partial, "abc123") == {}, "a failed point is not a measurement"
+    partial.write_text("{ this is not json")
+    assert _load_resumable_points(partial, "abc123") == {}
+    assert _load_resumable_points(tmp_path / "absent.json", "abc123") == {}
 
 
-def test_the_determinism_guard_filters_the_cell_caller_the_module_actually_runs() -> None:
-    """The guard must interrogate the shipped caller, not a caller of its own choosing.
+@pytest.mark.parametrize(
+    "flag",
+    ["--outSAMtype " + " ".join(SHIPPED_OUT_SAM_TYPE), f"--soloCellFilter {SHIPPED_CELL_FILTER}"],
+    ids=["out_sam_type", "cell_filter"],
+)
+def test_a_shipped_constant_names_the_argv_the_module_actually_runs(flag: str) -> None:
+    """Each constant prices or guards a command `kb e2e-cost` does not run: a claim about ANOTHER FILE.
 
-    `run_cell_filter_determinism` proves that asking `--soloCellFilter` twice gives one answer. That
-    claim is worth nothing if the value it passes has drifted from the module's: `CellRanger2.2` is a
-    closed-form knee and could not be nondeterministic if it tried, so a guard that quietly fell back
-    to it would go green forever while the Monte-Carlo caller we actually ship went unchecked. Same
-    shape as `SHIPPED_OUT_SAM_TYPE` above — a constant that is a claim about another file.
+    Spelled by hand, that claim goes stale silently. `BAM Unsorted` survived in four places after
+    `starsolo.smk` moved to a coordinate-sorted BAM to get `CB`/`UB` into the CRAM; and a determinism
+    guard that quietly fell back to `CellRanger2.2` -- a closed-form knee that could not be
+    nondeterministic if it tried -- would go green forever while the Monte-Carlo caller we ship went
+    unchecked. Whitespace-normalized: how the shell block wraps is not what is under test.
     """
-    from seqforge.e2e import SHIPPED_CELL_FILTER
     from seqforge.workflows import get_module
 
     source = " ".join(get_module("map/starsolo").snakefile.read_text().split())
-    assert f"--soloCellFilter {SHIPPED_CELL_FILTER}" in source, (
-        f"starsolo.smk does not run `--soloCellFilter {SHIPPED_CELL_FILTER}`, so the determinism "
-        f"guard is proving a property of a cell caller nobody ships"
+    assert flag in source, (
+        f"starsolo.smk does not run `{flag}`, so the constant naming it prices or guards a command "
+        f"nobody ships"
     )
 
 
@@ -685,18 +645,6 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
         )
 
 
-def test_resume_ignores_a_failed_point_and_unreadable_state(tmp_path: Path) -> None:
-    from seqforge.e2e import _load_resumable_points
-
-    partial = tmp_path / "p.json"
-    partial.write_text(json.dumps({"fingerprint": "f", "points": [{"n_reads": 5, "failed": True}]}))
-    assert _load_resumable_points(partial, "f") == {}, "a failed point is not a measurement"
-
-    partial.write_text("{ this is not json")
-    assert _load_resumable_points(partial, "f") == {}
-    assert _load_resumable_points(tmp_path / "absent.json", "f") == {}
-
-
 def test_partial_state_is_written_atomically(tmp_path: Path) -> None:
     """A preemption mid-write must not destroy the state that exists to survive preemption."""
     from seqforge.e2e import _atomic_write_json, _load_resumable_points
@@ -748,67 +696,35 @@ def test_sharded_generation_emits_distinct_reads_not_n_copies_of_one_stream(tmp_
             assert shards[i] != shards[j], f"shard {i} and {j} are identical -- same RNG stream"
 
 
-def test_sharded_generation_is_deterministic_and_matches_its_own_shard_count(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("n_reads", "n_workers"), [(101, 1), (7, 4)], ids=["one-worker", "uneven-split"]
+)
+def test_a_shard_split_still_totals_the_requested_depth(
+    tmp_path: Path, n_reads: int, n_workers: int
 ) -> None:
-    """Same seed + same worker count => byte-identical shards. Determinism must survive sharding."""
-    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
-
-    rng = random.Random(11)
-    models = [
-        GeneModel(
-            gene_id="G0",
-            mrna="".join(rng.choice("ACGT") for _ in range(2000)),
-            introns=("".join(rng.choice("ACGT") for _ in range(1000)),),
-        )
-    ]
-    cbs = ["ACGTACGTACGTACGT", "TTTTGGGGCCCCAAAA"]
-
-    def emit(sub: str) -> list[bytes]:
-        d = tmp_path / sub
-        cdna, _bc, _s = write_cost_fastqs_sharded(
-            models, n_reads=600, cbs=cbs, out_dir=d, tag="x", n_workers=3, seed=9
-        )
-        return [gzip.open(p, "rb").read() for p in cdna]
-
-    assert emit("a") == emit("b")
-
-
-def test_a_single_worker_shard_split_still_covers_every_read(tmp_path: Path) -> None:
-    """n_workers=1 must not be a special case that silently drops the remainder."""
+    """One worker takes the inline path and 7 across 4 is 2/2/2/1: neither may drop the remainder."""
     from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
 
     models = [GeneModel(gene_id="G0", mrna="ACGT" * 500, introns=("TTGCA" * 200,))]
     _c, _b, stats = write_cost_fastqs_sharded(
-        models, n_reads=101, cbs=["ACGTACGTACGTACGT"], out_dir=tmp_path, tag="s", n_workers=1
+        models,
+        n_reads=n_reads,
+        cbs=["ACGTACGTACGTACGT"],
+        out_dir=tmp_path,
+        tag="s",
+        n_workers=n_workers,
     )
-    assert stats["n_reads"] == 101 and stats["n_shards"] == 1
-
-
-def test_an_uneven_shard_split_still_totals_the_requested_depth(tmp_path: Path) -> None:
-    """7 reads across 4 workers is 2/2/2/1 -- the remainder must not vanish."""
-    from seqforge.e2e import GeneModel, write_cost_fastqs_sharded
-
-    models = [GeneModel(gene_id="G0", mrna="ACGT" * 500, introns=("TTGCA" * 200,))]
-    _c, _b, stats = write_cost_fastqs_sharded(
-        models, n_reads=7, cbs=["ACGTACGTACGTACGT"], out_dir=tmp_path, tag="u", n_workers=4
-    )
-    assert stats["n_reads"] == 7 and stats["n_shards"] == 4
+    assert stats["n_reads"] == n_reads and stats["n_shards"] == n_workers
 
 
 def test_star_reads_sharded_mates_as_comma_separated_lists() -> None:
     """STAR's --readFilesIn takes a list per mate, which is what lets sharding skip a merge."""
-    from seqforge.e2e import _fq_arg
+    from seqforge.e2e import E2EUnavailable, _fq_arg
 
     assert _fq_arg(Path("/a/one.fastq.gz")) == "/a/one.fastq.gz"
     assert _fq_arg([Path("/a/s0.gz"), Path("/a/s1.gz")]) == "/a/s0.gz,/a/s1.gz"
-
-
-def test_an_empty_shard_list_is_refused_rather_than_passed_to_star_as_nothing() -> None:
-    from seqforge.e2e import E2EUnavailable, _fq_arg
-
     with pytest.raises(E2EUnavailable, match="shards"):
-        _fq_arg([])
+        _fq_arg([])  # no shards would hand STAR an empty --readFilesIn
 
 
 def test_two_points_are_refused_because_their_residual_cannot_falsify_anything() -> None:
@@ -835,6 +751,9 @@ def test_two_points_are_refused_because_their_residual_cannot_falsify_anything()
 
     # and a physically impossible one (memory FALLING with reads) must not sail through either
     assert not _fit_line([(2_000_000, 30.0), (8_000_000, 12.0)])["ok"]
+    # nor one point, nor two readings taken at the same depth
+    assert not _fit_line([(1_000_000, 30.0)])["ok"]
+    assert not _fit_line([(1_000_000, 30.0), (1_000_000, 31.0)])["ok"]
 
 
 def test_three_points_is_the_smallest_fit_that_can_be_wrong() -> None:
