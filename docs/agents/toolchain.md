@@ -30,13 +30,11 @@ has better pydantic-v2 and mypy support.
 system and nothing is exempt — commit a new top-level package and the suite goes red until you add
 the tree to `files`. You still type the line; you cannot forget it.
 
-**The scope lives in `[tool.mypy] files`, not in the `typecheck` task.** The task string is reachable
-only by things that *run* the task (`scripts/check.sh`, the pre-commit hook, CI); an editor extension
-reads the config. Putting the scope where all four look is what makes the editor's errors CI's
-errors. `test_nothing_tracked_escapes_the_type_checker` (`tests/test_repo_invariants.py`) holds it
-open from both sides: every git-tracked `.py` file must fall inside the declared scope, and every
-path `exclude` hides must already be gitignored — so nobody turns the gate green by hiding code from
-it.
+**The scope lives in `[tool.mypy] files`, not in the `typecheck` task** — so an editor reads the same
+scope CI does ([ADR-0017](../adr/0017-one-type-checker-and-the-editor-runs-it.md) argues why).
+`test_nothing_tracked_escapes_the_type_checker` (`tests/test_repo_invariants.py`) holds it open from
+both sides: every git-tracked `.py` file must fall inside the declared scope, and every path
+`exclude` hides must already be gitignored — so nobody turns the gate green by hiding code from it.
 
 **No tiers.** The only `[[tool.mypy.overrides]]` blocks left declare that some third-party packages
 ship no type information — a fact about them, not a tier; nothing in this repo is checked at a lower
@@ -47,16 +45,13 @@ twice (ADR-0017 records the first time).
 A test that patches a module's clock or HTTP handle imports that module by its own name
 (`import requests; monkeypatch.setattr(requests, "get", ...)`), never through the module under test
 (`remote.requests`). Both are the same object, so the patch is identical — but the second form needs
-`implicit_reexport`, and that flag is keyed on the module being imported **FROM**, not the importing
-one, so it cannot be granted to `tests/` only. Measured: an override on the test module clears 0 of
-the 9 findings in `test_remote.py`; one on the source module clears 9. Reaching the module by its
-own name is what lets the guard stay on everywhere.
+`implicit_reexport`, which cannot be granted to `tests/` alone; ADR-0017 measured the difference and
+rejected it. Reaching the module by its own name is what lets the guard stay on everywhere.
 
 **Pylance does not type-check.** `[tool.pyright] typeCheckingMode = "off"` — in the project file
-rather than `.vscode/`, so any pyright-based language server honours it. Pylance keeps hover,
-completion, go-to-definition, symbol search and unresolved-import reporting; none of those duplicated
-mypy. The live squiggles come from the **mypy language server** extension instead, pointed by
-`.vscode/settings.json` at the pixi environment's own binary and recommended to a fresh clone by
+rather than `.vscode/`, so any pyright-based language server honours it. It keeps everything that did
+not duplicate mypy. The live squiggles come from the **mypy language server** extension instead,
+pointed by `.vscode/settings.json` at the pixi environment's own binary and recommended by
 `.vscode/extensions.json`. Decline the extension and you lose live feedback and fall back to the
 task; nothing breaks.
 
