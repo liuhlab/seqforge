@@ -22,6 +22,17 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.8 — `rule umi_count`'s docstring stops counting the matrices it writes (#338, from #333).
+#: **Prose only: no rule, no param, no output changes, and a pipeline recompiled under this version
+#: produces byte-identical config and units.** The bump is unavoidable anyway — `run_id =
+#: H(dataset | processing | kb | workflow)` and editing a shipped `.smk` at all moves the workflow
+#: axis, so a comment costs one round of `run_id` invalidation exactly like a rule would. That price
+#: is why the sentence was left wrong when 2026.8.7's release made it wrong, and why the fix is to
+#: REMOVE the fact rather than correct it: the count lived in three prose spots and a table, one spot
+#: drifted to four matrices for a release that shipped five, and correcting it would have bought the
+#: same invalidation for the same exposure again on the next layer. The table on
+#: `workflows.umite.count` now says how many there are and nothing else does, so the next matrix
+#: added cannot make a shipped file lie and no `WORKFLOW_VERSION` bump is owed for prose again.
 #: 2026.8.7 — `rule umi_extract` renders the **Units table** and the wildcard, and NO file (#327,
 #: ADR-0036). `ordered_fastqs` returns a list, so `--r1 {input.tagged}` expanded a cell's two files
 #: after a one-value option and died at job execution with `exit 2, Got unexpected extra argument(s)`
@@ -203,7 +214,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.7"
+WORKFLOW_VERSION = "2026.8.8"
 
 _MODULE_DIR = Path(__file__).parent
 

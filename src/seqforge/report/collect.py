@@ -555,11 +555,13 @@ def _plan(
         # defensive stub that keeps `seqforge report` from dying on an ATAC manifest.
         quant_str = "atac: fragments (fragments.tsv.gz)"
     elif quant.kind == "umi":
-        # A plate assay counts every cell into ONE object, and the four matrices are not a choice
+        # A plate assay counts every cell into ONE object, and which matrices it holds is not a choice
         # anyone made — so there is no feature list and no `mode` to render here either. Without this
         # branch `quant.mode` AttributeErrors and the whole page dies on a plate workspace, which is
-        # the failure the ATAC branch above already had to be written for.
-        quant_str = "umi: UMIs and reads, exonic and intronic (one .h5ad over all cells)"
+        # the failure the ATAC branch above already had to be written for. The line names the counting
+        # units and not the matrices: enumerating them here is what left this string describing an
+        # object one layer smaller than the one #337 shipped.
+        quant_str = "umi: UMIs and reads per gene (one .h5ad over all cells)"
     else:
         quant_str = f"bulk: {quant.mode}"
 

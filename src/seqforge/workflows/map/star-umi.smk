@@ -417,9 +417,11 @@ rule umi_count:
     reference tool had to warn about, and which does not exist here because each cell's `sample_id`
     travels WITH its BAM on the command line.
 
-    It writes the object directly, with no table in between: 1440 cells x ~55 000 genes x 4 matrices
-    is ~630 MB of dense text for a sparse object several times smaller, and a format written solely
-    to be read back one rule later is a seam with no interface.
+    It writes the object directly, with no table in between: a whole plate as dense text is hundreds
+    of megabytes for a sparse object several times smaller, and a format written solely to be read
+    back one rule later is a seam with no interface. Which matrices it holds is `workflows.umite.count`'s
+    table to state, and this sentence used to restate the count -- which is how it came to claim four
+    of them for a release that shipped five.
 
     A failed counting job re-runs only itself. Every per-cell BAM is on disk, which is what made the
     fan-in affordable in the first place.
