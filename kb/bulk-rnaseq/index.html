@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bulk-paired-end-rna-seq" class="md-skip">
+        <a href="#bulk-illumina-rna-seq" class="md-skip">
           Skip to content
         </a>
       
@@ -1075,16 +1075,20 @@
   
 
 
-<h1 id="bulk-paired-end-rna-seq">Bulk paired-end RNA-seq<a class="headerlink" href="#bulk-paired-end-rna-seq" title="Permanent link">&para;</a></h1>
-<p>Standard bulk RNA-seq on an Illumina sequencer: two paired-end cDNA reads, <strong>no cell barcode and no
-UMI</strong>. Every base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns
-these with plain STAR and counts genes, rather than STARsolo.</p>
+<h1 id="bulk-illumina-rna-seq">Bulk Illumina RNA-seq<a class="headerlink" href="#bulk-illumina-rna-seq" title="Permanent link">&para;</a></h1>
+<p>Standard bulk RNA-seq on an Illumina sequencer: cDNA reads with <strong>no cell barcode and no UMI</strong>. Every
+base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns these with
+plain STAR and counts genes, rather than STARsolo.</p>
 <h2 id="how-its-read">How it's read<a class="headerlink" href="#how-its-read" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>R1</strong> and <strong>R2</strong> are the two ends of the same cDNA fragment (a mate pair). Both are transcript
   sequence, typically 75–150 bp.</li>
 <li>No barcode, no UMI, no whitelist.</li>
 </ul>
+<p><strong>Paired-end and single-end are one entry, not two.</strong> They are the same chemistry run two ways, so
+this entry declares the paired layout and names R1 alone as its single-end configuration; the bytes
+choose between them, and a deposit of one file is explained rather than refused. Nothing about the
+reads is written down twice, so the two configurations cannot drift apart.</p>
 <h2 id="how-seqforge-tells-it-apart-from-single-cell">How seqforge tells it apart from single-cell<a class="headerlink" href="#how-seqforge-tells-it-apart-from-single-cell" title="Permanent link">&para;</a></h2>
 <p>It's the <strong>absence</strong> of a barcode that identifies bulk. seqforge looks for a short, low-diversity
 technical read — the tell-tale of a cell barcode — and finds none, just two long, near-unique cDNA
@@ -1096,8 +1100,7 @@ That's deliberate: when a real single-cell library (BD Rhapsody, SPLiT-seq) happ
 loose shape, seqforge falls back to the barcode-list check to make sure it never quietly treats a
 single-cell library as bulk.</p>
 <h2 id="coverage-note">Coverage note<a class="headerlink" href="#coverage-note" title="Permanent link">&para;</a></h2>
-<p>This is the paired-end, poly-A branch. Single-end bulk and explicit strand-protocol handling aren't
-modeled yet.</p>
+<p>This is the poly-A branch. Explicit strand-protocol handling isn't modeled yet.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>The exact, machine-readable definition seqforge uses lives in this entry's <code>spec.yaml</code>.
 (scg_lib_structs documents single-cell library structures; plain bulk RNA-seq isn't one of them, so

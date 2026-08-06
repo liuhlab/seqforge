@@ -909,10 +909,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-not-yet-ready-for-real-data" class="md-nav__link">
+  <a href="#status-one-question-still-open" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status: not yet ready for real data
+        Status: one question still open
       
     </span>
   </a>
@@ -1031,10 +1031,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-not-yet-ready-for-real-data" class="md-nav__link">
+  <a href="#status-one-question-still-open" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status: not yet ready for real data
+        Status: one question still open
       
     </span>
   </a>
@@ -1099,18 +1099,19 @@ from a list of ~96 barcodes.</p>
 round-barcode matches its own list. The exact linker lengths matter: the original 2018 chemistry puts
 round-1 at a different position than the later Parse chemistry, so a position copied from the wrong
 source silently mismatches. seqforge pins the original layout from the paper's own oligos.</p>
-<h2 id="status-not-yet-ready-for-real-data">Status: not yet ready for real data<a class="headerlink" href="#status-not-yet-ready-for-real-data" title="Permanent link">&para;</a></h2>
+<h2 id="status-one-question-still-open">Status: one question still open<a class="headerlink" href="#status-one-question-still-open" title="Permanent link">&para;</a></h2>
 <p>SPLiT-seq is the pilot's generalization test — it exercises machinery the 10x entries don't (8 bp
-barcodes instead of 16, a barcode split combinatorially across a read). Two things must land before
-it can process real data:</p>
+barcodes instead of 16, a barcode split combinatorially across a read). All three round-barcode lists
+ship packed with seqforge, so the entry resolves and compiles from bytes alone. One thing is still
+unconfirmed:</p>
 <ul>
-<li><strong>The barcode lists must ship.</strong> The entry names three round-barcode lists that aren't bundled yet.</li>
-<li><strong>The strand must be confirmed on real data.</strong> It's derived from the paper's oligos and the authors'
-  own pipeline (both point the same way), but the honest state is that most pipelines never explicitly
-  chose the strand — they inherited a default. The decisive check is to run the paper's own data both
-  ways; the correct strand assigns far more reads.</li>
+<li><strong>The strand has not been checked against real data.</strong> It's derived from the paper's oligos and
+  corroborated by the authors' own pipeline (both point the same way, and no source anywhere claims
+  the opposite), but the honest state is that most pipelines never explicitly chose the strand — they
+  inherited a default, so agreement with them is weaker evidence than it looks. The decisive check is
+  to run the paper's own data both ways; the correct strand assigns roughly an order of magnitude more
+  reads.</li>
 </ul>
-<p>Until then this entry is intentionally inert.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>Read structure and linker sequences pinned from
 <strong><a href="https://teichlab.github.io/scg_lib_structs/methods_html/SPLiT-seq.html">scg_lib_structs — SPLiT-seq</a></strong>

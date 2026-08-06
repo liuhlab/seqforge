@@ -853,6 +853,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-one-neighbour-the-reads-cannot-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The one neighbour the reads cannot decide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gotchas" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1031,6 +1042,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-one-neighbour-the-reads-cannot-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The one neighbour the reads cannot decide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gotchas" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1113,6 +1135,20 @@ whitelists differ too — <code>737K-august-2016</code> vs <code>3M-february-201
 <p>If a paper or database says "v2" while the reads are actually 28 bp, seqforge does <strong>not</strong> quietly
 pick one. It surfaces the disagreement (metadata says 26 bp, the bytes say 28 bp) and hands it to a
 human — the bytes decide what the data is.</p>
+<h2 id="the-one-neighbour-the-reads-cannot-decide">The one neighbour the reads cannot decide<a class="headerlink" href="#the-one-neighbour-the-reads-cannot-decide" title="Permanent link">&para;</a></h2>
+<p><strong>5' v1/v2 is this entry's twin in every byte.</strong> It has the same 26 bp R1 (16 bp barcode + 10 bp UMI),
+the same open-ended cDNA R2, and — the part that closes every cheap route — the <strong>same
+<code>737K-august-2016</code> whitelist</strong>. Both entries point at the same file, so the barcode list cannot break
+the tie either. The backends differ in exactly one parameter, <code>soloStrand</code>, and no probe can observe
+it: 5' reads the transcript from the other end.</p>
+<p>That makes it the <strong>only</strong> read-undecidable pair in this knowledge base, and worth knowing because the
+resolver's behaviour changes here. Rather than pick, it reaches for metadata (papers say "5'" or "3'"
+reliably even when they are vague about the version) or a trial alignment, and asks a human if neither
+answers. Before the 5' entry existed a 5' library resolved silently to this spec and compiled
+<code>soloStrand Forward</code> — a measured 0.5–0.6 gene-expression correlation against &gt;0.98 for the right
+orientation, at exit 0, with nothing red.</p>
+<p>None of this is true of v3: at 28 bp its geometry-mates each carry their own list, so the barcode
+list settles them.</p>
 <h2 id="gotchas">Gotchas<a class="headerlink" href="#gotchas" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>The barcode read can go missing on SRA.</strong> <code>fasterq-dump</code> without <code>--include-technical</code> drops R1
