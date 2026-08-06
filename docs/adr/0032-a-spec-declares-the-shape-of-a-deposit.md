@@ -18,10 +18,9 @@ A plate-based, one-cell-one-file library — SMART-seq3, and every assay where d
 at the bench — arrives as 1440 samples of one chemistry, and everything downstream reads it as 1440
 independent libraries. Three facts about it are true and none of them is in the bytes:
 
-1. **One `Sample` of this chemistry IS one cell.** Deriving it was tried and is backwards in both
-   directions: SMART-seq2 has neither a UMI nor a barcode and is still one cell per file, and
-   UMI-tagged bulk has a UMI and no barcode and is one file per specimen. The property is about
-   *where demultiplexing happened*, which is outside the bytes entirely.
+1. **One `Sample` of this chemistry IS one cell.** The property is about *where demultiplexing
+   happened*, which is outside the bytes entirely; deriving it was tried and fails in both directions
+   at once (below).
 2. **A cell below some read depth cannot be analysed.** Not *should not* — a well with 400 reads
    produces a matrix column of noise, and the pipeline reports it with the same confidence as a good
    one.

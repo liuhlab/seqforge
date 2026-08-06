@@ -30,6 +30,7 @@ from typing import Literal
 from ..io import OnlistRegistry
 from ..kb import KB_VERSION
 from ..kb.schema import Element, Spec
+from ..models.base import Basis
 from ..models.blocker import ValidationWarning
 from ..models.dataset import (
     AssayLabel,
@@ -229,11 +230,19 @@ def fill_manifest(
     rung = winner.rung_resolved.get("chemistry", 2)
     chemistry = sorted({winner.technology, *winner.equivalence_members})
 
+    # Rung 0 is the metadata rung, and `resolve` reaches it for exactly one reason: the bytes tied
+    # across a processing-divergent pair and a span-verified assertion broke the tie. The basis has
+    # to follow the rung there, because `observed` would claim the bytes decided a question they
+    # explicitly failed. This was hardcoded `observed` for as long as it existed, which made a
+    # prose-settled chemistry indistinguishable in the artifact from a byte-settled one -- and the
+    # `Conflict` `escalate` now raises beside it is the other half of saying so.
+    basis: Basis = "asserted" if rung == 0 else "observed"
+
     library = LibrarySection(
         chemistry=EvidencedChemistrySet(
             # the chemistry equivalence class: benign twins are recorded together, machine-visibly
             value=chemistry,
-            basis="observed",
+            basis=basis,
             evidence=sorted(obs_by_sha),
             confidence=confidence,
             rung=rung,

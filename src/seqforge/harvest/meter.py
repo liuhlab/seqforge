@@ -7,7 +7,7 @@ the reported call count was the *document* count (so a retried document cost tok
 and there was nowhere to stand between two calls to say "stop".
 
 :class:`TokenMeter` is that place. It satisfies ``LLMProvider`` and wraps one, so it drops in with no
-registration and the three adapters stay untouched. It is:
+registration and the two adapters stay untouched. It is:
 
 - **the only thing that counts** — one :class:`Exchange` per real request, retries included;
 - **the only thing that refuses** — a **Ceiling** on the tokens one run may spend, raised as a

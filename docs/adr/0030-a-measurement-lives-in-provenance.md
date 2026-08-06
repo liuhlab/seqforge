@@ -120,9 +120,9 @@ third of the three surfaces the number must not reach.
 `test_the_drop_is_invisible_to_the_dataset_hash` (`tests/test_compose.py`) composes one manifest twice
 under two thresholds and pins two sample lists against one unmoved `dataset_hash`, and
 `test_compose_refuses_a_manifest_that_measured_no_reads_rather_than_gating_it_as_empty` holds the
-*not measured* / *empty* distinction at the gate rather than only at `reads_in_run`. No shipped spec
-declares `min_input_reads`, so both run against a spec the test declares one on — which is the only
-way to hold a rule whose shipped state is that nobody exercises it.
+*not measured* / *empty* distinction at the gate rather than only at `reads_in_run`. Both run against
+a floor the test declares, rather than against `smartseq3`'s shipped 1000, so the rule is held
+independent of any one spec's number.
 
 ## Consequences
 
@@ -142,11 +142,7 @@ way to hold a rule whose shipped state is that nobody exercises it.
   threshold was read to EOF at zero extra bytes — and a future threshold set above the probe budget
   would be comparing against an extrapolation, which is a fact about that threshold to state where
   it is chosen.
-- **A fingerprint package reproduces the counts the same way it reproduces the hash**: the pin
-  carries the original's size and ISIZE, the replay rebuilds the estimate from them, and a package
-  cut at or above the probe budget lands on the same number. Where it does not — a lighter package —
-  only the counts differ, and `dataset_hash` still matches, which is the property this record
-  arranges rather than a coincidence.
-- **The report does not surface the distribution yet.** `report/collect.py` renders provenance as
-  three key/value rows; the depths are in the manifest and nothing draws them. Making a starved-well
-  histogram legible is a report change, and it is not made here.
+- **A fingerprint package replays the counts from the pinned size and ISIZE.** A lighter package
+  moves the counts and never `dataset_hash` — the property this record arranges, not a coincidence.
+- **Nothing renders the distribution.** `report/collect.py` prints provenance as three key/value
+  rows; this record puts the depths in the manifest and does not draw them.

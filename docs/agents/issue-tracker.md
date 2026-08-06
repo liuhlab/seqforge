@@ -13,15 +13,27 @@ Issues and PRDs for this repo live as GitHub issues on `liuhlab/seqforge`. Use t
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
+## Triage labels
+
+The skills speak in terms of five canonical triage roles. Each label string **equals its role name** —
+the mapping is the identity, deliberately, so there is no translation step to get wrong. Where a skill
+mentions a role ("apply the AFK-ready triage label"), use the string from this table with
+`gh issue edit <number> --add-label "..."`.
+
+| Label             | Meaning                                  |
+| ----------------- | ---------------------------------------- |
+| `needs-triage`    | Maintainer needs to evaluate this issue  |
+| `needs-info`      | Waiting on reporter for more information |
+| `ready-for-agent` | Fully specified, ready for an AFK agent  |
+| `ready-for-human` | Requires human implementation            |
+| `wontfix`         | Will not be actioned                     |
+
+**`/triage` is for issues you did not create.** Tickets that `/to-tickets` emits are already
+agent-ready and skip triage entirely.
+
 ## Pull requests as a triage surface
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
-
-When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
-
-- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
-- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
-- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_ What `yes` would turn on is the skill's behaviour, not this repo's configuration, and lives wherever `/triage` is defined.
 
 GitHub shares one number space across issues and PRs, so a bare `#42` may be either — resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 
@@ -48,3 +60,8 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 
 This tracker is already in active use — issues carry real history and merged PRs reference them by
 number. Skills that create issues are adding to a live queue, not bootstrapping an empty one.
+
+All five triage labels and all four `wayfinder:*` labels exist on `liuhlab/seqforge`. `wontfix` is
+GitHub's stock label and predates this setup; the rest were created for these skills. The repo's other
+stock labels (`bug`, `enhancement`, `documentation`, …) are orthogonal — triage does not read or write
+them.

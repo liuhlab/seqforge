@@ -47,27 +47,18 @@ post-process, repair or partially accept a response: a malformed batch fails who
 when no credential names a provider, refuse — never fall back to one, because extracting under a
 different model than intended is a provenance bug that looks like success.
 
-**The gate reads exactly two envelopes, and that is not "partially accept" (2026-08-02).** A
-response whose top level is a bare JSON array is the same batch under a different envelope: it is
-rewrapped as `drafts` and falls into the identical per-draft validation. This is not the forbidden
-act, on two counts. It is not in a **provider adapter** — the three adapters are still untouched and
-the shared gate is still the only place a shape is judged; and nothing is *partially* accepted,
-because the whole response must BE the array. Nothing is searched for inside a response, nothing is
-repaired, and every other top-level shape still fails whole. The forbidden thing is salvaging a
-drafts-shaped fragment out of a response that also contained something else — that is the silent
-half-parse this ADR is about, and it stays forbidden. The accepted set is closed at two; a third
-shape raises. Measured cost of not doing this: 6 of 141 documents lost on `deepseek-v4-flash`, whole,
-each of them valid.
+**The gate accepts exactly two envelopes: `{"drafts": [...]}`, and a bare top-level array, which is
+rewrapped and falls into the identical per-draft validation.** The whole response must BE the array;
+the set is closed and a third shape raises. Salvaging a drafts-shaped fragment out of a response that
+carried something else stays forbidden — that is the silent half-parse. Measured cost of refusing the
+array instead: 6 of 141 documents lost whole on `deepseek-v4-flash`, each of them valid.
 
-**A wrapper at the seam is not a wider adapter, and the meter is the case in point.**
-`harvest/meter.py` satisfies `LLMProvider` and wraps one so that a run has somewhere to stand
-*between* two calls — to count real requests, to refuse past a token **Ceiling**, and to hold the
-transcript. It never reads `response.text` for meaning and hands the response back byte-identical, so
-it does none of the three forbidden acts above; the three adapters stay untouched, and
-`ExtractionResult.model_validate_json` is still the only gate. What it *does* touch is identity, and
-that is the trap to watch: `ExtractorProvenance.model_id` is `f"{provider.name}/{model}"`, so a
-wrapper that named itself would restamp every assertion in a corpus with a provider that does not
-exist. It proxies `name` and `default_model()` instead.
+**A wrapper at the seam is not a wider adapter.** `harvest/meter.py` satisfies `LLMProvider` and wraps
+one so a run has somewhere to stand *between* two calls — to count real requests, to refuse past a
+token **Ceiling**, and to hold the transcript. It reads no meaning from `response.text` and hands the
+response back byte-identical, so the two adapters stay untouched. What it must not touch is identity:
+`ExtractorProvenance.model_id` is `f"{provider.name}/{model}"`, so it proxies `name` and
+`default_model()` rather than naming itself.
 
 **Enforced by.** `test_resolve_provider_walks_the_precedence_table` and `test_provider_defaults`
 (`tests/test_extract.py`) for the selection;
@@ -88,17 +79,13 @@ reaching verification through the weakest-shaped provider, and
   from `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY`) and **refuses rather than guessing** when no
   credential is present — silently extracting with a different model than intended is a provenance
   bug, and a cheap one to make.
-- **Model choice is a cost lever, and the corpus is what decides which way it points.** This bullet
-  used to say the DeepSeek preset takes the cheap end by default (`deepseek-v4-flash`, "≈3× cheaper
-  per token"), because that is a real lever across 10⁴ datasets and it is safe to pull — it cannot
-  move correctness. Per-token price was the wrong currency: measured head-to-head over the benchmark
-  corpus, `deepseek-v4-pro` was **faster and spent fewer output tokens** on the same input, most of
-  flash's extra output being claims the prompt never asked of that document and `verify_drafts`
-  throws away. The default is `deepseek-v4-pro` (#188, #184); flash is one `--model` away. The
-  numbers, and the caveat that they are single-trial draws, are in `evals/README.md` — a decision
-  belongs here, a measurement belongs where it is dated. Neither model is an allowlist — the model
-  string is passed through, so a model DeepSeek ships tomorrow needs no release here, and an unknown
-  name comes back as a 400.
+- **Model choice is a cost lever, and the corpus is what decides which way it points.** Per-token
+  price is the wrong currency: the DeepSeek default is `deepseek-v4-pro` (#188, #184), which measured
+  head-to-head was **faster and spent fewer output tokens** than flash, whose surplus was claims the
+  prompt never asked for and `verify_drafts` throws away. Flash is one `--model` away, and neither is
+  an allowlist — the model string is passed through, so an unknown name comes back as a 400 rather
+  than needing a release here. The run, and the caveat that it is single-trial draws, is dated in
+  `evals/README.md`.
 - **The default model must still be named, not assumed.** The same prompt on a different model is a
   *different extractor*, so a run's numbers transfer to no other one. `eval run` stamps
   `EvalReport.extractor` — `{provider, model, prompt_version}`, the provider's default resolved
@@ -106,9 +93,7 @@ reaching verification through the weakest-shaped provider, and
   the coverage warning can name the model that ran instead of prescribing one. Absent on `--no-llm`,
   which has none.
 - **Transient API errors are retried once the provider says they are transient**, and the loop is
-  above both adapters rather than inside either (`_complete_with_retry`, `harvest/extract.py`). This
-  bullet used to record the opposite as a known gap — that a 429, a 5xx or a timeout became
-  `ProviderUnavailable` on the first attempt and exited the run at 1 — and that gap is closed: the
+  above both adapters rather than inside either (`_complete_with_retry`, `harvest/extract.py`). The
   provider classifies (`ProviderUnavailable.transient` / `.retry_after`, because by the time the
   exception reaches the loop the SDK's own is gone and "no credential" is indistinguishable from
   "rate limited"), and the loop only obeys. One budget of `_MAX_RETRIES` covers both the transient

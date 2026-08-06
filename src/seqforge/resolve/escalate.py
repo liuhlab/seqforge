@@ -219,14 +219,31 @@ def escalate(
         )
 
     # a processing-divergent tie: metadata (rung 0) may still disambiguate; else a human question.
-    picked = _metadata_disambiguation(hypothesis_value, top, divergent_ties, specs)
-    if picked is not None:
-        candidates = [_candidate(picked, picked.equivalence_members, rung)]
+    settled = _metadata_disambiguation(hypothesis_value, top, divergent_ties, specs)
+    if settled is not None:
+        picked, named_exactly = settled
+        # The rung recorded per field is the one that SETTLED it, not the one the tie was reached at.
+        # Where the assertion NAMED the leaf, the bytes tied at 2 or 3 and could not separate these
+        # specs at all -- that is what a divergent tie is -- so the step that decided it is rung 0.
+        # This read `max(rung, 0)` for as long as it existed, a no-op over a non-negative rung, and so
+        # recorded the byte rung every time: the manifest said the bytes had settled a question the
+        # bytes had just failed.
+        #
+        # A FAMILY term is the other case and keeps the byte rung. There the prose narrowed the field
+        # and the bytes still chose the leaf within it, which is the whole content of "a family term
+        # narrows, it does not conflict" -- and that narrowing already has its own resolved record,
+        # so crediting it here would both misattribute the decision and say it twice.
+        settled_rung = 0 if named_exactly else rung
+        candidates = [_candidate(picked, picked.equivalence_members, settled_rung)]
         candidates += [_candidate(e, e.equivalence_members, rung) for e in valid if e is not picked]
         return Escalation(
             candidates=candidates,
-            conflicts=conflicts,
-            rung_reached=max(rung, 0),
+            conflicts=(
+                [*conflicts, _metadata_settled_conflict(picked, top, hypothesis_confidence)]
+                if named_exactly
+                else conflicts
+            ),
+            rung_reached=settled_rung,
             winner=picked.tech,
         )
 
@@ -736,8 +753,15 @@ def _metadata_disambiguation(
     top: TechEvaluation,
     divergent_ties: list[TechEvaluation],
     specs: dict[str, Spec],
-) -> TechEvaluation | None:
-    """If a span-verified hypothesis names one tie member, pick it (rung 0, surfaced ``asserted``).
+) -> tuple[TechEvaluation, bool] | None:
+    """Pick a tie member from prose, and say **which of the two ways** picked it.
+
+    The flag is ``True`` when the assertion NAMED the winner and ``False`` when it only named the
+    winner's family. The caller records the two differently and must not merge them: a named leaf is
+    settled by the prose, at rung 0, on an ``asserted`` basis; a family term merely *narrowed* the
+    field and the bytes still chose the leaf inside it, which stays ``observed`` at the byte rung.
+    Crediting the family case to the prose would say an assertion decided something it was explicitly
+    vague about, and that is the reading a family term is defined to not support.
 
     Failing an exact name, fall back to the **family**, and only when the family picks out exactly one
     tie member. That is not a second-guess, it is the authority split this module already runs on and
@@ -762,9 +786,9 @@ def _metadata_disambiguation(
     members = [top, *divergent_ties]
     for e in members:
         if e.tech == hyp_tech:
-            return e
+            return e, True
     kin = [e for e in members if same_family(specs, hyp_tech, e.tech)]
-    return kin[0] if len(kin) == 1 else None
+    return (kin[0], False) if len(kin) == 1 else None
 
 
 def _divergent_question(
@@ -793,6 +817,56 @@ def _divergent_question(
         # vocabularies are declared apart, so what is collected here stays a `set[str]`.
         decidable_by=sorted(decidable) or ["user"],  # type: ignore[arg-type]
         rung=7,
+    )
+
+
+def _metadata_settled_conflict(
+    picked: TechEvaluation, top: TechEvaluation, confidence: float
+) -> Conflict:
+    """A processing-divergent tie the PROSE broke, recorded so the artifact says who broke it.
+
+    Without this the two outcomes are indistinguishable downstream: a chemistry the bytes decided and
+    a chemistry an assertion decided both arrive as a winner with a rung, and only the rung — now 0 —
+    hints at the difference. ADR-0010 puts an `observed` value above an `asserted` one and blocks when
+    they disagree; that is not this case. Here the bytes returned a *tie*, which is no observed value
+    at all, and the assertion is the only position with anything to say. Nothing is overridden, so
+    nothing blocks.
+
+    ``status="resolved"`` is the same auditable, non-blocking channel `_inherited_conflict` uses: it
+    surfaces in the report, moves no exit code, and asks nobody anything. The losing position is
+    carried at the score both specs tied on, because "the bytes preferred neither" is exactly what a
+    reader of this record needs to know — a tie recorded as a one-sided decision is how the next
+    reader concludes the bytes were decisive and stops looking for the assertion.
+    """
+    shas = sorted(picked.file_shas)
+    return Conflict(
+        id=f"conflict-chemistry-metadata-settled-{picked.tech}",
+        field="library.chemistry",
+        positions=[
+            ConflictPosition(
+                value=picked.tech, basis="asserted", evidence=shas, confidence=confidence
+            ),
+            ConflictPosition(
+                value=top.tech,
+                basis="observed",
+                evidence=shas,
+                confidence=min(top.value, 1.0) if top.value is not None else 0.0,
+            ),
+        ],
+        kind="other",
+        decidable_by=["metadata"],
+        status="resolved",
+        resolution=Resolution(
+            chosen_value=picked.tech,
+            basis="asserted",
+            rung=0,
+            decided_by="code",
+            note=(
+                "the bytes tied across a processing-divergent pair and a span-verified assertion "
+                "named one of them; the tie is the reason this is not an observed-vs-asserted "
+                "conflict, and rung 0 is the step that settled it"
+            ),
+        ),
     )
 
 

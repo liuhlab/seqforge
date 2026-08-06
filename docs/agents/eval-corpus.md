@@ -2,7 +2,8 @@
 
 Read this when you add an eval case, extend the benchmark, or change what the compose gate asserts.
 One lifetime: **how we prove the compiler works, and what the proofs actually measured.** Numbers here
-are dated, because a measurement without a date is a claim.
+are dated, because a measurement without a date is a claim — and a measurement with a method is a
+[`docs/research/`](../research/) note that this page carries the conclusion of.
 
 ## The demo dataset
 
@@ -21,7 +22,9 @@ Two disciplines, and only two, survive from its history:
 
 **There is no held-out dataset.** The designation was retired on 2026-07-15 and its guard and registry
 were **deleted, not suspended**; the pre-registration stands in their place
-([ADR-0016](../adr/0016-no-held-out-dataset.md)).
+([ADR-0016](../adr/0016-no-held-out-dataset.md)). A true held-out *test* set is a later milestone,
+scoped as scope and not as a decision in
+[`docs/research/held-out-test-set-scope.md`](../research/held-out-test-set-scope.md).
 
 **Still open, for the maintainer:** whether pre-registering the pilot's organism sits comfortably with
 "don't tune against it". The safe reading, and the one in force: `expected.yaml` uses archive-declared
@@ -50,12 +53,10 @@ executes it, the networked eval job never reaches it, and the CI job carries no 
 beside `anthropic` and `openai`, which are declared the same way for the same reason — a verb
 most installs never call still has to work without an extras incantation.
 
-**An unreachable package skips; it never fails. A package the corpus does not hold is reported as
-`absent`.** These are two states, not one: a 404 means the archive answered and has no such package —
-it was never published — so the case cannot run anywhere, for anyone, and the fix is to publish it
-rather than to try again later. Both are excluded from every rate, and only one is an instruction.
-Folding them together is how `GSE110823` sat out of the corpus for a release without anyone tripping
-over it, behind a word that reads as transient.
+**An unreachable package skips; a package the corpus does not hold is reported `absent`.** Both are
+excluded from every rate and only one is an instruction, because a 404 means the archive answered and
+the fix is to publish rather than to retry — the argument, and what folding the two together cost, is
+[ADR-0018](../adr/0018-a-red-benchmark-case-is-published-anyway.md).
 
 Two tiers ride that mechanism, in two directories, and they are disjoint on purpose:
 
@@ -74,8 +75,15 @@ pinned bytes. **Provenance is per case, and the file's own header says which.** 
 case (issue #81) — a file carrying `AUTO-SEEDED … PENDING MAINTAINER REVIEW` has not been reviewed,
 and none does today; later cases were **pre-registered before their run**. Seeded, reviewed or
 pre-registered, every one of them is still the **validation** set we develop against: when a case goes
-red we fix the compiler and grade it again. A true held-out *test* set is a later milestone — scoped
-below, and not decided.
+red we fix the compiler and grade it again.
+
+**What each case uniquely covers is one row of `evals/benchmark-datasets.tsv`, and why it grades as
+it does is its own `expected.yaml` header.** Both are checked against the case files themselves by
+`test_the_benchmark_dataset_table_covers_every_case_and_agrees_with_it`, so neither can rot silently;
+a third copy in prose here would be the one that does. Read those before adding a case, and write the
+new case's row and header rather than a paragraph on this page. Recipe knobs that exist only because
+some deposit shape was otherwise inexpressible — `over_length`, `deposit` (N libraries × M lanes),
+`dilute`, `shallow` — are documented in the recipe schema beside the case that needed them.
 
 One thing a fingerprint package **cannot** reproduce: a *published* FASTQ set missing a technical
 read. `preflight --accession` streams the `.sra` with `--include-technical`, so a 10x barcode read
@@ -86,146 +94,12 @@ where CB and UMI are tags rather than reads (`GSE208154`, the benchmark tier's o
 synthetic ones live in `evals/cases/refusal/`). Where it is merely ENA-dropped (`GSE229022`), what the
 package pins is the index-read layout instead.
 
-**BD Rhapsody Enhanced got real reads on 2026-07-31, and the gap it closed is worth naming exactly.**
-Until `GSE282765-colon-crod-wta` landed (BD Rhapsody WTA on Enhanced beads, mouse colon), the Enhanced
-0–3 bp diversity insert, the `GTGA`/`GACA` linkers and the anchored per-read frame recovery had been
-exercised only on reads seqforge generated from its own spec — the same circularity that hid a real
-defect in `splitseq` for the life of that entry. On the real slice the frame phase-locks in **92.6 %**
-of R1 across the stagger, and the 384×3 Enhanced pools hit **0.930 / 0.974 / 0.961** against **0.001**
-for the disjoint 97×3 pools: a ~1000× separation, so the onlist that tells the two Enhanced leaves
-apart is now measured rather than assumed. The two BD cases are also a deliberate pair — GSE274290 and
-this one name the *same* instrument string ("BD Rhapsody Express Single-Cell Analysis System") in their
-extract protocols and differ only in the declared bead, so anything deciding BD chemistry from the
-instrument rather than the R1 bytes gets exactly one of them wrong.
-
-**The synthetic-only list is empty, as of 2026-08-01.** All four leaves it named got real reads in one
-tranche, each pre-registered from declared metadata and committed before its run. (`10x-3p-gex-v3.1`
-still has no case of its own, and needs none: it is declared `equivalent` to `10x-3p-gex-v3` with
-`distinguishable_by: [none]`, so the resolver records both ids and the v3 cases carry it.)
-
-| leaf | case | how the leaf was pinned, before any byte |
-|---|---|---|
-| `bd-rhapsody-wta-enhanced-v1` | `GSE266161-unmod-first-mixing` | a producer-authored script rather than a measurement of ours: `rock_roi_paper/06_Sankey_plots/wta_unmod_first_mixing_experiment.sh` greps lines of `whitelist_96x3/BD_CLS{1,2,3}.txt` (with the `^[ACTG]{0,3}` diversity insert) against `o307161_1-Unmodified_S4_R1_001.fastq.gz` — verbatim the R1 filename SRA holds for `SRR28817193`. Those files are set-identical to the packed `bd-rhapsody-cls{1,2,3}` (97 entries each; the directory is named "96x3") and share 0 barcodes per block with the 384×3 pools |
-| `10x-5p-gex-v2` | `GSE317744-ccr9ko-thymic-dc` | the record names "Chromium Next GEM Single-Cell 5' Reagent Kit v2"; the leaf has **no byte path at any rung**, so the case carries `hypothesis: "10x 5'"` |
-| `10x-5p-gex-v3` | `GSE310378-provsv-gfp-til` | the record names "Chromium GEM-X Single Cell 5' Chip v3 … protocol CG000733, revA" — the same 10x guide the spec cites — and the leaf decides from bytes at rung 3 |
-| `10x-gemx-3p-v4` | `GSE305031` | the record names a "GEM-X Single Cell 3' Chip Kit v4" on a Chromium X, with Cell Ranger 9.0.1 |
-
-**The 5′ family needed two cases, and the reason generalises.** Its leaves are separated by *different
-mechanisms*, not by different values of one. `10x-5p-gex-v2` is byte-identical to `10x-3p-gex-v2` —
-same 26 bp geometry, the **same** `737K-august-2016` file, the same signature tests at the same
-weights, both `excludes: []` — and Cell Ranger 10.1.0's own `chemistry_defs.json` shows `SC3Pv2` and
-`SC5P-R2` identical field for field except `strandedness`, which no probe can observe. `10x-5p-gex-v3`
-is decided at rung 3 by `3M-5pgex-jan-2023` (0.6221 % / 6.8745 % / 0.0000 % overlap with the 3′ v3,
-GEM-X v4 and ARC lists). One case would either carry a hypothesis and never test the whitelist, or
-omit one and never reach v2. Contrast the BD Enhanced pair, where one real case plus a measured
-intersection *was* honest coverage: there the separation is a number you can measure once, whereas the
-v2 leaf's separation is a documented **absence**, and an absence is only tested by a case that reaches
-the leaf without it. `GSE317744` is also the first real dataset in either tier where a metadata
-hypothesis produces a `decide` — `GSE208154`, the only other hypothesis-carrying benchmark case,
-refuses — and the first non-Illumina package anywhere in the corpus (DNBSEQ-G400, MGI).
-
-**`10x-gemx-3p-v4` was RED, nobody predicted it, and it is now green with the prediction untouched.**
-It is the corpus's one worked example of a case earning its keep on the first run. The chemistry call
-was right by a factor of 90 throughout: 73.11 % against `3M-3pgex-may-2023` versus 0.81 % against
-`3M-february-2018`, over the package's full 20 000-read slice. What failed was the **sample**. R1
-cycle 2 is a dark cycle at the head of that run — N in 91.35 % of the first 2 000 reads, 73.05 % of
-reads 2 000–4 000, 0.00 % of the last 2 000 — and seqforge matches barcodes exactly, so a single N in
-the 16 bp CB makes the read unmatchable. `resolve` samples exactly those first 2 000 reads, scored
-7.90 % against an admission bar of 0.08583, missed by 0.68 pp and raised `BARCODE_READ_ABSENT`. That
-falsified the rationale `probe/__init__.py` gave for `DEFAULT_MAX_READS = 2_000` — "the resolved
-chemistry is invariant from 1k to 200k reads across every benchmarked worm library" — **on a worm
-library**. The invariance held across the libraries benchmarked at the time; it is not a property of
-head slices. **A head slice is not a random sample, it is the flow cell's first tiles, which is
-precisely where a dark cycle lives.**
-
-**The fix (#177) was to the hit rate's denominator, not to the read budget**, and the distinction is
-the lesson. A window holding a non-ACGT base is unpackable, so it can never be a hit; counting it
-measured how many cycles the sequencer called rather than which whitelist the library came from. It
-now leaves `n_tested`, so a dark cycle costs **coverage** and leaves the **rate** alone — the same
-2 000 reads score 91.33 % over the 173 whose cycle 2 fired, against 92.33 % over all 20 000, which is
-how you can tell the small sample was never the problem. `DEFAULT_MAX_READS` is still 2 000 and
-`PROBE_VERSION` is unmoved (no observation value changed); `RESOLVE_VERSION` bumped, because the
-defect being fixed is a cached *refusal*. Raising N was rejected as buying one dataset while leaving
-the assumption standing, and lowering the admission bar as spending the thing that keeps cDNA out of
-a barcode role. Measured across the whole tier before and after: `false_refuse_rate` 0.0556 → 0.0000
-with `field_accuracy` 1.0 and `false_accept_rate` 0.0 unchanged, and **no other case moved** — all 17
-other per-case grades identical. The expectation was never edited: `outcome` and all nine `fields`
-claims are byte-identical to the pre-registration commit, and the nine graded for the first time on
-the green run, because a refusal grades no fields at all.
-
-**Considered and not added** — recorded here rather than in a commit message, because the next person
-to grow the corpus needs the reasons, not just the outcome. These are candidates, not reservations;
-nothing about a held-out set is decided.
-
-| dataset | why not (yet) |
-|---|---|
-| `GSE208229` | the single-index variant of the layout `GSE229022` covers in its harder dual-index form; its only unique asset is a non-null `readTypes` string, an `io resolve` metadata property a fingerprint cannot carry |
-| `GSE136049` | 10x v3 at 2×150 — the over-length-R1 case `resolve/` already names `GSE126954`'s `SRX5411291` as the exemplar of. 395 M reads, ~29 GB/file, no new coverage |
-| `GSE310667` | same over-length-R1 coverage. Released Nov 2025 and never compiled here, so it is also the strongest candidate on this list should a held-out test set ever be built — which is a reason to spend it carefully, not a reservation |
-| `GSE316206` | mouse GEM-X 3′ v4, protocol says "Chromium GEM-X Single Cell 3' Reagent Kits v4" verbatim and the sample axis is richer than `GSE305031`'s (genotype/sex/age/treatment). **The run is not loaded**: `spots=0`, no `<Statistics>`, ENA `read_count=0`. Nothing for `preflight` to stream and no declared read lengths to predict against. Worth revisiting as a mouse companion once it loads |
-| `GSE308872` | says "GEM-X" but is the **wrong** GEM-X: "GEM-X OCM 3' Chip Kit v4 4-plex" — on-chip multiplexing, a barcode layout the KB has no entry for |
-| `GSE337641` | wrong GEM-X again: "GEM-X Flex Gene Expression" — probe-based fixed-RNA profiling, not 3′ at all |
-| `GSE325467` | a genuinely good GEM-X 5′ v3 alternative (`SRR37705344`, 28/90). Passed over for `GSE310378`, which names the exact 10x document the spec cites (CG000733 revA) and declares its read configuration in words |
-| `GSE319238` | one series carrying 5′ v2 microglia *and* 3′ v3.1 whole brain — attractive, but the protocol sentence is a **conditional naming both kits** for every sample, so a per-sample chemistry claim would require resolving the condition. Weaker pre-registration than `GSE317744`'s one-kit-per-sample statement; keep as a future `steering/` candidate |
-
-**A trap and a finding, both worth not rediscovering.** *The trap:* "GEM-X" alone is **not** evidence
-for `10x-gemx-3p-v4`. It is a platform-generation name spanning 3′ v4, 5′ v3, Flex and OCM, and three
-of those four are a different entry or no entry at all — the evidence must name **3′ and v4**.
-Conversely "Next GEM" is the *predecessor* generation (v3.1 / 5′ v2), so a bare "GEM" search is
-actively misleading. *The finding:* `GSE282525` declares "Chromium Next GEM Single Cell 5' Reagent Kit
-v2" but archives every run at 28 bp R1, two cycles past that kit's 26 — Cell Ranger tolerates this
-(`SC5P-R2-v3`'s UMI carries `"min_length": 10`, and extra R1 cycles are trimmed), so it is a shape that
-keeps arriving rather than a malformed submission.
-
-**That finding was written from the spec text, and running it reverses the conclusion** (#177) — which
-is itself the more useful lesson. It read: under `10x-5p-gex-v2`'s `segment_length {length: 26,
-tolerance: 0, over_length_min: 100}`, 28 is below `over_length_min`, so it is exact-checked, fails, and
-the true leaf is eliminated before scoring, landing on `10x-5p-gex-v3` with the wrong whitelist once a
-`10x 5'` hypothesis is attached. **Measured, none of that happens.** `26 < 28 < 100` is precisely the
-over-length *dead zone*, so the whitelist admission fires, the leaf is scored, and the bytes tie
-`10x-5p-gex-v2` with `10x-3p-gex-v2` — the honest answer, since those two are the KB's one genuinely
-read-undecidable pair. With no claim attached resolve **asks** between exactly those two; with the
-family claim it decides `10x-5p-gex-v2` at exit 0. Against the real registry, where every shipped
-whitelist is loaded, `10x-5p-gex-v3` is outscored rather than reached, because `3M-5pgex-jan-2023`
-declines these barcodes. Verified from 100 % whitelist hit rate down to 10 %, far below anything a real
-library shows.
-
-So **the spec is unchanged, and `tolerance: 0` stays.** Widening it was the tempting fix and is the
-wrong one twice over: `10x-5p-gex-v2`'s signature is byte-identical to `10x-3p-gex-v2`'s on purpose —
-test for test, weight for weight — so widening one side hands it a systematic edge over its twin and
-turns a genuine tie into a silent guess, while widening both erases 26-vs-28, which *is* the 5′ v2/v3
-split and, on the 3′ side, the v2/v3 one. What the episode did earn is a case, because the behaviour
-was latent — argued from spec text rather than measured — and that is exactly the state a case exists
-to end: `steering/declared-5p-v2-sequenced-two-cycles-long`, generated from the leaf's own spec plus
-the two extra cycles the submitter's run had. It is the first hermetic case anywhere for the
-over-length admission path, which until now only real datasets in the networked tier exercised, and it
-needed one new recipe knob (`over_length`) to be expressible at all.
-
-**A synthesized case can be deposited as N libraries × M lanes, as of 2026-08-04 (#286).** Until the
-`deposit` knob existed a `spec` recipe wrote one library under one run and materialization *refused*
-anything else, so the commonest deposit there is — GSE126954's 14 libraries × 4 lanes — was
-inexpressible, and `grouping/record-less-two-libraries-two-lanes` had to stage its FASTQs outside git
-behind an environment variable and therefore **skipped on an ordinary pass**. It now grades in the
-hermetic tier. Two things make the knob cheap: the default `1 × 1` is byte-identical to what every
-existing case already generated, so no case's dataset hash moved; and lanes differ by **read-header
-prefix** rather than by depth, which gives distinct shas with an identical length histogram by
-construction — the staged fixture had to *measure* a 400–500 depth band where the modal read length
-held still, because `index_tagged_roles` re-seats a surplus lane onto its role only within 3 bp of the
-representative. The one-run invariant is kept, narrowed to a case that *declares* a single library, so
-a spec whose file hints cannot be read as a mate still fails in its own fixture naming the spec rather
-than three layers away naming nothing.
-
 **One package is one library, and `--multi-experiment` is the caller saying two experiments are one.**
-The default refusal is what keeps a series mixing modalities — GSE283483's bulk RNA + Multiome GEX +
-Multiome ATAC — out of a single package, and it stays. But a plate deposit puts every cell in its own
-`SRX` (PRJNA853582 is 1440 of them), so under the default no such dataset can enter the corpus at all:
-GSE207085 had to be packaged as ten one-cell fixtures, each proving nothing about the many-cell case.
-It is now one 96-cell package instead — see "The nineteenth case is a plate" below.
-The flag is an assertion by the caller and never an inference from the data (#242). Chemistries that
-differ across the spanned experiments are **not** a problem downstream: `resolve_runs` resolves each
-run on its own bytes and `by_chemistry` partitions them into assays, which is the same shape
-GSE229022's heterogeneous compile already exercises. What blocks is a *sample* whose files span
-chemistries, and that check is unchanged.
+The default refusal keeps a series mixing modalities — GSE283483's bulk RNA + Multiome GEX + Multiome
+ATAC — out of a single package, and it stays. The flag is an assertion by the caller and never an
+inference from the data (#242). Chemistries differing across the spanned experiments are **not** a
+problem downstream: `resolve_runs` resolves each run on its own bytes and `by_chemistry` partitions
+them into assays. What blocks is a *sample* whose files span chemistries, and that check is unchanged.
 
 Redistributable packages carry **extracted text only**. `preflight --redistributable` builds one from
 FASTQs and `seqforge strip-fingerprint` repacks an existing package, dropping the raw paper for
@@ -233,394 +107,111 @@ copyright and its figures until the figure pipeline improves — the reads and p
 the dataset hash is preserved. A run falls back to the extracted text, so nothing we may not
 redistribute reaches Hugging Face while the harvest input survives.
 
-### The `--llm` pass grades harvest, decided 2026-08-01 on two measurements (#164)
+### What the corpus has caught, and the lessons worth not rediscovering
 
-**What was true until this date:** the benchmark tier's `--llm` pass ran the extraction stage on every
-case and graded nothing it produced. `Case.needs_llm` is false for all eighteen — a fingerprint case
-carries a committed `records.json` and surfaces its package prose at `materialize` time, so it runs
-hermetically with no key — but `use_llm` in `evals/run.py` is `llm and (docs or records is not None)`,
-so under `--llm` every one of them harvested anyway. No `expected.yaml` declared `assertions:`. The
-stage therefore cost real money and was measured only by whether it crashed.
+Each is a dated finding whose detail is in the case's own row and header; what generalizes past one
+case is here.
 
-The choice was between making the real datasets carry harvest ground truth and declaring the pass a
-smoke test with `evals/cases/prose` owning the grading. **The first was chosen**, and the two
-measurements it rests on are these — either one moving is a reason to reopen it, which is why they are
-dated rather than asserted.
+- **A head slice is not a random sample, it is the flow cell's first tiles, which is precisely where a
+  dark cycle lives** (2026-08-01, `GSE305031`). The fix (#177) was to the hit rate's **denominator**,
+  not to the read budget: an unpackable window measured how many cycles the sequencer called rather
+  than which whitelist the library came from, so a dark cycle now costs **coverage** and leaves the
+  **rate** alone. `RESOLVE_VERSION` bumped and `PROBE_VERSION` did not, because the defect fixed is a
+  cached *refusal*.
+- **An absence is only tested by a case that reaches the leaf without it** — why the 5′ family needed
+  two cases where BD Enhanced needed one. A separation you can measure (the Enhanced pools at
+  0.930/0.974/0.961 against 0.001 for the disjoint 97×3, 2026-07-31) is honest coverage from one real
+  case; `10x-5p-gex-v2`'s separation from `10x-3p-gex-v2` is a documented *absence*, and one case
+  would either carry a hypothesis and never test the whitelist or omit one and never reach v2.
+- **An honest question settles at `ask`; a manufactured one stays at `decide`.** `GSE126954` stops on
+  the KB's one declared read-undecidable pair, whose entry says so and neither of whose declared
+  mechanisms is reachable, so its expectation is `ask` and its seven field claims still grade.
+  `GSE234962` stops on a `library_strategy` string re-read out of the record that typed it — moving
+  that one to `ask` would enshrine the defect as the specification (#184).
 
-**Cost, 2026-08-01, `seqforge eval plan --cases evals/benchmark`: 141 documents and ~517 K estimated
-input tokens** for the whole tier, largest case `PRJNA1195922` at 25 documents / ~83 K, nothing within
-4× of the 500 K per-case ceiling. The number the smoke-test argument was written against was **1,100
-calls and 3.70 M input tokens** over thirteen graded cases — 92 % of it `GSE126954` asking the
-nine-attribute sample vocabulary once per *run*. Collapsing each sample's runs into one document and
-narrowing the committed transcripts to what the packages pin removed it, so the argument from cost
-no longer has a cost to argue from. That the number is now *discoverable* is the other half of the
-decision: `eval plan` is the tier-wide sibling of `harvest extract --dry-run`, reaches no model, and
-needs no credential.
+### The `--llm` pass grades harvest, and a stage that did not run says so
 
-**Coverage, from the packages themselves: 7 of 18 carry an `info/text` document at all** —
-`GSE126954`, `GSE234962`, `GSE256266`, `GSE274290`, `PRJNA1027859`, `PRJNA1195922`, `PRJNA658829`.
-The remaining eleven have only their archive records to read, and `GSE282765-colon-crod-wta` was built
-with no `--doc` because its series has no linked publication. So this tier is a *supplement* to
-`cases/prose`, never a replacement: it is where a claim is checked against prose somebody else wrote,
-while the adversarial cases stay synthetic because a trap has to be constructed.
+Two decisions, both 2026-08-01. **The tier grades harvest** (#164) rather than smoke-testing it: seven
+of the frozen eighteen packages carry an `info/text` document at all, so this tier is where a claim
+meets prose somebody else wrote, while the adversarial cases stay synthetic in `evals/cases/prose`
+because a trap has to be constructed. And **a harvest stage that never ran is not one that found
+nothing** (#182): the abort's blast radius is one document rather than one dataset, every harvest
+grade carries a `status` of `complete`/`partial`/`unmeasured`, a skip enters no rate, and a claim a
+failed document would have been asked is `unchecked` — never `missing`, which asserts the model read
+everything and did not say it. Consequently `--trials N` is the wrong instrument on this tier and
+three single-trial runs are the right one: before #182 all N trials skipped together, so the flag a
+maintainer reaches for to measure stability was the one that hid it.
 
-`GSE274290` and `PRJNA658829` carry the first two, each with `forbidden_fields`, and the choice of
-field is the part worth copying:
+Both decisions are argued at length, with their costs, coverage and token counts, in
+[`evals/README.md`](../../evals/README.md) — see *"The `--llm` pass on this tier grades harvest too"*,
+*"A stage that did not run is not a stage that found nothing"*, and *"The default model, and the run
+that decided it"* (#188, which reversed the default to `deepseek-v4-pro`). That file sits beside
+`expected.yaml` and is the measurement's home; this page carries the decision and points there.
 
-- **`experiment.organism` is the assertion**, because it is asked of a `dataset`-scoped document and
-  of nothing else (`harvest/fields.py`), so the carried paper is its only possible source and no
-  archive record can collide with it. `verify` applies no normalization to its value, so the graded
-  string is whatever the model wrote — which is checkable only because the prompt fixes the form
-  ("the scientific name as written") and every carried paper writes the binomial verbatim.
-- **`experiment.samples.treatment` is forbidden in both, and it is the point.** `GSE274290`'s paper
-  really does describe RNAi-treated animals, for its downstream western blots rather than for the
-  library that was sequenced; `PRJNA658829` has no treatment at all, but every experiment record is
-  two thousand characters of husbandry and `treatment` is asked of an experiment document. Both are
-  *real quotes attached to the wrong sample* — the failure `span_verified` and `entailment_ok` pass by
-  construction, and the one bytes can never contradict. Rewarding recall alone would train the prompt
-  to make exactly this claim.
+One consequence is **not** about harvest and belongs here: `GSE282765-colon-crod-wta` graded
+`false_accept` under `--llm` and `correct` without it for a *resolver* reason, not a hallucination. A
+quote of an experiment title re-derived `experiment.samples.treatment` from the same submission that
+had typed it into a BioSample slot, both positions arrived at `resolve.records._decide` as `asserted`,
+and equal authorities that disagree leave the attribute **null**. **Fixed (#182): one archive deposit
+read at two of its levels is one source**, so a prose reading wholly inside the typed value is
+absorbed rather than tied against. Containment holds in one direction and over whole words, so a
+reading that *extends* the typed value (`control` read as `control RNAi`) is still a disagreement and
+still leaves null.
 
-An assertion must be checked against **what the package carries**, not the publication: `info/text` is
-extracted text and it is the only thing a run can read. A forbidden field must be absent from **every**
-document including the records, since the grade is computed over the whole accepted set.
-
-`GSE234962` is the third, added 2026-08-01 by #160, and its `treatment` bait is the one that is
-*typed*: the paper says "embryos obtained by hypochlorite treatment of adult hermaphrodites" — bleach
-synchronisation — while every BioSample beside it carries `synchronization protocol: L1 arrest` in a
-field of its own, so both halves of the trap are real text about real husbandry and neither is an
-experimental variable.
-
-**Not done, deliberately.** The remaining four prose-carrying cases have no `assertions:` yet, and
-they are the obvious next tranche. `GSE126954` stays without them on purpose: it is settled at
-`outcome: ask` (below), so a `--llm` pass over it costs 22 calls to grade claims that ride alongside a
-question rather than deciding it. Nothing here grades `library.chemistry` from prose on this tier —
-that stays `cases/prose`'s job, because on a real dataset the byte resolver already decides it and a
-prose claim only enters as a hypothesis.
-
-**What the first graded `--llm` pass actually measured (2026-08-01, `deepseek-v4-flash`, whole tier at
-the default fan-out).** Two things, and neither is the arithmetic:
-
-- **The planned 141 requests were not the 141 issued.** The run made **68**, spending 257,592 input,
-  203,079 output and 161,920 cache-read tokens over 326 s wall — because **five of the seven
-  prose-carrying cases aborted** on DeepSeek's known empty-`json_object` failure (#4) after exhausting
-  their retries, and skipped. Re-run one or two at a time, the same cases go through: across three
-  runs, prose-carrying cases succeeded in 5 of 11 attempts. A skip is excluded from every rate so
-  nothing is poisoned — but the harvest half of a tier pass is only *sometimes* measured on the cheap
-  model, and `--model deepseek-v4-pro` or a smaller `--jobs` is what buys it. Do not read the plan's
-  document count as a prediction of the bill on flash; read it as the bill if nothing aborts.
-  **Fixed (#182, finding 2): a stage that did not run now says so** — the abort costs one document
-  rather than one dataset, and the report carries the coverage. See the section below.
-- **`GSE282765-colon-crod-wta` grades `false_accept` under `--llm` and `correct` under `--no-llm`**,
-  and the mechanism is worth writing down because it is not a harvest hallucination. Its BioSample
-  declares `treatment = "Citrobacter rodentium infection"`; the experiment record's title says
-  "Mouse colon Citrobacter rodentium CD45 pos"; harvest quoted the title and asserted
-  `experiment.samples.treatment = "Citrobacter rodentium"`. Both positions arrive at
-  `resolve.records._decide` as **`asserted`**, they differ, and equal authorities that disagree
-  leave the attribute **null** — so a partial quote of a record's own field *deletes* the value that
-  record already supplied, and the case loses a graded field it passes without a model. The rule is
-  right (null beats a permanent wrong value); what is wrong is that a claim re-deriving a structured
-  attribute from the same record's prose is treated as an independent authority at all. It is
-  unrelated to the assertions added above, predates them, and belongs to the metadata resolver.
-  **Fixed (#182, finding 1): one archive deposit read at two of its levels is one source**, so a
-  prose reading wholly inside what that submission typed into the slot is absorbed instead of tied
-  against — the declaration stands, and the case now grades `correct` under both flags. Containment
-  holds in one direction only and over whole words, so a reading that *extends* the typed value
-  (`control` read as `control RNAi`) is still a disagreement and still leaves null. The first bullet
-  above is untouched and still live.
-
-### What a harvest grade is a claim ABOUT, decided 2026-08-01 (#182, finding 2)
-
-The bullet above is the finding; this is what was done with it, and the argument is one this file
-already makes two sections earlier about packages: *"Folding them together is how `GSE110823` sat out
-of the corpus for a release without anyone tripping over it, behind a word that reads as
-transient."* An `absent` package and an `unavailable` one are two states because one is a gap in the
-corpus and the other is weather. A harvest stage that never ran and one that ran and matched nothing
-are the same pair, one level in — and the same argument decided them the same way.
-
-**The abort's blast radius was the whole case, and shrinking it is the load-bearing half.** One
-document raising through `extract_planned` took its dataset with it, so five of seven prose-carrying
-cases measured nothing at all — including the *byte* half, which needs no model and which `--no-llm`
-grades green on every one of them. A `--llm` pass therefore graded thirteen cases where `--no-llm`
-graded eighteen, and the two could not be diffed. The fan-out now takes an explicit `partial`: the
-harness asks for it, and the compiler does not. `harvest extract` still fails closed, because an
-extraction silently short a document produces a manifest nothing downstream can tell from a complete
-one — the two callers want opposite answers and now get them, rather than sharing the compiler's.
-
-This is also why **`--trials N` was the wrong instrument** and three single-trial runs were the right
-one: all N trials skipped together, so the flag a maintainer reaches for to measure stability was the
-one that hid the instability. That is fixed at the cause rather than documented as a caveat.
-
-**What the report carries.** Every harvest grade has a `status` — `complete` / `partial` /
-`unmeasured` — plus `n_documents`, `n_documents_failed`, and the provider's own message on the row of
-each document that never answered. `EvalReport.harvest` is the tier-wide roll-up, `None` on a
-`--no-llm` run because zeros there would read as a stage that ran and found nothing. It carries
-`documents_planned` from the run's own plans, which is the plan-versus-issued gap without needing a
-second command; `eval plan`'s `n_documents` compared against it catches the cases that never planned
-at all. **What retries cost is `cost.llm_calls` against `n_requests`, not against
-`documents_extracted`** — documents that receive the same ask travel in one request, so the gap
-between calls and *documents* is mostly batching and only incidentally retries. `n_requests` is the
-floor a run may not go below; anything above it is a retry.
-
-**A negative verdict needs every document; a positive one needs any.** A graded assertion that a
-failed document would have been asked is `unchecked`, never `missing`, and `unchecked` enters no
-rate. The asymmetry was measured rather than assumed: on `GSE234962` the paper aborts while `mmc2.txt`
-answers, both are dataset-scoped and both are asked `experiment.organism`, and the symmetric rule
-("no answering document was asked this") reported the binomial that paper writes fifteen times as a
-claim the model had failed to make. `missing` asserts the model read everything and did not say it.
-
-**Three things were decided against, and the reasons are the useful part.**
-
-- **A skipped harvest still fails nothing.** Exit 3 means the compiler produced a wrong answer and
-  exit 4 means a human is owed one. A stage the provider did not answer is neither, and a tier whose
-  exit code tracked DeepSeek's uptime would be a worse instrument than one that reports coverage. It
-  gets a number, a stderr line and a tile.
-- **`--llm` kept `deepseek-v4-flash`** (#167) — until the corpus measured the cost argument that
-  chose it and reversed it (2026-08-02, #188). Correctness was never at stake: R2 re-greps every
-  quote whichever model proposed it, so a flaky model spends coverage, never correctness. But
-  head-to-head, `deepseek-v4-pro` was faster *and* spent fewer output tokens. The default is
-  `deepseek-v4-pro`; the run, its numbers and its caveats live in `evals/README.md`, "The default
-  model, and the run that decided it".
-- **No automatic fallback to another model after N failures.** The same prompt on a different model
-  is a different extractor ([ADR-0009](../adr/0009-llm-provider-is-pluggable.md)), so a run that
-  switched mid-pass could not name its own — and `extractor` is the entire reason two reports are
-  comparable. A fallback would buy a greener number by making it mean less. With the blast radius
-  now one document, `--model` stays a decision a reader takes *from the report* — which is why the
-  coverage line names the model that ran instead of prescribing one.
-
-**Measured, live, `deepseek-v4-flash`, 2026-08-01, `GSE234962` (14 planned documents, ~64 K estimated
-input).** Two single-trial runs, both of which would have skipped whole on `main`: the first answered
-13 of 14 (the paper aborted mid-JSON), the second 12 of 14 (the paper again, and `mmc2.txt` with the
-empty-content failure verbatim). Both graded `over_ask` — the instability #184 owns, unchanged — and
-the second reported `experiment.organism` as `unchecked` with `field_accuracy 1.0`, which is the
-whole ticket in one line: the rate is honest, and it now says how much of the corpus it is about.
-
-### One reduction for the hypothesis, and what measuring it actually showed (2026-08-02, #184/#188)
-
-**The harness was not reducing prose the way the compiler does.** `manifest fill` takes a dataset's
-chemistry claims agreement-or-nothing; the harness took the last document to claim one, off a
-`by_field` dict. Two callers, one stage, different answers — so a dataset naming two chemistries
-steered the harness's scorer and the compiler's not at all, and the grade was partly a claim about
-the harness. There is one `resolve.chemistry_hypothesis` now and both call it. **This is a change to
-the ruler, deliberately landed on its own**, before any compiler fix, so the next tier pass is
-measuring one changed thing.
-
-**Measured after it, `deepseek-v4-pro`, `trials=1`, whole benchmark tier: 15/18, exit 3.** Against
-the same command at `ac11b44` (also 15/18, exit 3), and this is the part worth writing down:
-
-| | `ac11b44` | after the ruler fix |
-|---|---|---|
-| `GSE234962` | `over_ask` | **`correct`** |
-| `GSE229022` | `correct` | `over_ask` |
-| `GSE317744` | `false_accept` (attribute drop) | `over_ask`, and chemistry **wrong** (`10x-3p-gex-v2`) |
-| `GSE310378` | `false_accept` | `false_accept` |
-
-**None of those moves is attributable to the change.** Recomputing both reductions over each run's own
-accepted assertions: on the post-fix draw the old and the new return the **same hypothesis on all 18
-cases** (no case produced two *distinct* chemistry values), so the fix was a measured no-op there. What
-moved is which case `library.chemistry = "RNA-Seq"` landed on — one accepted claim on `GSE234962`
-before, one each on `GSE229022` and `GSE317744` after. Mechanism 1 is real and its case list is a
-per-draw lottery; **scope to the mechanism, never to a case list**, and do not read a single-trial
-per-case grade as a property of the extractor.
-
-`GSE317744` is the sharpest instance: byte-identical to `10x-3p-gex-v2` at every rung, so its recipe's
-`10x 5'` is the only thing that can decide it. A single `"RNA-Seq"` claim displaced that hypothesis
-and the run resolved the wrong chemistry — the metadata-decided channel losing to a `library_strategy`
-suffix, live, on pro. That is #189's premise reproducing, not this change's doing.
-
-The no-LLM tier is unmoved: 18/18, exit 0, 92 s.
-
-### One resolver for the dataset, and the corpus's filenames had to become real (2026-08-02, #196)
-
-**The same shape one layer down, and larger.** `manifest fill` calls `resolve_runs` — group the files
-into runs by name, resolve each run on its own bytes. The harness called `resolve_dataset`, which
-answers "what is this ONE library?" and does one global role assignment: handed
-`PRJNA1027859`'s 18 files it seats one (R1, R2) pair and leaves sixteen with no role at all. **11 of
-the 18 benchmark cases are multi-run** (`GSE126954` is 175 files across 56 runs), so on eleven cases
-the benchmark graded a code path the product had abandoned. It passed because those corpora are
-*homogeneous* — every run shares one geometry, so one global assignment lands on a correct chemistry
-— which is a property of the corpus, not of the code.
-
-The fix promotes the reduction rather than teaching the harness to imitate it: `reduce_dataset` (see
-[`resolve.md`](resolve.md)) is one function with two callers, exactly as `chemistry_hypothesis` is.
-**This is a change to the ruler**, landed on its own.
-
-**The corollary, and it is not cosmetic.** `materialize` named each generated file after the read it
-carries — `R1.fastq.gz`, `cdna.fastq.gz` — which is a shape no deposit has and, worse, one that
-groups into no run: two names sharing no stem are two single-file *runs*, and a barcode read with no
-cDNA mate resolves to nothing. That was invisible while the harness scored a whole file list as one
-library; the moment it resolves runs, **every generated case refuses `UNSUPPORTED_TECHNOLOGY`**. A
-case built from one KB spec is one library, so its files are now deposited under one run,
-`SIM_<mate>.fastq.gz`, where the mate token is the spec's own `file_hint` — the same token
-`filename_prior` reads off a real submitter's file, so the sub-threshold nudge is unchanged and the
-symmetric-role bulk case still seats R1 and R2 the way it always did. The label a case's
-`expected.yaml` writes role assertions against (`R1`, `cdna`) is unchanged; only the filename moved.
-
-**Measured, no-LLM tier, before and after: 18/18 both times, and *zero* cases moved** — every field's
-graded `actual` byte-identical, `field_accuracy 1.0`, `false_accept_rate 0.0`, one question asked
-(`GSE126954`). Wall clock 89.9 s → 92.6 s: resolving 56 runs against the KB is more total work than
-resolving one 175-file pool once. A no-op on this corpus was the prediction — homogeneity is exactly
-why the divergence was invisible — and it is worth the same sentence #188 earned: the fix is
-justified by the divergence being real, not by the number moving.
-
-### The two unsettled cases, settled 2026-08-01 (#160) — and only one of them was a defect
-
-Both were `expected: decide`, both stopped, and they stopped for opposite reasons. Writing them down
-together is the point: the corpus's job is to tell an honest question from a manufactured one, and
-these are one of each.
-
-**`GSE126954` asks, and the question is a human's. Its expectation is now `ask`.** The suspected cause
-was this series' over-sequenced `SRX5411291` — the read `resolve/` names in five places — and it was
-wrong. The resolver states the pair it stops on: the reads are byte-consistent with `10x-3p-gex-v2`
-*and* `10x-5p-gex-v2`. That is the KB's one declared read-undecidable pair and its own entry says so
-(`distinguishable_by: [metadata, alignment]`): same 26 bp R1 of 16 CB + 10 UMI, same open-ended cDNA
-mate, and the **same** `737K-august-2016` file, so every structural rung ties by construction and rung
-3 consults one whitelist for both. The single differing backend param is `soloStrand`, which no probe
-observes and which a published both-ways run priced at 0.5–0.6 gene-expression correlation against
->0.98. So `decide` had been correct only while the 5′ leaf had no entry — the same sentence
-`evals/cases/spec/10x-v2-bytes-only` already carries for synthetic 26 bp reads, and this is its
-real-data instance. **Neither declared mechanism is reachable here**: alignment is rung 6 and unbuilt,
-and rung 0 has nothing to read — every experiment record is a GSM title plus `library_strategy`, and
-the carried paper writes "10X Genomics v2 chemistry" once and never names the end. A recipe
-`hypothesis:` is therefore not available either; it stands in for a chemistry a record states
-verbatim. All seven field claims, chemistry included, still grade — `fields` is checked on `ask`.
-
-**`GSE234962` decides byte-only and is unstable under `--llm`, and there was no flip to explain.** It
-graded `over_ask` when #160 was filed and `correct` afterwards, and the suspicion was that #178's
-run-alias collapse had moved it. It did not, and could not: this series has four samples with one run
-each, so every group is a group of one and the collapsed document *is* that run's own —
-`seqforge eval plan --case GSE234962` reports `n_records_collapsed: 0`, and the twelve record
-documents are byte-identical in identical order before and after. #183 is likewise ruled out by
-construction rather than by measurement: it changed which sample-attribute values the *metadata*
-resolver keeps, and a case's outcome class is read from the **byte** resolver's exit code, which that
-resolver never reaches.
-
-What actually stops it is one claim, and it is reproducible with no model at all. `library.chemistry`
-is asked of every experiment document, and this series' experiment documents are a GSM title —
-"GSM7486859: lin-39p::RFP wt MNs rep 1; Caenorhabditis elegans; RNA-Seq" — plus two aliases. A draft
-of `library.chemistry = "RNA-Seq"` off that span-verifies and entails **by construction**, because the
-value *is* the quote; entailment is vacuous whenever `value ⊆ quote`, which is exactly the limit
-`harvest/verify.py` documents about itself. `"RNA-Seq"` is not a chemistry — it is SRA's
-`library_strategy`, true of every 10x deposit ever made — but an asserted chemistry is matched against
-KB ids and aliases by substring, and `"rna-seq"` sits inside `bulk-rnaseq`'s `"bulk RNA-seq"`. So
-it arrives as a **bulk** assertion against barcoded observed bytes and surfaces
-`conflict-bulk-asserted-single-cell-observed`, exit 4. Handing that string to the byte resolver as a
-hypothesis on this case's own pinned bytes reproduces it exactly, with no LLM in the loop;
-`"10x Chromium v3 chemistry"` and `"single cell 3' RNA sequencing"` both give exit 0.
-
-Two smaller facts make it stick rather than being overridden. The accepted claims are a **last-wins**
-map over the documents in plan order, and the four experiment documents come after both carried texts
-— so one line of GSM title overwrites the supplementary table's good `10x-3p-gex-v3`. And the paper's
-own correct claim never reaches that map at all: its quote is "single cell 30 RNA sequencing utilizing
-the 10X Chromium system, v3 chemistry" — the PDF's `3′` extracted as `30` — and it is rejected
-`not_entailed`, which is the tripwire working.
-
-**So the expectation stays at `decide`, and that is the argued half.** Unlike GSE126954's, this
-question is one code should settle: the bytes are decisive, and what stops the run is a
-`library_strategy` re-read out of the same record that typed it — the shape #183 fixed one field over,
-for sample attributes, and did not generalise to the chemistry hypothesis. Moving `outcome` to `ask`
-would enshrine a manufactured conflict as the specification. It is filed as **#184**, with the three
-candidate fixes and the one already rejected.
-
-**How often, measured — six single-trial `--llm` runs of this one case, `deepseek-v4-pro`,
-2026-08-01.** Four completed and graded: **two `over_ask` and two `correct`**, which is the
-instability as a number rather than as a suspicion, and it is why one run reporting green settles
-nothing here. The `RNA-Seq` claim appeared in **3 of the 6** passes over the four experiment
-documents, and in **three different records** — so it is a property of the document *shape*, which
-all four share, and not of one record. The other two runs aborted on DeepSeek's invalid-JSON failure
-(#4), both on `mmc2.txt` — the 1 KB supplementary table, not the whole paper — which qualifies the
-first bullet above: the failures cluster on documents that provoke a long *response* (that table is a
-per-sample grid, and the model quotes rows of it), not simply on long documents. Every one of the six
-refused the paper's own `10x-3p-gex-v3` draft as `not_entailed`.
-
-Two things ride along, and both are the harness working. The graded `experiment.organism` assertion
-matched in **3 of the 4** graded runs and was refused `span_not_found` in the fourth — the claim is
-not in doubt, the carried text writes the binomial 15 times, so what that run recorded is the
-stage's *recall*, which is what an `assertions:` block is for. And a `--trials 3` invocation is a
-worse instrument than three single-trial runs on this tier: one document's abort raises through the
-whole case, so all three trials skip together and measure nothing. The exercise cost **552,381 input,
-151,800 output and 546,560 cache-read tokens**, which is the price of learning that a benchmark grade
-was a coin flip.
-
-### The nineteenth case is a plate, and the bar it is excluded from became code (2026-08-04, #287)
+### The nineteenth case is a plate, and it is published red on purpose
 
 `GSE207085-nasal-prox1-96cells` is the first case in either tier where **the cell barcode is the
 file**: 96 FACS-sorted murine nasal Prox1+ cells, one SMART-seq3 library each, demultiplexed at the
-bench. PRJNA853582 is strictly 1:1:1:1 — 1440 runs, 1440 `SRX`, 1440 BioSamples — so it enters under
-one `--multi-experiment` assertion and is the corpus's only many-experiment package. That is what it
-is for: 96 samples in one manifest exhibit the sample explosion, the plate-splitting hazard and the
-dud-well hazard that ten one-cell fixtures exercise not at all.
+bench. PRJNA853582 is strictly 1:1:1:1 — 1440 runs, 1440 `SRX`, 1440 BioSamples, one distinct
+BioSample attribute block across the whole population, measured in
+[`docs/research/gse207085-archive-shape.md`](../research/gse207085-archive-shape.md) — so it enters
+under one `--multi-experiment` assertion and is the corpus's only many-experiment package. That is
+what it is for: 96 samples in one manifest exhibit the sample explosion, the plate-splitting hazard
+and the dud-well hazard that ten one-cell fixtures exercise not at all.
 
-**It is published red and the red is the measurement** (ADR-0018). Measured on ten cells of this same
-deposit (#230), seqforge decides the generic bulk chemistry at **exit 0, 0.899 against a 0.511
-runner-up**, nothing raised, and `compose` selects `map/star` — a bulk gene-count matrix for a
-single-cell experiment, most confident on the cleanest cells. `expected.yaml` says `smartseq3`
-anyway, committed before any run and before the entry it names exists.
+**It was published red and the red was the measurement**
+([ADR-0018](../adr/0018-a-red-benchmark-case-is-published-anyway.md)). Measured on ten cells of this
+same deposit (#230), seqforge decided the generic bulk chemistry at exit 0 and `compose` selected
+`map/star` — a bulk gene-count matrix for a single-cell experiment, most confident on the cleanest
+cells. `expected.yaml` said `smartseq3` anyway, committed before any run and before the entry it names
+existed. It went green on 2026-08-04 (#296) with that file never edited.
 
-**Selection stays unselected, and that is the decision** (#258). The rule is *sort the 1440 runs
-by `run_accession` ascending, take the first 96*, and it ships as `build-package.sh` in the case
-directory rather than as a sentence, because the verb takes one accession and packages every run
-under it — "96 of 1440" cannot be said on the command line, and the one line between
-`resolve_package_runs` and `build_fingerprint_sra` **is** the selection. Two properties are worth
-keeping: the sort is load-bearing, since ENA's filereport does not return these rows in accession
-order; and the block it yields runs from `nasal_prox1_1375` **down** to `nasal_prox1_942`, so
-accession order runs against the submitter's own cell numbering — evidence that the rule tracks
-nothing the submitter arranged. Now that #234 is measured, selection *could* become purposive, and a
-plate picked to contain a starved cell would be a designed test wearing a real dataset's clothes. No
-cell in this draw is below `min_input_reads`, so the drop path is **not** covered here; it belongs to
-the hermetic tier, where a cell can be starved by construction.
+**Selection stays unselected, and that is the decision** (#258). The rule is *sort the 1440 runs by
+`run_accession` ascending, take the first 96*, and it ships as `build-package.sh` in the case
+directory rather than as a sentence, because the verb takes one accession and packages every run under
+it — "96 of 1440" cannot be said on the command line. The sort is load-bearing (ENA's filereport does
+not return these rows in accession order), and the block it yields runs against the submitter's own
+cell numbering, which is evidence the rule tracks nothing they arranged. A plate picked to contain a
+starved cell would be a designed test wearing a real dataset's clothes; no cell in this draw is below
+`min_input_reads`, so the drop path belongs to the hermetic tier below.
 
-**`-n 2000`, against the tier's usual 20 000, and the limit is half the choice.** Ninety-six cells
-multiply the slice: **31,220,154 B over 192 slices and 383,878 records** at 2 000, against ~315 MB at
-20 000. 2 000 is `DEFAULT_MAX_READS`, so the package holds exactly what resolve reads and still
-reproduces the manifest hash — **and cannot serve a probe budget above 2 000 without being rebuilt.**
-These cells are shallow anyway (median 68,908 spots), so 20 000 would have been a third of each whole
-library rather than a head slice of it. Building it cost **~51 min** and ~0.8 GB streamed, none of it
-kept on disk — and budget for that number rather than for the ~16 min a 10 s-per-cell average
-predicts, because two runs stalled for minutes on a remote read making no progress and the shipped
-retry-with-backoff is what carried them. There is no resume: a killed build restarts at cell one.
+**`-n 2000`, against the tier's usual 20 000.** 2 000 is `DEFAULT_MAX_READS`, so the package holds
+exactly what resolve reads and still reproduces the manifest hash — **and cannot serve a probe budget
+above 2 000 without being rebuilt.** The other build parameters, and what the build costs, are
+comments in the case's own `inputs/recipe.yaml`.
 
-**The committed transcript is 289 records and 294 KB, and the projection that said 60 KB counted
-cells.** A plate deposit gives every cell its own BioSample *and* its own experiment *and* its own
-run, so 96 cells are `1 + 96 + 96 + 96` records at roughly a kilobyte each — seven times the previous
-largest (`GSE126954`, 42.9 KB for 70). Nothing is pruned, and the repetition is the point: 96
-experiment records carrying the *same* 240-character `LIBRARY_CONSTRUCTION_PROTOCOL` are the only
-real instance in either tier of the near-identical-record shape harvest's collapse exists for.
+**The committed transcript is 289 records, and the projection that said 60 KB counted cells.** A plate
+deposit gives every cell its own BioSample *and* its own experiment *and* its own run, so 96 cells are
+`1 + 96 + 96 + 96` records. Nothing is pruned, and the repetition is the point: 96 experiment records
+carrying the *same* 245-character `library_construction_protocol` are the only real instance in either
+tier of the near-identical-record shape harvest's collapse exists for.
 
-**The frozen-18 grade digest is now [`evals/digest.py`](../../src/seqforge/evals/digest.py), and it
-refuses rather than filters.** #231's recipe — case count, four tier-wide rates, and the whole
-per-case list with every clock stripped — lived only as a copy-pasteable snippet in an issue comment,
-and prose in an issue cannot be run. Two things follow. The **exclusion**: the recipe hashes
-`n_cases` *and* the per-case list, so equal-digest and add-a-case are incompatible instruments, and a
-red nineteenth case moves `false_accept_rate` off 0.0 by construction. `FROZEN_18` is therefore dated
-**data** — the tier as it stood at #231's baseline `27ffd05` — and `grade_digest` raises on a report
-holding anything else, because silently dropping the extra rows would hash four rates `build_report`
-computed over nineteen cases, and recomputing them there would be a second copy of that arithmetic.
-And the **finding that argues for code at all**: the live baseline is
-`aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` at `main` @ `3ab99ff`
-(2026-08-04, `--no-llm`) — 18/18 `correct`, every grade identical to #231's — and it is **not** the
-published `247a9354…` (`27ffd05`). Nothing regressed; `questions_asked` became a dict where the
-2026-07 baseline hashed a scalar. The constant went stale silently while every grade it protected
-stayed put, which is why the module pins the case list and the recipe and **no test asserts a digest
-value**.
+**The frozen-18 grade digest is [`evals/digest.py`](../../src/seqforge/evals/digest.py), and it
+refuses rather than filters.** The recipe hashes `n_cases` *and* the whole per-case list, so
+equal-digest and add-a-case are incompatible instruments and `grade_digest` raises on a report holding
+anything but `FROZEN_18` rather than silently dropping rows. The module owns the baselines, what moved
+them and what did not, because prose in a doc cannot be run any more than prose in an issue can.
+**Quote a hex with the tree it was taken on**, re-take it on the tree you are about to change, and
+diff it against that same tree: a hex carried over from a neighbouring tree has been misattributed
+once already.
 
-**What the reproductions buy, and where they stop.** `aeff9af9…` came back twice on an unchanged tree
-and independently from six branches — two based on `5624f8e`, two on `4adc182`, plus `main` at both
-of those and at `3ab99ff` with all six merged. So `read_count` leaving the signature vocabulary
-(#299) moved it **not at all**, and neither did those six merges; agreement across trees is what
-makes a later disagreement mean something. But **every one of those runs is already post-#297**, the
-generic bulk entry's rename. That rename does change a graded `library.chemistry` string on
-`GSE283483-bulk`, and no pre-#297 number was ever taken, so its effect here is **unmeasured** — not
-an expected move, not a no-op. Quote a digest with the tree it was taken on, re-take it on the tree
-you are about to change, and diff it against that same tree: a hex carried over from a neighbouring
-tree has already been misattributed once.
-
-### The plate's designed behaviours are hermetic, and one of them could not be built as written (2026-08-04, #294)
+### The plate's designed behaviours are hermetic, and one of them could not be built as written
 
 The real plate above is deliberately un-tilted, which is exactly why it covers none of the plate's
 *rules*: no cell in its accession-ordered draw is under the read floor, and choosing one that was
-would measure our selection. Four hermetic cases carry the rules instead, built by construction at no
-data cost — and all four graded `correct` on their first run against pre-registrations that were
-committed before the inputs existed.
+would measure our selection. Four hermetic cases carry the rules instead (2026-08-04, #294), built by
+construction at no data cost, and all four graded `correct` on their first run against
+pre-registrations committed before the inputs existed.
 
 | case | outcome | what only this case pins |
 |---|---|---|
@@ -629,288 +220,53 @@ committed before the inputs existed.
 | `steering/tag-at-the-floor-declared` | decide | byte-identical inputs plus the archive's own sentence — the tie collapses to `smartseq3` |
 | `refusal/plate-cell-below-the-tag-floor` | refuse | one cell *under* the gate dissents outright, and the deposit refuses rather than partitioning into two assays at exit 0 |
 
-**Two recipe knobs were needed and both close a "no fixture can express this" gap**, in the shape
-`over_length` already established. `dilute` writes the spec's layout on a minority of one read's
-records and plain cDNA (drawn from the KB's own all-cDNA entry) on the rest, interleaved — without it
-every fixture carries its structure in 100 % of its bytes and sits infinitely far above any
-frequency floor an entry declares, which is not a population any real Smart-seq3 library has. And
-`shallow` writes one library of a deposit at a smaller depth as a **prefix** of the deep draw, so a
-starved well is the same molecules sequenced less deeply rather than a different, smaller library;
-without it every cell of a deposit clears a floor or none does, and a corpus can only ever grade
-"nothing was dropped".
-
 **The refusal case's ticket said "below the tag floor … it ties … and it refuses", and the live code
-does not do that.** Measured across a dilution sweep, on the shipped entry:
+does not do that.** Below the declared 2 % floor `smartseq3` fails its own admission gate, so the
+generic fallback is the only candidate and **decides at exit 0** — and no declared string rescues it,
+because a claim cannot put back a chemistry the bytes excluded. **There is no exit-3 path out of a tie
+at all**: a processing-divergent tie always becomes a Question at exit 4, and the exit-3 refusal the
+corpus was owed is a *different* mechanism — a cell whose bytes exclude the plate's chemistry
+outright. Both are shipped rather than one relabelled as the other.
 
-| tagged share of R1 | what happens, with no metadata | with the declared string |
-|---|---|---|
-| ≤ 2 % (the declared floor) | `smartseq3` fails its own admission gate and is eliminated; the generic fallback is the ONLY candidate and **decides at exit 0** | unchanged — **exit 0, the fallback**; a claim cannot put back a chemistry the bytes excluded |
-| ≥ 2.5 % | the two **tie**; `[metadata]` is the declared tie-breaker and there is none; **exit 4** | **exit 0, `smartseq3`** |
+### The regression protocol, and the run it prescribes
 
-So the ticket's literal construction produces a decision, not a tie, and no declared string rescues
-it — which is a fact worth having, and is what `refusal/plate-cell-below-the-tag-floor` now pins from
-the plate side. **There is no exit-3 path out of a tie at all**: a processing-divergent tie always
-becomes a Question. The stated reason — *a tie the metadata rung cannot break* — therefore stops a
-compile at **exit 4**, which is what the pair one row above grades, and the exit-3 refusal the corpus
-was owed is a *different* mechanism: a cell whose bytes exclude the plate's chemistry outright.
-Both are shipped rather than one relabelled as the other.
-
-**A defect fell out of building the grouping case, and it is the kind only a synthetic fixture
-reaches.** A cell admitted without byte confirmation is recorded as a resolved conflict whose
-observed position carries the candidate's score as a confidence — and a confidence is bounded at 1.0
-while a score is the role assignment's normalized total, which adds the sub-threshold filename prior
-on every role. The ten published cells the rule was measured on all scored under 0.9; reads generated
-from a spec's own elements saturate by construction and score 1.01, so the first plate to starve a
-cell raised a validation error from inside the reduction instead of recording the inheritance. It is
-clamped to the ceiling, and the regression test asserts the score is over 1.0 before it asserts
-anything about the clamp.
-
-### The regression protocol, and the run it prescribes (2026-08-04, #296)
-
-The protocol is written down here rather than in the pull request that ran it, because it is a
-procedure the next person changing the shipped path has to be able to repeat.
+Written down here rather than in the pull request that ran it (2026-08-04, #296), because it is a
+procedure the next person changing the shipped path has to repeat.
 
 **Who runs what.** The hermetic tier is CI on every commit. **The networked tier is
-maintainer-launched, single-trial, with `--llm` excluded** — the exclusion #231 established and the
-sections above priced: six single-trial `--llm` runs of one case graded two `correct`, two
-`over_ask` and two aborted, so a single-trial harvest grade is a coin flip and a digest over one
-would be an instrument nobody trusted twice. `--no-llm` reaches no model, needs no credential, and
-grades chemistry from pinned bytes and sample facts from committed records.
+maintainer-launched, single-trial, with `--llm` excluded** — six single-trial `--llm` runs of one case
+graded two `correct`, two `over_ask` and two aborted, so a single-trial harvest grade is a coin flip
+and a digest over one would be an instrument nobody trusted twice. `--no-llm` reaches no model, needs
+no credential, and grades chemistry from pinned bytes and sample facts from committed records.
 
-**The bar, kept and scoped.** *Every per-case grade byte-identical* is unsatisfiable the moment a
-case is added, because the digest recipe hashes `n_cases` **and** the whole per-case list — so
-equal-digest and add-a-case are incompatible instruments and the nineteenth case is excluded from
-the digest by construction ([`evals/digest.py`](../../src/seqforge/evals/digest.py), and the section
-above on why that is a refusal rather than a filter). **The protocol is therefore two commands, not
-one**: a run over exactly the frozen eighteen, which the digest is taken from, and a run over the
-whole tier, which is what turns the plate case green. Each non-plate change in this map landed
-separately with its own before/after digest pair, so the plate comparison ran against a re-taken
-baseline on which the digest genuinely should not move.
+**The protocol is two commands, not one**: a run over exactly the frozen eighteen, which the digest is
+taken from, and a run over the whole tier, which is what turns the plate case green. Land each change
+separately with its own before/after digest pair, both re-taken on the same tree.
 
-**A pre-run string assertion, because a closed bug is not the precondition.** #266's alias-ranking
-fix had landed, but nobody had ever read `GSE207085`'s *own* declared value against the matcher — no
-cached record set on the machine held PRJNA853582. Two lines, before the run was launched:
-`kb.match.resolve_chemistry` over the 245-character `library_construction_protocol` string that all
-96 experiment records carry verbatim — *"FACS sorted nasal Prox1+ cells were processed by Smart-Seq3
-protocol Libraries were generated following Smart-Seq3 protocol (Hagemann-Jensen M et al.,Single-cell
-RNA counting at allele and isoform resolution using Smartseq3. Nat Biotechnol 2020)"* — returns
-`smartseq3`. It passed **first**, which is the whole point: a red afterwards is then about this work
-and nothing else. That there is exactly **one** distinct such string across 96 records is the same
-fact that makes this deposit the corpus's only real instance of the shape harvest's collapse is for.
+**Pre-declare the moves, and assert the strings before the run rather than after.** #296's example is
+the shape to copy: two lines running `kb.match.resolve_chemistry` over `GSE207085`'s own declared
+protocol string, passing **first**, so a red afterwards is about the work and nothing else. A
+pre-declaration that turns out unnecessary is the instrument working; one invented afterwards is not.
+Note that every `run_id` moves whenever `KB_VERSION` or `WORKFLOW_VERSION` bumps, so such a run is
+**cold** and no cache carries an answer into it.
 
-**Pre-declared before the run as expected moves, and only one of them happened.** Every `run_id`
-moves: `KB_VERSION` (2026.8.3 → 2026.8.5) and `WORKFLOW_VERSION` (2026.8.4 → 2026.8.6) both bumped
-over this map, so the benchmark run is **cold** and no cache carried an answer into it. The exported
-schema golden was declared to move and did **not** — `Spec` is a KB model and has never been in
-`SCHEMA_MODELS`, so its two new fields moved no exported schema at all, and the one exported shape
-that did move is `ComposeResult.admission` ([`models.md`](models.md)). A pre-declaration that turns
-out unnecessary is the instrument working; one invented afterwards would not be.
+**Budget the clock.** The eighteen finish in about 91 s; the plate case roughly doubles the tier's
+wall clock on its own, because 96 cells are 96 resolves against the whole KB. It is the tier's most
+expensive case by an order of magnitude and it is worth it — it is the only place the sample explosion
+is measured on real bytes.
 
-**What the run measured.**
+Two ruler changes (#184/#188, #196) were landed on their own before any compiler fix and moved no
+grade for the reason they were made; the runs, and why the movement that did happen is not
+attributable to them, are in
+[`docs/research/ruler-changes-that-moved-no-grade.md`](../research/ruler-changes-that-moved-no-grade.md).
+So was #307's support-normalizer change, which was *predicted* to move the digest and did not
+([`docs/research/support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md)) — an
+unchanged digest across a deliberate semantic change is informative only because both ends were taken
+on the same tree.
 
-| | |
-|---|---|
-| frozen 18, `--no-llm`, single trial | **18/18 `correct`, exit 0, 91.5 s** — `field_accuracy` 1.0, `false_accept_rate` 0.0, `false_refuse_rate` 0.0, one question (`GSE126954`) |
-| frozen-18 grade digest | `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **byte-identical** to the live baseline, re-taken on this same tree |
-| whole tier, 19 cases | **19/19 `correct`, exit 0, 198.0 s wall** (729.3 s summed across the jobs) |
-| `GSE207085-nasal-prox1-96cells` | **red → green**, graded against the `expected.yaml` committed before any of the work landed and never edited |
-
-**The plate change was predicted to be a measured no-op on the eighteen, and it is one.** The
-prediction is structural rather than hopeful: `smartseq3`'s `requires` gate keeps it out of every
-existing ranking (bulk R1 carries the tag at offset 0 in 0.00 % of reads against a 2 % floor), and
-`sample_is_cell` is `False` on every other shipped spec, so nothing pools. It was measured anyway,
-because this effort has been wrong three times about "this should be unchanged".
-
-**The 96-cell case now dominates the tier's clock, and that is a cost to know before dispatching.**
-The eighteen finish in 91.5 s; adding one plate takes the wall clock to 198.0 s, essentially all of
-it that case (198.0 s of its own), because 96 cells are 96 resolves against the whole KB. It is the
-tier's most expensive case by an order of magnitude and it is worth it — it is the only place the
-sample explosion is measured on real bytes.
-
-**The `--llm` blind spot is structural and this protocol does not close it.** No routine gate
-observes the harvest path: the hermetic tier excludes every case that harvests, and a `--no-llm`
-digest never calls harvest. The three-part instrument #233's batching change shipped with — an
-`eval plan` diff, a hermetic test on `batch_documents`, and a bounded recall probe — closes it for
-that change specifically. Closing it in general is separate work.
-
-### The support normalizer moved a definition and no grade (2026-08-05, #307)
-
-The scoring change that took an unanswered support out of the normalizer was **predicted to move the
-digest and did not**, which is the reverse of the usual pre-declaration and worth the row.
-
-| | |
-|---|---|
-| frozen 18, `--no-llm`, single trial, **before** | 18/18 `correct`, `false_accept_rate` 0.0, `false_refuse_rate` 0.0 |
-| frozen 18, **after** | 18/18 `correct`, same rates, same outcome mix |
-| frozen-18 grade digest, before **and** after | `aeff9af9ce5f626838d26c9c4f9860f51fd297dc25fe94c63495df0fa146807b` — **byte-identical**, both re-taken on this tree (`main` @ `62a4f54`) |
-| whole tier, 19 cases | 19/19 `correct`, exit 0 |
-
-The issue predicted movement because it prescribed renormalizing an unobtainable whitelist at
-runtime; measuring that showed it inverts the 10x cohort's ranking, so the runtime rule kept the
-weight and the fix landed where the onlist is withheld from every spec at once. What remains at
-runtime — a support the *bytes* were silent about leaving the normalizer — no benchmark case
-exercises, which is why the digest holds. An unchanged digest across a deliberate semantic change is
-only informative because both ends were taken on the same tree; the measurement and the residual it
-leaves are in
-[`docs/research/support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md).
-
-## Scope only — a held-out TEST set would measure what pre-registration structurally cannot
-
-**Nothing here is decided, and there is no third tier.**
-[ADR-0016](../adr/0016-no-held-out-dataset.md) is in force: this project reserves no dataset, and no
-directory named below exists in the tree. What follows is the scope issue #81 asks for, written so a
-later milestone can be executed without re-deriving it — and cancelled on evidence rather than drift,
-for which see the last subsection.
-
-### ADR-0016 retired one worked example; a test set is a different object
-
-ADR-0016's argument is specific to the thing it retired. `PRJNA1027859` is the pilot's worked example,
-the tutorial's source and the fixture that priced `gene_signal_lost = 0.407`, and a dataset nobody may
-look at can be none of those. Its second argument — the reservation would not have caught that defect,
-the pre-registration did — is true, and true for a reason that does not generalize: **that defect was
-a label problem.** GEO declared single-nucleus, the expectation said so before the run, and the
-compiler disagreed. Reserving the bytes was never going to surface it.
-
-The two disciplines hold different halves of the comparison still:
-
-| | what it fixes | what it catches | what it is blind to |
-|---|---|---|---|
-| **pre-registration** | the expectation, dated before the run | a transcript wearing a prediction's clothes | the *code* drifting toward the corpus |
-| **reservation** | the code, never fitted to these bytes | a green rate that was fitted rather than earned | a wrong expectation — reserving never made one right |
-
-So the crux, and the sentence to carry forward: **pre-registration is a property of the label;
-held-out is a property of what happens after the grade.** `evals/benchmark/GSE283483-*` were
-pre-registered before their run (2026-07-24) and are validation data all the same, because when one
-goes red we will fix the compiler and grade it again. The label was honest and stays honest; the
-number the second pass yields is fitted anyway. **A test set is defined by its retirement rule, not by
-the honesty of its expectations** — and that is the whole of what it buys on top of pre-registration.
-
-Which also settles the size question. Reserving *one* dataset buys a bit, not a rate, and ADR-0016 was
-retiring an n = 1 reservation. Co-adaptation is an aggregate effect — a dozen cases across some number
-of releases, every red fixed on its own honest merits — and only an aggregate measurement can see it.
-
-### "Nobody has compiled it" is a claim about the bytes, and the line is already sharp
-
-The benchmark grades two things from two sources: `library.chemistry` from the **pinned bytes**, and
-`experiment.*` from a committed `records.json`. Contamination therefore has two channels, and they get
-opposite rules.
-
-**The record must be read, and reading it is not compiling.** Nobody picks a dataset without knowing
-the organism, the assay, that a paper exists and that runs are public — and the `experiment.*`
-expectations are *transcribed* from the record, so reading it is the job rather than a concession.
-Every value the archive declares, chemistry included, is fair to write into `expected.yaml`; that is
-exactly what the pilot's pre-registration does with "Single Cell 3 v3.1".
-
-**The bytes must not be scored.** The line worth naming is not "do not download the FASTQ" — it is *do
-not run the byte resolver, and do not read a probe's output*. That line is already sharp with no new
-machinery: `preflight` emits a package path, per-file `sha256`, sizes and read counts, and **nothing
-byte-derived** — no read length, no segment, no verdict — while `preflight --accession` streams the
-first N spots straight from SRA, so the FASTQs never land. A maintainer can reserve a dataset end to
-end and see only what the archive already told them. Two residues, both small, both worth stating: the
-summary prints filenames, and an `_I1_` in a basename does leak a layout hint even though the resolver
-itself never sees filenames; and a reserved package must stay off the public HF repo until it is
-graded, because a public package is one any agent can pull and compile.
-
-**Selection is the leak byte-hygiene cannot close.** A maintainer picking datasets whose records
-resemble what `evals/benchmark` already holds builds an easy test set; one picking oddities builds a
-hard one, and neither number means what it appears to. The fix is not to look less but to decide less
-after looking: **pre-commit the sampling frame** — a stated population and an inclusion rule, e.g.
-*every GEO series matching this query, published in this window, with at least one public run and a
-paper, taken in accession order until n is reached* — then take what it yields, including the cases we
-expect to fail. A frame written down first is a frame that cannot be tilted afterwards.
-
-### Mechanize the artifact; write down the conduct
-
-ADR-0016 deleted a `PreToolUse` guard and a root registry on purpose, and its closing line is
-unambiguous: nothing can check that a value was not back-filled from a run. That is not an argument
-against mechanism — it is an argument about *what kind*. The guard failed because it mechanized
-**conduct**, and a conduct guard is both evadable and in the way of every other job its dataset had.
-Properties of a **file** are a different matter, and this repo already mechanizes several.
-
-The honest split, if the milestone is taken:
-
-- **Mechanizable, and none of it a guard.** Keep the test directory disjoint from `discover_cases()`
-  exactly as `evals/benchmark` already is, so reaching it means typing its path — that stops an
-  automated sweep from grading it by accident, which is the realistic accident, and hides nothing from
-  a human. Then check the *shape* of a test case: a `predicts` stamp present, no `AUTO-SEEDED` header,
-  and an expectation commit that predates the grading commit. All three are properties of files and of
-  `git log`, which is what `predicts` was designed for:
-  [`evals/case.py`](../../src/seqforge/evals/case.py) already states the (a) dataset-claim /
-  (b) compiler-output split that makes the audit possible.
-- **Not mechanizable, and stated rather than assumed.** That nobody scored the bytes before the
-  grading. Nothing sees this: it leaves no diff at all, which makes it *weaker* than the back-fill
-  obligation ADR-0016 named, since an edited `expected.yaml` at least surfaces in review. The review
-  obligation is therefore a staffing one — **whoever reserves a dataset is not whoever debugs against
-  it** — and the grading commit records who ran it and when.
-
-That is the resolution of "prefer an automatic mechanism over a remembered rule" against ADR-0016's
-warning: mechanize the artifact, write down the conduct, and never build a mechanism whose only effect
-is to make an unkept obligation feel kept.
-
-### Graded once per milestone, because the grading spends it
-
-**A test set is a consumable.** Grading it produces failures, the failures produce fixes, and the next
-grading measures a compiler fitted to them. Nothing about that second number is dishonest, and nothing
-about it is held out either. So the policy that keeps the name true is: **grade once per milestone,
-and retire the cases that were graded** — they move into `evals/benchmark/`, where their remaining
-value is as regression baselines, and the tier is refilled under a fresh frame.
-
-The cost of that policy is the honest part of it: a test set carries a **recurring data bill**. A
-milestone that cannot afford eight to fifteen fresh datasets does not have a test set that milestone —
-it has a second validation set, and should say so rather than re-grade the old one.
-
-**What a result would mean.** A green run refutes; it does not certify. At n ≈ 10 with no failures the
-95 % upper bound on the failure rate is about 26 % (about 14 % at n = 20) — enough to catch a compiler
-that is badly fitted, nowhere near enough to license a claim about 10⁴ datasets, and the number must
-never be quoted without its n. The red run is the valuable one: it is the only measurement this
-project would have that can tell *the benchmark is green because the compiler works* apart from *the
-benchmark is green because we fixed it every time it went red*. A red is a dated **finding** and an
-issue, never a merge gate — `eval run`'s exit 3 on a false accept stays a report here, as it already
-is in `benchmark.yml`.
-
-### Rough size, composition, and where it would sit beside the two tiers
-
-Same mechanism, a third directory, a different reading discipline — there is nothing new to build.
-
-| tier | directory | when it runs |
-|---|---|---|
-| **ci-benchmark** | `evals/cases` | every commit, hermetic |
-| **benchmark** | `evals/benchmark` | published release or manual dispatch |
-| *(scoped, does not exist)* **testset** | *not in the tree* | never automatically — dispatched by a human, once per milestone |
-
-- **Size: 8–15 datasets.** Under about eight the rate has no resolution; over about fifteen the
-  reservation costs more diagnostic data than the measurement is worth and the refill stops being
-  affordable.
-- **Not worm-only.** `evals/benchmark` is *C. elegans*-heavy because the pilot is, and a test set that
-  inherits that restriction cannot detect that we have fitted to worm.
-- **Include chemistries the KB does not cover.** Covering every leaf spec is the ci-benchmark's job.
-  The question a test set exists to answer is what happens on the *unknown* at 10⁴ scale, so a correct
-  **refusal** is a pass, and a frame yielding only supported chemistries has measured the resolver
-  rather than the compiler.
-- **Disjoint from both tiers, by accession.** `PRJNA1027859` is currently a case in `evals/cases/real`
-  *and* in `evals/benchmark`; a test case sharing an accession with either tier is not held out.
-
-### What would make this not worth doing
-
-Written first, so the milestone can be cancelled on evidence rather than quietly abandoned.
-
-1. **There may be no gradient to overfit along.** Overfitting needs a fitting step. Before building
-   anything, classify every benchmark red so far by how it was fixed: (i) re-derived from an
-   independent source — an oligo spec, a paper, the chemistry itself — or (ii) a threshold moved until
-   the case passed. The SPLiT-seq purity gate and the all-five feature default were (i). **If the
-   ledger is all (i), a held-out set measures nothing new**, and this milestone should be closed.
-2. **The reservation costs exactly the diagnostic value the benchmark has actually returned.** Every
-   dataset held out is a dataset that cannot price a defect — ADR-0016's argument, and it does not
-   weaken because there are ten of them instead of one. This corpus's returns to date are findings,
-   not scores.
-3. **Production is a better held-out set, and it is free.** A headless run over ~10⁴ public datasets
-   generates a continuously refreshed, genuinely unseen sample — refusal rate, conflict rate, blocker
-   mix — that no curated set of ten can rival. If the decision this number would inform lands after
-   that corpus starts running, a hand-built test set is a worse instrument bought early.
-4. **It adds an obligation weaker than the one ADR-0016 already could not enforce.** "Nobody scored
-   these bytes" leaves no artifact at all, where a back-filled `expected.yaml` at least leaves a diff.
-   An unauditable discipline protecting a number that can only refute is a thin thing to build a tier
-   around.
+**The `--llm` blind spot is structural and this protocol does not close it.** No routine gate observes
+the harvest path: the hermetic tier excludes every case that harvests, and a `--no-llm` digest never
+calls harvest. Closing it in general is separate work.
 
 ## The compose gate has three parts, because a dry run cannot catch a strand inversion
 
@@ -958,39 +314,19 @@ what keeps it true across a future `align-rna` that bumps STAR underneath us.
 
 ## What the runs measured
 
-**`kb e2e`** (sacCer3, 2 000 reads, 120 genes, 8 cells, measured 2026-07-15): resolve decided
-`10x-3p-gex-v3` **unaided** — no metadata hint, chemistry from the bytes alone — and the matrix
-recovered with **0 spurious, 0 inflated and 0.7 % unexplained**, the remainder being STAR's own
-multimapper loss. The inverted strand **collapsed 2 000 counts to 49**, which is the proof that the
-gate can catch an inversion rather than merely claiming to.
+Three runs on 2026-07-15, one conclusion each; the numbers, the boxes and the commands are in
+[`docs/research/e2e-gate-runs.md`](../research/e2e-gate-runs.md).
 
-**`kb e2e-introns`** (ce11 + WS298) closed the intron-rich fixture. One STARsolo run with two counting
-features — identical alignment, only the counting rule differing — counted `Gene` as the exonic truth
-alone (recovery 0.979) and `GeneFull` as exon plus intron (0.97), again 0 spurious and 0 inflated,
-resolve again deciding the chemistry from the bytes unaided.
-
-**That run priced a real defect, and the defect is fixed.** Gene-only counting silently discarded
-**40.7 %** of a nuclear library, and the compiler *would* have emitted exactly that. The fix was not
-an exit-4 question but the parse-versus-count split plus an all-five feature default — one alignment,
-five counting rules, one pass — so the fixture that priced the defect is now the gate that prevents
-it: with its override deleted it asserts the composed feature set against the compiler's own params
-([ADR-0012](../adr/0012-produce-every-answer-rather-than-ask.md)). Velocyto is unconditional, a
-maintainer decision of 2026-07-15 rather than a measurement.
-
-**`kb e2e-cost`** (hg38, 2026-07-15) measured peak memory at corpus scale: **34.7 GB at 100 M reads
-and 44.1 GB at 250 M**, so the flat regime ends between them and peak RSS is roughly a genome-sized
-intercept plus a slope in reads. The ce11 fixture cannot answer this — peak RSS moved only 2.804 to
-2.809 GB across a 500× read increase, because 2.8 GB *is* the ce11 index and the counting is a
-rounding error on it, so a green ce11 number would have been worse than none. **Only the slope
-generalizes off ce11**; the absolute figure needed the real hg38 index.
-
-The instrument is `kb e2e-cost`, or `kb e2e-introns --quantify`, reporting wall time and peak RSS.
-Note that a resource request is *intent*, so the memory hint lives on the **recipe**, not on a
-workflow module.
-
-**Still open:** above 250 M reads is extrapolation from a single post-knee point, so a deep human
-library is provisioned 128 GB until the sweep extends. An expensive default is not a trap here,
-because the recipe can override it.
+- **`kb e2e`** (sacCer3) — resolve decided the chemistry from the bytes **unaided**, the matrix
+  recovered with 0 spurious and 0 inflated, and the inverted strand collapsed 2 000 counts to 49. The
+  gate can catch an inversion rather than merely claiming to.
+- **`kb e2e-introns`** (ce11 + WS298) — closed the intron-rich fixture, and priced a real defect:
+  gene-only counting silently discarded **40.7 %** of a nuclear library, which the all-five feature
+  default now prevents ([ADR-0012](../adr/0012-produce-every-answer-rather-than-ask.md)).
+- **`kb e2e-cost`** (hg38) — peak memory at corpus scale is a genome-sized intercept plus a slope in
+  reads, and **only the slope generalizes off ce11**. A resource request is *intent*, so the memory
+  hint lives on the **recipe**, not on a workflow module. Above 250 M reads is extrapolation from a
+  single post-knee point, so a deep human library is provisioned 128 GB until the sweep extends.
 
 ## What the runs do not yet cover
 

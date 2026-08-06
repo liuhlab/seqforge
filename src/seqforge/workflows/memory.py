@@ -1,85 +1,41 @@
 """What a mapping rule asks the scheduler for, and how much of it STAR may sort in.
 
-**Two modules' arithmetic, one file, and the second one is a map rather than a cap.** ``map/starsolo``
-has one expensive rule and needs the sort budget below to follow the request across a retry.
-``map/star-umi`` has *two* rule classes that scale differently — index-dominated per-cell alignment,
-and one plate-wide counting job that loads no index at all — and the recipe still says exactly one
-thing, because ``resources.mem_gb`` is intent and a recipe carrying every module's rule names would
-widen the recipe schema on every new module. So the module turns one figure into two requests
-(:func:`per_cell_mem_mb`, :func:`fan_in_mem_mb`), and the escalation applies to each class alone.
+Two numbers that only mean anything together, so they live in one file rather than in the `.smk` that
+uses them. `starsolo.smk` requests `mem_mb` from the scheduler and hands STAR `--limitBAMsortRAM`; the
+second is a fraction of the first, and any change moving one without the other buys memory STAR is
+forbidden to use, or forbids STAR memory the job was never given. They used to be a module constant
+and a closure *inside* the `.smk`, where nothing could reach them — a Snakefile is not importable, so
+the arithmetic deciding whether a two-billion-read sample lives was only exercised by running STAR
+against one. Here it is importable and unit-testable.
 
+**Why the escalation is shaped this way** — the unbounded `readInfo` allocation, why
+`--limitBAMsortRAM` permits rather than reserves, why the cap must derive from the *escalated*
+request rather than attempt 1's, and why a sample that exhausts the retries is allowed to fail — is
+argued once in `docs/adr/0023-star-memory-escalates-on-retry.md`. Read it before changing a number
+here; every one of them is load-bearing in a way the arithmetic alone does not show.
 
-Two numbers that only mean anything together, so they live in one file. ``starsolo.smk`` requests
-``mem_mb`` from the scheduler and hands STAR ``--limitBAMsortRAM``; the second is a fraction of the
-first, and any change that moves one without moving the other buys memory STAR is still forbidden to
-use, or forbids STAR memory the job was never given. They used to be a module constant and a closure
-*inside* the ``.smk``, where nothing could reach them: a Snakefile is not importable, so the
-arithmetic deciding whether a two-billion-read sample lives or dies was only ever exercised by
-running STAR against a two-billion-read sample. Here it is importable and unit-testable, and
-``starsolo.smk`` imports it exactly as it already imports ``h5ad`` — seqforge's own helpers,
-restated nowhere.
+**Two modules' arithmetic, and the second is a map rather than a cap.** `map/starsolo` has one
+expensive rule. `map/star-umi` has *two* rule classes that scale differently — index-dominated
+per-cell alignment, and one plate-wide counting job that loads no index at all — while the recipe
+still says exactly one thing, because `resources.mem_gb` is intent and a recipe carrying every
+module's rule names would widen its schema on every new module. So the module turns one figure into
+two requests (:func:`per_cell_mem_mb`, :func:`fan_in_mem_mb`) and escalation applies to each class
+alone.
 
-**The defect this file exists to remove (#205).** The 3/4 rule below was not wrong so much as
-*incomplete*. ``--limitBAMsortRAM`` bounds the coordinate sort and nothing else, while STAR holds
-allocations it does not bound at all — chiefly ``readInfo``, the per-read CB/UMI array STARsolo
-carries for the whole run::
+**The cap is a `resources:` entry and not a `params:` one, which is the part that is easy to get
+wrong.** Snakemake hands `resources` to a `params:` callable, so
+`sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb)` reads correctly, plans
+correctly, and is broken: `Job.attempt`'s setter clears `self._resources` and **not** `self._params`,
+and `reset_params_and_resources()` is one-shot behind a `_params_and_resources_resetted` flag. The
+params expansion happens once, on attempt 1, and every retry reuses it. Traced on the pinned
+snakemake 9.23.1 across three attempts — `mem=1000 cap=750` / `mem=2000 cap=750` / `mem=3000 cap=750`
+against `750` / `1500` / `2250` for the same arithmetic declared as a resource. Only a `resources:`
+entry taking `attempt` re-evaluates, which is what `starsolo.smk` declares (`bam_sort_ram_bytes`,
+named for the unit STAR wants).
 
-    typedef struct { uint64 cb; uint32 umi; } readInfoStruct;   // 16 B with padding
-    readInfo.resize(nReadsInput, ...);
-
-**16 bytes × every input read**, sized before a single alignment is sorted. A 215M-read sample
-spends 3.4 GB on it; ``PRJNA658829/SAMN15970313``, at 2.23 billion reads, spends **35.7 GB**. STAR
-ships eight ``--limit*`` knobs and *none* of them bounds ``readInfo`` or the genome index; there is
-no ``--limitSoloRAM`` to reach for.
-
-That matters because ``--limitBAMsortRAM`` **permits rather than reserves**: STAR allocates what the
-sort actually needs and refuses only if that need exceeds the cap. So on a large sample the 3/4 rule
-authorises a sort allocation *on top of* a 36 GB ``readInfo``, the total overruns the job's request,
-and the job is **OOM-killed by the scheduler instead of refused by STAR**. The defect being removed
-is that illegible death — not "big samples need more memory", which was never news, but that the
-sample dies with a kill signal and no number instead of a FATAL naming what it wanted.
-
-**Why escalation on retry, and not simply a bigger default for everyone.** The distribution is very
-long-tailed: nearly every sample fits in today's request, and the handful that do not overrun it by
-multiples. Sizing every job for the worst sample would multiply the scheduler footprint of ~10⁴
-datasets to buy headroom that ~10⁴ minus a few of them will never touch, and a corpus that queues
-badly is a corpus that does not get built. Escalating instead means the common case is byte-identical
-to what shipped before (see :func:`escalated_mem_mb` — attempt 1 *is* today's request) and only the
-samples that actually failed pay for the headroom, once each.
-
-**The cap has to derive from the escalated request, and that is the whole fix.** A
-``--limitBAMsortRAM`` pinned to attempt 1's ``config["mem_mb"]`` would let attempt 2 buy scheduler
-memory that STAR was still forbidden to sort in — the retry would raise the ceiling and leave the
-floor, and the second attempt would fail the same way for a reason the first attempt had already
-recorded. So the retry raises the scheduler request and STAR's cap **together**.
-
-**And the cap is a `resources:` entry rather than a `params:` one, which is the part that is easy to
-get wrong.** Snakemake hands `resources` to a `params:` callable, so
-``sort_ram=lambda wildcards, resources: bam_sort_ram(resources.mem_mb)`` reads correctly, plans
-correctly, and is broken: ``Job.attempt``'s setter clears ``self._resources`` and **not**
-``self._params``, and ``reset_params_and_resources()`` is one-shot behind a
-``_params_and_resources_resetted`` flag. The params expansion therefore happens once, on attempt 1,
-and every retry reuses it. Traced on the pinned snakemake 9.23.1 over three attempts of exactly that
-shape — ``mem=1000 cap=750`` / ``mem=2000 cap=750`` / ``mem=3000 cap=750`` — against ``750`` /
-``1500`` / ``2250`` for the same arithmetic declared as a resource. Only a ``resources:`` entry taking
-``attempt`` re-evaluates, so that is what ``starsolo.smk`` declares
-(``bam_sort_ram_bytes``, named for the unit STAR wants).
-
-**A sample that exhausts the retries fails.** That is the accepted outcome of #205, not a bug to
-engineer around, and it is the honest end of the escalation: at some point the answer is a recipe
-with a bigger ``resources.mem_gb``, decided by a human who looked at the sample, and not another
-doubling applied blind. Note the failure is legible in the common case anyway — when the *sort* is
-what does not fit, STAR names the number of bytes it needed and exits.
-
-**The known residual, which is why the escape hatch matters.** ``PRJNA658829/SAMN15970313`` — 2.23
-billion reads, 2.44 billion alignment records — needs ~36 GB of ``readInfo`` before any sorting
-begins, so no linear escalation from a 32 GB default reaches it politely. It wants a per-recipe
-``resources.mem_gb`` override, which is exactly the per-dataset escape hatch the two-manifest split
-exists to provide: the dataset manifest says what the reads ARE and does not change, and a second
-recipe says to spend more memory on them. Worth recording before anyone reprocesses it: STAR packs
-the read index into the upper 32 bits of a per-record field (``iReadAll<<32``, three call sites in
-``ReadAlign_outputAlignments.cpp``), so there is a hard **2³² read ceiling** of 4.29 billion. That
-sample is under it, but not by much.
+**One hard ceiling worth knowing before reprocessing anything large.** STAR packs the read index into
+the upper 32 bits of a per-record field (``iReadAll<<32``), so there is a hard **2³² read ceiling** of
+4.29 billion. The largest sample in the corpus sits under it, and not by much.
 """
 
 from __future__ import annotations

@@ -17,16 +17,11 @@ set to **3/4 of that request**. Both halves were reasonable and both were incomp
 The cap is not a budget for the job. It is a budget for **one allocation inside it** — the coordinate
 sort, which since [#198](https://github.com/liuhlab/seqforge/issues/198) is not optional, because
 STAR writes `CB`/`UB` into no output but the sorted BAM. What it does not bound is everything else
-STAR holds while sorting, and on a single-cell run the largest of those is `readInfo`:
-
-```text
-typedef struct { uint64 cb; uint32 umi; } readInfoStruct;   // 16 B
-readInfo.resize(nReadsInput, ...)                           // one entry per INPUT read
-```
-
-Sixteen bytes times every read that entered the aligner, held before a single alignment is sorted.
-215M reads is 3.4 GB of it. `PRJNA658829/SAMN15970313` — 2.23 **billion** reads — is **35.7 GB**, and
-that figure is arithmetic over a measured constant rather than an extrapolation from a curve.
+STAR holds while sorting, and on a single-cell run the largest of those is `readInfo`: a 16-byte
+`{cb, umi}` struct `resize`d to one entry per **input** read, held before a single alignment is
+sorted. 215M reads is 3.4 GB of it. `PRJNA658829/SAMN15970313` — 2.23 **billion** reads — is
+**35.7 GB**, and that figure is arithmetic over a measured constant rather than an extrapolation
+from a curve.
 
 The two facts then compose badly, because `--limitBAMsortRAM` **permits rather than reserves**: STAR
 allocates whatever the sort turns out to need and refuses only if that would exceed the cap. So on a
@@ -83,31 +78,14 @@ and in no Solo counting file, so the matrices are unaffected; and against the pi
 name is recognised.
 
 **The retained CRAM is not byte-identical, and #205 was wrong to say it was.** For a uniquely-mapping
-read it is bit-for-bit unchanged; for a read with `NH > 1`, two things move, and `--outSAMmultNmax`
-is itself the trigger for both:
-
-```cpp
-// ReadAlign_multMapSelect.cpp — the condition is the flag, not the multimapper order
-if (P.outMultimapperOrder.random || P.outSAMmultNmax != (uint) -1 ) {   // partition trMult
-    ...
-} else if (P.outMultimapperOrder.random || P.outSAMmultNmax != (uint) -1) {
-    trMult[0]->primaryFlag=true;   // ...instead of trBest->primaryFlag=true
-```
-
-- **`HI` changes.** It is an output-order index — `iTrOut + P.outSAMattrIHstart` in
-  `ReadAlign_alignBAM.cpp`, where `iTrOut` is the write loop's counter — so the retained record now
-  always carries `HI:i:1` rather than its position in the unordered list.
-- **Which alignment is retained can change.** `trBest` is chosen with a tie-break on the shorter
-  genomic span (`trAll[iW1][0]->gLength < trBest->gLength`, `ReadAlign_stitchPieces.cpp`); the
-  partition above takes the first equal-scoring alignment in window order. Both are top-scoring, so
-  this is a change of tie-break rather than of quality — but for a read tying across loci of
-  different span (a spliced gene against a processed pseudogene) the POS, CIGAR, `AS` and `nM` differ.
-
-`NH` is unaffected: it is computed from `nTrOutSAM`, the full locus count, not from the truncated
-write count. So is every count matrix — `SoloFeature_addBAMtags` keys `CB`/`UB` on the read index
-alone, and the gene assignment is an order-independent set union. This is affordable because the
-`WORKFLOW_VERSION` bump already obliges reprocessing; it would not have been, silently, under a
-version that claimed nothing had changed.
+read it is bit-for-bit unchanged; for a read with `NH > 1`, `--outSAMmultNmax` is itself the trigger
+for two changes: `HI` is an output-order index, so the retained record now always carries `HI:i:1`,
+and where loci tie on score the alignment kept moves from the shortest-span one to the first in
+window order — a change of tie-break, not of quality, though POS, CIGAR, `AS` and `nM` differ with
+it. `NH` and every count matrix are unaffected, computed from the full locus count and an
+order-independent set union; `starsolo.smk`'s own comment names the STAR 2.7.11b file and symbol
+behind each claim. This is affordable because the `WORKFLOW_VERSION` bump already obliges
+reprocessing; it would not have been, silently, under a version that claimed nothing had changed.
 
 ## Why not size every job for the worst sample
 

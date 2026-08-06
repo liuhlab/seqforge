@@ -162,10 +162,8 @@ a surviving tie escalates straight to rung 7 (ask the human).
 
 ## R10 — Consumer, not parallel universe
 
-**Why.** Genome files and aligner environments belong to `liulab-genome` and `liulab-runtime`;
-re-implementing either here forks the lab's stack into two truths. *Depending* on them is the
-opposite of defining them: `liulab-genome` is a declared dependency, while STAR appears in no
-dependency table of ours. The contracts are in [`layout.md`](layout.md).
+**Why.** Genome files and aligner environments belong to `liulab-genome` and `liulab-runtime`. The
+contracts, and both halves of the rule, are [`layout.md`](layout.md).
 
 **Enforced by.** `test_seqforge_defines_no_genome_machinery`,
 `test_seqforge_defines_no_aligner_environments` and

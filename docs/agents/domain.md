@@ -1,13 +1,11 @@
 # Domain Docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+Which of the five trees a new piece of writing belongs in, and what each already holds.
 
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in
-
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached directly, or via `/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
 
 ## File structure
 
@@ -32,9 +30,9 @@ The agent-facing material is layered, and each layer answers one question:
 
 - **`AGENTS.md`** (`CLAUDE.md` is a symlink to it) — the router: what seqforge is, R1–R11 as
   imperatives, and one pointer per area
-- **`docs/agents/`** — the reference behind each pointer: `rules.md` (why each rule, and what enforces
-  it), `testing.md`, `toolchain.md`, `layout.md`, `state.md`, `models.md`, `kb.md`, `resolve.md`,
-  `cli.md`, `eval-corpus.md`, and this file
+- **`docs/agents/`** — the reference behind each pointer, one page per area and every one of them
+  routed from `AGENTS.md`; `rules.md` carries why each rule and what enforces it, and this page the
+  placement test below
 - **`docs/adr/`** — one decision per file: the alternatives, and why this one
 - **`docs/research/`** — one investigation per file: the measurement a decision was taken on, with
   its method, its date, and what it could *not* establish. A note is written to be superseded, never

@@ -27,7 +27,8 @@ The first remedy, written into the CHANGELOG: an unknown prep raises a `Question
 **Dissolve the question rather than answer it.** Once counting moved to the recipe
 ([ADR 0011](0011-closed-instructable-surface.md)), `SoloQuant.features` **defaults to all five** solo
 features — one alignment, five counting rules, one pass — so `GeneFull` is computed whether or not
-anyone says the prep is nuclear. The exit-4 remedy was **withdrawn, not implemented**.
+anyone says the prep is nuclear. The default lives in **policy** (`DEFAULT_SOLO_FEATURES`,
+`manifest/policy.py`) and not on the model, which is what makes it attributable as `inferred`. The exit-4 remedy was **withdrawn, not implemented**.
 
 The general rule — the closing clause of the router's two-artifacts rule, *produce every answer
 rather than ask*: **never escalate an ambiguity whose every answer you can afford to emit.** Escalate

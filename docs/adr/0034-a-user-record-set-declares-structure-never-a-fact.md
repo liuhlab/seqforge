@@ -66,20 +66,13 @@ Because the whole precedence table rests on their absence. Three further reasons
 2. **R2 has no way to check them.** Every `Assertion` quote must grep back *and* entail its value. A
    YAML attribute has no document to grep, so verification would be vacuous — the defect
    [0021](0021-one-deposit-is-one-source-at-every-layer.md) records under a different name.
-3. **The exclusion needs no new *decision* downstream — though it did need one guard, and this file
-   was wrong about that.** `_worth_asking` gates on `has_prose`, which is `any(ft.text.strip() ...)`,
-   so a structure-only set renders no document and the plan comes back empty; nothing is asked
-   because there is nothing askable. What this record originally claimed follows — that such a set is
-   *"invisible to harvest with no guard written"* — did not. An empty plan was a state `harvest
-   extract` could not survive: with no documents the loop that builds the extractor never ran and the
-   verify step asserted on the `None` it was left holding, so the feature's primary use case ended in
-   a traceback, and `run` (which counts `--records` as prose, correctly) took the whole compile down
-   with it. **That is a plan-with-no-documents defect and not an attributes one** — an archive
-   transcript whose records carry no prose reached the identical state, and always had — and it is
-   now an empty extraction at exit 0, decided before a provider is resolved, writing the same empty
-   `assertions.json` a real run writes. `_project_facts` and `_organism` do return `None` by paths
-   that already exist. Structure-only touches exactly one consumer that had to *decide* anything new:
-   `_join`.
+3. **The exclusion needs no new *decision* downstream — though it did need one guard.**
+   `_worth_asking` gates on `has_prose`, so a structure-only set renders no document and the plan
+   comes back empty; nothing is asked because there is nothing askable. An empty plan is an empty
+   extraction at exit 0, decided before a provider is resolved — a plan-with-no-documents defect and
+   not an attributes one, since an archive transcript whose records carry no prose always reached the
+   identical state ([#270](https://github.com/liuhlab/seqforge/issues/270)). Structure-only touches
+   exactly one consumer that had to *decide* anything new: `_join`.
 
 A lab that does know its genotypes writes them in a README and harvests them. That path exists, and it
 keeps the span.
@@ -173,87 +166,35 @@ one sample per run — as parentless runs, per the fork above — so applying th
 change a grouping, and put the `_S<n>` / flowcell candidates in comments.
 
 **Enforced by.** The parse gate, in `tests/test_recordset.py`:
-`test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them_loads` (the refusal
-this record exists for, against the identical set minus the attribute, which loads),
-`test_free_text_is_refused_for_the_same_reason_attributes_are`, `test_an_archive_level_is_refused`
-(parametrized over `experiment` and `project` — the two-level rule),
-`test_a_dangling_parent_is_refused_by_the_id_it_names`,
-`test_a_run_parented_to_another_run_is_refused`, `test_a_duplicate_id_is_refused`,
-`test_an_unknown_key_on_a_record_is_refused`, `test_an_unknown_key_on_the_set_is_refused`,
-`test_an_id_that_could_not_be_a_sample_id_is_refused` (parametrized over the tab, the newline, `..`,
-a slash, a space, a `;` and a leading `-` — each one a consumer of the id rather than a taste — and
-asserting that the spelling the remedy suggests is one this same loader accepts) against
+`test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them_loads` — the refusal
+this record exists for, against the identical set minus the attribute — with
+`test_an_archive_level_is_refused` for the two-level rule, and
+`test_an_id_that_could_not_be_a_sample_id_is_refused` against
 `test_the_ids_a_human_would_actually_type_still_load`, which is the half an over-tight allowlist
-would break silently,
-`test_a_run_with_no_filenames_and_a_sample_with_them_are_both_refused`,
-`test_one_file_declared_by_two_runs_is_refused` and `test_every_refusal_names_something_to_type`.
-One loader over both dialects is `test_json_and_yaml_are_one_code_path`, with the archive spelling
-held exactly as tolerant as it was by `test_an_archive_cache_still_loads_unchanged` and
-`test_an_archive_cache_carrying_an_unknown_key_still_loads`; a refusal is an object rather than a
-traceback in `test_a_missing_file_refuses_rather_than_raising`,
-`test_a_file_that_is_not_a_mapping_refuses_rather_than_raising`,
-`test_a_broken_archive_cache_refuses_rather_than_raising` and
-`test_a_hand_written_file_that_forgot_source_user_is_told_so`.
+would break silently. One loader over both dialects is `test_json_and_yaml_are_one_code_path`.
 
-The fuse note, in `tests/test_records.py`:
-`test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared` (one sample, four
-files, no Blocker, `accession is None`, and a message naming both runs),
-`test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent` (the `source` gate — an ordinary
-`SRR`→BioSample fusion says nothing), `test_the_safe_draft_grouping_says_nothing` (an unedited draft
-is silent for the same reason), and
-`test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file` (the join still
-refuses, with a remedy naming `seqforge records new` and no re-fetch). Where the fuse LANDS is
-`test_a_declared_sample_fuses_two_runs_the_filenames_kept_apart` (`tests/test_recordset.py`).
+The fuse note is `test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declared`
+(`tests/test_records.py`), and the `source` gate that keeps it off every ordinary `SRR`→BioSample
+fusion is `test_an_archive_set_fusing_its_runs_under_one_biosample_is_silent`. The draft is a no-op
+in `test_applying_the_draft_unedited_changes_no_sample`, with the fork above pinned by
+`test_the_draft_is_one_run_per_run_and_loads_clean`. The empty plan is
+`test_a_structure_only_record_set_plans_nothing_and_asks_nobody` (`tests/test_extract.py`) and, end
+to end, `test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash`
+(`tests/test_cli.py`), which stubs the provider to refuse so that "resolved before" would fail.
+The verbs are `test_records_is_a_top_level_group_and_io_records_is_left_where_it_was` and
+`test_records_validate_refuses_a_typed_attribute_and_names_the_key`, same file.
 
-The draft as a no-op, in `tests/test_recordset.py`:
-`test_applying_the_draft_unedited_changes_no_sample` — same ids, same files under each, same absent
-accession as resolving the identical bytes with no record set — and
-`test_the_draft_is_one_run_per_run_and_loads_clean`, which pins the fork above by asserting the draft
-declares no sample record at all. The comments it exists for are
-`test_the_draft_names_the_sample_sheet_pair_it_will_not_decide`,
-`test_the_draft_names_the_flowcell_pair_it_will_not_decide` and
-`test_an_unambiguous_draft_says_the_scan_ran_and_found_nothing`;
-`test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set` and
-`test_a_directory_whose_run_keys_could_not_be_sample_ids_refuses_too` keep a draft that would not
-load from being written.
-
-The empty plan, in `tests/test_extract.py`: `test_a_structure_only_record_set_plans_nothing_and_asks_nobody`
-(no documents, no requests, no estimated tokens — and `extract_planned` over it returns an empty list
-against a provider that raises if touched). Where that lands is `tests/test_cli.py`:
-`test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash`, parametrized over both
-dialects because the archive one was never new, with the provider stubbed to refuse so that
-"resolved before" would fail; and
-`test_a_structure_only_records_compile_reaches_the_manifest_with_no_credential`, which drives
-`seqforge run` over a fusing set **without** `--no-llm` and no provider reachable, and asserts the
-compile reaches the Snakefile with all four files under one `lib01`.
-
-The verbs, in `tests/test_cli.py`:
-`test_records_is_a_top_level_group_and_io_records_is_left_where_it_was` (introspected off the live
-app — `records new`/`validate` at the top level, `io records` untouched),
-`test_records_new_drafts_a_set_the_loader_and_validate_both_accept`,
-`test_the_draft_applied_unedited_produces_the_samples_the_filenames_already_did`,
-`test_records_validate_refuses_a_typed_attribute_and_names_the_key` (exit 3, and the stdout object
-names the offending field),
-`test_records_new_refuses_a_directory_with_no_fastq_and_prints_no_traceback` and
-`test_records_new_refuses_to_clobber_its_out_file_and_takes_force_to_replace_it`.
-
-The corpus, over `evals/cases/grouping/declared-one-library-across-two-runs/` — two libraries, one
-lane each, a committed `records.yaml` with `source: user`, graded `experiment.n_samples: 1` — in
-`tests/test_evals.py`: `test_a_declared_record_set_fuses_two_runs_into_one_sample` holds what a count
-cannot carry (the declared id, all four files under it, `(accession, attributes) == (None, {})`, and
-the warning naming both fused runs), `test_the_same_deposit_without_the_record_set_stays_two_samples`
-is the control that makes the 1 falsifiable, and
-`test_a_case_commits_its_record_set_under_either_name_and_never_both` holds the corpus to the same
-loader the CLI uses.
+The corpus control is `test_a_declared_record_set_fuses_two_runs_into_one_sample` against
+`test_the_same_deposit_without_the_record_set_stays_two_samples` (`tests/test_evals.py`), the second
+being what makes the graded `experiment.n_samples: 1` falsifiable. The module→file mapping for the
+rest of these files is [`docs/agents/testing.md`](../agents/testing.md).
 
 ## Consequences
 
 - **`CONTEXT.md` gains a `Record set` entry and loses an absolute.** **Archive record** no longer says
   an archive is the only declarer; `source` carries that. **Sample** now states that it is the level
   that fuses runs, and that in a `source: user` set the id is a grouping key rather than a specimen
-  claim. The `asserted` precedence in [0010](0010-two-resolvers-one-blocks-one-warns.md) is now
-  **conditional on the no-attributes rule** — permit attributes later and that justification breaks
-  silently, which is the reason this file exists.
+  claim.
 - **#270's first checkbox needed no new dataset-side input.** `--records <path>` was already on
   `manifest fill`, `run` and `harvest extract`; what the build added is the validating loader and the
   draft (a top-level `recordset.py`, for the reason `pipeline.py` is top-level — the module that

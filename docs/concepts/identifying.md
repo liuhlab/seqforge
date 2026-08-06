@@ -18,7 +18,7 @@ flowchart TD
     R0["<b>0 · the prose</b><br/>'10x 3′ v3.1', from a paper or database<br/><i>a hypothesis — never a conclusion</i>"]
     R1["<b>1 · the filenames</b><br/><i>a weak hint, never decisive</i>"]
     R2["<span style='color:#fff'><b>2 · the shape of the reads</b><br/>read lengths, which stretches are random,<br/>which are fixed, which barcodes repeat<br/><i>free — we are reading the bytes anyway</i></span>"]
-    R3["<span style='color:#fff'><b>3 · check one barcode list</b><br/>do these barcodes appear in 10x's<br/>published list of real barcodes?<br/><i>~100 milliseconds</i></span>"]
+    R3["<span style='color:#fff'><b>3 · check one barcode list</b><br/>do these barcodes appear in 10x's<br/>published list of real barcodes?<br/><i>the first rung that costs anything</i></span>"]
     R7["<b>7 · ask a human</b><br/><i>expensive — and that is the point</i>"]
 
     R0 --> R1 --> R2 --> R3

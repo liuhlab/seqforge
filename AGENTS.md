@@ -74,9 +74,11 @@ Imperatives only. Rationale, and the file enforcing each: [`docs/agents/rules.md
 | where a module lives; the `liulab-genome` / `liulab-runtime` contracts | [`docs/agents/layout.md`](docs/agents/layout.md) |
 | the `seqforge/` output tree, its caches, and the hooks | [`docs/agents/state.md`](docs/agents/state.md) |
 | a term (`CONTEXT.md`), a decision (`docs/adr/`), a measurement (`docs/research/`), or where each belongs | [`docs/agents/domain.md`](docs/agents/domain.md) |
-| issues, and the five triage labels | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md) |
+| issues, and the five triage labels | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) |
+| a comment in `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml` | [`docs/agents/comments.md`](docs/agents/comments.md) |
 | `models/`: the decisions behind the schemas (`schema export` is the schema) | [`docs/agents/models.md`](docs/agents/models.md) |
 | a KB entry: `spec.yaml`, confusability, the round-trip, what is covered | [`docs/agents/kb.md`](docs/agents/kb.md) |
 | scoring: the evaluators, the evidence matrix, the escalation ladder | [`docs/agents/resolve.md`](docs/agents/resolve.md) |
+| harvest: the module flow, the two span marks, the send list vs what reaches disk | [`docs/agents/harvest.md`](docs/agents/harvest.md) |
 | a CLI verb: the stream split, the exit codes, what costs network or a model | [`docs/agents/cli.md`](docs/agents/cli.md) |
 | the demo dataset, the benchmark tiers, the compose gate and what it measured | [`docs/agents/eval-corpus.md`](docs/agents/eval-corpus.md) |

@@ -15,7 +15,7 @@ no other verb, so the behaviour was exactly what the instruction asked for.
 The obvious fix is a tool that decides *for you* which tests a change can break: `pytest-testmon`, or
 any of the coverage-graph test-impact-analysis (TIA) tools. Run the suite once, record which lines each
 test executes, and thereafter select only the tests whose recorded lines the diff touched. It promises
-rung 1 without needing anyone to choose a file.
+step 1 without needing anyone to choose a file.
 
 That reading is the obvious one and a future reader will reach it again from the same evidence. This
 record exists so they find the reason it was rejected rather than re-deriving it.
@@ -32,7 +32,7 @@ amendment.
 
 **No test-impact analysis.** Instead: two semantic pytest markers (`external`, `repo`), a pair of
 narrowing pixi tasks (`test-fast`, `test-failed`), test files mirrored onto module names so "which
-file tests what I edited" has an answer, and a three-rung ladder written down as a rule in
+file tests what I edited" has an answer, and a three-step ladder written down as a rule in
 [`docs/agents/testing.md`](../agents/testing.md).
 
 ## Why not TIA
@@ -70,12 +70,12 @@ species of wrong as a plausible matrix in the wrong coordinate space — it does
 
 **3. The cost it was meant to remove was waste, not work.** The measured suite was **164s** on this
 box, dominated by one `snakemake -n -p` spawned ~41 times to re-prove a fact about three hand-written
-modules (worth 39s once it was paid per module instead), and by the KB's YAML files — twelve then,
-sixteen now — re-parsed ~1,500 times (41s). Both are now paid once, and the suite was ~73s when this
+modules (worth 39s once it was paid per module instead), and by the KB's YAML files — twelve at the
+decision, sixteen at this amendment, and growing — re-parsed ~1,500 times (41s). Both are now paid once, and the suite was ~73s when this
 was written. TIA would have hidden that cost behind a selector instead of removing it, and the waste
 would have stayed in CI, where the selector's cache is cold anyway.
 
-**4. A rule an agent can follow does not need a tool.** Rung 1 is `pytest <file> -k <expr>` at ~2s.
+**4. A rule an agent can follow does not need a tool.** Step 1 is `pytest <file> -k <expr>`, seconds.
 What was missing was never a selector; it was a sentence saying the full suite is a pre-PR gate, and a
 file layout that makes the targeted run obvious.
 
@@ -120,7 +120,7 @@ instrumentation tax on every run and returns the discount on none.
 
 ## So in code
 
-**Choose the test file yourself; do not add a tool that chooses for you.** Rung 1 is
+**Choose the test file yourself; do not add a tool that chooses for you.** Step 1 is
 `pytest <file> -k <expr>`, and `tests/` mirrors the package layout so the file is a lookup rather
 than a search. Adding `pytest-testmon` or any coverage-graph selector is a regression against this
 record. And when a change touches only data — a `spec.yaml`, a `.smk` module, a packed onlist — run
@@ -139,7 +139,8 @@ so.
   commit `232ca34` mirrored `tests/` onto packages so the table can be short and true.
 - `test-fast` is only modestly faster than the full suite (~60s vs ~73s, 2026-07-30), because after
   the waste was removed there is not much left to deselect. That is the honest number and the doc says
-  so; the ladder's real win is rung 1 and rung 4, not rung 2.
+  so; the ladder's real win is step 1 and step 3 — the targeted run, and reading CI instead of
+  re-running it — not a cheaper way to run almost everything locally.
 - **The form of "skip work when nothing changed" that survives every objection here is a key over a
   hash of the tracked tree, not over a coverage graph.** The tree holds the YAML, the workflow modules
   and the packed onlists, so the blindness in (1) does not apply; it needs no instrumentation, so the

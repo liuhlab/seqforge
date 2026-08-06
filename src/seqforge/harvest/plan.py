@@ -279,7 +279,9 @@ class ExtractionPlan:
     #: fact — one is a record that cost nothing, the other a record that cost what it is worth.
     n_records_reduced: int = 0
     #: The stable system prefix, in characters. It is byte-identical on every request — which is what
-    #: makes prefix caching work — and it is therefore paid once **per document**, not once per run.
+    #: makes prefix caching work — and it is therefore paid once **per request**, not once per run.
+    #: Batching same-ask documents is what buys the difference back: the estimate below multiplies by
+    #: the request count, and on a deposit of one-line archive records that gap is most of the bill.
     system_prompt_chars: int = 0
     #: Exemplar ``doc_sha256`` -> the group of near-identical records whose prose it carries. Their
     #: full renderings are never sent — a reduced member's *difference* is, and a withheld member's
