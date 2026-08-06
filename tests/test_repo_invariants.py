@@ -276,6 +276,13 @@ def test_the_aligner_is_confined_to_the_test_only_environment() -> None:
 #: earns its deletion.
 _UNOWNED_BINARIES = frozenset({"STAR", "samtools", "bgzip", "tabix", "snakemake"})
 
+#: The subset the external lane's probe does NOT ask PATH for, and why it need not. `snakemake` is a
+#: declared dependency of the test environment itself rather than of the aligner-only one beside it,
+#: so any machine that ran `pixi install` has it by construction — there is no state in which the
+#: lane starts and it is missing. The rest arrive from an environment that can simply be absent,
+#: which is the case worth refusing before a selection rather than discovering as a skip.
+_TEST_ENVIRONMENT_OWNS = frozenset({"snakemake"})
+
 
 def _asks_path_for(node: ast.AST) -> set[str]:
     """The unowned binaries some ``which(...)`` under ``node`` asks PATH for.
@@ -369,16 +376,17 @@ def _binary_gates(
     return gated
 
 
-def _unmarked_binary_gates(source: str) -> list[str]:
-    """Which tests in ``source`` gate on an unowned binary without the ``external`` marker reaching them.
+def _unmarked_binary_gates(tree: ast.Module) -> list[str]:
+    """Which tests in ``tree`` gate on an unowned binary without the ``external`` marker reaching them.
 
     The exact predicate ``test_every_gate_on_an_external_binary_carries_the_marker`` applies to every
     module in the test tree. Shared so its discriminator exercises the real guard, not a
-    re-implementation of it.
+    re-implementation of it. Takes the parsed module rather than its text so the test can walk the
+    tree once and ask it two questions.
     """
     return [
         f"{fn.lineno} {fn.name} (gates on {', '.join(binaries)})"
-        for fn, binaries in _binary_gates(ast.parse(source))
+        for fn, binaries in _binary_gates(tree)
         if not _is_external(fn)
     ]
 
@@ -408,13 +416,15 @@ def test_every_gate_on_an_external_binary_carries_the_marker() -> None:
     """
     tests = Path(__file__).resolve().parent
     repo = tests.parent
-    sources = {py: py.read_text(encoding="utf-8") for py in sorted(tests.rglob("test_*.py"))}
-    assert sources, "no test module was found -- this guard would pass over a tree it cannot see"
+    trees = {
+        py: ast.parse(py.read_text(encoding="utf-8")) for py in sorted(tests.rglob("test_*.py"))
+    }
+    assert trees, "no test module was found -- this guard would pass over a tree it cannot see"
 
     offenders = [
         f"{py.relative_to(repo).as_posix()}:{found}"
-        for py, source in sources.items()
-        for found in _unmarked_binary_gates(source)
+        for py, tree in trees.items()
+        for found in _unmarked_binary_gates(tree)
     ]
     assert not offenders, (
         "a test gates on a binary seqforge does not own and the `external` marker does not reach it:\n"
@@ -430,15 +440,25 @@ def test_every_gate_on_an_external_binary_carries_the_marker() -> None:
     # rather than a walk that found nothing to check. Asserted as a non-empty set of binaries rather
     # than a count or a list of test names: either of those is a number to keep in step with the
     # suite, and this is only trying to prove the walk has a subject.
-    watched = {
-        b
-        for source in sources.values()
-        for _, bins in _binary_gates(ast.parse(source))
-        for b in bins
-    }
+    watched = {b for tree in trees.values() for _, bins in _binary_gates(tree) for b in bins}
     assert watched, (
         "no test in this tree gates on an unowned binary -- either the gates moved to a spelling this "
         "walk cannot see, or the walk broke; both leave the guard passing while it checks nothing"
+    )
+
+    # ...and the lane's own probe asks PATH for the same set, minus what the test environment itself
+    # declares. Two lists in two languages, and the drift between them is silent in exactly the
+    # direction that matters: a binary this guard knows about but the probe never asks for is one the
+    # lane can be missing while still reporting green -- which is the failure both of them exist to
+    # close, arriving through the mechanism built to close it.
+    probe = (repo / "scripts" / "require_binaries.sh").read_text(encoding="utf-8")
+    asked = re.search(r"for binary in ([^;]+);", probe)
+    assert asked, "the probe no longer spells its binaries as a loop this can read"
+    assert set(asked.group(1).split()) == _UNOWNED_BINARIES - _TEST_ENVIRONMENT_OWNS, (
+        f"scripts/require_binaries.sh probes {sorted(asked.group(1).split())}, but the binaries whose "
+        f"absence turns a test into a skip are {sorted(_UNOWNED_BINARIES - _TEST_ENVIRONMENT_OWNS)}. "
+        "A binary in the second list and not the first is one the external lane can run without, "
+        "skipping the tests that need it and exiting 0."
     )
 
     # ...and the guard discriminates. These call the REAL predicate: it must fire on both gate
@@ -450,7 +470,7 @@ def test_every_gate_on_an_external_binary_carries_the_marker() -> None:
     # also what keeps this file's own scan honest: to the parser a `which` inside a string literal is
     # a constant and never a call, so the walk above reads this file and sees none of them.
     def fires(source: str) -> bool:
-        return bool(_unmarked_binary_gates(source))
+        return bool(_unmarked_binary_gates(ast.parse(source)))
 
     assert fires('def test_a(tmp_path):\n    star = shutil.which("STAR")\n')  # inside the body
     assert fires(
@@ -1414,7 +1434,7 @@ _BASH_4_ONLY = (
 
 @pytest.mark.repo
 def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
-    """The gate must RUN on bash 3.2, not merely refuse loudly there.
+    """Every shell script the gate runs must RUN on bash 3.2, not merely refuse loudly there.
 
     macOS ships 3.2 as ``/bin/bash`` and that is where the maintainer works, so a version guard would
     only relocate the outage. What broke was `declare -A`: an associative array in a script whose
@@ -1424,14 +1444,25 @@ def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
 
     Nothing here needs a map. The steps arrive as an ordered list and every verdict is read back in
     that order, so a plain indexed array parallel to it carries the same information on every shell.
+
+    EVERY script, not only the runner. The second one to arrive was the external lane's binary probe,
+    whose own header promises it uses no empty array -- and a promise in a comment is what this guard
+    exists to replace. A script reached through a task the gate names fails the same way the runner
+    did, and a scan keyed on one filename would not have looked.
     """
+    scripts = sorted(_GATE.parent.glob("*.sh"))
+    assert len(scripts) > 1, (
+        "this walk found at most the runner -- it is keyed on a directory so that a new script is "
+        "covered the day it lands, and finding one back means the glob no longer matches them"
+    )
     offenders = [
-        line
-        for line in _GATE.read_text(encoding="utf-8").splitlines()
+        f"{path.name}: {line}"
+        for path in scripts
+        for line in path.read_text(encoding="utf-8").splitlines()
         if any(pattern.search(line) for pattern in _BASH_4_ONLY)
     ]
     assert not offenders, (
-        f"the gate runner uses bash 4 syntax macOS's /bin/bash does not have: {offenders}.\n"
+        f"a gate script uses bash 4 syntax macOS's /bin/bash does not have: {offenders}.\n"
         f"On bash 3.2 this does not abort the script -- there is no `set -e` and there must not be, "
         f"so it runs on and fails somewhere that looks like success. The step list is ordered; index "
         f"a parallel array by position instead."

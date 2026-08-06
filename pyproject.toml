@@ -229,9 +229,12 @@ typecheck = "mypy"
 # `auto` capped: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner. The
 # caps are DIVIDED between the lanes because `check` runs them concurrently and each would otherwise
 # size itself to the whole box. 6/4/4 is proportional to the CPU each lane actually costs, which is
-# what balances them — measured, and the three walls land within four seconds of each other. On a CI
-# runner none of this binds: `auto` finds fewer cores than the smallest cap, so each job still takes
-# the whole runner and the division costs CI nothing. `loadgroup` groups only tests carrying
+# what balances them — measured, and the three walls land within four seconds of each other. It sums
+# to more than the cores on the maintainer's box ON PURPOSE: taking it down to exactly twelve has to
+# come out of the unit lane, which then cannot finish inside the wall this split exists to beat, and
+# the lanes do not all run to the end anyway. On a CI runner none of it binds: `auto` finds fewer
+# cores than the smallest cap, so each job still takes the whole runner and the division costs CI
+# nothing. `loadgroup` groups only tests carrying
 # `xdist_group`; why not `loadfile`, and when to mark a module, is a decision record. Measurements:
 # docs/research/xdist-worker-sweep-2026-08-01.md and docs/research/test-suite-cost-shape.md.
 #
@@ -241,7 +244,12 @@ test      = "pytest -m 'not external' --ignore=tests/test_evals.py -n auto --max
 # The corpus grades every case in `evals/cases/` through the real compiler. That is a different claim
 # from a unit test's, and it was the module that dominated the suite's wall, so it gets its own lane
 # rather than its own deletion. It leaves the unit lane, not the gate.
-test-corpus = "pytest tests/test_evals.py -n auto --maxprocesses 4 --dist=loadgroup"
+#
+# `-m 'not external'` here even though the corpus holds no external test today: without it the two
+# lanes are disjoint only by that happening to stay true, and an external test added to this module
+# would run in BOTH. With it, the three selections are disjoint by construction rather than by
+# inspection — which is the only kind of partition worth claiming.
+test-corpus = "pytest tests/test_evals.py -m 'not external' -n auto --maxprocesses 4 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake,
 # or one that would rather not install `test-star`. Alone, so it keeps the whole box.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"

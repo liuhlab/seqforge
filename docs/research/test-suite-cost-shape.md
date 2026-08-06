@@ -57,6 +57,17 @@ What keeps the split honest is a guard rather than the count. A test that gates 
 carrying the marker would sit in the unit lane and skip itself green — which is the one way a test
 could reach the wrong side — so a `repo`-marked guard fails the build on exactly that.
 
+### Why there is no fourth lane keyed on the changed paths (measured 2026-08-06)
+
+A docs-only change runs the whole suite, and routing it to a cheap lane by changed path was costed
+and refused. The number that refused it: **`tests/test_skills.py` collects 67 tests, of which 19
+carry `repo`.** A lane gated on `skills/**.md` and selecting `-m repo` would therefore skip 48 tests
+that read exactly the prose that changed.
+
+So `repo` is not the superset such a lane would need, and it cannot be made into one by widening: it
+partitions by what a test is *about*, and the lane needs a partition by what a test *reads*. The
+decision that rests on this number is a record; only the number lives here.
+
 ### What each lane costs, and how the workers were divided (osx-arm64, 12 cores)
 
 Each lane run **alone** at 12 workers, to get a cost independent of how they are scheduled:
@@ -69,10 +80,17 @@ Each lane run **alone** at 12 workers, to get a cost independent of how they are
 
 352 s of CPU over 12 cores puts a **floor of ~29 s** under any concurrent arrangement of the three,
 and that floor — not the test count — is what the local gate is up against. The caps were set
-proportional to those costs (6 / 4 / 4) rather than equally: an equal split starves the lane that
-costs the most, and the first arrangement tried (8 / 4 / 4) asked for 16 workers on 12 cores and
-measured **41 s** against the proportional split's **37 s**. At 6/4/4 the three walls land at 33.3 s,
-35.1 s and 31.0 s — within four seconds of each other, which is what says the division is right.
+proportional to those costs rather than equally, because an equal split starves the lane that costs
+the most. Two arrangements were measured: **8 / 4 / 4 → 41 s**, **6 / 4 / 4 → 35 s**. At 6/4/4 the
+three walls land at 33.3 s, 35.1 s and 31.0 s — within four seconds of each other, which is what
+says the division is right.
+
+**6/4/4 is 14 workers on 12 cores, and that is deliberate rather than an oversight.** A split summing
+to exactly 12 has to take the two workers from the unit lane, whose 174 s of CPU then cannot finish
+inside ~44 s — the whole gain, given back. The overshoot is affordable because the lanes do not run
+for the same length of time: external and corpus finish first, so the peak is brief and the tail
+belongs to the unit lane alone. The measurement is the argument here, not the arithmetic — 8/4/4 was
+tried first *because* it looked generous, and it lost by six seconds.
 
 **The gate: ~44 s → 37 s.** Modest, and worth stating plainly rather than rounding up. The same tree
 as one undivided 12-worker run measures 42.3 s wall on 311 s of CPU — only ~7.4 cores busy, which is

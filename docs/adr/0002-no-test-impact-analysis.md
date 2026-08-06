@@ -7,15 +7,11 @@ instrumentation costs 25–70% to buy a discount measured at 1.14×. Coverage as
 welcome off the critical path; only coverage as a *selector* is refused. `--dist=loadfile` loses the
 same way — it groups every file whether the grouping pays, making the longest file the floor on the
 suite wall — so the tasks run `--dist=loadgroup`, the same mechanism made opt-in, and a module earns
-an `xdist_group` mark only once its fixture is measured against the tests that read it. A **marker
-partition** passes the rule: `-m external` against its negation is total by boolean negation, static,
-and written where the tests are, so CI's two test jobs split the suite rather than duplicate part of
-it. A **path-filtered CI lane** fails the rule — it selects on the diff, by a rule nobody re-derives
-when a test's inputs change, and `tests/test_skills.py` already proves the gap is not hypothetical:
-67 tests of which 19 carry `repo`, so a docs lane would skip 48 that read the prose that changed. A
-genuine *reads-prose* axis carrying its own completeness guard would reopen that question; a widened
-`repo` never can, because `repo` partitions by what a test is *about* and such a lane needs a
-partition by what a test *reads*.
+an `xdist_group` mark only once its fixture is measured against the tests that read it. A marker
+partition passes: `-m external` against its negation is total by boolean negation and lives in the
+suite, so CI's jobs split it rather than duplicate part of it. A path-filtered lane fails, selecting
+on the diff by a rule nobody re-derives when a test's inputs change — `repo` is not the superset such
+a lane needs, and only a *reads-prose* axis carrying its own completeness guard would reopen it.
 
 **Status.** Absorbs ADR-0038 — the xdist distribution mode, and the per-module grouping test. Amended
 — the principle is stated generally, and the marker partition and the path-filtered lane are ruled on.

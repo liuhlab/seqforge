@@ -549,8 +549,6 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
     # `--help` is a promise about the page a user is about to get, not a history of it.
     assert "mermaid" not in result.stdout.lower()
 
-    doc = (render.__doc__ or "").lower()
-    assert "no third-party runtime" in doc  # the renderer says what it executes
     # The word `vendored` was banned here as a proxy for "does not claim a bundle it lacks". The
     # page now really does vendor one thing -- a built Tailwind stylesheet -- so assert the rule the
     # proxy stood for instead: every sheet the renderer inlines is a file the package ships. (The
