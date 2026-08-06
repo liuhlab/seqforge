@@ -169,13 +169,13 @@ MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 #: cross-check guard, in exactly the shape :data:`MODULES_WITHOUT_STATS` established. A module is
 #: silent only by saying so; being absent from both halves is a build-time defect.
 #:
-#: Both entries are arguments, not backlog. ``map/chromap``'s fragments summary carries no
+#: Every entry is an argument, not backlog. ``map/chromap``'s fragments summary carries no
 #: whitelist-match rate and no gene assignment at all, so single-cell RNA reasoning applied to it
 #: would be reasoning about numbers that are not there; ``map/star`` is bulk — no barcode, no cell,
 #: and its two graded metrics vary with genome quality and rRNA content far more than with anything
 #: seqforge decided, which is the same reason their own thresholds are loose. A rule with no
 #: defensible threshold does not ship, and declaring that out loud is a supported answer rather than
-#: a gap. Either name leaves this set the day a rule for it can be argued.
+#: a gap. Any name here leaves this set the day a rule for it can be argued.
 #: ``map/star-umi`` joins them on the same argument read off the artifacts rather than off the assay.
 #: Its per-cell half is STAR's own alignment log, which carries no barcode-match rate at all, so
 #: every barcode rule the droplet module cross-checks with is a number that is not there. Its
