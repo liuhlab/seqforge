@@ -137,19 +137,6 @@ for every module in the tree, and the configuration has no tier at all.
 Note what was *not* done: no seam was injected into a retry path, no source module changed, and no
 test changed what it asserts. The edit is which name the test reaches the module by.
 
-## Why the guard derives its scope from `git ls-files`
-
-The scope test has to tolerate the gitignored scratch harnesses developers keep in `tests/`
-(`_*_test.py`, `_test_*.py`) while refusing to tolerate real code being hidden. The obvious
-implementation — mirror the two glob patterns into `[tool.mypy] exclude` and assert the two lists
-agree — is **a hand-maintained pair that must not drift**, which is the exact shape this repo has
-already treated as a defect three times.
-
-Deriving the first assertion from the tracked file list removes the pair. An untracked scratch
-harness is never demanded by assertion 1, so nothing has to know its name; assertion 2 then confirms
-that the exclusion permitting it to be skipped is legitimate, by checking the exclusion is gitignored
-rather than by checking it against a copy of itself.
-
 ## So in code
 
 **Do not narrow the checker's scope, and do not add a second checker.** Commit a new top-level Python
