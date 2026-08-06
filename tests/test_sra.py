@@ -10,12 +10,14 @@ that ``labdata`` imports (it ships with the lab stack); the shipped build may pr
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
+import seqforge.cli.io as cli_io
 from seqforge.cli import app
 from seqforge.fingerprint.load import load_fingerprint, probed_from_fingerprint
 from seqforge.io import remote, sra
@@ -76,12 +78,8 @@ _TRIM = 20
 
 
 def _trimmed_preview(acc: str, geometry: dict[int, int], *, short: int, n: int = 50) -> _Preview:
-    """A variable-length preview: ``short`` of the ``n`` spots came back trimmed at every mate.
-
-    The trimmed records stay a minority, so ``read_lengths`` is still ``geometry[index]`` — a mode
-    sitting at the untrimmed peak while the real average sits below it. That gap is the shape of any
-    run quality- or adapter-trimmed before submission.
-    """
+    """``short`` of the ``n`` spots came back trimmed, a minority — so the mode stays at the
+    untrimmed peak while the real average sits below it."""
     reads = {
         index: _mate(acc, index, length, n - short) + _mate(acc, index, length - _TRIM, short)
         for index, length in geometry.items()
@@ -111,6 +109,21 @@ def _patch_stream(monkeypatch: pytest.MonkeyPatch, fake: _FakeStream) -> None:
     monkeypatch.setattr(labdata, "stream_run_reads", fake, raising=False)
 
 
+def _patch_runs(
+    monkeypatch: pytest.MonkeyPatch, runs: list[dict[str, object]], *, module: object = sra
+) -> None:
+    """Stub the ENA inventory hop: ``resolve_accession`` on ``module`` answers with exactly ``runs``."""
+    monkeypatch.setattr(module, "resolve_accession", lambda acc, check_reads=True: {"runs": runs})
+
+
+def _runs_of(*experiments: str) -> list[dict[str, object]]:
+    """One run per named experiment — naming the same SRX twice is one experiment with two runs."""
+    return [
+        {"run_accession": f"SRR{i}", "experiment_accession": srx}
+        for i, srx in enumerate(experiments, 1)
+    ]
+
+
 def _ena_run(**overrides: object) -> dict[str, object]:
     """An ENA filereport row that mirrors ``SRR`` faithfully (two paired FASTQ, aligned md5/bytes)."""
     base: dict[str, object] = {
@@ -135,7 +148,7 @@ PLATE_EXPERIMENTS = 1440
 PLATE_SRP = "SRP853582"
 
 
-def _plate_run(i: int) -> dict[str, str]:
+def _plate_run(i: int) -> dict[str, object]:
     """One cell of a plate deposit: its own SRX, no ENA mirror, sharing the study with every other."""
     return {
         "run_accession": f"SRR{i:07d}",
@@ -146,14 +159,13 @@ def _plate_run(i: int) -> dict[str, str]:
 
 
 # --------------------------------------------------------------------------- #
-# fastq_targets_meta — url/md5/size join
+# fastq_targets_meta — the size join fastq_targets does not do
 # --------------------------------------------------------------------------- #
 
 
-#: ``(run, expected)`` for ``fastq_targets_meta`` — the positional url/md5/size join. ``fastq_bytes``
-#: is aligned to the UNSORTED ``fastq_ftp``, so the join must re-associate by url after sorting; a
-#: url/md5 length mismatch yields NO pairs (never a silent mis-alignment); a missing size defaults to
-#: 0 rather than dropping the row.
+#: ``(run, expected)`` for ``fastq_targets_meta``. ``fastq_bytes`` is aligned to the UNSORTED
+#: ``fastq_ftp``, so the join must re-associate by url after sorting; a missing size defaults to 0
+#: rather than dropping the row. (The url/md5 half is ``fastq_targets``, proved in ``test_remote``.)
 FASTQ_TARGETS_META = [
     pytest.param(
         {
@@ -166,9 +178,6 @@ FASTQ_TARGETS_META = [
             (f"https://host/{SRR}_2.fastq.gz", MD5_2, 222),
         ],
         id="joins-and-re-associates-by-url-after-sort",
-    ),
-    pytest.param(
-        {"fastq_ftp": "host/a;host/b", "fastq_md5": MD5_1}, [], id="url-md5-mismatch-is-empty"
     ),
     pytest.param(
         {"fastq_ftp": f"host/{SRR}_1.fastq.gz", "fastq_md5": MD5_1},
@@ -225,121 +234,71 @@ def test_probe_sra_adopts_the_ena_identity_and_builds_real_chemistry_observation
     assert obs.file.local_uri is None  # a stream has no local path
 
 
-def test_probe_sra_falls_back_to_a_synthetic_address_when_a_technical_read_was_dropped(
-    monkeypatch: pytest.MonkeyPatch,
+#: The synthetic address of mate 1 for every fallback row below (28-base read, 1000 whole-run spots).
+SYNTHETIC_1 = content_key_from_sra(SRR, 1, spot_count=1000, read_length=28)
+
+#: ``(preview, run, verified)``. The ENA md5 is adopted only when the mirror is a file per streamed
+#: mate, unflagged, and published every base the stream holds; otherwise the address is the synthetic
+#: SRA one. That verdict is read off the stream already taken, so NO row may cost a per-run
+#: ``run_statistics`` request — and where the streamed lengths vary there is no average to compare
+#: against ENA's published bases, so the comparison abstains rather than accuse a trimmed run of
+#: dropping a read and silently move the dataset hash.
+CONTENT_ADDRESS = [
+    pytest.param(
+        _preview(SRR, {1: 28, 2: 94}),
+        _ena_run(base_count="122000"),
+        True,
+        id="fixed-lengths-agree-with-the-published-bases",
+    ),
+    pytest.param(
+        _trimmed_preview(SRR, {1: 150, 2: 150}, short=10),
+        _ena_run(base_count="280000"),
+        True,
+        id="variable-lengths-abstain-rather-than-accuse",
+    ),
+    pytest.param(
+        _preview(SRR, {1: 28, 2: 94}),
+        _ena_run(base_count="94000"),
+        False,
+        id="published-fewer-bases-than-the-stream-holds",
+    ),
+    pytest.param(
+        _preview(SRR, {1: 28, 2: 94}),
+        _ena_run(technical_read_dropped=True),
+        False,
+        id="a-flagged-technical-read-drop",
+    ),
+    pytest.param(
+        _preview(SRR, {1: 28, 2: 94}),
+        _ena_run(fastq_ftp=f"host/{SRR}.fastq.gz", fastq_md5=MD5_1, fastq_bytes="111"),
+        False,
+        id="one-mirrored-file-for-two-streamed-mates",
+    ),
+    pytest.param(
+        _preview(SRR, {1: 28, 2: 94}),
+        {"run_accession": SRR, "read_count": "1000"},
+        False,
+        id="ena-never-mirrored-the-run",
+    ),
+]
+
+
+@pytest.mark.parametrize("preview, run, verified", CONTENT_ADDRESS)
+def test_probe_sra_addresses_a_mate_by_the_fidelity_of_the_mirror(
+    monkeypatch: pytest.MonkeyPatch, preview: _Preview, run: dict[str, object], verified: bool
 ) -> None:
-    # SRA has two reads; ENA published one file AND we flagged the drop — the mirror is unfaithful.
-    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
-    run = _ena_run(
-        fastq_ftp=f"host/{SRR}.fastq.gz",
-        fastq_md5=MD5_1,
-        fastq_bytes="111",
-        technical_read_dropped=True,
-    )
+    _patch_stream(monkeypatch, _FakeStream(preview))
+    stats_calls: list[str] = []
+    monkeypatch.setattr(remote, "run_statistics", stats_calls.append)
 
     mates = sra.probe_sra(run, n_reads=50)
 
-    assert not any(m.ena_verified for m in mates)
-    assert mates[0].observation.file.sha256 == content_key_from_sra(
-        SRR, 1, spot_count=1000, read_length=28
+    assert [m.ena_verified for m in mates] == [verified, verified]
+    assert mates[0].observation.file.sha256 == (
+        content_key_from_md5(MD5_1) if verified else SYNTHETIC_1
     )
-    assert mates[0].basename == f"{SRR}_1.fastq.gz"
-
-
-def test_probe_sra_sees_a_lossy_mirror_in_the_stream_it_already_took(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """ENA lists a file per mate, but published fewer bases per spot than the ``.sra`` holds.
-
-    That verdict used to arrive on the run row from a per-run NCBI call the resolver made for every
-    run in the study. The stream is taken with technical reads included, so it already carries the
-    per-read table the call would have returned — the address stays honest and costs no request.
-    """
-    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
-    calls: list[str] = []
-    monkeypatch.setattr(remote, "run_statistics", calls.append)
-    # 122 bases per spot streamed, 94 published: the barcode read never reached the mirror.
-    run = _ena_run(base_count="94000")
-
-    mates = sra.probe_sra(run, n_reads=50)
-
-    assert not any(m.ena_verified for m in mates)
-    assert mates[0].observation.file.sha256 == content_key_from_sra(
-        SRR, 1, spot_count=1000, read_length=28
-    )
-    assert calls == []
-
-
-def test_the_streamed_read_table_answers_only_where_a_mode_is_an_average() -> None:
-    """The table is a per-read average where the stream holds one, and ``None`` where it does not.
-
-    ``preview.read_lengths`` is a MODE. Where every record at an index came back the same length that
-    mode is also that index's average and the table can be built from it; where the lengths vary,
-    nothing in hand is an average, so there is no table and the caller has to abstain. "Cannot tell"
-    and "agrees" are different answers and this is where they part.
-    """
-    fixed = _preview(SRR, {1: 28, 2: 94})
-    table = sra._streamed_read_table(SRR, fixed, fixed.read_indexes(), 1000)
-    assert table is not None
-    assert [(r.index, r.average_length) for r in table.reads] == [(1, 28), (2, 94)]
-
-    trimmed = _trimmed_preview(SRR, {1: 150, 2: 150}, short=10)
-    assert sra._streamed_read_table(SRR, trimmed, trimmed.read_indexes(), 1000) is None
-
-
-def test_probe_sra_keeps_the_ena_identity_when_the_stream_shows_variable_read_lengths(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A trimmed run that was mirrored faithfully must not be accused of dropping a read.
-
-    Summing modes against ENA's ``base_count / read_count`` compares a peak to an average: a 2x150
-    run trimmed to a mean of 140 per read streams as 150 + 150 = 300 while ENA published 280 bases
-    per spot, so a mirror that lost nothing looks lossy. The accusation would be silent — the run
-    would just lose its ENA-adopted address for the synthetic one and move the dataset hash — so the
-    comparison abstains instead, which is what it promises and costs no request either way.
-    """
-    _patch_stream(monkeypatch, _FakeStream(_trimmed_preview(SRR, {1: 150, 2: 150}, short=10)))
-    calls: list[str] = []
-    monkeypatch.setattr(remote, "run_statistics", calls.append)
-
-    mates = sra.probe_sra(_ena_run(base_count="280000"), n_reads=50)
-
-    assert all(m.ena_verified for m in mates)
-    assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
-    assert calls == []
-
-
-def test_probe_sra_adopts_the_ena_identity_when_fixed_length_reads_agree_with_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Fixed-length reads still reach the comparison, and 28 + 94 against 122 published agrees.
-
-    The abstain above is "cannot tell", not "agrees": where every record at an index came back one
-    length, that length is the average, the comparison runs, and this mirror published every base the
-    stream holds.
-    """
-    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
-    calls: list[str] = []
-    monkeypatch.setattr(remote, "run_statistics", calls.append)
-
-    mates = sra.probe_sra(_ena_run(base_count="122000"), n_reads=50)
-
-    assert all(m.ena_verified for m in mates)
-    assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
-    assert calls == []
-
-
-def test_probe_sra_falls_back_when_ena_never_mirrored_the_run(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
-
-    mates = sra.probe_sra({"run_accession": SRR, "read_count": "1000"}, n_reads=50)
-
-    assert not any(m.ena_verified for m in mates)
-    assert mates[1].observation.file.sha256 == content_key_from_sra(
-        SRR, 2, spot_count=1000, read_length=94
-    )
+    assert mates[0].basename == f"{SRR}_1.fastq.gz"  # ENA's filename, or the sra-tools split layout
+    assert stats_calls == []
 
 
 def test_probe_sra_synthetic_address_is_invariant_to_the_spot_budget(
@@ -404,52 +363,14 @@ def test_probe_sra_refuses_with_a_remote_error(
 def test_resolve_package_runs_returns_the_runs_of_one_experiment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        sra,
-        "resolve_accession",
-        lambda acc, check_reads=True: {
-            "runs": [
-                {"run_accession": "SRR1", "experiment_accession": SRX},
-                {"run_accession": "SRR2", "experiment_accession": SRX},
-            ]
-        },
-    )
+    """Two runs of ONE experiment pass: the guard groups by SRX, not by how many runs there are."""
+    _patch_runs(monkeypatch, _runs_of(SRX, SRX))
     assert len(sra.resolve_package_runs(SRX)) == 2
-
-
-def test_resolve_package_runs_refuses_a_multi_experiment_accession_and_names_the_opt_in(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The default stays a refusal, and it now tells the caller the opt-in exists.
-
-    A refusal that does not name the flag leaves the caller believing the shape is unbuildable, which
-    is how GSE207085 came to be packaged as ten one-cell fixtures.
-    """
-    monkeypatch.setattr(
-        sra,
-        "resolve_accession",
-        lambda acc, check_reads=True: {
-            "runs": [
-                {"run_accession": "SRR1", "experiment_accession": "SRX_BULK"},
-                {"run_accession": "SRR2", "experiment_accession": "SRX_GEX"},
-                {"run_accession": "SRR3", "experiment_accession": "SRX_ATAC"},
-            ]
-        },
-    )
-    with pytest.raises(RemoteError, match="spans 3 experiments") as excinfo:
-        sra.resolve_package_runs("GSE283483")
-    assert "--multi-experiment" in str(excinfo.value)
 
 
 @pytest.fixture
 def stats_calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """Count every per-run NCBI stats request the plate study provokes, ENA's inventory stubbed.
-
-    The endpoint serves ONE run per request — a comma-joined or repeated ``acc`` answers for a single
-    accession — so there is no batch to fall back on, and the only thing that keeps a 1440-run study
-    affordable is not making the call at all. The count is the property; asserting it is what stops
-    the pre-pass creeping back.
-    """
+    """ENA's inventory stubbed to the plate deposit; the list records every per-run stats request."""
     calls: list[str] = []
 
     def _counted(accession: str) -> remote.RunStatistics:
@@ -465,27 +386,22 @@ def stats_calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return calls
 
 
-def test_resolving_a_plate_deposit_costs_no_per_run_stats_call(stats_calls: list[str]) -> None:
-    """Both the refusal and the opt-in resolve the 1440-run study without one per-run round-trip."""
-    with pytest.raises(RemoteError, match=f"spans {PLATE_EXPERIMENTS} experiments"):
+def test_a_plate_deposit_resolves_with_no_per_run_stats_call_and_refuses_readably(
+    stats_calls: list[str],
+) -> None:
+    """Neither the refusal nor the opt-in costs a round-trip per run, and neither prints 1440 SRX."""
+    with pytest.raises(RemoteError, match=f"spans {PLATE_EXPERIMENTS} experiments") as excinfo:
         sra.resolve_package_runs(PLATE_STUDY)
-    assert stats_calls == []
+    message = str(excinfo.value)
+    assert "SRX0000000 (1 run)" in message
+    assert f"and {PLATE_EXPERIMENTS - 8} more" in message
+    assert len(message) < 600
 
     runs = sra.resolve_package_runs(PLATE_STUDY, multi_experiment=True)
     assert [r["experiment_accession"] for r in runs] == [
         f"SRX{i:07d}" for i in range(PLATE_EXPERIMENTS)
     ]
     assert stats_calls == []
-
-
-def test_a_plate_deposit_refusal_summarises_its_experiments(stats_calls: list[str]) -> None:
-    """1440 SRX in an error string is not an error string anybody reads, so the listing is capped."""
-    with pytest.raises(RemoteError) as excinfo:
-        sra.resolve_package_runs(PLATE_STUDY)
-    message = str(excinfo.value)
-    assert "SRX0000000 (1 run)" in message
-    assert f"and {PLATE_EXPERIMENTS - 8} more" in message
-    assert len(message) < 600
 
 
 # --------------------------------------------------------------------------- #
@@ -530,18 +446,12 @@ def test_build_fingerprint_sra_is_deterministic(
 
 
 def test_io_probe_sra_emits_one_observation_per_mate(monkeypatch: pytest.MonkeyPatch) -> None:
-    import seqforge.cli.io as cli_io
-
-    monkeypatch.setattr(
-        cli_io, "resolve_accession", lambda acc, check_reads=True: {"runs": [_ena_run()]}
-    )
+    _patch_runs(monkeypatch, [_ena_run()], module=cli_io)
     _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
 
     result = runner.invoke(app, ["io", "probe-sra", SRR, "--n-reads", "50"])
 
     assert result.exit_code == 0, result.output
-    import json
-
     payload = json.loads(result.stdout)
     assert payload["n_mates"] == 2
     assert {m["read_index"] for m in payload["mates"]} == {1, 2}
@@ -551,9 +461,7 @@ def test_io_probe_sra_emits_one_observation_per_mate(monkeypatch: pytest.MonkeyP
 def test_preflight_accession_builds_a_streamed_package(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(
-        sra, "resolve_accession", lambda acc, check_reads=True: {"runs": [_ena_run()]}
-    )
+    _patch_runs(monkeypatch, [_ena_run()])
     _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
 
     result = runner.invoke(
@@ -561,8 +469,6 @@ def test_preflight_accession_builds_a_streamed_package(
     )
 
     assert result.exit_code == 0, result.output
-    import json
-
     payload = json.loads(result.stdout)
     assert payload["source"] == "sra-stream"
     assert payload["n_files"] == 2
@@ -585,16 +491,9 @@ def test_preflight_refuses_both_files_and_accession_and_neither(tmp_path: Path) 
 def test_preflight_accession_refuses_a_multi_experiment_series(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(
-        sra,
-        "resolve_accession",
-        lambda acc, check_reads=True: {
-            "runs": [
-                {"run_accession": "SRR1", "experiment_accession": "SRX_BULK"},
-                {"run_accession": "SRR2", "experiment_accession": "SRX_ATAC"},
-            ]
-        },
-    )
+    """The refusal is an exit code, and it names the opt-in: a refusal that does not leaves the caller
+    believing the shape is unbuildable, which is how GSE207085 came to be ten one-cell fixtures."""
+    _patch_runs(monkeypatch, _runs_of("SRX_BULK", "SRX_ATAC"))
     result = runner.invoke(app, ["preflight", "--accession", "GSE283483", "-C", str(tmp_path)])
     assert result.exit_code == 1
     assert "spans 2 experiments" in result.output
@@ -604,16 +503,8 @@ def test_preflight_accession_refuses_a_multi_experiment_series(
 def test_preflight_accession_packages_every_experiment_when_the_caller_opts_in(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """A plate deposit is buildable as ONE package: two cells, two SRX, four sliced mates in it.
-
-    The package the guard used to make unbuildable — and the shape a many-cell benchmark case needs,
-    since ten one-cell packages prove nothing about the sample explosion.
-    """
-    monkeypatch.setattr(
-        sra,
-        "resolve_accession",
-        lambda acc, check_reads=True: {"runs": [_plate_run(0), _plate_run(1)]},
-    )
+    """A plate deposit is buildable as ONE package: two cells, two SRX, four sliced mates in it."""
+    _patch_runs(monkeypatch, [_plate_run(0), _plate_run(1)])
     _patch_stream(monkeypatch, _FakeStream(_preview(SRR, {1: 28, 2: 94})))
 
     result = runner.invoke(
@@ -631,8 +522,6 @@ def test_preflight_accession_packages_every_experiment_when_the_caller_opts_in(
     )
 
     assert result.exit_code == 0, result.output
-    import json
-
     payload = json.loads(result.stdout)
     assert payload["n_files"] == 4
     assert {f["basename"] for f in payload["files"]} == {

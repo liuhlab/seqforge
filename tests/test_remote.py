@@ -1,23 +1,18 @@
 """Tests for the network surface — the PARSERS, offline.
 
-The HTTP calls need the network and are skip-gated; the parsers do not, and the parsers are where
-bugs actually live. Two of these endpoints (`run_new`, GEO SOFT) are **undocumented**, so their
-shape can change without notice — pinning real captured payloads here means a change surfaces as a
-red test rather than as a silently empty result.
-
-The fixtures below are trimmed from genuine responses (SRR9170959 is the real dropped-technical-read
-case: SRA says 3 reads / 110 bases per spot, ENA published 50).
+Two of these endpoints (`run_new`, GEO SOFT) are **undocumented**, so their shape can change without
+notice. The fixtures are trimmed from genuine responses (SRR9170959 is the real
+dropped-technical-read case: SRA says 3 reads / 110 bases per spot, ENA published 50), and pinning
+them means a change surfaces as a red test rather than as a silently empty result.
 """
 
 from __future__ import annotations
 
 import gzip
-import hashlib
-import os
 import re
 import time
 import types
-import warnings
+from collections.abc import Callable
 
 import pytest
 import requests
@@ -27,8 +22,6 @@ from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
     RunStatistics,
-    _content_range_total,
-    _uri_basename,
     classify_accession,
     decompress_prefix,
     dropped_reads,
@@ -135,28 +128,35 @@ def test_retry_delay_honors_an_integer_retry_after_else_backs_off() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def test_classify_every_namespace() -> None:
-    cases = {
-        "GSE110823": "geo_series",
-        "GSM3017260": "geo_sample",
-        "PRJNA1027859": "bioproject",
-        "PRJEB12345": "bioproject",
-        "SRP502277": "study",
-        "ERP123456": "study",
-        "SRX24283133": "experiment",
-        "SRR28716553": "run",
-        "ERR1234567": "run",
-        "SAMN40935616": "biosample",
-        "SAMEA1234567": "biosample",
-    }
-    for acc, kind in cases.items():
+#: ``accession -> namespace``, every namespace ENA's own HTTP 400 bodies name plus the shapes that
+#: must come back ``unknown``: a bare prefix, a transcript, a gene. `unknown` is a first-class answer,
+#: because guessing a namespace would send the query somewhere wrong.
+NAMESPACES = {
+    "GSE110823": "geo_series",
+    "GSM3017260": "geo_sample",
+    "PRJNA1027859": "bioproject",
+    "PRJEB12345": "bioproject",
+    "SRP502277": "study",
+    "ERP123456": "study",
+    "SRX24283133": "experiment",
+    "SRR28716553": "run",
+    "ERR1234567": "run",
+    "SAMN40935616": "biosample",
+    "SAMEA1234567": "biosample",
+    "SRS4245278": "sample",
+    "SRA1234567": "submission",
+    "": "unknown",
+    "hello": "unknown",
+    "GSE": "unknown",
+    "SRR": "unknown",
+    "NM_001301717": "unknown",
+    "ENSG00000141510": "unknown",
+}
+
+
+def test_classify_every_namespace_and_refuse_to_guess_the_rest() -> None:
+    for acc, kind in NAMESPACES.items():
         assert classify_accession(acc) == kind, acc
-
-
-def test_classify_refuses_to_guess() -> None:
-    """`unknown` is a first-class answer. Guessing a namespace would send the query somewhere wrong."""
-    for acc in ("", "hello", "GSE", "SRR", "NM_001301717", "ENSG00000141510"):
-        assert classify_accession(acc) == "unknown", acc
 
 
 # ---------------------------------------------------------------------------------------------
@@ -221,37 +221,39 @@ def _soft_stub(
     return fetched
 
 
-def test_parse_soft_finds_the_srp() -> None:
-    """Exact match, which also proves the BioProject is not read as the SRA study: both arrive as
-    `!Series_relation` and only the SRA one carries `term=SRP...`, so `== ["SRP299835"]` (no stray
-    PRJNA692883) subsumes a separate not-confused check."""
-    assert parse_soft_srp(_SOFT_WITH_SRP) == ["SRP299835"]
+#: ``(parser, soft, expected)``. Each parser reads its own relation line and nothing else: a record
+#: carries several URLs, only the SRA one holds `term=SRP...`, and a supplementary FTP path under
+#: `GSE207nnn` is not an accession. A SuperSeries declares no SRP of its own — eutils and runinfo both
+#: return ZERO for one, silently, so a resolver that misses the sub-series reports success and loses
+#: the whole dataset, the worst kind of wrong.
+SOFT_PARSERS = [
+    pytest.param(parse_soft_srp, _SOFT_WITH_SRP, ["SRP299835"], id="srp-not-bioproject"),
+    pytest.param(parse_soft_srp, _SOFT_SUPERSERIES, [], id="a-superseries-declares-no-srp"),
+    pytest.param(
+        parse_soft_superseries,
+        _SOFT_SUPERSERIES,
+        ["GSE140399", "GSE140510"],
+        id="its-sub-series",
+    ),
+    pytest.param(parse_soft_bioproject, _SOFT_SUBSERIES, ["PRJNA853582"], id="a-subseries-project"),
+    pytest.param(parse_soft_bioproject, _SOFT_WITH_SRP, ["PRJNA692883"], id="beside-an-srp"),
+    pytest.param(parse_soft_bioproject, _SOFT_WITH_NOTHING, [], id="no-bioproject-at-all"),
+]
 
 
-def test_parse_soft_superseries_is_detected() -> None:
-    """A SuperSeries owns no runs: eutils and runinfo both return ZERO, silently.
-
-    Without this, a resolver reports success and loses the entire dataset — the worst kind of wrong.
-    """
-    assert parse_soft_superseries(_SOFT_SUPERSERIES) == ["GSE140399", "GSE140510"]
-    assert parse_soft_srp(_SOFT_SUPERSERIES) == [], "a SuperSeries declares no SRP of its own"
-
-
-def test_parse_soft_bioproject_reads_only_the_relation_line() -> None:
-    """The record holds two URLs and only one of them is the BioProject; an FTP supplementary file
-    that happens to sit under a `GSE207nnn` path is not an accession."""
-    assert parse_soft_bioproject(_SOFT_SUBSERIES) == ["PRJNA853582"]
-    assert parse_soft_bioproject(_SOFT_WITH_SRP) == ["PRJNA692883"]
-    assert parse_soft_bioproject(_SOFT_WITH_NOTHING) == []
+@pytest.mark.parametrize("parser, soft, expected", SOFT_PARSERS)
+def test_the_soft_parsers_read_their_own_relation_line(
+    parser: Callable[[str], list[str]], soft: str, expected: list[str]
+) -> None:
+    assert parser(soft) == expected
 
 
 def test_a_subseries_resolves_through_its_own_bioproject(monkeypatch: pytest.MonkeyPatch) -> None:
     """A GEO accession resolves to the runs of THAT accession (#238).
 
-    A SubSeries handed in directly declares neither an SRA study nor a sub-series, so before this it
-    had nothing to walk and `io resolve GSE207085` exited 1. Its own BioProject is the route. The
-    fetch log is half the assertion: walking up to GSE207086 and back down would also produce runs,
-    but they would be the sibling SubSeries' runs as well, which is not what the caller asked for.
+    A SubSeries declares neither an SRA study nor a sub-series, so it had nothing to walk and
+    `io resolve GSE207085` exited 1; its own BioProject is the route. The fetch log is half the
+    assertion — walking up to GSE207086 and back down returns the siblings' runs too.
     """
     fetched = _soft_stub({"GSE207085": _SOFT_SUBSERIES}, monkeypatch)
 
@@ -282,9 +284,8 @@ def test_a_superseries_still_walks_down_rather_than_taking_its_umbrella_bioproje
 def test_a_geo_record_declaring_neither_refuses_and_names_both(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A series carrying only processed matrices has no raw data anywhere to point at. That is still
-    a failure, and the message says which two declarations were looked for so the reader can check
-    the record rather than guess."""
+    """A series carrying only processed matrices has no raw data to point at. That is still a
+    failure, and the message names the declarations looked for so a reader can check the record."""
     _soft_stub({"GSE999999": _SOFT_WITH_NOTHING}, monkeypatch)
 
     with pytest.raises(RemoteError, match="no SRA study, sub-series or BioProject"):
@@ -312,72 +313,59 @@ def test_parse_filereport_reads_rows_and_treats_a_header_only_tsv_as_empty() -> 
     assert parse_filereport("") == []
 
 
-def test_the_filereport_asks_ena_for_the_library_construction_protocol(
-    monkeypatch: pytest.MonkeyPatch,
+#: What the filereport must ASK ENA for, one entry per deposit that is invisible without it.
+#: `library_construction_protocol` is ENA's answer to SRA's LIBRARY_CONSTRUCTION_PROTOCOL and the only
+#: ENA field carrying a submitter's prose about how the library was built (#237). The four
+#: `submitted_*` are ONE fact — ENA's spelling of what SRA publishes on `<SRAFile supertype="Original">`,
+#: an address over the submitter's own upload (ADR-0033) — and three quarters of it was requested:
+#: name, size and format, never the hash. ENA generates no FASTQ at all for a cellranger BAM, so there
+#: the submitted file is the only data and its md5 the only content-address on offer.
+ENA_ASKS_FOR = [
+    "library_construction_protocol",
+    "submitted_ftp",
+    "submitted_bytes",
+    "submitted_format",
+    "submitted_md5",
+]
+
+
+@pytest.mark.parametrize("field", ENA_ASKS_FOR)
+def test_the_filereport_asks_ena_for_the_fields_a_deposit_is_invisible_without(
+    field: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """ENA's answer to SRA's `LIBRARY_CONSTRUCTION_PROTOCOL`, and the only ENA field that carries a
-    submitter's prose about how the library was built. A deposit that states its chemistry there and
-    leaves the design description empty is invisible to every field we used to request (#237)."""
     captured: dict[str, dict[str, str] | None] = {}
 
     def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
         captured["params"] = params
-        return "library_construction_protocol\nprocessed by Smart-Seq3 protocol\n"
+        return f"{field}\nvalue\n"
 
     monkeypatch.setattr(remote, "_get", fake_get)
 
-    rows = remote.ena_filereport("SRP383998")
+    remote.ena_filereport("SRP383998")
     params = captured["params"]
     assert params is not None
-    assert "library_construction_protocol" in params["fields"].split(",")
-    assert "Smart-Seq3" in rows[0]["library_construction_protocol"]
+    assert field in params["fields"].split(","), params["fields"]
 
 
-def test_the_filereport_asks_ena_for_the_submitted_md5_beside_its_siblings(
+def test_a_bam_only_run_resolves_to_its_submitted_md5_and_says_why_it_has_no_fastq(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Three quarters of one fact was requested: name, size and format, but never the hash.
-
-    `submitted_md5` is ENA's spelling of what SRA publishes on `<SRAFile supertype="Original">` — an
-    address over the submitter's own upload, the copy nobody normalized (ADR-0033). ENA generates no
-    FASTQ at all for a cellranger BAM, so for those deposits the submitted file is the only data and
-    its hash is the only content-address on offer.
-    """
-    captured: dict[str, dict[str, str] | None] = {}
-
-    def fake_get(url: str, params: dict[str, str] | None = None, timeout: int = 30) -> str:
-        captured["params"] = params
-        return "submitted_md5\n993e02dd8079b30a23285828a8ee9982\n"
-
-    monkeypatch.setattr(remote, "_get", fake_get)
-
-    rows = remote.ena_filereport("SRP383998")
-    params = captured["params"]
-    assert params is not None
-    requested = params["fields"].split(",")
-    assert {"submitted_ftp", "submitted_bytes", "submitted_format", "submitted_md5"} <= set(
-        requested
-    ), requested
-    assert rows[0]["submitted_md5"] == "993e02dd8079b30a23285828a8ee9982"
-
-
-def test_a_runs_submitted_md5_surfaces_in_resolve_beside_the_siblings_it_arrived_with() -> None:
-    """Requesting the field is half of it — `io resolve` is where a human sees the answer.
+    """Asking ENA for the hash is half of it — `io resolve` is where a human sees the answer.
 
     Driven on an ERR run because `run_new` is an NCBI endpoint that serves SRR only, so this reaches
     no network: what is under test is the annotation, not the statistics call it skips.
     """
-    entry = remote._annotate(
-        {
-            "run_accession": "ERR4082915",
-            "submitted_ftp": "ftp.sra.ebi.ac.uk/vol1/err/ERR408/possorted_genome_bam.bam",
-            "submitted_bytes": "28543057",
-            "submitted_format": "BAM",
-            "submitted_md5": "993e02dd8079b30a23285828a8ee9982",
-        }
-    )
+    run = {
+        "run_accession": "ERR4082915",
+        "submitted_ftp": "ftp.sra.ebi.ac.uk/vol1/err/ERR408/possorted_genome_bam.bam",
+        "submitted_bytes": "28543057",
+        "submitted_md5": "993e02dd8079b30a23285828a8ee9982",
+    }
+    monkeypatch.setattr(remote, "ena_filereport", lambda _acc: [run])
 
-    assert entry["submitted_md5"] == "993e02dd8079b30a23285828a8ee9982"
+    entry = remote.resolve_accession("ERR4082915")["runs"][0]
+
+    assert entry["submitted_md5"] == run["submitted_md5"]
     assert entry["submitted_bytes"] == "28543057"  # the siblings it must arrive beside
     assert entry["fastq_urls"] == [] and "note" in entry, "the BAM case: submitted is all there is"
 
@@ -437,34 +425,31 @@ _RUN_NEW_CLEAN = """<?xml version="1.0"?>
 """
 
 
-def test_parse_run_new_reads_the_per_read_table() -> None:
-    stats = parse_run_new(_RUN_NEW_DROPPED, "SRR9170959")
-    assert stats.n_reads == 3
-    assert [r.average_length for r in stats.reads] == [50, 50, 10]
-    assert stats.spot_length == 110
-    assert stats.read_types == "TBT"  # Technical / Biological / Technical
+#: ``(xml, n_reads, lengths, spot_length, read_types)``. The endpoint is undocumented, so every field
+#: is optional: `readTypes` appears only for fastq-load.py submissions and its absence is NORMAL, and
+#: a well-formed document declaring no per-read table is a legitimate empty rather than garbage.
+RUN_NEW = [
+    pytest.param(_RUN_NEW_DROPPED, 3, [50, 50, 10], 110, "TBT", id="the-per-read-table"),
+    pytest.param(_RUN_NEW_CLEAN, 2, [26, 98], 124, None, id="a-missing-readtypes-is-normal"),
+    pytest.param("<RUN_LIST><RUN/></RUN_LIST>", 0, [], 0, None, id="no-statistics-is-an-empty"),
+]
 
 
-def test_parse_run_new_tolerates_a_missing_readtypes() -> None:
-    """`readTypes` only appears for fastq-load.py submissions; absent is NORMAL, not an error."""
-    stats = parse_run_new(_RUN_NEW_CLEAN, "SRR8526547")
-    assert stats.n_reads == 2
-    assert stats.spot_length == 124
-    assert stats.read_types is None
+@pytest.mark.parametrize("xml, n_reads, lengths, spot_length, read_types", RUN_NEW)
+def test_parse_run_new_reads_the_per_read_table(
+    xml: str, n_reads: int, lengths: list[int], spot_length: int, read_types: str | None
+) -> None:
+    stats = parse_run_new(xml, "SRR9170959")
+    assert stats.n_reads == n_reads
+    assert [r.average_length for r in stats.reads] == lengths
+    assert stats.spot_length == spot_length
+    assert stats.read_types == read_types  # "TBT" = Technical / Biological / Technical
 
 
-def test_parse_run_new_on_malformed_and_empty_inputs() -> None:
-    """Unparsable XML is a loud refusal; a well-formed doc with no Statistics is an empty, not garbage.
-
-    The two degenerate edges of ``parse_run_new``: ``<not xml`` cannot be parsed at all and must raise
-    rather than silently return zero reads, while ``<RUN_LIST><RUN/></RUN_LIST>`` parses fine but
-    declares no per-read table — a legitimate empty (n_reads 0, spot_length 0).
-    """
+def test_parse_run_new_refuses_xml_it_cannot_parse() -> None:
+    """A loud refusal, never a silent zero reads that reads as "this run has no technical read"."""
     with pytest.raises(RemoteError, match="unparsable"):
         parse_run_new("<not xml", "SRR1")
-
-    stats = parse_run_new("<RUN_LIST><RUN/></RUN_LIST>", "SRR1")
-    assert stats.n_reads == 0 and stats.spot_length == 0
 
 
 # ---------------------------------------------------------------------------------------------
@@ -473,11 +458,9 @@ def test_parse_run_new_on_malformed_and_empty_inputs() -> None:
 
 
 def test_detects_a_dropped_technical_read() -> None:
-    """The real SRR9170959 case: SRA says 110 bases/spot across 3 reads; ENA published 50.
-
-    A dropped 10x barcode read leaves a dataset that looks like plain single-end RNA-seq and is
-    silently unprocessable as single-cell. This costs two metadata calls and no bytes.
-    """
+    """The real SRR9170959 case: SRA says 110 bases/spot across 3 reads; ENA published 50. A dropped
+    10x barcode read leaves a dataset that looks like plain single-end RNA-seq and is silently
+    unprocessable as single-cell — and this costs two metadata calls and no bytes."""
     run = {"read_count": "79615125", "base_count": "3980756250", "fastq_ftp": "ftp.x/a.fastq.gz"}
     stats = parse_run_new(_RUN_NEW_DROPPED, "SRR9170959")
     d = dropped_reads(run, stats)
@@ -526,27 +509,18 @@ def test_the_detector_abstains_rather_than_falsely_accusing(
     assert dropped_reads(run, stats) is None
 
 
-def test_remedy_names_fasterq_dump_first_not_sdl() -> None:
-    """SDL is a fallback: originals exist for select studies only, so most runs dead-end there.
+def test_the_remedy_names_the_fix_first_and_a_record_we_hold_before_a_second_api() -> None:
+    """A Blocker's remedy must be operable, and the ORDER is the claim.
 
-    A Blocker's remedy must be operable — naming the usually-empty path first is not.
+    `fasterq-dump --include-technical` is the real fix. The fallback used to be "go query SDL and
+    hope", for a fact an already fetched, parsed and cached `ArchiveRecordSet` states: it names the
+    `sra-pub-src-*` bucket per run, so SDL is one route to those bytes and never the only one
+    (ADR-0033) — and originals exist for select studies only, so most runs dead-end there.
     """
     remedy = technical_read_remedy("SRR9170959")
+
     assert "--include-technical" in remedy
-    assert remedy.index("fasterq-dump") < remedy.index("Data Locator")
-    assert "SRR9170959" in remedy
-
-
-def test_the_remedy_offers_the_records_we_already_hold_before_a_second_api() -> None:
-    """The fallback used to be "go query SDL and hope", for a fact the fetched record set states.
-
-    An `ArchiveRecordSet` names the `sra-pub-src-*` bucket per run, with the file's md5 and size, and
-    it was already fetched, parsed and cached — so SDL is one route to those bytes and never the only
-    one (ADR-0033). The remedy carries the POINTER at the verb that prints them and not the URI
-    itself: the three byte-side copies of this sentence hold no record set and never will.
-    """
-    remedy = technical_read_remedy("SRR9170959")
-    assert "seqforge io records SRR9170959" in remedy
+    assert remedy.index("fasterq-dump") < remedy.index("seqforge io records SRR9170959")
     assert remedy.index("io records") < remedy.index("Data Locator"), (
         "the record set we hold is the first fallback; SDL is what a deposit with no originals leaves"
     )
@@ -562,26 +536,19 @@ def _fastq_gz(n: int = 50, read_len: int = 90) -> bytes:
     return gzip.compress(body.encode())
 
 
-def test_decompress_prefix_reads_a_whole_small_member() -> None:
-    out = decompress_prefix(_fastq_gz(3), max_bytes=1 << 20)
-    assert out.decode().count("@READ:") == 3
-
-
 def test_decompress_prefix_tolerates_a_truncated_tail() -> None:
-    """The core claim of `io peek`: a byte-range prefix inflates without raising.
-
-    zlib simply returns fewer bytes and leaves eof False — so "handling truncation" is just stopping.
-    """
+    """The core claim of `io peek`: a byte-range prefix inflates without raising. zlib returns fewer
+    bytes and leaves eof False — so "handling truncation" is just stopping."""
     blob = _fastq_gz(500)
     out = decompress_prefix(blob[: len(blob) // 2], max_bytes=1 << 20)
     assert len(out) > 0
     assert b"@READ:0" in out
 
 
-def test_decompress_prefix_enforces_a_decompressed_byte_budget() -> None:
+def test_decompress_prefix_inflates_under_a_decompressed_byte_budget() -> None:
     """The budget is on DECOMPRESSED bytes, not a compressed-byte proxy — also a zip-bomb guard."""
-    out = decompress_prefix(_fastq_gz(5000), max_bytes=1000)
-    assert len(out) <= 1000
+    assert decompress_prefix(_fastq_gz(3), max_bytes=1 << 20).decode().count("@READ:") == 3
+    assert len(decompress_prefix(_fastq_gz(5000), max_bytes=1000)) <= 1000
 
 
 def test_decompress_prefix_rejects_a_corrupt_member() -> None:
@@ -657,63 +624,26 @@ def test_fastq_targets_refuses_to_mispair_on_a_length_mismatch() -> None:
     assert fastq_targets({}) == []
 
 
-def test_content_key_from_md5_is_64_hex_and_injective() -> None:
+def test_content_key_from_md5_is_an_injective_64_hex_address_or_a_refusal() -> None:
     """The 32-hex provider md5 maps into the 64-hex content-address space injectively: identical md5 ->
-    identical address (dedup is correct), distinct md5 -> distinct address, and it is case/space-stable."""
+    identical address (dedup is correct), distinct md5 -> distinct address, case/space-stable — and
+    anything that is not an md5 is refused rather than folded into a plausible-looking address."""
     a = content_key_from_md5("d41d8cd98f00b204e9800998ecf8427e")
     assert re.fullmatch(r"[0-9a-f]{64}", a)
     assert content_key_from_md5("  D41D8CD98F00B204E9800998ECF8427E ") == a  # normalized
     assert content_key_from_md5("0" * 32) != a  # a different md5 is a different address
 
-
-def test_content_key_from_md5_rejects_a_non_md5() -> None:
     for bad in ("", "abc", "z" * 32, "a" * 31, "a" * 64):
         with pytest.raises(ValueError, match="md5"):
             content_key_from_md5(bad)
-
-
-def test_the_private_range_and_basename_helpers_parse_their_headers_and_uris() -> None:
-    """Two private helpers ``probe_remote``/``peek`` lean on, whose edge cases the public tests skip.
-
-    ``_content_range_total`` reads the whole-file size out of a 206's ``Content-Range`` and abstains
-    (``None``) when the server writes ``*`` or sends no such header; ``_uri_basename`` strips the query,
-    fragment and a trailing slash so a hosted FASTQ's basename survives a decorated URL.
-    """
-    assert _content_range_total({"Content-Range": "bytes 0-65535/517000000"}) == 517000000
-    assert _content_range_total({"Content-Range": "bytes 0-100/*"}) is None  # server doesn't know
-    assert _content_range_total({}) is None
-
-    assert _uri_basename("https://ftp.x/vol1/SRR1_1.fastq.gz?foo=1#bar") == "SRR1_1.fastq.gz"
-    assert _uri_basename("https://ftp.x/SRR1_2.fastq.gz/") == "SRR1_2.fastq.gz"
-
-
-def test_probe_remote_fingerprints_from_a_url_using_the_provider_md5(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The heart of #39: a bounded Range read becomes an Observation with NO local file. The provider
-    md5 is the content-address (matching the hosted bytes), local_uri is None, size_bytes is the total
-    the 206 declared, and the read geometry survives the round-trip through inflate + the signal pipeline."""
-    data = _fastq_gz(400, read_len=90)
-    md5 = hashlib.md5(data).hexdigest()
-    url = "https://ftp.x/vol1/SRR1_2.fastq.gz"
-    monkeypatch.setattr(requests, "get", range_server({url: data}))
-
-    obs, seqs = probe_remote(url, md5=md5)
-
-    assert obs.file.sha256 == content_key_from_md5(md5)  # the provider md5 IS the address
-    assert obs.file.local_uri is None  # nothing was staged
-    assert obs.file.basename == "SRR1_2.fastq.gz"
-    assert obs.file.size_bytes == len(data)  # from Content-Range, not a local stat
-    assert obs.read_length.mode == 90
-    assert len(seqs) == 400  # the whole small member fit in the default range
 
 
 def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`probe_remote` must never read a whole FASTQ. With a compressed budget smaller than the file it
-    reads a strict prefix, drops the trailing partial record, and still yields a valid Observation whose
-    size_bytes is the true total (from Content-Range) rather than the bytes read."""
+    reads a strict prefix, drops the trailing partial record, and still yields a valid Observation
+    addressed by the provider md5, with no local file and the true total the 206 declared."""
     data = _fastq_gz(5000, read_len=90)
     url = "https://ftp.x/big.fastq.gz"
     monkeypatch.setattr(requests, "get", range_server({url: data}))
@@ -724,7 +654,26 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     assert obs.probe.compressed_bytes_read < len(data)  # a strict prefix
     assert obs.gzip.truncated  # the tail past the range boundary was dropped
     assert len(seqs) > 0 and obs.read_length.mode == 90  # still a usable fingerprint
+    assert obs.file.sha256 == content_key_from_md5("a" * 32)  # the provider md5 IS the address
+    assert obs.file.local_uri is None  # nothing was staged
     assert obs.file.size_bytes == len(data)  # the whole-file size, from Content-Range
+
+
+def test_a_206_that_declares_no_total_sizes_the_file_at_the_bytes_actually_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`Content-Range: bytes 0-N/*` — a streaming host that does not know the length. The size falls
+    back to what was read, and must never become 0 or the whole file's true size, which nothing here
+    was told. This is the only branch where the declared total is genuinely absent, and it is
+    unreachable through a server that answers a number."""
+    data = _fastq_gz(5000, read_len=90)
+    url = "https://ftp.x/streamed.fastq.gz"
+    monkeypatch.setattr(requests, "get", range_server({url: data}, known_total=False))
+
+    obs, _seqs = probe_remote(url, md5="a" * 32, max_compressed_bytes=512)
+
+    assert obs.file.size_bytes == obs.probe.compressed_bytes_read  # the fall back, not the total
+    assert obs.file.size_bytes < len(data)  # the true size was never declared, so never claimed
 
 
 def test_probe_remote_without_md5_derives_a_bounded_remote_key(
@@ -733,11 +682,12 @@ def test_probe_remote_without_md5_derives_a_bounded_remote_key(
     """No provider md5 (a submitted BAM, or a bare URL) -> a bounded remote content key over
     basename + size + head, a valid 64-hex address that reads no whole file."""
     data = _fastq_gz(100, read_len=50)
-    url = "https://ftp.x/nomd5.fastq.gz"
+    url = "https://ftp.x/nomd5.fastq.gz?token=abc#frag"
     monkeypatch.setattr(requests, "get", range_server({url: data}))
 
     obs, _seqs = probe_remote(url)
 
+    assert obs.file.basename == "nomd5.fastq.gz"  # the key's only name: not the query, not the frag
     assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)
     assert obs.file.sha256 != content_key_from_md5("a" * 32)  # not an md5 address
     assert obs.file.local_uri is None
@@ -752,30 +702,3 @@ def test_probe_remote_refuses_a_host_that_ignores_range(monkeypatch: pytest.Monk
 
     with pytest.raises(RemoteError, match="answered 200"):
         probe_remote(url, md5="a" * 32)
-
-
-@pytest.mark.skipif(
-    not os.environ.get("SEQFORGE_LIVE_NET"),
-    reason="live-network smoke; set SEQFORGE_LIVE_NET=1 to fingerprint a real ENA URL",
-)
-def test_probe_remote_live_fingerprints_a_real_ena_url() -> None:
-    """The genuine remote-peek E2E, opt-in (``SEQFORGE_LIVE_NET=1``): resolve a real run, range-read a
-    bounded head of its hosted FASTQ, and confirm the provider md5 is the content-address that matches
-    the hosted bytes — all without staging the file. Off by default so CI and a normal ``pixi run
-    check`` stay fully offline; the offline tests above already exercise our whole code path."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", ResourceWarning)  # a live socket must never fail the suite
-        try:
-            runs = remote.ena_filereport("SRR9170959")  # a real, long-published run
-            targets = [t for run in runs for t in fastq_targets(run)]
-            if not targets:
-                pytest.skip("ENA returned no fastq_ftp/fastq_md5 for the probe run")
-            url, md5 = targets[0]
-            obs, _seqs = probe_remote(url, md5=md5, max_compressed_bytes=1 << 18)  # 256 KB prefix
-        except RemoteError as exc:  # pragma: no cover - host dependent
-            pytest.skip(f"ENA unreachable: {exc}")
-
-    assert obs.file.sha256 == content_key_from_md5(md5)  # the hosted md5 IS the address
-    assert obs.file.local_uri is None  # nothing staged
-    assert obs.probe.compressed_bytes_read <= (1 << 18)  # a bounded prefix, not the whole file
-    assert obs.probe.n_reads_sampled > 0 and obs.read_length.mode > 0  # a usable fingerprint

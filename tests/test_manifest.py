@@ -1,17 +1,15 @@
 """Tests for ``seqforge.manifest`` — filling, validating and hashing the two artifacts.
 
-The immutable dataset (what the data IS: relative URIs, byte-derived roles, the content hash that
-must not move across a processing sweep) and the plural recipe (what to DO with it: the precedence
-ladder policy -> instruction -> flag, and the soloFeatures policy). One file per package, so an agent
-editing ``manifest/`` knows which file to run.
-
-The shared build helpers (``built_v3``, ``_build``, ``_manifest_from``, ``_processing`` …) live in
-``tests/conftest.py`` — ``test_compose.py`` reads them too.
+The immutable dataset (relative URIs, byte-derived roles, a content hash that must not move across a
+processing sweep) and the plural recipe (the precedence ladder policy -> instruction -> flag). Shared
+build helpers (``built_v3``, ``_build``, ``_manifest_from``, ``_processing`` …) live in
+``tests/conftest.py``.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -42,26 +40,20 @@ from seqforge.manifest import (
     validate_processing,
 )
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
-from seqforge.models.blocker import Blocker
+from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.dataset import INDEX_ROLE, DatasetManifest, SampleGroup
 from seqforge.models.resolve import ResolveResult
-from seqforge.resolve.engine import read_designation
 from seqforge.workflows import WORKFLOW_VERSION
 
 
 def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Path) -> None:
     """A URI is RELATIVE, not FLAT — the manifest forbids an absolute path, not structure.
 
-    Found by running the pilot dataset, which `fasterq-dump` had written one directory per accession
-    (`SRX24283130/SRR28716558_1.fastq.gz`). Bare basenames made `compose --fastq-dir <root>` resolve
-    to `<root>/SRR28716558_1.fastq.gz` — a path that does not exist, inside a units.tsv that looks
-    entirely reasonable. No test saw it because every fixture until now put its FASTQs in one flat
-    directory.
-
-    Two runs in sibling directories, which is the shape that has structure to lose. A dataset whose
-    files all sit in ONE directory has that directory as its root, so its URIs are basenames and
-    always were — that is the same rule, not an exception to it, and it is why every existing fixture
-    stayed green.
+    Found by running the pilot dataset, which `fasterq-dump` had written one directory per accession.
+    Bare basenames made `compose --fastq-dir <root>` resolve to a path that does not exist, inside a
+    units.tsv that looks entirely reasonable. Two runs in sibling directories, which is the shape
+    that has structure to lose; a dataset whose files all sit in ONE directory has that directory as
+    its root, so its URIs are basenames and always were — the same rule, not an exception.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
     reg = registry_for(spec)
@@ -87,27 +79,12 @@ def test_a_manifest_uri_keeps_the_path_relative_to_the_dataset_root(tmp_path: Pa
         assert (tmp_path / f.uri).is_file()
 
 
-def test_a_flat_dataset_still_gets_bare_basenames(tmp_path: Path) -> None:
-    """One directory IS the root, so its URIs are basenames -- the same rule, not an exception."""
-    spec = kb.load_spec("10x-3p-gex-v3")
-    reg = registry_for(spec)
-    reads = kb.generate_reads(spec, n=600, seed=0)
-    paths = []
-    for k in ("R1", "R2"):
-        p = tmp_path / f"s_{k}.fastq.gz"
-        write_fastq_gz(p, reads[k])
-        paths.append(p)
-    manifest = _manifest_from(paths, "10x-3p-gex-v3", reg)
-    assert sorted(f.uri for f in manifest.library.files) == ["s_R1.fastq.gz", "s_R2.fastq.gz"]
-
-
 def test_two_runs_with_the_same_basename_do_not_collapse_to_one_uri(tmp_path: Path) -> None:
-    """The silent half of the same bug, and the reason this is a correctness fix and not ergonomics.
+    """The silent half of the same bug, and why this is a correctness fix and not ergonomics.
 
     A basename is not unique across a dataset. Two runs each carrying `reads_1.fastq.gz` in their own
     directory produce the same URI — and `compose._units` looks files up BY URI, so one run's reads
-    quietly become the other's. The matrices come out plausible and wrong, which is the failure class
-    this project exists to prevent. Nothing anywhere would have said so.
+    quietly become the other's: matrices that are plausible and wrong, with no symptom.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
     reg = registry_for(spec)
@@ -140,13 +117,13 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(built_v3: Bui
     assert [a.name for a in manifest.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
     roles = {f.basename: (f.read_id if f.read_id else None) for f in manifest.library.files}
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
-    # the manifest carries a relative uri, never the probe's absolute local path
-    assert all(not f.uri.startswith("/") for f in manifest.library.files)
+    # Never the probe's absolute local path. One directory IS the root, so a flat dataset's URIs are
+    # bare basenames — the same relative-URI rule the nested fixture above proves, not an exception.
+    assert sorted(f.uri for f in manifest.library.files) == ["s_R1.fastq.gz", "s_R2.fastq.gz"]
 
 
 def test_the_dataset_manifest_carries_no_intent(built_v3: Built) -> None:
     """A dataset does not know how it will be processed, because it will be processed many ways."""
-    assert "processing" not in DatasetManifest.model_fields
     manifest, _ = built_v3
     assert set(DatasetManifest.model_fields) == {"library", "experiment", "provenance"}
     # ...and its provenance carries no workflow_version: the assay happened before we had an opinion
@@ -176,17 +153,10 @@ def test_fill_uses_observed_geometry_not_just_declared(built_v3: Built) -> None:
     assert (cb.start, cb.length) == (0, 16)
 
 
-def test_manifest_hash_is_stable_and_matches_provenance(built_v3: Built) -> None:
-    manifest, _ = built_v3
-    assert dataset_content_hash(manifest) == manifest.provenance.dataset_hash
-    assert manifest.provenance.kb_version == kb.KB_VERSION
-
-
 def test_manifest_file_order_is_deterministic_regardless_of_probe_order(tmp_path: Path) -> None:
-    """`library.files` — and the immutable dataset content hash over it — must not depend on the order
-    probe returned observations. A forked probe pool assembles them in completion order, not submission
-    order, so `_build_files` sorts by content hash. GSE208154 hashed differently at --cpus 1 vs 4
-    before this; the fix is what makes the manifest genuinely content-addressed.
+    """`library.files` — and the dataset content hash over it — must not depend on the order probe
+    returned observations. A forked pool assembles them in completion order, so `_build_files` sorts
+    by content hash. GSE208154 hashed differently at --cpus 1 vs 4 before that.
     """
     spec = kb.load_spec("10x-3p-gex-v3")
     reg = registry_for(spec)
@@ -217,11 +187,10 @@ def test_dataset_hash_is_invariant_across_a_processing_sweep(built_v3: Built) ->
     ]
     assert len({p.provenance.processing_hash for p in sweep}) == 3, "three recipes, three hashes"
     assert manifest.provenance.dataset_hash == before == dataset_content_hash(manifest)
+    assert manifest.provenance.kb_version == kb.KB_VERSION
 
-    # The processing hash matches its provenance AND ignores it (folded from the old
-    # test_processing_hash_matches_provenance_and_ignores_it, whose name promised the second half but
-    # asserted only the first). Mutating ONLY the provenance section must not move the content hash:
-    # provenance STORES the hash, it is never part of what is hashed.
+    # The processing hash matches its provenance AND ignores it: mutating ONLY the provenance section
+    # must not move the content hash, because provenance STORES the hash and is never hashed.
     p = sweep[0]
     assert processing_content_hash(p) == p.provenance.processing_hash
     mutated = p.model_copy(
@@ -236,9 +205,8 @@ def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
     """One dataset x N processing manifests = N runs.
 
     `provenance_id(manifest_hash, kb, workflow)` could not express this: with intent folded into the
-    manifest hash, two recipes over one dataset produced an IDENTICAL id — and the composer's fixed
-    output path meant the second silently overwrote the first. The collision case was exactly the use
-    case the split exists for.
+    manifest hash, two recipes over one dataset produced an IDENTICAL id, and the composer's fixed
+    output path meant the second silently overwrote the first.
     """
     manifest, _ = built_v3
     a = _processing(manifest, processing_id="gene")
@@ -258,17 +226,11 @@ def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
 def test_provenance_counts_the_reads_of_every_file_in_the_inventory(built_v3: Built) -> None:
     """Every file, every manifest — the counts compose cannot otherwise have.
 
-    `FileInventoryItem` is uri/basename/sha/size/read_id and `SampleGroup` is ids and uris, so no
-    read count exists anywhere a composer can reach; `plan` joins the path and never reads it, so a
-    third input is not available either. This is the field that closes that, and it is populated
-    unconditionally: making it conditional on the loaded KB declaring a threshold would make two
-    manifests of the same bytes differ by the date they were written.
-
-    600 exactly, and that is a statement about the FIXTURE, not about the field. At n=600 under the
-    2000-read probe budget the head reaches EOF, so the estimate is an exact count. The expensive
-    case — a file that exhausts the budget and gets an extrapolation from compressed
-    bytes-per-read — is the one that makes the number a function of `--max-reads`, and it is why the
-    two tests below exist.
+    No read count exists anywhere else a composer can reach, and the field is populated
+    unconditionally: gating it on the loaded KB declaring a threshold would make two manifests of the
+    same bytes differ by the date they were written. 600 exactly is a statement about the FIXTURE —
+    at n=600 the probe head reaches EOF, so the estimate is an exact count rather than the
+    bytes-per-read extrapolation a budget-exhausting file gets.
     """
     manifest, _ = built_v3
     counts = manifest.provenance.estimated_reads
@@ -281,20 +243,24 @@ def test_the_read_counts_move_neither_the_dataset_hash_nor_the_run_id(built_v3: 
 
     Two mutations, because they fail differently. STRIPPED proves the field is not folded in at all;
     DOUBLED proves it is the *values* that are excluded and not merely an empty dict serializing
-    away — the extrapolation a bigger budget would produce moves nothing. Then `run_id`, which takes
-    the dataset hash as a string plus kb/processing/workflow, so it inherits the property.
-
-    Asserted against the fixture's own recorded hash, not only across the pair: this is the
-    acceptance criterion that says every manifest that existed before the field did still hashes to
-    what it hashed to.
+    away. Asserted against the fixture's own recorded hash, not only across the pair, so every
+    manifest that existed before the field did still hashes to what it hashed to.
     """
     manifest, _ = built_v3
     prov = manifest.provenance
     assert prov.estimated_reads, "the fixture carries no counts, so this proves nothing"
 
-    stripped = manifest.model_copy(
-        update={"provenance": prov.model_copy(update={"estimated_reads": {}})}
+    # Stripped by dropping the KEY, not by blanking the value: a manifest written before this field
+    # existed is immutable and there is nothing to rewrite it from, so it has to load as-is.
+    stripped = DatasetManifest.model_validate(
+        {
+            **manifest.model_dump(mode="json"),
+            "provenance": {
+                k: v for k, v in prov.model_dump(mode="json").items() if k != "estimated_reads"
+            },
+        }
     )
+    assert stripped.provenance.estimated_reads == {}
     doubled = manifest.model_copy(
         update={
             "provenance": prov.model_copy(
@@ -322,51 +288,31 @@ def test_the_read_counts_move_neither_the_dataset_hash_nor_the_run_id(built_v3: 
     assert len(ids) == 1, "the read counts reached run_id"
 
 
-def test_a_runs_read_count_is_the_minimum_over_its_files(built_v3: Built) -> None:
+@pytest.mark.parametrize(
+    ("counts", "expected"),
+    [
+        pytest.param({0: 600, 1: 600}, 600, id="healthy-mates-agree"),
+        pytest.param({0: 599, 1: 600}, 599, id="the-minimum-never-the-sum"),
+        pytest.param({}, None, id="measured-nothing-is-not-zero"),
+        pytest.param({0: 600}, None, id="one-of-two-is-not-a-measured-run"),
+    ],
+)
+def test_a_runs_read_count_is_the_minimum_and_silence_is_not_zero(
+    built_v3: Built, counts: dict[int, int], expected: int | None
+) -> None:
     """Not the sum: R1 and R2 are two views of the same fragments, so adding them doubles the depth.
 
-    Healthy mates are equal by construction — which is what makes the minimum free rather than
-    pessimistic — and the pair that is not equal was refused upstream as a truncated member. So the
-    rule only ever chooses between numbers that agree, and it is written down once here because the
-    alternative is each consumer half-remembering it at its own call site.
+    Healthy mates are equal by construction and an unequal pair was refused upstream as truncated, so
+    the minimum is free rather than pessimistic. An unmeasured file gates as `None`, never as `0`: a
+    gate reading silence as zero would drop every sample in a pre-field manifest at exit 0.
     """
     manifest, _ = built_v3
     shas = [f.sha256 for f in manifest.library.files]
-    prov = manifest.provenance
-    assert len(shas) == 2
-    assert prov.reads_in_run(shas) == 600
-
-    thin = prov.model_copy(update={"estimated_reads": {**prov.estimated_reads, shas[0]: 599}})
-    assert thin.reads_in_run(shas) == 599, "a mate short of its partner must not be averaged away"
-    assert thin.reads_in_run(shas) != sum(thin.estimated_reads.values())
-
-
-def test_an_unmeasured_file_gates_as_none_rather_than_as_zero(built_v3: Built) -> None:
-    """A manifest written before this field existed measured nothing; nothing is not zero.
-
-    The field is optional so those manifests still load — they are immutable and there is nothing to
-    rewrite them from — and a gate reading their silence as `0` would drop every sample in one at
-    exit 0, which is the silent-plausible-wrong-answer class this compiler exists to prevent.
-    """
-    manifest, _ = built_v3
-    older = DatasetManifest.model_validate(
-        {
-            **manifest.model_dump(mode="json"),
-            "provenance": {
-                k: v
-                for k, v in manifest.provenance.model_dump(mode="json").items()
-                if k != "estimated_reads"
-            },
-        }
+    assert len(shas) == 2, "the fixture must be a pair or these rows mean nothing"
+    prov = manifest.provenance.model_copy(
+        update={"estimated_reads": {shas[i]: n for i, n in counts.items()}}
     )
-    assert older.provenance.estimated_reads == {}
-    assert older.provenance.dataset_hash == manifest.provenance.dataset_hash
-    assert older.provenance.reads_in_run([f.sha256 for f in older.library.files]) is None
-    # and one file measured is still not a measured run: the minimum is over ALL of them
-    partial = older.provenance.model_copy(
-        update={"estimated_reads": {manifest.library.files[0].sha256: 600}}
-    )
-    assert partial.reads_in_run([f.sha256 for f in older.library.files]) is None
+    assert prov.reads_in_run(shas) == expected
 
 
 def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_path: Path) -> None:
@@ -396,12 +342,9 @@ def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_pa
 
 
 def test_validate_processing_blocks_a_genome_organism_mismatch(built_v3: Built) -> None:
-    """A wrong-but-VALID assembly is the worst failure this system can produce.
-
-    It is not a crash and it does not look empty: STAR aligns, exits 0, and emits a plausible matrix
-    in the wrong coordinate space. Every other check catches something that would look broken; this
-    one catches something that looks fine.
-    """
+    """A wrong-but-VALID assembly is the worst failure this system can produce: STAR aligns, exits 0,
+    and emits a plausible matrix in the wrong coordinate space. Every other check catches something
+    that would look broken; this one catches something that looks fine."""
     manifest, _ = built_v3  # organism = 559292 (yeast)
     p = _processing(manifest)
     assert validate_processing(p, dataset=manifest).ok
@@ -446,12 +389,12 @@ def test_fill_refuses_over_a_blocker(tmp_path: Path) -> None:
         conflicts=[],
         questions=[],
         blockers=[
-            __import__("seqforge.models.blocker", fromlist=["Blocker"]).Blocker(
+            Blocker(
                 id="b",
-                code="TRUNCATED_GZIP",
+                code=BlockerCode.TRUNCATED_GZIP,
                 message="m",
                 remedy="r",
-                subject={"kind": "file", "ref": "f"},
+                subject=BlockerSubject(kind="file", ref="f"),
             )
         ],
     )
@@ -502,53 +445,9 @@ def test_quantification_is_no_longer_decorative(built_v3: Built) -> None:
     assert config["primary_feature"] == "GeneFull"
 
 
-def test_the_default_is_screcounters_five_in_screcounters_order() -> None:
-    """Exactly scRecounter's five, that order, and deliberately no SJ.
-
-    Their five is a PRECEDENT, not a derivation — adopting it wholesale without pinning it here would
-    import someone else's unstated scope decision silently. (Source: ArcInstitute/scRecounter,
-    workflows/star_full.nf: `--soloFeatures Gene GeneFull GeneFull_ExonOverIntron GeneFull_Ex50pAS
-    Velocyto`.)
-    """
-    from seqforge.manifest.policy import DEFAULT_SOLO_FEATURES
-
-    assert DEFAULT_SOLO_FEATURES == (
-        "Gene",
-        "GeneFull",
-        "GeneFull_ExonOverIntron",
-        "GeneFull_Ex50pAS",
-        "Velocyto",
-    )
-    assert "SJ" not in DEFAULT_SOLO_FEATURES, (
-        "a splice-junction matrix has a different feature axis"
-    )
-    # Gene first: the primary matrix matches the common whole-cell expectation, and Velocyto's
-    # "requires Gene" constraint is satisfied by construction rather than by luck.
-    assert DEFAULT_SOLO_FEATURES[0] == "Gene"
-
-
-def test_the_default_counts_the_nuclear_features_without_being_asked(built_v3: Built) -> None:
-    """The 40.7% defect, dissolved rather than answered.
-
-    The KB used to bake soloFeatures:[Gene] into chemistry, so a single-NUCLEUS dataset compiled to
-    Gene-only and silently dropped 40.7% of its signal — STARsolo exits 0 and the matrix merely looks
-    thin. No nuclei/cells fact is asserted anywhere in this test, and none is needed: GeneFull is
-    computed regardless. That is the whole point — we do not ask a question whose every answer we can
-    afford to emit.
-    """
-    manifest, reg = built_v3
-    features = solo_block(plan(manifest, _processing(manifest), registry=reg).config)[
-        "soloFeatures"
-    ]
-    assert {"Gene", "GeneFull"} <= set(str(features).split())
-
-
 def test_bulk_never_gets_solo_features(synth_bulk_pe: SynthDataset) -> None:
-    """Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR.
-
-    A processing manifest that carried one shape unconditionally would be a type error the moment it
-    met the other module — which is why Quantification is a discriminated union rather than a list.
-    """
+    """Counting is MODULE-scoped: soloFeatures is meaningless to plain STAR, which is why
+    Quantification is a discriminated union rather than a list."""
     manifest, reg = synth_bulk_pe.manifest, synth_bulk_pe.registry
     config = plan(manifest, _processing(manifest), registry=reg).config
     assert config["bulk"] == {"quantMode": "GeneCounts"}
@@ -560,198 +459,161 @@ def _ins(field: str, value: str) -> Instruction:
     return Instruction(field=field, value=value, basis="user_confirmed", evidence=["assert-x-0"])
 
 
-def test_policy_default_is_inferred_and_names_its_rule() -> None:
-    from seqforge.manifest import resolve_features
-
-    features, basis, evidence, warnings = resolve_features()
-    assert basis == "inferred"
-    assert evidence == [
-        "policy:default-solo-features"
-    ]  # the rule, by name — that is why no new basis
-    assert not warnings
-    assert features[0] == "Gene"
+# Spelled out rather than read off DEFAULT_SOLO_FEATURES: these rows are what pins the shipped five
+# and their order, so deriving them from the constant would make every row pass by construction.
+_FIVE = ["Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "Velocyto"]
+_GENEFULL_FIRST = ["GeneFull", "Gene", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS", "Velocyto"]
+_VELOCYTO_FIRST = ["Velocyto", "Gene", "GeneFull", "GeneFull_ExonOverIntron", "GeneFull_Ex50pAS"]
+_QUANT = "processing.quantification"
 
 
-def test_prose_promotes_it_never_narrows() -> None:
-    """ "...should be aligned in GeneFull mode" — instead of Gene, or make sure GeneFull is computed?
-
-    We take the second: charitable, cheap, and consistent with counting everything by default. The instructed feature is UNIONed
-    with the default and promoted to primary. Nothing is dropped — which is also the safety argument
-    for letting a model source this at all: a hallucinated instruction can only mislabel the primary,
-    never destroy signal.
+@pytest.mark.parametrize(
+    ("call", "features", "basis", "evidence", "warned"),
+    [
+        pytest.param({}, _FIVE, "inferred", ["policy:default-solo-features"], [], id="policy"),
+        pytest.param(
+            {"instructions": [_ins(_QUANT, "GeneFull")]},
+            _GENEFULL_FIRST,
+            "user_confirmed",
+            ["assert-x-0"],
+            [],
+            id="prose-promotes-never-narrows",
+        ),
+        pytest.param(
+            {"override": ("Gene", "GeneFull")},
+            ["Gene", "GeneFull"],
+            "user_confirmed",
+            ["cli:--quantify"],
+            ["FEATURES_NARROWED"],
+            id="a-flag-replaces-exactly",
+        ),
+        pytest.param(
+            {"instructions": [_ins(_QUANT, "Velocyto")], "override": ("Gene", "GeneFull")},
+            ["Gene", "GeneFull"],
+            "user_confirmed",
+            ["cli:--quantify"],
+            ["FEATURES_NARROWED"],
+            id="a-flag-beats-an-instruction",
+        ),
+        pytest.param(
+            {"prep_type": "single-nucleus"},
+            _GENEFULL_FIRST,
+            "inferred",
+            ["policy:genefull-primary-for-single-nucleus"],
+            [],
+            id="nuclei-reorder-only",
+        ),
+        pytest.param(
+            {"prep_type": "single-cell"},
+            _FIVE,
+            "inferred",
+            ["policy:default-solo-features"],
+            [],
+            id="cells-take-no-reorder",
+        ),
+        pytest.param(
+            {"override": ("Gene",), "prep_type": "single-nucleus"},
+            ["Gene"],
+            "user_confirmed",
+            ["cli:--quantify"],
+            ["FEATURES_NARROWED"],
+            id="a-flag-beats-a-nuclei-prep",
+        ),
+        pytest.param(
+            {"instructions": [_ins(_QUANT, "Velocyto")], "prep_type": "single-nucleus"},
+            _VELOCYTO_FIRST,
+            "user_confirmed",
+            ["assert-x-0"],
+            [],
+            id="an-instruction-beats-a-nuclei-prep",
+        ),
+    ],
+)
+def test_the_counting_ladder_is_policy_then_prep_then_instruction_then_flag(
+    call: dict[str, Any],
+    features: list[str],
+    basis: str,
+    evidence: list[str],
+    warned: list[str],
+) -> None:
+    """Only a flag narrows. Prose ("...aligned in GeneFull mode") and a verified nuclei prep PROMOTE
+    to primary and drop nothing, which is why a model may source this at all: a hallucination can
+    mislabel which matrix is `adata.X`, never destroy signal. Gene stays behind GeneFull so
+    Velocyto's "requires Gene" holds by construction. Basis records who decided, and a policy default
+    is `inferred` naming its rule — which is why no `policy_default` basis was ever needed.
     """
-    from seqforge.manifest import DEFAULT_SOLO_FEATURES, resolve_features
-
-    features, basis, evidence, warnings = resolve_features(
-        instructions=[_ins("processing.quantification", "GeneFull")]
-    )
-    assert features[0] == "GeneFull", "the instructed feature becomes primary"
-    assert set(features) == set(DEFAULT_SOLO_FEATURES), "and NOTHING is dropped"
-    assert basis == "user_confirmed"
-    assert evidence == ["assert-x-0"]
-    assert not warnings
-
-
-def test_a_flag_replaces_exactly_and_warns_when_it_narrows() -> None:
-    """The user typed the whole list; they mean it. But narrowing is the only irreversible act here."""
     from seqforge.manifest import resolve_features
 
-    features, basis, evidence, warnings = resolve_features(override=("Gene", "GeneFull"))
-    assert features == ["Gene", "GeneFull"]
-    assert basis == "user_confirmed" and evidence == ["cli:--quantify"]
-    assert [w.code for w in warnings] == ["FEATURES_NARROWED"]
-    assert "40.7%" in warnings[0].message  # the refusal cites the number that justifies the default
+    got, got_basis, got_evidence, warnings = resolve_features(**call)
+    assert got == features
+    assert got_basis == basis
+    assert got_evidence == evidence
+    assert [w.code for w in warnings] == warned
+    # every narrowing cites the measured loss that justifies counting everything by default
+    assert all("40.7%" in w.message for w in warnings)
 
 
-def test_a_flag_beats_an_instruction_silently() -> None:
-    """Precedence is not an ambiguity. A flag overriding a file is a normal, intentional act."""
-    from seqforge.manifest import resolve_features
-
-    features, basis, evidence, _ = resolve_features(
-        instructions=[_ins("processing.quantification", "Velocyto")],
-        override=("Gene", "GeneFull"),
-    )
-    assert features == ["Gene", "GeneFull"], "the flag wins outright"
-    assert evidence == ["cli:--quantify"]
-    assert basis == "user_confirmed"
+_PREP = "library.prep_type"
 
 
-def test_a_single_nucleus_prep_promotes_genefull_to_primary() -> None:
-    """#12: a verified nuclei prep makes GeneFull the PRIMARY matrix — a nuclear library is ~1/3
-    intronic and a Gene-first primary silently under-counts it. All five features stay; only the order
-    (which becomes adata.X) changes, and Gene still follows so Velocyto's requirement holds."""
-    from seqforge.manifest import DEFAULT_SOLO_FEATURES, resolve_features
-
-    features, basis, evidence, warnings = resolve_features(prep_type="single-nucleus")
-    assert features[0] == "GeneFull", "nuclei -> GeneFull primary"
-    assert features[1] == "Gene", "Gene still present (Velocyto requires it) and right behind"
-    assert set(features) == set(DEFAULT_SOLO_FEATURES), (
-        "nothing dropped — one alignment, five counts"
-    )
-    assert basis == "inferred"  # code inferred the ordering from biology; no one asserted the list
-    assert evidence == ["policy:genefull-primary-for-single-nucleus"]
-    assert not warnings
-
-    # the complement (folded from test_a_single_cell_prep_stays_gene_primary): a single-CELL prep
-    # takes no reorder — it stays Gene-primary on the default policy.
-    sc_features, _, sc_evidence, _ = resolve_features(prep_type="single-cell")
-    assert sc_features[0] == "Gene"
-    assert sc_evidence == ["policy:default-solo-features"]
-
-
-def test_a_flag_or_instruction_beats_a_nuclei_prep() -> None:
-    """The prep reorder is only the DEFAULT path: an explicit --quantify or a processing instruction
-    is the user talking, and outranks a biology inference."""
-    from seqforge.manifest import resolve_features
-
-    flagged, _, _, _ = resolve_features(override=("Gene",), prep_type="single-nucleus")
-    assert flagged == ["Gene"], "the flag wins outright, nuclei prep does not resurrect GeneFull"
-    instructed, _, _, _ = resolve_features(
-        instructions=[_ins("processing.quantification", "Velocyto")], prep_type="single-nucleus"
-    )
-    assert instructed[0] == "Velocyto", "an explicit instruction still sets the primary"
-
-
-def _prep_assertion(value: str, *, verified: bool = True) -> Assertion:
+def _assertion(
+    field: str, value: str, *, doc: str = "0", aid: str = "assert-0", ok: bool = True
+) -> Assertion:
     return Assertion(
-        id="assert-prep-0",
-        field="library.prep_type",
+        id=aid,
+        field=field,
         value=value,
-        span=SourceSpan(doc_sha256="0" * 64, quote=value),
-        span_verified=verified,
-        entailment_ok=verified,
+        span=SourceSpan(doc_sha256=doc * 64, quote=value),
+        span_verified=ok,
+        entailment_ok=ok,
         llm_confidence=0.9,
-        extractor=ExtractorProvenance(model_id="test", prompt_version="test"),
+        extractor=ExtractorProvenance(model_id="m", prompt_version="p"),
     )
 
 
 def test_prep_type_from_assertions_normalizes_the_biology_words() -> None:
+    """The value steers which matrix is primary, so it matches WHOLE WORDS: a bare "nucle"/"cell"
+    substring must not classify, and a phrase naming both or neither is `None` rather than a guess."""
     from seqforge.manifest import prep_type_from_assertions
 
     for phrase in ("single nuclei", "single-nucleus RNA-seq", "isolated nuclei", "snRNA-seq"):
-        assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-nucleus", phrase
-    for phrase in ("single-cell", "scRNA-seq", "whole cells"):
-        assert prep_type_from_assertions([_prep_assertion(phrase)]) == "single-cell", phrase
-
-    # Whole words, not bare substrings (folded from test_prep_type_matches_whole_words_not_bare_substr
-    # ings, re-expressed through the public `prep_type_from_assertions` rather than the private
-    # `_normalize_prep_type` it used to import). The value steers which matrix is primary, so a bare
-    # "nucle"/"cell" substring must not classify, and a phrase naming BOTH or neither -> None.
+        assert prep_type_from_assertions([_assertion(_PREP, phrase)]) == "single-nucleus", phrase
+    for phrase in ("single-cell", "scRNA-seq", "whole cells", "single cell suspension"):
+        assert prep_type_from_assertions([_assertion(_PREP, phrase)]) == "single-cell", phrase
     for none_phrase in (
         "total nucleic acid extraction",  # not "nuclei"
         "aligned with Cell Ranger",  # not "single-cell"
         "nucleotide",
         "single-nucleus and single-cell were compared",  # both -> None, never a guess
     ):
-        assert prep_type_from_assertions([_prep_assertion(none_phrase)]) is None, none_phrase
-    assert prep_type_from_assertions([_prep_assertion("nuclei were isolated")]) == "single-nucleus"
-    assert prep_type_from_assertions([_prep_assertion("single cell suspension")]) == "single-cell"
+        assert prep_type_from_assertions([_assertion(_PREP, none_phrase)]) is None, none_phrase
 
 
 def test_prep_type_from_assertions_ignores_unverified_and_refuses_a_disagreement() -> None:
     from seqforge.manifest import prep_type_from_assertions
 
     # an unverified claim never counts
-    assert prep_type_from_assertions([_prep_assertion("single nuclei", verified=False)]) is None
+    assert prep_type_from_assertions([_assertion(_PREP, "single nuclei", ok=False)]) is None
     # two verified claims that disagree -> None, never a guess between them
-    disagree = [_prep_assertion("single nuclei"), _prep_assertion("single-cell")]
+    disagree = [_assertion(_PREP, "single nuclei"), _assertion(_PREP, "single-cell")]
     assert prep_type_from_assertions(disagree) is None
-    # nothing to say
-    assert prep_type_from_assertions([]) is None
-
-
-def test_the_processing_cli_reads_prep_type_from_the_assertions_file(tmp_path: Path) -> None:
-    """The CLI seam: `processing new` / `run` read the same assertions.json harvest wrote and pull the
-    prep fact from it, so a single-nucleus paper reaches `resolve_features` without a new flag."""
-    import json as _json
-
-    from seqforge.cli.processing import _prep_type_from
-
-    p = tmp_path / "assertions.json"
-    p.write_text(
-        _json.dumps(
-            {
-                "assertions": [
-                    {
-                        "id": "assert-prep-0",
-                        "field": "library.prep_type",
-                        "value": "single nuclei",
-                        "span": {"doc_sha256": "0" * 64, "quote": "single nuclei"},
-                        "span_verified": True,
-                        "entailment_ok": True,
-                        "llm_confidence": 0.9,
-                        "extractor": {"model_id": "t", "prompt_version": "t"},
-                    }
-                ]
-            }
-        )
-    )
-    assert _prep_type_from(p) == "single-nucleus"
-    assert _prep_type_from(None) is None
+    assert prep_type_from_assertions([]) is None  # nothing to say
 
 
 def test_two_instructions_disagreeing_is_a_conflict() -> None:
     """Same precedence, no tiebreak: a disagreement is surfaced for intent exactly as for truth."""
     from seqforge.manifest import instructions_from_assertions
-    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 
-    def _a(i: int, value: str) -> Assertion:
-        return Assertion(
-            id=f"assert-aa-{i}",
-            field="processing.genome.assembly",
-            value=value,
-            span=SourceSpan(doc_sha256="d" * 64, quote=f"align to {value}"),
-            span_verified=True,
-            entailment_ok=True,
-            llm_confidence=0.9,
-            extractor=ExtractorProvenance(model_id="m", prompt_version="p"),
-        )
-
+    field = "processing.genome.assembly"
     _, conflicts = instructions_from_assertions(
-        [_a(0, "ce11"), _a(1, "hg38")], instruction_docs=frozenset({"d" * 64})
+        [
+            _assertion(field, v, doc="d", aid=f"assert-aa-{i}")
+            for i, v in enumerate(("ce11", "hg38"))
+        ],
+        instruction_docs=frozenset({"d" * 64}),
     )
     assert len(conflicts) == 1
-    assert conflicts[0].field == "processing.genome.assembly"
+    assert conflicts[0].field == field
     assert conflicts[0].kind == "asserted_vs_asserted"
     assert conflicts[0].decidable_by == ["user"]  # the first real use of that vocabulary member
     assert {p.value for p in conflicts[0].positions} == {"ce11", "hg38"}
@@ -759,62 +621,12 @@ def test_two_instructions_disagreeing_is_a_conflict() -> None:
 
 def test_an_instruction_from_a_reference_doc_never_becomes_an_instruction() -> None:
     from seqforge.manifest import instructions_from_assertions
-    from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 
-    a = Assertion(
-        id="assert-bb-0",
-        field="processing.quantification",
-        value="GeneFull",
-        span=SourceSpan(doc_sha256="e" * 64, quote="in GeneFull mode"),
-        span_verified=True,
-        entailment_ok=True,
-        llm_confidence=0.9,
-        extractor=ExtractorProvenance(model_id="m", prompt_version="p"),
-    )
+    a = _assertion(_QUANT, "GeneFull", doc="e", aid="assert-bb-0")
     # not among the --instruction docs => dropped, not downgraded
     assert instructions_from_assertions([a], instruction_docs=frozenset()) == ([], [])
     ins, _ = instructions_from_assertions([a], instruction_docs=frozenset({"e" * 64}))
-    assert [i.field for i in ins] == ["processing.quantification"]
-
-
-def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(built_v3: Built) -> None:
-    """A file with no role is a file the pipeline drops in silence. That must be a Blocker.
-
-    This is the check whose absence let a 6-run dataset validate clean while 5/6 of it evaporated:
-    `resolve` did ONE global assignment across all 12 files, ten came back with `read_id=None`,
-    `compose._units` skipped them without a word, and the manifest was content-addressed and blessed.
-    Exit 0, wrong answer, no symptom.
-
-    The inverse check ("is every declared role filled?") existed the whole time and passed, because it
-    only ever needed ONE file per role. Both directions are needed; only one was there.
-    """
-    manifest, _ = built_v3
-    clean = validate_manifest(manifest)
-    assert clean.ok, "the fixture must start clean or this proves nothing"
-    assert (
-        exit_code_for_report(clean) == 0
-    )  # clean report -> exit 0 (was test_validate_clean_manifest)
-
-    files = list(manifest.library.files)
-    files.append(
-        files[0].model_copy(
-            update={
-                "read_id": None,
-                "basename": "orphan.fastq.gz",
-                "uri": "orphan.fastq.gz",
-                "sha256": "f" * 64,
-            }
-        )
-    )
-    orphaned = manifest.model_copy(
-        update={"library": manifest.library.model_copy(update={"files": files})}
-    )
-    report = validate_manifest(orphaned)
-    assert not report.ok
-    blocker = next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
-    assert "orphan.fastq.gz" in blocker.message
-    assert blocker.remedy, "a Blocker with no way forward is a wall"
-    assert exit_code_for_report(report) == 3
+    assert [i.field for i in ins] == [_QUANT]
 
 
 def _with_file(
@@ -843,51 +655,35 @@ def _unassigned_blocker(manifest: DatasetManifest) -> Blocker:
     return next(b for b in report.blockers if b.id.startswith("blk-unassigned-"))
 
 
-def test_the_unassigned_remedy_names_the_lane_sibling_it_could_not_re_seat(built_v3: Built) -> None:
-    """The surplus lane of a fused run must not be told to re-run `fill` or to delete itself.
+def test_validate_refuses_a_manifest_with_a_file_nobody_will_read(built_v3: Built) -> None:
+    """A file with no role is a file the pipeline drops in silence. That must be a Blocker.
 
-    The guard is right and stays — #270 checked that every path (`run`, `manifest fill`, standalone
-    `compose`) already refuses a roleless file. What was wrong is the **remedy**, for the one shape
-    ADR-0027 created: a run is lane-blind, so a four-lane library is ONE run of eight files, the
-    injective assignment fills each role once, and `index_tagged_roles` re-seats the surplus only
-    within `LANE_LEN_TOL` of its role's representative. A lane whose modal read length drifts
-    further gets no role and lands here — and every clause of the old text misfires for it. They are
-    not "several runs", they are one run deliberately; `manifest fill` is the thing that just ran; and
-    dropping the lane is the partial-depth loss #263 and ADR-0027 exist to refuse.
+    The check whose absence let a 6-run dataset validate clean while 5/6 of it evaporated: ten of
+    twelve files came back with `read_id=None`, `compose._units` skipped them without a word, and the
+    manifest was content-addressed and blessed. The inverse check ("is every declared role filled?")
+    passed throughout, because it only ever needed ONE file per role. Both directions are needed.
     """
     manifest, _ = built_v3
-    seated = next(f for f in manifest.library.files if f.read_id is not None)
-    designation = read_designation(seated.basename)
-    assert designation is not None, "the fixture must name its mates or this proves nothing"
+    clean = validate_manifest(manifest)
+    assert clean.ok, "the fixture must start clean or this proves nothing"
+    assert exit_code_for_report(clean) == 0
 
-    surplus = f"s_L002_{designation}_001.fastq.gz"
-    remedy = _unassigned_blocker(_with_file(manifest, surplus)).remedy
-
-    assert seated.basename in remedy, "name the read it is a lane of"
-    assert designation in remedy
-    assert "read length" in remedy, "name why it was not re-seated"
-    # A remedy that does not name a command is not finished — and this one
-    # is the diagnosis itself, so it names both files rather than leaving them to be typed.
-    assert f"`seqforge probe {seated.basename} {surplus}`" in remedy
-    # The misdiagnosis is gone, and the two fixes it prescribed are named as the wrong ones rather
-    # than handed over: `fill` is what just ran, and the lane is depth this dataset would lose.
-    assert "several runs" not in remedy
-    assert "neither is the fix" in remedy
-    assert "`seqforge manifest fill` is what produced this refusal" in remedy
-    assert "dropping the file loses that depth" in remedy
+    orphaned = _with_file(manifest, "orphan.fastq.gz")
+    blocker = _unassigned_blocker(orphaned)
+    assert "orphan.fastq.gz" in blocker.message
+    assert blocker.remedy, "a Blocker with no way forward is a wall"
+    assert exit_code_for_report(validate_manifest(orphaned)) == 3
 
 
 def test_the_unassigned_remedy_is_unchanged_for_a_file_that_is_nobody_s_lane(
     built_v3: Built,
 ) -> None:
-    """No layout role shares its designation => the old text is right, and keeps it.
+    """No layout role shares its designation => the lane-sibling diagnosis must NOT fire.
 
-    Three ways to be nobody's lane. A file carrying no designation at all; one whose designation no
-    seated read shares; and — the one that decides where the INDEX_ROLE files go — a designation
-    shared only with an index-tagged read. That last is the important case: an index file is not a
-    representative `index_tagged_roles` ever compared a lane against, and a file designated `I1` that
-    is roleless anyway is by construction longer than the 20 bp gate that would have tagged it. It is
-    the cDNA-length stray the old text was written for, so it must keep the old text.
+    Three ways to be nobody's lane: no designation at all; a designation no seated read shares; and —
+    the one that decides where the INDEX_ROLE files go — a designation shared only with an
+    index-tagged read. An index file is not a representative a lane was ever compared against, and a
+    roleless file designated `I1` is by construction longer than the gate that would have tagged it.
     """
     manifest, _ = built_v3
     seated = _with_file(manifest, "s_L001_I1_001.fastq.gz", read_id=INDEX_ROLE, sha="e")

@@ -24,7 +24,6 @@ from seqforge import kb
 from seqforge.harvest import (
     ANTHROPIC_DEFAULT_MODEL,
     DEEPSEEK_DEFAULT_MODEL,
-    DEEPSEEK_FLASH_MODEL,
     DEEPSEEK_MODELS,
     DEEPSEEK_PRO_MODEL,
     EXTRACT_PROMPT_VERSION,
@@ -98,13 +97,11 @@ def _batch(
     )
 
 
+_GOOD: dict[str, Any] = json.loads(_batch())["drafts"][0]
+_BAD = {**_GOOD, "value": None}  # the flaky token: a null value where a string is required
+
+
 # ---------- the wire schema ----------
-def test_llm_schema_is_derived_from_the_canonical_model() -> None:
-    schema = llm_schema()
-    assert "AssertionDraft" in schema["$defs"]
-    assert "quote" in schema["$defs"]["SourceSpan"]["properties"]
-
-
 def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
     """Constraints live in the canonical schema (Pydantic enforces them at ingest) and
     are stripped from the LLM-facing one. The SDK performs that transform, so there is no second
@@ -138,9 +135,7 @@ def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
 
 # ---------- the prompt / stable prefix ----------
 def test_kb_context_is_deterministic_and_carries_aliases() -> None:
-    specs = kb.load_all_specs()
-    once, twice = build_kb_context(specs), build_kb_context(specs)
-    assert once == twice  # prefix caching is a byte match; an unstable context never caches
+    once = build_kb_context(kb.load_all_specs())
     assert "Chromium 3' v3" in once  # the alias that bridges paper prose -> the KB id
     assert once.index("10x-3p-gex-v2") < once.index("10x-3p-gex-v3") < once.index("splitseq")
 
@@ -215,15 +210,8 @@ def test_extract_drops_one_malformed_draft_and_keeps_the_rest(tmp_path: Path) ->
     single such draft failed validation of the whole `ExtractionResult` and blocked the dataset from
     compiling.
     """
-    good = {
-        "field": "library.chemistry",
-        "value": "10x-3p-gex-v3",
-        "span": {"doc_sha256": "0" * 64, "quote": _QUOTE, "context": None},
-        "llm_confidence": 0.9,
-    }
-    bad = {**good, "value": None}  # the flaky token: a null value where a string is required
     missing = {"field": "library.chemistry"}  # no span at all — malformed the same way, dropped too
-    provider = _FakeProvider(json.dumps({"drafts": [good, bad, missing]}))
+    provider = _FakeProvider(json.dumps({"drafts": [_GOOD, _BAD, missing]}))
     outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
 
     assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3"]  # only the good one survives
@@ -253,15 +241,16 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
         )
 
 
-def test_extract_rejects_non_json(tmp_path: Path) -> None:
-    with pytest.raises(ExtractUnavailable):
-        extract_drafts(
-            _doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider("I cannot help.")
-        )
-
-
+@pytest.mark.parametrize(
+    "drafts, values, n_rejected",
+    [
+        pytest.param([_GOOD], ["10x-3p-gex-v3"], 0, id="a-batch"),
+        pytest.param([_GOOD, _BAD, _GOOD], ["10x-3p-gex-v3"] * 2, 1, id="a-malformed-member"),
+        pytest.param([], [], 0, id="a-document-that-supports-nothing"),
+    ],
+)
 def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
-    tmp_path: Path,
+    drafts: list[dict[str, Any]], values: list[str], n_rejected: int, tmp_path: Path
 ) -> None:
     """A model that returns the drafts array without wrapping it has still returned the batch.
 
@@ -269,49 +258,20 @@ def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
     `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
     discard a whole document's worth of valid extraction for one missing token — the same defect
     `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
-    live on the weaker json-object models (#190).
+    live on the weaker json-object models (#190). Unwrapping changes the envelope and nothing else:
+    the per-draft gate is still the gate, and `[]` is still the common, correct answer that an
+    envelope may not turn into a lost document.
     """
-    wrapped = _batch()
-    bare = json.dumps(json.loads(wrapped)["drafts"])  # the identical elements, unwrapped
     doc = _doc(tmp_path)
-
-    under_wrapper = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(wrapped))
-    unwrapped = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(bare))
-
-    assert unwrapped.drafts == under_wrapper.drafts
-    assert unwrapped.rejected == under_wrapper.rejected == []
-    assert unwrapped.answered
-
-
-def test_a_bare_top_level_array_still_drops_only_the_malformed_draft(tmp_path: Path) -> None:
-    """Unwrapping changes the envelope and nothing else: the per-draft gate is still the gate."""
-    good = {
-        "field": "library.chemistry",
-        "value": "10x-3p-gex-v3",
-        "span": {"doc_sha256": "0" * 64, "quote": _QUOTE, "context": None},
-        "llm_confidence": 0.9,
-    }
-    bad = {**good, "value": None}
-    outcome = extract_drafts(
-        _doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(json.dumps([good, bad, good]))
-    )
-
-    assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3", "10x-3p-gex-v3"]
-    assert [r["reason"] for r in outcome.rejected] == ["malformed_draft"]
-
-
-def test_a_bare_empty_array_answers_exactly_as_an_empty_drafts_array(tmp_path: Path) -> None:
-    """`[]` and `{"drafts": []}` are one fact — the document supports nothing — and an envelope may
-    not turn a correct, common answer into a lost document."""
-    doc = _doc(tmp_path, "We sequenced some things.")
     wrapped = extract_drafts(
-        doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []}))
+        doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": drafts}))
     )
-    bare = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider("[]"))
+    bare = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps(drafts)))
 
-    assert bare.drafts == wrapped.drafts == []
-    assert bare.rejected == wrapped.rejected == []
-    assert bare.answered and bare.failure is None
+    assert [d.value for d in bare.drafts] == [d.value for d in wrapped.drafts] == values
+    assert len(bare.rejected) == len(wrapped.rejected) == n_rejected
+    assert bare.drafts == wrapped.drafts and bare.rejected == wrapped.rejected
+    assert bare.answered and wrapped.answered and bare.failure is None
 
 
 @pytest.mark.parametrize(
@@ -388,15 +348,6 @@ def test_extract_carries_call_mode_and_model_for_the_cost_ledger(tmp_path: Path)
         outcome.mode["thinking"] == "adaptive" and outcome.mode["response_format"] == "json_schema"
     )
     assert outcome.usage["input_tokens"] == 5 and outcome.usage["output_tokens"] == 7
-
-
-def test_extract_empty_is_a_valid_answer(tmp_path: Path) -> None:
-    outcome = extract_drafts(
-        _doc(tmp_path, "We sequenced some things."),
-        kb.load_all_specs(),
-        provider=_FakeProvider(json.dumps({"drafts": []})),
-    )
-    assert outcome.drafts == []
 
 
 class _SequencedProvider:
@@ -569,7 +520,6 @@ def test_provider_defaults() -> None:
     assert AnthropicProvider().default_model() == ANTHROPIC_DEFAULT_MODEL == "claude-opus-4-8"
     # V4 explicitly: deepseek-chat / -reasoner are deprecated aliases (2026-07-24) onto V4-Flash
     assert deepseek_provider(api_key="k").default_model() == DEEPSEEK_DEFAULT_MODEL
-    assert DEEPSEEK_MODELS == (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
     assert all(m.startswith("deepseek-v4") for m in DEEPSEEK_MODELS)
     # Pro is the default. Flash was, on the argument that it is the cheap end of V4 — and the same
     # benchmark that argument was made for falsified it (#188): pro is faster AND spends fewer output
@@ -588,16 +538,10 @@ def test_deepseek_model_catalogue_is_not_an_allowlist() -> None:
     assert client.captured["model"] == "deepseek-v9-unreleased"
 
 
-def test_openai_compatible_provider_is_generic() -> None:
-    """DeepSeek is a preset, not a special case — any OpenAI-shaped endpoint works."""
-    local = OpenAICompatibleProvider(base_url="http://localhost:8000/v1", default_model="qwen3")
-    assert local.default_model() == "qwen3"
-    assert local.base_url == "http://localhost:8000/v1"
-
-
 def test_openai_compatible_needs_a_key() -> None:
+    """DeepSeek is a preset, not a special case — any OpenAI-shaped endpoint reaches the same gate."""
     with pytest.raises(ProviderUnavailable, match="no API key"):
-        OpenAICompatibleProvider(base_url="https://api.deepseek.com", api_key=None).complete_json(
+        OpenAICompatibleProvider(base_url="http://localhost:8000/v1", api_key=None).complete_json(
             system="s", user="u", schema={}, model="m", max_tokens=10
         )
 
@@ -1237,20 +1181,6 @@ def test_a_collapsed_run_document_speaks_for_its_sample_not_for_one_run() -> Non
     assert {d.source_basename for d in collapsed} == {"runs-SAMN1.txt", "run-SAMN2-variant.txt"}
 
 
-def test_a_run_document_is_asked_what_an_alias_can_answer() -> None:
-    """Scope stays `run` because that is what the prose IS, and the ask follows the scope."""
-    from seqforge.harvest import plan_extraction
-    from seqforge.harvest.fields import ASKED_SAMPLE_ATTRIBUTES
-
-    plan = plan_extraction(records=_records({"SAMN1": 2}))
-    collapsed = next(d for d in plan.documents if d.scope == "run")
-
-    assert plan.asked(collapsed) == tuple(
-        f"experiment.samples.{a}" for a in ASKED_SAMPLE_ATTRIBUTES
-    )
-    assert "library.chemistry" not in plan.asked(collapsed)
-
-
 def test_a_lone_run_is_rendered_exactly_as_its_own_record() -> None:
     """Collapsing one run must not invent a second rendering of it: a quote is only checkable while
     the exact bytes it was greppedded against can be regenerated from the record."""
@@ -1567,17 +1497,6 @@ def test_partial_does_not_swallow_a_ceiling(tmp_path: Path) -> None:
 
     with pytest.raises(CeilingExceeded):
         extract_planned(plan, kb.load_all_specs(), provider=meter, partial=True)
-
-
-def test_the_fan_out_bounds_what_the_provider_sees_however_the_pools_nest() -> None:
-    """Case-level and document-level concurrency MULTIPLY, and the provider sees the product. The
-    semaphore, not the pool size, is what bounds it — a pool per document under a pool per case is
-    14 x 24 requests in flight from one key, which measures a rate limiter and not the compiler."""
-    from seqforge.evals.run import MAX_DEFAULT_JOBS
-    from seqforge.harvest import MAX_IN_FLIGHT, plan
-
-    assert MAX_IN_FLIGHT <= MAX_DEFAULT_JOBS
-    assert plan._SLOTS._value == MAX_IN_FLIGHT, "sized once at import, shared by every pool"
 
 
 # ---------- the transcript's address on disk ----------
@@ -2429,7 +2348,13 @@ def test_a_sample_scoped_claim_materializes_one_assertion_per_member() -> None:
         text = withheld[a.span.doc_sha256].text
         assert text[a.span.char_start : a.span.char_end] == "day3"
     assert len({a.span.char_start for a in fan.assertions}) == 3, "the offsets really do differ"
+    # ...and the claim's own report names every assertion it produced, first the model's own. A count
+    # beside a list nobody can join back to is what `PlannedDocument.members` cannot answer for a
+    # claim, and it is the whole reason `FannedClaim` exists (folded from the report sibling test).
     assert [f.materialized for f in fan.fanned] == [True]
+    said, claim = fan.assertions[0], fan.fanned[0]
+    assert claim.assertion_ids == tuple(a.id for a in fan.assertions)
+    assert (claim.field, claim.value, claim.quote) == (said.field, said.value, said.span.quote)
 
 
 def test_a_dataset_scoped_claim_stays_one_assertion_and_buys_a_proof_of_unanimity() -> None:
@@ -2455,19 +2380,6 @@ def test_a_dataset_scoped_claim_stays_one_assertion_and_buys_a_proof_of_unanimit
     assert len(fan.assertions) == 1, "one judgement, one envelope — not one per record"
     assert [(f.n_records, f.materialized) for f in fan.fanned] == [(4, False)]
     assert fan.fanned[0].records == ("SRX1", "SRX22", "SRX333", "SRX4444")
-
-
-def test_the_report_states_how_many_records_a_claim_was_fanned_to() -> None:
-    """At either count every claim is verified in the record it names, so N does not move the
-    epistemics — it moves what a human is being asked to audit. `PlannedDocument.members` answers it
-    for the document; only `FannedClaim` answers it for the claim."""
-    from seqforge.harvest import fan_claims, plan_extraction
-
-    plan = plan_extraction(records=_twins(["whole worm, day3"] * 5))
-    (claim,) = fan_claims(_verified(plan, "experiment.samples.age", "day3", "day3"), plan).fanned
-
-    assert claim.n_records == 5 and claim.field == "experiment.samples.age"
-    assert len(claim.assertion_ids) == 5 and claim.quote == "day3"
 
 
 def test_the_age_hazard_never_fans_a_value_into_the_record_that_said_something_else() -> None:

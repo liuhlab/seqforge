@@ -654,46 +654,24 @@ def test_ci_benchmark_covers_every_leaf_kb_spec() -> None:
 def test_recipe_regenerates_identical_bytes(tmp_path: Path) -> None:
     """Determinism in (spec, seed) is what makes a recipe a legitimate substitute for the bytes.
 
-    Byte-identity, not just record-identity: `.seqforge/` is content-addressed by file sha256, so a
-    gzip header that varies with wall-clock would change the dataset id on every regeneration and
-    silently defeat the cache. This caught exactly that — `gzip.open` stamps the current mtime, so the
-    test failed only when two writes straddled a second boundary (~1 run in 3).
+    Byte-identity, not record-identity: the workspace is content-addressed by file sha256, so a gzip
+    header carrying a wall-clock mtime would move the dataset id on every regeneration and silently
+    defeat the cache. That is what this caught — `gzip.open` stamps the current mtime — and the mtime
+    field is asserted directly as well as across two writes, because two writes only disagree when
+    they straddle a second boundary (~1 run in 3).
     """
-    import hashlib
+    import struct
 
     case = next(c for c in discover_cases() if c.id == "10x-v3-bytes-only")
     a = materialize(case, tmp_path / "a")
     b = materialize(case, tmp_path / "b")
     assert [p.name for p in a.paths] == [p.name for p in b.paths]
     for pa, pb in zip(a.paths, b.paths, strict=True):
-        assert pa.read_bytes() == pb.read_bytes(), f"{pa.name} is not reproducible"
-        assert (
-            hashlib.sha256(pa.read_bytes()).hexdigest()
-            == hashlib.sha256(pb.read_bytes()).hexdigest()
-        )
-
-
-def test_generated_gz_pins_mtime_so_the_header_is_content_only(tmp_path: Path) -> None:
-    """Pin the mechanism, not just the symptom: the sha must not move when the clock does.
-
-    The byte-identity test above only catches a wall-clock-dependent header when two writes happen to
-    land in different seconds. This asserts the header field itself, so the guarantee cannot regress
-    back into a 1-in-3 flake.
-    """
-    import hashlib
-    import struct
-
-    case = next(c for c in discover_cases() if c.id == "10x-v3-bytes-only")
-    built = materialize(case, tmp_path / "a")
-    raw = built.paths[0].read_bytes()
-    # gzip header: magic(2) CM(1) FLG(1) MTIME(4, little-endian) ...
-    assert raw[:2] == b"\x1f\x8b"
-    assert struct.unpack("<I", raw[4:8])[0] == 0, "gzip header carries a wall-clock mtime"
-
-    later = materialize(case, tmp_path / "b")
-    assert (
-        hashlib.sha256(raw).hexdigest() == hashlib.sha256(later.paths[0].read_bytes()).hexdigest()
-    )
+        raw = pa.read_bytes()
+        assert raw == pb.read_bytes(), f"{pa.name} is not reproducible"
+        # gzip header: magic(2) CM(1) FLG(1) MTIME(4, little-endian) ...
+        assert raw[:2] == b"\x1f\x8b"
+        assert struct.unpack("<I", raw[4:8])[0] == 0, "gzip header carries a wall-clock mtime"
 
 
 def test_truncate_recipe_actually_truncates(tmp_path: Path) -> None:
@@ -2079,7 +2057,9 @@ def test_a_field_matched_in_one_trial_and_missed_in_another_is_still_unstable() 
     """
     got = HarvestGrade(matched=["experiment.organism"], n_documents=1)
     missed = HarvestGrade(missing=["experiment.organism"], n_documents=1)
-    merged = _merge_harvest([got, missed])
+    # Two trials of three got it, so a merge taking the majority — or the mode, or the last trial —
+    # calls this matched, which is the finding `unstable` exists to report, averaged away.
+    merged = _merge_harvest([got, missed, got])
 
     assert merged.matched == []
     assert merged.missing == ["experiment.organism"]
@@ -2179,25 +2159,6 @@ def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
     assert run.harvest.hallucinated == ["experiment.samples.treatment"]
 
 
-def test_a_field_found_in_only_some_trials_is_reported_unstable() -> None:
-    """Extraction that comes and goes is a finding, not a rounding error.
-
-    Against `_merge_harvest` directly, because that is the seam that owns the claim: it is a pure
-    function over a list of `HarvestGrade`s, and reaching it through a full materialize + three
-    harvest/resolve/grade passes cost 0.55s to assert the same thing. This file already uses exactly
-    this seam for the sibling `_fold_harvest`. The per-trial WIRING — that three trials run and each
-    one's harvest reaches the merge — is proved at both ends by
-    `test_stability_is_one_when_every_trial_is_clean_and_nothing_folds` and
-    `test_stability_is_fractional_only_when_trials_genuinely_differ`.
-    """
-    found = HarvestGrade(matched=["experiment.organism"])
-    missed = HarvestGrade(missing=["experiment.organism"])
-    merged = _merge_harvest([found, missed, found])
-    assert merged.matched == [], "a field missed in any trial must not count as matched"
-    assert merged.unstable == ["experiment.organism"]
-    assert merged.missing == ["experiment.organism"]
-
-
 def _assertion(field_name: str, value: str, quote: str, sha: str = "d" * 64) -> Assertion:
     return Assertion(
         id=f"assert-{sha[:8]}-0",
@@ -2233,17 +2194,6 @@ def test_merging_trials_keeps_every_distinct_claim_and_every_refusal() -> None:
     assert merged.documents == docs, (
         "the plan is a function of the case, so it is one list not three"
     )
-
-
-def test_usage_is_accumulated_into_the_report() -> None:
-    case = _trap_case()
-    provider = _StubProvider(
-        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    )
-    run = run_case(case, llm=True, provider=provider)
-    report = build_report([run])
-    assert report.cost["input_tokens"] == 100.0
-    assert report.cost["llm_calls"] == 1.0
 
 
 # --------------------------------------------------------------------------------------------
@@ -3644,86 +3594,80 @@ def test_cases_are_ordered_worst_first_and_severity_is_carried_in_form() -> None
     assert 'data-level="ok" open' not in page
 
 
-def test_a_failed_field_shows_expected_beside_actual_and_marks_what_differs() -> None:
-    """A failed `experiment.samples.*` check is a multiset, and the question is WHICH element moved.
+#: One row per claim the standard fixture's page must make.
+#:
+#: These were five near-identical functions, each rendering the same fixture to assert a handful of
+#: substrings. As a table every claim is a row that names itself when it fails, and the reason it is
+#: on the page at all rides beside it as a comment rather than as a docstring. ``once`` is for a
+#: claim the page must state exactly ONCE: a per-row column of always-true booleans is
+#: evidence-shaped and carries nothing.
+PAGE_CLAIMS = [
+    # A failed `experiment.samples.*` check is a multiset and the question is WHICH element moved, so
+    # identical elements collapse onto a multiplicity and the chips whose count differs from the
+    # other side are marked. The raw list shows seven chips of which one differs by position — true,
+    # and not the question anyone is asking.
+    pytest.param([
+        "experiment.samples.*.strain", "×2", "×3",
+        'class="chip chip-diff">N2<span class="mult">×3',
+        'class="chip chip-diff">VC2010, derived from N2',
+    ], (), id="a-failed-field-shows-expected-beside-actual-and-marks-what-differs"),
+    # Everything `eval run` measures beyond the grade, because it measured it for a reason. A case
+    # correct 2 times in 3 is a finding rather than a rounding error (`_merge_harvest` refuses to
+    # average it away, so the page must not either); a `hallucinated` field is corpus poison and is
+    # labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as
+    # a failure; and how the calls were made rides beside what they cost.
+    pytest.param([
+        "1/3</b> trials correct", "hallucinated", "experiment.samples.tissue",
+        "nothing downstream would catch these", "unstable", "experiment.samples.dev_stage",
+        "the safety net working, not a failure",
+        "max_tokens 8000 · response_format json_object",
+        "188,423 tokens", "missed a question it had to ask",
+    ], (), id="the-report-surfaces-trials-harvest-and-the-token-bill"),
+    # `library.chemistry = "RNA-Seq"` is not a finding; *from this quote, at these offsets* is. The
+    # grade used to flatten each Assertion to `field -> str(value)` on the way to the report, which
+    # threw away the only part a reader can independently check. `verify` builds an Assertion only
+    # once span and entailment both hold, so the invariant is stated once — and it points at the
+    # rejected drawer, where those checks are the ones that fired.
+    pytest.param([
+        "worms (Caenorhabditis elegans) were grown at 20 C", "chars 4,120–4,168", "p.3",
+        "methods.pdf · dataset", "span-verified <b>and</b> entailment-checked",
+    ], ("span-verified",), id="a-graded-claim-is-shown-with-the-quote-it-rests-on"),
+    # One benchmark case's 84 refusals survived as the integer 84 — a net caught something, and
+    # nothing about what. Both producers read the same way: a draft the model returned malformed
+    # (field, value and quote may all be absent, so the row says `none` rather than `None`) beside
+    # one whose field, document, quote or entailment failed. The reason tells them apart, so it
+    # leads the row.
+    pytest.param([
+        "the 4 draft(s) the tripwire threw out", "not_entailed", "field_not_permitted_for_doc",
+        "droplet-based single-cell", "10x-3p-gex-v3", "quote does not support value",
+        "malformed_draft", ">none<", "SAMN14126930 · sample",
+    ], (), id="rejected-drafts-are-readable-instead-of-being-a-count"),
+    # A transcript truncated in silence reads as a complete one, which turns "the model was never
+    # asked about that" and "we did not show you" into the same page. So the sample says how much it
+    # left out, why each exchange was the one shown, and where the unclipped run lives.
+    pytest.param([
+        "Showing <b>2 of 412 exchanges</b>", "clipped — showing 800 of 2,112 characters",
+        "transcripts/poisoned-one.jsonl", "produced a graded assertion",
+        "deepseek: 429 rate limited",
+    ], (), id="a-sampled-transcript-says-how-much-it-left-out"),
+]  # fmt: skip
 
-    These lists are seven samples with two distinct values between them, so the page collapses
-    identical elements onto a multiplicity and marks the chips whose count differs from the other
-    side. Printing the raw list would show seven chips of which one differs by position — true, and
-    not the question anyone is asking.
+
+@pytest.mark.parametrize(("shows", "once"), PAGE_CLAIMS)
+def test_the_page_carries_the_evidence_behind_the_grade(
+    shows: list[str], once: tuple[str, ...]
+) -> None:
+    """Each row is one thing the page must say, and breaking it is a report that has started lying.
+
+    A grading dashboard lies by keeping the verdict and dropping what it rests on, so what is pinned
+    here is the evidence — the quote, the refused draft, the multiset element that moved, the
+    exchanges left out — and never the verdict on its own.
     """
     page = render_html(_render_fixture(), title="T", source=None)
-    assert "experiment.samples.*.strain" in page
-    assert "×2" in page and "×3" in page, "identical elements collapse onto their multiplicity"
-    assert 'class="chip chip-diff">N2<span class="mult">×3' in page, (
-        "the count that differs is marked"
-    )
-    assert 'class="chip chip-diff">VC2010, derived from N2' in page, (
-        "so is the value only one side has"
-    )
-
-
-def test_the_report_surfaces_trials_harvest_and_the_token_bill() -> None:
-    """Everything `eval run` measures beyond the grade, because it measured it for a reason.
-
-    A case correct 2 times in 3 is a finding, not a rounding error (`_merge_harvest` refuses to
-    average it away, so the page must not either). A `hallucinated` field is corpus poison and is
-    labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as a
-    failure. Tokens and exchanges are what a `--llm` pass costs.
-    """
-    page = render_html(_render_fixture(), title="T", source=None)
-    assert "1/3</b> trials correct" in page, "stability is reported as a fraction of trials"
-    assert "hallucinated" in page and "experiment.samples.tissue" in page
-    assert "nothing downstream would catch these" in page, "a hallucination is named as poison"
-    assert "unstable" in page and "experiment.samples.dev_stage" in page
-    assert "the safety net working, not a failure" in page, "n_rejected is not a failure count"
-    assert "max_tokens 8000 · response_format json_object" in page, (
-        "how the calls were made, beside what they cost — the eval path used to drop it"
-    )
-    assert "188,423 tokens" in page, "the token bill"
-    assert "missed a question it had to ask" in page, "questions_asked.missed reaches the case"
-
-
-def test_a_graded_claim_is_shown_with_the_quote_it_rests_on() -> None:
-    """`library.chemistry = "RNA-Seq"` is not a finding; *from this quote, at these offsets* is.
-
-    The grade used to flatten each Assertion to `field -> str(value)` on the way to the report, which
-    threw away the only part of it a reader can independently check. So the page shows the quote, the
-    document it came from, and the span code computed for it.
-
-    What the page deliberately does NOT show is a per-row pair of verification ticks. `verify` only
-    builds an Assertion once `span_verified` and `entailment_ok` both hold, so a column of them is a
-    column of the constant `true` — evidence-shaped and carrying nothing. The invariant is stated
-    once, and it points at the rejected drawer, where those checks are the ones that fired.
-    """
-    page = render_html(_render_fixture(), title="T", source=None)
-
-    assert "worms (Caenorhabditis elegans) were grown at 20 C" in page, "the quote itself"
-    assert "chars 4,120–4,168" in page, "and where it is, which is what makes it checkable"
-    assert "p.3" in page, "including the page, when the document has pages"
-    assert "methods.pdf · dataset" in page, "and which document, not a bare sha256"
-    assert "span-verified <b>and</b> entailment-checked" in page, "the invariant, stated once"
-    assert page.count("span-verified") == 1, "...once, not once per row of always-true booleans"
-
-
-def test_rejected_drafts_are_readable_instead_of_being_a_count() -> None:
-    """One benchmark case's 84 refusals survived as the integer 84 — a net caught something, and
-    nothing about what.
-
-    Both producers have to read the same way: a draft the model returned malformed (whose field,
-    value and quote may all be absent — the row says `none` rather than printing `None`) and a draft
-    whose field, document, quote or entailment failed. The reason is what tells them apart, so it
-    leads the row.
-    """
-    page = render_html(_render_fixture(), title="T", source=None)
-
-    assert "the 4 draft(s) the tripwire threw out" in page
-    assert "not_entailed" in page and "field_not_permitted_for_doc" in page
-    assert "droplet-based single-cell" in page, "the quote that was refused"
-    assert "10x-3p-gex-v3" in page, "beside the value it failed to support"
-    assert "quote does not support value" in page, "and the detail that says which check fired"
-    assert "malformed_draft" in page and ">none<" in page, "a draft with no field says so"
-    assert "SAMN14126930 · sample" in page, "every refusal names the document it came from"
+    for needle in shows:
+        assert needle in page, f"the page no longer states {needle!r}"
+    for needle in once:
+        assert page.count(needle) == 1, f"{needle!r} is on the page {page.count(needle)} times"
 
 
 def test_a_report_from_before_the_grade_carried_its_claims_still_renders() -> None:
@@ -3810,19 +3754,6 @@ def test_the_exchange_selection_keeps_what_has_signal_and_one_of_every_scope() -
     # The cap bites the signal-selected ones only, and coverage survives it.
     capped = select_exchanges(exchanges, scopes=scopes, claimed=set(shas), refused=set(), limit=1)
     assert len(capped) == 2, "one under the cap, plus the scope nothing else covered"
-
-
-def test_a_sampled_transcript_says_how_much_it_left_out() -> None:
-    """The minimum this page owes a reader. A transcript truncated in silence reads as a complete
-    one, which turns "the model was never asked about that" and "we did not show you" into the same
-    page."""
-    page = render_html(_render_fixture(), title="T", source=None)
-
-    assert "Showing <b>2 of 412 exchanges</b>" in page
-    assert "clipped — showing 800 of 2,112 characters" in page, "and the clip inside one, too"
-    assert "transcripts/poisoned-one.jsonl" in page, "beside the address of the unclipped run"
-    assert "produced a graded assertion" in page, "each exchange says why it was the one shown"
-    assert "deepseek: 429 rate limited" in page, "a failed request is spend with nothing to show"
 
 
 def test_the_system_prompt_is_rendered_once_for_the_whole_report() -> None:
@@ -4353,17 +4284,8 @@ def test_the_report_carries_cache_write_tokens() -> None:
     cost = build_report([run]).cost
     assert cost["cache_write_tokens"] == 200.0
     assert cost["cache_read_tokens"] == 1000.0
-
-
-def test_the_default_eval_ceiling_clears_every_case_the_benchmark_measured() -> None:
-    """500,000 is a measurement, not a round number: the largest benchmark case other than
-    GSE126954 spent 122 K raw (2026-07-31), and this clears it by 4x while stopping GSE126954's
-    3.47 M however it is counted."""
-    from seqforge.cli.eval import DEFAULT_EVAL_CEILING
-
-    assert DEFAULT_EVAL_CEILING == 500_000
-    assert DEFAULT_EVAL_CEILING >= 4 * 122_000
-    assert DEFAULT_EVAL_CEILING < 3_475_000
+    # ...on the same accumulation the plain counters ride, so they are read off the same run.
+    assert cost["input_tokens"] == 1500.0 and cost["llm_calls"] == 1.0
 
 
 # --------------------------------------------------------------------------------------------

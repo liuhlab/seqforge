@@ -40,11 +40,7 @@ from seqforge.hooks import (
     ],
 )
 def test_denies_an_unbounded_fastq_stream(cmd: str) -> None:
-    """Every streaming reader is blocked, and the block names its rule and a way forward.
-
-    A guard proves it engages on the thing it must stop; that it *also* hands back a `remedy` is what
-    keeps the block from being a wall the operator routes around.
-    """
+    """Every streaming reader is blocked, and the block names its rule and a way forward."""
     d = check_unbounded_fastq(cmd)
     assert d is not None, cmd
     assert "FASTQ" in d.rule
@@ -62,25 +58,18 @@ def test_denies_an_unbounded_fastq_stream(cmd: str) -> None:
         pytest.param("seqforge probe reads.fastq.gz --json", id="probe"),
         pytest.param("pixi run -- seqforge probe reads.fastq.gz", id="pixi-probe"),
         pytest.param("python -m seqforge.cli probe reads.fastq.gz", id="module-probe"),
+        # naming a FASTQ is not streaming it, and a stream with no FASTQ is not this guard's business
+        pytest.param("ls -l reads.fastq.gz", id="ls"),
+        pytest.param("rm reads.fastq.gz", id="rm"),
+        pytest.param("cat README.md", id="no-fastq"),
+        pytest.param("zcat archive.tar.gz | tar t", id="no-fastq-stream"),
+        pytest.param("", id="empty"),
     ],
 )
 def test_allows_a_bounded_or_sanctioned_fastq_read(cmd: str) -> None:
-    """The neighbour that must pass: a `head`-capped stream, or the `seqforge probe` verb that is
-    bounded by construction. A guard that blocks correct work gets switched off, and then it guards
-    nothing."""
+    """The neighbours that must pass. A guard that blocks correct work gets switched off, and then
+    it guards nothing."""
     assert check_unbounded_fastq(cmd) is None, cmd
-
-
-def test_ignores_commands_with_no_fastq() -> None:
-    assert check_unbounded_fastq("cat README.md") is None
-    assert check_unbounded_fastq("zcat archive.tar.gz | tar t") is None
-    assert check_unbounded_fastq("") is None
-
-
-def test_does_not_fire_on_merely_naming_a_fastq() -> None:
-    """Naming a file is not streaming it — `ls` and `rm` must pass."""
-    assert check_unbounded_fastq("ls -l reads.fastq.gz") is None
-    assert check_unbounded_fastq("rm reads.fastq.gz") is None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -88,42 +77,39 @@ def test_does_not_fire_on_merely_naming_a_fastq() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def test_denies_an_absolute_path_in_a_manifest() -> None:
-    d = check_absolute_path_write("manifest.yaml", "genome:\n  fasta: /scratch/ref/hg38.fa\n")
-    assert d is not None
+@pytest.mark.parametrize(
+    "name", ["manifest.yaml", "manifest.draft.yaml", "config.yaml", "units.tsv"]
+)
+def test_denies_an_absolute_path_in_every_emitted_artifact(name: str) -> None:
+    """The rule reaches every artifact seqforge emits, and the denial quotes the path it caught."""
+    d = check_absolute_path_write(name, "genome:\n  fasta: /scratch/ref/hg38.fa\n")
+    assert d is not None, name
     assert "machine-independent" in d.rule
     assert "/scratch/ref/hg38.fa" in d.reason
 
 
-def test_covers_every_emitted_artifact() -> None:
-    for name in ("manifest.yaml", "manifest.draft.yaml", "config.yaml", "units.tsv"):
-        assert check_absolute_path_write(name, "p: /data/x/y.fa") is not None, name
-
-
-def test_allows_a_machine_independent_manifest() -> None:
-    """The whole point: assembly id + registered GTF name + literal env name + a URI."""
-    good = (
-        "genome:\n  assembly: ce11\n  annotation_name: WS298\n"
-        "environment: align-rna\n"
-        "files:\n  - s3://bucket/sample_R1.fastq.gz\n"
-        "  - sample_R2.fastq.gz\n"
-    )
-    assert check_absolute_path_write("manifest.yaml", good) is None
-
-
-def test_does_not_mistake_a_uri_for_an_absolute_path() -> None:
-    """Regression: `s3://bucket/x.fastq.gz` contains `/bucket/x.fastq.gz`.
-
-    Data SHOULD be a URI, so flagging one rejects the exact manifest the rule wants. A guard
-    that blocks correct work gets switched off, and then it guards nothing.
-    """
-    for uri in (
-        "s3://bucket/sample_R1.fastq.gz",
-        "https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR287/SRR28716553_1.fastq.gz",
-        "gs://bucket/path/to/reads.fastq.gz",
-        "ftp://ftp.ncbi.nlm.nih.gov/x/y.fastq.gz",
-    ):
-        assert check_absolute_path_write("manifest.yaml", f"files:\n  - {uri}\n") is None, uri
+@pytest.mark.parametrize(
+    "content",
+    [
+        # `s3://bucket/x.fastq.gz` contains `/bucket/x.fastq.gz` -- scrubbing URIs is what saves it
+        pytest.param("files:\n  - s3://bucket/sample_R1.fastq.gz\n", id="s3"),
+        pytest.param(
+            "files:\n  - https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR287/SRR28716553_1.fastq.gz\n",
+            id="https",
+        ),
+        pytest.param("files:\n  - gs://bucket/path/to/reads.fastq.gz\n", id="gs"),
+        pytest.param("files:\n  - ftp://ftp.ncbi.nlm.nih.gov/x/y.fastq.gz\n", id="ftp"),
+        # the whole point: assembly id + registered GTF name + literal env name + a URI
+        pytest.param(
+            "genome:\n  assembly: ce11\n  annotation_name: WS298\nenvironment: align-rna\n"
+            "files:\n  - s3://bucket/sample_R1.fastq.gz\n  - sample_R2.fastq.gz\n",
+            id="machine-independent",
+        ),
+    ],
+)
+def test_does_not_mistake_a_uri_for_an_absolute_path(content: str) -> None:
+    """Data SHOULD be a URI, so flagging one rejects the exact manifest the rule wants written."""
+    assert check_absolute_path_write("manifest.yaml", content) is None, content
 
 
 def test_still_catches_an_absolute_path_next_to_a_uri() -> None:
@@ -145,30 +131,21 @@ def test_ignores_files_that_are_not_manifests() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def test_pre_tool_use_routes_bash_and_write() -> None:
-    assert (
-        pre_tool_use({"tool_name": "Bash", "tool_input": {"command": "zcat a.fastq.gz | wc -l"}})
-        is not None
-    )
-    assert (
-        pre_tool_use(
-            {
-                "tool_name": "Write",
-                "tool_input": {"file_path": "manifest.yaml", "file_text": "g: /a/b/c"},
-            }
-        )
-        is not None
-    )
-
-
-def test_pre_tool_use_reads_every_content_key_spelling() -> None:
-    """Write and Edit spell the payload differently; a missed key would fail OPEN, silently."""
-    for key in ("file_text", "content", "new_string", "new_str"):
-        payload = {
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "manifest.yaml", key: "g: /a/b/c"},
-        }
-        assert pre_tool_use(payload) is not None, key
+@pytest.mark.parametrize(
+    ("tool", "key", "value"),
+    [
+        pytest.param("Bash", "command", "zcat a.fastq.gz | wc -l", id="bash"),
+        pytest.param("Write", "file_text", "g: /a/b/c", id="write"),
+        pytest.param("Edit", "content", "g: /a/b/c", id="content"),
+        pytest.param("Edit", "new_string", "g: /a/b/c", id="new_string"),
+        pytest.param("Edit", "new_str", "g: /a/b/c", id="new_str"),
+        pytest.param("NotebookEdit", "file_text", "g: /a/b/c", id="notebook"),
+    ],
+)
+def test_pre_tool_use_routes_every_event_it_owns(tool: str, key: str, value: str) -> None:
+    """Write and Edit spell the payload differently; a missed tool or key would fail OPEN, silently."""
+    payload = {"tool_name": tool, "tool_input": {"file_path": "manifest.yaml", key: value}}
+    assert pre_tool_use(payload) is not None
 
 
 def test_pre_tool_use_has_no_opinion_on_unrelated_tools() -> None:
@@ -200,21 +177,21 @@ def test_post_tool_use_targets_manifest_edits_only() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def test_stop_blocks_while_a_question_is_open(tmp_path: Path) -> None:
-    q = tmp_path / "seqforge" / "ds1" / "questions.md"
-    q.parent.mkdir(parents=True)
-    q.write_text("- Which chemistry: v2 or v3?\n")
+def test_stop_blocks_while_a_question_is_open_in_any_dataset(tmp_path: Path) -> None:
+    """Turn-end is refused while any dataset's ledger is open, and the reason names every one."""
+    for ds in ("a", "b"):
+        q = tmp_path / "seqforge" / ds / "questions.md"
+        q.parent.mkdir(parents=True)
+        q.write_text(f"- open in {ds}\n")
+    assert len(questions_outstanding(tmp_path)) == 2
     reason = stop_decision({}, workspace=tmp_path)
     assert reason is not None
-    assert "questions.md" in reason
+    assert reason.count("questions.md") == 2
 
 
-def test_stop_allows_when_no_questions_are_open(tmp_path: Path) -> None:
-    assert stop_decision({}, workspace=tmp_path) is None
-
-
-def test_stop_ignores_an_empty_questions_file(tmp_path: Path) -> None:
-    """An empty ledger is a closed ledger; whitespace must not wedge the turn."""
+def test_stop_allows_when_no_question_is_open(tmp_path: Path) -> None:
+    """No ledger and an empty ledger are both closed; whitespace must not wedge the turn."""
+    assert stop_decision({}, workspace=tmp_path) is None  # no seqforge/ tree at all
     q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("   \n\n")
@@ -223,11 +200,7 @@ def test_stop_ignores_an_empty_questions_file(tmp_path: Path) -> None:
 
 
 def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path) -> None:
-    """`stop_hook_active` guards against a hook that blocks forever.
-
-    A guard that can hang the agent is worse than the risk it manages: "can never finish" is a worse
-    failure than "finished with an open question", because the second is at least visible.
-    """
+    """A hook that blocks forever is a hang, not a safety feature: `stop_hook_active` must win."""
     q = tmp_path / "seqforge" / "questions.md"
     q.parent.mkdir(parents=True)
     q.write_text("- unresolved\n")
@@ -235,22 +208,5 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
     assert stop_decision({"stopHookActive": True}, workspace=tmp_path) is None
 
 
-def test_questions_outstanding_finds_every_dataset(tmp_path: Path) -> None:
-    for ds in ("a", "b"):
-        p = tmp_path / "seqforge" / ds / "questions.md"
-        p.parent.mkdir(parents=True)
-        p.write_text(f"- open in {ds}\n")
-    assert len(questions_outstanding(tmp_path)) == 2
-
-
-# `test_questions_outstanding_is_empty_without_state` was deleted (#110): it asserted
-# `questions_outstanding(tmp_path) == []` on an empty tree, the identical expression already asserted
-# by `test_stop_ignores_an_empty_questions_file` above -- and `test_stop_allows_when_no_questions_are_open`
-# reddens for the same defect, since `stop_decision` returns None only when `questions_outstanding` is [].
-
-
-# `test_sync_questions_writes...` and `test_sync_questions_unlinks...` MOVED to tests/test_cli.py (#113):
-# `_sync_questions` is the `questions.md` writer and lives in `cli/manifest.py`, whose mirror is
-# test_cli.py. An agent editing that writer follows the module->file table to test_cli.py, so the
-# tests that exercise it belong there. They still assert THROUGH the Stop hook's `questions_outstanding`
-# reader (imported from seqforge.hooks), which is the writer<->hook contract they pin.
+# `_sync_questions`, the `questions.md` writer, lives in `cli/manifest.py` -- its tests are in
+# tests/test_cli.py (#113), asserting THROUGH `questions_outstanding`, the reader used above.

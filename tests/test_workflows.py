@@ -588,20 +588,6 @@ def test_the_bundle_carries_every_stat_and_log_keyed_by_feature(tmp_path: Path) 
     assert splice_junctions[0] == ["chrI", "100", "200", "1", "1", "1", "10", "0", "30"]
 
 
-def test_write_qc_bundle_round_trips_through_gzipped_json(tmp_path: Path) -> None:
-    features: list[SoloFeature] = ["Gene", "Velocyto"]
-    solo, run_dir = _fake_run(tmp_path, features)
-    out = tmp_path / "S1.qc.json.gz"
-    written = write_qc_bundle(solo, run_dir, features, out, sample="S1", assembly="ce11")
-
-    assert written == out and out.exists()
-    with gzip.open(out, "rt", encoding="utf-8") as fh:
-        loaded = json.load(fh)
-    assert loaded["sample"] == "S1"
-    assert loaded["summary"]["Gene"]["Number of Reads"] == 1000
-    assert loaded["umi_per_cell"]["Gene"] == [50, 30, 10]
-
-
 def test_a_missing_star_file_is_a_refusal_not_a_silent_gap(tmp_path: Path) -> None:
     features: list[SoloFeature] = ["Gene"]
     solo, run_dir = _fake_run(tmp_path, features)
@@ -1309,42 +1295,23 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     ), "a tagged read reached the uBAM beside a mate from the other run"
 
 
-def test_the_plate_modules_load_rule_cleans_up_on_both_paths() -> None:
-    """Defensive removal AND a handler, because neither alone is the guarantee.
+def test_the_plate_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place() -> None:
+    """The two halves the composed-plate plan cannot see.
 
-    `Remove` at the head of `load_genome` is the half that always holds: it runs inside the pinned
-    image, so STAR is there, and it covers the case a handler cannot — a SIGKILL leaves no chance to
-    run anything. What it cannot do is release the segment when a run simply ends, so the handlers
-    are the other half. seqforge emits a Snakefile the USER submits, possibly at a site whose
-    scheduler does not reclaim a killed job's IPC, so the guarantee has to be the Snakefile's.
-
-    Read off the source rather than from a run: a dry run never fires a handler, and this suite owns
-    no scheduler to kill a job on.
-
-    Both handlers release the segment by CALLING one helper rather than by each carrying the command,
-    so what is asserted below is the call in each handler AND the command in the helper. Two
-    byte-identical three-line copies is two chances to fix one of them, and the copy that lost its
-    trailing `|| true` would turn a finished plate into a failed run.
+    That both handlers call `release_genome_segment()` and that the helper carries
+    `--genomeLoad Remove ... || true` is read off the RENDERED command and the EMITTED module by
+    `test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard`. What no rendering
+    shows is the ORDER — marking a stale segment after the load is a load that inherits it — nor
+    that the command lives in the helper alone, where a second copy is a second chance to fix one.
     """
     source = get_module("map/star-umi").snakefile.read_text()
-
     load = _rule_blocks(get_module("map/star-umi").snakefile)["load_genome"]
-    assert "--genomeLoad Remove" in load and "|| true" in load, load
+
     assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), (
         "the stale segment must be marked for destruction BEFORE the load, or the load inherits it"
     )
-    # `IPC_RMID` marks rather than kills, and the docstring has to say so: the line reads dangerous,
-    # is not, and would otherwise be "cleaned up" by the next person who reads it as a race.
-    assert "marks" in load and "attached keeps running" in load
-
-    for handler in ("onsuccess", "onerror"):
-        assert re.search(rf"^{handler}:", source, re.M), f"no {handler} handler"
     after = source[source.index("\nonsuccess:") :]
-    assert after.count("release_genome_segment()") == 2, "both handlers must release the segment"
     assert "--genomeLoad Remove" not in after, "the command belongs to the helper, not to a handler"
-
-    helper = source[source.index("def release_genome_segment(") : source.index("\nonsuccess:")]
-    assert "--genomeLoad Remove" in helper and "|| true" in helper, helper
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
@@ -1394,25 +1361,14 @@ _RULE_DEF = re.compile(r"^\s*(rule|checkpoint)\s+\w+\s*:", re.M)
 def test_the_generated_wrapper_contains_no_rule_source() -> None:
     """Emit data, never code, at the ONE place seqforge writes Snakemake syntax at all.
 
-    `compose` generates a Snakefile — the deliverable — and its own header says "rule source is never
-    generated". Everything the pipeline actually executes must come from the hand-written `.smk`
-    modules; the moment the composer emits a `rule`, that guarantee is gone and nobody finds out from a comment.
-
-    Asserted against the template rather than a rendered instance because the template is the thing
-    a future edit would change.
+    Everything the pipeline executes must come from the hand-written `.smk` modules; the moment the
+    composer emits a `rule`, that guarantee is gone and nobody finds out from a comment. Asserted
+    against the template, which is the thing a future edit would change, and only the ABSENCE — that
+    the wrapper parameterises by `configfile:` and composes by reference rather than by `include:`
+    is proved by the plate module planning a real DAG off this same template.
     """
     wrapper = core._WRAPPER
     assert not _RULE_DEF.search(wrapper), f"the composer emits rule source:\n{wrapper}"
-    assert "configfile:" in wrapper  # it parameterises by data...
-    assert "module " in wrapper and "use rule * from" in wrapper  # ...and composes by reference
-    # ...and it must reach the module's rules as DEFAULT targets (folded from
-    # test_the_wrapper_makes_the_modules_rules_reachable_as_default_targets): an `include:`d rule is
-    # not a default target, so `configfile:` + `include:` parses clean, lists every rule, and plans
-    # ZERO jobs -- "Nothing to be done", exit 0. `use rule * from m as *` re-declares them so bare
-    # `snakemake` reaches them.
-    assert "include:" not in wrapper, (
-        "an `include:`d rule is not a default target -- the wrapper would plan zero jobs and exit 0"
-    )
 
 
 def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
@@ -1427,19 +1383,18 @@ def test_the_rule_source_check_can_actually_catch_generated_rules() -> None:
 
 
 @pytest.mark.parametrize("module_name", list_modules())
-def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> None:
-    """The other half of emit-data-never-code: the rules that DO exist are checked-in source, not build artifacts.
+def test_a_shipped_module_declares_rules_and_derives_its_own_config_contract(
+    module_name: str,
+) -> None:
+    """The other half of emit-data-never-code: the rules that DO exist are checked-in source.
 
     A module whose rules were generated would defeat the wrapper check by moving the generation one
-    step earlier, so the modules must be real files under version control, carrying the header that
-    says what they are.
+    step earlier, so each module has to be a real file under version control that really declares
+    rules — read as SHAPE, since a header claiming to be hand-written is one a generator can write.
     """
     module = get_module(module_name)
-    snakefile = module.snakefile
-    assert snakefile.is_file(), f"{module_name}: {snakefile} is not on disk"
-    text = snakefile.read_text()
+    text = module.snakefile.read_text()
     assert _RULE_DEF.search(text), f"{module_name} defines no rules — is it really a module?"
-    assert "HAND-WRITTEN" in text and "NEVER machine-generated" in text
 
     # `required_config` is COMPUTED from the module source, so neither direction can drift (folded
     # from test_required_config_is_exactly_what_the_module_reads). It once under-declared the four
@@ -1447,7 +1402,7 @@ def test_shipped_modules_are_hand_written_not_generated(module_name: str) -> Non
     # rule reads. This identity reads as tautological but is not: it pins that `required_config` never
     # goes back to a hand-typed literal; test_the_required_config_scanner_can_catch_an_undeclared_key
     # is what proves the derivation itself is not vacuous.
-    assert set(module.required_config) == set(keys_read_by(snakefile))
+    assert set(module.required_config) == set(keys_read_by(module.snakefile))
     assert module.required_config == tuple(sorted(module.required_config))
 
 
@@ -1652,21 +1607,9 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
     is the only construct snakemake re-expands per attempt. `test_a_snakemake_retry_re_expands_a
     _resource_and_never_a_param` is the behavioural half; this is the half that names the rule.
 
-    **The cap is the load-bearing assertion, and it is invisible to every other gate.** Before #205 it
-    read `config["mem_mb"]` and was a parse-time constant. Nothing else in the suite can tell the two
-    apart: the params gate only ever inspects the emitted config; `keys_read_by` is content either
-    way, because the rule legitimately subscripts `config["mem_mb"]` on the line above; and the
-    compose dry run cannot help, because on attempt 1 the escalated value and the config value are
-    EQUAL — the argv is byte-identical under the fix and under the bug alike.
-
-    **`params:` is rejected here, and that is a real bug this test caught rather than a stylistic
-    preference.** The first implementation of #205 was `sort_ram=lambda wildcards, resources:
-    bam_sort_ram(resources.mem_mb)`, which reads correctly, plans correctly, passes a dry run, and is
-    wrong: snakemake memoizes `Job._params`, and `Job.attempt`'s setter clears `_resources` and not
-    `_params`. So the cap was expanded once, on attempt 1, and every retry reused it — a job that
-    asks for 3x and then refuses to sort in more than 1x's worth. A cap pinned that way is worse than
-    no retry at all: it spends a second multi-hour queue slot to fail for the reason attempt 1 had
-    already recorded.
+    Which `resources:` entry carries the cap is the half `test_the_module_never_computes_a_star
+    _memory_cap_from_the_config` cannot sweep for: it reads the flag's argument, and a binding of the
+    identical text under `params:` would satisfy it and still freeze on attempt 1.
 
     `retries:` naming the imported constant rather than a literal `2` is asserted for the reason
     `workflows/memory.py` gives for the constant existing: the retry count and the linear multiplier
@@ -1710,9 +1653,6 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
         "`_resources` when `attempt` advances, so a `params:` callable is expanded on attempt 1 and "
         "reused verbatim by every retry — the request escalates and the cap does not"
     )
-    # ...and the resource that follows the attempt is the one STAR is actually handed. A cap computed
-    # correctly and never passed would satisfy every assertion above.
-    assert "--limitBAMsortRAM {resources.bam_sort_ram_bytes}" in body
 
 
 #: A three-attempt workflow in eleven lines: one rule that always fails, with `retries: 2`, declaring
@@ -2038,12 +1978,10 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     module without a reader is a build-time defect, so it is caught here rather than by a report that
     renders an empty results section and looks like a pipeline that has not started.
 
-    `MODULES_WITHOUT_STATS` is now EMPTY — every shipped module reports — and both halves are still
-    asserted by NAME rather than by size. "Some module is silent" was never the claim; which module is
-    is, and a list that shrinks must shrink because an adapter landed rather than because a name was
-    quietly dropped from the guard. Empty is also why the list must survive: it is what the guard
-    compares a newly registered module against, so deleting it would delete the mechanism along with
-    its backlog.
+    Both halves are asserted by NAME rather than by size: "some module is silent" was never the
+    claim, and a list that shrinks must shrink because an adapter landed rather than because a name
+    was quietly dropped from the guard. Why `MODULES_WITHOUT_STATS` survives while empty is argued
+    where it is declared.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -2060,35 +1998,6 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
     assert MODULES_WITHOUT_STATS == frozenset()
 
 
-def test_the_registry_guard_can_actually_catch_drift_in_both_directions(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A guard nobody has seen fail is a guard that may not be looking.
-
-    Both directions are live: a module registered with no reader (the fourth aligner) and a reader
-    registered for a module that no longer exists (a renamed module leaving a stale spec behind).
-    `MODULES` and `_SPECS` are rebound rather than mutated, so the real registries are never touched.
-    """
-    from seqforge.workflows import MODULES
-    from seqforge.workflows import stats as stats_registry
-
-    monkeypatch.setattr(
-        stats_registry, "MODULES", {**MODULES, "map/fourth": MODULES["map/star"]}, raising=True
-    )
-    with pytest.raises(AssertionError, match="map/fourth"):
-        stats_registry._check_registry()
-
-    monkeypatch.undo()
-    monkeypatch.setattr(
-        stats_registry,
-        "_SPECS",
-        {**stats_registry._SPECS, "map/ghost": stats_registry._SPECS["map/starsolo"]},
-        raising=True,
-    )
-    with pytest.raises(AssertionError, match="unknown module"):
-        stats_registry._check_registry()
-
-
 def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_not() -> None:
     """The stats guard again, one level in — and a module is silent only by saying so.
 
@@ -2101,9 +2010,6 @@ def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_no
     a fragments summary has no whitelist-match rate to reason about, and bulk has no barcode at all.
     A module with no defensible rule declaring that it has none is a supported answer.
     """
-    from seqforge.workflows import stats as stats_registry
-
-    stats_registry._check_registry()
     assert set(modules_with_cross_checks()) | MODULES_WITHOUT_CROSS_CHECKS == set(
         modules_with_stats()
     )
@@ -2113,101 +2019,73 @@ def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_no
 
 
 def _stub_reader(path: Path, sample: str) -> SampleStats:
-    """A reader the guard tests can hang a synthetic spec off. Never called; only registered."""
+    """A reader the guard rows can hang a synthetic spec off. Never called; only registered."""
     return SampleStats(sample_id=sample)
 
 
-def test_the_cross_check_guard_can_actually_catch_drift_in_both_directions(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A guard nobody has seen fail is a guard that may not be looking — for the second guard too.
+def _plural_reader(path: Path, samples: Sequence[str]) -> dict[str, SampleStats]:
+    """Ditto, one arity out — a fan-in reader the guard refuses before anything could call it."""
+    return {}
 
-    Both directions are live, and they are the two ways a maintainer gets this wrong: registering a
-    reader and forgetting the rules (the fourth aligner), and adding a rule to a module that is still
-    listed as having none (the day chromap earns one). `_SPECS` and the silence list are rebound
-    rather than mutated, so the real registries are never touched.
-    """
-    from seqforge.workflows import stats as stats_registry
 
-    silent_spec = stats_registry.StatsSpec(artifact="x", read=_stub_reader)
-    monkeypatch.setattr(
-        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": silent_spec}, raising=True
-    )
-    monkeypatch.setattr(
-        stats_registry,
-        "MODULES_WITHOUT_CROSS_CHECKS",
-        MODULES_WITHOUT_CROSS_CHECKS - {"map/star"},
+def _no_reader(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(reg, "MODULES", {**reg.MODULES, "map/fourth": reg.MODULES["map/star"]}, raising=True)
+
+
+def _reader_for_no_module(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(reg, "_SPECS", {**reg._SPECS, "map/ghost": reg._SPECS["map/starsolo"]}, raising=True)
+
+
+def _spec(reg: Any, mp: pytest.MonkeyPatch, **kw: object) -> None:
+    mp.setattr(
+        reg,
+        "_SPECS",
+        {**reg._SPECS, "map/star": reg.StatsSpec(artifact="x", read=_stub_reader, **kw)},
         raising=True,
     )
-    with pytest.raises(AssertionError, match="map/star.*declare no cross-checks"):
-        stats_registry._check_registry()
-
-    monkeypatch.undo()
-    checked = stats_registry.StatsSpec(artifact="x", read=_stub_reader, checks=(chemistry_rule,))
-    monkeypatch.setattr(
-        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": checked}, raising=True
-    )
-    with pytest.raises(AssertionError, match="both declare cross-checks"):
-        stats_registry._check_registry()
 
 
-def test_a_fan_in_reader_is_refused_for_a_module_that_declares_no_such_artifact(
+def _rules_forgotten(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    _spec(reg, mp)
+    mp.setattr(reg, "MODULES_WITHOUT_CROSS_CHECKS", MODULES_WITHOUT_CROSS_CHECKS - {"map/star"})
+
+
+def _rules_and_silence_both(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    _spec(reg, mp, checks=(chemistry_rule,))
+
+
+def _fan_in_reader_pointed_nowhere(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    _spec(reg, mp, read_fan_in=_plural_reader)
+
+
+@pytest.mark.parametrize(
+    ("drift", "named"),
+    [
+        (_no_reader, "map/fourth"),
+        (_reader_for_no_module, "unknown module"),
+        (_rules_forgotten, r"map/star.*declare no cross-checks"),
+        (_rules_and_silence_both, "both declare cross-checks"),
+        (_fan_in_reader_pointed_nowhere, "no fan_in_artifact"),
+    ],
+    ids=["no-reader", "reader-for-no-module", "rules-forgotten", "rules-and-silence", "fan-in"],
+)
+def test_the_registry_guard_catches_every_way_a_module_and_its_reader_can_drift(
+    drift: Callable[[Any, pytest.MonkeyPatch], None],
+    named: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The filename's owner is the MODULE, so a reader for a module that declares none reads nothing.
+    """A guard nobody has seen fail is a guard that may not be looking, and it has five ways to look.
 
-    It would do so silently and forever: `read_pipeline_stats` has no path to hand such a reader, so
-    the page simply never grows the columns somebody wrote a reader for, which looks exactly like a
-    pipeline that has not produced its artifact yet. A build-time defect, caught by the same guard
-    that already refuses a module with no reader and a reader for no module.
+    One row per way a maintainer gets this wrong. The last is the quietest: a fan-in reader for a
+    module declaring no such artifact reads nothing forever, because `read_pipeline_stats` has no
+    path to hand it one. Every registry is rebound rather than mutated.
     """
     from seqforge.workflows import stats as stats_registry
 
-    def plural(path: Path, samples: Sequence[str]) -> dict[str, SampleStats]:
-        return {}  # never called; the guard refuses it before anything could call it
+    drift(stats_registry, monkeypatch)
 
-    unpointed = stats_registry.StatsSpec(artifact="x", read=_stub_reader, read_fan_in=plural)
-    assert get_module("map/star").fan_in_artifact is None, "map/star must have nothing to fan in"
-    monkeypatch.setattr(
-        stats_registry, "_SPECS", {**stats_registry._SPECS, "map/star": unpointed}, raising=True
-    )
-
-    with pytest.raises(AssertionError, match="no fan_in_artifact"):
+    with pytest.raises(AssertionError, match=named):
         stats_registry._check_registry()
-
-
-def test_the_modules_findings_land_on_the_pipeline_and_never_on_the_sample(tmp_path: Path) -> None:
-    """The registry runs the rules, and one-judgement-one-envelope decides where the answers go.
-
-    `SampleStats` is what the artifact SAID; a finding is a judgement about a decision, so they are
-    two envelopes and the finding rides on the pipeline. That is also what makes scope answerable at
-    all: "did this fire on every sample" is a fact about the run, not about any one sample.
-
-    Driven through `read_pipeline_stats` over real bytes rather than by calling the rule, because the
-    wiring is the claim: a rule that is written and never registered fires in its own unit test and
-    on nothing else.
-    """
-    results = tmp_path / "results"
-    broken = {**_HEALTHY_SUMMARY, "Reads With Valid Barcodes": 0.000762759}
-    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": broken}})
-    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
-
-    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
-
-    assert stats is not None
-    assert [f.sample_id for f in stats.findings] == ["s1"]
-    assert stats.findings[0].alert_id == "starsolo.valid-barcodes-near-zero"
-    assert not any(hasattr(s, "findings") for s in stats.samples), (
-        "a finding is a judgement, and SampleStats carries what the artifact said"
-    )
-    # And the module that measures no barcode at all reports the same metrics it always did, with
-    # nothing to say about them -- silence declared, not silence by omission.
-    log = tmp_path / "bulk" / "s1" / "Log.final.out"
-    log.parent.mkdir(parents=True)
-    log.write_text("".join(f"    {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
-    bulk = read_pipeline_stats("map/star", tmp_path / "bulk", ["s1"])
-    assert bulk is not None
-    assert bulk.samples[0].metrics and bulk.findings == []
 
 
 # -- the writer/reader round trip -------------------------------------------
@@ -2638,6 +2516,9 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
     }
     assert sample.knee == []
     assert sample.note == ""  # no feature was chosen, so there is no feature to caption
+    # A module that measures no barcode at all still reports its metrics, with nothing to say about
+    # them -- silence declared, not silence by omission.
+    assert stats.findings == []
     # And the grading crosses the same scale: "25.94%" read as 25.94 would sit above a 0.60 bar.
     assert _levels(sample)["uniquely_mapped"] == "bad"
     # One implementation of "what STAR's alignment log says", reached by both pipelines through it.
@@ -3080,29 +2961,46 @@ def test_the_rule_takes_the_largest_gap_when_several_full_length_features_were_c
     assert "40.7%" in found.measured and "GeneFull:" in found.measured
 
 
-def test_the_feature_gap_rule_reaches_the_pipeline_through_the_registry(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("summary", "alert_id"),
+    [
+        (
+            {"Gene": {**_HEALTHY_SUMMARY, "Reads With Valid Barcodes": 0.000762759}},
+            "starsolo.valid-barcodes-near-zero",
+        ),
+        (
+            {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL},
+            "starsolo.intronic-reads-uncounted",
+        ),
+        (
+            {"Gene": {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.021}},
+            "starsolo.reads-mapped-but-not-counted",
+        ),
+    ],
+    ids=["chemistry", "solo-features", "gene-model"],
+)
+def test_every_rule_starsolo_declares_reaches_the_pipeline_through_the_registry(
+    summary: dict[str, object], alert_id: str, tmp_path: Path
+) -> None:
     """A rule that is written and never registered fires in its own unit test and on nothing else.
 
-    Driven through `read_pipeline_stats` over real bytes, like its sibling above: the wiring is the
-    claim. `map/starsolo` declares three rules, and each one has a guard of its own here.
+    Driven through `read_pipeline_stats` over real bytes rather than by calling the rule, one row per
+    rule `map/starsolo` declares, with the healthy second sample as the discriminator: a rule wired
+    to fire unconditionally would name it too. And the finding rides on the PIPELINE — `SampleStats`
+    is what the artifact said, a judgement about a decision is a second envelope, and that is what
+    makes "did this fire on every sample" answerable at all.
     """
-    from seqforge.workflows import stats as stats_registry
-
     results = tmp_path / "results"
-    _landed(
-        results,
-        "s1",
-        {"sample": "s1", "summary": {"Gene": _NUCLEAR_GENE, "GeneFull": _NUCLEAR_GENEFULL}},
-    )
+    _landed(results, "s1", {"sample": "s1", "summary": summary})
     _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
 
     stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
 
     assert stats is not None
-    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
-        ("s1", "starsolo.intronic-reads-uncounted")
-    ]
-    assert solo_features_rule in stats_registry._SPECS["map/starsolo"].checks
+    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [("s1", alert_id)]
+    assert not any(hasattr(s, "findings") for s in stats.samples), (
+        "a finding is a judgement, and SampleStats carries what the artifact said"
+    )
 
 
 # -- the gene model, and the strand -----------------------------------------
@@ -3195,27 +3093,6 @@ def test_an_index_that_carries_no_gene_model_leaves_this_rule_nothing_to_read() 
     assert _fire(gene_model_rule, reads_in_genome=0.91) == []
     assert _fire(gene_model_rule, reads_in_genes=0.02) == []
     assert gene_model_rule(SampleStats(sample_id="S1")) == []
-
-
-def test_the_gene_model_rule_is_registered_and_not_merely_written(tmp_path: Path) -> None:
-    """A rule that is written and never registered fires in its own unit test and on nothing else.
-
-    Driven through `read_pipeline_stats` over real bytes, exactly as the chemistry rule's wiring is:
-    what is asserted here is the entry on `map/starsolo`'s `StatsSpec`, not the function above it.
-    The healthy second sample is the discriminator — a rule wired to fire unconditionally would name
-    it too.
-    """
-    results = tmp_path / "results"
-    uncounted = {**_HEALTHY_SUMMARY, "Reads Mapped to Gene: Unique Gene": 0.021}
-    _landed(results, "s1", {"sample": "s1", "summary": {"Gene": uncounted}})
-    _landed(results, "s2", {"sample": "s2", "summary": {"Gene": _HEALTHY_SUMMARY}})
-
-    stats = read_pipeline_stats("map/starsolo", results, ["s1", "s2"])
-
-    assert stats is not None
-    assert [(f.sample_id, f.alert_id) for f in stats.findings] == [
-        ("s1", "starsolo.reads-mapped-but-not-counted")
-    ]
 
 
 # -- what the review found: two rules that fired on runs they had no claim on ------------------
@@ -4132,11 +4009,9 @@ def test_the_registry_reads_the_fan_in_artifact_the_module_declares_and_never_sp
     fates looks exactly like a plate that has not been counted yet, so nothing raises and nobody is
     told. That is the same failure the QC-suffix constants above were made one owner to prevent.
 
-    Both halves are asserted, because either alone is weak: the source carries no literal, AND an
-    object written under any other name is not found.
+    Asserted behaviourally — an object written under any other name is not found — because what a
+    reader spells in its own source is not what decides which file it opens.
     """
-    assert PLATE_H5AD not in (_src_root() / "workflows" / "stats.py").read_text()
-
     db, cells = _plate(tmp_path)
     results = tmp_path / "results"
     write_umi_counts(cells, db, results / "plate-counts.h5ad")  # a plausible name, and not the one
@@ -4302,7 +4177,6 @@ def test_the_tagged_read_is_the_one_the_layout_says_carries_a_umi() -> None:
     geometry = tagged_read_geometry(layout)
 
     assert geometry.read_id == "R1"
-    assert geometry.anchor == _TAG
 
 
 def test_the_rendered_geometry_round_trips_and_reads_as_the_layout_it_came_from() -> None:

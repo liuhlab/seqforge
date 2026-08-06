@@ -1,19 +1,16 @@
 """Tests for ``recordset.py`` — the loader both dialects go through, and the draft it can read back.
 
-The subject here is a **gate**, so most of these tests are about what does NOT load. The strict
-dialect exists because a hand-written attribute would be granted the standing an archive's typed slot
-has: no quote, no span, nothing that greps back, permanently inside the dataset hash. Nothing else in
-the tree notices that — the resolver reads a record set as a record set — so the parse-level refusal
-below is the only thing standing between a YAML line and an unverifiable fact in a corpus.
+The subject is a **gate**, so most of these are about what does NOT load: an attribute a human typed
+would be granted the standing an archive's typed slot has — no quote, no span, nothing that greps
+back — permanently inside the dataset hash, and nothing downstream notices. The archive path is
+tested for the opposite property: a cache ``io records`` wrote must load unchanged.
 
-The other half is the archive path, and it is tested for the opposite property: a cache written by
-``io records`` must load unchanged, attributes and prose and all. One loader serving two dialects is
-only safe while it keeps them apart in exactly one direction.
+The draft's no-op guarantee and its CLI refusals live in ``tests/test_cli.py``; what a loaded set
+does to a resolution lives in ``tests/test_records.py``.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -23,7 +20,6 @@ import pytest
 import yaml
 
 from seqforge.models.blocker import BlockerCode
-from seqforge.models.observation import FileIdentity
 from seqforge.models.records import (
     ArchiveRecord,
     ArchiveRecordSet,
@@ -32,7 +28,6 @@ from seqforge.models.records import (
     SubmittedFile,
 )
 from seqforge.recordset import RecordSetError, draft_record_set, load_record_set
-from seqforge.resolve.records import resolve_metadata
 
 # ================================================================================================
 # helpers — local rather than in conftest: nothing outside this file writes a record set by hand
@@ -67,18 +62,6 @@ def _two_runs() -> dict[str, Any]:
     }
 
 
-def _identities(names: list[str]) -> list[FileIdentity]:
-    """One ``FileIdentity`` per basename — the only thing the metadata resolver is ever shown."""
-    return [
-        FileIdentity(
-            sha256=hashlib.sha256(name.encode()).hexdigest(),
-            size_bytes=1024,
-            basename=name,
-        )
-        for name in names
-    ]
-
-
 def _touch_fastqs(directory: Path, names: list[str]) -> list[str]:
     directory.mkdir(parents=True, exist_ok=True)
     for name in names:
@@ -95,13 +78,18 @@ def _comment_lines(text: str) -> list[str]:
 # ================================================================================================
 
 
-def test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them_loads(
+def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loads(
     tmp_path: Path,
 ) -> None:
-    """The refusal ADR-0034 says does not exist yet, and the reason the dialect is strict.
+    """A typed slot would be granted the standing an archive's has — no quote, no span, permanent.
 
-    Both halves matter and they are one test on purpose: an over-strict loader that refused the clean
-    set too would pass a refusal-only test while making the feature unusable.
+    `free_text` was parametrized alongside `attributes` here until ADR-0047, and the split is not a
+    softening: prose is believed for nothing until a quote greps back into it, while a slot is
+    believed for where it sits. `test_prose_is_admitted_where_a_typed_fact_is_not` holds that
+    contrast; this one is now about the half that stayed refused.
+
+    Both halves in one test on purpose: an over-strict loader that refused the clean set too would
+    pass a refusal-only test while making the feature unusable.
     """
     payload = _two_runs()
     clean = load_record_set(_write(tmp_path, payload, "clean.yaml"))
@@ -113,33 +101,27 @@ def test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them
 
     (blocker,) = caught.value.blockers
     assert blocker.code is BlockerCode.RECORD_SET_INVALID
-    assert "attributes" in blocker.evidence
+    assert blocker.evidence == ["attributes"]
     assert "harvest" in blocker.remedy
     assert caught.value.report.ok is False
     assert caught.value.report.blockers == caught.value.blockers
 
 
 def test_prose_is_admitted_where_a_typed_fact_is_not(tmp_path: Path) -> None:
-    """The two halves of a record part company here, and the split is the whole of ADR-0047.
+    """The other half of the split, and the reason the loader is not simply more permissive.
 
-    `attributes` is believed for WHERE it sits — `_positions_for` copies a typed slot straight into
-    an `asserted` position — so it arrives with no origin and stays refused. Prose is believed for
-    nothing: it becomes a document, and a claim leaves it only carrying a quote. Both halves in one
-    test because the decision is the contrast, not either clause: a reader who sees only the refusal
-    relearns ADR-0034 and misses that the remedy now has a per-sample form.
+    What lands on the record is text. It reaches a manifest only as a claim whose quote greps back
+    into that text and whose value the quote entails, so the record still states no fact — it states
+    where a fact may be read from, for one sample rather than for the whole pile.
     """
     payload = _two_runs()
     payload["records"][1]["free_text"] = [{"label": "note", "text": "daf-2 replicate 3"}]
     loaded = load_record_set(_write(tmp_path, payload))
-    assert loaded.at("run")[1].free_text[0].text == "daf-2 replicate 3"
 
-    payload["records"][1]["attributes"] = [{"name": "genotype", "value": "daf-2"}]
-    with pytest.raises(RecordSetError) as caught:
-        load_record_set(_write(tmp_path, payload))
-
-    (blocker,) = caught.value.blockers
-    assert blocker.evidence == ["attributes"]
-    assert blocker.remedy
+    run = loaded.at("run")[1]
+    assert run.free_text[0].label == "note"
+    assert run.free_text[0].text == "daf-2 replicate 3"
+    assert run.attributes == [], "prose must not become a typed slot on the way through the loader"
 
 
 def test_prose_without_a_label_is_refused(tmp_path: Path) -> None:
@@ -213,26 +195,18 @@ def test_a_duplicate_id_is_refused(tmp_path: Path) -> None:
     assert "declared twice" in caught.value.blockers[0].message
 
 
-#: Each entry is a consumer of the id, not a taste: the tab and the newline are the `units.tsv`
-#: delimiters, `..` and the slash are path components under the results directory, the space and the
-#: semicolon are argument boundaries where the workflow interpolates `{sample}` unquoted, and the
-#: leading hyphen is an option to the commands it is passed to.
+#: Each entry is a consumer of the id, not a taste: the units delimiters, then path components, then
+#: argument boundaries where the workflow interpolates `{sample}` unquoted, then an option lead.
 _UNTYPEABLE_IDS = ["plate\t7", "plate\n7", "..", "../etc", "plates/7", "plate 7", "a;b", "-plate"]
 
 
 @pytest.mark.parametrize("ident", _UNTYPEABLE_IDS)
 def test_an_id_that_could_not_be_a_sample_id_is_refused(tmp_path: Path, ident: str) -> None:
-    """A hand-written id is a grouping key, and a grouping key becomes a filename.
+    """A run with no sample above it is its own sample, so any id here reaches `ResolvedSample`, a
+    plain `str` — and from there a units cell, a results directory and an unquoted shell word.
 
-    A run with no sample above it is its own sample, so any id here can reach `ResolvedSample`,
-    which is a plain `str` — and from there a `units.tsv` cell, a results directory, an `.h5ad` stem
-    and an unquoted shell word. `accession` was made unrepresentable for a hand-written set by being
-    set to `None`; the grouping key was not, and it is the half that gets written to disk.
-
-    Refused HERE because here is where the human's input arrives, and because every layer below has
-    already stopped being able to: by the time a tab has split a units row the manifest is written,
-    content-addressed and permanent, and what fails is a workflow several stages away that names
-    none of this.
+    Refused where the human's input arrives, because by the time a tab has split a units row the
+    manifest is written, content-addressed and permanent.
     """
     payload = _two_runs()
     payload["records"][0]["id"] = ident
@@ -257,9 +231,8 @@ def test_an_id_that_could_not_be_a_sample_id_is_refused(tmp_path: Path, ident: s
 def test_the_ids_a_human_would_actually_type_still_load(tmp_path: Path, ident: str) -> None:
     """The other half of the rule, and the half an over-tight allowlist would break silently.
 
-    Every one of these is a name somebody would write on a tube, and `plateA_S1` in particular is
-    what `run_key` itself produces — so a rule that refused it would refuse the draft `records new`
-    writes over ordinary Illumina filenames, which is the one file this loader must never reject.
+    `plateA_S1` is what `run_key` itself produces, so a rule refusing it would refuse the draft
+    `records new` writes over ordinary Illumina filenames — the one file this loader must take.
     """
     payload = _two_runs()
     payload["records"][0]["id"] = ident
@@ -322,12 +295,8 @@ def test_one_file_declared_by_two_runs_is_refused(tmp_path: Path) -> None:
 
 
 def test_every_refusal_names_something_to_type(tmp_path: Path) -> None:
-    """A file wrong in four ways is refused four times, in one pass, each with its own remedy.
-
-    Collecting rather than raising at the first is the difference between one edit and four
-    round-trips, and a remedy that says nothing is the failure the ``Blocker`` contract exists to
-    prevent.
-    """
+    """A file wrong in four ways is refused four times in one pass, each with its own remedy —
+    the difference between one edit and four round-trips."""
     payload = _two_runs()
     payload["records"][0]["attributes"] = [{"name": "strain", "value": "CQ758"}]
     payload["records"][0]["parent"] = "nobody"
@@ -357,14 +326,19 @@ def test_a_missing_file_refuses_rather_than_raising(tmp_path: Path) -> None:
     assert caught.value.blockers[0].id == "blk-record-set-unreadable"
 
 
-def test_a_hand_written_file_that_forgot_source_user_is_told_so(tmp_path: Path) -> None:
-    """Without `source: user` the file is read as an archive transcript, which it is not."""
+def test_a_file_that_forgot_source_user_is_read_as_an_archive_and_refuses_rather_than_raising(
+    tmp_path: Path,
+) -> None:
+    """`source` and not the extension picks the dialect, so a file missing it is read as a transcript
+    it is not — refused with the pydantic failures as evidence and the user spelling as the remedy."""
     payload = _two_runs()
     del payload["source"]
     with pytest.raises(RecordSetError) as caught:
         load_record_set(_write(tmp_path, payload))
 
     (blocker,) = caught.value.blockers
+    assert blocker.code is BlockerCode.RECORD_SET_INVALID
+    assert blocker.evidence, "one readable line per problem, never a traceback"
     assert "source: user" in blocker.remedy
 
 
@@ -396,30 +370,6 @@ def test_two_runs_under_one_sample_load_with_their_filenames(tmp_path: Path) -> 
         assert ancestor is not None and ancestor.accession == "plateA"
 
 
-def test_a_declared_sample_fuses_two_runs_the_filenames_kept_apart(tmp_path: Path) -> None:
-    """What the record set BUYS, asserted where it lands: two samples become one, at full depth."""
-    names = [
-        "plateA_S1_L001_R1_001.fastq.gz",
-        "plateA_S1_L001_R2_001.fastq.gz",
-        "plateA_S3_L001_R1_001.fastq.gz",
-        "plateA_S3_L001_R2_001.fastq.gz",
-    ]
-    files = _identities(names)
-    payload = _two_runs()
-    payload["records"].append({"level": "sample", "id": "plateA"})
-    payload["records"][0]["parent"] = "plateA"
-    payload["records"][1]["parent"] = "plateA"
-    loaded = load_record_set(_write(tmp_path, payload))
-
-    without = resolve_metadata(files=files)
-    with_records = resolve_metadata(files=files, records=loaded)
-
-    assert [s.sample_id for s in without.samples] == ["plateA_S1", "plateA_S3"]
-    assert [s.sample_id for s in with_records.samples] == ["plateA"]
-    assert len(with_records.samples[0].file_shas) == 4
-    assert with_records.blockers == []
-
-
 def test_the_query_defaults_to_the_files_own_stem(tmp_path: Path) -> None:
     """There is no accession a human typed, so the file names itself."""
     payload = _two_runs()
@@ -442,11 +392,8 @@ def test_json_and_yaml_are_one_code_path(tmp_path: Path) -> None:
 
 
 def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
-    """The strictness above is keyed to `source`, and this is the other side of that key.
-
-    An `io records` cache carries exactly what the strict dialect refuses — attributes, prose, four
-    levels, a writer stamp — and it must survive the new loader byte for byte. A round trip through
-    the model is the assertion: anything the loader silently dropped shows up as inequality.
+    """An `io records` cache carries exactly what the strict dialect refuses — attributes, prose,
+    four levels, a writer stamp — and a round trip is the assertion: a dropped key is an inequality.
     """
     original = ArchiveRecordSet(
         source="ncbi-sra+biosample",
@@ -496,31 +443,19 @@ def test_an_archive_cache_carrying_an_unknown_key_still_loads(tmp_path: Path) ->
     assert [r.accession for r in loaded.records] == ["SRR28716558"]
 
 
-def test_a_broken_archive_cache_refuses_rather_than_raising(tmp_path: Path) -> None:
-    payload = {"source": "ncbi-sra+biosample", "records": [{"level": "run"}]}
-    with pytest.raises(RecordSetError) as caught:
-        load_record_set(_write(tmp_path, payload, "cache.json"))
-
-    (blocker,) = caught.value.blockers
-    assert blocker.code is BlockerCode.RECORD_SET_INVALID
-    assert any("query" in line for line in blocker.evidence)
-
-
 # ================================================================================================
 # the draft
 # ================================================================================================
 
 
-def test_the_draft_is_one_run_per_run_and_loads_clean(tmp_path: Path) -> None:
+def test_the_draft_declares_the_fastq_files_and_nothing_else(tmp_path: Path) -> None:
+    """A non-FASTQ beside the reads is not a file to declare, and the run keeps every name it wrote."""
     names = _touch_fastqs(
         tmp_path / "fastq",
         [
             "plateA_S1_L001_R1_001.fastq.gz",
-            "plateA_S1_L001_R2_001.fastq.gz",
             "plateA_S1_L002_R1_001.fastq.gz",
-            "plateA_S1_L002_R2_001.fastq.gz",
             "plateA_S3_L001_R1_001.fastq.gz",
-            "plateA_S3_L001_R2_001.fastq.gz",
             "notes.txt",
         ],
     )
@@ -528,109 +463,59 @@ def test_the_draft_is_one_run_per_run_and_loads_clean(tmp_path: Path) -> None:
     (tmp_path / "records.yaml").write_text(text)
     loaded = load_record_set(tmp_path / "records.yaml")
 
-    assert loaded.source == "user"
-    assert [r.accession for r in loaded.records] == ["plateA_S1", "plateA_S3"]
-    assert loaded.at("sample") == []
-    # Four lanes of one run stay one run, and the non-FASTQ beside them is not a file to declare.
-    assert loaded.records[0].filenames == sorted(n for n in names if n.startswith("plateA_S1"))
     assert "notes.txt" not in text
+    assert [r.accession for r in loaded.records] == ["plateA_S1", "plateA_S3"]
+    assert loaded.records[0].filenames == sorted(n for n in names if n.startswith("plateA_S1"))
 
 
-def test_the_draft_names_the_sample_sheet_pair_it_will_not_decide(tmp_path: Path) -> None:
-    _touch_fastqs(
-        tmp_path / "fastq",
-        [
-            "plateA_S1_L001_R1_001.fastq.gz",
-            "plateA_S1_L001_R2_001.fastq.gz",
-            "plateA_S3_L001_R1_001.fastq.gz",
-            "plateA_S3_L001_R2_001.fastq.gz",
-        ],
-    )
-    # Joined, because the note is wrapped prose and which word lands on which line is not the point.
-    # The header mentions neither a run key nor an `S<n>`, so every hit below comes from the note.
-    comments = " ".join(_comment_lines(draft_record_set(tmp_path / "fastq")))
-
-    assert "plateA_S1" in comments and "plateA_S3" in comments
-    assert "`S1`" in comments and "`S3`" in comments
-    assert "sample-sheet" in comments and "parent" in comments
-
-
-def test_the_draft_names_the_flowcell_pair_it_will_not_decide(tmp_path: Path) -> None:
-    _touch_fastqs(
-        tmp_path / "fastq",
-        [
-            "lib7_HJ7L2BGXX_S1_L001_R1_001.fastq.gz",
-            "lib7_HJ7L2BGXX_S1_L001_R2_001.fastq.gz",
-            "lib7_HVFNLDSX2_S1_L001_R1_001.fastq.gz",
-            "lib7_HVFNLDSX2_S1_L001_R2_001.fastq.gz",
-        ],
-    )
-    text = draft_record_set(tmp_path / "fastq")
-    comments = " ".join(_comment_lines(text))
-
-    assert "flowcell" in comments
-    assert "`HJ7L2BGXX`" in comments and "`HVFNLDSX2`" in comments
-
-
-def test_an_unambiguous_draft_says_the_scan_ran_and_found_nothing(tmp_path: Path) -> None:
-    """An absent comment and a check that came back empty look identical; the draft says which."""
-    _touch_fastqs(
-        tmp_path / "fastq",
-        ["wt_rep1_R1.fastq.gz", "wt_rep1_R2.fastq.gz", "daf2_rep1_R1.fastq.gz"],
-    )
-    comments = " ".join(_comment_lines(draft_record_set(tmp_path / "fastq")))
-    assert "No two runs" in comments
-
-
-def test_applying_the_draft_unedited_changes_no_sample(tmp_path: Path) -> None:
-    """The property that makes it safe to write this file into somebody's dataset directory.
-
-    Not "the same number of samples": the same sample ids, the same files under each, and the same
-    absent accession — because everything downstream of `_join` is keyed on those, and the manifest
-    that carries them is hashed and never rewritten.
-    """
-    names = _touch_fastqs(
-        tmp_path / "fastq",
-        [
-            "SRR28716558_1.fastq.gz",
-            "SRR28716558_2.fastq.gz",
-            "plateA_S3_L001_R1_001.fastq.gz",
-            "plateA_S3_L002_R1_001.fastq.gz",
-            "lonely.fastq.gz",
-        ],
-    )
-    files = _identities(names)
-    (tmp_path / "records.yaml").write_text(draft_record_set(tmp_path / "fastq"))
-    drafted = load_record_set(tmp_path / "records.yaml")
-
-    def shape(resolution: Any) -> list[tuple[str, str | None, list[str]]]:
-        return [(s.sample_id, s.accession, s.file_shas) for s in resolution.samples]
-
-    assert shape(resolve_metadata(files=files, records=drafted)) == shape(
-        resolve_metadata(files=files)
-    )
-
-
-def test_a_directory_with_no_fastq_refuses_rather_than_drafting_an_empty_set(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        pytest.param(
+            [
+                "plateA_S1_L001_R1_001.fastq.gz",
+                "plateA_S1_L001_R2_001.fastq.gz",
+                "plateA_S3_L001_R1_001.fastq.gz",
+                "plateA_S3_L001_R2_001.fastq.gz",
+            ],
+            ["plateA_S1", "plateA_S3", "`S1`", "`S3`", "sample-sheet"],
+            id="sample-sheet",
+        ),
+        pytest.param(
+            [
+                "lib7_HJ7L2BGXX_S1_L001_R1_001.fastq.gz",
+                "lib7_HJ7L2BGXX_S1_L001_R2_001.fastq.gz",
+                "lib7_HVFNLDSX2_S1_L001_R1_001.fastq.gz",
+                "lib7_HVFNLDSX2_S1_L001_R2_001.fastq.gz",
+            ],
+            ["flowcell", "`HJ7L2BGXX`", "`HVFNLDSX2`"],
+            id="flowcell",
+        ),
+        pytest.param(
+            ["wt_rep1_R1.fastq.gz", "wt_rep1_R2.fastq.gz", "daf2_rep1_R1.fastq.gz"],
+            ["No two runs"],
+            id="neither",
+        ),
+    ],
+)
+def test_the_draft_names_the_decision_it_will_not_take(
+    tmp_path: Path, names: list[str], expected: list[str]
 ) -> None:
-    """A draft nothing can load is a defect, so it is refused where it is written."""
-    (tmp_path / "empty").mkdir()
-    with pytest.raises(RecordSetError) as caught:
-        draft_record_set(tmp_path / "empty")
+    """Two shapes compile as two samples at partial depth at exit 0 and no filename tells them apart;
+    a scan that ran and found neither says so, because that looks identical to no scan at all."""
+    _touch_fastqs(tmp_path / "fastq", names)
+    # Joined, because the note is wrapped prose and which word lands on which line is not the point.
+    # The header names no run key, no `S<n>` and no flowcell, so every hit below comes from a note.
+    comments = " ".join(_comment_lines(draft_record_set(tmp_path / "fastq")))
 
-    assert caught.value.blockers[0].id == "blk-record-set-no-fastq"
-    assert caught.value.blockers[0].remedy
+    assert all(want in comments for want in expected), comments
 
 
 def test_a_directory_whose_run_keys_could_not_be_sample_ids_refuses_too(tmp_path: Path) -> None:
-    """The same rule, held at the other end: what this verb writes must be what the loader takes.
+    """The id rule held at the other end: what this verb writes must be what the loader takes.
 
-    A run key is a filename with its extension and its mate token taken off, so a directory of oddly
-    named reads yields ids the loader refuses — and `records new -o` reads its own draft back, so it
-    would report a directory it cannot draft for as "a bug in seqforge", which it is not. Refused
-    here instead, naming the runs, so "a draft always loads" holds by construction rather than by the
-    coincidence that most reads are named sanely.
+    `records new -o` reads its own draft back, so an unloadable draft would be reported as a bug in
+    seqforge. Refused here instead, naming the runs, so "a draft always loads" holds by construction.
     """
     directory = tmp_path / "odd"
     _touch_fastqs(directory, ["-weird_S1_R1_001.fastq.gz", "-weird_S1_R2_001.fastq.gz"])
