@@ -26,7 +26,8 @@
 # runner. That generality earned itself immediately: `check-fast` was left as a serial `depends-on`
 # when `check` was parallelised, measured 19.1s against a parallel `check`'s 17.1s -- the cheap rung
 # costing MORE than the expensive one -- and running it here too showed it saved nothing at all.
-# It was deleted; the ladder now has three rungs.
+# It was deleted; nothing sits between the targeted run and this one, which is why the ladder in
+# AGENTS.md goes from a selector to the whole gate with no cheap middle.
 #
 # Nothing here may use an associative array. macOS ships bash 3.2 as /bin/bash and 3.2 has none, so
 # `declare -A status` failed there -- and `set -e` is deliberately absent below, because the runner
@@ -93,8 +94,8 @@ for i in "${!STEPS[@]}"; do
     fi
 done
 
-# Labelled "gate", not "check": the same runner serves rung 2 and rung 3, and the per-step verdicts
-# below already say which rung ran.
+# Labelled "gate", not "check": the same runner serves whatever step list it is handed, and the
+# per-step verdicts below already name which selections ran.
 printf '\n\033[1m=== gate: '
 for i in "${!STEPS[@]}"; do printf '%s=%s ' "${STEPS[$i]}" "${status[$i]}"; done
 printf 'in %ss ===\033[0m\n' "$((SECONDS - start))"

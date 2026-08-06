@@ -84,9 +84,19 @@ test was considered and declined, and is the fallback if the bar drifts.
 
 ## Working here
 
-- **Tests: run the narrowest thing that can go red.** `pixi run -e test pytest tests/test_<mod>.py
-  -k <expr>` in the loop (files mirror packages), `pixi run check` once before the PR, then read CI.
-  Two markers, both semantic: `external` (a binary seqforge does not own) and `repo` (repo
+- **Tests: run the narrowest thing that can go red, then stop.** Four rungs, and the last one is
+  reading rather than running. **While editing** — the narrowest selector that can go red and
+  nothing else: `pixi run -e test pytest tests/test_<mod>.py -k <expr>` (files mirror packages). A
+  run naming a selector stays serial, which is why it costs a second or two. **After a red run** —
+  `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
+  cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
+  has it from then on. **Once, before pushing** — `pixi run check`, whose lanes are the selections
+  CI's jobs run. **After pushing** — read CI; do not re-run it locally. **Never** run the whole
+  suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
+  named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is
+  not the suite's cost: the gate is cheap and reading CI is free, so a session's minutes are the
+  number of times either was asked the question again.
+- **Two markers, both semantic:** `external` (a binary seqforge does not own) and `repo` (repo
   consistency, not `src/` behaviour). Three lanes — unit, corpus, external — partition the suite, and
   CI gives each a job; **selection may not be a function of a fact living outside the suite**, which
   is why there is a marker split and no path-filtered lane (ADR-0002).
