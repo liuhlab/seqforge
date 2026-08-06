@@ -584,7 +584,12 @@ def _write_usage(
 @harvest_app.command("verify")
 def harvest_verify(
     drafts_json: Path = typer.Argument(..., help="AssertionDraft[] JSON (from `harvest extract`)."),
-    docs: list[Path] = typer.Option(..., "--doc", help="Source document(s) the drafts cite."),
+    docs: list[Path] = typer.Option([], "--doc", help="Source document(s) the drafts cite."),
+    records_file: Path | None = typer.Option(
+        None,
+        "--records",
+        help="A record set whose per-record documents the drafts cite (instead of/alongside --doc).",
+    ),
     model_id: str = typer.Option("unknown", help="Model that produced the drafts (provenance)."),
     prompt_version: str = typer.Option("unknown", help="Prompt version (provenance)."),
     pdf_backend: PdfBackendChoice = typer.Option(
@@ -596,9 +601,21 @@ def harvest_verify(
     """Grep each quote back into the canonical text + check it entails the value. Exit 4 if any fail.
 
     Both flags are code-owned, so a hallucinated or mis-attributed claim fails closed.
+
+    **``--records`` is what makes a per-sample claim checkable without a model.** A record's document
+    is not a file — it is rendered from the record, and it was previously reachable only from inside
+    `extract`, so drafts naming one had nothing to be verified against and the whole per-sample path
+    required a credential to walk. The rendering is the same function `extract` plans with, so the
+    bytes a quote greps into are identical either way; what differs is only who proposed the drafts,
+    which is the half this command never owned.
     """
     from ..harvest import normalize_document, verify_drafts
+    from ..harvest.normalize import has_prose, normalize_record
     from ..models.assertion import AssertionDraft, ExtractorProvenance
+
+    if not docs and records_file is None:
+        typer.echo("nothing to verify against: pass --doc and/or --records", err=True)
+        raise typer.Exit(2)
 
     try:
         raw = json.loads(drafts_json.read_text())
@@ -608,6 +625,18 @@ def harvest_verify(
         raise typer.Exit(2) from exc
 
     normalized = [normalize_document(d, pdf_backend=pdf_backend.value) for d in docs]
+    if records_file is not None:
+        from ..recordset import RecordSetError, load_record_set
+
+        try:
+            record_set = load_record_set(records_file)
+        except RecordSetError as exc:
+            typer.echo(json.dumps({"blockers": [b.model_dump(mode="json") for b in exc.blockers]}))
+            raise typer.Exit(3) from exc
+        # Only records with prose: `has_prose` is the same gate the plan plans on, so a set whose
+        # records are structure-only renders nothing here rather than a document per record holding
+        # its own id and no claim to find.
+        normalized.extend(normalize_record(r) for r in record_set.records if has_prose(r))
     report = verify_drafts(
         drafts,
         normalized,

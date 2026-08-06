@@ -78,18 +78,15 @@ def _comment_lines(text: str) -> list[str]:
 # ================================================================================================
 
 
-@pytest.mark.parametrize(
-    ("key", "value"),
-    [
-        ("attributes", [{"name": "strain", "value": "CQ758"}]),
-        ("free_text", [{"label": "note", "text": "daf-2 replicate 3"}]),
-    ],
-)
 def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loads(
-    tmp_path: Path, key: str, value: list[dict[str, str]]
+    tmp_path: Path,
 ) -> None:
-    """Prose is refused beside the typed slot: harvest's own gate is `has_prose`, so a set carrying
-    free text is visible to it, and the quote would grep back against a file written to be grepped.
+    """A typed slot would be granted the standing an archive's has — no quote, no span, permanent.
+
+    `free_text` was parametrized alongside `attributes` here until ADR-0047, and the split is not a
+    softening: prose is believed for nothing until a quote greps back into it, while a slot is
+    believed for where it sits. `test_prose_is_admitted_where_a_typed_fact_is_not` holds that
+    contrast; this one is now about the half that stayed refused.
 
     Both halves in one test on purpose: an over-strict loader that refused the clean set too would
     pass a refusal-only test while making the feature unusable.
@@ -98,16 +95,51 @@ def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loa
     clean = load_record_set(_write(tmp_path, payload, "clean.yaml"))
     assert [r.accession for r in clean.records] == ["plateA_S1", "plateA_S3"]
 
-    payload["records"][0][key] = value
+    payload["records"][0]["attributes"] = [{"name": "strain", "value": "CQ758"}]
     with pytest.raises(RecordSetError) as caught:
         load_record_set(_write(tmp_path, payload, "dirty.yaml"))
 
     (blocker,) = caught.value.blockers
     assert blocker.code is BlockerCode.RECORD_SET_INVALID
-    assert blocker.evidence == [key]
+    assert blocker.evidence == ["attributes"]
     assert "harvest" in blocker.remedy
     assert caught.value.report.ok is False
     assert caught.value.report.blockers == caught.value.blockers
+
+
+def test_prose_is_admitted_where_a_typed_fact_is_not(tmp_path: Path) -> None:
+    """The other half of the split, and the reason the loader is not simply more permissive.
+
+    What lands on the record is text. It reaches a manifest only as a claim whose quote greps back
+    into that text and whose value the quote entails, so the record still states no fact — it states
+    where a fact may be read from, for one sample rather than for the whole pile.
+    """
+    payload = _two_runs()
+    payload["records"][1]["free_text"] = [{"label": "note", "text": "daf-2 replicate 3"}]
+    loaded = load_record_set(_write(tmp_path, payload))
+
+    run = loaded.at("run")[1]
+    assert run.free_text[0].label == "note"
+    assert run.free_text[0].text == "daf-2 replicate 3"
+    assert run.attributes == [], "prose must not become a typed slot on the way through the loader"
+
+
+def test_prose_without_a_label_is_refused(tmp_path: Path) -> None:
+    """`label` is optional on an archive record and required here, because nobody is upstream.
+
+    On a fetched record the archive's own field name fills it. A hand-written one has no such author,
+    and after harvest a value carries only its quote — which does not say where its document came
+    from. So a manifest reader could not tell a filename convention from a bench measurement, and
+    ADR-0047 buys its `asserted` grade partly on being able to.
+    """
+    payload = _two_runs()
+    payload["records"][1]["free_text"] = [{"text": "daf-2 replicate 3"}]
+    with pytest.raises(RecordSetError) as caught:
+        load_record_set(_write(tmp_path, payload))
+
+    (blocker,) = caught.value.blockers
+    assert "label" in blocker.evidence
+    assert blocker.remedy
 
 
 @pytest.mark.parametrize("level", ["experiment", "project"])
