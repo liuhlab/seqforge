@@ -12,8 +12,8 @@ the exact commands, the environment, and the input checksums that produced them.
 **What is in git beside this page, and what is not** (#296). In
 [`umite-agreement-fixture/`](umite-agreement-fixture/): the input checksums (`inputs.json`), the two
 per-cell extraction tables every rate below is read off, the fuzzy-window log, and `SHA256SUMS` over
-all fifteen files — enough to attribute every number here, and enough to verify a downloaded copy of
-the rest. Out of git for three different reasons, each of them one of this repo's own rules:
+the fourteen other members — enough to attribute every number here, and enough to verify a downloaded
+copy of the rest. Out of git for three different reasons, each of them one of this repo's own rules:
 
 - **the three scripts**, because `test_nothing_tracked_escapes_the_type_checker` makes tracked Python
   checked Python, and a frozen record of what ran on one day cannot be edited to satisfy
@@ -24,12 +24,27 @@ the rest. Out of git for three different reasons, each of them one of this repo'
   one: it would edit the very bytes `SHA256SUMS` attests, so the record would no longer be the record;
 - **the count matrices** — `counts/{production,nocorrect,combined}/counts.json`,
   `multimapper_probe/counts.json`, `counts_summary.json`, 789 KB of them — because bulk data does not
-  go in git, and #264 already said where these belong: beside the fingerprint packages in
-  `liuhlab/seqforge-benchmark`, behind the opt-in eval job, which is where this repo keeps large
-  per-dataset inputs.
+  go in git, and #264 already said where these belong: the public **Hugging Face dataset repo** the
+  benchmark corpus uses, behind the opt-in eval job, which is where this repo keeps large per-dataset
+  inputs.
 
-All three ship as **one tarball of this whole directory**, so a download is self-contained and
-`sha256sum -c SHA256SUMS` inside it verifies all fifteen members against the list git also carries.
+**Where the rest actually is.** All three ship as **one tarball of this whole directory**, and it is
+published — not "belongs on", *is on*:
+
+```
+https://huggingface.co/datasets/liuhlab/seqforge-benchmark/resolve/main/fixtures/umite-agreement-fixture-2026-08-04.tar.gz
+```
+
+Anonymous read, no token, like every other file in that repo (`io/benchmark.py`). Unpack it and
+`sha256sum -c SHA256SUMS` inside verifies all fourteen attested members against the list git also
+carries — `SHA256SUMS` itself is the fifteenth file in the tarball and the one that does the
+attesting.
+
+It sits under `fixtures/`, **not** under the `packages/` prefix `HF_PACKAGE_PREFIX` names: nothing in
+seqforge fetches it, no eval case resolves it, and it is a record a human downloads rather than an
+input the harness pulls. Saying only where it *belonged* is what made this look, to someone checking,
+like a repository that was never created — and checking `github.com/liuhlab/seqforge-benchmark` finds
+nothing, because it is not a GitHub repo.
 It is **not** a CI fixture: the port's counter is tested against a synthetic annotation and a
 hand-built BAM whose every read's fate is known by construction (below), and these numbers are the
 agreement evidence behind a choice, never an oracle for a unit test.
@@ -229,9 +244,19 @@ use. The numbers below are the agreement evidence for the choice #256 made; they
 fixture.
 
 If a real-data agreement check is ever wanted in CI, its inputs belong beside the fingerprint
-packages in `liuhlab/seqforge-benchmark`, behind the opt-in eval job (`io/benchmark.py`,
-`eval-corpus.md`) — the place this repo already keeps large per-dataset inputs. That is where the
-matrices go, and the header of this page says which files those are.
+packages on the benchmark dataset repo, behind the opt-in eval job (`io/benchmark.py`,
+`eval-corpus.md`) — the place this repo already keeps large per-dataset inputs. The matrices are
+published there today; the header of this page says at what path.
+
+**That check cannot be built from this record, and no download changes that.** The tarball carries no
+BAMs, no GTF and no gene list — deliberately, for the reason the section above gives: a gencode slice
+would bake one species into a repo that compiles any. So there is no input to re-run a counter
+against, and "agrees with the reference on the combined matrix" is not a claim this record can be
+made to settle. That is why [#337](https://github.com/liuhlab/seqforge/issues/337) proved
+`umi_combined` **by construction** — a synthetic annotation and a hand-built BAM whose every read's
+fate is known in advance — rather than against these cells, and the limit is sharper still than
+"different inputs": at 2 000 reads a cell the combined figure here equalled the sum of the two
+buckets exactly, so this fixture cannot tell the two definitions apart even where it does overlap.
 
 ## Decisions taken on this evidence (2026-08-04)
 

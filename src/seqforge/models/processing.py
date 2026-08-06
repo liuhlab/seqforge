@@ -139,10 +139,12 @@ class UmiQuant(BaseModel):
     """The plate assay's counting shape — one combined matrix object over every cell of the deposit.
 
     Carries no knob, and that is a statement about the counter rather than a placeholder. The
-    engine writes four matrices in one pass — UMIs and reads, each split exonic/intronic — for the
-    same reason :class:`BulkQuant` has no strandedness field: when every alternative is computed in
-    one pass and the outputs are small, compute them all and let the consumer choose. Which of the
-    four a reader wants is a question asked of the object, not of the pipeline.
+    engine writes every matrix in one pass — UMIs and reads, against exon, intron and the two
+    together — for the same reason :class:`BulkQuant` has no strandedness field: when every
+    alternative is computed in one pass and the outputs are small, compute them all and let the
+    consumer choose. Which one a reader wants is a question asked of the object, not of the pipeline;
+    which ones exist is :mod:`seqforge.workflows.umite.count`'s table to say, and counting them here
+    is what made this paragraph describe an object one layer smaller than the shipped one.
 
     It exists so a plate recipe stays well-typed against the module that runs it. Without it the
     module's config block inherits ``quantMode``, a real and wrong instruction to a pipeline whose
