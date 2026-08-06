@@ -121,36 +121,39 @@ ucsc-twobitinfo = "*"
 
 # The DAG builder, so compose's wiring gate runs rather than skipping green. `minimal` because
 # submitting jobs is the user's. STAR and samtools belong to liulab-runtime, which the rules name;
-# NO table here declares one, and that has no exceptions -- see below.
+# no table a RULE resolves against declares one -- see the `star` feature below for the one table
+# that does, and why it cannot reach a rule.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 
-# NO ALIGNER IS DECLARED HERE, and the tests that need one still run. Both halves matter.
+# THE ALIGNER LIVES HERE, IN A FEATURE NO ENVIRONMENT SHIPS AND NO RULE CAN REACH.
 #
 # `external` marks a test needing a binary seqforge does not own. Those tests are real coverage --
 # the STAR one is the end-to-end proof that a UMI tag put on a read survives into the aligner's own
 # output, which is the claim the uBAM route rests on -- and a test that cannot run is not a weaker
 # test but a claim with nothing behind it, because a skip is green.
 #
-# The tempting fix was a pixi feature carrying `star`/`samtools`/`htslib`, and it was taken and
-# reverted (#338). It made this repo declare an aligner, which four shipped comments say it does not
-# (`workflows/__init__.py`, `workflows/cram.py`, `starsolo.smk`, `chromap.smk`) and which the
-# consumer-not-parallel-universe rule forbids outright: an alignment environment is liulab-runtime's
-# to define and this project's only to name. It also declared an aligner that could not be solved on
-# `osx-arm64`, where the maintainer works,
-# because bioconda's only Apple-silicon STAR needs a `libdeflate` older than this project's PDF stack.
-# Pinning the feature to `linux-64` bought a table nobody could build against a rule nobody should
-# have written.
+# The first attempt at owning them put `star`/`samtools`/`htslib` in a feature that was solved
+# ALONGSIDE the rest, and it was reverted (#338) for a reason that was real and is still real: on
+# `osx-arm64` bioconda's only STAR build caps `htslib <1.23`, whose `libdeflate 1.22` collides with
+# the `libdeflate >=1.25` that `mupdf` requires. One package, two disjoint ranges, no solution. The
+# revert then borrowed liulab-runtime's already-locked `align-rna` environment instead, which cost no
+# table but bought an unpinned clone of another repository into this one's critical path.
 #
-# What replaces it costs no table at all: liulab-runtime's `align-rna` environment already pins
-# `star` 2.7.11b, `samtools` 1.23.1 and `htslib` 1.23.1, and putting its `bin` on PATH lets the whole
-# `external` set pass from the plain `test` environment. That is what CI does (`.github/workflows/
-# ci.yml`), and it is what a developer does locally:
+# What that attempt missed: STAR is only ever on PATH and is NEVER IMPORTED, so it has no reason to
+# share a solve with the PDF stack. `test-star` below omits `solve-group`, solving alone, and the
+# collision cannot arise. Verified across all three platforms -- `star` 2.7.11b on each, with
+# htslib/samtools 1.22.1 on `osx-arm64` and 1.23.1 on `linux-64` and `osx-64`.
 #
-#     PATH="$(path to liulab-runtime)/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external
-#
-# `test_no_dependency_table_declares_an_aligner` is what keeps this true, because the comment above
-# was already there when the feature was added and comments do not fail a build.
+# What is preserved is the half that always mattered: `test-star` carries no `seqforge`, joins no
+# solve group, and reaches no environment the wheel ships or a Snakemake rule resolves against. An
+# alignment environment a RULE names is still liulab-runtime's alone.
+# `test_the_aligner_is_confined_to_the_test_only_environment` is what keeps that true, because the
+# comments saying it do not fail a build.
+[tool.pixi.feature.star.dependencies]
+star = "*"
+samtools = "*"
+htslib = "*"
 
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
@@ -164,10 +167,23 @@ pytest-xdist = "*"
 # OpenMP pool to the whole box, then fight the others for it. Three names because three libraries are
 # underneath. On the FEATURE, not on a task, so all five ways of invoking the suite inherit it;
 # `test_the_test_environment_pins_its_thread_pools` asserts both the declaration and its arrival.
+#
+# PATH is here for the same reason and it is the whole mechanism: one declaration puts `test-star`'s
+# binaries in front of every way of running the suite -- `test`, `test-fast`, `test-external`,
+# `check`, `pixi shell -e test`, and each xdist worker -- so no verb spells an aligner path and no
+# developer types one. It replaces the incantation the borrowed environment needed:
+#
+#     PATH="<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external
+#
+# If `test-star` is not installed this names a directory that does not exist, which is harmless: PATH
+# tolerates it and the binary-gated tests skip exactly as they did before. That is the degradation
+# `test-fast` is the verb for. It is ALSO how a skip goes quiet again, so CI runs `STAR --version`
+# before the selection rather than trusting the skip count.
 [tool.pixi.feature.test.activation.env]
 OMP_NUM_THREADS = "1"
 OPENBLAS_NUM_THREADS = "1"
 MKL_NUM_THREADS = "1"
+PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/test-star/bin:$PATH"
 
 [tool.pixi.feature.dev.dependencies]
 ruff = "*"
@@ -186,9 +202,16 @@ mkdocs-material = "*"
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
 test    = { features = ["py313", "test", "wf"], solve-group = "default" }
 docs    = { features = ["py313", "docs"], solve-group = "default" }
-# There is no `test-external` environment. The `external` tests run from `test`, with liulab-runtime's
-# `align-rna/bin` on PATH -- an environment that had to be pinned to one platform and left the
-# maintainer's own machine unable to build it is not what "seqforge does not own aligners" looks like.
+# TWO absences, and together they are the entire design. No `solve-group`: the three above share one
+# so the editor, the suite and the site see identical versions, and `test-star` must NOT join them,
+# because STAR's `libdeflate` and the PDF stack's have no common solution on `osx-arm64`. And
+# `no-default-feature`, because every environment otherwise inherits `[tool.pixi.dependencies]` --
+# which is where `pymupdf` is, so without this the collision arrives by the back door and the lock
+# fails exactly as the reverted attempt did.
+#
+# What is left solves alone, carries no Python and no `seqforge`, and exists only to put two binaries
+# on PATH -- all a test ever needed, since nothing imports an aligner.
+test-star = { features = ["star"], solve-group = "star", no-default-feature = true }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -200,11 +223,13 @@ typecheck = "mypy"
 # `loadgroup` groups only tests carrying `xdist_group`; why not `loadfile`, and when to mark a
 # module, is a decision record. Measurements: docs/research/xdist-worker-sweep-2026-08-01.md.
 test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
-# Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake.
+# Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake,
+# or one that would rather not install `test-star`.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
-# The complement. It runs from `test` like everything else and needs the BINARIES on PATH, not a
-# different environment: without them these tests skip themselves and this verb reports green having
-# run nothing. `PATH="<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external`.
+# The complement, and it now takes no incantation: `test`'s activation already put `test-star/bin` in
+# front, so `pixi run -e test test-external` is the whole command on any machine that ran
+# `pixi install`. Without those binaries these tests skip themselves and this verb reports green
+# having run nothing, which is why CI proves the binaries answer before it selects.
 test-external = "pytest -m external -n auto --maxprocesses 12 --dist=loadgroup"
 # Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"

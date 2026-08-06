@@ -178,51 +178,80 @@ def test_seqforge_defines_no_aligner_environments() -> None:
     assert not found, f"seqforge is defining an aligner environment: {found}"
 
 
+#: The ONE table permitted to name a tool liulab-runtime owns. Everything this guard allows is a
+#: consequence of that feature being unreachable from anything shipped or executed — see the test.
+_ALIGNER_FEATURE = "star"
+
+
 @pytest.mark.repo
-def test_no_dependency_table_declares_an_aligner() -> None:
+def test_the_aligner_is_confined_to_the_test_only_environment() -> None:
     """...and the same rule read where it was actually broken: the project configuration.
 
-    Four shipped files say this repo declares no aligner — ``workflows/__init__.py`` ("no conda YAML,
-    no Dockerfile, and no aligner in any dependency table"), ``workflows/cram.py``, ``starsolo.smk``,
-    ``chromap.smk`` — and consumer-not-parallel-universe says it once for the whole project: an
-    alignment environment is liulab-runtime's to define and this repo's only to name. All four
-    statements were true and none was
-    enforced: the guard above reads the *source tree* for a conda YAML or a Dockerfile, and a pixi
-    feature carrying ``star = "*"`` is neither. So one was added, four comments became false, and
-    every check stayed green (#336, reverted in #338).
+    Four shipped files used to say this repo declares no aligner *anywhere* —
+    ``workflows/__init__.py``, ``workflows/cram.py``, ``starsolo.smk``, ``chromap.smk`` — and all four
+    were true, unenforced, and quietly falsified when a pixi feature carrying ``star = "*"`` was added
+    (#336, reverted in #338): the sibling guard reads the *source tree* for a conda YAML or a
+    Dockerfile, and a pixi feature is neither.
 
-    The cost was not only the broken rule. That table declared an aligner that **cannot be solved on
-    ``osx-arm64``** — bioconda's only Apple-silicon STAR needs a ``libdeflate`` older than this
-    project's PDF stack — so it had to be pinned to ``linux-64``, which left the maintainer's own
-    machine unable to build the environment its tests needed. A boundary violation and a broken
-    developer setup, from one line nothing was watching.
+    The rule is now narrower and the narrowing is the point. What consumer-not-parallel-universe
+    actually protects is that **no Snakemake rule and no wheel ever resolves an aligner from our
+    tables** — an alignment environment a rule NAMES is liulab-runtime's to define. It never required
+    that a binary two tests exec be absent from the repository. So ``star`` may be declared, in
+    exactly one feature, reachable from exactly one environment that ships nothing and that no rule
+    can see.
 
-    The tests that need those binaries still run, and this is what makes their absence here safe to
-    assert: liulab-runtime's ``align-rna`` environment already pins ``star``, ``samtools`` and
-    ``htslib``, and putting its ``bin`` on PATH passes the whole ``external`` set from the plain
-    ``test`` environment. Borrowing the owner's environment costs no table; owning a second copy cost
-    a platform.
+    Three properties keep that true and this test asserts all three, because losing any one of them
+    reinstates the failure that forced the revert:
+
+    - the aligner appears in **no other table**, so it cannot reach ``default``, ``test`` or ``docs``;
+    - ``test-star`` sets ``no-default-feature``, so it does not inherit ``[tool.pixi.dependencies]``
+      — that is where ``pymupdf`` is, and inheriting it puts STAR's ``libdeflate 1.22`` and mupdf's
+      ``libdeflate >=1.25`` in one solve, which HAS NO SOLUTION on ``osx-arm64``;
+    - ``test-star`` is in **its own solve group**, for the same collision by the other route.
+
+    Those last two are why the reverted attempt could not be built on Apple silicon and had to be
+    pinned to ``linux-64``. They are not style. The binaries reach the suite through ``PATH`` (the
+    ``test`` feature's activation), never through a shared solve, because nothing imports an aligner.
     """
+    permitted = f"tool.pixi.feature.{_ALIGNER_FEATURE}.dependencies"
     offenders = {
         table: sorted(hits)
         for table, packages in _declared_packages().items()
-        if (hits := {p for p in packages if p.lower() in _RUNTIME_OWNED})
+        if table != permitted and (hits := {p for p in packages if p.lower() in _RUNTIME_OWNED})
     }
     assert not offenders, (
-        f"a pixi dependency table declares a tool liulab-runtime owns: {offenders}.\n"
-        f"consumer-not-parallel-universe, and four shipped comments, say this repo declares no "
-        f"aligner -- it NAMES an env liulab-runtime defines. If an `external` test needs the "
-        f"binary, borrow the owner's "
-        f"environment instead: `PATH=<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH pixi run -e "
-        f"test test-external`, which is what CI does."
+        f"a pixi dependency table outside `{permitted}` declares a tool liulab-runtime owns: "
+        f"{offenders}.\nAn aligner may be declared for the `external` tests to exec, and NOWHERE a "
+        f"rule or the wheel can resolve it. Add it to the `{_ALIGNER_FEATURE}` feature, which only "
+        f"`test-star` uses and which reaches the suite through PATH."
     )
 
-    # ...and the guard discriminates, against the exact table that was here and is not any more.
-    assert {p for p in ["star", "samtools", "htslib"] if p in _RUNTIME_OWNED} == {
-        "star",
-        "samtools",
-        "htslib",
+    # ...and the permitted table really is the one carrying them, so `offenders` being empty is not
+    # empty because the aligner vanished.
+    assert {"star", "samtools", "htslib"} <= {p.lower() for p in _declared_packages()[permitted]}, (
+        f"`{permitted}` is where the aligner lives; the `external` tests exec these three"
+    )
+
+    # ...and the two absences that make confinement real rather than nominal. Either one coming back
+    # is the unsolvable-on-osx-arm64 lock that forced the revert.
+    envs = _pyproject()["tool"]["pixi"]["environments"]
+    star_envs = {
+        name
+        for name, spec in envs.items()
+        if _ALIGNER_FEATURE in (spec.get("features", []) if isinstance(spec, dict) else spec)
     }
+    assert star_envs == {"test-star"}, (
+        f"only `test-star` may carry the `{_ALIGNER_FEATURE}` feature; found {sorted(star_envs)}"
+    )
+    star_env = envs["test-star"]
+    assert star_env.get("no-default-feature") is True, (
+        "`test-star` must not inherit `[tool.pixi.dependencies]` -- pymupdf is there, and its "
+        "libdeflate has no common solution with STAR's on osx-arm64"
+    )
+    assert star_env.get("solve-group") not in {None, "default"}, (
+        "`test-star` must solve alone; joining `default` reinstates the same libdeflate collision"
+    )
+
     # ...while leaving what this project legitimately declares alone. `snakemake-minimal` builds the
     # DAG for compose's wiring gate and is not an alignment tool; the aligner check must not creep
     # into forbidding it, or the wiring gate goes back to skipping green.

@@ -30,7 +30,8 @@ samtools is **not** a dependency of this package. It is a runtime binary the ``a
 carries (in its base layer), and the ``solo_to_cram`` rule names that image with ``container:`` —
 exactly as ``starsolo_count`` does for STAR. So this module shells out to the samtools the pinned
 image provides, never one seqforge installed; that is the same "consume the runtime, don't redefine
-it" line that keeps STAR out of every dependency table here.
+it" line that keeps STAR out of every dependency table a RULE resolves against. The samtools a test
+execs comes from a test-only pixi environment, which ships nowhere and reaches no rule.
 """
 
 from __future__ import annotations

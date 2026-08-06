@@ -134,8 +134,8 @@ rule chromap_align:
     output:
         fragments=temp(f"{OUTDIR}/{{sample}}/{RAW_FRAGMENTS}"),
     # The pinned aligner: liulab-runtime's `align-dna`, resolved by compose to a ghcr tag or a prebuilt
-    # .sif. Naming it here CONSUMES liulab-runtime's artifact — no conda YAML, no Dockerfile, no chromap
-    # in any dependency table of ours.
+    # .sif. Naming it here CONSUMES liulab-runtime's artifact — no conda YAML, no Dockerfile, and no
+    # chromap in any dependency table of ours at all: unlike STAR, nothing here execs one in a test.
     container: config["container"]
     threads: config["threads"]
     params:

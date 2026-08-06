@@ -262,7 +262,8 @@ rule starsolo_count:
         bam=temp(f"{OUTDIR}/{{sample}}/{STAR_BAM}"),
     # The pinned aligner: liulab-runtime's `align-rna`, resolved by compose to a ghcr tag or to a
     # prebuilt .sif on this machine. Naming it here is CONSUMING liulab-runtime's artifact, not
-    # defining an environment -- no conda YAML, no Dockerfile, no STAR in any dependency table.
+    # defining an environment -- no conda YAML, no Dockerfile, and no dependency table this rule can
+    # resolve against. The STAR a test execs lives in a test-only environment no rule can see.
     #
     # Honoured only when the run passes `--software-deployment-method apptainer` (measured: without
     # it, snakemake plans the same jobs and never mentions the image). That is snakemake's contract

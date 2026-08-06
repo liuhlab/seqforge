@@ -219,8 +219,10 @@ WORKFLOW_VERSION = "2026.8.8"
 _MODULE_DIR = Path(__file__).parent
 
 #: liulab-runtime's published image. **A reference to their artifact, never a definition of one**:
-#: we name a tag they build and push, and this repo still contains no conda YAML, no
-#: Dockerfile, and no aligner in any dependency table. `align-rna` is where STAR comes from.
+#: we name a tag they build and push, and this repo contains no conda YAML and no Dockerfile.
+#: `align-rna` is where the STAR that RUNS A DATASET comes from, and no dependency table here can
+#: reach a rule. A test-only pixi environment does carry a STAR the `external` tests exec; it ships
+#: in no wheel, joins no solve group, and is invisible from here.
 RUNTIME_IMAGE = "ghcr.io/liuhlab/liulab-runtime"
 
 #: How liulab-runtime names a prebuilt Singularity image. Read off their own `build-sifs.sh` on
