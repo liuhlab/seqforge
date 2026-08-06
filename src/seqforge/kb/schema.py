@@ -82,6 +82,20 @@ class Element(_Forbid):
         anchored = self.anchor is not None
         if self.type in ("linker", "fixed") and self.sequence is None:
             raise ValueError(f"element {self.name!r}: linker/fixed needs a literal `sequence`")
+        if self.sequence is not None and self.start is not None and self.end is not None:
+            # Two declarations of ONE width, and nothing downstream reconciles them. The generator
+            # concatenates elements in order while every reader addresses `[start, end)`, so a literal
+            # that disagrees with its own window shifts every element after it: `kb roundtrip`'s C1
+            # then reddens on some LATER element, far from the cause, and only if the entry has a
+            # fixture to run it against at all. Conditioned on all three being present because a
+            # floating linker (BD Rhapsody Enhanced, behind its diversity insert) declares a literal
+            # and NO window on purpose — it has one width, not two, and nothing to contradict.
+            width = self.end - self.start
+            if len(self.sequence) != width:
+                raise ValueError(
+                    f"element {self.name!r}: `sequence` is {len(self.sequence)} bp but "
+                    f"[{self.start}, {self.end}) is {width} bp wide"
+                )
         if self.type in ("cdna", "gdna"):
             return self  # open-ended is legal
         if not (fixed or opened or anchored or varlen):

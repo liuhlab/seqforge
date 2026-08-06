@@ -65,6 +65,7 @@ from seqforge.manifest.hash import dataset_content_hash
 from seqforge.models.dataset import DatasetManifest, FileInventoryItem, SampleGroup
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
+from seqforge.models.resolve import GateVerdict
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.engine import Hypothesis
@@ -209,7 +210,12 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
     """
     if _UNSTUBS_THE_GATE & set(request.fixturenames):
         return
-    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", lambda pipeline_dir, plan: "skip")
+    monkeypatch.setattr(
+        "seqforge.compose.gates.wiring_gate",
+        lambda pipeline_dir, plan: GateVerdict(
+            status="skip", reason=["stubbed by `_no_wiring_gate`; this test did not ask to spawn"]
+        ),
+    )
 
 
 @pytest.fixture
@@ -241,7 +247,7 @@ def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     real = gates.wiring_gate
     calls: list[Path] = []
 
-    def counted(pipeline_dir: Path, plan: ComposePlan) -> str:
+    def counted(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
         calls.append(pipeline_dir)
         return real(pipeline_dir, plan)
 
@@ -797,7 +803,7 @@ class ComposedPlate:
     #: deliberately, and says why: the mate-less verdict is already asserted twice by tests of its
     #: own, and this fixture's plan below is that same DAG build with an exception in place of four
     #: characters.
-    gate: dict[str, str]
+    gate: dict[str, GateVerdict]
     #: ``snakemake -n -p`` over that directory — the rendered plan, shell blocks and all.
     plan_text: str
     cells: tuple[str, ...]

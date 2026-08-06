@@ -36,7 +36,7 @@ from typing import assert_never
 import yaml
 
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
-from ..kb import load_spec
+from ..kb import KB_VERSION, load_spec
 from ..kb.schema import Spec
 from ..manifest.hash import run_id
 from ..models.dataset import INDEX_ROLE, DatasetManifest, ReadDef
@@ -47,7 +47,7 @@ from ..models.processing import (
     RuntimeEnv,
     SoloQuant,
 )
-from ..models.resolve import ComposeResult, ModuleSelection, SampleAdmission
+from ..models.resolve import ComposeResult, GateVerdict, ModuleSelection, SampleAdmission
 from ..pipeline import CONFIG_NAME, DEFAULT_OUTDIR, UNITS_TSV_NAME, CompiledPipeline
 from ..resolve.group import lane_of, run_key
 from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
@@ -362,10 +362,15 @@ def compose(
     # Keyed by the RUN, not by the workspace. A fixed `.seqforge/pipeline/` path meant recipe B
     # silently overwrote recipe A's config, units, and materialized onlists — and "one dataset, many
     # recipes" is precisely the case this whole change exists to enable.
+    # The LIVE knowledge base, not the one the manifest recorded at fill time. ADR-0037. `plan` above
+    # read this KB for the params, the derived keys and the admission floor, so the config is a
+    # function of it; hashing the fill-time value instead meant an old manifest compiled under a new
+    # KB produced a different config at the same `run_id`, into the same directory, silently. The
+    # manifest's own `kb_version` stays exactly what it is — the KB that decided its chemistry.
     rid = run_id(
         dataset_hash=manifest.provenance.dataset_hash,
         processing_hash=processing.provenance.processing_hash,
-        kb_version=manifest.provenance.kb_version,
+        kb_version=KB_VERSION,
         workflow_version=processing.provenance.workflow_version,
     )
     # `pipeline/default-a3f8c19d2b04/`, not `pipeline/a3f8c19d…696/`. The run_id stays the identity
@@ -427,25 +432,24 @@ def compose(
     from .gates import e2e_gate, wiring_gate
 
     status, problems = params_gate(manifest, processing, p.spec, p.config)
-    gate: dict[str, str] = {
-        "params": status,
-        "wiring": wiring_gate(pipeline.directory, p) if run_wiring_gate else "skip",
+    # A failing gate must say WHY; the verdict alone is not actionable. That principle lived here and
+    # applied to `params` alone, because `params_problems` had nowhere to go but `params_preview` —
+    # whose name would have lied the moment a second gate used it. It now rides on each verdict.
+    gate = {
+        "params": GateVerdict(status=status, reason=problems),
+        "wiring": wiring_gate(pipeline.directory, p)
+        if run_wiring_gate
+        else GateVerdict(status="skip", reason=["the caller did not ask for the wiring gate"]),
         "e2e": e2e_gate(),
     }
-
-    preview: dict[str, object] = dict(p.config)
-    # a failing gate must say WHY; the verdict alone is not actionable
-    preview["params_problems"] = problems
 
     return ComposeResult(
         modules=[p.module],
         snakefile_path=str(pipeline.snakefile.relative_to(Path(workspace))),
         config_path=str(pipeline.config_path.relative_to(Path(workspace))),
         units_path=str(pipeline.units_path.relative_to(Path(workspace))),
-        # `wiring_gate` and `e2e_gate` are annotated `-> str`, so this dict is `dict[str, str]`;
-        # pass/fail/skip is all either can return, and the model pins that.
-        gate=gate,  # type: ignore[arg-type]
-        params_preview=preview,
+        gate=gate,
+        params_preview=dict(p.config),
         admission=admission,
     )
 
@@ -479,7 +483,7 @@ def _write_exclusions(
             render_record(
                 admission,
                 chemistry=manifest.library.chemistry.value[0],
-                kb_version=manifest.provenance.kb_version,
+                kb_version=KB_VERSION,
                 filename_derived=all(s.accession is None for s in manifest.experiment.samples),
             )
         )

@@ -1012,7 +1012,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
     # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
     # repo. If it ever goes missing again, that is a broken environment and this says so.
-    assert result.gate["wiring"] == "pass"
+    assert result.gate["wiring"].status == "pass", result.gate["wiring"].reason
     run_dir = (tmp_path / result.snakefile_path).parent
     strays = [p for p in run_dir.rglob("*") if p.suffix == ".gz" and p.stat().st_size == 0]
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
@@ -4730,8 +4730,11 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
     changed nothing (40 of 46 again). It is passed anyway, and that is not cargo — it pins a default
     the whole output format depends on, in the one place a reader can see the dependency.
 
-    Needs STAR and samtools, which seqforge does not own and this suite never installs, so it skips
-    everywhere but a machine that has them.
+    Needs STAR and samtools, which seqforge does not own. What runs it is the `test-external`
+    environment, which carries both from bioconda for this purpose alone, and CI's `test (external
+    binaries)` job, which is `pytest -m external` in that environment on every pull request. Before
+    that environment existed this ran on no host this project's CI could reach — which is to say
+    nowhere, for the life of the repo, silently, because a skip is green (#333).
     """
     import random
 
