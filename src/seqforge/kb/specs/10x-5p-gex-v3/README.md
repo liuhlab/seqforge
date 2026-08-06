@@ -69,6 +69,6 @@ processing manifest where a user may instruct it.
 
 `3M-5pgex-jan-2023` is pinned by URL and sha256 in the onlist registry, packed from
 `scg_lib_structs/data/10X-Genomics/` — the same mirror every other 10x list came from.
-`assay_ontology` is `EFO:0022605` ("10x 5′ v3"), looked up against the live EBI OLS. It is **not** a 3′
-term and not 5′ v1/v2's — filing a kit under a neighbouring term is the mistake the ontology note in
-[`docs/agents/kb.md`](../../../../../docs/agents/kb.md) exists to prevent.
+`assay_ontology` is `EFO:0022605` ("10x 5′ v3"), looked up against the live EBI OLS rather than
+recalled. It is **not** a 3′ term and not 5′ v1/v2's: filing a kit under a neighbouring term files the
+spec under a protocol it does not model, and no test can see that it happened.

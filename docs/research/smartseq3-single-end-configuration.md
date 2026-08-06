@@ -1,7 +1,7 @@
 # Smart-seq3's single-end configuration: the read-set contest, and the aligner argument under it
 
 Measured 2026-08-05 for [#267](https://github.com/liuhlab/seqforge/issues/267), decided in
-[ADR-0035](../adr/0035-the-mate-is-an-addition-to-umi-extraction.md). Two measurements, joined by one
+ADR-0035. Two measurements, joined by one
 change rather than by a mechanism: what declaring `read_sets: {se: [R1]}` on the plate entry does to
 scoring, and what STAR does when the aligner argument that follows from it is wrong.
 

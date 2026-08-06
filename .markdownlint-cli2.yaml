@@ -7,8 +7,14 @@
 #
 # Scope is deliberate: the docs site, the KB assay READMEs that render into it, and the top-level
 # README — the prose a person reads. It does NOT lint the agent-facing files (AGENTS.md, the CLAUDE.md
-# symlink to it, docs/agents/, docs/adr/), whose format serves a different reader and whose layering
-# is decided in docs/adr/0041-four-layers-and-none-is-published.md.
+# symlink to it, CONTEXT-MAP.md and the per-context CONTEXT.md files under src/, and the records in
+# docs/adr/ and src/seqforge/*/docs/adr/), whose format serves a different reader and whose layering
+# is decided in ADR-0045 — cited by number, because a record moves between directories and its
+# number does not.
+#
+# Neither this file's globs nor mkdocs.yml's reach src/** (bar the KB READMEs), so the per-context
+# glossaries and the per-context records are unlinted and unpublished. That is the decision, not an
+# oversight: it is the same treatment the rest of the agent-facing layer gets under ADR-0045.
 #
 # The `ignores:` list below and `mkdocs.yml`'s `exclude_docs:` are the SAME list. Anything added to
 # one belongs in the other; they drifted once already, turning CI red on every open PR.
@@ -18,7 +24,7 @@
 config:
   default: true
   # Line length is NOT gated, matching the codebase's own policy: ruff sets line-length 100 but
-  # ignores E501 (docs/agents/toolchain.md), so Python lines may run over and prose follows the rule —
+  # ignores E501 (pyproject.toml), so Python lines may run over and prose follows the rule —
   # hand-wrapped near 100, never failed for a trailing word or an unbreakable URL. Every other
   # markdownlint rule (headings, lists, fenced-code language, table style, inline-HTML, …) stays on.
   MD013: false
@@ -29,10 +35,9 @@ globs:
   - "README.md"
 
 ignores:
-  # The reference layer, the ADRs and the research notes — the three trees mkdocs excludes, so not
-  # written to docs-page rules either. `docs/adr/**` was deliberately listed before the directory
-  # existed: the first ADR must not be the commit that turns CI red.
-  - "docs/agents/**"
+  # The records and the research notes — the two trees mkdocs excludes, so not written to docs-page
+  # rules either. `docs/adr/**` was deliberately listed before the directory existed: the first ADR
+  # must not be the commit that turns CI red.
   - "docs/adr/**"
   - "docs/research/**"
   # The KB assay pages are one-line snippet-include wrappers (they pull in the canonical README next

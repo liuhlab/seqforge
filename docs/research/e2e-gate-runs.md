@@ -1,8 +1,8 @@
 # What the end-to-end gate runs actually measured
 
 Measured **2026-07-15** on three fixtures — sacCer3, ce11 + WS298, hg38 — moved out of
-`docs/agents/eval-corpus.md` on **2026-08-05**. The compose gate's design lives there; the numbers
-and the boxes they were taken on live here.
+the eval-corpus reference page on **2026-08-05**. The gate's design is `compose/params_gate.py`;
+the numbers and the boxes they were taken on live here.
 
 **Method.** `seqforge kb e2e` (sacCer3, 2 000 reads, 120 genes, 8 cells), `kb e2e-introns` (ce11 with
 WS298 annotation) and `kb e2e-cost` (hg38) — each drives reads simulated from a real transcriptome
@@ -36,7 +36,7 @@ chemistry from the bytes unaided.
 an exit-4 question but the parse-versus-count split plus an all-five feature default — one alignment,
 five counting rules, one pass — so the fixture that priced the defect is now the gate that prevents
 it: with its override deleted it asserts the composed feature set against the compiler's own params
-([ADR-0012](../adr/0012-produce-every-answer-rather-than-ask.md)). Velocyto is unconditional, a
+(ADR-0011). Velocyto is unconditional, a
 maintainer decision of 2026-07-15 rather than a measurement.
 
 ## `kb e2e-cost` — hg38, peak memory at corpus scale

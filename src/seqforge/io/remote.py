@@ -79,7 +79,7 @@ SDL_RETRIEVE = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
 #:
 #: The four `submitted_*` fields are one fact — ENA's spelling of what SRA publishes on
 #: `<SRAFile supertype="Original">` — and only three of them used to be asked for. It is an ADDRESS
-#: over the submitter's own upload, never a hash to check a local file against (`docs/adr/0033`), and
+#: over the submitter's own upload, never a hash to check a local file against (ADR-0033), and
 #: for a run whose deposit was a cellranger BAM it is the only content-address there is: ENA
 #: generates no FASTQ for one, so `fastq_md5` comes back empty and the submitted file is all the data.
 ENA_FIELDS = (
@@ -462,7 +462,7 @@ def technical_read_remedy(accession: str) -> str:
 
     Within that fallback the order is ``io records`` then SDL, because the archive record we already
     fetched, parsed and cached names the bucket per run: sending a reader to a second API for a fact
-    on disk was never a remedy, it was a lead (`docs/adr/0033`).
+    on disk was never a remedy, it was a lead (ADR-0033).
     """
     return (
         "the technical read is still inside the .sra — fasterq-dump skips it BY DEFAULT. Re-fetch "

@@ -904,7 +904,7 @@ def test_run_key_groups_by_accession_and_never_by_role() -> None:
 
 
 def test_the_lanes_of_one_library_are_one_run() -> None:
-    """A run spans every lane it was loaded into (`docs/adr/0027`), so the lane token is stripped.
+    """A run spans every lane it was loaded into (ADR-0027), so the lane token is stripped.
 
     Retaining it made a four-lane library four runs, and with no archive record a run IS the sample
     identity -- so four samples at a quarter depth each, at exit 0 (#263).

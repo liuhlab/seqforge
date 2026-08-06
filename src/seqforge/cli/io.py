@@ -604,7 +604,7 @@ def io_records(
     # The submitted files are listed in full rather than counted, because this verb is where the
     # concrete `s3://sra-pub-src-*` URI reaches a person at all: five refusals now say "go run
     # `seqforge io records`" instead of naming a bucket and an API to go hunting in, and every one of
-    # those pointers dead-ends if the answer is a number (`docs/adr/0033`). Flat, one row per file
+    # those pointers dead-ends if the answer is a number (ADR-0033). Flat, one row per file
     # with its run alongside, so a caller filters it with one `jq select`: this output is an
     # interface for a program first and a person second.
     typer.echo(

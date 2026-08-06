@@ -1,11 +1,11 @@
 # A held-out TEST set: what it would measure that pre-registration structurally cannot
 
 Scope written **2026-08-01** for [#81](https://github.com/liuhlab/seqforge/issues/81), moved out of
-`docs/agents/eval-corpus.md` on **2026-08-05** because a reference page describes what exists and
-this describes what does not.
+the eval-corpus reference page on **2026-08-05** because that page described what exists and this
+describes what does not.
 
 **Nothing here is decided, and there is no third tier.**
-[ADR-0016](../adr/0016-no-held-out-dataset.md) is in force: this project reserves no dataset, and no
+ADR-0016 is in force: this project reserves no dataset, and no
 directory named below exists in the tree. This is written so a later milestone can be executed
 without re-deriving it — and cancelled on evidence rather than drift, for which see the last section.
 

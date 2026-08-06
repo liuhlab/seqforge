@@ -3,7 +3,8 @@
 Measured **2026-08-02** for [#184](https://github.com/liuhlab/seqforge/issues/184) /
 [#188](https://github.com/liuhlab/seqforge/issues/188) and
 [#196](https://github.com/liuhlab/seqforge/issues/196), against `main` and against `ac11b44`. Moved
-out of `docs/agents/eval-corpus.md` on **2026-08-05**: the conclusions live there, the method here.
+out of the eval-corpus reference page on **2026-08-05**: the conclusions now live in
+`evals/README.md`, the method here.
 
 Both changes are to the **harness**, not to the compiler — cases where the eval was scoring a code
 path the product had abandoned. Each landed on its own, before any compiler fix, so the next tier

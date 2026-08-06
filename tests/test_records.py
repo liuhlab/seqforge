@@ -1523,7 +1523,7 @@ def _user_record_set(
     the fuse (both runs to one sample) and the no-op draft `records new` writes (one sample per run).
     Deliberately carries NO attributes: a hand-written line has no document to grep back into, and
     the precedence table's `asserted` means "a submitter typed this into a slot", so the container is
-    widened by `source` alone (`docs/adr/0034`).
+    widened by `source` alone (ADR-0034).
 
     **Written as YAML and read back through the real loader**, never built as a model. The container
     does not enforce the hand-written dialect — that is the whole reason `recordset.py` exists — so a

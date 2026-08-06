@@ -6,8 +6,8 @@ environment *after* that environment began pinning `OMP_NUM_THREADS` / `OPENBLAS
 was oversubscription that no longer exists — this note supersedes it, and is written to be superseded
 in turn.
 
-The decision this fed is [`docs/adr/0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md`](../adr/0038-loadgroup-over-loadfile-and-grouping-is-decided-per-module.md);
-the standing rule is [`docs/agents/testing.md`](../agents/testing.md).
+The decision this fed is ADR-0002, which absorbed it; the standing rule is the test ladder in
+`AGENTS.md`.
 
 ## Method
 

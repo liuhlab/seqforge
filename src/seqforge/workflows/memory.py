@@ -11,7 +11,7 @@ against one. Here it is importable and unit-testable.
 **Why the escalation is shaped this way** — the unbounded `readInfo` allocation, why
 `--limitBAMsortRAM` permits rather than reserves, why the cap must derive from the *escalated*
 request rather than attempt 1's, and why a sample that exhausts the retries is allowed to fail — is
-argued once in `docs/adr/0023-star-memory-escalates-on-retry.md`. Read it before changing a number
+argued once in ADR-0023. Read it before changing a number
 here; every one of them is load-bearing in a way the arithmetic alone does not show.
 
 **Two modules' arithmetic, and the second is a map rather than a cap.** `map/starsolo` has one

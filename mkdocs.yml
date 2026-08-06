@@ -67,14 +67,14 @@ nav:
           - SPLiT-seq: kb/splitseq.md
           - Bulk RNA-seq: kb/bulk-rnaseq.md
 
-# Three trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
-# of them. The argument is docs/adr/0041-four-layers-and-none-is-published.md.
+# Two trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
+# of them. The argument is ADR-0045 — cited by number, because a record moves between directories
+# and its number does not.
 #
-# A new file under any of the three needs no change here — the directory entries below cover it — but
-# a NEW agent-facing tree does, and must be added to `ignores` in .markdownlint-cli2.yaml in the same
+# A new file under either needs no change here — the directory entries below cover it — but a NEW
+# agent-facing tree does, and must be added to `ignores` in .markdownlint-cli2.yaml in the same
 # commit. They are one list, and test_docs.py fails when they drift.
 exclude_docs: |
-  agents/
   adr/
   research/
 

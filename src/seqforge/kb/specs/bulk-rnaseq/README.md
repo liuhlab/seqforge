@@ -1,14 +1,19 @@
-# Bulk paired-end RNA-seq
+# Bulk Illumina RNA-seq
 
-Standard bulk RNA-seq on an Illumina sequencer: two paired-end cDNA reads, **no cell barcode and no
-UMI**. Every base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns
-these with plain STAR and counts genes, rather than STARsolo.
+Standard bulk RNA-seq on an Illumina sequencer: cDNA reads with **no cell barcode and no UMI**. Every
+base is transcript sequence — there's nothing to demultiplex into cells. seqforge aligns these with
+plain STAR and counts genes, rather than STARsolo.
 
 ## How it's read
 
 - **R1** and **R2** are the two ends of the same cDNA fragment (a mate pair). Both are transcript
   sequence, typically 75–150 bp.
 - No barcode, no UMI, no whitelist.
+
+**Paired-end and single-end are one entry, not two.** They are the same chemistry run two ways, so
+this entry declares the paired layout and names R1 alone as its single-end configuration; the bytes
+choose between them, and a deposit of one file is explained rather than refused. Nothing about the
+reads is written down twice, so the two configurations cannot drift apart.
 
 ## How seqforge tells it apart from single-cell
 
@@ -25,8 +30,7 @@ single-cell library as bulk.
 
 ## Coverage note
 
-This is the paired-end, poly-A branch. Single-end bulk and explicit strand-protocol handling aren't
-modeled yet.
+This is the poly-A branch. Explicit strand-protocol handling isn't modeled yet.
 
 ## References
 

@@ -3,7 +3,7 @@
 # tree. Only a prediction can be wrong (ADR-0016).
 #
 # ================================================================================================
-# THIS CASE IS PUBLISHED RED, THE RED IS EXPECTED, AND THAT IS THE POINT (ADR-0018).
+# THIS CASE IS PUBLISHED RED, THE RED IS EXPECTED, AND THAT IS THE POINT (ADR-0016).
 #
 # It predicts a FIX, exactly as GSE110823 did on 2026-07-23. Grading it against what the code does
 # today would enshrine the defect as the specification. What the code does today, measured on ten
@@ -129,7 +129,7 @@ description: >-
   barcode is the FILE, demultiplexing happened at the bench, and the archive's unit of deposit is a
   cell rather than a specimen.
 
-  PUBLISHED RED, DELIBERATELY, AND PRE-REGISTERED BEFORE ANY RUN (ADR-0018). Measured on ten cells of
+  PUBLISHED RED, DELIBERATELY, AND PRE-REGISTERED BEFORE ANY RUN (ADR-0016). Measured on ten cells of
   this same deposit, seqforge decides the generic bulk chemistry at exit 0, 0.899 against a 0.511
   runner-up, with nothing raised — a bulk gene-count matrix for a single-cell experiment, at the
   highest confidence on the cleanest cells. This file predicts the fix rather than recording the

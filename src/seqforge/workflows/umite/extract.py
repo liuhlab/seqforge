@@ -572,7 +572,7 @@ def extraction_inputs(
     r2: Sequence[Path],
     tagged_role: str,
 ) -> tuple[list[Path], list[Path] | None]:
-    """The two forms of "which files is this cell", resolved into ONE answer (``docs/adr/0036``).
+    """The two forms of "which files is this cell", resolved into ONE answer (ADR-0036).
 
     The **Units table** form — ``units`` plus ``sample`` — is what a module renders, and it is the
     form that has no file list on the command line at all: the verb asks
@@ -624,7 +624,7 @@ def extract_umis(
     ``tagged_fastqs`` are the files of the read the layout says carries the tag — usually one, and
     more than one for a cell topped up across two runs, which is the ordinary form of the 20-of-190
     plate deposits that are not strictly 1:1. They are read **in sequence**, in the order handed
-    over, and that order is the **Units table**'s (``docs/adr/0036``): every fragment of every file
+    over, and that order is the **Units table**'s (ADR-0036): every fragment of every file
     reaches the uBAM, and nothing is concatenated on disk first.
 
     ``mate_fastqs`` are their partners **when there are any**: hand over ``None`` for a single-end

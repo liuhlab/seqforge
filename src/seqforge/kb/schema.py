@@ -5,6 +5,32 @@ read layout (element coordinates), onlist references, a detection ``signature`` 
 excludes), a ``backend`` param template, and a ``confusable_with`` list. Every model forbids extra
 keys, so a typo fails validation exactly where the DSL is executed. The signature test vocabulary is
 *exactly* the scorer's evaluator set.
+
+Three authoring rules nothing below can enforce, because each is about where a value CAME FROM:
+
+**Every value is pinned to a live source, or it does not enter a spec.** A barcode file, a linker
+sequence, a strand, an ontology term — look each one up against whoever publishes it and pin it by URL
+and checksum. Never assert one from memory, and never from a neighbouring entry. Being wrong here does
+not fail: a wrong whitelist emits a thin-looking matrix at exit 0, and a plausible matrix is the one
+failure mode nothing downstream recovers from, where a refusal always is. A value not yet pinned is an
+open lookup in the tracker, never a placeholder in a ``spec.yaml`` — an unverified value parked in
+prose is one nobody checks again. A whitelist may legitimately be pinned *ahead* of the entry that
+will need it, since packing it is a separate and separately verifiable act, but a pin is a loan and
+not a home: one sitting in the registry with no spec behind it is a debt.
+
+**Nothing computes a cross-hit rate between two whitelists.** A ``distinguishable_by`` naming
+``onlist`` is taken at its word — what CI checks is that a divergent pair names a mechanism at all,
+never that the named mechanism can separate that pair. ``io.intersect_fraction`` over the packed
+barcode arrays is the measurement; run it by hand and record the number in the spec beside the value
+it justifies. A checksum is not the substitute waiting to be used: different hashes prove the files
+differ, not that the barcode sets do, and a whitelist that is a superset of another shares a hash with
+nothing.
+
+**No second derivation is watching.** Every element declares a ``seqspec_region_type`` and every read
+a ``seqspec_read_id``, so a seqspec export would be a pure derivation rather than a translation — but
+the emitter is unbuilt, seqspec is not a dependency, and nothing here reads its output. Do not write
+an entry as though a dual derivation will catch a mistake in it. What does check one is ``kb
+roundtrip``, the parse-key gate below, and the confusability sweep.
 """
 
 from __future__ import annotations
@@ -248,7 +274,20 @@ class Signature(_Forbid):
 
 
 class Backend(_Forbid):
-    """A data template mapping to a workflow module. Only ``{onlist:<alias>}`` interpolation is legal."""
+    """A data template mapping to a workflow module. Only ``{onlist:<alias>}`` interpolation is legal.
+
+    ``params`` is the chemistry-defining MINIMUM: the keys whose value varies with the chemistry, and
+    no others. Ownership is decided by what a value varies with, never by what it is for. A
+    CellRanger-parity knob — ``soloUMIdedup 1MM_CR``, ``clipAdapterType CellRanger4``,
+    ``soloCellFilter EmptyDrops_CR`` — is for parity but varies with *nothing*, so it is a literal in
+    the workflow module's own shell block: not this file's, and (being unconditional) not the recipe's
+    either. ``soloCBmatchWLtype`` is the edge case that shows the rule is the right one: it was chosen
+    for parity exactly like those, and it still belongs here, because its value does move from one
+    chemistry to the next.
+
+    Two spellings of one geometry is one spelling too many, so ``soloCBposition`` / ``soloUMIposition``
+    are omitted here and derived from the element coordinates at compose time rather than hand-typed.
+    """
 
     module: str
     params: dict[str, str | int | float | list[str]]
@@ -328,13 +367,17 @@ class Identity(_Forbid):
     version: str
     name: str
     #: Spellings that NAME this node: writing one is a claim that any text carrying it IS this
-    #: chemistry, and it outranks every ``descriptive_alias`` on every other node.
+    #: chemistry, and it outranks every ``descriptive_alias`` on every other node. So a bare field word
+    #: (``WTA``, ``RNA-seq``) is one you must never write here — it would claim a whole field of assays
+    #: for one entry. This is also the ONLY list shown to the extraction model, so a spelling the model
+    #: needs in order to name this node at all belongs here and not below.
     aliases: list[str] = Field(default_factory=list)
     #: Spellings that only DESCRIBE how a library was run — "paired-end RNA-seq" is true of a bulk
     #: library and equally true of a SPLiT-seq one. They still reach this node (an archive describing
     #: a real bulk record that way must resolve, #184), but they lose to any form that names one, so
     #: they name it only when nothing else is named (#266). A form belongs here when you can picture
-    #: a *different* chemistry's record carrying it truthfully.
+    #: a *different* chemistry's record carrying it truthfully. Both lists are surface forms the span
+    #: verifier will accept; only ``aliases`` reaches the extraction model.
     descriptive_aliases: list[str] = Field(default_factory=list)
     assay_ontology: list[str] = Field(default_factory=list)
     modality: Literal["rna", "atac", "multi"] = "rna"

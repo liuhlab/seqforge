@@ -1,8 +1,10 @@
 # AGENTS.md
 
-The router — `CLAUDE.md` is a symlink to this file: one canonical copy, no fork. Read it in full, then
-read a pointer-table row only when you touch that area. Terms are defined once in
-[`CONTEXT.md`](CONTEXT.md) and decisions once in [`docs/adr/`](docs/adr/); this file points at both.
+The router — `CLAUDE.md` is a symlink to this file: one canonical copy, no fork. Read it in full;
+everything else is looked up. Terms are defined once in [`CONTEXT-MAP.md`](CONTEXT-MAP.md) — a
+shared kernel of a dozen words, plus one `CONTEXT.md` per bounded context under `src/seqforge/` —
+and decisions once in [`docs/adr/`](docs/adr/), the system-wide ones there and the rest beside the
+code they govern. This file points at both and restates neither.
 
 ## What this is
 
@@ -48,37 +50,47 @@ compose(manifest, processing)   -> Snakefile + config + units.tsv   deterministi
 
 ## Non-negotiable rules: R1–R11
 
-Imperatives only. Rationale, and the file enforcing each: [`docs/agents/rules.md`](docs/agents/rules.md).
+Imperatives only. Each row cites the records that decided it **by number, never by path** — a record
+moves between directories and its number does not; `—` means no record cites that rule today.
 
-| # | Rule |
-|---|---|
-| R1 | **Emit data, never code.** No LLM writes Snakefile or rule source; LLM output validates against an exported JSON Schema. |
-| R2 | **Agents propose, code decides — and refusal is an exit code.** Nothing enters a manifest unvalidated; every `Assertion` quote must grep back *and* entail its value. |
-| R3 | **Never read a whole FASTQ.** Every FASTQ touch goes through `probe.streaming.BoundedReader`, bounded by `--max-reads` **and** `--max-bytes`. Never write a second budget loop. |
-| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. |
-| R5 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `seqforge/`; resume is implicit and there is no `--resume`. |
-| R6 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` emitting JSON on stdout by default. |
-| R7 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC id + registered GTF name; software = a `liulab-runtime` env name; data = a URI. |
-| R8 | **Every KB entry is executable and self-testing.** Each tech ships a `spec.yaml` that `kb roundtrip` proves recovers what it declares. |
-| R9 | **Cheap first, expensive only on ambiguity.** Rungs 0–3 by default; escalate past 3 only on a processing-divergent tie. Record which rung resolved each field. |
-| R10 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong to `liulab-genome` / `liulab-runtime`. |
-| R11 | **Two artifacts, and the instructable surface is closed.** The dataset is write-once, the recipe plural; parse-keys and count-keys are disjoint; produce every answer rather than ask. |
+| # | Rule | Records |
+|---|---|---|
+| R1 | **Emit data, never code.** No LLM writes Snakefile or rule source; LLM output validates against an exported JSON Schema. | ADR-0008 |
+| R2 | **Agents propose, code decides — and refusal is an exit code.** Nothing enters a manifest unvalidated; every `Assertion` quote must grep back *and* entail its value. | ADR-0008, ADR-0009, ADR-0013, ADR-0020 |
+| R3 | **Never read a whole FASTQ.** Every FASTQ touch goes through `probe.streaming.BoundedReader`, bounded by `--max-reads` **and** `--max-bytes`. Never write a second budget loop. | ADR-0001 |
+| R4 | **Three truths, never merged.** Interpretive fields are `Evidenced`; observed↔asserted disagreement is a surfaced `Conflict`; one judgement = one envelope. | ADR-0006, ADR-0007 |
+| R5 | **Disk is state, context is cache.** Every stage writes a resumable, content-addressed artifact under `seqforge/` — **no leading dot**, because it holds the manifest and the Snakefile: output, not scratch, and only `seqforge/cache/` is safe to delete. Resume is implicit and there is no `--resume`. | ADR-0013, ADR-0015 |
+| R6 | **The CLI is the API; the skill is a thin client.** Every skill action maps to a deterministic `seqforge <verb>` emitting JSON on stdout by default. | ADR-0013 |
+| R7 | **Machine-independent manifest — no absolute paths, ever.** Genome = UCSC id + registered GTF name; software = a `liulab-runtime` env name; data = a URI. | — |
+| R8 | **Every KB entry is executable and self-testing.** Each tech ships a `spec.yaml` that `kb roundtrip` proves recovers what it declares. | — |
+| R9 | **Cheap first, expensive only on ambiguity.** Rungs 0–3 by default; escalate past 3 only on a processing-divergent tie. Record which rung resolved each field. | ADR-0011 |
+| R10 | **Consumer, not parallel universe.** Never define genome-file machinery or aligner environments here — they belong to `liulab-genome` (assemblies by UCSC id, and an annotation is a **registered GTF `name`**: it fetches no annotations, so seqforge stages the GTF and calls `register_gtf(gtf, name)`) and to `liulab-runtime` (an aligner environment is its **literal** name — `align-rna`, `align-dna`, `ml`, `ml-gpu` — with no profile indirection). | — |
+| R11 | **Two artifacts, and the instructable surface is closed.** The dataset is write-once, the recipe plural; parse-keys and count-keys are disjoint; produce every answer rather than ask. | ADR-0004, ADR-0005, ADR-0011 |
 
 ## Where to read next
 
-| when you touch | read |
-|----------------|------|
-| any rule — its rationale, and the file that enforces it | [`docs/agents/rules.md`](docs/agents/rules.md) |
-| tests: which one to run, the two markers, what the suite costs | [`docs/agents/testing.md`](docs/agents/testing.md) |
-| pixi, ruff, mypy, CalVer, mkdocs, GitHub Discussions | [`docs/agents/toolchain.md`](docs/agents/toolchain.md) |
-| where a module lives; the `liulab-genome` / `liulab-runtime` contracts | [`docs/agents/layout.md`](docs/agents/layout.md) |
-| the `seqforge/` output tree, its caches, and the hooks | [`docs/agents/state.md`](docs/agents/state.md) |
-| where a new piece of writing goes — a rule, a decision, a term, or a measurement | [`docs/adr/README.md`](docs/adr/README.md) |
-| issues, and the five triage labels | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) |
-| a comment in `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml` | [`docs/agents/comments.md`](docs/agents/comments.md) |
-| `models/`: the decisions behind the schemas (`schema export` is the schema) | [`docs/agents/models.md`](docs/agents/models.md) |
-| a KB entry: `spec.yaml`, confusability, the round-trip, what is covered | [`docs/agents/kb.md`](docs/agents/kb.md) |
-| scoring: the evaluators, the evidence matrix, the escalation ladder | [`docs/agents/resolve.md`](docs/agents/resolve.md) |
-| harvest: the module flow, the two span marks, the send list vs what reaches disk | [`docs/agents/harvest.md`](docs/agents/harvest.md) |
-| a CLI verb: the stream split, the exit codes, what costs network or a model | [`docs/agents/cli.md`](docs/agents/cli.md) |
-| the demo dataset, the benchmark tiers, the compose gate and what it measured | [`docs/agents/eval-corpus.md`](docs/agents/eval-corpus.md) |
+- **A term, or a synonym to avoid** — [`CONTEXT-MAP.md`](CONTEXT-MAP.md) and the five per-context
+  `CONTEXT.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose/`.
+- **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
+  `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
+
+**A term or a record is the exception.** Before adding either, the answer must not be readable from
+the code. A glossary entry is one or two sentences; a record is one paragraph and clears all three
+of hard-to-reverse, surprising-without-context, and a real trade-off — prefer editing an existing
+entry to adding a neighbour. **This bar is held at review and nothing mechanises it**; a line-cap
+test was considered and declined, and is the fallback if the bar drifts.
+
+## Working here
+
+- **Tests: run the narrowest thing that can go red.** `pixi run -e test pytest tests/test_<mod>.py
+  -k <expr>` in the loop (files mirror packages), `pixi run check` once before the PR, then read CI.
+  Two markers, both semantic: `external` (a binary seqforge does not own) and `repo` (repo
+  consistency, not `src/` behaviour).
+- **Comments: name the idea, never the number** — no rule number and no document section number in
+  `src/`, `tests/`, `skills/`, `evals/` or `pyproject.toml`; a guard in
+  `tests/test_repo_invariants.py` fails on one. A number is a mutable label; write the term instead.
+- **Versioning: CalVer (`YYYY.M.PATCH`), never SemVer** — including every component stamp
+  (`PROBE_VERSION`, `kb_version`, `resolve_version`, `workflow_version`), precisely *because* they
+  fold into `run_id` and the content-addressed caches: a date-stamped identity, not a promise.
+- **Issues live on GitHub**, and the five triage labels are
+  [`.github/ISSUE-CONVENTIONS.md`](.github/ISSUE-CONVENTIONS.md).

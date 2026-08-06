@@ -91,7 +91,7 @@ class ValidationWarning(BaseModel):
 #: Where to get the submitter's own upload, in the one phrasing five refusals share. It names the
 #: **verb** and never the URI: three of those refusals are raised inside the byte resolver, which may
 #: not hold an archive record, so a remedy carrying the value would first have to be handed one
-#: (``docs/adr/0033``). It lives here because ``_missing_technical_read`` said it first and said it
+#: (ADR-0033). It lives here because ``_missing_technical_read`` said it first and said it
 #: correctly — two copies of this sentence would be two remedies to keep true — and by the time the
 #: fifth site was found there were four, one of them still naming a route that usually dead-ends.
 SUBMITTED_FILES_REMEDY = (

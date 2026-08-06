@@ -347,7 +347,7 @@ def _pretrimmed_blockers(
                 # out of the record set the records stage already fetched. The pointer stays a
                 # pointer: this gate is handed an evaluation and a spec, and threading a record set
                 # in to print the concrete URI would put archive facts inside the byte resolver
-                # (`docs/adr/0033`).
+                # (ADR-0033).
                 remedy=(
                     f"Re-fetch the untrimmed original — {SUBMITTED_FILES_REMEDY} — or confirm the "
                     "technical read was excluded from trimming and re-probe."
@@ -487,7 +487,7 @@ def _missing_technical_read(hyp_tech: str) -> Blocker:
 
     It says ``<accession>`` and not the run's — deliberately. The exact ``s3://sra-pub-src-*`` URI is
     two lines away in an ``ArchiveRecordSet``, and taking it would mean records reaching a decision
-    that is made from bytes alone; `docs/adr/0033` argues the trade and refuses it, naming the
+    that is made from bytes alone; ADR-0033 argues the trade and refuses it, naming the
     parameter-with-a-default as the shape it would arrive in. The reader pays one command instead.
     """
     return Blocker(

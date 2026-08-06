@@ -175,7 +175,7 @@ rule onlist:
 
     `temp()` is the entire point, and why -- the 111 MB a compiled run used to carry three times over,
     and why an input with no producing rule was `temp()`-able in name only -- is argued once in
-    `docs/adr/0015-onlists-are-built-and-deleted.md`.
+    ADR-0015.
 
     No `container:` directive, deliberately. This runs `seqforge`, which is not an aligner -- the
     ambient environment is the one that just ran `seqforge compose`, so it is by construction the one
@@ -328,7 +328,7 @@ rule starsolo_count:
         # set: they shape the alignment we retain, not the counts, and naming them as CellRanger
         # parity would be a claim nobody measured.
         #
-        # The shared reason is ADR-0022's: none of these varies by chemistry, so none belongs to the
+        # The shared reason is ADR-0011's: none of these varies by chemistry, so none belongs to the
         # KB, and a literal is the only rendering that says so -- the params gate requires the emitted
         # key set to be EXACTLY union(KB keys, processing keys), and `required_config` is COMPUTED
         # from this source, so a `params.solo[clipAdapterType]` subscript would silently oblige all 11
@@ -362,7 +362,7 @@ rule starsolo_count:
         # mapping read is bit-for-bit untouched. It is affordable precisely because the
         # `WORKFLOW_VERSION` bump already obliges reprocessing. The name is real, verified against the
         # pinned 2.7.11b binary (a bogus parameter name FATALs with "unrecognized parameter name";
-        # this one does not). Per ADR-0022 its value varies with NOTHING -- not the chemistry, not the
+        # this one does not). Per ADR-0011 its value varies with NOTHING -- not the chemistry, not the
         # user's intent, there is one correct value for every dataset seqforge will ever compile --
         # which is precisely what makes it the module's to hardcode rather than the KB's or the
         # recipe's. `-F 0x100` STAYS in `cram.py`, and do not "clean it up": it is now a cheap

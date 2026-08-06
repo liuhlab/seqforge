@@ -98,7 +98,7 @@ def _comment_lines(text: str) -> list[str]:
 def test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them_loads(
     tmp_path: Path,
 ) -> None:
-    """The refusal `docs/adr/0034` says does not exist yet, and the reason the dialect is strict.
+    """The refusal ADR-0034 says does not exist yet, and the reason the dialect is strict.
 
     Both halves matter and they are one test on purpose: an over-strict loader that refused the clean
     set too would pass a refusal-only test while making the feature unusable.

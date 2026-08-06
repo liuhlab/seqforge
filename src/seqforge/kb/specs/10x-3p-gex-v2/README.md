@@ -26,6 +26,24 @@ If a paper or database says "v2" while the reads are actually 28 bp, seqforge do
 pick one. It surfaces the disagreement (metadata says 26 bp, the bytes say 28 bp) and hands it to a
 human — the bytes decide what the data is.
 
+## The one neighbour the reads cannot decide
+
+**5' v1/v2 is this entry's twin in every byte.** It has the same 26 bp R1 (16 bp barcode + 10 bp UMI),
+the same open-ended cDNA R2, and — the part that closes every cheap route — the **same
+`737K-august-2016` whitelist**. Both entries point at the same file, so the barcode list cannot break
+the tie either. The backends differ in exactly one parameter, `soloStrand`, and no probe can observe
+it: 5' reads the transcript from the other end.
+
+That makes it the **only** read-undecidable pair in this knowledge base, and worth knowing because the
+resolver's behaviour changes here. Rather than pick, it reaches for metadata (papers say "5'" or "3'"
+reliably even when they are vague about the version) or a trial alignment, and asks a human if neither
+answers. Before the 5' entry existed a 5' library resolved silently to this spec and compiled
+`soloStrand Forward` — a measured 0.5–0.6 gene-expression correlation against >0.98 for the right
+orientation, at exit 0, with nothing red.
+
+None of this is true of v3: at 28 bp its geometry-mates each carry their own list, so the barcode
+list settles them.
+
 ## Gotchas
 
 - **The barcode read can go missing on SRA.** `fasterq-dump` without `--include-technical` drops R1

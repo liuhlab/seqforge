@@ -21,8 +21,7 @@ identity:
   aliases: ["10x 5' v2", "10x 5' v1", "Chromium 5' v2", "Chromium 5' v1", "SC5Pv2", "SC5Pv1", "SC5P-R2", "single cell 5-prime v2", "single cell 5-prime v1"]
   # BOTH terms, verified against the live EFO (EBI OLS), not memory: EFO:0011025 = 10x 5' v1,
   # EFO:0009900 = 10x 5' v2. Neither is a 3' term — reusing EFO:0009899 (3' v2) here would file a 5'
-  # kit under the assay it inverts, which is exactly what the ontology note in docs/agents/kb.md
-  # exists to prevent.
+  # kit under the assay it inverts, and nothing downstream can see that it happened.
   assay_ontology: ["EFO:0011025", "EFO:0009900"]
   modality: rna
 

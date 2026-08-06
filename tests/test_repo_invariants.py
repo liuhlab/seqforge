@@ -350,7 +350,8 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
         "a comment points at a governing document by number:\n"
         + "\n".join(offenders)
         + "\n\nWrite the idea instead of the label. Name the concept — the read budget, a Blocker, "
-        "the byte resolver, a benign twin; CONTEXT.md is the glossary — and delete the comment "
+        "the byte resolver, a benign twin; the per-context CONTEXT.md files are the glossary — and "
+        "delete the comment "
         "outright if the pointer was all it carried. A number is a mutable label, and four of them "
         "had already gone stale by the time this check existed."
     )

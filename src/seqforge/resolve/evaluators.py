@@ -142,6 +142,12 @@ def _unconfirmed(detail: str) -> Evaluation:
     this one. There the question is asked of nobody, so it leaves the SIGNATURE rather than the
     normalizer; :func:`~seqforge.resolve.confuse.without_rung3_evidence` is where that happens.
 
+    **Read the paragraphs above as care, not as urgency: on a production run this branch is nearly
+    dead.** Every whitelist ships pre-packed, so every onlist reference in every shipped spec resolves
+    from ``DEFAULT_REGISTRY`` with no network and no setup, and a spec that calls its onlist decisive
+    cannot ship until its list does (#321). What reaches here is a synthetic registry, a spec under
+    authorship, or a deliberately withheld list.
+
     Both directions are measured in `docs/research/support-normalizer-asymmetry.md` (2026-08-05).
     """
     return Evaluation(Outcome.ABSTAIN, 0.0, detail, answerable=True)
@@ -233,6 +239,15 @@ def evaluate(
 
 
 def _eval_segment_length(test: SegmentLength, wp: WindowProbe) -> Evaluation:
+    """The read's MODE length against a declared one: a tolerance gate, a triangular score.
+
+    Gate and score are deliberately different shapes. The gate is exact-to-tolerance, because this is
+    what separates a 26 bp barcode read from a 28 bp one — the whole of the 10x v2-versus-v3 decision,
+    settled before any whitelist is opened. The score falls off linearly either side so that a near
+    miss still ranks above a wild one, which is what lets a cheap rung ORDER the candidates it cannot
+    yet decide between. Open-ended cDNA declares no length here at all; its floor is the read's own
+    ``min_len``, gated by :func:`read_length_compatible`.
+    """
     mode = wp.mode_length
     if mode == 0:
         return Evaluation(Outcome.FAIL, 0.0, "no reads")
@@ -286,7 +301,19 @@ def _eval_has_segment(test: HasSegment, read: Read, wp: WindowProbe) -> Evaluati
 
 
 def _eval_distinct_ratio(test: DistinctRatio, read: Read, wp: WindowProbe) -> Evaluation:
-    """SUPPORTS-only: the gate outcome is forced to ABSTAIN so it can never gate (depth-dependent)."""
+    """SUPPORTS-only: the gate outcome is forced to ABSTAIN so it can never gate (depth-dependent).
+
+    Distinct values over total across the window, and it is only meaningful against an expectation
+    because both directions saturate with depth. ``expect: high`` (a UMI, cDNA) needs ``4**width`` far
+    above the sampled read count or the ratio collapses toward the low band on a chemistry that is
+    perfectly fine; ``expect: low`` (a cell barcode) is a statement about reads per cell, so it moves
+    with how deeply the sample was sequenced and not with what the sample is. That is the whole reason
+    it may not gate.
+
+    What it is good at is PROPOSING the CB-versus-UMI split inside one barcode read — two adjacent
+    windows of the same file, measured under the same depth, where the comparison is internal and the
+    depth cancels. The onlist confirms it; this only nominates.
+    """
     anchored = _anchored_element(test, read)
     if anchored is not None:
         ratio = wp.anchored_distinct_ratio(read, anchored.name)
@@ -308,6 +335,28 @@ def _eval_distinct_ratio(test: DistinctRatio, read: Read, wp: WindowProbe) -> Ev
 def _eval_onlist(
     test: OnlistHitRate, read: Read, wp: WindowProbe, spec: Spec, registry: OnlistRegistry
 ) -> Evaluation:
+    """The rung-3 hypothesis test: does this window's barcode actually appear in the vendor's list?
+
+    **Width-generic.** The barcode width comes from the registry entry rather than from anything here,
+    so SPLiT-seq's three 8 bp round blocks and 10x's 16 bp barcode run the same code path. A chemistry
+    never earns a second one by being narrow.
+
+    **It searches, and it records what it found.** Forward and reverse-complement, plus a small
+    positional scan around the declared start, and the winning ``(orientation, offset)`` goes into the
+    detail so the manifest carries the geometry the composer emits — the spec declares where the
+    barcode is *meant* to be, the bytes say where it is.
+
+    **The scale is anchored at both ends.** The floor is what a non-barcode read hits by chance,
+    ``n_entries / 4**width``, and the score is the clipped rise from there to the test's ``min``
+    (~0.6 for the shipped entries: the bar STARsolo's own 1MM correction is measured against). At Q30
+    the separation between a real barcode read and any other read is roughly 500:1, which is why one
+    number decides a rung rather than contributing to a blend.
+
+    **The trap: a reverse-complement hit is a fact about the READ, not about the strand.** It says the
+    barcode was sequenced off the other strand, so the fix is a reverse-complemented whitelist file.
+    It says nothing about ``soloStrand``, which is the KB's 3'-versus-5' property, derived from the
+    kit's oligos and unobservable from any barcode.
+    """
     ref = spec.onlists.get(test.onlist)
     if ref is None:
         return _unconfirmed(f"unknown onlist alias {test.onlist!r}")
@@ -374,6 +423,22 @@ def onlist_admits_over_length(
 
 
 def _eval_motif(test: MotifPresent, wp: WindowProbe) -> Evaluation:
+    """Share of reads carrying an IUPAC motif where the test says to look — a FREQUENCY, never a purity.
+
+    Two properties do the work, and both are the spec author's to get right.
+
+    **``where`` is most of the evidence.** A motif claimed at a fixed offset of a fixed-offset
+    chemistry is a positional claim and separates; the same motif searched ``anywhere`` is background,
+    because a TSO, an adapter or a mosaic end turns up somewhere in a large fraction of reads that are
+    not the chemistry at all. Anchoring is also what lets an entry leave ``excludes`` empty: an
+    abundant but non-positional sequence cannot confound a test that only looks at one column.
+
+    **``min_rate`` is a floor on a population, so a structured MINORITY is a legal signature.** Where
+    the tagged fraction of a library is a knob the bench turns, a majority bar would refuse the assay's
+    own reference data — which is why the schema's 0.5 default is a default and not a rule. The
+    denominator policy that makes a low floor safe is :meth:`WindowProbe.motif_rate`'s: an uncalled
+    base is not a substitution, so a dark cycle costs coverage and leaves the rate alone.
+    """
     rate = wp.motif_rate(
         test.motif,
         where=test.where,

@@ -438,7 +438,7 @@ def test_a_sample_count_with_no_metadata_resolution_fails_rather_than_abstains()
 
 
 def test_a_provenance_read_count_cannot_be_pre_registered_in_a_case() -> None:
-    """The third of the three facts that say the read counts move nothing (ADR-0030).
+    """The third of the three facts that say the read counts move nothing (ADR-0004).
 
     `DatasetProvenance` carries a read count per file on every manifest now. The claim that goes with
     it is that the number reaches no content hash, no `run_id` and no graded case record; the first
@@ -2753,7 +2753,7 @@ def test_every_case_the_frozen_digest_names_is_still_a_benchmark_case() -> None:
 def test_the_plate_case_is_outside_the_frozen_digest_and_the_tier_is_bigger_than_it() -> None:
     """The exclusion, asserted from the corpus's side — and asserted to be non-vacuous.
 
-    `GSE207085-nasal-prox1-96cells` is pre-registered and published RED (ADR-0018), so it moves
+    `GSE207085-nasal-prox1-96cells` is pre-registered and published RED (ADR-0016), so it moves
     `false_accept_rate` off 0.0 by construction the moment it is graded. It is a nineteenth case, not
     a nineteenth member of the bar, and this is where that is written down in something that runs.
 

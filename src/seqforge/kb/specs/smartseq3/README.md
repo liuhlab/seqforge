@@ -57,6 +57,23 @@ reads outright, while bulk accepts a Smart-seq3 pair on read count and length al
 therefore declare the other, and the tie is broken by **metadata** — there is no whitelist on either
 side for rung 3 to reach for.
 
+## How thin a cell is allowed to be
+
+One cell per file has a second half: the well that barely sequenced. This entry declares a floor of
+**1000 reads per cell**, summed over that cell's runs. It is the only shipped entry that declares a
+floor and the only one that declares one sample is one cell, and the two travel together on purpose —
+a chemistry that says a sample is a cell without saying how thin a cell may be is one whose starved
+wells *dissent*, resolving to something else on their own thin bytes and refusing the whole plate,
+where what they should do is abstain.
+
+Below the floor a cell inherits the plate's chemistry and enters the manifest anyway, recorded rather
+than silent; dropping it from the pipeline happens later, at compile time, from the same read counts
+recomputed independently. The manifest keeps the measurement and never the verdict.
+
+The number has to sit under the read budget the probe was given (2000 by default). Above it a per-file
+count is an extrapolation rather than a count, and a floor compared against an estimate would quietly
+move whenever that budget did.
+
 ## What is not modelled
 
 - **Smart-seq3xpress.** A separate publication with no ontology term of its own and a different cDNA

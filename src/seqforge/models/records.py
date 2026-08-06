@@ -37,7 +37,7 @@ RecordLevel = Literal["project", "sample", "experiment", "run"]
 #: transcribed from an archive. It lives beside the field it is a value of, because a string literal
 #: repeated across modules is a chance to typo a decision — and this one decides which dialect the
 #: loader enforces, whether fusing runs is remarkable, and where a refusal sends its reader
-#: (`docs/adr/0034`).
+#: (ADR-0034).
 #:
 #: **Read it through** :attr:`ArchiveRecordSet.declared_by_hand`, which is the question those
 #: consumers are actually asking. What is left for the constant is the loader: it dispatches on the
@@ -77,7 +77,7 @@ class RecordAttribute(BaseModel):
 
 
 class SubmittedFile(BaseModel):
-    """One file the submitter uploaded, as the archive declares it (`docs/adr/0033`).
+    """One file the submitter uploaded, as the archive declares it (ADR-0033).
 
     The unit is the file, not the name: an archive states the name, a hash, a size and a location on
     one element, and they only mean anything together — a name with no hash and no location is what

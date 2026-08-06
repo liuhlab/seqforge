@@ -286,7 +286,7 @@ class DatasetProvenance(BaseModel):
     ``estimated_reads`` is here for the mirror-image reason. It is a **measurement of** the bytes
     that must not become part of what the bytes **are**: downstream gates need a depth per file, and
     the number is a function of the probe budget, so the section that carries the manifest's identity
-    is the one place it cannot go (ADR-0030).
+    is the one place it cannot go (ADR-0004).
     """
 
     dataset_hash: str

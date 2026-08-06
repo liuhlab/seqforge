@@ -11,6 +11,16 @@ Multiome GEX arm had before its spec existed, and it fails the same quiet way: a
 misses the v3 whitelist, matches no positive target, and either mis-resolves or abstains. It also fails
 *safely* — it over-asks rather than answering wrongly — which is exactly why nothing was red.
 
+## "GEM-X" on its own is not evidence for this entry
+
+GEM-X is a **platform generation**, not a kit: it spans 3′ v4, 5′ v3, Flex and OCM, and three of those
+four are a different entry here or no entry at all. So an alias, or a harvested claim from a paper, has
+to name **3′ and v4** before it means this spec — which is why every alias above carries both.
+
+The near-miss to watch for is **"Next GEM"**, which is the *predecessor* generation (3′ v3.1, 5′ v2).
+A bare search for "GEM" therefore pulls in the generation this kit replaced, and reads as
+corroboration while pointing at the wrong entry.
+
 ## What differs from `10x-3p-gex-v3`
 
 | | v3 | GEM-X v4 |
@@ -37,16 +47,15 @@ Multiome GEX, and v4 — and all three are told apart pairwise by which of three
 
 ## Provenance
 
-The whitelist is pinned by URL and checksum, per the rule in
-[`docs/agents/kb.md`](../../../../../docs/agents/kb.md): `3M-3pgex-may-2023.txt.gz`, packed from
-`scg_lib_structs/data/10X-Genomics/`, the same mirror the other 10x lists came from. The filename was
+The whitelist is pinned by URL and checksum, as every KB value is: `3M-3pgex-may-2023.txt.gz`, packed
+from `scg_lib_structs/data/10X-Genomics/`, the same mirror the other 10x lists came from. The filename was
 taken from two independent sources rather than recalled — note that **Cell Ranger v9 renamed it**
 `3M-3pgex-may-2023_TRU.txt.gz` to distinguish capture strategies, and only the pre-rename name is
 published.
 
-`assay_ontology` is `EFO:0022604` ("10x 3′ v4"), looked up against the live EBI OLS. It is **not**
-`EFO:0009922` (v3) — filing a kit under its predecessor's term is the mistake the ontology note in
-`docs/agents/kb.md` exists to prevent.
+`assay_ontology` is `EFO:0022604` ("10x 3′ v4"), looked up against the live EBI OLS rather than
+recalled. It is **not** `EFO:0009922` (v3): filing a kit under its predecessor's term files the spec
+under a protocol it does not model, and no test can see that it happened.
 
 ## Counting is not chemistry
 
