@@ -322,7 +322,12 @@ def _join(
         # those, so a set somebody wrote contributes exactly one thing — text that a quote must still
         # be checked against.
         declarer = sample
-        accession_of[sample_id] = None if declared_by_user else declarer.accession
+        # Two ways to have no accession and they are not the same absence: a hand-written set has ids
+        # that are not accessions, and a run with no sample record above it has nothing to take one
+        # from. Both leave the field empty; only the first still has a subject, below.
+        accession_of[sample_id] = (
+            None if declared_by_user or declarer is None else declarer.accession
+        )
         record_of[sample_id] = declarer
         # What a document hangs off, which is the record's own id whoever wrote it. Separate from
         # `accession` because that field is typed as one and a hand-written id is not, and separate
