@@ -114,9 +114,37 @@ ucsc-fatotwobit = "*"
 ucsc-twobitinfo = "*"
 
 # The DAG builder, so compose's wiring gate runs rather than skipping green. `minimal` because
-# submitting jobs is the user's. STAR and samtools belong to liulab-runtime, which the rules name.
+# submitting jobs is the user's. STAR and samtools belong to liulab-runtime, which the rules name;
+# no environment a user builds carries them. `external` below is the one exception, and it is a test.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
+
+# TEST-ONLY, and the only place this repository names an aligner at all.
+#
+# `external` marks a test that needs a binary seqforge does not own, and it meant three different
+# things at once. `snakemake-minimal` is a dependency above, so the snakemake-gated tests always ran;
+# the bgzip/tabix ones ran only on a developer box that happened to carry htslib in /usr/bin; and the
+# STAR one — the end-to-end proof that a UMI tag put on a read survives into the aligner's own output,
+# which is the claim the uBAM route rests on — had never executed automatically on any host this
+# project's CI can reach, for the life of the repo. A test that cannot run is not a weaker test, it is
+# a claim with nothing behind it, and a skip is green.
+#
+# This does not make seqforge an owner of alignment environments, and the boundary is unmoved: the
+# shipped rules still name liulab-runtime's image, nothing here decides what a USER's alignment runs
+# in, and no environment a user builds — nor the one the main test job builds — includes this feature.
+# `test-external` is its only consumer, and its only purpose is to let a dark test execute.
+#
+# The cost, stated plainly: `star` is now declared in two repositories. Both spell it `star = "*"`
+# against one channel, so neither pins a version and there is nothing that can drift between them. If
+# a pin is ever needed it belongs to liulab-runtime, whose image is what actually runs a user's
+# alignment, and this table follows it rather than the other way round.
+[tool.pixi.feature.external]
+platforms = ["linux-64"]
+
+[tool.pixi.feature.external.dependencies]
+star = "*"      # the aligner the uBAM tag test runs, and the plate end-to-ends
+samtools = "*"  # those same tests read the aligner's BAM back out
+htslib = "*"    # bgzip and tabix, for the fragment-file tests that until now skipped in CI
 
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
@@ -152,6 +180,12 @@ mkdocs-material = "*"
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
 test    = { features = ["py313", "test", "wf"], solve-group = "default" }
 docs    = { features = ["py313", "docs"], solve-group = "default" }
+# The one environment that carries `external`, and deliberately in NO solve group. A solve group
+# resolves its members together, so joining `default`'s would let an aligner's own dependencies
+# constrain the packages the lint, test and build jobs resolve and download — three green jobs made to
+# move for a feature none of them installs. Solving alone costs a longer lock file and nothing else,
+# and it is what keeps `test` byte-identical to what it was before this environment existed.
+test-external = { features = ["py313", "test", "wf", "external"] }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -164,6 +198,9 @@ typecheck = "mypy"
 test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
+# The complement, and it needs `-e test-external`: anywhere else these tests skip themselves and this
+# verb reports green having run nothing.
+test-external = "pytest -m external -n auto --maxprocesses 12 --dist=loadgroup"
 # Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"

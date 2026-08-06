@@ -75,6 +75,32 @@ jobs:
       - name: pytest
         run: pixi run -e test test
 
+  # The `external` tests, in the one environment where the binaries they need exist. Until this job
+  # existed the marker meant three different things: snakemake is a dependency, so those ran in the
+  # job above; bgzip/tabix are not, so the fragments test skipped here and passed only on a developer
+  # box that happened to carry htslib; and the STAR test -- the end-to-end proof that a UMI tag put on
+  # a read survives into the aligner's own output -- ran on no host this project's CI can reach, ever.
+  # A skip is green, so nothing was ever red about a claim nothing was checking. See #333.
+  #
+  # This DOES re-run the snakemake-gated externals the `test` job already ran, and that duplication is
+  # deliberate: the alternative is deselecting them here or excluding them there, and either one makes
+  # the main job's selection a function of what this job happens to cover. Paying ~20s of runner time
+  # to keep `test` exactly the run it was is the better trade -- the whole point of a separate
+  # environment is that the job everyone reads does not grow a solve, a download or a new failure mode.
+  #
+  # Its environment is linux-64 only (pyproject's `external` feature), which is what this runner is.
+  test-external:
+    name: test (external binaries)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: test-external
+          locked: true
+      - name: pytest -m external
+        run: pixi run -e test-external test-external
+
   build:
     name: build wheel + sdist
     runs-on: ubuntu-latest

@@ -42,11 +42,16 @@ a module and test it — never to synthesise rules on the fly.
 | gate | what it proves | when |
 |---|---|---|
 | `params` | every emitted param is **owned**, arrives verbatim from its owner, and agrees with the observed layout | always |
-| `wiring` | `snakemake -n` / `--lint` | needs snakemake, else `skip` |
+| `wiring` | `snakemake -n -p` over a throwaway replica | needs snakemake, else `skip` |
 | `e2e` | a real count matrix vs injected truth | needs STAR + a genome, else `skip` |
 
 **`skip` is not `pass`.** A gate reporting `pass` because it never ran would let green CI be mistaken
 for coverage — that distinction is load-bearing, so never report a skipped gate as passing.
+
+**Each verdict is `{"status": …, "reason": […]}`, and the reason is the part worth relaying.** A
+failing `wiring` gate carries what snakemake actually said — including the module's own message,
+written to be read by whoever hit it — and a `skip` says what it was waiting for. Reporting
+`gate.wiring: fail` and stopping there is how a refusal becomes indistinguishable from a silent pass.
 
 ## One key, one owner
 

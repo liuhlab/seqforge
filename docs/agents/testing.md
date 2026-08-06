@@ -29,7 +29,8 @@ something, it is a dated measurement of that decision, not a claim about today.
 deleted once both gates ran their steps concurrently over a 12-worker pytest: it measured *slower
 than the gate it was a cheap substitute for*, and checked less. `test-fast` survives as a standalone verb — `-m 'not external and not repo'` is what you want on a machine
 with no `snakemake` — but it is no longer a rung, because a rung that saves nothing is a rung nobody
-should be told to climb.
+should be told to climb. `test-external` is its complement rather than a rung of its own: the same
+marker on the other side of the `-m`, run in the one environment that can satisfy it.
 
 **Rung 1 is where you live.** A single file with `-k` is a second or two; a whole test file is a few.
 Nothing about a one-line change is learned by running the whole suite that a targeted run does not
@@ -38,7 +39,9 @@ tell you in a fraction of the time.
 **Rung 3 is a rule, not a suggestion.** Once the PR is open, `.github/workflows/ci.yml` runs the
 gate's four steps on every push — as separate jobs invoking `lint`, `fmt-check`, `typecheck` and
 `test` directly, never through `scripts/check.sh`. Running them again locally re-proves what CI is
-already proving and tells you nothing new. Read the run.
+already proving and tells you nothing new. Read the run. CI runs one thing the gate does not:
+`test (external binaries)`, which is `test-external` in its own environment — see the markers below,
+because that job is where the marker stopped meaning three things at once.
 
 **The runner itself is tested, because it can fail in ways no step can.** `pixi run check` is a
 script, and on macOS's bash 3.2 it declared an associative array that shell does not have, collected
@@ -100,6 +103,35 @@ is the honest state of things: the subprocess cost that used to dominate is gone
 mostly real work, and it deselects a small fraction of the suite. Both it and `test` run under
 `pytest-xdist` — see below.
 
+**`external` used to mean three different things, and one of them meant "runs nowhere" (#333).**
+`snakemake-minimal` is a pixi dependency, so the snakemake-gated tests always ran in CI; bgzip and
+tabix are not, so the fragments test passed only on a developer box carrying htslib in `/usr/bin`;
+and the STAR-gated tests — including the end-to-end proof that a UMI tag survives into the aligner's
+own output — ran on **no host this project's CI can reach**, for the life of the repo. A skip is
+green, so nothing was ever red about it. So the marker now has an environment and a job that satisfy
+it end to end:
+
+| | |
+| --- | --- |
+| the feature | `external` in `pyproject.toml`: `star`, `samtools` and `htslib` from bioconda, test-only |
+| the environment | `test-external` — `test` + `wf` + `external`, linux-64, in **no solve group**, so `test`'s own solve and download are byte-identical to what they were |
+| the verb | `pixi run -e test-external test-external`, which is `pytest -m external` under xdist |
+| the CI job | `test (external binaries)`, beside `test` rather than inside it |
+
+Measured on adding it (2026-08-05): the selection is 25 tests, all 25 pass, and the run is ~22s at 12
+workers — with STAR 2.7.11b, which is the version the aligner test's docstring records measuring
+under. Nothing skips. Under `-e test` the same selection skips the three STAR-gated tests on every
+host, and the bgzip/tabix one wherever htslib is not installed — which is the CI runner, and is not
+the developer box this was measured on, and that difference is the whole reason a skip was never
+noticed.
+
+The new job **re-runs** the snakemake-gated externals the `test` job already ran; that duplication is
+the price of leaving the main job's selection alone, and it is the right way round — the job everyone
+reads should not change shape because a second job exists.
+
+`test-external` is the only verb that runs the aligner-gated tests, and running it in any other
+environment reports green having skipped them. That is what the `-e` in the verb is for.
+
 **The marker is applied per test, not per file.** `repo` is about what a test is *about*, and
 `tests/test_skills.py` is where one file holds both kinds. Five tests check the shipped skills and the
 installer (genuinely `repo`) and carry `@pytest.mark.repo`; four introspect the **live Typer app** and
@@ -142,6 +174,7 @@ pixi run test-failed                                    # --lf --new-first -x: r
 pixi run check                                          # rung 2: lint + fmt-check + typecheck + the full suite
 pixi run test                                           # the suite alone, 12 workers
 pixi run test-fast                                      # the suite minus what needs a binary we do not own
+pixi run -e test-external test-external                 # ONLY that complement, in the env that carries STAR/samtools/htslib
 ```
 
 ## Parallelism: `-n auto --maxprocesses 12`, and why rung 1 is exempt
@@ -280,7 +313,9 @@ times what the three probes it enables do — which is what makes the trade obvi
 `composed-plate` is the same shape, measured (2026-08-04): the `snakemake -n -p` behind it is ~1.9s
 and the three plan-reading tests are ~0.02s each, so ungrouped the suite paid the spawn **three**
 times and grouped it pays it once. The fourth member is the small-N end-to-end, which skips wherever
-STAR is absent and therefore costs the group nothing in CI.
+STAR is absent and therefore costs the group nothing in the `test` job. It does now run, in the
+`test (external binaries)` job — where the whole group is 4 of that job's 25 tests, so grouping it
+costs that job a little parallelism and the trade is unchanged.
 
 `--durations=0 | grep setup` is how you check this landed: one setup line per fixture, not one per
 worker that happened to draw a consumer.

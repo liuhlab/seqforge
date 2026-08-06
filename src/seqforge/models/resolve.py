@@ -214,11 +214,35 @@ class SampleAdmission(BaseModel):
     summary: str
 
 
+class GateVerdict(BaseModel):
+    """One gate's judgement and the reason it reached it, in one envelope.
+
+    ADR-0006's shape, applied to a gate: an envelope tracks a **decision**, and the test for whether
+    two things belong in one is whether they can disagree. A status beside a parallel
+    ``dict[str, list[str]]`` of reasons can — a ``fail`` with no entry, or an entry against a gate that
+    passed, are both representable and neither is detectable. Riding together, they cannot.
+
+    Three gates are three independent judgements, so there are three of these and not one.
+
+    ``reason`` is empty on a clean ``pass`` and carries at least one line otherwise — **``skip``
+    included**. A gate that reports ``skip`` is the whole reason this result distinguishes ``skip``
+    from ``pass``, and until now it said only that it had not run, never what it was waiting for.
+    """
+
+    status: Literal["pass", "fail", "skip"]
+    #: Why, in the words of whoever decided. For ``wiring`` that is snakemake's own stderr — the
+    #: module's `InputFunctionException` message is written to be read by the person who hit it, and
+    #: discarding it turned a wiring failure into an unexplained refusal that a silent pass was hard to
+    #: tell from. Bounded (:data:`~seqforge.compose.gates.REASON_TAIL_LINES`), because a result object
+    #: is a machine surface and a subprocess's stderr has no ceiling.
+    reason: list[str] = Field(default_factory=list)
+
+
 class ComposeResult(BaseModel):
     """The output of ``compose``: selected modules, emitted config paths, and the gate verdicts.
 
-    ``gate`` maps a gate name (``params`` / ``wiring`` / ``e2e``) to its verdict. ``skip`` is
-    first-class and distinct from ``pass``: the wiring and e2e gates depend on a toolchain seqforge
+    ``gate`` maps a gate name (``params`` / ``wiring`` / ``e2e``) to its :class:`GateVerdict`. ``skip``
+    is first-class and distinct from ``pass``: the wiring and e2e gates depend on a toolchain seqforge
     does not own (snakemake; STAR + liulab-genome + network), and a gate that reports ``pass``
     because it never ran would let green CI be mistaken for coverage.
     """
@@ -232,7 +256,10 @@ class ComposeResult(BaseModel):
     snakefile_path: Uri
     config_path: Uri
     units_path: Uri
-    gate: dict[str, Literal["pass", "fail", "skip"]]
+    gate: dict[str, GateVerdict]
+    #: The emitted config, as compose resolved it. It carried ``params_problems`` until the params
+    #: gate's reason moved onto its own verdict — a preview of the config is what this field is named
+    #: for, and a gate's findings were never that.
     params_preview: dict[str, object]
     #: What the live knowledge base's read floor admitted. ``None`` when the chemistry declares no
     #: floor, which is every dataset seqforge compiles today.

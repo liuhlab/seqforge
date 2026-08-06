@@ -22,19 +22,19 @@ Numbers only; the table below carries the links.
 
 | area | ADRs |
 | --- | --- |
-| `src/seqforge/cli/` | 0013, 0018, 0031, 0033, 0034, 0035, 0036 |
-| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030, 0032, 0035 |
+| `src/seqforge/cli/` | 0013, 0018, 0031, 0033, 0034, 0035, 0036, 0037 |
+| `src/seqforge/compose/` | 0004, 0005, 0011, 0012, 0015, 0022, 0024, 0027, 0029, 0030, 0032, 0035, 0037 |
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021, 0028, 0030 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018, 0033 |
 | `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029, 0032, 0035 |
-| `src/seqforge/manifest/` | 0003, 0004, 0005, 0012, 0030, 0033 |
+| `src/seqforge/manifest/` | 0003, 0004, 0005, 0012, 0030, 0033, 0037 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023, 0030, 0033, 0034 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
 | `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034 |
 | `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035, 0036 |
-| `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032 |
+| `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032, 0037 |
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
 | `evals/` and `src/seqforge/evals/` | 0016, 0018, 0034 |
 | `tests/`, and choosing which of them to run | 0002 |
@@ -80,3 +80,4 @@ Numbers only; the table below carries the links.
 | [0034](0034-a-user-record-set-declares-structure-never-a-fact.md) | A user-written record set declares structure, never a fact | A `source: user` set carries `level`/`id`/`parent`/`filenames` and no attributes — which is what keeps `asserted` meaning an archive's typed slot; two levels (`run → sample`), and fusing runs the filenames separate warns rather than blocks | `recordset.py`, `cli/records.py`, `models/records.py`, `resolve/records.py`, `cli/manifest.py`, `cli/run.py`, `evals/case.py` |
 | [0035](0035-the-mate-is-an-addition-to-umi-extraction.md) | The mate is an addition to UMI extraction, not half of it | The tag operation is entirely within one read, so the single-end form is the base case and the pairing is the addition: one verb with a nullable mate, the module deriving both the mate argument and `SAM SE`/`SAM PE` from `read_files_in`, and no signature tuned to win a read-set contest | `workflows/umite/extract.py`, `workflows/map/star-umi.smk`, `cli/io.py`, `kb/specs/` |
 | [0036](0036-a-verb-that-needs-a-file-list-is-handed-the-table.md) | A verb that needs a file list is handed the table that states it | `io umi-extract` takes `--units` + `--sample` and resolves its own files through `ordered_fastqs`, so the pairing is stated by `run`/`lane` rather than inferred from two lists sorted in parallel — a repeated-path form survives for hand invocation, and the arity the wiring gate structurally cannot see stops existing rather than being tested for | `cli/io.py`, `workflows/units.py`, `workflows/umite/extract.py`, `workflows/map/star-umi.smk` |
+| [0037](0037-the-live-knowledge-base-is-what-invalidates-a-compile.md) | The live knowledge base is what invalidates a compile | The `kb` component of `run_id` is read from the knowledge base loaded at compile time, never from the manifest's fill-time stamp — so an old manifest compiled under a newer KB lands in its own directory instead of silently over the last one, the formula and its four components are unchanged, and `provenance.kb_version` keeps its value and its meaning as the KB that decided that chemistry | `compose/core.py`, `compose/admission.py`, `cli/compose.py`, `manifest/hash.py` |

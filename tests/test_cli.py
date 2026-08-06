@@ -332,8 +332,10 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert composed.exit_code == 0, composed.stdout
     doc = json.loads(composed.stdout)
     assert doc["modules"][0]["name"] == "map/star"
-    assert doc["gate"]["params"] == "pass"
-    assert doc["gate"]["e2e"] == "skip"  # honest: the count-matrix run needs STAR + liulab-genome
+    assert doc["gate"]["params"]["status"] == "pass"
+    assert (
+        doc["gate"]["e2e"]["status"] == "skip"
+    )  # honest: the count-matrix run needs STAR + liulab-genome
     assert (tmp_path / doc["config_path"]).is_file()
     assert (tmp_path / doc["units_path"]).is_file()
     # whatever decided the run is recoverable from disk, bound to this dataset
@@ -382,7 +384,7 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     # `project` is the manifest-derived sample table + assay index, always written; `report` is the
     # best-effort HTML glance layer, emitted after compose and never able to fail the compile.
     assert set(summary["stages"]) == {"manifest", "processing", "compose", "project", "report"}
-    assert summary["stages"]["compose"]["gate"]["params"] == "pass"
+    assert summary["stages"]["compose"]["gate"]["params"]["status"] == "pass"
 
     manifest_path = tmp_path / "seqforge" / "manifest.yaml"
     assert manifest_path.is_file() and summary["manifest"] == str(manifest_path)
@@ -633,6 +635,78 @@ def test_compose_says_on_the_human_stream_that_it_dropped_cells(
     assert "1 of 2 cells dropped" in result.stderr
     assert admission["record_path"] in result.stderr
     assert (tmp_path / admission["record_path"]).is_file()
+
+
+def test_compose_says_on_the_human_stream_which_knowledge_base_it_compiled_under(
+    synth_smartseq3: SynthDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A manifest whose chemistry was decided under an older KB must SAY so — ADR-0037.
+
+    Since the live knowledge base folds into `run_id`, an old manifest under a new KB no longer
+    overwrites the earlier compile; it lands in its own directory and exits 0. That is the right
+    outcome and it is also a silent one: the params and any admission floor now come from a knowledge
+    base that never saw this dataset's chemistry decided, and nothing on the machine surface says the
+    two versions differ. So the disclosure is a line on the human stream, beside the admission line
+    and for the same reason — not a gate, because there is no failure here to gate on.
+
+    `KB_VERSION` is patched where `cli.compose` binds it rather than on `kb`, because the comparison
+    under test reads that name. It is patched *forward*, to a version the manifest cannot have been
+    filled under: every manifest this suite builds is filled under the live KB, which is exactly why
+    no fixture produced this divergence and exactly why the defect ADR-0037 fixes survived a suite
+    that composes constantly.
+    """
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text(
+        yaml.safe_dump(synth_smartseq3.manifest.model_dump(mode="json"), sort_keys=True)
+    )
+    recorded = synth_smartseq3.manifest.provenance.kb_version
+    monkeypatch.setattr("seqforge.cli.compose.KB_VERSION", "2099.1.1")
+
+    result = runner.invoke(
+        app,
+        ["compose", str(manifest_path), "--assembly", "sacCer3", "--annotation", "ensembl",
+         "-C", str(tmp_path)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert "2099.1.1" in result.stderr, (
+        f"the KB actually compiled under must be named, or the reader cannot tell which of the two "
+        f"produced the params: {result.stderr}"
+    )
+    assert recorded in result.stderr, (
+        f"naming only the live KB says a version changed without saying from what: {result.stderr}"
+    )
+    assert "manifest fill" in result.stderr, (
+        f"a disclosure the reader cannot act on is half a disclosure — say what closes the gap: "
+        f"{result.stderr}"
+    )
+
+
+def test_compose_is_silent_about_the_knowledge_base_when_it_has_not_moved(
+    synth_smartseq3: SynthDataset, tmp_path: Path
+) -> None:
+    """...and says nothing in the ordinary case, which is what makes the line above worth reading.
+
+    The other half of the disclosure, and the half that decays first: a line printed on every compile
+    is a line nobody sees. Every manifest the suite builds is filled under the live knowledge base, so
+    this is the path every other test takes and the stream must stay clean on it.
+    """
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text(
+        yaml.safe_dump(synth_smartseq3.manifest.model_dump(mode="json"), sort_keys=True)
+    )
+
+    result = runner.invoke(
+        app,
+        ["compose", str(manifest_path), "--assembly", "sacCer3", "--annotation", "ensembl",
+         "-C", str(tmp_path)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert "knowledge base" not in result.stderr, (
+        f"the manifest was filled under the live KB, so there is no divergence to disclose and the "
+        f"human stream must stay quiet: {result.stderr}"
+    )
 
 
 def test_resolve_score_cli_decides_v3(tmp_path: Path) -> None:

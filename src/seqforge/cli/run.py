@@ -248,7 +248,7 @@ def _process_and_compose(
         summary["compose"] = {"error": str(exc)}
         return summary, 3
     summary["compose"] = result.model_dump(mode="json")
-    return summary, (3 if any(v == "fail" for v in result.gate.values()) else 0)
+    return summary, (3 if any(v.status == "fail" for v in result.gate.values()) else 0)
 
 
 @app.command("run")

@@ -10,7 +10,7 @@ import typer
 from .. import __version__
 from ..compose import ComposeError, compose
 from ..io import default_registry
-from ..kb import load_spec
+from ..kb import KB_VERSION, load_spec
 from ..manifest import (
     ProcessingInputs,
     exit_code_for_report,
@@ -124,5 +124,22 @@ def compose_cmd(
             f"floor this chemistry declares. Which, and why: {result.admission.record_path}",
             err=True,
         )
-    if any(v == "fail" for v in result.gate.values()):
+    # The second line the human stream owes. `run_id` folds the LIVE knowledge base (ADR-0037), so an
+    # old manifest under a new KB compiles cleanly into its own directory rather than over the last
+    # one — but the chemistry in it was still decided under the older KB, and only this says so.
+    if manifest.provenance.kb_version != KB_VERSION:
+        typer.echo(
+            f"compiled under knowledge base {KB_VERSION}; this manifest's chemistry was decided "
+            f"under {manifest.provenance.kb_version}. The params and any admission floor above come "
+            f"from {KB_VERSION}. Re-run `seqforge manifest fill` to decide the chemistry under it too.",
+            err=True,
+        )
+    # A refusal that does not say why is what #267's triage mis-read as a silent pass, so the reason
+    # each failing gate carried back goes to the human stream before the exit code goes to the shell.
+    for name, verdict in result.gate.items():
+        if verdict.status == "fail":
+            typer.echo(f"gate.{name}: fail", err=True)
+            for line in verdict.reason:
+                typer.echo(f"  {line}", err=True)
+    if any(v.status == "fail" for v in result.gate.values()):
         raise typer.Exit(3)
